@@ -2,11 +2,10 @@ from __future__ import annotations
 
 import uuid
 from collections.abc import Collection, Mapping
-from itertools import chain
 from typing import TYPE_CHECKING, Any, ClassVar, overload
 
 from django.db import models
-from django.db.models import OuterRef, QuerySet, Subquery
+from django.db.models import QuerySet
 from django.utils import timezone
 
 from sentry.auth.services.auth import AuthenticatedToken
@@ -23,7 +22,7 @@ from sentry.types.region import find_regions_for_orgs
 
 if TYPE_CHECKING:
     from sentry.models.apitoken import ApiToken
-    from sentry.models.integrations.sentry_app_component import SentryAppComponent
+    from sentry.sentry_apps.models.sentry_app_component import SentryAppComponent
     from sentry.models.project import Project
 
 from sentry.hybridcloud.models.outbox import ControlOutboxBase, outbox_context
@@ -55,48 +54,6 @@ class SentryAppInstallationForProviderManager(ParanoidManager["SentryAppInstalla
             return Project.objects.none()
 
         return Project.objects.filter(organization_id=token.organization_id)
-
-    def get_related_sentry_app_components(
-        self,
-        organization_ids: list[int],
-        sentry_app_ids: list[int],
-        type: str,
-        group_by="sentry_app_id",
-    ):
-        from sentry.models.integrations.sentry_app_component import SentryAppComponent
-
-        component_query = SentryAppComponent.objects.filter(
-            sentry_app_id=OuterRef("sentry_app_id"), type=type
-        )
-
-        sentry_app_installations = (
-            self.filter(**self.get_organization_filter_kwargs(organization_ids))
-            .filter(sentry_app_id__in=sentry_app_ids)
-            .annotate(
-                # Cannot annotate model object only individual fields. We can convert it into SentryAppComponent instance later.
-                sentry_app_component_id=Subquery(component_query.values("id")[:1]),
-                sentry_app_component_schema=Subquery(component_query.values("schema")[:1]),
-                sentry_app_component_uuid=Subquery(component_query.values("uuid")[:1]),
-            )
-            .filter(sentry_app_component_id__isnull=False)
-        )
-
-        # There should only be 1 install of a SentryApp per organization
-        grouped_sentry_app_installations = {
-            getattr(install, group_by): {
-                "sentry_app_installation": install.to_dict(),
-                "sentry_app_component": {
-                    "id": install.sentry_app_component_id,
-                    "type": type,
-                    "schema": install.sentry_app_component_schema,
-                    "uuid": install.sentry_app_component_uuid,
-                    "sentry_app_id": install.sentry_app_id,
-                },
-            }
-            for install in sentry_app_installations
-        }
-
-        return grouped_sentry_app_installations
 
 
 @control_silo_model
@@ -156,21 +113,13 @@ class SentryAppInstallation(ReplicatedControlModel, ParanoidModel):
     # grant code should be included in the serialization.
     is_new = False
 
-    def to_dict(self):
-        opts = self._meta
-        data = {}
-        for field in chain(opts.concrete_fields, opts.private_fields, opts.many_to_many):
-            field_name = field.get_attname()
-            data[field_name] = self.serializable_value(field_name)
-        return data
-
     def save(self, *args, **kwargs):
         self.date_updated = timezone.now()
         return super().save(*args, **kwargs)
 
     @property
     def api_application_id(self) -> int | None:
-        from sentry.models.integrations.sentry_app import SentryApp
+        from sentry.sentry_apps.models.sentry_app import SentryApp
 
         try:
             return self.sentry_app.application_id
@@ -244,7 +193,7 @@ def prepare_sentry_app_components(
     project_slug: str | None = None,
     values: list[Mapping[str, Any]] | None = None,
 ) -> SentryAppComponent | None:
-    from sentry.models.integrations.sentry_app_component import SentryAppComponent
+    from sentry.sentry_apps.models.sentry_app_component import SentryAppComponent
 
     try:
         component = SentryAppComponent.objects.get(

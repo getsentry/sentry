@@ -1,9 +1,11 @@
 import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
+import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import {Button, LinkButton} from 'sentry/components/button';
+import ClippedBox from 'sentry/components/clippedBox';
 import {AutofixDiff} from 'sentry/components/events/autofix/autofixDiff';
 import {AutofixSetupWriteAccessModal} from 'sentry/components/events/autofix/autofixSetupWriteAccessModal';
 import type {
@@ -21,13 +23,13 @@ import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {setApiQueryData, useMutation, useQueryClient} from 'sentry/utils/queryClient';
+import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
 
 type AutofixChangesProps = {
   groupId: string;
   onRetry: () => void;
   step: AutofixChangesStep;
-  isLastStep?: boolean;
 };
 
 function CreatePullRequestButton({
@@ -109,11 +111,9 @@ function CreatePullRequestButton({
 function PullRequestLinkOrCreateButton({
   change,
   groupId,
-  isLastStep,
 }: {
   change: AutofixCodebaseChange;
   groupId: string;
-  isLastStep?: boolean;
 }) {
   const {data} = useAutofixSetup({groupId});
 
@@ -131,10 +131,6 @@ function PullRequestLinkOrCreateButton({
         {t('View Pull Request')}
       </LinkButton>
     );
-  }
-
-  if (!isLastStep) {
-    return null;
   }
 
   if (
@@ -172,11 +168,9 @@ function PullRequestLinkOrCreateButton({
 function AutofixRepoChange({
   change,
   groupId,
-  isLastStep,
 }: {
   change: AutofixCodebaseChange;
   groupId: string;
-  isLastStep?: boolean;
 }) {
   return (
     <Content>
@@ -185,23 +179,21 @@ function AutofixRepoChange({
           <Title>{change.repo_name}</Title>
           <PullRequestTitle>{change.title}</PullRequestTitle>
         </div>
-        <PullRequestLinkOrCreateButton
-          change={change}
-          groupId={groupId}
-          isLastStep={isLastStep}
-        />
+        <PullRequestLinkOrCreateButton change={change} groupId={groupId} />
       </RepoChangesHeader>
       <AutofixDiff diff={change.diff} />
     </Content>
   );
 }
 
-export function AutofixChanges({
-  step,
-  onRetry,
-  groupId,
-  isLastStep,
-}: AutofixChangesProps) {
+const cardAnimationProps: AnimationProps = {
+  exit: {opacity: 0},
+  initial: {opacity: 0, y: 20},
+  animate: {opacity: 1, y: 0},
+  transition: testableTransition({duration: 0.3}),
+};
+
+export function AutofixChanges({step, onRetry, groupId}: AutofixChangesProps) {
   const data = useAutofixData({groupId});
 
   if (step.status === 'ERROR' || data?.status === 'ERROR') {
@@ -242,14 +234,21 @@ export function AutofixChanges({
   }
 
   return (
-    <Content>
-      {step.changes.map((change, i) => (
-        <Fragment key={change.repo_external_id}>
-          {i > 0 && <Separator />}
-          <AutofixRepoChange change={change} groupId={groupId} isLastStep={isLastStep} />
-        </Fragment>
-      ))}
-    </Content>
+    <AnimatePresence initial>
+      <AnimationWrapper key="card" {...cardAnimationProps}>
+        <ChangesContainer>
+          <ClippedBox clipHeight={408}>
+            <HeaderText>{t('Fixes')}</HeaderText>
+            {step.changes.map((change, i) => (
+              <Fragment key={change.repo_external_id}>
+                {i > 0 && <Separator />}
+                <AutofixRepoChange change={change} groupId={groupId} />
+              </Fragment>
+            ))}
+          </ClippedBox>
+        </ChangesContainer>
+      </AnimationWrapper>
+    </AnimatePresence>
   );
 }
 
@@ -260,7 +259,19 @@ const PreviewContent = styled('div')`
   margin-top: ${space(2)};
 `;
 
+const AnimationWrapper = styled(motion.div)``;
+
 const PrefixText = styled('span')``;
+
+const ChangesContainer = styled('div')`
+  border: 1px solid ${p => p.theme.innerBorder};
+  border-radius: ${p => p.theme.borderRadius};
+  overflow: hidden;
+  box-shadow: ${p => p.theme.dropShadowHeavy};
+  padding-left: ${space(2)};
+  padding-right: ${space(2)};
+  padding-top: ${space(1)};
+`;
 
 const Content = styled('div')`
   padding: 0 ${space(1)} ${space(1)} ${space(1)};
@@ -293,6 +304,11 @@ const Separator = styled('hr')`
   border: none;
   border-top: 1px solid ${p => p.theme.innerBorder};
   margin: ${space(2)} -${space(2)} 0 -${space(2)};
+`;
+
+const HeaderText = styled('div')`
+  font-weight: bold;
+  font-size: 1.2em;
 `;
 
 const ProcessingStatusIndicator = styled(LoadingIndicator)`

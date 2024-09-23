@@ -3,9 +3,11 @@ from __future__ import annotations
 import uuid
 from typing import Any
 from unittest import mock
+from unittest.mock import Mock
 
 import pytest
 
+from sentry.models.project import Project
 from sentry.replays.testutils import mock_replay_event
 from sentry.replays.usecases.ingest.dom_index import (
     _get_testid,
@@ -15,7 +17,6 @@ from sentry.replays.usecases.ingest.dom_index import (
     log_canvas_size,
     parse_replay_actions,
 )
-from sentry.testutils.helpers.features import Feature
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json
 
@@ -28,7 +29,15 @@ def patch_rage_click_issue_with_replay_event():
         yield m
 
 
-def test_get_user_actions():
+@pytest.fixture(autouse=True)
+def mock_project() -> Project:
+    """Has id=1. Use for unit tests so we can skip @django_db"""
+    proj = Mock(spec=Project)
+    proj.id = 1
+    return proj
+
+
+def test_get_user_actions(mock_project):
     """Test "get_user_actions" function."""
     events = [
         {
@@ -64,7 +73,7 @@ def test_get_user_actions():
         }
     ]
 
-    user_actions = get_user_actions(1, uuid.uuid4().hex, events, None)
+    user_actions = get_user_actions(mock_project, uuid.uuid4().hex, events, None)
     assert len(user_actions) == 1
     assert user_actions[0]["node_id"] == 1
     assert user_actions[0]["tag"] == "div"
@@ -83,7 +92,7 @@ def test_get_user_actions():
     assert len(user_actions[0]["event_hash"]) == 36
 
 
-def test_get_user_actions_str_payload():
+def test_get_user_actions_str_payload(mock_project):
     """Test "get_user_actions" function."""
     events = [
         {
@@ -96,11 +105,11 @@ def test_get_user_actions_str_payload():
         }
     ]
 
-    user_actions = get_user_actions(1, uuid.uuid4().hex, events, None)
+    user_actions = get_user_actions(mock_project, uuid.uuid4().hex, events, None)
     assert len(user_actions) == 0
 
 
-def test_get_user_actions_missing_node():
+def test_get_user_actions_missing_node(mock_project):
     """Test "get_user_actions" function."""
     events = [
         {
@@ -118,11 +127,11 @@ def test_get_user_actions_missing_node():
         }
     ]
 
-    user_actions = get_user_actions(1, uuid.uuid4().hex, events, None)
+    user_actions = get_user_actions(mock_project, uuid.uuid4().hex, events, None)
     assert len(user_actions) == 0
 
 
-def test_get_user_actions_performance_spans():
+def test_get_user_actions_performance_spans(mock_project):
     """Test that "get_user_actions" doesn't error when collecting rsrc metrics, on various formats of performanceSpan"""
     # payloads are not realistic examples - only include the fields necessary for testing
     # TODO: does not test if metrics.distribution() is called downstream, with correct param types.
@@ -194,10 +203,10 @@ def test_get_user_actions_performance_spans():
             },
         },
     ]
-    get_user_actions(1, uuid.uuid4().hex, events, None)
+    get_user_actions(mock_project, uuid.uuid4().hex, events, None)
 
 
-def test_parse_replay_actions():
+def test_parse_replay_actions(mock_project):
     events = [
         {
             "type": 5,
@@ -232,7 +241,7 @@ def test_parse_replay_actions():
             },
         }
     ]
-    replay_actions = parse_replay_actions(1, "1", 30, events, None)
+    replay_actions = parse_replay_actions(mock_project, "1", 30, events, None)
 
     assert replay_actions is not None
     assert replay_actions["type"] == "replay_event"
@@ -375,15 +384,8 @@ def test_parse_replay_dead_click_actions(patch_rage_click_issue_with_replay_even
         },
     ]
 
-    with Feature(
-        {
-            "organizations:session-replay-rage-click-issue-creation": True,
-        }
-    ):
-        default_project.update_option("sentry:replay_rage_click_issues", True)
-        replay_actions = parse_replay_actions(
-            default_project.id, "1", 30, events, mock_replay_event()
-        )
+    default_project.update_option("sentry:replay_rage_click_issues", True)
+    replay_actions = parse_replay_actions(default_project, "1", 30, events, mock_replay_event())
     assert patch_rage_click_issue_with_replay_event.call_count == 2
     assert replay_actions is not None
     assert replay_actions["type"] == "replay_event"
@@ -535,13 +537,8 @@ def test_rage_click_issue_creation_no_component_name(
         },
     ]
 
-    with Feature(
-        {
-            "organizations:session-replay-rage-click-issue-creation": True,
-        }
-    ):
-        default_project.update_option("sentry:replay_rage_click_issues", True)
-        parse_replay_actions(default_project.id, "1", 30, events, mock_replay_event())
+    default_project.update_option("sentry:replay_rage_click_issues", True)
+    parse_replay_actions(default_project, "1", 30, events, mock_replay_event())
 
     # test that 2 rage click issues are still created
     assert patch_rage_click_issue_with_replay_event.call_count == 2
@@ -588,7 +585,7 @@ def test_parse_replay_click_actions_not_dead(
         }
     ]
 
-    replay_actions = parse_replay_actions(default_project.id, "1", 30, events, None)
+    replay_actions = parse_replay_actions(default_project, "1", 30, events, None)
     assert patch_rage_click_issue_with_replay_event.delay.call_count == 0
     assert replay_actions is None
 
@@ -632,7 +629,7 @@ def test_parse_replay_rage_click_actions(default_project):
             },
         }
     ]
-    replay_actions = parse_replay_actions(default_project.id, "1", 30, events, None)
+    replay_actions = parse_replay_actions(default_project, "1", 30, events, None)
 
     assert replay_actions is not None
     assert replay_actions["type"] == "replay_event"
@@ -672,7 +669,7 @@ def test_encode_as_uuid():
     assert isinstance(uuid.UUID(a), uuid.UUID)
 
 
-def test_parse_request_response_latest():
+def test_parse_request_response_latest(mock_project):
     events = [
         {
             "type": 5,
@@ -711,14 +708,14 @@ def test_parse_request_response_latest():
         }
     ]
     with mock.patch("sentry.utils.metrics.distribution") as timing:
-        parse_replay_actions(1, "1", 30, events, None)
+        parse_replay_actions(mock_project, "1", 30, events, None)
         assert timing.call_args_list == [
             mock.call("replays.usecases.ingest.request_body_size", 2949, unit="byte"),
             mock.call("replays.usecases.ingest.response_body_size", 94, unit="byte"),
         ]
 
 
-def test_parse_request_response_no_info():
+def test_parse_request_response_no_info(mock_project):
     events = [
         {
             "type": 5,
@@ -739,11 +736,11 @@ def test_parse_request_response_no_info():
             },
         },
     ]
-    parse_replay_actions(1, "1", 30, events, None)
+    parse_replay_actions(mock_project, "1", 30, events, None)
     # just make sure we don't raise
 
 
-def test_parse_request_response_old_format_request_only():
+def test_parse_request_response_old_format_request_only(mock_project):
     events = [
         {
             "type": 5,
@@ -766,13 +763,13 @@ def test_parse_request_response_old_format_request_only():
         },
     ]
     with mock.patch("sentry.utils.metrics.distribution") as timing:
-        parse_replay_actions(1, "1", 30, events, None)
+        parse_replay_actions(mock_project, "1", 30, events, None)
         assert timing.call_args_list == [
             mock.call("replays.usecases.ingest.request_body_size", 1002, unit="byte"),
         ]
 
 
-def test_parse_request_response_old_format_response_only():
+def test_parse_request_response_old_format_response_only(mock_project):
     events = [
         {
             "type": 5,
@@ -794,13 +791,13 @@ def test_parse_request_response_old_format_response_only():
         },
     ]
     with mock.patch("sentry.utils.metrics.distribution") as timing:
-        parse_replay_actions(1, "1", 30, events, None)
+        parse_replay_actions(mock_project, "1", 30, events, None)
         assert timing.call_args_list == [
             mock.call("replays.usecases.ingest.response_body_size", 1002, unit="byte"),
         ]
 
 
-def test_parse_request_response_old_format_request_and_response():
+def test_parse_request_response_old_format_request_and_response(mock_project):
     events = [
         {
             "type": 5,
@@ -823,7 +820,7 @@ def test_parse_request_response_old_format_request_and_response():
         },
     ]
     with mock.patch("sentry.utils.metrics.distribution") as timing:
-        parse_replay_actions(1, "1", 30, events, None)
+        parse_replay_actions(mock_project, "1", 30, events, None)
         assert timing.call_args_list == [
             mock.call("replays.usecases.ingest.request_body_size", 1002, unit="byte"),
             mock.call("replays.usecases.ingest.response_body_size", 8001, unit="byte"),
@@ -942,15 +939,8 @@ def test_parse_replay_rage_clicks_with_replay_event(
         },
     ]
 
-    with Feature(
-        {
-            "organizations:session-replay-rage-click-issue-creation": True,
-        }
-    ):
-        default_project.update_option("sentry:replay_rage_click_issues", True)
-        replay_actions = parse_replay_actions(
-            default_project.id, "1", 30, events, mock_replay_event()
-        )
+    default_project.update_option("sentry:replay_rage_click_issues", True)
+    replay_actions = parse_replay_actions(default_project, "1", 30, events, mock_replay_event())
     assert patch_rage_click_issue_with_replay_event.call_count == 2
     assert replay_actions is not None
     assert replay_actions["type"] == "replay_event"
@@ -961,7 +951,7 @@ def test_parse_replay_rage_clicks_with_replay_event(
     assert isinstance(replay_actions["payload"], list)
 
 
-def test_log_sdk_options():
+def test_log_sdk_options(mock_project):
     events: list[dict[str, Any]] = [
         {
             "data": {
@@ -993,11 +983,11 @@ def test_log_sdk_options():
         mock.patch("random.randint") as randint,
     ):
         randint.return_value = 0
-        parse_replay_actions(1, "1", 30, events, None)
+        parse_replay_actions(mock_project, "1", 30, events, None)
         assert logger.info.call_args_list == [mock.call("sentry.replays.slow_click", extra=log)]
 
 
-def test_log_large_dom_mutations():
+def test_log_large_dom_mutations(mock_project):
     events: list[dict[str, Any]] = [
         {
             "type": 5,
@@ -1023,7 +1013,7 @@ def test_log_large_dom_mutations():
         mock.patch("random.randint") as randint,
     ):
         randint.return_value = 0
-        parse_replay_actions(1, "1", 30, events, None)
+        parse_replay_actions(mock_project, "1", 30, events, None)
         assert logger.info.call_args_list == [mock.call("Large DOM Mutations List:", extra=log)]
 
 
@@ -1100,7 +1090,7 @@ def test_log_canvas_size():
     log_canvas_size(1, 1, "a", [])
 
 
-def test_emit_click_negative_node_id():
+def test_emit_click_negative_node_id(mock_project):
     """Test "get_user_actions" function."""
     events = [
         {
@@ -1136,5 +1126,5 @@ def test_emit_click_negative_node_id():
         }
     ]
 
-    user_actions = get_user_actions(1, uuid.uuid4().hex, events, None)
+    user_actions = get_user_actions(mock_project, uuid.uuid4().hex, events, None)
     assert len(user_actions) == 0

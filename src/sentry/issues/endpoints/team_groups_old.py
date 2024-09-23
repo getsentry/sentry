@@ -11,6 +11,7 @@ from sentry.api.bases.team import TeamEndpoint
 from sentry.api.helpers.environments import get_environments
 from sentry.api.serializers import GroupSerializer, serialize
 from sentry.models.group import Group, GroupStatus
+from sentry.models.team import Team
 
 
 @region_silo_endpoint
@@ -20,7 +21,7 @@ class TeamGroupsOldEndpoint(TeamEndpoint, EnvironmentMixin):
         "GET": ApiPublishStatus.PRIVATE,
     }
 
-    def get(self, request: Request, team) -> Response:
+    def get(self, request: Request, team: Team) -> Response:
         """
         Return the oldest issues owned by a team
         """

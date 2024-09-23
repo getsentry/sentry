@@ -31,19 +31,8 @@ MAX_RETRIES = 5
     acks_late=True,
     silo_mode=SiloMode.CONTROL,
 )
-def reattempt_deletions_control_new():
+def reattempt_deletions_control() -> None:
     _reattempt_deletions(ScheduledDeletion)
-
-
-@instrumented_task(
-    name="sentry.tasks.deletion.reattempt_deletions_control",
-    queue="cleanup.control",
-    acks_late=True,
-    silo_mode=SiloMode.CONTROL,
-)
-def reattempt_deletions_control():
-    # Deprecated deploy boundary shim
-    reattempt_deletions_control_new()
 
 
 @instrumented_task(
@@ -52,19 +41,8 @@ def reattempt_deletions_control():
     acks_late=True,
     silo_mode=SiloMode.REGION,
 )
-def reattempt_deletions_new():
+def reattempt_deletions() -> None:
     _reattempt_deletions(RegionScheduledDeletion)
-
-
-@instrumented_task(
-    name="sentry.tasks.deletion.reattempt_deletions",
-    queue="cleanup",
-    acks_late=True,
-    silo_mode=SiloMode.REGION,
-)
-def reattempt_deletions():
-    # Deprecated deploy boundary shim
-    reattempt_deletions_new()
 
 
 def _reattempt_deletions(model_class: type[BaseScheduledDeletion]) -> None:
@@ -83,7 +61,7 @@ def _reattempt_deletions(model_class: type[BaseScheduledDeletion]) -> None:
     queue="cleanup.control",
     acks_late=True,
 )
-def run_scheduled_deletions_control_new() -> None:
+def run_scheduled_deletions_control() -> None:
     _run_scheduled_deletions(
         model_class=ScheduledDeletion,
         process_task=run_deletion_control,
@@ -91,31 +69,13 @@ def run_scheduled_deletions_control_new() -> None:
 
 
 @instrumented_task(
-    name="sentry.tasks.deletion.run_scheduled_deletions_control",
-    queue="cleanup.control",
-    acks_late=True,
-)
-def run_scheduled_deletions_control() -> None:
-    # Deprecated deploy boundary shim
-    run_scheduled_deletions_control_new()
-
-
-@instrumented_task(
     name="sentry.deletions.tasks.run_scheduled_deletions", queue="cleanup", acks_late=True
 )
-def run_scheduled_deletions_new() -> None:
+def run_scheduled_deletions() -> None:
     _run_scheduled_deletions(
         model_class=RegionScheduledDeletion,
         process_task=run_deletion,
     )
-
-
-@instrumented_task(
-    name="sentry.tasks.deletion.run_scheduled_deletions", queue="cleanup", acks_late=True
-)
-def run_scheduled_deletions() -> None:
-    # Deprecated deploy boundary shim
-    run_scheduled_deletions_new()
 
 
 def _run_scheduled_deletions(model_class: type[BaseScheduledDeletion], process_task: Task) -> None:
@@ -141,27 +101,13 @@ def _run_scheduled_deletions(model_class: type[BaseScheduledDeletion], process_t
     silo_mode=SiloMode.CONTROL,
 )
 @retry(exclude=(DeleteAborted,))
-def run_deletion_control_new(deletion_id, first_pass=True, **kwargs: Any):
+def run_deletion_control(deletion_id: int, first_pass: bool = True, **kwargs: Any) -> None:
     _run_deletion(
         deletion_id=deletion_id,
         first_pass=first_pass,
         model_class=ScheduledDeletion,
         process_task=run_deletion_control,
     )
-
-
-@instrumented_task(
-    name="sentry.tasks.deletion.run_deletion_control",
-    queue="cleanup.control",
-    default_retry_delay=60 * 5,
-    max_retries=MAX_RETRIES,
-    acks_late=True,
-    silo_mode=SiloMode.CONTROL,
-)
-@retry(exclude=(DeleteAborted,))
-def run_deletion_control(deletion_id, first_pass=True, **kwargs: Any):
-    # Deprecated deploy boundary shim
-    run_deletion_control_new(deletion_id, first_pass, **kwargs)
 
 
 @instrumented_task(
@@ -173,27 +119,13 @@ def run_deletion_control(deletion_id, first_pass=True, **kwargs: Any):
     silo_mode=SiloMode.REGION,
 )
 @retry(exclude=(DeleteAborted,))
-def run_deletion_new(deletion_id, first_pass=True, **kwargs: Any):
+def run_deletion(deletion_id: int, first_pass: bool = True, **kwargs: Any) -> None:
     _run_deletion(
         deletion_id=deletion_id,
         first_pass=first_pass,
         model_class=RegionScheduledDeletion,
         process_task=run_deletion,
     )
-
-
-@instrumented_task(
-    name="sentry.tasks.deletion.run_deletion",
-    queue="cleanup",
-    default_retry_delay=60 * 5,
-    max_retries=MAX_RETRIES,
-    acks_late=True,
-    silo_mode=SiloMode.REGION,
-)
-@retry(exclude=(DeleteAborted,))
-def run_deletion(deletion_id, first_pass=True, **kwargs: Any):
-    # Deprecated deploy boundary shim
-    run_deletion_new(deletion_id, first_pass, **kwargs)
 
 
 def _run_deletion(

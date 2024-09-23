@@ -312,6 +312,17 @@ const loaderScriptOnboarding: OnboardingConfig<PlatformOptions> = {
       });
     };
   },
+  onProductSelectionLoad: params => {
+    return products => {
+      updateDynamicSdkLoaderOptions({
+        orgSlug: params.organization.slug,
+        projectSlug: params.projectSlug,
+        products,
+        projectKey: params.projectKeyId,
+        api: params.api,
+      });
+    };
+  },
 };
 
 const packageManagerOnboarding: OnboardingConfig<PlatformOptions> = {
@@ -352,6 +363,7 @@ const packageManagerOnboarding: OnboardingConfig<PlatformOptions> = {
     },
     getUploadSourceMapsStep({
       guideLink: 'https://docs.sentry.io/platforms/javascript/sourcemaps/',
+      ...params,
     }),
   ],
   verify: getVerifyConfig,
@@ -438,6 +450,10 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
     isAutoInstall(params)
       ? loaderScriptOnboarding.onPlatformOptionsChange?.(params)
       : packageManagerOnboarding.onPlatformOptionsChange?.(params),
+  onProductSelectionLoad: params =>
+    isAutoInstall(params)
+      ? loaderScriptOnboarding.onProductSelectionLoad?.(params)
+      : packageManagerOnboarding.onProductSelectionLoad?.(params),
 };
 
 const replayOnboarding: OnboardingConfig<PlatformOptions> = {
