@@ -13,15 +13,13 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
 import {appendTagCondition} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
-import {useFetchIssueTagsForDetailsPage} from 'sentry/views/issueDetails/utils';
+import {useGroupTagsReadable} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 
 import TagFacetsDistributionMeter from './tagFacetsDistributionMeter';
 
@@ -96,32 +94,11 @@ export function sumTagFacetsForTopValues(tag: Tag) {
   };
 }
 
-// Statistical detector issues need to use a Discover query
-// which means we need to massage the values to fit the component API
-function transformTagFacetDataToGroupTagResponseItems(
-  tagFacetData: Record<string, Tag>
-): Record<string, GroupTagResponseItem> {
-  const keyedResponse = {};
-
-  // Statistical detectors are scoped to a single transaction so
-  // the filter out transaction since the tag is not helpful in the UI
-  Object.keys(tagFacetData)
-    .filter(tagKey => tagKey !== 'transaction')
-    .forEach(tagKey => {
-      const tagData = tagFacetData[tagKey];
-      keyedResponse[tagKey] = sumTagFacetsForTopValues(tagData);
-    });
-
-  return keyedResponse;
-}
-
 type Props = {
   environments: string[];
   groupId: string;
   project: Project;
   tagKeys: string[];
-  event?: Event;
-  isStatisticalDetector?: boolean;
   tagFormatter?: (
     tagsData: Record<string, GroupTagResponseItem>
   ) => Record<string, GroupTagResponseItem>;
@@ -133,28 +110,12 @@ export default function TagFacets({
   groupId,
   tagFormatter,
   project,
-  isStatisticalDetector,
-  event,
 }: Props) {
   const organization = useOrganization();
-  const now = useMemo(() => Date.now(), []);
 
-  const {transaction, aggregateRange2, breakpoint} =
-    event?.occurrence?.evidenceData ?? {};
-  const {isPending, isError, data, refetch} = useFetchIssueTagsForDetailsPage({
+  const {isPending, isError, data, refetch} = useGroupTagsReadable({
     groupId,
-    orgSlug: organization.slug,
     environment: environments,
-    isStatisticalDetector,
-    statisticalDetectorParameters:
-      isStatisticalDetector && defined(breakpoint)
-        ? {
-            transaction,
-            durationBaseline: aggregateRange2,
-            start: new Date(breakpoint * 1000).toISOString(),
-            end: new Date(now).toISOString(),
-          }
-        : undefined,
   });
 
   const tagsData = useMemo(() => {
@@ -162,16 +123,12 @@ export default function TagFacets({
       return {};
     }
 
-    let keyed = keyBy(data, 'key');
-    if (isStatisticalDetector) {
-      keyed = transformTagFacetDataToGroupTagResponseItems(keyed as Record<string, Tag>);
-    }
-
+    const keyed = keyBy(data, 'key');
     const formatted =
       tagFormatter?.(keyed as Record<string, GroupTagResponseItem>) ?? keyed;
 
     return formatted as Record<string, GroupTagResponseItem>;
-  }, [data, tagFormatter, isStatisticalDetector]);
+  }, [data, tagFormatter]);
 
   // filter out replayId since we no longer want to
   // display this on issue details
