@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 
 from django.urls import reverse
 
-from sentry.api.endpoints.integrations.sentry_apps.requests import INVALID_DATE_FORMAT_MESSAGE
+from sentry.sentry_apps.api.endpoints.sentry_app_requests import INVALID_DATE_FORMAT_MESSAGE
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
 from sentry.testutils.skips import requires_snuba
