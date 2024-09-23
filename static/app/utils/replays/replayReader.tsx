@@ -588,7 +588,7 @@ export default class ReplayReader {
 
   getCustomFrames = memoize(() =>
     this._sortedBreadcrumbFrames.filter(
-      frame => !BreadcrumbCategories.includes(frame.category)
+      frame => frame.category && !BreadcrumbCategories.includes(frame.category)
     )
   );
 
