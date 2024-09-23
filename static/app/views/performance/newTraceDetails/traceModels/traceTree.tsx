@@ -379,7 +379,9 @@ function shouldCollapseNodeByDefault(node: TraceTreeNode<TraceTree.NodeValue>) {
 }
 
 function startTimestamp(node: TraceTreeNode<TraceTree.NodeValue>) {
-  if (node.space) return node.space[0];
+  if (node.space) {
+    return node.space[0];
+  }
 
   if (isTraceNode(node)) {
     return 0;
@@ -741,7 +743,9 @@ export class TraceTree {
           })
         );
 
-        if (cancelled) return;
+        if (cancelled) {
+          return;
+        }
 
         const updatedData = results.reduce(
           (acc, result) => {
@@ -2690,12 +2694,24 @@ export function traceNodeAnalyticsName(node: TraceTreeNode<TraceTree.NodeValue>)
   if (isAutogroupedNode(node)) {
     return isParentAutogroupedNode(node) ? 'parent autogroup' : 'sibling autogroup';
   }
-  if (isSpanNode(node)) return 'span';
-  if (isTransactionNode(node)) return 'transaction';
-  if (isMissingInstrumentationNode(node)) return 'missing instrumentation';
-  if (isRootNode(node)) return 'root';
-  if (isTraceNode(node)) return 'trace';
-  if (isTraceErrorNode(node)) return 'error';
+  if (isSpanNode(node)) {
+    return 'span';
+  }
+  if (isTransactionNode(node)) {
+    return 'transaction';
+  }
+  if (isMissingInstrumentationNode(node)) {
+    return 'missing instrumentation';
+  }
+  if (isRootNode(node)) {
+    return 'root';
+  }
+  if (isTraceNode(node)) {
+    return 'trace';
+  }
+  if (isTraceErrorNode(node)) {
+    return 'error';
+  }
   return 'unknown';
 }
 

@@ -48,7 +48,9 @@ const durationMappings: Record<ProfilingFormatterUnit, number> = {
 export function assertValidProfilingUnit(
   unit: string
 ): asserts unit is ProfilingFormatterUnit {
-  if (unit in durationMappings) return;
+  if (unit in durationMappings) {
+    return;
+  }
   throw new Error(`Invalid profiling unit: ${unit}`);
 }
 

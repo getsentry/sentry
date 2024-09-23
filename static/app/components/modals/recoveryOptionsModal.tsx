@@ -48,7 +48,9 @@ function RecoveryOptionsModal({
     setSkipSms(true);
   };
 
-  if (isPending) return <LoadingIndicator />;
+  if (isPending) {
+    return <LoadingIndicator />;
+  }
 
   if (isError) {
     return (

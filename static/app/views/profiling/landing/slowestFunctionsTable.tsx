@@ -283,7 +283,9 @@ function SlowestFunctionsProjectBadge(props: SlowestFunctionsProjectBadgeProps) 
     for (const example of props.examples) {
       if ('project_id' in example) {
         const project = props.projectsLookupTable[example.project_id];
-        if (project) projects.push(project);
+        if (project) {
+          projects.push(project);
+        }
       }
     }
 
@@ -339,7 +341,9 @@ function SlowestFunctionTimeSeries(props: SlowestFunctionTimeSeriesProps) {
   });
 
   const series: Series[] = useMemo(() => {
-    if (!metrics.isFetched) return [];
+    if (!metrics.isFetched) {
+      return [];
+    }
 
     const serie: Series = {
       seriesName: props.function.name,

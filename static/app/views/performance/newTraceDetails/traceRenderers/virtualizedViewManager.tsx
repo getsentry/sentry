@@ -701,7 +701,9 @@ export class VirtualizedViewManager {
   }
 
   syncResetZoomButton() {
-    if (!this.reset_zoom_button) return;
+    if (!this.reset_zoom_button) {
+      return;
+    }
     this.reset_zoom_button.disabled =
       this.view.trace_view.width === this.view.trace_space.width;
   }
@@ -1372,14 +1374,18 @@ export class VirtualizedViewManager {
   }
 
   hideSpanArrow(span_arrow: this['span_arrows'][0]) {
-    if (!span_arrow) return;
+    if (!span_arrow) {
+      return;
+    }
     span_arrow.ref.className = 'TraceArrow';
     span_arrow.visible = false;
     span_arrow.ref.style.opacity = '0';
   }
 
   drawSpanBar(span_bar: this['span_bars'][0]) {
-    if (!span_bar) return;
+    if (!span_bar) {
+      return;
+    }
 
     const span_transform = this.computeSpanCSSMatrixTransform(span_bar?.space);
     span_bar.ref.style.transform = `matrix(${span_transform.join(',')}`;
@@ -1392,7 +1398,9 @@ export class VirtualizedViewManager {
   }
 
   drawSpanText(span_text: this['span_text'][0], node: TraceTreeNode<any> | undefined) {
-    if (!span_text) return;
+    if (!span_text) {
+      return;
+    }
 
     const [inside, text_transform] = this.computeSpanTextPlacement(
       node!,
@@ -1412,7 +1420,9 @@ export class VirtualizedViewManager {
   }
 
   drawSpanArrow(span_arrow: this['span_arrows'][0], visible: boolean, position: 0 | 1) {
-    if (!span_arrow) return;
+    if (!span_arrow) {
+      return;
+    }
 
     if (visible !== span_arrow.visible) {
       span_arrow.visible = visible;
@@ -1521,7 +1531,9 @@ export class VirtualizedViewManager {
     container: HTMLElement | null,
     options: {list_width: number; span_list_width: number}
   ) {
-    if (!container) return;
+    if (!container) {
+      return;
+    }
 
     if (this.last_list_column_width !== options.list_width) {
       container.style.setProperty(
@@ -1747,8 +1759,12 @@ export class VirtualizedList {
 // Jest does not implement scroll updates, however since we have the
 // middleware to handle scroll updates, we can dispatch a scroll event ourselves
 function dispatchJestScrollUpdate(container: HTMLElement) {
-  if (!container) return;
-  if (process.env.NODE_ENV !== 'test') return;
+  if (!container) {
+    return;
+  }
+  if (process.env.NODE_ENV !== 'test') {
+    return;
+  }
   // since we do not tightly control how browsers handle event dispatching, dispatch it async
   window.requestAnimationFrame(() => {
     container.dispatchEvent(new CustomEvent('scroll'));

@@ -46,7 +46,9 @@ export class ContinuousProfile extends Profile {
 
       for (let j = stack.length - 1; j >= 0; j--) {
         frame = resolveFrame(stack[j]);
-        if (frame) resolvedStack[size++] = frame;
+        if (frame) {
+          resolvedStack[size++] = frame;
+        }
       }
 
       profile.appendSample(

@@ -35,7 +35,9 @@ export function DurationChart({
   // TODO: This is duplicated from `DurationChart` in `SampleList`. Resolve the duplication
   const handleChartHighlight: EChartHighlightHandler = function (event) {
     // ignore mouse hovering over the chart legend
-    if (!event.batch) return;
+    if (!event.batch) {
+      return;
+    }
 
     // TODO: Gross hack. Even though `scatterPlot` is a separate prop, it's just an array of `Series` that gets appended to the main series. To find the point that was hovered, we re-construct the correct series order. It would have been cleaner to just pass the scatter plot as its own, single series
     const allSeries = [...series, ...(scatterPlot ?? [])];

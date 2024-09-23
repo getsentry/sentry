@@ -123,11 +123,15 @@ describe('useDispatchingReducer', () => {
 
   it('supports combined reducer', () => {
     function reducerA(state: Record<any, any>, action: string) {
-      if (action !== 'a') return state;
+      if (action !== 'a') {
+        return state;
+      }
       return {...state, [action]: 1};
     }
     function reducerB(state: Record<any, any>, action: string) {
-      if (action !== 'b') return state;
+      if (action !== 'b') {
+        return state;
+      }
       return {...state, [action]: 1};
     }
 

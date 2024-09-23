@@ -33,7 +33,9 @@ function IntegrationButton({
   const organization = useOrganization();
   const {provider, type, installStatus, analyticsParams, modalParams} =
     useContext(IntegrationContext) ?? {};
-  if (!provider || !type) return null;
+  if (!provider || !type) {
+    return null;
+  }
   const {metadata} = provider;
 
   if (!userHasAccess) {

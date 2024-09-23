@@ -122,7 +122,9 @@ export function TraceDrawer(props: TraceDrawerProps) {
   const resizeEndRef = useRef<{id: number} | null>(null);
   const onResize = useCallback(
     (size: number, min: number, user?: boolean, minimized?: boolean) => {
-      if (!props.traceGridRef) return;
+      if (!props.traceGridRef) {
+        return;
+      }
 
       // When we resize the layout in x axis, we need to update the physical space
       // of the virtualized view manager to make sure a redrawing is correctly triggered.
@@ -159,7 +161,9 @@ export function TraceDrawer(props: TraceDrawerProps) {
       const drawerWidth = size / width;
       const drawerHeight = size / height;
 
-      if (resizeEndRef.current) cancelAnimationTimeout(resizeEndRef.current);
+      if (resizeEndRef.current) {
+        cancelAnimationTimeout(resizeEndRef.current);
+      }
       resizeEndRef.current = requestAnimationTimeout(() => {
         if (traceStateRef.current.preferences.drawer.minimized) {
           return;
@@ -318,7 +322,9 @@ export function TraceDrawer(props: TraceDrawerProps) {
 
   const initializedRef = useRef(false);
   useLayoutEffect(() => {
-    if (initializedRef.current) return;
+    if (initializedRef.current) {
+      return;
+    }
     if (traceState.preferences.drawer.minimized && props.traceGridRef) {
       if (traceStateRef.current.preferences.layout === 'drawer bottom') {
         props.traceGridRef.style.gridTemplateColumns = `1fr`;

@@ -78,7 +78,9 @@ export function TransactionProfilesContent(props: TransactionProfilesContentProp
 
 function isEmpty(resp: Profiling.Schema) {
   const profile = resp.profiles[0];
-  if (!profile) return true;
+  if (!profile) {
+    return true;
+  }
   if (
     resp.profiles.length === 1 &&
     isSampledProfile(profile) &&
