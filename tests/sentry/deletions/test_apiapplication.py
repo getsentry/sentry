@@ -1,13 +1,12 @@
+from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
+from sentry.deletions.tasks.scheduled import run_scheduled_deletions_control
 from sentry.models.apiapplication import ApiApplication, ApiApplicationStatus
 from sentry.models.apigrant import ApiGrant
 from sentry.models.apitoken import ApiToken
 from sentry.models.scheduledeletion import ScheduledDeletion
-from sentry.models.servicehook import ServiceHook
+from sentry.sentry_apps.models.servicehook import ServiceHook
 from sentry.silo.base import SiloMode
-from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
-from sentry.tasks.deletion.scheduled import run_scheduled_deletions_control
 from sentry.testutils.cases import TransactionTestCase
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
@@ -15,7 +14,6 @@ from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 @control_silo_test
 class DeleteApiApplicationTest(TransactionTestCase, HybridCloudTestMixin):
-    @override_options({"hybrid_cloud.allow_cross_db_tombstones": True})
     def test_simple(self):
         app = ApiApplication.objects.create(
             owner=self.user, status=ApiApplicationStatus.pending_deletion

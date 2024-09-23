@@ -9,6 +9,7 @@ from typing import Any
 from django.utils.datastructures import OrderedSet
 
 from sentry import analytics
+from sentry.constants import ObjectStatus
 from sentry.integrations.base import IntegrationInstallation
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.services.integration import integration_service
@@ -262,8 +263,9 @@ def _get_blames_from_all_integrations(
     integration_to_install_mapping: dict[str, tuple[IntegrationInstallation, str]] = {}
 
     for integration_organization_id, files in integration_to_files_mapping.items():
+        # find active integrations, otherwise integration proxy will not send request
         integration = integration_service.get_integration(
-            organization_integration_id=integration_organization_id
+            organization_integration_id=integration_organization_id, status=ObjectStatus.ACTIVE
         )
         if not integration:
             continue

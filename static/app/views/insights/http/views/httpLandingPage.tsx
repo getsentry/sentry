@@ -39,9 +39,13 @@ import {
   MODULE_DOC_LINK,
   MODULE_TITLE,
 } from 'sentry/views/insights/http/settings';
-import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
+import {
+  type InsightLandingProps,
+  ModuleName,
+  SpanMetricsField,
+} from 'sentry/views/insights/types';
 
-export function HTTPLandingPage() {
+export function HTTPLandingPage({disableHeader}: InsightLandingProps) {
   const organization = useOrganization();
   const location = useLocation();
 
@@ -157,24 +161,26 @@ export function HTTPLandingPage() {
 
   return (
     <React.Fragment>
-      <Layout.Header>
-        <Layout.HeaderContent>
-          <Breadcrumbs crumbs={crumbs} />
+      {!disableHeader && (
+        <Layout.Header>
+          <Layout.HeaderContent>
+            <Breadcrumbs crumbs={crumbs} />
 
-          <Layout.Title>
-            {MODULE_TITLE}
-            <PageHeadingQuestionTooltip
-              docsUrl={MODULE_DOC_LINK}
-              title={MODULE_DESCRIPTION}
-            />
-          </Layout.Title>
-        </Layout.HeaderContent>
-        <Layout.HeaderActions>
-          <ButtonBar gap={1}>
-            <FeedbackWidgetButton />
-          </ButtonBar>
-        </Layout.HeaderActions>
-      </Layout.Header>
+            <Layout.Title>
+              {MODULE_TITLE}
+              <PageHeadingQuestionTooltip
+                docsUrl={MODULE_DOC_LINK}
+                title={MODULE_DESCRIPTION}
+              />
+            </Layout.Title>
+          </Layout.HeaderContent>
+          <Layout.HeaderActions>
+            <ButtonBar gap={1}>
+              <FeedbackWidgetButton />
+            </ButtonBar>
+          </Layout.HeaderActions>
+        </Layout.Header>
+      )}
 
       <Layout.Body>
         <Layout.Main fullWidth>
@@ -194,6 +200,7 @@ export function HTTPLandingPage() {
                   series={throughputData['spm()']}
                   isLoading={isThroughputDataLoading}
                   error={throughputError}
+                  filters={chartFilters}
                 />
               </ModuleLayout.Third>
 
@@ -202,6 +209,7 @@ export function HTTPLandingPage() {
                   series={[durationData[`avg(span.self_time)`]]}
                   isLoading={isDurationDataLoading}
                   error={durationError}
+                  filters={chartFilters}
                 />
               </ModuleLayout.Third>
 
@@ -223,6 +231,7 @@ export function HTTPLandingPage() {
                   ]}
                   isLoading={isResponseCodeDataLoading}
                   error={responseCodeError}
+                  filters={chartFilters}
                 />
               </ModuleLayout.Third>
 
@@ -252,14 +261,14 @@ const DEFAULT_SORT = {
 
 const DOMAIN_TABLE_ROW_COUNT = 10;
 
-function PageWithProviders() {
+function PageWithProviders(props: InsightLandingProps) {
   return (
     <ModulePageProviders
       moduleName="http"
       features="insights-initial-modules"
       analyticEventName="insight.page_loads.http"
     >
-      <HTTPLandingPage />
+      <HTTPLandingPage {...props} />
     </ModulePageProviders>
   );
 }

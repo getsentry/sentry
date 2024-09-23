@@ -1,4 +1,5 @@
-// eslint-disable-next-line simple-import-sort/imports
+/* eslint-disable simple-import-sort/imports */
+// biome-ignore lint/nursery/noRestrictedImports: ignore warning
 import {browserHistory, createRoutes, match} from 'react-router';
 import * as Sentry from '@sentry/react';
 import {_browserPerformanceTimeOriginMode} from '@sentry/utils';
@@ -16,6 +17,7 @@ import {
   useNavigationType,
 } from 'react-router-dom';
 import {useEffect} from 'react';
+import FeatureObserver from 'sentry/utils/featureObserver';
 
 const SPA_MODE_ALLOW_URLS = [
   'localhost',
@@ -132,14 +134,15 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
       addExtraMeasurements(event);
       addUIElementTag(event);
 
-      event.spans = event.spans?.filter(span => {
+      const filteredSpans = event.spans?.filter(span => {
         return IGNORED_SPANS_BY_DESCRIPTION.every(
           partialDesc => !span.description?.includes(partialDesc)
         );
       });
 
       // If we removed any spans at the end above, the end timestamp needs to be adjusted again.
-      if (event.spans) {
+      if (filteredSpans && filteredSpans?.length !== event.spans?.length) {
+        event.spans = filteredSpans;
         const newEndTimestamp = Math.max(...event.spans.map(span => span.timestamp ?? 0));
         event.timestamp = newEndTimestamp;
       }
@@ -193,6 +196,12 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
       addEndpointTagToRequestError(event);
 
       lastEventId = event.event_id || hint.event_id;
+
+      // attach feature flags to the event context
+      if (event.contexts) {
+        const flags = FeatureObserver.singleton().getFeatureFlags();
+        event.contexts.flags = flags;
+      }
 
       return event;
     },

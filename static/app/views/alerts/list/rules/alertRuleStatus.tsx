@@ -70,7 +70,7 @@ export default function AlertRuleStatus({rule}: Props) {
       : t('Below');
 
   // Anomaly detection alerts have different labels
-  const statusLabel = activeIncident ? t('Bad') : t('Good');
+  const statusLabel = activeIncident ? t('Critical') : t('Resolved');
 
   if (activeIncident) {
     iconColor =

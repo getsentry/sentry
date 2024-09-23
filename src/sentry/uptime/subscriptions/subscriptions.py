@@ -3,11 +3,13 @@ from typing import Any
 
 from sentry.models.project import Project
 from sentry.types.actor import Actor
+from sentry.uptime.detectors.url_extraction import extract_domain_parts
 from sentry.uptime.models import (
     ProjectUptimeSubscription,
     ProjectUptimeSubscriptionMode,
     UptimeSubscription,
 )
+from sentry.uptime.rdap.tasks import fetch_subscription_rdap_info
 from sentry.uptime.subscriptions.tasks import (
     create_remote_uptime_subscription,
     delete_remote_uptime_subscription,
@@ -28,6 +30,9 @@ def create_uptime_subscription(
     Creates a new uptime subscription. This creates the row in postgres, and fires a task that will send the config
     to the uptime check system.
     """
+    # We extract the domain and suffix of the url here. This is used to prevent there being too many checks to a single
+    # domain.
+    result = extract_domain_parts(url)
     subscription, created = UptimeSubscription.objects.get_or_create(
         url=url,
         interval_seconds=interval_seconds,
@@ -35,6 +40,8 @@ def create_uptime_subscription(
             "status": UptimeSubscription.Status.CREATING.value,
             "type": UPTIME_SUBSCRIPTION_TYPE,
             "timeout_ms": timeout_ms,
+            "url_domain": result.domain,
+            "url_domain_suffix": result.suffix,
         },
     )
     if subscription.status == UptimeSubscription.Status.DELETING.value:
@@ -45,6 +52,7 @@ def create_uptime_subscription(
 
     if created:
         create_remote_uptime_subscription.delay(subscription.id)
+        fetch_subscription_rdap_info.delay(subscription.id)
     return subscription
 
 

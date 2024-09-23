@@ -106,6 +106,11 @@ const trackQuotaExceededIncreaseBudgetClicked = (
     traceType,
   });
 
+const trackMissingSpansDocLinkClicked = (organization: Organization) =>
+  trackAnalytics('trace.quality.missing_spans.doc_link_clicked', {
+    organization,
+  });
+
 const trackQuotaExceededLearnMoreClicked = (
   organization: Organization,
   traceType: string
@@ -170,6 +175,7 @@ const traceAnalytics = {
   trackQuotaExceededLearnMoreClicked,
   trackQuotaExceededBannerLoaded,
   trackTraceConfigurationsDocsClicked,
+  trackMissingSpansDocLinkClicked,
 };
 
 export {traceAnalytics};

@@ -32,6 +32,7 @@ import type {
 } from 'sentry/types/echarts';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
+import {defined} from 'sentry/utils';
 import {
   axisLabelFormatter,
   axisLabelFormatterUsingAggregateOutputType,
@@ -62,6 +63,7 @@ import {DisplayType} from '../types';
 import type {GenericWidgetQueriesChildrenProps} from './genericWidgetQueries';
 
 const OTHER = 'Other';
+const PERCENTAGE_DECIMAL_POINTS = 3;
 export const SLIDER_HEIGHT = 60;
 
 export type AugmentedEChartDataZoomHandler = (
@@ -105,16 +107,8 @@ type WidgetCardChartProps = Pick<
   windowWidth?: number;
 };
 
-type State = {
-  // For tracking height of the container wrapping BigNumber widgets
-  // so we can dynamically scale font-size
-  containerHeight: number;
-};
-
-class WidgetCardChart extends Component<WidgetCardChartProps, State> {
-  state = {containerHeight: 0};
-
-  shouldComponentUpdate(nextProps: WidgetCardChartProps, nextState: State): boolean {
+class WidgetCardChart extends Component<WidgetCardChartProps> {
+  shouldComponentUpdate(nextProps: WidgetCardChartProps): boolean {
     if (
       this.props.widget.displayType === DisplayType.BIG_NUMBER &&
       nextProps.widget.displayType === DisplayType.BIG_NUMBER &&
@@ -141,7 +135,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
       },
     };
 
-    return !isEqual(currentProps, nextProps) || !isEqual(this.state, nextState);
+    return !isEqual(currentProps, nextProps);
   }
 
   tableResultComponent({
@@ -207,14 +201,21 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
       return <BigNumber>{'\u2014'}</BigNumber>;
     }
 
-    const {containerHeight} = this.state;
     const {location, organization, widget, isMobile, expandNumbers} = this.props;
 
     return tableResults.map(result => {
       const tableMeta = {...result.meta};
       const fields = Object.keys(tableMeta);
 
-      const field = fields[0];
+      let field = fields[0];
+
+      if (
+        organization.features.includes('dashboards-bignumber-equations') &&
+        defined(widget.queries[0].selectedAggregate)
+      ) {
+        const index = widget.queries[0].selectedAggregate;
+        field = widget.queries[0].aggregates[index];
+      }
 
       // Change tableMeta for the field from integer to string since we will be rendering with toLocaleString
       const shouldExpandInteger = !!expandNumbers && tableMeta[field] === 'integer';
@@ -240,24 +241,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
         return <BigNumber key={`big_number:${result.title}`}>{rendered}</BigNumber>;
       }
 
-      // The font size is the container height, minus the top and bottom padding
-      const fontSize = !expandNumbers
-        ? containerHeight - parseInt(space(1), 10) - parseInt(space(3), 10)
-        : `max(min(8vw, 90px), ${space(4)})`;
-
-      return !organization.features.includes('auto-size-big-number-widget') ? (
-        <BigNumber
-          key={`big_number:${result.title}`}
-          style={{
-            fontSize,
-            ...(expandNumbers ? {padding: `${space(1)} ${space(3)} 0 ${space(3)}`} : {}),
-          }}
-        >
-          <Tooltip title={rendered} showOnlyOnOverflow>
-            {rendered}
-          </Tooltip>
-        </BigNumber>
-      ) : expandNumbers ? (
+      return expandNumbers ? (
         <BigText>{rendered}</BigText>
       ) : (
         <AutoResizeParent key={`big_number:${result.title}`}>
@@ -316,7 +300,6 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
       widget,
       onZoom,
       legendOptions,
-      expandNumbers,
       showSlider,
       noPadding,
       chartZoomOptions,
@@ -340,16 +323,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
       return (
         <TransitionChart loading={loading} reloading={loading}>
           <LoadingScreen loading={loading} />
-          <BigNumberResizeWrapper
-            ref={el => {
-              if (el !== null && !expandNumbers) {
-                const {height} = el.getBoundingClientRect();
-                if (height !== this.state.containerHeight) {
-                  this.setState({containerHeight: height});
-                }
-              }
-            }}
-          >
+          <BigNumberResizeWrapper>
             {this.bigNumberComponent({tableResults, loading, errorMessage})}
           </BigNumberResizeWrapper>
         </TransitionChart>
@@ -424,6 +398,9 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
       },
       tooltip: {
         trigger: 'axis',
+        axisPointer: {
+          type: 'cross',
+        },
         formatter: (params, asyncTicket) => {
           const {chartGroup} = this.props;
           const isInGroup =
@@ -453,10 +430,30 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
                 value,
                 outputType,
                 true,
-                durationUnit
+                durationUnit,
+                undefined,
+                PERCENTAGE_DECIMAL_POINTS
               );
             }
-            return axisLabelFormatter(value, aggregateOutputType(axisLabel), true);
+            return axisLabelFormatter(
+              value,
+              aggregateOutputType(axisLabel),
+              true,
+              undefined,
+              undefined,
+              PERCENTAGE_DECIMAL_POINTS
+            );
+          },
+        },
+        axisPointer: {
+          type: 'line',
+          snap: false,
+          lineStyle: {
+            type: 'solid',
+            width: 0.5,
+          },
+          label: {
+            show: false,
           },
         },
         minInterval: durationUnit ?? 0,
@@ -593,10 +590,10 @@ const LoadingPlaceholder = styled(({className}: PlaceholderProps) => (
 `;
 
 const BigNumberResizeWrapper = styled('div')`
-  height: 100%;
-  width: 100%;
+  flex-grow: 1;
   overflow: hidden;
   position: relative;
+  margin: ${space(1)} ${space(3)} ${space(3)} ${space(3)};
 `;
 
 const BigNumber = styled('div')`
@@ -617,7 +614,7 @@ const BigNumber = styled('div')`
 const AutoResizeParent = styled('div')`
   position: absolute;
   color: ${p => p.theme.headingColor};
-  inset: ${space(1)} ${space(3)} 0 ${space(3)};
+  inset: 0;
 
   * {
     line-height: 1;

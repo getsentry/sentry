@@ -203,7 +203,7 @@ describe('Threads', function () {
         fingerprints: ['58f1f47bea5239ea25397888dc9253d1'],
         groupingConfig: {
           enhancements: 'eJybzDRxY25-UmZOqpWRgZGhroGJroHRBABbUQb_',
-          id: 'mobile:2021-02-12',
+          id: 'newstyle:2023-01-11',
         },
         release: null,
         userReport: null,
@@ -844,7 +844,7 @@ describe('Threads', function () {
         fingerprints: ['852f6cf1ed76d284b95e7d62275088ca'],
         groupingConfig: {
           enhancements: 'eJybzDRxY25-UmZOqpWRgZGhroGJroHRBABbUQb_',
-          id: 'mobile:2021-02-12',
+          id: 'newstyle:2023-01-11',
         },
         tags: [],
         contexts: {},

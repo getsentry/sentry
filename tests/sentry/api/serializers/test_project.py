@@ -792,6 +792,17 @@ class DetailedProjectSerializerTest(TestCase):
         result = serialize(self.project, self.user, DetailedProjectSerializer())
         assert result["options"]["sentry:replay_hydration_error_issues"] is False
 
+    def test_toolbar_allowed_origins(self):
+        # Does not allow trailing newline or extra whitespace.
+        # Default is empty:
+        result = serialize(self.project, self.user, DetailedProjectSerializer())
+        assert result["options"]["sentry:toolbar_allowed_origins"] == ""
+
+        origins = ["*.sentry.io", "example.net", "nugettrends.com"]
+        self.project.update_option("sentry:toolbar_allowed_origins", origins)
+        result = serialize(self.project, self.user, DetailedProjectSerializer())
+        assert result["options"]["sentry:toolbar_allowed_origins"].split("\n") == origins
+
 
 class BulkFetchProjectLatestReleases(TestCase):
     @cached_property

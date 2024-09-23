@@ -2,7 +2,7 @@ import {useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from 'sentry/components/button';
-import DateTime from 'sentry/components/dateTime';
+import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -24,6 +24,7 @@ interface Props {
 const DOWNTIME_START_TYPES = [
   GroupActivityType.SET_UNRESOLVED,
   GroupActivityType.FIRST_SEEN,
+  GroupActivityType.SET_REGRESSION,
 ];
 
 const DOWNTIME_TERMINAL_TYPES = [GroupActivityType.SET_RESOLVED];
@@ -31,10 +32,10 @@ const DOWNTIME_TERMINAL_TYPES = [GroupActivityType.SET_RESOLVED];
 export function UptimeDataSection({group, event, project}: Props) {
   const organization = useOrganization();
   const nowRef = useRef(new Date());
-  const downtimeStartActivity = group.activity.findLast(activity =>
+  const downtimeStartActivity = group.activity.find(activity =>
     DOWNTIME_START_TYPES.includes(activity.type)
   );
-  const downtimeEndActivity = group.activity.findLast(activity =>
+  const downtimeEndActivity = group.activity.find(activity =>
     DOWNTIME_TERMINAL_TYPES.includes(activity.type)
   );
 

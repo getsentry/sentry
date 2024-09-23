@@ -1,3 +1,4 @@
+// biome-ignore lint/nursery/noRestrictedImports: Will be removed with react router 6
 import {Link as RouterLink} from 'react-router';
 import {NavLink} from 'react-router-dom';
 import styled from '@emotion/styled';
@@ -37,8 +38,7 @@ function ListLink({
 }: ListLinkProps) {
   const router = useRouter();
   const location = useLocation();
-  const targetLocation = typeof to === 'string' ? {pathname: to} : to;
-  const target = normalizeUrl(targetLocation);
+  const target = normalizeUrl(to);
 
   const active =
     isActive?.(target, index) ??

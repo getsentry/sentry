@@ -5,7 +5,6 @@ from unittest import mock
 
 import pytest
 
-from sentry.grouping.component import GroupingComponent
 from sentry.grouping.enhancer import Enhancements
 from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
 from sentry.grouping.enhancer.matchers import _cached, create_match_frame
@@ -468,22 +467,6 @@ def test_range_matching_direct():
         ],
         "python",
     )
-
-
-@pytest.mark.parametrize("action", ["+", "-"])
-@pytest.mark.parametrize("type", ["prefix", "sentinel"])
-def test_sentinel_and_prefix(action, type):
-    enhancements = Enhancements.from_config_string(f"function:foo {action}{type}")
-
-    frames = [{"function": "foo"}]
-    component = GroupingComponent(id="foo")
-    assert not getattr(component, f"is_{type}_frame")
-    frame_components = [component]
-
-    enhancements.assemble_stacktrace_component(frame_components, frames, "whatever")
-
-    expected = action == "+"
-    assert getattr(component, f"is_{type}_frame") is expected
 
 
 @pytest.mark.parametrize(

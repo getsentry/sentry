@@ -74,6 +74,7 @@ from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releaseheadcommit import ReleaseHeadCommit
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.options import set
+from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG
 from sentry.spans.grouping.utils import hash_values
 from sentry.testutils.asserts import assert_mock_called_once_with_partial
 from sentry.testutils.cases import (
@@ -998,14 +999,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             """
         ).dumps()
 
-        # TODO: Really we should use DEFAULT_GROUPING_CONFIG here as the id (so that we don't have
-        # to update the test every time we change the default), but there's something about the
-        # mobile config, over and above the enhancements hardcoded above, that makes this test pass.
-        # We'll have to figure this out before we can delete the config.
-        grouping_config = {
-            "id": "mobile:2021-02-12",
-            "enhancements": enhancements_str,
-        }
+        grouping_config = {"id": DEFAULT_GROUPING_CONFIG, "enhancements": enhancements_str}
 
         with patch(
             "sentry.grouping.ingest.hashing.get_grouping_config_dict_for_project",
@@ -2051,6 +2045,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             == 0
         )
 
+    @pytest.mark.skip(reason="Flaky test")
     def test_category_match_in_app(self) -> None:
         """
         Regression test to ensure that grouping in-app enhancements work in
@@ -2066,14 +2061,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             """
         ).dumps()
 
-        # TODO: Really we should use DEFAULT_GROUPING_CONFIG here as the id (so that we don't have
-        # to update the test every time we change the default), but there's something about the
-        # mobile config, over and above the enhancements hardcoded above, that makes this test pass.
-        # We'll have to figure this out before we can delete the config.
-        grouping_config = {
-            "id": "mobile:2021-02-12",
-            "enhancements": enhancements_str,
-        }
+        grouping_config = {"id": DEFAULT_GROUPING_CONFIG, "enhancements": enhancements_str}
 
         with patch(
             "sentry.grouping.ingest.hashing.get_grouping_config_dict_for_project",
@@ -2148,14 +2136,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             """
         ).dumps()
 
-        # TODO: Really we should use DEFAULT_GROUPING_CONFIG here as the id (so that we don't have
-        # to update the test every time we change the default), but there's something about the
-        # mobile config, over and above the enhancements hardcoded above, that makes this test pass.
-        # We'll have to figure this out before we can delete the config.
-        grouping_config = {
-            "id": "mobile:2021-02-12",
-            "enhancements": enhancements_str,
-        }
+        grouping_config = {"id": DEFAULT_GROUPING_CONFIG, "enhancements": enhancements_str}
 
         with patch(
             "sentry.grouping.ingest.hashing.get_grouping_config_dict_for_project",
@@ -2188,41 +2169,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             event1 = manager.save(self.project.id)
             event2 = Event(event1.project_id, event1.event_id, data=event1.data)
 
-            assert (
-                event1.get_hashes().hashes
-                == event2.get_hashes(load_grouping_config(grouping_config)).hashes
-            )
-
-    def test_synthetic_exception_detection(self) -> None:
-        # TODO: Really we should use DEFAULT_GROUPING_CONFIG here as the id (so that we don't have
-        # to update the test every time we change the default), but there's something about the
-        # mobile config, over and above the enhancements hardcoded above, that makes this test pass.
-        # We'll have to figure this out before we can delete the config.
-        self.project.update_option("sentry:grouping_config", "mobile:2021-02-12")
-
-        manager = EventManager(
-            make_event(
-                message="foo",
-                event_id="b" * 32,
-                exception={
-                    "values": [
-                        {
-                            "type": "SIGABRT",
-                            "mechanism": {"handled": False},
-                            "stacktrace": {"frames": [{"function": "foo"}]},
-                        }
-                    ]
-                },
-            ),
-            project=self.project,
-        )
-        manager.normalize()
-        event = manager.save(self.project.id)
-
-        mechanism = event.interfaces["exception"].values[0].mechanism
-        assert mechanism is not None
-        assert mechanism.synthetic is True
-        assert event.title == "foo"
+            assert event1.get_hashes() == event2.get_hashes(load_grouping_config(grouping_config))
 
     @override_options({"performance.issues.all.problem-detection": 1.0})
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})

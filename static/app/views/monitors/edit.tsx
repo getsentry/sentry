@@ -35,7 +35,7 @@ export default function EditMonitor() {
     data: monitor,
     refetch,
   } = useApiQuery<Monitor>(queryKey, {
-    cacheTime: 0,
+    gcTime: 0,
     staleTime: 0,
   });
 

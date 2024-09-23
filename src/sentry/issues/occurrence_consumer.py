@@ -378,7 +378,9 @@ def _process_message(
 
 @sentry_sdk.tracing.trace
 @metrics.wraps("occurrence_consumer.process_batch")
-def _process_batch(worker: ThreadPoolExecutor, message: Message[ValuesBatch[KafkaPayload]]) -> None:
+def process_occurrence_batch(
+    worker: ThreadPoolExecutor, message: Message[ValuesBatch[KafkaPayload]]
+) -> None:
     """
     Receives batches of occurrences. This function will take the batch
     and group them together by fingerprint (ensuring order is preserved) and

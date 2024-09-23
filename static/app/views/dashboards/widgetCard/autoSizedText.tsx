@@ -21,6 +21,17 @@ export function AutoSizedText({children}: Props) {
       return undefined;
     }
 
+    if (!window.ResizeObserver) {
+      // `ResizeObserver` is missing in a test environment. In this case,
+      // run one iteration of the resize behaviour so a test can at least
+      // verify that the component doesn't crash.
+      const childDimensions = getElementDimensions(childElement);
+      const parentDimensions = getElementDimensions(parentElement);
+
+      adjustFontSize(childDimensions, parentDimensions);
+      return undefined;
+    }
+
     // On component first mount, register a `ResizeObserver` on the containing element. The handler fires
     // on component mount, and every time the element changes size after that
     const observer = new ResizeObserver(entries => {
@@ -40,48 +51,44 @@ export function AutoSizedText({children}: Props) {
 
       let iterationCount = 0;
 
-      Sentry.withScope(scope => {
-        const span = Sentry.startInactiveSpan({
-          op: 'function',
-          name: 'AutoSizedText.iterate',
-          forceTransaction: true,
-        });
+      const span = Sentry.startInactiveSpan({
+        op: 'function',
+        name: 'AutoSizedText.iterate',
+        onlyIfParent: true,
+      });
 
-        // Run the resize iteration in a loop. This blocks the main UI thread and prevents
-        // visible layout jitter. If this was done through a `ResizeObserver` or React State
-        // each step in the resize iteration would be visible to the user
-        while (iterationCount <= ITERATION_LIMIT) {
-          const childDimensions = getElementDimensions(childElement);
+      // Run the resize iteration in a loop. This blocks the main UI thread and prevents
+      // visible layout jitter. If this was done through a `ResizeObserver` or React State
+      // each step in the resize iteration would be visible to the user
+      while (iterationCount <= ITERATION_LIMIT) {
+        const childDimensions = getElementDimensions(childElement);
 
-          const widthDifference = parentDimensions.width - childDimensions.width;
-          const heightDifference = parentDimensions.height - childDimensions.height;
+        const widthDifference = parentDimensions.width - childDimensions.width;
+        const heightDifference = parentDimensions.height - childDimensions.height;
 
-          const childFitsIntoParent = heightDifference > 0 && widthDifference > 0;
-          const childIsWithinWidthTolerance =
-            Math.abs(widthDifference) <= MAXIMUM_DIFFERENCE;
-          const childIsWithinHeightTolerance =
-            Math.abs(heightDifference) <= MAXIMUM_DIFFERENCE;
+        const childFitsIntoParent = heightDifference >= 0 && widthDifference >= 0;
+        const childIsWithinWidthTolerance =
+          Math.abs(widthDifference) <= MAXIMUM_DIFFERENCE;
+        const childIsWithinHeightTolerance =
+          Math.abs(heightDifference) <= MAXIMUM_DIFFERENCE;
 
-          if (
-            childFitsIntoParent &&
-            (childIsWithinWidthTolerance || childIsWithinHeightTolerance)
-          ) {
-            // Stop the iteration, we've found a fit!
-            span.setAttribute('widthDifference', widthDifference);
-            span.setAttribute('heightDifference', heightDifference);
-            break;
-          }
-
-          adjustFontSize(childDimensions, parentDimensions);
-
-          iterationCount += 1;
+        if (
+          childFitsIntoParent &&
+          (childIsWithinWidthTolerance || childIsWithinHeightTolerance)
+        ) {
+          // Stop the iteration, we've found a fit!
+          span.setAttribute('widthDifference', widthDifference);
+          span.setAttribute('heightDifference', heightDifference);
+          break;
         }
 
-        scope.setTag('didExceedIterationLimit', iterationCount >= ITERATION_LIMIT);
+        adjustFontSize(childDimensions, parentDimensions);
 
-        span.setAttribute('iterationCount', iterationCount);
-        span.end();
-      });
+        iterationCount += 1;
+      }
+
+      span.setAttribute('iterationCount', iterationCount);
+      span.end();
     });
 
     observer.observe(parentElement);
@@ -128,7 +135,7 @@ const SizedChild = styled('div')`
   display: inline-block;
 `;
 
-const ITERATION_LIMIT = 50;
+const ITERATION_LIMIT = 20;
 
 // The maximum difference strongly affects the number of iterations required.
 // A value of 10 means that matches are often found in fewer than 5 iterations.

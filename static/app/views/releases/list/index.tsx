@@ -576,6 +576,7 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
                       getTagValues={this.getTagValues}
                       placeholder={t('Search by version, build, package, or stage')}
                       searchSource="releases"
+                      showUnsubmittedIndicator
                     />
                   ) : (
                     <StyledSmartSearchBar

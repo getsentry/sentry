@@ -3,19 +3,18 @@ from django.db import router
 from django.db.transaction import get_connection
 
 from sentry import deletions
+from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.models.apigrant import ApiGrant
 from sentry.models.apitoken import ApiToken
-from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
-from sentry.models.integrations.sentry_app_installation_for_provider import (
+from sentry.sentry_apps.installations import SentryAppInstallationCreator
+from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
+from sentry.sentry_apps.models.sentry_app_installation_for_provider import (
     SentryAppInstallationForProvider,
 )
-from sentry.models.servicehook import ServiceHook
-from sentry.sentry_apps.installations import SentryAppInstallationCreator
+from sentry.sentry_apps.models.servicehook import ServiceHook
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
-from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
@@ -70,7 +69,6 @@ class TestSentryAppInstallationDeletionTask(TestCase):
 
         assert not SentryAppInstallationForProvider.objects.filter()
 
-    @override_options({"hybrid_cloud.allow_cross_db_tombstones": True})
     def test_deletes_service_hooks(self):
         hook = self.create_service_hook(
             application=self.sentry_app.application,

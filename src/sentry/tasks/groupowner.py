@@ -4,7 +4,6 @@ from typing import cast
 
 from django.utils import timezone
 
-from sentry.api.serializers.models.user import UserSerializerResponse
 from sentry.locks import locks
 from sentry.models.commit import Commit
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
@@ -12,6 +11,7 @@ from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
+from sentry.users.api.serializers.user import UserSerializerResponse
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.committers import get_event_file_committers

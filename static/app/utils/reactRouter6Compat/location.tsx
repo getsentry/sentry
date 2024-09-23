@@ -1,4 +1,5 @@
 import type {Location as Location6, To} from 'react-router-dom';
+import * as Sentry from '@sentry/react';
 import type {Location as Location3, LocationDescriptor, Query} from 'history';
 import * as qs from 'query-string';
 
@@ -10,9 +11,52 @@ export function locationDescriptorToTo(path: LocationDescriptor): To {
     return path;
   }
 
+  let query = path.query ? {...path.query} : undefined;
+
   const to: To = {
     pathname: path.pathname,
   };
+
+  // XXX(epurkhiser): In react router 3 it was possible to include the search
+  // query parameters in te pathname field of a LocationDescriptor. You can no
+  // longer do this with 6 and it will result in an error
+  //
+  // > Cannot include a '?' character in a manually specified `to.pathname` field
+  //
+  // To shim for this, since there may be some hiding around, we can extract
+  // out the query string, parse it, and merge it into the path query object.
+
+  if (to.pathname?.endsWith('?')) {
+    to.pathname = to.pathname.slice(0, -1);
+  }
+
+  if (to.pathname?.includes('?')) {
+    const parts = to.pathname.split('?');
+
+    Sentry.captureMessage('Got pathname with `?`', scope =>
+      scope.setExtra('LocationDescriptor', path)
+    );
+
+    if (parts.length > 2) {
+      Sentry.captureMessage(
+        'Unexpected number of `?` when shimming search params in pathname for react-router 6'
+      );
+    }
+
+    const [pathname, search] = parts;
+
+    if (search && path.search) {
+      Sentry.captureMessage('Got search in pathname and as part of LocationDescriptor');
+    }
+
+    to.pathname = pathname;
+
+    if (query) {
+      query = {...query, ...qs.parse(search)};
+    } else {
+      query = qs.parse(search);
+    }
+  }
 
   if (path.hash) {
     to.hash = path.hash;
@@ -20,8 +64,8 @@ export function locationDescriptorToTo(path: LocationDescriptor): To {
   if (path.search) {
     to.search = path.search;
   }
-  if (path.query) {
-    to.search = `?${qs.stringify(path.query)}`;
+  if (query) {
+    to.search = `?${qs.stringify(query)}`;
   }
 
   // XXX(epurkhiser): We ignore the location state param

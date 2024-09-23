@@ -25,6 +25,15 @@ from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
+IGNORED_CONDITION_FIELDS = {
+    "ignoreDuration",
+    "snoozeDuration",
+    "ignoreCount",
+    "ignoreWindow",
+    "ignoreUserCount",
+    "ignoreUserWindow",
+}
+
 
 class IgnoredStatusDetails(TypedDict, total=False):
     ignoreCount: int | None

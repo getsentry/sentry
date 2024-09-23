@@ -37,6 +37,7 @@ import {
   useGenerateExpressionId,
 } from 'sentry/views/dashboards/metrics/utils';
 import {DisplayType} from 'sentry/views/dashboards/types';
+import {MetricsBetaEndAlert} from 'sentry/views/metrics/metricsBetaEndAlert';
 import {MetricDetails} from 'sentry/views/metrics/widgetDetails';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
@@ -324,6 +325,7 @@ function MetricWidgetViewerModal({
           <CloseButton onClick={handleClose} />
         </Header>
         <Body>
+          <MetricsBetaEndAlert />
           <Queries
             displayType={displayType}
             metricQueries={metricQueries}

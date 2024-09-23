@@ -24,6 +24,7 @@ import {getJSMetricsOnboarding} from 'sentry/components/onboarding/gettingStarte
 import {
   getReplayConfigureDescription,
   getReplaySDKSetupSnippet,
+  getReplayVerifyStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
@@ -32,20 +33,32 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 
 type Params = DocsParams;
 
-const getInstallConfig = () => [
-  {
-    description: tct(
-      'Configure your app automatically with the [wizardLink:Sentry wizard].',
-      {
-        wizardLink: (
-          <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/nextjs/#install" />
-        ),
-      }
-    ),
-    language: 'bash',
-    code: `npx @sentry/wizard@latest -i nextjs`,
-  },
-];
+const getInstallSnippet = ({
+  isSelfHosted,
+  urlPrefix,
+  organization,
+  projectSlug,
+}: Params) => {
+  const urlParam = !isSelfHosted && urlPrefix ? `--url ${urlPrefix}` : '';
+  return `npx @sentry/wizard@latest -i nextjs ${urlParam} --org ${organization.slug} --project ${projectSlug}`;
+};
+
+const getInstallConfig = (params: Params) => {
+  return [
+    {
+      description: tct(
+        'Configure your app automatically with the [wizardLink:Sentry wizard].',
+        {
+          wizardLink: (
+            <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/nextjs/#install" />
+          ),
+        }
+      ),
+      language: 'bash',
+      code: getInstallSnippet(params),
+    },
+  ];
+};
 
 const getManualInstallConfig = () => [
   {
@@ -71,7 +84,7 @@ const onboarding: OnboardingConfig = {
   install: (params: Params) => [
     {
       type: StepType.INSTALL,
-      configurations: getInstallConfig(),
+      configurations: getInstallConfig(params),
       additionalInfo: (
         <Fragment>
           {t(
@@ -80,12 +93,9 @@ const onboarding: OnboardingConfig = {
           <List symbol="bullet">
             <ListItem>
               {tct(
-                'Create [serverCode:sentry.server.config.js], [clientCode:sentry.client.config.js] and [edgeCode:sentry.edge.config.js] with the default [sentryInitCode:Sentry.init].',
+                'Create [code:sentry.server.config.js], [code:sentry.client.config.js] and [code:sentry.edge.config.js] with the default [code:Sentry.init].',
                 {
-                  clientCode: <code />,
-                  serverCode: <code />,
-                  edgeCode: <code />,
-                  sentryInitCode: <code />,
+                  code: <code />,
                 }
               )}
             </ListItem>
@@ -160,7 +170,9 @@ const onboarding: OnboardingConfig = {
 };
 
 const replayOnboarding: OnboardingConfig = {
-  install: () => [{type: StepType.INSTALL, configurations: getInstallConfig()}],
+  install: (params: Params) => [
+    {type: StepType.INSTALL, configurations: getInstallConfig(params)},
+  ],
   configure: (params: Params) => [
     {
       type: StepType.CONFIGURE,
@@ -171,7 +183,7 @@ const replayOnboarding: OnboardingConfig = {
         {
           code: [
             {
-              label: 'JavaScript',
+              label: 'sentry.client.config.js',
               value: 'javascript',
               language: 'javascript',
               code: getReplaySDKSetupSnippet({
@@ -188,22 +200,21 @@ const replayOnboarding: OnboardingConfig = {
         <Fragment>
           <TracePropagationMessage />
           {tct(
-            'Alert: The Replay integration must be added to your [sentryClient:sentry.client.config.js] file. Adding it to any server-side configuration files (like [instrumentation:instrumentation.ts]) will break your build because the Replay integration depends on Browser APIs.',
+            'Note: The Replay integration only needs to be added to your [code:sentry.client.config.js] file. Adding it to any server-side configuration files (like [code:instrumentation.ts]) will break your build because the Replay integration depends on Browser APIs.',
             {
-              sentryClient: <code />,
-              instrumentation: <code />,
+              code: <code />,
             }
           )}
         </Fragment>
       ),
     },
   ],
-  verify: () => [],
+  verify: getReplayVerifyStep(),
   nextSteps: () => [],
 };
 
 const feedbackOnboarding: OnboardingConfig = {
-  install: () => [
+  install: (params: Params) => [
     {
       type: StepType.INSTALL,
       description: tct(
@@ -212,7 +223,7 @@ const feedbackOnboarding: OnboardingConfig = {
           code: <code />,
         }
       ),
-      configurations: getInstallConfig(),
+      configurations: getInstallConfig(params),
     },
   ],
   configure: (params: Params) => [
@@ -228,7 +239,7 @@ const feedbackOnboarding: OnboardingConfig = {
         {
           code: [
             {
-              label: 'JavaScript',
+              label: 'sentry.client.config.js',
               value: 'javascript',
               language: 'javascript',
               code: getFeedbackSDKSetupSnippet({
@@ -244,10 +255,9 @@ const feedbackOnboarding: OnboardingConfig = {
         <AdditionalInfoWrapper>
           <div>
             {tct(
-              'Alert: The User Feedback integration must be added to your [sentryClient:sentry.client.config.js] file. Adding it to any server-side configuration files (like [instrumentation:instrumentation.ts]) will break your build because the Replay integration depends on Browser APIs.',
+              'Note: The User Feedback integration only needs to be added to your [code:sentry.client.config.js] file. Adding it to any server-side configuration files (like [code:instrumentation.ts]) will break your build because the Replay integration depends on Browser APIs.',
               {
-                sentryClient: <code />,
-                instrumentation: <code />,
+                code: <code />,
               }
             )}
           </div>
@@ -282,13 +292,96 @@ const crashReportOnboarding: OnboardingConfig = {
   nextSteps: () => [],
 };
 
+const performanceOnboarding: OnboardingConfig = {
+  introduction: () =>
+    t(
+      "Adding Performance to your React project is simple. Make sure you've got these basics down."
+    ),
+  install: params => [
+    {
+      type: StepType.INSTALL,
+      description: t('Install the Next.js SDK using our installation wizard:'),
+      configurations: [
+        {
+          language: 'bash',
+          code: getInstallSnippet(params),
+        },
+      ],
+    },
+  ],
+  configure: params => [
+    {
+      type: StepType.CONFIGURE,
+      description: tct(
+        'To configure, set [code:tracesSampleRate] in your config files, [code:sentry.server.config.js], [code:sentry.client.config.js], and [code:sentry.edge.config.js]:',
+        {code: <code />}
+      ),
+      configurations: [
+        {
+          language: 'javascript',
+          code: `
+import * as Sentry from "@sentry/nextjs";
+
+Sentry.init({
+  dsn: "${params.dsn.public}",
+
+  // Set tracesSampleRate to 1.0 to capture 100%
+  // of transactions for performance monitoring.
+  // We recommend adjusting this value in production
+  tracesSampleRate: 1.0,
+});
+`,
+          additionalInfo: tct(
+            'We recommend adjusting the value of [code:tracesSampleRate] in production. Learn more about tracing [linkTracingOptions:options], how to use the [linkTracesSampler:traces_sampler] function, or how to [linkSampleTransactions:sample transactions].',
+            {
+              code: <code />,
+              linkTracingOptions: (
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/nextjs/configuration/options/#tracing-options" />
+              ),
+              linkTracesSampler: (
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/nextjs/configuration/sampling/" />
+              ),
+              linkSampleTransactions: (
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/nextjs/configuration/sampling/" />
+              ),
+            }
+          ),
+        },
+      ],
+    },
+  ],
+  verify: () => [
+    {
+      type: StepType.VERIFY,
+      description: tct(
+        'Verify that performance monitoring is working correctly with our [link:automatic instrumentation] by simply using your NextJS application.',
+        {
+          link: (
+            <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/nextjs/tracing/instrumentation/automatic-instrumentation/" />
+          ),
+        }
+      ),
+      additionalInfo: tct(
+        'You have the option to manually construct a transaction using [link:custom instrumentation].',
+        {
+          link: (
+            <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/nextjs/tracing/instrumentation/custom-instrumentation/" />
+          ),
+        }
+      ),
+    },
+  ],
+  nextSteps: () => [],
+};
+
 const docs: Docs = {
   onboarding,
   feedbackOnboardingNpm: feedbackOnboarding,
-  replayOnboardingNpm: replayOnboarding,
+  replayOnboarding,
   customMetricsOnboarding: getJSMetricsOnboarding({
     getInstallConfig: getManualInstallConfig,
   }),
+  performanceOnboarding,
   crashReportOnboarding,
 };
 

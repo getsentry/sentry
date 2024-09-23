@@ -7,7 +7,7 @@
       {
         "name": "organization_id_or_slug",
         "in": "path",
-        "description": "The id or slug of the organization the issue belongs to.",
+        "description": "The ID or slug of the organization the issue belongs to.",
         "required": true,
         "schema": {
           "type": "string"
@@ -188,7 +188,7 @@
       {
         "name": "organization_id_or_slug",
         "in": "path",
-        "description": "The id or slug of the organization the issue belongs to.",
+        "description": "The ID or slug of the organization the issue belongs to.",
         "required": true,
         "schema": {
           "type": "string"
@@ -221,10 +221,6 @@
                   "inNextRelease": {
                     "type": "boolean",
                     "description": "Indicates if the issue is resolved in the next release based on the last seen release of that issue."
-                  },
-                  "inUpcomingRelease": {
-                    "type": "boolean",
-                    "description": "Indicates if the issue is resolved in an upcoming release."
                   },
                   "inRelease": {
                     "type": "string",
@@ -330,7 +326,7 @@
       {
         "name": "organization_id_or_slug",
         "in": "path",
-        "description": "The id or slug of the organization the issue belongs to.",
+        "description": "The ID or slug of the organization the issue belongs to.",
         "required": true,
         "schema": {
           "type": "string"

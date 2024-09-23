@@ -754,7 +754,7 @@ if (IS_UI_DEV_ONLY || SENTRY_EXPERIMENTAL_SPA) {
       ...(IS_UI_DEV_ONLY
         ? {devServer: `https://127.0.0.1:${SENTRY_WEBPACK_PROXY_PORT}`}
         : {}),
-      favicon: path.resolve(sentryDjangoAppPath, 'images', 'favicon_dev.png'),
+      favicon: path.resolve(sentryDjangoAppPath, 'images', 'favicon-dev.png'),
       template: path.resolve(staticPrefix, 'index.ejs'),
       mobile: true,
       excludeChunks: ['pipeline'],
@@ -827,7 +827,10 @@ appConfig.plugins?.push(
       enabled: true,
     },
     bundleSizeOptimizations: {
-      excludeDebugStatements: IS_PRODUCTION,
+      // This is enabled so that our SDKs send exceptions to Sentry
+      excludeDebugStatements: false,
+      excludeReplayIframe: true,
+      excludeReplayShadowDom: true,
     },
   })
 );

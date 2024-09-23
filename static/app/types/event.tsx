@@ -198,8 +198,6 @@ export type Frame = {
   trust: any | null;
   vars: Record<string, any> | null;
   addrMode?: string;
-  isPrefix?: boolean;
-  isSentinel?: boolean;
   lock?: Lock | null;
   // map exists if the frame has a source map
   map?: string | null;
@@ -211,8 +209,6 @@ export type Frame = {
 };
 
 export enum FrameBadge {
-  SENTINEL = 'sentinel',
-  PREFIX = 'prefix',
   GROUPING = 'grouping',
 }
 
@@ -640,6 +636,9 @@ export interface ResponseContext {
   type: 'response';
 }
 
+export type FeatureFlag = {flag: string; result: boolean};
+export type Flags = {values: FeatureFlag[]};
+
 export type EventContexts = {
   'Memory Info'?: MemoryInfoContext;
   'ThreadPool Info'?: ThreadPoolInfoContext;
@@ -647,6 +646,7 @@ export type EventContexts = {
   client_os?: OSContext;
   device?: DeviceContext;
   feedback?: Record<string, any>;
+  flags?: Flags;
   memory_info?: MemoryInfoContext;
   os?: OSContext;
   otel?: OtelContext;

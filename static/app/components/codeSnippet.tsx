@@ -240,7 +240,7 @@ const Header = styled('div')<{isSolid: boolean}>`
     `}
 `;
 
-const FileName = styled('p')`
+const FileName = styled('span')`
   ${p => p.theme.overflowEllipsis}
   padding: ${space(0.5)} ${space(0.5)};
   margin: 0;

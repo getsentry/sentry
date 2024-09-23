@@ -8,7 +8,7 @@
 
 amqp==5.2.0
 anyio==3.7.1
-asgiref==3.7.2
+asgiref==3.8.1
 attrs==23.1.0
 avalara==20.9.0
 beautifulsoup4==4.7.1
@@ -38,7 +38,7 @@ cssutils==2.9.0
 datadog==0.49.1
 distlib==0.3.8
 distro==1.8.0
-django==5.0.8
+django==5.1.1
 django-crispy-forms==1.14.0
 django-csp==3.8
 django-pg-zero-downtime-migrations==0.13
@@ -62,13 +62,12 @@ google-cloud-core==2.4.1
 google-cloud-functions==1.17.0
 google-cloud-kms==2.24.2
 google-cloud-pubsub==2.23.0
-google-cloud-spanner==3.48.0
+google-cloud-spanner==3.49.0
 google-cloud-storage==2.18.0
-google-crc32c==1.5.0
+google-crc32c==1.6.0
 google-resumable-media==2.7.0
 googleapis-common-protos==1.63.2
 grpc-google-iam-v1==0.13.1
-grpc-interceptor==0.15.4
 grpc-stubs==1.53.0.5
 grpcio==1.60.1
 grpcio-status==1.60.1
@@ -125,7 +124,7 @@ phonenumberslite==8.12.55
 pillow==10.2.0
 pip-tools==7.1.0
 platformdirs==4.2.0
-pluggy==1.4.0
+pluggy==1.5.0
 pre-commit==3.3.2
 progressbar2==3.41.0
 prompt-toolkit==3.0.41
@@ -144,9 +143,9 @@ pyjwt==2.4.0
 pymemcache==4.0.0
 pyparsing==3.0.9
 pysocks==1.7.1
-pytest==8.0.0
+pytest==8.1.2
 pytest-cov==4.0.0
-pytest-django==4.8.0
+pytest-django==4.9.0
 pytest-fail-slow==0.3.0
 pytest-json-report==1.5.0
 pytest-metadata==3.1.1
@@ -180,12 +179,12 @@ s3transfer==0.10.0
 selenium==4.16.0
 sentry-arroyo==2.16.5
 sentry-cli==2.16.0
-sentry-devenv==1.8.0
-sentry-forked-django-stubs==5.0.4.post1
-sentry-forked-djangorestframework-stubs==3.15.0.post1
-sentry-kafka-schemas==0.1.106
-sentry-ophio==0.2.7
-sentry-protos==0.1.15
+sentry-devenv==1.10.2
+sentry-forked-django-stubs==5.0.4.post2
+sentry-forked-djangorestframework-stubs==3.15.1.post1
+sentry-kafka-schemas==0.1.109
+sentry-ophio==1.0.0
+sentry-protos==0.1.21
 sentry-redis-tools==0.1.7
 sentry-relay==0.9.1
 sentry-sdk==2.12.0
@@ -201,7 +200,7 @@ sqlparse==0.5.0
 statsd==3.3.0
 stripe==3.1.0
 structlog==22.1.0
-symbolic==12.8.0
+symbolic==12.10.0
 tiktoken==0.6.0
 time-machine==2.13.0
 tldextract==5.1.2

@@ -8,10 +8,10 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
-from sentry.api.bases.user import UserEndpoint
 from sentry.auth import password_validation
 from sentry.security.utils import capture_security_activity
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
+from sentry.users.api.bases.user import UserEndpoint
 from sentry.users.models.user import User
 
 

@@ -2,7 +2,7 @@ from django.test import override_settings
 from rest_framework import status
 
 from sentry.models.apitoken import ApiToken
-from sentry.models.integrations.sentry_app import MASKED_VALUE
+from sentry.sentry_apps.models.sentry_app import MASKED_VALUE
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import control_silo_test

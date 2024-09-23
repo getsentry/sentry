@@ -76,6 +76,38 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
         ]
         assert meta["dataset"] == self.dataset
 
+    def test_id_fields(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "foo", "sentry_tags": {"status": "success"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"description": "bar", "sentry_tags": {"status": "invalid_argument"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+        response = self.do_request(
+            {
+                "field": ["id", "span_id"],
+                "query": "",
+                "orderby": "id",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 2
+        for obj in data:
+            assert obj["id"] == obj["span_id"]
+        assert meta["dataset"] == self.dataset
+
     def test_sentry_tags_vs_tags(self):
         self.store_spans(
             [
@@ -466,6 +498,32 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
             assert response.status_code == 200, response.content
             assert response.data["data"] == [{"foo": "BaR", "count()": 1}]
 
+    def test_query_for_missing_tag(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "foo"},
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"description": "qux", "tags": {"foo": "bar"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+
+        response = self.do_request(
+            {
+                "field": ["foo", "count()"],
+                "query": 'foo:""',
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [{"foo": "", "count()": 1}]
+
 
 class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpointTest):
     is_eap = True
@@ -515,3 +573,220 @@ class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpoin
     @pytest.mark.xfail(reason="event_id isn't being written to the new table")
     def test_id_filtering(self):
         super().test_id_filtering()
+
+    def test_span_duration(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "foo", "sentry_tags": {"status": "success"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"description": "bar", "sentry_tags": {"status": "invalid_argument"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+        response = self.do_request(
+            {
+                "field": ["span.duration", "description", "count()"],
+                "query": "",
+                "orderby": "description",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 2
+        assert data == [
+            {
+                "span.duration": 1000,
+                "description": "bar",
+                "count()": 1,
+            },
+            {
+                "span.duration": 1000,
+                "description": "foo",
+                "count()": 1,
+            },
+        ]
+        assert meta["dataset"] == self.dataset
+
+    def test_extrapolation_smoke(self):
+        """This is a hack, we just want to make sure nothing errors from using the weighted functions"""
+        for function in [
+            "count_weighted()",
+            "sum_weighted(span.duration)",
+            "avg_weighted(span.duration)",
+            "percentile_weighted(span.duration, 0.23)",
+            "p50_weighted()",
+            "p75_weighted()",
+            "p90_weighted()",
+            "p95_weighted()",
+            "p99_weighted()",
+            "p100_weighted()",
+            "min_weighted(span.duration)",
+            "max_weighted(span.duration)",
+        ]:
+            response = self.do_request(
+                {
+                    "field": ["description", function],
+                    "query": "",
+                    "orderby": "description",
+                    "project": self.project.id,
+                    "dataset": self.dataset,
+                }
+            )
+
+            assert response.status_code == 200, f"error: {response.content}\naggregate: {function}"
+
+    def test_numeric_attr_without_space(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "foo", "sentry_tags": {"status": "success", "foo": "five"}},
+                    measurements={"foo": {"value": 5}},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+
+        response = self.do_request(
+            {
+                "field": ["description", "tags[foo,number]", "tags[foo,string]", "tags[foo]"],
+                "query": "",
+                "orderby": "description",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        data = response.data["data"]
+        assert data[0]["tags[foo,number]"] == 5
+        assert data[0]["tags[foo,string]"] == "five"
+        assert data[0]["tags[foo]"] == "five"
+
+    def test_numeric_attr_with_spaces(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "foo", "sentry_tags": {"status": "success", "foo": "five"}},
+                    measurements={"foo": {"value": 5}},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+
+        response = self.do_request(
+            {
+                "field": ["description", "tags[foo,    number]", "tags[foo, string]", "tags[foo]"],
+                "query": "",
+                "orderby": "description",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        data = response.data["data"]
+        assert data[0]["tags[foo,    number]"] == 5
+        assert data[0]["tags[foo, string]"] == "five"
+        assert data[0]["tags[foo]"] == "five"
+
+    def test_numeric_attr_filtering(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "foo", "sentry_tags": {"status": "success", "foo": "five"}},
+                    measurements={"foo": {"value": 5}},
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"description": "bar", "sentry_tags": {"status": "success", "foo": "five"}},
+                    measurements={"foo": {"value": 8}},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+
+        response = self.do_request(
+            {
+                "field": ["description", "tags[foo,number]"],
+                "query": "tags[foo,number]:5",
+                "orderby": "description",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        data = response.data["data"]
+        assert data[0]["tags[foo,number]"] == 5
+        assert data[0]["description"] == "foo"
+
+    def test_long_attr_name(self):
+        response = self.do_request(
+            {
+                "field": ["description", "z" * 201],
+                "query": "",
+                "orderby": "description",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 400, response.content
+        assert "Is Too Long" in response.data["detail"].title()
+
+    def test_numeric_attr_orderby(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "baz", "sentry_tags": {"status": "success", "foo": "five"}},
+                    measurements={"foo": {"value": 71}},
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"description": "foo", "sentry_tags": {"status": "success", "foo": "five"}},
+                    measurements={"foo": {"value": 5}},
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"description": "bar", "sentry_tags": {"status": "success", "foo": "five"}},
+                    measurements={"foo": {"value": 8}},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+
+        response = self.do_request(
+            {
+                "field": ["description", "tags[foo,number]"],
+                "query": "",
+                "orderby": ["tags[foo,number]"],
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 3
+        data = response.data["data"]
+        assert data[0]["tags[foo,number]"] == 5
+        assert data[0]["description"] == "foo"
+        assert data[1]["tags[foo,number]"] == 8
+        assert data[1]["description"] == "bar"
+        assert data[2]["tags[foo,number]"] == 71
+        assert data[2]["description"] == "baz"

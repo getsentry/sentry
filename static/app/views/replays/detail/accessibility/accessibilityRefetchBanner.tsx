@@ -7,7 +7,7 @@ import {useReplayContext} from 'sentry/components/replays/replayContext';
 import Well from 'sentry/components/well';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import formatReplayDuration from 'sentry/utils/duration/formatReplayDuration';
+import formatDuration from 'sentry/utils/duration/formatDuration';
 import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 
 interface Props {
@@ -32,7 +32,11 @@ export default function AccessibilityRefetchBanner({initialOffsetMs, refetch}: P
     setCurrentTime(lastOffsetMs);
   }, [setCurrentTime, lastOffsetMs]);
 
-  const now = formatReplayDuration(currentTime, false);
+  const now = formatDuration({
+    duration: [currentTime, 'ms'],
+    precision: 'sec',
+    style: 'hh:mm:ss',
+  });
   return (
     <StyledWell>
       <Flex

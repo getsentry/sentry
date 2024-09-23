@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import Badge from 'sentry/components/badge/badge';
 import type {DropdownButtonProps} from 'sentry/components/dropdownButton';
 import DropdownButton from 'sentry/components/dropdownButton';
-import {IconWindow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trimSlug} from 'sentry/utils/string/trimSlug';
@@ -43,14 +42,11 @@ function BaseEnvironmentPageFilterTrigger(
       {...props}
       ref={forwardedRef}
       data-test-id="page-filter-environment-selector"
-      icon={
-        <TriggerIconWrap>
-          <IconWindow />
-          {desynced && <DesyncedFilterIndicator role="presentation" />}
-        </TriggerIconWrap>
-      }
     >
-      <TriggerLabel>{ready ? label : t('Loading\u2026')}</TriggerLabel>
+      <TriggerLabelWrap>
+        <TriggerLabel>{ready ? label : t('Loading\u2026')}</TriggerLabel>
+        {desynced && <DesyncedFilterIndicator role="presentation" />}
+      </TriggerLabelWrap>
       {remainingCount > 0 && <StyledBadge text={`+${remainingCount}`} />}
     </DropdownButton>
   );
@@ -58,15 +54,14 @@ function BaseEnvironmentPageFilterTrigger(
 
 export const EnvironmentPageFilterTrigger = forwardRef(BaseEnvironmentPageFilterTrigger);
 
+const TriggerLabelWrap = styled('span')`
+  position: relative;
+  min-width: 0;
+`;
+
 const TriggerLabel = styled('span')`
   ${p => p.theme.overflowEllipsis};
   width: auto;
-`;
-
-const TriggerIconWrap = styled('div')`
-  position: relative;
-  display: flex;
-  align-items: center;
 `;
 
 const StyledBadge = styled(Badge)`

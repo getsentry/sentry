@@ -131,10 +131,16 @@ export function buildReactRouter6Routes(tree: JSX.Element) {
     const {path, component: Component, children, name, withOrgPath} = routeNode.props;
     const element = getElement(Component);
 
-    // XXX(epurkhiser): Store the name prop that we use for breadcrumbs in the
-    // handle. This is a react-router 6 concept for where to put arbitrary
-    // route data
-    const handle = {name};
+    // XXX(epurkhiser)
+    //
+    // - Store the name prop that we use for breadcrumbs in the
+    //   handle. This is a react-router 6 concept for where to put arbitrary
+    //   route data
+    //
+    // - We also store the unresolved path in the handle, since we'll need that
+    //   to shim the `useRoutes` hook to act like it did n react-router 3,
+    //   where the path was not resolved (looks like /issues/:issueId).
+    const handle = {name, path};
 
     if (isIndexRoute) {
       routes.push({index: true, element, handle});

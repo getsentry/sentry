@@ -26,6 +26,7 @@ import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {TableColumn} from 'sentry/views/discover/table/types';
+import SubregionSelector from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
 import {DeviceClassSelector} from 'sentry/views/insights/mobile/common/components/deviceClassSelector';
 import {ModuleName} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceMetadataHeader';
@@ -182,7 +183,10 @@ export function EventSamplesTable({
       {!footerAlignedPagination && (
         <Header>
           {showDeviceClassSelector && (
-            <DeviceClassSelector moduleName={ModuleName.SCREEN_LOAD} />
+            <StyledControls>
+              <DeviceClassSelector moduleName={ModuleName.SCREEN_LOAD} />
+              <SubregionSelector size="xs" />
+            </StyledControls>
           )}
 
           <StyledPagination size="xs" pageLinks={pageLinks} onCursor={handleCursor} />
@@ -225,6 +229,11 @@ const Header = styled('div')`
   margin-bottom: ${space(1)};
   align-items: center;
   height: 26px;
+`;
+
+const StyledControls = styled('div')`
+  display: flex;
+  gap: ${space(1)};
 `;
 
 const IconWrapper = styled('div')`

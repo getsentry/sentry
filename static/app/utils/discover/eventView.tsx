@@ -216,7 +216,7 @@ const collectQueryStringByKey = (query: Query, key: string): Array<string> => {
   }, []);
 };
 
-const decodeQuery = (location: Location): string => {
+export const decodeQuery = (location: Location): string => {
   if (!location.query || !location.query.query) {
     return '';
   }
@@ -243,7 +243,7 @@ const decodeTeams = (location: Location): ('myteams' | number)[] => {
     .filter(team => team === 'myteams' || !isNaN(team));
 };
 
-const decodeProjects = (location: Location): number[] => {
+export const decodeProjects = (location: Location): number[] => {
   if (!location.query || !location.query.project) {
     return [];
   }

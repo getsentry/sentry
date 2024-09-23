@@ -78,7 +78,6 @@ from sentry.models.groupsearchview import GroupSearchView
 from sentry.models.groupseen import GroupSeen
 from sentry.models.groupshare import GroupShare
 from sentry.models.groupsubscription import GroupSubscription
-from sentry.models.integrations.sentry_app import SentryApp
 from sentry.models.options.option import ControlOption, Option
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.options.project_template_option import ProjectTemplateOption
@@ -97,11 +96,8 @@ from sentry.models.savedsearch import SavedSearch, Visibility
 from sentry.models.search_common import SearchType
 from sentry.monitors.models import Monitor, MonitorType, ScheduleType
 from sentry.nodestore.django.models import Node
-from sentry.sentry_apps.apps import SentryAppUpdater
-from sentry.sentry_metrics.models import (
-    SpanAttributeExtractionRuleCondition,
-    SpanAttributeExtractionRuleConfig,
-)
+from sentry.sentry_apps.logic import SentryAppUpdater
+from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import TestCase, TransactionTestCase
@@ -461,19 +457,6 @@ class ExhaustiveFixtures(Fixtures):
             sample_rate=0.5,
             query="environment:prod event.type:transaction",
         )
-        span_attribute_extraction_rule_config = SpanAttributeExtractionRuleConfig.objects.create(
-            project=project,
-            span_attribute="my_attribute",
-            created_by_id=owner.id,
-            unit="none",
-            tags=["tag1", "tag2"],
-            aggregates=["count", "sum", "avg", "min", "max", "p50", "p75", "p90", "p95", "p99"],
-        )
-        SpanAttributeExtractionRuleCondition.objects.create(
-            created_by_id=owner.id,
-            value="key:value",
-            config=span_attribute_extraction_rule_config,
-        )
 
         # Environment*
         self.create_environment(project=project)
@@ -623,6 +606,14 @@ class ExhaustiveFixtures(Fixtures):
             organization=org,
             access_start=timezone.now(),
             access_end=timezone.now() + timedelta(days=1),
+        )
+
+        workflow = self.create_workflow(organization=org)
+        self.create_workflowaction(workflow=workflow)
+        self.create_workflow(organization=org)
+        self.create_data_source_detector(
+            self.create_data_source(organization=org),
+            self.create_detector(organization=org),
         )
 
         return org

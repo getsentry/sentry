@@ -6,6 +6,17 @@ import {safeURL} from 'sentry/utils/url/safeURL';
 
 import {type SectionCardKeyValueList, TraceDrawerComponents} from '../../styles';
 
+export function hasSpanHTTPInfo(span: RawSpanType) {
+  if (span.op !== 'http.client' || !span.description) {
+    return false;
+  }
+
+  const [_, url] = span.description.split(' ');
+  const parsedURL = safeURL(url);
+
+  return !!parsedURL;
+}
+
 export function SpanHTTPInfo({span}: {span: RawSpanType}) {
   if (span.op === 'http.client' && span.description) {
     const [method, url] = span.description.split(' ');

@@ -141,8 +141,20 @@ export function pushEventViewToLocation(props: {
   });
 }
 
-export function generateTitle({eventView, event}: {eventView: EventView; event?: Event}) {
+export function generateTitle({
+  eventView,
+  event,
+  isHomepage,
+}: {
+  eventView: EventView;
+  event?: Event;
+  isHomepage?: boolean;
+}) {
   const titles = [t('Discover')];
+
+  if (isHomepage) {
+    return t('Discover');
+  }
 
   const eventViewName = eventView.name;
   if (typeof eventViewName === 'string' && String(eventViewName).trim().length > 0) {

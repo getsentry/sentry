@@ -1,4 +1,6 @@
+// biome-ignore lint/nursery/noRestrictedImports: Will be removed with react router 6
 import type {IndexRouteProps, PlainRoute, RouteProps} from 'react-router';
+// biome-ignore lint/nursery/noRestrictedImports: Will be removed with react router 6
 import {IndexRoute as BaseIndexRoute, Route as BaseRoute} from 'react-router';
 
 import {USING_CUSTOMER_DOMAIN} from 'sentry/constants';

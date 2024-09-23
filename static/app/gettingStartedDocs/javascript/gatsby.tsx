@@ -25,6 +25,7 @@ import {
 import {
   getReplayConfigOptions,
   getReplayConfigureDescription,
+  getReplayVerifyStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import {t, tct} from 'sentry/locale';
 
@@ -92,7 +93,7 @@ const root = createRoot(container);
 root.render(<App />);
 `;
 
-const getVerifyGatsbySnippet = () => `
+const getVerifySnippet = () => `
 myUndefinedFunction();`;
 
 const getConfigureStep = (params: Params) => {
@@ -176,6 +177,7 @@ const onboarding: OnboardingConfig = {
     getConfigureStep(params),
     getUploadSourceMapsStep({
       guideLink: 'https://docs.sentry.io/platforms/javascript/guides/gatsby/sourcemaps//',
+      ...params,
     }),
   ],
   verify: () => [
@@ -191,7 +193,7 @@ const onboarding: OnboardingConfig = {
               label: 'JavaScript',
               value: 'javascript',
               language: 'javascript',
-              code: getVerifyGatsbySnippet(),
+              code: getVerifySnippet(),
             },
           ],
         },
@@ -254,7 +256,7 @@ const replayOnboarding: OnboardingConfig = {
       ),
     },
   ],
-  verify: () => [],
+  verify: getReplayVerifyStep(),
   nextSteps: () => [],
 };
 
@@ -322,7 +324,7 @@ const crashReportOnboarding: OnboardingConfig = {
 const docs: Docs = {
   onboarding,
   feedbackOnboardingNpm: feedbackOnboarding,
-  replayOnboardingNpm: replayOnboarding,
+  replayOnboarding,
   customMetricsOnboarding: getJSMetricsOnboarding({getInstallConfig}),
   crashReportOnboarding,
 };

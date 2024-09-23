@@ -1,4 +1,5 @@
 import {forwardRef} from 'react';
+// biome-ignore lint/nursery/noRestrictedImports: Will be removed with react router 6
 import {Link as RouterLink} from 'react-router';
 import {Link as Router6Link} from 'react-router-dom';
 import styled from '@emotion/styled';

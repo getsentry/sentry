@@ -70,7 +70,7 @@ def task_runner():
 def default_user(factories):
     """A default (super)user with email ``admin@localhost`` and password ``admin``.
 
-    :returns: A :class:`sentry.models.user.User` instance.
+    :returns: A :class:`sentry.users.models.user.User` instance.
     """
     return factories.create_user(email="admin@localhost", is_superuser=True)
 
