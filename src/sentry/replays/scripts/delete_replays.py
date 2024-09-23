@@ -3,7 +3,7 @@ from __future__ import annotations
 import contextlib
 import logging
 from collections.abc import Sequence
-from datetime import datetime
+from datetime import datetime, timezone
 
 from sentry.api.event_search import SearchFilter, parse_search_query
 from sentry.models.organization import Organization
@@ -27,6 +27,9 @@ def delete_replays(
     """Delete a set of replays from a query."""
     search_filters = translate_cli_tags_param_to_snuba_tag_param(tags)
     offset = 0
+
+    start_utc = start_utc.replace(tzinfo=timezone.utc)
+    end_utc = end_utc.replace(tzinfo=timezone.utc)
 
     has_more = True
     while has_more:

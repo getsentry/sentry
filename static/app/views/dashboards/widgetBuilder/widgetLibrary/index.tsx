@@ -67,6 +67,7 @@ export function WidgetLibrary({
             displayType,
             queries: widget.queries,
             widgetType: widget.widgetType,
+            organization: organization,
           });
 
           const newWidget = {

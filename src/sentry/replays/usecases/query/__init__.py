@@ -41,6 +41,7 @@ from sentry.api.event_search import ParenExpression, SearchFilter, SearchKey, Se
 from sentry.models.organization import Organization
 from sentry.replays.lib.new_query.errors import CouldNotParseValue, OperatorNotSupported
 from sentry.replays.lib.new_query.fields import ColumnField, ExpressionField, FieldProtocol
+from sentry.replays.usecases.query.errors import RetryAggregated
 from sentry.replays.usecases.query.fields import ComputedField, TagField
 from sentry.utils.snuba import RateLimitExceeded, raw_snql_query
 
@@ -339,9 +340,9 @@ def _query_using_scalar_strategy(
     period_start: datetime,
     period_stop: datetime,
 ):
-    if not can_scalar_search_subquery(search_filters) or not sort_is_scalar_compatible(
-        sort or DEFAULT_SORT_FIELD
-    ):
+    can_scalar_search = can_scalar_search_subquery(search_filters, period_start)
+    can_scalar_sort = sort_is_scalar_compatible(sort or DEFAULT_SORT_FIELD)
+    if not can_scalar_search or not can_scalar_sort:
         return _query_using_aggregated_strategy(
             search_filters,
             sort,
@@ -357,8 +358,17 @@ def _query_using_scalar_strategy(
     # To fix this issue remove the ability to search against "varying" columns and apply a
     # "segment_id = 0" condition to the WHERE clause.
 
-    where = handle_search_filters(scalar_search_config, search_filters)
-    orderby = handle_ordering(agg_sort_config, sort or "-" + DEFAULT_SORT_FIELD)
+    try:
+        where = handle_search_filters(scalar_search_config, search_filters)
+        orderby = handle_ordering(agg_sort_config, sort or "-" + DEFAULT_SORT_FIELD)
+    except RetryAggregated:
+        return _query_using_aggregated_strategy(
+            search_filters,
+            sort,
+            project_ids,
+            period_start,
+            period_stop,
+        )
 
     query = Query(
         match=Entity("replays"),

@@ -3,8 +3,8 @@ from __future__ import annotations
 from django.db import router, transaction
 
 from sentry import deletions
-from sentry.models.servicehook import ServiceHook
 from sentry.sentry_apps.logic import expand_events
+from sentry.sentry_apps.models.servicehook import ServiceHook
 from sentry.sentry_apps.services.hook import HookService, RpcServiceHook
 from sentry.sentry_apps.services.hook.serial import serialize_service_hook
 
