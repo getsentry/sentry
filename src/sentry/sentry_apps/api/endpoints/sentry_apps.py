@@ -18,6 +18,8 @@ from sentry.auth.superuser import is_active_superuser
 from sentry.constants import SentryAppStatus
 from sentry.sentry_apps.logic import SentryAppCreator
 from sentry.sentry_apps.models.sentry_app import SentryApp
+from sentry.users.models.user import User
+from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
 
 logger = logging.getLogger(__name__)
@@ -115,6 +117,9 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
                 data["author"] = data["author"] or organization.name
 
             try:
+                assert isinstance(
+                    request.user, (User, RpcUser)
+                ), "User must be authenticated to create a Sentry App"
                 sentry_app = SentryAppCreator(
                     name=data["name"],
                     author=data["author"],
