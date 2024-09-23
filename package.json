@@ -52,7 +52,7 @@
     "@react-stately/tabs": "^3.6.9",
     "@react-stately/tree": "^3.8.4",
     "@react-types/shared": "^3.24.1",
-    "@rsdoctor/webpack-plugin": "0.3.11",
+    "@rsdoctor/webpack-plugin": "0.4.4",
     "@sentry-internal/global-search": "^1.0.0",
     "@sentry-internal/react-inspector": "6.0.1-4",
     "@sentry-internal/rrweb": "2.26.0",
@@ -65,7 +65,7 @@
     "@sentry/status-page-list": "^0.3.0",
     "@sentry/types": "^8.28.0",
     "@sentry/utils": "^8.28.0",
-    "@sentry/webpack-plugin": "^2.22.2",
+    "@sentry/webpack-plugin": "^2.22.4",
     "@spotlightjs/spotlight": "^2.0.0-alpha.1",
     "@tanstack/react-query": "^5.56.2",
     "@tanstack/react-query-devtools": "^5.56.2",
@@ -173,14 +173,14 @@
     "typescript": "^5.5.2",
     "u2f-api": "1.0.10",
     "url-loader": "^4.1.1",
-    "webpack": "5.93.0",
+    "webpack": "5.94.0",
     "webpack-cli": "5.1.4",
     "webpack-remove-empty-scripts": "^1.0.4",
     "zxcvbn": "^4.4.2"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.1",
-    "@codecov/webpack-plugin": "^1.0.0",
+    "@codecov/webpack-plugin": "^1.2.0",
     "@pmmmwh/react-refresh-webpack-plugin": "0.5.15",
     "@sentry/jest-environment": "6.0.0",
     "@sentry/profiling-node": "^8.28.0",
@@ -207,7 +207,7 @@
     "stylelint-config-recommended": "^14.0.0",
     "terser": "5.31.6",
     "tsconfig-paths": "^4.2.0",
-    "webpack-dev-server": "5.0.4"
+    "webpack-dev-server": "5.1.0"
   },
   "resolutions": {
     "react-mentions/@babel/runtime": "*"
