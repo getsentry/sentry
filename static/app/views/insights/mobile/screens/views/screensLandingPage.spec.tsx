@@ -6,7 +6,6 @@ import {render, screen, waitFor, within} from 'sentry-test/reactTestingLibrary';
 
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import {MODULE_FEATURE} from 'sentry/views/insights/mobile/screens/settings';
@@ -15,7 +14,6 @@ import {ScreensLandingPage} from 'sentry/views/insights/mobile/screens/views/scr
 jest.mock('sentry/utils/usePageFilters');
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/views/insights/mobile/common/queries/useCrossPlatformProject');
-jest.mock('sentry/utils/useOrganization');
 
 describe('Screens Landing Page', function () {
   const organization = OrganizationFixture({
@@ -23,7 +21,6 @@ describe('Screens Landing Page', function () {
   });
   const project = ProjectFixture({platform: 'react-native'});
 
-  jest.mocked(useOrganization).mockReturnValue(organization);
   jest.mocked(useLocation).mockReturnValue({
     action: 'PUSH',
     hash: '',
@@ -200,7 +197,7 @@ describe('Screens Landing Page', function () {
 
     it('shows no content if permission is missing', async function () {
       organization.features = [];
-      render(<ScreensLandingPage />);
+      render(<ScreensLandingPage />, {organization});
       expect(
         await screen.findByText(t("You don't have access to this feature"))
       ).toBeInTheDocument();
@@ -208,7 +205,7 @@ describe('Screens Landing Page', function () {
 
     it('shows content if permission is there', async function () {
       organization.features = [MODULE_FEATURE];
-      render(<ScreensLandingPage />);
+      render(<ScreensLandingPage />, {organization});
       expect(await screen.findAllByText(t('Mobile Screens'))).toHaveLength(2);
     });
   });
