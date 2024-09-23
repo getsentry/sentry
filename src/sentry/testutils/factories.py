@@ -965,9 +965,6 @@ class Factories:
         normalized_data = manager.get_data()
         event = None
 
-        if event_type == EventType.ERROR and normalized_data.get("type") == "default":
-            normalized_data["type"] = "error"
-
         # When fingerprint is present on transaction, inject performance problems
         if (
             normalized_data.get("type") == "transaction"
