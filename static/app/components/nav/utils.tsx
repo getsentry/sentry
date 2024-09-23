@@ -3,7 +3,7 @@ import type {LocationDescriptor} from 'history';
 
 import {isItemActive} from 'sentry/components/sidebar/sidebarItem';
 import {SIDEBAR_NAVIGATION_SOURCE} from 'sentry/components/sidebar/utils';
-import type {FeatureDisabledHooks, WithoutPrefix} from 'sentry/types/hooks';
+import type {FeatureDisabledHooks, HookWithoutPrefix} from 'sentry/types/hooks';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import type {useLocation} from 'sentry/utils/useLocation';
 
@@ -11,7 +11,7 @@ export const NAV_DIVIDER = Symbol('divider');
 
 interface FeatureCheck {
   features: string | string[];
-  hook?: WithoutPrefix<keyof FeatureDisabledHooks>;
+  hook?: HookWithoutPrefix<keyof FeatureDisabledHooks>;
 }
 
 interface NavItem {
