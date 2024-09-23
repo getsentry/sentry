@@ -72,7 +72,7 @@ describe('Nav', function () {
 
       mockUseLocation.mockReturnValue({...LocationFixture()});
     });
-afterEach(() => ConfigStore.reset())
+    afterEach(() => ConfigStore.reset());
     it('renders navigation', function () {
       renderNav({organization});
 
