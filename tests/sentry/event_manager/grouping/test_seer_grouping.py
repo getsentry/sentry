@@ -6,9 +6,11 @@ from unittest.mock import MagicMock, patch
 from sentry.conf.server import SEER_SIMILARITY_MODEL_VERSION
 from sentry.grouping.ingest.seer import get_seer_similar_issues, should_call_seer_for_grouping
 from sentry.models.grouphash import GroupHash
+from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG, LEGACY_GROUPING_CONFIG
 from sentry.seer.similarity.types import SeerSimilarIssueData
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.eventprocessing import save_new_event
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.pytest.mocking import capture_results
 from sentry.utils.types import NonNone
 
@@ -57,9 +59,7 @@ class SeerEventManagerGroupingTest(TestCase):
             assert should_call_seer_spy.call_count == 1
             assert get_seer_similar_issues_spy.call_count == 0
 
-            # No metadata stored, parent group not used (even though `should_group` is True)
-            assert "seer_similarity" not in NonNone(new_event.group).data["metadata"]
-            assert "seer_similarity" not in new_event.data
+            # Parent group not used (even though `should_group` is True)
             assert new_event.group_id != existing_event.group_id
 
             should_call_seer_spy.reset_mock()
@@ -83,9 +83,9 @@ class SeerEventManagerGroupingTest(TestCase):
             assert should_call_seer_spy.call_count == 1
             assert get_seer_similar_issues_spy.call_count == 1
 
-            # Metadata returned and stored
+            # Metadata returned (metadata storage is tested separately in
+            # `test_stores_seer_results_in_grouphash_metadata`)
             assert get_seer_similar_issues_return_values[0][0] == expected_metadata
-            assert new_event.data["seer_similarity"] == expected_metadata
 
             # Parent grouphash returned and parent group used
             assert get_seer_similar_issues_return_values[0][1] == expected_grouphash
@@ -128,37 +128,150 @@ class SeerEventManagerGroupingTest(TestCase):
 
                 mock_get_seer_similar_issues.reset_mock()
 
+    @with_feature("organizations:grouphash-metadata-creation")
     @patch("sentry.grouping.ingest.seer.should_call_seer_for_grouping", return_value=True)
-    def test_stores_seer_results_in_metadata(self, _):
-        for use_optimized_grouping, existing_event_message, new_event_message in [
-            (True, "Dogs are great!", "Adopt don't shop"),
-            (False, "Maisey is silly", "Charlie is goofy"),
-        ]:
-            with patch(
-                "sentry.event_manager.project_uses_optimized_grouping",
-                return_value=use_optimized_grouping,
-            ):
-                existing_event = save_new_event({"message": existing_event_message}, self.project)
+    def test_stores_seer_results_in_grouphash_metadata(self, _):
+        def assert_correct_seer_metadata(
+            grouphash,
+            expected_seer_grouphash_sent,
+            expected_seer_date_sent,
+            expected_seer_event_sent,
+            expected_seer_model,
+            expected_seer_matched_grouphash,
+            expected_seer_match_distance,
+        ):
+            metadata = grouphash.metadata
 
-                seer_result_data = SeerSimilarIssueData(
-                    parent_hash=NonNone(existing_event.get_primary_hash()),
-                    parent_group_id=NonNone(existing_event.group_id),
-                    stacktrace_distance=0.01,
-                    message_distance=0.05,
-                    should_group=True,
-                )
+            assert metadata
+            assert metadata.seer_grouphash_sent == expected_seer_grouphash_sent
+            assert metadata.seer_date_sent == expected_seer_date_sent
+            assert metadata.seer_event_sent == expected_seer_event_sent
+            assert metadata.seer_model == expected_seer_model
+            assert metadata.seer_matched_grouphash == expected_seer_matched_grouphash
+            assert metadata.seer_match_distance == expected_seer_match_distance
 
-                with patch(
-                    "sentry.grouping.ingest.seer.get_similarity_data_from_seer",
-                    return_value=[seer_result_data],
-                ):
-                    new_event = save_new_event({"message": new_event_message}, self.project)
-                    expected_metadata = {
-                        "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
-                        "results": [asdict(seer_result_data)],
-                    }
+        # The overall idea(s) of this test:
+        #
+        #  - Send three events: an event which gets sent to Seer but doesn't find a match, an event
+        #    which gets sent and does find a match, and an event which doesn't get sent at all, to
+        #    test what Seer metadata gets stored in each case.
+        #
+        #  - Set the project to be in a grouping config transition so that primary and secondary
+        #    hashes will both be calculated, and include numbers in the message of one of the events
+        #    sent to Seer so that the primary and secondary hashes will be different (since the
+        #    legacy config won't parameterize the numbers). This will let us test the additional
+        #    case of a GroupHash which isn't sent to Seer but whose sibling GroupHash is sent.
 
-                assert new_event.data["seer_similarity"] == expected_metadata
+        self.project.update_option("sentry:grouping_config", DEFAULT_GROUPING_CONFIG)
+        self.project.update_option("sentry:secondary_grouping_config", LEGACY_GROUPING_CONFIG)
+        self.project.update_option("sentry:secondary_grouping_expiry", time() + 3600)
+
+        # First, the event which is sent but finds no match:
+
+        with patch(
+            "sentry.grouping.ingest.seer.get_similarity_data_from_seer",
+            return_value=[],
+        ) as mock_get_similarity_data_from_seer:
+            existing_event = save_new_event({"message": "Dogs are great! 11211231"}, self.project)
+
+            existing_event_grouphashes = GroupHash.objects.filter(
+                group_id=NonNone(existing_event.group_id)
+            )
+            assert len(existing_event_grouphashes) == 2
+
+            existing_event_primary_grouphash = existing_event_grouphashes.filter(
+                hash=existing_event.get_primary_hash()
+            ).first()
+            assert existing_event_primary_grouphash
+            assert existing_event_primary_grouphash.metadata
+            # Since `existing_event_grouphashes` only has two members, excluding the primary
+            # necessarily gives us the secondary
+            existing_event_secondary_grouphash = existing_event_grouphashes.exclude(
+                hash=existing_event.get_primary_hash()
+            ).first()
+            assert existing_event_secondary_grouphash
+            assert existing_event_secondary_grouphash.metadata
+
+            # Make sure we're right about which grouphash was sent
+            assert (
+                mock_get_similarity_data_from_seer.call_args.args[0]["hash"]
+                == existing_event_primary_grouphash.hash
+            )
+
+            # GroupHash sent to Seer
+            assert_correct_seer_metadata(
+                existing_event_primary_grouphash,
+                existing_event_primary_grouphash,
+                existing_event_primary_grouphash.metadata.date_added,
+                existing_event.event_id,
+                SEER_SIMILARITY_MODEL_VERSION,
+                None,
+                None,
+            )
+            # Sibling GroupHash
+            assert_correct_seer_metadata(
+                existing_event_secondary_grouphash,
+                existing_event_primary_grouphash,
+                None,
+                None,
+                None,
+                None,
+                None,
+            )
+
+        # Next, the event which is sent and does find a match:
+
+        seer_result_data = SeerSimilarIssueData(
+            parent_hash=NonNone(existing_event.get_primary_hash()),
+            parent_group_id=NonNone(existing_event.group_id),
+            stacktrace_distance=0.01,
+            message_distance=0.05,
+            should_group=True,
+        )
+
+        with patch(
+            "sentry.grouping.ingest.seer.get_similarity_data_from_seer",
+            return_value=[seer_result_data],
+        ):
+            new_event = save_new_event({"message": "Adopt don't shop"}, self.project)
+
+            assert new_event.group_id == existing_event.group_id
+
+            # Only one GroupHash was added this time
+            new_event_grouphashes = GroupHash.objects.filter(
+                group_id=NonNone(existing_event.group_id)
+            ).exclude(hash__in=[gh.hash for gh in existing_event_grouphashes])
+            assert len(new_event_grouphashes) == 1
+
+            new_event_grouphash = new_event_grouphashes.first()
+            assert new_event_grouphash
+            assert new_event_grouphash.metadata
+
+            # Just to confirm it's the right one
+            assert new_event_grouphash.hash == new_event.get_primary_hash()
+
+            assert_correct_seer_metadata(
+                new_event_grouphash,
+                new_event_grouphash,
+                new_event_grouphash.metadata.date_added,
+                new_event.event_id,
+                SEER_SIMILARITY_MODEL_VERSION,
+                existing_event_primary_grouphash,
+                seer_result_data.stacktrace_distance,
+            )
+
+        # Finally, the event which isn't sent at all:
+
+        with patch("sentry.grouping.ingest.seer.should_call_seer_for_grouping", return_value=False):
+            third_event = save_new_event({"message": "Sit! Stay! Good dog!"}, self.project)
+
+            third_event_grouphash = GroupHash.objects.filter(
+                hash=third_event.get_primary_hash()
+            ).first()
+            assert third_event_grouphash
+            assert third_event_grouphash.metadata
+
+            assert_correct_seer_metadata(third_event_grouphash, None, None, None, None, None, None)
 
     @patch("sentry.grouping.ingest.seer.should_call_seer_for_grouping", return_value=True)
     def test_assigns_event_to_neighbor_group_if_found(self, _):
