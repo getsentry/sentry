@@ -14,7 +14,6 @@ import {decodeList} from 'sentry/utils/queryString';
 import useOrganization from 'sentry/utils/useOrganization';
 import SetupIntroduction from 'sentry/views/onboarding/components/setupIntroduction';
 import {useOnboardingQueryParams} from 'sentry/views/onboarding/components/useOnboardingQueryParams';
-import {SetupDocsLoader} from 'sentry/views/onboarding/setupDocsLoader';
 import {OtherPlatformsInfo} from 'sentry/views/projectInstall/otherPlatformsInfo';
 
 import FirstEventFooter from './components/firstEventFooter';
@@ -65,13 +64,6 @@ function SetupDocs({location, recentCreatedProject: project}: StepProps) {
                 <OtherPlatformsInfo
                   projectSlug={project.slug}
                   platform={currentPlatform.name}
-                />
-              ) : params.showLoader ? (
-                <SetupDocsLoader
-                  organization={organization}
-                  project={project}
-                  location={location}
-                  platform={currentPlatform.id}
                 />
               ) : (
                 <SdkDocumentation
