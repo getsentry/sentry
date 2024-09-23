@@ -27,9 +27,10 @@ urlpatterns: list[URLResolver | URLPattern] = [
         csrf_failure.view,
         name="error-403-csrf-failure",
     ),
-    # warmup
+    # warmup, used to initialize any connections / pre-load
+    # the application so that user initiated requests are faster
     re_path(
-        r"^warmup/$",
+        r"^_warmup/$",
         WarmupEndpoint.as_view(),
         name="sentry-warmup",
     ),

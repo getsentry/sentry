@@ -21,7 +21,7 @@ application = WSGIHandler()
 # trigger a warmup of the application
 application(
     {
-        "PATH_INFO": "/warmup/",
+        "PATH_INFO": "/_warmup/",
         "REQUEST_METHOD": "GET",
         "SERVER_NAME": "127.0.0.1",
         "SERVER_PORT": "9001",

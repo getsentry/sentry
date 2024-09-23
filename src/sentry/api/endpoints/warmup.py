@@ -20,7 +20,7 @@ class WarmupEndpoint(Endpoint):
     def get(self, request: Request) -> Response:
         # load up the django url resolver
         resolver = django.urls.get_resolver()
-        if not resolver._populated:
+        if not getattr(resolver, "_populated", False):
             resolver._populate()
 
         return Response(200)
