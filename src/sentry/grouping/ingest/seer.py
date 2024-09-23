@@ -243,15 +243,48 @@ def maybe_check_seer_for_matching_grouphash(
             sample_rate=options.get("seer.similarity.metrics_sample_rate"),
             tags={"call_made": True, "blocker": "none"},
         )
+
         try:
             # If no matching group is found in Seer, we'll still get back result
             # metadata, but `seer_matched_grouphash` will be None
             seer_response_data, seer_matched_grouphash = get_seer_similar_issues(event)
-
-        # Insurance - in theory we shouldn't ever land here
-        except Exception as e:
+        except Exception as e:  # Insurance - in theory we shouldn't ever land here
             sentry_sdk.capture_exception(
                 e, tags={"event": event.event_id, "project": event.project.id}
             )
+            return None
+
+        # Find the GroupHash for the hash value sent to Seer
+        primary_hash = event.get_primary_hash()
+        grouphash_sent = list(
+            filter(lambda grouphash: grouphash.hash == primary_hash, all_grouphashes)
+        )[0]
+
+        # Update GroupHashes with Seer results
+        for grouphash in all_grouphashes:
+            metadata = grouphash.metadata
+
+            if metadata:
+                # Mark all the GroupHashes as having been represented by the one we sent
+                metadata.seer_grouphash_sent = grouphash_sent
+
+                # Store the Seer results only on the GroupHash which was actually sent
+                if grouphash is grouphash_sent:
+                    # Technically the time of the metadata record creation and the time of the Seer
+                    # request will be some milliseconds apart, but the difference isn't meaningful
+                    # and forcing them to be the same (rather than just close) lets us use their
+                    # equality as a signal that the Seer call happened during ingest rather than
+                    # during a backfill, without having to store that information separately
+                    metadata.seer_date_sent = metadata.date_added
+                    metadata.seer_event_sent = event.event_id
+                    metadata.seer_model = seer_response_data["similarity_model_version"]
+                    metadata.seer_matched_grouphash = seer_matched_grouphash
+                    metadata.seer_match_distance = (
+                        seer_response_data["results"][0]["stacktrace_distance"]
+                        if seer_matched_grouphash
+                        else None
+                    )
+
+                metadata.save()
 
     return seer_matched_grouphash
