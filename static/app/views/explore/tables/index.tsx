@@ -9,7 +9,8 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useResultMode} from 'sentry/views/explore/hooks/useResultsMode';
 import {useSampleFields} from 'sentry/views/explore/hooks/useSampleFields';
-import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
+
+import {useSpanTags} from '../contexts/spanTagsContext';
 
 import {TracesTable} from './tracesTable/index';
 import {AggregatesTable} from './aggregatesTable';
@@ -40,10 +41,8 @@ function ExploreAggregatesTable() {
 
 function ExploreSamplesTable() {
   const [tab, setTab] = useState(Tab.SPAN);
-
   const [fields, setFields] = useSampleFields();
-  // TODO: This should be loaded from context to avoid loading tags twice.
-  const tags = useSpanFieldSupportedTags();
+  const tags = useSpanTags();
 
   const openColumnEditor = useCallback(() => {
     openModal(
