@@ -21,6 +21,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
+import {SpanTagsProvider} from './contexts/spanTagsContext';
 import {useResultMode} from './hooks/useResultsMode';
 import {useUserQuery} from './hooks/useUserQuery';
 import {ExploreCharts} from './charts';
@@ -31,7 +32,7 @@ interface ExploreContentProps {
   location: Location;
 }
 
-export function ExploreContent({}: ExploreContentProps) {
+function ExploreContentImpl({}: ExploreContentProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const organization = useOrganization();
@@ -101,6 +102,14 @@ export function ExploreContent({}: ExploreContentProps) {
         </Layout.Page>
       </PageFiltersContainer>
     </SentryDocumentTitle>
+  );
+}
+
+export function ExploreContent(props: ExploreContentProps) {
+  return (
+    <SpanTagsProvider>
+      <ExploreContentImpl {...props} />
+    </SpanTagsProvider>
   );
 }
 
