@@ -138,7 +138,6 @@ module = [
     "sentry.api.endpoints.index",
     "sentry.api.endpoints.integrations.sentry_apps.details",
     "sentry.api.endpoints.integrations.sentry_apps.index",
-    "sentry.api.endpoints.integrations.sentry_apps.installation.index",
     "sentry.api.endpoints.integrations.sentry_apps.internal_app_token.index",
     "sentry.api.endpoints.integrations.sentry_apps.publish_request",
     "sentry.api.endpoints.integrations.sentry_apps.requests",
