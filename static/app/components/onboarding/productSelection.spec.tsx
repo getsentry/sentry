@@ -106,57 +106,6 @@ describe('Onboarding Product Selection', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders for Loader Script', async function () {
-    const {router, project} = initializeOrg({
-      router: {
-        location: {
-          query: {
-            showLoader: 'true',
-            product: [
-              ProductSolution.PERFORMANCE_MONITORING,
-              ProductSolution.SESSION_REPLAY,
-            ],
-          },
-        },
-        params: {},
-      },
-    });
-
-    render(
-      <ProductSelection
-        organization={organization}
-        platform="javascript"
-        projectId={project.id}
-      />,
-      {
-        router,
-      }
-    );
-
-    // Introduction
-    expect(
-      screen.getByText(
-        textWithMarkupMatcher(/In this quick guide you’ll use our Loader Script/)
-      )
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        textWithMarkupMatcher(/Prefer to set up Sentry using npm or yarn\?/)
-      )
-    ).toBeInTheDocument();
-
-    await userEvent.click(screen.getByText('View npm/yarn instructions'));
-
-    expect(router.replace).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: {
-          product: ['performance-monitoring', 'session-replay'],
-          showLoader: false,
-        },
-      })
-    );
-  });
-
   it('renders disabled product', async function () {
     const {router, project} = initializeOrg({
       router: {

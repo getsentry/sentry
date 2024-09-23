@@ -94,6 +94,7 @@ export interface OnboardingConfig<
         platformOptions: SelectedPlatformOptions<PlatformOptions>
       ) => void;
       onProductSelectionChange?: (products: ProductSolution[]) => void;
+      onProductSelectionLoad?: (products: ProductSolution[]) => void;
     },
     DocsParams<PlatformOptions>
   > {}

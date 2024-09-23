@@ -69,7 +69,7 @@ class PostProcessJob(TypedDict, total=False):
 
 
 def _get_service_hooks(project_id):
-    from sentry.models.servicehook import ServiceHook
+    from sentry.sentry_apps.models.servicehook import ServiceHook
 
     cache_key = f"servicehooks:1:{project_id}"
     result = cache.get(cache_key)
@@ -83,7 +83,7 @@ def _get_service_hooks(project_id):
 
 def _should_send_error_created_hooks(project):
     from sentry.models.organization import Organization
-    from sentry.models.servicehook import ServiceHook
+    from sentry.sentry_apps.models.servicehook import ServiceHook
 
     cache_key = f"servicehooks-error-created:1:{project.id}"
     result = cache.get(cache_key)

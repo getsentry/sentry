@@ -19,11 +19,11 @@ from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.hybridcloud.services.organization_mapping import organization_mapping_service
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
-from sentry.models.integrations.sentry_app_installation_for_provider import (
-    SentryAppInstallationForProvider,
-)
 from sentry.models.project import Project
 from sentry.projects.services.project import project_service
+from sentry.sentry_apps.models.sentry_app_installation_for_provider import (
+    SentryAppInstallationForProvider,
+)
 from sentry.sentry_apps.models.sentry_app_installation_token import SentryAppInstallationToken
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.utils.audit import create_audit_entry

@@ -2209,9 +2209,9 @@ def _process_existing_aggregate(
         "title": _get_updated_group_title(existing_metadata, incoming_metadata),
     }
 
-    update_kwargs = {"times_seen": 1}
-
-    buffer_incr(Group, update_kwargs, {"id": group.id}, updated_group_values)
+    # We pass `times_seen` separately from all of the other columns so that `buffer_inr` knows to
+    # increment rather than overwrite the existing value
+    buffer_incr(Group, {"times_seen": 1}, {"id": group.id}, updated_group_values)
 
     return bool(is_regression)
 
