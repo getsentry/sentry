@@ -173,7 +173,7 @@ class GitHubEnterpriseWebhookBase(Endpoint):
             sentry_sdk.capture_exception(e)
             return HttpResponse(MISSING_GITHUB_ENTERPRISE_HOST_ERROR, status=400)
 
-        extra = {"host": host}
+        extra: dict[str, str | None] = {"host": host}
         # If we do tag the host early we can't even investigate
         scope.set_tag("host", host)
 
