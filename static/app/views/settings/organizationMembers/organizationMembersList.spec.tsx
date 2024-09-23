@@ -24,8 +24,6 @@ import {browserHistory} from 'sentry/utils/browserHistory';
 import OrganizationMembersList from 'sentry/views/settings/organizationMembers/organizationMembersList';
 
 jest.mock('sentry/utils/analytics');
-
-jest.mock('sentry/api');
 jest.mock('sentry/actionCreators/indicator');
 
 const roles = [

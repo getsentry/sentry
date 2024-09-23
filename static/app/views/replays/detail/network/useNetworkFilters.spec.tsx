@@ -16,7 +16,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import type {FilterFields, NetworkSelectOption} from './useNetworkFilters';
 import useNetworkFilters from './useNetworkFilters';
 
-jest.mock('react-router');
 jest.mock('sentry/utils/useLocation');
 
 const mockUseLocation = jest.mocked(useLocation);

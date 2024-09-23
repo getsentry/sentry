@@ -26,7 +26,6 @@ jest.mock('sentry/actionCreators/members', () => ({
     return {};
   }),
 }));
-jest.mock('react-router');
 jest.mock('sentry/utils/analytics', () => ({
   metric: {
     startSpan: jest.fn(() => ({

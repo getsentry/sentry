@@ -13,7 +13,6 @@ import type {
 } from 'sentry/views/replays/detail/errorList/useErrorFilters';
 import useErrorFilters from 'sentry/views/replays/detail/errorList/useErrorFilters';
 
-jest.mock('react-router');
 jest.mock('sentry/utils/useLocation');
 
 const mockUseLocation = jest.mocked(useLocation);
