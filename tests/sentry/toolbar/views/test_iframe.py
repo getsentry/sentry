@@ -3,7 +3,7 @@ from unittest.mock import Mock, patch
 from django.urls import reverse
 
 from sentry.testutils.cases import APITestCase
-from sentry.toolbar.utils.url import REFERRER_HEADER
+from sentry.toolbar.views.iframe import REFERRER_HEADER
 
 # TODO: instead of status codes, test the response content and/or template variable passed to iframe.html
 

@@ -1,24 +1,37 @@
-{% load sentry_helpers %}
-{% load sentry_assets %}
+{% comment %}
+Template returned for invalid requests to /iframe.
+Required context variables:
+- referrer:         string. HTTP header from the request object.
+- has_project:      boolean.
+- allow_origin:     boolean. Required if has_project=false.
+{% endcomment %}
 <!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
-    <title>Sentry DevToolbar iFrame - invalid referrer</title>
-    <link rel="icon" href="data:;base64,iVBORw0KGgo=">
+    <title>Sentry DevToolbar iFrame - Invalid Request</title>
+<!--    TODO:-->
+{#    <link rel="icon" href="data:;base64,iVBORw0KGgo=">#}
   </head>
   <body>
     <script>
-      (function() {
-        //TODO: handle missing project if () {
+      const referrer = "{{ referrer|escapejs }}";
 
-        console.log('Invalid Domain/Project', {referrer});
-        // TODO: get referrer and log this some other way, maybe analytics
+      {% if not has_project %}
+      // TODO: use logger and/or analytics
+      console.log('Project does not exist');
+      window.parent.postMessage({
+        source: 'sentry-toolbar',
+        message: 'missing-project',
+      }, referrer);
 
-        window.parent.postMessage({
-          source: 'sentry-toolbar',
-          message: 'invalid-domain',
-        }, referrer);
-      })();
+      {% elif not allow_origin %}
+      console.log('Invalid Domain/Project');
+      window.parent.postMessage({
+        source: 'sentry-toolbar',
+        message: 'invalid-domain',
+      }, referrer);
+
+      {% endif %}
     </script>
   </body>
 </html>

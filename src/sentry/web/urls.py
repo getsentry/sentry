@@ -828,9 +828,9 @@ urlpatterns += [
                     name="sentry-toolbar-iframe",
                 ),
                 re_path(
-                    r"^(?P<organization_slug>[^/\.]+)/(?P<project_id_or_slug>[^/\.]+)/login-success/$",
+                    r"^(?P<organization_slug>[^/\.]+)/(?P<project_id_or_slug>[^/\.]+)/login/$",
                     ToolbarLoginView.as_view(),
-                    name="sentry-toolbar-login-success",
+                    name="sentry-toolbar-login",
                 ),
             ]
         ),
