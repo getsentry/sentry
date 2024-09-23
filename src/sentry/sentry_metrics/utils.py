@@ -7,6 +7,7 @@ from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.indexer.base import to_use_case_id
 from sentry.sentry_metrics.use_case_id_registry import METRIC_PATH_MAPPING, UseCaseID
+from sentry.utils import metrics
 
 #: Special integer used to represent a string missing from the indexer
 STRING_NOT_FOUND = -1
