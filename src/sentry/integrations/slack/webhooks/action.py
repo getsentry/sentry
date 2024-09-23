@@ -231,6 +231,17 @@ class SlackActionEndpoint(Endpoint):
 
         return self.respond_ephemeral(text)
 
+    @staticmethod
+    def _unpack_error_text(validation_error: serializers.ValidationError) -> str:
+        detail = validation_error.detail
+        while True:
+            if isinstance(detail, dict):
+                detail = list(detail.values())
+            element = detail[0]
+            if isinstance(element, str):
+                return element
+            detail = element
+
     def validation_error(
         self,
         slack_request: SlackActionRequest,
@@ -247,12 +258,7 @@ class SlackActionEndpoint(Endpoint):
             },
         )
 
-        text: str = ""
-        if isinstance(error.detail, dict):
-            text = list(*error.detail.values())[0]
-        else:
-            text = str(error.detail[0])
-
+        text: str = self._unpack_error_text(error)
         return self.respond_ephemeral(text)
 
     def on_assign(
