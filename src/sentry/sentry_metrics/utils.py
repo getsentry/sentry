@@ -133,13 +133,33 @@ def resolve(
     use_case_id: UseCaseID | UseCaseKey,
     org_id: int,
     string: str,
-) -> int:
+) -> Optional[int]:
     use_case_id = to_use_case_id(use_case_id)
     resolved = indexer.resolve(use_case_id, org_id, string)
     if resolved is None:
-        raise MetricIndexNotFound(f"Unknown string: {string!r}")
+        # Attempt to record the unknown string
+        for attempt in range(MAX_RECORD_ATTEMPTS):
+            try:
+                recorded = indexer.record(use_case_id, org_id, string)
+                if recorded is not None:
+                    metrics.incr("sentry_metrics.indexer.string_recorded_on_resolve", tags={"attempt": attempt + 1})
+                    return recorded
+            except Exception as e:
+                metrics.incr("sentry_metrics.indexer.record_error", tags={"error_type": type(e).__name__})
+                if attempt == MAX_RECORD_ATTEMPTS - 1:
+                    raise MetricIndexNotFound(
+                        f"Unable to resolve or record unknown string: {string!r} "
+                        f"for use case {use_case_id} and org_id {org_id}"
+                    ) from e
+        
+        # If we've exhausted all attempts, raise the exception
+        raise MetricIndexNotFound(
+            f"Unable to resolve or record unknown string: {string!r} "
+            f"for use case {use_case_id} and org_id {org_id} after {MAX_RECORD_ATTEMPTS} attempts"
+        )
 
     return resolved
+
 
 
 def resolve_tag_key(use_case_id: UseCaseID | UseCaseKey, org_id: int, string: str) -> str:
