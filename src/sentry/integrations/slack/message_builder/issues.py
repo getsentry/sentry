@@ -51,7 +51,7 @@ from sentry.models.repository import Repository
 from sentry.models.rule import Rule
 from sentry.models.team import Team
 from sentry.notifications.notifications.base import ProjectNotification
-from sentry.notifications.utils.actions import MessageAction
+from sentry.notifications.utils.actions import BlockKitMessageAction, MessageAction
 from sentry.notifications.utils.participants import (
     dedupe_suggested_assignees,
     get_suspect_commit_users,
@@ -135,7 +135,9 @@ def build_assigned_text(identity: RpcIdentity, assignee: str) -> str | None:
     return f"*Issue assigned to {assignee_text} by <@{identity.external_id}>*"
 
 
-def build_action_text(identity: RpcIdentity, action: MessageAction) -> str | None:
+def build_action_text(
+    identity: RpcIdentity, action: MessageAction | BlockKitMessageAction
+) -> str | None:
     if action.name == "assign":
         selected_options = action.selected_options or []
         if not len(selected_options):
@@ -356,7 +358,7 @@ def build_actions(
     group: Group,
     project: Project,
     text: str,
-    actions: Sequence[MessageAction] | None = None,
+    actions: Sequence[MessageAction | BlockKitMessageAction] | None = None,
     identity: RpcIdentity | None = None,
 ) -> tuple[Sequence[MessageAction], str, bool]:
     """Having actions means a button will be shown on the Slack message e.g. ignore, resolve, assign."""
@@ -421,7 +423,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         event: Event | GroupEvent | None = None,
         tags: set[str] | None = None,
         identity: RpcIdentity | None = None,
-        actions: Sequence[MessageAction] | None = None,
+        actions: Sequence[MessageAction | BlockKitMessageAction] | None = None,
         rules: list[Rule] | None = None,
         link_to_event: bool = False,
         issue_details: bool = False,

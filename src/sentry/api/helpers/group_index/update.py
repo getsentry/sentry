@@ -170,7 +170,7 @@ def update_groups(
     projects: Sequence[Project],
     organization_id: int,
     search_fn: SearchFunction | None,
-    user: User | None = None,
+    user: RpcUser | User | None = None,
     data: Mapping[str, Any] | None = None,
 ) -> Response:
     # If `user` and `data` are passed as parameters then they should override

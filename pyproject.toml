@@ -276,7 +276,6 @@ module = [
     "sentry.integrations.slack.unfurl.discover",
     "sentry.integrations.slack.utils.channel",
     "sentry.integrations.slack.utils.users",
-    "sentry.integrations.slack.webhooks.action",
     "sentry.integrations.slack.webhooks.command",
     "sentry.integrations.slack.webhooks.event",
     "sentry.integrations.utils.commit_context",
