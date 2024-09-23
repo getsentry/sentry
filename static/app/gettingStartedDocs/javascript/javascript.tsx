@@ -1,9 +1,12 @@
+import {css} from '@emotion/react';
+
 import ExternalLink from 'sentry/components/links/externalLink';
 import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/crashReportCallout';
 import widgetCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/widgetCallout';
 import TracePropagationMessage from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
+  BasePlatformOptions,
   Docs,
   DocsParams,
   OnboardingConfig,
@@ -28,8 +31,39 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import replayOnboardingJsLoader from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
 import {t, tct} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
-type Params = DocsParams;
+import {updateDynamicSdkLoaderOptions} from './jsLoader/updateDynamicSdkLoaderOptions';
+
+export enum InstallationMode {
+  AUTO = 'auto',
+  MANUAL = 'manual',
+}
+
+const platformOptions = {
+  installationMode: {
+    label: t('Installation Mode'),
+    items: [
+      {
+        label: t('Loader Script'),
+        value: InstallationMode.AUTO,
+      },
+      {
+        label: t('Npm/Yarn'),
+        value: InstallationMode.MANUAL,
+      },
+    ],
+    defaultValue: InstallationMode.AUTO,
+  },
+} satisfies BasePlatformOptions;
+
+type PlatformOptions = typeof platformOptions;
+type Params = DocsParams<PlatformOptions>;
+
+const isAutoInstall = (params: Params) =>
+  params.platformOptions.installationMode === InstallationMode.AUTO;
 
 const getSdkSetupSnippet = (params: Params) => `
 import * as Sentry from "@sentry/browser";
@@ -112,8 +146,190 @@ const getInstallConfig = () => [
   },
 ];
 
-const onboarding: OnboardingConfig = {
-  introduction: MaybeBrowserProfilingBetaWarning,
+const getVerifyConfig = () => [
+  {
+    type: StepType.VERIFY,
+    description: t(
+      "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
+    ),
+    configurations: [
+      {
+        code: [
+          {
+            label: 'Javascript',
+            value: 'javascript',
+            language: 'javascript',
+            code: getVerifyJSSnippet(),
+          },
+        ],
+      },
+    ],
+  },
+];
+
+const loaderScriptOnboarding: OnboardingConfig<PlatformOptions> = {
+  introduction: () =>
+    tct('In this quick guide you’ll use our [strong: Loader Script] to set up:', {
+      strong: <strong />,
+    }),
+  install: params => [
+    {
+      type: StepType.INSTALL,
+      description: t('Add this script tag to the top of the page:'),
+      configurations: [
+        {
+          language: 'html',
+          code: [
+            {
+              label: 'HTML',
+              value: 'html',
+              language: 'html',
+              code: `
+<script
+  src="${params.dsn.cdn}"
+  crossorigin="anonymous"
+></script>`,
+            },
+          ],
+        },
+      ],
+    },
+  ],
+  configure: params => [
+    {
+      type: StepType.CONFIGURE,
+      description: t(
+        "Initialize Sentry as early as possible in your application's lifecycle."
+      ),
+      isOptional: true,
+      configurations: [
+        {
+          language: 'html',
+          code: [
+            {
+              label: 'HTML',
+              value: 'html',
+              language: 'html',
+              code: `
+<script>
+  Sentry.onLoad(function() {
+    Sentry.init({${
+      !(params.isPerformanceSelected || params.isReplaySelected)
+        ? `
+        // You can add any additional configuration here`
+        : ''
+    }${
+      params.isPerformanceSelected
+        ? `
+        // Tracing
+        tracesSampleRate: 1.0, // Capture 100% of the transactions`
+        : ''
+    }${
+      params.isReplaySelected
+        ? `
+        // Session Replay
+        replaysSessionSampleRate: 0.1, // This sets the sample rate at 10%. You may want to change it to 100% while in development and then sample at a lower rate in production.
+        replaysOnErrorSampleRate: 1.0, // If you're not already sampling the entire session, change the sample rate to 100% when sampling sessions where errors occur.`
+        : ''
+    }
+      });
+  });
+</script>`,
+            },
+          ],
+        },
+      ],
+      onOptionalToggleClick: showOptionalConfig => {
+        if (showOptionalConfig) {
+          trackAnalytics('onboarding.js_loader_npm_docs_optional_shown', {
+            organization: params.organization,
+            platform: params.platformKey,
+            project_id: params.projectId,
+          });
+        }
+      },
+    },
+  ],
+  verify: getVerifyConfig,
+  nextSteps: () => [
+    {
+      id: 'performance-monitoring',
+      name: t('Tracing'),
+      description: t(
+        'Track down transactions to connect the dots between 10-second page loads and poor-performing API calls or slow database queries.'
+      ),
+      link: 'https://docs.sentry.io/platforms/javascript/tracing/',
+    },
+    {
+      id: 'session-replay',
+      name: t('Session Replay'),
+      description: t(
+        'Get to the root cause of an error or latency issue faster by seeing all the technical details related to that issue in one visual replay on your web application.'
+      ),
+      link: 'https://docs.sentry.io/platforms/javascript/session-replay/',
+    },
+    {
+      id: 'source-maps',
+      name: t('Source Maps'),
+      description: t('Learn how to enable readable stack traces in your Sentry errors.'),
+      link: 'https://docs.sentry.io/platforms/javascript/sourcemaps/',
+    },
+    {
+      id: 'sdk-configuration',
+      name: t('SDK Configuration'),
+      description: t(
+        'Learn about additional configuration options for the Javascript SDK.'
+      ),
+      link: 'https://docs.sentry.io/platforms/javascript/configuration/',
+    },
+  ],
+  onPageLoad: params => {
+    return () => {
+      trackAnalytics('onboarding.setup_loader_docs_rendered', {
+        organization: params.organization,
+        platform: params.platformKey,
+        project_id: params.projectId,
+      });
+    };
+  },
+  onPlatformOptionsChange: params => {
+    return () => {
+      trackAnalytics('onboarding.js_loader_npm_docs_shown', {
+        organization: params.organization,
+        platform: params.platformKey,
+        project_id: params.projectId,
+      });
+    };
+  },
+  onProductSelectionChange: params => {
+    return products => {
+      updateDynamicSdkLoaderOptions({
+        orgSlug: params.organization.slug,
+        projectSlug: params.projectSlug,
+        products,
+        projectKey: params.projectKeyId,
+        api: params.api,
+      });
+    };
+  },
+  onProductSelectionLoad: params => {
+    return products => {
+      updateDynamicSdkLoaderOptions({
+        orgSlug: params.organization.slug,
+        projectSlug: params.projectSlug,
+        products,
+        projectKey: params.projectKeyId,
+        api: params.api,
+      });
+    };
+  },
+};
+
+const packageManagerOnboarding: OnboardingConfig<PlatformOptions> = {
+  introduction: () =>
+    tct('In this quick guide you’ll use [strong:npm] or [strong:yarn] to set up:', {
+      strong: <strong />,
+    }),
   install: () => [
     {
       type: StepType.INSTALL,
@@ -123,7 +339,7 @@ const onboarding: OnboardingConfig = {
       configurations: getInstallConfig(),
     },
   ],
-  configure: (params: Params) => [
+  configure: params => [
     {
       type: StepType.CONFIGURE,
       description: t(
@@ -150,26 +366,7 @@ const onboarding: OnboardingConfig = {
       ...params,
     }),
   ],
-  verify: () => [
-    {
-      type: StepType.VERIFY,
-      description: t(
-        "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
-      ),
-      configurations: [
-        {
-          code: [
-            {
-              label: 'Javascript',
-              value: 'javascript',
-              language: 'javascript',
-              code: getVerifyJSSnippet(),
-            },
-          ],
-        },
-      ],
-    },
-  ],
+  verify: getVerifyConfig,
   nextSteps: () => [
     {
       id: 'performance-monitoring',
@@ -188,9 +385,78 @@ const onboarding: OnboardingConfig = {
       link: 'https://docs.sentry.io/platforms/javascript/session-replay/',
     },
   ],
+  onPageLoad: params => {
+    return () => {
+      trackAnalytics('onboarding.js_loader_npm_docs_shown', {
+        organization: params.organization,
+        platform: params.platformKey,
+        project_id: params.projectId,
+      });
+    };
+  },
+  onPlatformOptionsChange: params => {
+    return () => {
+      trackAnalytics('onboarding.setup_loader_docs_rendered', {
+        organization: params.organization,
+        platform: params.platformKey,
+        project_id: params.projectId,
+      });
+    };
+  },
 };
 
-const replayOnboarding: OnboardingConfig = {
+const onboarding: OnboardingConfig<PlatformOptions> = {
+  introduction: params => (
+    <div
+      css={css`
+        display: flex;
+        flex-direction: column;
+        gap: ${space(1)};
+      `}
+    >
+      <MaybeBrowserProfilingBetaWarning {...params} />
+      <TextBlock noMargin>
+        {isAutoInstall(params)
+          ? loaderScriptOnboarding.introduction?.(params)
+          : packageManagerOnboarding.introduction?.(params)}
+      </TextBlock>
+    </div>
+  ),
+  install: params =>
+    isAutoInstall(params)
+      ? loaderScriptOnboarding.install(params)
+      : packageManagerOnboarding.install(params),
+  configure: (params: Params) =>
+    isAutoInstall(params)
+      ? loaderScriptOnboarding.configure(params)
+      : packageManagerOnboarding.configure(params),
+  verify: params =>
+    isAutoInstall(params)
+      ? loaderScriptOnboarding.verify(params)
+      : packageManagerOnboarding.verify(params),
+  nextSteps: params =>
+    isAutoInstall(params)
+      ? loaderScriptOnboarding.nextSteps?.(params)
+      : packageManagerOnboarding.nextSteps?.(params),
+  onPageLoad: params =>
+    isAutoInstall(params)
+      ? loaderScriptOnboarding.onPageLoad?.(params)
+      : packageManagerOnboarding.onPageLoad?.(params),
+  onProductSelectionChange: params =>
+    isAutoInstall(params)
+      ? loaderScriptOnboarding.onProductSelectionChange?.(params)
+      : packageManagerOnboarding.onProductSelectionChange?.(params),
+  onPlatformOptionsChange: params =>
+    isAutoInstall(params)
+      ? loaderScriptOnboarding.onPlatformOptionsChange?.(params)
+      : packageManagerOnboarding.onPlatformOptionsChange?.(params),
+  onProductSelectionLoad: params =>
+    isAutoInstall(params)
+      ? loaderScriptOnboarding.onProductSelectionLoad?.(params)
+      : packageManagerOnboarding.onProductSelectionLoad?.(params),
+};
+
+const replayOnboarding: OnboardingConfig<PlatformOptions> = {
   install: () => [
     {
       type: StepType.INSTALL,
@@ -228,7 +494,7 @@ const replayOnboarding: OnboardingConfig = {
   nextSteps: () => [],
 };
 
-const feedbackOnboarding: OnboardingConfig = {
+const feedbackOnboarding: OnboardingConfig<PlatformOptions> = {
   install: () => [
     {
       type: StepType.INSTALL,
@@ -271,7 +537,7 @@ const feedbackOnboarding: OnboardingConfig = {
   nextSteps: () => [],
 };
 
-const crashReportOnboarding: OnboardingConfig = {
+const crashReportOnboarding: OnboardingConfig<PlatformOptions> = {
   introduction: () => getCrashReportModalIntroduction(),
   install: (params: Params) => getCrashReportJavaScriptInstallStep(params),
   configure: () => [
@@ -289,7 +555,7 @@ const crashReportOnboarding: OnboardingConfig = {
   nextSteps: () => [],
 };
 
-const performanceOnboarding: OnboardingConfig = {
+const performanceOnboarding: OnboardingConfig<PlatformOptions> = {
   introduction: () =>
     t(
       "Adding Performance to your Browser JavaScript project is simple. Make sure you've got these basics down."
@@ -382,7 +648,7 @@ transaction.finish(); // Finishing the transaction will send it to Sentry`,
   nextSteps: () => [],
 };
 
-const docs: Docs = {
+const docs: Docs<PlatformOptions> = {
   onboarding,
   feedbackOnboardingNpm: feedbackOnboarding,
   replayOnboarding,
@@ -390,6 +656,7 @@ const docs: Docs = {
   performanceOnboarding,
   customMetricsOnboarding: getJSMetricsOnboarding({getInstallConfig}),
   crashReportOnboarding,
+  platformOptions,
 };
 
 export default docs;

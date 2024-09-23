@@ -1,7 +1,13 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectKeysFixture} from 'sentry-fixture/projectKeys';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitForElementToBeRemoved,
+} from 'sentry-test/reactTestingLibrary';
 
 import {OnboardingContextProvider} from 'sentry/components/onboarding/onboardingContext';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
@@ -367,11 +373,11 @@ describe('Onboarding Setup Docs', function () {
         router: {
           location: {
             query: {
-              showLoader: 'true',
               product: [
                 ProductSolution.PERFORMANCE_MONITORING,
                 ProductSolution.SESSION_REPLAY,
               ],
+              installationMode: 'auto',
             },
           },
         },
@@ -382,6 +388,9 @@ describe('Onboarding Setup Docs', function () {
             platform: 'javascript',
           },
         ],
+        organization: OrganizationFixture({
+          features: ['session-replay', 'performance-view'],
+        }),
       });
 
       const updateLoaderMock = MockApiClient.addMockResponse({
@@ -398,7 +407,7 @@ describe('Onboarding Setup Docs', function () {
         orgSlug: organization.slug,
       });
 
-      const {rerender} = render(
+      render(
         <OnboardingContextProvider>
           <SetupDocs
             active
@@ -420,7 +429,7 @@ describe('Onboarding Setup Docs', function () {
       );
 
       expect(
-        await screen.findByRole('heading', {name: 'Configure Browser JavaScript SDK'})
+        await screen.findByRole('radio', {name: 'Loader Script'})
       ).toBeInTheDocument();
 
       expect(updateLoaderMock).toHaveBeenCalledTimes(1);
@@ -440,41 +449,21 @@ describe('Onboarding Setup Docs', function () {
         }
       );
 
-      // update query in URL
-      router.location.query = {
-        showLoader: 'true',
-        product: [ProductSolution.SESSION_REPLAY],
-      };
-      rerender(
-        <OnboardingContextProvider>
-          <SetupDocs
-            active
-            onComplete={() => {}}
-            stepIndex={2}
-            router={router}
-            route={{}}
-            location={router.location}
-            genSkipOnboardingLink={() => ''}
-            orgId={organization.slug}
-            search=""
-            recentCreatedProject={project as OnboardingRecentCreatedProject}
-          />
-        </OnboardingContextProvider>
-      );
-
       expect(
-        await screen.findByRole('heading', {name: 'Configure Browser JavaScript SDK'})
+        await screen.findByRole('radio', {name: 'Loader Script'})
       ).toBeInTheDocument();
 
+      await userEvent.click(screen.getByRole('checkbox', {name: 'Session Replay'}));
       expect(updateLoaderMock).toHaveBeenCalledTimes(2);
+
       expect(updateLoaderMock).toHaveBeenLastCalledWith(
         expect.any(String), // The URL
         {
           data: {
             dynamicSdkLoaderOptions: {
               hasDebug: false,
-              hasPerformance: false,
-              hasReplay: true,
+              hasPerformance: true,
+              hasReplay: false,
             },
           },
           error: expect.any(Function),
