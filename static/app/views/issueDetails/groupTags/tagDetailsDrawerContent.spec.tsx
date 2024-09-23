@@ -38,6 +38,10 @@ describe('TagDetailsDrawerContent', () => {
       url: '/organizations/org-slug/issues/1/tags/user/',
       body: tags.find(({key}) => key === 'user'),
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/1/`,
+      body: GroupFixture(),
+    });
   });
 
   afterEach(() => {

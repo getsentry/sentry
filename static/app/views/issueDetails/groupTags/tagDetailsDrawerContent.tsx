@@ -15,6 +15,7 @@ import TimeSince from 'sentry/components/timeSince';
 import {IconArrow, IconEllipsis, IconMail, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Group} from 'sentry/types/group';
 import type {SavedQueryVersions} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {percent} from 'sentry/utils';
@@ -24,11 +25,12 @@ import {isUrl} from 'sentry/utils/string/isUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
+import {useGroup} from 'sentry/views/issueDetails/useGroup';
 import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
 import {StyledExternalLink} from 'sentry/views/settings/organizationMembers/inviteBanner';
 
 type GroupTagsDrawerProps = {
-  groupId: string;
+  groupId: Group['id'];
   project: Project;
 };
 
@@ -81,6 +83,7 @@ export function TagDetailsDrawerContent({
     groupId,
     tagKey,
   });
+  const {data: group} = useGroup({groupId});
 
   const isLoading = tagValueListIsLoading || tagIsLoading;
   const isError = tagIsError || tagValueListIsError;
@@ -149,7 +152,7 @@ export function TagDetailsDrawerContent({
               ...discoverFields.filter(field => field !== key),
             ],
             orderby: '-timestamp',
-            // query: `issue:${group.shortId} ${issuesQuery}`,
+            query: group ? `issue:${group.shortId} ${issuesQuery}` : undefined,
             projects: [Number(project?.id)],
             environment: environments,
             version: 2 as SavedQueryVersions,
@@ -220,7 +223,7 @@ export function TagDetailsDrawerContent({
                           ? SavedQueryDatasets.ERRORS
                           : undefined
                       ),
-                      hidden: !organization.features.includes('discover-basic'),
+                      hidden: !group || !organization.features.includes('discover-basic'),
                     },
                     {
                       key: 'search-issues',

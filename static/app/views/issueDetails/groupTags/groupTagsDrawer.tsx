@@ -1,4 +1,4 @@
-import {useCallback, useRef} from 'react';
+import {useRef} from 'react';
 import styled from '@emotion/styled';
 
 import Alert from 'sentry/components/alert';
@@ -17,9 +17,8 @@ import {
   Header,
   NavigationCrumbs,
   ShortId,
-} from 'sentry/components/events/eventReplay/eventDrawer';
+} from 'sentry/components/events/eventDrawer';
 import {TAGS_DOCS_LINK} from 'sentry/components/events/eventTags/util';
-import useDrawer from 'sentry/components/globalDrawer';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
@@ -40,15 +39,17 @@ import {useGroupTags} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 
 type GroupTagsDrawerProps = {
   groupId: string;
-  project: Project;
+  projectSlug: Project['slug'];
 };
 
-export function GroupTagsDrawer({project, groupId}: GroupTagsDrawerProps) {
+export function GroupTagsDrawer({projectSlug, groupId}: GroupTagsDrawerProps) {
   const location = useLocation();
   const organization = useOrganization();
   const navigate = useNavigate();
   const tagDrawerKey = location.query.tagDrawerKey as string | undefined;
   const drawerRef = useRef<HTMLDivElement>(null);
+  const {projects} = useProjects();
+  const project = projects.find(p => p.slug === projectSlug)!;
 
   const {
     data = [],
@@ -212,62 +213,6 @@ export function GroupTagsDrawer({project, groupId}: GroupTagsDrawerProps) {
       </EventDrawerBody>
     </EventDrawerContainer>
   );
-}
-
-export function useGroupTagsDrawer({
-  projectSlug,
-  groupId,
-  openButtonRef,
-}: {
-  groupId: string;
-  openButtonRef: React.RefObject<HTMLButtonElement>;
-  projectSlug: Project['slug'];
-}) {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const drawer = useDrawer();
-  const {projects} = useProjects({slugs: [projectSlug]});
-  const project = projects.find(p => p.slug === projectSlug);
-
-  const openTagsDrawer = useCallback(() => {
-    if (!project) {
-      return;
-    }
-
-    drawer.openDrawer(() => <GroupTagsDrawer project={project} groupId={groupId} />, {
-      ariaLabel: 'tags drawer',
-      onClose: () => {
-        const params = new URL(window.location.href).searchParams;
-        if (params.has('tagDrawerSort') || params.has('tagDrawerKey')) {
-          // Remove drawer state from URL
-          navigate(
-            {
-              pathname: location.pathname,
-              query: {
-                ...location.query,
-                tagDrawerSort: undefined,
-                tagDrawerKey: undefined,
-              },
-            },
-            {replace: true}
-          );
-        }
-      },
-      shouldCloseOnInteractOutside: element => {
-        const viewAllButton = openButtonRef.current;
-        if (viewAllButton?.contains(element)) {
-          return false;
-        }
-        return true;
-      },
-    });
-  }, [location, navigate, drawer, project, groupId, openButtonRef]);
-
-  if (!project) {
-    return {};
-  }
-
-  return {openTagsDrawer};
 }
 
 const Wrapper = styled('div')`
