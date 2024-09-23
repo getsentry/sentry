@@ -11,7 +11,7 @@ class DataConditionGroup(DefaultFieldsModel):
     """
 
     __relocation_scope__ = RelocationScope.Organization
-    __repr__ = sane_repr("type", "condition")
+    __repr__ = sane_repr("logic_type")
 
     class Type(models.TextChoices):
         ANY = "any"
