@@ -9,7 +9,6 @@ import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {Flex} from 'sentry/components/container/flex';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import Link from 'sentry/components/links/link';
-import ObjectInspector from 'sentry/components/objectInspector';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {OpenReplayComparisonButton} from 'sentry/components/replays/breadcrumbs/openReplayComparisonButton';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
@@ -88,17 +87,17 @@ function BreadcrumbItem({
         {description}
       </Description>
     ) : (
-      <InspectorWrapper>
-        <ObjectInspector
-          data={description}
-          expandPaths={expandPaths}
-          onExpand={onInspectorExpanded}
-          theme={{
-            TREENODE_FONT_SIZE: '0.7rem',
-            ARROW_FONT_SIZE: '0.5rem',
-          }}
-        />
-      </InspectorWrapper>
+      <StructuredEventData
+        initialExpandedPaths={expandPaths ?? []}
+        onToggleExpand={(expandedPaths, path) => {
+          onInspectorExpanded(
+            path,
+            Object.fromEntries(expandedPaths.map(item => [item, true]))
+          );
+        }}
+        data={description}
+        withAnnotatedText
+      />
     );
   }, [description, expandPaths, onInspectorExpanded]);
 
@@ -374,10 +373,6 @@ const CrumbIssueWrapper = styled('div')`
   gap: ${space(0.5)};
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.subText};
-`;
-
-const InspectorWrapper = styled('div')`
-  font-family: ${p => p.theme.text.familyMono};
 `;
 
 const CrumbDetails = styled('div')`
