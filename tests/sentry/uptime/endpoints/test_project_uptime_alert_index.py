@@ -1,6 +1,7 @@
 from rest_framework.exceptions import ErrorDetail
 
 from sentry.testutils.helpers import with_feature
+from sentry.uptime.endpoints.validators import MAX_REQUEST_SIZE_BYTES
 from sentry.uptime.models import ProjectUptimeSubscription, ProjectUptimeSubscriptionMode
 from sentry.uptime.subscriptions.subscriptions import DEFAULT_SUBSCRIPTION_TIMEOUT_MS
 from tests.sentry.uptime.endpoints import UptimeAlertBaseEndpointTest
@@ -186,5 +187,10 @@ class ProjectUptimeAlertIndexPostEndpointTest(ProjectUptimeAlertIndexBaseEndpoin
             headers={"header": "value"},
         )
         assert resp.data == {
-            "nonFieldErrors": [ErrorDetail(string="Request is too large", code="invalid")]
+            "nonFieldErrors": [
+                ErrorDetail(
+                    string=f"Request is too large, max size is {MAX_REQUEST_SIZE_BYTES} bytes",
+                    code="invalid",
+                )
+            ]
         }

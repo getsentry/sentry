@@ -1,5 +1,6 @@
 import hashlib
 import logging
+from collections.abc import Mapping
 from typing import Any
 
 from django.db import IntegrityError
@@ -31,7 +32,7 @@ DEFAULT_SUBSCRIPTION_TIMEOUT_MS = 10000
 
 
 def retrieve_uptime_subscription(
-    url: str, interval_seconds: int, method: str, headers: dict[str, str], body: str | None
+    url: str, interval_seconds: int, method: str, headers: Mapping[str, str], body: str | None
 ) -> UptimeSubscription | None:
     try:
         subscription = (
@@ -58,7 +59,7 @@ def create_uptime_subscription(
     interval_seconds: int,
     timeout_ms: int = DEFAULT_SUBSCRIPTION_TIMEOUT_MS,
     method: str = "GET",
-    headers: dict[str, str] | None = None,
+    headers: Mapping[str, str] | None = None,
     body: str | None = None,
 ) -> UptimeSubscription:
     """
@@ -85,7 +86,7 @@ def create_uptime_subscription(
                 status=UptimeSubscription.Status.CREATING.value,
                 type=UPTIME_SUBSCRIPTION_TYPE,
                 method=method,
-                headers=headers,
+                headers=headers,  # type: ignore[misc]
                 body=body,
             )
             created = True
@@ -94,6 +95,21 @@ def create_uptime_subscription(
             subscription = retrieve_uptime_subscription(
                 url, interval_seconds, method, headers, body
             )
+
+    if subscription is None:
+        # This shouldn't happen, since we should always be able to fetch or create the subscription.
+        logger.error(
+            "Unable to create uptime subscription",
+            extra={
+                "url": url,
+                "interval_seconds": interval_seconds,
+                "timeout_ms": timeout_ms,
+                "method": method,
+                "headers": headers,
+                "body": body,
+            },
+        )
+        raise ValueError("Unable to create uptime subscription")
 
     if subscription.status == UptimeSubscription.Status.DELETING.value:
         # This is pretty unlikely to happen, but we should avoid deleting the subscription here and just confirm it

@@ -28,8 +28,17 @@ for the domain `sentry.io` both the hosts `subdomain-one.sentry.io` and
 Importantly domains like `vercel.dev` are considered TLDs as defined by the
 public suffix list (PSL). See `extract_domain_parts` fo more details
 """
-SUPPORTED_HTTP_METHODS = {"GET", "POST", "HEAD", "PUT", "DELETE", "PATCH", "OPTIONS"}
-MAX_REQUEST_SIZE = 1000
+SUPPORTED_HTTP_METHODS = ["GET", "POST", "HEAD", "PUT", "DELETE", "PATCH", "OPTIONS"]
+MAX_REQUEST_SIZE_BYTES = 1000
+
+
+def compute_http_request_size(method: str, url: str, headers: dict[str, str], body: str):
+    request_line_size = len(f"{method} {url} HTTP/1.1\r\n")
+    headers_size = sum(
+        len(key) + len(value.encode("utf-8")) + len("\r\n") for key, value in headers.items()
+    )
+    body_size = len(body.encode("utf-8"))
+    return request_line_size + headers_size + len("\r\n") + body_size
 
 
 @extend_schema_serializer()
@@ -49,39 +58,34 @@ class UptimeMonitorValidator(CamelSnakeSerializer):
         required=True, min_value=60, max_value=int(timedelta(days=1).total_seconds())
     )
     mode = serializers.IntegerField(required=False)
-    method = serializers.CharField(required=False, max_length=20)
+    method = serializers.ChoiceField(
+        required=False, choices=list(zip(SUPPORTED_HTTP_METHODS, SUPPORTED_HTTP_METHODS))
+    )
     headers = serializers.JSONField(required=False)
     body = serializers.CharField(required=False)
 
     def validate(self, attrs):
-        headers_dict = {}
+        headers = {}
         method = "GET"
         body = ""
         url = ""
         if self.instance:
-            headers_dict = self.instance.uptime_subscription.headers
+            headers = self.instance.uptime_subscription.headers
             method = self.instance.uptime_subscription.method
             body = self.instance.uptime_subscription.body or ""
             url = self.instance.uptime_subscription.url
-        request_line_size = len(
-            f"{attrs.get('method', method)} {attrs.get('url', url)} HTTP/1.1\r\n"
+
+        request_size = compute_http_request_size(
+            attrs.get("method", method),
+            attrs.get("url", url),
+            attrs.get("headers", headers),
+            attrs.get("body", body),
         )
-
-        headers_dict = attrs.get("headers", headers_dict)
-        headers_size = sum(len(f"{key}: {value}\r\n") for key, value in headers_dict.items())
-
-        body_size = len(attrs.get("body", body))
-
-        request_size = request_line_size + headers_size + len("\r\n") + body_size
-
-        if request_size > MAX_REQUEST_SIZE:
-            raise serializers.ValidationError("Request is too large")
+        if request_size > MAX_REQUEST_SIZE_BYTES:
+            raise serializers.ValidationError(
+                f"Request is too large, max size is {MAX_REQUEST_SIZE_BYTES} bytes"
+            )
         return attrs
-
-    def validate_method(self, method):
-        if method not in SUPPORTED_HTTP_METHODS:
-            raise serializers.ValidationError("Specify a valid and supported HTTP method")
-        return method
 
     def validate_url(self, url):
         url_parts = extract_domain_parts(url)
