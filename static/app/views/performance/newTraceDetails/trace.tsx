@@ -10,7 +10,6 @@ import {
 } from 'react';
 import {type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import Sentry from '@sentry/react';
 
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
@@ -51,7 +50,7 @@ import {
   type RovingTabIndexUserActions,
 } from 'sentry/views/performance/newTraceDetails/traceState/traceRovingTabIndex';
 
-import {TraceTree, type TraceTreeNode} from './traceModels/traceTree';
+import type {TraceTree, TraceTreeNode} from './traceModels/traceTree';
 import {useTraceState, useTraceStateDispatch} from './traceState/traceStateProvider';
 import {
   isAutogroupedNode,
@@ -89,18 +88,12 @@ function computeNextIndexFromAction(
 
 interface TraceProps {
   forceRerender: number;
-  initializedRef: React.MutableRefObject<boolean>;
   isEmbedded: boolean;
   manager: VirtualizedViewManager;
   onRowClick: (
     node: TraceTreeNode<TraceTree.NodeValue>,
     event: React.MouseEvent<HTMLElement>,
     index: number
-  ) => void;
-  onTraceLoad: (
-    trace: TraceTree,
-    node: TraceTreeNode<TraceTree.NodeValue> | null,
-    index: number | null
   ) => void;
   onTraceSearch: (
     query: string,
@@ -110,14 +103,6 @@ interface TraceProps {
   previouslyFocusedNodeRef: React.MutableRefObject<TraceTreeNode<TraceTree.NodeValue> | null>;
   rerender: () => void;
   scheduler: TraceScheduler;
-  scrollQueueRef: React.MutableRefObject<
-    | {
-        eventId?: string;
-        path?: TraceTree.NodePath[];
-      }
-    | null
-    | undefined
-  >;
   trace: TraceTree;
   trace_id: string | undefined;
 }
@@ -126,13 +111,10 @@ export function Trace({
   trace,
   onRowClick,
   manager,
-  scrollQueueRef,
   previouslyFocusedNodeRef,
   onTraceSearch,
-  onTraceLoad,
   rerender,
   scheduler,
-  initializedRef,
   forceRerender,
   trace_id,
   isEmbedded,
@@ -197,71 +179,6 @@ export function Trace({
       scheduler.off('divider resize', onDividerResize);
     };
   }, [manager, scheduler]);
-
-  useLayoutEffect(() => {
-    if (initializedRef.current) {
-      return;
-    }
-    if (trace.type !== 'trace' || !manager) {
-      return;
-    }
-
-    initializedRef.current = true;
-
-    if (!scrollQueueRef.current) {
-      onTraceLoad(trace, null, null);
-      return;
-    }
-
-    // Node path has higher specificity than eventId
-    const promise = scrollQueueRef.current?.path
-      ? TraceTree.ExpandToPath(trace, scrollQueueRef.current.path, rerenderRef.current, {
-          api,
-          organization,
-        })
-      : scrollQueueRef.current.eventId
-        ? TraceTree.ExpandToEventID(
-            scrollQueueRef?.current?.eventId,
-            trace,
-            rerenderRef.current,
-            {
-              api,
-              organization,
-            }
-          )
-        : Promise.resolve(null);
-
-    promise
-      .then(maybeNode => {
-        onTraceLoad(trace, maybeNode?.node ?? null, maybeNode?.index ?? null);
-
-        if (!maybeNode) {
-          Sentry.captureMessage('Failed to find and scroll to node in tree');
-          return;
-        }
-      })
-      .finally(() => {
-        // Important to set scrollQueueRef.current to null and trigger a rerender
-        // after the promise resolves as we show a loading state during scroll,
-        // else the screen could jump around while we fetch span data
-        scrollQueueRef.current = null;
-        rerenderRef.current();
-        // Allow react to rerender before dispatching the init event
-        requestAnimationFrame(() => {
-          scheduler.dispatch('initialize virtualized list');
-        });
-      });
-  }, [
-    api,
-    trace,
-    manager,
-    onTraceLoad,
-    scheduler,
-    traceDispatch,
-    scrollQueueRef,
-    initializedRef,
-    organization,
-  ]);
 
   const onNodeZoomIn = useCallback(
     (
@@ -419,7 +336,6 @@ export function Trace({
       onNodeExpand,
       onNodeZoomIn,
       manager,
-      scrollQueueRef,
       previouslyFocusedNodeRef,
       onRowKeyDown,
       onRowClick,
@@ -436,10 +352,10 @@ export function Trace({
   );
 
   const render = useMemo(() => {
-    return trace.type !== 'trace' || scrollQueueRef.current
+    return trace.type !== 'trace'
       ? r => renderLoadingRow(r)
       : r => renderVirtualizedRow(r);
-  }, [renderLoadingRow, renderVirtualizedRow, trace.type, scrollQueueRef]);
+  }, [renderLoadingRow, renderVirtualizedRow, trace.type]);
 
   const traceNode = trace.root.children[0];
   const traceStartTimestamp = traceNode?.space?.[0];
@@ -459,7 +375,7 @@ export function Trace({
       className={`
         ${trace.root.space[1] === 0 ? 'Empty' : ''}
         ${trace.indicators.length > 0 ? 'WithIndicators' : ''}
-        ${trace.type !== 'trace' || scrollQueueRef.current ? 'Loading' : ''}
+        ${trace.type !== 'trace' ? 'Loading' : ''}
         ${ConfigStore.get('theme')}`}
     >
       <div
