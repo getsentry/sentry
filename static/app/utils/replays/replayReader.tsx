@@ -538,10 +538,7 @@ export default class ReplayReader {
   getErrorFrames = () => this._errors;
 
   getConsoleFrames = memoize(() =>
-    this._sortedBreadcrumbFrames.filter(
-      frame =>
-        frame.category === 'console' || !BreadcrumbCategories.includes(frame.category)
-    )
+    this._sortedBreadcrumbFrames.filter(frame => frame.category === 'console')
   );
 
   getNavigationFrames = memoize(() =>
@@ -589,11 +586,18 @@ export default class ReplayReader {
     this._sortedSpanFrames.filter((frame): frame is MemoryFrame => frame.op === 'memory')
   );
 
+  getCustomFrames = memoize(() =>
+    this._sortedBreadcrumbFrames.filter(
+      frame => !BreadcrumbCategories.includes(frame.category)
+    )
+  );
+
   getChapterFrames = memoize(() =>
     this._trimFramesToClipWindow(
       [
         ...this.getPerfFrames(),
         ...this.getWebVitalFrames(),
+        ...this.getCustomFrames(),
         ...this._sortedBreadcrumbFrames.filter(frame =>
           [
             'replay.hydrate-error',

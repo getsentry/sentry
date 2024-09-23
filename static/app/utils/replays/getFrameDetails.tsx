@@ -430,9 +430,9 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
 
 const MAPPER_DEFAULT = (frame): Details => ({
   color: 'gray300',
-  description: frame.message ?? '',
-  tabKey: TabKey.CONSOLE,
-  title: defaultTitle(frame),
+  description: frame.message ?? frame.data ?? '',
+  tabKey: TabKey.BREADCRUMBS,
+  title: toTitleCase(defaultTitle(frame)),
   icon: <IconTerminal size="xs" />,
 });
 
