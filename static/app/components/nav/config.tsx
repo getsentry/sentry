@@ -28,12 +28,12 @@ import {getSearchForIssueGroup, IssueGroup} from 'sentry/views/issueList/utils';
 
 export interface NavItemsResult {
   primary: {
-    body: SidebarItem[];
-    footer: SidebarItem[];
+    body: ReadonlyArray<SidebarItem>;
+    footer: ReadonlyArray<SidebarItem>;
   };
   secondary: {
-    body: SubmenuItem[];
-    footer: SubmenuItem[];
+    body: ReadonlyArray<SidebarItem>;
+    footer: ReadonlyArray<SidebarItem>;
   };
 }
 
