@@ -6,17 +6,14 @@ import {StreamlinedExternalIssueList} from 'sentry/components/group/externalIssu
 import {GroupSummary} from 'sentry/components/group/groupSummary';
 import {space} from 'sentry/styles/space';
 import StreamlinedActivitySection from 'sentry/views/issueDetails/streamline/activitySection';
-import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 export default function StreamlinedSidebar({group, event, project}) {
-  const hasStreamlinedUI = useHasStreamlinedUI();
-
   return (
     <div>
       <Feature features={['organizations:ai-summary']}>
         <GroupSummary groupId={group.id} groupCategory={group.issueCategory} />
       </Feature>
-      {hasStreamlinedUI && event && (
+      {event && (
         <ErrorBoundary mini>
           <StreamlinedExternalIssueList group={group} event={event} project={project} />
         </ErrorBoundary>
