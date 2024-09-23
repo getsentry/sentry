@@ -19,8 +19,9 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
+import {Chevron} from 'sentry/components/chevron';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {IconChevron, IconClose} from 'sentry/icons';
+import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Choices, SelectValue} from 'sentry/types/core';
@@ -61,7 +62,7 @@ function DropdownIndicator(
 ) {
   return (
     <selectComponents.DropdownIndicator {...props}>
-      <IconChevron direction="down" size="sm" />
+      <Chevron light color="subText" direction="down" size="medium" />
     </selectComponents.DropdownIndicator>
   );
 }

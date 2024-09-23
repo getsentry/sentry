@@ -159,7 +159,14 @@ function ArchiveActions({
             {...triggerProps}
             aria-label={t('Archive options')}
             size={size}
-            icon={<Chevron weight="medium" direction={isOpen ? 'up' : 'down'} />}
+            icon={
+              <Chevron
+                light
+                color="subText"
+                weight="medium"
+                direction={isOpen ? 'up' : 'down'}
+              />
+            }
             disabled={disabled}
           />
         )}
