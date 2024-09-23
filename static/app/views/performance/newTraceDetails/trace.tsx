@@ -345,11 +345,17 @@ export function Trace({
         });
       }
       if (event.key === 'ArrowLeft') {
-        if (node.zoomedIn) onNodeZoomIn(event, node, false);
-        else if (node.expanded) onNodeExpand(event, node, false);
+        if (node.zoomedIn) {
+          onNodeZoomIn(event, node, false);
+        } else if (node.expanded) {
+          onNodeExpand(event, node, false);
+        }
       } else if (event.key === 'ArrowRight') {
-        if (!node.expanded) onNodeExpand(event, node, true);
-        else if (node.expanded && node.canFetch) onNodeZoomIn(event, node, true);
+        if (!node.expanded) {
+          onNodeExpand(event, node, true);
+        } else if (node.expanded && node.canFetch) {
+          onNodeZoomIn(event, node, true);
+        }
       }
     },
     [manager, onNodeExpand, onNodeZoomIn, traceDispatch]
