@@ -1,19 +1,12 @@
 from collections.abc import Sequence
 from datetime import datetime
 
-from sentry import features
 from sentry.eventstore.models import GroupEvent
 from sentry.models.group import Group
-from sentry.models.project import Project
 from sentry.rules import EventState
 from sentry.rules.conditions.base import EventCondition
 from sentry.types.condition_activity import ConditionActivity, ConditionActivityType
 from sentry.types.group import PriorityLevel
-
-
-def has_high_priority_issue_alerts(project: Project) -> bool:
-    # Seer-based priority is enabled if the organization has the feature flag
-    return features.has("organizations:priority-ga-features", project.organization)
 
 
 class NewHighPriorityIssueCondition(EventCondition):
@@ -27,9 +20,6 @@ class NewHighPriorityIssueCondition(EventCondition):
         return state.is_new_group_environment
 
     def passes(self, event: GroupEvent, state: EventState) -> bool:
-        if not has_high_priority_issue_alerts(self.project):
-            return False
-
         is_new = self.is_new(state)
         if not event.project.flags.has_high_priority_alerts:
             return is_new
