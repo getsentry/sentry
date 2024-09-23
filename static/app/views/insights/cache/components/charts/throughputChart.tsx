@@ -1,6 +1,7 @@
 import type {Series} from 'sentry/types/echarts';
 import {RateUnit} from 'sentry/utils/discover/fields';
 import {formatRate} from 'sentry/utils/formatters';
+import {ALERTS} from 'sentry/views/insights/cache/alerts';
 import {CHART_HEIGHT} from 'sentry/views/insights/cache/settings';
 import {THROUGHPUT_COLOR} from 'sentry/views/insights/colors';
 import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
@@ -15,7 +16,10 @@ interface Props {
 
 export function ThroughputChart({series, isLoading, error}: Props) {
   return (
-    <ChartPanel title={getThroughputChartTitle('cache.get_item')}>
+    <ChartPanel
+      title={getThroughputChartTitle('cache.get_item')}
+      alertConfigs={[ALERTS.spm]}
+    >
       <Chart
         height={CHART_HEIGHT}
         grid={{

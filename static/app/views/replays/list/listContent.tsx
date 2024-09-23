@@ -58,7 +58,7 @@ export default function ListContent() {
     );
   }
 
-  if (rageClicksSdkVersion.needsUpdate) {
+  if (rageClicksSdkVersion.needsUpdate && !allMobileProj) {
     return (
       <Fragment>
         <FiltersContainer>

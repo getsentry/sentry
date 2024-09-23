@@ -39,7 +39,7 @@ export default function ReplayTimelineEvents({
   return (
     <Timeline.Columns className={className} totalColumns={totalColumns} remainder={0}>
       {Array.from(framesByCol.entries()).map(([column, colFrames]) => (
-        <EventColumn key={column} column={column}>
+        <EventColumn key={column} style={{gridColumn: Math.floor(column)}}>
           <Event
             frames={colFrames}
             markerWidth={markerWidth}
@@ -51,8 +51,7 @@ export default function ReplayTimelineEvents({
   );
 }
 
-const EventColumn = styled(Timeline.Col)<{column: number}>`
-  grid-column: ${p => Math.floor(p.column)};
+const EventColumn = styled(Timeline.Col)`
   place-items: stretch;
   display: grid;
   align-items: center;

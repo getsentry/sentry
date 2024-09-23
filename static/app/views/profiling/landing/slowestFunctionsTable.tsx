@@ -112,9 +112,6 @@ export function SlowestFunctionsTable({userQuery}: {userQuery?: string}) {
   }, [query.data?.metrics]);
 
   const pagination = useMemoryPagination(sortedMetrics, 5);
-  const [expandedFingerprint, setExpandedFingerprint] = useState<
-    Profiling.FunctionMetric['fingerprint'] | null
-  >(null);
 
   const projectsLookupTable = useMemo(() => {
     return projects.reduce(
@@ -199,8 +196,6 @@ export function SlowestFunctionsTable({userQuery}: {userQuery?: string}) {
                   key={i}
                   function={f}
                   projectsLookupTable={projectsLookupTable}
-                  expanded={f.fingerprint === expandedFingerprint}
-                  onExpandClick={setExpandedFingerprint}
                 />
               );
             })}
@@ -211,15 +206,12 @@ export function SlowestFunctionsTable({userQuery}: {userQuery?: string}) {
 }
 
 interface SlowestFunctionProps {
-  expanded: boolean;
   function: NonNullable<Profiling.Schema['metrics']>[0];
-  onExpandClick: React.Dispatch<
-    React.SetStateAction<Profiling.FunctionMetric['fingerprint'] | null>
-  >;
   projectsLookupTable: Record<string, Project>;
 }
 
 function SlowestFunction(props: SlowestFunctionProps) {
+  const [expanded, setExpanded] = useState(false);
   const organization = useOrganization();
 
   const exampleLink = makeProfileLinkFromExample(
@@ -235,9 +227,9 @@ function SlowestFunction(props: SlowestFunctionProps) {
         <TableBodyCell>
           <div>
             <Button
-              icon={<IconChevron direction={props.expanded ? 'up' : 'down'} />}
+              icon={<IconChevron direction={expanded ? 'up' : 'down'} />}
               aria-label={t('View Function Metrics')}
-              onClick={() => props.onExpandClick(props.function.fingerprint)}
+              onClick={() => setExpanded(!expanded)}
               size="xs"
               borderless
             />
@@ -269,7 +261,7 @@ function SlowestFunction(props: SlowestFunctionProps) {
         <TableBodyCell>{getPerformanceDuration(props.function.p95 / 1e6)}</TableBodyCell>
         <TableBodyCell>{getPerformanceDuration(props.function.p99 / 1e6)}</TableBodyCell>
       </TableRow>
-      {props.expanded ? (
+      {expanded ? (
         <SlowestFunctionTimeSeries
           function={props.function}
           projectsLookupTable={props.projectsLookupTable}

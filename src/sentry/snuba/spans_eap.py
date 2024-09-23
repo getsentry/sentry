@@ -9,8 +9,8 @@ from sentry.discover.arithmetic import categorize_columns
 from sentry.models.organization import Organization
 from sentry.search.events.builder.spans_indexed import (
     SpansEAPQueryBuilder,
-    TimeseriesSpanIndexedQueryBuilder,
-    TopEventsSpanIndexedQueryBuilder,
+    TimeseriesSpanEAPIndexedQueryBuilder,
+    TopEventsSpanEAPQueryBuilder,
 )
 from sentry.search.events.types import EventsResponse, QueryBuilderConfig, SnubaParams
 from sentry.snuba import discover
@@ -103,7 +103,7 @@ def timeseries_query(
     equations, columns = categorize_columns(selected_columns)
 
     with sentry_sdk.start_span(op="spans_indexed", description="TimeseriesSpanIndexedQueryBuilder"):
-        querybuilder = TimeseriesSpanIndexedQueryBuilder(
+        querybuilder = TimeseriesSpanEAPIndexedQueryBuilder(
             Dataset.SpansEAP,
             {},
             rollup,
@@ -183,7 +183,7 @@ def top_events_timeseries(
                 query_source=query_source,
             )
 
-    top_events_builder = TopEventsSpanIndexedQueryBuilder(
+    top_events_builder = TopEventsSpanEAPQueryBuilder(
         Dataset.SpansEAP,
         {},
         rollup,
@@ -200,7 +200,7 @@ def top_events_timeseries(
         ),
     )
     if len(top_events["data"]) == limit and include_other:
-        other_events_builder = TopEventsSpanIndexedQueryBuilder(
+        other_events_builder = TopEventsSpanEAPQueryBuilder(
             Dataset.SpansEAP,
             {},
             rollup,

@@ -25,10 +25,12 @@ class BroadcastSerializer(Serializer):
             "title": obj.title,
             "link": obj.link,
             "cta": obj.cta,
+            "mediaUrl": obj.media_url,
             "isActive": obj.is_active,
             "dateCreated": obj.date_added,
             "dateExpires": obj.date_expires,
             "hasSeen": attrs["seen"],
+            "category": obj.category,
         }
 
 
@@ -50,4 +52,5 @@ class AdminBroadcastSerializer(BroadcastSerializer):
     def serialize(self, obj, attrs, user, **kwargs):
         context = super().serialize(obj, attrs, user)
         context["userCount"] = attrs["user_count"]
+        context["createdBy"] = obj.created_by_id.email if obj.created_by_id else None
         return context

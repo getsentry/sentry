@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import type {ButtonProps} from 'sentry/components/button';
+import type {LinkButtonProps} from 'sentry/components/button';
 import {LinkButton} from 'sentry/components/button';
 import {IconDownload} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -9,7 +9,8 @@ import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
-interface ExportProfileButtonProps extends Omit<ButtonProps, 'onClick' | 'children'> {
+interface ExportProfileButtonProps
+  extends Omit<LinkButtonProps, 'onClick' | 'children' | 'external'> {
   eventId: string | undefined;
   orgId: string;
   projectId: string | undefined;

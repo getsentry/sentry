@@ -1,5 +1,4 @@
 import React from 'react';
-import styled from '@emotion/styled';
 
 import Alert from 'sentry/components/alert';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
@@ -9,7 +8,6 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
@@ -18,7 +16,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useSynchronizeCharts} from 'sentry/views/insights/common/components/chart';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
-import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
@@ -27,16 +24,15 @@ import {useHasFirstSpan} from 'sentry/views/insights/common/queries/useHasFirstS
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
-import {ActionSelector} from 'sentry/views/insights/common/views/spans/selectors/actionSelector';
-import {DomainSelector} from 'sentry/views/insights/common/views/spans/selectors/domainSelector';
 import {DurationChart} from 'sentry/views/insights/database/components/charts/durationChart';
 import {ThroughputChart} from 'sentry/views/insights/database/components/charts/throughputChart';
-import {DatabaseSystemSelector} from 'sentry/views/insights/database/components/databaseSystemSelector';
+import {DatabasePageFilters} from 'sentry/views/insights/database/components/databasePageFilters';
 import {NoDataMessage} from 'sentry/views/insights/database/components/noDataMessage';
 import {
   isAValidSort,
   QueriesTable,
 } from 'sentry/views/insights/database/components/tables/queriesTable';
+import {useSystemSelectorOptions} from 'sentry/views/insights/database/components/useSystemSelectorOptions';
 import {
   BASE_FILTERS,
   DEFAULT_DURATION_AGGREGATE,
@@ -44,9 +40,13 @@ import {
   MODULE_DOC_LINK,
   MODULE_TITLE,
 } from 'sentry/views/insights/database/settings';
-import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
+import {
+  type InsightLandingProps,
+  ModuleName,
+  SpanMetricsField,
+} from 'sentry/views/insights/types';
 
-export function DatabaseLandingPage() {
+export function DatabaseLandingPage({disableHeader}: InsightLandingProps) {
   const organization = useOrganization();
   const moduleName = ModuleName.DB;
   const location = useLocation();
@@ -59,6 +59,12 @@ export function DatabaseLandingPage() {
   const spanDomain = decodeScalar(location.query?.['span.domain']);
 
   const sortField = decodeScalar(location.query?.[QueryParameterNames.SPANS_SORT]);
+
+  // If there is no query parameter for the system, retrieve the current value from the hook instead
+  const systemQueryParam = decodeScalar(location.query?.[SpanMetricsField.SPAN_SYSTEM]);
+  const {selectedSystem} = useSystemSelectorOptions();
+
+  const system = systemQueryParam ?? selectedSystem;
 
   let sort = decodeSorts(sortField).filter(isAValidSort)[0];
   if (!sort) {
@@ -85,6 +91,7 @@ export function DatabaseLandingPage() {
     ...BASE_FILTERS,
     'span.action': spanAction,
     'span.domain': spanDomain,
+    'span.system': system,
   };
 
   const tableFilters = {
@@ -92,6 +99,7 @@ export function DatabaseLandingPage() {
     'span.action': spanAction,
     'span.domain': spanDomain,
     'span.description': spanDescription ? `*${spanDescription}*` : undefined,
+    'span.system': system,
   };
 
   const cursor = decodeScalar(location.query?.[QueryParameterNames.SPANS_CURSOR]);
@@ -103,6 +111,7 @@ export function DatabaseLandingPage() {
         'project.id',
         'span.group',
         'span.description',
+        'span.action',
         'spm()',
         'avg(span.self_time)',
         'sum(span.self_time)',
@@ -155,24 +164,26 @@ export function DatabaseLandingPage() {
 
   return (
     <React.Fragment>
-      <Layout.Header>
-        <Layout.HeaderContent>
-          <Breadcrumbs crumbs={crumbs} />
+      {!disableHeader && (
+        <Layout.Header>
+          <Layout.HeaderContent>
+            <Breadcrumbs crumbs={crumbs} />
 
-          <Layout.Title>
-            {MODULE_TITLE}
-            <PageHeadingQuestionTooltip
-              docsUrl={MODULE_DOC_LINK}
-              title={MODULE_DESCRIPTION}
-            />
-          </Layout.Title>
-        </Layout.HeaderContent>
-        <Layout.HeaderActions>
-          <ButtonBar gap={1}>
-            <FeedbackWidgetButton />
-          </ButtonBar>
-        </Layout.HeaderActions>
-      </Layout.Header>
+            <Layout.Title>
+              {MODULE_TITLE}
+              <PageHeadingQuestionTooltip
+                docsUrl={MODULE_DOC_LINK}
+                title={MODULE_DESCRIPTION}
+              />
+            </Layout.Title>
+          </Layout.HeaderContent>
+          <Layout.HeaderActions>
+            <ButtonBar gap={1}>
+              <FeedbackWidgetButton />
+            </ButtonBar>
+          </Layout.HeaderActions>
+        </Layout.Header>
+      )}
 
       <Layout.Body>
         <Layout.Main fullWidth>
@@ -185,16 +196,11 @@ export function DatabaseLandingPage() {
             )}
 
             <ModuleLayout.Full>
-              <PageFilterWrapper>
-                <ModulePageFilterBar moduleName={ModuleName.DB} />
-                <DbFilterWrapper>
-                  {organization.features.includes(
-                    'performance-queries-mongodb-extraction'
-                  ) && <DatabaseSystemSelector />}
-                  <ActionSelector moduleName={moduleName} value={spanAction ?? ''} />
-                  <DomainSelector moduleName={moduleName} value={spanDomain ?? ''} />
-                </DbFilterWrapper>
-              </PageFilterWrapper>
+              <DatabasePageFilters
+                system={system}
+                databaseCommand={spanAction}
+                table={spanDomain}
+              />
             </ModuleLayout.Full>
             <ModulesOnboarding moduleName={ModuleName.DB}>
               <ModuleLayout.Half>
@@ -202,6 +208,7 @@ export function DatabaseLandingPage() {
                   series={throughputData['spm()']}
                   isLoading={isThroughputDataLoading}
                   error={throughputError}
+                  filters={chartFilters}
                 />
               </ModuleLayout.Half>
 
@@ -210,19 +217,20 @@ export function DatabaseLandingPage() {
                   series={[durationData[`${selectedAggregate}(span.self_time)`]]}
                   isLoading={isDurationDataLoading}
                   error={durationError}
+                  filters={chartFilters}
                 />
               </ModuleLayout.Half>
 
               <ModuleLayout.Full>
                 <SearchBar
                   query={spanDescription}
-                  placeholder={t('Search for more Queries')}
+                  placeholder={t('Search for more queries')}
                   onSearch={handleSearch}
                 />
               </ModuleLayout.Full>
 
               <ModuleLayout.Full>
-                <QueriesTable response={queryListResponse} sort={sort} />
+                <QueriesTable response={queryListResponse} sort={sort} system={system} />
               </ModuleLayout.Full>
             </ModulesOnboarding>
           </ModuleLayout.Layout>
@@ -247,28 +255,16 @@ function AlertBanner(props) {
 
 const LIMIT: number = 25;
 
-function PageWithProviders() {
+function PageWithProviders(props: InsightLandingProps) {
   return (
     <ModulePageProviders
       moduleName="db"
       features="insights-initial-modules"
       analyticEventName="insight.page_loads.db"
     >
-      <DatabaseLandingPage />
+      <DatabaseLandingPage {...props} />
     </ModulePageProviders>
   );
 }
-
-const PageFilterWrapper = styled('div')`
-  display: flex;
-  gap: ${space(3)};
-  flex-wrap: wrap;
-`;
-
-const DbFilterWrapper = styled('div')`
-  display: flex;
-  gap: ${space(3)};
-  flex-wrap: wrap;
-`;
 
 export default PageWithProviders;

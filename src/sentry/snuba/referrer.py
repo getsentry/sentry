@@ -13,6 +13,9 @@ class Referrer(Enum):
     ALERTRULESERIALIZER_TEST_QUERY_PRIMARY = "alertruleserializer.test_query.primary"
     ALERTRULESERIALIZER_TEST_QUERY = "alertruleserializer.test_query"
     ANOMALY_DETECTION_HISTORICAL_DATA_QUERY = "anomaly_detection_historical_data_query"
+    ANOMALY_DETECTION_RETURN_HISTORICAL_ANOMALIES = (
+        "anomaly_detection_get_historical_anomalies_query"
+    )
     API_ALERTS_ALERT_RULE_CHART_METRICS_ENHANCED = "api.alerts.alert-rule-chart.metrics-enhanced"
     API_ALERTS_ALERT_RULE_CHART = "api.alerts.alert-rule-chart"
     API_ALERTS_CHARTCUTERIE = "api.alerts.chartcuterie"
@@ -469,6 +472,7 @@ class Referrer(Enum):
     API_TRACE_EXPLORER_TRACES_OCCURRENCES = "api.trace-explorer.traces-occurrences"
     API_TRACE_EXPLORER_TRACE_SPANS_LIST = "api.trace-explorer.trace-spans-list"
     API_SPANS_TAG_KEYS = "api.spans.tags-keys"
+    API_SPANS_TAG_KEYS_RPC = "api.spans.tags-keys.rpc"
     API_SPANS_TRACE_VIEW = "api.spans.trace-view"
 
     # Performance Mobile UI Module
@@ -840,6 +844,7 @@ class Referrer(Enum):
     TAGSTORE_GET_RELEASE_TAGS = "tagstore.get_release_tags"
     TAGSTORE_GET_TAG_VALUE_PAGINATOR_FOR_PROJECTS = "tagstore.get_tag_value_paginator_for_projects"
     TASKS_MONITOR_RELEASE_ADOPTION = "tasks.monitor_release_adoption"
+    TASKS_PERFORMANCE_SPLIT_DISCOVER_DATASET = "tasks.performance.split_discover_dataset"
     TASKS_PROCESS_PROJECTS_WITH_SESSIONS_SESSION_COUNT = (
         "tasks.process_projects_with_sessions.session_count"
     )

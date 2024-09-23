@@ -5,7 +5,7 @@ from collections.abc import Iterable
 from typing import NotRequired, TypedDict
 
 from django.db.models.query import QuerySet
-from django.http import Http404, HttpResponse, StreamingHttpResponse
+from django.http import Http404, HttpResponse, HttpResponseBadRequest, StreamingHttpResponse
 from rest_framework.request import Request
 from rest_framework.response import Response
 from symbolic.debuginfo import normalize_debug_id
@@ -59,8 +59,13 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
     def download_file(self, download_id, project: Project):
         split = download_id.split("/")
         if len(split) < 2:
-            raise Http404
+            return HttpResponseBadRequest(content=b"Invalid download ID")
         ty, ty_id, *_rest = split
+
+        try:
+            ty_id = int(ty_id)
+        except ValueError:
+            return HttpResponseBadRequest(content=b"Invalid download ID")
 
         rate_limited = ratelimits.backend.is_limited(
             project=project,

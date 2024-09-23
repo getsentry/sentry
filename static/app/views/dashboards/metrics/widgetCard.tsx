@@ -274,7 +274,7 @@ const WidgetTitle = styled(HeaderTitle)`
   padding-top: ${space(2)};
   padding-right: ${space(1)};
   ${p => p.theme.overflowEllipsis};
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeightBold};
 `;
 
 const ErrorWrapper = styled('div')`

@@ -6,6 +6,7 @@ import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
+import SubregionSelector from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
 import {SpanOpSelector} from 'sentry/views/insights/mobile/appStarts/components/spanOpSelector';
 import {DeviceClassSelector} from 'sentry/views/insights/mobile/common/components/deviceClassSelector';
 import {
@@ -100,6 +101,7 @@ export function SamplesTables({
             />
           )}
           <DeviceClassSelector size="md" clearSpansTableCursor />
+          <SubregionSelector />
         </FiltersContainer>
         <SegmentedControl
           onChange={value => setSampleType(value)}

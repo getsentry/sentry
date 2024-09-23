@@ -27,6 +27,7 @@ import {IconAdd} from 'sentry/icons/iconAdd';
 import {IconDelete} from 'sentry/icons/iconDelete';
 import {IconGrabbable} from 'sentry/icons/iconGrabbable';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 
@@ -60,7 +61,7 @@ export function ColumnEditorModal({
   const tagOptions = useMemo(() => {
     return Object.values(tags).map(tag => {
       return {
-        label: tag.name,
+        label: tag.key,
         value: tag.key,
       };
     });
@@ -246,6 +247,11 @@ function ColumnEditorRow({
         value={column.column ?? ''}
         onChange={handleColumnChange}
         searchable
+        triggerProps={{
+          style: {
+            width: '100%',
+          },
+        }}
       />
       <Button
         aria-label={t('Remove Column')}
@@ -262,6 +268,10 @@ function ColumnEditorRow({
 const RowContainer = styled('div')`
   display: flex;
   flex-direction: row;
+
+  :not(:first-child) {
+    margin-top: ${space(1)};
+  }
 `;
 
 const StyledCompactSelect = styled(CompactSelect)`

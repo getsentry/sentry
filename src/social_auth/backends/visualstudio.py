@@ -79,7 +79,9 @@ class VisualStudioAuth(BaseOAuth2):
             "client_assertion_type": "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
             "client_assertion": secret,
             "grant_type": "refresh_token",
-            "redirect_uri": absolute_uri(reverse("socialauth_associate_complete", args=[provider])),
+            "redirect_uri": absolute_uri(
+                reverse("socialauth_associate_complete_auth_sso", args=[provider])
+            ),
             "assertion": token,
         }
 

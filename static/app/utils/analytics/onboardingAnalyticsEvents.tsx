@@ -53,6 +53,9 @@ export type OnboardingEventParameters = {
     platform: string;
     project_id: string;
   };
+  'onboarding.slack_setup_clicked': {
+    project_id: string;
+  };
   'onboarding.source_maps_wizard_button_copy_clicked': {
     platform: string;
     project_id: string;
@@ -63,14 +66,7 @@ export type OnboardingEventParameters = {
   };
   'onboarding.take_me_to_issues_clicked': {
     platform: string;
-    project_id: string;
-  };
-  'onboarding.take_me_to_performance_clicked': {
-    platform: string;
-    project_id: string;
-  };
-  'onboarding.take_me_to_session_replay_clicked': {
-    platform: string;
+    products: string[];
     project_id: string;
   };
 };
@@ -106,8 +102,5 @@ export const onboardingEventMap: Record<keyof OnboardingEventParameters, string>
   'onboarding.messaging_integration_steps_refreshed':
     'Onboarding: Messaging Integration Steps Refreshed',
   'onboarding.take_me_to_issues_clicked': 'Onboarding: Take Me to Issues Clicked',
-  'onboarding.take_me_to_performance_clicked':
-    'Onboarding: Take Me to Performance Clicked',
-  'onboarding.take_me_to_session_replay_clicked':
-    'Onboarding: Take Me to Session Replay Clicked',
+  'onboarding.slack_setup_clicked': 'Onboarding: Slack Setup Clicked',
 };

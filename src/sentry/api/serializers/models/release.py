@@ -11,7 +11,6 @@ from django.db.models import Sum
 
 from sentry import release_health, tagstore
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.api.serializers.models.user import UserSerializerResponse
 from sentry.api.serializers.types import ReleaseSerializerResponse
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
@@ -21,6 +20,7 @@ from sentry.models.release import Release, ReleaseStatus
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.release_health.base import ReleaseHealthOverview
+from sentry.users.api.serializers.user import UserSerializerResponse
 from sentry.users.services.user.serial import serialize_generic_user
 from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
@@ -458,13 +458,16 @@ class ReleaseSerializer(Serializer):
                 issue_counts_by_release,
             ) = self.__get_release_data_with_environments(release_project_envs)
 
-        owners = {
-            d["id"]: d
-            for d in user_service.serialize_many(
-                filter={"user_ids": [i.owner_id for i in item_list if i.owner_id]},
-                as_user=serialize_generic_user(user),
-            )
-        }
+        owners = {}
+        owner_ids = [i.owner_id for i in item_list if i.owner_id]
+        if owner_ids:
+            owners = {
+                d["id"]: d
+                for d in user_service.serialize_many(
+                    filter={"user_ids": owner_ids},
+                    as_user=serialize_generic_user(user),
+                )
+            }
 
         authors_metadata_attrs = _get_authors_metadata(item_list, user)
         release_metadata_attrs = _get_last_commit_metadata(item_list, user)

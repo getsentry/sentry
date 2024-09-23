@@ -19,7 +19,7 @@ import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
+import {decodeList, decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -42,7 +42,7 @@ import {
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import {useTableQuery} from 'sentry/views/insights/mobile/screenload/components/tables/screensTable';
 import {MobileCursors} from 'sentry/views/insights/mobile/screenload/constants';
-import {SpanMetricsField} from 'sentry/views/insights/types';
+import {SpanMetricsField, type SubregionCode} from 'sentry/views/insights/types';
 
 const {SPAN_SELF_TIME, SPAN_DESCRIPTION, SPAN_GROUP, SPAN_OP, PROJECT_ID} =
   SpanMetricsField;
@@ -66,6 +66,9 @@ export function SpanOperationTable({
   const cursor = decodeScalar(location.query?.[MobileCursors.SPANS_TABLE]);
 
   const spanOp = decodeScalar(location.query[SpanMetricsField.SPAN_OP]) ?? '';
+  const subregions = decodeList(
+    location.query[SpanMetricsField.USER_GEO_SUBREGION]
+  ) as SubregionCode[];
   const startType =
     decodeScalar(location.query[SpanMetricsField.APP_START_TYPE]) ?? COLD_START_TYPE;
   const deviceClass = decodeScalar(location.query[SpanMetricsField.DEVICE_CLASS]) ?? '';
@@ -86,6 +89,9 @@ export function SpanOperationTable({
     `${SpanMetricsField.SPAN_OP}:${spanOp ? spanOp : `[${APP_START_SPANS.join(',')}]`}`,
     ...(spanOp ? [`${SpanMetricsField.SPAN_OP}:${spanOp}`] : []),
     ...(deviceClass ? [`${SpanMetricsField.DEVICE_CLASS}:${deviceClass}`] : []),
+    ...(subregions.length > 0
+      ? [`${SpanMetricsField.USER_GEO_SUBREGION}:[${subregions.join(',')}]`]
+      : []),
   ]);
 
   if (isProjectCrossPlatform) {

@@ -40,9 +40,10 @@ from __future__ import annotations
 
 import logging
 import time
+import zlib
 from collections.abc import Mapping
 from concurrent.futures import ThreadPoolExecutor
-from typing import Any, TypedDict
+from typing import Any, TypedDict, cast
 
 import sentry_sdk
 from arroyo.backends.kafka.consumer import KafkaPayload
@@ -55,18 +56,19 @@ from sentry_kafka_schemas.codecs import Codec, ValidationError
 from sentry_kafka_schemas.schema_types.ingest_replay_recordings_v1 import ReplayRecording
 
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
+from sentry.models.project import Project
 from sentry.replays.lib.storage import (
     RecordingSegmentStorageMeta,
     make_recording_filename,
-    make_video_filename,
     storage_kv,
 )
-from sentry.replays.usecases.ingest import decompress, process_headers, track_initial_segment_event
+from sentry.replays.usecases.ingest import process_headers, track_initial_segment_event
 from sentry.replays.usecases.ingest.dom_index import (
     ReplayActionsEvent,
     emit_replay_actions,
     parse_replay_actions,
 )
+from sentry.replays.usecases.pack import pack
 from sentry.utils import json, metrics
 
 logger = logging.getLogger(__name__)
@@ -226,7 +228,9 @@ def process_message(buffer: RecordingBuffer, message: bytes) -> None:
             return None
 
     try:
-        headers, recording_data = process_headers(cast_payload_bytes(decoded_message["payload"]))
+        headers, compressed_segment = process_headers(
+            cast_payload_bytes(decoded_message["payload"])
+        )
     except Exception:
         # TODO: DLQ
         logger.exception(
@@ -234,16 +238,29 @@ def process_message(buffer: RecordingBuffer, message: bytes) -> None:
         )
         return None
 
+    # Segment is decompressed for further analysis. Packed format expects
+    # concatenated, uncompressed bytes.
+    try:
+        recording_data = zlib.decompress(compressed_segment)
+        metrics.distribution(
+            "replays.usecases.ingest.size_compressed", len(compressed_segment), unit="byte"
+        )
+        metrics.distribution(
+            "replays.usecases.ingest.size_uncompressed", len(recording_data), unit="byte"
+        )
+    except zlib.error:
+        if compressed_segment[0] == ord("["):
+            recording_data = compressed_segment
+            compressed_segment = zlib.compress(compressed_segment)  # Save storage $$$
+        else:
+            logger.exception("Invalid recording body.")
+            return None
+
     recording_segment = RecordingSegmentStorageMeta(
         project_id=decoded_message["project_id"],
         replay_id=decoded_message["replay_id"],
         retention_days=decoded_message["retention_days"],
         segment_id=headers["segment_id"],
-    )
-
-    # Append an upload event to the state object for later processing.
-    buffer.upload_events.append(
-        {"key": make_recording_filename(recording_segment), "value": recording_data}
     )
 
     if replay_video := decoded_message.get("replay_video"):
@@ -265,8 +282,19 @@ def process_message(buffer: RecordingBuffer, message: bytes) -> None:
             len(replay_video),  # type: ignore[arg-type]
             unit="byte",
         )
+
+        dat = zlib.compress(pack(rrweb=recording_data, video=cast(bytes, replay_video)))
         buffer.upload_events.append(
-            {"key": make_video_filename(recording_segment), "value": replay_video}  # type: ignore[typeddict-item]
+            {"key": make_recording_filename(recording_segment), "value": dat}
+        )
+
+        # Track combined payload size.
+        metrics.distribution(
+            "replays.recording_consumer.replay_video_event_size", len(dat), unit="byte"
+        )
+    else:
+        buffer.upload_events.append(
+            {"key": make_recording_filename(recording_segment), "value": compressed_segment}
         )
 
     # Initial segment events are recorded in the state machine.
@@ -283,19 +311,17 @@ def process_message(buffer: RecordingBuffer, message: bytes) -> None:
         )
 
     try:
-        with sentry_sdk.start_span(op="replays.consumer.recording.decompress_segment"):
-            decompressed_segment = decompress(recording_data)
-
         with sentry_sdk.start_span(op="replays.consumer.recording.json_loads_segment"):
-            parsed_recording_data = json.loads(decompressed_segment)
+            parsed_recording_data = json.loads(recording_data)
             parsed_replay_event = (
                 json.loads(cast_payload_bytes(decoded_message["replay_event"]))
                 if decoded_message.get("replay_event")
                 else None
             )
 
+        project = Project.objects.get_from_cache(id=decoded_message["project_id"])
         replay_actions = parse_replay_actions(
-            decoded_message["project_id"],
+            project,
             decoded_message["replay_id"],
             decoded_message["retention_days"],
             parsed_recording_data,
@@ -304,20 +330,6 @@ def process_message(buffer: RecordingBuffer, message: bytes) -> None:
 
         if replay_actions is not None:
             buffer.replay_action_events.append(replay_actions)
-
-        # Useful for computing the average cost of a replay.
-        metrics.distribution(
-            "replays.usecases.ingest.size_compressed",
-            len(recording_data),
-            unit="byte",
-        )
-
-        # Useful for computing the compression ratio.
-        metrics.distribution(
-            "replays.usecases.ingest.size_uncompressed",
-            len(decompressed_segment),
-            unit="byte",
-        )
     except Exception:
         logging.exception(
             "Failed to parse recording org=%s, project=%s, replay=%s, segment=%s",

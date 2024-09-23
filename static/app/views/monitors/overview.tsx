@@ -144,7 +144,7 @@ export default function Monitors() {
                   navigate(
                     {
                       ...location,
-                      query: {...location.query, owner},
+                      query: {...location.query, owner, cursor: undefined},
                     },
                     {replace: true}
                   );
@@ -153,7 +153,7 @@ export default function Monitors() {
               <PageFilterBar>
                 <ProjectPageFilter resetParamsOnChange={['cursor']} />
                 <EnvironmentPageFilter resetParamsOnChange={['cursor']} />
-                <DatePageFilter resetParamsOnChange={['cursor']} />
+                <DatePageFilter />
               </PageFilterBar>
               <SearchBar
                 query={decodeScalar(qs.parse(location.search)?.query, '')}

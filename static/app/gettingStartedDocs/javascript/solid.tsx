@@ -23,6 +23,7 @@ import {
 import {
   getReplayConfigOptions,
   getReplayConfigureDescription,
+  getReplayVerifyStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import {t, tct} from 'sentry/locale';
 
@@ -94,7 +95,7 @@ if (!app) throw new Error("No #app element found in the DOM.");
 render(() => <App />, app);
 `;
 
-const getVerifySolidSnippet = () => `
+const getVerifySnippet = () => `
 <button
   type="button"
   onClick={() => {
@@ -164,6 +165,7 @@ const onboarding: OnboardingConfig = {
     },
     getUploadSourceMapsStep({
       guideLink: 'https://docs.sentry.io/platforms/javascript/guides/solid/sourcemaps/',
+      ...params,
     }),
   ],
   verify: () => [
@@ -179,7 +181,7 @@ const onboarding: OnboardingConfig = {
               label: 'JavaScript',
               value: 'javascript',
               language: 'javascript',
-              code: getVerifySolidSnippet(),
+              code: getVerifySnippet(),
             },
           ],
         },
@@ -246,7 +248,7 @@ const replayOnboarding: OnboardingConfig = {
       ],
     },
   ],
-  verify: () => [],
+  verify: getReplayVerifyStep(),
   nextSteps: () => [],
 };
 
@@ -314,7 +316,7 @@ const crashReportOnboarding: OnboardingConfig = {
 const docs: Docs = {
   onboarding,
   feedbackOnboardingNpm: feedbackOnboarding,
-  replayOnboardingNpm: replayOnboarding,
+  replayOnboarding,
   customMetricsOnboarding: getJSMetricsOnboarding({getInstallConfig}),
   crashReportOnboarding,
 };

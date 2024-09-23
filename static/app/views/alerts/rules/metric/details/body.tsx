@@ -27,11 +27,13 @@ import MetricHistory from 'sentry/views/alerts/rules/metric/details/metricHistor
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
 import {Dataset, TimePeriod} from 'sentry/views/alerts/rules/metric/types';
 import {extractEventTypeFilterFromRule} from 'sentry/views/alerts/rules/metric/utils/getEventTypeFilter';
+import {isInsightsMetricAlert} from 'sentry/views/alerts/rules/metric/utils/isInsightsMetricAlert';
 import {isOnDemandMetricAlert} from 'sentry/views/alerts/rules/metric/utils/onDemandMetricAlert';
 import {getAlertRuleActionCategory} from 'sentry/views/alerts/rules/utils';
-import type {Incident} from 'sentry/views/alerts/types';
+import type {Anomaly, Incident} from 'sentry/views/alerts/types';
 import {AlertRuleStatus} from 'sentry/views/alerts/types';
 import {alertDetailsLink} from 'sentry/views/alerts/utils';
+import {MetricsBetaEndAlert} from 'sentry/views/metrics/metricsBetaEndAlert';
 
 import {isCrashFreeAlert} from '../utils/isCrashFreeAlert';
 import {isCustomMetricAlert} from '../utils/isCustomMetricAlert';
@@ -52,6 +54,7 @@ interface MetricDetailsBodyProps extends RouteComponentProps<{}, {}> {
   location: Location;
   organization: Organization;
   timePeriod: TimePeriodType;
+  anomalies?: Anomaly[];
   incidents?: Incident[];
   project?: Project;
   rule?: MetricRule;
@@ -68,6 +71,7 @@ export default function MetricDetailsBody({
   selectedIncident,
   location,
   router,
+  anomalies,
 }: MetricDetailsBodyProps) {
   function getPeriodInterval() {
     const startDate = moment.utc(timePeriod.start);
@@ -166,6 +170,12 @@ export default function MetricDetailsBody({
 
   return (
     <Fragment>
+      <StyledLayoutBody>
+        {isCustomMetricAlert(rule.aggregate) &&
+          !isInsightsMetricAlert(rule.aggregate) && (
+            <MetricsBetaEndAlert style={{marginBottom: 0}} />
+          )}
+      </StyledLayoutBody>
       {selectedIncident?.alertRule.status === AlertRuleStatus.SNAPSHOT && (
         <StyledLayoutBody>
           <StyledAlert type="warning" showIcon>
@@ -226,6 +236,7 @@ export default function MetricDetailsBody({
             api={api}
             rule={rule}
             incidents={incidents}
+            anomalies={anomalies}
             timePeriod={timePeriod}
             selectedIncident={selectedIncident}
             formattedAggregate={formattedAggregate}

@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 import time
+from collections.abc import Sequence
 from datetime import timedelta
 from functools import cached_property
 from unittest.mock import Mock, call, patch
@@ -25,10 +28,11 @@ from sentry.models.groupshare import GroupShare
 from sentry.models.groupsnooze import GroupSnooze
 from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.grouptombstone import GroupTombstone
+from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, SnubaTestCase
-from sentry.testutils.helpers import parse_link_header
+from sentry.testutils.helpers import parse_link_header, with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
@@ -830,6 +834,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         )
         assert activity.data["version"] == ""
 
+    @with_feature("organizations:resolve-in-upcoming-release")
     def test_set_resolved_in_upcoming_release(self):
         release = Release.objects.create(organization_id=self.project.organization_id, version="a")
         release.add_project(self.project)
@@ -868,6 +873,27 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         )
         assert activity.data["version"] == ""
 
+    def test_upcoming_release_flag_validation(self):
+        release = Release.objects.create(organization_id=self.project.organization_id, version="a")
+        release.add_project(self.project)
+
+        group = self.create_group(status=GroupStatus.UNRESOLVED)
+
+        self.login_as(user=self.user)
+
+        url = f"{self.path}?id={group.id}"
+        response = self.client.put(
+            url,
+            data={"status": "resolved", "statusDetails": {"inUpcomingRelease": True}},
+            format="json",
+        )
+        assert response.status_code == 400
+        assert (
+            response.data["statusDetails"]["inUpcomingRelease"][0]
+            == "Your organization does not have access to this feature."
+        )
+
+    @with_feature("organizations:resolve-in-upcoming-release")
     def test_upcoming_release_release_validation(self):
         group = self.create_group(status=GroupStatus.UNRESOLVED)
 
@@ -1451,27 +1477,59 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
     def path(self):
         return f"/api/0/projects/{self.project.organization.slug}/{self.project.slug}/issues/"
 
+    def create_groups(
+        self, groups_to_create: Sequence[tuple[int, Project, int | str | None]]
+    ) -> list[Group]:
+        groups = []
+        for status, project, type in groups_to_create:
+            if type is None:
+                groups.append(self.create_group(status=status, project=project))
+            else:
+                groups.append(self.create_group(status=status, project=project, type=type))
+
+        for g in groups:
+            hash = uuid4().hex
+            GroupHash.objects.create(project=g.project, hash=hash, group=g)
+
+        return groups
+
+    def assert_groups_being_deleted(self, groups: Sequence[Group]) -> None:
+        for g in groups:
+            assert Group.objects.get(id=g.id).status == GroupStatus.PENDING_DELETION
+            assert not GroupHash.objects.filter(group_id=g.id).exists()
+
+        # XXX: I do not understand why this update is necessary for the tests to function
+        Group.objects.filter(id__in=[g.id for g in groups]).update(status=GroupStatus.UNRESOLVED)
+
+    def assert_groups_are_gone(self, groups: Sequence[Group]) -> None:
+        for g in groups:
+            assert not Group.objects.filter(id=g.id).exists()
+            assert not GroupHash.objects.filter(group_id=g.id).exists()
+
+    def assert_groups_not_deleted(self, groups: Sequence[Group]) -> None:
+        for g in groups:
+            assert Group.objects.filter(id=g.id).exists()
+            assert Group.objects.get(id=g.id).status != GroupStatus.PENDING_DELETION
+            assert GroupHash.objects.filter(group_id=g.id).exists()
+
     @patch("sentry.eventstream.backend")
     def test_delete_by_id(self, mock_eventstream):
         eventstream_state = {"event_stream_state": uuid4()}
         mock_eventstream.start_delete_groups = Mock(return_value=eventstream_state)
 
-        group1 = self.create_group(status=GroupStatus.RESOLVED)
-        group2 = self.create_group(status=GroupStatus.UNRESOLVED)
-        group3 = self.create_group(status=GroupStatus.IGNORED)
-        group4 = self.create_group(
-            project=self.create_project(slug="foo"),
-            status=GroupStatus.UNRESOLVED,
+        groups = self.create_groups(
+            [
+                (GroupStatus.RESOLVED, self.project, None),
+                (GroupStatus.UNRESOLVED, self.project, None),
+                (GroupStatus.IGNORED, self.project, None),
+                (GroupStatus.UNRESOLVED, self.create_project(slug="foo"), None),
+            ],
         )
-
-        hashes = []
-        for g in group1, group2, group3, group4:
-            hash = uuid4().hex
-            hashes.append(hash)
-            GroupHash.objects.create(project=g.project, hash=hash, group=g)
+        group1, group2, group3, group4 = groups
 
         self.login_as(user=self.user)
-        url = f"{self.path}?id={group1.id}&id={group2.id}&group4={group4.id}"
+        # Group 4 will not be deleted because it belongs to a different project
+        url = f"{self.path}?id={group1.id}&id={group2.id}&id={group4.id}"
 
         response = self.client.delete(url, format="json")
 
@@ -1481,19 +1539,9 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 204
 
-        assert Group.objects.get(id=group1.id).status == GroupStatus.PENDING_DELETION
-        assert not GroupHash.objects.filter(group_id=group1.id).exists()
-
-        assert Group.objects.get(id=group2.id).status == GroupStatus.PENDING_DELETION
-        assert not GroupHash.objects.filter(group_id=group2.id).exists()
-
-        assert Group.objects.get(id=group3.id).status != GroupStatus.PENDING_DELETION
-        assert GroupHash.objects.filter(group_id=group3.id).exists()
-
-        assert Group.objects.get(id=group4.id).status != GroupStatus.PENDING_DELETION
-        assert GroupHash.objects.filter(group_id=group4.id).exists()
-
-        Group.objects.filter(id__in=(group1.id, group2.id)).update(status=GroupStatus.UNRESOLVED)
+        self.assert_groups_being_deleted([group1, group2])
+        # Group 4 is not deleted because it belongs to a different project
+        self.assert_groups_not_deleted([group3, group4])
 
         with self.tasks():
             response = self.client.delete(url, format="json")
@@ -1508,64 +1556,35 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 204
 
-        assert not Group.objects.filter(id=group1.id).exists()
-        assert not GroupHash.objects.filter(group_id=group1.id).exists()
-
-        assert not Group.objects.filter(id=group2.id).exists()
-        assert not GroupHash.objects.filter(group_id=group2.id).exists()
-
-        assert Group.objects.filter(id=group3.id).exists()
-        assert GroupHash.objects.filter(group_id=group3.id).exists()
-
-        assert Group.objects.filter(id=group4.id).exists()
-        assert GroupHash.objects.filter(group_id=group4.id).exists()
+        self.assert_groups_are_gone([group1, group2])
+        self.assert_groups_not_deleted([group3, group4])
 
     @patch("sentry.eventstream.backend")
     def test_delete_performance_issue_by_id(self, mock_eventstream):
         eventstream_state = {"event_stream_state": uuid4()}
         mock_eventstream.start_delete_groups = Mock(return_value=eventstream_state)
 
-        group1 = self.create_group(
-            status=GroupStatus.RESOLVED, type=PerformanceSlowDBQueryGroupType.type_id
+        group1, group2 = self.create_groups(
+            [
+                (GroupStatus.RESOLVED, self.project, PerformanceSlowDBQueryGroupType.type_id),
+                (GroupStatus.UNRESOLVED, self.project, PerformanceSlowDBQueryGroupType.type_id),
+            ],
         )
-        group2 = self.create_group(
-            status=GroupStatus.UNRESOLVED, type=PerformanceSlowDBQueryGroupType.type_id
-        )
-
-        hashes = []
-        for g in group1, group2:
-            hash = uuid4().hex
-            hashes.append(hash)
-            GroupHash.objects.create(project=g.project, hash=hash, group=g)
 
         self.login_as(user=self.user)
         url = f"{self.path}?id={group1.id}&id={group2.id}"
 
         response = self.client.delete(url, format="json")
 
+        # We do not support issue platform deletions
         assert response.status_code == 400
-
-        assert Group.objects.filter(id=group1.id).exists()
-        assert GroupHash.objects.filter(group_id=group1.id).exists()
-
-        assert Group.objects.filter(id=group2.id).exists()
-        assert GroupHash.objects.filter(group_id=group2.id).exists()
+        self.assert_groups_not_deleted([group1, group2])
 
     def test_bulk_delete(self):
-        groups = []
-        for i in range(10, 41):
-            groups.append(
-                self.create_group(
-                    project=self.project,
-                    status=GroupStatus.RESOLVED,
-                )
-            )
-
-        hashes = []
-        for group in groups:
-            hash = uuid4().hex
-            hashes.append(hash)
-            GroupHash.objects.create(project=group.project, hash=hash, group=group)
+        groups_to_create = []
+        for _ in range(10, 41):
+            groups_to_create.append((GroupStatus.RESOLVED, self.project, None))
+        groups = self.create_groups(groups_to_create)
 
         self.login_as(user=self.user)
 
@@ -1574,48 +1593,27 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
         response = self.client.delete(url, format="json")
 
         assert response.status_code == 204
-
-        for group in groups:
-            assert Group.objects.get(id=group.id).status == GroupStatus.PENDING_DELETION
-            assert not GroupHash.objects.filter(group_id=group.id).exists()
-
-        Group.objects.filter(id__in=[group.id for group in groups]).update(
-            status=GroupStatus.UNRESOLVED
-        )
+        self.assert_groups_being_deleted(groups)
 
         with self.tasks():
             response = self.client.delete(url, format="json")
 
         assert response.status_code == 204
-
-        for group in groups:
-            assert not Group.objects.filter(id=group.id).exists()
-            assert not GroupHash.objects.filter(group_id=group.id).exists()
+        self.assert_groups_are_gone(groups)
 
     def test_bulk_delete_performance_issues(self):
-        groups = []
-        for i in range(10, 41):
-            groups.append(
-                self.create_group(
-                    project=self.project,
-                    status=GroupStatus.RESOLVED,
-                    type=PerformanceSlowDBQueryGroupType.type_id,
-                )
+        groups_to_create = []
+        for _ in range(10, 41):
+            groups_to_create.append(
+                (GroupStatus.RESOLVED, self.project, PerformanceSlowDBQueryGroupType.type_id)
             )
-
-        hashes = []
-        for group in groups:
-            hash = uuid4().hex
-            hashes.append(hash)
-            GroupHash.objects.create(project=group.project, hash=hash, group=group)
+        groups = self.create_groups(groups_to_create)
 
         self.login_as(user=self.user)
 
         # if query is '' it defaults to is:unresolved
         url = self.path + "?query="
         response = self.client.delete(url, format="json")
+        # We do not support issue platform deletions
         assert response.status_code == 400
-
-        for group in groups:
-            assert Group.objects.filter(id=group.id).exists()
-            assert GroupHash.objects.filter(group_id=group.id).exists()
+        self.assert_groups_not_deleted(groups)

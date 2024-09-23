@@ -13,15 +13,17 @@ from contextlib import contextmanager
 from copy import deepcopy
 from datetime import datetime, timedelta, timezone
 from hashlib import sha1
-from typing import Any
+from typing import Any, Protocol, TypeVar
 from urllib.parse import urlparse
 
+import sentry_protos.snuba.v1alpha.request_common_pb2
 import sentry_sdk
 import sentry_sdk.scope
 import urllib3
 from dateutil.parser import parse as parse_datetime
 from django.conf import settings
 from django.core.cache import cache
+from google.protobuf.message import Message as ProtobufMessage
 from snuba_sdk import DeleteQuery, MetricsQuery, Request
 from snuba_sdk.legacy import json_to_snql
 
@@ -174,6 +176,7 @@ SPAN_COLUMN_MAP = {
 
 SPAN_EAP_COLUMN_MAP = {
     "id": "span_id",
+    "span_id": "span_id",  # ideally this would be temporary, but unfortunately its heavily hardcoded in the FE
     "organization.id": "organization_id",
     "project": "project_id",
     "project.id": "project_id",
@@ -185,8 +188,11 @@ SPAN_EAP_COLUMN_MAP = {
     # message also maps to span description but gets special handling
     # to support wild card searching by default
     "message": "name",
-    "span.domain": "domain",
-    "span.group": "group",
+    # These sample columns are for debugging only and shouldn't be used
+    "sampling_weight": "sampling_weight",
+    "sampling_factor": "sampling_factor",
+    "span.domain": "attr_str[domain]",
+    "span.group": "attr_str[group]",
     "span.op": "attr_str[op]",
     "span.category": "attr_str[category]",
     "span.self_time": "exclusive_time_ms",
@@ -201,6 +207,9 @@ SPAN_EAP_COLUMN_MAP = {
     "origin.transaction": "segment_name",
     "span.status_code": "attr_str[status_code]",
     "replay.id": "attr_str[replay_id]",
+    "span.ai.pipeline.group": "attr_str[ai_pipeline_group]",
+    "ai.total_tokens.used": "attr_num[ai_total_tokens_used]",
+    "ai.total_cost": "attr_num[ai_total_cost]",
 }
 
 METRICS_SUMMARIES_COLUMN_MAP = {
@@ -1143,22 +1152,16 @@ def _bulk_snuba_query(snuba_requests: Sequence[SnubaRequest]) -> ResultSet:
             allocation_policy_prefix = "allocation_policy."
             if _is_rejected_query(body):
                 quota_allowance_summary = body["quota_allowance"]["summary"]
-                span.set_tag(
-                    f"{allocation_policy_prefix}threads_used",
-                    quota_allowance_summary["threads_used"],
-                )
-                sentry_sdk.set_tag(
-                    f"{allocation_policy_prefix}threads_used",
-                    quota_allowance_summary["threads_used"],
-                )
-                for k, v in quota_allowance_summary["throttled_by"].items():
-                    k = allocation_policy_prefix + "throttling_policy." + k
-                    span.set_tag(k, v)
-                    sentry_sdk.set_tag(k, v)
-                for k, v in quota_allowance_summary["rejected_by"].items():
-                    k = allocation_policy_prefix + "rejecting_policy." + k
-                    span.set_tag(k, v)
-                    sentry_sdk.set_tag(k, v)
+                for k, v in quota_allowance_summary.items():
+                    if isinstance(v, dict):
+                        for nested_k, nested_v in v.items():
+                            span.set_tag(allocation_policy_prefix + k + "." + nested_k, nested_v)
+                            sentry_sdk.set_tag(
+                                allocation_policy_prefix + k + "." + nested_k, nested_v
+                            )
+                    else:
+                        span.set_tag(allocation_policy_prefix + k, v)
+                        sentry_sdk.set_tag(allocation_policy_prefix + k, v)
 
             if response.status != 200:
                 _log_request_query(snuba_requests_list[index].request)
@@ -1200,6 +1203,66 @@ def _log_request_query(req: Request) -> None:
         message=f"{query_type}_query",
         data={query_type: query_str},
     )
+
+
+RPCResponseType = TypeVar("RPCResponseType", bound=ProtobufMessage)
+
+
+class SnubaRPCRequest(Protocol):
+    def SerializeToString(self, deterministic: bool = ...) -> bytes:
+        ...
+
+    @property
+    def meta(self) -> sentry_protos.snuba.v1alpha.request_common_pb2.RequestMeta:
+        ...
+
+
+def rpc(req: SnubaRPCRequest, resp_type: type[RPCResponseType]) -> RPCResponseType:
+    """
+    You want to call a snuba RPC. Here's how you do it:
+
+    start_time_proto = ProtobufTimestamp()
+    start_time_proto.FromDatetime(start)
+    end_time_proto = ProtobufTimestamp()
+    end_time_proto.FromDatetime(end)
+    aggregate_req = AggregateBucketRequest(
+        meta=RequestMeta(
+            organization_id=organization.id,
+            cogs_category="events_analytics_platform",
+            referrer=referrer,
+            project_ids=[project.id for project in projects],
+            start_timestamp=start_time_proto,
+            end_timestamp=end_time_proto,
+        ),
+        aggregate=AggregateBucketRequest.FUNCTION_SUM,
+        filter=TraceItemFilter(
+            comparison_filter=ComparisonFilter(
+                key=AttributeKey(name="op", type=AttributeKey.Type.TYPE_STRING),
+                value=AttributeValue(val_str="ai.run"),
+            )
+        ),
+        granularity_secs=60,
+        key=AttributeKey(
+            name="duration", type=AttributeKey.TYPE_FLOAT
+        ),
+        attribute_key_transform_context=AttributeKeyTransformContext(),
+    )
+    aggregate_resp = snuba.rpc(aggregate_req, AggregateBucketResponse)
+    """
+    referrer = req.meta.referrer
+    with sentry_sdk.start_span(op="snuba_rpc.run", description=req.__class__.__name__) as span:
+        span.set_tag("snuba.referrer", referrer)
+        http_resp = _snuba_pool.urlopen(
+            "POST",
+            f"/rpc/{req.__class__.__name__}",
+            body=req.SerializeToString(),
+            headers={
+                "referer": referrer,
+            },
+        )
+        resp = resp_type()
+        resp.ParseFromString(http_resp.data)
+        return resp
 
 
 RawResult = tuple[str, urllib3.response.HTTPResponse, Translator, Translator]
@@ -1401,7 +1464,11 @@ def resolve_column(dataset) -> Callable:
             return col
         if isinstance(col, int) or isinstance(col, float):
             return col
-        if isinstance(col, str) and (col.startswith("tags[") or QUOTED_LITERAL_RE.match(col)):
+        if (
+            dataset != Dataset.SpansEAP
+            and isinstance(col, str)
+            and (col.startswith("tags[") or QUOTED_LITERAL_RE.match(col))
+        ):
             return col
 
         # Some dataset specific logic:
@@ -1413,6 +1480,9 @@ def resolve_column(dataset) -> Callable:
             if isinstance(col, str) and col.startswith("sentry_tags["):
                 # Replace the first instance of sentry tags with attr str instead
                 return col.replace("sentry_tags", "attr_str", 1)
+            if isinstance(col, str) and col.startswith("tags["):
+                # Replace the first instance of sentry tags with attr str instead
+                return col.replace("tags", "attr_str", 1)
             measurement_name = get_measurement_name(col)
             if measurement_name:
                 return f"attr_num[{measurement_name}]"

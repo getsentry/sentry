@@ -8,7 +8,7 @@ import type {NewQuery} from 'sentry/types/organization';
 import EventView from 'sentry/utils/discover/eventView';
 import {NumberContainer} from 'sentry/utils/discover/styles';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {decodeScalar} from 'sentry/utils/queryString';
+import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -26,7 +26,11 @@ import {ScreensTable} from 'sentry/views/insights/mobile/common/components/table
 import {useTableQuery} from 'sentry/views/insights/mobile/screenload/components/tables/screensTable';
 import {MobileCursors} from 'sentry/views/insights/mobile/screenload/constants';
 import {Referrer} from 'sentry/views/insights/mobile/ui/referrers';
-import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
+import {
+  ModuleName,
+  SpanMetricsField,
+  type SubregionCode,
+} from 'sentry/views/insights/types';
 
 const {SPAN_DESCRIPTION, SPAN_GROUP, SPAN_OP, PROJECT_ID} = SpanMetricsField;
 
@@ -44,6 +48,9 @@ export function SpanOperationTable({
 
   const spanOp = decodeScalar(location.query[SpanMetricsField.SPAN_OP]) ?? '';
   const deviceClass = decodeScalar(location.query[SpanMetricsField.DEVICE_CLASS]) ?? '';
+  const subregions = decodeList(
+    location.query[SpanMetricsField.USER_GEO_SUBREGION]
+  ) as SubregionCode[];
 
   // TODO: These filters seem to be too aggressive, check that they are ingesting properly
   const searchQuery = new MutableSearch([
@@ -53,6 +60,9 @@ export function SpanOperationTable({
     `${SpanMetricsField.SPAN_OP}:${spanOp ? spanOp : `[${VALID_SPAN_OPS.join(',')}]`}`,
     ...(spanOp ? [`${SpanMetricsField.SPAN_OP}:${spanOp}`] : []),
     ...(deviceClass ? [`${SpanMetricsField.DEVICE_CLASS}:${deviceClass}`] : []),
+    ...(subregions.length
+      ? [`${SpanMetricsField.USER_GEO_SUBREGION}:[${subregions.join(',')}]`]
+      : []),
   ]);
   const queryStringPrimary = appendReleaseFilters(
     searchQuery,

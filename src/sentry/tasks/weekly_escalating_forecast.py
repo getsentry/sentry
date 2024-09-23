@@ -2,8 +2,6 @@ import logging
 from datetime import UTC, datetime, timedelta
 from typing import TypedDict
 
-from sentry_sdk.crons.decorator import monitor
-
 from sentry.constants import ObjectStatus
 from sentry.issues.forecasts import generate_and_save_forecasts
 from sentry.models.group import Group, GroupStatus
@@ -33,7 +31,6 @@ ITERATOR_CHUNK = 10_000
     max_retries=0,
     silo_mode=SiloMode.REGION,
 )
-@monitor(monitor_slug="escalating-issue-forecast-job-monitor")
 def run_escalating_forecast() -> None:
     """
     Run the escalating forecast algorithm on archived until escalating issues.

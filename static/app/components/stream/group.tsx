@@ -170,7 +170,7 @@ function BaseGroupRow({
     };
   }, [organization, group, query]);
 
-  const {mutate: handleAssigneeChange, isLoading: assigneeLoading} = useMutation<
+  const {mutate: handleAssigneeChange, isPending: assigneeLoading} = useMutation<
     AssignableEntity | null,
     RequestError,
     AssignableEntity | null

@@ -25,11 +25,10 @@ def _check_history() -> None:
         raise click.ClickException("Could not determine migration state. Aborting")
 
     # Either of these migrations need to have been run for us to proceed.
-    # The first migration is 'pre-squash' and the other entries are squashes
     migration_heads = (
-        "0200_release_indices",
-        "0001_squashed_0200_release_indices",
-        "0001_squashed_0484_break_org_member_user_fk",
+        # not a squash, but migration history was "rebased" before this to eliminate
+        # `index_together` for django 5.1 upgrade
+        "0642_index_together_release",
     )
 
     # If we haven't run all the migration up to the latest squash abort.

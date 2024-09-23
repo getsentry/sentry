@@ -5,15 +5,12 @@ from django.urls import URLPattern, URLResolver, re_path
 
 from sentry.api.endpoints.group_ai_summary import GroupAiSummaryEndpoint
 from sentry.api.endpoints.group_autofix_setup_check import GroupAutofixSetupCheck
-from sentry.api.endpoints.group_event_details import GroupEventDetailsEndpoint
 from sentry.api.endpoints.group_integration_details import GroupIntegrationDetailsEndpoint
 from sentry.api.endpoints.group_integrations import GroupIntegrationsEndpoint
-from sentry.api.endpoints.group_similar_issues_embeddings import (
-    GroupSimilarIssuesEmbeddingsEndpoint,
-)
 from sentry.api.endpoints.issues.related_issues import RelatedIssuesEndpoint
 from sentry.api.endpoints.org_auth_token_details import OrgAuthTokenDetailsEndpoint
 from sentry.api.endpoints.org_auth_tokens import OrgAuthTokensEndpoint
+from sentry.api.endpoints.organization_events_anomalies import OrganizationEventsAnomaliesEndpoint
 from sentry.api.endpoints.organization_events_root_cause_analysis import (
     OrganizationEventsRootCauseAnalysisEndpoint,
 )
@@ -79,6 +76,9 @@ from sentry.discover.endpoints.discover_saved_query_detail import (
 )
 from sentry.incidents.endpoints.organization_alert_rule_activations import (
     OrganizationAlertRuleActivationsEndpoint,
+)
+from sentry.incidents.endpoints.organization_alert_rule_anomalies import (
+    OrganizationAlertRuleAnomaliesEndpoint,
 )
 from sentry.incidents.endpoints.organization_alert_rule_available_action_index import (
     OrganizationAlertRuleAvailableActionIndexEndpoint,
@@ -169,13 +169,30 @@ from sentry.integrations.api.endpoints.organization_repository_details import (
 )
 from sentry.issues.endpoints import (
     ActionableItemsEndpoint,
+    EventJsonEndpoint,
+    GroupActivitiesEndpoint,
+    GroupDetailsEndpoint,
+    GroupEventDetailsEndpoint,
     GroupEventsEndpoint,
+    GroupHashesEndpoint,
+    GroupNotesDetailsEndpoint,
+    GroupNotesEndpoint,
+    GroupParticipantsEndpoint,
+    GroupSimilarIssuesEmbeddingsEndpoint,
+    GroupSimilarIssuesEndpoint,
     OrganizationGroupIndexEndpoint,
+    OrganizationGroupIndexStatsEndpoint,
     OrganizationGroupSearchViewsEndpoint,
     OrganizationReleasePreviousCommitsEndpoint,
     OrganizationSearchesEndpoint,
+    ProjectEventDetailsEndpoint,
+    ProjectEventsEndpoint,
+    ProjectGroupIndexEndpoint,
+    ProjectGroupStatsEndpoint,
     ProjectStacktraceLinkEndpoint,
+    SharedGroupDetailsEndpoint,
     SourceMapDebugEndpoint,
+    TeamGroupsOldEndpoint,
 )
 from sentry.monitors.endpoints.monitor_ingest_checkin_attachment import (
     MonitorIngestCheckinAttachmentEndpoint,
@@ -327,21 +344,14 @@ from .endpoints.event_grouping_info import EventGroupingInfoEndpoint
 from .endpoints.event_owners import EventOwnersEndpoint
 from .endpoints.event_reprocessable import EventReprocessableEndpoint
 from .endpoints.filechange import CommitFileChangeEndpoint
-from .endpoints.group_activities import GroupActivitiesEndpoint
 from .endpoints.group_ai_autofix import GroupAutofixEndpoint
 from .endpoints.group_attachments import GroupAttachmentsEndpoint
 from .endpoints.group_autofix_update import GroupAutofixUpdateEndpoint
 from .endpoints.group_current_release import GroupCurrentReleaseEndpoint
-from .endpoints.group_details import GroupDetailsEndpoint
 from .endpoints.group_external_issue_details import GroupExternalIssueDetailsEndpoint
 from .endpoints.group_external_issues import GroupExternalIssuesEndpoint
 from .endpoints.group_first_last_release import GroupFirstLastReleaseEndpoint
-from .endpoints.group_hashes import GroupHashesEndpoint
-from .endpoints.group_notes import GroupNotesEndpoint
-from .endpoints.group_notes_details import GroupNotesDetailsEndpoint
-from .endpoints.group_participants import GroupParticipantsEndpoint
 from .endpoints.group_reprocessing import GroupReprocessingEndpoint
-from .endpoints.group_similar_issues import GroupSimilarIssuesEndpoint
 from .endpoints.group_stats import GroupStatsEndpoint
 from .endpoints.group_tagkey_details import GroupTagKeyDetailsEndpoint
 from .endpoints.group_tagkey_values import GroupTagKeyValuesEndpoint
@@ -453,7 +463,6 @@ from .endpoints.organization_events_trends import (
 )
 from .endpoints.organization_events_trends_v2 import OrganizationEventsNewTrendsStatsEndpoint
 from .endpoints.organization_events_vitals import OrganizationEventsVitalsEndpoint
-from .endpoints.organization_group_index_stats import OrganizationGroupIndexStatsEndpoint
 from .endpoints.organization_index import OrganizationIndexEndpoint
 from .endpoints.organization_issues_count import OrganizationIssuesCountEndpoint
 from .endpoints.organization_issues_resolved_in_release import (
@@ -563,12 +572,8 @@ from .endpoints.project_details import ProjectDetailsEndpoint
 from .endpoints.project_docs_platform import ProjectDocsPlatformEndpoint
 from .endpoints.project_environment_details import ProjectEnvironmentDetailsEndpoint
 from .endpoints.project_environments import ProjectEnvironmentsEndpoint
-from .endpoints.project_event_details import EventJsonEndpoint, ProjectEventDetailsEndpoint
-from .endpoints.project_events import ProjectEventsEndpoint
 from .endpoints.project_filter_details import ProjectFilterDetailsEndpoint
 from .endpoints.project_filters import ProjectFiltersEndpoint
-from .endpoints.project_group_index import ProjectGroupIndexEndpoint
-from .endpoints.project_group_stats import ProjectGroupStatsEndpoint
 from .endpoints.project_grouping_configs import ProjectGroupingConfigsEndpoint
 from .endpoints.project_index import ProjectIndexEndpoint
 from .endpoints.project_issues_resolved_in_release import ProjectIssuesResolvedInReleaseEndpoint
@@ -641,12 +646,10 @@ from .endpoints.relay import (
 from .endpoints.release_deploys import ReleaseDeploysEndpoint
 from .endpoints.rule_snooze import MetricRuleSnoozeEndpoint, RuleSnoozeEndpoint
 from .endpoints.setup_wizard import SetupWizard
-from .endpoints.shared_group_details import SharedGroupDetailsEndpoint
 from .endpoints.system_health import SystemHealthEndpoint
 from .endpoints.system_options import SystemOptionsEndpoint
 from .endpoints.team_all_unresolved_issues import TeamAllUnresolvedIssuesEndpoint
 from .endpoints.team_details import TeamDetailsEndpoint
-from .endpoints.team_groups_old import TeamGroupsOldEndpoint
 from .endpoints.team_issue_breakdown import TeamIssueBreakdownEndpoint
 from .endpoints.team_members import TeamMembersEndpoint
 from .endpoints.team_projects import TeamProjectsEndpoint
@@ -665,8 +668,6 @@ from .endpoints.user_notification_settings_providers import (
 )
 from .endpoints.user_organizationintegrations import UserOrganizationIntegrationsEndpoint
 from .endpoints.user_organizations import UserOrganizationsEndpoint
-from .endpoints.user_social_identities_index import UserSocialIdentitiesIndexEndpoint
-from .endpoints.user_social_identity_details import UserSocialIdentityDetailsEndpoint
 from .endpoints.user_subscriptions import UserSubscriptionsEndpoint
 
 __all__ = ("urlpatterns",)
@@ -1089,16 +1090,6 @@ USER_URLS = [
         name="sentry-api-0-user-userrole-details",
     ),
     re_path(
-        r"^(?P<user_id>[^\/]+)/social-identities/$",
-        UserSocialIdentitiesIndexEndpoint.as_view(),
-        name="sentry-api-0-user-social-identities-index",
-    ),
-    re_path(
-        r"^(?P<user_id>[^\/]+)/social-identities/(?P<identity_id>[^\/]+)/$",
-        UserSocialIdentityDetailsEndpoint.as_view(),
-        name="sentry-api-0-user-social-identity-details",
-    ),
-    re_path(
         r"^(?P<user_id>[^\/]+)/subscriptions/$",
         UserSubscriptionsEndpoint.as_view(),
         name="sentry-api-0-user-subscriptions",
@@ -1168,6 +1159,11 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_id_or_slug>[^\/]+)/alert-rules/(?P<alert_rule_id>[^\/]+)/activations/$",
         OrganizationAlertRuleActivationsEndpoint.as_view(),
         name="sentry-api-0-organization-alert-rule-activations",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/alert-rules/(?P<alert_rule_id>[^\/]+)/anomalies/$",
+        OrganizationAlertRuleAnomaliesEndpoint.as_view(),
+        name="sentry-api-0-organization-alert-rule-anomalies",
     ),
     re_path(  # fetch combined metric and issue alert rules
         r"^(?P<organization_id_or_slug>[^\/]+)/combined-rules/$",
@@ -1420,6 +1416,11 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_id_or_slug>[^\/]+)/events-stats/$",
         OrganizationEventsStatsEndpoint.as_view(),
         name="sentry-api-0-organization-events-stats",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/events/anomalies/$",
+        OrganizationEventsAnomaliesEndpoint.as_view(),
+        name="sentry-api-0-organization-events-anomalies",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/project-templates/$",

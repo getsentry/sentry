@@ -14,7 +14,6 @@ from sentry.grouping.strategies.base import (
     call_with_variants,
     strategy,
 )
-from sentry.grouping.strategies.hierarchical import get_stacktrace_hierarchy
 from sentry.grouping.strategies.message import normalize_message_for_grouping
 from sentry.grouping.strategies.utils import has_url_origin, remove_non_stacktrace_variants
 from sentry.grouping.utils import hash_from_values
@@ -91,7 +90,7 @@ RECURSION_COMPARISON_FIELDS = [
 StacktraceEncoderReturnValue = Any
 
 
-def is_recursion_v1(frame1: Frame, frame2: Frame | None) -> bool:
+def is_recursive_frames(frame1: Frame, frame2: Frame | None) -> bool:
     """
     Returns a boolean indicating whether frames are recursive calls.
     """
@@ -110,18 +109,6 @@ def get_basename(string: str) -> str:
     Returns best-effort basename of a string irrespective of platform.
     """
     return _basename_re.split(string)[-1]
-
-
-def get_package_component(package: str, platform: str | None) -> GroupingComponent:
-    if package is None or platform != "native":
-        return GroupingComponent(id="package")
-
-    package = get_basename(package).lower()
-    package_component = GroupingComponent(
-        id="package",
-        values=[package],
-    )
-    return package_component
 
 
 def get_filename_component(
@@ -288,13 +275,6 @@ def get_function_component(
                 function_component.update(values=[new_function], hint="isolated function")
                 func = new_function
 
-        if context["native_fuzzing"]:
-            # Normalize macOS/llvm anonymous namespaces to
-            # Windows-like/msvc
-            new_function = func.replace("(anonymous namespace)", "`anonymous namespace'")
-            if new_function != func:
-                function_component.update(values=[new_function])
-
     elif context["javascript_fuzzing"] and behavior_family == "javascript":
         # This changes Object.foo or Foo.foo into foo so that we can
         # resolve some common cross browser differences
@@ -364,35 +344,6 @@ def frame(
     values = [module_component, filename_component, function_component]
     if context_line_component is not None:
         values.append(context_line_component)
-
-    if (
-        context["discard_native_filename"]
-        and get_behavior_family_for_platform(platform) == "native"
-        and function_component.contributes
-        and filename_component.contributes
-    ):
-        # In native, function names usually describe a full namespace. Adding
-        # the filename there just brings extra instability into grouping.
-        filename_component.update(
-            contributes=False, hint="discarded native filename for grouping stability"
-        )
-
-    if context["use_package_fallback"] and frame.package:
-        # If function did not symbolicate properly and we also have no filename, use package as fallback.
-        package_component = get_package_component(package=frame.package, platform=platform)
-        if package_component.contributes:
-            use_package_component = all(not component.contributes for component in values)
-
-            if use_package_component:
-                package_component.update(
-                    hint="used as fallback because function name is not available"
-                )
-            else:
-                package_component.update(
-                    contributes=False, hint="ignored because function takes precedence"
-                )
-
-            values.append(package_component)
 
     rv = GroupingComponent(id="frame", values=values)
 
@@ -465,20 +416,14 @@ def stacktrace(
 ) -> ReturnedVariants:
     assert context["variant"] is None
 
-    if context["hierarchical_grouping"]:
-        with context:
-            context["variant"] = "system"
-            return _single_stacktrace_variant(interface, event=event, context=context, meta=meta)
-
-    else:
-        return call_with_variants(
-            _single_stacktrace_variant,
-            ["!system", "app"],
-            interface,
-            event=event,
-            context=context,
-            meta=meta,
-        )
+    return call_with_variants(
+        _single_stacktrace_variant,
+        ["!system", "app"],
+        interface,
+        event=event,
+        context=context,
+        meta=meta,
+    )
 
 
 def _single_stacktrace_variant(
@@ -493,10 +438,10 @@ def _single_stacktrace_variant(
     frames_for_filtering = []
     for frame in frames:
         with context:
-            context["is_recursion"] = is_recursion_v1(frame, prev_frame)
+            context["is_recursion"] = is_recursive_frames(frame, prev_frame)
             frame_component = context.get_single_grouping_component(frame, event=event, **meta)
 
-        if not context["hierarchical_grouping"] and variant == "app" and not frame.in_app:
+        if variant == "app" and not frame.in_app:
             frame_component.update(contributes=False, hint="non app frame")
         values.append(frame_component)
         frames_for_filtering.append(frame.get_raw_data())
@@ -514,29 +459,14 @@ def _single_stacktrace_variant(
     ):
         values[0].update(contributes=False, hint="ignored single non-URL JavaScript frame")
 
-    main_variant, inverted_hierarchy = context.config.enhancements.assemble_stacktrace_component(
+    main_variant, _ = context.config.enhancements.assemble_stacktrace_component(
         values,
         frames_for_filtering,
         event.platform,
         exception_data=context["exception_data"],
     )
 
-    if inverted_hierarchy is None:
-        inverted_hierarchy = stacktrace.snapshot
-
-    inverted_hierarchy = bool(inverted_hierarchy)
-
-    if not context["hierarchical_grouping"]:
-        return {variant: main_variant}
-
-    all_variants = get_stacktrace_hierarchy(
-        main_variant, values, frames_for_filtering, inverted_hierarchy
-    )
-
-    # done for backwards compat to find old groups
-    all_variants["system"] = main_variant
-
-    return all_variants
+    return {variant: main_variant}
 
 
 @stacktrace.variant_processor
@@ -573,6 +503,9 @@ def single_exception(
             # can be continuously modified without unnecessarily creating new
             # groups.
             type_component.update(contributes=False, hint="ignored because exception is synthetic")
+            system_type_component.update(
+                contributes=False, hint="ignored because exception is synthetic"
+            )
         if interface.mechanism.meta and "ns_error" in interface.mechanism.meta:
             ns_error_component = GroupingComponent(
                 id="ns-error",

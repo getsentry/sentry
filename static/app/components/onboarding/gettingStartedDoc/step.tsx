@@ -81,7 +81,7 @@ export function TabbedCodeSnippet({
   );
 }
 
-type ConfigurationType = {
+export type Configuration = {
   /**
    * Additional information to be displayed below the code snippet
    */
@@ -93,7 +93,7 @@ type ConfigurationType = {
   /**
    * Nested configurations provide a convenient way to accommodate diverse layout styles, like the Spring Boot configuration.
    */
-  configurations?: ConfigurationType[];
+  configurations?: Configuration[];
   /**
    * A brief description of the configuration
    */
@@ -126,7 +126,7 @@ interface BaseStepProps {
    * Content that goes directly above the code snippet
    */
   codeHeader?: React.ReactNode;
-  configurations?: ConfigurationType[];
+  configurations?: Configuration[];
   /**
    * A brief description of the step
    */
@@ -135,6 +135,11 @@ interface BaseStepProps {
    * Whether the step is optional
    */
   isOptional?: boolean;
+  /**
+   * Fired when the optional toggle is clicked.
+   * Useful for when we want to fire analytics events.
+   */
+  onOptionalToggleClick?: (showOptionalConfig: boolean) => void;
 }
 interface StepPropsWithTitle extends BaseStepProps {
   title: string;
@@ -156,7 +161,7 @@ function getConfiguration({
   onCopy,
   onSelectAndCopy,
   partialLoading,
-}: ConfigurationType) {
+}: Configuration) {
   return (
     <Configuration>
       {description && <Description>{description}</Description>}
@@ -199,6 +204,7 @@ export function Step({
   configurations,
   additionalInfo,
   description,
+  onOptionalToggleClick,
   isOptional = false,
   codeHeader,
 }: StepProps) {
@@ -251,7 +257,10 @@ export function Step({
           size="zero"
           icon={<IconChevron direction={showOptionalConfig ? 'down' : 'right'} />}
           aria-label={t('Toggle optional configuration')}
-          onClick={() => setShowOptionalConfig(!showOptionalConfig)}
+          onClick={() => {
+            onOptionalToggleClick?.(!showOptionalConfig);
+            setShowOptionalConfig(!showOptionalConfig);
+          }}
         >
           <h4 style={{marginBottom: 0}}>
             {title ?? StepTitle[type]}

@@ -56,6 +56,8 @@ import Triggers from 'sentry/views/alerts/rules/metric/triggers';
 import TriggersChart from 'sentry/views/alerts/rules/metric/triggers/chart';
 import {getEventTypeFilter} from 'sentry/views/alerts/rules/metric/utils/getEventTypeFilter';
 import hasThresholdValue from 'sentry/views/alerts/rules/metric/utils/hasThresholdValue';
+import {isCustomMetricAlert} from 'sentry/views/alerts/rules/metric/utils/isCustomMetricAlert';
+import {isInsightsMetricAlert} from 'sentry/views/alerts/rules/metric/utils/isInsightsMetricAlert';
 import {isOnDemandMetricAlert} from 'sentry/views/alerts/rules/metric/utils/onDemandMetricAlert';
 import {AlertRuleType} from 'sentry/views/alerts/types';
 import {ruleNeedsErrorMigration} from 'sentry/views/alerts/utils/migrationUi';
@@ -65,6 +67,7 @@ import {
   DatasetMEPAlertQueryTypes,
 } from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
+import {MetricsBetaEndAlert} from 'sentry/views/metrics/metricsBetaEndAlert';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 
 import {isCrashFreeAlert} from './utils/isCrashFreeAlert';
@@ -840,7 +843,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
             : Object.values(err?.responseJSON)
           : [];
         let apiErrors = '';
-        if (typeof errors[0] === 'object') {
+        if (typeof errors[0] === 'object' && !Array.isArray(errors[0])) {
           // NOTE: this occurs if we get a TimeoutError when attempting to hit the Seer API
           apiErrors = ': ' + errors[0].message;
         } else {
@@ -1171,6 +1174,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
 
     const thresholdTypeForm = (disabled: boolean) => (
       <ThresholdTypeForm
+        alertType={alertType}
         comparisonType={comparisonType}
         dataset={dataset}
         disabled={disabled}
@@ -1194,6 +1198,8 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     return (
       <Main fullWidth>
         <PermissionAlert access={['alerts:write']} project={project} />
+        {isCustomMetricAlert(rule.aggregate) &&
+          !isInsightsMetricAlert(rule.aggregate) && <MetricsBetaEndAlert />}
 
         {eventView && <IncompatibleAlertQuery eventView={eventView} />}
         <Form
@@ -1259,7 +1265,10 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
               isEditing={Boolean(ruleId)}
               isErrorMigration={showErrorMigrationWarning}
               isExtrapolatedChartData={isExtrapolatedChartData}
-              isForLlmMetric={aggregate.includes(':spans/ai.')}
+              isForLlmMetric={[
+                'sum(ai.total_tokens.used)',
+                'sum(ai.total_cost)',
+              ].includes(aggregate)}
               isTransactionMigration={isMigration && !showErrorMigrationWarning}
               monitorType={monitorType}
               onComparisonDeltaChange={value =>

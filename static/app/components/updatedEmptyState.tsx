@@ -13,17 +13,23 @@ import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingSt
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
 import platforms from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import type {PlatformIntegration, Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import FirstEventIndicator from 'sentry/views/onboarding/components/firstEventIndicator';
 
 export default function UpdatedEmptyState({project}: {project?: Project}) {
+  const api = useApi();
   const organization = useOrganization();
 
   const {isPending: isLoadingRegistry, data: registryData} =
     useSourcePackageRegistries(organization);
+
+  const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
 
   const currentPlatformKey = project?.platform ?? 'other';
   const currentPlatform = platforms.find(
@@ -49,12 +55,15 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
     loadGettingStarted.isError ||
     loadGettingStarted.isLoading ||
     !loadGettingStarted.docs ||
-    !loadGettingStarted.dsn
+    !loadGettingStarted.dsn ||
+    !loadGettingStarted.projectKeyId
   ) {
     return null;
   }
 
   const docParams: DocsParams<any> = {
+    api,
+    projectKeyId: loadGettingStarted.projectKeyId,
     dsn: loadGettingStarted.dsn,
     organization,
     platformKey: currentPlatformKey,
@@ -71,6 +80,8 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
     platformOptions: {installationMode: 'auto'},
     newOrg: false,
     replayOptions: {block: true, mask: true},
+    isSelfHosted,
+    urlPrefix,
   };
 
   if (currentPlatformKey === 'java' || currentPlatformKey === 'java-spring-boot') {

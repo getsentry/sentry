@@ -154,6 +154,7 @@ const VisualizationWrapper = styled('div')<{displayType: DisplayType}>`
   padding-right: ${space(2)};
   ${WidgetCardPanel} {
     height: initial;
+    min-height: 120px;
   }
   ${p =>
     p.displayType === DisplayType.TABLE &&

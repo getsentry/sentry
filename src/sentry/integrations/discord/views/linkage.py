@@ -1,6 +1,7 @@
 from abc import ABC
 
-from sentry.integrations.messaging import IdentityLinkageView, MessagingIntegrationSpec
+from sentry.integrations.messaging.linkage import IdentityLinkageView
+from sentry.integrations.messaging.spec import MessagingIntegrationSpec
 from sentry.integrations.types import ExternalProviderEnum, ExternalProviders
 
 from .constants import SALT

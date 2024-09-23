@@ -1,6 +1,6 @@
+from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.models.groupsearchview import GroupSearchView
 from sentry.models.organizationmember import OrganizationMember
-from sentry.tasks.deletion.scheduled import run_scheduled_deletions
 from sentry.testutils.cases import APITestCase, TransactionTestCase
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 

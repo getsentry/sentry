@@ -1,6 +1,6 @@
 import pytest
 
-from sentry.testutils.cases import TestCase
+from sentry.testutils.cases import UptimeTestCase
 from sentry.testutils.skips import requires_kafka
 from sentry.uptime.models import (
     ProjectUptimeSubscription,
@@ -22,7 +22,7 @@ from sentry.uptime.subscriptions.subscriptions import (
 pytestmark = [requires_kafka]
 
 
-class CreateUptimeSubscriptionTest(TestCase):
+class CreateUptimeSubscriptionTest(UptimeTestCase):
     def test(self):
         url = "https://sentry.io"
         interval_seconds = 300
@@ -35,6 +35,24 @@ class CreateUptimeSubscriptionTest(TestCase):
         assert uptime_sub.status == UptimeSubscription.Status.ACTIVE.value
         assert uptime_sub.type == UPTIME_SUBSCRIPTION_TYPE
         assert uptime_sub.url == url
+        assert uptime_sub.url_domain == "sentry"
+        assert uptime_sub.url_domain_suffix == "io"
+        assert uptime_sub.interval_seconds == uptime_sub.interval_seconds
+        assert uptime_sub.timeout_ms == timeout_ms
+
+    def test_private_domain_suffix(self):
+        url = "https://test.vercel.app"
+        interval_seconds = 300
+        timeout_ms = 500
+        uptime_sub = create_uptime_subscription(url, interval_seconds, timeout_ms)
+        # Subscription.subscription_id ends up set in the task, so refresh
+        uptime_sub.refresh_from_db()
+        assert uptime_sub.subscription_id is None
+        assert uptime_sub.status == UptimeSubscription.Status.CREATING.value
+        assert uptime_sub.type == UPTIME_SUBSCRIPTION_TYPE
+        assert uptime_sub.url == url
+        assert uptime_sub.url_domain == "test"
+        assert uptime_sub.url_domain_suffix == "vercel.app"
         assert uptime_sub.interval_seconds == uptime_sub.interval_seconds
         assert uptime_sub.timeout_ms == timeout_ms
 
@@ -81,11 +99,13 @@ class CreateUptimeSubscriptionTest(TestCase):
         assert uptime_sub.status == UptimeSubscription.Status.CREATING.value
         assert uptime_sub.type == UPTIME_SUBSCRIPTION_TYPE
         assert uptime_sub.url == url
+        assert uptime_sub.url_domain == "sentry"
+        assert uptime_sub.url_domain_suffix == "io"
         assert uptime_sub.interval_seconds == uptime_sub.interval_seconds
         assert uptime_sub.timeout_ms == timeout_ms
 
 
-class DeleteUptimeSubscriptionTest(TestCase):
+class DeleteUptimeSubscriptionTest(UptimeTestCase):
     def test_with_task(self):
         with self.tasks():
             uptime_sub = create_uptime_subscription("https://sentry.io", 3600, 1000)
@@ -104,7 +124,7 @@ class DeleteUptimeSubscriptionTest(TestCase):
         assert uptime_sub.status == UptimeSubscription.Status.DELETING.value
 
 
-class CreateProjectUptimeSubscriptionTest(TestCase):
+class CreateProjectUptimeSubscriptionTest(UptimeTestCase):
     def test(self):
         uptime_sub = create_uptime_subscription("https://sentry.io", 3600, 1000)
         create_project_uptime_subscription(
@@ -147,7 +167,7 @@ class CreateProjectUptimeSubscriptionTest(TestCase):
         )
 
 
-class DeleteUptimeSubscriptionsForProjectTest(TestCase):
+class DeleteUptimeSubscriptionsForProjectTest(UptimeTestCase):
     def test_other_subscriptions(self):
         other_project = self.create_project()
         uptime_sub = create_uptime_subscription("https://sentry.io", 3600, 1000)
@@ -249,7 +269,7 @@ class DeleteUptimeSubscriptionsForProjectTest(TestCase):
             uptime_sub.refresh_from_db()
 
 
-class DeleteProjectUptimeSubscriptionTest(TestCase):
+class DeleteProjectUptimeSubscriptionTest(UptimeTestCase):
     def test_other_subscriptions(self):
         other_project = self.create_project()
         uptime_sub = create_uptime_subscription("https://sentry.io", 3600, 1000)
@@ -282,7 +302,7 @@ class DeleteProjectUptimeSubscriptionTest(TestCase):
             uptime_sub.refresh_from_db()
 
 
-class RemoveUptimeSubscriptionIfUnusedTest(TestCase):
+class RemoveUptimeSubscriptionIfUnusedTest(UptimeTestCase):
     def test_remove(self):
         uptime_sub = create_uptime_subscription("https://sentry.io", 3600, 1000)
         with self.tasks():
@@ -304,7 +324,7 @@ class RemoveUptimeSubscriptionIfUnusedTest(TestCase):
         assert UptimeSubscription.objects.filter(id=uptime_sub.id).exists()
 
 
-class IsUrlMonitoredForProjectTest(TestCase):
+class IsUrlMonitoredForProjectTest(UptimeTestCase):
     def test_not_monitored(self):
         assert not is_url_auto_monitored_for_project(self.project, "https://sentry.io")
         subscription = self.create_project_uptime_subscription(
@@ -335,7 +355,7 @@ class IsUrlMonitoredForProjectTest(TestCase):
         )
 
 
-class GetAutoMonitoredSubscriptionsForProjectTest(TestCase):
+class GetAutoMonitoredSubscriptionsForProjectTest(UptimeTestCase):
     def test_empty(self):
         assert get_auto_monitored_subscriptions_for_project(self.project) == []
 

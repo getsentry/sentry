@@ -2857,47 +2857,50 @@ describe('TraceTree', () => {
       expect(serverHandlerTransaction.parent).toBe(pageloadTransaction);
     });
     describe('expanded', () => {
-      it('server handler transaction becomes a child of browser request span if present', async () => {
-        const tree: TraceTree = TraceTree.FromTrace(
-          makeTrace({
-            transactions: [
-              makeTransaction({
-                transaction: 'SSR',
-                event_id: 'ssr',
-                project_slug: 'js',
-                ['transaction.op']: 'http.server',
-                children: [
-                  makeTransaction({
-                    transaction: 'pageload',
-                    ['transaction.op']: 'pageload',
-                  }),
-                ],
-              }),
-            ],
-          }),
-          null,
-          null
-        );
+      it.each([['browser'], ['browser.request']])(
+        'server handler transaction becomes a child of %s span if present',
+        async span_op => {
+          const tree: TraceTree = TraceTree.FromTrace(
+            makeTrace({
+              transactions: [
+                makeTransaction({
+                  transaction: 'SSR',
+                  event_id: 'ssr',
+                  project_slug: 'js',
+                  ['transaction.op']: 'http.server',
+                  children: [
+                    makeTransaction({
+                      transaction: 'pageload',
+                      ['transaction.op']: 'pageload',
+                    }),
+                  ],
+                }),
+              ],
+            }),
+            null,
+            null
+          );
 
-        MockApiClient.addMockResponse({
-          url: '/organizations/org-slug/events/js:ssr/?averageColumn=span.self_time&averageColumn=span.duration',
-          method: 'GET',
-          body: makeEvent({}, [makeSpan({description: 'request', op: 'browser'})]),
-        });
+          MockApiClient.addMockResponse({
+            url: '/organizations/org-slug/events/js:ssr/?averageColumn=span.self_time&averageColumn=span.duration',
+            method: 'GET',
+            body: makeEvent({}, [makeSpan({description: 'request', op: span_op})]),
+          });
 
-        tree.zoomIn(tree.list[1], true, {
-          api: new MockApiClient(),
-          organization: OrganizationFixture(),
-        });
+          tree.zoomIn(tree.list[1], true, {
+            api: new MockApiClient(),
+            organization: OrganizationFixture(),
+          });
 
-        await waitFor(() => tree.list.length === 4);
-        const browserRequestSpan = tree.list[1].children[0];
-        const ssrTransaction = browserRequestSpan.children[0];
+          await waitFor(() => tree.list.length === 4);
+          const browserRequestSpan = tree.list[1].children[0];
+          const ssrTransaction = browserRequestSpan.children[0];
 
-        assertSpanNode(browserRequestSpan);
-        assertTransactionNode(ssrTransaction);
-        expect(ssrTransaction.value.transaction).toBe('SSR');
-      });
+          assertSpanNode(browserRequestSpan);
+          assertTransactionNode(ssrTransaction);
+          expect(ssrTransaction.value.transaction).toBe('SSR');
+        }
+      );
       it('server handler transaction becomes a direct child if there is no matching browser request span', async () => {
         const tree: TraceTree = TraceTree.FromTrace(
           makeTrace({

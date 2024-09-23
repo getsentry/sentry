@@ -2,7 +2,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 
-import type {MonitorBucketData, TimeWindowConfig} from '../types';
+import type {MonitorBucket, TimeWindowConfig} from '../types';
 
 interface Options {
   /**
@@ -35,7 +35,7 @@ export function useMonitorStats({monitors, timeWindowConfig}: Options) {
 
   const monitorStatsQueryKey = `/organizations/${organization.slug}/monitors-stats/`;
 
-  return useApiQuery<Record<string, MonitorBucketData>>(
+  return useApiQuery<Record<string, MonitorBucket[]>>(
     [
       monitorStatsQueryKey,
       {

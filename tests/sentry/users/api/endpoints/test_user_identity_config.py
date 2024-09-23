@@ -47,7 +47,7 @@ class UserIdentityConfigEndpointTest(UserIdentityConfigTest):
         Identity.objects.create(user=self.user, idp=self.slack_idp)
 
     @patch(
-        "sentry.api.serializers.models.user_identity_config.is_login_provider",
+        "sentry.users.api.serializers.user_identity_config.is_login_provider",
         side_effect=mock_is_login_provider_effect,
     )
     def test_simple(self, mock_is_login_provider):
@@ -79,7 +79,7 @@ class UserIdentityConfigEndpointTest(UserIdentityConfigTest):
         assert org_ident["organization"]["id"] == str(self.organization.id)
 
     @patch(
-        "sentry.api.serializers.models.user_identity_config.is_login_provider",
+        "sentry.users.api.serializers.user_identity_config.is_login_provider",
         side_effect=mock_is_login_provider_effect,
     )
     def test_superuser_can_fetch_other_users_identities(self, mock_is_login_provider):
@@ -93,7 +93,7 @@ class UserIdentityConfigEndpointTest(UserIdentityConfigTest):
         assert len(identities) == 4
 
     @patch(
-        "sentry.api.serializers.models.user_identity_config.is_login_provider",
+        "sentry.users.api.serializers.user_identity_config.is_login_provider",
         side_effect=mock_is_login_provider_effect,
     )
     def test_staff_can_fetch_other_users_identities(self, mock_is_login_provider):
@@ -107,7 +107,7 @@ class UserIdentityConfigEndpointTest(UserIdentityConfigTest):
         assert len(identities) == 4
 
     @patch(
-        "sentry.api.serializers.models.user_identity_config.is_login_provider",
+        "sentry.users.api.serializers.user_identity_config.is_login_provider",
         side_effect=mock_is_login_provider_effect,
     )
     def test_identity_needed_for_global_auth(self, mock_is_login_provider):
@@ -362,7 +362,7 @@ class UserIdentityConfigDetailsEndpointDeleteTest(UserIdentityConfigTest):
         assert AuthIdentity.objects.get(id=ident_obj.id)
 
     @patch(
-        "sentry.api.serializers.models.user_identity_config.is_login_provider",
+        "sentry.users.api.serializers.user_identity_config.is_login_provider",
         side_effect=mock_is_login_provider_effect,
     )
     def test_enforces_global_ident_needed_for_login(self, mock_is_login_provider):
