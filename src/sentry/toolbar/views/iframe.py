@@ -64,4 +64,6 @@ class ToolbarIframeView(OrganizationView):
                 },
             )
 
-        return self.respond("sentry/toolbar/iframe.html", status=200)
+        return self.respond(
+            "sentry/toolbar/iframe.html", status=200, context={"referrer": referrer}
+        )
