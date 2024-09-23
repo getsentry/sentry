@@ -1,4 +1,5 @@
 from collections.abc import Collection, Mapping, Sequence
+from typing import Optional
 from typing import Union, cast
 
 from sentry.exceptions import InvalidParams
