@@ -87,17 +87,19 @@ function BreadcrumbItem({
         {description}
       </Description>
     ) : (
-      <StructuredEventData
-        initialExpandedPaths={expandPaths ?? []}
-        onToggleExpand={(expandedPaths, path) => {
-          onInspectorExpanded(
-            path,
-            Object.fromEntries(expandedPaths.map(item => [item, true]))
-          );
-        }}
-        data={description}
-        withAnnotatedText
-      />
+      <Wrapper>
+        <StructuredEventData
+          initialExpandedPaths={expandPaths ?? []}
+          onToggleExpand={(expandedPaths, path) => {
+            onInspectorExpanded(
+              path,
+              Object.fromEntries(expandedPaths.map(item => [item, true]))
+            );
+          }}
+          data={description}
+          withAnnotatedText
+        />
+      </Wrapper>
     );
   }, [description, expandPaths, onInspectorExpanded]);
 
@@ -294,17 +296,19 @@ function WebVitalData({
   }
 
   return (
-    <StructuredEventData
-      initialExpandedPaths={expandPaths ?? []}
-      onToggleExpand={(expandedPaths, path) => {
-        onInspectorExpanded(
-          path,
-          Object.fromEntries(expandedPaths.map(item => [item, true]))
-        );
-      }}
-      data={webVitalData}
-      withAnnotatedText
-    />
+    <Wrapper>
+      <StructuredEventData
+        initialExpandedPaths={expandPaths ?? []}
+        onToggleExpand={(expandedPaths, path) => {
+          onInspectorExpanded(
+            path,
+            Object.fromEntries(expandedPaths.map(item => [item, true]))
+          );
+        }}
+        data={webVitalData}
+        withAnnotatedText
+      />
+    </Wrapper>
   );
 }
 
@@ -514,6 +518,12 @@ const SelectorButton = styled(Button)`
   margin: 0 ${space(0.5)};
   height: auto;
   min-height: auto;
+`;
+
+const Wrapper = styled('div')`
+  pre {
+    margin: 0;
+  }
 `;
 
 export default memo(BreadcrumbItem);
