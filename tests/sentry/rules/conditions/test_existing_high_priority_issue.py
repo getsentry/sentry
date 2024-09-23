@@ -1,7 +1,6 @@
 from sentry.models.rule import Rule
 from sentry.rules.conditions.existing_high_priority_issue import ExistingHighPriorityIssueCondition
 from sentry.testutils.cases import RuleTestCase
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.skips import requires_snuba
 from sentry.types.group import PriorityLevel
 
@@ -14,7 +13,6 @@ class ExistingHighPriorityIssueConditionTest(RuleTestCase):
     def setUp(self):
         self.rule = Rule(environment_id=1, project=self.project, label="label")
 
-    @with_feature("organizations:priority-ga-features")
     def test_applies_correctly(self):
         rule = self.get_rule(rule=self.rule)
 
