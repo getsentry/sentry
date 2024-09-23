@@ -58,7 +58,7 @@ export interface Hooks
 
 export type HookName = keyof Hooks;
 
-export type WithoutPrefix<Hook extends HookName> =
+export type HookWithoutPrefix<Hook extends HookName> =
   Hook extends `${infer _}:${infer Suffix}` ? Suffix : Hook;
 
 /**
