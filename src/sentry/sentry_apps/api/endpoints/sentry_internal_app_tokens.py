@@ -63,8 +63,8 @@ class SentryInternalAppTokensEndpoint(SentryAppBaseEndpoint):
             )
         sentry_app_installation = SentryAppInstallation.objects.get(sentry_app_id=sentry_app.id)
         try:
-            assert isinstance(request.user, User) or isinstance(
-                request.user, RpcUser
+            assert isinstance(
+                request.user, (User, RpcUser)
             ), "User must be authenticated to install a sentry app"
             api_token = SentryAppInstallationTokenCreator(
                 sentry_app_installation=sentry_app_installation

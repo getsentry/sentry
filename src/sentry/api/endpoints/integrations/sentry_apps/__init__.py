@@ -1,3 +1,7 @@
+from sentry.sentry_apps.api.endpoints.sentry_internal_app_token_details import (
+    SentryInternalAppTokenDetailsEndpoint,
+)
+
 from .authorizations import SentryAppAuthorizationsEndpoint
 from .components import OrganizationSentryAppComponentsEndpoint, SentryAppComponentsEndpoint
 from .details import SentryAppDetailsEndpoint
@@ -28,6 +32,7 @@ __all__ = (
     "SentryAppInstallationExternalIssuesEndpoint",
     "SentryAppInstallationExternalRequestsEndpoint",
     "SentryAppInstallationsEndpoint",
+    "SentryInternalAppTokenDetailsEndpoint",
     "SentryAppInteractionEndpoint",
     "SentryAppPublishRequestEndpoint",
     "SentryAppRequestsEndpoint",
