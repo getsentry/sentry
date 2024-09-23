@@ -20,7 +20,13 @@ describe('InviteMembersModalNew', function () {
     invites: [],
     inviteStatus: {},
     member: undefined,
-    pendingInvites: [],
+    pendingInvites: [
+      {
+        emails: new Set<string>(),
+        teams: new Set<string>(),
+        role: 'member',
+      },
+    ],
     reset: () => {},
     sendingInvites: false,
     sendInvites: () => {},
