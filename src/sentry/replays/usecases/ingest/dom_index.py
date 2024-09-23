@@ -8,7 +8,6 @@ from collections.abc import Generator
 from hashlib import md5
 from typing import Any, Literal, TypedDict
 
-from sentry import features
 from sentry.conf.types.kafka_definition import Topic
 from sentry.models.project import Project
 from sentry.replays.usecases.ingest.issue_creation import (
@@ -300,13 +299,9 @@ def _parse_classes(classes: str) -> list[str]:
 
 def _should_report_hydration_error_issue(project: Project) -> bool:
     """
-    Checks the feature that's controlled by Sentry admins for release of the feature,
-    and the permanent project option, controlled by the project owner.
+    Checks the project option, controlled by a project owner.
     """
-    return features.has(
-        "organizations:session-replay-hydration-error-issue-creation",
-        project.organization,
-    ) and project.get_option("sentry:replay_hydration_error_issues")
+    return project.get_option("sentry:replay_hydration_error_issues")
 
 
 def _should_report_rage_click_issue(project: Project) -> bool:
