@@ -222,7 +222,20 @@ function FilterKeyMenuContent<T extends SelectOptionOrSectionWithKey<string>>({
       </SectionedListBoxPane>
       {showDetailsPane ? (
         <DetailsPane>
-          {focusedKey ? <KeyDescription size="md" tag={focusedKey} /> : null}
+          {focusedKey ? (
+            <KeyDescription size="md" tag={focusedKey} />
+          ) : (
+            <EmptyState>
+              <div>
+                <p>{t('No filter selected.')}</p>
+                <p>
+                  {t(
+                    'Hover over a filter from the list on the left to see more details.'
+                  )}
+                </p>
+              </div>
+            </EmptyState>
+          )}
         </DetailsPane>
       ) : null}
       <FeedbackFooter />
@@ -456,4 +469,19 @@ const SectionButton = styled(Button)`
 const StyledPositionWrapper = styled('div')<{visible?: boolean}>`
   display: ${p => (p.visible ? 'block' : 'none')};
   z-index: ${p => p.theme.zIndex.tooltip};
+`;
+
+const EmptyState = styled('div')`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: ${space(4)};
+  text-align: center;
+  color: ${p => p.theme.subText};
+
+  div {
+    max-width: 280px;
+  }
 `;
