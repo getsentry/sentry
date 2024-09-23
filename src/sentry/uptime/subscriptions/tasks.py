@@ -91,7 +91,7 @@ def uptime_subscription_to_check_config(
         "request_method": subscription.method,  # type: ignore[typeddict-item]
         "request_headers": subscription.headers,
     }
-    if subscription.body:
+    if subscription.body is not None:
         config["request_body"] = subscription.body
     return config
 
