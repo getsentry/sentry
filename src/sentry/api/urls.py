@@ -277,6 +277,7 @@ from sentry.sentry_apps.api.endpoints.organization_sentry_apps import Organizati
 from sentry.sentry_apps.api.endpoints.sentry_app_authorizations import (
     SentryAppAuthorizationsEndpoint,
 )
+from sentry.sentry_apps.api.endpoints.sentry_app_avatar import SentryAppAvatarEndpoint
 from sentry.sentry_apps.api.endpoints.sentry_app_components import (
     OrganizationSentryAppComponentsEndpoint,
     SentryAppComponentsEndpoint,
@@ -334,7 +335,7 @@ from .endpoints.auth_config import AuthConfigEndpoint
 from .endpoints.auth_index import AuthIndexEndpoint
 from .endpoints.auth_login import AuthLoginEndpoint
 from .endpoints.auth_validate import AuthValidateEndpoint
-from .endpoints.avatar import OrganizationAvatarEndpoint, SentryAppAvatarEndpoint
+from .endpoints.avatar import OrganizationAvatarEndpoint
 from .endpoints.broadcast_details import BroadcastDetailsEndpoint
 from .endpoints.broadcast_index import BroadcastIndexEndpoint
 from .endpoints.builtin_symbol_sources import BuiltinSymbolSourcesEndpoint
