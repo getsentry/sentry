@@ -508,10 +508,10 @@ const AddViewButton = styled(Button)`
   display: flex;
   color: ${p => p.theme.gray300};
   font-weight: normal;
-  padding: ${space(0.5)} ${space(1)};
-  margin-bottom: 1px;
-  border: none;
-  bottom: -1px;
+  border-radius: ${p => `${p.theme.borderRadius} ${p.theme.borderRadius} 0 0`};
+  padding: ${space(1)} ${space(1)};
+  height: 31px;
+  line-height: 1.4;
 `;
 
 const StyledIconAdd = styled(IconAdd)`
