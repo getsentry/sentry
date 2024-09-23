@@ -167,10 +167,11 @@ describe('ReplayReader', () => {
       },
       {
         method: 'getConsoleFrames',
-        expected: [
-          expect.objectContaining({category: 'console'}),
-          expect.objectContaining({category: 'redux.action'}),
-        ],
+        expected: [expect.objectContaining({category: 'console'})],
+      },
+      {
+        method: 'getCustomFrames',
+        expected: [expect.objectContaining({category: 'redux.action'})],
       },
       {
         method: 'getNetworkFrames',
@@ -196,6 +197,7 @@ describe('ReplayReader', () => {
         expected: [
           expect.objectContaining({category: 'replay.init'}),
           expect.objectContaining({category: 'ui.slowClickDetected'}),
+          expect.objectContaining({category: 'redux.action'}),
           expect.objectContaining({op: 'navigation.navigate'}), // prefer the nav span over the breadcrumb
           expect.objectContaining({category: 'ui.click'}),
           expect.objectContaining({category: 'ui.click'}),
