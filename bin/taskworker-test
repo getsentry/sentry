@@ -52,6 +52,10 @@ def main(number: int, verbose: bool):
             "name": "worker",
             "cmd": ["sentry", "run", "taskworker", "--namespace", "demos"],
         },
+        {
+            "name": "grpc",
+            "cmd": ["sentry", "run", "kafka-task-grpc-server"],
+        },
     ]
     for process in processes:
         manager.add_process(process["name"], list2cmdline(process["cmd"]), cwd=cwd)
