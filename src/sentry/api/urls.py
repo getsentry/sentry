@@ -169,6 +169,7 @@ from sentry.integrations.api.endpoints.organization_repository_details import (
 )
 from sentry.issues.endpoints import (
     ActionableItemsEndpoint,
+    EventIdLookupEndpoint,
     EventJsonEndpoint,
     GroupActivitiesEndpoint,
     GroupDetailsEndpoint,
@@ -191,6 +192,7 @@ from sentry.issues.endpoints import (
     ProjectGroupStatsEndpoint,
     ProjectStacktraceLinkEndpoint,
     SharedGroupDetailsEndpoint,
+    ShortIdLookupEndpoint,
     SourceMapDebugEndpoint,
     TeamGroupsOldEndpoint,
 )
@@ -438,7 +440,6 @@ from .endpoints.organization_derive_code_mappings import OrganizationDeriveCodeM
 from .endpoints.organization_details import OrganizationDetailsEndpoint
 from .endpoints.organization_environments import OrganizationEnvironmentsEndpoint
 from .endpoints.organization_event_details import OrganizationEventDetailsEndpoint
-from .endpoints.organization_eventid import EventIdLookupEndpoint
 from .endpoints.organization_events import OrganizationEventsEndpoint
 from .endpoints.organization_events_facets import OrganizationEventsFacetsEndpoint
 from .endpoints.organization_events_facets_performance import (
@@ -542,7 +543,6 @@ from .endpoints.organization_sdk_updates import (
 )
 from .endpoints.organization_search_details import OrganizationSearchDetailsEndpoint
 from .endpoints.organization_sessions import OrganizationSessionsEndpoint
-from .endpoints.organization_shortid import ShortIdLookupEndpoint
 from .endpoints.organization_slugs import SlugsUpdateEndpoint
 from .endpoints.organization_spans_fields import (
     OrganizationSpansFieldsEndpoint,
