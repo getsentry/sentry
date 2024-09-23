@@ -36,6 +36,55 @@ seer_anomaly_detection_connection_pool = connection_from_url(
 )
 
 
+def handle_seer_error_responses(response, config, context, log_params):
+    def log_statement(log_level, text, extra_data=None):
+        log_data = {**log_params}
+        if extra_data:
+            log_data.update(**extra_data)
+        if log_level == "error":
+            logger.error(text, extra=log_data)
+        elif log_level == "warning":
+            logger.warning(text, extra=log_data)
+
+    extra_response_data = {"response_data": response.data, "response_code": response.status}
+    if response.status > 400:
+        log_statement(
+            "error", "Error when hitting Seer detect anomalies endpoint", extra_response_data
+        )
+        return True
+
+    try:
+        decoded_data = response.data.decode("utf-8")
+    except AttributeError:
+        extra_data = {**log_params, **extra_response_data}
+        logger.exception("Failed to parse Seer anomaly detection response", extra=extra_data)
+        return True
+
+    try:
+        results: DetectAnomaliesResponse = json.loads(decoded_data)
+    except JSONDecodeError:
+        extra_response_data["response_data"] = decoded_data
+        log_statement(
+            "exception", "Failed to parse Seer anomaly detection response", extra_response_data
+        )
+        return True
+
+    if not results.get("success"):
+        extra_data = {"message": results.get("message", "")}
+        log_statement("error", "Error when hitting Seer detect anomalies endpoint", extra_data)
+        return True
+
+    if not results.get("timeseries"):
+        extra_data = {
+            "response_data": results.get("message"),
+        }
+        log_statement(
+            "warning", "Seer anomaly detection response returned no potential anomalies", extra_data
+        )
+        return True
+    return False
+
+
 def get_historical_anomaly_data_from_seer_preview(
     current_data: list[TimeSeriesPoint],
     historical_data: list[TimeSeriesPoint],
@@ -53,10 +102,8 @@ def get_historical_anomaly_data_from_seer_preview(
     if data_start_index == -1:
         return []
 
-    data_start_time = datetime.fromtimestamp(
-        historical_data.get(data_start_index, {}).get("timestamp")
-    )
-    data_end_time = datetime.fromtimestamp(historical_data.get(data_end_index, {}).get("timestamp"))
+    data_start_time = datetime.fromtimestamp(historical_data[data_start_index]["timestamp"])
+    data_end_time = datetime.fromtimestamp(historical_data[data_end_index]["timestamp"])
     if data_end_time - data_start_time < timedelta(days=MIN_DAYS):
         return []
 
@@ -87,67 +134,12 @@ def get_historical_anomaly_data_from_seer_preview(
         logger.warning("Timeout error when hitting anomaly detection endpoint", extra=extra_data)
         return None
 
-    if response.status > 400:
-        logger.error(
-            "Error when hitting Seer detect anomalies endpoint",
-            extra={
-                "response_data": response.data,
-                "response_code": response.status,
-                **extra_data,
-            },
-        )
-        return None
-    try:
-        decoded_data = response.data.decode("utf-8")
-    except AttributeError:
-        logger.exception(
-            "Failed to parse Seer anomaly detection response",
-            extra={
-                "ad_config": config,
-                "context": context,
-                "response_data": response.data,
-                "response_code": response.status,
-            },
-        )
+    error = handle_seer_error_responses(response, config, context, extra_data)
+    if error:
         return None
 
-    try:
-        results: DetectAnomaliesResponse = json.loads(decoded_data)
-    except JSONDecodeError:
-        logger.exception(
-            "Failed to parse Seer anomaly detection response",
-            extra={
-                "ad_config": config,
-                "context": context,
-                "response_data": decoded_data,
-                "response_code": response.status,
-            },
-        )
-        return None
-
-    if not results.get("success"):
-        logger.error(
-            "Error when hitting Seer detect anomalies endpoint",
-            extra={
-                "error_message": results.get("message", ""),
-                **extra_data,
-            },
-        )
-        return None
-
-    ts = results.get("timeseries")
-    if not ts:
-        logger.warning(
-            "Seer anomaly detection response returned no potential anomalies",
-            extra={
-                "ad_config": config,
-                "context": context,
-                "response_data": results.get("message"),
-            },
-        )
-        return None
-    # Return the list of evaluated points if everything looks ok
-    return ts
+    results: DetectAnomaliesResponse = json.loads(response.data.decode("utf-8"))
+    return results.get("timeseries")
 
 
 def get_historical_anomaly_data_from_seer(

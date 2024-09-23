@@ -192,7 +192,9 @@ class OrganizationEventsAnomaliesEndpointTest(APITestCase):
         mock_logger.exception.assert_called_with(
             "Failed to parse Seer anomaly detection response",
             extra={
-                "ad_config": self.config,
+                "organization_id": self.organization.id,
+                "project_id": 1,
+                "config": self.config,
                 "context": self.context,
                 "response_data": None,
                 "response_code": 400,
@@ -221,6 +223,7 @@ class OrganizationEventsAnomaliesEndpointTest(APITestCase):
             "Error when hitting Seer detect anomalies endpoint",
             extra={
                 "response_data": "Bad stuff",
+                "response_code": 500,
                 "organization_id": self.organization.id,
                 "project_id": 1,
                 "config": self.config,
@@ -254,7 +257,7 @@ class OrganizationEventsAnomaliesEndpointTest(APITestCase):
         mock_logger.error.assert_called_with(
             "Error when hitting Seer detect anomalies endpoint",
             extra={
-                "error_message": "I have revolted against my human overlords",
+                "message": "I have revolted against my human overlords",
                 "organization_id": self.organization.id,
                 "project_id": 1,
                 "config": self.config,
@@ -286,8 +289,10 @@ class OrganizationEventsAnomaliesEndpointTest(APITestCase):
         mock_logger.warning.assert_called_with(
             "Seer anomaly detection response returned no potential anomalies",
             extra={
+                "organization_id": self.organization.id,
+                "project_id": 1,
                 "response_data": "moo deng is cute",
-                "ad_config": self.config,
+                "config": self.config,
                 "context": self.context,
             },
         )
