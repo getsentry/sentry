@@ -37,7 +37,7 @@ def translate_direction(direction: int) -> str:
 
 def get_snuba_query_string(snuba_query: SnubaQuery) -> str:
     """
-    Generate a query string that matches what events-stats does
+    Generate a query string that matches what the OrganizationEventsStatsEndpoint does
     """
     SNUBA_QUERY_EVENT_TYPE_TO_STRING = {
         SnubaQueryEventType.EventType.ERROR: "error",
@@ -51,9 +51,7 @@ def get_snuba_query_string(snuba_query: SnubaQuery) -> str:
             SNUBA_QUERY_EVENT_TYPE_TO_STRING[event_type] for event_type in snuba_query.event_types
         ]
         event_types_string = "(event.type:["
-        for event_type in event_types_list:
-            event_types_string += event_type + ","
-        event_types_string = event_types_string[:-1]  # cut off the trailing comma
+        event_types_string += ", ".join(event_types_list)
         event_types_string += "])"
     else:
         # e.g. (is:unresolved) AND (event.type:error)
@@ -109,45 +107,57 @@ def get_crash_free_historical_data(
     )
 
 
+def format_crash_free_data(data: SnubaTSResult) -> list[TimeSeriesPoint]:
+    formatted_data: list[TimeSeriesPoint] = []
+
+    nested_data = data.data.get("data", [])
+    groups = nested_data.get("groups")
+    if not len(groups):
+        return formatted_data
+    series = groups[0].get("series")
+
+    for time, count in zip(nested_data.get("intervals"), series.get("sum(session)", 0)):
+        date = datetime.strptime(time, "%Y-%m-%dT%H:%M:%SZ")
+        ts_point = TimeSeriesPoint(timestamp=date.timestamp(), value=count)
+        formatted_data.append(ts_point)
+    return formatted_data
+
+
+def format_snuba_ts_data(
+    data: SnubaTSResult, query_columns: list[str], organization: Organization
+) -> list[TimeSeriesPoint]:
+    formatted_data: list[TimeSeriesPoint] = []
+
+    serializer = SnubaTSResultSerializer(organization=organization, lookup=None, user=None)
+    serialized_result = serializer.serialize(
+        data,
+        resolve_axis_column(query_columns[0]),
+        allow_partial_buckets=False,
+        zerofill_results=False,
+        extra_columns=None,
+    )
+
+    for data in serialized_result.get("data"):
+        if len(data) > 1:
+            count_data = data[1]
+            count = 0
+            if len(count_data):
+                count = count_data[0].get("count", 0)
+            ts_point = TimeSeriesPoint(timestamp=data[0], value=count)
+            formatted_data.append(ts_point)
+    return formatted_data
+
+
 def format_historical_data(
     data: SnubaTSResult, query_columns: list[str], dataset: Any, organization: Organization
 ) -> list[TimeSeriesPoint]:
     """
     Format Snuba data into the format the Seer API expects.
     """
-    formatted_data: list[TimeSeriesPoint] = []
-
     if dataset == metrics_performance:
-        nested_data = data.data.get("data", [])
-        groups = nested_data.get("groups")
-        if not len(groups):
-            return formatted_data
-        series = groups[0].get("series")
+        return format_crash_free_data(data)
 
-        for time, count in zip(nested_data.get("intervals"), series.get("sum(session)", 0)):
-            date = datetime.strptime(time, "%Y-%m-%dT%H:%M:%SZ")
-            ts_point = TimeSeriesPoint(timestamp=date.timestamp(), value=count)
-            formatted_data.append(ts_point)
-    else:
-        serializer = SnubaTSResultSerializer(organization=organization, lookup=None, user=None)
-        serialized_result = serializer.serialize(
-            data,
-            resolve_axis_column(query_columns[0]),
-            allow_partial_buckets=False,
-            zerofill_results=False,
-            extra_columns=None,
-        )
-
-        for data in serialized_result.get("data"):
-            if len(data) > 1:
-                count_data = data[1]
-                count = 0
-                if len(count_data):
-                    count = count_data[0].get("count", 0)
-                ts_point = TimeSeriesPoint(timestamp=data[0], value=count)
-                formatted_data.append(ts_point)
-
-    return formatted_data
+    return format_snuba_ts_data(data, query_columns, organization)
 
 
 def fetch_historical_data(

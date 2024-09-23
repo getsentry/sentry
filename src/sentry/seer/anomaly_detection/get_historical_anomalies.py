@@ -82,7 +82,10 @@ def get_historical_anomaly_data_from_seer(
         )
         return None
     formatted_data = format_historical_data(
-        historical_data, query_columns, dataset, project.organization
+        data=historical_data,
+        query_columns=query_columns,
+        dataset=dataset,
+        organization=project.organization,
     )
     if (
         not alert_rule.sensitivity

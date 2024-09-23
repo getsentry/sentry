@@ -65,13 +65,18 @@ def send_historical_data_to_seer(alert_rule: AlertRule, project: Project) -> Ale
     window_min = int(snuba_query.time_window / 60)
     dataset = get_dataset(snuba_query.dataset)
     query_columns = get_query_columns([snuba_query.aggregate], snuba_query.time_window)
-    historical_data = fetch_historical_data(alert_rule, snuba_query, query_columns, project)
+    historical_data = fetch_historical_data(
+        alert_rule=alert_rule, snuba_query=snuba_query, query_columns=query_columns, project=project
+    )
 
     if not historical_data:
         raise ValidationError("No historical data available.")
 
     formatted_data = format_historical_data(
-        historical_data, query_columns, dataset, project.organization
+        data=historical_data,
+        query_column=query_columns,
+        dataset=dataset,
+        organization=project.organization,
     )
     if not formatted_data:
         raise ValidationError("Unable to get historical data for this alert.")
