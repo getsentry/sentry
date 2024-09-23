@@ -29,7 +29,7 @@ class SentryAppInstallationTokenCreator:
     expires_at: datetime.date | None = None
     generate_audit: bool = False
 
-    def run(self, user: User, request: HttpRequest | None = None) -> ApiToken:
+    def run(self, user: User | RpcUser, request: HttpRequest | None = None) -> ApiToken:
         with transaction.atomic(router.db_for_write(ApiToken)):
             self._check_token_limit()
             api_token = self._create_api_token()

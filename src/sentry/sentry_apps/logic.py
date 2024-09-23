@@ -101,7 +101,7 @@ class SentryAppUpdater:
     popularity: int | None = None
     features: list[int] | None = None
 
-    def run(self, user: User) -> SentryApp:
+    def run(self, user: User | RpcUser) -> SentryApp:
         with transaction.atomic(router.db_for_write(User)):
             self._update_name()
             self._update_author()
@@ -122,7 +122,7 @@ class SentryAppUpdater:
         self.record_analytics(user, new_schema_elements)
         return self.sentry_app
 
-    def _update_features(self, user: User) -> None:
+    def _update_features(self, user: User | RpcUser) -> None:
         if self.features is not None:
             if not _is_elevated_user(user) and self.sentry_app.status == SentryAppStatus.PUBLISHED:
                 raise APIError("Cannot update features on a published integration.")
@@ -141,7 +141,7 @@ class SentryAppUpdater:
         if self.author is not None:
             self.sentry_app.author = self.author
 
-    def _update_status(self, user: User) -> None:
+    def _update_status(self, user: User | RpcUser) -> None:
         if self.status is not None:
             if _is_elevated_user(user):
                 if self.status == SentryAppStatus.PUBLISHED_STR:
@@ -239,7 +239,7 @@ class SentryAppUpdater:
             self.sentry_app.application.allowed_origins = "\n".join(self.allowed_origins)
             self.sentry_app.application.save()
 
-    def _update_popularity(self, user: User) -> None:
+    def _update_popularity(self, user: User | RpcUser) -> None:
         if self.popularity is not None:
             if _is_elevated_user(user):
                 self.sentry_app.popularity = self.popularity
@@ -269,7 +269,7 @@ class SentryAppUpdater:
                     type=element["type"], sentry_app_id=self.sentry_app.id, schema=element
                 )
 
-    def record_analytics(self, user: User, new_schema_elements: set[str] | None) -> None:
+    def record_analytics(self, user: User | RpcUser, new_schema_elements: set[str] | None) -> None:
         analytics.record(
             "sentry_app.updated",
             user_id=user.id,
@@ -306,7 +306,7 @@ class SentryAppCreator:
     def run(
         self,
         *,
-        user: User,
+        user: User | RpcUser,
         request: HttpRequest | None = None,
         skip_default_auth_token: bool = False,
     ) -> SentryApp:
@@ -407,7 +407,7 @@ class SentryAppCreator:
                 sentry_sdk.capture_message("IntegrityError while creating IntegrationFeature")
 
     def _install(
-        self, *, slug: str, user: User, request: HttpRequest | None
+        self, *, slug: str, user: User | RpcUser, request: HttpRequest | None
     ) -> SentryAppInstallation:
         return SentryAppInstallationCreator(
             organization_id=self.organization_id,
@@ -416,7 +416,7 @@ class SentryAppCreator:
         ).run(user=user, request=request)
 
     def _create_access_token(
-        self, user: User, install: SentryAppInstallation, request: HttpRequest | None
+        self, user: User | RpcUser, install: SentryAppInstallation, request: HttpRequest | None
     ) -> None:
         install.api_token = SentryAppInstallationTokenCreator(sentry_app_installation=install).run(
             request=request, user=user
@@ -444,7 +444,7 @@ class SentryAppCreator:
                     data={"name": sentry_app.name},
                 )
 
-    def record_analytics(self, user: User, sentry_app: SentryApp) -> None:
+    def record_analytics(self, user: User | RpcUser, sentry_app: SentryApp) -> None:
         analytics.record(
             "sentry_app.created",
             user_id=user.id,

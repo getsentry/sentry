@@ -3,12 +3,10 @@ from unittest.mock import patch
 import orjson
 
 from sentry import audit_log, deletions
-from sentry.api.endpoints.integrations.sentry_apps.details import (
-    PARTNERSHIP_RESTRICTED_ERROR_MESSAGE,
-)
 from sentry.constants import SentryAppStatus
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.organizationmember import OrganizationMember
+from sentry.sentry_apps.api.endpoints.sentry_app_details import PARTNERSHIP_RESTRICTED_ERROR_MESSAGE
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.models.servicehook import ServiceHook

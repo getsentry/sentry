@@ -18,7 +18,7 @@ from sentry.utils.sentry_apps import EXTENDED_VALID_EVENTS, SentryAppWebhookRequ
 INVALID_DATE_FORMAT_MESSAGE = "Invalid date format. Format must be YYYY-MM-DD HH:MM:SS."
 
 
-def filter_by_date(request: Mapping[str, Any], start: float, end: float) -> bool:
+def filter_by_date(request: Mapping[str, Any], start: datetime, end: datetime) -> bool:
     date_str = request.get("date")
     if not date_str:
         return False
@@ -26,7 +26,7 @@ def filter_by_date(request: Mapping[str, Any], start: float, end: float) -> bool
     return start <= timestamp <= end
 
 
-def filter_by_organization(request: Mapping[str, Any], organization: Organization) -> bool:
+def filter_by_organization(request: Mapping[str, Any], organization: Organization | None) -> bool:
     if not organization:
         return True
     return request["organization_id"] == organization.id
@@ -57,27 +57,31 @@ class SentryAppRequestsEndpoint(RegionSentryAppBaseEndpoint):
         :qparam string start: Optionally specify a date to begin at. Format must be YYYY-MM-DD HH:MM:SS
         :qparam string end: Optionally specify a date to end at. Format must be YYYY-MM-DD HH:MM:SS
         """
+
         date_format = "%Y-%m-%d %H:%M:%S"
-        now = datetime.now().strftime(date_format)
-        default_start = "2000-01-01 00:00:00"
+        start_time: datetime = datetime.strptime("2000-01-01 00:00:00", date_format)
+        end_time: datetime = datetime.now()
 
         event_type = request.GET.get("eventType")
         errors_only = request.GET.get("errorsOnly")
         org_slug = request.GET.get("organizationSlug")
-        start = request.GET.get("start", default_start)
-        end = request.GET.get("end", now)
+        start_parameter = request.GET.get("start", None)
+        end_parameter = request.GET.get("end", None)
 
         try:
-            start = datetime.strptime(start, date_format)
+            start_time = (
+                datetime.strptime(start_parameter, date_format) if start_parameter else start_time
+            )
         except ValueError:
             return Response({"detail": INVALID_DATE_FORMAT_MESSAGE}, status=400)
 
         try:
-            end = datetime.strptime(end, date_format)
+
+            end_time = datetime.strptime(end_parameter, date_format) if end_parameter else end_time
         except ValueError:
             return Response({"detail": INVALID_DATE_FORMAT_MESSAGE}, status=400)
 
-        kwargs = {}
+        kwargs: dict[Any, Any] = {}
         if event_type:
             if event_type not in EXTENDED_VALID_EVENTS:
                 return Response({"detail": "Invalid event type."}, status=400)
@@ -95,7 +99,9 @@ class SentryAppRequestsEndpoint(RegionSentryAppBaseEndpoint):
 
         filtered_requests = []
         for i, req in enumerate(buffer.get_requests(**kwargs)):
-            if filter_by_date(req, start, end) and filter_by_organization(req, organization):
+            if filter_by_date(req, start_time, end_time) and filter_by_organization(
+                req, organization
+            ):
                 filtered_requests.append(BufferedRequest(id=i, data=req))
 
         return Response(serialize(filtered_requests, request.user, RequestSerializer(sentry_app)))

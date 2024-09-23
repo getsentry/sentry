@@ -1,3 +1,5 @@
+from collections.abc import Iterable
+
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -10,6 +12,8 @@ from sentry.constants import SentryAppStatus
 from sentry.models.avatars.sentry_app_avatar import SentryAppAvatar, SentryAppAvatarTypes
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.sentry_apps.logic import SentryAppUpdater
+from sentry.users.models.user import User
+from sentry.users.services.user.model import RpcUser
 from sentry.utils import email
 
 
@@ -54,6 +58,9 @@ class SentryAppPublishRequestEndpoint(SentryAppBaseEndpoint):
                 status=400,
             )
 
+        assert isinstance(request.user, User) or isinstance(
+            request.user, RpcUser
+        ), "User must be authenticated to update a Sentry App"
         SentryAppUpdater(
             sentry_app=sentry_app,
             status=SentryAppStatus.PUBLISH_REQUEST_INPROGRESS_STR,
@@ -65,8 +72,11 @@ class SentryAppPublishRequestEndpoint(SentryAppBaseEndpoint):
         org_slug = "<unknown>" if org_mapping is None else org_mapping.slug
         message = f"User {request.user.email} of organization {org_slug} wants to publish {sentry_app.slug}\n"
 
-        for question_pair in request.data.get("questionnaire"):
-            message += "\n\n>{}\n{}".format(question_pair["question"], question_pair["answer"])
+        questionnaire: Iterable[dict[str, str]] = request.data.get("questionnaire", [])
+        for question_pair in questionnaire:
+            message += "\n\n>{}\n{}".format(
+                question_pair.get("question", ""), question_pair.get("answer", "")
+            )
 
         subject = "Sentry Integration Publication Request from %s" % org_slug
 
