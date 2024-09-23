@@ -3,6 +3,7 @@ import 'intersection-observer'; // polyfill
 import {useCallback, useContext, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import type {Node} from '@react-types/shared';
+import {motion} from 'framer-motion';
 
 import {
   DraggableTabList,
@@ -387,24 +388,34 @@ export function DraggableTabBar({
           disabled={tab.key === editingTabKey}
         >
           <TabContentWrap>
-            <EditableTabTitle
-              label={tab.label}
-              isEditing={editingTabKey === tab.key}
-              setIsEditing={isEditing => setEditingTabKey(isEditing ? tab.key : null)}
-              onChange={newLabel => handleOnTabRenamed(newLabel.trim(), tab.key)}
-              tabKey={tab.key}
-            />
+            <motion.div layout="position" transition={{duration: 0.25}}>
+              <EditableTabTitle
+                label={tab.label}
+                isEditing={editingTabKey === tab.key}
+                setIsEditing={isEditing => setEditingTabKey(isEditing ? tab.key : null)}
+                onChange={newLabel => handleOnTabRenamed(newLabel.trim(), tab.key)}
+                tabKey={tab.key}
+              />
+            </motion.div>
             {/* If tablistState isn't initialized, we want to load the elipsis menu
                 for the initial tab, that way it won't load in a second later
                 and cause the tabs to shift and animate on load.
             */}
             {((tabListState && tabListState?.selectedKey === tab.key) ||
               (!tabListState && tab.key === initialTabKey)) && (
-              <DraggableTabMenuButton
-                hasUnsavedChanges={!!tab.unsavedChanges}
-                menuOptions={makeMenuOptions(tab)}
-                aria-label={`${tab.label} Tab Options`}
-              />
+              <motion.div
+                // This stops the ellipsis menu from animating in on load (when tabListState isn't initialized yet),
+                // but enables the animation later on when switching tabs
+                initial={tabListState ? {opacity: 0} : false}
+                animate={{opacity: 1}}
+                transition={{delay: 0.1}}
+              >
+                <DraggableTabMenuButton
+                  hasUnsavedChanges={!!tab.unsavedChanges}
+                  menuOptions={makeMenuOptions(tab)}
+                  aria-label={`${tab.label} Ellipsis Menu`}
+                />
+              </motion.div>
             )}
           </TabContentWrap>
         </DraggableTabList.Item>

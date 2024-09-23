@@ -17,6 +17,8 @@ from sentry.integrations.models.integration_feature import IntegrationFeature, I
 from sentry.sentry_apps.installations import SentryAppInstallationCreator
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
+from sentry.users.models.user import User
+from sentry.users.services.user.model import RpcUser
 
 
 class SentryAppInstallationsSerializer(serializers.Serializer):
@@ -90,6 +92,9 @@ class SentryAppInstallationsEndpoint(SentryAppInstallationsBaseEndpoint):
                 sentry_app__slug=slug, organization_id=organization.id
             )
         except SentryAppInstallation.DoesNotExist:
+            assert isinstance(
+                request.user, (User, RpcUser)
+            ), "user must be authenticated to create a SentryAppInstallation"
             install = SentryAppInstallationCreator(
                 organization_id=organization.id, slug=slug, notify=True
             ).run(user=request.user, request=request)
