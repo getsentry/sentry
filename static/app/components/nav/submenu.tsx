@@ -7,8 +7,8 @@ import Link from 'sentry/components/links/link';
 import {useIndicator} from 'sentry/components/nav/useIndicator';
 import type {SubmenuItem} from 'sentry/components/nav/utils';
 import {
-  getActiveProps,
-  getActiveStatus,
+  getNavigationItemStatus,
+  getNavigationItemStatusProps,
   useLocationDescriptor,
 } from 'sentry/components/nav/utils';
 import {space} from 'sentry/styles/space';
@@ -51,7 +51,9 @@ const ItemList = styled('ul')`
 
 function Item({to, label, check, ...props}: React.PropsWithChildren<SubmenuItem>) {
   const location = useLocation();
-  const activeProps = getActiveProps(getActiveStatus({to, label}, location));
+  const activeProps = getNavigationItemStatusProps(
+    getNavigationItemStatus({to, label}, location)
+  );
   const toProps = useLocationDescriptor(to);
 
   const FeatureGuard = check ? Feature : Fragment;

@@ -59,49 +59,44 @@ export function resolveSidebarItem(
   return item;
 }
 
-export enum ActiveStatus {
-  INACTIVE = 'inactive',
-  ACTIVE_PARENT = 'active-parent',
-  ACTIVE = 'active',
-}
+export type NavigationItemStatus = 'inactive' | 'active' | 'active-parent';
 
-export function getActiveStatus(
+export function getNavigationItemStatus(
   item: SidebarItem | SubmenuItem,
   location: ReturnType<typeof useLocation>
-): ActiveStatus {
+): NavigationItemStatus {
   if (item.to.includes('/issues/') && item.to.includes('query=')) {
-    if (location.search.includes('viewId') && item.label === 'All')
-      return ActiveStatus.ACTIVE;
+    if (location.search.includes('viewId') && item.label === 'All') return 'active';
     return hasMatchingQueryParam({to: item.to, label: item.label}, location)
-      ? ActiveStatus.ACTIVE
-      : ActiveStatus.INACTIVE;
+      ? 'active'
+      : 'inactive';
   }
   const normalizedTo = normalizeUrl(item.to);
   const normalizedCurrent = normalizeUrl(location.pathname);
-  if (normalizedTo === normalizedCurrent) return ActiveStatus.ACTIVE;
-  if (isItemActive({to: item.to, label: item.label})) return ActiveStatus.ACTIVE;
+  if (normalizedTo === normalizedCurrent) return 'active';
+  if (isItemActive({to: item.to, label: item.label})) return 'active';
   if (
     'submenu' in item &&
     item.submenu?.find(
       subitem =>
         typeof subitem === 'object' &&
-        getActiveStatus(subitem, location) !== ActiveStatus.INACTIVE
+        getNavigationItemStatus(subitem, location) !== 'inactive'
     ) !== undefined
   ) {
-    return ActiveStatus.ACTIVE_PARENT;
+    return 'active-parent';
   }
-  return ActiveStatus.INACTIVE;
+  return 'inactive';
 }
 
-export function getActiveProps(
-  status: ActiveStatus
+export function getNavigationItemStatusProps(
+  status: NavigationItemStatus
 ): Partial<Pick<HTMLProps<HTMLElement>, 'className' | 'aria-current'>> {
   switch (status) {
-    case ActiveStatus.ACTIVE_PARENT:
+    case 'active-parent':
       return {className: 'active'};
-    case ActiveStatus.ACTIVE:
+    case 'active':
       return {className: 'active', 'aria-current': 'page'};
-    case ActiveStatus.INACTIVE:
+    case 'inactive':
     default:
       return {};
   }

@@ -7,8 +7,8 @@ import Link from 'sentry/components/links/link';
 import {useIndicator} from 'sentry/components/nav/useIndicator';
 import type {SidebarItem} from 'sentry/components/nav/utils';
 import {
-  getActiveProps,
-  getActiveStatus,
+  getNavigationItemStatus,
+  getNavigationItemStatusProps,
   useLocationDescriptor,
 } from 'sentry/components/nav/utils';
 import {space} from 'sentry/styles/space';
@@ -54,7 +54,7 @@ const ItemList = styled('ul')`
   width: 100%;
   color: rgba(255, 255, 255, 0.85);
 
-  @media screen and (min-width: ${p => p.theme.breakpoints.medium} {
+  @media screen and (min-width: ${p => p.theme.breakpoints.medium}) {
     gap: ${space(1)};
   }
 `;
@@ -68,7 +68,9 @@ function Item({
   ...props
 }: React.PropsWithChildren<SidebarItem>) {
   const location = useLocation();
-  const activeProps = getActiveProps(getActiveStatus({to, label, submenu}, location));
+  const itemProps = getNavigationItemStatusProps(
+    getNavigationItemStatus({to, label, submenu}, location)
+  );
   const toProps = useLocationDescriptor(to);
 
   const FeatureGuard = check ? Feature : Fragment;
@@ -82,7 +84,7 @@ function Item({
   return (
     <FeatureGuard {...featureGuardProps}>
       <ItemWrapper>
-        <Link to={toProps} {...props} {...activeProps}>
+        <Link to={toProps} {...props} {...itemProps}>
           {icon}
           <span>{label}</span>
         </Link>

@@ -2,8 +2,7 @@ import {useMemo} from 'react';
 
 import type {NavItemRaw, SidebarItem, SubmenuItem} from 'sentry/components/nav/utils';
 import {
-  ActiveStatus,
-  getActiveStatus,
+  getNavigationItemStatus,
   NAV_DIVIDER,
   resolveSidebarItem,
   splitAtDivider,
@@ -179,7 +178,7 @@ function formatNavItems(
     .map(item => (typeof item === 'object' ? resolveSidebarItem(item) : item));
   const primary = splitAtDivider(sidebar);
   const {submenu = []} = primary.body.find(
-    item => getActiveStatus(item, context.location) !== ActiveStatus.INACTIVE
+    item => getNavigationItemStatus(item, context.location) !== 'inactive'
   ) ?? {
     submenu: [],
   };
