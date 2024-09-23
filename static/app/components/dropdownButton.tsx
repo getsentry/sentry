@@ -51,6 +51,8 @@ function DropdownButton({
       {showChevron && (
         <ChevronWrap>
           <Chevron
+            light
+            color="subText"
             size={size === 'xs' ? 'small' : 'medium'}
             weight="medium"
             direction={isOpen ? 'up' : 'down'}
@@ -68,10 +70,6 @@ const ChevronWrap = styled('div')`
   margin-left: auto;
   padding-left: ${space(0.5)};
   flex-shrink: 0;
-
-  button:hover & {
-    opacity: 1;
-  }
 `;
 
 interface StyledButtonProps
