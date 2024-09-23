@@ -1,4 +1,4 @@
-import {type HTMLProps, useMemo} from 'react';
+import type {HTMLProps} from 'react';
 import type {LocationDescriptor} from 'history';
 
 import {isItemActive} from 'sentry/components/sidebar/sidebarItem';
@@ -144,17 +144,15 @@ export function splitAtDivider<T>(arr: (T | typeof NAV_DIVIDER)[]): {
   return {body, footer};
 }
 
-export function useLocationDescriptor(to?: string): LocationDescriptor {
-  return useMemo(() => {
-    if (!to) {
-      return '#';
-    }
-    const [pathname, search] = to.split('?');
+export function makeLocationDescriptorFromTo(to: string): LocationDescriptor {
+  if (!to) {
+    return '#';
+  }
+  const [pathname, search] = to.split('?');
 
-    return {
-      pathname,
-      search: search ? `?${search}` : undefined,
-      state: {source: SIDEBAR_NAVIGATION_SOURCE},
-    };
-  }, [to]);
+  return {
+    pathname,
+    search: search ? `?${search}` : undefined,
+    state: {source: SIDEBAR_NAVIGATION_SOURCE},
+  };
 }

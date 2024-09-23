@@ -9,7 +9,7 @@ import type {SubmenuItem} from 'sentry/components/nav/utils';
 import {
   getNavigationItemStatus,
   getNavigationItemStatusProps,
-  useLocationDescriptor,
+  makeLocationDescriptorFromTo,
 } from 'sentry/components/nav/utils';
 import {space} from 'sentry/styles/space';
 import theme from 'sentry/utils/theme';
@@ -54,7 +54,7 @@ function Item({to, label, check, ...props}: React.PropsWithChildren<SubmenuItem>
   const activeProps = getNavigationItemStatusProps(
     getNavigationItemStatus({to, label}, location)
   );
-  const toProps = useLocationDescriptor(to);
+  const toProps = makeLocationDescriptorFromTo(to);
 
   const FeatureGuard = check ? Feature : Fragment;
   const featureGuardProps: any = check
