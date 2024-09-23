@@ -107,6 +107,7 @@ def load_defaults(manager: DeletionTaskManager) -> None:
     from sentry.sentry_apps.models.sentry_app import SentryApp
     from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
     from sentry.sentry_apps.models.sentry_app_installation_token import SentryAppInstallationToken
+    from sentry.sentry_apps.models.servicehook import ServiceHook
     from sentry.snuba import models as snuba_models
 
     from . import defaults
@@ -169,7 +170,7 @@ def load_defaults(manager: DeletionTaskManager) -> None:
     manager.register(SentryApp, defaults.SentryAppDeletionTask)
     manager.register(SentryAppInstallation, defaults.SentryAppInstallationDeletionTask)
     manager.register(SentryAppInstallationToken, defaults.SentryAppInstallationTokenDeletionTask)
-    manager.register(models.ServiceHook, defaults.ServiceHookDeletionTask)
+    manager.register(ServiceHook, defaults.ServiceHookDeletionTask)
     manager.register(models.SavedSearch, BulkModelDeletionTask)
     manager.register(models.Team, defaults.TeamDeletionTask)
     manager.register(models.UserReport, BulkModelDeletionTask)
