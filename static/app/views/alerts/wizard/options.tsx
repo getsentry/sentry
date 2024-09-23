@@ -136,7 +136,7 @@ export const getAlertWizardCategories = (org: Organization) => {
 
     if (org.features.includes('uptime-display-wizard-create')) {
       result.push({
-        categoryHeading: t('Uptime'),
+        categoryHeading: t('Uptime Monitoring'),
         options: ['uptime_monitor'],
       });
     }
