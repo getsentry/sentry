@@ -508,7 +508,7 @@ const AddViewButton = styled(Button)`
   display: flex;
   color: ${p => p.theme.gray300};
   font-weight: normal;
-  border-radius: 4px 4px 0 0;
+  border-radius: ${p => `${p.theme.borderRadius} ${p.theme.borderRadius} 0 0`};
   padding: ${space(1)} ${space(1)};
   height: 31px;
   line-height: 1.4;
