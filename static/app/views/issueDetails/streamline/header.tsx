@@ -172,39 +172,42 @@ export default function StreamlinedGroupHeader({
           event={event}
           query={location.query}
         />
-        <PriorityWorkflowWrapper>
-          <Wrapper>
-            {t('Priority')}
-            <GroupPriority group={group} />
-          </Wrapper>
-          <Wrapper>
-            {t('Assignee')}
-            <AssigneeSelector
-              group={group}
-              assigneeLoading={assigneeLoading}
-              handleAssigneeChange={handleAssigneeChange}
-            />
-          </Wrapper>
-          {group.participants.length > 0 && (
+        <SidebarWorkflowWrapper>
+          <WorkflowWrapper>
             <Wrapper>
-              {t('Participants')}
-              <ParticipantList users={userParticipants} teams={teamParticipants} />
+              {t('Priority')}
+              <GroupPriority group={group} />
             </Wrapper>
-          )}
-          {displayUsers.length > 0 && (
             <Wrapper>
-              {t('Viewers')}
-              <ParticipantList users={displayUsers} />
+              {t('Assignee')}
+              <AssigneeSelector
+                group={group}
+                assigneeLoading={assigneeLoading}
+                handleAssigneeChange={handleAssigneeChange}
+              />
             </Wrapper>
-          )}
+            {group.participants.length > 0 && (
+              <Wrapper>
+                {t('Participants')}
+                <ParticipantList users={userParticipants} teams={teamParticipants} />
+              </Wrapper>
+            )}
+            {displayUsers.length > 0 && (
+              <Wrapper>
+                {t('Viewers')}
+                <ParticipantList users={displayUsers} />
+              </Wrapper>
+            )}
+          </WorkflowWrapper>
+          <Divider />
           <Button
             icon={<IconDashboard />}
-            aria-label={'sidebar-toggle'}
-            size="zero"
+            size="xs"
             borderless
+            aria-label={'sidebar-toggle'}
             onClick={() => setSidebarOpen(!sidebarOpen)}
           />
-        </PriorityWorkflowWrapper>
+        </SidebarWorkflowWrapper>
       </InfoWrapper>
       <div>
         <GroupHeaderTabs {...{baseUrl, disabledTabs, eventRoute, group, project}} />
@@ -267,7 +270,13 @@ const InfoWrapper = styled('div')<{isResolvedOrIgnored: boolean}>`
   flex-wrap: wrap;
 `;
 
-const PriorityWorkflowWrapper = styled('div')`
+const SidebarWorkflowWrapper = styled('div')`
+  display: flex;
+  gap: ${space(0.5)};
+  align-items: center;
+`;
+
+const WorkflowWrapper = styled('div')`
   display: flex;
   column-gap: ${space(2)};
   flex-wrap: wrap;
