@@ -7,7 +7,7 @@ from sentry.mediators.mediator import Mediator
 from sentry.mediators.param import Param
 from sentry.models.apigrant import ApiGrant
 from sentry.sentry_apps.api.serializers.app_platform_event import AppPlatformEvent
-from sentry.sentry_apps.api.serializers.sentry_app_installation_response import (
+from sentry.sentry_apps.api.serializers.sentry_app_installation_responses import (
     SentryAppInstallationSerializer,
 )
 from sentry.sentry_apps.models.sentry_app import SentryApp
