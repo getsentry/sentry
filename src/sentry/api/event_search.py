@@ -137,13 +137,15 @@ text_filter = negation? text_key sep operator? search_value
 key                    = ~r"[a-zA-Z0-9_.-]+"
 quoted_key             = '"' ~r"[a-zA-Z0-9_.:-]+" '"'
 explicit_tag_key       = "tags" open_bracket search_key closed_bracket
+explicit_typed_tag_key = "tags" open_bracket search_key spaces comma spaces search_type closed_bracket
 aggregate_key          = key open_paren spaces function_args? spaces closed_paren
 function_args          = aggregate_param (spaces comma spaces !comma aggregate_param?)*
 aggregate_param        = quoted_aggregate_param / raw_aggregate_param
 raw_aggregate_param    = ~r"[^()\t\n, \"]+"
 quoted_aggregate_param = '"' ('\\"' / ~r'[^\t\n\"]')* '"'
 search_key             = key / quoted_key
-text_key               = explicit_tag_key / search_key
+search_type            = "number" / "string"
+text_key               = explicit_tag_key / explicit_typed_tag_key / search_key
 value                  = ~r"[^()\t\n ]*"
 quoted_value           = '"' ('\\"' / ~r'[^"]')* '"'
 in_value               = (&in_value_termination in_value_char)+
@@ -1045,6 +1047,12 @@ class SearchVisitor(NodeVisitor):
 
     def visit_explicit_tag_key(self, node, children):
         return SearchKey(f"tags[{children[2].name}]")
+
+    def visit_explicit_typed_tag_key(self, node, children):
+        return SearchKey(f"tags[{children[2].name},{children[6]}]")
+
+    def visit_search_type(self, node, children):
+        return node.text
 
     def visit_aggregate_key(self, node, children):
         children = remove_optional_nodes(children)
