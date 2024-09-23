@@ -217,11 +217,15 @@ export function SuggestedFixSnippet({
   icon?: React.ReactNode;
 }) {
   function getSourceLink() {
-    if (!repos) return undefined;
+    if (!repos) {
+      return undefined;
+    }
     const repo = repos.find(
       r => r.name === snippet.repo_name && r.provider === 'integrations:github'
     );
-    if (!repo) return undefined;
+    if (!repo) {
+      return undefined;
+    }
     return `${repo.url}/blob/${repo.default_branch}/${snippet.file_path}`;
   }
   const extension = getFileExtension(snippet.file_path);

@@ -84,7 +84,8 @@
         "useNodejsImportProtocol": "error",
         "useLiteralEnumMembers": "error",
         "useEnumInitializers": "error",
-        "useAsConstAssertion": "error"
+        "useAsConstAssertion": "error",
+        "useBlockStatements": "error"
       }
     }
   },
@@ -100,8 +101,12 @@
     ]
   },
   "css": {
-    "formatter": { "enabled": false },
-    "linter": { "enabled": false }
+    "formatter": {
+      "enabled": false
+    },
+    "linter": {
+      "enabled": false
+    }
   },
   "formatter": {
     "enabled": true,

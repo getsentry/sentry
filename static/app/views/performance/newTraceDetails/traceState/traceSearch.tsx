@@ -100,7 +100,9 @@ export function traceSearchReducer(
           node: state.results[0].value,
         };
       }
-      if (!state.results) return state;
+      if (!state.results) {
+        return state;
+      }
 
       let next = state.resultIteratorIndex + 1;
       if (next > state.results.length - 1) {
@@ -127,7 +129,9 @@ export function traceSearchReducer(
           node: state.results[state.results.length - 1].value,
         };
       }
-      if (!state.results) return state;
+      if (!state.results) {
+        return state;
+      }
 
       let previous = state.resultIteratorIndex - 1;
       if (previous < 0) {

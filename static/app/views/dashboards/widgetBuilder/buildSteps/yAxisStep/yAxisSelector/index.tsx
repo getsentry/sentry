@@ -63,7 +63,9 @@ export function YAxisSelector({
       displayType === DisplayType.BIG_NUMBER
     ) {
       onChange(newAggregates, newAggregates.length - 1);
-    } else onChange(newAggregates);
+    } else {
+      onChange(newAggregates);
+    }
   }
 
   function handleAddEquation(event: React.MouseEvent) {
@@ -79,7 +81,9 @@ export function YAxisSelector({
     ) {
       const newSelectedAggregate = newAggregates.length - 1;
       onChange(newAggregates, newSelectedAggregate);
-    } else onChange(newAggregates);
+    } else {
+      onChange(newAggregates);
+    }
   }
 
   function handleRemoveQueryField(event: React.MouseEvent, fieldIndex: number) {
@@ -93,7 +97,9 @@ export function YAxisSelector({
     ) {
       const newSelectedAggregate = newAggregates.length - 1;
       onChange(newAggregates, newSelectedAggregate);
-    } else onChange(newAggregates);
+    } else {
+      onChange(newAggregates);
+    }
   }
 
   function handleChangeQueryField(value: QueryFieldValue, fieldIndex: number) {

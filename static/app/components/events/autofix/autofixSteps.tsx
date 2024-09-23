@@ -119,10 +119,11 @@ function useInView(ref: HTMLElement | null) {
       setInView(entry.isIntersecting);
     });
 
-    if (!ref)
+    if (!ref) {
       return () => {
         observer.disconnect();
       };
+    }
 
     observer.observe(ref);
     return () => {
@@ -143,9 +144,13 @@ export function AutofixSteps({data, groupId, runId, onRetry}: AutofixStepsProps)
     if (text.length > 0) {
       handleSelectFix({customRootCause: text});
     } else {
-      if (!steps) return;
+      if (!steps) {
+        return;
+      }
       const step = steps[steps.length - 1];
-      if (step.type !== AutofixStepType.ROOT_CAUSE_ANALYSIS) return;
+      if (step.type !== AutofixStepType.ROOT_CAUSE_ANALYSIS) {
+        return;
+      }
       const cause = step.causes[0];
       const id = cause.id;
       handleSelectFix({causeId: id});

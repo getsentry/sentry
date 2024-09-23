@@ -714,8 +714,9 @@ function WidgetBuilder({
     if (
       organization.features.includes('dashboards-bignumber-equations') &&
       defined(newSelectedAggregate)
-    )
+    ) {
       newQueries[0].selectedAggregate = newSelectedAggregate;
+    }
 
     set(newState, 'queries', newQueries);
     set(newState, 'userHasModified', true);

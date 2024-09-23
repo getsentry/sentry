@@ -67,8 +67,12 @@ export function isTraceNode(
 }
 
 export function shouldAddMissingInstrumentationSpan(sdk: string | undefined): boolean {
-  if (!sdk) return true;
-  if (sdk.length < 'sentry.javascript.'.length) return true;
+  if (!sdk) {
+    return true;
+  }
+  if (sdk.length < 'sentry.javascript.'.length) {
+    return true;
+  }
 
   switch (sdk.toLowerCase()) {
     case 'sentry.javascript.browser':
