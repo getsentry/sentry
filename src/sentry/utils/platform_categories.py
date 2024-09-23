@@ -50,6 +50,8 @@ MOBILE = {
 # When changing this file, make sure to keep sentry/static/app/data/platformCategories.tsx in sync.
 BACKEND = {
     "bun",
+    "cloudflare-pages",
+    "cloudflare-workers",
     "deno",
     "dotnet",
     "dotnet-aspnet",
@@ -72,7 +74,6 @@ BACKEND = {
     "java-logging",
     "java-spring-boot",
     "java-spring",
-    "javascript-cloudflare",
     "kotlin",
     "native",
     "node",
@@ -119,7 +120,7 @@ BACKEND = {
 SERVERLESS = {
     "dotnet-awslambda",
     "dotnet-gcpfunctions",
-    "javascript-cloudflare",
+    "cloudflare-workers",
     "node-awslambda",
     "node-azurefunctions",
     "node-gcpfunctions",
