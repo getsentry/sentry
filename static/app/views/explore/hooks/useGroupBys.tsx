@@ -33,7 +33,9 @@ function useGroupBysImpl({
     const rawGroupBys = decodeList(location.query.groupBy);
 
     // Filter out groupBys that are not in span field supported tags
-    const validGroupBys = rawGroupBys.filter(groupBy => tags.hasOwnProperty(groupBy));
+    const validGroupBys = rawGroupBys.filter(
+      groupBy => groupBy === '' || tags.hasOwnProperty(groupBy)
+    );
 
     if (validGroupBys.length) {
       return validGroupBys;
