@@ -53,7 +53,7 @@ class RegionalRunScheduleDeletionTest(abc.ABC, TestCase):
 
     def test_schedule_and_cancel(self):
         qs = self.create_simple_deletion()
-        inst = qs.first()
+        inst = qs.get()
 
         schedule = self.ScheduledDeletion.schedule(inst, days=0)
         self.ScheduledDeletion.cancel(inst)
@@ -64,7 +64,7 @@ class RegionalRunScheduleDeletionTest(abc.ABC, TestCase):
 
     def test_duplicate_schedule(self):
         qs = self.create_simple_deletion()
-        inst = qs.first()
+        inst = qs.get()
 
         first = self.ScheduledDeletion.schedule(inst, days=0)
         second = self.ScheduledDeletion.schedule(inst, days=1)
@@ -76,7 +76,7 @@ class RegionalRunScheduleDeletionTest(abc.ABC, TestCase):
 
     def test_simple(self):
         qs = self.create_simple_deletion()
-        inst = qs.first()
+        inst = qs.get()
         schedule = self.ScheduledDeletion.schedule(instance=inst, days=0)
 
         with self.tasks():
@@ -87,7 +87,7 @@ class RegionalRunScheduleDeletionTest(abc.ABC, TestCase):
 
     def test_should_proceed_check(self):
         qs = self.create_does_not_proceed_deletion()
-        inst = qs.first()
+        inst = qs.get()
 
         schedule = self.ScheduledDeletion.schedule(instance=inst, days=0)
 
@@ -99,7 +99,7 @@ class RegionalRunScheduleDeletionTest(abc.ABC, TestCase):
 
     def test_ignore_in_progress(self):
         qs = self.create_simple_deletion()
-        inst = qs.first()
+        inst = qs.get()
         schedule = self.ScheduledDeletion.schedule(instance=inst, days=0)
         schedule.update(in_progress=True)
 
@@ -111,7 +111,7 @@ class RegionalRunScheduleDeletionTest(abc.ABC, TestCase):
 
     def test_future_schedule(self):
         qs = self.create_simple_deletion()
-        inst = qs.first()
+        inst = qs.get()
         schedule = self.ScheduledDeletion.schedule(instance=inst, days=1)
 
         with self.tasks():
@@ -125,7 +125,7 @@ class RegionalRunScheduleDeletionTest(abc.ABC, TestCase):
         pending_delete.connect(signal_handler)
 
         qs = self.create_simple_deletion()
-        inst = qs.first()
+        inst = qs.get()
         self.ScheduledDeletion.schedule(instance=inst, actor=self.user, days=0)
 
         with self.tasks():
@@ -139,7 +139,7 @@ class RegionalRunScheduleDeletionTest(abc.ABC, TestCase):
 
     def test_no_pending_delete_trigger_on_skipped_delete(self):
         qs = self.create_does_not_proceed_deletion()
-        inst = qs.first()
+        inst = qs.get()
 
         signal_handler = Mock()
         pending_delete.connect(signal_handler)
@@ -154,8 +154,7 @@ class RegionalRunScheduleDeletionTest(abc.ABC, TestCase):
 
     def test_handle_missing_record(self):
         qs = self.create_simple_deletion()
-        inst = qs.first()
-        assert inst is not None
+        inst = qs.get()
         schedule = self.ScheduledDeletion.schedule(instance=inst, days=0)
         # Delete the inst, the deletion should remove itself, as its work is done.
         inst.delete()
@@ -167,7 +166,7 @@ class RegionalRunScheduleDeletionTest(abc.ABC, TestCase):
 
     def test_reattempt_simple(self):
         qs = self.create_simple_deletion()
-        inst = qs.first()
+        inst = qs.get()
         schedule = self.ScheduledDeletion.schedule(instance=inst, days=-3)
         schedule.update(in_progress=True)
         with self.tasks():
@@ -178,7 +177,7 @@ class RegionalRunScheduleDeletionTest(abc.ABC, TestCase):
 
     def test_reattempt_ignore_recent_jobs(self):
         qs = self.create_simple_deletion()
-        inst = qs.first()
+        inst = qs.get()
         schedule = self.ScheduledDeletion.schedule(instance=inst, days=0)
         schedule.update(in_progress=True)
         with self.tasks():
@@ -199,13 +198,13 @@ class RunRegionScheduledDeletionTest(RegionalRunScheduleDeletionTest):
     def reattempt_deletions(self) -> None:
         return reattempt_deletions()
 
-    def create_simple_deletion(self) -> QuerySet:
+    def create_simple_deletion(self) -> QuerySet[Team]:
         org = self.create_organization(name="test")
         team = self.create_team(organization=org, name="delete")
 
         return Team.objects.filter(id=team.id)
 
-    def create_does_not_proceed_deletion(self) -> QuerySet:
+    def create_does_not_proceed_deletion(self) -> QuerySet[Repository]:
         org = self.create_organization(name="test")
         project = self.create_project(organization=org)
         repo = self.create_repo(project=project, name="example/example")
@@ -226,13 +225,13 @@ class RunControlScheduledDeletionTest(RegionalRunScheduleDeletionTest):
     def reattempt_deletions(self) -> None:
         return reattempt_deletions_control()
 
-    def create_simple_deletion(self) -> QuerySet:
+    def create_simple_deletion(self) -> QuerySet[ApiApplication]:
         app = ApiApplication.objects.create(owner_id=self.user.id, allowed_origins="example.com")
         app.status = ApiApplicationStatus.pending_deletion
         app.save()
         return ApiApplication.objects.filter(id=app.id)
 
-    def create_does_not_proceed_deletion(self) -> QuerySet:
+    def create_does_not_proceed_deletion(self) -> QuerySet[ApiApplication]:
         app = ApiApplication.objects.create(owner_id=self.user.id, allowed_origins="example.com")
         app.status = ApiApplicationStatus.active
         app.save()
