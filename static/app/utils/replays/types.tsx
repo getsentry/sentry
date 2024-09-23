@@ -350,6 +350,7 @@ export const BreadcrumbCategories = [
   'device.battery',
   'device.connectivity',
   'device.orientation',
+  'feedback',
   'navigation',
   'replay.init',
   'replay.mutations',

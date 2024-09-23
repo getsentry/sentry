@@ -52,6 +52,7 @@ const TYPE_TO_LABEL: Record<string, string> = {
   tap: 'User Tap',
   device: 'Device',
   app: 'App',
+  custom: 'Custom',
 };
 
 const OPORCATEGORY_TO_TYPE: Record<string, keyof typeof TYPE_TO_LABEL> = {
@@ -113,6 +114,13 @@ function useBreadcrumbFilters({frames}: Options): Return {
 
   const type = useMemo(() => decodeList(query.f_b_type), [query.f_b_type]);
   const searchTerm = decodeScalar(query.f_b_search, '').toLowerCase();
+
+  // add custom breadcrumbs to filter
+  frames.forEach(frame => {
+    if (!(getFrameOpOrCategory(frame) in OPORCATEGORY_TO_TYPE)) {
+      OPORCATEGORY_TO_TYPE[getFrameOpOrCategory(frame)] = 'custom';
+    }
+  });
 
   const items = useMemo(() => {
     // flips OPORCATERGORY_TO_TYPE and prevents overwriting nav entry, nav entry becomes nav: ['navigation','navigation.push']
