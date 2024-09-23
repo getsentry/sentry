@@ -94,7 +94,9 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
         if serializer.is_valid():
             result = serializer.validated_data
 
-            assert isinstance(request.user, (User, RpcUser)), "User must be authenticated to update a Sentry App"
+            assert isinstance(
+                request.user, (User, RpcUser)
+            ), "User must be authenticated to update a Sentry App"
             updated_app = SentryAppUpdater(
                 sentry_app=sentry_app,
                 name=result.get("name"),
