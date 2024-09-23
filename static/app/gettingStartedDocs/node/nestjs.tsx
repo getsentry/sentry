@@ -106,7 +106,7 @@ const onboarding: OnboardingConfig = {
     {
       type: StepType.CONFIGURE,
       description: t(
-        "Initialize Sentry as early as possible in your application's lifecycle. Otherwise, auto-instrumentation will not work."
+        "Initialize Sentry as early as possible in your application's lifecycle."
       ),
       configurations: [
         {
@@ -126,10 +126,9 @@ const onboarding: OnboardingConfig = {
         },
         {
           description: tct(
-            'Import [code1:instrument.js/mjs] in your [code2:main.ts/js] file:',
+            'Make sure to import [code:instrument.js/mjs] at the top of your [code:main.ts/js] file:',
             {
-              code1: <code />,
-              code2: <code />,
+              code: <code />,
               docs: (
                 <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/nestjs/install/" />
               ),
@@ -147,9 +146,9 @@ const onboarding: OnboardingConfig = {
         },
         {
           description: tct(
-            'Afterwards, add the [code1:SentryModule] as a root module to your main module:',
+            'Add the [code:SentryModule] as a root module to your main module:',
             {
-              code1: <code />,
+              code: <code />,
               docs: (
                 <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/nestjs/install/" />
               ),
@@ -167,12 +166,9 @@ const onboarding: OnboardingConfig = {
         },
         {
           description: tct(
-            'In case you are using a global catch-all exception filter (which is either a filter registered with [code1:app.useGlobalFilters()] or a filter registered in your app module providers annotated with a [code2:@Catch()] decorator without arguments), add a [code3:@WithSentry()] decorator to the [code4:catch()] method of this global error filter. This decorator will report all unexpected errors that are received by your global error filter to Sentry:',
+            'If you are using a global catch-all exception filter add a [code:@WithSentry()] decorator to the [code:catch()] method of this global error filter. This will report all unhandled errors to Sentry',
             {
-              code1: <code />,
-              code2: <code />,
-              code3: <code />,
-              code4: <code />,
+              code: <code />,
             }
           ),
           code: [
@@ -187,7 +183,7 @@ const onboarding: OnboardingConfig = {
         },
         {
           description: tct(
-            'In case you do not have a global catch-all exception filter, add the [code:SentryGlobalFilter] to the providers of your main module. This filter will report all unhandled errors to Sentry that are not caught by any other error filter. Important: The [code:SentryGlobalFilter] needs to be registered before any other exception filters. Also note that in NestJS + GraphQL applications the [code:SentryGlobalFilter] needs to be replaced with the [code:SentryGlobalGraphQLFilter].',
+            'Alternatively, add the [code:SentryGlobalFilter] (or [code:SentryGlobalGraphQLFilter] if you are using GraphQL) before any other exception filters to the providers of your main module.',
             {
               code: <code />,
             }
