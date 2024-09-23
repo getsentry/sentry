@@ -525,7 +525,12 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
           location.query.unselectedSeries = 'Releases';
           legend.selected = getSeriesSelection(location);
 
-          const updatedReleaseSeries = releaseSeries ? releaseSeries : [];
+          const updatedReleaseSeries =
+            releaseSeries &&
+            (widget.displayType === DisplayType.AREA ||
+              widget.displayType === DisplayType.LINE)
+              ? releaseSeries
+              : [];
 
           return (
             <TransitionChart loading={loading} reloading={loading}>
@@ -546,14 +551,11 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
                         }
                       : {}),
                     legend,
-                    series:
-                      (this.props.organization.features.includes(
-                        'dashboards-releases-on-charts'
-                      ) &&
-                        widget.displayType === 'line') ||
-                      widget.displayType === 'area'
-                        ? [...series, ...updatedReleaseSeries]
-                        : [...series],
+                    series: this.props.organization.features.includes(
+                      'dashboards-releases-on-charts'
+                    )
+                      ? [...series, ...updatedReleaseSeries]
+                      : [...series],
                     onLegendSelectChanged,
                     forwardedRef,
                     selection,

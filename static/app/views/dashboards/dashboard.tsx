@@ -54,7 +54,7 @@ import {
 } from './layoutUtils';
 import SortableWidget from './sortableWidget';
 import type {DashboardDetails, Widget} from './types';
-import {DashboardWidgetSource, WidgetType} from './types';
+import {DashboardWidgetSource, DisplayType, WidgetType} from './types';
 import {connectDashboardCharts, getDashboardFiltersFromURL} from './utils';
 
 export const DRAG_HANDLE_CLASS = 'widget-drag';
@@ -400,7 +400,10 @@ class Dashboard extends Component<Props, State> {
       isPreview,
 
       dashboardFilters: getDashboardFiltersFromURL(location) ?? dashboard.filters,
-      releaseSeries: this.props.releaseSeries,
+      releaseSeries:
+        widget.displayType === DisplayType.AREA || widget.displayType === DisplayType.LINE
+          ? this.props.releaseSeries
+          : undefined,
     };
 
     const key = constructGridItemKey(widget);
