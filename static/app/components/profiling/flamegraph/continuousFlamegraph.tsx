@@ -236,7 +236,9 @@ export function ContinuousFlamegraph(): ReactElement {
   const start: number | null = useMemo(() => {
     const qs = new URLSearchParams(window.location.search);
     const startedAt = qs.get('start');
-    if (!startedAt) return null;
+    if (!startedAt) {
+      return null;
+    }
 
     const sinceEpoch = new Date(startedAt).getTime();
     return isNaN(sinceEpoch) ? null : sinceEpoch;

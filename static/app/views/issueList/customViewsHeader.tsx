@@ -237,7 +237,7 @@ function CustomViewsIssueListHeaderTabsContent({
 
         setDraggableTabs(
           draggableTabs.map(tab =>
-            tab.key === selectedTab!.key
+            tab.key === selectedTab.key
               ? {
                   ...tab,
                   unsavedChanges,
@@ -289,7 +289,7 @@ function CustomViewsIssueListHeaderTabsContent({
       return;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [navigate, organization.slug, query, sort, viewId]);
+  }, [navigate, organization.slug, query, sort, viewId, tabListState]);
 
   // Update local tabs when new views are received from mutation request
   useEffect(() => {
@@ -326,6 +326,9 @@ function CustomViewsIssueListHeaderTabsContent({
 
   useEffect(() => {
     if (viewId?.startsWith('_')) {
+      if (draggableTabs.find(tab => tab.id === viewId)?.label.endsWith('(Copy)')) {
+        return;
+      }
       // If the user types in query manually while the new view flow is showing,
       // then replace the add view flow with the issue stream with the query loaded,
       // and persist the query
