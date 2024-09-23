@@ -90,7 +90,7 @@ export function DatabaseSpanDescription({
         return rawDescription ?? 'N/A';
       }
 
-      return prettyPrintJsonString(bestDescription);
+      return prettyPrintJsonString(bestDescription).prettifiedQuery;
     }
 
     return formatter.toString(rawDescription ?? '');
