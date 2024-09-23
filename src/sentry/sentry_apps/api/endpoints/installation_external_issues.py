@@ -9,10 +9,10 @@ from sentry.api.bases import (
     SentryAppInstallationExternalIssueBaseEndpoint as ExternalIssueBaseEndpoint,
 )
 from sentry.api.serializers import serialize
-from sentry.api.serializers.rest_framework import URLField
 from sentry.mediators.external_issues.creator import Creator
 from sentry.models.group import Group
 from sentry.models.project import Project
+from sentry.sentry_apps.api.serializers.sentry_app_requests import URLField
 
 
 class PlatformExternalIssueSerializer(serializers.Serializer):
