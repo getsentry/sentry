@@ -6,7 +6,7 @@ from sentry.models.grouptombstone import GroupTombstone
 from sentry.models.rule import Rule
 from sentry.plugins.bases.issue2 import IssueTrackingPlugin2
 from sentry.plugins.bases.notify import NotificationPlugin
-from sentry.receivers.rules import DEFAULT_RULE_DATA
+from sentry.receivers.rules import DEFAULT_ISSUE_ALERT_DATA
 from sentry.signals import (
     advanced_search,
     alert_rule_created,
@@ -529,7 +529,7 @@ class FeatureAdoptionTest(TestCase, SnubaTestCase):
 
     def test_alert_rules(self):
         rule = Rule.objects.create(
-            project=self.project, label="Trivially modified rule", data=DEFAULT_RULE_DATA
+            project=self.project, label="Trivially modified rule", data=DEFAULT_ISSUE_ALERT_DATA
         )
 
         alert_rule_created.send(
