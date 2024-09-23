@@ -326,6 +326,9 @@ function CustomViewsIssueListHeaderTabsContent({
 
   useEffect(() => {
     if (viewId?.startsWith('_')) {
+      if (draggableTabs.find(tab => tab.id === viewId)?.label.endsWith('(Copy)')) {
+        return;
+      }
       // If the user types in query manually while the new view flow is showing,
       // then replace the add view flow with the issue stream with the query loaded,
       // and persist the query
