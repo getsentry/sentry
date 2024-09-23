@@ -5,8 +5,6 @@ import {renderHook} from 'sentry-test/reactTestingLibrary';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import useActiveReplayTab, {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 
-jest.mock('react-router');
-
 const mockPush = jest.mocked(browserHistory.push);
 
 function mockLocation(query: string = '') {

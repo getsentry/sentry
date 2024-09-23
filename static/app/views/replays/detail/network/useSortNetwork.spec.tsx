@@ -12,7 +12,6 @@ import hydrateSpans from 'sentry/utils/replays/hydrateSpans';
 
 import useSortNetwork from './useSortNetwork';
 
-jest.mock('react-router');
 jest.mock('sentry/utils/useUrlParams', () => {
   const map = new Map();
   return (name, dflt) => {

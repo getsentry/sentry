@@ -17,8 +17,6 @@ import ProjectsStatsStore from 'sentry/stores/projectsStatsStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {Dashboard} from 'sentry/views/projectsDashboard';
 
-jest.mock('sentry/api');
-
 jest.unmock('lodash/debounce');
 jest.mock('lodash/debounce', () => {
   const debounceMap = new Map();
