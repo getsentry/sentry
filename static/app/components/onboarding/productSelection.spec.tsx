@@ -21,7 +21,7 @@ describe('Onboarding Product Selection', function () {
   });
 
   it('renders default state', async function () {
-    const {router, project} = initializeOrg({
+    const {router} = initializeOrg({
       router: {
         location: {
           query: {
@@ -35,16 +35,9 @@ describe('Onboarding Product Selection', function () {
       },
     });
 
-    render(
-      <ProductSelection
-        organization={organization}
-        platform="javascript-react"
-        projectId={project.id}
-      />,
-      {
-        router,
-      }
-    );
+    render(<ProductSelection organization={organization} platform="javascript-react" />, {
+      router,
+    });
 
     // Introduction
     expect(
@@ -107,7 +100,7 @@ describe('Onboarding Product Selection', function () {
   });
 
   it('renders disabled product', async function () {
-    const {router, project} = initializeOrg({
+    const {router} = initializeOrg({
       router: {
         location: {
           query: {product: [ProductSolution.SESSION_REPLAY]},
@@ -127,7 +120,6 @@ describe('Onboarding Product Selection', function () {
         organization={organization}
         disabledProducts={disabledProducts}
         platform="javascript-react"
-        projectId={project.id}
       />,
       {
         router,
@@ -156,7 +148,7 @@ describe('Onboarding Product Selection', function () {
       ProductSolution.PERFORMANCE_MONITORING,
     ];
 
-    const {router, project} = initializeOrg({
+    const {router} = initializeOrg({
       router: {
         location: {
           query: {product: [ProductSolution.SESSION_REPLAY]},
@@ -165,16 +157,9 @@ describe('Onboarding Product Selection', function () {
       },
     });
 
-    render(
-      <ProductSelection
-        organization={organization}
-        platform="javascript-react"
-        projectId={project.id}
-      />,
-      {
-        router,
-      }
-    );
+    render(<ProductSelection organization={organization} platform="javascript-react" />, {
+      router,
+    });
 
     expect(
       screen.queryByRole('checkbox', {name: 'Session Replay'})
@@ -193,7 +178,7 @@ describe('Onboarding Product Selection', function () {
   });
 
   it('render Profiling', async function () {
-    const {router, project} = initializeOrg({
+    const {router} = initializeOrg({
       router: {
         location: {
           query: {product: [ProductSolution.PERFORMANCE_MONITORING]},
@@ -202,16 +187,9 @@ describe('Onboarding Product Selection', function () {
       },
     });
 
-    render(
-      <ProductSelection
-        organization={organization}
-        platform="python-django"
-        projectId={project.id}
-      />,
-      {
-        router,
-      }
-    );
+    render(<ProductSelection organization={organization} platform="python-django" />, {
+      router,
+    });
 
     expect(screen.getByRole('checkbox', {name: 'Profiling'})).toBeInTheDocument();
 
@@ -233,7 +211,7 @@ describe('Onboarding Product Selection', function () {
       ProductSolution.SESSION_REPLAY,
     ];
 
-    const {router, project} = initializeOrg({
+    const {router} = initializeOrg({
       router: {
         location: {
           query: {product: [ProductSolution.SESSION_REPLAY]},
@@ -244,16 +222,9 @@ describe('Onboarding Product Selection', function () {
 
     ConfigStore.set('isSelfHostedErrorsOnly', true);
 
-    render(
-      <ProductSelection
-        organization={organization}
-        platform="javascript-react"
-        projectId={project.id}
-      />,
-      {
-        router,
-      }
-    );
+    render(<ProductSelection organization={organization} platform="javascript-react" />, {
+      router,
+    });
 
     expect(screen.getByRole('checkbox', {name: 'Error Monitoring'})).toBeEnabled();
 
@@ -263,7 +234,7 @@ describe('Onboarding Product Selection', function () {
   });
 
   it('renders npm & yarn info text', function () {
-    const {router, project} = initializeOrg({
+    const {router} = initializeOrg({
       router: {
         location: {
           query: {product: [ProductSolution.PERFORMANCE_MONITORING]},
@@ -272,23 +243,16 @@ describe('Onboarding Product Selection', function () {
       },
     });
 
-    render(
-      <ProductSelection
-        organization={organization}
-        platform="javascript-react"
-        projectId={project.id}
-      />,
-      {
-        router,
-      }
-    );
+    render(<ProductSelection organization={organization} platform="javascript-react" />, {
+      router,
+    });
 
     expect(screen.queryByText('npm')).toBeInTheDocument();
     expect(screen.queryByText('yarn')).toBeInTheDocument();
   });
 
   it('does not render npm & yarn info text', function () {
-    const {router, project} = initializeOrg({
+    const {router} = initializeOrg({
       router: {
         location: {
           query: {product: [ProductSolution.PERFORMANCE_MONITORING]},
@@ -297,23 +261,16 @@ describe('Onboarding Product Selection', function () {
       },
     });
 
-    render(
-      <ProductSelection
-        organization={organization}
-        platform="python-django"
-        projectId={project.id}
-      />,
-      {
-        router,
-      }
-    );
+    render(<ProductSelection organization={organization} platform="python-django" />, {
+      router,
+    });
 
     expect(screen.queryByText('npm')).not.toBeInTheDocument();
     expect(screen.queryByText('yarn')).not.toBeInTheDocument();
   });
 
   it('triggers onChange callback', async function () {
-    const {router, project} = initializeOrg({
+    const {router} = initializeOrg({
       router: {
         location: {
           query: {product: [ProductSolution.PERFORMANCE_MONITORING]},
@@ -328,7 +285,6 @@ describe('Onboarding Product Selection', function () {
       <ProductSelection
         organization={organization}
         platform="python-django"
-        projectId={project.id}
         onChange={handleChange}
       />,
       {

@@ -285,10 +285,6 @@ export type ProductSelectionProps = {
    */
   organization: Organization;
   /**
-   * The id of the current project
-   */
-  projectId: string;
-  /**
    * List of products that are disabled. All of them have to contain a reason by default and optionally an onClick handler.
    */
   disabledProducts?: DisabledProducts;

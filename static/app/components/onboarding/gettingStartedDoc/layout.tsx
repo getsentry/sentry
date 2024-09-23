@@ -23,7 +23,6 @@ const ProductSelectionAvailabilityHook = HookOrDefault({
 });
 
 export type LayoutProps = {
-  projectId: string;
   projectSlug: string;
   steps: StepProps[];
   /**
@@ -44,7 +43,6 @@ export function Layout({
   platformOptions,
   introduction,
   projectSlug,
-  projectId,
 }: LayoutProps) {
   const organization = useOrganization();
 
@@ -56,7 +54,6 @@ export function Layout({
           <ProductSelectionAvailabilityHook
             organization={organization}
             platform={platformKey}
-            projectId={projectId}
           />
           {platformOptions ? (
             <PlatformOptionsControl platformOptions={platformOptions} />

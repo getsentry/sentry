@@ -149,7 +149,6 @@ export function OnboardingLayout({
             <ProductSelectionAvailabilityHook
               organization={organization}
               platform={platformKey}
-              projectId={projectId}
               onChange={onProductSelectionChange}
               onLoad={onProductSelectionLoad}
             />
