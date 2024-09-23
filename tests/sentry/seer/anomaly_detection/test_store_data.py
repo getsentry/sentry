@@ -10,7 +10,6 @@ from sentry.snuba import errors, metrics_performance
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery
 from sentry.testutils.cases import BaseMetricsTestCase, PerformanceIssueTestCase
-from sentry.testutils.factories import EventType
 from sentry.testutils.helpers.datetime import iso_format
 from sentry.testutils.performance_issues.event_generators import get_event
 from sentry.utils.snuba import SnubaTSResult
@@ -97,8 +96,8 @@ class AnomalyDetectionStoreDataTest(AlertRuleBase, BaseMetricsTestCase, Performa
                     "timestamp": iso_format(self.time_1_dt),
                     "fingerprint": ["group1"],
                     "tags": {"sentry:user": self.user.email},
+                    "exception": [{"value": "BadError"}],
                 },
-                event_type=EventType.ERROR,
                 project_id=self.project.id,
             )
             self.store_event(
@@ -108,8 +107,8 @@ class AnomalyDetectionStoreDataTest(AlertRuleBase, BaseMetricsTestCase, Performa
                     "timestamp": iso_format(self.time_2_dt),
                     "fingerprint": ["group2"],
                     "tags": {"sentry:user": self.user.email},
+                    "exception": [{"value": "BadError"}],
                 },
-                event_type=EventType.ERROR,
                 project_id=self.project.id,
             )
         result = fetch_historical_data(alert_rule, snuba_query, ["count()"], self.project)
@@ -131,8 +130,8 @@ class AnomalyDetectionStoreDataTest(AlertRuleBase, BaseMetricsTestCase, Performa
                     "timestamp": iso_format(self.time_1_dt),
                     "fingerprint": ["group1"],
                     "tags": {"sentry:user": self.user.email},
+                    "exception": [{"value": "BadError"}],
                 },
-                event_type=EventType.ERROR,
                 project_id=self.project.id,
             )
             self.store_event(
@@ -142,8 +141,8 @@ class AnomalyDetectionStoreDataTest(AlertRuleBase, BaseMetricsTestCase, Performa
                     "timestamp": iso_format(self.time_2_dt),
                     "fingerprint": ["group2"],
                     "tags": {"sentry:user": self.user.email},
+                    "exception": [{"value": "BadError"}],
                 },
-                event_type=EventType.ERROR,
                 project_id=self.project.id,
             )
         result = fetch_historical_data(alert_rule, snuba_query, ["count()"], self.project)
