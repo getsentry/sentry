@@ -15,6 +15,8 @@ STRING_NOT_FOUND = -1
 #: Special integer returned by Snuba as tag value when a tag has not been set
 TAG_NOT_SET = 0
 
+#: Maximum number of attempts to record a string
+MAX_RECORD_ATTEMPTS = 3
 
 class MetricIndexNotFound(InvalidParams):
     pass
