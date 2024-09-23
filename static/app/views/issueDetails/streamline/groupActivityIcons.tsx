@@ -19,7 +19,7 @@ import {
 } from 'sentry/icons';
 import {GroupActivityType} from 'sentry/types/group';
 
-export const GroupActivityTypeIconMapping = {
+export const GroupActivityTypeIconMapping: Record<GroupActivityType, React.ReactNode> = {
   [GroupActivityType.NOTE]: <IconFile />,
   [GroupActivityType.SET_RESOLVED]: <IconCheckmark />,
   [GroupActivityType.SET_RESOLVED_BY_AGE]: <IconCheckmark />,

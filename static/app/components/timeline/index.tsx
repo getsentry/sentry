@@ -10,7 +10,6 @@ export interface ColorConfig {
   icon: Color;
   iconBorder: Color;
   title: Color;
-  titleBold: React.CSSProperties['fontWeight'];
 }
 
 export interface TimelineItemProps {
@@ -37,7 +36,6 @@ export const Item = forwardRef(function _Item(
       title: 'gray400',
       icon: 'gray300',
       iconBorder: 'gray200',
-      titleBold: 'bold',
     },
     timestamp,
     isActive = false,
@@ -60,7 +58,6 @@ export const Item = forwardRef(function _Item(
       <Title
         style={{
           color: theme[colorConfig.title],
-          fontWeight: colorConfig.titleBold,
         }}
       >
         {title}
@@ -103,6 +100,7 @@ const IconWrapper = styled('div')`
 `;
 
 const Title = styled('div')`
+  font-weight: bold;
   text-align: left;
   grid-column: span 1;
   font-size: ${p => p.theme.fontSizeMedium};

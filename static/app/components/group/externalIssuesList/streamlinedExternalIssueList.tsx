@@ -36,17 +36,17 @@ export function StreamlinedExternalIssueList({
 
   if (isLoading) {
     return (
-      <div data-test-id="linked-issues">
+      <SidebarSection.Wrap data-test-id="linked-issues">
         <StyledSectionTitle>{t('Issue Tracking')}</StyledSectionTitle>
         <SidebarSection.Content>
           <Placeholder height="25px" />
         </SidebarSection.Content>
-      </div>
+      </SidebarSection.Wrap>
     );
   }
 
   return (
-    <div data-test-id="linked-issues">
+    <SidebarSection.Wrap data-test-id="linked-issues">
       <StyledSectionTitle>{t('Issue Tracking')}</StyledSectionTitle>
       <SidebarSection.Content>
         {integrations.length || linkedIssues.length ? (
@@ -130,7 +130,7 @@ export function StreamlinedExternalIssueList({
           </AlertLink>
         )}
       </SidebarSection.Content>
-    </div>
+    </SidebarSection.Wrap>
   );
 }
 
