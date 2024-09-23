@@ -112,7 +112,7 @@ describe('AlertWizard', () => {
           'incidents',
           'performance-view',
           'crash-rate-alerts',
-          'organizations:uptime-display-wizard-create',
+          'uptime-display-wizard-create',
         ],
         access: ['org:write', 'alerts:write'],
       },
