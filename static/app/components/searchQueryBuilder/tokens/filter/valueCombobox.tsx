@@ -12,12 +12,13 @@ import {
   type CustomComboboxMenu,
   SearchQueryBuilderCombobox,
 } from 'sentry/components/searchQueryBuilder/tokens/combobox';
+import {parseMultiSelectFilterValue} from 'sentry/components/searchQueryBuilder/tokens/filter/parsers/string/parser';
+import {replaceCommaSeparatedValue} from 'sentry/components/searchQueryBuilder/tokens/filter/replaceCommaSeparatedValue';
 import SpecificDatePicker from 'sentry/components/searchQueryBuilder/tokens/filter/specificDatePicker';
 import {
   escapeTagValue,
   formatFilterValue,
   getFilterValueType,
-  replaceCommaSeparatedValue,
   unescapeTagValue,
 } from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import {ValueListBox} from 'sentry/components/searchQueryBuilder/tokens/filter/valueListBox';
@@ -74,15 +75,19 @@ function isStringFilterValues(
 }
 
 function getMultiSelectInputValue(token: TokenResult<Token.FILTER>) {
+  // Even if this is a multi-select filter, it won't be parsed as such if only a single value is provided
   if (
     token.value.type !== Token.VALUE_TEXT_LIST &&
     token.value.type !== Token.VALUE_NUMBER_LIST
   ) {
-    const value = token.value.value;
-    return value ? value + ',' : '';
+    if (!token.value.value) {
+      return '';
+    }
+
+    return token.value.text + ',';
   }
 
-  const items = token.value.items.map(item => item.value.value);
+  const items = token.value.items.map(item => item.value?.text ?? '');
 
   if (items.length === 0) {
     return '';
@@ -92,21 +97,45 @@ function getMultiSelectInputValue(token: TokenResult<Token.FILTER>) {
 }
 
 function prepareInputValueForSaving(valueType: FieldValueType, inputValue: string) {
-  const values = uniq(
-    inputValue
-      .split(',')
-      .map(v => cleanFilterValue({valueType, value: v.trim()}))
-      .filter(v => v && v.length > 0)
-  );
+  const parsed = parseMultiSelectFilterValue(inputValue);
 
-  return values.length > 1 ? `[${values.join(',')}]` : values[0] ?? '""';
+  if (!parsed) {
+    return '""';
+  }
+
+  const values =
+    parsed.items
+      .map(item =>
+        item.value?.quoted
+          ? item.value?.text ?? ''
+          : cleanFilterValue({valueType, value: item.value?.text ?? ''})
+      )
+      .filter(text => text?.length) ?? [];
+
+  const uniqueValues = uniq(values);
+
+  return uniqueValues.length > 1
+    ? `[${uniqueValues.join(',')}]`
+    : uniqueValues[0] ?? '""';
 }
 
-function getSelectedValuesFromText(text: string) {
-  return text
-    .split(',')
-    .map(v => unescapeTagValue(v.trim()))
-    .filter(v => v.length > 0);
+function getSelectedValuesFromText(
+  text: string,
+  {escaped = true}: {escaped?: boolean} = {}
+) {
+  const parsed = parseMultiSelectFilterValue(text);
+
+  if (!parsed) {
+    return [];
+  }
+
+  return parsed.items
+    .filter(item => item.value?.value)
+    .map(item => {
+      return (
+        (escaped ? item.value?.text : unescapeTagValue(item.value?.value ?? '')) ?? ''
+      );
+    });
 }
 
 function getValueAtCursorPosition(text: string, cursorPosition: number | null) {
@@ -489,8 +518,11 @@ export function SearchQueryBuilderValueCombobox({
     ? getValueAtCursorPosition(inputValue, selectionIndex)
     : inputValue;
 
-  const selectedValues = useMemo(
-    () => (canSelectMultipleValues ? getSelectedValuesFromText(inputValue) : []),
+  const selectedValuesUnescaped = useMemo(
+    () =>
+      canSelectMultipleValues
+        ? getSelectedValuesFromText(inputValue, {escaped: false})
+        : [],
     [canSelectMultipleValues, inputValue]
   );
 
@@ -517,7 +549,7 @@ export function SearchQueryBuilderValueCombobox({
   const {items, suggestionSectionItems, isFetching} = useFilterSuggestions({
     token,
     filterValue,
-    selectedValues,
+    selectedValues: selectedValuesUnescaped,
     ctrlKeyPressed,
   });
 
@@ -553,11 +585,15 @@ export function SearchQueryBuilderValueCombobox({
       }
 
       if (canSelectMultipleValues) {
-        if (selectedValues.includes(value)) {
+        if (selectedValuesUnescaped.includes(value)) {
           const newValue = prepareInputValueForSaving(
             getFilterValueType(token, fieldDefinition),
-            selectedValues.filter(v => v !== value).join(',')
+            selectedValuesUnescaped
+              .filter(v => v !== value)
+              .map(escapeTagValue)
+              .join(',')
           );
+
           dispatch({
             type: 'UPDATE_TOKEN_VALUE',
             token: token,
@@ -576,7 +612,7 @@ export function SearchQueryBuilderValueCombobox({
           token: token,
           value: prepareInputValueForSaving(
             getFilterValueType(token, fieldDefinition),
-            replaceCommaSeparatedValue(inputValue, selectionIndex, value)
+            replaceCommaSeparatedValue(inputValue, selectionIndex, escapeTagValue(value))
           ),
         });
 
@@ -595,16 +631,16 @@ export function SearchQueryBuilderValueCombobox({
       return true;
     },
     [
-      analyticsData,
-      canSelectMultipleValues,
-      dispatch,
-      fieldDefinition,
-      inputValue,
-      onCommit,
-      selectedValues,
-      selectionIndex,
       token,
+      fieldDefinition,
+      canSelectMultipleValues,
+      analyticsData,
+      selectedValuesUnescaped,
+      dispatch,
+      inputValue,
+      selectionIndex,
       ctrlKeyPressed,
+      onCommit,
     ]
   );
 
