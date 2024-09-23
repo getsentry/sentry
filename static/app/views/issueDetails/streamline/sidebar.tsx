@@ -5,9 +5,18 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import {StreamlinedExternalIssueList} from 'sentry/components/group/externalIssuesList/streamlinedExternalIssueList';
 import {GroupSummary} from 'sentry/components/group/groupSummary';
 import {space} from 'sentry/styles/space';
+import type {Event} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+import type {Project} from 'sentry/types/project';
 import StreamlinedActivitySection from 'sentry/views/issueDetails/streamline/activitySection';
 
-export default function StreamlinedSidebar({group, event, project}) {
+type Props = {
+  group: Group;
+  project: Project;
+  event?: Event;
+};
+
+export default function StreamlinedSidebar({group, event, project}: Props) {
   return (
     <div>
       <Feature features={['organizations:ai-summary']}>

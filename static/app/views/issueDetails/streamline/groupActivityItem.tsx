@@ -277,7 +277,7 @@ export default function getGroupActivityItem(
           resolvedMessage = tct('by [author]', {author});
         }
         return {
-          title: 'Resolved',
+          title: t('Resolved'),
           message: resolvedMessage,
         };
       case GroupActivityType.SET_RESOLVED_BY_AGE:
