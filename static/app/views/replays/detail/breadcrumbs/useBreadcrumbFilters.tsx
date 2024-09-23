@@ -117,7 +117,7 @@ function useBreadcrumbFilters({frames}: Options): Return {
 
   // add custom breadcrumbs to filter
   frames.forEach(frame => {
-    if (!OPORCATEGORY_TO_TYPE[getFrameOpOrCategory(frame)]) {
+    if (!(getFrameOpOrCategory(frame) in OPORCATEGORY_TO_TYPE)) {
       OPORCATEGORY_TO_TYPE[getFrameOpOrCategory(frame)] = 'custom';
     }
   });
