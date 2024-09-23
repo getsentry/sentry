@@ -165,7 +165,15 @@ def resolve(
 def resolve_tag_key(use_case_id: UseCaseID | UseCaseKey, org_id: int, string: str) -> str:
     use_case_id = to_use_case_id(use_case_id)
     resolved = resolve(use_case_id, org_id, string)
-    assert isinstance(use_case_id, UseCaseID)
+    if resolved is None:
+        metrics.incr("sentry_metrics.indexer.unresolved_tag_key")
+        return f"unresolved_tag[{string}]"
+    
+    if resolved < 0:
+        metrics.incr("sentry_metrics.indexer.negative_tag_key")
+        return f"invalid_tag[{string}]"
+    
+    assert isinstance(use_case_id, UseCaseID)  # This assertion is kept for type checking purposes
     if METRIC_PATH_MAPPING[use_case_id] is UseCaseKey.PERFORMANCE:
         return f"tags_raw[{resolved}]"
     else:
