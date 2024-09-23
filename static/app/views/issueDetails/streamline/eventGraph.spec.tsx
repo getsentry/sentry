@@ -16,6 +16,7 @@ import {EventDetails} from 'sentry/views/issueDetails/streamline/eventDetails';
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/components/events/suspectCommits');
 jest.mock('sentry/views/issueDetails/groupEventDetails/groupEventDetailsContent');
+jest.mock('sentry/views/issueDetails/streamline/issueContent');
 jest.mock('screenfull', () => ({
   enabled: true,
   isFullscreen: false,

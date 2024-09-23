@@ -74,6 +74,7 @@ export function OnboardingLayout({
     onPlatformOptionsChange,
     onProductSelectionChange,
     onPageLoad,
+    onProductSelectionLoad,
   } = useMemo(() => {
     const doc = docsConfig[configType] ?? docsConfig.onboarding;
 
@@ -112,6 +113,7 @@ export function OnboardingLayout({
       nextSteps: doc.nextSteps?.(docParams) || [],
       onPlatformOptionsChange: doc.onPlatformOptionsChange?.(docParams),
       onProductSelectionChange: doc.onProductSelectionChange?.(docParams),
+      onProductSelectionLoad: doc.onProductSelectionLoad?.(docParams),
       onPageLoad: doc.onPageLoad?.(docParams),
     };
   }, [
@@ -142,13 +144,14 @@ export function OnboardingLayout({
     <AuthTokenGeneratorProvider projectSlug={projectSlug}>
       <Wrapper>
         <Header>
-          {introduction && <div>{introduction}</div>}
+          {introduction && <Introduction>{introduction}</Introduction>}
           {configType === 'onboarding' && (
             <ProductSelectionAvailabilityHook
               organization={organization}
               platform={platformKey}
               projectId={projectId}
               onChange={onProductSelectionChange}
+              onLoad={onProductSelectionLoad}
             />
           )}
           {platformOptions && !['customMetricsOnboarding'].includes(configType) ? (
@@ -217,5 +220,11 @@ const Wrapper = styled('div')`
     h5 {
       margin-bottom: 0;
     }
+  }
+`;
+
+const Introduction = styled('div')`
+  & > p:not(:last-child) {
+    margin-bottom: ${space(2)};
   }
 `;

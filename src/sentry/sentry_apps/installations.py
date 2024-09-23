@@ -13,12 +13,13 @@ from sentry.exceptions import ApiTokenLimitError
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.apigrant import ApiGrant
 from sentry.models.apitoken import ApiToken
-from sentry.models.integrations.sentry_app_installation_token import SentryAppInstallationToken
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
+from sentry.sentry_apps.models.sentry_app_installation_token import SentryAppInstallationToken
 from sentry.sentry_apps.services.hook import hook_service
 from sentry.tasks.sentry_apps import installation_webhook
 from sentry.users.models.user import User
+from sentry.users.services.user.model import RpcUser
 from sentry.utils import metrics
 
 
@@ -100,7 +101,7 @@ class SentryAppInstallationCreator:
     slug: str
     notify: bool = True
 
-    def run(self, *, user: User, request: HttpRequest | None) -> SentryAppInstallation:
+    def run(self, *, user: User | RpcUser, request: HttpRequest | None) -> SentryAppInstallation:
         metrics.incr("sentry_apps.installation.attempt")
         with transaction.atomic(router.db_for_write(ApiGrant)):
             api_grant = self._create_api_grant()
@@ -157,7 +158,7 @@ class SentryAppInstallationCreator:
                 data={"sentry_app": self.sentry_app.name},
             )
 
-    def record_analytics(self, user: User) -> None:
+    def record_analytics(self, user: User | RpcUser) -> None:
         analytics.record(
             "sentry_app.installed",
             user_id=user.id,
