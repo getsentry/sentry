@@ -8,7 +8,6 @@ import {BroadcastPanelItem} from 'sentry/components/sidebar/broadcastPanelItem';
 import SidebarItem from 'sentry/components/sidebar/sidebarItem';
 import SidebarPanel from 'sentry/components/sidebar/sidebarPanel';
 import SidebarPanelEmpty from 'sentry/components/sidebar/sidebarPanelEmpty';
-import SidebarPanelItem from 'sentry/components/sidebar/sidebarPanelItem';
 import {IconBroadcast} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -36,22 +35,18 @@ function BroadcastSidebarContent({
   collapsed,
   loading,
   broadcasts,
-  whatIsNewRevampFeature,
   hidePanel,
   onResetCounter,
 }: {
   broadcasts: Broadcast[];
   loading: boolean;
   onResetCounter: () => void;
-  whatIsNewRevampFeature: boolean;
 } & Pick<CommonSidebarProps, 'orientation' | 'collapsed' | 'hidePanel'>) {
   useEffect(() => {
     return () => {
-      if (whatIsNewRevampFeature) {
-        onResetCounter();
-      }
+      onResetCounter();
     };
-  }, [onResetCounter, whatIsNewRevampFeature]);
+  }, [onResetCounter]);
 
   return (
     <SidebarPanel
@@ -67,7 +62,7 @@ function BroadcastSidebarContent({
         <SidebarPanelEmpty>
           {t('No recent updates from the Sentry team.')}
         </SidebarPanelEmpty>
-      ) : whatIsNewRevampFeature ? (
+      ) : (
         broadcasts.map(item => (
           <BroadcastPanelItem
             key={item.id}
@@ -77,17 +72,6 @@ function BroadcastSidebarContent({
             link={item.link}
             mediaUrl={item.mediaUrl}
             category={item.category}
-          />
-        ))
-      ) : (
-        broadcasts.map(item => (
-          <SidebarPanelItem
-            key={item.id}
-            hasSeen={item.hasSeen}
-            title={item.title}
-            message={item.message}
-            link={item.link}
-            cta={item.cta}
           />
         ))
       )}
@@ -158,10 +142,6 @@ class Broadcasts extends Component<Props, State> {
     this.props.onShowPanel();
   };
 
-  get hasWhatsNewRevampFeature() {
-    return this.props.organization.features.includes('what-is-new-revamp');
-  }
-
   markSeen = async () => {
     const unseenBroadcastIds = this.unseenIds;
     if (unseenBroadcastIds.length === 0) {
@@ -169,10 +149,6 @@ class Broadcasts extends Component<Props, State> {
     }
 
     await markBroadcastsAsSeen(this.props.api, unseenBroadcastIds);
-
-    if (!this.hasWhatsNewRevampFeature) {
-      this.handleResetCounter();
-    }
   };
 
   get unseenIds() {
@@ -215,7 +191,6 @@ class Broadcasts extends Component<Props, State> {
               broadcasts={broadcasts}
               collapsed={collapsed}
               orientation={orientation}
-              whatIsNewRevampFeature={this.hasWhatsNewRevampFeature}
               onResetCounter={this.handleResetCounter}
             />
           )}
