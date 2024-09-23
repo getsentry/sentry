@@ -2,7 +2,6 @@ import type {Theme} from '@emotion/react';
 import {PlatformIcon} from 'platformicons';
 
 import {t} from 'sentry/locale';
-import {isTraceErrorNode} from 'sentry/views/performance/newTraceDetails/guards';
 import {TraceIcons} from 'sentry/views/performance/newTraceDetails/icons';
 import type {
   TraceTree,
@@ -28,12 +27,7 @@ const ERROR_LEVEL_LABELS: Record<keyof Theme['level'], string> = {
   unknown: t('Unknown'),
 };
 
-export function TraceErrorRow(props: TraceRowProps<TraceTreeNode<TraceTree.Span>>) {
-  if (!isTraceErrorNode(props.node)) {
-    throw new Error(
-      'Trace error row renderer called on a row that is not trace error type'
-    );
-  }
+export function TraceErrorRow(props: TraceRowProps<TraceTreeNode<TraceTree.TraceError>>) {
   return (
     <div
       key={props.index}

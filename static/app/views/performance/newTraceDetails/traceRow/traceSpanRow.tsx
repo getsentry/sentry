@@ -1,4 +1,3 @@
-import {isSpanNode} from 'sentry/views/performance/newTraceDetails/guards';
 import {TraceIcons} from 'sentry/views/performance/newTraceDetails/icons';
 import {
   makeTraceNodeBarColor,
@@ -17,10 +16,6 @@ import {
 const NO_PROFILES = [];
 
 export function TraceSpanRow(props: TraceRowProps<TraceTreeNode<TraceTree.Span>>) {
-  if (!isSpanNode(props.node)) {
-    throw new Error('Trace row span renderer called for trace that is not of span type');
-  }
-
   return (
     <div
       key={props.index}
@@ -93,7 +88,7 @@ export function TraceSpanRow(props: TraceRowProps<TraceTreeNode<TraceTree.Span>>
         <button
           ref={props.registerSpanArrowRef}
           className="TraceArrow"
-          onClick={props.onSpanRowArrowClick}
+          onClick={props.onSpanArrowClick}
         >
           <TraceIcons.Chevron direction="left" />
         </button>

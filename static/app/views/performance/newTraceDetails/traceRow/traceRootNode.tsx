@@ -91,7 +91,7 @@ export function TraceRootRow(props: TraceRowProps<TraceTreeNode<TraceTree.Trace>
         <button
           ref={props.registerSpanArrowRef}
           className="TraceArrow"
-          onClick={props.onSpanRowArrowClick}
+          onClick={props.onSpanArrowClick}
         >
           <TraceIcons.Chevron direction="left" />
         </button>

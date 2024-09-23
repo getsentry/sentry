@@ -1,6 +1,5 @@
 import {PlatformIcon} from 'platformicons';
 
-import {isTransactionNode} from 'sentry/views/performance/newTraceDetails/guards';
 import {TraceIcons} from 'sentry/views/performance/newTraceDetails/icons';
 import {
   makeTraceNodeBarColor,
@@ -19,12 +18,6 @@ import {
 export function TraceTransactionRow(
   props: TraceRowProps<TraceTreeNode<TraceTree.Transaction>>
 ) {
-  if (!isTransactionNode(props.node)) {
-    throw new Error(
-      'Called transaction renderer for a node that is not of type transaction'
-    );
-  }
-
   return (
     <div
       key={props.index}
@@ -100,7 +93,7 @@ export function TraceTransactionRow(
         <button
           ref={props.registerSpanArrowRef}
           className="TraceArrow"
-          onClick={props.onSpanRowArrowClick}
+          onClick={props.onSpanArrowClick}
         >
           <TraceIcons.Chevron direction="left" />
         </button>

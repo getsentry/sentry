@@ -33,26 +33,23 @@ export interface TraceRowProps<T extends TraceTree.Node> {
   manager: VirtualizedViewManager;
   node: T;
   onExpand: (e: React.MouseEvent) => void;
-  onExpandDoubleClick: () => void;
-  onRowClick: () => void;
-  onRowDoubleClick: () => void;
-  onRowKeyDown: () => void;
-  onSpanArrowClick: number;
-  onSpanRowArrowClick: () => void;
+  onExpandDoubleClick: (e: React.MouseEvent) => void;
+  onRowClick: (e: React.MouseEvent<HTMLElement>) => void;
+  onRowDoubleClick: (e: React.MouseEvent) => void;
+  onRowKeyDown: (e: React.KeyboardEvent) => void;
+  onSpanArrowClick: (e: React.MouseEvent) => void;
   onZoomIn: (e: React.MouseEvent) => void;
-  previouslyFocusedNodeRef: React.MutableRefObject<
-    TraceTreeNode<TraceTree.NodeValue | null>
-  >;
+  previouslyFocusedNodeRef: React.MutableRefObject<TraceTreeNode<TraceTree.NodeValue> | null>;
   projects: Record<string, PlatformKey | undefined>;
-  registerListColumnRef: () => void;
-  registerSpanArrowRef: () => void;
-  registerSpanColumnRef: () => void;
+  registerListColumnRef: (e: HTMLDivElement | null) => void;
+  registerSpanArrowRef: (e: HTMLButtonElement | null) => void;
+  registerSpanColumnRef: (e: HTMLDivElement | null) => void;
   rowSearchClassName: string;
   spanColumnClassName: string;
   style: React.CSSProperties;
   tabIndex: number;
   theme: Theme;
-  trace_id: string;
+  trace_id: string | undefined;
   virtualized_index: number;
 }
 

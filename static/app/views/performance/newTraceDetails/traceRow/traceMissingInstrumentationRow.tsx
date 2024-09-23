@@ -1,5 +1,4 @@
 import {t} from 'sentry/locale';
-import {isMissingInstrumentationNode} from 'sentry/views/performance/newTraceDetails/guards';
 import {TraceIcons} from 'sentry/views/performance/newTraceDetails/icons';
 import {
   makeTraceNodeBarColor,
@@ -14,14 +13,8 @@ import {
 } from 'sentry/views/performance/newTraceDetails/traceRow/traceRow';
 
 export function TraceMissingInstrumentationRow(
-  props: TraceRowProps<TraceTreeNode<TraceTree.Span>>
+  props: TraceRowProps<TraceTreeNode<TraceTree.MissingInstrumentationSpan>>
 ) {
-  if (!isMissingInstrumentationNode(props.node)) {
-    throw new Error(
-      'Missing instrumentation rendered called for a node that is not missing instrumentation'
-    );
-  }
-
   return (
     <div
       key={props.index}
@@ -62,7 +55,7 @@ export function TraceMissingInstrumentationRow(
         <button
           ref={props.registerSpanArrowRef}
           className="TraceArrow"
-          onClick={props.onSpanRowArrowClick}
+          onClick={props.onSpanArrowClick}
         >
           <TraceIcons.Chevron direction="left" />
         </button>

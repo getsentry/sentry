@@ -1,5 +1,4 @@
 import {t} from 'sentry/locale';
-import {isAutogroupedNode} from 'sentry/views/performance/newTraceDetails/guards';
 import {TraceIcons} from 'sentry/views/performance/newTraceDetails/icons';
 import {
   makeTraceNodeBarColor,
@@ -18,12 +17,6 @@ import {
 export function TraceAutogroupedRow(
   props: TraceRowProps<ParentAutogroupNode | SiblingAutogroupNode>
 ) {
-  if (!isAutogroupedNode(props.node)) {
-    throw new Error(
-      'Called autogrouped renderer for a node that is not of type autogroped'
-    );
-  }
-
   return (
     <div
       key={props.index}
@@ -82,7 +75,7 @@ export function TraceAutogroupedRow(
         <button
           ref={props.registerSpanArrowRef}
           className="TraceArrow"
-          onClick={props.onSpanRowArrowClick}
+          onClick={props.onSpanArrowClick}
         >
           <TraceIcons.Chevron direction="left" />
         </button>

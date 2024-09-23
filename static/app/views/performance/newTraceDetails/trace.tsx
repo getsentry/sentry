@@ -31,13 +31,19 @@ import {
   type VirtualizedRow,
 } from 'sentry/views/performance/newTraceDetails/traceRenderers/traceVirtualizedList';
 import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
+import {TraceErrorRow} from 'sentry/views/performance/newTraceDetails/traceRow/traceErrorRow';
 import {TraceLoadingRow} from 'sentry/views/performance/newTraceDetails/traceRow/traceLoadingRow';
+import {TraceMissingInstrumentationRow} from 'sentry/views/performance/newTraceDetails/traceRow/traceMissingInstrumentationRow';
+import {TraceRootRow} from 'sentry/views/performance/newTraceDetails/traceRow/traceRootNode';
 import {
   TRACE_CHILDREN_COUNT_WRAPPER_CLASSNAME,
   TRACE_CHILDREN_COUNT_WRAPPER_ORPHANED_CLASSNAME,
   TRACE_RIGHT_COLUMN_EVEN_CLASSNAME,
   TRACE_RIGHT_COLUMN_ODD_CLASSNAME,
+  type TraceRowProps,
 } from 'sentry/views/performance/newTraceDetails/traceRow/traceRow';
+import {TraceSpanRow} from 'sentry/views/performance/newTraceDetails/traceRow/traceSpanRow';
+import {TraceTransactionRow} from 'sentry/views/performance/newTraceDetails/traceRow/traceTransactionRow';
 import type {TraceReducerState} from 'sentry/views/performance/newTraceDetails/traceState';
 import {
   getRovingIndexActionFromDOMEvent,
@@ -46,7 +52,13 @@ import {
 
 import {TraceTree, type TraceTreeNode} from './traceModels/traceTree';
 import {useTraceState, useTraceStateDispatch} from './traceState/traceStateProvider';
-import {isSpanNode, isTransactionNode} from './guards';
+import {
+  isMissingInstrumentationNode,
+  isSpanNode,
+  isTraceErrorNode,
+  isTraceNode,
+  isTransactionNode,
+} from './guards';
 
 function computeNextIndexFromAction(
   current_index: number,
@@ -553,40 +565,43 @@ function RenderTraceRow(props: {
   trace_id: string | undefined;
   tree: TraceTree;
 }) {
+  const node = props.node;
   const virtualized_index = props.index - props.manager.start_virtualized_index;
   const rowSearchClassName = `${props.isSearchResult ? 'SearchResult' : ''} ${props.searchResultsIteratorIndex === props.index ? 'Highlight' : ''}`;
 
   const registerListColumnRef = useCallback(
     (ref: HTMLDivElement | null) => {
-      props.manager.registerColumnRef('list', ref, virtualized_index, props.node);
+      props.manager.registerColumnRef('list', ref, virtualized_index, node);
     },
-    [props.manager, props.node, virtualized_index]
+    [props.manager, node, virtualized_index]
   );
 
   const registerSpanColumnRef = useCallback(
     (ref: HTMLDivElement | null) => {
-      props.manager.registerColumnRef('span_list', ref, virtualized_index, props.node);
+      props.manager.registerColumnRef('span_list', ref, virtualized_index, node);
     },
-    [props.manager, props.node, virtualized_index]
+    [props.manager, node, virtualized_index]
   );
 
   const registerSpanArrowRef = useCallback(
     ref => {
-      props.manager.registerArrowRef(ref, props.node.space!, virtualized_index);
+      props.manager.registerArrowRef(ref, node.space!, virtualized_index);
     },
-    [props.manager, props.node, virtualized_index]
+    [props.manager, node, virtualized_index]
   );
 
+  const onRowClickProp = props.onRowClick;
   const onRowClick = useCallback(
     (event: React.MouseEvent<HTMLElement>) => {
-      props.onRowClick(props.node, event, props.index);
+      onRowClickProp(node, event, props.index);
     },
-    [props.index, props.node, props.onRowClick]
+    [props.index, node, onRowClickProp]
   );
 
+  const onRowKeyDownProp = props.onRowKeyDown;
   const onRowKeyDown = useCallback(
-    event => props.onRowKeyDown(event, props.index, props.node),
-    [props.index, props.node, props.onRowKeyDown]
+    event => onRowKeyDownProp(event, props.index, node),
+    [props.index, node, onRowKeyDownProp]
   );
 
   const onRowDoubleClick = useCallback(
@@ -595,25 +610,33 @@ function RenderTraceRow(props: {
         organization: props.organization,
       });
       e.stopPropagation();
-      props.manager.onZoomIntoSpace(props.node.space!);
+      props.manager.onZoomIntoSpace(node.space!);
     },
-    [props.node, props.manager, props.organization]
+    [node, props.manager, props.organization]
   );
 
   const onSpanRowArrowClick = useCallback(
     (_e: React.MouseEvent) => {
-      props.manager.onBringRowIntoView(props.node.space!);
+      props.manager.onBringRowIntoView(node.space!);
     },
-    [props.node.space, props.manager]
+    [node.space, props.manager]
   );
 
+  const onExpandProp = props.onExpand;
   const onExpand = useCallback(
     (e: React.MouseEvent) => {
-      props.onExpand(e, props.node, !props.node.expanded);
+      onExpandProp(e, node, !node.expanded);
     },
-    [props.node, props.onExpand]
+    [node, onExpandProp]
   );
 
+  const onZoomInProp = props.onExpand;
+  const onZoomIn = useCallback(
+    (e: React.MouseEvent) => {
+      onZoomInProp(e, node, !node.zoomedIn);
+    },
+    [node, onZoomInProp]
+  );
   const onExpandDoubleClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
   }, []);
@@ -623,13 +646,61 @@ function RenderTraceRow(props: {
       ? TRACE_RIGHT_COLUMN_ODD_CLASSNAME
       : TRACE_RIGHT_COLUMN_EVEN_CLASSNAME;
 
-  const listColumnClassName = props.node.isOrphaned
+  const listColumnClassName = node.isOrphaned
     ? TRACE_CHILDREN_COUNT_WRAPPER_ORPHANED_CLASSNAME
     : TRACE_CHILDREN_COUNT_WRAPPER_CLASSNAME;
 
   const listColumnStyle: React.CSSProperties = {
-    paddingLeft: props.node.depth * props.manager.row_depth_padding,
+    paddingLeft: node.depth * props.manager.row_depth_padding,
   };
+
+  const rowProps: TraceRowProps<TraceTreeNode<TraceTree.NodeValue>> = {
+    onExpand,
+    onZoomIn,
+    onRowClick,
+    onRowKeyDown,
+    previouslyFocusedNodeRef: props.previouslyFocusedNodeRef,
+    isEmbedded: props.isEmbedded,
+    onSpanArrowClick: onSpanRowArrowClick,
+    manager: props.manager,
+    index: props.index,
+    theme: props.theme,
+    style: props.style,
+    projects: props.projects,
+    tabIndex: props.tabIndex,
+    onRowDoubleClick,
+    trace_id: props.trace_id,
+    node: props.node,
+    virtualized_index,
+    listColumnStyle,
+    listColumnClassName,
+    spanColumnClassName,
+    onExpandDoubleClick,
+    rowSearchClassName,
+    registerListColumnRef,
+    registerSpanColumnRef,
+    registerSpanArrowRef,
+  };
+
+  if (isTransactionNode(node)) {
+    return <TraceTransactionRow {...rowProps} node={node} />;
+  }
+
+  if (isSpanNode(node)) {
+    return <TraceSpanRow {...rowProps} node={node} />;
+  }
+
+  if (isMissingInstrumentationNode(node)) {
+    return <TraceMissingInstrumentationRow {...rowProps} node={node} />;
+  }
+
+  if (isTraceErrorNode(node)) {
+    return <TraceErrorRow {...rowProps} node={node} />;
+  }
+
+  if (isTraceNode(node)) {
+    return <TraceRootRow {...rowProps} node={node} />;
+  }
 
   return null;
 }
