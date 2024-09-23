@@ -86,10 +86,12 @@
   ],
   "sentry.apiauthorization": [
     "sentry.apiapplication",
+    "sentry.organization",
     "sentry.user"
   ],
   "sentry.apigrant": [
     "sentry.apiapplication",
+    "sentry.organization",
     "sentry.user"
   ],
   "sentry.apikey": [
@@ -97,6 +99,7 @@
   ],
   "sentry.apitoken": [
     "sentry.apiapplication",
+    "sentry.organization",
     "sentry.user"
   ],
   "sentry.artifactbundle": [
