@@ -31,6 +31,7 @@ import {
   type VirtualizedRow,
 } from 'sentry/views/performance/newTraceDetails/traceRenderers/traceVirtualizedList';
 import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
+import {TraceAutogroupedRow} from 'sentry/views/performance/newTraceDetails/traceRow/traceAutogroupedRow';
 import {TraceErrorRow} from 'sentry/views/performance/newTraceDetails/traceRow/traceErrorRow';
 import {TraceLoadingRow} from 'sentry/views/performance/newTraceDetails/traceRow/traceLoadingRow';
 import {TraceMissingInstrumentationRow} from 'sentry/views/performance/newTraceDetails/traceRow/traceMissingInstrumentationRow';
@@ -53,6 +54,7 @@ import {
 import {TraceTree, type TraceTreeNode} from './traceModels/traceTree';
 import {useTraceState, useTraceStateDispatch} from './traceState/traceStateProvider';
 import {
+  isAutogroupedNode,
   isMissingInstrumentationNode,
   isSpanNode,
   isTraceErrorNode,
@@ -600,7 +602,7 @@ function RenderTraceRow(props: {
 
   const onRowKeyDownProp = props.onRowKeyDown;
   const onRowKeyDown = useCallback(
-    event => onRowKeyDownProp(event, props.index, node),
+    (event: React.KeyboardEvent) => onRowKeyDownProp(event, props.index, node),
     [props.index, node, onRowKeyDownProp]
   );
 
@@ -630,7 +632,7 @@ function RenderTraceRow(props: {
     [node, onExpandProp]
   );
 
-  const onZoomInProp = props.onExpand;
+  const onZoomInProp = props.onZoomIn;
   const onZoomIn = useCallback(
     (e: React.MouseEvent) => {
       onZoomInProp(e, node, !node.zoomedIn);
@@ -692,6 +694,10 @@ function RenderTraceRow(props: {
 
   if (isMissingInstrumentationNode(node)) {
     return <TraceMissingInstrumentationRow {...rowProps} node={node} />;
+  }
+
+  if (isAutogroupedNode(node)) {
+    return <TraceAutogroupedRow {...rowProps} node={node} />;
   }
 
   if (isTraceErrorNode(node)) {
