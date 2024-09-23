@@ -199,9 +199,7 @@ function RuleListRow({
 
   const hasUptimeAutoconfigureBadge =
     rule.type === CombinedAlertType.UPTIME &&
-    [UptimeMonitorMode.AUTO_DETECTED_ACTIVE, UptimeMonitorMode.MANUAL].includes(
-      rule.mode
-    );
+    rule.mode === UptimeMonitorMode.AUTO_DETECTED_ACTIVE;
 
   const titleBadge = hasUptimeAutoconfigureBadge ? (
     <Tag
