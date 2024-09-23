@@ -11,7 +11,9 @@ import {IconMegaphone} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SavedSearch} from 'sentry/types/group';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
+import useOrganization from 'sentry/utils/useOrganization';
 import {OverflowEllipsisTextContainer} from 'sentry/views/insights/common/components/textAlign';
 import {NewTabContext} from 'sentry/views/issueList/utils/newTabContext';
 
@@ -23,16 +25,20 @@ type SearchSuggestion = {
 interface SearchSuggestionListProps {
   searchSuggestions: SearchSuggestion[];
   title: React.ReactNode;
+  type: 'recommended' | 'saved_searches';
 }
 
 const RECOMMENDED_SEARCHES: SearchSuggestion[] = [
-  {label: 'Assigned to Me', query: 'assigned:me'},
-  {label: 'My Bookmarks', query: 'bookmarks:me'},
-  {label: 'Errors Only', query: 'status:unresolved level:error'},
+  {label: 'Prioritized', query: 'is:unresolved issue.priority:[high, medium]'},
+  {label: 'Assigned to Me', query: 'is:unresolved assigned_or_suggested:me'},
   {
-    label: 'Unhandled',
-    query: 'status:unresolved error.unhandled:True',
+    label: 'For Review',
+    query: 'is:unresolved is:for_review assigned_or_suggested:[me, my_teams, none]',
   },
+  {label: 'Request Errors', query: 'is:unresolved http.status_code:5*'},
+  {label: 'High Volume Issues', query: 'is:unresolved timesSeen:>100'},
+  {label: 'Recent Errors', query: 'is:unresolved issue.category:error firstSeen:-24h'},
+  {label: 'Function Regressions', query: 'issue.type:profile_function_regression'},
 ];
 
 function AddViewPage({savedSearches}: {savedSearches: SavedSearch[]}) {
@@ -68,6 +74,7 @@ function AddViewPage({savedSearches}: {savedSearches: SavedSearch[]}) {
       <SearchSuggestionList
         title={'Recommended Searches'}
         searchSuggestions={RECOMMENDED_SEARCHES}
+        type="recommended"
       />
       {savedSearches && savedSearches.length !== 0 && (
         <SearchSuggestionList
@@ -78,14 +85,20 @@ function AddViewPage({savedSearches}: {savedSearches: SavedSearch[]}) {
               query: search.query,
             };
           })}
+          type="saved_searches"
         />
       )}
     </AddViewWrapper>
   );
 }
 
-function SearchSuggestionList({title, searchSuggestions}: SearchSuggestionListProps) {
+function SearchSuggestionList({
+  title,
+  searchSuggestions,
+  type,
+}: SearchSuggestionListProps) {
   const {onNewViewSaved} = useContext(NewTabContext);
+  const organization = useOrganization();
 
   return (
     <Suggestions>
@@ -94,7 +107,19 @@ function SearchSuggestionList({title, searchSuggestions}: SearchSuggestionListPr
         {searchSuggestions.map((suggestion, index) => (
           <Suggestion
             key={index}
-            onClick={() => onNewViewSaved?.(suggestion.label, suggestion.query, false)}
+            onClick={() => {
+              onNewViewSaved?.(suggestion.label, suggestion.query, false);
+              const analyticsKey =
+                type === 'recommended'
+                  ? 'issue_views.add_view.recommended_view_saved'
+                  : 'issue_views.add_view.saved_search_saved';
+              trackAnalytics(analyticsKey, {
+                organization,
+                persisted: false,
+                label: suggestion.label,
+                query: suggestion.query,
+              });
+            }}
           >
             {/*
             Saved search labels have an average length of approximately 16 characters
@@ -111,6 +136,16 @@ function SearchSuggestionList({title, searchSuggestions}: SearchSuggestionListPr
                   onClick={e => {
                     e.stopPropagation();
                     onNewViewSaved?.(suggestion.label, suggestion.query, true);
+                    const analyticsKey =
+                      type === 'recommended'
+                        ? 'issue_views.add_view.recommended_view_saved'
+                        : 'issue_views.add_view.saved_search_saved';
+                    trackAnalytics(analyticsKey, {
+                      organization,
+                      persisted: true,
+                      label: suggestion.label,
+                      query: suggestion.query,
+                    });
                   }}
                   borderless
                 >
@@ -208,6 +243,20 @@ const QueryWrapper = styled('div')`
   overflow: hidden;
 `;
 
+const SuggestionList = styled('ul')`
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+
+  li:has(+ li:hover) {
+    border-bottom: 1px solid transparent;
+  }
+
+  li:hover {
+    border-bottom: 1px solid transparent;
+  }
+`;
+
 const Suggestion = styled('li')`
   position: relative;
   display: inline-grid;
@@ -224,12 +273,6 @@ const Suggestion = styled('li')`
   &:hover .data-actions-wrapper {
     visibility: visible;
   }
-`;
-
-const SuggestionList = styled('ul')`
-  display: flex;
-  flex-direction: column;
-  padding: 0;
 `;
 
 const Banner = styled('div')`

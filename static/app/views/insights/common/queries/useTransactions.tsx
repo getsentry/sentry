@@ -49,7 +49,7 @@ export function useTransactions(eventIDs: string[], referrer = 'use-transactions
   if (!enabled) {
     return {
       isFetching: false,
-      isLoading: false,
+      isPending: false,
       error: null,
       data: [],
       isEnabled: enabled,

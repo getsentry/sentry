@@ -50,7 +50,7 @@ describe('AutofixChanges', function () {
     );
   });
 
-  it('displays create PR button when it is last step', function () {
+  it('displays create PR button', function () {
     MockApiClient.addMockResponse({
       url: '/issues/1/autofix/setup/',
       body: {
@@ -76,47 +76,12 @@ describe('AutofixChanges', function () {
             ],
           }) as AutofixChangesStep
         }
-        isLastStep
       />
     );
 
     expect(
       screen.queryByRole('button', {name: 'Create a Pull Request'})
     ).toBeInTheDocument();
-  });
-
-  it('does not display create PR button when it is not the last step', function () {
-    MockApiClient.addMockResponse({
-      url: '/issues/1/autofix/setup/',
-      body: {
-        genAIConsent: {ok: true},
-        codebaseIndexing: {ok: true},
-        integration: {ok: true},
-        githubWriteIntegration: {
-          repos: [{ok: true, owner: 'owner', name: 'hello-world', id: 100}],
-        },
-      },
-    });
-
-    render(
-      <AutofixChanges
-        {...defaultProps}
-        step={
-          AutofixStepFixture({
-            type: AutofixStepType.CHANGES,
-            changes: [
-              AutofixCodebaseChangeData({
-                pull_request: undefined,
-              }),
-            ],
-          }) as AutofixChangesStep
-        }
-      />
-    );
-
-    expect(
-      screen.queryByRole('button', {name: 'Create a Pull Request'})
-    ).not.toBeInTheDocument();
   });
 
   it('displays setup button when permissions do not exist for repo', async function () {
@@ -147,7 +112,6 @@ describe('AutofixChanges', function () {
             ],
           }) as AutofixChangesStep
         }
-        isLastStep
       />
     );
     renderGlobalModal();

@@ -35,14 +35,14 @@ import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modul
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
 import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
-import SubregionSelector from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
 import {
+  type InsightLandingProps,
   ModuleName,
   SpanMetricsField,
   type SubregionCode,
 } from 'sentry/views/insights/types';
 
-export function WebVitalsLandingPage() {
+export function WebVitalsLandingPage({disableHeader}: InsightLandingProps) {
   const location = useLocation();
 
   const router = useRouter();
@@ -72,24 +72,26 @@ export function WebVitalsLandingPage() {
 
   return (
     <React.Fragment>
-      <Layout.Header>
-        <Layout.HeaderContent>
-          <Breadcrumbs crumbs={crumbs} />
+      {!disableHeader && (
+        <Layout.Header>
+          <Layout.HeaderContent>
+            <Breadcrumbs crumbs={crumbs} />
 
-          <Layout.Title>
-            {MODULE_TITLE}
-            <PageHeadingQuestionTooltip
-              docsUrl={MODULE_DOC_LINK}
-              title={MODULE_DESCRIPTION}
-            />
-          </Layout.Title>
-        </Layout.HeaderContent>
-        <Layout.HeaderActions>
-          <ButtonBar gap={1}>
-            <FeedbackWidgetButton />
-          </ButtonBar>
-        </Layout.HeaderActions>
-      </Layout.Header>
+            <Layout.Title>
+              {MODULE_TITLE}
+              <PageHeadingQuestionTooltip
+                docsUrl={MODULE_DOC_LINK}
+                title={MODULE_DESCRIPTION}
+              />
+            </Layout.Title>
+          </Layout.HeaderContent>
+          <Layout.HeaderActions>
+            <ButtonBar gap={1}>
+              <FeedbackWidgetButton />
+            </ButtonBar>
+          </Layout.HeaderActions>
+        </Layout.Header>
+      )}
 
       <Layout.Body>
         <Layout.Main fullWidth>
@@ -99,7 +101,6 @@ export function WebVitalsLandingPage() {
               extraFilters={
                 <Fragment>
                   <BrowserTypeSelector />
-                  <SubregionSelector />
                 </Fragment>
               }
             />
@@ -168,14 +169,14 @@ export function WebVitalsLandingPage() {
   );
 }
 
-function PageWithProviders() {
+function PageWithProviders(props: InsightLandingProps) {
   return (
     <ModulePageProviders
       moduleName="vital"
       features="insights-initial-modules"
       analyticEventName="insight.page_loads.vital"
     >
-      <WebVitalsLandingPage />
+      <WebVitalsLandingPage {...props} />
     </ModulePageProviders>
   );
 }

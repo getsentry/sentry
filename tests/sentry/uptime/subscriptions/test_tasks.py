@@ -8,7 +8,7 @@ import pytest
 from django.utils import timezone
 
 from sentry.testutils.abstract import Abstract
-from sentry.testutils.cases import TestCase
+from sentry.testutils.cases import UptimeTestCase
 from sentry.testutils.skips import requires_kafka
 from sentry.uptime.config_producer import UPTIME_CONFIGS_CODEC
 from sentry.uptime.models import UptimeSubscription
@@ -24,7 +24,7 @@ from sentry.uptime.subscriptions.tasks import (
 pytestmark = [requires_kafka]
 
 
-class ProducerTestMixin(TestCase):
+class ProducerTestMixin(UptimeTestCase):
     __test__ = Abstract(__module__, __qualname__)
 
     @pytest.fixture(autouse=True)
@@ -52,7 +52,7 @@ class ProducerTestMixin(TestCase):
         assert expected_payloads == passed_payloads
 
 
-class BaseUptimeSubscriptionTaskTest(ProducerTestMixin, TestCase, metaclass=abc.ABCMeta):
+class BaseUptimeSubscriptionTaskTest(ProducerTestMixin, metaclass=abc.ABCMeta):
     __test__ = Abstract(__module__, __qualname__)
 
     status_translations = {
@@ -144,7 +144,7 @@ class DeleteUptimeSubscriptionTaskTest(BaseUptimeSubscriptionTaskTest):
         self.assert_producer_calls()
 
 
-class UptimeSubscriptionToCheckConfigTest(TestCase):
+class UptimeSubscriptionToCheckConfigTest(UptimeTestCase):
     def test(self):
         sub = self.create_uptime_subscription()
         subscription_id = uuid4().hex
@@ -163,7 +163,7 @@ class SendUptimeConfigDeletionTest(ProducerTestMixin):
         self.assert_producer_calls(subscription_id)
 
 
-class SubscriptionCheckerTest(TestCase):
+class SubscriptionCheckerTest(UptimeTestCase):
     def test_create_delete(self):
         for status in (
             UptimeSubscription.Status.CREATING,

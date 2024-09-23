@@ -69,7 +69,7 @@ function AccountSecurityDetails({deleteDisabled, onRegenerateBackupCodes}: Props
     staleTime: 0,
   });
 
-  const {mutate: remove, isLoading: isRemoveLoading} = useMutation({
+  const {mutate: remove, isPending: isRemoveLoading} = useMutation({
     mutationFn: ({id, device}: {id: string; device?: AuthenticatorDevice}) => {
       // if the device is defined, it means that U2f is being removed
       // reason for adding a trailing slash is a result of the endpoint on line 109 needing it but it can't be set there as if deviceId is None, the route will end with '//'
@@ -87,11 +87,11 @@ function AccountSecurityDetails({deleteDisabled, onRegenerateBackupCodes}: Props
       addErrorMessage(t('Error removing %s', deviceName));
     },
     onSettled: () => {
-      queryClient.invalidateQueries(getAuthenticatorQueryKey(authId));
+      queryClient.invalidateQueries({queryKey: getAuthenticatorQueryKey(authId)});
     },
   });
 
-  const {mutate: rename, isLoading: isRenameLoading} = useMutation({
+  const {mutate: rename, isPending: isRenameLoading} = useMutation({
     mutationFn: ({
       id,
       device,
@@ -116,7 +116,7 @@ function AccountSecurityDetails({deleteDisabled, onRegenerateBackupCodes}: Props
       addErrorMessage(t('Error renaming the device'));
     },
     onSettled: () => {
-      queryClient.invalidateQueries(getAuthenticatorQueryKey(authId));
+      queryClient.invalidateQueries({queryKey: getAuthenticatorQueryKey(authId)});
     },
   });
 

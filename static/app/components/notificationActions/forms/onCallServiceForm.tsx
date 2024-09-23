@@ -54,9 +54,9 @@ function OnCallServiceForm({
       return {
         key: integrationName,
         label: integrationName,
-        onAction: value => {
+        onAction: () => {
           onChange(['integrationId'], [integrationId]);
-          setSelectedAccount(value);
+          setSelectedAccount(integrationName);
         },
       };
     });
@@ -71,12 +71,13 @@ function OnCallServiceForm({
     return services.map<MenuItemProps>(service => ({
       key: service.action.targetDisplay ?? '',
       label: service.action.targetDisplay,
-      onAction: value => {
+      onAction: () => {
+        const display = service.action.targetDisplay ?? '';
         onChange(
           ['targetIdentifier', 'targetDisplay'],
-          [service.action.targetIdentifier, value]
+          [service.action.targetIdentifier, display]
         );
-        setSelectedDisplay(value);
+        setSelectedDisplay(display);
       },
     }));
   };

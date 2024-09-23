@@ -138,7 +138,9 @@
     "sentry.authprovider",
     "sentry.organization"
   ],
-  "sentry.broadcast": [],
+  "sentry.broadcast": [
+    "sentry.user"
+  ],
   "sentry.broadcastseen": [
     "sentry.broadcast",
     "sentry.user"
@@ -853,6 +855,10 @@
   "uptime.uptimesubscription": [],
   "workflow_engine.datasource": [
     "sentry.organization"
+  ],
+  "workflow_engine.datasourcedetector": [
+    "workflow_engine.datasource",
+    "workflow_engine.detector"
   ],
   "workflow_engine.detector": [
     "sentry.organization",

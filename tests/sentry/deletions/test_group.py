@@ -6,6 +6,7 @@ from sentry import nodestore
 from sentry.deletions.defaults.group import EventDataDeletionTask
 from sentry.deletions.tasks.groups import delete_groups
 from sentry.eventstore.models import Event
+from sentry.issues.grouptype import ReplayDeadClickType
 from sentry.models.eventattachment import EventAttachment
 from sentry.models.files.file import File
 from sentry.models.group import Group
@@ -17,45 +18,30 @@ from sentry.models.groupredirect import GroupRedirect
 from sentry.models.userreport import UserReport
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 
 class DeleteGroupTest(TestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
-        self.event_id = "a" * 32
-        self.event_id2 = "b" * 32
-        self.event_id3 = "c" * 32
+        one_minute = iso_format(before_now(minutes=1))
+        group1_data = {"timestamp": one_minute, "fingerprint": ["group1"]}
+        group2_data = {"timestamp": one_minute, "fingerprint": ["group2"]}
 
-        self.project = self.create_project()
-
+        # Group 1 events
         self.event = self.store_event(
-            data={
-                "event_id": self.event_id,
-                "tags": {"foo": "bar"},
-                "timestamp": iso_format(before_now(minutes=1)),
-                "fingerprint": ["group1"],
-            },
-            project_id=self.project.id,
+            data=group1_data | {"tags": {"foo": "bar"}}, project_id=self.project.id
         )
-
-        self.store_event(
-            data={
-                "event_id": self.event_id2,
-                "timestamp": iso_format(before_now(minutes=1)),
-                "fingerprint": ["group1"],
-            },
-            project_id=self.project.id,
-        )
-
-        self.keep_event = self.store_event(
-            data={
-                "event_id": self.event_id3,
-                "timestamp": iso_format(before_now(minutes=1)),
-                "fingerprint": ["group2"],
-            },
-            project_id=self.project.id,
-        )
+        self.event_id = self.event.event_id
+        self.node_id = Event.generate_node_id(self.project.id, self.event_id)
         group = self.event.group
+        self.event_id2 = self.store_event(data=group1_data, project_id=self.project.id).event_id
+        self.node_id2 = Event.generate_node_id(self.project.id, self.event_id2)
+
+        # Group 2 event
+        self.keep_event = self.store_event(data=group2_data, project_id=self.project.id)
+        self.event_id3 = self.keep_event.event_id
+        self.node_id3 = Event.generate_node_id(self.project.id, self.event_id3)
 
         UserReport.objects.create(
             group_id=group.id, project_id=self.event.project_id, name="With group id"
@@ -75,10 +61,6 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
         GroupHash.objects.create(project=self.project, group=group, hash=uuid4().hex)
         GroupMeta.objects.create(group=group, key="foo", value="bar")
         GroupRedirect.objects.create(group_id=group.id, previous_group_id=1)
-
-        self.node_id = Event.generate_node_id(self.project.id, self.event_id)
-        self.node_id2 = Event.generate_node_id(self.project.id, self.event_id2)
-        self.node_id3 = Event.generate_node_id(self.project.id, self.event_id3)
 
     def test_simple(self):
         EventDataDeletionTask.DEFAULT_CHUNK_SIZE = 1  # test chunking logic
@@ -209,3 +191,35 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
         assert mock_delete_seer_grouping_records_by_hash_apply_async.call_args[1] == {
             "args": [group.project.id, hashes, 0]
         }
+
+
+class DeleteIssuePlatformTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
+    def test_issue_platform(self):
+        event = self.store_event(data={}, project_id=self.project.id)
+        issue_occurrence, group_info = self.process_occurrence(
+            event_id=event.event_id,
+            project_id=self.project.id,
+            # We are using ReplayDeadClickType as a representative of Issue Platform
+            type=ReplayDeadClickType.type_id,
+            event_data={
+                "fingerprint": ["issue-platform-group"],
+                "timestamp": before_now(minutes=1).isoformat(),
+            },
+        )
+        assert group_info is not None
+        issue_platform_group = group_info.group
+        assert event.group_id != issue_platform_group.id
+
+        with self.tasks():
+            delete_groups(object_ids=[issue_platform_group.id])
+
+        # The original event and group still exist
+        assert Group.objects.filter(id=event.group_id).exists()
+        node_id = Event.generate_node_id(event.project_id, event.event_id)
+        assert nodestore.backend.get(node_id)
+
+        # The Issue Platform group and occurrence are deleted
+        assert issue_platform_group.issue_type == ReplayDeadClickType
+        assert not Group.objects.filter(id=issue_platform_group.id).exists()
+        node_id = Event.generate_node_id(issue_occurrence.project_id, issue_occurrence.id)
+        assert not nodestore.backend.get(node_id)

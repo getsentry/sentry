@@ -47,7 +47,7 @@ const onboarding: OnboardingConfig = {
     {
       type: StepType.CONFIGURE,
       description: t(
-        "Initialize Sentry as early as possible in your application's lifecycle. Otherwise, auto-instrumentation will not work."
+        "Initialize Sentry as early as possible in your application's lifecycle."
       ),
       configurations: [
         {
@@ -67,10 +67,9 @@ const onboarding: OnboardingConfig = {
         },
         {
           description: tct(
-            "Make sure to import [code1:instrument.js/mjs] at the top of your file. Set up the error handler after all controllers and before any other error middleware. This setup is typically done in your application's entry point file, which is usually [code2:index.(js|ts)]. If you're running your application in ESM mode, or looking for alternative ways to set up Sentry, read about [docs:installation methods in our docs].",
+            "Make sure to import [code:instrument.js/mjs] at the top of your file. Set up the error handler after all controllers and before any other error middleware. This setup is typically done in your application's entry point file, which is usually [code:index.(js|ts)]. If you're running your application in ESM mode, or looking for alternative ways to set up Sentry, read about [docs:installation methods in our docs].",
             {
-              code1: <code />,
-              code2: <code />,
+              code: <code />,
               docs: (
                 <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/node/install/" />
               ),
@@ -81,7 +80,7 @@ const onboarding: OnboardingConfig = {
               label: 'JavaScript',
               value: 'javascript',
               language: 'javascript',
-              filename: 'index.(js|mjs)',
+              filename: 'instrument.(js|mjs)',
               code: getSdkSetupSnippet(),
             },
           ],
@@ -90,6 +89,7 @@ const onboarding: OnboardingConfig = {
     },
     getUploadSourceMapsStep({
       guideLink: 'https://docs.sentry.io/platforms/javascript/guides/node/sourcemaps/',
+      ...params,
     }),
   ],
   verify: ({isPerformanceSelected}) => [
@@ -144,10 +144,103 @@ const crashReportOnboarding: OnboardingConfig = {
   nextSteps: () => [],
 };
 
+const performanceOnboarding: OnboardingConfig = {
+  introduction: () =>
+    t(
+      "Adding Performance to your Node project is simple. Make sure you've got these basics down."
+    ),
+  install: params => [
+    {
+      type: StepType.INSTALL,
+      description: tct('Install our Node.js SDK using [code:npm] or [code:yarn]', {
+        code: <code />,
+      }),
+      configurations: getInstallConfig(params),
+    },
+  ],
+  configure: params => [
+    {
+      type: StepType.CONFIGURE,
+      description: tct(
+        'Sentry should be initialized as early in your app as possible. It is essential that you call [code:Sentry.init] before you require any other modules in your application—otherwise, auto-instrumentation of these modules will [strong:not] work.',
+        {code: <code />, strong: <strong />}
+      ),
+      configurations: [
+        {
+          description: tct(
+            'To initialize the SDK before everything else, create an external file called [code:instrument.js/mjs] and make sure to import it in your apps entrypoint before anything else.',
+            {code: <code />}
+          ),
+          code: [
+            {
+              label: 'JavaScript',
+              value: 'javascript',
+              filename: 'instrument.(js|mjs)',
+              language: 'javascript',
+              code: `
+const Sentry = require("@sentry/node");
+
+// Ensure to call this before requiring any other modules!
+Sentry.init({
+  dsn: "${params.dsn.public}",
+  integrations: [Sentry.browserTracingIntegration()],
+
+  // Set tracesSampleRate to 1.0 to capture 100%
+  // of transactions for performance monitoring.
+  // We recommend adjusting this value in production
+  tracesSampleRate: 1.0,
+});
+`,
+            },
+          ],
+          additionalInfo: tct(
+            'We recommend adjusting the value of [code:tracesSampleRate] in production. Learn more about tracing [linkTracingOptions:options], how to use the [linkTracesSampler:traces_sampler] function, or how to [linkSampleTransactions:sample transactions].',
+            {
+              code: <code />,
+              linkTracingOptions: (
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/node/configuration/options/#tracing-options" />
+              ),
+              linkTracesSampler: (
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/node/configuration/sampling/" />
+              ),
+              linkSampleTransactions: (
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/node/configuration/sampling/" />
+              ),
+            }
+          ),
+        },
+      ],
+    },
+  ],
+  verify: () => [
+    {
+      type: StepType.VERIFY,
+      description: tct(
+        'Verify that performance monitoring is working correctly with our [link:automatic instrumentation] by simply using your Node application.',
+        {
+          link: (
+            <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/node/tracing/instrumentation/automatic-instrumentation/" />
+          ),
+        }
+      ),
+      additionalInfo: tct(
+        'You have the option to manually construct a transaction using [link:custom instrumentation].',
+        {
+          link: (
+            <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/node/tracing/instrumentation/custom-instrumentation/" />
+          ),
+        }
+      ),
+    },
+  ],
+  nextSteps: () => [],
+};
+
 const docs: Docs = {
   onboarding,
   replayOnboardingJsLoader,
   customMetricsOnboarding: getJSServerMetricsOnboarding(),
+  performanceOnboarding,
   crashReportOnboarding,
 };
 

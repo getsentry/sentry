@@ -9,6 +9,7 @@ import {
   CardContainer,
   FeatureFlagDrawer,
   FLAG_SORT_OPTIONS,
+  FlagControlOptions,
   FlagSort,
   getLabel,
 } from 'sentry/components/events/featureFlags/featureFlagDrawer';
@@ -16,7 +17,7 @@ import useDrawer from 'sentry/components/globalDrawer';
 import KeyValueData, {
   type KeyValueDataContentProps,
 } from 'sentry/components/keyValueData';
-import {IconMegaphone, IconSort} from 'sentry/icons';
+import {IconMegaphone, IconSearch, IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event, FeatureFlag} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -55,7 +56,7 @@ export function EventFeatureFlagList({
     </Button>
   ) : null;
 
-  const [sortMethod, setSortMethod] = useState<FlagSort>(FlagSort.EVAL);
+  const [sortMethod, setSortMethod] = useState<FlagSort>(FlagSort.NEWEST);
   const {closeDrawer, isDrawerOpen, openDrawer} = useDrawer();
   const viewAllButtonRef = useRef<HTMLButtonElement>(null);
   const organization = useOrganization();
@@ -72,9 +73,9 @@ export function EventFeatureFlagList({
     });
   };
 
-  // Remove duplicates
+  // Reverse the flags to show newest at the top by default
   const hydratedFlags = useMemo(
-    () => hydrateFlags(event.contexts?.flags?.values),
+    () => hydrateFlags(event.contexts?.flags?.values.reverse()),
     [event]
   );
 
@@ -85,37 +86,45 @@ export function EventFeatureFlagList({
   };
 
   const sortedFlags =
-    sortMethod === FlagSort.ALPHA ? handleSortAlphabetical(hydratedFlags) : hydratedFlags;
+    sortMethod === FlagSort.ALPHA
+      ? handleSortAlphabetical(hydratedFlags)
+      : sortMethod === FlagSort.OLDEST
+        ? [...hydratedFlags].reverse()
+        : hydratedFlags;
 
-  const onViewAllFlags = useCallback(() => {
-    trackAnalytics('flags.view-all-clicked', {
-      organization,
-    });
-    openDrawer(
-      () => (
-        <FeatureFlagDrawer
-          group={group}
-          event={event}
-          project={project}
-          hydratedFlags={hydratedFlags}
-          initialSort={sortMethod}
-        />
-      ),
-      {
-        ariaLabel: t('Feature flags drawer'),
-        // We prevent a click on the 'View All' button from closing the drawer so that
-        // we don't reopen it immediately, and instead let the button handle this itself.
-        shouldCloseOnInteractOutside: element => {
-          const viewAllButton = viewAllButtonRef.current;
-          if (viewAllButton?.contains(element)) {
-            return false;
-          }
-          return true;
-        },
-        transitionProps: {stiffness: 1000},
-      }
-    );
-  }, [openDrawer, event, group, project, sortMethod, hydratedFlags, organization]);
+  const onViewAllFlags = useCallback(
+    (focusControl?: FlagControlOptions) => {
+      trackAnalytics('flags.view-all-clicked', {
+        organization,
+      });
+      openDrawer(
+        () => (
+          <FeatureFlagDrawer
+            group={group}
+            event={event}
+            project={project}
+            hydratedFlags={hydratedFlags}
+            initialSort={sortMethod}
+            focusControl={focusControl}
+          />
+        ),
+        {
+          ariaLabel: t('Feature flags drawer'),
+          // We prevent a click on the 'View All' button from closing the drawer so that
+          // we don't reopen it immediately, and instead let the button handle this itself.
+          shouldCloseOnInteractOutside: element => {
+            const viewAllButton = viewAllButtonRef.current;
+            if (viewAllButton?.contains(element)) {
+              return false;
+            }
+            return true;
+          },
+          transitionProps: {stiffness: 1000},
+        }
+      );
+    },
+    [openDrawer, event, group, project, sortMethod, hydratedFlags, organization]
+  );
 
   if (!hydratedFlags.length) {
     return null;
@@ -125,9 +134,17 @@ export function EventFeatureFlagList({
     <ButtonBar gap={1}>
       {feedbackButton}
       <Button
+        aria-label={t('Open Feature Flag Search')}
+        icon={<IconSearch size="xs" />}
+        size="xs"
+        title={t('Open Search')}
+        onClick={() => onViewAllFlags(FlagControlOptions.SEARCH)}
+      />
+      <Button
         size="xs"
         aria-label={t('View All')}
         ref={viewAllButtonRef}
+        title={t('View All Flags')}
         onClick={() => {
           isDrawerOpen ? closeDrawer() : onViewAllFlags();
         }}
@@ -166,7 +183,15 @@ export function EventFeatureFlagList({
 
   return (
     <ErrorBoundary mini message={t('There was a problem loading feature flags.')}>
-      <InterimSection title={t('Feature Flags')} type="feature-flags" actions={actions}>
+      <InterimSection
+        help={t(
+          "The last 10 flags evaluated in the user's session leading up to this event."
+        )}
+        isHelpHoverable
+        title={t('Feature Flags')}
+        type="feature-flags"
+        actions={actions}
+      >
         <CardContainer numCols={columnTwo.length ? 2 : 1}>
           <KeyValueData.Card contentItems={columnOne} />
           <KeyValueData.Card contentItems={columnTwo} />

@@ -463,6 +463,7 @@ class TestGetCommentIssues(CreateEventTestCase):
         group = Group.objects.all()[0]
         group.resolved_at = timezone.now()
         group.status = GroupStatus.RESOLVED
+        group.substatus = None
         group.save()
 
         top_5_issues = get_top_5_issues_by_count_for_file([self.project], ["baz.py"], ["world"])

@@ -438,7 +438,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
 
 @control_silo_test
 @patch(
-    "sentry.integrations.gitlab.GitlabIntegrationProvider.build_integration",
+    "sentry.integrations.gitlab.integration.GitlabIntegrationProvider.build_integration",
     side_effect=naive_build_integration,
 )
 class GitlabFinishPipelineTest(IntegrationTestCase):

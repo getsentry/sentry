@@ -17,7 +17,7 @@ export default function MemoryPanel() {
 
   const memoryFrames = replay?.getMemoryFrames();
 
-  const {data: frameToCount, isLoading: isDomNodeDataLoading} = useCountDomNodes({
+  const {data: frameToCount, isPending: isDomNodeDataLoading} = useCountDomNodes({
     replay,
   });
   const domNodeData = useMemo(

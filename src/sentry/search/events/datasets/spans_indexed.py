@@ -533,7 +533,7 @@ class SpansIndexedDatasetConfig(DatasetConfig):
 class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
     """Eventually should just write the eap dataset from scratch, but inheriting for now to move fast"""
 
-    sampling_weight = Function("toUInt64", [Column("sampling_weight")])
+    sampling_weight = Column("sampling_weight")
 
     def _resolve_span_duration(self, alias: str) -> SelectType:
         # In ClickHouse, duration is an UInt32 whereas self time is a Float64.
@@ -731,6 +731,7 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
     ) -> SelectType:
         return Function(
             f'quantileTDigestWeighted({fixed_percentile if fixed_percentile is not None else args["percentile"]})',
-            [args["column"], self.sampling_weight],
+            # Only convert to UInt64 when we have to since we lose rounding accuracy
+            [args["column"], Function("toUInt64", [self.sampling_weight])],
             alias,
         )

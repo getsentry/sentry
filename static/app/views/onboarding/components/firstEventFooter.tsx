@@ -57,6 +57,12 @@ export default function FirstEventFooter({
     }
     return (
       <LinkButton
+        onClick={() =>
+          trackAnalytics('growth.onboarding_take_to_error', {
+            organization: project.organization,
+            platform: project.platform,
+          })
+        }
         to={`/organizations/${organization.slug}/issues/${
           project?.firstIssue && 'id' in project.firstIssue
             ? `${project.firstIssue.id}/`

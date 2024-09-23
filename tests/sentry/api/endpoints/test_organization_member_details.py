@@ -144,6 +144,33 @@ class GetOrganizationMemberTest(OrganizationMemberTestBase):
 class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMixin):
     method = "put"
 
+    def setUp(self):
+        super().setUp()
+
+        self.curr_user = self.create_user("member@example.com")
+        self.curr_member = self.create_member(
+            organization=self.organization, role="member", user=self.curr_user
+        )
+        self.other_user = self.create_user("other@example.com")
+        self.other_member = self.create_member(
+            organization=self.organization, role="member", user=self.other_user
+        )
+
+        self.curr_invite = self.create_member(
+            organization=self.organization,
+            user=None,
+            email="member_invite@example.com",
+            role="member",
+            inviter_id=self.curr_user.id,
+        )
+        self.other_invite = self.create_member(
+            organization=self.organization,
+            user=None,
+            email="other_invite@example.com",
+            role="member",
+            inviter_id=self.other_user.id,
+        )
+
     def test_invalid_id(self):
         self.get_error_response(self.organization.slug, "trash", reinvite=1, status_code=404)
 
@@ -155,6 +182,87 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
 
         self.get_success_response(self.organization.slug, member_om.id, reinvite=1)
         mock_send_invite_email.assert_called_once_with()
+
+    @patch("sentry.models.OrganizationMember.send_invite_email")
+    @with_feature("organizations:members-invite-teammates")
+    def test_member_reinvite_pending_member(self, mock_send_invite_email):
+        self.login_as(self.curr_user)
+
+        self.organization.flags.disable_member_invite = True
+        self.organization.save()
+        response = self.get_error_response(
+            self.organization.slug, self.curr_invite.id, reinvite=1, status_code=403
+        )
+        assert response.data.get("detail") == "You do not have permission to perform this action."
+        response = self.get_error_response(
+            self.organization.slug, self.other_invite.id, reinvite=1, status_code=403
+        )
+        assert response.data.get("detail") == "You do not have permission to perform this action."
+        assert not mock_send_invite_email.mock_calls
+
+        self.organization.flags.disable_member_invite = False
+        self.organization.save()
+        self.get_success_response(self.organization.slug, self.curr_invite.id, reinvite=1)
+        mock_send_invite_email.assert_called_once_with()
+        mock_send_invite_email.reset_mock()
+        response = self.get_error_response(
+            self.organization.slug, self.other_invite.id, reinvite=1, status_code=403
+        )
+        assert response.data.get("detail") == "You cannot modify invitations sent by someone else."
+        assert not mock_send_invite_email.mock_calls
+
+    @patch("sentry.models.OrganizationMember.send_invite_email")
+    @with_feature("organizations:members-invite-teammates")
+    def test_member_can_only_reinvite(self, mock_send_invite_email):
+        foo = self.create_team(organization=self.organization, name="Team Foo")
+        self.login_as(self.curr_user)
+
+        self.organization.flags.disable_member_invite = True
+        self.organization.save()
+        response = self.get_error_response(
+            self.organization.slug,
+            self.curr_invite.id,
+            reinvite=1,
+            teams=[foo.slug],
+            status_code=403,
+        )
+        assert response.data.get("detail") == "You do not have permission to perform this action."
+        assert not mock_send_invite_email.mock_calls
+
+        self.organization.flags.disable_member_invite = False
+        self.organization.save()
+        response = self.get_error_response(
+            self.organization.slug,
+            self.curr_invite.id,
+            reinvite=1,
+            teams=[foo.slug],
+            status_code=403,
+        )
+        assert (
+            response.data.get("detail")
+            == "You can only reinvite members; you cannot modify other member details."
+        )
+        assert not mock_send_invite_email.mock_calls
+
+    @patch("sentry.models.OrganizationMember.send_invite_email")
+    @with_feature("organizations:members-invite-teammates")
+    def test_member_cannot_reinvite_members(self, mock_send_invite_email):
+        self.login_as(self.curr_user)
+
+        self.organization.flags.disable_member_invite = True
+        self.organization.save()
+        response = self.get_error_response(
+            self.organization.slug, self.other_member.id, reinvite=1, status_code=403
+        )
+        assert response.data.get("detail") == "You do not have permission to perform this action."
+
+        self.organization.flags.disable_member_invite = False
+        self.organization.save()
+        response = self.get_error_response(
+            self.organization.slug, self.other_member.id, reinvite=1, status_code=403
+        )
+        assert response.data.get("detail") == "You do not have permission to perform this action."
+        assert not mock_send_invite_email.mock_calls
 
     @patch("sentry.ratelimits.for_organization_member_invite")
     @patch("sentry.models.OrganizationMember.send_invite_email")
@@ -170,6 +278,7 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
         assert not mock_send_invite_email.mock_calls
 
     @patch("sentry.models.OrganizationMember.send_invite_email")
+    @with_feature("organizations:members-invite-teammates")
     def test_member_cannot_regenerate_pending_invite(self, mock_send_invite_email):
         member_om = self.create_member(
             organization=self.organization, email="foo@example.com", role="member"
@@ -186,6 +295,26 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
         member_om = OrganizationMember.objects.get(id=member_om.id)
         assert old_invite == member_om.get_invite_link()
         assert not mock_send_invite_email.mock_calls
+
+        self.login_as(self.curr_user)
+
+        self.organization.flags.disable_member_invite = True
+        self.organization.save()
+        response = self.get_error_response(
+            self.organization.slug, self.curr_invite.id, reinvite=1, regenerate=1, status_code=403
+        )
+        assert response.data.get("detail") == "You do not have permission to perform this action."
+
+        self.organization.flags.disable_member_invite = False
+        self.organization.save()
+        response = self.get_error_response(
+            self.organization.slug,
+            self.curr_invite.id,
+            reinvite=1,
+            regenerate=1,
+            status_code=400,
+        )
+        assert response.data.get("detail") == "You are missing the member:admin scope."
 
     @patch("sentry.models.OrganizationMember.send_invite_email")
     def test_admin_can_regenerate_pending_invite(self, mock_send_invite_email):

@@ -16,10 +16,10 @@ from sentry.models.project import Project
 from sentry.replays.lib.storage import (
     RecordingSegmentStorageMeta,
     make_recording_filename,
-    make_video_filename,
     storage_kv,
 )
 from sentry.replays.usecases.ingest.dom_index import log_canvas_size, parse_and_emit_replay_actions
+from sentry.replays.usecases.pack import pack
 from sentry.signals import first_replay_received
 from sentry.utils import json, metrics
 from sentry.utils.outcomes import Outcome, track_outcome
@@ -96,7 +96,7 @@ def _ingest_recording(message: RecordingIngestMessage, transaction: Span) -> Non
     set_tag("project_id", message.project_id)
 
     try:
-        headers, recording_segment = process_headers(message.payload_with_headers)
+        headers, compressed_segment = process_headers(message.payload_with_headers)
     except Exception:
         # TODO: DLQ
         logger.exception("Recording headers could not be extracted %s", message.replay_id)
@@ -110,9 +110,18 @@ def _ingest_recording(message: RecordingIngestMessage, transaction: Span) -> Non
         retention_days=message.retention_days,
     )
 
-    # Using a blob driver ingest the recording-segment bytes.  The storage location is unknown
-    # within this scope.
-    storage_kv.set(make_recording_filename(segment_data), recording_segment)
+    # Segment is decompressed for further analysis. Packed format expects
+    # concatenated, uncompressed bytes.
+    try:
+        recording_segment = zlib.decompress(compressed_segment)
+        _report_size_metrics(len(compressed_segment), len(recording_segment))
+    except zlib.error:
+        if compressed_segment[0] == ord("["):
+            recording_segment = compressed_segment
+            compressed_segment = zlib.compress(compressed_segment)  # Save storage $$$
+        else:
+            logger.exception("Invalid recording body.")
+            return None
 
     if message.replay_video:
         # Logging org info for bigquery
@@ -133,12 +142,16 @@ def _ingest_recording(message: RecordingIngestMessage, transaction: Span) -> Non
             len(message.replay_video),
             unit="byte",
         )
+
+        dat = zlib.compress(pack(rrweb=recording_segment, video=message.replay_video))
+        storage_kv.set(make_recording_filename(segment_data), dat)
+
+        # Track combined payload size.
         metrics.distribution(
-            "replays.recording_consumer.replay_video_event_size",
-            len(message.replay_video) + len(recording_segment),
-            unit="byte",
+            "replays.recording_consumer.replay_video_event_size", len(dat), unit="byte"
         )
-        storage_kv.set(make_video_filename(segment_data), message.replay_video)
+    else:
+        storage_kv.set(make_recording_filename(segment_data), compressed_segment)
 
     recording_post_processor(message, headers, recording_segment, message.replay_event, transaction)
 
@@ -219,14 +232,6 @@ def replay_recording_segment_cache_id(project_id: int, replay_id: str, segment_i
     return f"{project_id}:{replay_id}:{segment_id}"
 
 
-def decompress(data: bytes) -> bytes:
-    """Return decompressed bytes."""
-    if data.startswith(b"["):
-        return data
-    else:
-        return zlib.decompress(data, zlib.MAX_WBITS | 32)
-
-
 def _report_size_metrics(
     size_compressed: int | None = None, size_uncompressed: int | None = None
 ) -> None:
@@ -247,37 +252,20 @@ def recording_post_processor(
     replay_event_bytes: bytes | None,
     transaction: Span,
 ) -> None:
-    if len(segment_bytes) >= 4_000_000:
-        logger.info(
-            # Logging to the sentry.replays.slow_click namespace because
-            # it's the only one configured to use BigQuery at the moment.
-            #
-            # NOTE: Needs an ops request if we want to create a new dataset.
-            "sentry.replays.slow_click",
-            extra={
-                "event_type": "oversized_segment",
-                "org_id": message.org_id,
-                "project_id": message.project_id,
-                "replay_id": message.replay_id,
-                "size": len(segment_bytes),
-            },
-        )
-
     try:
         with metrics.timer("replays.usecases.ingest.decompress_and_parse"):
-            decompressed_segment = decompress(segment_bytes)
-            parsed_segment_data = json.loads(decompressed_segment)
+            parsed_segment_data = json.loads(segment_bytes)
             parsed_replay_event = json.loads(replay_event_bytes) if replay_event_bytes else None
-            _report_size_metrics(len(segment_bytes), len(decompressed_segment))
 
         # Emit DOM search metadata to Clickhouse.
         with transaction.start_child(
             op="replays.usecases.ingest.parse_and_emit_replay_actions",
             description="parse_and_emit_replay_actions",
         ):
+            project = Project.objects.get_from_cache(id=message.project_id)
             parse_and_emit_replay_actions(
                 retention_days=message.retention_days,
-                project_id=message.project_id,
+                project=project,
                 replay_id=message.replay_id,
                 segment_data=parsed_segment_data,
                 replay_event=parsed_replay_event,

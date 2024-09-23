@@ -66,6 +66,7 @@ export type OnboardingEventParameters = {
   };
   'onboarding.take_me_to_issues_clicked': {
     platform: string;
+    products: string[];
     project_id: string;
   };
 };
