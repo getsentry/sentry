@@ -8,7 +8,10 @@ import {Button} from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import type {
+  BasePlatformOptions,
+  DocsParams,
+} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
 import {
   PlatformOptionsControl,
@@ -29,6 +32,28 @@ import {AddIntegrationButton} from 'sentry/views/settings/organizationIntegratio
 
 import AddInstallationInstructions from './components/integrations/addInstallationInstructions';
 import PostInstallCodeSnippet from './components/integrations/postInstallCodeSnippet';
+
+export enum InstallationMode {
+  AUTO = 'auto',
+  MANUAL = 'manual',
+}
+
+export const platformOptions = {
+  installationMode: {
+    label: t('Installation Mode'),
+    items: [
+      {
+        label: t('Auto'),
+        value: InstallationMode.AUTO,
+      },
+      {
+        label: t('Manual'),
+        value: InstallationMode.MANUAL,
+      },
+    ],
+    defaultValue: InstallationMode.AUTO,
+  },
+} satisfies BasePlatformOptions;
 
 type Props = {
   integrationSlug: string;
@@ -56,7 +81,7 @@ function IntegrationSetup({project, integrationSlug, platform}: Props) {
     platform,
   });
 
-  const platformOptions = useUrlPlatformOptions(docsConfig?.platformOptions);
+  const selectedPlatformOptions = useUrlPlatformOptions(docsConfig?.platformOptions);
 
   const api = useApi();
   const fetchData = useCallback(() => {
@@ -201,7 +226,7 @@ function IntegrationSetup({project, integrationSlug, platform}: Props) {
     isProfilingSelected: false,
     isReplaySelected: false,
     isSelfHosted,
-    platformOptions,
+    platformOptions: selectedPlatformOptions,
     sourcePackageRegistries: {
       isLoading: false,
       data: undefined,
@@ -215,12 +240,10 @@ function IntegrationSetup({project, integrationSlug, platform}: Props) {
         stepHeaderText={t('Automatically instrument %s SDK', platform.name)}
         platform={platform.id}
       />
-      {docsConfig.platformOptions && (
-        <PlatformOptionsControl
-          platformOptions={docsConfig.platformOptions}
-          onChange={docsConfig.onboarding.onPlatformOptionsChange?.(docParams)}
-        />
-      )}
+      <PlatformOptionsControl
+        platformOptions={platformOptions}
+        onChange={docsConfig.onboarding.onPlatformOptionsChange?.(docParams)}
+      />
       <Divider />
       {installed ? renderPostInstallInstructions() : renderIntegrationInstructions()}
       {getDynamicText({

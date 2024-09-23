@@ -1,6 +1,5 @@
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
-  BasePlatformOptions,
   Docs,
   DocsParams,
   OnboardingConfig,
@@ -15,28 +14,10 @@ import {getJSServerMetricsOnboarding} from 'sentry/components/onboarding/getting
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getInstallConfig, getSdkInitSnippet} from 'sentry/utils/gettingStartedDocs/node';
-
-export enum InstallationMode {
-  AUTO = 'auto',
-  MANUAL = 'manual',
-}
-
-const platformOptions = {
-  installationMode: {
-    label: t('Installation Mode'),
-    items: [
-      {
-        label: t('Auto'),
-        value: InstallationMode.AUTO,
-      },
-      {
-        label: t('Manual'),
-        value: InstallationMode.MANUAL,
-      },
-    ],
-    defaultValue: InstallationMode.AUTO,
-  },
-} satisfies BasePlatformOptions;
+import {
+  InstallationMode,
+  platformOptions,
+} from 'sentry/views/onboarding/integrationSetup';
 
 type PlatformOptions = typeof platformOptions;
 type Params = DocsParams<PlatformOptions>;

@@ -13,11 +13,10 @@ import {platformToIntegrationMap} from 'sentry/utils/integrationUtil';
 import {decodeList} from 'sentry/utils/queryString';
 import useOrganization from 'sentry/utils/useOrganization';
 import SetupIntroduction from 'sentry/views/onboarding/components/setupIntroduction';
-import {useOnboardingQueryParams} from 'sentry/views/onboarding/components/useOnboardingQueryParams';
 import {OtherPlatformsInfo} from 'sentry/views/projectInstall/otherPlatformsInfo';
 
 import FirstEventFooter from './components/firstEventFooter';
-import IntegrationSetup from './integrationSetup';
+import IntegrationSetup, {InstallationMode} from './integrationSetup';
 import type {StepProps} from './types';
 
 function SetupDocs({location, recentCreatedProject: project}: StepProps) {
@@ -32,8 +31,6 @@ function SetupDocs({location, recentCreatedProject: project}: StepProps) {
   const currentPlatform =
     platforms.find(p => p.id === currentPlatformKey) ?? otherPlatform;
 
-  const [params] = useOnboardingQueryParams();
-
   if (!project || !currentPlatform) {
     return null;
   }
@@ -41,7 +38,7 @@ function SetupDocs({location, recentCreatedProject: project}: StepProps) {
   const platformName = currentPlatform.name;
   const integrationSlug = project.platform && platformToIntegrationMap[project.platform];
   const showIntegrationOnboarding =
-    integrationSlug && params.installationMode !== 'manual';
+    integrationSlug && location.query.installationMode !== InstallationMode.MANUAL;
 
   return (
     <Fragment>

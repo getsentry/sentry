@@ -4,7 +4,6 @@ import Alert from 'sentry/components/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {
-  type BasePlatformOptions,
   type Docs,
   DocsPageLocation,
   type DocsParams,
@@ -15,28 +14,10 @@ import {crashReportOnboardingPython} from 'sentry/gettingStartedDocs/python/pyth
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
-
-export enum InstallationMode {
-  AUTO = 'auto',
-  MANUAL = 'manual',
-}
-
-const platformOptions = {
-  installationMode: {
-    label: t('Installation Mode'),
-    items: [
-      {
-        label: t('Auto'),
-        value: InstallationMode.AUTO,
-      },
-      {
-        label: t('Manual'),
-        value: InstallationMode.MANUAL,
-      },
-    ],
-    defaultValue: InstallationMode.AUTO,
-  },
-} satisfies BasePlatformOptions;
+import {
+  InstallationMode,
+  platformOptions,
+} from 'sentry/views/onboarding/integrationSetup';
 
 type PlatformOptions = typeof platformOptions;
 type Params = DocsParams<PlatformOptions>;

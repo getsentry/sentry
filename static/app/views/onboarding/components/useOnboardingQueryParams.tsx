@@ -1,16 +1,11 @@
 import {useCallback} from 'react';
 
-import {decodeBoolean, decodeList, decodeScalar} from 'sentry/utils/queryString';
+import {decodeBoolean, decodeList} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
 type QueryValues = {
-  /**
-   * Used to show the installation mode for certain platforms, e.g. manual or auto.
-   * This is defined inside of a platform file
-   */
-  installationMode: string;
   /**
    * Used to show product selection (error monitoring, tracing, profiling and session replay) for certain platforms, e.g. javascript-react
    */
@@ -31,7 +26,6 @@ export function useOnboardingQueryParams(): [
     fields: {
       product: decodeList,
       showManualSetup: decodeBoolean,
-      installationMode: decodeScalar,
     },
   });
 
