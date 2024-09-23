@@ -1,25 +1,61 @@
 import logging
 from collections.abc import Sequence
+from datetime import timedelta
 
 from django.db.models import Max
 from django.utils import timezone
-
-from sentry.taskworker.pending_tasks import PendingTask
+from sentry_protos.hackweek_team_no_celery_pls.v1alpha.pending_task_pb2 import Status, Task
 
 logger = logging.getLogger("sentry.taskworker.consumer")
 
 
 class PendingTaskStore:
-    def store(self, batch: Sequence[PendingTask]):
+    def store(self, batch: Sequence[Task]):
         # Takes in a batch of pending tasks and stores them in some datastore
         from sentry.taskworker.models import PendingTasks
 
-        PendingTasks.objects.bulk_create(
-            [
-                PendingTasks.from_message(task.proto_task, task.topic, task.partition, task.offset)
-                for task in batch
-            ]
-        )
+        PendingTasks.objects.bulk_create([PendingTasks.from_proto(task) for task in batch])
+
+    def get_pending_task(
+        self, partition: int | None = None, topic: str | None = None
+    ) -> Task | None:
+        from django.db import router, transaction
+
+        from sentry.taskworker.models import PendingTasks
+
+        with transaction.atomic(using=router.db_for_write(PendingTasks)):
+            query_set = PendingTasks.objects.filter(state=PendingTasks.States.PENDING)
+
+            if partition is not None:
+                query_set = query_set.filter(partition=partition)
+
+            if topic is not None:
+                query_set = query_set.filter(topic=topic)
+
+            task = query_set.first()
+            if task is None:
+                return None
+
+            # TODO this duration should be a tasknamespace setting, or with an option
+            deadline = task.added_at + timedelta(minutes=3)
+
+            task.update(state=PendingTasks.States.PROCESSING, processing_deadline=deadline)
+            return task.to_proto()
+
+    def set_task_status(self, task_id: int, task_status: Status.ValueType):
+        from django.db import router, transaction
+
+        from sentry.taskworker.models import PendingTasks
+
+        task_status = PendingTasks.to_model_status(task_status)
+
+        with transaction.atomic(using=router.db_for_write(PendingTasks)):
+            # Pull a select for update here to lock the row while we mutate the retry count
+            task = PendingTasks.objects.select_for_update().filter(id=task_id).get()
+
+            task.update(state=task_status)
+            if task_status == PendingTasks.States.RETRY:
+                task.update(retry_attempts=task.retry_attempts + 1)
 
     def handle_retry_state_tasks(self) -> None:
         from sentry.taskworker.config import taskregistry

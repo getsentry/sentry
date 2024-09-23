@@ -3,10 +3,15 @@ from __future__ import annotations
 import logging
 import time
 
+import orjson
 from django.conf import settings
+from sentry_protos.hackweek_team_no_celery_pls.v1alpha.pending_task_pb2 import (
+    COMPLETE,
+    FAILURE,
+    RETRY,
+)
 
 from sentry.taskworker.config import TaskNamespace, taskregistry
-from sentry.taskworker.models import PendingTasks
 
 logger = logging.getLogger("sentry.taskworker")
 
@@ -42,48 +47,46 @@ class Worker:
             logger.exception("Worker process crashed")
 
     def process_tasks(self, namespace: TaskNamespace) -> None:
-        from sentry.taskworker.service.service import task_service
+        from sentry.taskworker.service.client import task_client
 
-        # This emulates an RPC service interface.
-        task_data = task_service.get_task(topic=namespace.topic)
-        if task_data is None:
+        task_data = task_client.get_task(topic=namespace.topic)
+        if not task_data:
             logger.info("No tasks")
             time.sleep(1)
             return
 
         try:
-            task_meta = self.namespace.get(task_data.task_name)
+            task_meta = self.namespace.get(task_data.work.taskname)
         except KeyError:
-            logger.exception("Could not resolve task with name %s", task_data.task_name)
+            logger.exception("Could not resolve task with name %s", task_data.work.taskname)
             return
 
         # TODO: Check idempotency
-        next_state = PendingTasks.States.FAILURE
-
         task_added_time = task_data.added_at.timestamp()
         execution_time = time.time()
+        next_state = FAILURE
         try:
-            task_meta(*task_data.parameters["args"], **task_data.parameters["kwargs"])
-            next_state = PendingTasks.States.COMPLETE
+            task_data_parameters = orjson.loads(task_data.work.parameters)
+            task_meta(*task_data_parameters["args"], **task_data_parameters["kwargs"])
+            next_state = COMPLETE
         except Exception as err:
             logger.info("taskworker.task_errored", extra={"error": str(err)})
             # TODO check retry policy
-            if task_meta.should_retry(task_data.retry_state(), err):
-                logger.info("taskworker.task.retry", extra={"task": task_data.task_name})
-                next_state = PendingTasks.States.RETRY
-
+            if task_meta.should_retry(task_data.work.retry_state, err):
+                logger.info("taskworker.task.retry", extra={"task": task_data.work.taskname})
+                next_state = RETRY
         task_latency = execution_time - task_added_time
         logger.info("task.complete", extra={"latency": task_latency})
 
-        if next_state == PendingTasks.States.COMPLETE:
-            logger.info("taskworker.task.complete", extra={"task": task_data.task_name})
-            task_service.complete_task(task_id=task_data.id)
+        if next_state == COMPLETE:
+            logger.info("taskworker.task.complete", extra={"task": task_data.work.taskname})
+            task_client.complete_task(task_id=task_data.store_id)
         else:
             logger.info(
                 "taskworker.task.change_status",
-                extra={"task": task_data.task_name, "state": next_state},
+                extra={"task": task_data.work.taskname, "state": next_state},
             )
-            task_service.set_task_status(
-                task_id=task_data.id,
+            task_client.set_task_status(
+                task_id=task_data.store_id,
                 task_status=next_state,
             )

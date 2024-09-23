@@ -4,6 +4,8 @@ import dataclasses
 from collections.abc import Sequence
 from typing import Any
 
+from sentry_protos.hackweek_team_no_celery_pls.v1alpha.pending_task_pb2 import RetryPolicy
+
 
 @dataclasses.dataclass
 class RetryState:
@@ -41,7 +43,7 @@ class Retry:
         self.__deadletter = deadletter
         self.__discard = discard
 
-    def should_retry(self, state: RetryState, exc: Exception) -> bool:
+    def should_retry(self, state: RetryPolicy, exc: Exception) -> bool:
         # No more attempts left
         if state.attempts >= self.__times:
             return False

@@ -8,7 +8,7 @@ from uuid import uuid4
 import orjson
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer
 from arroyo.types import Topic as ArroyoTopic
-from sentry_protos.hackweek_team_no_celery_pls.v1alpha.pending_task_pb2 import PendingTask
+from sentry_protos.hackweek_team_no_celery_pls.v1alpha.pending_task_pb2 import RetryPolicy, Work
 
 from sentry.conf.types.kafka_definition import Topic
 from sentry.taskworker.models import PendingTasks
@@ -75,10 +75,10 @@ class TaskNamespace:
         return wrapped
 
     def retry_task(self, taskdata: PendingTasks) -> None:
-        task_message = taskdata.to_message()
+        message = taskdata.to_proto()
         self.producer.produce(
             ArroyoTopic(name=self.topic),
-            KafkaPayload(key=None, value=task_message.SerializeToString(), headers=[]),
+            KafkaPayload(key=None, value=message.work.SerializeToString(), headers=[]),
         )
 
     def send_task(self, task: Task, args, kwargs) -> None:
@@ -93,13 +93,13 @@ class TaskNamespace:
     def _serialize_task_call(self, task: Task, args: list[Any], kwargs: Mapping[Any, Any]) -> bytes:
         retry = task.retry or self.default_retry or FALLBACK_RETRY
 
-        retry_policy = PendingTask.RetryPolicy(
+        retry_policy = RetryPolicy(
             attempts=retry.initial_state().attempts,
             kind=retry.initial_state().kind,
             discard_after_attempt=retry.initial_state().discard_after_attempt,
             deadletter_after_attempt=retry.initial_state().deadletter_after_attempt,
         )
-        pending_task_payload = PendingTask(
+        pending_task_payload = Work(
             task_id=uuid4().hex,
             taskname=task.name,
             parameters=orjson.dumps({"args": args, "kwargs": kwargs}),

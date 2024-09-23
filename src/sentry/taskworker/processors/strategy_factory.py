@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping, MutableSequence
+from time import time
 
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.processing.strategies import (
@@ -16,23 +17,25 @@ from arroyo.processing.strategies import (
 from arroyo.processing.strategies.run_task_with_multiprocessing import MultiprocessingPool
 from arroyo.types import BaseValue, Commit, Message, Partition
 from django.conf import settings
-from sentry_protos.hackweek_team_no_celery_pls.v1alpha.pending_task_pb2 import (
-    PendingTask as PendingTaskProto,
-)
+from sentry_protos.hackweek_team_no_celery_pls.v1alpha.pending_task_pb2 import PENDING, Task, Work
 
 from sentry.conf.types.kafka_definition import Topic
 from sentry.taskworker.pending_task_store import PendingTaskStore
-from sentry.taskworker.pending_tasks import PendingTask, PendingTaskState
 
 logger = logging.getLogger("sentry.taskworker.consumer")
 
 
-def process_message(message: Message[KafkaPayload]) -> PendingTask:
-    task = PendingTaskProto()
-    task.ParseFromString(message.payload.value)
+def process_message(message: Message[KafkaPayload]) -> Task:
+    work = Work()
+    work.ParseFromString(message.payload.value)
     ((partition, offset),) = message.committable.items()
-    return PendingTask(
-        task, PendingTaskState.PENDING, partition.topic.name, partition.index, offset
+    return Task(
+        work=work,
+        status=PENDING,
+        topic=partition.topic.name,
+        partition=partition.index,
+        offset=offset,
+        received_at=int(time()),
     )
 
 
@@ -67,22 +70,22 @@ class StrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         self, commit: Commit, _: Mapping[Partition, int]
     ) -> ProcessingStrategy[KafkaPayload]:
         def accumulator(
-            batched_results: MutableSequence[PendingTask],
-            message: BaseValue[PendingTask],
-        ) -> MutableSequence[PendingTask]:
+            batched_results: MutableSequence[Task],
+            message: BaseValue[Task],
+        ) -> MutableSequence[Task]:
             batched_results.append(message.payload)
             return batched_results
 
         def flush_batch(
-            message: Message[MutableSequence[PendingTask]],
-        ) -> Message[MutableSequence[PendingTask]]:
+            message: Message[MutableSequence[Task]],
+        ) -> Message[MutableSequence[Task]]:
             logger.info("Flushing batch. Messages: %r...", len(message.payload))
             self.pending_task_store.store(message.value.payload)
             return message
 
         def do_upkeep(
-            message: Message[MutableSequence[PendingTask]],
-        ) -> Message[MutableSequence[PendingTask]]:
+            message: Message[MutableSequence[Task]],
+        ) -> Message[MutableSequence[Task]]:
             self.pending_task_store.handle_processing_deadlines()
             self.pending_task_store.handle_retry_state_tasks()
             self.pending_task_store.handle_deadletter_at()
