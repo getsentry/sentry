@@ -6,11 +6,9 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import EventView from 'sentry/utils/discover/eventView';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import ScreensOverviewTable from 'sentry/views/insights/mobile/screens/components/screensOverviewTable';
 
-jest.mock('sentry/utils/useOrganization');
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/views/insights/common/utils/useModuleURL');
 jest.mock('sentry/utils/usePageFilters');
@@ -33,7 +31,6 @@ describe('ScreensOverviewTable', () => {
     state: undefined,
   } as Location;
 
-  jest.mocked(useOrganization).mockReturnValue(organization);
   jest.mocked(useLocation).mockReturnValue(location);
   jest.mocked(usePageFilters).mockReturnValue({
     isReady: true,
@@ -76,7 +73,10 @@ describe('ScreensOverviewTable', () => {
         eventView={mockEventView}
         isLoading={false}
         pageLinks=""
-      />
+      />,
+      {
+        organization,
+      }
     );
 
     // headers
