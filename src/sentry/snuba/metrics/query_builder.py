@@ -398,19 +398,20 @@ def resolve_tags(
                 f"The tag key {name} usage has been prohibited by one of the expressions "
                 f"{set(allowed_tag_keys.values()) if allowed_tag_keys else {} }"
             )
-        
+
         resolved_tag = resolve_tag_key(use_case_id, org_id, name)
         if resolved_tag.startswith("unresolved_tag[") or resolved_tag.startswith("invalid_tag["):
             # Handle unresolved or invalid tags
             return create_null_column(name)
         return Column(name=resolved_tag)
-    
+
     if isinstance(input_, str):
         if is_tag_value:
             return resolve_tag_value(use_case_id, org_id, input_)
         else:
             return resolve_weak(use_case_id, org_id, input_)
     return input_
+
 
 def create_null_column(name: str) -> Any:
     # This function should return a representation of a NULL column
