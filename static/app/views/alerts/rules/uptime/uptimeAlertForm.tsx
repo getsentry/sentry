@@ -99,7 +99,7 @@ export function UptimeAlertForm({
       }
     >
       <List symbol="colored-numeric">
-        <AlertListItem>{t('Select an environment and project')}</AlertListItem>
+        <AlertListItem>{t('Select a project')}</AlertListItem>
         <FormRow>
           <SentryProjectSelectorField
             disabled={rule !== undefined || !enabledConfiguration}
@@ -110,16 +110,6 @@ export function UptimeAlertForm({
             hideLabel
             projects={projects}
             valueIsSlug
-            inline={false}
-            flexibleControlStateSize
-            stacked
-          />
-          <SelectField
-            disabled={!enabledConfiguration}
-            name="environment"
-            label={t('Environment')}
-            hideLabel
-            placeholder={t('Production')}
             inline={false}
             flexibleControlStateSize
             stacked
