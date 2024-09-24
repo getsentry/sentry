@@ -397,22 +397,6 @@ export function mergeGroups(
   );
 }
 
-export type GroupTagResponseItem = {
-  key: string;
-  name: string;
-  topValues: Array<{
-    count: number;
-    firstSeen: string;
-    lastSeen: string;
-    name: string;
-    value: string;
-    readable?: boolean;
-  }>;
-  totalValues: number;
-};
-
-export type GroupTagsResponse = GroupTagResponseItem[];
-
 type FetchIssueTagValuesParameters = {
   groupId: string;
   orgSlug: string;

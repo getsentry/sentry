@@ -1,6 +1,7 @@
-import {forwardRef, useCallback, useMemo, useState} from 'react';
+import {forwardRef, useCallback, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {
   getSentryDefaultTags,
@@ -14,8 +15,10 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
+import {useGroupTagsDrawer} from 'sentry/views/issueDetails/groupTags/useGroupTagsDrawer';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 import {EventTags} from '../eventTags';
 
@@ -27,6 +30,13 @@ type Props = {
 export const EventTagsDataSection = forwardRef<HTMLElement, Props>(
   function EventTagsDataSection({event, projectSlug}: Props, ref) {
     const sentryTags = getSentryDefaultTags();
+    const hasStreamlinedUI = useHasStreamlinedUI();
+    const openButtonRef = useRef<HTMLButtonElement>(null);
+    const {openTagsDrawer} = useGroupTagsDrawer({
+      projectSlug: projectSlug,
+      groupId: event.groupID!,
+      openButtonRef: openButtonRef,
+    });
 
     const [tagFilter, setTagFilter] = useState<TagFilter>(TagFilter.ALL);
     const handleTagFilterChange = useCallback((value: TagFilter) => {
@@ -51,6 +61,11 @@ export const EventTagsDataSection = forwardRef<HTMLElement, Props>(
 
     const actions = (
       <ButtonBar gap={1}>
+        {hasStreamlinedUI && (
+          <Button onClick={openTagsDrawer} size="xs">
+            {t('View All Issue Tags')}
+          </Button>
+        )}
         <SegmentedControl
           size="xs"
           aria-label={t('Filter tags')}

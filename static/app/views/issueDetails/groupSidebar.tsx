@@ -42,10 +42,8 @@ import {getAnalyicsDataForProject} from 'sentry/utils/projects';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {ParticipantList} from 'sentry/views/issueDetails/participantList';
-import {
-  getGroupDetailsQueryData,
-  useHasStreamlinedUI,
-} from 'sentry/views/issueDetails/utils';
+import {makeFetchGroupQueryKey} from 'sentry/views/issueDetails/useGroup';
+import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 type Props = {
   environments: string[];
@@ -57,10 +55,11 @@ type Props = {
 
 function useFetchAllEnvsGroupData(organization: OrganizationSummary, group: Group) {
   return useApiQuery<Group>(
-    [
-      `/organizations/${organization.slug}/issues/${group.id}/`,
-      {query: getGroupDetailsQueryData()},
-    ],
+    makeFetchGroupQueryKey({
+      organizationSlug: organization.slug,
+      groupId: group.id,
+      environments: [],
+    }),
     {
       staleTime: 30000,
       gcTime: 30000,
