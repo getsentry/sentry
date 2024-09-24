@@ -230,9 +230,10 @@ export default function StreamlinedGroupHeader({
           <Divider />
           <Button
             icon={<IconDashboard />}
+            title={sidebarOpen ? t('Close Sidebar') : t('Open Sidebar')}
+            aria-label={sidebarOpen ? t('Close Sidebar') : t('Open Sidebar')}
             size="sm"
             borderless
-            aria-label={'sidebar-collapse-toggle'}
             onClick={() => setSidebarOpen(!sidebarOpen)}
           />
         </SidebarWorkflowWrapper>
