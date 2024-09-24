@@ -15,8 +15,8 @@ from sentry.api.serializers import serialize
 from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import SentryAppStatus
-from sentry.sentry_apps.api.serializers.sentry_app_requests import SentryAppSerializer
-from sentry.sentry_apps.api.serializers.sentry_app_responses import (
+from sentry.sentry_apps.api.serializers.parsers.sentry_app import RequestSentryAppSerializer
+from sentry.sentry_apps.api.serializers.sentry_app import (
     SentryAppSerializer as ResponseSentryAppSerializer,
 )
 from sentry.sentry_apps.logic import SentryAppCreator
@@ -114,7 +114,7 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
                 status=403,
             )
 
-        serializer = SentryAppSerializer(data=data, access=request.access)
+        serializer = RequestSentryAppSerializer(data=data, access=request.access)
 
         if serializer.is_valid():
             if data.get("isInternal"):

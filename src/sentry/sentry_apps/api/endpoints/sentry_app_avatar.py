@@ -7,8 +7,10 @@ from sentry.api.base import control_silo_endpoint
 from sentry.api.bases import SentryAppBaseEndpoint
 from sentry.api.bases.avatar import AvatarMixin
 from sentry.models.avatars.sentry_app_avatar import SentryAppAvatar
-from sentry.sentry_apps.api.serializers.sentry_app_requests import SentryAppAvatarSerializer
-from sentry.sentry_apps.api.serializers.sentry_app_responses import SentryAppSerializer
+from sentry.sentry_apps.api.serializers.parsers.sentry_app_avatar import (
+    RequestSentryAppAvatarSerializer,
+)
+from sentry.sentry_apps.api.serializers.sentry_app import SentryAppSerializer
 
 
 @control_silo_endpoint
@@ -20,7 +22,7 @@ class SentryAppAvatarEndpoint(AvatarMixin[SentryAppAvatar], SentryAppBaseEndpoin
     }
     object_type = "sentry_app"
     model = SentryAppAvatar
-    serializer_cls = SentryAppAvatarSerializer
+    serializer_cls = RequestSentryAppAvatarSerializer
 
     def get(self, request: Request, **kwargs) -> Response:
         return super().get(
