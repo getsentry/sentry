@@ -26,6 +26,7 @@ MAX_FRAME_COUNT = 50
 
 class FormattedSimilarIssuesEmbeddingsData(TypedDict):
     exception: float
+    message: float
     shouldBeGrouped: str
 
 
