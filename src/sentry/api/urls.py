@@ -10,6 +10,7 @@ from sentry.api.endpoints.group_integrations import GroupIntegrationsEndpoint
 from sentry.api.endpoints.issues.related_issues import RelatedIssuesEndpoint
 from sentry.api.endpoints.org_auth_token_details import OrgAuthTokenDetailsEndpoint
 from sentry.api.endpoints.org_auth_tokens import OrgAuthTokensEndpoint
+from sentry.api.endpoints.organization_events_anomalies import OrganizationEventsAnomaliesEndpoint
 from sentry.api.endpoints.organization_events_root_cause_analysis import (
     OrganizationEventsRootCauseAnalysisEndpoint,
 )
@@ -168,6 +169,7 @@ from sentry.integrations.api.endpoints.organization_repository_details import (
 )
 from sentry.issues.endpoints import (
     ActionableItemsEndpoint,
+    EventIdLookupEndpoint,
     EventJsonEndpoint,
     GroupActivitiesEndpoint,
     GroupDetailsEndpoint,
@@ -190,6 +192,7 @@ from sentry.issues.endpoints import (
     ProjectGroupStatsEndpoint,
     ProjectStacktraceLinkEndpoint,
     SharedGroupDetailsEndpoint,
+    ShortIdLookupEndpoint,
     SourceMapDebugEndpoint,
     TeamGroupsOldEndpoint,
 )
@@ -272,6 +275,48 @@ from sentry.rules.history.endpoints.project_rule_stats import ProjectRuleStatsIn
 from sentry.scim.endpoints.members import OrganizationSCIMMemberDetails, OrganizationSCIMMemberIndex
 from sentry.scim.endpoints.schemas import OrganizationSCIMSchemaIndex
 from sentry.scim.endpoints.teams import OrganizationSCIMTeamDetails, OrganizationSCIMTeamIndex
+from sentry.sentry_apps.api.endpoints.installation_details import (
+    SentryAppInstallationDetailsEndpoint,
+)
+from sentry.sentry_apps.api.endpoints.installation_external_issue_actions import (
+    SentryAppInstallationExternalIssueActionsEndpoint,
+)
+from sentry.sentry_apps.api.endpoints.installation_external_issue_details import (
+    SentryAppInstallationExternalIssueDetailsEndpoint,
+)
+from sentry.sentry_apps.api.endpoints.installation_external_issues import (
+    SentryAppInstallationExternalIssuesEndpoint,
+)
+from sentry.sentry_apps.api.endpoints.installation_external_requests import (
+    SentryAppInstallationExternalRequestsEndpoint,
+)
+from sentry.sentry_apps.api.endpoints.organization_sentry_apps import OrganizationSentryAppsEndpoint
+from sentry.sentry_apps.api.endpoints.sentry_app_authorizations import (
+    SentryAppAuthorizationsEndpoint,
+)
+from sentry.sentry_apps.api.endpoints.sentry_app_avatar import SentryAppAvatarEndpoint
+from sentry.sentry_apps.api.endpoints.sentry_app_components import (
+    OrganizationSentryAppComponentsEndpoint,
+    SentryAppComponentsEndpoint,
+)
+from sentry.sentry_apps.api.endpoints.sentry_app_details import SentryAppDetailsEndpoint
+from sentry.sentry_apps.api.endpoints.sentry_app_features import SentryAppFeaturesEndpoint
+from sentry.sentry_apps.api.endpoints.sentry_app_installations import SentryAppInstallationsEndpoint
+from sentry.sentry_apps.api.endpoints.sentry_app_interaction import SentryAppInteractionEndpoint
+from sentry.sentry_apps.api.endpoints.sentry_app_publish_request import (
+    SentryAppPublishRequestEndpoint,
+)
+from sentry.sentry_apps.api.endpoints.sentry_app_requests import SentryAppRequestsEndpoint
+from sentry.sentry_apps.api.endpoints.sentry_app_rotate_secret import SentryAppRotateSecretEndpoint
+from sentry.sentry_apps.api.endpoints.sentry_app_stats_details import SentryAppStatsEndpoint
+from sentry.sentry_apps.api.endpoints.sentry_apps import SentryAppsEndpoint
+from sentry.sentry_apps.api.endpoints.sentry_apps_stats import SentryAppsStatsEndpoint
+from sentry.sentry_apps.api.endpoints.sentry_internal_app_token_details import (
+    SentryInternalAppTokenDetailsEndpoint,
+)
+from sentry.sentry_apps.api.endpoints.sentry_internal_app_tokens import (
+    SentryInternalAppTokensEndpoint,
+)
 from sentry.uptime.endpoints.project_uptime_alert_details import ProjectUptimeAlertDetailsEndpoint
 from sentry.uptime.endpoints.project_uptime_alert_index import ProjectUptimeAlertIndexEndpoint
 from sentry.users.api.endpoints.authenticator_index import AuthenticatorIndexEndpoint
@@ -316,7 +361,7 @@ from .endpoints.auth_config import AuthConfigEndpoint
 from .endpoints.auth_index import AuthIndexEndpoint
 from .endpoints.auth_login import AuthLoginEndpoint
 from .endpoints.auth_validate import AuthValidateEndpoint
-from .endpoints.avatar import OrganizationAvatarEndpoint, SentryAppAvatarEndpoint
+from .endpoints.avatar import OrganizationAvatarEndpoint
 from .endpoints.broadcast_details import BroadcastDetailsEndpoint
 from .endpoints.broadcast_index import BroadcastIndexEndpoint
 from .endpoints.builtin_symbol_sources import BuiltinSymbolSourcesEndpoint
@@ -360,29 +405,6 @@ from .endpoints.group_tombstone_details import GroupTombstoneDetailsEndpoint
 from .endpoints.group_user_reports import GroupUserReportsEndpoint
 from .endpoints.grouping_configs import GroupingConfigsEndpoint
 from .endpoints.index import IndexEndpoint
-from .endpoints.integrations.sentry_apps import (
-    OrganizationSentryAppComponentsEndpoint,
-    OrganizationSentryAppsEndpoint,
-    SentryAppAuthorizationsEndpoint,
-    SentryAppComponentsEndpoint,
-    SentryAppDetailsEndpoint,
-    SentryAppFeaturesEndpoint,
-    SentryAppInstallationDetailsEndpoint,
-    SentryAppInstallationExternalIssueActionsEndpoint,
-    SentryAppInstallationExternalIssueDetailsEndpoint,
-    SentryAppInstallationExternalIssuesEndpoint,
-    SentryAppInstallationExternalRequestsEndpoint,
-    SentryAppInstallationsEndpoint,
-    SentryAppInteractionEndpoint,
-    SentryAppPublishRequestEndpoint,
-    SentryAppRequestsEndpoint,
-    SentryAppRotateSecretEndpoint,
-    SentryAppsEndpoint,
-    SentryAppsStatsEndpoint,
-    SentryAppStatsEndpoint,
-    SentryInternalAppTokenDetailsEndpoint,
-    SentryInternalAppTokensEndpoint,
-)
 from .endpoints.internal import (
     InternalBeaconEndpoint,
     InternalEnvironmentEndpoint,
@@ -427,7 +449,6 @@ from .endpoints.organization_derive_code_mappings import OrganizationDeriveCodeM
 from .endpoints.organization_details import OrganizationDetailsEndpoint
 from .endpoints.organization_environments import OrganizationEnvironmentsEndpoint
 from .endpoints.organization_event_details import OrganizationEventDetailsEndpoint
-from .endpoints.organization_eventid import EventIdLookupEndpoint
 from .endpoints.organization_events import OrganizationEventsEndpoint
 from .endpoints.organization_events_facets import OrganizationEventsFacetsEndpoint
 from .endpoints.organization_events_facets_performance import (
@@ -531,7 +552,6 @@ from .endpoints.organization_sdk_updates import (
 )
 from .endpoints.organization_search_details import OrganizationSearchDetailsEndpoint
 from .endpoints.organization_sessions import OrganizationSessionsEndpoint
-from .endpoints.organization_shortid import ShortIdLookupEndpoint
 from .endpoints.organization_slugs import SlugsUpdateEndpoint
 from .endpoints.organization_spans_fields import (
     OrganizationSpansFieldsEndpoint,
@@ -1415,6 +1435,11 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_id_or_slug>[^\/]+)/events-stats/$",
         OrganizationEventsStatsEndpoint.as_view(),
         name="sentry-api-0-organization-events-stats",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/events/anomalies/$",
+        OrganizationEventsAnomaliesEndpoint.as_view(),
+        name="sentry-api-0-organization-events-anomalies",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/project-templates/$",

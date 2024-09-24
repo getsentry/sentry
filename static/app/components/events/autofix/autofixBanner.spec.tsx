@@ -35,7 +35,7 @@ describe('AutofixBanner', () => {
     expect(screen.getByRole('button', {name: /Set up Autofix/i})).toBeInTheDocument();
   });
 
-  it('renders the banner with "Run Autofix" button when setup is done', () => {
+  it('renders the banner with "Open Autofix" button when setup is done', () => {
     render(
       <AutofixBanner
         group={mockGroup}
@@ -46,7 +46,7 @@ describe('AutofixBanner', () => {
     );
 
     expect(screen.getByText(/Try Autofix/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: /Run Autofix/i})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: /Open Autofix/i})).toBeInTheDocument();
   });
 
   it('opens the AutofixSetupModal when "Set up Autofix" is clicked', async () => {

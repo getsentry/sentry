@@ -166,8 +166,9 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      description: t(
-        "Initialize Sentry as early as possible in your application's lifecycle."
+      description: tct(
+        "Initialize Sentry as early as possible in your application's lifecycle, usually your Vue app's entry point ([code:main.ts/js]).",
+        {code: <code />}
       ),
       configurations: getSetupConfiguration(params),
     },
@@ -222,7 +223,9 @@ function getSiblingImportsSetupConfiguration(siblingOption: string): string {
   switch (siblingOption) {
     case VueVersion.VUE3:
       return `import {createApp} from "vue";
-          import {createRouter} from "vue-router";`;
+          import {createRouter} from "vue-router";
+          import router from "./router";
+          `;
     case VueVersion.VUE2:
     default:
       return `import Vue from "vue";
@@ -249,9 +252,6 @@ function getVueConstSetup(siblingOption: string): string {
     case VueVersion.VUE3:
       return `
           const app = createApp({
-            // ...
-          });
-          const router = createRouter({
             // ...
           });
           `;

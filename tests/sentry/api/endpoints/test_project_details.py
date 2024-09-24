@@ -1419,7 +1419,7 @@ class CopyProjectSettingsTest(APITestCase):
         # default rule
         rules = Rule.objects.filter(project_id=project.id)
         assert len(rules) == 1
-        assert rules[0].label == "Send a notification for new issues"
+        assert rules[0].label == "Send a notification for high priority issues"
 
     def test_simple(self):
         project = self.create_project()

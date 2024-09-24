@@ -95,7 +95,7 @@ const getSdkServerSetupSnippet = (params: Params) => `
 import * as Sentry from "@sentry/solidstart";
 
 Sentry.init({
-  dsn: "__PUBLIC_DSN__",
+  dsn: "${params.dsn.public}",
   ${
     params.isPerformanceSelected
       ? `
@@ -127,6 +127,16 @@ export default createMiddleware({
     sentryBeforeResponseMiddleware(),
     // Add your other middleware handlers after \`sentryBeforeResponseMiddleware\`
   ],
+});
+`;
+
+const getSdkMiddlewareLinkSetup = () => `
+import { defineConfig } from "@solidjs/start/config";
+
+export default defineConfig({
+  middleware: "./src/middleware.ts"
+  // Other configuration options
+  // ...
 });
 `;
 
@@ -251,8 +261,13 @@ const onboarding: OnboardingConfig = {
           ? [
               {
                 description: tct(
-                  'Complete the setup by adding the Sentry middleware to your [code:src/middleware.ts] file',
-                  {code: <code />}
+                  'Complete the setup by adding the Sentry [solidStartMiddlewareLink: middleware] to your [code:src/middleware.ts] file',
+                  {
+                    code: <code />,
+                    solidStartMiddlewareLink: (
+                      <ExternalLink href="https://docs.solidjs.com/solid-start/advanced/middleware" />
+                    ),
+                  }
                 ),
                 code: [
                   {
@@ -263,6 +278,19 @@ const onboarding: OnboardingConfig = {
                     value: 'javascript',
                     language: 'javascript',
                     code: getSdkMiddlewareSetup(),
+                  },
+                ],
+              },
+              {
+                description: tct('And including it in the [code:app.config.ts] file', {
+                  code: <code />,
+                }),
+                code: [
+                  {
+                    label: 'TypeScript',
+                    value: 'javascript',
+                    language: 'javascript',
+                    code: getSdkMiddlewareLinkSetup(),
                   },
                 ],
               },

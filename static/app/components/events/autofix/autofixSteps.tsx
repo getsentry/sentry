@@ -1,8 +1,7 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
 
-import {Button} from 'sentry/components/button';
 import {AutofixChanges} from 'sentry/components/events/autofix/autofixChanges';
 import AutofixInsightCards from 'sentry/components/events/autofix/autofixInsightCards';
 import AutofixMessageBox from 'sentry/components/events/autofix/autofixMessageBox';
@@ -28,12 +27,13 @@ const animationProps: AnimationProps = {
 };
 interface StepProps {
   groupId: string;
+  hasErroredStepBefore: boolean;
+  hasStepAbove: boolean;
+  hasStepBelow: boolean;
   onRetry: () => void;
   repos: AutofixRepository[];
   runId: string;
   step: AutofixStep;
-  totalSteps: number;
-  stepNumber?: number;
 }
 
 interface AutofixStepsProps {
@@ -64,8 +64,9 @@ export function Step({
   runId,
   onRetry,
   repos,
-  stepNumber,
-  totalSteps,
+  hasStepBelow,
+  hasStepAbove,
+  hasErroredStepBefore,
 }: StepProps) {
   const isActive = step.status !== 'PENDING' && step.status !== 'CANCELLED';
 
@@ -75,15 +76,12 @@ export function Step({
         <AnimatePresence initial={false}>
           <AnimationWrapper key="content" {...animationProps}>
             <Fragment>
-              {step.completedMessage && <StepBody>{step.completedMessage}</StepBody>}
               {step.type === AutofixStepType.DEFAULT && (
                 <AutofixInsightCards
                   insights={step.insights}
                   repos={repos}
-                  hasStepBelow={
-                    stepNumber !== undefined ? stepNumber < totalSteps : false
-                  }
-                  hasStepAbove={stepNumber !== undefined ? stepNumber > 1 : false}
+                  hasStepBelow={hasStepBelow}
+                  hasStepAbove={hasStepAbove}
                 />
               )}
               {step.type === AutofixStepType.ROOT_CAUSE_ANALYSIS && (
@@ -98,6 +96,13 @@ export function Step({
               {step.type === AutofixStepType.CHANGES && (
                 <AutofixChanges step={step} groupId={groupId} onRetry={onRetry} />
               )}
+              {hasErroredStepBefore && hasStepBelow && (
+                <StepMessage>
+                  Autofix encountered an error.
+                  <br />
+                  Restarting step from scratch...
+                </StepMessage>
+              )}
             </Fragment>
           </AnimationWrapper>
         </AnimatePresence>
@@ -106,22 +111,55 @@ export function Step({
   );
 }
 
+function useInView(ref: HTMLElement | null) {
+  const [inView, setInView] = useState(false);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(([entry]) => {
+      setInView(entry.isIntersecting);
+    });
+
+    if (!ref) {
+      return () => {
+        observer.disconnect();
+      };
+    }
+
+    observer.observe(ref);
+    return () => {
+      observer.disconnect();
+    };
+  }, [ref]);
+  return inView;
+}
+
 export function AutofixSteps({data, groupId, runId, onRetry}: AutofixStepsProps) {
   const steps = data.steps;
   const repos = data.repositories;
 
+  const stepsRef = useRef<(HTMLDivElement | null)[]>([]);
+
   const {mutate: handleSelectFix} = useSelectCause({groupId, runId});
-  const provideCustomRootCause = (text: string) => {
-    handleSelectFix({customRootCause: text});
+  const selectRootCause = (text: string) => {
+    if (text.length > 0) {
+      handleSelectFix({customRootCause: text});
+    } else {
+      if (!steps) {
+        return;
+      }
+      const step = steps[steps.length - 1];
+      if (step.type !== AutofixStepType.ROOT_CAUSE_ANALYSIS) {
+        return;
+      }
+      const cause = step.causes[0];
+      const id = cause.id;
+      handleSelectFix({causeId: id});
+    }
   };
-  const useSuggestedRootCause = () => {
-    if (!steps) return;
-    const step = steps[steps.length - 1];
-    if (step.type !== AutofixStepType.ROOT_CAUSE_ANALYSIS) return;
-    const cause = step.causes[0];
-    const id = cause.id;
-    handleSelectFix({causeId: id});
-  };
+
+  const lastStepVisible = useInView(
+    stepsRef.current.length ? stepsRef.current[stepsRef.current.length - 1] : null
+  );
 
   if (!steps) {
     return null;
@@ -139,20 +177,35 @@ export function AutofixSteps({data, groupId, runId, onRetry}: AutofixStepsProps)
     lastStep.type === AutofixStepType.CHANGES && lastStep.status === 'COMPLETED';
   const disabled = areCodeChangesShowing ? true : false;
 
+  const previousStep = steps.length > 2 ? steps[steps.length - 2] : null;
+  const previousStepErrored =
+    previousStep !== null &&
+    previousStep?.type === lastStep.type &&
+    previousStep.status === 'ERROR';
+
+  const scrollToMatchingStep = () => {
+    const matchingStepIndex = steps.findIndex(step => step.type === lastStep.type);
+    if (matchingStepIndex !== -1 && stepsRef.current[matchingStepIndex]) {
+      stepsRef.current[matchingStepIndex]?.scrollIntoView({behavior: 'smooth'});
+    }
+  };
+
   return (
     <div>
       <StepsContainer>
         {steps.map((step, index) => (
-          <Step
-            step={step}
-            key={step.id}
-            stepNumber={index + 1}
-            totalSteps={steps.length}
-            groupId={groupId}
-            runId={runId}
-            onRetry={onRetry}
-            repos={repos}
-          />
+          <div ref={el => (stepsRef.current[index] = el)} key={step.id}>
+            <Step
+              step={step}
+              hasStepBelow={index + 1 < steps.length}
+              hasStepAbove={index > 0}
+              groupId={groupId}
+              runId={runId}
+              onRetry={onRetry}
+              repos={repos}
+              hasErroredStepBefore={previousStepErrored}
+            />
+          </div>
         ))}
       </StepsContainer>
 
@@ -162,29 +215,44 @@ export function AutofixSteps({data, groupId, runId, onRetry}: AutofixStepsProps)
         inputPlaceholder={
           !isRootCauseSelectionStep
             ? 'Say something...'
-            : 'Propose your own root cause...'
+            : 'Or propose your own root cause instead...'
         }
         responseRequired={false}
-        onSend={!isRootCauseSelectionStep ? null : provideCustomRootCause}
-        actionText={'Send'}
-        allowEmptyMessage={false}
+        onSend={!isRootCauseSelectionStep ? null : selectRootCause}
+        actionText={!isRootCauseSelectionStep ? 'Send' : 'Find a Fix'}
+        allowEmptyMessage={!isRootCauseSelectionStep ? false : true}
         isDisabled={disabled}
         groupId={groupId}
         runId={runId}
-      >
-        {isRootCauseSelectionStep && (
-          <ActionBar>
-            <Button onClick={useSuggestedRootCause}>Fix the root cause above</Button>
-            <ActionBarText>OR</ActionBarText>
-          </ActionBar>
-        )}
-      </AutofixMessageBox>
+        primaryAction={isRootCauseSelectionStep}
+        emptyInfoText={
+          !isRootCauseSelectionStep ? '' : 'Selected: suggested root cause above'
+        }
+        notEmptyInfoText={
+          !isRootCauseSelectionStep ? '' : 'Selected: your custom root cause below'
+        }
+        scrollIntoView={
+          !lastStepVisible &&
+          (lastStep.type === AutofixStepType.ROOT_CAUSE_ANALYSIS ||
+            lastStep.type === AutofixStepType.CHANGES)
+            ? scrollToMatchingStep
+            : null
+        }
+      />
     </div>
   );
 }
 
+const StepMessage = styled('div')`
+  overflow: hidden;
+  padding: ${space(2)};
+  color: ${p => p.theme.subText};
+  justify-content: center;
+  text-align: center;
+`;
+
 const StepsContainer = styled('div')`
-  margin-bottom: 15em;
+  margin-bottom: 13em;
 `;
 
 const StepCard = styled('div')<{active?: boolean}>`
@@ -194,11 +262,6 @@ const StepCard = styled('div')<{active?: boolean}>`
   :last-child {
     margin-bottom: 0;
   }
-`;
-
-const StepBody = styled('p')`
-  padding: 0 ${space(2)} ${space(2)} ${space(2)};
-  margin: -${space(1)} 0 0 0;
 `;
 
 const ContentWrapper = styled(motion.div)`
@@ -212,16 +275,6 @@ const ContentWrapper = styled(motion.div)`
     padding: 0 1px;
     overflow: hidden;
   }
-`;
-
-const ActionBar = styled('div')`
-  flex-direction: row;
-  display: flex;
-`;
-const ActionBarText = styled('p')`
-  padding-left: ${space(1)};
-  padding-bottom: 0;
-  margin-top: ${space(1)};
 `;
 
 const AnimationWrapper = styled(motion.div)``;
