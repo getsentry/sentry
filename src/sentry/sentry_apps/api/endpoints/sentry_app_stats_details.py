@@ -34,18 +34,20 @@ class SentryAppStatsEndpoint(SentryAppBaseEndpoint, StatsMixin):
             sentry_app_id=sentry_app.id, date_deleted__isnull=False
         ).count()
 
-        rollup, series = tsdb.get_optimal_rollup_series(query_args["start"], query_args["end"])
+        rollup, series = tsdb.backend.get_optimal_rollup_series(
+            query_args["start"], query_args["end"]
+        )
 
         install_stats = dict.fromkeys(series, 0)
         uninstall_stats = dict.fromkeys(series, 0)
 
         for date_added, date_deleted, organization_id in installations:
-            install_norm_epoch = tsdb.normalize_to_epoch(date_added, rollup)
+            install_norm_epoch = tsdb.backend.normalize_to_epoch(date_added, rollup)
             if install_norm_epoch in install_stats:
                 install_stats[install_norm_epoch] += 1
 
             if date_deleted is not None:
-                uninstall_norm_epoch = tsdb.normalize_to_epoch(date_deleted, rollup)
+                uninstall_norm_epoch = tsdb.backend.normalize_to_epoch(date_deleted, rollup)
                 if uninstall_norm_epoch in uninstall_stats:
                     uninstall_stats[uninstall_norm_epoch] += 1
 
