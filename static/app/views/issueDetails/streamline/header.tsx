@@ -4,7 +4,6 @@ import Color from 'color';
 
 import Feature from 'sentry/components/acl/feature';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import {Button} from 'sentry/components/button';
 import Count from 'sentry/components/count';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import EventMessage from 'sentry/components/events/eventMessage';
@@ -17,7 +16,6 @@ import ParticipantList from 'sentry/components/group/streamlinedParticipantList'
 import Link from 'sentry/components/links/link';
 import Version from 'sentry/components/version';
 import VersionHoverCard from 'sentry/components/versionHoverCard';
-import {IconDashboard} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
@@ -28,7 +26,6 @@ import type {Release} from 'sentry/types/release';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import GroupActions from 'sentry/views/issueDetails/actions/index';
 import {Divider} from 'sentry/views/issueDetails/divider';
 import GroupPriority from 'sentry/views/issueDetails/groupPriority';
@@ -76,11 +73,6 @@ export default function StreamlinedGroupHeader({
     organization,
     group,
   });
-
-  const [sidebarOpen, setSidebarOpen] = useSyncedLocalStorageState(
-    'issue-details-sidebar-open',
-    false
-  );
 
   const {disabledTabs, message, eventRoute, disableActions, shortIdBreadcrumb} =
     useIssueDetailsHeader({
@@ -200,42 +192,32 @@ export default function StreamlinedGroupHeader({
           event={event}
           query={location.query}
         />
-        <SidebarWorkflowWrapper>
-          <WorkflowWrapper>
+        <PriorityWorkflowWrapper>
+          <Wrapper>
+            {t('Priority')}
+            <GroupPriority group={group} />
+          </Wrapper>
+          <Wrapper>
+            {t('Assignee')}
+            <AssigneeSelector
+              group={group}
+              assigneeLoading={assigneeLoading}
+              handleAssigneeChange={handleAssigneeChange}
+            />
+          </Wrapper>
+          {group.participants.length > 0 && (
             <Wrapper>
-              {t('Priority')}
-              <GroupPriority group={group} />
+              {t('Participants')}
+              <ParticipantList users={userParticipants} teams={teamParticipants} />
             </Wrapper>
+          )}
+          {displayUsers.length > 0 && (
             <Wrapper>
-              {t('Assignee')}
-              <AssigneeSelector
-                group={group}
-                assigneeLoading={assigneeLoading}
-                handleAssigneeChange={handleAssigneeChange}
-              />
+              {t('Viewers')}
+              <ParticipantList users={displayUsers} />
             </Wrapper>
-            {group.participants.length > 0 && (
-              <Wrapper>
-                {t('Participants')}
-                <ParticipantList users={userParticipants} teams={teamParticipants} />
-              </Wrapper>
-            )}
-            {displayUsers.length > 0 && (
-              <Wrapper>
-                {t('Viewers')}
-                <ParticipantList users={displayUsers} />
-              </Wrapper>
-            )}
-          </WorkflowWrapper>
-          <Divider />
-          <Button
-            icon={<IconDashboard />}
-            size="xs"
-            borderless
-            aria-label={'sidebar-toggle'}
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-          />
-        </SidebarWorkflowWrapper>
+          )}
+        </PriorityWorkflowWrapper>
       </InfoWrapper>
       <div>
         <GroupHeaderTabs {...{baseUrl, disabledTabs, eventRoute, group, project}} />
@@ -328,13 +310,7 @@ const InfoWrapper = styled('div')<{isResolvedOrIgnored: boolean}>`
   flex-wrap: wrap;
 `;
 
-const SidebarWorkflowWrapper = styled('div')`
-  display: flex;
-  gap: ${space(0.5)};
-  align-items: center;
-`;
-
-const WorkflowWrapper = styled('div')`
+const PriorityWorkflowWrapper = styled('div')`
   display: flex;
   column-gap: ${space(2)};
   flex-wrap: wrap;
