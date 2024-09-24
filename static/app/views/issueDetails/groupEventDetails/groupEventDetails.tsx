@@ -242,7 +242,7 @@ const StyledLayoutBody = styled(Layout.Body)<{
     css`
       @media (min-width: ${p.theme.breakpoints.large}) {
         gap: ${space(2)};
-        display: ${defined(p.sidebarOpen) ? (p.sidebarOpen ? 'grid' : 'block') : 'grid'};
+        display: ${p.sidebarOpen ? 'grid' : 'block'};
       }
     `}
 `;
