@@ -830,7 +830,7 @@ urlpatterns += [
                 re_path(
                     r"^(?P<organization_slug>[^/\.]+)/(?P<project_id_or_slug>[^/\.]+)/login-success/$",
                     LoginSuccessView.as_view(),
-                    name="sentry-toolbar-login",
+                    name="sentry-toolbar-login-success",
                 ),
             ]
         ),
