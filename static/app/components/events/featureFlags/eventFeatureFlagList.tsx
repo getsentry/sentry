@@ -16,6 +16,7 @@ import {
   getFlagSortLabel,
   getSortGroupLabel,
   SORT_GROUP_OPTIONS,
+  sortedFlags,
   SortGroup,
 } from 'sentry/components/events/featureFlags/featureFlagDrawer';
 import useDrawer from 'sentry/components/globalDrawer';
@@ -84,25 +85,6 @@ export function EventFeatureFlagList({
     () => hydrateFlags(event.contexts?.flags?.values.reverse()),
     [event]
   );
-
-  const handleSortAlphabetical = (flags: KeyValueDataContentProps[]) => {
-    return [...flags].sort((a, b) => {
-      return a.item.key.localeCompare(b.item.key);
-    });
-  };
-
-  const sortedFlags = (): KeyValueDataContentProps[] => {
-    switch (flagSort) {
-      case FlagSort.A_TO_Z:
-        return handleSortAlphabetical(hydratedFlags);
-      case FlagSort.Z_TO_A:
-        return [...handleSortAlphabetical(hydratedFlags)].reverse();
-      case FlagSort.OLDEST:
-        return [...hydratedFlags].reverse();
-      default:
-        return hydratedFlags;
-    }
-  };
 
   const onViewAllFlags = useCallback(
     (focusControl?: FlagControlOptions) => {
@@ -203,7 +185,7 @@ export function EventFeatureFlagList({
   );
 
   // Split the flags list into two columns for display
-  const truncatedItems = sortedFlags().slice(0, 20);
+  const truncatedItems = sortedFlags({flags: hydratedFlags, sort: flagSort}).slice(0, 20);
   const columnOne = truncatedItems.slice(0, 10);
   let columnTwo: typeof truncatedItems = [];
   if (truncatedItems.length > 10) {

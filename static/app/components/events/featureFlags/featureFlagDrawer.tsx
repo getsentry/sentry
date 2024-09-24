@@ -109,6 +109,31 @@ export const enum FlagControlOptions {
   SORT = 'sort',
 }
 
+export const handleSortAlphabetical = (flags: KeyValueDataContentProps[]) => {
+  return [...flags].sort((a, b) => {
+    return a.item.key.localeCompare(b.item.key);
+  });
+};
+
+export const sortedFlags = ({
+  flags,
+  sort,
+}: {
+  flags: KeyValueDataContentProps[];
+  sort: FlagSort;
+}): KeyValueDataContentProps[] => {
+  switch (sort) {
+    case FlagSort.A_TO_Z:
+      return handleSortAlphabetical(flags);
+    case FlagSort.Z_TO_A:
+      return [...handleSortAlphabetical(flags)].reverse();
+    case FlagSort.OLDEST:
+      return [...flags].reverse();
+    default:
+      return flags;
+  }
+};
+
 interface FlagDrawerProps {
   event: Event;
   group: Group;
@@ -134,25 +159,9 @@ export function FeatureFlagDrawer({
   const organization = useOrganization();
   const {getFocusProps} = useFocusControl(initialFocusControl);
 
-  const handleSortAlphabetical = (flags: KeyValueDataContentProps[]) => {
-    return [...flags].sort((a, b) => {
-      return a.item.key.localeCompare(b.item.key);
-    });
-  };
-
-  const sortedFlags = (): KeyValueDataContentProps[] => {
-    switch (flagSort) {
-      case FlagSort.A_TO_Z:
-        return handleSortAlphabetical(hydratedFlags);
-      case FlagSort.Z_TO_A:
-        return [...handleSortAlphabetical(hydratedFlags)].reverse();
-      case FlagSort.OLDEST:
-        return [...hydratedFlags].reverse();
-      default:
-        return hydratedFlags;
-    }
-  };
-  const searchResults = sortedFlags().filter(f => f.item.key.includes(search));
+  const searchResults = sortedFlags({flags: hydratedFlags, sort: flagSort}).filter(f =>
+    f.item.key.includes(search)
+  );
 
   const actions = (
     <ButtonBar gap={1}>
