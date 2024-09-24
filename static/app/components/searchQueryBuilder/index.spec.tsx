@@ -2,6 +2,7 @@ import type {ComponentProps} from 'react';
 import {destroyAnnouncer} from '@react-aria/live-announcer';
 
 import {
+  act,
   render,
   screen,
   userEvent,
@@ -189,7 +190,7 @@ describe('SearchQueryBuilder', function () {
           onSearch={mockOnSearch}
         />
       );
-      userEvent.click(screen.getByRole('button', {name: 'Clear search query'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Clear search query'}));
 
       await waitFor(() => {
         expect(mockOnChange).toHaveBeenCalledWith('', expect.anything());
@@ -203,7 +204,7 @@ describe('SearchQueryBuilder', function () {
       expect(screen.getByRole('combobox')).toHaveFocus();
     });
 
-    it('is hidden at small sizes', function () {
+    it('is hidden at small sizes', async function () {
       Object.defineProperty(Element.prototype, 'clientWidth', {value: 100});
       const mockOnChange = jest.fn();
       render(
@@ -213,6 +214,8 @@ describe('SearchQueryBuilder', function () {
           onChange={mockOnChange}
         />
       );
+      // Must await something to prevent act warnings
+      await act(tick);
 
       expect(
         screen.queryByRole('button', {name: 'Clear search query'})
@@ -221,7 +224,7 @@ describe('SearchQueryBuilder', function () {
   });
 
   describe('disabled', function () {
-    it('disables all interactable elements', function () {
+    it('disables all interactable elements', async function () {
       const mockOnChange = jest.fn();
       render(
         <SearchQueryBuilder
@@ -231,6 +234,8 @@ describe('SearchQueryBuilder', function () {
           disabled
         />
       );
+      // Must await something to prevent act warnings
+      await act(tick);
 
       expect(getLastInput()).toBeDisabled();
       expect(
@@ -1011,10 +1016,11 @@ describe('SearchQueryBuilder', function () {
         <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:firefox" />
       );
 
-      // Focus into search (cursor be at end of the query)
-      screen
-        .getByRole('button', {name: 'Edit operator for filter: browser.name'})
-        .focus();
+      // Focus the filter operator dropdown
+      const opButton = await screen.findByRole('button', {
+        name: 'Edit operator for filter: browser.name',
+      });
+      await act(() => opButton.focus());
 
       // Pressing backspace once should focus the token
       await userEvent.keyboard('{backspace}');
@@ -1689,7 +1695,7 @@ describe('SearchQueryBuilder', function () {
         expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveFocus();
       });
 
-      it('collapses many selected options', function () {
+      it('collapses many selected options', async function () {
         render(
           <SearchQueryBuilder
             {...defaultProps}
@@ -1697,7 +1703,7 @@ describe('SearchQueryBuilder', function () {
           />
         );
 
-        const valueButton = screen.getByRole('button', {
+        const valueButton = await screen.findByRole('button', {
           name: 'Edit value for filter: browser.name',
         });
         expect(within(valueButton).getByText('one')).toBeInTheDocument();
@@ -1712,7 +1718,8 @@ describe('SearchQueryBuilder', function () {
         ['spaces', 'a b', '"a b"'],
         ['quotes', 'a"b', '"a\\"b"'],
         ['parens', 'foo()', '"foo()"'],
-      ])('tag values escape %s', async (_, value, expected) => {
+        ['commas', '"a,b"', '"a,b"'],
+      ])('typed tag values escape %s', async (_, value, expected) => {
         const mockOnChange = jest.fn();
         render(
           <SearchQueryBuilder
@@ -1734,6 +1741,52 @@ describe('SearchQueryBuilder', function () {
             expect.anything()
           );
         });
+      });
+
+      it.each([
+        ['spaces', 'a b', '"a b"'],
+        ['quotes', 'a"b', '"a\\"b"'],
+        ['parens', 'foo()', '"foo()"'],
+        ['commas', 'a,b', '"a,b"'],
+      ])('selected tag value suggestions escape %s', async (_, value, expected) => {
+        const mockOnChange = jest.fn();
+        const mockGetTagValues = jest.fn().mockResolvedValue([value]);
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            onChange={mockOnChange}
+            initialQuery="custom_tag_name:"
+            getTagValues={mockGetTagValues}
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: custom_tag_name'})
+        );
+        await userEvent.click(await screen.findByRole('option', {name: value}));
+
+        // Value should be surrounded by quotes and escaped
+        await waitFor(() => {
+          expect(mockOnChange).toHaveBeenCalledWith(
+            `custom_tag_name:${expected}`,
+            expect.anything()
+          );
+        });
+
+        // Open menu again and check to see if value is correct
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: custom_tag_name'})
+        );
+
+        // Input value should have the escaped value (with a trailing comma)
+        expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveValue(
+          expected + ','
+        );
+
+        // The original value should be selected in the dropdown
+        expect(
+          within(await screen.findByRole('option', {name: value})).getByRole('checkbox')
+        ).toBeChecked();
       });
 
       it('can replace a value with a new one', async function () {
@@ -2361,14 +2414,14 @@ describe('SearchQueryBuilder', function () {
         });
       });
 
-      it('displays absolute date value correctly (just date)', function () {
+      it('displays absolute date value correctly (just date)', async function () {
         render(<SearchQueryBuilder {...defaultProps} initialQuery="age:>=2017-10-17" />);
 
-        expect(screen.getByText('is on or after')).toBeInTheDocument();
+        expect(await screen.findByText('is on or after')).toBeInTheDocument();
         expect(screen.getByText('Oct 17')).toBeInTheDocument();
       });
 
-      it('displays absolute date value correctly (with local time)', function () {
+      it('displays absolute date value correctly (with local time)', async function () {
         render(
           <SearchQueryBuilder
             {...defaultProps}
@@ -2376,11 +2429,11 @@ describe('SearchQueryBuilder', function () {
           />
         );
 
-        expect(screen.getByText('is on or after')).toBeInTheDocument();
+        expect(await screen.findByText('is on or after')).toBeInTheDocument();
         expect(screen.getByText('Oct 17, 2:00 PM')).toBeInTheDocument();
       });
 
-      it('displays absolute date value correctly (with UTC time)', function () {
+      it('displays absolute date value correctly (with UTC time)', async function () {
         render(
           <SearchQueryBuilder
             {...defaultProps}
@@ -2388,7 +2441,7 @@ describe('SearchQueryBuilder', function () {
           />
         );
 
-        expect(screen.getByText('is on or after')).toBeInTheDocument();
+        expect(await screen.findByText('is on or after')).toBeInTheDocument();
         expect(screen.getByText('Oct 17, 2:00 PM UTC')).toBeInTheDocument();
       });
     });

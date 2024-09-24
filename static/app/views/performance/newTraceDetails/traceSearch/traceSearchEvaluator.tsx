@@ -365,7 +365,9 @@ function evaluateValueDate<T extends Token.VALUE_ISO_8601_DATE>(
 
   if (typeof value === 'string') {
     value = new Date(value).getTime();
-    if (isNaN(value)) return false;
+    if (isNaN(value)) {
+      return false;
+    }
   }
 
   const query = token.parsed.value.getTime();

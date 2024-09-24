@@ -31,7 +31,7 @@ MAX_RETRIES = 5
     acks_late=True,
     silo_mode=SiloMode.CONTROL,
 )
-def reattempt_deletions_control():
+def reattempt_deletions_control() -> None:
     _reattempt_deletions(ScheduledDeletion)
 
 
@@ -41,7 +41,7 @@ def reattempt_deletions_control():
     acks_late=True,
     silo_mode=SiloMode.REGION,
 )
-def reattempt_deletions():
+def reattempt_deletions() -> None:
     _reattempt_deletions(RegionScheduledDeletion)
 
 
@@ -101,7 +101,7 @@ def _run_scheduled_deletions(model_class: type[BaseScheduledDeletion], process_t
     silo_mode=SiloMode.CONTROL,
 )
 @retry(exclude=(DeleteAborted,))
-def run_deletion_control(deletion_id, first_pass=True, **kwargs: Any):
+def run_deletion_control(deletion_id: int, first_pass: bool = True, **kwargs: Any) -> None:
     _run_deletion(
         deletion_id=deletion_id,
         first_pass=first_pass,
@@ -119,7 +119,7 @@ def run_deletion_control(deletion_id, first_pass=True, **kwargs: Any):
     silo_mode=SiloMode.REGION,
 )
 @retry(exclude=(DeleteAborted,))
-def run_deletion(deletion_id, first_pass=True, **kwargs: Any):
+def run_deletion(deletion_id: int, first_pass: bool = True, **kwargs: Any) -> None:
     _run_deletion(
         deletion_id=deletion_id,
         first_pass=first_pass,

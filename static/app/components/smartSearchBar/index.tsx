@@ -110,7 +110,9 @@ function isMultiProject(projectIds: number[] | Readonly<number[] | undefined>) {
    * - [-1] (All Projects)
    * - [a, b, ...] (two or more projects)
    */
-  if (projectIds === undefined) return false;
+  if (projectIds === undefined) {
+    return false;
+  }
   return (
     projectIds.length === 0 ||
     (projectIds.length === 1 && projectIds[0] === -1) ||
