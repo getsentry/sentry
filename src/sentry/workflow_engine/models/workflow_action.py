@@ -6,7 +6,7 @@ from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo
 
 # TODO - @saponifi3d delete this model in a separate pr, it's now an "action"
 @region_silo_model
-class Action(DefaultFieldsModel):
+class WorkflowAction(DefaultFieldsModel):
     """
     A workflow action is an action to be taken as part of a workflow.
     These will be executed in order as part of a workflow.

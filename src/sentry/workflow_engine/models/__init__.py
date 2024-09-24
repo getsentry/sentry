@@ -8,6 +8,7 @@ __all__ = [
     "Detector",
     "DetectorWorkflow",
     "Workflow",
+    "WorkflowAction",
     "WorkflowDataConditionGroup",
 ]
 
@@ -20,4 +21,7 @@ from .data_source_detector import DataSourceDetector
 from .detector import Detector
 from .detector_workflow import DetectorWorkflow
 from .workflow import Workflow
+
+# TODO @saponifi3d - Remove this import and delete the legacy action
+from .workflow_action import WorkflowAction
 from .workflow_data_condition_group import WorkflowDataConditionGroup
