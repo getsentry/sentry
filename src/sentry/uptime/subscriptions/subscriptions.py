@@ -1,6 +1,6 @@
 import hashlib
 import logging
-from collections.abc import Mapping
+from collections.abc import Sequence
 
 from django.db import IntegrityError
 from django.db.models import TextField
@@ -31,7 +31,11 @@ DEFAULT_SUBSCRIPTION_TIMEOUT_MS = 10000
 
 
 def retrieve_uptime_subscription(
-    url: str, interval_seconds: int, method: str, headers: Mapping[str, str], body: str | None
+    url: str,
+    interval_seconds: int,
+    method: str,
+    headers: Sequence[tuple[str, str]],
+    body: str | None,
 ) -> UptimeSubscription | None:
     try:
         subscription = (
@@ -58,7 +62,7 @@ def get_or_create_uptime_subscription(
     interval_seconds: int,
     timeout_ms: int = DEFAULT_SUBSCRIPTION_TIMEOUT_MS,
     method: str = "GET",
-    headers: Mapping[str, str] | None = None,
+    headers: Sequence[tuple[str, str]] | None = None,
     body: str | None = None,
 ) -> UptimeSubscription:
     """
@@ -66,7 +70,7 @@ def get_or_create_uptime_subscription(
     to the uptime check system.
     """
     if headers is None:
-        headers = {}
+        headers = []
     # We extract the domain and suffix of the url here. This is used to prevent there being too many checks to a single
     # domain.
     result = extract_domain_parts(url)
@@ -137,7 +141,7 @@ def get_or_create_project_uptime_subscription(
     interval_seconds: int,
     timeout_ms: int = DEFAULT_SUBSCRIPTION_TIMEOUT_MS,
     method: str = "GET",
-    headers: Mapping[str, str] | None = None,
+    headers: Sequence[tuple[str, str]] | None = None,
     body: str | None = None,
     mode: ProjectUptimeSubscriptionMode = ProjectUptimeSubscriptionMode.MANUAL,
     name: str = "",
@@ -171,7 +175,7 @@ def update_project_uptime_subscription(
     url: str,
     interval_seconds: int,
     method: str,
-    headers: Mapping[str, str],
+    headers: Sequence[tuple[str, str]],
     body: str | None,
     name: str,
     owner: Actor | None,
