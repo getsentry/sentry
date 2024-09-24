@@ -9,7 +9,6 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {SQLishFormatter} from 'sentry/utils/sqlish/SQLishFormatter';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useSpansIndexed} from 'sentry/views/insights/common/queries/useDiscover';
 import {useFullSpanFromTrace} from 'sentry/views/insights/common/queries/useFullSpanFromTrace';
@@ -123,7 +122,6 @@ type TruncatedQueryClipBoxProps = {
 };
 
 function QueryClippedBox({group, children}: TruncatedQueryClipBoxProps) {
-  const location = useLocation();
   const navigate = useNavigate();
 
   return (
@@ -134,7 +132,7 @@ function QueryClippedBox({group, children}: TruncatedQueryClipBoxProps) {
         icon: <IconOpen />,
         onClick: () =>
           navigate({
-            pathname: `${location.pathname}spans/span/${group}/`,
+            pathname: `insights/database/spans/span/${group}/`,
           }),
       }}
     >
