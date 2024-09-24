@@ -23,7 +23,7 @@ export default storyBook('usePrevious', story => {
   story('Stacked', () => {
     const [count, setCount] = useState(0);
     const prevCount = usePrevious(count);
-    const prevPrevCount = usePrevious(prevCount);
+    const penultimateCount = usePrevious(prevCount);
 
     return (
       <Fragment>
@@ -32,7 +32,7 @@ export default storyBook('usePrevious', story => {
           states.
         </p>
         <button onClick={() => setCount(prev => prev + 1)}>Add 1</button>
-        <StructuredEventData data={{count, prevCount, prevPrevCount}} />;
+        <StructuredEventData data={{count, prevCount, penultimateCount}} />;
       </Fragment>
     );
   });
