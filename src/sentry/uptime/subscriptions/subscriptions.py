@@ -25,9 +25,14 @@ from sentry.uptime.subscriptions.tasks import (
 logger = logging.getLogger(__name__)
 
 UPTIME_SUBSCRIPTION_TYPE = "uptime_monitor"
-MAX_SUBSCRIPTIONS_PER_ORG = 1
+MAX_AUTO_SUBSCRIPTIONS_PER_ORG = 1
+MAX_MANUAL_SUBSCRIPTIONS_PER_ORG = 100
 # Default timeout for all subscriptions
 DEFAULT_SUBSCRIPTION_TIMEOUT_MS = 10000
+
+
+class MaxManualUptimeSubscriptionsReached(ValueError):
+    pass
 
 
 def retrieve_uptime_subscription(
@@ -146,6 +151,13 @@ def get_or_create_project_uptime_subscription(
     """
     Links a project to an uptime subscription so that it can process results.
     """
+    if mode == ProjectUptimeSubscriptionMode.MANUAL:
+        manual_subscription_count = ProjectUptimeSubscription.objects.filter(
+            project__organization=project.organization, mode=ProjectUptimeSubscriptionMode.MANUAL
+        ).count()
+        if manual_subscription_count >= MAX_MANUAL_SUBSCRIPTIONS_PER_ORG:
+            raise MaxManualUptimeSubscriptionsReached
+
     uptime_subscription = get_or_create_uptime_subscription(
         url, interval_seconds, timeout_ms, method, headers, body
     )
