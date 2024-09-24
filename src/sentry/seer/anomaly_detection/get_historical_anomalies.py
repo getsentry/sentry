@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from django.conf import settings
 from urllib3.exceptions import MaxRetryError, TimeoutError
 
+from sentry.api.bases.organization_events import get_query_columns
 from sentry.conf.server import SEER_ANOMALY_DETECTION_ENDPOINT_URL
 from sentry.incidents.models.alert_rule import AlertRule, AlertRuleStatus
 from sentry.models.project import Project
@@ -172,8 +173,14 @@ def get_historical_anomaly_data_from_seer(
     window_min = int(snuba_query.time_window / 60)
     start = datetime.fromisoformat(start_string)
     end = datetime.fromisoformat(end_string)
+    query_columns = get_query_columns([snuba_query.aggregate], snuba_query.time_window)
     historical_data = fetch_historical_data(
-        alert_rule=alert_rule, snuba_query=snuba_query, project=project, start=start, end=end
+        alert_rule=alert_rule,
+        snuba_query=snuba_query,
+        query_columns=query_columns,
+        project=project,
+        start=start,
+        end=end,
     )
 
     if not historical_data:
@@ -188,7 +195,12 @@ def get_historical_anomaly_data_from_seer(
             },
         )
         return None
-    formatted_data = format_historical_data(historical_data, dataset)
+    formatted_data = format_historical_data(
+        data=historical_data,
+        query_columns=query_columns,
+        dataset=dataset,
+        organization=project.organization,
+    )
     if (
         not alert_rule.sensitivity
         or not alert_rule.seasonality
