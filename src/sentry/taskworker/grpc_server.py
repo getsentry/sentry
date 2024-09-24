@@ -1,3 +1,4 @@
+import logging
 from concurrent.futures import ThreadPoolExecutor
 
 import grpc
@@ -6,8 +7,8 @@ from sentry_protos.sentry.v1alpha.taskworker_pb2 import (
     AddTaskResponse,
     GetTaskRequest,
     GetTaskResponse,
-    SetTaskStateRequest,
-    SetTaskStateResponse,
+    SetTaskStatusRequest,
+    SetTaskStatusResponse,
 )
 from sentry_protos.sentry.v1alpha.taskworker_pb2_grpc import (
     ConsumerServiceServicer as BaseConsumerServicer,
@@ -16,6 +17,8 @@ from sentry_protos.sentry.v1alpha.taskworker_pb2_grpc import add_ConsumerService
 
 from sentry.taskworker.pending_task_store import PendingTaskStore
 
+logger = logging.getLogger("sentry.taskworker.grpc_server")
+
 
 class ConsumerServicer(BaseConsumerServicer):
     def __init__(self) -> None:
@@ -23,13 +26,16 @@ class ConsumerServicer(BaseConsumerServicer):
         self.pending_task_store = PendingTaskStore()
 
     def GetTask(self, request: GetTaskRequest, context) -> GetTaskResponse:
-        task = self.pending_task_store.get_pending_task()
-        return GetTaskResponse(task=task)
+        inflight = self.pending_task_store.get_pending_task()
+        if not inflight:
+            return GetTaskResponse()
+        return GetTaskResponse(task=inflight.activation)
 
-    def SetTaskState(self, request: SetTaskStateRequest, context) -> SetTaskStateResponse:
+    def SetTaskStatus(self, request: SetTaskStatusRequest, context) -> SetTaskStatusResponse:
+        logger.info("update status", extra={"id": request.id})
         # TODO handle fetch_next to read another task
         self.pending_task_store.set_task_status(task_id=request.id, task_status=request.status)
-        return SetTaskStateResponse()
+        return SetTaskStatusResponse()
 
     def AddTask(self, request: AddTaskRequest, context) -> AddTaskResponse:
         return AddTaskResponse(ok=False, error="Not implemented")

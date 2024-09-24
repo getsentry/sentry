@@ -49,44 +49,46 @@ class Worker:
     def process_tasks(self, namespace: TaskNamespace) -> None:
         from sentry.taskworker.service.client import task_client
 
-        inflight = task_client.get_task(topic=namespace.topic)
-        if not inflight:
+        activation = task_client.get_task(topic=namespace.topic)
+        if not activation:
             logger.info("No tasks")
             time.sleep(1)
             return
 
         try:
-            task_meta = self.namespace.get(inflight.activation.taskname)
+            task_meta = self.namespace.get(activation.taskname)
         except KeyError:
-            logger.exception("Could not resolve task with name %s", inflight.work.taskname)
+            logger.exception("Could not resolve task with name %s", activation.taskname)
             return
 
         # TODO: Check idempotency
-        task_added_time = inflight.added_at.seconds
+        task_added_time = activation.received_at.seconds
         execution_time = time.time()
         next_state = TASK_ACTIVATION_STATUS_FAILURE
         try:
-            task_data_parameters = orjson.loads(inflight.activation.parameters)
+            task_data_parameters = orjson.loads(activation.parameters)
             task_meta(*task_data_parameters["args"], **task_data_parameters["kwargs"])
             next_state = TASK_ACTIVATION_STATUS_COMPLETE
         except Exception as err:
             logger.info("taskworker.task_errored", extra={"error": str(err)})
             # TODO check retry policy
-            if task_meta.should_retry(inflight.activation.retry_state, err):
-                logger.info("taskworker.task.retry", extra={"task": inflight.activation.taskname})
+            if task_meta.should_retry(activation.retry_state, err):
+                logger.info("taskworker.task.retry", extra={"task": activation.taskname})
                 next_state = TASK_ACTIVATION_STATUS_RETRY
         task_latency = execution_time - task_added_time
         logger.info("task.complete", extra={"latency": task_latency})
 
         if next_state == TASK_ACTIVATION_STATUS_COMPLETE:
-            logger.info("taskworker.task.complete", extra={"task": inflight.activation.taskname})
-            task_client.complete_task(task_id=inflight.activation.id)
+            logger.info(
+                "taskworker.task.complete", extra={"task": activation.taskname, "id": activation.id}
+            )
+            task_client.complete_task(task_id=activation.id)
         else:
             logger.info(
                 "taskworker.task.change_status",
-                extra={"task": inflight.activation.taskname, "state": next_state},
+                extra={"task": activation.taskname, "state": next_state},
             )
             task_client.set_task_status(
-                task_id=inflight.activation.id,
+                task_id=activation.id,
                 task_status=next_state,
             )

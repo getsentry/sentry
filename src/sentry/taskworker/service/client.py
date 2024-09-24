@@ -4,8 +4,8 @@ import grpc
 from sentry_protos.sentry.v1alpha.taskworker_pb2 import (
     TASK_ACTIVATION_STATUS_COMPLETE,
     GetTaskRequest,
-    InflightActivation,
     SetTaskStatusRequest,
+    TaskActivation,
     TaskActivationStatus,
 )
 from sentry_protos.sentry.v1alpha.taskworker_pb2_grpc import ConsumerServiceStub
@@ -33,7 +33,7 @@ class TaskClient:
 
     def get_task(
         self, partition: int | None = None, topic: str | None = None
-    ) -> InflightActivation | None:
+    ) -> TaskActivation | None:
         logger.info("getting_latest_tasks", extra={"partition": partition, "topic": topic})
         request = GetTaskRequest()
         response = self.stub.GetTask(request)

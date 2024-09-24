@@ -17,6 +17,7 @@ from arroyo.processing.strategies import (
 from arroyo.processing.strategies.run_task_with_multiprocessing import MultiprocessingPool
 from arroyo.types import BaseValue, Commit, Message, Partition
 from django.conf import settings
+from google.protobuf.timestamp_pb2 import Timestamp
 from sentry_protos.sentry.v1alpha.taskworker_pb2 import (
     TASK_ACTIVATION_STATUS_PENDING,
     InflightActivation,
@@ -33,11 +34,15 @@ def process_message(message: Message[KafkaPayload]) -> InflightActivation:
     activation = TaskActivation()
     activation.ParseFromString(message.payload.value)
     ((_partition, offset),) = message.committable.items()
+
     return InflightActivation(
         activation=activation,
         status=TASK_ACTIVATION_STATUS_PENDING,
         offset=offset,
-        added_at=int(time()),
+        added_at=Timestamp(seconds=int(time())),
+        # TODO set deadletter_at based on configuration
+        deadletter_at=None,
+        processing_deadline=None,
     )
 
 
