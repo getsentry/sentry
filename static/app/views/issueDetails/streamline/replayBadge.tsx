@@ -24,7 +24,9 @@ export function ReplayBadge({group, project}: {group: Group; project: Project}) 
     },
   };
   const issueTypeConfig = getConfigForIssueType(group, project);
-  const {getReplayCountForIssue} = useReplayCountForIssues();
+  const {getReplayCountForIssue} = useReplayCountForIssues({
+    statsPeriod: '90d',
+  });
   const replaysCount = getReplayCountForIssue(group.id, group.issueCategory) ?? 0;
 
   if (!issueTypeConfig.replays.enabled || replaysCount <= 0) {
