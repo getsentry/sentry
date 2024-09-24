@@ -17,6 +17,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import useOrganization from 'sentry/utils/useOrganization';
+import useProjects from 'sentry/utils/useProjects';
 import type {UptimeRule} from 'sentry/views/alerts/rules/uptime/types';
 
 import {UptimeHeadersField} from './uptimeHeadersField';
@@ -53,6 +54,8 @@ export function UptimeAlertForm({
   rule,
 }: Props) {
   const organization = useOrganization();
+  const {projects} = useProjects();
+
   const enabledConfiguration = organization.features.includes('uptime-api-create-update');
   const initialData = rule
     ? getFormDataFromRule(rule)
@@ -92,11 +95,13 @@ export function UptimeAlertForm({
         <AlertListItem>{t('Select an environment and project')}</AlertListItem>
         <FormRow>
           <SentryProjectSelectorField
-            disabled={!enabledConfiguration}
+            disabled={rule !== undefined || !enabledConfiguration}
+            disabledReason={t('Existing uptime rules cannot be moved between projects')}
             name="projectSlug"
             label={t('Project')}
+            placeholder={t('Choose Project')}
             hideLabel
-            projects={[project]}
+            projects={projects}
             valueIsSlug
             inline={false}
             flexibleControlStateSize
