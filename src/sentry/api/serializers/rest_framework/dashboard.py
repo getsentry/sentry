@@ -727,7 +727,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
                         is_hidden=query_data.get("is_hidden", False),
                         orderby=query_data.get("orderby", ""),
                         order=next_order + i,
-                        selected_aggregate=query_data.get("selected_aggregate", None),
+                        selected_aggregate=query_data.get("selected_aggregate"),
                     )
                 )
             else:
