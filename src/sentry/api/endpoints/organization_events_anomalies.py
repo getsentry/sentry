@@ -79,12 +79,16 @@ class OrganizationEventsAnomaliesEndpoint(OrganizationEventsV2EndpointBase):
 
         if project_id is None or not config or not historical_data or not current_data:
             return Response(
-                "Unable to get historical anomaly data: missing required argument(s) project, start, and/or end",
+                "Unable to get historical anomaly data: missing required argument(s) project_id, config, historical_data, and/or current_data",
                 status=400,
             )
 
         anomalies = get_historical_anomaly_data_from_seer_preview(
-            current_data, historical_data, project_id, config
+            current_data=current_data,
+            historical_data=historical_data,
+            project_id=project_id,
+            organization_id=organization.id,
+            config=config,
         )
         # NOTE: returns None if there's a problem with the Seer response
         if anomalies is None:

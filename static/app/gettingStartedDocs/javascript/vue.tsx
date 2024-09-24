@@ -166,8 +166,9 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      description: t(
-        "Initialize Sentry as early as possible in your application's lifecycle."
+      description: tct(
+        "Initialize Sentry as early as possible in your application's lifecycle, usually your Vue app's entry point ([code:main.ts/js]).",
+        {code: <code />}
       ),
       configurations: getSetupConfiguration(params),
     },

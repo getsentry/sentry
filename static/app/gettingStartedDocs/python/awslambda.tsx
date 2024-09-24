@@ -13,8 +13,14 @@ import {getPythonMetricsOnboarding} from 'sentry/components/onboarding/gettingSt
 import {crashReportOnboardingPython} from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {
+  InstallationMode,
+  platformOptions,
+} from 'sentry/views/onboarding/integrationSetup';
 
-type Params = DocsParams;
+type PlatformOptions = typeof platformOptions;
+type Params = DocsParams<PlatformOptions>;
 
 const getInstallSnippet = () => `pip install --upgrade sentry-sdk`;
 
@@ -53,7 +59,7 @@ sentry_sdk.init(
   ],
 )`;
 
-const onboarding: OnboardingConfig = {
+const onboarding: OnboardingConfig<PlatformOptions> = {
   introduction: () =>
     tct(
       'Create a deployment package on your local machine and install the required dependencies in the deployment package. For more information, see [link:AWS Lambda deployment package in Python].',
@@ -146,14 +152,27 @@ const onboarding: OnboardingConfig = {
     },
   ],
   verify: () => [],
+  onPlatformOptionsChange(params) {
+    return option => {
+      if (option.installationMode === InstallationMode.MANUAL) {
+        trackAnalytics('integrations.switch_manual_sdk_setup', {
+          integration_type: 'first_party',
+          integration: 'aws_lambda',
+          view: 'onboarding',
+          organization: params.organization,
+        });
+      }
+    };
+  },
 };
 
-const docs: Docs = {
+const docs: Docs<PlatformOptions> = {
   onboarding,
   customMetricsOnboarding: getPythonMetricsOnboarding({
     installSnippet: getInstallSnippet(),
   }),
   crashReportOnboarding: crashReportOnboardingPython,
+  platformOptions,
 };
 
 export default docs;
