@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import type {Theme} from '@emotion/react';
+import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
@@ -25,20 +25,18 @@ export function KeyValueTableRow({keyName, value, type}: Props) {
   );
 }
 
-const commonStyles = ({theme, type}: {type: Props['type']} & {theme: Theme}) => `
+const commonStyles = ({theme, type}: {type: Props['type']} & {theme: Theme}) => css`
   font-size: ${theme.fontSizeMedium};
   padding: ${space(0.5)} ${space(1)};
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${theme.fontWeightNormal};
   line-height: inherit;
-  ${p => p.theme.overflowEllipsis};
+  ${theme.overflowEllipsis};
 
-  background-color: ${
-    type === 'error'
-      ? theme.red100 + ' !important'
-      : type === 'warning'
-        ? 'var(--background-warning-default, rgba(245, 176, 0, 0.09)) !important'
-        : 'inherit'
-  };
+  background-color: ${type === 'error'
+    ? theme.red100 + ' !important'
+    : type === 'warning'
+      ? 'var(--background-warning-default, rgba(245, 176, 0, 0.09)) !important'
+      : 'inherit'};
   &:nth-of-type(2n-1) {
     background-color: ${theme.backgroundSecondary};
   }
