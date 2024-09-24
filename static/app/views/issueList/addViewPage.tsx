@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import bannerStar from 'sentry-images/spot/banner-star.svg';
 
 import {Button} from 'sentry/components/button';
+import {openConfirmModal} from 'sentry/components/confirm';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {FormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
@@ -44,11 +45,11 @@ const RECOMMENDED_SEARCHES: SearchSuggestion[] = [
 function AddViewPage({savedSearches}: {savedSearches: SavedSearch[]}) {
   const savedSearchTitle = (
     <SavedSearchesTitle>
-      {t('Saved Searches (will be deprecated)')}
+      {t('Saved Searches (will be removed)')}
       <QuestionTooltip
         icon="info"
         title={t(
-          'Saved searches will be deprecated soon. For any you wish to return to, please save them as views.'
+          'Saved searches will be removed soon. For any you wish to return to, please save them as views.'
         )}
         size="sm"
         position="top"
@@ -109,12 +110,23 @@ function SearchSuggestionList({
             size="zero"
             onClick={e => {
               e.stopPropagation();
-              onNewViewsSaved?.(
-                searchSuggestions.map(suggestion => ({
-                  ...suggestion,
-                  saveQueryToView: true,
-                }))
-              );
+              openConfirmModal({
+                message: (
+                  <b style={{display: 'flex', justifyContent: 'center'}}>
+                    {t('Save ') +
+                      searchSuggestions.length +
+                      t(' saved searches as views?')}
+                  </b>
+                ),
+                onConfirm: () => {
+                  onNewViewsSaved?.(
+                    searchSuggestions.map(suggestion => ({
+                      ...suggestion,
+                      saveQueryToView: true,
+                    }))
+                  );
+                },
+              });
             }}
             analyticsEventKey="issue_views.add_view.all_saved_searches_saved"
             analyticsEventName="Issue Views: All Saved Searches Saved"
