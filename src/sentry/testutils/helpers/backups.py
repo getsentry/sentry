@@ -111,6 +111,7 @@ from sentry.users.models.user_option import UserOption
 from sentry.users.models.userip import UserIP
 from sentry.users.models.userrole import UserRole, UserRoleUser
 from sentry.utils import json
+from sentry.workflow_engine.models import Action, DataConditionGroup
 
 __all__ = [
     "export_to_file",
@@ -608,13 +609,43 @@ class ExhaustiveFixtures(Fixtures):
             access_end=timezone.now() + timedelta(days=1),
         )
 
+        # Setup a test 'Issue Rule' and 'Automation'
         workflow = self.create_workflow(organization=org)
         detector = self.create_detector(organization=org)
+        self.create_detector_workflow(detector=detector, workflow=workflow)
+
+        notification_condition_group = self.create_data_condition_group(
+            logic_type=DataConditionGroup.Type.ANY,
+        )
+
+        send_notification_action = self.create_action(type=Action.Type.Notification, data="")
+        notification_condition_group.action = send_notification_action
+
+        # TODO @saponifi3d: Update warning to be DetectorState.Critical
+        notification_condition = self.create_data_condition(
+            condition="eq", threshold="critical", type="boolean", threshold_result="True"
+        )
+        notification_condition_group.condition = notification_condition
+
+        self.create_workflow_data_condition_group(
+            workflow=workflow, condition_group=notification_condition_group
+        )
+
         data_source = self.create_data_source(organization=org)
 
         self.create_data_source_detector(data_source, detector)
-        self.create_workflow_action(workflow=workflow)
-        self.create_data_condition(detector=detector)
+        detector_conditions = self.create_data_condition_group(
+            logic_type=DataConditionGroup.Type.ALL,
+        )
+
+        # TODO @saponifi3d: Create or define trigger workflow action type
+        trigger_workflows_action = self.create_action(type=Action.Type.TriggerWorkflow, data="")
+        detector_conditions.action = trigger_workflows_action
+        dc = self.create_data_condition(
+            condition="eq", threshold="critical", type="boolean", threshold_result="True"
+        )
+        dc.condition_group = detector_conditions
+        detector.condition_group = detector_conditions
 
         return org
 

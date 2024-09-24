@@ -17,6 +17,7 @@ class Action(DefaultFieldsModel):
     # TODO (@saponifi3d): Don't hardcode these values
     class Type(models.TextChoices):
         Notification = "SendNotificationAction"
+        TriggerWorkflow = "TriggerWorkflowAction"
 
     required = models.BooleanField(default=False)
     type = models.TextField(choices=Type.choices)
