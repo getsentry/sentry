@@ -1,4 +1,3 @@
-import {lastOfArray} from 'sentry/utils/array/lastOfArray';
 import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
 import type {Frame} from 'sentry/utils/profiling/frame';
 import {assertValidProfilingUnit, formatTo} from 'sentry/utils/profiling/units/units';
@@ -107,7 +106,7 @@ export class EventedProfile extends Profile {
       frame.totalWeight += weightDelta;
     }
 
-    const top = lastOfArray(this.stack);
+    const top = this.stack[this.stack.length - 1];
     if (top) {
       top.selfWeight += weight;
     }
@@ -119,7 +118,7 @@ export class EventedProfile extends Profile {
     for (const node of this.calltree) {
       node.totalWeight += delta;
     }
-    const stackTop = lastOfArray(this.calltree);
+    const stackTop = this.calltree[this.calltree.length - 1];
 
     if (stackTop) {
       stackTop.selfWeight += delta;
@@ -130,7 +129,7 @@ export class EventedProfile extends Profile {
     this.addWeightToFrames(at);
     this.addWeightsToNodes(at);
 
-    const lastTop = lastOfArray(this.calltree);
+    const lastTop = this.calltree[this.calltree.length - 1];
 
     if (lastTop) {
       const sampleDelta = at - this.lastValue;
@@ -164,7 +163,7 @@ export class EventedProfile extends Profile {
           lastTop.children.push(node);
         }
       } else {
-        const last = lastOfArray(lastTop.children);
+        const last = lastTop.children[lastTop.children.length - 1];
         if (last && !last.isLocked() && last.frame === frame) {
           node = last;
         } else {

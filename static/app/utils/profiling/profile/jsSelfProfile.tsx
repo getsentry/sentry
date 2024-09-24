@@ -1,4 +1,3 @@
-import {lastOfArray} from 'sentry/utils/array/lastOfArray';
 import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
 import {Frame} from 'sentry/utils/profiling/frame';
 
@@ -43,7 +42,7 @@ export class JSSelfProfile extends Profile {
     }
 
     const startedAt = profile.samples[0].timestamp;
-    const endedAt = lastOfArray(profile.samples).timestamp;
+    const endedAt = profile.samples[profile.samples.length - 1]?.timestamp;
 
     const jsSelfProfile = new JSSelfProfile({
       duration: endedAt - startedAt,
@@ -115,7 +114,7 @@ export class JSSelfProfile extends Profile {
     const framesInStack: CallTreeNode[] = [];
 
     for (const frame of stack) {
-      const last = lastOfArray(node.children);
+      const last = node.children[node.children.length - 1];
 
       if (last && !last.isLocked() && last.frame === frame) {
         node = last;
@@ -166,7 +165,7 @@ export class JSSelfProfile extends Profile {
     }
 
     // If node is the same as the previous sample, add the weight to the previous sample
-    if (node === lastOfArray(this.samples)) {
+    if (node === this.samples[this.samples.length - 1]) {
       this.weights[this.weights.length - 1] += weight;
     } else {
       this.samples.push(node);
