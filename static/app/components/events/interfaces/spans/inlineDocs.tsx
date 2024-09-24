@@ -9,37 +9,37 @@ type Props = {
   platform: string;
 };
 
+const DOC_COMPONENTS = {
+  'sentry.python': PythonDocs,
+  'sentry.javascript.node': NodeDocs,
+  'sentry.javascript.react-native': ReactNativeDocs,
+};
+
 function InlineDocs({platform}: Props) {
   if (!platform) {
     return null;
   }
 
-  const isPython = platform.startsWith('sentry.python');
-  const isNode = platform.startsWith('sentry.javascript.node');
-  const isReactNative = platform.startsWith('sentry.javascript.react-native');
-
-  if (isPython || isNode || isReactNative) {
-    return (
-      <div>
-        <h4>{t('Requires Manual Instrumentation')}</h4>
-        {isPython ? <PythonDocs /> : isNode ? <NodeDocs /> : <ReactNativeDocs />}
-      </div>
-    );
-  }
+  const componentKey = Object.keys(DOC_COMPONENTS).find(key => platform.startsWith(key));
+  const DocComponent = componentKey ? DOC_COMPONENTS[componentKey] : null;
 
   return (
     <div>
       <h4>{t('Requires Manual Instrumentation')}</h4>
-      <p>
-        {tct(
-          `To manually instrument certain regions of your code, view [docLink:our documentation].`,
-          {
-            docLink: (
-              <ExternalLink href="https://docs.sentry.io/product/performance/getting-started/" />
-            ),
-          }
-        )}
-      </p>
+      {DocComponent ? (
+        <DocComponent />
+      ) : (
+        <p>
+          {tct(
+            `To manually instrument certain regions of your code, view [docLink:our documentation].`,
+            {
+              docLink: (
+                <ExternalLink href="https://docs.sentry.io/product/performance/getting-started/" />
+              ),
+            }
+          )}
+        </p>
+      )}
     </div>
   );
 }
