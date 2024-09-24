@@ -621,11 +621,11 @@ class ExhaustiveFixtures(Fixtures):
         send_notification_action = self.create_action(type=Action.Type.Notification, data="")
         notification_condition_group.action = send_notification_action
 
-        # TODO @saponifi3d: Update warning to be DetectorState.Critical, add a comparison field, and get the condition types
+        # TODO @saponifi3d: Update warning to be DetectorState.Critical
         self.create_data_condition(
-            condition="gte",
-            threshold=1.0,
-            type="ConditionType",
+            condition="eq",
+            comparison="critical",
+            type="WorkflowCondition",
             condition_result="True",
             condition_group=notification_condition_group,
         )
@@ -643,12 +643,11 @@ class ExhaustiveFixtures(Fixtures):
 
         # TODO @saponifi3d: Create or define trigger workflow action type
         trigger_workflows_action = self.create_action(type=Action.Type.TriggerWorkflow, data="")
-
         detector_conditions.action = trigger_workflows_action
         self.create_data_condition(
-            condition="gte",
-            threshold=1.0,
-            type="ConditionType",
+            condition="eq",
+            comparison="critical",
+            type="DetectorCondition",
             condition_result="True",
             condition_group=detector_conditions,
         )

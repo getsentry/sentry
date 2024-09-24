@@ -16,7 +16,9 @@ class DataCondition(DefaultFieldsModel):
     __repr__ = sane_repr("type", "condition")
 
     condition = models.CharField(max_length=200)
-    threshold = models.FloatField()
+    threshold = models.FloatField(blank=True, null=True)
+    comparison = models.CharField(max_length=200, blank=True, null=True)
+
     condition_result = models.JSONField()
     type = models.CharField(max_length=200)
 
