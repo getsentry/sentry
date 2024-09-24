@@ -4,14 +4,17 @@ import {GroupFixture} from 'sentry-fixture/group';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {TagsFixture} from 'sentry-fixture/tags';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, renderHook, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useEventColumns} from 'sentry/views/issueDetails/allEventsTable';
 import {EventDetails} from 'sentry/views/issueDetails/streamline/eventDetails';
+import {MOCK_EVENTS_TABLE_DATA} from 'sentry/views/performance/transactionSummary/transactionEvents/testUtils';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/components/events/suspectCommits');
@@ -33,7 +36,7 @@ jest.mock('sentry/utils/useNavigate', () => ({
 
 const mockUseLocation = jest.mocked(useLocation);
 
-describe('EventGraph', () => {
+describe('EventList', () => {
   const organization = OrganizationFixture();
   const project = ProjectFixture({
     environments: ['production', 'staging', 'development'],
@@ -41,9 +44,9 @@ describe('EventGraph', () => {
   const group = GroupFixture();
   const event = EventFixture({id: 'event-id'});
   const persistantQuery = `issue:${group.shortId}`;
-  const defaultProps = {project, group, event};
+  const totalCount = 100;
 
-  let mockEventStats;
+  let mockEventList, mockEventListMeta;
 
   beforeEach(() => {
     mockUseLocation.mockReturnValue(LocationFixture());
@@ -68,92 +71,106 @@ describe('EventGraph', () => {
       body: TagsFixture(),
       method: 'GET',
     });
-    mockEventStats = MockApiClient.addMockResponse({
+    MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-stats/`,
       body: {'count()': EventsStatsFixture(), 'count_unique(user)': EventsStatsFixture()},
       method: 'GET',
     });
+    mockEventList = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      headers: {
+        Link:
+          `<http://localhost/api/0/organizations/${organization.slug}/events/?cursor=2:0:0>; rel="next"; results="true"; cursor="2:0:0",` +
+          `<http://localhost/api/0/organizations/${organization.slug}/events/?cursor=1:0:0>; rel="previous"; results="false"; cursor="1:0:0"`,
+      },
+      body: {
+        data: MOCK_EVENTS_TABLE_DATA,
+      },
+      match: [
+        (_url, options) => {
+          return options.query?.field?.includes('user.display');
+        },
+      ],
+    });
+    mockEventListMeta = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      headers: {
+        Link:
+          `<http://localhost/api/0/organizations/${organization.slug}/events/?cursor=2:0:0>; rel="next"; results="true"; cursor="2:0:0",` +
+          `<http://localhost/api/0/organizations/${organization.slug}/events/?cursor=1:0:0>; rel="previous"; results="false"; cursor="1:0:0"`,
+      },
+      body: {
+        data: [{'count()': totalCount}],
+      },
+      match: [
+        (_url, options) => {
+          return options.query?.field?.includes('count()');
+        },
+      ],
+    });
   });
 
-  it('displays allows toggling data sets', async function () {
-    render(<EventDetails {...defaultProps} />, {organization});
+  async function renderAndSwitchToAllEvents() {
+    render(<EventDetails event={event} group={group} project={project} />, {
+      organization,
+      router: RouterFixture({location: LocationFixture()}),
+    });
     await screen.findByText(event.id);
+    await userEvent.click(screen.getByRole('button', {name: 'View All Events'}));
+  }
 
-    const count = EventsStatsFixture().data.reduce(
-      (currentCount, item) => currentCount + item[1][0].count,
-      0
-    );
+  it('renders the list using a discover event query', async function () {
+    await renderAndSwitchToAllEvents();
+    const {result} = renderHook(() => useEventColumns(group, organization));
 
-    const eventsToggle = screen.getByRole('button', {name: `Events ${count}`});
-    const usersToggle = screen.getByRole('button', {name: `Users ${count}`});
-
-    // Defaults to events graph
-    expect(eventsToggle).toBeDisabled();
-    expect(usersToggle).toBeEnabled();
-
-    // Switch to users graph
-    await userEvent.click(usersToggle);
-    expect(eventsToggle).toBeEnabled();
-    expect(usersToggle).toBeDisabled();
-
-    // Another click should do nothing
-    await userEvent.click(usersToggle);
-    expect(eventsToggle).toBeEnabled();
-    expect(usersToggle).toBeDisabled();
-
-    // Switch back to events
-    await userEvent.click(eventsToggle);
-    expect(eventsToggle).toBeDisabled();
-    expect(usersToggle).toBeEnabled();
-  });
-
-  it('renders the graph using a discover event stats query', async function () {
-    render(<EventDetails {...defaultProps} />, {organization});
-    await screen.findByText(event.id);
-    expect(mockEventStats).toHaveBeenCalledWith(
-      '/organizations/org-slug/events-stats/',
+    expect(mockEventList).toHaveBeenCalledWith(
+      '/organizations/org-slug/events/',
       expect.objectContaining({
         query: {
           dataset: 'errors',
           environment: [],
-          field: expect.anything(),
-          partial: 1,
-          interval: '12h',
+          field: result.current.fields,
           per_page: 50,
           project: [project.id],
           query: persistantQuery,
-          referrer: 'issue_details.streamline_graph',
+          referrer: 'issue_details.streamline_list',
           statsPeriod: '14d',
-          yAxis: ['count()', 'count_unique(user)'],
         },
       })
     );
+    expect(mockEventListMeta).toHaveBeenCalled();
 
-    expect(screen.queryByLabelText('Open in Discover')).not.toBeInTheDocument();
-    await userEvent.hover(screen.getByRole('figure'));
-    const discoverButton = screen.getByLabelText('Open in Discover');
-    expect(discoverButton).toBeInTheDocument();
-    expect(discoverButton).toHaveAttribute(
-      'href',
-      expect.stringContaining(`/organizations/${organization.slug}/discover/results/`)
-    );
+    expect(screen.getByText('All Events')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Previous Page'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Next Page'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Close'})).toBeInTheDocument();
+    expect(
+      screen.getByText(`Showing 0-${MOCK_EVENTS_TABLE_DATA.length} of ${totalCount}`)
+    ).toBeInTheDocument();
+
+    // Returns minidump column, but we omit it as a custom column
+    const columns = result.current.columnTitles.filter(t => t !== 'minidump');
+    for (const title of columns) {
+      expect(screen.getByRole('columnheader', {name: title})).toBeInTheDocument();
+    }
   });
 
   it('allows filtering by environment', async function () {
-    render(<EventDetails {...defaultProps} />, {organization});
-    await screen.findByText(event.id);
+    await renderAndSwitchToAllEvents();
 
     await userEvent.click(screen.getByRole('button', {name: 'All Envs'}));
     await userEvent.click(screen.getByRole('row', {name: 'production'}));
 
-    expect(mockEventStats).toHaveBeenCalledWith(
-      '/organizations/org-slug/events-stats/',
+    const expectedArgs = [
+      '/organizations/org-slug/events/',
       expect.objectContaining({
         query: expect.objectContaining({
           environment: ['production'],
         }),
-      })
-    );
+      }),
+    ];
+    expect(mockEventList).toHaveBeenCalledWith(...expectedArgs);
+    expect(mockEventListMeta).toHaveBeenCalledWith(...expectedArgs);
   });
 
   it('updates query from location param change', async function () {
@@ -165,33 +182,36 @@ describe('EventGraph', () => {
     };
     mockUseLocation.mockReset();
     mockUseLocation.mockReturnValue(LocationFixture(locationQuery));
-    render(<EventDetails {...defaultProps} />, {organization});
-    await screen.findByText(event.id);
 
-    expect(mockEventStats).toHaveBeenCalledWith(
-      '/organizations/org-slug/events-stats/',
+    await renderAndSwitchToAllEvents();
+
+    const expectedArgs = [
+      '/organizations/org-slug/events/',
       expect.objectContaining({
         query: expect.objectContaining({
           query: [persistantQuery, locationQuery.query.query].join(' '),
         }),
-      })
-    );
+      }),
+    ];
+    expect(mockEventList).toHaveBeenCalledWith(...expectedArgs);
+    expect(mockEventListMeta).toHaveBeenCalledWith(...expectedArgs);
   });
 
   it('allows filtering by date', async function () {
-    render(<EventDetails {...defaultProps} />, {organization});
-    await screen.findByText(event.id);
+    await renderAndSwitchToAllEvents();
 
     await userEvent.click(screen.getByRole('button', {name: '14D'}));
     await userEvent.click(screen.getByRole('option', {name: 'Last 7 days'}));
 
-    expect(mockEventStats).toHaveBeenCalledWith(
-      '/organizations/org-slug/events-stats/',
+    const expectedArgs = [
+      '/organizations/org-slug/events/',
       expect.objectContaining({
         query: expect.objectContaining({
           statsPeriod: '7d',
         }),
-      })
-    );
+      }),
+    ];
+    expect(mockEventList).toHaveBeenCalledWith(...expectedArgs);
+    expect(mockEventListMeta).toHaveBeenCalledWith(...expectedArgs);
   });
 });
