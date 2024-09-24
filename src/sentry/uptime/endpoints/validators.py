@@ -10,10 +10,7 @@ from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.auth.superuser import is_active_superuser
 from sentry.uptime.detectors.url_extraction import extract_domain_parts
 from sentry.uptime.models import ProjectUptimeSubscription, ProjectUptimeSubscriptionMode
-from sentry.uptime.subscriptions.subscriptions import (
-    create_project_uptime_subscription,
-    create_uptime_subscription,
-)
+from sentry.uptime.subscriptions.subscriptions import get_or_create_project_uptime_subscription
 from sentry.utils.audit import create_audit_entry
 
 MAX_MONITORS_PER_DOMAIN = 100
@@ -115,18 +112,19 @@ class UptimeMonitorValidator(CamelSnakeSerializer):
         method_headers_body = {
             k: v for k, v in validated_data.items() if k in {"method", "headers", "body"}
         }
-        uptime_subscription = create_uptime_subscription(
+        uptime_monitor, created = get_or_create_project_uptime_subscription(
+            project=self.context["project"],
             url=validated_data["url"],
             interval_seconds=validated_data["interval_seconds"],
-            **method_headers_body,
-        )
-        uptime_monitor = create_project_uptime_subscription(
-            project=self.context["project"],
-            uptime_subscription=uptime_subscription,
             name=validated_data["name"],
             mode=validated_data.get("mode", ProjectUptimeSubscriptionMode.MANUAL),
             owner=validated_data["owner"],
+            **method_headers_body,
         )
+        if not created:
+            raise serializers.ValidationError(
+                "A monitor with these parameters already exists in this project"
+            )
         create_audit_entry(
             request=self.context["request"],
             organization=self.context["organization"],
