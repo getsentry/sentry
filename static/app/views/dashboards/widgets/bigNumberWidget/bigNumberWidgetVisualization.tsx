@@ -47,15 +47,9 @@ export function BigNumberWidgetVisualization(props: Props) {
   const fields = Object.keys(datum);
   const field = fields[0];
 
-  // TODO: Hack! Usually field definitions are in the `field` key, but all current Discover-adjacent code (including field renderers) expects field type definitions directly on `meta`. As soon as `fieldRenderers` are updated to check the `meta.fields` key, this can be removed.
-  const mergedMeta = {
-    ...(meta ?? {}),
-    ...(meta?.fields ?? {}),
-  };
-
   // TODO: meta as MetaType is a white lie. `MetaType` doesn't know that types can be null, but they can!
   const fieldFormatter = meta
-    ? getFieldFormatter(field, mergedMeta as MetaType, false)
+    ? getFieldFormatter(field, meta as MetaType, false)
     : value => value.toString();
 
   const unit = meta?.units?.[field];
