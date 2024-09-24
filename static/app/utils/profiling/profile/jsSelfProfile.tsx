@@ -166,7 +166,7 @@ export class JSSelfProfile extends Profile {
 
     // If node is the same as the previous sample, add the weight to the previous sample
     if (node === this.samples[this.samples.length - 1]) {
-      this.weights[this.weights.length - 1] = +weight;
+      this.weights[this.weights.length - 1] += weight;
     } else {
       this.samples.push(node);
       this.weights.push(weight);
