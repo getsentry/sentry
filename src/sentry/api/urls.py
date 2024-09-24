@@ -180,6 +180,8 @@ from sentry.issues.endpoints import (
     GroupParticipantsEndpoint,
     GroupSimilarIssuesEmbeddingsEndpoint,
     GroupSimilarIssuesEndpoint,
+    GroupTombstoneDetailsEndpoint,
+    GroupTombstoneEndpoint,
     OrganizationGroupIndexEndpoint,
     OrganizationGroupIndexStatsEndpoint,
     OrganizationGroupSearchViewsEndpoint,
@@ -400,8 +402,6 @@ from .endpoints.group_stats import GroupStatsEndpoint
 from .endpoints.group_tagkey_details import GroupTagKeyDetailsEndpoint
 from .endpoints.group_tagkey_values import GroupTagKeyValuesEndpoint
 from .endpoints.group_tags import GroupTagsEndpoint
-from .endpoints.group_tombstone import GroupTombstoneEndpoint
-from .endpoints.group_tombstone_details import GroupTombstoneDetailsEndpoint
 from .endpoints.group_user_reports import GroupUserReportsEndpoint
 from .endpoints.grouping_configs import GroupingConfigsEndpoint
 from .endpoints.index import IndexEndpoint

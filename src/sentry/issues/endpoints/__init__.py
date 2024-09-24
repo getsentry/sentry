@@ -9,6 +9,8 @@ from .group_notes_details import GroupNotesDetailsEndpoint
 from .group_participants import GroupParticipantsEndpoint
 from .group_similar_issues import GroupSimilarIssuesEndpoint
 from .group_similar_issues_embeddings import GroupSimilarIssuesEmbeddingsEndpoint
+from .group_tombstone import GroupTombstoneEndpoint
+from .group_tombstone_details import GroupTombstoneDetailsEndpoint
 from .organization_eventid import EventIdLookupEndpoint
 from .organization_group_index import OrganizationGroupIndexEndpoint
 from .organization_group_index_stats import OrganizationGroupIndexStatsEndpoint
@@ -40,6 +42,8 @@ __all__ = (
     "GroupParticipantsEndpoint",
     "GroupSimilarIssuesEmbeddingsEndpoint",
     "GroupSimilarIssuesEndpoint",
+    "GroupTombstoneDetailsEndpoint",
+    "GroupTombstoneEndpoint",
     "OrganizationGroupIndexEndpoint",
     "OrganizationGroupIndexStatsEndpoint",
     "OrganizationGroupSearchViewsEndpoint",
