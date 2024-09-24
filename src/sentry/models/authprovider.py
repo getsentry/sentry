@@ -212,7 +212,13 @@ class AuthProvider(ReplicatedControlModel):
             self.flags.scim_enabled = False
 
     def get_audit_log_data(self):
-        return {"provider": self.provider, "config": self.config}
+        provider = self.provider
+        # NOTE(isabella): for both standard fly SSO and fly-non-partner SSO, we should record the
+        # provider as "fly" in the audit log entry data; the only difference between the two is
+        # that the latter can be disabled by customers
+        if "fly" in self.provider:
+            provider = "fly"
+        return {"provider": provider, "config": self.config}
 
     def outboxes_for_mark_invalid_sso(self, user_id: int) -> list[ControlOutbox]:
         return [
