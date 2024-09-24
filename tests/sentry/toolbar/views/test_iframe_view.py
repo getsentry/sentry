@@ -3,7 +3,6 @@ from unittest.mock import Mock, patch
 from django.urls import reverse
 
 from sentry.testutils.cases import APITestCase
-from sentry.toolbar.utils.url import REFERRER_HEADER
 
 # TODO: instead of status codes, test the response content and/or template variable passed to iframe.html
 
@@ -22,20 +21,20 @@ class IframeViewTest(APITestCase):
         assert res.status_code == 404
 
     def test_default_no_allowed_origins(self):
-        res = self.client.get(self.url, **{REFERRER_HEADER: "https://example.com"})
+        res = self.client.get(self.url, HTTP_REFERER="https://example.com")
         assert res.status_code == 403
 
     def test_allowed_origins_basic(self):
         self.project.update_option("sentry:toolbar_allowed_origins", ["sentry.io"])
         for referrer in ["https://sentry.io/issues/?a=b/", "https://sentry.io:127/replays/"]:
-            res = self.client.get(self.url, **{REFERRER_HEADER: referrer})
+            res = self.client.get(self.url, HTTP_REFERER=referrer)
             assert res.status_code == 200
 
     def test_allowed_origins_wildcard_subdomain(self):
         self.project.update_option("sentry:toolbar_allowed_origins", ["*.nugettrends.com"])
-        res = self.client.get(self.url, **{REFERRER_HEADER: "https://bruno.nugettrends.com"})
+        res = self.client.get(self.url, HTTP_REFERER="https://bruno.nugettrends.com")
         assert res.status_code == 200
-        res = self.client.get(self.url, **{REFERRER_HEADER: "https://andrew.ryan.nugettrends.com"})
+        res = self.client.get(self.url, HTTP_REFERER="https://andrew.ryan.nugettrends.com")
         assert res.status_code == 403
 
     def test_no_referrer(self):
@@ -52,7 +51,7 @@ class IframeViewTest(APITestCase):
         referrer = "https://example.com"
         self.project.update_option("sentry:toolbar_allowed_origins", allowed_origins)
         with patch("sentry.toolbar.utils.url.url_matches", mock_url_matches):
-            self.client.get(self.url, **{REFERRER_HEADER: referrer})
+            self.client.get(self.url, HTTP_REFERER=referrer)
 
         assert mock_url_matches.call_count == 2
         for (i, (args, _)) in enumerate(mock_url_matches.call_args_list):
@@ -61,5 +60,5 @@ class IframeViewTest(APITestCase):
 
     def test_x_frame_options(self):
         self.project.update_option("sentry:toolbar_allowed_origins", ["https://sentry.io"])
-        res = self.client.get(self.url, **{REFERRER_HEADER: "https://sentry.io"})
+        res = self.client.get(self.url, HTTP_REFERER="https://sentry.io")
         assert res.headers.get("X-Frame-Options") == "ALLOWALL"
