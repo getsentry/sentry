@@ -14,6 +14,9 @@ from sentry.integrations.models.integration_feature import IntegrationFeature, I
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.avatars.sentry_app_avatar import SentryAppAvatar
 from sentry.organizations.services.organization import organization_service
+from sentry.sentry_apps.api.serializers.sentry_app_avatar import (
+    SentryAppAvatarSerializer as ResponseSentryAppAvatarSerializer,
+)
 from sentry.sentry_apps.models.sentry_app import MASKED_VALUE, SentryApp
 from sentry.users.models.user import User
 from sentry.users.services.user.service import user_service
@@ -62,7 +65,11 @@ class SentryAppSerializer(Serializer):
         data = {
             "allowedOrigins": application.get_allowed_origins(),
             "author": obj.author,
-            "avatars": serialize(attrs.get("avatars"), user),
+            "avatars": serialize(
+                objects=attrs.get("avatars"),
+                user=user,
+                serializer=ResponseSentryAppAvatarSerializer(),
+            ),
             "events": consolidate_events(obj.events),
             "featureData": [],
             "isAlertable": obj.is_alertable,

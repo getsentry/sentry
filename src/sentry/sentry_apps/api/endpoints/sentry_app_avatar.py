@@ -8,6 +8,7 @@ from sentry.api.bases import SentryAppBaseEndpoint
 from sentry.api.bases.avatar import AvatarMixin
 from sentry.models.avatars.sentry_app_avatar import SentryAppAvatar
 from sentry.sentry_apps.api.serializers.sentry_app_requests import SentryAppAvatarSerializer
+from sentry.sentry_apps.api.serializers.sentry_app_responses import SentryAppSerializer
 
 
 @control_silo_endpoint
@@ -22,10 +23,14 @@ class SentryAppAvatarEndpoint(AvatarMixin[SentryAppAvatar], SentryAppBaseEndpoin
     serializer_cls = SentryAppAvatarSerializer
 
     def get(self, request: Request, **kwargs) -> Response:
-        return super().get(request, access=request.access, **kwargs)
+        return super().get(
+            request, access=request.access, serializer=SentryAppSerializer(), **kwargs
+        )
 
     def put(self, request: Request, **kwargs) -> Response:
-        return super().put(request, access=request.access, **kwargs)
+        return super().put(
+            request, access=request.access, serializer=SentryAppSerializer(), **kwargs
+        )
 
     def get_avatar_filename(self, obj):
         return f"{obj.slug}.png"
