@@ -1,31 +1,34 @@
 from datetime import datetime
-from typing import Any
+from typing import Any, Self
 from uuid import uuid4
 
 import orjson
 from django.db import models
 from django.utils import timezone
-from sentry_protos.hackweek_team_no_celery_pls.v1alpha.pending_task_pb2 import (
-    COMPLETE,
-    FAILURE,
-    PROCESSING,
-    RETRY,
+from google.protobuf.timestamp_pb2 import Timestamp
+from sentry_protos.sentry.v1alpha.taskworker_pb2 import (
+    TASK_ACTIVATION_STATUS_COMPLETE,
+    TASK_ACTIVATION_STATUS_FAILURE,
+    TASK_ACTIVATION_STATUS_PROCESSING,
+    TASK_ACTIVATION_STATUS_RETRY,
+    InflightActivation,
+    RetryState,
+    TaskActivation,
+    TaskActivationStatus,
 )
-from sentry_protos.hackweek_team_no_celery_pls.v1alpha.pending_task_pb2 import (
-    RetryPolicy as RetryPolicyProto,
-)
-from sentry_protos.hackweek_team_no_celery_pls.v1alpha.pending_task_pb2 import Status, Task, Work
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import JSONField, Model
-from sentry.taskworker.retry import RetryState
 
 
-class PendingTasks(Model):
+class InflightActivationModel(Model):
     """
-    The PendingTaskStore gives us a durable place to track progress within a batch,
+    The InflightActivation gives us a durable place to track progress within a batch,
     reduce duplicate task execution and be able to manage batch timeouts, worker death,
     and unprocessable messages
+
+    While this is implemented with django/postgres right now we're early in the prototyping
+    for taskworker and this will likely change.
     """
 
     __relocation_scope__ = RelocationScope.Excluded
@@ -37,26 +40,28 @@ class PendingTasks(Model):
         FAILURE = "failure"
         RETRY = "retry"
 
-    # Could be omitted if pending tasks are stored in redis, or kafka.
-    topic = models.CharField(blank=True, null=True)
-    task_name = models.CharField(max_length=255, null=True)
+    # TaskActivation attributes
+    id = models.UUIDField()
+    taskname = models.CharField(max_length=255, null=True)
+    namespace = models.CharField(max_length=255, null=True)
     parameters: models.Field[dict[str, Any] | None, dict[str, Any] | None] = JSONField(null=True)
-    # Could be omitted if pending tasks are stored in redis, or kafka.
-    task_namespace = models.CharField(max_length=255, null=True)
-    partition = models.IntegerField(blank=True, null=True)
-    offset = models.IntegerField(blank=True, null=True)
-    state = models.CharField(choices=States.choices)
+    headers: models.Field[dict[str, Any] | None, dict[str, Any] | None] = JSONField(null=True)
     received_at = models.DateTimeField()
-    added_at = models.DateTimeField(default=timezone.now, blank=True)
+    deadline = models.DateTimeField(null=True)
 
     # Retry state fields
-    headers: models.Field[dict[str, Any] | None, dict[str, Any] | None] = JSONField(null=True)
-    retry_attempts: int = models.IntegerField(default=0)
-    retry_kind: str = models.CharField(max_length=255, null=True, blank=True)
-    deadletter_after_attempt: int = models.IntegerField(null=True, blank=True)
-    discard_after_attempt: int = models.IntegerField(null=True, blank=True)
-    deadletter_at: datetime = models.DateTimeField()
-    processing_deadline: datetime = models.DateTimeField(blank=True, null=True)
+    retry_attempts = models.IntegerField(default=0)
+    retry_kind = models.CharField(max_length=255, null=True, blank=True)
+    deadletter_after_attempt = models.IntegerField(null=True, blank=True)
+    discard_after_attempt = models.IntegerField(null=True, blank=True)
+
+    # InflightActivation fields
+    status = models.CharField(choices=States.choices)
+    offset = models.IntegerField()
+    # Timestamp taskactivation was added to inflight activations
+    added_at = models.DateTimeField(default=timezone.now, blank=True)
+    deadletter_at = models.DateTimeField(blank=True, null=True)
+    processing_deadline = models.DateTimeField(blank=True, null=True)
 
     def has_retries_remaining(self) -> bool:
         if (
@@ -76,57 +81,58 @@ class PendingTasks(Model):
             attempts=self.retry_attempts,
             discard_after_attempt=self.discard_after_attempt,
             deadletter_after_attempt=self.deadletter_after_attempt,
-            kind=self.retry_kind,
+            kind=self.retry_kind or "",
         )
 
     @classmethod
-    def from_proto(cls, task: Task) -> "PendingTasks":
+    def from_proto(cls, inflight: InflightActivation) -> Self:
+        # TODO(mark) Remove partition and topic from the pending task storage.
         return cls(
-            task_namespace=task.work.task_namespace,
-            task_name=task.work.taskname,
-            topic=task.topic,
-            parameters=orjson.loads(task.work.parameters),
-            partition=task.partition,
-            state=cls.to_model_status(task.status),
-            offset=task.offset,
+            id=inflight.activation.id,
+            namespace=inflight.activation.namespace,
+            taskname=inflight.activation.taskname,
+            parameters=orjson.loads(inflight.activation.parameters),
+            headers=orjson.dumps(inflight.activation.headers),
+            received_at=datetime.fromtimestamp(inflight.activation.received_at.seconds),
+            # TODO implement deadlines
+            deadline=None,
+            retry_attempts=inflight.activation.retry_state.attempts,
+            retry_kind=inflight.activation.retry_state.kind,
+            deadletter_after_attempt=inflight.activation.retry_state.deadletter_after_attempt,
+            discard_after_attempt=inflight.activation.retry_state.discard_after_attempt,
+            status=cls.to_model_status(inflight.status),
+            offset=inflight.offset,
+            added_at=inflight.added_at,
+            deadletter_at=inflight.deadletter_at,
             processing_deadline=(
-                task.work.processing_deadline if task.work.processing_deadline else None
+                inflight.processing_deadline if inflight.processing_deadline else None
             ),
-            retry_attempts=task.work.retry_state.attempts,
-            retry_kind=task.work.retry_state.kind,
-            deadletter_at=task.deadletter_at or timezone.now(),
-            deadletter_after_attempt=task.work.retry_state.deadletter_after_attempt,
-            discard_after_attempt=task.work.retry_state.discard_after_attempt,
-            received_at=datetime.fromtimestamp(task.received_at),
         )
 
-    def to_proto(self) -> Task:
+    def to_proto(self) -> InflightActivation:
         """Convert a pendingtask record into a topic message"""
-        data = Task(
-            work=Work(
-                task_id=uuid4().hex,
-                taskname=self.task_name,
+        data = InflightActivation(
+            activation=TaskActivation(
+                id=uuid4().hex,
+                namespace=self.namespace,
+                taskname=self.taskname,
                 parameters=orjson.dumps(self.parameters) if self.parameters else None,
-                task_namespace=self.task_namespace,
-                processing_deadline=str(self.processing_deadline),
-                retry_state=RetryPolicyProto(
+                retry_state=RetryState(
                     attempts=self.retry_attempts,
-                    kind=self.retry_kind,
+                    kind=self.retry_kind or "",
                     discard_after_attempt=self.discard_after_attempt,
                     deadletter_after_attempt=self.deadletter_after_attempt,
                 ),
             ),
-            status=self.to_proto_status(self.state),
-            topic=self.topic,
-            partition=self.partition,
+            status=self.to_proto_status(self.status),
             offset=self.offset,
-            received_at=int(self.received_at.timestamp()),
-            store_id=self.id,
+            added_at=Timestamp(seconds=self.added_at.timestamp()),
+            processing_deadline=Timestamp(seconds=self.processing_deadline.timestamp()),
         )
         return data
 
     @classmethod
-    def to_model_status(cls, status: Status.ValueType) -> States:
+    def to_model_status(cls, status: TaskActivationStatus.ValueType) -> States:
         return [
             cls.States.PENDING,
             cls.States.PROCESSING,
@@ -136,10 +142,10 @@ class PendingTasks(Model):
         ][status]
 
     @classmethod
-    def to_proto_status(cls, status: States) -> Status.ValueType:
-        {
-            "processing": PROCESSING,
-            "complete": COMPLETE,
-            "failure": FAILURE,
-            "retry": RETRY,
+    def to_proto_status(cls, status: States) -> TaskActivationStatus.ValueType:
+        return {
+            "processing": TASK_ACTIVATION_STATUS_PROCESSING,
+            "complete": TASK_ACTIVATION_STATUS_COMPLETE,
+            "failure": TASK_ACTIVATION_STATUS_FAILURE,
+            "retry": TASK_ACTIVATION_STATUS_RETRY,
         }[status]

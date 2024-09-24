@@ -5,10 +5,10 @@ import time
 
 import orjson
 from django.conf import settings
-from sentry_protos.hackweek_team_no_celery_pls.v1alpha.pending_task_pb2 import (
-    COMPLETE,
-    FAILURE,
-    RETRY,
+from sentry_protos.sentry.v1alpha.taskworker_pb2 import (
+    TASK_ACTIVATION_STATUS_COMPLETE,
+    TASK_ACTIVATION_STATUS_FAILURE,
+    TASK_ACTIVATION_STATUS_RETRY,
 )
 
 from sentry.taskworker.config import TaskNamespace, taskregistry
@@ -49,44 +49,44 @@ class Worker:
     def process_tasks(self, namespace: TaskNamespace) -> None:
         from sentry.taskworker.service.client import task_client
 
-        task_data = task_client.get_task(topic=namespace.topic)
-        if not task_data:
+        inflight = task_client.get_task(topic=namespace.topic)
+        if not inflight:
             logger.info("No tasks")
             time.sleep(1)
             return
 
         try:
-            task_meta = self.namespace.get(task_data.work.taskname)
+            task_meta = self.namespace.get(inflight.activation.taskname)
         except KeyError:
-            logger.exception("Could not resolve task with name %s", task_data.work.taskname)
+            logger.exception("Could not resolve task with name %s", inflight.work.taskname)
             return
 
         # TODO: Check idempotency
-        task_added_time = task_data.added_at.timestamp()
+        task_added_time = inflight.added_at.seconds
         execution_time = time.time()
-        next_state = FAILURE
+        next_state = TASK_ACTIVATION_STATUS_FAILURE
         try:
-            task_data_parameters = orjson.loads(task_data.work.parameters)
+            task_data_parameters = orjson.loads(inflight.activation.parameters)
             task_meta(*task_data_parameters["args"], **task_data_parameters["kwargs"])
-            next_state = COMPLETE
+            next_state = TASK_ACTIVATION_STATUS_COMPLETE
         except Exception as err:
             logger.info("taskworker.task_errored", extra={"error": str(err)})
             # TODO check retry policy
-            if task_meta.should_retry(task_data.work.retry_state, err):
-                logger.info("taskworker.task.retry", extra={"task": task_data.work.taskname})
-                next_state = RETRY
+            if task_meta.should_retry(inflight.activation.retry_state, err):
+                logger.info("taskworker.task.retry", extra={"task": inflight.activation.taskname})
+                next_state = TASK_ACTIVATION_STATUS_RETRY
         task_latency = execution_time - task_added_time
         logger.info("task.complete", extra={"latency": task_latency})
 
-        if next_state == COMPLETE:
-            logger.info("taskworker.task.complete", extra={"task": task_data.work.taskname})
-            task_client.complete_task(task_id=task_data.store_id)
+        if next_state == TASK_ACTIVATION_STATUS_COMPLETE:
+            logger.info("taskworker.task.complete", extra={"task": inflight.activation.taskname})
+            task_client.complete_task(task_id=inflight.activation.id)
         else:
             logger.info(
                 "taskworker.task.change_status",
-                extra={"task": task_data.work.taskname, "state": next_state},
+                extra={"task": inflight.activation.taskname, "state": next_state},
             )
             task_client.set_task_status(
-                task_id=task_data.store_id,
+                task_id=inflight.activation.id,
                 task_status=next_state,
             )

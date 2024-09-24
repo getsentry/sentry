@@ -4,13 +4,13 @@ from datetime import timedelta
 
 from django.db.models import Max
 from django.utils import timezone
-from sentry_protos.hackweek_team_no_celery_pls.v1alpha.pending_task_pb2 import Status, Task
+from sentry_protos.sentry.v1alpha.taskworker_pb2 import InflightActivation, TaskActivationStatus
 
 logger = logging.getLogger("sentry.taskworker.consumer")
 
 
 class PendingTaskStore:
-    def store(self, batch: Sequence[Task]):
+    def store(self, batch: Sequence[InflightActivation]):
         # Takes in a batch of pending tasks and stores them in some datastore
         from sentry.taskworker.models import PendingTasks
 
@@ -18,7 +18,7 @@ class PendingTaskStore:
 
     def get_pending_task(
         self, partition: int | None = None, topic: str | None = None
-    ) -> Task | None:
+    ) -> InflightActivation | None:
         from django.db import router, transaction
 
         from sentry.taskworker.models import PendingTasks
@@ -42,7 +42,7 @@ class PendingTaskStore:
             task.update(state=PendingTasks.States.PROCESSING, processing_deadline=deadline)
             return task.to_proto()
 
-    def set_task_status(self, task_id: int, task_status: Status.ValueType):
+    def set_task_status(self, task_id: str, task_status: TaskActivationStatus.ValueType):
         from django.db import router, transaction
 
         from sentry.taskworker.models import PendingTasks

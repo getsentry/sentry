@@ -17,7 +17,11 @@ from arroyo.processing.strategies import (
 from arroyo.processing.strategies.run_task_with_multiprocessing import MultiprocessingPool
 from arroyo.types import BaseValue, Commit, Message, Partition
 from django.conf import settings
-from sentry_protos.hackweek_team_no_celery_pls.v1alpha.pending_task_pb2 import PENDING, Task, Work
+from sentry_protos.sentry.v1alpha.taskworker_pb2 import (
+    TASK_ACTIVATION_STATUS_PENDING,
+    InflightActivation,
+    TaskActivation,
+)
 
 from sentry.conf.types.kafka_definition import Topic
 from sentry.taskworker.pending_task_store import PendingTaskStore
@@ -25,17 +29,15 @@ from sentry.taskworker.pending_task_store import PendingTaskStore
 logger = logging.getLogger("sentry.taskworker.consumer")
 
 
-def process_message(message: Message[KafkaPayload]) -> Task:
-    work = Work()
-    work.ParseFromString(message.payload.value)
-    ((partition, offset),) = message.committable.items()
-    return Task(
-        work=work,
-        status=PENDING,
-        topic=partition.topic.name,
-        partition=partition.index,
+def process_message(message: Message[KafkaPayload]) -> InflightActivation:
+    activation = TaskActivation()
+    activation.ParseFromString(message.payload.value)
+    ((_partition, offset),) = message.committable.items()
+    return InflightActivation(
+        activation=activation,
+        status=TASK_ACTIVATION_STATUS_PENDING,
         offset=offset,
-        received_at=int(time()),
+        added_at=int(time()),
     )
 
 
@@ -70,22 +72,22 @@ class StrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         self, commit: Commit, _: Mapping[Partition, int]
     ) -> ProcessingStrategy[KafkaPayload]:
         def accumulator(
-            batched_results: MutableSequence[Task],
-            message: BaseValue[Task],
-        ) -> MutableSequence[Task]:
+            batched_results: MutableSequence[InflightActivation],
+            message: BaseValue[InflightActivation],
+        ) -> MutableSequence[InflightActivation]:
             batched_results.append(message.payload)
             return batched_results
 
         def flush_batch(
-            message: Message[MutableSequence[Task]],
-        ) -> Message[MutableSequence[Task]]:
+            message: Message[MutableSequence[InflightActivation]],
+        ) -> Message[MutableSequence[InflightActivation]]:
             logger.info("Flushing batch. Messages: %r...", len(message.payload))
             self.pending_task_store.store(message.value.payload)
             return message
 
         def do_upkeep(
-            message: Message[MutableSequence[Task]],
-        ) -> Message[MutableSequence[Task]]:
+            message: Message[MutableSequence[InflightActivation]],
+        ) -> Message[MutableSequence[InflightActivation]]:
             self.pending_task_store.handle_processing_deadlines()
             self.pending_task_store.handle_retry_state_tasks()
             self.pending_task_store.handle_deadletter_at()

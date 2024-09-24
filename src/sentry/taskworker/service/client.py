@@ -1,14 +1,14 @@
 import logging
 
 import grpc
-from sentry_protos.hackweek_team_no_celery_pls.v1alpha.pending_task_pb2 import (
-    COMPLETE,
+from sentry_protos.sentry.v1alpha.taskworker_pb2 import (
+    TASK_ACTIVATION_STATUS_COMPLETE,
     GetTaskRequest,
-    SetTaskResultRequest,
-    Status,
-    Task,
+    InflightActivation,
+    SetTaskStatusRequest,
+    TaskActivationStatus,
 )
-from sentry_protos.hackweek_team_no_celery_pls.v1alpha.pending_task_pb2_grpc import ConsumerStub
+from sentry_protos.sentry.v1alpha.taskworker_pb2_grpc import ConsumerServiceStub
 
 from sentry.taskworker.pending_task_store import PendingTaskStore
 
@@ -29,22 +29,24 @@ class TaskClient:
         self.host = "localhost"
         self.server_port = 50051
         self.channel = grpc.insecure_channel(f"{self.host}:{self.server_port}")
-        self.stub = ConsumerStub(self.channel)
+        self.stub = ConsumerServiceStub(self.channel)
 
-    def get_task(self, partition: int | None = None, topic: str | None = None) -> Task | None:
+    def get_task(
+        self, partition: int | None = None, topic: str | None = None
+    ) -> InflightActivation | None:
         logger.info("getting_latest_tasks", extra={"partition": partition, "topic": topic})
-        request = GetTaskRequest(partition=partition, topic=topic)
+        request = GetTaskRequest()
         response = self.stub.GetTask(request)
         if response.HasField("task"):
             return response.task
         return None
 
-    def set_task_status(self, task_id: int, task_status: Status.ValueType):
-        request = SetTaskResultRequest(store_id=task_id, status=task_status)
-        self.stub.SetTaskResult(request)
+    def set_task_status(self, task_id: str, task_status: TaskActivationStatus.ValueType):
+        request = SetTaskStatusRequest(id=task_id, status=task_status)
+        self.stub.SetTaskStatus(request)
 
-    def complete_task(self, task_id: int):
-        self.set_task_status(task_id=task_id, task_status=COMPLETE)
+    def complete_task(self, task_id: str):
+        self.set_task_status(task_id=task_id, task_status=TASK_ACTIVATION_STATUS_COMPLETE)
 
 
 task_client = TaskClient()

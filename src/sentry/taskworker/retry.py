@@ -1,27 +1,12 @@
 from __future__ import annotations
 
-import dataclasses
 from collections.abc import Sequence
-from typing import Any
 
-from sentry_protos.hackweek_team_no_celery_pls.v1alpha.pending_task_pb2 import RetryPolicy
-
-
-@dataclasses.dataclass
-class RetryState:
-    """Retry state that is persisted as part of a task"""
-
-    attempts: int
-    discard_after_attempt: int | None
-    deadletter_after_attempt: int | None
-    kind: str
-
-    def to_dict(self) -> dict[str, Any]:
-        return dataclasses.asdict(self)
+from sentry_protos.sentry.v1alpha.taskworker_pb2 import RetryState
 
 
 class Retry:
-    __times: int | None
+    __times: int
     __on: Sequence[type] | None
     __ignore: Sequence[type] | None
     __deadletter: bool | None
@@ -31,7 +16,7 @@ class Retry:
 
     def __init__(
         self,
-        times: int | None = None,
+        times: int = 1,
         on: Sequence[type] | None = None,
         ignore: Sequence[type] | None = None,
         deadletter: bool | None = None,
@@ -43,7 +28,7 @@ class Retry:
         self.__deadletter = deadletter
         self.__discard = discard
 
-    def should_retry(self, state: RetryPolicy, exc: Exception) -> bool:
+    def should_retry(self, state: RetryState, exc: Exception) -> bool:
         # No more attempts left
         if state.attempts >= self.__times:
             return False
