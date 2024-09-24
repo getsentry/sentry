@@ -595,7 +595,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                             "aggregates": ["epm()", "count()"],
                             "conditions": "",
                             "orderby": "",
-                            "selectedAggregate": "1",
+                            "selectedAggregate": 1,
                         }
                     ],
                 },
@@ -629,7 +629,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                             "aggregates": ["count()", "equation|count()*2"],
                             "conditions": "",
                             "orderby": "",
-                            "selectedAggregate": "1",
+                            "selectedAggregate": 1,
                         }
                     ],
                 },
