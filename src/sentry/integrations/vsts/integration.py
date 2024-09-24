@@ -528,6 +528,14 @@ class VstsIntegrationProvider(IntegrationProvider):
             ).exists()
 
         except (IntegrationModel.DoesNotExist, AssertionError, KeyError):
+            logger.info(
+                "vsts.build_integration.error",
+                extra={
+                    "organization_id": self.pipeline.organization.id,
+                    "user_id": user["id"],
+                    "account": account,
+                },
+            )
             subscription_id, subscription_secret = self.create_subscription(
                 base_url=base_url, oauth_data=oauth_data
             )
