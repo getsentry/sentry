@@ -86,7 +86,6 @@ from sentry.services.organization.provisioning import (
     OrganizationSlugCollisionException,
     organization_provisioning_service,
 )
-from sentry.users.models.useremail import UserEmail
 from sentry.users.services.user.serial import serialize_generic_user
 from sentry.utils.audit import create_audit_entry
 
@@ -94,7 +93,6 @@ ERR_DEFAULT_ORG = "You cannot remove the default organization."
 ERR_NO_USER = "This request requires an authenticated user."
 ERR_NO_2FA = "Cannot require two-factor authentication without personal two-factor enabled."
 ERR_SSO_ENABLED = "Cannot require two-factor authentication with SSO enabled"
-ERR_EMAIL_VERIFICATION = "Cannot require email verification before verifying your email address."
 ERR_3RD_PARTY_PUBLISHED_APP = "Cannot delete an organization that owns a published integration. Contact support if you need assistance."
 ERR_PLAN_REQUIRED = "A paid plan is required to enable this feature."
 
@@ -273,7 +271,6 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     aggregatedDataConsent = serializers.BooleanField(required=False)
     genAIConsent = serializers.BooleanField(required=False)
     require2FA = serializers.BooleanField(required=False)
-    requireEmailVerification = serializers.BooleanField(required=False)
     trustedRelays = serializers.ListField(child=TrustedRelaySerializer(), required=False)
     allowJoinRequests = serializers.BooleanField(required=False)
     relayPiiConfig = serializers.CharField(required=False, allow_blank=True, allow_null=True)
@@ -330,13 +327,6 @@ class OrganizationSerializer(BaseOrganizationSerializer):
 
         if value and self._has_sso_enabled():
             raise serializers.ValidationError(ERR_SSO_ENABLED)
-        return value
-
-    def validate_requireEmailVerification(self, value):
-        user = self.context["user"]
-        has_verified = UserEmail.objects.get_primary_email(user).is_verified
-        if value and not has_verified:
-            raise serializers.ValidationError(ERR_EMAIL_VERIFICATION)
         return value
 
     def validate_trustedRelays(self, value):
@@ -439,8 +429,6 @@ class OrganizationSerializer(BaseOrganizationSerializer):
         return incoming
 
     def save(self):
-        from sentry import features
-
         org = self.context["organization"]
         changed_data = {}
         if not hasattr(org, "__data"):
@@ -485,11 +473,6 @@ class OrganizationSerializer(BaseOrganizationSerializer):
             org.flags.codecov_access = data["codecovAccess"]
         if "require2FA" in data:
             org.flags.require_2fa = data["require2FA"]
-        if (
-            features.has("organizations:required-email-verification", org)
-            and "requireEmailVerification" in data
-        ):
-            org.flags.require_email_verification = data["requireEmailVerification"]
         if "allowMemberProjectCreation" in data:
             org.flags.disable_member_project_creation = not data["allowMemberProjectCreation"]
         if "allowSuperuserAccess" in data:
@@ -541,11 +524,6 @@ class OrganizationSerializer(BaseOrganizationSerializer):
             )
         if data.get("require2FA") is True:
             org.handle_2fa_required(self.context["request"])
-        if (
-            features.has("organizations:required-email-verification", org)
-            and data.get("requireEmailVerification") is True
-        ):
-            org.handle_email_verification_required(self.context["request"])
         return org, changed_data
 
 
@@ -600,7 +578,6 @@ def post_org_pending_deletion(
     exclude_fields=[
         "accountRateLimit",
         "projectRateLimit",
-        "requireEmailVerification",
         "apdexThreshold",
         "genAIConsent",
         "metricsActivatePercentiles",
@@ -809,7 +786,6 @@ Below is an example of a payload for a set of advanced data scrubbing rules for 
     projectRateLimit = serializers.IntegerField(
         min_value=PROJECT_RATE_LIMIT_DEFAULT, required=False
     )
-    requireEmailVerification = serializers.BooleanField(required=False)
     apdexThreshold = serializers.IntegerField(required=False)
 
     # TODO: publish when GA'd
