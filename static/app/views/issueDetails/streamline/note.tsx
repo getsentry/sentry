@@ -18,19 +18,8 @@ import {useMembers} from 'sentry/utils/useMembers';
 import {useTeams} from 'sentry/utils/useTeams';
 
 type Props = {
-  /**
-   * Is the note saving?
-   */
-  busy?: boolean;
-  /**
-   * Display an error message
-   */
-  error?: boolean;
+  placeholder: string;
   errorJSON?: CreateError | null;
-  /**
-   * Minimum height of the edit area
-   */
-  minHeight?: number;
   /**
    * This is the id of the server's note object and is meant to indicate that
    * you are editing an existing item
@@ -38,9 +27,7 @@ type Props = {
   noteId?: string;
   onChange?: (e: MentionChangeEvent, extra: {updating?: boolean}) => void;
   onCreate?: (data: NoteType) => void;
-  onEditFinish?: () => void;
   onUpdate?: (data: NoteType) => void;
-  placeholder?: string;
   /**
    * The note text itself
    */
@@ -54,7 +41,7 @@ function StreamlinedNoteInput({
   onUpdate,
   noteId,
   errorJSON,
-  placeholder = t('Add a comment.\nTag users with @, or teams with #'),
+  placeholder,
 }: Props) {
   const theme = useTheme();
 
@@ -152,7 +139,6 @@ function StreamlinedNoteInput({
         onKeyDown={handleKeyDown}
         value={value}
         required
-        autoFocus
       >
         <Mention
           trigger="@"

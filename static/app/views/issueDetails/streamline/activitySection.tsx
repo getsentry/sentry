@@ -3,12 +3,6 @@ import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {NoteInputWithStorage} from 'sentry/components/activity/note/inputWithStorage';
-import type {
-  TContext,
-  TData,
-  TError,
-  TVariables,
-} from 'sentry/components/feedback/useMutateActivity';
 import useMutateActivity from 'sentry/components/feedback/useMutateActivity';
 import Timeline from 'sentry/components/timeline';
 import TimeSince from 'sentry/components/timeSince';
@@ -19,15 +13,15 @@ import type {NoteType} from 'sentry/types/alerts';
 import type {Group} from 'sentry/types/group';
 import type {User} from 'sentry/types/user';
 import {uniqueId} from 'sentry/utils/guid';
-import type {MutateOptions} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
+import type {MutateActivityOptions} from 'sentry/views/issueDetails/groupActivity';
 import {groupActivityTypeIconMapping} from 'sentry/views/issueDetails/streamline/groupActivityIcons';
 import getGroupActivityItem from 'sentry/views/issueDetails/streamline/groupActivityItem';
 
 function StreamlinedActivitySection({group}: {group: Group}) {
   const organization = useOrganization();
-  const teams = useTeamsById().teams;
+  const {teams} = useTeamsById();
 
   const [inputId, setInputId] = useState(uniqueId());
 
@@ -37,7 +31,7 @@ function StreamlinedActivitySection({group}: {group: Group}) {
     minHeight: 140,
     group,
     projectSlugs,
-    placeholder: 'Add a comment...',
+    placeholder: t('Add a comment...'),
   };
 
   const mutators = useMutateActivity({
@@ -45,18 +39,17 @@ function StreamlinedActivitySection({group}: {group: Group}) {
     group,
   });
 
-  const createOptions: MutateOptions<TData, TError, TVariables, TContext> =
-    useMemo(() => {
-      return {
-        onError: () => {
-          addErrorMessage(t('Unable to post comment'));
-        },
-        onSuccess: data => {
-          GroupStore.addActivity(group.id, data);
-          addSuccessMessage(t('Comment posted'));
-        },
-      };
-    }, [group.id]);
+  const createOptions: MutateActivityOptions = useMemo(() => {
+    return {
+      onError: () => {
+        addErrorMessage(t('Unable to post comment'));
+      },
+      onSuccess: data => {
+        GroupStore.addActivity(group.id, data);
+        addSuccessMessage(t('Comment posted'));
+      },
+    };
+  }, [group.id]);
 
   const onCreate = useCallback(
     (n: NoteType, _me: User) => {
