@@ -65,7 +65,7 @@ export function useModuleURLBuilder(
     return function (moduleName: RoutableModuleNames, domainView?: DomainView) {
       const view = domainView ?? currentView;
       return bare
-        ? `${DOMAIN_VIEW_BASE_URL}/${MODULE_BASE_URLS[moduleName]}`
+        ? `${DOMAIN_VIEW_BASE_URL}/${view}/${MODULE_BASE_URLS[moduleName]}`
         : normalizeUrl(
             `/organizations/${slug}/${DOMAIN_VIEW_BASE_URL}/${view}/${MODULE_BASE_URLS[moduleName]}`
           );

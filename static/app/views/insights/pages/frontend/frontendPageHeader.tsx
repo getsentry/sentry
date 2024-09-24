@@ -44,7 +44,7 @@ export function FrontendHeader({module}: Props) {
     },
     {
       label: FRONTEND_LANDING_TITLE,
-      to: undefined,
+      to: frontendBaseUrl,
       preservePageFilters: true,
     },
     {
