@@ -8,6 +8,7 @@ import domId from 'sentry/utils/domId';
 import localStorageWrapper from 'sentry/utils/localStorage';
 import clamp from 'sentry/utils/number/clamp';
 import extractHtmlandSelector from 'sentry/utils/replays/extractHtml';
+import {defaultTitle} from 'sentry/utils/replays/getFrameDetails';
 import hydrateBreadcrumbs, {
   replayInitBreadcrumb,
 } from 'sentry/utils/replays/hydrateBreadcrumbs';
@@ -587,9 +588,13 @@ export default class ReplayReader {
   );
 
   getCustomFrames = memoize(() =>
-    this._sortedBreadcrumbFrames.filter(
-      frame => frame.category && !BreadcrumbCategories.includes(frame.category)
-    )
+    this._sortedBreadcrumbFrames
+      .filter(frame => !BreadcrumbCategories.includes(frame.category))
+      // custom frames might not have a defined category, so we need to set one
+      .map(frame => ({
+        ...frame,
+        category: frame.category || defaultTitle(frame) || 'custom',
+      }))
   );
 
   getChapterFrames = memoize(() =>

@@ -446,7 +446,7 @@ export default function getFrameDetails(frame: ReplayFrame): Details {
   }
 }
 
-function defaultTitle(frame: ReplayFrame) {
+export function defaultTitle(frame: ReplayFrame) {
   // Override title for User Feedback frames
   if ('message' in frame && frame.message === 'User Feedback') {
     return t('User Feedback');
