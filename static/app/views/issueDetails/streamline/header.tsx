@@ -230,7 +230,7 @@ export default function StreamlinedGroupHeader({
           <Divider />
           <Button
             icon={<IconDashboard />}
-            size="xs"
+            size="sm"
             borderless
             aria-label={'sidebar-collapse-toggle'}
             onClick={() => setSidebarOpen(!sidebarOpen)}
