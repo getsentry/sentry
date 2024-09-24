@@ -1778,7 +1778,7 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                 for entity_with_group_id in [attr_entity, joined_entity]:
                     self.logger.info(
                         "GroupAttributesExecutor: adding group_id filter to entity",
-                        extra={"entity": entity_with_group_id},
+                        extra={"entity": entity_with_group_id.name},
                     )
                     where_conditions.append(
                         Condition(
