@@ -58,8 +58,12 @@ export function maybeFocusTraceRow(
   node: TraceTreeNode<TraceTree.NodeValue>,
   previouslyFocusedNodeRef: React.MutableRefObject<TraceTreeNode<TraceTree.NodeValue> | null>
 ) {
-  if (!ref) return;
-  if (node === previouslyFocusedNodeRef.current) return;
+  if (!ref) {
+    return;
+  }
+  if (node === previouslyFocusedNodeRef.current) {
+    return;
+  }
 
   previouslyFocusedNodeRef.current = node;
   ref.focus();

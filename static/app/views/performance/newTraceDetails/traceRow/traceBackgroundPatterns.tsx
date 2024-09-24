@@ -31,12 +31,17 @@ interface BackgroundPatternsProps {
 
 export function TraceBackgroundPatterns(props: BackgroundPatternsProps) {
   const performance_issues = useMemo(() => {
-    if (!props.performance_issues.size) return [];
+    if (!props.performance_issues.size) {
+      return [];
+    }
+
     return [...props.performance_issues];
   }, [props.performance_issues]);
 
   const errors = useMemo(() => {
-    if (!props.errors.size) return [];
+    if (!props.errors.size) {
+      return [];
+    }
     return [...props.errors];
   }, [props.errors]);
 
