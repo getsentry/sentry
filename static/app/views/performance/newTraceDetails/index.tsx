@@ -960,7 +960,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
   const scrollQueueRef = useTraceScrollToPath(props.scrollToNode);
 
   useTraceScrollToEventOnLoad({
-    rerender: forceRerender,
+    rerender,
     onTraceLoad,
     scrollQueueRef,
     manager: viewManager,
