@@ -79,6 +79,7 @@ describe('Uptime Alert Form', function () {
           method: 'POST',
           headers: [['X-Something', 'Header Value']],
           body: '{"key": "value"}',
+          intervalSeconds: 60,
         }),
       })
     );
@@ -190,6 +191,7 @@ describe('Uptime Alert Form', function () {
             ['X-Another', 'Second Value'],
           ],
           body: '{"different": "value"}',
+          intervalSeconds: 60,
         }),
       })
     );
