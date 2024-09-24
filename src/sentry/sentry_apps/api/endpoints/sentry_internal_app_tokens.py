@@ -9,12 +9,12 @@ from sentry.api.base import control_silo_endpoint
 from sentry.api.bases import SentryAppBaseEndpoint, SentryInternalAppTokenPermission
 from sentry.api.serializers.models.apitoken import ApiTokenSerializer
 from sentry.exceptions import ApiTokenLimitError
-from sentry.interfaces.user import User
 from sentry.models.apitoken import ApiToken
 from sentry.sentry_apps.api.endpoints.sentry_app_details import PARTNERSHIP_RESTRICTED_ERROR_MESSAGE
 from sentry.sentry_apps.installations import SentryAppInstallationTokenCreator
 from sentry.sentry_apps.models.sentry_app import MASKED_VALUE
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
+from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 
 
