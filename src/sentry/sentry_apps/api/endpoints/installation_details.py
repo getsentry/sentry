@@ -15,6 +15,9 @@ from sentry.mediators.sentry_app_installations.updater import Updater
 from sentry.sentry_apps.api.serializers.parsers.sentry_app_installation import (
     RequestSentryAppInstallationSerializer,
 )
+from sentry.sentry_apps.api.serializers.sentry_app_installation import (
+    SentryAppInstallationSerializer,
+)
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.utils.audit import create_audit_entry
 
@@ -30,7 +33,11 @@ class SentryAppInstallationDetailsEndpoint(SentryAppInstallationBaseEndpoint):
 
     def get(self, request: Request, installation) -> Response:
         return Response(
-            serialize(SentryAppInstallation.objects.get(id=installation.id), access=request.access)
+            serialize(
+                objects=SentryAppInstallation.objects.get(id=installation.id),
+                access=request.access,
+                serializer=SentryAppInstallationSerializer(),
+            )
         )
 
     def delete(self, request: Request, installation) -> Response:
@@ -70,6 +77,10 @@ class SentryAppInstallationDetailsEndpoint(SentryAppInstallationBaseEndpoint):
             )
 
             return Response(
-                serialize(SentryAppInstallation.objects.get(id=installation.id), request.user)
+                serialize(
+                    objects=SentryAppInstallation.objects.get(id=installation.id),
+                    user=request.user,
+                    serializer=SentryAppInstallationSerializer(),
+                )
             )
         return Response(serializer.errors, status=400)

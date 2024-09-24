@@ -13,6 +13,9 @@ from sentry.mediators.external_issues.creator import Creator
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.sentry_apps.api.serializers.parsers.sentry_app import URLField
+from sentry.sentry_apps.api.serializers.platform_external_issue import (
+    PlatformExternalIssueSerializer as ResponsePlatformExternalIssueSerializer,
+)
 
 
 class PlatformExternalIssueSerializer(serializers.Serializer):
@@ -48,6 +51,10 @@ class SentryAppInstallationExternalIssuesEndpoint(ExternalIssueBaseEndpoint):
                 project=data["project"],
                 identifier=data["identifier"],
             )
-            return Response(serialize(external_issue))
+            return Response(
+                serialize(
+                    objects=external_issue, serializer=ResponsePlatformExternalIssueSerializer()
+                )
+            )
 
         return Response(serializer.errors, status=400)
