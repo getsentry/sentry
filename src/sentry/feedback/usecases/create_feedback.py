@@ -7,6 +7,7 @@ from typing import Any, TypedDict
 from uuid import uuid4
 
 import jsonschema
+from django.contrib.auth.models import AnonymousUser
 
 from sentry import features
 from sentry.constants import DataCategory
@@ -347,7 +348,7 @@ def shim_to_feedback(
     project: Project,
     source: FeedbackCreationSource,
     sentry_referrer: str | None = None,
-    actor: User | None = None,
+    actor: User | AnonymousUser | None = None,
 ) -> None:
     """
     takes user reports from the legacy user report form/endpoint and
