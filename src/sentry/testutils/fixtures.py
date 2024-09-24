@@ -652,6 +652,9 @@ class Fixtures:
     def create_data_condition_group(self, *args, **kwargs):
         return Factories.create_data_condition_group(*args, **kwargs)
 
+    def create_data_condition_group_action(self, *args, **kwargs):
+        return Factories.create_data_condition_group_action(*args, **kwargs)
+
     def create_detector_workflow(self, *args, **kwargs):
         return Factories.create_detector_workflow(*args, **kwargs)
 
