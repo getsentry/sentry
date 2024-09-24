@@ -47,13 +47,17 @@ HEADERS_LIST_SCHEMA = {
 }
 
 
-def compute_http_request_size(method: str, url: str, headers: Sequence[tuple[str, str]], body: str):
+def compute_http_request_size(
+    method: str, url: str, headers: Sequence[tuple[str, str]], body: str | None
+):
     request_line_size = len(f"{method} {url} HTTP/1.1\r\n")
     headers_size = sum(
         len(key) + len(value.encode("utf-8")) + len("\r\n") for key, value in headers
     )
-    body_size = len(body.encode("utf-8"))
-    return request_line_size + headers_size + len("\r\n") + body_size
+    body_size = 0
+    if body is not None:
+        body_size = len(body.encode("utf-8")) + len("\r\n")
+    return request_line_size + headers_size + body_size
 
 
 @extend_schema_serializer()
@@ -70,24 +74,24 @@ class UptimeMonitorValidator(CamelSnakeSerializer):
     )
     url = URLField(required=True, max_length=255)
     interval_seconds = serializers.IntegerField(
-        required=True, min_value=60, max_value=int(timedelta(days=1).total_seconds())
+        required=True, min_value=60, max_value=int(timedelta(hours=1).total_seconds())
     )
     mode = serializers.IntegerField(required=False)
     method = serializers.ChoiceField(
         required=False, choices=list(zip(SUPPORTED_HTTP_METHODS, SUPPORTED_HTTP_METHODS))
     )
     headers = serializers.JSONField(required=False)
-    body = serializers.CharField(required=False)
+    body = serializers.CharField(required=False, allow_null=True)
 
     def validate(self, attrs):
         headers = []
         method = "GET"
-        body = ""
+        body = None
         url = ""
         if self.instance:
             headers = self.instance.uptime_subscription.headers
             method = self.instance.uptime_subscription.method
-            body = self.instance.uptime_subscription.body or ""
+            body = self.instance.uptime_subscription.body
             url = self.instance.uptime_subscription.url
 
         request_size = compute_http_request_size(

@@ -79,7 +79,7 @@ export default function StreamlinedGroupHeader({
 
   const [sidebarOpen, setSidebarOpen] = useSyncedLocalStorageState(
     'issue-details-sidebar-open',
-    false
+    true
   );
 
   const {disabledTabs, message, eventRoute, disableActions, shortIdBreadcrumb} =
@@ -232,7 +232,7 @@ export default function StreamlinedGroupHeader({
             icon={<IconDashboard />}
             size="xs"
             borderless
-            aria-label={'sidebar-toggle'}
+            aria-label={'sidebar-collapse-toggle'}
             onClick={() => setSidebarOpen(!sidebarOpen)}
           />
         </SidebarWorkflowWrapper>
