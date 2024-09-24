@@ -9,7 +9,7 @@ from sentry.integrations.example.integration import ExampleIntegration
 from tests.sentry.issues.endpoints.test_project_stacktrace_link import BaseProjectStacktraceLink
 
 
-class ProjectStracktraceLinkTestCodecov(BaseProjectStacktraceLink):
+class ProjectStacktraceLinkTestCodecov(BaseProjectStacktraceLink):
     endpoint = "sentry-api-0-project-stacktrace-coverage"
 
     def setUp(self):
