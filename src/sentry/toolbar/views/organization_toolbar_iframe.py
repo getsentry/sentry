@@ -10,7 +10,7 @@ from sentry.web.frontend.base import OrganizationView, region_silo_view
 
 
 @region_silo_view
-class IframeView(OrganizationView):
+class OrganizationToolbarIframeView(OrganizationView):
     def respond(self, template: str, context: dict[str, Any] | None = None, status: int = 200):
         response = super().respond(template, context=context, status=status)
         response["X-Frame-Options"] = "ALLOWALL"  # allows response to be embedded in an iframe.
