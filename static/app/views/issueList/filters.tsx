@@ -49,17 +49,6 @@ const StyledPageFilterBar = styled(PageFilterBar)`
   > div > button {
     width: 100%;
   }
-
-  & > * {
-    /* Prevent date filter from shrinking below 6.5rem */
-    &:nth-last-child(2) {
-      min-width: 6.5rem;
-    }
-
-    &:last-child {
-      min-width: 0;
-    }
-  }
 `;
 
 export default IssueListFilters;
