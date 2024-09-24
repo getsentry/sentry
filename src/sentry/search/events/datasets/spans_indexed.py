@@ -7,6 +7,7 @@ from snuba_sdk import Column, Direction, Function, OrderBy
 from sentry.api.event_search import SearchFilter
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.events import constants
+from sentry.search.events.builder import spans_indexed
 from sentry.search.events.builder.base import BaseQueryBuilder
 from sentry.search.events.datasets import field_aliases, filter_aliases, function_aliases
 from sentry.search.events.datasets.base import DatasetConfig
@@ -24,6 +25,7 @@ from sentry.search.events.fields import (
 )
 from sentry.search.events.types import SelectType, WhereType
 from sentry.search.utils import DEVICE_CLASS
+from sentry.snuba.referrer import Referrer
 
 
 class SpansIndexedDatasetConfig(DatasetConfig):
@@ -534,6 +536,8 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
     """Eventually should just write the eap dataset from scratch, but inheriting for now to move fast"""
 
     sampling_weight = Column("sampling_weight")
+    _cached_count = None
+    _cached_count_weighted = None
 
     def _resolve_span_duration(self, alias: str) -> SelectType:
         # In ClickHouse, duration is an UInt32 whereas self time is a Float64.
@@ -567,11 +571,7 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
                 SnQLFunction(
                     "count_weighted",
                     optional_args=[NullColumn("column")],
-                    snql_aggregate=lambda _, alias: Function(
-                        "sum",
-                        [Function("multiply", [Column("sign"), self.sampling_weight])],
-                        alias,
-                    ),
+                    snql_aggregate=self._resolve_count_weighted,
                     default_result_type="integer",
                 ),
                 SnQLFunction(
@@ -698,6 +698,21 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
                     default_result_type="duration",
                     redundant_grouping=True,
                 ),
+                SnQLFunction(
+                    "margin_of_error",
+                    snql_aggregate=self._resolve_margin_of_error,
+                    default_result_type="number",
+                ),
+                SnQLFunction(
+                    "lower_count_limit",
+                    snql_aggregate=self._resolve_lower_limit,
+                    default_result_type="number",
+                ),
+                SnQLFunction(
+                    "upper_count_limit",
+                    snql_aggregate=self._resolve_upper_limit,
+                    default_result_type="number",
+                ),
             ]
         }
 
@@ -723,6 +738,17 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
             alias,
         )
 
+    def _resolve_count_weighted(
+        self,
+        args: Mapping[str, str | Column | SelectType | int | float],
+        alias: str | None = None,
+    ) -> SelectType:
+        return Function(
+            "sum",
+            [Function("multiply", [Column("sign"), self.sampling_weight])],
+            alias,
+        )
+
     def _resolve_percentile_weighted(
         self,
         args: Mapping[str, str | Column | SelectType | int | float],
@@ -733,5 +759,156 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
             f'quantileTDigestWeighted({fixed_percentile if fixed_percentile is not None else args["percentile"]})',
             # Only convert to UInt64 when we have to since we lose rounding accuracy
             [args["column"], Function("toUInt64", [self.sampling_weight])],
+            alias,
+        )
+
+    def _query_total_counts(self) -> tuple[float | int, float | int]:
+        if self._cached_count is None:
+            total_query = spans_indexed.SpansEAPQueryBuilder(
+                dataset=self.builder.dataset,
+                params={},
+                snuba_params=self.builder.params,
+                selected_columns=["count()", "count_weighted()"],
+            )
+            total_results = total_query.run_query(Referrer.API_SPANS_TOTAL_COUNT_FIELD.value)
+            results = total_query.process_results(total_results)
+            if len(results["data"]) != 1:
+                raise Exception("Could not query population size")
+            self._cached_count = results["data"][0]["count"]
+            self._cached_count_weighted = results["data"][0]["count_weighted"]
+        return self._cached_count, self._cached_count_weighted
+
+    def _resolve_margin_of_error(
+        self,
+        args: Mapping[str, str | Column | SelectType | int | float],
+        alias: str | None = None,
+    ) -> SelectType:
+        """Calculates the Margin of error for a given value, but unfortunately basis the total count based on
+        extrapolated data"""
+        # both of these need to be aggregated without a query
+        total_samples, population_size = self._query_total_counts()
+        sampled_group = Function("count", [])
+        return Function(
+            "multiply",
+            [
+                # Based on a z score for a confidence level of 95%
+                1.96,
+                Function(
+                    "multiply",
+                    [
+                        # Unadjusted Margin of Error
+                        self._resolve_unadjusted_margin(sampled_group, total_samples),
+                        # Finite Population Correction
+                        self._resolve_finite_population_correction(total_samples, population_size),
+                    ],
+                ),
+            ],
+            alias,
+        )
+
+    def _resolve_unadjusted_margin(
+        self, sampled_group: SelectType, total_samples: SelectType
+    ) -> SelectType:
+        # Naming this p to match the formula
+        p = Function("divide", [sampled_group, total_samples])
+        return Function(
+            "sqrt",
+            [
+                Function(
+                    "divide", [Function("multiply", [p, Function("minus", [1, p])]), total_samples]
+                )
+            ],
+        )
+
+    def _resolve_finite_population_correction(
+        self,
+        total_samples: SelectType,
+        population_size: int | float,
+    ) -> SelectType:
+        return Function(
+            "sqrt",
+            [
+                Function(
+                    "divide",
+                    [
+                        Function("minus", [population_size, total_samples]),
+                        Function("minus", [population_size, 1]),
+                    ],
+                )
+            ],
+        )
+
+    def _resolve_lower_limit(
+        self,
+        args: Mapping[str, str | Column | SelectType | int | float],
+        alias: str,
+    ) -> SelectType:
+        total_samples, _ = self._query_total_counts()
+        sampled_group = Function("count", [])
+        proportion_by_sample = Function("divide", [sampled_group, total_samples])
+        return Function(
+            "divide",
+            [
+                Function(
+                    "multiply",
+                    [
+                        Function(
+                            "arrayMax",
+                            [
+                                [
+                                    0,
+                                    Function(
+                                        "minus",
+                                        [
+                                            proportion_by_sample,
+                                            self._resolve_margin_of_error(args, "margin_of_error"),
+                                        ],
+                                    ),
+                                ]
+                            ],
+                        ),
+                        total_samples,
+                    ],
+                ),
+                # Math assumes a single sampling_weight
+                Function("avg", [Column("sampling_factor")]),
+            ],
+            alias,
+        )
+
+    def _resolve_upper_limit(
+        self,
+        args: Mapping[str, str | Column | SelectType | int | float],
+        alias: str,
+    ) -> SelectType:
+        total_samples, _ = self._query_total_counts()
+        sampled_group = Function("count", [])
+        proportion_by_sample = Function("divide", [sampled_group, total_samples])
+        return Function(
+            "divide",
+            [
+                Function(
+                    "multiply",
+                    [
+                        Function(
+                            "arrayMin",
+                            [
+                                [
+                                    1,
+                                    Function(
+                                        "plus",
+                                        [
+                                            proportion_by_sample,
+                                            self._resolve_margin_of_error(args, "margin_of_error"),
+                                        ],
+                                    ),
+                                ]
+                            ],
+                        ),
+                        total_samples,
+                    ],
+                ),
+                Function("avg", [Column("sampling_factor")]),
+            ],
             alias,
         )
