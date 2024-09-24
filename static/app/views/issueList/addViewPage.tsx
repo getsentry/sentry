@@ -97,18 +97,44 @@ function SearchSuggestionList({
   searchSuggestions,
   type,
 }: SearchSuggestionListProps) {
-  const {onNewViewSaved} = useContext(NewTabContext);
+  const {onNewViewsSaved} = useContext(NewTabContext);
   const organization = useOrganization();
 
   return (
     <Suggestions>
-      <TitleWrapper>{title}</TitleWrapper>
+      <TitleWrapper>
+        {title}
+        {type === 'saved_searches' && (
+          <StyledButton
+            size="zero"
+            onClick={e => {
+              e.stopPropagation();
+              onNewViewsSaved?.(
+                searchSuggestions.map(suggestion => ({
+                  ...suggestion,
+                  saveQueryToView: true,
+                }))
+              );
+            }}
+            analyticsEventKey="issue_views.add_view.all_saved_searches_saved"
+            analyticsEventName="Issue Views: All Saved Searches Saved"
+            borderless
+          >
+            {t('Save all')}
+          </StyledButton>
+        )}
+      </TitleWrapper>
       <SuggestionList>
         {searchSuggestions.map((suggestion, index) => (
           <Suggestion
             key={index}
             onClick={() => {
-              onNewViewSaved?.(suggestion.label, suggestion.query, false);
+              onNewViewsSaved?.([
+                {
+                  ...suggestion,
+                  saveQueryToView: false,
+                },
+              ]);
               const analyticsKey =
                 type === 'recommended'
                   ? 'issue_views.add_view.recommended_view_saved'
@@ -135,7 +161,12 @@ function SearchSuggestionList({
                   size="zero"
                   onClick={e => {
                     e.stopPropagation();
-                    onNewViewSaved?.(suggestion.label, suggestion.query, true);
+                    onNewViewsSaved?.([
+                      {
+                        ...suggestion,
+                        saveQueryToView: true,
+                      },
+                    ]);
                     const analyticsKey =
                       type === 'recommended'
                         ? 'issue_views.add_view.recommended_view_saved'
@@ -210,6 +241,8 @@ const StyledOverflowEllipsisTextContainer = styled(OverflowEllipsisTextContainer
 `;
 
 const TitleWrapper = styled('div')`
+  display: flex;
+  justify-content: space-between;
   color: ${p => p.theme.subText};
   font-weight: 550;
   font-size: ${p => p.theme.fontSizeMedium};
@@ -253,6 +286,10 @@ const SuggestionList = styled('ul')`
   }
 
   li:hover {
+    border-bottom: 1px solid transparent;
+  }
+
+  li:last-child {
     border-bottom: 1px solid transparent;
   }
 `;
