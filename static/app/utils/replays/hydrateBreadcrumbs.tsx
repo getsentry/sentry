@@ -3,6 +3,7 @@ import invariant from 'invariant';
 import {t} from 'sentry/locale';
 import {BreadcrumbType} from 'sentry/types/breadcrumbs';
 import isValidDate from 'sentry/utils/date/isValidDate';
+import {defaultTitle} from 'sentry/utils/replays/getFrameDetails';
 import type {BreadcrumbFrame, RawBreadcrumbFrame} from 'sentry/utils/replays/types';
 import {isBreadcrumbFrame} from 'sentry/utils/replays/types';
 import type {ReplayRecord} from 'sentry/views/replays/types';
@@ -26,6 +27,8 @@ export default function hydrateBreadcrumbs(
         }
         return {
           ...frame,
+          // custom frames might not have a defined category, so we need to set one
+          category: frame.category || defaultTitle(frame) || 'custom',
           offsetMs: Math.abs(time.getTime() - startTimestampMs),
           timestamp: time,
           timestampMs: time.getTime(),

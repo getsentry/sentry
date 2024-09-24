@@ -40,6 +40,7 @@ import type {
   MultiClickFrame,
   MutationFrame,
   NavFrame,
+  RawBreadcrumbFrame,
   ReplayFrame,
   SlowClickFrame,
   TapFrame,
@@ -446,19 +447,19 @@ export default function getFrameDetails(frame: ReplayFrame): Details {
   }
 }
 
-function defaultTitle(frame: ReplayFrame) {
+export function defaultTitle(frame: ReplayFrame | RawBreadcrumbFrame) {
   // Override title for User Feedback frames
   if ('message' in frame && frame.message === 'User Feedback') {
     return t('User Feedback');
   }
-  if ('category' in frame) {
+  if ('category' in frame && frame.category) {
     const [type, action] = frame.category.split('.');
     return `${type} ${action || ''}`.trim();
   }
-  if ('message' in frame) {
+  if ('message' in frame && frame.message) {
     return frame.message as string; // TODO(replay): Included for backwards compat
   }
-  return frame.description ?? '';
+  return 'description' in frame ? frame.description ?? '' : '';
 }
 
 function stringifyNodeAttributes(node: SlowClickFrame['data']['node']) {
