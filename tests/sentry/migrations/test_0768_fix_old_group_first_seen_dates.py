@@ -20,7 +20,7 @@ class FixOldGroupFirstSeenDates(TestMigrations):
         self.normal_group = Group.objects.create(
             project=self.project,
             first_seen=datetime(2024, 1, 1, tzinfo=timezone.utc),
-            active_at=datetime(2024, 1, 1, tzinfo=timezone.utc),
+            active_at=datetime(2024, 2, 1, tzinfo=timezone.utc),
         )
 
         assert self.old_group.first_seen == datetime(1980, 1, 1, tzinfo=timezone.utc)
