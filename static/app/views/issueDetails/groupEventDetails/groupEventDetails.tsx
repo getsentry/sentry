@@ -74,10 +74,7 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
   const prevEvent = usePrevious(event);
   const hasStreamlinedUI = useHasStreamlinedUI();
 
-  const [sidebarOpen, _] = useSyncedLocalStorageState(
-    'issue-details-sidebar-open',
-    false
-  );
+  const [sidebarOpen, _] = useSyncedLocalStorageState('issue-details-sidebar-open', true);
 
   // load the data
   useSentryAppComponentsData({projectId});
@@ -245,6 +242,7 @@ const StyledLayoutBody = styled(Layout.Body)<{
     css`
       @media (min-width: ${p.theme.breakpoints.large}) {
         gap: ${space(2)};
+        display: ${defined(p.sidebarOpen) ? (p.sidebarOpen ? 'grid' : 'block') : 'grid'};
       }
     `}
 `;
