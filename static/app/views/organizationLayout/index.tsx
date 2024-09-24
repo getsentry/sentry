@@ -57,7 +57,7 @@ function AppLayout({children, organization}: LayoutProps) {
   return (
     <AppContainer className="app">
       <Nav />
-      <BodyContainer>
+      <BodyContainer data-content>
         {organization && <OrganizationHeader organization={organization} />}
         {organization && <DevToolInit />}
         <Body>{children}</Body>

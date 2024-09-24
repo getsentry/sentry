@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useState} from 'react';
+import {useCallback, useEffect, useLayoutEffect, useState} from 'react';
 import {createPortal} from 'react-dom';
 import styled from '@emotion/styled';
 
@@ -51,29 +51,20 @@ const Topbar = styled('div')`
 `;
 
 export function Mobile() {
-  const nav = useNavItems();
-  const [view, setView] = useState<'closed' | 'primary' | 'secondary'>('closed');
-  const handleClick = useCallback(() => {
-    setView(value => (value === 'closed' ? 'primary' : 'closed'));
-  }, [setView]);
-
   const location = useLocation();
-
+  const nav = useNavItems();
+  const [view, setView] = useState<NavView>('closed');
+  /** Sync menu state with `body` attributes */
+  useLayoutEffect(() => {
+    updateNavStyleAttributes(view);
+  }, [view]);
+  /** Automatically close the menu after any navigation */
   useEffect(() => {
     setView('closed');
-  }, [location.pathname, setView]);
-
-  useEffect(() => {
-    const body = document.body;
-    const app = document.querySelector('.app > :not(nav)');
-    if (view !== 'closed') {
-      app?.setAttribute('inert', '');
-      body.style.setProperty('overflow', 'hidden');
-    } else {
-      app?.removeAttribute('inert');
-      body.style.removeProperty('overflow');
-    }
-  }, [view]);
+  }, [location.pathname]);
+  const handleClick = useCallback(() => {
+    setView(v => (v === 'closed' ? 'primary' : 'closed'));
+  }, [setView]);
 
   return (
     <Topbar>
@@ -99,8 +90,31 @@ export function Mobile() {
   );
 }
 
+type NavView = 'primary' | 'secondary' | 'closed';
+
+let appContainer: HTMLDivElement | null = null;
+/** When the mobile menu opens, set the main content to `inert` and disable `body` scrolling */
+function updateNavStyleAttributes(view: NavView) {
+  appContainer = appContainer ?? document.querySelector('[data-content]');
+  if (!appContainer) {
+    throw new Error(
+      'Unable to match "[data-content]" selector. Please add the `data-content` attribute to the element wrapping the main content.'
+    );
+  }
+
+  if (view !== 'closed') {
+    appContainer.setAttribute('inert', '');
+    document.body.style.setProperty('overflow', 'hidden');
+  } else {
+    appContainer.removeAttribute('inert');
+    document.body.style.removeProperty('overflow');
+  }
+}
+
 function OverlayPortal({active = false, children}) {
-  if (!active) return null;
+  if (!active) {
+    return null;
+  }
   return createPortal(<Overlay>{children}</Overlay>, document.body);
 }
 
