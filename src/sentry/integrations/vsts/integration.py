@@ -42,6 +42,7 @@ from sentry.shared_integrations.exceptions import (
     IntegrationProviderError,
 )
 from sentry.silo.base import SiloMode
+from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
 from sentry.web.helpers import render_to_response
 
@@ -527,11 +528,20 @@ class VstsIntegrationProvider(IntegrationProvider):
                 status=ObjectStatus.ACTIVE,
             ).exists()
 
+            metrics.incr(
+                "integrations.migration.vsts_integration_migration",
+                sample_rate=1.0,
+            )
+
         except (IntegrationModel.DoesNotExist, AssertionError, KeyError):
-            logger.info(
+            logger.warning(
                 "vsts.build_integration.error",
                 extra={
-                    "organization_id": self.pipeline.organization.id,
+                    "organization_id": (
+                        self.pipeline.organization.id
+                        if self.pipeline and self.pipeline.organization
+                        else None
+                    ),
                     "user_id": user["id"],
                     "account": account,
                 },

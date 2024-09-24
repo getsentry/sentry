@@ -339,6 +339,9 @@ class VstsIntegrationProviderBuildIntegrationTest(VstsIntegrationTestCase):
         }
 
         integration = VstsIntegrationProvider()
+        pipeline = Mock()
+        pipeline.organization = self.organization
+        integration.set_pipeline(pipeline)
         integration_dict = integration.build_integration(state)
 
         assert integration_dict["name"] == self.vsts_account_name
