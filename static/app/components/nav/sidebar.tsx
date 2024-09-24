@@ -4,7 +4,7 @@ import {motion} from 'framer-motion';
 
 import Feature from 'sentry/components/acl/feature';
 import Link from 'sentry/components/links/link';
-import {useIndicator} from 'sentry/components/nav/useIndicator';
+import {useNavIndicator} from 'sentry/components/nav/useNavIndicator';
 import type {SidebarItem} from 'sentry/components/nav/utils';
 import {
   getNavigationItemStatus,
@@ -33,7 +33,7 @@ export const Sidebar = styled('div')`
 `;
 
 function Items({children}) {
-  const {indicatorProps, containerProps} = useIndicator();
+  const {indicatorProps, containerProps} = useNavIndicator();
 
   return (
     <Fragment>
@@ -125,6 +125,10 @@ const ItemWrapper = styled('li')`
       color: var(--color-hover, ${theme.white});
       background: rgba(255, 255, 255, 0.1);
       border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    & > * {
+      pointer-events: none;
     }
 
     @media (min-width: ${p => p.theme.breakpoints.medium}) {

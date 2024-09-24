@@ -4,7 +4,7 @@ import {motion} from 'framer-motion';
 
 import Feature from 'sentry/components/acl/feature';
 import Link from 'sentry/components/links/link';
-import {useIndicator} from 'sentry/components/nav/useIndicator';
+import {useNavIndicator} from 'sentry/components/nav/useNavIndicator';
 import type {SubmenuItem} from 'sentry/components/nav/utils';
 import {
   getNavigationItemStatus,
@@ -28,7 +28,7 @@ const Submenu = styled(motion.div)`
 `;
 
 function Items({children}) {
-  const {indicatorProps, containerProps} = useIndicator();
+  const {indicatorProps, containerProps} = useNavIndicator();
 
   return (
     <Fragment>
