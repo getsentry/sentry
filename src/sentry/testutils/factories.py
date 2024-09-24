@@ -952,15 +952,21 @@ class Factories:
         data,
         project_id: int,
         assert_no_errors: bool = True,
-        event_type: EventType = EventType.DEFAULT,
+        event_type: EventType | None = None,
         sent_at: datetime | None = None,
     ) -> Event:
         """
         Like `create_event`, but closer to how events are actually
         ingested. Prefer to use this method over `create_event`
         """
-        if event_type == EventType.ERROR:
+
+        # this creates a basic message event
+        if event_type == EventType.DEFAULT:
             data.update({"stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"])})
+
+        # this creates an error event
+        elif event_type == EventType.ERROR:
+            data.update({"exception": [{"value": "BadError"}]})
 
         manager = EventManager(data, sent_at=sent_at)
         manager.normalize()
