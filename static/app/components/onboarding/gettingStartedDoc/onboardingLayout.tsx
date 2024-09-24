@@ -26,6 +26,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import type {PlatformKey, Project, ProjectKey} from 'sentry/types/project';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -176,7 +177,21 @@ export function OnboardingLayout({
                 .filter((step): step is Exclude<typeof step, null> => step !== null)
                 .map(step => (
                   <ListItem key={step.name}>
-                    <ExternalLink href={step.link}>{step.name}</ExternalLink>
+                    <ExternalLink
+                      href={step.link}
+                      onClick={() =>
+                        trackAnalytics('onboarding.next_step_clicked', {
+                          organization,
+                          platform: platformKey,
+                          project_id: projectId,
+                          products: activeProductSelection,
+                          step: step.name,
+                          newOrg: newOrg ?? false,
+                        })
+                      }
+                    >
+                      {step.name}
+                    </ExternalLink>
                     {': '}
                     {step.description}
                   </ListItem>
