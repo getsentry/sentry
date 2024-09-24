@@ -3,19 +3,63 @@ import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
 import Feature from 'sentry/components/acl/feature';
+import OrganizationAvatar from 'sentry/components/avatar/organizationAvatar';
 import Link from 'sentry/components/links/link';
+import {useNavContext} from 'sentry/components/nav/context';
+import Submenu from 'sentry/components/nav/submenu';
 import {useNavIndicator} from 'sentry/components/nav/useNavIndicator';
-import type {SidebarItem} from 'sentry/components/nav/utils';
 import {
-  getNavigationItemStatus,
-  getNavigationItemStatusProps,
+  isNavItemActive,
+  isNonEmptyArray,
+  isSubmenuItemActive,
   makeLocationDescriptorFromTo,
+  type NavSidebarItem,
+  resolveNavItemTo,
 } from 'sentry/components/nav/utils';
 import {space} from 'sentry/styles/space';
 import theme from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 
-export const Sidebar = styled('div')`
+function Sidebar() {
+  const organization = useOrganization();
+
+  return (
+    <Fragment>
+      <SidebarWrapper role="navigation" aria-label="Primary Navigation">
+        <SidebarHeader>
+          <OrganizationAvatar organization={organization} size={32} />
+        </SidebarHeader>
+        <SidebarItems />
+      </SidebarWrapper>
+      <Submenu />
+    </Fragment>
+  );
+}
+
+export default Sidebar;
+
+export function SidebarItems() {
+  const nav = useNavContext();
+  return (
+    <Fragment>
+      <SidebarBody>
+        {nav.config.main.map(item => (
+          <SidebarItem key={item.label} item={item} />
+        ))}
+      </SidebarBody>
+      {isNonEmptyArray(nav.config.footer) && (
+        <SidebarFooter>
+          {nav.config.footer.map(item => (
+            <SidebarItem key={item.label} item={item} />
+          ))}
+        </SidebarFooter>
+      )}
+    </Fragment>
+  );
+}
+
+const SidebarWrapper = styled('div')`
   height: 40px;
   width: 100vw;
   padding: ${space(2)} 0;
@@ -32,18 +76,7 @@ export const Sidebar = styled('div')`
   }
 `;
 
-function Items({children}) {
-  const {indicatorProps, containerProps} = useNavIndicator();
-
-  return (
-    <Fragment>
-      <Indicator {...indicatorProps} />
-      <ItemList {...containerProps}>{children}</ItemList>
-    </Fragment>
-  );
-}
-
-const ItemList = styled('ul')`
+const SidebarItemList = styled('ul')`
   position: relative;
   list-style: none;
   margin: 0;
@@ -59,36 +92,33 @@ const ItemList = styled('ul')`
   }
 `;
 
-function Item({
-  to,
-  label,
-  icon,
-  submenu,
-  feature,
-  ...props
-}: React.PropsWithChildren<SidebarItem>) {
+function SidebarItem({item}: {item: NavSidebarItem}) {
   const location = useLocation();
-  const itemProps = getNavigationItemStatusProps(
-    getNavigationItemStatus({to, label, submenu}, location)
-  );
-  const toProps = makeLocationDescriptorFromTo(to);
+  const isActive = isNavItemActive(item, location);
+  const isSubmenuActive = isSubmenuItemActive(item, location);
+  const _to = resolveNavItemTo(item);
+  const to = _to ? makeLocationDescriptorFromTo(_to) : '#';
 
-  const FeatureGuard = feature ? Feature : Fragment;
-  const featureGuardProps: any = feature ? feature : {};
+  const FeatureGuard = item.feature ? Feature : Fragment;
+  const featureGuardProps: any = item.feature ?? {};
 
   return (
     <FeatureGuard {...featureGuardProps}>
-      <ItemWrapper>
-        <Link to={toProps} {...props} {...itemProps}>
-          {icon}
-          <span>{label}</span>
+      <SidebarItemWrapper>
+        <Link
+          to={to}
+          className={isActive || isSubmenuActive ? 'active' : undefined}
+          aria-current={isActive ? 'page' : undefined}
+        >
+          {item.icon}
+          <span>{item.label}</span>
         </Link>
-      </ItemWrapper>
+      </SidebarItemWrapper>
     </FeatureGuard>
   );
 }
 
-const ItemWrapper = styled('li')`
+const SidebarItemWrapper = styled('li')`
   svg {
     --size: 14px;
     width: var(--size);
@@ -139,7 +169,7 @@ const ItemWrapper = styled('li')`
   }
 `;
 
-const Indicator = styled(motion.span)`
+const SidebarIndicator = styled(motion.span)`
   position: absolute;
   left: 0;
   right: 0;
@@ -152,7 +182,7 @@ const Indicator = styled(motion.span)`
   border-radius: ${theme.borderRadius};
 `;
 
-const FooterWrapper = styled('div')`
+const SidebarFooterWrapper = styled('div')`
   position: relative;
   border-top: 1px solid ${theme.translucentGray200};
   display: flex;
@@ -162,27 +192,29 @@ const FooterWrapper = styled('div')`
   margin-top: auto;
 `;
 
-const Header = styled('header')`
+const SidebarHeader = styled('header')`
   position: relative;
   display: flex;
   justify-content: center;
   margin-bottom: ${space(1.5)};
 `;
 
-function Body({children}) {
+function SidebarBody({children}) {
+  const {indicatorProps, containerProps} = useNavIndicator();
   return (
     <div>
-      <Items>{children}</Items>
+      <SidebarIndicator {...indicatorProps} />
+      <SidebarItemList {...containerProps}>{children}</SidebarItemList>
     </div>
   );
 }
 
-function Footer({children}) {
+function SidebarFooter({children}) {
+  const {indicatorProps, containerProps} = useNavIndicator();
   return (
-    <FooterWrapper>
-      <Items>{children}</Items>
-    </FooterWrapper>
+    <SidebarFooterWrapper>
+      <SidebarIndicator {...indicatorProps} />
+      <SidebarItemList {...containerProps}>{children}</SidebarItemList>
+    </SidebarFooterWrapper>
   );
 }
-
-export default Object.assign(Sidebar, {Header, Body, Footer, Item});

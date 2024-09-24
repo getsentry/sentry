@@ -1,12 +1,4 @@
-import {useMemo} from 'react';
-
-import type {NavItemRaw, SidebarItem, SubmenuItem} from 'sentry/components/nav/utils';
-import {
-  getNavigationItemStatus,
-  NAV_DIVIDER,
-  resolveSidebarItem,
-  splitAtDivider,
-} from 'sentry/components/nav/utils';
+import type {NavConfig} from 'sentry/components/nav/utils';
 import {
   IconDashboard,
   IconGraph,
@@ -18,33 +10,25 @@ import {
   IconSiren,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
+import type {Organization} from 'sentry/types/organization';
 import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
-import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
-import {useModuleURLBuilder} from 'sentry/views/insights/common/utils/useModuleURL';
-import {MODULE_SIDEBAR_TITLE} from 'sentry/views/insights/http/settings';
-import {MODULE_TITLES} from 'sentry/views/insights/settings';
+import {MODULE_BASE_URLS} from 'sentry/views/insights/common/utils/useModuleURL';
+import {MODULE_SIDEBAR_TITLE as MODULE_TITLE_HTTP} from 'sentry/views/insights/http/settings';
+import {INSIGHTS_BASE_URL, MODULE_TITLES} from 'sentry/views/insights/settings';
 import {getSearchForIssueGroup, IssueGroup} from 'sentry/views/issueList/utils';
 
-export interface NavItemsResult {
-  primary: {
-    body: ReadonlyArray<SidebarItem>;
-    footer: ReadonlyArray<SidebarItem>;
-  };
-  secondary: {
-    body: ReadonlyArray<SubmenuItem>;
-    footer: ReadonlyArray<SubmenuItem>;
-  };
-}
-
-export function useNavItems(): NavItemsResult {
-  const organization = useOrganization();
-  const location = useLocation();
-  const moduleURLBuilder = useModuleURLBuilder(true);
+/**
+ * Global nav settings for all Sentry users.
+ * Links are generated per-organization with the proper `/organization/:slug/` prefix.
+ *
+ * To permission-gate certain items, include props to be passed to the `<Feature>` component
+ */
+export function createNavConfig({organization}: {organization: Organization}): NavConfig {
   const prefix = `organizations/${organization.slug}`;
+  const insightsPrefix = `${prefix}/${INSIGHTS_BASE_URL}`;
 
-  const items = useMemo<NavItemRaw[]>(
-    () => [
+  return {
+    main: [
       {
         label: t('Issues'),
         icon: <IconIssues />,
@@ -93,6 +77,7 @@ export function useNavItems(): NavItemsResult {
             feature: {
               features: 'profiling',
               hookName: 'feature-disabled:profiling-sidebar-item',
+              requireAll: false,
             },
           },
           {
@@ -120,27 +105,39 @@ export function useNavItems(): NavItemsResult {
         icon: <IconGraph />,
         feature: {features: 'insights-entry-points'},
         submenu: [
-          {label: MODULE_SIDEBAR_TITLE, to: `/${prefix}/${moduleURLBuilder('http')}/`},
-          {label: MODULE_TITLES.db, to: `/${prefix}/${moduleURLBuilder('db')}/`},
+          {
+            label: MODULE_TITLE_HTTP,
+            to: `/${insightsPrefix}/${MODULE_BASE_URLS.http}/`,
+          },
+          {label: MODULE_TITLES.db, to: `/${insightsPrefix}/${MODULE_BASE_URLS.db}/`},
           {
             label: MODULE_TITLES.resource,
-            to: `/${prefix}/${moduleURLBuilder('resource')}/`,
+            to: `/${insightsPrefix}/${MODULE_BASE_URLS.resource}/`,
           },
           {
             label: MODULE_TITLES.app_start,
-            to: `/${prefix}/${moduleURLBuilder('app_start')}/`,
+            to: `/${insightsPrefix}/${MODULE_BASE_URLS.app_start}/`,
           },
           {
             label: MODULE_TITLES['mobile-screens'],
-            to: `/${prefix}/${moduleURLBuilder('mobile-screens')}/`,
+            to: `/${insightsPrefix}/${MODULE_BASE_URLS['mobile-screens']}/`,
             feature: {features: 'insights-mobile-screens-module'},
           },
-          {label: MODULE_TITLES.vital, to: `/${prefix}/${moduleURLBuilder('vital')}/`},
-          {label: MODULE_TITLES.cache, to: `/${prefix}/${moduleURLBuilder('cache')}/`},
-          {label: MODULE_TITLES.queue, to: `/${prefix}/${moduleURLBuilder('queue')}/`},
+          {
+            label: MODULE_TITLES.vital,
+            to: `/${insightsPrefix}/${MODULE_BASE_URLS.vital}/`,
+          },
+          {
+            label: MODULE_TITLES.cache,
+            to: `/${insightsPrefix}/${MODULE_BASE_URLS.cache}/`,
+          },
+          {
+            label: MODULE_TITLES.queue,
+            to: `/${insightsPrefix}/${MODULE_BASE_URLS.queue}/`,
+          },
           {
             label: MODULE_TITLES.ai,
-            to: `/${prefix}/${moduleURLBuilder('ai')}/`,
+            to: `/${insightsPrefix}/${MODULE_BASE_URLS.ai}/`,
             feature: {features: 'insights-entry-points'},
           },
         ],
@@ -161,43 +158,17 @@ export function useNavItems(): NavItemsResult {
         feature: {
           features: ['discover', 'discover-query', 'dashboards-basic', 'dashboards-edit'],
           hookName: 'feature-disabled:dashboards-sidebar-item',
+          requireAll: false,
         },
       },
       {label: t('Alerts'), to: `/${prefix}/alerts/rules/`, icon: <IconSiren />},
-      NAV_DIVIDER,
-      // {label: t('Help'), to: '', icon: <IconQuestion />},
-      // {label: t('New'), to: '', icon: <IconBroadcast />},
-      // {label: t('Stats'), to: '', icon: <IconStats />},
+    ],
+    footer: [
       {
         label: t('Settings'),
         to: `/settings/${organization.slug}/`,
         icon: <IconSettings />,
       },
     ],
-    [organization, moduleURLBuilder, prefix]
-  );
-
-  const formatted = useMemo(() => formatNavItems({location}, items), [location, items]);
-  return formatted;
-}
-
-function formatNavItems(
-  context: {location: ReturnType<typeof useLocation>},
-  items: NavItemRaw[]
-): NavItemsResult {
-  const sidebar = items
-    .filter(item => !!item)
-    .map(item => (typeof item === 'object' ? resolveSidebarItem(item) : item));
-  const primary = splitAtDivider(sidebar);
-  const {submenu = []} = primary.body.find(
-    item => getNavigationItemStatus(item, context.location) !== 'inactive'
-  ) ?? {
-    submenu: [],
-  };
-  const secondary = splitAtDivider(submenu);
-
-  return {
-    primary,
-    secondary,
   };
 }

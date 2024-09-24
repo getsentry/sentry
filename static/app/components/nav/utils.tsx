@@ -1,4 +1,4 @@
-import type {ComponentProps, HTMLProps} from 'react';
+import type {ComponentProps} from 'react';
 import type {LocationDescriptor} from 'history';
 
 import type Feature from 'sentry/components/acl/feature';
@@ -7,104 +7,126 @@ import {SIDEBAR_NAVIGATION_SOURCE} from 'sentry/components/sidebar/utils';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import type {useLocation} from 'sentry/utils/useLocation';
 
-export const NAV_DIVIDER = Symbol('divider');
-
+/** NavItem is the base class for both SidebarItem and SubmenuItem  */
 interface NavItem {
+  /** User-facing item label, surfaced in the UI. Should be translated! */
   label: string;
+  /** Optionally, props which should be passed to a wrapping `<Feature>` guard */
   feature?: Omit<ComponentProps<typeof Feature>, 'children'>;
 }
 
-export interface SidebarItem extends SidebarItemBase {
-  to: string;
-  submenu?: SubmenuItem[];
+/** NavItems are displayed in either `main` and `footer` sections */
+export interface NavItemLayout<Item extends NavItem> {
+  main: Item[];
+  footer?: Item[];
 }
 
-export interface SidebarItemBase extends NavItem {
+/** SidebarItem is a top-level NavItem which is always displayed in the app sidebar */
+export interface NavSidebarItem extends NavItem {
+  /** The icon to render in the sidebar */
   icon: JSX.Element;
+  /** Optionally, the submenu items to display when this SidebarItem is active */
+  submenu?: NavSubmenuItem[] | NavItemLayout<NavSubmenuItem>;
+  /**
+   * The pathname (including `search` params) to navigate to when the item is clicked.
+   * Defaults to the `to` property of the first `SubmenuItem` if excluded.
+   */
+  to?: string;
 }
-interface SidebarItemTopLevel extends SidebarItemBase {
+
+/** SubmenuItem is a secondary NavItem which is only displayed when its parent SidebarItem is active */
+export interface NavSubmenuItem extends NavItem {
+  /**
+   * The pathname (including `search` params) to navigate to when the item is clicked.
+   */
   to: string;
-  submenu?: never;
 }
 
-interface SidebarItemWithChildren extends SidebarItemBase {
-  submenu: (SubmenuItem | false)[];
-  to?: never;
-}
-
-export interface SubmenuItem extends NavItem {
-  to: string;
-}
-
-export type NavItemRaw =
-  | SidebarItemTopLevel
-  | SidebarItemWithChildren
-  | typeof NAV_DIVIDER
-  | undefined
-  | false;
-
-export function resolveSidebarItem(
-  item: SidebarItemTopLevel | SidebarItemWithChildren
-): SidebarItem {
-  if (item.submenu) {
-    const submenu = item.submenu.filter(subitem => !!subitem) as SubmenuItem[];
-    const [{to}] = submenu;
-    return {...item, submenu, to};
-  }
-  return item;
-}
+export type NavConfig = NavItemLayout<NavSidebarItem>;
 
 export type NavigationItemStatus = 'inactive' | 'active' | 'active-parent';
 
-export function getNavigationItemStatus(
-  item: SidebarItem | SubmenuItem,
+/** Determine if a given SidebarItem or SubmenuItem is active */
+export function isNavItemActive(
+  item: NavSidebarItem | NavSubmenuItem,
   location: ReturnType<typeof useLocation>
-): NavigationItemStatus {
-  if (item.to.includes('/issues/') && item.to.includes('query=')) {
-    if (location.search.includes('viewId') && item.label === 'All') {
-      return 'active';
-    }
-    return hasMatchingQueryParam({to: item.to, label: item.label}, location)
-      ? 'active'
-      : 'inactive';
+): boolean {
+  const to = resolveNavItemTo(item);
+  if (!to) {
+    return false;
   }
-  const normalizedTo = normalizeUrl(item.to);
+
+  /**
+   * Issue submenu is special cased because it is matched based on query params
+   * rather than the pathname.
+   */
+  if (to.includes('/issues/') && to.includes('query=')) {
+    return hasMatchingQueryParam({to, label: item.label}, location);
+  }
+
+  const normalizedTo = normalizeUrl(to);
   const normalizedCurrent = normalizeUrl(location.pathname);
+  // Shortcut for exact matches
   if (normalizedTo === normalizedCurrent) {
-    return 'active';
+    return true;
   }
-  if (isItemActive({to: item.to, label: item.label})) {
-    return 'active';
-  }
-  if (
-    'submenu' in item &&
-    item.submenu?.find(
-      subitem =>
-        typeof subitem === 'object' &&
-        getNavigationItemStatus(subitem, location) !== 'inactive'
-    ) !== undefined
-  ) {
-    return 'active-parent';
-  }
-  return 'inactive';
+  // Fallback to legacy nav logic
+  return isItemActive({to, label: item.label});
 }
 
-export function getNavigationItemStatusProps(
-  status: NavigationItemStatus
-): Partial<Pick<HTMLProps<HTMLElement>, 'className' | 'aria-current'>> {
-  switch (status) {
-    case 'active-parent':
-      return {className: 'active'};
-    case 'active':
-      return {className: 'active', 'aria-current': 'page'};
-    case 'inactive':
-    default:
-      return {};
+export function isSubmenuItemActive(
+  item: NavSidebarItem,
+  location: ReturnType<typeof useLocation>
+): boolean {
+  if (!item.submenu) {
+    return false;
   }
+  if (isNonEmptyArray(item.submenu)) {
+    return item.submenu.some(subitem => isNavItemActive(subitem, location));
+  }
+  return (
+    item.submenu.main.some(subitem => isNavItemActive(subitem, location)) ||
+    item.submenu.footer?.some(subitem => isNavItemActive(subitem, location)) ||
+    false
+  );
 }
 
-export function hasMatchingQueryParam(
-  item: Pick<SidebarItem | SubmenuItem, 'to' | 'label'>,
+/** Creates a well-formed `LocationDescriptor` from a partial URL string that may contain search params */
+export function makeLocationDescriptorFromTo(to: string): LocationDescriptor {
+  const [pathname, search] = to.split('?');
+
+  return {
+    pathname,
+    search: search ? `?${search}` : undefined,
+    state: {source: SIDEBAR_NAVIGATION_SOURCE},
+  };
+}
+
+export function isNonEmptyArray(item: unknown): item is any[] {
+  return Array.isArray(item) && item.length > 0;
+}
+
+/** SidebarItem `to` can be derived from the first submenu item if necessary */
+export function resolveNavItemTo(
+  item: NavSidebarItem | NavSubmenuItem
+): string | undefined {
+  if (item.to) {
+    return item.to;
+  }
+  if (isSidebarItem(item) && isNonEmptyArray(item.submenu)) {
+    return item.submenu[0].to;
+  }
+  return undefined;
+}
+
+/**
+ * Unique logic for query param matches.
+ *
+ * `location` might have additional query params,
+ * but it considered active if it contains *all* of the params in `item`.
+ */
+function hasMatchingQueryParam(
+  item: Required<Pick<NavSidebarItem | NavSubmenuItem, 'to' | 'label'>>,
   location: ReturnType<typeof useLocation>
 ): boolean {
   if (location.search.length === 0) {
@@ -115,6 +137,10 @@ export function hasMatchingQueryParam(
     const itemSearch = new URLSearchParams(item.to.split('?').at(-1));
     const itemQuery = itemSearch.get('query');
     const query = search.get('query');
+    /**
+     * The "Issues / All" tab is a special case!
+     * It is considered active if no other queries are.
+     */
     if (item?.label === 'All') {
       return !query && !itemQuery;
     }
@@ -132,32 +158,6 @@ export function hasMatchingQueryParam(
   return false;
 }
 
-export function splitAtDivider<T>(arr: (T | typeof NAV_DIVIDER)[]): {
-  body: T[];
-  footer: T[];
-} {
-  const body: T[] = [];
-  const footer: T[] = [];
-  let current = body;
-  for (const item of arr) {
-    if (item === NAV_DIVIDER) {
-      current = footer;
-      continue;
-    }
-    current.push(item);
-  }
-  return {body, footer};
-}
-
-export function makeLocationDescriptorFromTo(to: string): LocationDescriptor {
-  if (!to) {
-    return '#';
-  }
-  const [pathname, search] = to.split('?');
-
-  return {
-    pathname,
-    search: search ? `?${search}` : undefined,
-    state: {source: SIDEBAR_NAVIGATION_SOURCE},
-  };
+function isSidebarItem(item: NavSidebarItem | NavSubmenuItem): item is NavSidebarItem {
+  return Object.hasOwn(item, 'icon');
 }

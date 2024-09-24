@@ -2,12 +2,45 @@ import {useCallback, useEffect, useLayoutEffect, useState} from 'react';
 import {createPortal} from 'react-dom';
 import styled from '@emotion/styled';
 
-import {useNavItems} from 'sentry/components/nav/config';
-import Sidebar from 'sentry/components/nav/sidebar';
+import {SidebarItems} from 'sentry/components/nav/sidebar';
 import {IconClose, IconMenu, IconSentry} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import theme from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
+
+type NavView = 'primary' | 'secondary' | 'closed';
+
+function MobileTopbar() {
+  const location = useLocation();
+  const [view, setView] = useState<NavView>('closed');
+  /** Sync menu state with `body` attributes */
+  useLayoutEffect(() => {
+    updateNavStyleAttributes(view);
+  }, [view]);
+  /** Automatically close the menu after any navigation */
+  useEffect(() => {
+    setView('closed');
+  }, [location.pathname]);
+  const handleClick = useCallback(() => {
+    setView(v => (v === 'closed' ? 'primary' : 'closed'));
+  }, [setView]);
+
+  return (
+    <Topbar>
+      <a href="/">
+        <IconSentry />
+      </a>
+      <button onClick={handleClick}>
+        {view === 'closed' ? <IconMenu width={16} /> : <IconClose width={16} />}
+      </button>
+      <OverlayPortal active={view !== 'closed'}>
+        <SidebarItems />
+      </OverlayPortal>
+    </Topbar>
+  );
+}
+
+export default MobileTopbar;
 
 const Topbar = styled('div')`
   height: 40px;
@@ -50,67 +83,6 @@ const Topbar = styled('div')`
   }
 `;
 
-export function Mobile() {
-  const location = useLocation();
-  const nav = useNavItems();
-  const [view, setView] = useState<NavView>('closed');
-  /** Sync menu state with `body` attributes */
-  useLayoutEffect(() => {
-    updateNavStyleAttributes(view);
-  }, [view]);
-  /** Automatically close the menu after any navigation */
-  useEffect(() => {
-    setView('closed');
-  }, [location.pathname]);
-  const handleClick = useCallback(() => {
-    setView(v => (v === 'closed' ? 'primary' : 'closed'));
-  }, [setView]);
-
-  return (
-    <Topbar>
-      <a href="/">
-        <IconSentry />
-      </a>
-      <button onClick={handleClick}>
-        {view === 'closed' ? <IconMenu width={16} /> : <IconClose width={16} />}
-      </button>
-      <OverlayPortal active={view !== 'closed'}>
-        <Sidebar.Body>
-          {nav.primary.body.map(item => (
-            <Sidebar.Item key={item.to} {...item} />
-          ))}
-        </Sidebar.Body>
-        <Sidebar.Footer>
-          {nav.primary.footer.map(item => (
-            <Sidebar.Item key={item.to} {...item} />
-          ))}
-        </Sidebar.Footer>
-      </OverlayPortal>
-    </Topbar>
-  );
-}
-
-type NavView = 'primary' | 'secondary' | 'closed';
-
-let appContainer: HTMLDivElement | null = null;
-/** When the mobile menu opens, set the main content to `inert` and disable `body` scrolling */
-function updateNavStyleAttributes(view: NavView) {
-  appContainer = appContainer ?? document.querySelector('[data-content]');
-  if (!appContainer) {
-    throw new Error(
-      'Unable to match "[data-content]" selector. Please add the `data-content` attribute to the element wrapping the main content.'
-    );
-  }
-
-  if (view !== 'closed') {
-    appContainer.setAttribute('inert', '');
-    document.body.style.setProperty('overflow', 'hidden');
-  } else {
-    appContainer.removeAttribute('inert');
-    document.body.style.removeProperty('overflow');
-  }
-}
-
 function OverlayPortal({active = false, children}) {
   if (!active) {
     return null;
@@ -131,3 +103,22 @@ const Overlay = styled('div')`
   --color: ${p => p.theme.textColor};
   --color-hover: ${p => p.theme.activeText};
 `;
+
+let appContainer: HTMLDivElement | null = null;
+/** When the mobile menu opens, set the main content to `inert` and disable `body` scrolling */
+function updateNavStyleAttributes(view: NavView) {
+  appContainer = appContainer ?? document.querySelector('[data-content]');
+  if (!appContainer) {
+    throw new Error(
+      'Unable to match "[data-content]" selector. Please add the `data-content` attribute to the element wrapping the main content.'
+    );
+  }
+
+  if (view !== 'closed') {
+    appContainer.setAttribute('inert', '');
+    document.body.style.setProperty('overflow', 'hidden');
+  } else {
+    appContainer.removeAttribute('inert');
+    document.body.style.removeProperty('overflow');
+  }
+}

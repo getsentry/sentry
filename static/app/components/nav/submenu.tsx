@@ -4,18 +4,45 @@ import {motion} from 'framer-motion';
 
 import Feature from 'sentry/components/acl/feature';
 import Link from 'sentry/components/links/link';
+import {useNavContext} from 'sentry/components/nav/context';
 import {useNavIndicator} from 'sentry/components/nav/useNavIndicator';
-import type {SubmenuItem} from 'sentry/components/nav/utils';
+import type {NavSubmenuItem} from 'sentry/components/nav/utils';
 import {
-  getNavigationItemStatus,
-  getNavigationItemStatusProps,
+  isNavItemActive,
+  isNonEmptyArray,
   makeLocationDescriptorFromTo,
 } from 'sentry/components/nav/utils';
 import {space} from 'sentry/styles/space';
 import theme from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
 
-const Submenu = styled(motion.div)`
+function Submenu() {
+  const nav = useNavContext();
+  if (!nav.submenu) {
+    return null;
+  }
+
+  return (
+    <SubmenuWrapper role="navigation" aria-label="Secondary Navigation">
+      <SubmenuBody>
+        {nav.submenu.main.map(item => (
+          <SubmenuItem key={item.label} item={item} />
+        ))}
+      </SubmenuBody>
+      {isNonEmptyArray(nav.submenu.footer) && (
+        <SubmenuFooter>
+          {nav.submenu.footer.map(item => (
+            <SubmenuItem key={item.label} item={item} />
+          ))}
+        </SubmenuFooter>
+      )}
+    </SubmenuWrapper>
+  );
+}
+
+export default Submenu;
+
+const SubmenuWrapper = styled(motion.div)`
   position: relative;
   border-right: 1px solid ${theme.translucentGray200};
   background: ${theme.surface300};
@@ -27,18 +54,30 @@ const Submenu = styled(motion.div)`
   z-index: ${theme.zIndex.sidebarPanel};
 `;
 
-function Items({children}) {
-  const {indicatorProps, containerProps} = useNavIndicator();
+function SubmenuItem({item}: {item: NavSubmenuItem}) {
+  const location = useLocation();
+  const isActive = isNavItemActive(item, location);
+  const to = makeLocationDescriptorFromTo(item.to);
+
+  const FeatureGuard = item.feature ? Feature : Fragment;
+  const featureGuardProps: any = item.feature ?? {};
 
   return (
-    <Fragment>
-      <Indicator {...indicatorProps} />
-      <ItemList {...containerProps}>{children}</ItemList>
-    </Fragment>
+    <FeatureGuard {...featureGuardProps}>
+      <SubmenuItemWrapper>
+        <Link
+          to={to}
+          className={isActive ? 'active' : undefined}
+          aria-current={isActive ? 'page' : undefined}
+        >
+          {item.label}
+        </Link>
+      </SubmenuItemWrapper>
+    </FeatureGuard>
   );
 }
 
-const ItemList = styled('ul')`
+const SubmenuItemList = styled('ul')`
   list-style: none;
   margin: 0;
   padding: 0;
@@ -49,28 +88,7 @@ const ItemList = styled('ul')`
   color: ${theme.gray400};
 `;
 
-function Item({to, label, feature, ...props}: React.PropsWithChildren<SubmenuItem>) {
-  const location = useLocation();
-  const activeProps = getNavigationItemStatusProps(
-    getNavigationItemStatus({to, label}, location)
-  );
-  const toProps = makeLocationDescriptorFromTo(to);
-
-  const FeatureGuard = feature ? Feature : Fragment;
-  const featureGuardProps: any = feature ? feature : {};
-
-  return (
-    <FeatureGuard {...featureGuardProps}>
-      <ItemWrapper>
-        <Link to={toProps} {...activeProps} {...props}>
-          {label}
-        </Link>
-      </ItemWrapper>
-    </FeatureGuard>
-  );
-}
-
-const ItemWrapper = styled('li')`
+const SubmenuItemWrapper = styled('li')`
   a {
     display: flex;
     padding: 5px ${space(1.5)};
@@ -97,7 +115,7 @@ const ItemWrapper = styled('li')`
   }
 `;
 
-const Indicator = styled(motion.span)`
+const SubmenuIndicator = styled(motion.span)`
   position: absolute;
   left: 0;
   right: 0;
@@ -109,7 +127,7 @@ const Indicator = styled(motion.span)`
   border-radius: ${theme.borderRadius};
 `;
 
-const FooterWrapper = styled('div')`
+const SubmenuFooterWrapper = styled('div')`
   position: relative;
   border-top: 1px solid ${theme.translucentGray200};
   background: ${theme.surface300};
@@ -119,16 +137,22 @@ const FooterWrapper = styled('div')`
   padding-block: ${space(1)};
 `;
 
-function Body({children}) {
-  return <Items>{children}</Items>;
-}
-
-function Footer({children}) {
+function SubmenuBody({children}) {
+  const {indicatorProps, containerProps} = useNavIndicator();
   return (
-    <FooterWrapper>
-      <Items>{children}</Items>
-    </FooterWrapper>
+    <div>
+      <SubmenuIndicator {...indicatorProps} />
+      <SubmenuItemList {...containerProps}>{children}</SubmenuItemList>
+    </div>
   );
 }
 
-export default Object.assign(Submenu, {Body, Footer, Item});
+function SubmenuFooter({children}) {
+  const {indicatorProps, containerProps} = useNavIndicator();
+  return (
+    <SubmenuFooterWrapper>
+      <SubmenuIndicator {...indicatorProps} />
+      <SubmenuItemList {...containerProps}>{children}</SubmenuItemList>
+    </SubmenuFooterWrapper>
+  );
+}
