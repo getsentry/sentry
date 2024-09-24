@@ -6,7 +6,7 @@ from sentry.types.group import GroupSubStatus
 
 class FixPendingMergeSubstatusTest(TestMigrations):
     migrate_from = "0765_add_org_to_api_auth"
-    migrate_to = "0766_fix_subsstatus_for_pending_merge"
+    migrate_to = "0766_fix_substatus_for_pending_merge"
 
     def setup_before_migration(self, app):
         self.organization = Organization.objects.create(name="test", slug="test")
