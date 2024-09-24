@@ -83,12 +83,17 @@ def send_uptime_subscription_config(subscription: UptimeSubscription) -> str:
 def uptime_subscription_to_check_config(
     subscription: UptimeSubscription, subscription_id: str
 ) -> CheckConfig:
-    return {
+    config: CheckConfig = {
         "subscription_id": subscription_id,
         "url": subscription.url,
         "interval_seconds": subscription.interval_seconds,  # type: ignore[typeddict-item]
         "timeout_ms": subscription.timeout_ms,
+        "request_method": subscription.method,  # type: ignore[typeddict-item]
+        "request_headers": subscription.headers,
     }
+    if subscription.body is not None:
+        config["request_body"] = subscription.body
+    return config
 
 
 def send_uptime_config_deletion(subscription_id: str) -> None:
