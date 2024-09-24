@@ -72,6 +72,7 @@ class Referrer(Enum):
     API_DASHBOARDS_WIDGET_LINE_CHART = "api.dashboards.widget.line-chart"
 
     API_DISCOVER_TOTAL_COUNT_FIELD = "api.discover.total-events-field"
+    API_SPANS_TOTAL_COUNT_FIELD = "api.spans.total-events-field"
     API_DISCOVER_TOTAL_SUM_TRANSACTION_DURATION_FIELD = (
         "api.discover.total-sum-transaction-duration-field"
     )
