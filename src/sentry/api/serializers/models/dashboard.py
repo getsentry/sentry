@@ -41,7 +41,7 @@ class DashboardWidgetQueryResponse(TypedDict):
     widgetId: str
     onDemand: list[OnDemandResponse]
     isHidden: bool
-    selectedAggregate: int
+    selectedAggregate: int | None
 
 
 class ThresholdType(TypedDict):

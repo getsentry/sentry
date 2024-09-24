@@ -648,7 +648,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
                     orderby=query.get("orderby", ""),
                     order=i,
                     is_hidden=query.get("is_hidden", False),
-                    selected_aggregate=query.get("selected_aggregate", None),
+                    selected_aggregate=query.get("selected_aggregate"),
                 )
             )
 
