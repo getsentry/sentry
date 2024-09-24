@@ -36,6 +36,11 @@ import {
   useIssueDetailsEventView,
 } from 'sentry/views/issueDetails/streamline/useIssueDetailsDiscoverQuery';
 
+const enum EventPageContent {
+  EVENT = 'event',
+  LIST = 'list',
+}
+
 export function EventDetails({
   group,
   event,
@@ -52,6 +57,11 @@ export function EventDetails({
 
   const searchQuery = useEventQuery({group});
   const eventView = useIssueDetailsEventView({group});
+
+  const [pageContent, setPageContent] = useState<EventPageContent>(
+    EventPageContent.EVENT
+  );
+
   const {
     data: groupStats,
     isPending: isLoadingStats,
@@ -93,6 +103,7 @@ export function EventDetails({
             group={group}
             handleSearch={query => {
               navigate({...location, query: {...location.query, query}}, {replace: true});
+              setPageContent(EventPageContent.LIST);
             }}
             environments={environments}
             query={searchQuery}
@@ -122,22 +133,31 @@ export function EventDetails({
           )}
         </PageErrorBoundary>
       )}
-      <PageErrorBoundary mini message={t('There was an error loading the event list')}>
+      {pageContent === EventPageContent.LIST && (
+        <PageErrorBoundary mini message={t('There was an error loading the event list')}>
+          <GroupContent>
+            <EventList
+              group={group}
+              project={project}
+              onClose={() => setPageContent(EventPageContent.EVENT)}
+            />
+          </GroupContent>
+        </PageErrorBoundary>
+      )}
+      {pageContent === EventPageContent.EVENT && (
         <GroupContent>
-          <EventList group={group} project={project} />
+          <FloatingEventNavigation
+            event={event}
+            group={group}
+            ref={setNav}
+            query={searchQuery}
+            onViewAllEvents={() => setPageContent(EventPageContent.LIST)}
+          />
+          <ContentPadding>
+            <EventDetailsContent group={group} event={event} project={project} />
+          </ContentPadding>
         </GroupContent>
-      </PageErrorBoundary>
-      <GroupContent>
-        <FloatingEventNavigation
-          event={event}
-          group={group}
-          ref={setNav}
-          query={searchQuery}
-        />
-        <ContentPadding>
-          <EventDetailsContent group={group} event={event} project={project} />
-        </ContentPadding>
-      </GroupContent>
+      )}
       <ExtraContent>
         <ContentPadding>
           <IssueContent group={group} project={project} />

@@ -29,9 +29,10 @@ import EventsTable from 'sentry/views/performance/transactionSummary/transaction
 interface EventListProps {
   group: Group;
   project: Project;
+  onClose?: (e: React.MouseEvent) => void;
 }
 
-export function EventList({group}: EventListProps) {
+export function EventList({group, onClose}: EventListProps) {
   const referrer = 'issue_details.streamline_list';
   const theme = useTheme();
   const location = useLocation();
@@ -125,11 +126,13 @@ export function EventList({group}: EventListProps) {
                   />
                 </ButtonBar>
               </EventListHeaderItem>
-              <EventListHeaderItem>
-                <Button borderless size="xs" css={grayText}>
-                  {t('Close')}
-                </Button>
-              </EventListHeaderItem>
+              {onClose && (
+                <EventListHeaderItem>
+                  <Button borderless size="xs" css={grayText} onClick={onClose}>
+                    {t('Close')}
+                  </Button>
+                </EventListHeaderItem>
+              )}
             </EventListHeader>
           );
         }}
