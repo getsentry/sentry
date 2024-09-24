@@ -201,21 +201,6 @@ export function useEnvironmentsFromUrl(): string[] {
   return envsArray;
 }
 
-export function getGroupDetailsQueryData({
-  environments,
-}: {
-  environments?: string[];
-} = {}): Record<string, string | string[]> {
-  // Note, we do not want to include the environment key at all if there are no environments
-  const query: Record<string, string | string[]> = {
-    ...(environments && environments.length > 0 ? {environment: environments} : {}),
-    expand: ['inbox', 'owners'],
-    collapse: ['release', 'tags'],
-  };
-
-  return query;
-}
-
 export function getGroupEventDetailsQueryData({
   environments,
   query,
