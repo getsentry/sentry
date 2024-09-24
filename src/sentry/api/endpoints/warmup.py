@@ -1,4 +1,3 @@
-import django.urls
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -18,9 +17,4 @@ class WarmupEndpoint(Endpoint):
     rate_limits = RateLimitConfig(group="INTERNAL")
 
     def get(self, request: Request) -> Response:
-        # load up the django url resolver
-        resolver = django.urls.get_resolver()
-        # access the resolver's reverse dict to populate it
-        resolver.reverse_dict
-
         return Response(200)
