@@ -49,20 +49,15 @@ const ItemList = styled('ul')`
   color: ${theme.gray400};
 `;
 
-function Item({to, label, check, ...props}: React.PropsWithChildren<SubmenuItem>) {
+function Item({to, label, feature, ...props}: React.PropsWithChildren<SubmenuItem>) {
   const location = useLocation();
   const activeProps = getNavigationItemStatusProps(
     getNavigationItemStatus({to, label}, location)
   );
   const toProps = makeLocationDescriptorFromTo(to);
 
-  const FeatureGuard = check ? Feature : Fragment;
-  const featureGuardProps: any = check
-    ? {
-        features: check.features,
-        hookName: check.hook ? (`feature-disabled:${check.hook}` as const) : undefined,
-      }
-    : {};
+  const FeatureGuard = feature ? Feature : Fragment;
+  const featureGuardProps: any = feature ? feature : {};
 
   return (
     <FeatureGuard {...featureGuardProps}>

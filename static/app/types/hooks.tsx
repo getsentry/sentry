@@ -58,9 +58,6 @@ export interface Hooks
 
 export type HookName = keyof Hooks;
 
-export type HookWithoutPrefix<Hook extends HookName> =
-  Hook extends `${infer _}:${infer Suffix}` ? Suffix : Hook;
-
 /**
  * Route hooks.
  */

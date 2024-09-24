@@ -64,7 +64,7 @@ function Item({
   label,
   icon,
   submenu,
-  check,
+  feature,
   ...props
 }: React.PropsWithChildren<SidebarItem>) {
   const location = useLocation();
@@ -73,13 +73,8 @@ function Item({
   );
   const toProps = makeLocationDescriptorFromTo(to);
 
-  const FeatureGuard = check ? Feature : Fragment;
-  const featureGuardProps: any = check
-    ? {
-        features: check.features,
-        hookName: check.hook ? (`feature-disabled:${check.hook}` as const) : undefined,
-      }
-    : {};
+  const FeatureGuard = feature ? Feature : Fragment;
+  const featureGuardProps: any = feature ? feature : {};
 
   return (
     <FeatureGuard {...featureGuardProps}>

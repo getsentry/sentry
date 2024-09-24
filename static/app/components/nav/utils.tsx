@@ -1,22 +1,17 @@
-import type {HTMLProps} from 'react';
+import type {ComponentProps, HTMLProps} from 'react';
 import type {LocationDescriptor} from 'history';
 
+import type Feature from 'sentry/components/acl/feature';
 import {isItemActive} from 'sentry/components/sidebar/sidebarItem';
 import {SIDEBAR_NAVIGATION_SOURCE} from 'sentry/components/sidebar/utils';
-import type {FeatureDisabledHooks, HookWithoutPrefix} from 'sentry/types/hooks';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import type {useLocation} from 'sentry/utils/useLocation';
 
 export const NAV_DIVIDER = Symbol('divider');
 
-interface FeatureCheck {
-  features: string | string[];
-  hook?: HookWithoutPrefix<keyof FeatureDisabledHooks>;
-}
-
 interface NavItem {
   label: string;
-  check?: FeatureCheck;
+  feature?: Omit<ComponentProps<typeof Feature>, 'children'>;
 }
 
 export interface SidebarItem extends SidebarItemBase {
@@ -66,15 +61,21 @@ export function getNavigationItemStatus(
   location: ReturnType<typeof useLocation>
 ): NavigationItemStatus {
   if (item.to.includes('/issues/') && item.to.includes('query=')) {
-    if (location.search.includes('viewId') && item.label === 'All') return 'active';
+    if (location.search.includes('viewId') && item.label === 'All') {
+      return 'active';
+    }
     return hasMatchingQueryParam({to: item.to, label: item.label}, location)
       ? 'active'
       : 'inactive';
   }
   const normalizedTo = normalizeUrl(item.to);
   const normalizedCurrent = normalizeUrl(location.pathname);
-  if (normalizedTo === normalizedCurrent) return 'active';
-  if (isItemActive({to: item.to, label: item.label})) return 'active';
+  if (normalizedTo === normalizedCurrent) {
+    return 'active';
+  }
+  if (isItemActive({to: item.to, label: item.label})) {
+    return 'active';
+  }
   if (
     'submenu' in item &&
     item.submenu?.find(
@@ -106,7 +107,9 @@ export function hasMatchingQueryParam(
   item: Pick<SidebarItem | SubmenuItem, 'to' | 'label'>,
   location: ReturnType<typeof useLocation>
 ): boolean {
-  if (location.search.length === 0) return false;
+  if (location.search.length === 0) {
+    return false;
+  }
   if (item.to.includes('?')) {
     const search = new URLSearchParams(location.search);
     const itemSearch = new URLSearchParams(item.to.split('?').at(-1));
@@ -119,7 +122,9 @@ export function hasMatchingQueryParam(
       let match = false;
       for (const key of itemQuery?.split(' ')) {
         match = query.includes(key);
-        if (!match) continue;
+        if (!match) {
+          continue;
+        }
       }
       return match;
     }

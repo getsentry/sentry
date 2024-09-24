@@ -80,27 +80,36 @@ export function useNavItems(): NavItemsResult {
           {
             label: t('Traces'),
             to: `/traces/`,
-            check: {features: 'performance-trace-explorer'},
+            feature: {features: 'performance-trace-explorer'},
           },
           {
             label: t('Metrics'),
             to: `/${prefix}/metrics/`,
-            check: {features: 'custom-metrics'},
+            feature: {features: 'custom-metrics'},
           },
           {
             label: t('Profiles'),
             to: `/${prefix}/profiling/`,
-            check: {features: 'profiling', hook: 'profiling-sidebar-item'},
+            feature: {
+              features: 'profiling',
+              hookName: 'feature-disabled:profiling-sidebar-item',
+            },
           },
           {
             label: t('Replays'),
             to: `/${prefix}/replays/`,
-            check: {features: 'session-replay-ui', hook: 'replay-sidebar-item'},
+            feature: {
+              features: 'session-replay-ui',
+              hookName: 'feature-disabled:replay-sidebar-item',
+            },
           },
           {
             label: t('Discover'),
             to: getDiscoverLandingUrl(organization),
-            check: {features: 'discover-basic', hook: 'discover2-sidebar-item'},
+            feature: {
+              features: 'discover-basic',
+              hookName: 'feature-disabled:discover2-sidebar-item',
+            },
           },
           {label: t('Releases'), to: `/${prefix}/releases/`},
           {label: t('Crons'), to: `/${prefix}/crons/`},
@@ -109,7 +118,7 @@ export function useNavItems(): NavItemsResult {
       {
         label: t('Insights'),
         icon: <IconGraph />,
-        check: {features: 'insights-entry-points'},
+        feature: {features: 'insights-entry-points'},
         submenu: [
           {label: MODULE_SIDEBAR_TITLE, to: `/${prefix}/${moduleURLBuilder('http')}/`},
           {label: MODULE_TITLES.db, to: `/${prefix}/${moduleURLBuilder('db')}/`},
@@ -124,7 +133,7 @@ export function useNavItems(): NavItemsResult {
           {
             label: MODULE_TITLES['mobile-screens'],
             to: `/${prefix}/${moduleURLBuilder('mobile-screens')}/`,
-            check: {features: 'insights-mobile-screens-module'},
+            feature: {features: 'insights-mobile-screens-module'},
           },
           {label: MODULE_TITLES.vital, to: `/${prefix}/${moduleURLBuilder('vital')}/`},
           {label: MODULE_TITLES.cache, to: `/${prefix}/${moduleURLBuilder('cache')}/`},
@@ -132,7 +141,7 @@ export function useNavItems(): NavItemsResult {
           {
             label: MODULE_TITLES.ai,
             to: `/${prefix}/${moduleURLBuilder('ai')}/`,
-            check: {features: 'insights-entry-points'},
+            feature: {features: 'insights-entry-points'},
           },
         ],
       },
@@ -140,15 +149,18 @@ export function useNavItems(): NavItemsResult {
         label: t('Perf.'),
         to: '/performance/',
         icon: <IconLightning />,
-        check: {features: 'performance-view', hook: 'performance-sidebar-item'},
+        feature: {
+          features: 'performance-view',
+          hookName: 'feature-disabled:performance-sidebar-item',
+        },
       },
       {
         label: t('Boards'),
         to: '/dashboards/',
         icon: <IconDashboard />,
-        check: {
+        feature: {
           features: ['discover', 'discover-query', 'dashboards-basic', 'dashboards-edit'],
-          hook: 'dashboards-sidebar-item',
+          hookName: 'feature-disabled:dashboards-sidebar-item',
         },
       },
       {label: t('Alerts'), to: `/${prefix}/alerts/rules/`, icon: <IconSiren />},
