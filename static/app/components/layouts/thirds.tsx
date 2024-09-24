@@ -120,7 +120,7 @@ export const HeaderNavTabs = styled(NavTabs)`
 /**
  * Base container for 66/33 containers.
  */
-export const Body = styled('div')<{noRowGap?: boolean; sidebarOpen?: boolean}>`
+export const Body = styled('div')<{noRowGap?: boolean}>`
   padding: ${space(2)};
   margin: 0;
   background-color: ${p => p.theme.background};
@@ -132,7 +132,7 @@ export const Body = styled('div')<{noRowGap?: boolean; sidebarOpen?: boolean}>`
   }
 
   @media (min-width: ${p => p.theme.breakpoints.large}) {
-    display: ${p => (p.sidebarOpen ? 'grid' : 'block')};
+    display: grid;
     grid-template-columns: minmax(100px, auto) 325px;
     align-content: start;
     gap: ${p => (!p.noRowGap ? `${space(3)}` : `0 ${space(3)}`)};
