@@ -1,7 +1,6 @@
 import hashlib
 import logging
-from collections.abc import Mapping
-from typing import Any
+from collections.abc import Sequence
 
 from django.db import IntegrityError
 from django.db.models import TextField
@@ -26,13 +25,22 @@ from sentry.uptime.subscriptions.tasks import (
 logger = logging.getLogger(__name__)
 
 UPTIME_SUBSCRIPTION_TYPE = "uptime_monitor"
-MAX_SUBSCRIPTIONS_PER_ORG = 1
+MAX_AUTO_SUBSCRIPTIONS_PER_ORG = 1
+MAX_MANUAL_SUBSCRIPTIONS_PER_ORG = 100
 # Default timeout for all subscriptions
 DEFAULT_SUBSCRIPTION_TIMEOUT_MS = 10000
 
 
+class MaxManualUptimeSubscriptionsReached(ValueError):
+    pass
+
+
 def retrieve_uptime_subscription(
-    url: str, interval_seconds: int, method: str, headers: Mapping[str, str], body: str | None
+    url: str,
+    interval_seconds: int,
+    method: str,
+    headers: Sequence[tuple[str, str]],
+    body: str | None,
 ) -> UptimeSubscription | None:
     try:
         subscription = (
@@ -54,12 +62,12 @@ def retrieve_uptime_subscription(
     return subscription
 
 
-def create_uptime_subscription(
+def get_or_create_uptime_subscription(
     url: str,
     interval_seconds: int,
     timeout_ms: int = DEFAULT_SUBSCRIPTION_TIMEOUT_MS,
     method: str = "GET",
-    headers: Mapping[str, str] | None = None,
+    headers: Sequence[tuple[str, str]] | None = None,
     body: str | None = None,
 ) -> UptimeSubscription:
     """
@@ -67,7 +75,7 @@ def create_uptime_subscription(
     to the uptime check system.
     """
     if headers is None:
-        headers = {}
+        headers = []
     # We extract the domain and suffix of the url here. This is used to prevent there being too many checks to a single
     # domain.
     result = extract_domain_parts(url)
@@ -132,29 +140,93 @@ def delete_uptime_subscription(uptime_subscription: UptimeSubscription):
     delete_remote_uptime_subscription.delay(uptime_subscription.id)
 
 
-def create_project_uptime_subscription(
+def get_or_create_project_uptime_subscription(
     project: Project,
-    uptime_subscription: UptimeSubscription,
-    mode: ProjectUptimeSubscriptionMode,
+    url: str,
+    interval_seconds: int,
+    timeout_ms: int = DEFAULT_SUBSCRIPTION_TIMEOUT_MS,
+    method: str = "GET",
+    headers: Sequence[tuple[str, str]] | None = None,
+    body: str | None = None,
+    mode: ProjectUptimeSubscriptionMode = ProjectUptimeSubscriptionMode.MANUAL,
     name: str = "",
     owner: Actor | None = None,
-) -> ProjectUptimeSubscription:
+) -> tuple[ProjectUptimeSubscription, bool]:
     """
     Links a project to an uptime subscription so that it can process results.
     """
-    owner_kwargs: dict[str, Any] = {}
+    if mode == ProjectUptimeSubscriptionMode.MANUAL:
+        manual_subscription_count = ProjectUptimeSubscription.objects.filter(
+            project__organization=project.organization, mode=ProjectUptimeSubscriptionMode.MANUAL
+        ).count()
+        if manual_subscription_count >= MAX_MANUAL_SUBSCRIPTIONS_PER_ORG:
+            raise MaxManualUptimeSubscriptionsReached
+
+    uptime_subscription = get_or_create_uptime_subscription(
+        url, interval_seconds, timeout_ms, method, headers, body
+    )
+    owner_user_id = None
+    owner_team_id = None
     if owner:
         if owner.is_user:
-            owner_kwargs["owner_user_id"] = owner.id
+            owner_user_id = owner.id
         if owner.is_team:
-            owner_kwargs["owner_team_id"] = owner.id
+            owner_team_id = owner.id
     return ProjectUptimeSubscription.objects.get_or_create(
         project=project,
         uptime_subscription=uptime_subscription,
         mode=mode.value,
         name=name,
-        **owner_kwargs,
-    )[0]
+        owner_user_id=owner_user_id,
+        owner_team_id=owner_team_id,
+    )
+
+
+def update_project_uptime_subscription(
+    uptime_monitor: ProjectUptimeSubscription,
+    url: str,
+    interval_seconds: int,
+    method: str,
+    headers: Sequence[tuple[str, str]],
+    body: str | None,
+    name: str,
+    owner: Actor | None,
+):
+    """
+    Links a project to an uptime subscription so that it can process results.
+    """
+    cur_uptime_subscription = uptime_monitor.uptime_subscription
+    new_uptime_subscription = get_or_create_uptime_subscription(
+        url, interval_seconds, cur_uptime_subscription.timeout_ms, method, headers, body
+    )
+    updated_subscription = cur_uptime_subscription.id != new_uptime_subscription.id
+
+    mode = uptime_monitor.mode
+    if updated_subscription:
+        # If the `uptime_subscription` is updated then treat this as a manual subscription
+        mode = ProjectUptimeSubscriptionMode.MANUAL
+
+    owner_user_id = uptime_monitor.owner_user_id
+    owner_team_id = uptime_monitor.owner_team_id
+    if owner:
+        if owner.is_user:
+            owner_user_id = owner.id
+            owner_team_id = None
+        if owner.is_team:
+            owner_team_id = owner.id
+            owner_user_id = None
+
+    uptime_monitor.update(
+        uptime_subscription=new_uptime_subscription,
+        name=name,
+        mode=mode,
+        owner_user_id=owner_user_id,
+        owner_team_id=owner_team_id,
+    )
+    # If we changed any fields on the actual subscription we created a new subscription and associated it with this
+    # uptime monitor. Check if the old subscription was orphaned due to this.
+    if updated_subscription:
+        remove_uptime_subscription_if_unused(cur_uptime_subscription)
 
 
 def delete_uptime_subscriptions_for_project(
