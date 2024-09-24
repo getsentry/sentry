@@ -24,9 +24,11 @@ import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import usePrevious from 'sentry/utils/usePrevious';
+import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import GroupEventDetailsContent from 'sentry/views/issueDetails/groupEventDetails/groupEventDetailsContent';
 import GroupEventHeader from 'sentry/views/issueDetails/groupEventHeader';
 import GroupSidebar from 'sentry/views/issueDetails/groupSidebar';
+import StreamlinedSidebar from 'sentry/views/issueDetails/streamline/sidebar';
 
 import ReprocessingProgress from '../reprocessingProgress';
 import {
@@ -71,6 +73,8 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
   const prevEnvironment = usePrevious(environments);
   const prevEvent = usePrevious(event);
   const hasStreamlinedUI = useHasStreamlinedUI();
+
+  const [sidebarOpen, _] = useSyncedLocalStorageState('issue-details-sidebar-open', true);
 
   // load the data
   useSentryAppComponentsData({projectId});
@@ -172,6 +176,7 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
         <StyledLayoutBody
           data-test-id="group-event-details"
           hasStreamlinedUi={hasStreamlinedUI}
+          sidebarOpen={sidebarOpen}
         >
           {groupReprocessingStatus === ReprocessingStatus.REPROCESSING ? (
             <ReprocessingProgress
@@ -197,15 +202,23 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
                 )}
                 {renderContent()}
               </MainLayoutComponent>
-              <StyledLayoutSide hasStreamlinedUi={hasStreamlinedUI}>
-                <GroupSidebar
-                  organization={organization}
-                  project={project}
-                  group={group}
-                  event={eventWithMeta}
-                  environments={environments}
-                />
-              </StyledLayoutSide>
+              {hasStreamlinedUI ? (
+                sidebarOpen ? (
+                  <StyledLayoutSide hasStreamlinedUi={hasStreamlinedUI}>
+                    <StreamlinedSidebar group={group} event={event} project={project} />
+                  </StyledLayoutSide>
+                ) : null
+              ) : (
+                <StyledLayoutSide hasStreamlinedUi={hasStreamlinedUI}>
+                  <GroupSidebar
+                    organization={organization}
+                    project={project}
+                    group={group}
+                    event={eventWithMeta}
+                    environments={environments}
+                  />
+                </StyledLayoutSide>
+              )}
             </Fragment>
           )}
         </StyledLayoutBody>
@@ -214,7 +227,10 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
   );
 }
 
-const StyledLayoutBody = styled(Layout.Body)<{hasStreamlinedUi: boolean}>`
+const StyledLayoutBody = styled(Layout.Body)<{
+  hasStreamlinedUi: boolean;
+  sidebarOpen: boolean;
+}>`
   /* Makes the borders align correctly */
   padding: 0 !important;
   @media (min-width: ${p => p.theme.breakpoints.large}) {
@@ -226,6 +242,7 @@ const StyledLayoutBody = styled(Layout.Body)<{hasStreamlinedUi: boolean}>`
     css`
       @media (min-width: ${p.theme.breakpoints.large}) {
         gap: ${space(2)};
+        display: ${p.sidebarOpen ? 'grid' : 'block'};
       }
     `}
 `;
