@@ -191,6 +191,24 @@ class ProjectUserReportListTest(APITestCase, SnubaTestCase):
         assert response.data == []
 
     @patch("sentry.quotas.backend.get_event_retention")
+    def test_retention(self, mock_get_event_retention):
+        self.login_as(user=self.user)
+        retention_days = 21
+        mock_get_event_retention.return_value = retention_days
+
+        UserReport.objects.all().delete()  # clear reports saved in setup
+        UserReport.objects.create(
+            project_id=self.project.id,
+            event_id="f" * 32,
+            environment_id=self.environment.id,
+            group_id=123,
+            date_added=before_now(days=retention_days + 1),
+        )
+        response = self.client.get(_make_url(self.project))
+        assert response.status_code == 200
+        assert len(response.data) == 0
+
+    @patch("sentry.quotas.backend.get_event_retention")
     def test_event_retention(self, mock_get_event_retention):
         self.login_as(user=self.user)
         retention_days = 21
@@ -212,34 +230,8 @@ class ProjectUserReportListTest(APITestCase, SnubaTestCase):
             date_added=before_now(days=1),
         )
         response = self.client.get(_make_url(self.project))
+        # We don't care what is returned here, only that no QueryOutsideRetentionError is thrown.
         assert response.status_code == 200
-
-    @patch("sentry.quotas.backend.get_event_retention")
-    def test_retention(self, mock_get_event_retention):
-        self.login_as(user=self.user)
-        retention_days = 21
-        mock_get_event_retention.return_value = retention_days
-
-        UserReport.objects.all().delete()  # clear reports saved in setup
-
-        old_event = self.store_event(
-            data={
-                "event_id": "f" * 32,
-                "timestamp": iso_format(before_now(days=retention_days + 1)),
-                "environment": self.environment.name,
-            },
-            project_id=self.project.id,
-        )
-        UserReport.objects.create(
-            project_id=self.project.id,
-            event_id=old_event.event_id,
-            environment_id=self.environment.id,
-            group_id=old_event.group.id,
-            date_added=before_now(days=retention_days + 1),
-        )
-        response = self.client.get(_make_url(self.project))
-        assert response.status_code == 200
-        assert len(response.data) == 0
 
 
 class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
