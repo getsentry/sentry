@@ -28,12 +28,6 @@ jest.mock('screenfull', () => ({
   on: jest.fn(),
   off: jest.fn(),
 }));
-
-const mockUseNavigate = jest.fn();
-jest.mock('sentry/utils/useNavigate', () => ({
-  useNavigate: () => mockUseNavigate,
-}));
-
 const mockUseLocation = jest.mocked(useLocation);
 
 describe('EventList', () => {
