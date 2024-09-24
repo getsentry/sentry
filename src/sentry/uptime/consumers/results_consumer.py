@@ -69,7 +69,6 @@ def build_active_consecutive_status_key(
 
 class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
     subscription_model = UptimeSubscription
-    topic_for_codec = Topic.UPTIME_RESULTS
 
     def get_subscription_id(self, result: CheckResult) -> str:
         return result["subscription_id"]
@@ -333,3 +332,4 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
 
 class UptimeResultsStrategyFactory(ResultsStrategyFactory[CheckResult, UptimeSubscription]):
     result_processor_cls = UptimeResultProcessor
+    topic_for_codec = Topic.UPTIME_RESULTS
