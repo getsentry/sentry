@@ -15,6 +15,9 @@ class ProjectUptimeSubscriptionSerializerTest(UptimeTestCase):
             "status": uptime_monitor.uptime_status,
             "mode": uptime_monitor.mode,
             "url": uptime_monitor.uptime_subscription.url,
+            "method": uptime_monitor.uptime_subscription.method,
+            "body": uptime_monitor.uptime_subscription.body,
+            "headers": [],
             "intervalSeconds": uptime_monitor.uptime_subscription.interval_seconds,
             "timeoutMs": uptime_monitor.uptime_subscription.timeout_ms,
             "owner": None,
@@ -34,6 +37,9 @@ class ProjectUptimeSubscriptionSerializerTest(UptimeTestCase):
             "status": uptime_monitor.uptime_status,
             "mode": uptime_monitor.mode,
             "url": uptime_monitor.uptime_subscription.url,
+            "method": uptime_monitor.uptime_subscription.method,
+            "body": uptime_monitor.uptime_subscription.body,
+            "headers": [],
             "intervalSeconds": uptime_monitor.uptime_subscription.interval_seconds,
             "timeoutMs": uptime_monitor.uptime_subscription.timeout_ms,
             "owner": None,
@@ -50,6 +56,9 @@ class ProjectUptimeSubscriptionSerializerTest(UptimeTestCase):
             "status": uptime_monitor.uptime_status,
             "mode": uptime_monitor.mode,
             "url": uptime_monitor.uptime_subscription.url,
+            "method": uptime_monitor.uptime_subscription.method,
+            "body": uptime_monitor.uptime_subscription.body,
+            "headers": [],
             "intervalSeconds": uptime_monitor.uptime_subscription.interval_seconds,
             "timeoutMs": uptime_monitor.uptime_subscription.timeout_ms,
             "owner": {
@@ -59,6 +68,19 @@ class ProjectUptimeSubscriptionSerializerTest(UptimeTestCase):
                 "type": "user",
             },
         }
+
+    def test_header_translation(self):
+        """
+        TODO(epurkhiser): This may be removed once we clean up the object-style
+        headers from the database.
+        """
+        subscription = self.create_uptime_subscription(headers={"legacy": "format"})
+        uptime_monitor = self.create_project_uptime_subscription(
+            owner=self.user,
+            uptime_subscription=subscription,
+        )
+        result = serialize(uptime_monitor)
+        assert result["headers"] == [["legacy", "format"]]
 
 
 class ComputeHttpRequestSizeTest(UptimeTestCase):
