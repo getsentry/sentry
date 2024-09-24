@@ -104,7 +104,7 @@ class BaseScheduledDeletion(Model):
         return record
 
     @classmethod
-    def cancel(cls, instance: Model):
+    def cancel(cls, instance: Model) -> None:
         model_name = type(instance).__name__
         try:
             deletion = cls.objects.get(
