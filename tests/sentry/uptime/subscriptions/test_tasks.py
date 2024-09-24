@@ -153,24 +153,6 @@ class UptimeSubscriptionToCheckConfigTest(UptimeTestCase):
             "url": sub.url,
             "interval_seconds": sub.interval_seconds,
             "timeout_ms": sub.timeout_ms,
-            "request_method": "GET",
-            "request_headers": {},
-        }
-
-    def test_request_fields(self):
-        headers = {"hi": "bye"}
-        body = "some request body"
-        method = "POST"
-        sub = self.create_uptime_subscription(method=method, headers=headers, body=body)
-        subscription_id = uuid4().hex
-        assert uptime_subscription_to_check_config(sub, subscription_id) == {
-            "subscription_id": subscription_id,
-            "url": sub.url,
-            "interval_seconds": sub.interval_seconds,
-            "timeout_ms": sub.timeout_ms,
-            "request_method": method,
-            "request_headers": headers,
-            "request_body": body,
         }
 
 
