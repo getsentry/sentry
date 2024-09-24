@@ -118,25 +118,23 @@ export function GroupSummary({groupId, groupCategory}: GroupSummaryProps) {
       </StyledTitleRow>
       {expanded && (
         <Body>
-          <div>
-            {isError ? <div>{t('Error loading summary')}</div> : null}
-            {data && (
-              <Content>
+          {isError ? <div>{t('Error loading summary')}</div> : null}
+          {data && (
+            <Content>
+              <SummaryContent
+                dangerouslySetInnerHTML={{
+                  __html: marked(`**Details:** ${data.summary}`),
+                }}
+              />
+              <ImpactContent>
                 <SummaryContent
                   dangerouslySetInnerHTML={{
-                    __html: marked(`**Details:** ${data.summary}`),
+                    __html: marked(`**Impact:** ${data.impact}`),
                   }}
                 />
-                <ImpactContent>
-                  <SummaryContent
-                    dangerouslySetInnerHTML={{
-                      __html: marked(`**Impact:** ${data.impact}`),
-                    }}
-                  />
-                </ImpactContent>
-              </Content>
-            )}
-          </div>
+              </ImpactContent>
+            </Content>
+          )}
           {openForm && !isPending && (
             <ButtonContainer>
               <Button
@@ -166,10 +164,7 @@ export function GroupSummary({groupId, groupCategory}: GroupSummaryProps) {
 }
 
 const Body = styled('div')`
-  padding-left: ${space(3)};
-  padding-right: ${space(3)};
-  padding-top: ${space(1)};
-  padding-bottom: ${space(1.5)};
+  padding: ${space(1)} ${space(3)} ${space(1.5)} ${space(3)};
 `;
 
 const Headline = styled('p')`
@@ -200,10 +195,7 @@ const StyledTitleRow = styled('div')`
   align-items: center;
   justify-content: space-between;
   height: ${space(2)};
-  padding-top: ${space(2)};
-  padding-bottom: ${space(2)};
-  padding-left: ${space(1)};
-  padding-right: ${space(1)};
+  padding: ${space(2)} ${space(1)} ${space(2)} ${space(1)};
 
   &:hover {
     cursor: pointer;
