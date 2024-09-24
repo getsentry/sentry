@@ -34,33 +34,73 @@ import useOrganization from 'sentry/utils/useOrganization';
 export enum FlagSort {
   NEWEST = 'newest',
   OLDEST = 'oldest',
-  ALPHA = 'alphabetical',
+  A_TO_Z = 'a-z',
+  Z_TO_A = 'z-a',
 }
 
-export const getLabel = (sort: string) => {
+export enum SortGroup {
+  EVAL_ORDER = 'eval',
+  ALPHABETICAL = 'alphabetical',
+}
+
+export const getFlagSortLabel = (sort: string) => {
   switch (sort) {
+    case FlagSort.A_TO_Z:
+      return t('A-Z');
+    case FlagSort.Z_TO_A:
+      return t('Z-A');
     case FlagSort.OLDEST:
-      return t('Oldest First');
-    case FlagSort.ALPHA:
-      return t('Alphabetical');
+      return t('Oldest');
     case FlagSort.NEWEST:
     default:
-      return t('Newest First');
+      return t('Newest');
   }
 };
 
-export const FLAG_SORT_OPTIONS = [
+export const getSortGroupLabel = (sort: string) => {
+  switch (sort) {
+    case SortGroup.ALPHABETICAL:
+      return t('Alphabetical');
+    case SortGroup.EVAL_ORDER:
+    default:
+      return t('Evaluation Order');
+  }
+};
+
+export const getDefaultFlagSort = (sortGroup: SortGroup) => {
+  return sortGroup === SortGroup.EVAL_ORDER ? FlagSort.NEWEST : FlagSort.A_TO_Z;
+};
+
+export const SORT_GROUP_OPTIONS = [
   {
-    label: getLabel(FlagSort.NEWEST),
+    label: getSortGroupLabel(SortGroup.EVAL_ORDER),
+    value: SortGroup.EVAL_ORDER,
+  },
+  {
+    label: getSortGroupLabel(SortGroup.ALPHABETICAL),
+    value: SortGroup.ALPHABETICAL,
+  },
+];
+
+export const EVAL_ORDER_OPTIONS = [
+  {
+    label: getFlagSortLabel(FlagSort.NEWEST),
     value: FlagSort.NEWEST,
   },
   {
-    label: getLabel(FlagSort.OLDEST),
+    label: getFlagSortLabel(FlagSort.OLDEST),
     value: FlagSort.OLDEST,
   },
+];
+
+export const ALPHA_OPTIONS = [
   {
-    label: getLabel(FlagSort.ALPHA),
-    value: FlagSort.ALPHA,
+    label: getFlagSortLabel(FlagSort.A_TO_Z),
+    value: FlagSort.A_TO_Z,
+  },
+  {
+    label: getFlagSortLabel(FlagSort.Z_TO_A),
+    value: FlagSort.Z_TO_A,
   },
 ];
 
@@ -69,11 +109,37 @@ export const enum FlagControlOptions {
   SORT = 'sort',
 }
 
+export const handleSortAlphabetical = (flags: KeyValueDataContentProps[]) => {
+  return [...flags].sort((a, b) => {
+    return a.item.key.localeCompare(b.item.key);
+  });
+};
+
+export const sortedFlags = ({
+  flags,
+  sort,
+}: {
+  flags: KeyValueDataContentProps[];
+  sort: FlagSort;
+}): KeyValueDataContentProps[] => {
+  switch (sort) {
+    case FlagSort.A_TO_Z:
+      return handleSortAlphabetical(flags);
+    case FlagSort.Z_TO_A:
+      return [...handleSortAlphabetical(flags)].reverse();
+    case FlagSort.OLDEST:
+      return [...flags].reverse();
+    default:
+      return flags;
+  }
+};
+
 interface FlagDrawerProps {
   event: Event;
   group: Group;
   hydratedFlags: KeyValueDataContentProps[];
-  initialSort: FlagSort;
+  initialFlagSort: FlagSort;
+  initialSortGroup: SortGroup;
   project: Project;
   focusControl?: FlagControlOptions;
 }
@@ -82,28 +148,20 @@ export function FeatureFlagDrawer({
   group,
   event,
   project,
-  initialSort,
+  initialFlagSort,
+  initialSortGroup,
   hydratedFlags,
   focusControl: initialFocusControl,
 }: FlagDrawerProps) {
-  const [sortMethod, setSortMethod] = useState<FlagSort>(initialSort);
+  const [sortGroup, setSortGroup] = useState<SortGroup>(initialSortGroup);
+  const [flagSort, setFlagSort] = useState<FlagSort>(initialFlagSort);
   const [search, setSearch] = useState('');
   const organization = useOrganization();
   const {getFocusProps} = useFocusControl(initialFocusControl);
 
-  const handleSortAlphabetical = (flags: KeyValueDataContentProps[]) => {
-    return [...flags].sort((a, b) => {
-      return a.item.key.localeCompare(b.item.key);
-    });
-  };
-
-  const sortedFlags =
-    sortMethod === FlagSort.ALPHA
-      ? handleSortAlphabetical(hydratedFlags)
-      : sortMethod === FlagSort.OLDEST
-        ? [...hydratedFlags].reverse()
-        : hydratedFlags;
-  const searchResults = sortedFlags.filter(f => f.item.key.includes(search));
+  const searchResults = sortedFlags({flags: hydratedFlags, sort: flagSort}).filter(f =>
+    f.item.key.includes(search)
+  );
 
   const actions = (
     <ButtonBar gap={1}>
@@ -122,11 +180,29 @@ export function FeatureFlagDrawer({
         </InputGroup.TrailingItems>
       </InputGroup>
       <CompactSelect
+        value={sortGroup}
+        options={SORT_GROUP_OPTIONS}
         triggerProps={{
-          'aria-label': t('Sort Flags'),
+          'aria-label': t('Sort Group'),
         }}
         onChange={selection => {
-          setSortMethod(selection.value);
+          setFlagSort(getDefaultFlagSort(selection.value));
+          setSortGroup(selection.value);
+        }}
+        trigger={triggerProps => (
+          <DropdownButton {...triggerProps} size="xs">
+            {getSortGroupLabel(sortGroup)}
+          </DropdownButton>
+        )}
+      />
+      <CompactSelect
+        value={flagSort}
+        options={sortGroup === SortGroup.EVAL_ORDER ? EVAL_ORDER_OPTIONS : ALPHA_OPTIONS}
+        triggerProps={{
+          'aria-label': t('Flag Sort Type'),
+        }}
+        onChange={selection => {
+          setFlagSort(selection.value);
           trackAnalytics('flags.sort-flags', {
             organization,
             sortMethod: selection.value,
@@ -134,11 +210,9 @@ export function FeatureFlagDrawer({
         }}
         trigger={triggerProps => (
           <DropdownButton {...triggerProps} size="xs" icon={<IconSort />}>
-            {getLabel(sortMethod)}
+            {getFlagSortLabel(flagSort)}
           </DropdownButton>
         )}
-        value={sortMethod}
-        options={FLAG_SORT_OPTIONS}
       />
     </ButtonBar>
   );

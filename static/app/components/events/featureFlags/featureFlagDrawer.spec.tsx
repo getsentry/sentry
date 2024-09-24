@@ -42,7 +42,10 @@ describe('FeatureFlagDrawer', function () {
     // Header & Controls
     expect(drawerScreen.getByText('Feature Flags', {selector: 'h3'})).toBeInTheDocument();
     expect(drawerScreen.getByRole('textbox', {name: 'Search Flags'})).toBeInTheDocument();
-    expect(drawerScreen.getByRole('button', {name: 'Newest First'})).toBeInTheDocument();
+    expect(drawerScreen.getByRole('button', {name: 'Newest'})).toBeInTheDocument();
+    expect(
+      drawerScreen.getByRole('button', {name: 'Evaluation Order'})
+    ).toBeInTheDocument();
 
     // Contents
     for (const {flag, result} of MOCK_FLAGS) {
@@ -81,10 +84,10 @@ describe('FeatureFlagDrawer', function () {
 
     // the sort should be reversed
     const sortControl = drawerScreen.getByRole('button', {
-      name: 'Newest First',
+      name: 'Newest',
     });
     await userEvent.click(sortControl);
-    await userEvent.click(drawerScreen.getByRole('option', {name: 'Oldest First'}));
+    await userEvent.click(drawerScreen.getByRole('option', {name: 'Oldest'}));
 
     expect(
       drawerScreen
@@ -92,13 +95,19 @@ describe('FeatureFlagDrawer', function () {
         .compareDocumentPosition(drawerScreen.getByText(enableReplay.flag))
     ).toBe(document.DOCUMENT_POSITION_PRECEDING);
 
-    await userEvent.click(sortControl);
+    const sortGroupControl = drawerScreen.getByRole('button', {
+      name: 'Evaluation Order',
+    });
+    await userEvent.click(sortGroupControl);
     await userEvent.click(drawerScreen.getByRole('option', {name: 'Alphabetical'}));
+    await userEvent.click(sortControl);
+    await userEvent.click(drawerScreen.getByRole('option', {name: 'Z-A'}));
 
+    // webVitalsFlag comes after enableReplay alphabetically
     expect(
       drawerScreen
         .getByText(webVitalsFlag.flag)
         .compareDocumentPosition(drawerScreen.getByText(enableReplay.flag))
-    ).toBe(document.DOCUMENT_POSITION_FOLLOWING);
+    ).toBe(document.DOCUMENT_POSITION_PRECEDING);
   });
 });
