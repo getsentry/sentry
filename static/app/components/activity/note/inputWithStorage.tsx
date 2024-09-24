@@ -13,10 +13,10 @@ type InputProps = React.ComponentProps<typeof NoteInput>;
 
 type Props = {
   itemKey: string;
-  source: string;
   storageKey: string;
   onLoad?: (data: string) => string;
   onSave?: (data: string) => string;
+  source?: string;
   text?: string;
 } & InputProps;
 
