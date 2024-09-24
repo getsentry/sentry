@@ -11,17 +11,17 @@ from sentry import analytics, audit_log, deletions, features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
-from sentry.api.bases.sentryapps import (
-    SentryAppAndStaffPermission,
-    SentryAppBaseEndpoint,
-    catch_raised_errors,
-)
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import SentryAppSerializer
 from sentry.auth.staff import is_active_staff
 from sentry.constants import SentryAppStatus
 from sentry.mediators.sentry_app_installations.installation_notifier import InstallationNotifier
 from sentry.organizations.services.organization import organization_service
+from sentry.sentry_apps.api.bases.sentryapps import (
+    SentryAppAndStaffPermission,
+    SentryAppBaseEndpoint,
+    catch_raised_errors,
+)
 from sentry.sentry_apps.logic import SentryAppUpdater
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation

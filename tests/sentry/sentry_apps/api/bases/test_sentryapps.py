@@ -5,7 +5,7 @@ import pytest
 from django.http import Http404
 from django.test.utils import override_settings
 
-from sentry.api.bases.sentryapps import (
+from sentry.sentry_apps.api.bases.sentryapps import (
     SentryAppAndStaffPermission,
     SentryAppBaseEndpoint,
     SentryAppInstallationBaseEndpoint,

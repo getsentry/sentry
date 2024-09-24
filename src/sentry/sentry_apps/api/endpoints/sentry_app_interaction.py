@@ -8,7 +8,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import StatsMixin, region_silo_endpoint
 from sentry.api.bases import RegionSentryAppBaseEndpoint, SentryAppStatsPermission
-from sentry.api.bases.sentryapps import COMPONENT_TYPES
+from sentry.sentry_apps.api.bases.sentryapps import COMPONENT_TYPES
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.services.app import RpcSentryApp, app_service
 from sentry.tsdb.base import TSDBModel
