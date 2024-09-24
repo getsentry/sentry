@@ -17,7 +17,6 @@ import Link from 'sentry/components/links/link';
 import Version from 'sentry/components/version';
 import VersionHoverCard from 'sentry/components/versionHoverCard';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group, TeamParticipant, UserParticipant} from 'sentry/types/group';
@@ -26,6 +25,7 @@ import type {Release} from 'sentry/types/release';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useUser} from 'sentry/utils/useUser';
 import GroupActions from 'sentry/views/issueDetails/actions/index';
 import {Divider} from 'sentry/views/issueDetails/divider';
 import GroupPriority from 'sentry/views/issueDetails/groupPriority';
@@ -54,6 +54,7 @@ export default function StreamlinedGroupHeader({
   groupReprocessingStatus,
   event,
 }: GroupHeaderProps) {
+  const activeUser = useUser();
   const location = useLocation();
   const organization = useOrganization();
   const {sort: _sort, ...query} = location.query;
@@ -81,8 +82,6 @@ export default function StreamlinedGroupHeader({
       baseUrl,
       project,
     });
-
-  const activeUser = ConfigStore.get('user');
 
   const {userParticipants, teamParticipants, displayUsers} = useMemo(() => {
     return {
