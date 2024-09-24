@@ -5,9 +5,8 @@ import logging
 
 from django.db import router
 from django.db.models import F
-from django.urls import reverse
 
-from sentry import audit_log, features, options
+from sentry import audit_log, options
 from sentry.auth import manager
 from sentry.auth.exceptions import ProviderNotRegistered
 from sentry.models.organization import Organization
@@ -17,13 +16,10 @@ from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.tasks.base import instrumented_task, retry
 from sentry.types.region import RegionMappingNotFound
-from sentry.users.models.user import User
-from sentry.users.models.useremail import UserEmail
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils.audit import create_audit_entry_from_user
 from sentry.utils.email import MessageBuilder
-from sentry.utils.http import absolute_uri
 
 logger = logging.getLogger("sentry.auth")
 
@@ -196,63 +192,3 @@ def remove_2fa_non_compliant_members(org_id, actor_id=None, actor_key_id=None, i
     TwoFactorComplianceTask().remove_non_compliant_members(
         org_id, actor_id, actor_key_id, ip_address
     )
-
-
-class VerifiedEmailComplianceTask(OrganizationComplianceTask):
-    log_label = "verified email"
-
-    def is_compliant(self, user: RpcUser) -> bool:
-        if user:
-            return UserEmail.objects.get_primary_email(user).is_verified
-        return False
-
-    def call_to_action(self, org: Organization, user: RpcUser, member: OrganizationMember):
-        import django.contrib.auth.models
-
-        if isinstance(user, django.contrib.auth.models.User):
-            # TODO(RyanSkonnord): Add test to repro this case (or delete check if unable)
-            logger.warning(
-                "Could not send verified email compliance notification (non-Sentry User model)"
-            )
-            return
-        elif not isinstance(user, User):
-            raise TypeError(user)
-
-        email = UserEmail.objects.get_primary_email(user)
-        email_context = {
-            "confirm_url": absolute_uri(
-                reverse("sentry-account-confirm-email", args=[user.id, email.validation_hash])
-            ),
-            "invite_url": member.get_invite_link(),
-            "email": email.email,
-            "organization": org,
-        }
-        subject = "{} {} Mandatory: Verify Email Address".format(
-            options.get("mail.subject-prefix"), org.name.capitalize()
-        )
-        message = MessageBuilder(
-            subject=subject,
-            template="sentry/emails/setup_email.txt",
-            html_template="sentry/emails/setup_email.html",
-            type="user.setup_email",
-            context=email_context,
-        )
-        message.send_async([email])
-
-
-@instrumented_task(
-    name="sentry.tasks.remove_email_verification_non_compliant_members",
-    queue="auth",
-    default_retry_delay=60 * 5,
-    max_retries=5,
-    silo_mode=SiloMode.REGION,
-)
-@retry
-def remove_email_verification_non_compliant_members(
-    org_id, actor_id=None, actor_key_id=None, ip_address=None
-):
-    org = Organization.objects.get_from_cache(id=org_id)
-    if features.has("organizations:required-email-verification", org):
-        VerifiedEmailComplianceTask().remove_non_compliant_members(
-            org_id, actor_id, actor_key_id, ip_address
-        )

@@ -12,7 +12,7 @@ from django.utils import timezone
 from django.utils.functional import cached_property
 
 from bitfield import TypedClassBitField
-from sentry import features, roles
+from sentry import roles
 from sentry.app import env
 from sentry.backup.dependencies import PrimaryKeyMap
 from sentry.backup.helpers import ImportFlags
@@ -189,7 +189,7 @@ class Organization(ReplicatedRegionModel):
         # Temporarily opt out of new visibility features and ui
         disable_new_visibility_features: bool
 
-        # Require and enforce email verification for all members.
+        # Require and enforce email verification for all members. (deprecated, not in use)
         require_email_verification: bool
 
         # Enable codecov integration.
@@ -441,14 +441,6 @@ class Organization(ReplicatedRegionModel):
         from sentry.tasks.auth import remove_2fa_non_compliant_members
 
         self._handle_requirement_change(request, remove_2fa_non_compliant_members)
-
-    def handle_email_verification_required(self, request):
-        from sentry.tasks.auth import remove_email_verification_non_compliant_members
-
-        if features.has("organizations:required-email-verification", self):
-            self._handle_requirement_change(
-                request, remove_email_verification_non_compliant_members
-            )
 
     @staticmethod
     def get_url_viewname() -> str:
