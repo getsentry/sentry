@@ -37,6 +37,9 @@ export const mockedUser1 = {
   ip_address: '192.168.1.1',
   email: 'author1@commit.com',
   name: 'Key Name',
+  options: {
+    theme: 'light',
+  },
 } as User;
 
 export const mockedUser2 = {
@@ -45,4 +48,7 @@ export const mockedUser2 = {
   ip_address: '192.168.1.3',
   email: 'author2@commit.com',
   name: 'Value Name',
+  options: {
+    theme: 'light',
+  },
 } as User;
