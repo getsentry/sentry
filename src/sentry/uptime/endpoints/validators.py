@@ -1,5 +1,7 @@
+from collections.abc import Sequence
 from datetime import timedelta
 
+import jsonschema
 from drf_spectacular.utils import extend_schema_serializer
 from rest_framework import serializers
 from rest_framework.fields import URLField
@@ -33,11 +35,22 @@ public suffix list (PSL). See `extract_domain_parts` fo more details
 SUPPORTED_HTTP_METHODS = ["GET", "POST", "HEAD", "PUT", "DELETE", "PATCH", "OPTIONS"]
 MAX_REQUEST_SIZE_BYTES = 1000
 
+HEADERS_LIST_SCHEMA = {
+    "type": "array",
+    "items": {
+        "type": "array",
+        "prefixItems": [
+            {"type": "string"},
+            {"type": "string"},
+        ],
+    },
+}
 
-def compute_http_request_size(method: str, url: str, headers: dict[str, str], body: str):
+
+def compute_http_request_size(method: str, url: str, headers: Sequence[tuple[str, str]], body: str):
     request_line_size = len(f"{method} {url} HTTP/1.1\r\n")
     headers_size = sum(
-        len(key) + len(value.encode("utf-8")) + len("\r\n") for key, value in headers.items()
+        len(key) + len(value.encode("utf-8")) + len("\r\n") for key, value in headers
     )
     body_size = len(body.encode("utf-8"))
     return request_line_size + headers_size + len("\r\n") + body_size
@@ -67,7 +80,7 @@ class UptimeMonitorValidator(CamelSnakeSerializer):
     body = serializers.CharField(required=False)
 
     def validate(self, attrs):
-        headers = {}
+        headers = []
         method = "GET"
         body = ""
         url = ""
@@ -101,6 +114,13 @@ class UptimeMonitorValidator(CamelSnakeSerializer):
                 f"The domain *.{url_parts.domain}.{url_parts.suffix} has already been used in {MAX_MONITORS_PER_DOMAIN} uptime monitoring alerts, which is the limit. You cannot create any additional alerts for this domain."
             )
         return url
+
+    def validate_headers(self, headers):
+        try:
+            jsonschema.validate(headers, HEADERS_LIST_SCHEMA)
+            return headers
+        except jsonschema.ValidationError:
+            raise serializers.ValidationError("Expected array of header tuples.")
 
     def validate_mode(self, mode):
         if not is_active_superuser(self.context["request"]):
