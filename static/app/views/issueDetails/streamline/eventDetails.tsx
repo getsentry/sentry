@@ -103,7 +103,6 @@ export function EventDetails({
             group={group}
             handleSearch={query => {
               navigate({...location, query: {...location.query, query}}, {replace: true});
-              setPageContent(EventPageContent.LIST);
             }}
             environments={environments}
             query={searchQuery}
