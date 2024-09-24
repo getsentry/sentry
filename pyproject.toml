@@ -136,8 +136,6 @@ module = [
     "sentry.api.endpoints.group_integration_details",
     "sentry.api.endpoints.group_integrations",
     "sentry.api.endpoints.index",
-    "sentry.api.endpoints.integrations.sentry_apps.internal_app_token.index",
-    "sentry.api.endpoints.integrations.sentry_apps.stats.details",
     "sentry.api.endpoints.internal.mail",
     "sentry.api.endpoints.organization_details",
     "sentry.api.endpoints.organization_events",
