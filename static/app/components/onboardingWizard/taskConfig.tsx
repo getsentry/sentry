@@ -200,7 +200,7 @@ export function getOnboardingTasks({
               eventType="error"
               onIssueReceived={() => !taskIsDone(task) && onCompleteTask()}
             >
-              {() => <EventWaitingIndicator />}
+              {() => <EventWaitingIndicator text={t('Waiting for error')} />}
             </EventWaiter>
           ) : null
       ),
@@ -385,7 +385,7 @@ export function getOnboardingTasks({
     },
     {
       task: OnboardingTaskKey.USER_REPORTS,
-      title: 'User crash reports',
+      title: t('User crash reports'),
       description: t('Collect user feedback when your application crashes'),
       skippable: true,
       requisites: [
