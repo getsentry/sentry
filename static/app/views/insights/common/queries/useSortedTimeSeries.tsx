@@ -37,7 +37,7 @@ interface Options<Fields> {
   yAxis?: Fields;
 }
 
-export const useSortedTopNSeries = <
+export const useSortedTimeSeries = <
   Fields extends SpanIndexedField[] | SpanFunctions[] | string[],
 >(
   options: Options<Fields> = {},
@@ -47,10 +47,10 @@ export const useSortedTopNSeries = <
   const location = useLocation();
   const organization = useOrganization();
   const {
-    search = undefined,
+    search,
     yAxis = [],
-    interval = undefined,
-    topEvents = 5,
+    interval,
+    topEvents,
     fields,
     orderby,
     overriddenRoute,
@@ -140,44 +140,64 @@ function transformToSeriesMap(
     return {};
   }
 
-  if (isMultiSeriesEventsStats(result)) {
-    const firstYAxis = yAxis[0] || '';
+  // Single series, applies to single axis queries
+  const firstYAxis = yAxis[0] || '';
+  if (isEventsStats(result)) {
+    const [, series] = processSingleEventStats(firstYAxis, result);
+    return {
+      [firstYAxis]: [series],
+    };
+  }
 
+  // Multiple series, applies to multi axis or topN events queries
+  const hasMultipleYAxes = yAxis.length > 1;
+  if (isMultiSeriesEventsStats(result)) {
     const processedResults: [number, Series][] = Object.keys(result).map(seriesName =>
       processSingleEventStats(seriesName, result[seriesName])
     );
 
-    return {
-      [firstYAxis]: processedResults
-        .sort(([a], [b]) => a - b)
-        .map(([, series]) => series),
-    };
+    if (!hasMultipleYAxes) {
+      return {
+        [firstYAxis]: processedResults
+          .sort(([a], [b]) => a - b)
+          .map(([, series]) => series),
+      };
+    }
+
+    return processedResults
+      .sort(([a], [b]) => a - b)
+      .reduce((acc, [, series]) => {
+        acc[series.seriesName] = [series];
+        return acc;
+      }, {});
   }
 
-  const processed: [string, number, MultiSeriesEventsStats][] = [];
+  // Grouped multi series, applies to topN events queries with multiple y-axes
+  // First, we process the grouped multi series into a list of [seriesName, order, {[aggFunctionAlias]: EventsStats}]
+  // to enable sorting.
+  const processedResults: [string, number, MultiSeriesEventsStats][] = [];
   Object.keys(result).forEach(seriesName => {
     const {order: groupOrder, ...groupData} = result[seriesName];
-    processed.push([seriesName, groupOrder || 0, groupData]);
+    processedResults.push([seriesName, groupOrder || 0, groupData]);
   });
 
-  const map: SeriesMap = {};
-  processed
+  return processedResults
     .sort(([, orderA], [, orderB]) => orderA - orderB)
-    .forEach(([seriesName, , groupData]) => {
+    .reduce((acc, [seriesName, , groupData]) => {
       Object.keys(groupData).forEach(aggFunctionAlias => {
         const [, series] = processSingleEventStats(
           seriesName,
           groupData[aggFunctionAlias]
         );
-        if (!map[aggFunctionAlias]) {
-          map[aggFunctionAlias] = [series];
+
+        if (!acc[aggFunctionAlias]) {
+          acc[aggFunctionAlias] = [series];
         } else {
-          map[aggFunctionAlias].push(series);
+          acc[aggFunctionAlias].push(series);
         }
       });
-    });
-
-  return map;
+      return acc;
+    }, {} as SeriesMap);
 }
 
 function processSingleEventStats(

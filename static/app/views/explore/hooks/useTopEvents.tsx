@@ -20,8 +20,8 @@ export function useTopEvents(): number | undefined {
       return undefined;
     }
 
-    // We only support top events for a single chart with no overlaps in aggregate mode and
-    // the data must be grouped by at least one field
+    // We only support top events for when there are no multiple y-axes chart
+    // and there is at least one group by.
     return hasChartWithMultipleYaxes || (groupBys.length === 1 && groupBys[0] === '')
       ? undefined
       : TOP_EVENTS_LIMIT;
