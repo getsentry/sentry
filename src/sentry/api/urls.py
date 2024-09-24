@@ -74,6 +74,7 @@ from sentry.discover.endpoints.discover_saved_query_detail import (
     DiscoverSavedQueryDetailEndpoint,
     DiscoverSavedQueryVisitEndpoint,
 )
+from sentry.flags.endpoints.hooks import OrganizationFlagsHooksEndpoint
 from sentry.incidents.endpoints.organization_alert_rule_activations import (
     OrganizationAlertRuleActivationsEndpoint,
 )
@@ -2030,6 +2031,11 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_id_or_slug>[^\/]+)/relay_usage/$",
         OrganizationRelayUsage.as_view(),
         name="sentry-api-0-organization-relay-usage",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/flags/hooks/provider/(?P<provider>[\w-]+)/$",
+        OrganizationFlagsHooksEndpoint.as_view(),
+        name="sentry-api-0-organization-flag-hooks",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/replays/$",
