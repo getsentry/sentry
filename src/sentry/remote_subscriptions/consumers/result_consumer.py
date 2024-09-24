@@ -9,7 +9,7 @@ from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
 from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.processing.strategies.run_task import RunTask
-from arroyo.types import BrokerValue, Commit, FilteredPayload, Message, Partition
+from arroyo.types import Commit, FilteredPayload, Message, Partition
 
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.remote_subscriptions.models import BaseRemoteSubscription
@@ -23,30 +23,12 @@ FAKE_SUBSCRIPTION_ID = 12345
 
 
 class ResultProcessor(abc.ABC, Generic[T, U]):
-    def __init__(self):
-        self.codec = get_topic_codec(self.topic_for_codec)
-
     @property
     @abc.abstractmethod
     def subscription_model(self) -> type[U]:
         pass
 
-    @property
-    @abc.abstractmethod
-    def topic_for_codec(self) -> Topic:
-        pass
-
-    def __call__(self, message: Message[KafkaPayload | FilteredPayload]):
-        assert not isinstance(message.payload, FilteredPayload)
-        assert isinstance(message.value, BrokerValue)
-
-        try:
-            result = self.codec.decode(message.payload.value)
-        except Exception:
-            logger.exception(
-                "Failed to decode message payload",
-                extra={"payload": message.payload.value},
-            )
+    def __call__(self, result: T):
         try:
             # TODO: Handle subscription not existing - we should remove the subscription from
             # the remote system in that case.
@@ -74,18 +56,43 @@ class ResultProcessor(abc.ABC, Generic[T, U]):
 class ResultsStrategyFactory(ProcessingStrategyFactory[KafkaPayload], Generic[T, U]):
     def __init__(self) -> None:
         self.result_processor = self.result_processor_cls()
+        self.codec = get_topic_codec(self.topic_for_codec)
+
+    @property
+    @abc.abstractmethod
+    def topic_for_codec(self) -> Topic:
+        pass
 
     @property
     @abc.abstractmethod
     def result_processor_cls(self) -> type[ResultProcessor[T, U]]:
         pass
 
+    def decode_payload(self, payload: KafkaPayload | FilteredPayload) -> T | None:
+        assert not isinstance(payload, FilteredPayload)
+        try:
+            return self.codec.decode(payload.value)
+        except Exception:
+            logger.exception(
+                "Failed to decode message payload",
+                extra={"payload": payload.value},
+            )
+        return None
+
+    def process_single(self, message: Message[KafkaPayload | FilteredPayload]):
+        result = self.decode_payload(message.payload)
+        if result is not None:
+            self.result_processor(result)
+
+    def create_serial_worker(self, commit: Commit) -> ProcessingStrategy[KafkaPayload]:
+        return RunTask(
+            function=self.process_single,
+            next_step=CommitOffsets(commit),
+        )
+
     def create_with_partitions(
         self,
         commit: Commit,
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
-        return RunTask(
-            function=self.result_processor,
-            next_step=CommitOffsets(commit),
-        )
+        return self.create_serial_worker(commit)
