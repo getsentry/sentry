@@ -1,19 +1,10 @@
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {UserFixture} from 'sentry-fixture/user';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {getAllByRole, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import Nav from 'sentry/components/nav';
-import ConfigStore from 'sentry/stores/configStore';
-import type {Organization} from 'sentry/types/organization';
-import {useLocation} from 'sentry/utils/useLocation';
-
-jest.mock('sentry/actionCreators/account');
-jest.mock('sentry/utils/useServiceIncidents');
-jest.mock('sentry/utils/useLocation');
-
-const mockUseLocation = jest.mocked(useLocation);
 
 const ALL_AVAILABLE_FEATURES = [
   'insights-entry-points',
@@ -32,59 +23,31 @@ const ALL_AVAILABLE_FEATURES = [
 ];
 
 describe('Nav', function () {
-  const organization = OrganizationFixture();
-  const user = UserFixture();
-
-  const getElement = () => <Nav />;
-
-  const renderNav = ({organization: org}: {organization: Organization | null}) =>
-    render(getElement(), {organization: org});
-
-  const renderNavWithFeatures = (features: string[] = []) => {
-    return renderNav({
-      organization: {
-        ...organization,
-        features: [...organization.features, ...features],
-      },
+  describe('default', function () {
+    beforeEach(() => {
+      render(<Nav />, {
+        router: RouterFixture({
+          location: LocationFixture({pathname: '/organizations/org-slug/issues/'}),
+        }),
+        organization: OrganizationFixture({features: ALL_AVAILABLE_FEATURES}),
+      });
     });
-  };
-
-  beforeEach(function () {
-    mockUseLocation.mockReturnValue(LocationFixture());
-  });
-
-  afterEach(function () {
-    mockUseLocation.mockReset();
-  });
-
-  it('renders', async function () {
-    renderNav({organization});
-    expect(
-      await screen.findByRole('navigation', {name: 'Primary Navigation'})
-    ).toBeInTheDocument();
-  });
-
-  describe('sidebar links', () => {
-    beforeEach(function () {
-      ConfigStore.init();
-      ConfigStore.set('features', new Set([]));
-      ConfigStore.set('user', user);
-
-      mockUseLocation.mockReturnValue({...LocationFixture()});
-    });
-    afterEach(() => ConfigStore.reset());
-    it('renders navigation', function () {
-      renderNav({organization});
-
+    it('renders primary navigation', async function () {
       expect(
-        screen.getByRole('navigation', {name: 'Primary Navigation'})
+        await screen.findByRole('navigation', {name: 'Primary Navigation'})
+      ).toBeInTheDocument();
+    });
+    it('renders secondary navigation', async function () {
+      expect(
+        await screen.findByRole('navigation', {name: 'Secondary Navigation'})
       ).toBeInTheDocument();
     });
 
-    it('renders all features', function () {
-      renderNavWithFeatures([...ALL_AVAILABLE_FEATURES]);
-
-      const links = screen.getAllByRole('link');
+    it('renders expected primary nav items', function () {
+      const links = getAllByRole(
+        screen.getByRole('navigation', {name: 'Primary Navigation'}),
+        'link'
+      );
       expect(links).toHaveLength(8);
 
       [
@@ -96,6 +59,107 @@ describe('Nav', function () {
         'Boards',
         'Alerts',
         'Settings',
+      ].forEach((title, index) => {
+        expect(links[index]).toHaveAccessibleName(title);
+      });
+    });
+  });
+
+  describe('issues', function () {
+    beforeEach(() => {
+      render(<Nav />, {
+        router: RouterFixture({
+          location: LocationFixture({
+            pathname: '/organizations/org-slug/issues/',
+            search: '?query=is:unresolved',
+          }),
+        }),
+        organization: OrganizationFixture({features: ALL_AVAILABLE_FEATURES}),
+      });
+    });
+
+    it('renders secondary navigation', async function () {
+      expect(
+        await screen.findByRole('navigation', {name: 'Secondary Navigation'})
+      ).toBeInTheDocument();
+    });
+
+    it('includes expected submenu items', function () {
+      const container = screen.getByRole('navigation', {name: 'Secondary Navigation'});
+      const links = getAllByRole(container, 'link');
+      expect(links).toHaveLength(6);
+
+      ['All', 'Error & Outage', 'Trend', 'Craftsmanship', 'Security', 'Feedback'].forEach(
+        (title, index) => {
+          expect(links[index]).toHaveAccessibleName(title);
+        }
+      );
+    });
+  });
+
+  describe('insights', function () {
+    beforeEach(() => {
+      render(<Nav />, {
+        router: RouterFixture({
+          location: LocationFixture({pathname: '/organizations/org-slug/insights/http/'}),
+        }),
+        organization: OrganizationFixture({features: ALL_AVAILABLE_FEATURES}),
+      });
+    });
+
+    it('renders secondary navigation', async function () {
+      expect(
+        await screen.findByRole('navigation', {name: 'Secondary Navigation'})
+      ).toBeInTheDocument();
+    });
+
+    it('includes expected submenu items', function () {
+      const container = screen.getByRole('navigation', {name: 'Secondary Navigation'});
+      const links = getAllByRole(container, 'link');
+      expect(links).toHaveLength(8);
+      [
+        'Requests',
+        'Queries',
+        'Assets',
+        'App Starts',
+        'Web Vitals',
+        'Caches',
+        'Queues',
+        'LLM Monitoring',
+      ].forEach((title, index) => {
+        expect(links[index]).toHaveAccessibleName(title);
+      });
+    });
+  });
+
+  describe('explore', function () {
+    beforeEach(() => {
+      render(<Nav />, {
+        router: RouterFixture({
+          location: LocationFixture({pathname: '/organizations/org-slug/traces/'}),
+        }),
+        organization: OrganizationFixture({features: ALL_AVAILABLE_FEATURES}),
+      });
+    });
+
+    it('renders secondary navigation', async function () {
+      expect(
+        await screen.findByRole('navigation', {name: 'Secondary Navigation'})
+      ).toBeInTheDocument();
+    });
+
+    it('includes expected submenu items', function () {
+      const container = screen.getByRole('navigation', {name: 'Secondary Navigation'});
+      const links = getAllByRole(container, 'link');
+      expect(links).toHaveLength(7);
+      [
+        'Traces',
+        'Metrics',
+        'Profiles',
+        'Replays',
+        'Discover',
+        'Releases',
+        'Crons',
       ].forEach((title, index) => {
         expect(links[index]).toHaveAccessibleName(title);
       });
