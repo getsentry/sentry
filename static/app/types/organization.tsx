@@ -312,7 +312,7 @@ export type MultiSeriesEventsStats = {
 };
 
 export type GroupedMultiSeriesEventsStats = {
-  [seriesName: string]: MultiSeriesEventsStats;
+  [seriesName: string]: MultiSeriesEventsStats & {order: number};
 };
 
 export type EventsStatsSeries<F extends string> = {

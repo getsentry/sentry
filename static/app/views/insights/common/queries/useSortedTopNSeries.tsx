@@ -1,5 +1,9 @@
 import type {Series} from 'sentry/types/echarts';
-import type {EventsStats, MultiSeriesEventsStats} from 'sentry/types/organization';
+import type {
+  EventsStats,
+  GroupedMultiSeriesEventsStats,
+  MultiSeriesEventsStats,
+} from 'sentry/types/organization';
 import {encodeSort} from 'sentry/utils/discover/eventView';
 import {DURATION_UNITS, SIZE_UNITS} from 'sentry/utils/discover/fieldRenderers';
 import {getAggregateAlias} from 'sentry/utils/discover/fields';
@@ -69,7 +73,10 @@ export const useSortedTopNSeries = <
     eventView.interval = interval;
   }
 
-  const result = useGenericDiscoverQuery<MultiSeriesEventsStats, DiscoverQueryProps>({
+  const result = useGenericDiscoverQuery<
+    MultiSeriesEventsStats | GroupedMultiSeriesEventsStats,
+    DiscoverQueryProps
+  >({
     route: overriddenRoute ?? 'events-stats',
     eventView,
     location,
@@ -109,31 +116,74 @@ export const useSortedTopNSeries = <
   };
 };
 
+function isEventsStats(
+  obj: EventsStats | MultiSeriesEventsStats | GroupedMultiSeriesEventsStats
+): obj is EventsStats {
+  return typeof obj === 'object' && obj !== null && typeof obj.data === 'object';
+}
+
+function isMultiSeriesEventsStats(
+  obj: EventsStats | MultiSeriesEventsStats | GroupedMultiSeriesEventsStats
+): obj is MultiSeriesEventsStats {
+  if (typeof obj !== 'object' || obj === null) {
+    return false;
+  }
+
+  return Object.values(obj).every(series => isEventsStats(series));
+}
+
 function transformToSeriesMap(
-  result: MultiSeriesEventsStats | undefined,
+  result: MultiSeriesEventsStats | GroupedMultiSeriesEventsStats | undefined,
   yAxis: string[]
 ): SeriesMap {
   if (!result) {
     return {};
   }
 
-  const firstYAxis = yAxis[0] || '';
+  if (isMultiSeriesEventsStats(result)) {
+    const firstYAxis = yAxis[0] || '';
 
-  const processedResults: [number, Series][] = Object.keys(result).map(seriesName =>
-    processSingleEventStats(seriesName, result)
-  );
+    const processedResults: [number, Series][] = Object.keys(result).map(seriesName =>
+      processSingleEventStats(seriesName, result[seriesName])
+    );
 
-  return {
-    [firstYAxis]: processedResults.sort(([a], [b]) => a - b).map(([, series]) => series),
-  };
+    return {
+      [firstYAxis]: processedResults
+        .sort(([a], [b]) => a - b)
+        .map(([, series]) => series),
+    };
+  }
+
+  const processed: [string, number, MultiSeriesEventsStats][] = [];
+  Object.keys(result).forEach(seriesName => {
+    const {order: groupOrder, ...groupData} = result[seriesName];
+    processed.push([seriesName, groupOrder || 0, groupData]);
+  });
+
+  const map: SeriesMap = {};
+  processed
+    .sort(([, orderA], [, orderB]) => orderA - orderB)
+    .forEach(([seriesName, , groupData]) => {
+      Object.keys(groupData).forEach(aggFunctionAlias => {
+        const [, series] = processSingleEventStats(
+          seriesName,
+          groupData[aggFunctionAlias]
+        );
+        if (!map[aggFunctionAlias]) {
+          map[aggFunctionAlias] = [series];
+        } else {
+          map[aggFunctionAlias].push(series);
+        }
+      });
+    });
+
+  return map;
 }
 
 function processSingleEventStats(
   seriesName: string,
-  result: MultiSeriesEventsStats
+  seriesData: EventsStats
 ): [number, Series] {
-  const seriesData: EventsStats = result[seriesName];
-
   let scale = 1;
   if (seriesName) {
     const unit = seriesData.meta?.units?.[getAggregateAlias(seriesName)];
