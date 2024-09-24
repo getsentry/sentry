@@ -26,15 +26,7 @@ Required context variables:
       const messageDispatch = {
         'log': log,
         'fetch': async (url, init) => {
-          const response =  await fetch(url, {
-            ...init,
-            headers: {
-              ...init.headers,
-              // For mock/test purposes we're fetching the accessToken and injecting it
-              'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
-            }
-          });
-
+          const response =  await fetch(url, {...init});
           return {
             ok: response.ok,
             status: response.status,
