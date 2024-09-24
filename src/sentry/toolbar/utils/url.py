@@ -14,7 +14,7 @@ def url_matches(referrer_url: str, target_url: str) -> bool:
     Note both url's path is ignored.
 
     @param referrer_url: Must have a valid scheme and hostname.
-    @param target_url: May exclude scheme. THe first subdomain may be a wildcard "*".
+    @param target_url: Must have a valid hostname, may exclude scheme. The first subdomain may be a wildcard "*".
     """
     referrer = urlparse(referrer_url)  # Always has scheme and hostname
     target = urlparse(target_url)
@@ -22,6 +22,9 @@ def url_matches(referrer_url: str, target_url: str) -> bool:
         target = urlparse(referrer.scheme + "://" + target_url)
 
     ref_hostname, target_hostname = referrer.hostname, target.hostname
+    if not ref_hostname or not target_hostname:
+        return False
+
     if target_hostname.startswith("*."):
         ref_hostname = ref_hostname.split(".", 1)[1]
         target_hostname = target_hostname.split(".", 1)[1]
