@@ -34,7 +34,9 @@ function RouteNotFound({router, location}: Props) {
         'reactRouterVersion',
         window.__SENTRY_USING_REACT_ROUTER_SIX ? '6' : '3'
       );
-      Sentry.captureException(new Error('Route not found'));
+      if (lastKnownRoute !== '/*') {
+        Sentry.captureException(new Error('Route not found'));
+      }
     });
   }, [pathname, search, hash, isMissingSlash, router, lastKnownRoute]);
 
