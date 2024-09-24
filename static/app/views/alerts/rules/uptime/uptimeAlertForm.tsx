@@ -1,4 +1,6 @@
+import {useState} from 'react';
 import styled from '@emotion/styled';
+import {Observer} from 'mobx-react';
 
 import type {APIRequestMethod} from 'sentry/api';
 import {Button} from 'sentry/components/button';
@@ -10,6 +12,7 @@ import SentryProjectSelectorField from 'sentry/components/forms/fields/sentryPro
 import TextareaField from 'sentry/components/forms/fields/textareaField';
 import TextField from 'sentry/components/forms/fields/textField';
 import Form, {type FormProps} from 'sentry/components/forms/form';
+import FormModel from 'sentry/components/forms/model';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import Panel from 'sentry/components/panels/panel';
@@ -20,6 +23,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import type {UptimeRule} from 'sentry/views/alerts/rules/uptime/types';
 
+import {HTTPSnippet} from './httpSnippet';
 import {UptimeHeadersField} from './uptimeHeadersField';
 
 interface Props {
@@ -59,15 +63,18 @@ export function UptimeAlertForm({
   const enabledConfiguration = organization.features.includes('uptime-api-create-update');
   const initialData = rule
     ? getFormDataFromRule(rule)
-    : {projectSlug: project.slug, method: 'GET'};
+    : {projectSlug: project.slug, method: 'GET', headers: []};
 
   const submitLabel = {
     POST: t('Create Rule'),
     PUT: t('Save Rule'),
   };
 
+  const [formModel] = useState(() => new FormModel());
+
   return (
     <Form
+      model={formModel}
       apiMethod={apiMethod}
       apiEndpoint={apiUrl}
       saveOnBlur={false}
@@ -150,6 +157,7 @@ export function UptimeAlertForm({
             label={t('Body')}
             visible={({model}) => !['GET', 'HEAD'].includes(model.getValue('method'))}
             rows={4}
+            maxRows={15}
             autosize
             monospace
             placeholder='{"key": "value"}'
@@ -157,6 +165,16 @@ export function UptimeAlertForm({
             disabled={!enabledConfiguration}
           />
         </ConfigurationPanel>
+        <Observer>
+          {() => (
+            <HTTPSnippet
+              url={formModel.getValue('url')}
+              method={formModel.getValue('method')}
+              headers={formModel.getValue('headers')}
+              body={formModel.getValue('body')}
+            />
+          )}
+        </Observer>
         <AlertListItem>{t('Establish ownership')}</AlertListItem>
         <FormRow>
           <TextField
