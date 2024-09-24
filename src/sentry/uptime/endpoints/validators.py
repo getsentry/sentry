@@ -10,7 +10,10 @@ from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.auth.superuser import is_active_superuser
 from sentry.uptime.detectors.url_extraction import extract_domain_parts
 from sentry.uptime.models import ProjectUptimeSubscription, ProjectUptimeSubscriptionMode
-from sentry.uptime.subscriptions.subscriptions import get_or_create_project_uptime_subscription
+from sentry.uptime.subscriptions.subscriptions import (
+    get_or_create_project_uptime_subscription,
+    update_project_uptime_subscription,
+)
 from sentry.utils.audit import create_audit_entry
 
 MAX_MONITORS_PER_DOMAIN = 100
@@ -134,32 +137,38 @@ class UptimeMonitorValidator(CamelSnakeSerializer):
         )
         return uptime_monitor
 
-    def update(self, instance, validated_data):
-        params = {}
-        if "name" in validated_data:
-            params["name"] = validated_data["name"]
+    def update(self, instance: ProjectUptimeSubscription, data):
+        url = data["url"] if "url" in data else instance.uptime_subscription.url
+        interval_seconds = (
+            data["interval_seconds"]
+            if "interval_seconds" in data
+            else instance.uptime_subscription.interval_seconds
+        )
+        method = data["method"] if "method" in data else instance.uptime_subscription.method
+        headers = data["headers"] if "headers" in data else instance.uptime_subscription.headers
+        body = data["body"] if "body" in data else instance.uptime_subscription.body
+        name = data["name"] if "name" in data else instance.name
+        owner = data["owner"] if "owner" in data else instance.owner
 
-        if "owner" in validated_data:
-            owner = validated_data["owner"]
-            params["owner_user_id"] = None
-            params["owner_team_id"] = None
-            if owner is not None:
-                if owner.is_user:
-                    params["owner_user_id"] = owner.id
-                if owner.is_team:
-                    params["owner_team_id"] = owner.id
-
-        if "mode" in validated_data:
+        if "mode" in data:
             raise serializers.ValidationError("Mode can only be specified on creation (for now)")
 
-        if params:
-            instance.update(**params)
-            create_audit_entry(
-                request=self.context["request"],
-                organization=self.context["organization"],
-                target_object=instance.id,
-                event=audit_log.get_event_id("UPTIME_MONITOR_EDIT"),
-                data=instance.get_audit_log_data(),
-            )
+        update_project_uptime_subscription(
+            uptime_monitor=instance,
+            url=url,
+            interval_seconds=interval_seconds,
+            method=method,
+            headers=headers,
+            body=body,
+            name=name,
+            owner=owner,
+        )
+        create_audit_entry(
+            request=self.context["request"],
+            organization=self.context["organization"],
+            target_object=instance.id,
+            event=audit_log.get_event_id("UPTIME_MONITOR_EDIT"),
+            data=instance.get_audit_log_data(),
+        )
 
         return instance
