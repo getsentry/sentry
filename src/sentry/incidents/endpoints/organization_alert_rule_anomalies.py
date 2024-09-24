@@ -66,7 +66,9 @@ class OrganizationAlertRuleAnomaliesEndpoint(OrganizationAlertRuleEndpoint):
                 status=400,
             )
 
-        anomalies = get_historical_anomaly_data_from_seer(alert_rule, project, start, end)
+        anomalies = get_historical_anomaly_data_from_seer(
+            alert_rule=alert_rule, project=project, start_string=start, end_string=end
+        )
         # NOTE: returns None if there's a problem with the Seer response
         if anomalies is None:
             return Response("Unable to get historical anomaly data", status=400)

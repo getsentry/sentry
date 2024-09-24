@@ -6,6 +6,7 @@ from django.core.exceptions import ValidationError
 from parsimonious.exceptions import ParseError
 from urllib3.exceptions import MaxRetryError, TimeoutError
 
+from sentry.api.bases.organization_events import get_query_columns
 from sentry.conf.server import SEER_ANOMALY_DETECTION_STORE_DATA_URL
 from sentry.incidents.models.alert_rule import AlertRule, AlertRuleStatus
 from sentry.models.project import Project
@@ -63,12 +64,20 @@ def send_historical_data_to_seer(alert_rule: AlertRule, project: Project) -> Ale
     snuba_query = SnubaQuery.objects.get(id=alert_rule.snuba_query_id)
     window_min = int(snuba_query.time_window / 60)
     dataset = get_dataset(snuba_query.dataset)
-    historical_data = fetch_historical_data(alert_rule, snuba_query, project)
+    query_columns = get_query_columns([snuba_query.aggregate], snuba_query.time_window)
+    historical_data = fetch_historical_data(
+        alert_rule=alert_rule, snuba_query=snuba_query, query_columns=query_columns, project=project
+    )
 
     if not historical_data:
         raise ValidationError("No historical data available.")
 
-    formatted_data = format_historical_data(historical_data, dataset)
+    formatted_data = format_historical_data(
+        data=historical_data,
+        query_columns=query_columns,
+        dataset=dataset,
+        organization=project.organization,
+    )
     if not formatted_data:
         raise ValidationError("Unable to get historical data for this alert.")
 
