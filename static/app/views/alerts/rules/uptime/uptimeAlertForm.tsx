@@ -113,6 +113,7 @@ export function UptimeAlertForm({
             inline={false}
             flexibleControlStateSize
             stacked
+            required
           />
           <SelectField
             disabled={!enabledConfiguration}
@@ -134,6 +135,7 @@ export function UptimeAlertForm({
             placeholder={t('The URL to monitor')}
             flexibleControlStateSize
             monospace
+            required
           />
           <SelectField
             disabled={!enabledConfiguration}
@@ -145,6 +147,7 @@ export function UptimeAlertForm({
               label: option,
             }))}
             flexibleControlStateSize
+            required
           />
           <UptimeHeadersField
             name="headers"
@@ -185,6 +188,7 @@ export function UptimeAlertForm({
             inline={false}
             flexibleControlStateSize
             stacked
+            required
           />
           <SentryMemberTeamSelectorField
             name="owner"
@@ -231,5 +235,9 @@ const ConfigurationPanel = styled(Panel)`
     display: grid;
     grid-template-columns: subgrid;
     grid-column: 1 / -1;
+
+    label {
+      width: auto;
+    }
   }
 `;
