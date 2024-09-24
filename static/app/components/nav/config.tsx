@@ -32,8 +32,8 @@ export interface NavItemsResult {
     footer: ReadonlyArray<SidebarItem>;
   };
   secondary: {
-    body: ReadonlyArray<SidebarItem>;
-    footer: ReadonlyArray<SidebarItem>;
+    body: ReadonlyArray<SubmenuItem>;
+    footer: ReadonlyArray<SubmenuItem>;
   };
 }
 
