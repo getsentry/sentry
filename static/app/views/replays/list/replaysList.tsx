@@ -1,6 +1,7 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import Link from 'sentry/components/links/link';
 import Pagination from 'sentry/components/pagination';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -85,6 +86,9 @@ function ReplaysList() {
 
   return (
     <Fragment>
+      <Link to="/product/alerts/create-alerts/transactiontransaction/product/alerts/create-alerts/">
+        Click
+      </Link>
       <ReplayTable
         referrerLocation={'replay'}
         fetchError={error}
