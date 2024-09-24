@@ -36,6 +36,7 @@ class ProjectUptimeAlertIndexPostEndpointTest(ProjectUptimeAlertIndexBaseEndpoin
             owner=f"user:{self.user.id}",
             url="http://sentry.io",
             interval_seconds=60,
+            body=None,
         )
         uptime_monitor = ProjectUptimeSubscription.objects.get(id=resp.data["id"])
         uptime_subscription = uptime_monitor.uptime_subscription
@@ -46,6 +47,7 @@ class ProjectUptimeAlertIndexPostEndpointTest(ProjectUptimeAlertIndexBaseEndpoin
         assert uptime_subscription.url == "http://sentry.io"
         assert uptime_subscription.interval_seconds == 60
         assert uptime_subscription.timeout_ms == DEFAULT_SUBSCRIPTION_TIMEOUT_MS
+        assert uptime_subscription.body is None
 
     @with_feature("organizations:uptime-api-create-update")
     def test_no_owner(self):
