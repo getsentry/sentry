@@ -11,6 +11,8 @@ from sentry.auth.superuser import is_active_superuser
 from sentry.uptime.detectors.url_extraction import extract_domain_parts
 from sentry.uptime.models import ProjectUptimeSubscription, ProjectUptimeSubscriptionMode
 from sentry.uptime.subscriptions.subscriptions import (
+    MAX_MANUAL_SUBSCRIPTIONS_PER_ORG,
+    MaxManualUptimeSubscriptionsReached,
     get_or_create_project_uptime_subscription,
     update_project_uptime_subscription,
 )
@@ -115,15 +117,20 @@ class UptimeMonitorValidator(CamelSnakeSerializer):
         method_headers_body = {
             k: v for k, v in validated_data.items() if k in {"method", "headers", "body"}
         }
-        uptime_monitor, created = get_or_create_project_uptime_subscription(
-            project=self.context["project"],
-            url=validated_data["url"],
-            interval_seconds=validated_data["interval_seconds"],
-            name=validated_data["name"],
-            mode=validated_data.get("mode", ProjectUptimeSubscriptionMode.MANUAL),
-            owner=validated_data["owner"],
-            **method_headers_body,
-        )
+        try:
+            uptime_monitor, created = get_or_create_project_uptime_subscription(
+                project=self.context["project"],
+                url=validated_data["url"],
+                interval_seconds=validated_data["interval_seconds"],
+                name=validated_data["name"],
+                mode=validated_data.get("mode", ProjectUptimeSubscriptionMode.MANUAL),
+                owner=validated_data["owner"],
+                **method_headers_body,
+            )
+        except MaxManualUptimeSubscriptionsReached:
+            raise serializers.ValidationError(
+                f"You may have at most {MAX_MANUAL_SUBSCRIPTIONS_PER_ORG} uptime monitors per organization"
+            )
         if not created:
             raise serializers.ValidationError(
                 "A monitor with these parameters already exists in this project"

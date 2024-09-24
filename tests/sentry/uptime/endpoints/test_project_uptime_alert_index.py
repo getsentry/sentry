@@ -1,3 +1,5 @@
+from unittest import mock
+
 from rest_framework.exceptions import ErrorDetail
 
 from sentry.testutils.helpers import with_feature
@@ -194,3 +196,25 @@ class ProjectUptimeAlertIndexPostEndpointTest(ProjectUptimeAlertIndexBaseEndpoin
                 )
             ]
         }
+
+    @with_feature("organizations:uptime-api-create-update")
+    def test_over_limit(self):
+        with mock.patch(
+            "sentry.uptime.subscriptions.subscriptions.MAX_MANUAL_SUBSCRIPTIONS_PER_ORG", new=1
+        ):
+            self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                name="test",
+                url="http://sentry.io",
+                interval_seconds=60,
+                owner=f"user:{self.user.id}",
+            )
+            self.get_error_response(
+                self.organization.slug,
+                self.project.slug,
+                name="test",
+                url="http://santry.io",
+                interval_seconds=60,
+                owner=f"user:{self.user.id}",
+            )
