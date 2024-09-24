@@ -3,6 +3,7 @@ from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, control_silo_model, sane_repr
+from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.models.apiscopes import HasApiScopes
 
 
@@ -21,6 +22,15 @@ class ApiAuthorization(Model, HasApiScopes):
     application = FlexibleForeignKey("sentry.ApiApplication", null=True)
     user = FlexibleForeignKey("sentry.User")
     date_added = models.DateTimeField(default=timezone.now)
+
+    # APIAuthorization is usually per user but in cases of some application permissions
+    # we want to limit it to one organization of that user. If null the authorization is user level
+    organization_id = HybridCloudForeignKey(
+        "sentry.Organization",
+        db_index=True,
+        null=True,
+        on_delete="CASCADE",
+    )
 
     class Meta:
         app_label = "sentry"

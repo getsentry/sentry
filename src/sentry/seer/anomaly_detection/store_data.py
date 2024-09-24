@@ -3,8 +3,10 @@ from datetime import datetime, timedelta
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
+from parsimonious.exceptions import ParseError
 from urllib3.exceptions import MaxRetryError, TimeoutError
 
+from sentry.api.bases.organization_events import get_query_columns
 from sentry.conf.server import SEER_ANOMALY_DETECTION_STORE_DATA_URL
 from sentry.incidents.models.alert_rule import AlertRule, AlertRuleStatus
 from sentry.models.project import Project
@@ -13,6 +15,7 @@ from sentry.seer.anomaly_detection.types import (
     AlertInSeer,
     AnomalyDetectionConfig,
     StoreDataRequest,
+    StoreDataResponse,
     TimeSeriesPoint,
 )
 from sentry.seer.anomaly_detection.utils import (
@@ -24,6 +27,7 @@ from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.snuba.models import SnubaQuery
 from sentry.snuba.utils import get_dataset
 from sentry.utils import json
+from sentry.utils.json import JSONDecodeError
 
 logger = logging.getLogger(__name__)
 
@@ -60,14 +64,23 @@ def send_historical_data_to_seer(alert_rule: AlertRule, project: Project) -> Ale
     snuba_query = SnubaQuery.objects.get(id=alert_rule.snuba_query_id)
     window_min = int(snuba_query.time_window / 60)
     dataset = get_dataset(snuba_query.dataset)
-    historical_data = fetch_historical_data(alert_rule, snuba_query, project)
+    query_columns = get_query_columns([snuba_query.aggregate], snuba_query.time_window)
+    historical_data = fetch_historical_data(
+        alert_rule=alert_rule, snuba_query=snuba_query, query_columns=query_columns, project=project
+    )
 
     if not historical_data:
         raise ValidationError("No historical data available.")
 
-    formatted_data = format_historical_data(historical_data, dataset)
+    formatted_data = format_historical_data(
+        data=historical_data,
+        query_columns=query_columns,
+        dataset=dataset,
+        organization=project.organization,
+    )
     if not formatted_data:
         raise ValidationError("Unable to get historical data for this alert.")
+
     if (
         not alert_rule.sensitivity
         or not alert_rule.seasonality
@@ -91,8 +104,18 @@ def send_historical_data_to_seer(alert_rule: AlertRule, project: Project) -> Ale
         config=anomaly_detection_config,
         timeseries=formatted_data,
     )
+    logger.info(
+        "Sending data to Seer's store data endpoint",
+        extra={
+            "ad_config": anomaly_detection_config,
+            "alert": alert_rule.id,
+            "dataset": snuba_query.dataset,
+            "aggregate": snuba_query.aggregate,
+            "meta": json.dumps(historical_data.data.get("meta", {}).get("fields", {})),
+        },
+    )
     try:
-        make_signed_seer_api_request(
+        response = make_signed_seer_api_request(
             connection_pool=seer_anomaly_detection_connection_pool,
             path=SEER_ANOMALY_DETECTION_STORE_DATA_URL,
             body=json.dumps(body).encode("utf-8"),
@@ -107,6 +130,57 @@ def send_historical_data_to_seer(alert_rule: AlertRule, project: Project) -> Ale
             },
         )
         raise TimeoutError
+
+    if response.status > 400:
+        logger.error(
+            "Error when hitting Seer store data endpoint",
+            extra={"response_code": response.status},
+        )
+        raise Exception("Error when hitting Seer store data endpoint")
+
+    try:
+        decoded_data = response.data.decode("utf-8")
+    except AttributeError:
+        data_format_error_string = "Seer store data response data is malformed"
+        logger.exception(
+            data_format_error_string,
+            extra={
+                "ad_config": anomaly_detection_config,
+                "alert": alert_rule.id,
+                "response_data": response.data,
+                "response_code": response.status,
+            },
+        )
+        raise AttributeError(data_format_error_string)
+
+    try:
+        results: StoreDataResponse = json.loads(decoded_data)
+    except JSONDecodeError:
+        parse_error_string = "Failed to parse Seer store data response"
+        logger.exception(
+            parse_error_string,
+            extra={
+                "ad_config": anomaly_detection_config,
+                "alert": alert_rule.id,
+                "response_data": response.data,
+                "response_code": response.status,
+                "dataset": snuba_query.dataset,
+                "meta": json.dumps(historical_data.data.get("meta", {}).get("fields", {})),
+            },
+        )
+        raise ParseError(parse_error_string)
+
+    if not results.get("success"):
+        message = results.get("message", "")
+        logger.error(
+            "Error when hitting Seer store data endpoint",
+            extra={
+                "rule_id": alert_rule.id,
+                "project_id": project.id,
+                "error_message": message,
+            },
+        )
+        raise Exception(message)
 
     MIN_DAYS = 7
     data_start_index, data_end_index = _get_start_and_end_indices(formatted_data)

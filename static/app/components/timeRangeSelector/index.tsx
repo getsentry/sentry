@@ -7,8 +7,9 @@ import {CompactSelect} from 'sentry/components/compactSelect';
 import type {Item} from 'sentry/components/dropdownAutoComplete/types';
 import DropdownButton from 'sentry/components/dropdownButton';
 import HookOrDefault from 'sentry/components/hookOrDefault';
+import {DesyncedFilterIndicator} from 'sentry/components/organizations/pageFilters/desyncedFilter';
 import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'sentry/constants';
-import {IconArrow, IconCalendar} from 'sentry/icons';
+import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {DateString} from 'sentry/types/core';
@@ -78,6 +79,11 @@ export interface TimeRangeSelectorProps
    * unclearable.
    */
   defaultPeriod?: string;
+  /**
+   * (Specific to DatePageFilter) Whether the current value is out of sync with the
+   * stored persistent value.
+   */
+  desynced?: boolean;
   /**
    * Forces the user to select from the set of defined relative options
    */
@@ -158,6 +164,7 @@ export function TimeRangeSelector({
   menuBody,
   menuFooter,
   menuFooterMessage,
+  desynced,
   ...selectProps
 }: TimeRangeSelectorProps) {
   const router = useRouter();
@@ -348,12 +355,16 @@ export function TimeRangeSelector({
                 <DropdownButton
                   isOpen={isOpen}
                   size={selectProps.size}
-                  icon={<IconCalendar />}
                   data-test-id="page-filter-timerange-selector"
                   {...triggerProps}
                   {...selectProps.triggerProps}
                 >
-                  <TriggerLabel>{selectProps.triggerLabel ?? defaultLabel}</TriggerLabel>
+                  <TriggerLabelWrap>
+                    <TriggerLabel>
+                      {selectProps.triggerLabel ?? defaultLabel}
+                    </TriggerLabel>
+                    {desynced && <DesyncedFilterIndicator />}
+                  </TriggerLabelWrap>
                 </DropdownButton>
               );
             })
@@ -465,6 +476,11 @@ export function TimeRangeSelector({
     </SelectorItemsHook>
   );
 }
+
+const TriggerLabelWrap = styled('span')`
+  position: relative;
+  min-width: 0;
+`;
 
 const TriggerLabel = styled('span')`
   ${p => p.theme.overflowEllipsis}

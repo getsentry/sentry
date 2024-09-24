@@ -101,7 +101,12 @@ function getMetricAlertUrl({projects, organization}: Options) {
     project => !!project.firstTransactionEvent
   );
   const project = firstProjectWithEvents ?? projects[0];
-  return `/organizations/${organization.slug}/alerts/${project.slug}/wizard/?alert_option=trans_duration`;
+  return {
+    pathname: `/organizations/${organization.slug}/alerts/${project.slug}/wizard/`,
+    query: {
+      alert_option: 'trans_duration',
+    },
+  };
 }
 
 export function getOnboardingTasks({
@@ -195,7 +200,7 @@ export function getOnboardingTasks({
               eventType="error"
               onIssueReceived={() => !taskIsDone(task) && onCompleteTask()}
             >
-              {() => <EventWaitingIndicator />}
+              {() => <EventWaitingIndicator text={t('Waiting for error')} />}
             </EventWaiter>
           ) : null
       ),
@@ -380,7 +385,7 @@ export function getOnboardingTasks({
     },
     {
       task: OnboardingTaskKey.USER_REPORTS,
-      title: 'User crash reports',
+      title: t('User crash reports'),
       description: t('Collect user feedback when your application crashes'),
       skippable: true,
       requisites: [

@@ -3,7 +3,6 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
-import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import EventView from 'sentry/utils/discover/eventView';
 import {
@@ -82,12 +81,12 @@ function initializeData({features: additionalFeatures = []}: Data = {}) {
 
 describe('Performance GridEditable Table', function () {
   const transactionsListTitles = [
-    t('event id'),
-    t('user'),
-    t('operation duration'),
-    t('total duration'),
-    t('trace id'),
-    t('timestamp'),
+    'event id',
+    'user',
+    'operation duration',
+    'total duration',
+    'trace id',
+    'timestamp',
   ];
   let fields = EVENTS_TABLE_RESPONSE_FIELDS;
   const organization = OrganizationFixture();

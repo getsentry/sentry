@@ -15,6 +15,7 @@ from django.db.models import QuerySet
 from django.db.models.signals import post_save
 from django.forms import ValidationError
 from django.utils import timezone as django_timezone
+from parsimonious.exceptions import ParseError
 from snuba_sdk import Column, Condition, Limit, Op
 from urllib3.exceptions import MaxRetryError, TimeoutError
 
@@ -69,6 +70,7 @@ from sentry.search.events.constants import (
     SPANS_METRICS_FUNCTIONS,
 )
 from sentry.search.events.fields import is_function, resolve_field
+from sentry.seer.anomaly_detection.delete_rule import delete_rule_in_seer
 from sentry.seer.anomaly_detection.store_data import send_historical_data_to_seer
 from sentry.sentry_apps.services.app import RpcSentryAppInstallation, app_service
 from sentry.shared_integrations.exceptions import (
@@ -119,7 +121,7 @@ NOT_SET = NotSet.TOKEN
 
 CRITICAL_TRIGGER_LABEL = "critical"
 WARNING_TRIGGER_LABEL = "warning"
-DYNAMIC_TIME_WINDOWS = {15, 30, 60}
+DYNAMIC_TIME_WINDOWS = {5, 15, 30, 60}
 DYNAMIC_TIME_WINDOWS_SECONDS = {window * 60 for window in DYNAMIC_TIME_WINDOWS}
 INVALID_TIME_WINDOW = f"Invalid time window for dynamic alert (valid windows are {', '.join(map(str, DYNAMIC_TIME_WINDOWS))} minutes)"
 INVALID_ALERT_THRESHOLD = "Dynamic alerts cannot have a nonzero alert threshold"
@@ -667,7 +669,10 @@ def create_alert_rule(
             except (TimeoutError, MaxRetryError):
                 alert_rule.delete()
                 raise TimeoutError("Failed to send data to Seer - cannot create alert rule.")
-            except ValidationError:
+            except ParseError:
+                alert_rule.delete()
+                raise ParseError("Failed to parse Seer store data response")
+            except (ValidationError, Exception):
                 alert_rule.delete()
                 raise
             else:
@@ -949,10 +954,26 @@ def update_alert_rule(
                         alert_rule.update(status=AlertRuleStatus.NOT_ENOUGH_DATA.value)
                 except (TimeoutError, MaxRetryError):
                     raise TimeoutError("Failed to send data to Seer - cannot update alert rule.")
-                except ValidationError:
+                except ParseError:
+                    raise ParseError(
+                        "Failed to parse Seer store data response - cannot update alert rule."
+                    )
+                except (ValidationError, Exception):
                     # If there's no historical data available—something went wrong when querying snuba
                     raise ValidationError("Failed to send data to Seer - cannot update alert rule.")
         else:
+            # if this was a dynamic rule, delete the data in Seer
+            if alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC:
+                success = delete_rule_in_seer(
+                    alert_rule=alert_rule,
+                )
+                if not success:
+                    logger.error(
+                        "Call to delete rule data in Seer failed",
+                        extra={
+                            "rule_id": alert_rule.id,
+                        },
+                    )
             # if this alert was previously a dynamic alert, then we should update the rule to be ready
             if alert_rule.status == AlertRuleStatus.NOT_ENOUGH_DATA.value:
                 alert_rule.update(status=AlertRuleStatus.PENDING.value)

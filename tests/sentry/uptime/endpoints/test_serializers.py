@@ -1,8 +1,9 @@
 from sentry.api.serializers import serialize
-from sentry.testutils.cases import TestCase
+from sentry.testutils.cases import UptimeTestCase
+from sentry.uptime.endpoints.validators import compute_http_request_size
 
 
-class ProjectUptimeSubscriptionSerializerTest(TestCase):
+class ProjectUptimeSubscriptionSerializerTest(UptimeTestCase):
     def test(self):
         uptime_monitor = self.create_project_uptime_subscription()
         result = serialize(uptime_monitor)
@@ -14,6 +15,9 @@ class ProjectUptimeSubscriptionSerializerTest(TestCase):
             "status": uptime_monitor.uptime_status,
             "mode": uptime_monitor.mode,
             "url": uptime_monitor.uptime_subscription.url,
+            "method": uptime_monitor.uptime_subscription.method,
+            "body": uptime_monitor.uptime_subscription.body,
+            "headers": [],
             "intervalSeconds": uptime_monitor.uptime_subscription.interval_seconds,
             "timeoutMs": uptime_monitor.uptime_subscription.timeout_ms,
             "owner": None,
@@ -33,6 +37,9 @@ class ProjectUptimeSubscriptionSerializerTest(TestCase):
             "status": uptime_monitor.uptime_status,
             "mode": uptime_monitor.mode,
             "url": uptime_monitor.uptime_subscription.url,
+            "method": uptime_monitor.uptime_subscription.method,
+            "body": uptime_monitor.uptime_subscription.body,
+            "headers": [],
             "intervalSeconds": uptime_monitor.uptime_subscription.interval_seconds,
             "timeoutMs": uptime_monitor.uptime_subscription.timeout_ms,
             "owner": None,
@@ -49,6 +56,9 @@ class ProjectUptimeSubscriptionSerializerTest(TestCase):
             "status": uptime_monitor.uptime_status,
             "mode": uptime_monitor.mode,
             "url": uptime_monitor.uptime_subscription.url,
+            "method": uptime_monitor.uptime_subscription.method,
+            "body": uptime_monitor.uptime_subscription.body,
+            "headers": [],
             "intervalSeconds": uptime_monitor.uptime_subscription.interval_seconds,
             "timeoutMs": uptime_monitor.uptime_subscription.timeout_ms,
             "owner": {
@@ -58,3 +68,39 @@ class ProjectUptimeSubscriptionSerializerTest(TestCase):
                 "type": "user",
             },
         }
+
+    def test_header_translation(self):
+        """
+        TODO(epurkhiser): This may be removed once we clean up the object-style
+        headers from the database.
+        """
+        subscription = self.create_uptime_subscription(headers={"legacy": "format"})
+        uptime_monitor = self.create_project_uptime_subscription(
+            owner=self.user,
+            uptime_subscription=subscription,
+        )
+        result = serialize(uptime_monitor)
+        assert result["headers"] == [["legacy", "format"]]
+
+
+class ComputeHttpRequestSizeTest(UptimeTestCase):
+    def test(self):
+        assert (
+            compute_http_request_size(
+                "GET",
+                "https://sentry.io",
+                [("auth", "1234"), ("utf_text", "我喜欢哨兵正常运行时间监视器")],
+                "some body stuff",
+            )
+            == 111
+        )
+        assert (
+            compute_http_request_size(
+                "GET",
+                "https://sentry.io",
+                # Test same number of characters but ascii instead
+                [("auth", "1234"), ("non_utf_text", "abcdefghijklmn")],
+                "some body stuff",
+            )
+            == 87
+        )

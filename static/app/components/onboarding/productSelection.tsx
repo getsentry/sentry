@@ -5,7 +5,6 @@ import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {FeatureDisabledModal} from 'sentry/components/acl/featureDisabledModal';
-import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import Checkbox from 'sentry/components/checkbox';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -17,7 +16,6 @@ import HookStore from 'sentry/stores/hookStore';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey} from 'sentry/types/project';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOnboardingQueryParams} from 'sentry/views/onboarding/components/useOnboardingQueryParams';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
@@ -287,13 +285,17 @@ export type ProductSelectionProps = {
    */
   organization: Organization;
   /**
-   * The id of the current project
-   */
-  projectId: string;
-  /**
    * List of products that are disabled. All of them have to contain a reason by default and optionally an onClick handler.
    */
   disabledProducts?: DisabledProducts;
+  /**
+   * Fired when the product selection changes
+   */
+  onChange?: (products: ProductSolution[]) => void;
+  /**
+   * Triggered when the component is loaded
+   */
+  onLoad?: (products: ProductSolution[]) => void;
   /**
    * The platform key of the project (e.g. javascript-react, python-django, etc.)
    */
@@ -302,10 +304,6 @@ export type ProductSelectionProps = {
    * A custom list of products per platform. If not provided, the default list is used.
    */
   productsPerPlatform?: Record<PlatformKey, ProductSolution[]>;
-  /**
-   * If true, the component has a bottom margin of 20px
-   */
-  withBottomMargin?: boolean;
 };
 
 export function ProductSelection({
@@ -313,11 +311,11 @@ export function ProductSelection({
   organization,
   platform,
   productsPerPlatform = platformProductAvailability,
-  projectId,
+  onChange,
+  onLoad,
 }: ProductSelectionProps) {
   const [params, setParams] = useOnboardingQueryParams();
   const urlProducts = useMemo(() => params.product ?? [], [params.product]);
-  const supportLoader = platform === 'javascript';
 
   const products: ProductSolution[] | undefined = platform
     ? productsPerPlatform[platform]
@@ -332,9 +330,8 @@ export function ProductSelection({
   }, [products, disabledProducts]);
 
   useEffect(() => {
+    onLoad?.(defaultProducts);
     setParams({
-      showLoader:
-        supportLoader && params.showLoader === undefined ? true : params.showLoader,
       product: defaultProducts,
     });
     // Adding defaultProducts to the dependency array causes an max-depth error
@@ -365,6 +362,8 @@ export function ProductSelection({
       }
 
       const selectedProducts = [...newProduct] as ProductSolution[];
+
+      onChange?.(selectedProducts);
       setParams({product: selectedProducts});
 
       if (organization.features.includes('project-create-replay-feedback')) {
@@ -373,20 +372,8 @@ export function ProductSelection({
         );
       }
     },
-    [defaultProducts, organization, setParams, urlProducts]
+    [defaultProducts, organization, setParams, urlProducts, onChange]
   );
-
-  const handleToggleLoader = useCallback(() => {
-    if (!params.showLoader === false && platform) {
-      trackAnalytics('onboarding.js_loader_npm_docs_shown', {
-        organization,
-        platform,
-        project_id: projectId,
-      });
-    }
-
-    setParams({showLoader: !params.showLoader});
-  }, [setParams, platform, projectId, organization, params.showLoader]);
 
   if (!products) {
     // if the platform does not support any product, we don't render anything
@@ -398,28 +385,16 @@ export function ProductSelection({
   // until we improve multi snippet suppport
   const showPackageManagerInfo =
     (platform?.indexOf('javascript') === 0 || platform?.indexOf('node') === 0) &&
-    platform !== 'javascript-astro';
-
-  const showAstroInfo = platform === 'javascript-astro';
+    platform !== 'javascript-astro' &&
+    platform !== 'javascript';
 
   return (
     <Fragment>
       {showPackageManagerInfo && (
         <TextBlock noMargin>
-          {supportLoader
-            ? tct('In this quick guide you’ll use our [loaderScript] to set up:', {
-                loaderScript: <strong>Loader Script</strong>,
-              })
-            : tct('In this quick guide you’ll use [npm] or [yarn] to set up:', {
-                npm: <strong>npm</strong>,
-                yarn: <strong>yarn</strong>,
-              })}
-        </TextBlock>
-      )}
-      {showAstroInfo && (
-        <TextBlock noMargin>
-          {tct("In this quick guide you'll use the [astrocli:astro] CLI to set up:", {
-            astrocli: <strong />,
+          {tct('In this quick guide you’ll use [npm] or [yarn] to set up:', {
+            npm: <strong>npm</strong>,
+            yarn: <strong>yarn</strong>,
           })}
         </TextBlock>
       )}
@@ -470,43 +445,9 @@ export function ProductSelection({
           />
         )}
       </Products>
-      {showPackageManagerInfo && supportLoader && (
-        <AlternativeInstallationAlert type="info" showIcon>
-          {params.showLoader
-            ? tct('Prefer to set up Sentry using [npm:npm] or [yarn:yarn]? [goHere]', {
-                npm: <strong />,
-                yarn: <strong />,
-                goHere: (
-                  <SkipLazyLoaderButton
-                    onClick={handleToggleLoader}
-                    size="xs"
-                    priority="default"
-                  >
-                    {t('View npm/yarn instructions')}
-                  </SkipLazyLoaderButton>
-                ),
-              })
-            : tct('Prefer to set up Sentry using [bold:Loader Script]? [goHere]', {
-                bold: <strong />,
-                goHere: (
-                  <SkipLazyLoaderButton
-                    onClick={handleToggleLoader}
-                    size="xs"
-                    priority="default"
-                  >
-                    {t('View loader instructions')}
-                  </SkipLazyLoaderButton>
-                ),
-              })}
-        </AlternativeInstallationAlert>
-      )}
     </Fragment>
   );
 }
-
-const SkipLazyLoaderButton = styled(Button)`
-  margin-left: ${space(1)};
-`;
 
 const Products = styled('div')`
   display: flex;
@@ -563,16 +504,4 @@ const TooltipDescription = styled('div')`
   flex-direction: column;
   gap: ${space(0.5)};
   justify-content: flex-start;
-`;
-
-const AlternativeInstallationAlert = styled(Alert)`
-  margin-bottom: 0px;
-  /*
-   * The first child is the icon.
-   * We render a button within the message, so to ensure proper alignment,
-   * the height of the first child (icon) needs to be set to 'auto'.
-   */
-  > *:first-child {
-    height: auto;
-  }
 `;

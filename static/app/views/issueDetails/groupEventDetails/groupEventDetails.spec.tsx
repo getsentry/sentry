@@ -352,6 +352,22 @@ const mockGroupApis = (
     url: `/projects/${organization.slug}/${project.slug}/`,
     body: project,
   });
+
+  MockApiClient.addMockResponse({
+    url: `/issues/${group.id}/autofix/setup/`,
+    method: 'GET',
+    body: {
+      integration: {
+        ok: true,
+      },
+      genAIConsent: {
+        ok: true,
+      },
+      githubWriteIntegration: {
+        ok: true,
+      },
+    },
+  });
 };
 
 describe('groupEventDetails', () => {

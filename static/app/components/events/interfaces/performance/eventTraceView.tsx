@@ -61,8 +61,12 @@ function EventTraceViewInner({
     traceSlug: traceId ? traceId : undefined,
     limit: 10000,
   });
-  const rootEvent = useTraceRootEvent(trace.data ?? null);
   const meta = useTraceMeta([{traceSlug: traceId, timestamp: undefined}]);
+
+  const hasNoTransactions = meta.data?.transactions === 0;
+  const shouldLoadTraceRoot = !trace.isPending && trace.data && !hasNoTransactions;
+
+  const rootEvent = useTraceRootEvent(shouldLoadTraceRoot ? trace.data! : null);
 
   const preferences = useMemo(
     () =>
@@ -87,7 +91,7 @@ function EventTraceViewInner({
     });
   }, [location.query.statsPeriod, traceId]);
 
-  if (trace.isPending || rootEvent.isPending || !rootEvent.data) {
+  if (trace.isPending || rootEvent.isPending || !rootEvent.data || hasNoTransactions) {
     return null;
   }
 

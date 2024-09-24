@@ -229,7 +229,12 @@ export function EventDetailsContent({
           project={project}
         />
       )}
-      <HighlightsDataSection event={event} project={project} viewAllRef={tagsRef} />
+      <HighlightsDataSection
+        groupId={group.id}
+        event={event}
+        project={project}
+        viewAllRef={tagsRef}
+      />
       {showPossibleSolutionsHigher && (
         <ResourcesAndPossibleSolutionsIssueDetailsContent
           event={event}
@@ -393,7 +398,7 @@ export function EventDetailsContent({
       {hasStreamlinedUI && (
         <ScreenshotDataSection event={event} projectSlug={project.slug} />
       )}
-      <EventAttachments event={event} projectSlug={project.slug} />
+      <EventAttachments event={event} project={project} group={group} />
       <EventSdk sdk={event.sdk} meta={event._meta?.sdk} />
       {hasStreamlinedUI && (
         <EventProcessingErrors event={event} project={project} isShare={false} />

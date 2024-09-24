@@ -1,17 +1,15 @@
+from unittest import mock
+
 import pytest
 from rest_framework.exceptions import ErrorDetail
 
 from sentry.api.serializers import serialize
-from sentry.testutils.cases import APITestCase
 from sentry.uptime.models import ProjectUptimeSubscription
+from tests.sentry.uptime.endpoints import UptimeAlertBaseEndpointTest
 
 
-class ProjectUptimeAlertDetailsBaseEndpointTest(APITestCase):
+class ProjectUptimeAlertDetailsBaseEndpointTest(UptimeAlertBaseEndpointTest):
     endpoint = "sentry-api-0-project-uptime-alert-details"
-
-    def setUp(self):
-        super().setUp()
-        self.login_as(user=self.user)
 
 
 class ProjectUptimeAlertDetailsGetEndpointTest(ProjectUptimeAlertDetailsBaseEndpointTest):
@@ -30,6 +28,31 @@ class ProjectUptimeAlertDetailsGetEndpointTest(ProjectUptimeAlertDetailsBaseEndp
 
 class ProjectUptimeAlertDetailsPutEndpointTest(ProjectUptimeAlertDetailsBaseEndpointTest):
     method = "put"
+
+    def test_all(self):
+        proj_sub = self.create_project_uptime_subscription()
+        resp = self.get_success_response(
+            self.organization.slug,
+            proj_sub.project.slug,
+            proj_sub.id,
+            name="test",
+            owner=f"user:{self.user.id}",
+            url="https://santry.io",
+            interval_seconds=120,
+            headers=[["hello", "world"]],
+            body="something",
+        )
+        proj_sub.refresh_from_db()
+        assert resp.data == serialize(proj_sub, self.user)
+        assert proj_sub.name == "test"
+        assert proj_sub.owner_user_id == self.user.id
+        assert proj_sub.owner_team_id is None
+        uptime_sub = proj_sub.uptime_subscription
+        uptime_sub.refresh_from_db()
+        assert uptime_sub.url == "https://santry.io"
+        assert uptime_sub.interval_seconds == 120
+        assert uptime_sub.headers == [["hello", "world"]]
+        assert uptime_sub.body == "something"
 
     def test_user(self):
         uptime_subscription = self.create_project_uptime_subscription()
@@ -95,6 +118,32 @@ class ProjectUptimeAlertDetailsPutEndpointTest(ProjectUptimeAlertDetailsBaseEndp
     def test_not_found(self):
         resp = self.get_error_response(self.organization.slug, self.project.slug, 3)
         assert resp.status_code == 404
+
+    @mock.patch("sentry.uptime.endpoints.validators.MAX_MONITORS_PER_DOMAIN", 1)
+    def test_domain_limit(self):
+        # First monitor is for test-one.example.com
+        self.create_project_uptime_subscription(
+            uptime_subscription=self.create_uptime_subscription(
+                url="test-one.example.com",
+                url_domain="example",
+                url_domain_suffix="com",
+            )
+        )
+
+        # Update second monitor to use the same domain. This will fail with a
+        # validation error
+        uptime_subscription = self.create_project_uptime_subscription()
+        resp = self.get_error_response(
+            self.organization.slug,
+            uptime_subscription.project.slug,
+            uptime_subscription.id,
+            status_code=400,
+            url="https://test-two.example.com",
+        )
+        assert (
+            resp.data["url"][0]
+            == "The domain *.example.com has already been used in 1 uptime monitoring alerts, which is the limit. You cannot create any additional alerts for this domain."
+        )
 
 
 class ProjectUptimeAlertDetailsDeleteEndpointTest(ProjectUptimeAlertDetailsBaseEndpointTest):
