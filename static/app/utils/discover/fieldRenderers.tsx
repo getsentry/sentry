@@ -1024,7 +1024,7 @@ export function getFieldFormatter(
   isAlias: boolean = true
 ): FieldTypeFormatterRenderFunctionPartial {
   const fieldName = isAlias ? getAggregateAlias(field) : field;
-  const fieldType = meta[fieldName];
+  const fieldType = meta[fieldName] || meta.fields[fieldName];
 
   if (FIELD_FORMATTERS.hasOwnProperty(fieldType)) {
     return partial(FIELD_FORMATTERS[fieldType].renderFunc, fieldName);
