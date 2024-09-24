@@ -2,6 +2,7 @@ import pytest
 
 from sentry.testutils.cases import UptimeTestCase
 from sentry.testutils.skips import requires_kafka
+from sentry.types.actor import Actor
 from sentry.uptime.models import (
     ProjectUptimeSubscription,
     ProjectUptimeSubscriptionMode,
@@ -17,6 +18,7 @@ from sentry.uptime.subscriptions.subscriptions import (
     get_or_create_uptime_subscription,
     is_url_auto_monitored_for_project,
     remove_uptime_subscription_if_unused,
+    update_project_uptime_subscription,
 )
 
 pytestmark = [requires_kafka]
@@ -193,6 +195,119 @@ class CreateProjectUptimeSubscriptionTest(UptimeTestCase):
                 uptime_subscription__timeout_ms=1000,
             ).count()
             == 2
+        )
+
+
+class UpdateProjectUptimeSubscriptionTest(UptimeTestCase):
+    def test(self):
+        with self.tasks():
+            proj_sub = get_or_create_project_uptime_subscription(
+                self.project,
+                url="https://sentry.io",
+                interval_seconds=3600,
+                timeout_ms=1000,
+                mode=ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE,
+            )[0]
+            prev_uptime_subscription = proj_sub.uptime_subscription
+            update_project_uptime_subscription(
+                proj_sub,
+                url="https://santry.io",
+                interval_seconds=60,
+                method="POST",
+                headers={"some": "header"},
+                body="a body",
+                name="New name",
+                owner=Actor.from_orm_user(self.user),
+            )
+
+        with pytest.raises(UptimeSubscription.DoesNotExist):
+            prev_uptime_subscription.refresh_from_db()
+
+        assert ProjectUptimeSubscription.objects.filter(
+            project=self.project,
+            uptime_subscription__url="https://santry.io",
+            uptime_subscription__interval_seconds=60,
+            uptime_subscription__timeout_ms=1000,
+            uptime_subscription__method="POST",
+            uptime_subscription__headers={"some": "header"},
+            uptime_subscription__body="a body",
+            name="New name",
+            owner_user_id=self.user.id,
+            owner_team_id=None,
+            # Since we updated, should be marked as manual
+            mode=ProjectUptimeSubscriptionMode.MANUAL,
+        ).exists()
+
+    def test_removes_old(self):
+        with self.tasks():
+            proj_sub = get_or_create_project_uptime_subscription(
+                self.project,
+                url="https://sentry.io",
+                interval_seconds=3600,
+                timeout_ms=1000,
+                mode=ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE,
+            )[0]
+            prev_uptime_subscription = proj_sub.uptime_subscription
+            update_project_uptime_subscription(
+                proj_sub,
+                url="https://santry.io",
+                interval_seconds=proj_sub.uptime_subscription.interval_seconds,
+                method=proj_sub.uptime_subscription.method,
+                headers=proj_sub.uptime_subscription.headers,
+                body=proj_sub.uptime_subscription.body,
+                name=proj_sub.name,
+                owner=proj_sub.owner,
+            )
+
+        with pytest.raises(UptimeSubscription.DoesNotExist):
+            prev_uptime_subscription.refresh_from_db()
+
+        assert ProjectUptimeSubscription.objects.filter(
+            project=self.project,
+            uptime_subscription__url="https://santry.io",
+            uptime_subscription__interval_seconds=3600,
+            uptime_subscription__timeout_ms=1000,
+            # Since we updated, should be marked as manual
+            mode=ProjectUptimeSubscriptionMode.MANUAL,
+        ).exists()
+
+    def test_already_exists(self):
+        with self.tasks():
+            proj_sub = get_or_create_project_uptime_subscription(
+                self.project,
+                url="https://sentry.io",
+                interval_seconds=3600,
+                timeout_ms=1000,
+                mode=ProjectUptimeSubscriptionMode.MANUAL,
+            )[0]
+            other_proj_sub = get_or_create_project_uptime_subscription(
+                self.project,
+                url="https://santry.io",
+                interval_seconds=3600,
+                timeout_ms=1000,
+                mode=ProjectUptimeSubscriptionMode.MANUAL,
+            )[0]
+
+            update_project_uptime_subscription(
+                proj_sub,
+                url=proj_sub.uptime_subscription.url,
+                interval_seconds=other_proj_sub.uptime_subscription.interval_seconds,
+                method=other_proj_sub.uptime_subscription.method,
+                headers=other_proj_sub.uptime_subscription.headers,
+                body=other_proj_sub.uptime_subscription.body,
+                name=other_proj_sub.name,
+                owner=other_proj_sub.owner,
+            )
+
+        assert (
+            ProjectUptimeSubscription.objects.filter(
+                project=self.project,
+                uptime_subscription__url="https://sentry.io",
+                uptime_subscription__interval_seconds=3600,
+                uptime_subscription__timeout_ms=1000,
+                mode=ProjectUptimeSubscriptionMode.MANUAL,
+            ).count()
+            == 1
         )
 
 
