@@ -1,7 +1,6 @@
 import hashlib
 import logging
 from collections.abc import Mapping
-from typing import Any
 
 from django.db import IntegrityError
 from django.db.models import TextField
@@ -54,7 +53,7 @@ def retrieve_uptime_subscription(
     return subscription
 
 
-def create_uptime_subscription(
+def get_or_create_uptime_subscription(
     url: str,
     interval_seconds: int,
     timeout_ms: int = DEFAULT_SUBSCRIPTION_TIMEOUT_MS,
@@ -132,29 +131,39 @@ def delete_uptime_subscription(uptime_subscription: UptimeSubscription):
     delete_remote_uptime_subscription.delay(uptime_subscription.id)
 
 
-def create_project_uptime_subscription(
+def get_or_create_project_uptime_subscription(
     project: Project,
-    uptime_subscription: UptimeSubscription,
-    mode: ProjectUptimeSubscriptionMode,
+    url: str,
+    interval_seconds: int,
+    timeout_ms: int = DEFAULT_SUBSCRIPTION_TIMEOUT_MS,
+    method: str = "GET",
+    headers: Mapping[str, str] | None = None,
+    body: str | None = None,
+    mode: ProjectUptimeSubscriptionMode = ProjectUptimeSubscriptionMode.MANUAL,
     name: str = "",
     owner: Actor | None = None,
-) -> ProjectUptimeSubscription:
+) -> tuple[ProjectUptimeSubscription, bool]:
     """
     Links a project to an uptime subscription so that it can process results.
     """
-    owner_kwargs: dict[str, Any] = {}
+    uptime_subscription = get_or_create_uptime_subscription(
+        url, interval_seconds, timeout_ms, method, headers, body
+    )
+    owner_user_id = None
+    owner_team_id = None
     if owner:
         if owner.is_user:
-            owner_kwargs["owner_user_id"] = owner.id
+            owner_user_id = owner.id
         if owner.is_team:
-            owner_kwargs["owner_team_id"] = owner.id
+            owner_team_id = owner.id
     return ProjectUptimeSubscription.objects.get_or_create(
         project=project,
         uptime_subscription=uptime_subscription,
         mode=mode.value,
         name=name,
-        **owner_kwargs,
-    )[0]
+        owner_user_id=owner_user_id,
+        owner_team_id=owner_team_id,
+    )
 
 
 def delete_uptime_subscriptions_for_project(

@@ -154,6 +154,9 @@ class ProjectUptimeSubscription(DefaultFieldsModelExisting):
             "url": self.uptime_subscription.url,
             "interval_seconds": self.uptime_subscription.interval_seconds,
             "timeout": self.uptime_subscription.timeout_ms,
+            "method": self.uptime_subscription.method,
+            "headers": self.uptime_subscription.headers,
+            "body": self.uptime_subscription.body,
         }
 
 
