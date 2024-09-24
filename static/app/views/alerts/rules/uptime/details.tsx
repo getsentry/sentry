@@ -110,7 +110,7 @@ export default function UptimeAlertDetails({params}: UptimeAlertDetailsProps) {
             <DatePageFilter />
             <EnvironmentPageFilter />
           </StyledPageFilterBar>
-          <UptimeIssues project={project} />
+          <UptimeIssues project={project} ruleId={uptimeRuleId} />
         </Layout.Main>
         <Layout.Side>
           <SectionHeading>{t('Uptime Alert Details')}</SectionHeading>
