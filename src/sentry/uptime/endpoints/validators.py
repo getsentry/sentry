@@ -70,7 +70,7 @@ class UptimeMonitorValidator(CamelSnakeSerializer):
     )
     url = URLField(required=True, max_length=255)
     interval_seconds = serializers.IntegerField(
-        required=True, min_value=60, max_value=int(timedelta(days=1).total_seconds())
+        required=True, min_value=60, max_value=int(timedelta(hours=1).total_seconds())
     )
     mode = serializers.IntegerField(required=False)
     method = serializers.ChoiceField(
