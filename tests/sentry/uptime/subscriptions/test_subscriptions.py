@@ -1,3 +1,5 @@
+from unittest import mock
+
 import pytest
 
 from sentry.testutils.cases import UptimeTestCase
@@ -10,6 +12,7 @@ from sentry.uptime.models import (
 )
 from sentry.uptime.subscriptions.subscriptions import (
     UPTIME_SUBSCRIPTION_TYPE,
+    MaxManualUptimeSubscriptionsReached,
     delete_project_uptime_subscription,
     delete_uptime_subscription,
     delete_uptime_subscriptions_for_project,
@@ -196,6 +199,26 @@ class CreateProjectUptimeSubscriptionTest(UptimeTestCase):
             ).count()
             == 2
         )
+
+    def test_max_proj_subs(self):
+        with mock.patch(
+            "sentry.uptime.subscriptions.subscriptions.MAX_MANUAL_SUBSCRIPTIONS_PER_ORG", new=1
+        ):
+            assert get_or_create_project_uptime_subscription(
+                self.project,
+                url="https://sentry.io",
+                interval_seconds=3600,
+                timeout_ms=1000,
+                mode=ProjectUptimeSubscriptionMode.MANUAL,
+            )[1]
+            with pytest.raises(MaxManualUptimeSubscriptionsReached):
+                assert get_or_create_project_uptime_subscription(
+                    self.project,
+                    url="https://santry.io",
+                    interval_seconds=3600,
+                    timeout_ms=1000,
+                    mode=ProjectUptimeSubscriptionMode.MANUAL,
+                )[1]
 
 
 class UpdateProjectUptimeSubscriptionTest(UptimeTestCase):
