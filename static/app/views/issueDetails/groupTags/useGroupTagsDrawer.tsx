@@ -1,6 +1,7 @@
 import {useCallback} from 'react';
 
 import useDrawer from 'sentry/components/globalDrawer';
+import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {GroupTagsDrawer} from 'sentry/views/issueDetails/groupTags/groupTagsDrawer';
@@ -22,7 +23,7 @@ export function useGroupTagsDrawer({
     drawer.openDrawer(
       () => <GroupTagsDrawer projectSlug={projectSlug} groupId={groupId} />,
       {
-        ariaLabel: 'tags drawer',
+        ariaLabel: t('Tags Drawer'),
         onClose: () => {
           const params = new URL(window.location.href).searchParams;
           if (params.has('tagDrawerSort') || params.has('tagDrawerKey')) {
