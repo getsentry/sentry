@@ -115,11 +115,9 @@ def save_userreport(
         )
 
         if has_feedback_ingest and event:
-            logger.info(
-                "ingest.user_report.shim_to_feedback",
-                extra={"project_id": project.id, "event_id": report["event_id"]},
+            shim_to_feedback(
+                report, event, project, source, sentry_referrer="ingest.save_userreport"
             )
-            shim_to_feedback(report, event, project, source)
 
         return report_instance
 

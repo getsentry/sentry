@@ -1404,8 +1404,8 @@ def link_event_to_user_report(job: PostProcessJob) -> None:
                 event,
                 project,
                 FeedbackCreationSource.USER_REPORT_ENVELOPE,
+                sentry_referrer="event_manager.save.link_event_to_user_report",
             )
-            metrics.incr("event_manager.save._update_user_reports_with_event_link.shim_to_feedback")
 
         user_reports_updated = user_reports_without_group.update(
             group_id=group.id, environment_id=event.get_environment().id

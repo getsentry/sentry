@@ -21,6 +21,7 @@ from sentry.models.group import GroupStatus
 from sentry.models.project import Project
 from sentry.signals import first_feedback_received, first_new_feedback_received
 from sentry.types.group import GroupSubStatus
+from sentry.users.models import User
 from sentry.utils import metrics
 from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.safe import get_path
@@ -345,7 +346,9 @@ def shim_to_feedback(
     event: Event | GroupEvent,
     project: Project,
     source: FeedbackCreationSource,
-):
+    sentry_referrer: str | None = None,
+    actor: User | None = None,
+) -> None:
     """
     takes user reports from the legacy user report form/endpoint and
     user reports that come from relay envelope ingestion and
@@ -353,6 +356,9 @@ def shim_to_feedback(
     User feedbacks are an event type, so we try and grab as much from the
     legacy user report and event to create the new feedback.
     """
+    if not features.has("organizations:user-feedback-ingest", project.organization, actor=actor):
+        return
+
     try:
         feedback_event: dict[str, Any] = {
             "contexts": {
@@ -382,9 +388,16 @@ def shim_to_feedback(
         feedback_event["tags"] = [list(item) for item in event.tags]
 
         create_feedback_issue(feedback_event, project.id, source)
+        metrics.incr(
+            "feedback.shim_to_feedback.success",
+            tags={"referrer": source.value, "sentry_referrer": sentry_referrer},
+        )
     except Exception:
         logger.exception("Error attempting to create new user feedback by shimming a user report")
-        metrics.incr("feedback.shim_to_feedback.failed", tags={"referrer": source.value})
+        metrics.incr(
+            "feedback.shim_to_feedback.failed",
+            tags={"referrer": source.value, "sentry_referrer": sentry_referrer},
+        )
 
 
 def auto_ignore_spam_feedbacks(project, issue_fingerprint):
