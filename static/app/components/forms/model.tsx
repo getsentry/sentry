@@ -21,7 +21,7 @@ export type FieldValue =
   | Set<string>
   | number
   | boolean
-| object
+  | object
   | Choice
   | undefined; // is undefined valid here?
 
