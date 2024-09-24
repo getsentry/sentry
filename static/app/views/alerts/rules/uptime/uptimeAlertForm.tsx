@@ -6,6 +6,7 @@ import type {APIRequestMethod} from 'sentry/api';
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import FieldWrapper from 'sentry/components/forms/fieldGroup/fieldWrapper';
+import HiddenField from 'sentry/components/forms/fields/hiddenField';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import SentryMemberTeamSelectorField from 'sentry/components/forms/fields/sentryMemberTeamSelectorField';
 import SentryProjectSelectorField from 'sentry/components/forms/fields/sentryProjectSelectorField';
@@ -45,6 +46,7 @@ function getFormDataFromRule(rule: UptimeRule) {
     method: rule.method,
     body: rule.body,
     headers: rule.headers,
+    intervalSeconds: rule.intervalSeconds,
     owner: rule.owner ? `${rule.owner.type}:${rule.owner.id}` : null,
   };
 }
@@ -189,6 +191,7 @@ export function UptimeAlertForm({
               border: 'none',
             }}
           />
+          <HiddenField name="intervalSeconds" defaultValue={60} />
         </FormRow>
       </List>
     </Form>
