@@ -225,7 +225,7 @@ function CustomViewsIssueListHeaderTabsContent({
     // if a viewId is present, check if it exists in the existing views.
     if (viewId) {
       const selectedTab = draggableTabs.find(tab => tab.id === viewId);
-      if (selectedTab && query && sort) {
+      if (selectedTab && query !== undefined && sort) {
         const issueSortOption = Object.values(IssueSortOptions).includes(sort)
           ? sort
           : IssueSortOptions.DATE;
