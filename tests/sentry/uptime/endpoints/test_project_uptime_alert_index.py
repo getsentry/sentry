@@ -116,7 +116,7 @@ class ProjectUptimeAlertIndexPostEndpointTest(ProjectUptimeAlertIndexBaseEndpoin
             interval_seconds=60,
             method="POST",
             body='{"key": "value"}',
-            headers={"header": "value"},
+            headers=[["header", "value"]],
         )
         uptime_monitor = ProjectUptimeSubscription.objects.get(id=resp.data["id"])
         uptime_subscription = uptime_monitor.uptime_subscription
@@ -128,7 +128,7 @@ class ProjectUptimeAlertIndexPostEndpointTest(ProjectUptimeAlertIndexBaseEndpoin
         assert uptime_subscription.interval_seconds == 60
         assert uptime_subscription.timeout_ms == DEFAULT_SUBSCRIPTION_TIMEOUT_MS
         assert uptime_subscription.body == '{"key": "value"}'
-        assert uptime_subscription.headers == {"header": "value"}
+        assert uptime_subscription.headers == [["header", "value"]]
 
     @with_feature("organizations:uptime-api-create-update")
     def test_headers_body_method_already_exists(self):
@@ -141,7 +141,7 @@ class ProjectUptimeAlertIndexPostEndpointTest(ProjectUptimeAlertIndexBaseEndpoin
             interval_seconds=60,
             method="POST",
             body='{"key": "value"}',
-            headers={"header": "value"},
+            headers=[["header", "value"]],
         )
         uptime_monitor = ProjectUptimeSubscription.objects.get(id=resp.data["id"])
         new_proj = self.create_project()
@@ -154,7 +154,7 @@ class ProjectUptimeAlertIndexPostEndpointTest(ProjectUptimeAlertIndexBaseEndpoin
             interval_seconds=60,
             method="POST",
             body='{"key": "value"}',
-            headers={"header": "value"},
+            headers=[["header", "value"]],
         )
         new_uptime_monitor = ProjectUptimeSubscription.objects.get(id=resp.data["id"])
         assert uptime_monitor.uptime_subscription_id == new_uptime_monitor.uptime_subscription_id
@@ -168,12 +168,30 @@ class ProjectUptimeAlertIndexPostEndpointTest(ProjectUptimeAlertIndexBaseEndpoin
             interval_seconds=60,
             method="POST",
             body='{"key": "value"}',
-            headers={"header": "valu"},
+            headers=[["header", "different value"]],
         )
         newer_uptime_monitor = ProjectUptimeSubscription.objects.get(id=resp.data["id"])
         assert (
             newer_uptime_monitor.uptime_subscription_id != new_uptime_monitor.uptime_subscription_id
         )
+
+    @with_feature("organizations:uptime-api-create-update")
+    def test_headers_invalid_format(self):
+        resp = self.get_error_response(
+            self.organization.slug,
+            self.project.slug,
+            name="test",
+            owner=f"user:{self.user.id}",
+            url="http://sentry.io",
+            interval_seconds=60,
+            method="POST",
+            body='{"key": "value"}',
+            headers={"header", "value"},
+            status_code=400,
+        )
+        assert resp.data == {
+            "headers": [ErrorDetail(string="Expected array of header tuples.", code="invalid")]
+        }
 
     @with_feature("organizations:uptime-api-create-update")
     def test_size_too_big(self):
@@ -186,7 +204,7 @@ class ProjectUptimeAlertIndexPostEndpointTest(ProjectUptimeAlertIndexBaseEndpoin
             interval_seconds=60,
             method="POST",
             body="body" * 250,
-            headers={"header": "value"},
+            headers=[["header", "value"]],
         )
         assert resp.data == {
             "nonFieldErrors": [
