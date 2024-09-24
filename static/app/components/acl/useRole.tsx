@@ -28,7 +28,8 @@ interface UseRoleOptions {
    * The required role ('member', 'admin') are stored in the organization object.
    * eg: Organization.debugFilesRole = 'member'
    */
-  role: Extract<keyof Organization, 'debugFilesRole' | 'attachmentsRole'>;
+  role: // Extract keys to enforce that they are available on the Organization type
+  Extract<keyof Organization, 'debugFilesRole' | 'attachmentsRole'>;
 }
 
 interface UseRoleResult {
