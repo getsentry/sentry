@@ -1,11 +1,25 @@
-import {createContext, useContext} from 'react';
+import {createContext, useContext, useEffect, useRef} from 'react';
 
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
-import usePrevious from 'sentry/utils/usePrevious';
 import {useRoutes} from 'sentry/utils/useRoutes';
 
 interface Props {
   children: React.ReactNode;
+}
+
+/**
+ * Rewrite usePrevious for our use case, to ignore the not found route.
+ * The previous route can be '/*', which isn't useful for issue grouping.
+ */
+function usePrevious<T>(value: T): T {
+  const ref = useRef<T>(value);
+  useEffect(() => {
+    // only store the new value if it's not the "not found" route
+    if (value !== '/*') {
+      ref.current = value;
+    }
+  }, [value]);
+  return ref.current;
 }
 
 export const LastKnownRouteContext = createContext<string>('<unknown>');
