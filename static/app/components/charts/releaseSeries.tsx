@@ -65,8 +65,7 @@ function getOrganizationReleases(
 }
 
 const getOrganizationReleasesMemoized = memoize(
-  (api: Client, organization: Organization, conditions: ReleaseConditions) =>
-    getOrganizationReleases(api, organization, conditions),
+  getOrganizationReleases,
   (_, __, conditions) =>
     Object.values(conditions)
       .map(val => JSON.stringify(val))
