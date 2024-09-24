@@ -1,7 +1,7 @@
 import type {Theme} from '@emotion/react';
 import * as Sentry from '@sentry/react';
 import type {Location} from 'history';
-import qs from 'qs';
+import * as qs from 'query-string';
 
 import type {Client} from 'sentry/api';
 import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
