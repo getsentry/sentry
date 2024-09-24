@@ -1,5 +1,6 @@
 import mapValues from 'lodash/mapValues';
 
+import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {STATIC_FIELD_TAGS_WITHOUT_TRANSACTION_FIELDS} from 'sentry/components/events/searchBarFieldConstants';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -94,6 +95,15 @@ export const AlertWizardAlertNames: Record<AlertType, string> = {
   uptime_monitor: t('Uptime Monitor'),
 };
 
+/**
+ * Additional elements to render after the name of the alert rule type. Useful
+ * for adding feature badges or other call-outs for newer alert types.
+ */
+export const AlertWizardExtraContent: Partial<Record<AlertType, React.ReactNode>> = {
+  insights_metrics: <FeatureBadge type="alpha" />,
+  uptime_monitor: <FeatureBadge type="beta" />,
+};
+
 type AlertWizardCategory = {
   categoryHeading: string;
   options: AlertType[];
@@ -136,7 +146,7 @@ export const getAlertWizardCategories = (org: Organization) => {
 
     if (org.features.includes('uptime-display-wizard-create')) {
       result.push({
-        categoryHeading: t('Uptime'),
+        categoryHeading: t('Uptime Monitoring'),
         options: ['uptime_monitor'],
       });
     }

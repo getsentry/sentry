@@ -14,7 +14,6 @@ from sentry.incidents.models.alert_rule import (
 )
 from sentry.seer.anomaly_detection.types import AnomalyType, StoreDataResponse
 from sentry.testutils.cases import SnubaTestCase
-from sentry.testutils.factories import EventType
 from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
@@ -49,8 +48,8 @@ class AlertRuleAnomalyEndpointTest(AlertRuleBase, SnubaTestCase):
                     "timestamp": iso_format(two_weeks_ago + timedelta(minutes=1)),
                     "fingerprint": ["group1"],
                     "tags": {"sentry:user": self.user.email},
+                    "exception": [{"value": "BadError"}],
                 },
-                event_type=EventType.ERROR,
                 project_id=self.project.id,
             )
             self.store_event(
@@ -60,8 +59,8 @@ class AlertRuleAnomalyEndpointTest(AlertRuleBase, SnubaTestCase):
                     "timestamp": iso_format(two_weeks_ago + timedelta(days=10)),
                     "fingerprint": ["group2"],
                     "tags": {"sentry:user": self.user.email},
+                    "exception": [{"value": "BadError"}],
                 },
-                event_type=EventType.ERROR,
                 project_id=self.project.id,
             )
         seer_store_data_return_value: StoreDataResponse = {"success": True}
@@ -75,9 +74,7 @@ class AlertRuleAnomalyEndpointTest(AlertRuleBase, SnubaTestCase):
             seasonality=AlertRuleSeasonality.AUTO,
             detection_type=AlertRuleDetectionType.DYNAMIC,
         )
-
         self.login_as(self.user)
-
         seer_return_value = {
             "success": True,
             "timeseries": [
@@ -171,8 +168,8 @@ class AlertRuleAnomalyEndpointTest(AlertRuleBase, SnubaTestCase):
                     "timestamp": iso_format(two_weeks_ago + timedelta(minutes=1)),
                     "fingerprint": ["group1"],
                     "tags": {"sentry:user": self.user.email},
+                    "exception": [{"value": "BadError"}],
                 },
-                event_type=EventType.ERROR,
                 project_id=self.project.id,
             )
             self.store_event(
@@ -182,8 +179,8 @@ class AlertRuleAnomalyEndpointTest(AlertRuleBase, SnubaTestCase):
                     "timestamp": iso_format(two_weeks_ago + timedelta(days=10)),
                     "fingerprint": ["group2"],
                     "tags": {"sentry:user": self.user.email},
+                    "exception": [{"value": "BadError"}],
                 },
-                event_type=EventType.ERROR,
                 project_id=self.project.id,
             )
 
@@ -243,8 +240,8 @@ class AlertRuleAnomalyEndpointTest(AlertRuleBase, SnubaTestCase):
                     "timestamp": iso_format(two_weeks_ago + timedelta(minutes=1)),
                     "fingerprint": ["group1"],
                     "tags": {"sentry:user": self.user.email},
+                    "exception": [{"value": "BadError"}],
                 },
-                event_type=EventType.ERROR,
                 project_id=self.project.id,
             )
             self.store_event(
@@ -254,8 +251,8 @@ class AlertRuleAnomalyEndpointTest(AlertRuleBase, SnubaTestCase):
                     "timestamp": iso_format(two_weeks_ago + timedelta(days=10)),
                     "fingerprint": ["group2"],
                     "tags": {"sentry:user": self.user.email},
+                    "exception": [{"value": "BadError"}],
                 },
-                event_type=EventType.ERROR,
                 project_id=self.project.id,
             )
 

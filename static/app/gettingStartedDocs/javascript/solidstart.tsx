@@ -130,6 +130,16 @@ export default createMiddleware({
 });
 `;
 
+const getSdkMiddlewareLinkSetup = () => `
+import { defineConfig } from "@solidjs/start/config";
+
+export default defineConfig({
+  middleware: "./src/middleware.ts"
+  // Other configuration options
+  // ...
+});
+`;
+
 const getSdkRouterWrappingSetup = () => `
 import { Router } from "@solidjs/router";
 import { FileRoutes } from "@solidjs/start/router";
@@ -251,8 +261,13 @@ const onboarding: OnboardingConfig = {
           ? [
               {
                 description: tct(
-                  'Complete the setup by adding the Sentry middleware to your [code:src/middleware.ts] file',
-                  {code: <code />}
+                  'Complete the setup by adding the Sentry [solidStartMiddlewareLink: middleware] to your [code:src/middleware.ts] file',
+                  {
+                    code: <code />,
+                    solidStartMiddlewareLink: (
+                      <ExternalLink href="https://docs.solidjs.com/solid-start/advanced/middleware" />
+                    ),
+                  }
                 ),
                 code: [
                   {
@@ -263,6 +278,19 @@ const onboarding: OnboardingConfig = {
                     value: 'javascript',
                     language: 'javascript',
                     code: getSdkMiddlewareSetup(),
+                  },
+                ],
+              },
+              {
+                description: tct('And including it in the [code:app.config.ts] file', {
+                  code: <code />,
+                }),
+                code: [
+                  {
+                    label: 'TypeScript',
+                    value: 'javascript',
+                    language: 'javascript',
+                    code: getSdkMiddlewareLinkSetup(),
                   },
                 ],
               },
