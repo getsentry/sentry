@@ -21,11 +21,13 @@ import type {User} from 'sentry/types/user';
 import {uniqueId} from 'sentry/utils/guid';
 import type {MutateOptions} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useTeamsById} from 'sentry/utils/useTeamsById';
 import {groupActivityTypeIconMapping} from 'sentry/views/issueDetails/streamline/groupActivityIcons';
 import getGroupActivityItem from 'sentry/views/issueDetails/streamline/groupActivityItem';
 
 function StreamlinedActivitySection({group}: {group: Group}) {
   const organization = useOrganization();
+  const teams = useTeamsById().teams;
 
   const [inputId, setInputId] = useState(uniqueId());
 
@@ -83,7 +85,8 @@ function StreamlinedActivitySection({group}: {group: Group}) {
             item,
             organization,
             group.project.id,
-            <Author>{authorName}</Author>
+            <Author>{authorName}</Author>,
+            teams
           );
 
           const Icon = groupActivityTypeIconMapping[item.type]?.Component ?? null;

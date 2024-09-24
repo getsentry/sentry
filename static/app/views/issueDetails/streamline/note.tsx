@@ -128,11 +128,11 @@ function StreamlinedNoteInput({
   const handleKeyDown: MentionsInputProps['onKeyDown'] = useCallback(
     e => {
       // Auto submit the form on [meta,ctrl] + Enter
-      if (e.key === 'Enter' && !e.shift && canSubmit) {
-        submitForm();
+      if (e.key === 'Enter' && !e.shiftKey && canSubmit) {
+        handleSubmit(e);
       }
     },
-    [canSubmit, submitForm]
+    [canSubmit, handleSubmit]
   );
 
   const errorId = useMemo(() => domId('note-error-'), []);
@@ -142,7 +142,6 @@ function StreamlinedNoteInput({
         ? errorJSON.detail
         : errorJSON.detail?.message || t('Unable to post comment'))) ||
     null;
-
   return (
     <NoteInputForm data-test-id="note-input-form" noValidate onSubmit={handleSubmit}>
       <MentionsInput
