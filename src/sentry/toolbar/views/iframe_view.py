@@ -11,7 +11,7 @@ REFERRER_HEADER = "HTTP_REFERER"  # 1 R is the spelling used here: https://docs.
 
 
 @region_silo_view
-class ToolbarIframeView(OrganizationView):
+class IframeView(OrganizationView):
     def respond(self, template: str, context: dict[str, Any] | None = None, status: int = 200):
         response = super().respond(template, context=context, status=status)
         response["X-Frame-Options"] = "ALLOWALL"  # allows response to be embedded in an iframe.
