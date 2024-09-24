@@ -98,7 +98,12 @@ describe('UptimeHeaderField', function () {
 
   it('populates with initial values', function () {
     const model = new FormModel({
-      initialData: {headers: {one: 'test one', two: 'test two'}},
+      initialData: {
+        headers: [
+          ['one', 'test one'],
+          ['two', 'test two'],
+        ],
+      },
     });
 
     render(
