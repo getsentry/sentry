@@ -85,7 +85,6 @@ class OrganizationSerializerTest(TestCase):
             "integrations-stacktrace-link",
             "integrations-ticket-rules",
             "performance-tracing-without-performance",
-            "priority-ga-features",
             "invite-members",
             "minute-resolution-sessions",
             "new-page-filter",
