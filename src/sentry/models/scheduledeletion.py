@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import logging
-from datetime import timedelta
+from datetime import datetime, timedelta
+from typing import Any, Self
 from uuid import uuid4
 
 from django.apps import apps
@@ -16,18 +17,18 @@ from sentry.db.models import (
     control_silo_model,
     region_silo_model,
 )
-from sentry.silo.base import SiloMode
+from sentry.silo.base import SiloLimit, SiloMode
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 
 delete_logger = logging.getLogger("sentry.deletions.api")
 
 
-def default_guid():
+def default_guid() -> str:
     return uuid4().hex
 
 
-def default_date_schedule():
+def default_date_schedule() -> datetime:
     return timezone.now() + timedelta(days=30)
 
 
@@ -59,12 +60,18 @@ class BaseScheduledDeletion(Model):
     in_progress = models.BooleanField(default=False)
 
     @classmethod
-    def schedule(cls, instance, days=30, hours=0, data=None, actor=None):
+    def schedule(
+        cls, instance: Model, days: int = 30, hours: int = 0, data: Any = None, actor: Any = None
+    ) -> Self:
         model = type(instance)
         silo_mode = SiloMode.get_current_mode()
-        if silo_mode not in model._meta.silo_limit.modes and silo_mode != SiloMode.MONOLITH:
+        model_silo = getattr(model._meta, "silo_limit", None)
+        assert (
+            model_silo
+        ), "model._meta.silo_limit undefined. This model cannot be used with deletions"
+        if silo_mode not in model_silo.modes and silo_mode != SiloMode.MONOLITH:
             # Pre-empt the fact that our silo protections wouldn't fire for mismatched model <-> silo deletion objects.
-            raise model._meta.silo_limit.AvailabilityError(
+            raise SiloLimit.AvailabilityError(
                 f"{model!r} was scheduled for deletion by {cls!r}, but is unavailable in {silo_mode!r}"
             )
 
@@ -97,7 +104,7 @@ class BaseScheduledDeletion(Model):
         return record
 
     @classmethod
-    def cancel(cls, instance):
+    def cancel(cls, instance: Model):
         model_name = type(instance).__name__
         try:
             deletion = cls.objects.get(
@@ -116,10 +123,10 @@ class BaseScheduledDeletion(Model):
             extra={"object_id": instance.pk, "model": model_name},
         )
 
-    def get_model(self):
+    def get_model(self) -> type[Any]:
         return apps.get_model(self.app_label, self.model_name)
 
-    def get_instance(self):
+    def get_instance(self) -> Model:
         from sentry import deletions
         from sentry.deletions.base import ModelDeletionTask
 

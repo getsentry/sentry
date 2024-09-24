@@ -243,6 +243,20 @@ const QueryWrapper = styled('div')`
   overflow: hidden;
 `;
 
+const SuggestionList = styled('ul')`
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+
+  li:has(+ li:hover) {
+    border-bottom: 1px solid transparent;
+  }
+
+  li:hover {
+    border-bottom: 1px solid transparent;
+  }
+`;
+
 const Suggestion = styled('li')`
   position: relative;
   display: inline-grid;
@@ -259,12 +273,6 @@ const Suggestion = styled('li')`
   &:hover .data-actions-wrapper {
     visibility: visible;
   }
-`;
-
-const SuggestionList = styled('ul')`
-  display: flex;
-  flex-direction: column;
-  padding: 0;
 `;
 
 const Banner = styled('div')`

@@ -27,8 +27,8 @@ export default function AddInstallationInstructions() {
       </p>
       <p>
         {tct(
-          'If you don’t want to add CloudFormation stack to your AWS environment, press the [manualSetup] button instead.',
-          {manualSetup: <strong>{t('Manual Setup')}</strong>}
+          'If you don’t want to add CloudFormation stack to your AWS environment, press the [manual] button above instead.',
+          {manual: <strong>{t('Manual')}</strong>}
         )}
       </p>
     </Fragment>

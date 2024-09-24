@@ -88,11 +88,15 @@ ${getFeedbackConfigOptions(params.feedbackOptions)}}),`
 }
 });
 
-const app = document.getElementById("app");
+const root = document.getElementById("root");
 
-if (!app) throw new Error("No #app element found in the DOM.");
+if (import.meta.env.DEV && !(root instanceof HTMLElement)) {
+  throw new Error(
+    "Root element not found. Did you forget to add it to your index.html? Or maybe the id attribute got misspelled?"
+  );
+}
 
-render(() => <App />, app);
+render(() => <App />, root);
 `;
 
 const getVerifySnippet = () => `

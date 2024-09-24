@@ -1,4 +1,4 @@
-import qs from 'qs';
+import * as qs from 'query-string';
 
 import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
 import {t} from 'sentry/locale';
