@@ -63,7 +63,7 @@ export function createNavConfig({organization}: {organization: Organization}): N
         submenu: [
           {
             label: t('Traces'),
-            to: `/traces/`,
+            to: `/${prefix}/traces/`,
             feature: {features: 'performance-trace-explorer'},
           },
           {
