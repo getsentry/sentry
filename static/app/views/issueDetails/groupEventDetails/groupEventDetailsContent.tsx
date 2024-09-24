@@ -229,7 +229,12 @@ export function EventDetailsContent({
           project={project}
         />
       )}
-      <HighlightsDataSection event={event} project={project} viewAllRef={tagsRef} />
+      <HighlightsDataSection
+        groupId={group.id}
+        event={event}
+        project={project}
+        viewAllRef={tagsRef}
+      />
       {showPossibleSolutionsHigher && (
         <ResourcesAndPossibleSolutionsIssueDetailsContent
           event={event}

@@ -1,5 +1,3 @@
-import type {Tag} from 'sentry/actionCreators/events';
-import type {GroupTagsResponse} from 'sentry/actionCreators/group';
 import {defined} from 'sentry/utils';
 import {
   type ApiQueryKey,
@@ -8,8 +6,31 @@ import {
 } from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
-type FetchIssueTagsParameters = {
-  environment: string[];
+export interface GroupTag {
+  key: string;
+  name: string;
+  topValues: Array<{
+    count: number;
+    firstSeen: string;
+    lastSeen: string;
+    name: string;
+    value: string;
+    /**
+     * Provided for tags like `user` to help query on specific tags
+     * Example: user -> `'user.id:\"1\"'`
+     */
+    query?: string;
+    /**
+     * Available if `readable` query param is true
+     * @deprecated - Use the frontend to get readable device names
+     */
+    readable?: string;
+  }>;
+  totalValues: number;
+}
+
+interface FetchIssueTagsParameters {
+  environment: string[] | string | undefined;
   /**
    * Request is disabled until groupId is defined
    */
@@ -21,9 +42,9 @@ type FetchIssueTagsParameters = {
    * TODO(scott): Can we do this in the frontend instead
    */
   readable?: boolean;
-};
+}
 
-type GroupTagUseQueryOptions = Partial<UseApiQueryOptions<GroupTagsResponse | Tag[]>>;
+type GroupTagUseQueryOptions = Partial<UseApiQueryOptions<GroupTag[]>>;
 
 const makeGroupTagsQueryKey = ({
   groupId,
@@ -41,7 +62,7 @@ export function useGroupTags(
   {enabled = true, ...options}: GroupTagUseQueryOptions = {}
 ) {
   const organization = useOrganization();
-  return useApiQuery<GroupTagsResponse | Tag[]>(
+  return useApiQuery<GroupTag[]>(
     makeGroupTagsQueryKey({
       orgSlug: organization.slug,
       ...parameters,

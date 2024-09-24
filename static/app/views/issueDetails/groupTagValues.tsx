@@ -49,13 +49,13 @@ type Props = {
 const DEFAULT_SORT = 'count';
 
 function useTagQueries({
-  group,
+  groupId,
   tagKey,
   environments,
   sort,
   cursor,
 }: {
-  group: Group;
+  groupId: string;
   sort: string | string[];
   tagKey: string;
   cursor?: string;
@@ -70,7 +70,7 @@ function useTagQueries({
     getResponseHeader,
   } = useFetchIssueTagValues({
     orgSlug: organization.slug,
-    groupId: group.id,
+    groupId,
     tagKey,
     environment: environments,
     sort,
@@ -78,7 +78,7 @@ function useTagQueries({
   });
   const {data: tag, isError: tagIsError} = useFetchIssueTag({
     orgSlug: organization.slug,
-    groupId: group.id,
+    groupId,
     tagKey,
   });
 
@@ -108,7 +108,7 @@ function GroupTagValues({baseUrl, project, group, environments}: Props) {
   const sortArrow = <IconArrow color="gray300" size="xs" direction="down" />;
 
   const {tagValueList, tag, isLoading, isError, pageLinks} = useTagQueries({
-    group,
+    groupId: group.id,
     sort,
     tagKey,
     environments,

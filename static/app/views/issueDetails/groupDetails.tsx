@@ -60,8 +60,8 @@ import {ERROR_TYPES} from 'sentry/views/issueDetails/constants';
 import SampleEventAlert from 'sentry/views/issueDetails/sampleEventAlert';
 import StreamlinedGroupHeader from 'sentry/views/issueDetails/streamline/header';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
+import {makeFetchGroupQueryKey, useGroup} from 'sentry/views/issueDetails/useGroup';
 import {
-  getGroupDetailsQueryData,
   getGroupEventDetailsQueryData,
   getGroupReprocessingStatus,
   markEventSeen,
@@ -285,23 +285,6 @@ function useEventApiQuery({
   return isLatestOrRecommendedEvent ? latestOrRecommendedEvent : otherEventQuery;
 }
 
-type FetchGroupQueryParameters = {
-  environments: string[];
-  groupId: string;
-  organizationSlug: string;
-};
-
-function makeFetchGroupQueryKey({
-  groupId,
-  organizationSlug,
-  environments,
-}: FetchGroupQueryParameters): ApiQueryKey {
-  return [
-    `/organizations/${organizationSlug}/issues/${groupId}/`,
-    {query: getGroupDetailsQueryData({environments})},
-  ];
-}
-
 /**
  * This is a temporary measure to ensure that the GroupStore and query cache
  * are both up to date while we are still using both in the issue details page.
@@ -366,14 +349,7 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
     isError: isGroupError,
     error: groupError,
     refetch: refetchGroupCall,
-  } = useApiQuery<Group>(
-    makeFetchGroupQueryKey({organizationSlug: organization.slug, groupId, environments}),
-    {
-      staleTime: 30000,
-      gcTime: 30000,
-      retry: false,
-    }
-  );
+  } = useGroup({groupId});
 
   /**
    * Allows the GroupEventHeader to display the previous event while the new event is loading.
