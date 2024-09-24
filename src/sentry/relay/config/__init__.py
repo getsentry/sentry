@@ -62,7 +62,6 @@ EXPOSABLE_FEATURES = [
     "organizations:standalone-span-ingestion",
     "organizations:transaction-name-mark-scrubbed-as-sanitized",
     "organizations:transaction-name-normalize",
-    "organizations:user-feedback-ingest",
     "projects:discard-transaction",
     "projects:profiling-ingest-unsampled-profiles",
     "projects:span-metrics-extraction",
