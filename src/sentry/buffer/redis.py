@@ -123,7 +123,9 @@ class PendingBufferRouter:
         """
         Get the queue name for the given model_key.
         """
+        metrics.incr(f"pendingbuffer-router.queue.{model_key}")
         if model_key in self.pending_buffer_router:
+            metrics.incr(f"pendingbuffer-router.queue-found.{model_key}")
             generate_queue = self.pending_buffer_router[model_key].generate_queue
             if generate_queue is not None:
                 return generate_queue(model_key)
@@ -158,6 +160,7 @@ class RedisBufferRouter:
         A queue can be assigned to a model by passing in the generate_queue function.
         """
         key = _get_model_key(model=model)
+        metrics.incr(f"redisbuffer-router.assign_queue.{key}")
         self._routers[key] = generate_queue
 
     def create_pending_buffers_router(self, incr_batch_size: int) -> PendingBufferRouter:
@@ -526,7 +529,7 @@ class RedisBuffer(Buffer):
             # model associated with the model_key.
             process_incr_kwargs: dict[str, Any] = dict()
             if model_key is None:
-                metrics.incr("buffer.process-incr.model-key-missing")
+                metrics.incr("buffer.process-incr.model-key-missing", tags={"model_key": model_key})
                 return process_incr_kwargs
             queue = pending_buffers_router.queue(model_key=model_key)
             if queue is not None:
