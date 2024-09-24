@@ -936,7 +936,6 @@ def update_alert_rule(
                 raise ResourceDoesNotExist(
                     "Your organization does not have access to this feature."
                 )
-
             if updated_fields.get("detection_type") == AlertRuleDetectionType.DYNAMIC and (
                 alert_rule.detection_type != AlertRuleDetectionType.DYNAMIC or query or aggregate
             ):
@@ -952,6 +951,11 @@ def update_alert_rule(
                     if rule_status == AlertRuleStatus.NOT_ENOUGH_DATA:
                         # if we don't have at least seven days worth of data, then the dynamic alert won't fire
                         alert_rule.update(status=AlertRuleStatus.NOT_ENOUGH_DATA.value)
+                    elif (
+                        rule_status == AlertRuleStatus.PENDING
+                        and alert_rule.status != AlertRuleStatus.PENDING
+                    ):
+                        alert_rule.update(status=AlertRuleStatus.PENDING.value)
                 except (TimeoutError, MaxRetryError):
                     raise TimeoutError("Failed to send data to Seer - cannot update alert rule.")
                 except ParseError:
