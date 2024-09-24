@@ -133,14 +133,19 @@ export function getDefaultNodeImports({
   return imports;
 }
 
-export function getImportInstrumentSnippet(defaultMode?: 'esm' | 'cjs'): string {
+export function getImportInstrumentSnippet(
+  defaultMode?: 'esm' | 'cjs',
+  fileExtension: string = 'js'
+): string {
+  const filename = `instrument.${fileExtension}`;
+
   return defaultMode === 'esm'
-    ? `// IMPORTANT: Make sure to import \`instrument.js\` at the top of your file.
-  // If you're using CommonJS (CJS) syntax, use \`require("./instrument.js");\`
-  import "./instrument.js";`
-    : `// IMPORTANT: Make sure to import \`instrument.js\` at the top of your file.
-  // If you're using ECMAScript Modules (ESM) syntax, use \`import "./instrument.js";\`
-  require("./instrument.js");`;
+    ? `// IMPORTANT: Make sure to import \`${filename}\` at the top of your file.
+// If you're using CommonJS (CJS) syntax, use \`require("./${filename}");\`
+import "./${filename}";`
+    : `// IMPORTANT: Make sure to import \`${filename}\` at the top of your file.
+// If you're using ECMAScript Modules (ESM) syntax, use \`import "./${filename}";\`
+require("./${filename}");`;
 }
 
 /**
