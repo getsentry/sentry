@@ -7,7 +7,8 @@ import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
 import {useGroupBys} from 'sentry/views/explore/hooks/useGroupBys';
 import type {Field} from 'sentry/views/explore/hooks/useSampleFields';
-import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
+
+import {useSpanTags} from '../contexts/spanTagsContext';
 
 import {
   ToolbarHeader,
@@ -22,8 +23,7 @@ interface ToolbarGroupByProps {
 }
 
 export function ToolbarGroupBy({disabled}: ToolbarGroupByProps) {
-  // TODO: This should be loaded from context to avoid loading tags twice.
-  const tags = useSpanFieldSupportedTags();
+  const tags = useSpanTags();
 
   const [groupBys, setGroupBys] = useGroupBys();
 

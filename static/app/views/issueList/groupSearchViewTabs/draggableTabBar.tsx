@@ -388,15 +388,13 @@ export function DraggableTabBar({
           disabled={tab.key === editingTabKey}
         >
           <TabContentWrap>
-            <motion.div layout="position" transition={{duration: 0.25}}>
-              <EditableTabTitle
-                label={tab.label}
-                isEditing={editingTabKey === tab.key}
-                setIsEditing={isEditing => setEditingTabKey(isEditing ? tab.key : null)}
-                onChange={newLabel => handleOnTabRenamed(newLabel.trim(), tab.key)}
-                tabKey={tab.key}
-              />
-            </motion.div>
+            <EditableTabTitle
+              label={tab.label}
+              isEditing={editingTabKey === tab.key}
+              setIsEditing={isEditing => setEditingTabKey(isEditing ? tab.key : null)}
+              onChange={newLabel => handleOnTabRenamed(newLabel.trim(), tab.key)}
+              tabKey={tab.key}
+            />
             {/* If tablistState isn't initialized, we want to load the elipsis menu
                 for the initial tab, that way it won't load in a second later
                 and cause the tabs to shift and animate on load.
