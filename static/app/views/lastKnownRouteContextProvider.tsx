@@ -7,21 +7,6 @@ interface Props {
   children: React.ReactNode;
 }
 
-/**
- * Rewrite usePrevious for our use case, to ignore the not found route.
- * The previous route can be '/*', which isn't useful for issue grouping.
- */
-function usePrevious<T>(value: T): T {
-  const ref = useRef<T>(value);
-  useEffect(() => {
-    // only store the new value if it's not the "not found" route
-    if (value !== '/*') {
-      ref.current = value;
-    }
-  }, [value]);
-  return ref.current;
-}
-
 export const LastKnownRouteContext = createContext<string>('<unknown>');
 
 export function useLastKnownRoute() {
@@ -34,8 +19,18 @@ export function useLastKnownRoute() {
  */
 export default function LastKnownRouteContextProvider({children}: Props) {
   const route = useRoutes();
-  const prevRoute = usePrevious(route);
-  const lastKnownRoute = getRouteStringFromRoutes(prevRoute);
+
+  // We could use `usePrevious` here if we didn't need the additional logic to
+  // ensure we don't track the not found route, which isn't useful for issue grouping.
+  const prevRoute = useRef(route);
+  useEffect(() => {
+    // only store the new value if it's not the "not found" route
+    if (getRouteStringFromRoutes(route) !== '/*') {
+      prevRoute.current = route;
+    }
+  }, [route]);
+
+  const lastKnownRoute = getRouteStringFromRoutes(prevRoute.current);
 
   return (
     <LastKnownRouteContext.Provider value={lastKnownRoute}>
