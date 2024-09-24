@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
-import FeatureBadge from 'sentry/components/badge/featureBadge';
 import CreateAlertButton from 'sentry/components/createAlertButton';
 import {Hovercard} from 'sentry/components/hovercard';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -26,6 +25,7 @@ import {AlertRuleType} from 'sentry/views/alerts/types';
 import type {AlertType, WizardRuleTemplate} from './options';
 import {
   AlertWizardAlertNames,
+  AlertWizardExtraContent,
   AlertWizardRuleTemplates,
   getAlertWizardCategories,
 } from './options';
@@ -166,9 +166,7 @@ function AlertWizard({organization, params, location, projectId}: AlertWizardPro
                         return [
                           alertType,
                           AlertWizardAlertNames[alertType],
-                          alertType === 'insights_metrics' ? (
-                            <FeatureBadge type="alpha" />
-                          ) : null,
+                          AlertWizardExtraContent[alertType],
                         ];
                       })}
                       onChange={option => handleChangeAlertOption(option as AlertType)}

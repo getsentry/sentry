@@ -1,5 +1,6 @@
 import mapValues from 'lodash/mapValues';
 
+import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {STATIC_FIELD_TAGS_WITHOUT_TRANSACTION_FIELDS} from 'sentry/components/events/searchBarFieldConstants';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -92,6 +93,15 @@ export const AlertWizardAlertNames: Record<AlertType, string> = {
   llm_tokens: t('LLM token usage'),
   insights_metrics: t('Insights Metric'),
   uptime_monitor: t('Uptime Monitor'),
+};
+
+/**
+ * Additional elements to render after the name of the alert rule type. Useful
+ * for adding feature badges or other call-outs for newer alert types.
+ */
+export const AlertWizardExtraContent: Partial<Record<AlertType, React.ReactNode>> = {
+  insights_metrics: <FeatureBadge type="alpha" />,
+  uptime_monitor: <FeatureBadge type="beta" />,
 };
 
 type AlertWizardCategory = {
