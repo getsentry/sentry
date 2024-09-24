@@ -315,8 +315,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:performance-use-metrics", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=True)
     # Enable showing INP web vital in default views
     manager.add("organizations:performance-vitals-inp", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-    # Enable the GA features for priority alerts
-    manager.add("organizations:priority-ga-features", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=True, api_expose=True)
     # Enable profiling
     manager.add("organizations:profiling", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=True)
     # Enabled for those orgs who participated in the profiling Beta program
