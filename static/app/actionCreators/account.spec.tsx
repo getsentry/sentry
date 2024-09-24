@@ -2,8 +2,6 @@ import {waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {logout} from './account';
 
-jest.mock('react-router-dom');
-
 describe('logout', () => {
   it('has can logout', async function () {
     jest.spyOn(window.location, 'assign').mockImplementation(() => {});

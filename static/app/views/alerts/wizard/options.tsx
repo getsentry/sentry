@@ -133,9 +133,10 @@ export const getAlertWizardCategories = (org: Organization) => {
         options: ['llm_tokens', 'llm_cost'],
       });
     }
-    if (org.features.includes('organizations:uptime-display-wizard-create')) {
+
+    if (org.features.includes('uptime-display-wizard-create')) {
       result.push({
-        categoryHeading: t('Uptime'),
+        categoryHeading: t('Uptime Monitoring'),
         options: ['uptime_monitor'],
       });
     }
