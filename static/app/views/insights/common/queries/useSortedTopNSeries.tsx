@@ -17,6 +17,10 @@ import type {SpanFunctions, SpanIndexedField} from 'sentry/views/insights/types'
 
 import {getRetryDelay, shouldRetryHandler} from '../utils/retryHandlers';
 
+type SeriesMap = {
+  [seriesName: string]: Series[];
+};
+
 interface Options<Fields> {
   enabled?: boolean;
   fields?: string[];
@@ -91,7 +95,9 @@ export const useSortedTopNSeries = <
 
   const isFetchingOrLoading = result.isPending || result.isFetching;
 
-  const data: Series[] = isFetchingOrLoading ? [] : transformToSeries(result.data);
+  const data: SeriesMap = isFetchingOrLoading
+    ? {}
+    : transformToSeriesMap(result.data, yAxis);
 
   const pageLinks = result.response?.getResponseHeader('Link') ?? undefined;
 
@@ -103,31 +109,45 @@ export const useSortedTopNSeries = <
   };
 };
 
-function transformToSeries(result: MultiSeriesEventsStats | undefined): Series[] {
+function transformToSeriesMap(
+  result: MultiSeriesEventsStats | undefined,
+  yAxis: string[]
+): SeriesMap {
   if (!result) {
-    return [];
+    return {};
   }
 
-  const processedResults: [number, Series][] = Object.keys(result).map(seriesName => {
-    const seriesData: EventsStats = result[seriesName];
+  const firstYAxis = yAxis[0] || '';
 
-    let scale = 1;
-    if (seriesName) {
-      const unit = seriesData.meta?.units?.[getAggregateAlias(seriesName)];
-      // Scale series values to milliseconds or bytes depending on units from meta
-      scale = (unit && (DURATION_UNITS[unit] ?? SIZE_UNITS[unit])) ?? 1;
-    }
+  const processedResults: [number, Series][] = Object.keys(result).map(seriesName =>
+    processSingleEventStats(seriesName, result)
+  );
 
-    const processsedData: Series = {
-      seriesName: seriesName || '(empty string)',
-      data: seriesData.data.map(([timestamp, countsForTimestamp]) => ({
-        name: timestamp * 1000,
-        value: countsForTimestamp.reduce((acc, {count}) => acc + count, 0) * scale,
-      })),
-    };
+  return {
+    [firstYAxis]: processedResults.sort(([a], [b]) => a - b).map(([, series]) => series),
+  };
+}
 
-    return [seriesData.order || 0, processsedData];
-  });
+function processSingleEventStats(
+  seriesName: string,
+  result: MultiSeriesEventsStats
+): [number, Series] {
+  const seriesData: EventsStats = result[seriesName];
 
-  return processedResults.sort(([a], [b]) => a - b).map(([, series]) => series);
+  let scale = 1;
+  if (seriesName) {
+    const unit = seriesData.meta?.units?.[getAggregateAlias(seriesName)];
+    // Scale series values to milliseconds or bytes depending on units from meta
+    scale = (unit && (DURATION_UNITS[unit] ?? SIZE_UNITS[unit])) ?? 1;
+  }
+
+  const processsedData: Series = {
+    seriesName: seriesName || '(empty string)',
+    data: seriesData.data.map(([timestamp, countsForTimestamp]) => ({
+      name: timestamp * 1000,
+      value: countsForTimestamp.reduce((acc, {count}) => acc + count, 0) * scale,
+    })),
+  };
+
+  return [seriesData.order || 0, processsedData];
 }

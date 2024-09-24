@@ -108,13 +108,12 @@ export function ExploreCharts({query}: ExploreChartsProps) {
 
   const getSeries = useCallback(
     (dedupedYAxes: string[]) => {
-      if (topEvents !== undefined) {
-        return topNSeriesResult.data;
-      }
-
-      return dedupedYAxes.map(yAxis => singleSeriesResult.data[yAxis]);
+      return dedupedYAxes.flatMap(yAxis => {
+        const series = topNSeriesResult.data[yAxis];
+        return series !== undefined ? series : [];
+      });
     },
-    [singleSeriesResult, topNSeriesResult, topEvents]
+    [topNSeriesResult]
   );
 
   const handleChartTypeChange = useCallback(
