@@ -5,9 +5,14 @@ from uuid import uuid4
 from django.utils import timezone
 
 from sentry.models.group import GroupStatus
+from sentry.models.project import Project
 from sentry.models.userreport import UserReport
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+
+
+def _make_url(project: Project):
+    return f"/api/0/projects/{project.organization.slug}/{project.slug}/user-feedback/"
 
 
 class ProjectUserReportListTest(APITestCase, SnubaTestCase):
@@ -104,7 +109,7 @@ class ProjectUserReportListTest(APITestCase, SnubaTestCase):
             group_id=group2.id,
         )
 
-        url = f"/api/0/projects/{project.organization.slug}/{project.slug}/user-feedback/"
+        url = _make_url(project)
 
         response = self.client.get(url, format="json")
 
@@ -116,7 +121,7 @@ class ProjectUserReportListTest(APITestCase, SnubaTestCase):
         project = self.create_project()
         project_key = self.create_project_key(project=project)
 
-        url = f"/api/0/projects/{project.organization.slug}/{project.slug}/user-feedback/"
+        url = _make_url(project)
 
         response = self.client.get(url, HTTP_AUTHORIZATION=f"DSN {project_key.dsn_public}")
 
@@ -148,7 +153,7 @@ class ProjectUserReportListTest(APITestCase, SnubaTestCase):
         group.substatus = None
         group.save()
 
-        url = f"/api/0/projects/{project.organization.slug}/{project.slug}/user-feedback/"
+        url = _make_url(project)
 
         response = self.client.get(f"{url}?status=", format="json")
 
@@ -159,9 +164,7 @@ class ProjectUserReportListTest(APITestCase, SnubaTestCase):
     def test_environments(self):
         self.login_as(user=self.user)
 
-        base_url = (
-            f"/api/0/projects/{self.project.organization.slug}/{self.project.slug}/user-feedback/"
-        )
+        base_url = _make_url(self.project)
 
         # Specify environment
         response = self.client.get(base_url + "?environment=production")
@@ -208,9 +211,7 @@ class ProjectUserReportListTest(APITestCase, SnubaTestCase):
             group_id=old_event.group.id,
             date_added=before_now(days=1),
         )
-        response = self.client.get(
-            f"/api/0/projects/{self.project.organization.slug}/{self.project.slug}/user-feedback/"
-        )
+        response = self.client.get(_make_url(self.project))
         assert response.status_code == 200
 
     @patch("sentry.quotas.backend.get_event_retention")
@@ -236,9 +237,7 @@ class ProjectUserReportListTest(APITestCase, SnubaTestCase):
             group_id=old_event.group.id,
             date_added=before_now(days=retention_days + 1),
         )
-        response = self.client.get(
-            f"/api/0/projects/{self.project.organization.slug}/{self.project.slug}/user-feedback/"
-        )
+        response = self.client.get(_make_url(self.project))
         assert response.status_code == 200
         assert len(response.data) == 0
 
@@ -267,7 +266,7 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
     def test_simple(self):
         self.login_as(user=self.user)
 
-        url = f"/api/0/projects/{self.project.organization.slug}/{self.project.slug}/user-feedback/"
+        url = _make_url(self.project)
 
         response = self.client.post(
             url,
@@ -290,7 +289,7 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
 
     def test_with_dsn_auth(self):
         project_key = self.create_project_key(project=self.project)
-        url = f"/api/0/projects/{self.project.organization.slug}/{self.project.slug}/user-feedback/"
+        url = _make_url(self.project)
 
         response = self.client.post(
             url,
@@ -311,7 +310,7 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
         project2 = self.create_project()
         project_key = self.create_project_key(project=self.project)
 
-        url = f"/api/0/projects/{project2.organization.slug}/{project2.slug}/user-feedback/"
+        url = _make_url(project2)
 
         response = self.client.post(
             url,
@@ -338,7 +337,7 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
             comments="",
         )
 
-        url = f"/api/0/projects/{self.project.organization.slug}/{self.project.slug}/user-feedback/"
+        url = _make_url(self.project)
 
         response = self.client.post(
             url,
@@ -372,7 +371,7 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
             date_added=timezone.now() - timedelta(minutes=10),
         )
 
-        url = f"/api/0/projects/{self.project.organization.slug}/{self.project.slug}/user-feedback/"
+        url = _make_url(self.project)
 
         response = self.client.post(
             url,
@@ -389,7 +388,7 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
     def test_after_event_deadline(self):
         self.login_as(user=self.user)
 
-        url = f"/api/0/projects/{self.project.organization.slug}/{self.project.slug}/user-feedback/"
+        url = _make_url(self.project)
 
         response = self.client.post(
             url,
@@ -406,7 +405,7 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
     def test_environments(self):
         self.login_as(user=self.user)
 
-        url = f"/api/0/projects/{self.project.organization.slug}/{self.project.slug}/user-feedback/"
+        url = _make_url(self.project)
 
         response = self.client.post(
             url,
@@ -439,7 +438,7 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
         )
         self.login_as(user=self.user)
 
-        url = f"/api/0/projects/{self.project.organization.slug}/{self.project.slug}/user-feedback/"
+        url = _make_url(self.project)
 
         with self.feature("organizations:user-feedback-ingest"):
             response = self.client.post(
@@ -487,7 +486,7 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
     ):
         self.login_as(user=self.user)
 
-        url = f"/api/0/projects/{self.project.organization.slug}/{self.project.slug}/user-feedback/"
+        url = _make_url(self.project)
         event_id = uuid4().hex
         with self.feature("organizations:user-feedback-ingest"):
             response = self.client.post(
