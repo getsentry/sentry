@@ -2,11 +2,14 @@ import datetime
 
 from django.urls import reverse
 
+from sentry.models.apitoken import ApiToken
 from sentry.models.deploy import Deploy
 from sentry.models.environment import Environment
 from sentry.models.release import Release
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.silo import assume_test_silo_mode
 
 
 class ReleaseDeploysListTest(APITestCase):
@@ -389,3 +392,61 @@ class ReleaseDeploysCreateTest(APITestCase):
         )
         assert response.status_code == 400, response.content
         assert 0 == Deploy.objects.count()
+
+    def test_api_token_with_project_releases_scope(self):
+        """
+        Test that tokens with `project:releases` scope can create deploys for only one project
+        when the release is associated with multiple projects.
+        """
+        # Create a second project
+        project_bar = self.create_project(organization=self.org, name="bar")
+
+        # Create a release for both projects
+        release = Release.objects.create(organization_id=self.org.id, version="1", total_deploys=0)
+        release.add_project(self.project)
+        release.add_project(project_bar)
+
+        # Create API token with project:releases scope
+        user = self.create_user(is_staff=False, is_superuser=False)
+
+        # Add user to the organization - they need to be a member to use the API
+        self.create_member(user=user, organization=self.org)
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            api_token = ApiToken.objects.create(user=user, scope_list=["project:releases"])
+
+        url = reverse(
+            "sentry-api-0-organization-release-deploys",
+            kwargs={
+                "organization_id_or_slug": self.org.slug,
+                "version": release.version,
+            },
+        )
+
+        # Create deploy for only one project (project_bar)
+        response = self.client.post(
+            url,
+            data={
+                "name": "single_project_deploy",
+                "environment": "production",
+                "url": "https://www.example.com",
+                "projects": [project_bar.slug],  # Only one project specified
+            },
+            HTTP_AUTHORIZATION=f"Bearer {api_token.token}",
+        )
+
+        assert response.status_code == 201, response.content
+        assert response.data["name"] == "single_project_deploy"
+        assert response.data["environment"] == "production"
+
+        environment = Environment.objects.get(name="production", organization_id=self.org.id)
+
+        # Verify ReleaseProjectEnvironment was created only for project_bar
+        assert ReleaseProjectEnvironment.objects.filter(
+            project=project_bar, release=release, environment=environment
+        ).exists()
+
+        # Verify ReleaseProjectEnvironment was NOT created for self.project
+        assert not ReleaseProjectEnvironment.objects.filter(
+            project=self.project, release=release, environment=environment
+        ).exists()
