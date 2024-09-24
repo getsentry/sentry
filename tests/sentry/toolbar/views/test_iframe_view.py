@@ -4,9 +4,7 @@ from unittest.mock import Mock, patch
 from django.urls import reverse
 
 from sentry.testutils.cases import APITestCase
-
-SUCCESS_TEMPLATE = "sentry/toolbar/iframe.html"
-INVALID_TEMPLATE = "sentry/toolbar/iframe-invalid.html"
+from sentry.toolbar.views.iframe_view import INVALID_TEMPLATE, SUCCESS_TEMPLATE
 
 
 class IframeViewTest(APITestCase):

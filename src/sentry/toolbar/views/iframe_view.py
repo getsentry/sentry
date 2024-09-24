@@ -8,6 +8,8 @@ from sentry.toolbar.utils.url import check_origin
 from sentry.web.frontend.base import OrganizationView, region_silo_view
 
 REFERRER_HEADER = "HTTP_REFERER"  # 1 R is the spelling used here: https://docs.djangoproject.com/en/5.1/ref/request-response/
+SUCCESS_TEMPLATE = "sentry/toolbar/iframe.html"
+INVALID_TEMPLATE = "sentry/toolbar/iframe-invalid.html"
 
 
 @region_silo_view
@@ -46,7 +48,7 @@ class IframeView(OrganizationView):
         referrer = request.META.get(REFERRER_HEADER)
         if not project:
             return self.respond(
-                "sentry/toolbar/iframe-invalid.html",
+                INVALID_TEMPLATE,
                 status=404,
                 context={"referrer": referrer, "has_project": False},
             )
@@ -55,7 +57,7 @@ class IframeView(OrganizationView):
         origin_allowed, info_msg = check_origin(referrer, allowed_origins)
         if not origin_allowed:
             return self.respond(
-                "sentry/toolbar/iframe-invalid.html",
+                INVALID_TEMPLATE,
                 status=403,
                 context={
                     "referrer": referrer,
@@ -64,6 +66,4 @@ class IframeView(OrganizationView):
                 },
             )
 
-        return self.respond(
-            "sentry/toolbar/iframe.html", status=200, context={"referrer": referrer}
-        )
+        return self.respond(SUCCESS_TEMPLATE, status=200, context={"referrer": referrer})
