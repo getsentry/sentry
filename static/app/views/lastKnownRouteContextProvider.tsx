@@ -17,18 +17,11 @@ export function useLastKnownRoute() {
 /**
  * This provider tracks the last known route that the user has navigated to.
  * This is used to better group issues when we hit "route not found" errors.
- * We keep track of the penultimate route in case the previous route
- * is somehow the not found route.
  */
 export default function LastKnownRouteContextProvider({children}: Props) {
   const route = useRoutes();
   const prevRoute = usePrevious(route);
-  const penultimateRoute = usePrevious(prevRoute);
-  let lastKnownRoute = getRouteStringFromRoutes(prevRoute);
-
-  if (lastKnownRoute === '/*') {
-    lastKnownRoute = getRouteStringFromRoutes(penultimateRoute);
-  }
+  const lastKnownRoute = getRouteStringFromRoutes(prevRoute);
 
   return (
     <LastKnownRouteContext.Provider value={lastKnownRoute}>
