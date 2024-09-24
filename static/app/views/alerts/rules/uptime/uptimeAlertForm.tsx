@@ -1,22 +1,25 @@
 import styled from '@emotion/styled';
 
 import type {APIRequestMethod} from 'sentry/api';
-import Alert from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import FieldWrapper from 'sentry/components/forms/fieldGroup/fieldWrapper';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import SentryMemberTeamSelectorField from 'sentry/components/forms/fields/sentryMemberTeamSelectorField';
 import SentryProjectSelectorField from 'sentry/components/forms/fields/sentryProjectSelectorField';
+import TextareaField from 'sentry/components/forms/fields/textareaField';
 import TextField from 'sentry/components/forms/fields/textField';
 import Form, {type FormProps} from 'sentry/components/forms/form';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
-import {IconLab} from 'sentry/icons';
+import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
+import useOrganization from 'sentry/utils/useOrganization';
 import type {UptimeRule} from 'sentry/views/alerts/rules/uptime/types';
+
+import {UptimeHeadersField} from './uptimeHeadersField';
 
 interface Props {
   apiMethod: APIRequestMethod;
@@ -27,10 +30,18 @@ interface Props {
   rule?: UptimeRule;
 }
 
+const HTTP_METHOD_OPTIONS = ['GET', 'POST', 'HEAD', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'];
+
 function getFormDataFromRule(rule: UptimeRule) {
-  const owner = rule.owner ? `${rule.owner.type}:${rule.owner.id}` : null;
-  const {name, url, projectSlug} = rule;
-  return {owner, name, url, projectSlug};
+  return {
+    name: rule.name,
+    url: rule.url,
+    projectSlug: rule.projectSlug,
+    method: rule.method,
+    body: rule.body,
+    headers: rule.headers,
+    owner: rule.owner ? `${rule.owner.type}:${rule.owner.id}` : null,
+  };
 }
 
 export function UptimeAlertForm({
@@ -41,15 +52,25 @@ export function UptimeAlertForm({
   handleDelete,
   rule,
 }: Props) {
-  const initialData = rule ? getFormDataFromRule(rule) : {projectSlug: project.slug};
+  const organization = useOrganization();
+  const enabledConfiguration = organization.features.includes('uptime-api-create-update');
+  const initialData = rule
+    ? getFormDataFromRule(rule)
+    : {projectSlug: project.slug, method: 'GET'};
+
+  const submitLabel = {
+    POST: t('Create Rule'),
+    PUT: t('Save Rule'),
+  };
 
   return (
-    <UptimeForm
+    <Form
       apiMethod={apiMethod}
       apiEndpoint={apiUrl}
       saveOnBlur={false}
       initialData={initialData}
       onSubmitSuccess={onSubmitSuccess}
+      submitLabel={submitLabel[apiMethod]}
       extraButton={
         rule && handleDelete ? (
           <Confirm
@@ -67,16 +88,11 @@ export function UptimeAlertForm({
         ) : undefined
       }
     >
-      <Alert type="info" showIcon icon={<IconLab />}>
-        {t(
-          'Uptime Monitoring is currently in Early Access. Additional configuration options will be available soon.'
-        )}
-      </Alert>
       <List symbol="colored-numeric">
         <AlertListItem>{t('Select an environment and project')}</AlertListItem>
         <FormRow>
           <SentryProjectSelectorField
-            disabled
+            disabled={!enabledConfiguration}
             name="projectSlug"
             label={t('Project')}
             hideLabel
@@ -87,7 +103,7 @@ export function UptimeAlertForm({
             stacked
           />
           <SelectField
-            disabled
+            disabled={!enabledConfiguration}
             name="environment"
             label={t('Environment')}
             hideLabel
@@ -97,19 +113,45 @@ export function UptimeAlertForm({
             stacked
           />
         </FormRow>
-        <AlertListItem>{t('Set a URL to monitor')}</AlertListItem>
-        <FormRow>
+        <AlertListItem>{t('Configure Request')}</AlertListItem>
+        <ConfigurationPanel>
           <TextField
-            disabled
+            disabled={!enabledConfiguration}
             name="url"
             label={t('URL')}
-            hideLabel
             placeholder={t('The URL to monitor')}
-            inline={false}
             flexibleControlStateSize
-            stacked
+            monospace
           />
-        </FormRow>
+          <SelectField
+            disabled={!enabledConfiguration}
+            name="method"
+            label={t('Method')}
+            placeholder={'GET'}
+            options={HTTP_METHOD_OPTIONS.map(option => ({
+              value: option,
+              label: option,
+            }))}
+            flexibleControlStateSize
+          />
+          <UptimeHeadersField
+            name="headers"
+            label={t('Headers')}
+            flexibleControlStateSize
+            disabled={!enabledConfiguration}
+          />
+          <TextareaField
+            name="body"
+            label={t('Body')}
+            visible={({model}) => !['GET', 'HEAD'].includes(model.getValue('method'))}
+            rows={4}
+            autosize
+            monospace
+            placeholder='{"key": "value"}'
+            flexibleControlStateSize
+            disabled={!enabledConfiguration}
+          />
+        </ConfigurationPanel>
         <AlertListItem>{t('Establish ownership')}</AlertListItem>
         <FormRow>
           <TextField
@@ -136,15 +178,9 @@ export function UptimeAlertForm({
           />
         </FormRow>
       </List>
-    </UptimeForm>
+    </Form>
   );
 }
-
-const UptimeForm = styled(Form)`
-  ${FieldWrapper} {
-    padding: 0;
-  }
-`;
 
 const AlertListItem = styled(ListItem)`
   margin: ${space(2)} 0 ${space(1)} 0;
@@ -156,4 +192,21 @@ const FormRow = styled('div')`
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   align-items: center;
   gap: ${space(2)};
+
+  ${FieldWrapper} {
+    padding: 0;
+  }
+`;
+
+const ConfigurationPanel = styled(Panel)`
+  display: grid;
+  gap: 0 ${space(2)};
+  grid-template-columns: max-content 1fr;
+  align-items: center;
+
+  ${FieldWrapper} {
+    display: grid;
+    grid-template-columns: subgrid;
+    grid-column: 1 / -1;
+  }
 `;

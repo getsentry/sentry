@@ -12,6 +12,9 @@ export function UptimeRuleFixture(params: Partial<UptimeRule> = {}): UptimeRule 
     status: UptimeMonitorStatus.OK,
     timeoutMs: 5000,
     url: 'https://sentry.io/',
+    headers: [],
+    method: 'GET',
+    body: null,
     ...params,
   }
 }
