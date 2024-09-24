@@ -225,8 +225,8 @@ const Header = styled('div')<{isSolid: boolean}>`
   ${p =>
     p.isSolid
       ? `
-      margin: 0 ${space(0.5)};
-      border-bottom: solid 1px var(--prism-highlight-accent);
+      padding: 0 ${space(0.5)};
+      border-bottom: solid 1px ${p.theme.innerBorder};
     `
       : `
       justify-content: flex-end;
