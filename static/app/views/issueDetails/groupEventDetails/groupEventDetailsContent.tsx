@@ -393,7 +393,7 @@ export function EventDetailsContent({
       {hasStreamlinedUI && (
         <ScreenshotDataSection event={event} projectSlug={project.slug} />
       )}
-      <EventAttachments event={event} projectSlug={project.slug} />
+      <EventAttachments event={event} project={project} group={group} />
       <EventSdk sdk={event.sdk} meta={event._meta?.sdk} />
       {hasStreamlinedUI && (
         <EventProcessingErrors event={event} project={project} isShare={false} />

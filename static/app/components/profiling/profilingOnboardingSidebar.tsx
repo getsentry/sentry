@@ -27,6 +27,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {PlatformIntegration, Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getDocsPlatformSDKForPlatform} from 'sentry/utils/profiling/platforms';
+import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
@@ -69,7 +70,9 @@ function ProfilingOnboarding(props: CommonSidebarProps) {
   );
 
   useEffect(() => {
-    if (currentProject) return;
+    if (currentProject) {
+      return;
+    }
 
     // we'll only ever select an unsupportedProject if they do not have a supported project in their organization
     if (supportedProjects.length === 0 && unsupportedProjects.length > 0) {
@@ -222,7 +225,8 @@ interface ProfilingOnboardingContentProps {
 }
 
 function ProfilingOnboardingContent(props: ProfilingOnboardingContentProps) {
-  const {isLoading, isError, dsn, docs, refetch} = useLoadGettingStarted({
+  const api = useApi();
+  const {isLoading, isError, dsn, docs, refetch, projectKeyId} = useLoadGettingStarted({
     orgSlug: props.organization.slug,
     projSlug: props.projectSlug,
     platform: props.platform,
@@ -264,7 +268,20 @@ function ProfilingOnboardingContent(props: ProfilingOnboardingContentProps) {
     );
   }
 
+  if (!projectKeyId) {
+    return (
+      <LoadingError
+        message={t(
+          'We encountered an issue while loading the Client Key for this getting started documentation.'
+        )}
+        onRetry={refetch}
+      />
+    );
+  }
+
   const docParams: DocsParams<any> = {
+    api,
+    projectKeyId,
     dsn,
     organization: props.organization,
     platformKey: props.platform.id,

@@ -7,15 +7,13 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import SessionNoAuthTokenAuthentication
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases import SentryAppBaseEndpoint, SentryInternalAppTokenPermission
-from sentry.api.endpoints.integrations.sentry_apps.details import (
-    PARTNERSHIP_RESTRICTED_ERROR_MESSAGE,
-)
 from sentry.api.serializers.models.apitoken import ApiTokenSerializer
 from sentry.exceptions import ApiTokenLimitError
 from sentry.models.apitoken import ApiToken
-from sentry.models.integrations.sentry_app import MASKED_VALUE
-from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
+from sentry.sentry_apps.api.endpoints.sentry_app_details import PARTNERSHIP_RESTRICTED_ERROR_MESSAGE
 from sentry.sentry_apps.installations import SentryAppInstallationTokenCreator
+from sentry.sentry_apps.models.sentry_app import MASKED_VALUE
+from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 
 
 @control_silo_endpoint

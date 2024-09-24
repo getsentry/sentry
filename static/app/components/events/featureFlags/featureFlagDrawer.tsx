@@ -15,7 +15,8 @@ import {
   NavigationCrumbs,
   SearchInput,
   ShortId,
-} from 'sentry/components/events/eventReplay/eventDrawer';
+} from 'sentry/components/events/eventDrawer';
+import useFocusControl from 'sentry/components/events/useFocusControl';
 import {InputGroup} from 'sentry/components/inputGroup';
 import KeyValueData, {
   type KeyValueDataContentProps,
@@ -26,21 +27,36 @@ import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {getShortEventId} from 'sentry/utils/events';
+import useOrganization from 'sentry/utils/useOrganization';
 
 export enum FlagSort {
-  EVAL = 'eval',
+  NEWEST = 'newest',
+  OLDEST = 'oldest',
   ALPHA = 'alphabetical',
 }
 
 export const getLabel = (sort: string) => {
-  return sort === FlagSort.EVAL ? t('Evaluation Order') : t('Alphabetical');
+  switch (sort) {
+    case FlagSort.OLDEST:
+      return t('Oldest First');
+    case FlagSort.ALPHA:
+      return t('Alphabetical');
+    case FlagSort.NEWEST:
+    default:
+      return t('Newest First');
+  }
 };
 
 export const FLAG_SORT_OPTIONS = [
   {
-    label: getLabel(FlagSort.EVAL),
-    value: FlagSort.EVAL,
+    label: getLabel(FlagSort.NEWEST),
+    value: FlagSort.NEWEST,
+  },
+  {
+    label: getLabel(FlagSort.OLDEST),
+    value: FlagSort.OLDEST,
   },
   {
     label: getLabel(FlagSort.ALPHA),
@@ -59,6 +75,7 @@ interface FlagDrawerProps {
   hydratedFlags: KeyValueDataContentProps[];
   initialSort: FlagSort;
   project: Project;
+  focusControl?: FlagControlOptions;
 }
 
 export function FeatureFlagDrawer({
@@ -67,9 +84,12 @@ export function FeatureFlagDrawer({
   project,
   initialSort,
   hydratedFlags,
+  focusControl: initialFocusControl,
 }: FlagDrawerProps) {
   const [sortMethod, setSortMethod] = useState<FlagSort>(initialSort);
   const [search, setSearch] = useState('');
+  const organization = useOrganization();
+  const {getFocusProps} = useFocusControl(initialFocusControl);
 
   const handleSortAlphabetical = (flags: KeyValueDataContentProps[]) => {
     return [...flags].sort((a, b) => {
@@ -78,7 +98,11 @@ export function FeatureFlagDrawer({
   };
 
   const sortedFlags =
-    sortMethod === FlagSort.ALPHA ? handleSortAlphabetical(hydratedFlags) : hydratedFlags;
+    sortMethod === FlagSort.ALPHA
+      ? handleSortAlphabetical(hydratedFlags)
+      : sortMethod === FlagSort.OLDEST
+        ? [...hydratedFlags].reverse()
+        : hydratedFlags;
   const searchResults = sortedFlags.filter(f => f.item.key.includes(search));
 
   const actions = (
@@ -91,6 +115,7 @@ export function FeatureFlagDrawer({
             setSearch(e.target.value.toLowerCase());
           }}
           aria-label={t('Search Flags')}
+          {...getFocusProps(FlagControlOptions.SEARCH)}
         />
         <InputGroup.TrailingItems disablePointerEvents>
           <IconSearch size="xs" />
@@ -102,6 +127,10 @@ export function FeatureFlagDrawer({
         }}
         onChange={selection => {
           setSortMethod(selection.value);
+          trackAnalytics('flags.sort-flags', {
+            organization,
+            sortMethod: selection.value,
+          });
         }}
         trigger={triggerProps => (
           <DropdownButton {...triggerProps} size="xs" icon={<IconSort />}>

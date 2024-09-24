@@ -43,8 +43,28 @@ describe('Discover DatasetSelector', function () {
     expect(screen.getByRole('tab', {name: 'Transactions'})).toBeInTheDocument();
   });
 
-  it('pushes new default event view if not a saved query', async function () {
-    const eventView = new EventView(EVENT_VIEW_CONSTRUCTOR_PROPS);
+  it('pushes compatible query', async function () {
+    const eventView = new EventView({
+      createdBy: undefined,
+      end: undefined,
+      environment: [],
+      fields: [
+        {field: 'transaction'},
+        {field: 'project'},
+        {field: 'count_unique(error.handled)'},
+        {field: 'error.mechanism'},
+      ],
+      name: 'Test',
+      project: [],
+      query: '(error.type:bar AND project:foo)',
+      start: undefined,
+      team: [],
+      sorts: [{field: 'error.mechanism', kind: 'asc'}],
+      statsPeriod: undefined,
+      topEvents: undefined,
+      id: undefined,
+      display: undefined,
+    });
     render(
       <DatasetSelectorTabs
         isHomepage={false}
@@ -61,8 +81,10 @@ describe('Discover DatasetSelector', function () {
         query: expect.objectContaining({
           project: undefined,
           field: ['transaction', 'project'],
-          query: 'foo:bar',
+          query: 'project:foo',
           queryDataset: 'transaction-like',
+          sort: '-transaction',
+          incompatible: true,
         }),
       })
     );

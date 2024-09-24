@@ -7,7 +7,7 @@
       {
         "name": "organization_id_or_slug",
         "in": "path",
-        "description": "The id or slug of the organization the events belong to.",
+        "description": "The ID or slug of the organization the events belong to.",
         "required": true,
         "schema": {
           "type": "string"
@@ -16,7 +16,7 @@
       {
         "name": "project_id_or_slug",
         "in": "path",
-        "description": "The id or slug of the project the events belong to.",
+        "description": "The ID or slug of the project the events belong to.",
         "required": true,
         "schema": {
           "type": "string"

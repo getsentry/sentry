@@ -8,6 +8,7 @@ type Data = [number, {count: number}[]][];
 export enum AlertRuleType {
   METRIC = 'metric',
   ISSUE = 'issue',
+  UPTIME = 'uptime',
 }
 
 export type Incident = {

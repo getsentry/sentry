@@ -79,6 +79,7 @@ function useReplayerInstance() {
 
 interface Props extends HTMLAttributes<HTMLDivElement> {
   css?: Interpolation<Theme>;
+  inspectable?: boolean;
   offsetMs?: undefined | number;
 }
 
@@ -95,7 +96,6 @@ export default function ReplayPlayer({offsetMs, ...props}: Props) {
   return (
     <div
       {...props}
-      data-inspectable={props['data-inspectable']}
       css={[baseReplayerCss, sentryReplayerCss, props.css]}
       ref={mountPointRef}
     />

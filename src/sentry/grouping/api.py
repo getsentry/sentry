@@ -11,7 +11,6 @@ from sentry import options
 from sentry.grouping.component import GroupingComponent
 from sentry.grouping.enhancer import LATEST_VERSION, Enhancements
 from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
-from sentry.grouping.result import CalculatedHashes
 from sentry.grouping.strategies.base import DEFAULT_GROUPING_ENHANCEMENTS_BASE, GroupingContext
 from sentry.grouping.strategies.configurations import CONFIGURATIONS
 from sentry.grouping.utils import (
@@ -44,14 +43,13 @@ HASH_RE = re.compile(r"^[0-9a-f]{32}$")
 @dataclass
 class GroupHashInfo:
     config: GroupingConfig
-    hashes: CalculatedHashes
+    hashes: list[str]
     grouphashes: list[GroupHash]
     existing_grouphash: GroupHash | None
 
 
 NULL_GROUPING_CONFIG: GroupingConfig = {"id": "", "enhancements": ""}
-NULL_HASHES = CalculatedHashes([])
-NULL_GROUPHASH_INFO = GroupHashInfo(NULL_GROUPING_CONFIG, NULL_HASHES, [], None)
+NULL_GROUPHASH_INFO = GroupHashInfo(NULL_GROUPING_CONFIG, [], [], None)
 
 
 class GroupingConfigNotFound(LookupError):
@@ -296,6 +294,7 @@ def _get_calculated_grouping_variants_for_event(
     return rv
 
 
+# This is called by the Event model in get_grouping_variants()
 def get_grouping_variants_for_event(
     event: Event, config: StrategyConfiguration | None = None
 ) -> dict[str, BaseVariant]:

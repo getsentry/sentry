@@ -26,8 +26,8 @@ from sentry.uptime.models import (
     UptimeSubscription,
 )
 from sentry.uptime.subscriptions.subscriptions import (
-    create_uptime_subscription,
     delete_uptime_subscriptions_for_project,
+    get_or_create_uptime_subscription,
     remove_uptime_subscription_if_unused,
 )
 from sentry.uptime.subscriptions.tasks import send_uptime_config_deletion
@@ -219,7 +219,7 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
                 # If we've had mostly successes throughout the onboarding period then we can graduate the subscription
                 # to active.
                 onboarding_subscription = project_subscription.uptime_subscription
-                active_subscription = create_uptime_subscription(
+                active_subscription = get_or_create_uptime_subscription(
                     onboarding_subscription.url,
                     int(AUTO_DETECTED_ACTIVE_SUBSCRIPTION_INTERVAL.total_seconds()),
                     onboarding_subscription.timeout_ms,
@@ -267,13 +267,15 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
             restricted_host_provider_ids = options.get(
                 "uptime.restrict-issue-creation-by-hosting-provider-id"
             )
-            issue_creation_restricted_by_provider = (
-                project_subscription.uptime_subscription.host_provider_id
-                in restricted_host_provider_ids
-            )
+            host_provider_id = project_subscription.uptime_subscription.host_provider_id
+            issue_creation_restricted_by_provider = host_provider_id in restricted_host_provider_ids
 
             if issue_creation_restricted_by_provider:
-                metrics.incr("uptime.result_processor.restricted_by_provider", sample_rate=1.0)
+                metrics.incr(
+                    "uptime.result_processor.restricted_by_provider",
+                    sample_rate=1.0,
+                    tags={"host_provider_id": host_provider_id},
+                )
 
             if issue_creation_flag_enabled and not issue_creation_restricted_by_provider:
                 create_issue_platform_occurrence(result, project_subscription)

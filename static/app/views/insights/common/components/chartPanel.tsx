@@ -53,24 +53,36 @@ export default function ChartPanel({
   const moduleName = useModuleNameFromUrl();
   const alertsUrls =
     alertConfigs?.map(alertConfig => {
-      // Alerts only support single project selection
+      // Alerts only support single project selection and one or all environment
       const singleProject = selection.projects.length === 1 && project;
+      const singleEnvironment = selection.environments.length <= 1;
       const alertsUrl =
-        alertConfig && singleProject
-          ? getAlertsUrl({project, orgSlug: organization.slug, ...alertConfig})
+        alertConfig && singleProject && singleEnvironment
+          ? getAlertsUrl({
+              project,
+              orgSlug: organization.slug,
+              pageFilters: selection,
+              name: typeof title === 'string' ? title : undefined,
+              ...alertConfig,
+            })
           : undefined;
       const name = alertConfig.name ?? 'Create Alert';
-      const disabled = !singleProject;
+      const disabled = !singleProject || !singleEnvironment;
+      const tooltip = !singleProject
+        ? t(
+            'Alerts are only available for single project selection. Update your project filter to create an alert.'
+          )
+        : !singleEnvironment
+          ? t(
+              'Alerts are only available with at most one environment selection. Update your environment filter to create an alert.'
+            )
+          : undefined;
       return {
         key: name,
         label: name,
         to: alertsUrl,
         disabled,
-        tooltip: disabled
-          ? t(
-              'Alerts are only available for single project selection. Update your project filter to create an alert.'
-            )
-          : undefined,
+        tooltip,
         onClick: () => {
           trackAnalytics('insight.general.create_alert', {
             organization,

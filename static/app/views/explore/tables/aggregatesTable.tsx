@@ -1,8 +1,10 @@
 import {Fragment, useMemo} from 'react';
+import styled from '@emotion/styled';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
+import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {NewQuery} from 'sentry/types/organization';
@@ -29,7 +31,9 @@ import {useUserQuery} from 'sentry/views/explore/hooks/useUserQuery';
 import {useVisualizes} from 'sentry/views/explore/hooks/useVisualizes';
 import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
 
-function formatSort(sort: Sort): string {
+import {TOP_EVENTS_LIMIT, useTopEvents} from '../hooks/useTopEvents';
+
+export function formatSort(sort: Sort): string {
   const direction = sort.kind === 'desc' ? '-' : '';
   return `${direction}${getAggregateAlias(sort.field)}`;
 }
@@ -40,6 +44,7 @@ export function AggregatesTable({}: AggregatesTableProps) {
   const location = useLocation();
   const organization = useOrganization();
   const {selection} = usePageFilters();
+  const topEvents = useTopEvents();
 
   const [dataset] = useDataset();
   const [groupBys] = useGroupBys();
@@ -111,6 +116,9 @@ export function AggregatesTable({}: AggregatesTableProps) {
                   const renderer = getFieldRenderer(field, meta.fields, false);
                   return (
                     <TableBodyCell key={j}>
+                      {topEvents && i < topEvents && j === 0 && (
+                        <TopResultsIndicator index={i} />
+                      )}
                       {renderer(row, {
                         location,
                         organization,
@@ -134,3 +142,16 @@ export function AggregatesTable({}: AggregatesTableProps) {
     </Fragment>
   );
 }
+
+const TopResultsIndicator = styled('div')<{index: number}>`
+  position: absolute;
+  left: -1px;
+  margin-top: 4.5px;
+  width: 9px;
+  height: 15px;
+  border-radius: 0 3px 3px 0;
+
+  background-color: ${p => {
+    return CHART_PALETTE[TOP_EVENTS_LIMIT - 1][p.index];
+  }};
+`;

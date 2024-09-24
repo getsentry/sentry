@@ -135,8 +135,12 @@ function maybeFocusRow(
   node: TraceTreeNode<TraceTree.NodeValue>,
   previouslyFocusedNodeRef: React.MutableRefObject<TraceTreeNode<TraceTree.NodeValue> | null>
 ) {
-  if (!ref) return;
-  if (node === previouslyFocusedNodeRef.current) return;
+  if (!ref) {
+    return;
+  }
+  if (node === previouslyFocusedNodeRef.current) {
+    return;
+  }
   previouslyFocusedNodeRef.current = node;
   ref.focus();
 }
@@ -399,11 +403,17 @@ export function Trace({
         });
       }
       if (event.key === 'ArrowLeft') {
-        if (node.zoomedIn) onNodeZoomIn(event, node, false);
-        else if (node.expanded) onNodeExpand(event, node, false);
+        if (node.zoomedIn) {
+          onNodeZoomIn(event, node, false);
+        } else if (node.expanded) {
+          onNodeExpand(event, node, false);
+        }
       } else if (event.key === 'ArrowRight') {
-        if (!node.expanded) onNodeExpand(event, node, true);
-        else if (node.expanded && node.canFetch) onNodeZoomIn(event, node, true);
+        if (!node.expanded) {
+          onNodeExpand(event, node, true);
+        } else if (node.expanded && node.canFetch) {
+          onNodeZoomIn(event, node, true);
+        }
       }
     },
     [manager, onNodeExpand, onNodeZoomIn, traceDispatch]
@@ -1456,12 +1466,16 @@ interface BackgroundPatternsProps {
 
 function BackgroundPatterns(props: BackgroundPatternsProps) {
   const performance_issues = useMemo(() => {
-    if (!props.performance_issues.size) return [];
+    if (!props.performance_issues.size) {
+      return [];
+    }
     return [...props.performance_issues];
   }, [props.performance_issues]);
 
   const errors = useMemo(() => {
-    if (!props.errors.size) return [];
+    if (!props.errors.size) {
+      return [];
+    }
     return [...props.errors];
   }, [props.errors]);
 

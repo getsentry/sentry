@@ -410,6 +410,7 @@ const EventInfo = styled('div')`
   gap: ${space(1)};
   flex-direction: row;
   align-items: center;
+  line-height: 1.2;
 `;
 
 const JumpTo = styled('div')`

@@ -213,7 +213,7 @@ class PostUpdateLogGroupAttributesChangedTest(TestCase):
         self.run_attr_test([self.group, self.group_2], {"status": GroupStatus.RESOLVED}, "status")
         self.run_attr_test(
             [self.group, self.group_2],
-            {"status": GroupStatus.RESOLVED, "substatus": GroupSubStatus.ONGOING},
+            {"status": GroupStatus.UNRESOLVED, "substatus": GroupSubStatus.ONGOING},
             "status-substatus",
         )
 
