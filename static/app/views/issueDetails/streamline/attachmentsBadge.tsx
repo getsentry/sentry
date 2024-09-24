@@ -40,7 +40,7 @@ export function AttachmentsBadge({group, project}: {group: Group; project: Proje
   return (
     <Fragment>
       <Divider />
-      <AttachmentButton
+      <TextButton
         ref={openButtonRef}
         type="button"
         priority="link"
@@ -53,12 +53,12 @@ export function AttachmentsBadge({group, project}: {group: Group; project: Proje
         {hasManyAttachments
           ? t('50+ Attachments')
           : tn('%s Attachment', '%s Attachments', attachments.attachments.length)}
-      </AttachmentButton>
+      </TextButton>
     </Fragment>
   );
 }
 
-const AttachmentButton = styled(Button)`
+export const TextButton = styled(Button)`
   color: ${p => p.theme.gray300};
   text-decoration: underline;
   text-decoration-style: dotted;
