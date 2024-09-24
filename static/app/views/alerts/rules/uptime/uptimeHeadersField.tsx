@@ -28,7 +28,7 @@ function UptimHeadersControl(props) {
   // those into the form model.
   const [items, setItems] = useState<HeaderEntry[]>(
     Object.keys(value).length > 0
-      ? Object.entries(value).map(v => [uniqueId(), ...v] as HeaderEntry)
+      ? value.map(v => [uniqueId(), ...v] as HeaderEntry)
       : [[uniqueId(), '', '']]
   );
 
