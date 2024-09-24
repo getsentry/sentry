@@ -2074,7 +2074,7 @@ class Factories:
     def create_workflow_action(
         **kwargs,
     ) -> WorkflowAction:
-        return WorkflowAction.objects.create()
+        return WorkflowAction.objects.create(**kwargs)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
