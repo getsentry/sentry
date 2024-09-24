@@ -161,6 +161,7 @@ class DashboardWidgetQuery(Model):
     date_modified = models.DateTimeField(default=timezone.now)
     # Whether this query is hidden from the UI, used by metric widgets
     is_hidden = models.BooleanField(default=False)
+    # Used by Big Number to select aggregate displayed
     selected_aggregate = models.IntegerField(null=True)
 
     class Meta:
