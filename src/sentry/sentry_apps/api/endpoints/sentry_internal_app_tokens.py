@@ -7,15 +7,15 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import SessionNoAuthTokenAuthentication
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases import SentryAppBaseEndpoint, SentryInternalAppTokenPermission
-from sentry.api.endpoints.integrations.sentry_apps.details import (
-    PARTNERSHIP_RESTRICTED_ERROR_MESSAGE,
-)
 from sentry.api.serializers.models.apitoken import ApiTokenSerializer
 from sentry.exceptions import ApiTokenLimitError
 from sentry.models.apitoken import ApiToken
+from sentry.sentry_apps.api.endpoints.sentry_app_details import PARTNERSHIP_RESTRICTED_ERROR_MESSAGE
 from sentry.sentry_apps.installations import SentryAppInstallationTokenCreator
 from sentry.sentry_apps.models.sentry_app import MASKED_VALUE
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
+from sentry.users.models.user import User
+from sentry.users.services.user.model import RpcUser
 
 
 @control_silo_endpoint
@@ -61,6 +61,9 @@ class SentryInternalAppTokensEndpoint(SentryAppBaseEndpoint):
             )
         sentry_app_installation = SentryAppInstallation.objects.get(sentry_app_id=sentry_app.id)
         try:
+            assert isinstance(
+                request.user, (User, RpcUser)
+            ), "User must be authenticated to install a sentry app"
             api_token = SentryAppInstallationTokenCreator(
                 sentry_app_installation=sentry_app_installation
             ).run(request=request, user=request.user)

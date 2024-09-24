@@ -13,6 +13,7 @@ import {
 import {TagFilter} from 'sentry/components/events/eventTags/util';
 import {EventTagsAndScreenshot} from 'sentry/components/events/eventTagsAndScreenshot';
 import GlobalModal from 'sentry/components/globalModal';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import type {EventAttachment} from 'sentry/types/group';
 
 describe('EventTagsAndScreenshot', function () {
@@ -123,7 +124,7 @@ describe('EventTagsAndScreenshot', function () {
     },
   ];
 
-  let mockDetailedProject;
+  let mockDetailedProject: jest.Mock;
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
@@ -140,6 +141,8 @@ describe('EventTagsAndScreenshot', function () {
       url: '/organizations/org-slug/releases/io.sentry.sample.iOS-Swift%407.2.3%2B390/deploys/',
       body: [],
     });
+    ProjectsStore.init();
+    ProjectsStore.loadInitialData([project]);
     mockDetailedProject = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/`,
       body: project,

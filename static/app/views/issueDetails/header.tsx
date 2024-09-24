@@ -126,22 +126,6 @@ export function GroupHeaderTabs({
         {t('User Feedback')} <Badge text={group.userReportCount} />
       </TabList.Item>
       <TabList.Item
-        key={Tab.ATTACHMENTS}
-        hidden={!hasEventAttachments || !issueTypeConfig.attachments.enabled}
-        disabled={disabledTabs.includes(Tab.ATTACHMENTS)}
-        to={{pathname: `${baseUrl}attachments/`, query: queryParams}}
-      >
-        {t('Attachments')}
-      </TabList.Item>
-      <TabList.Item
-        key={Tab.TAGS}
-        hidden={!issueTypeConfig.tags.enabled}
-        disabled={disabledTabs.includes(Tab.TAGS)}
-        to={{pathname: `${baseUrl}tags/`, query: queryParams}}
-      >
-        {t('Tags')}
-      </TabList.Item>
-      <TabList.Item
         key={Tab.EVENTS}
         hidden={!issueTypeConfig.events.enabled}
         disabled={disabledTabs.includes(Tab.EVENTS)}
