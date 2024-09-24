@@ -2,7 +2,6 @@ import time
 from datetime import datetime, timedelta
 from uuid import uuid4
 
-import pytest
 from snuba_sdk import DeleteQuery, Request
 
 from sentry.snuba.dataset import Dataset, StorageKey
@@ -11,7 +10,6 @@ from sentry.utils import snuba
 
 
 class SnubaTest(TestCase, SnubaTestCase):
-    @pytest.mark.xfail
     def test_basic(self) -> None:
         # insert a new issue
         now = datetime.now()
