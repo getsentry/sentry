@@ -24,7 +24,7 @@ import {
 type Params = DocsParams;
 
 const getSdkSetupSnippet = () => `
-${getImportInstrumentSnippet('esm')}
+${getImportInstrumentSnippet('esm', 'ts')}
 
 // All other imports below
 import { NestFactory } from '@nestjs/core';
@@ -111,22 +111,22 @@ const onboarding: OnboardingConfig = {
       configurations: [
         {
           description: tct(
-            'To initialize the SDK before everything else, create an external file called [code:instrument.js/mjs].',
+            'To initialize the SDK before everything else, create a file called [code:instrument.ts] in your [code:src/] folder.',
             {code: <code />}
           ),
           code: [
             {
-              label: 'JavaScript',
+              label: 'TypeScript',
               value: 'javascript',
               language: 'javascript',
-              filename: 'instrument.(js|ts)',
+              filename: 'instrument.ts',
               code: getSdkInitSnippet(params, 'nestjs', 'esm'),
             },
           ],
         },
         {
           description: tct(
-            'Make sure to import [code:instrument.js/mjs] at the top of your [code:main.ts/js] file:',
+            'Make sure to import [code:instrument.ts] at the top of your [code:main.ts] file:',
             {
               code: <code />,
               docs: (
@@ -136,10 +136,10 @@ const onboarding: OnboardingConfig = {
           ),
           code: [
             {
-              label: 'JavaScript',
+              label: 'TypeScript',
               value: 'javascript',
               language: 'javascript',
-              filename: 'main.(js|ts)',
+              filename: 'main.ts',
               code: getSdkSetupSnippet(),
             },
           ],
@@ -156,10 +156,10 @@ const onboarding: OnboardingConfig = {
           ),
           code: [
             {
-              label: 'JavaScript',
+              label: 'TypeScript',
               value: 'javascript',
               language: 'javascript',
-              filename: 'app.module.(js|ts)',
+              filename: 'app.module.ts',
               code: getAppModuleSnippet(),
             },
           ],
@@ -173,10 +173,10 @@ const onboarding: OnboardingConfig = {
           ),
           code: [
             {
-              label: 'JavaScript',
+              label: 'TypeScript',
               value: 'javascript',
               language: 'javascript',
-              filename: 'global.filter.(js|ts)',
+              filename: 'global.filter.ts',
               code: getDecoratedGlobalFilter(),
             },
           ],
@@ -190,10 +190,10 @@ const onboarding: OnboardingConfig = {
           ),
           code: [
             {
-              label: 'JavaScript',
+              label: 'TypeScript',
               value: 'javascript',
               language: 'javascript',
-              filename: 'app.module.(js|ts)',
+              filename: 'app.module.ts',
               code: getAppModuleSnippetWithSentryGlobalFilter(),
             },
           ],
@@ -231,7 +231,7 @@ const feedbackOnboardingNode: OnboardingConfig = {
         {
           code: [
             {
-              label: 'JavaScript',
+              label: 'TypeScript',
               value: 'javascript',
               language: 'javascript',
               code: `import * as Sentry from "@sentry/node";
