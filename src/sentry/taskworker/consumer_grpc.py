@@ -2,7 +2,10 @@ import logging
 import time
 
 import grpc
-from sentry_protos.sentry.v1alpha.taskworker_pb2 import DispatchRequest
+from sentry_protos.sentry.v1alpha.taskworker_pb2 import (
+    TASK_ACTIVATION_STATUS_PENDING,
+    DispatchRequest,
+)
 from sentry_protos.sentry.v1alpha.taskworker_pb2_grpc import WorkerServiceStub
 
 from sentry.taskworker.pending_task_store import PendingTaskStore
@@ -28,12 +31,25 @@ class ConsumerGrpc:
             logger.info("No tasks")
             time.sleep(1)
             return
-        dispatch_task_response = self.stub.Dispatch(
-            DispatchRequest(task_activation=in_flight_activation.activation)
-        )
-        self.pending_task_store.set_task_status(
-            task_id=in_flight_activation.activation.id, task_status=dispatch_task_response.status
-        )
+        try:
+            dispatch_task_response = self.stub.Dispatch(
+                DispatchRequest(task_activation=in_flight_activation.activation)
+            )
+            self.pending_task_store.set_task_status(
+                task_id=in_flight_activation.activation.id,
+                task_status=dispatch_task_response.status,
+            )
+        except grpc.RpcError as rpc_error:
+            logger.exception(
+                "Connection lost with worker, code: %s, details: %s",
+                rpc_error.code(),
+                rpc_error.details(),
+            )
+            self.pending_task_store.set_task_status(
+                task_id=in_flight_activation.activation.id,
+                task_status=TASK_ACTIVATION_STATUS_PENDING,
+            )
+            time.sleep(1)
 
 
 def start():
