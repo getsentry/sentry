@@ -1,5 +1,7 @@
 import {Fragment, useRef} from 'react';
+import styled from '@emotion/styled';
 
+import {Button} from 'sentry/components/button';
 import {UserFeedbackDrawer} from 'sentry/components/events/userFeedback/userFeedbackDrawer';
 import useDrawer, {type DrawerOptions} from 'sentry/components/globalDrawer';
 import {IconMegaphone} from 'sentry/icons';
@@ -8,7 +10,6 @@ import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {Divider} from 'sentry/views/issueDetails/divider';
-import {TextButton} from 'sentry/views/issueDetails/streamline/attachmentsBadge';
 
 export function UserFeedbackBadge({group, project}: {group: Group; project: Project}) {
   const {openDrawer} = useDrawer();
@@ -31,7 +32,7 @@ export function UserFeedbackBadge({group, project}: {group: Group; project: Proj
   return (
     <Fragment>
       <Divider />
-      <TextButton
+      <UserFeedbackButton
         ref={openButtonRef}
         type="button"
         priority="link"
@@ -45,7 +46,13 @@ export function UserFeedbackBadge({group, project}: {group: Group; project: Proj
         }}
       >
         {tn('%s User Report', '%s User Reports', group.userReportCount)}
-      </TextButton>
+      </UserFeedbackButton>
     </Fragment>
   );
 }
+
+export const UserFeedbackButton = styled(Button)`
+  color: ${p => p.theme.gray300};
+  text-decoration: underline;
+  text-decoration-style: dotted;
+`;

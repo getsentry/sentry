@@ -62,8 +62,8 @@ export function UserFeedbackDrawer({group, project}: {group: Group; project: Pro
   );
 }
 
+/* Disable grid from Layout styles in drawer */
 const UserFeedbackBody = styled(EventDrawerBody)`
-  /* Disable grid from Layout styles in drawer */
   ${Body} {
     grid-template-columns: unset;
   }
