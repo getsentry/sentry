@@ -1,11 +1,3 @@
-from sentry.deletions.models.scheduleddeletion import (
-    RegionScheduledDeletion,
-    ScheduledDeletion,
-    get_regional_scheduled_deletion,
-)
+from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 
-__all__ = (
-    "get_regional_scheduled_deletion",
-    "ScheduledDeletion",
-    "RegionScheduledDeletion",
-)
+__all__ = ("RegionScheduledDeletion",)
