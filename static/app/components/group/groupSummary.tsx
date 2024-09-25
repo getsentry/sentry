@@ -14,6 +14,7 @@ import marked, {singleLineRenderer} from 'sentry/utils/marked';
 import {type ApiQueryKey, useApiQuery} from 'sentry/utils/queryClient';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 interface GroupSummaryProps {
   groupCategory: IssueCategory;
@@ -86,13 +87,15 @@ export function GroupSummary({groupId, groupCategory}: GroupSummaryProps) {
 
   const openForm = useFeedbackForm();
 
+  const isStreamlined = useHasStreamlinedUI();
+
   if (!isSummaryEnabled(hasGenAIConsent, groupCategory)) {
     // TODO: Render a banner for needing genai consent
     return null;
   }
 
   return (
-    <Wrapper>
+    <Wrapper isStreamlined={isStreamlined}>
       <StyledTitleRow onClick={() => setExpanded(!data ? false : !expanded)}>
         <CollapsedRow>
           <IconContainer>
@@ -102,7 +105,7 @@ export function GroupSummary({groupId, groupCategory}: GroupSummaryProps) {
           {isError ? <div>{t('Error loading summary')}</div> : null}
           {data && !expanded && (
             <Fragment>
-              <Headline>{data.headline}</Headline>
+              <HeadlinePreview>{data.headline}</HeadlinePreview>
               <SummaryPreview
                 dangerouslySetInnerHTML={{
                   __html: singleLineRenderer(`Details: ${data.summary}`),
@@ -110,7 +113,7 @@ export function GroupSummary({groupId, groupCategory}: GroupSummaryProps) {
               />
             </Fragment>
           )}
-          {data && expanded && <Headline>{data.headline}</Headline>}
+          {data && expanded && <HeadlineContent>{data.headline}</HeadlineContent>}
         </CollapsedRow>
         <IconContainerRight>
           <IconChevron direction={expanded ? 'up' : 'down'} />
@@ -164,38 +167,36 @@ export function GroupSummary({groupId, groupCategory}: GroupSummaryProps) {
 }
 
 const Body = styled('div')`
-  padding: ${space(1)} ${space(3)} ${space(1.5)} ${space(3)};
+  padding: 0 ${space(4)} ${space(1.5)} ${space(4)};
 `;
 
-const Headline = styled('p')`
+const HeadlinePreview = styled('span')`
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   margin-right: ${space(0.5)};
   flex-shrink: 0;
-  margin-top: ${space(3)};
+  max-width: 92%;
 `;
 
-const SummaryPreview = styled('p')`
+const SummaryPreview = styled('span')`
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   flex-grow: 1;
   color: ${p => p.theme.subText};
-  margin-top: ${space(3)};
 `;
 
-const Wrapper = styled(Panel)`
-  margin-bottom: 0;
+const Wrapper = styled(Panel)<{isStreamlined: boolean}>`
+  margin-bottom: ${p => (p.isStreamlined ? 0 : space(1))};
   padding: ${space(0.5)};
 `;
 
 const StyledTitleRow = styled('div')`
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  height: ${space(2)};
-  padding: ${space(2)} ${space(1)} ${space(2)} ${space(1)};
+  padding: ${space(1)} ${space(1)} ${space(1)} ${space(1)};
 
   &:hover {
     cursor: pointer;
@@ -206,11 +207,22 @@ const StyledTitleRow = styled('div')`
 const CollapsedRow = styled('div')`
   display: flex;
   width: 100%;
-  align-items: center;
+  align-items: flex-start;
   overflow: hidden;
 `;
 
 const StyledFeatureBadge = styled(FeatureBadge)``;
+
+const HeadlineContent = styled('span')`
+  overflow-wrap: break-word;
+  p {
+    margin: 0;
+  }
+  code {
+    word-break: break-all;
+  }
+  width: 100%;
+`;
 
 const SummaryContent = styled('div')`
   overflow-wrap: break-word;
@@ -235,7 +247,6 @@ const Content = styled('div')`
 
 const ButtonContainer = styled('div')`
   margin-top: ${space(1.5)};
-  margin-bottom: ${space(0.5)};
   align-items: center;
   display: flex;
 `;
@@ -243,11 +254,11 @@ const ButtonContainer = styled('div')`
 const IconContainer = styled('div')`
   flex-shrink: 0;
   margin-right: ${space(1)};
-  margin-top: ${space(0.5)};
+  margin-top: ${space(0.25)};
 `;
 
 const IconContainerRight = styled('div')`
   flex-shrink: 0;
   margin-left: ${space(1)};
-  margin-top: ${space(0.5)};
+  margin-top: ${space(0.25)};
 `;
