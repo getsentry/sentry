@@ -303,11 +303,12 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
     <Fragment>
       <MaybeBrowserProfilingBetaWarning {...params} />
       <p>
-        {tct('In this quick guide you’ll use [npm], [yarn] or [pnpm] to set up:', {
-          npm: <strong>npm</strong>,
-          yarn: <strong>yarn</strong>,
-          pnpm: <strong>pnpm</strong>,
-        })}
+        {tct(
+          'In this quick guide you’ll use [strong:npm], [strong:yarn] or [strong:pnpm] to set up:',
+          {
+            strong: <strong />,
+          }
+        )}
       </p>
     </Fragment>
   ),
