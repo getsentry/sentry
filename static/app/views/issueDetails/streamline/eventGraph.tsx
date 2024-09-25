@@ -16,6 +16,7 @@ import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import theme from 'sentry/utils/theme';
 import useOrganization from 'sentry/utils/useOrganization';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
+import useFlagSeries from 'sentry/views/issueDetails/streamline/flagSeries';
 import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/useIssueDetailsDiscoverQuery';
 
 export const enum EventGraphSeries {
@@ -52,6 +53,11 @@ export function EventGraph({group, groupStats, searchQuery}: EventGraphProps) {
   const [visibleSeries, setVisibleSeries] = useState<EventGraphSeries>(
     EventGraphSeries.EVENT
   );
+
+  // todo: create legend to change the state of this
+  const [flagSeriesVisible, _setFlagSeriesVisible] = useState(true);
+  const flagSeries = useFlagSeries();
+
   const [isGraphHovered, setIsGraphHovered] = useState(false);
   const eventStats = groupStats['count()'];
   const {series: eventSeries, count: eventCount} = useMemo(
@@ -96,6 +102,9 @@ export function EventGraph({group, groupStats, searchQuery}: EventGraphProps) {
       stack: 'stats',
       data: eventSeries,
     });
+  }
+  if (flagSeriesVisible) {
+    series.push(flagSeries);
   }
 
   return (

@@ -1,11 +1,13 @@
 import {useTheme} from '@emotion/react';
 
 import MarkLine from 'sentry/components/charts/components/markLine';
+import {MOCK_RAW_FLAG_LOG} from 'sentry/components/events/featureFlags/testUtils';
 import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
 import type {Organization} from 'sentry/types/organization';
 import {getFormattedDate} from 'sentry/utils/dates';
 import {useApiQuery} from 'sentry/utils/queryClient';
+// import useOrganization from 'sentry/utils/useOrganization';
 
 // {
 //     "data": [
@@ -27,11 +29,11 @@ type RawFlag = {
   flag: string;
   modified_at: string;
   modified_by: string;
-  modified_by_type: string;
-  tags: Record<string, string>;
+  modified_by_type: 'email' | 'id' | 'type';
+  tags?: Record<string, string>;
 };
 
-type RawFlagData = {data: RawFlag[]};
+export type RawFlagData = {data: RawFlag[]};
 
 type FlagSeriesDatapoint = {
   // flag name
@@ -58,7 +60,7 @@ function _useOrganizationFlagLog({
   return {data, isError, isPending};
 }
 
-function _hydrateFlagData({
+function hydrateFlagData({
   rawFlagData,
 }: {
   rawFlagData: RawFlagData;
@@ -74,12 +76,13 @@ function _hydrateFlagData({
   return flagData;
 }
 
-function _useFlagSeries({
-  flagSeriesData,
-}: {
-  flagSeriesData: FlagSeriesDatapoint[];
-}): Series {
+export default function useFlagSeries(): Series {
   const theme = useTheme();
+  // const organization = useOrganization();
+  // const {data, isError, isPending} = useOrganizationFlagLog({organization, query: {}});
+  const rawFlagData: RawFlagData = MOCK_RAW_FLAG_LOG;
+  const hydratedFlagData: FlagSeriesDatapoint[] = hydrateFlagData({rawFlagData});
+
   // create a markline series using hydrated flag data
   const markLine = MarkLine({
     animation: false,
@@ -91,7 +94,7 @@ function _useFlagSeries({
     label: {
       show: false,
     },
-    data: flagSeriesData,
+    data: hydratedFlagData,
     tooltip: {
       trigger: 'item',
       formatter: ({data}: any) => {
