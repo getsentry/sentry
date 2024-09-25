@@ -1836,7 +1836,9 @@ function buildRoutes() {
         />
         <Route
           path={TabPaths[Tab.MERGED]}
-          component={hoc(make(() => import('sentry/views/issueDetails/groupMerged')))}
+          component={hoc(
+            make(() => import('sentry/views/issueDetails/groupMerged/groupMergedTab'))
+          )}
         />
       </Fragment>
     );
