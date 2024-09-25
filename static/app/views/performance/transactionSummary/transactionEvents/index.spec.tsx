@@ -6,8 +6,10 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import TransactionEvents from 'sentry/views/performance/transactionSummary/transactionEvents';
-
-import {EVENTS_TABLE_RESPONSE_FIELDS, MOCK_EVENTS_TABLE_DATA} from './eventsTable.spec';
+import {
+  EVENTS_TABLE_RESPONSE_FIELDS,
+  MOCK_EVENTS_TABLE_DATA,
+} from 'sentry/views/performance/transactionSummary/transactionEvents/testUtils';
 
 function WrappedComponent({data}) {
   return (

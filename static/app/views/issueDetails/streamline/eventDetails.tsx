@@ -10,6 +10,7 @@ import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {MultiSeriesEventsStats} from 'sentry/types/organization';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -23,13 +24,22 @@ import {
   useEventDetailsReducer,
 } from 'sentry/views/issueDetails/streamline/context';
 import {EventGraph} from 'sentry/views/issueDetails/streamline/eventGraph';
+import {EventList} from 'sentry/views/issueDetails/streamline/eventList';
 import {EventNavigation} from 'sentry/views/issueDetails/streamline/eventNavigation';
 import {
   EventSearch,
   useEventQuery,
 } from 'sentry/views/issueDetails/streamline/eventSearch';
 import {IssueContent} from 'sentry/views/issueDetails/streamline/issueContent';
-import {useFetchEventStats} from 'sentry/views/issueDetails/streamline/useFetchEventStats';
+import {
+  useIssueDetailsDiscoverQuery,
+  useIssueDetailsEventView,
+} from 'sentry/views/issueDetails/streamline/useIssueDetailsDiscoverQuery';
+
+const enum EventPageContent {
+  EVENT = 'event',
+  LIST = 'list',
+}
 
 export function EventDetails({
   group,
@@ -43,18 +53,24 @@ export function EventDetails({
   const isScreenMedium = useMedia(`(max-width: ${theme.breakpoints.medium})`);
   const {environments} = selection;
   const [nav, setNav] = useState<HTMLDivElement | null>(null);
+  const {eventDetails, dispatch} = useEventDetailsReducer();
 
   const searchQuery = useEventQuery({group});
-  const {eventDetails, dispatch} = useEventDetailsReducer();
+  const eventView = useIssueDetailsEventView({group});
+
+  const [pageContent, setPageContent] = useState<EventPageContent>(
+    EventPageContent.EVENT
+  );
+
   const {
     data: groupStats,
     isPending: isLoadingStats,
-    error: errorStats,
-  } = useFetchEventStats({
+    error,
+  } = useIssueDetailsDiscoverQuery<MultiSeriesEventsStats>({
     params: {
-      group: group,
+      route: 'events-stats',
+      eventView,
       referrer: 'issue_details.streamline_graph',
-      query: searchQuery,
     },
   });
 
@@ -67,27 +83,20 @@ export function EventDetails({
     });
   }, [nav, isScreenMedium, dispatch, theme.sidebar.mobileHeightNumber]);
 
-  const {detail: errorDetail} = errorStats?.responseJSON ?? {};
-
-  const graphComponent = !isLoadingStats && groupStats && (
-    <GraphPadding>
-      <ErrorBoundary mini message={t('There was an error loading the event graph')}>
-        <EventGraph group={group} groupStats={groupStats} searchQuery={searchQuery} />
-      </ErrorBoundary>
-    </GraphPadding>
-  );
-
   return (
     <EventDetailsContext.Provider value={{...eventDetails, dispatch}}>
-      <ErrorBoundary mini message={t('There was an error loading the suspect commits')}>
+      <PageErrorBoundary
+        mini
+        message={t('There was an error loading the suspect commits')}
+      >
         <SuspectCommits
           project={project}
           eventId={event.id}
           group={group}
           commitRow={CommitRow}
         />
-      </ErrorBoundary>
-      <ErrorBoundary mini message={t('There was an error loading the event filters')}>
+      </PageErrorBoundary>
+      <PageErrorBoundary mini message={t('There was an error loading the event filter')}>
         <FilterContainer>
           <EnvironmentPageFilter />
           <SearchFilter
@@ -103,27 +112,51 @@ export function EventDetails({
           />
           <DatePageFilter />
         </FilterContainer>
-      </ErrorBoundary>
-      {errorDetail ? (
+      </PageErrorBoundary>
+      {error ? (
         <div>
           <GraphAlert type="error" showIcon>
-            {errorDetail as string}
+            {error.message}
           </GraphAlert>
         </div>
       ) : (
-        graphComponent
+        <PageErrorBoundary mini message={t('There was an error loading the event graph')}>
+          {!isLoadingStats && groupStats && (
+            <ExtraContent>
+              <EventGraph
+                group={group}
+                groupStats={groupStats}
+                searchQuery={searchQuery}
+              />
+            </ExtraContent>
+          )}
+        </PageErrorBoundary>
       )}
-      <GroupContent>
-        <FloatingEventNavigation
-          event={event}
-          group={group}
-          ref={setNav}
-          query={searchQuery}
-        />
-        <ContentPadding>
-          <EventDetailsContent group={group} event={event} project={project} />
-        </ContentPadding>
-      </GroupContent>
+      {pageContent === EventPageContent.LIST && (
+        <PageErrorBoundary mini message={t('There was an error loading the event list')}>
+          <GroupContent>
+            <EventList
+              group={group}
+              project={project}
+              onClose={() => setPageContent(EventPageContent.EVENT)}
+            />
+          </GroupContent>
+        </PageErrorBoundary>
+      )}
+      {pageContent === EventPageContent.EVENT && (
+        <GroupContent>
+          <FloatingEventNavigation
+            event={event}
+            group={group}
+            ref={setNav}
+            query={searchQuery}
+            onViewAllEvents={() => setPageContent(EventPageContent.LIST)}
+          />
+          <ContentPadding>
+            <EventDetailsContent group={group} event={event} project={project} />
+          </ContentPadding>
+        </GroupContent>
+      )}
       <ExtraContent>
         <ContentPadding>
           <IssueContent group={group} project={project} />
@@ -133,6 +166,16 @@ export function EventDetails({
   );
 }
 
+const SearchFilter = styled(EventSearch)`
+  border-radius: ${p => p.theme.borderRadius};
+`;
+
+const FilterContainer = styled('div')`
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: ${space(1)};
+`;
+
 const FloatingEventNavigation = styled(EventNavigation)`
   position: sticky;
   top: 0;
@@ -140,23 +183,8 @@ const FloatingEventNavigation = styled(EventNavigation)`
     top: ${p => p.theme.sidebar.mobileHeight};
   }
   background: ${p => p.theme.background};
-  z-index: 100;
-  border-radius: 6px 6px 0 0;
-`;
-
-const SearchFilter = styled(EventSearch)`
-  border-radius: ${p => p.theme.borderRadius};
-`;
-
-const GraphPadding = styled('div')`
-  border: 1px solid ${p => p.theme.translucentBorder};
-  background: ${p => p.theme.background};
-  border-radius: ${p => p.theme.borderRadius};
-`;
-
-const GraphAlert = styled(Alert)`
-  margin: 0;
-  border: 1px solid ${p => p.theme.translucentBorder};
+  z-index: 500;
+  border-radius: ${p => p.theme.borderRadiusTop};
 `;
 
 const ExtraContent = styled('div')`
@@ -173,8 +201,12 @@ const ContentPadding = styled('div')`
   padding: ${space(1)} ${space(1.5)};
 `;
 
-const FilterContainer = styled('div')`
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  gap: ${space(1)};
+const GraphAlert = styled(Alert)`
+  margin: 0;
+  border: 1px solid ${p => p.theme.translucentBorder};
+`;
+
+const PageErrorBoundary = styled(ErrorBoundary)`
+  margin: 0 ${space(1.5)};
+  border: 1px solid ${p => p.theme.translucentBorder};
 `;
