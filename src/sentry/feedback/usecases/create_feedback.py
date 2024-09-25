@@ -353,6 +353,9 @@ def shim_to_feedback(
     User feedbacks are an event type, so we try and grab as much from the
     legacy user report and event to create the new feedback.
     """
+    if is_in_feedback_denylist(project.organization):
+        return
+
     try:
         feedback_event: dict[str, Any] = {
             "contexts": {
@@ -403,7 +406,6 @@ def auto_ignore_spam_feedbacks(project, issue_fingerprint):
 
 def is_in_feedback_denylist(organization):
     """
-    When possible, avoid using this in consumers. It costs Postgres queries to get project.organization.
-    The denylist is applied in relay for new feedback (UserReportV2).
+    Helper to check the options-backed denylist of org slugs. This denylist is also applied in relay for new feedback envelopes (UserReportV2).
     """
     return organization.slug in options.get("feedback.organizations.slug-denylist")

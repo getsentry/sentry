@@ -193,6 +193,7 @@ def process_event(
             except Exception:
                 pass
         elif data.get("type") == "feedback":
+            # We could filter by is_in_feedback_denylist here, but trust it's already done in Relay.
             save_event_feedback.delay(
                 cache_key=None,  # no need to cache as volume is low
                 data=data,
