@@ -5,8 +5,10 @@ import ClippedBox from 'sentry/components/clippedBox';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {space} from 'sentry/styles/space';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {SQLishFormatter} from 'sentry/utils/sqlish/SQLishFormatter';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useSpansIndexed} from 'sentry/views/insights/common/queries/useDiscover';
 import {useFullSpanFromTrace} from 'sentry/views/insights/common/queries/useFullSpanFromTrace';
 import {
@@ -43,6 +45,12 @@ export function DatabaseSpanDescription({
   groupId,
   preliminaryDescription,
 }: Omit<Props, 'op'>) {
+  const {isExpanded} = useLocationQuery({
+    fields: {
+      isExpanded: decodeScalar,
+    },
+  });
+
   const {data: indexedSpans, isFetching: areIndexedSpansLoading} = useSpansIndexed(
     {
       search: MutableSearch.fromQueryObject({'span.group': groupId}),
@@ -104,7 +112,7 @@ export function DatabaseSpanDescription({
           <LoadingIndicator mini />
         </WithPadding>
       ) : (
-        <QueryClippedBox clipHeight={500} defaultClipped={false}>
+        <QueryClippedBox clipHeight={500} isExpanded={isExpanded}>
           <CodeSnippet language={system === 'mongodb' ? 'json' : 'sql'} isRounded={false}>
             {formattedDescription ?? ''}
           </CodeSnippet>
@@ -132,6 +140,16 @@ export function DatabaseSpanDescription({
   );
 }
 
+function QueryClippedBox(props) {
+  const {isExpanded, children} = props;
+
+  if (isExpanded) {
+    return children;
+  }
+
+  return <StyledClippedBox {...props} />;
+}
+
 const INDEXED_SPAN_SORT = {
   field: 'span.self_time',
   kind: 'desc' as const,
@@ -151,10 +169,6 @@ const WithPadding = styled('div')`
 const WordBreak = styled('div')`
   word-break: break-word;
 `;
-
-function QueryClippedBox(props) {
-  return <StyledClippedBox {...props} />;
-}
 
 const StyledClippedBox = styled(ClippedBox)`
   padding: 0;
