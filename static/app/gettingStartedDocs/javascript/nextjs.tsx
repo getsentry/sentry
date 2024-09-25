@@ -81,6 +81,11 @@ const getManualInstallConfig = () => [
 ];
 
 const onboarding: OnboardingConfig = {
+  introduction: () =>
+    tct('In this quick guide you’ll use [npm] or [yarn] to set up:', {
+      npm: <strong>npm</strong>,
+      yarn: <strong>yarn</strong>,
+    }),
   install: (params: Params) => [
     {
       type: StepType.INSTALL,

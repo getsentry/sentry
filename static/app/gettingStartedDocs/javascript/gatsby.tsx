@@ -159,7 +159,17 @@ const getInstallConfig = () => [
 ];
 
 const onboarding: OnboardingConfig = {
-  introduction: MaybeBrowserProfilingBetaWarning,
+  introduction: params => (
+    <Fragment>
+      <MaybeBrowserProfilingBetaWarning {...params} />
+      <p>
+        {tct('In this quick guide you’ll use [npm] or [yarn] to set up:', {
+          npm: <strong>npm</strong>,
+          yarn: <strong>yarn</strong>,
+        })}
+      </p>
+    </Fragment>
+  ),
   install: () => [
     {
       type: StepType.INSTALL,

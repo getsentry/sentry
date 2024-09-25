@@ -1,3 +1,5 @@
+import {Fragment} from 'react';
+
 import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/crashReportCallout';
 import widgetCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/widgetCallout';
 import TracePropagationMessage from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
@@ -107,7 +109,17 @@ const getVerifyEmberSnippet = () => `
 myUndefinedFunction();`;
 
 const onboarding: OnboardingConfig = {
-  introduction: MaybeBrowserProfilingBetaWarning,
+  introduction: params => (
+    <Fragment>
+      <MaybeBrowserProfilingBetaWarning {...params} />
+      <p>
+        {tct('In this quick guide you’ll use [npm] or [yarn] to set up:', {
+          npm: <strong>npm</strong>,
+          yarn: <strong>yarn</strong>,
+        })}
+      </p>
+    </Fragment>
+  ),
   install: () => [
     {
       type: StepType.INSTALL,
