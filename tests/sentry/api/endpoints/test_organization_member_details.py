@@ -1061,6 +1061,40 @@ class DeleteOrganizationMemberTest(OrganizationMemberTestBase):
 
         assert not OrganizationMember.objects.filter(inviter_id=manager_user.id).exists()
 
+    def test_invitations_dont_get_deleted_on_invite_detetion(self):
+        # create manager
+        manager_user = self.create_user("manager@localhost")
+        self.manager = self.create_member(
+            user=manager_user, organization=self.organization, role="manager"
+        )
+        user = self.create_user("user@org.com")
+        # create approved member with token -- before the fix for inc-886 this member would get deleted
+        # because they look like a invite with a token
+        self.create_member(
+            user=user, organization=self.organization, role="member", token="x123x", inviter_id=None
+        )
+
+        self.login_as(user=manager_user)
+        # pending invite
+        data = {"email": "bar@example.com", "role": "member", "teams": [self.team.slug]}
+        url = reverse("sentry-api-0-organization-member-index", args=(self.organization.slug,))
+        self.client.post(url, data=data)
+
+        members_and_invites_count_before = OrganizationMember.objects.filter(
+            organization_id=self.organization.id
+        ).count()
+
+        invited_member = OrganizationMember.objects.get(inviter_id=manager_user.id)
+        # manager deletes the invite sent by them
+        self.get_success_response(self.organization.slug, invited_member.id)
+
+        members_and_invites_count_after = OrganizationMember.objects.filter(
+            organization_id=self.organization.id
+        ).count()
+        # only one is deleted which is the invite
+        assert members_and_invites_count_after == members_and_invites_count_before - 1
+        assert not OrganizationMember.objects.filter(inviter_id=manager_user.id).exists()
+
 
 class ResetOrganizationMember2faTest(APITestCase):
     def setUp(self):
