@@ -87,9 +87,11 @@ const onboarding: OnboardingConfig = {
       configurations: getInstallConfig(params),
       additionalInfo: (
         <Fragment>
-          {t(
-            'The Sentry wizard will automatically patch your application to configure the Sentry SDK:'
-          )}
+          <p>
+            {t(
+              'The Sentry wizard will automatically patch your application to configure the Sentry SDK:'
+            )}
+          </p>
           <List symbol="bullet">
             <ListItem>
               {tct(
