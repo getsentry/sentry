@@ -1,3 +1,6 @@
+import logging
+import os
+
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -5,6 +8,8 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, all_silo_endpoint
 from sentry.ratelimits.config import RateLimitConfig
+
+logger = logging.getLogger(__name__)
 
 
 @all_silo_endpoint
@@ -17,4 +22,6 @@ class WarmupEndpoint(Endpoint):
     rate_limits = RateLimitConfig(group="INTERNAL")
 
     def get(self, request: Request) -> Response:
+        if os.environ.get("TEST_WARMUP"):
+            logger.info("warmup complete")
         return Response(200)
