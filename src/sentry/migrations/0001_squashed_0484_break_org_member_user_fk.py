@@ -26,12 +26,12 @@ import sentry.db.models.fields.picklefield
 import sentry.db.models.fields.text
 import sentry.db.models.fields.uuid
 import sentry.db.models.indexes
+import sentry.deletions.models.scheduleddeletion
 import sentry.models.apiapplication
 import sentry.models.apigrant
 import sentry.models.apitoken
 import sentry.models.broadcast
 import sentry.models.groupshare
-import sentry.models.scheduledeletion
 import sentry.sentry_apps.models.sentry_app
 import sentry.sentry_apps.models.sentry_app_installation
 import sentry.sentry_apps.models.servicehook
@@ -2162,7 +2162,7 @@ class Migration(CheckedMigration):
                 (
                     "guid",
                     models.CharField(
-                        default=sentry.models.scheduledeletion.default_guid,
+                        default=sentry.deletions.models.scheduleddeletion.default_guid,
                         max_length=32,
                         unique=True,
                     ),
@@ -2174,7 +2174,7 @@ class Migration(CheckedMigration):
                 (
                     "date_scheduled",
                     models.DateTimeField(
-                        default=sentry.models.scheduledeletion.default_date_schedule
+                        default=sentry.deletions.models.scheduleddeletion.default_date_schedule
                     ),
                 ),
                 ("actor_id", sentry.db.models.fields.bounded.BoundedBigIntegerField(null=True)),
@@ -8993,7 +8993,7 @@ class Migration(CheckedMigration):
                 (
                     "guid",
                     models.CharField(
-                        default=sentry.models.scheduledeletion.default_guid,
+                        default=sentry.deletions.models.scheduleddeletion.default_guid,
                         max_length=32,
                         unique=True,
                     ),
@@ -9005,7 +9005,7 @@ class Migration(CheckedMigration):
                 (
                     "date_scheduled",
                     models.DateTimeField(
-                        default=sentry.models.scheduledeletion.default_date_schedule
+                        default=sentry.deletions.models.scheduleddeletion.default_date_schedule
                     ),
                 ),
                 ("actor_id", sentry.db.models.fields.bounded.BoundedBigIntegerField(null=True)),

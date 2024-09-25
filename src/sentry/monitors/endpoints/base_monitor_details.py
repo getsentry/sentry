@@ -13,10 +13,10 @@ from sentry.api.exceptions import ParameterValidationError
 from sentry.api.helpers.environments import get_environments
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
+from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.models.environment import Environment
 from sentry.models.project import Project
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType
-from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,

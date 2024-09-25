@@ -5,9 +5,9 @@ from uuid import UUID
 import pytest
 
 from sentry.constants import ObjectStatus
+from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.models.environment import Environment
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType
-from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.monitors.constants import TIMEOUT
 from sentry.monitors.logic.mark_ok import mark_ok
 from sentry.monitors.models import (
