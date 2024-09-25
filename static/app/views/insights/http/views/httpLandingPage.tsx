@@ -39,15 +39,14 @@ import {
   MODULE_DOC_LINK,
   MODULE_TITLE,
 } from 'sentry/views/insights/http/settings';
-import {
-  type InsightLandingProps,
-  ModuleName,
-  SpanMetricsField,
-} from 'sentry/views/insights/types';
+import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
+import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
 
-export function HTTPLandingPage({disableHeader}: InsightLandingProps) {
+export function HTTPLandingPage() {
   const organization = useOrganization();
   const location = useLocation();
+  const {isInDomainView} = useDomainViewFilters();
 
   const sortField = decodeScalar(location.query?.[QueryParameterNames.DOMAINS_SORT]);
 
@@ -161,7 +160,7 @@ export function HTTPLandingPage({disableHeader}: InsightLandingProps) {
 
   return (
     <React.Fragment>
-      {!disableHeader && (
+      {!isInDomainView && (
         <Layout.Header>
           <Layout.HeaderContent>
             <Breadcrumbs crumbs={crumbs} />
@@ -179,6 +178,12 @@ export function HTTPLandingPage({disableHeader}: InsightLandingProps) {
               <FeedbackWidgetButton />
             </ButtonBar>
           </Layout.HeaderActions>
+        </Layout.Header>
+      )}
+
+      {isInDomainView && (
+        <Layout.Header>
+          <FrontendHeader module={ModuleName.HTTP} />
         </Layout.Header>
       )}
 
@@ -261,14 +266,14 @@ const DEFAULT_SORT = {
 
 const DOMAIN_TABLE_ROW_COUNT = 10;
 
-function PageWithProviders(props: InsightLandingProps) {
+function PageWithProviders() {
   return (
     <ModulePageProviders
       moduleName="http"
       features="insights-initial-modules"
       analyticEventName="insight.page_loads.http"
     >
-      <HTTPLandingPage {...props} />
+      <HTTPLandingPage />
     </ModulePageProviders>
   );
 }

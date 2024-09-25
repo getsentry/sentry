@@ -31,6 +31,8 @@ import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModule
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import SubregionSelector from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
 import {SampleList} from 'sentry/views/insights/common/views/spanSummaryPage/sampleList';
+import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceMetadataHeader';
 
@@ -47,6 +49,7 @@ const {
 function ResourceSummary() {
   const webVitalsModuleURL = useModuleURL('vital');
   const {groupId} = useParams();
+  const {isInDomainView} = useDomainViewFilters();
   const filters = useResourceModuleFilters();
   const selectedSpanOp = filters[SPAN_OP];
   const {
@@ -94,25 +97,33 @@ function ResourceSummary() {
 
   return (
     <React.Fragment>
-      <Layout.Header>
-        <Layout.HeaderContent>
-          <Breadcrumbs
-            crumbs={[
-              ...crumbs,
-              {
-                label: tct('[dataType] Summary', {dataType: DATA_TYPE}),
-              },
-            ]}
-          />
+      {!isInDomainView && (
+        <Layout.Header>
+          <Layout.HeaderContent>
+            <Breadcrumbs
+              crumbs={[
+                ...crumbs,
+                {
+                  label: tct('[dataType] Summary', {dataType: DATA_TYPE}),
+                },
+              ]}
+            />
 
-          <Layout.Title>{spanMetrics[SpanMetricsField.SPAN_DESCRIPTION]}</Layout.Title>
-        </Layout.HeaderContent>
-        <Layout.HeaderActions>
-          <ButtonBar gap={1}>
-            <FeedbackWidgetButton />
-          </ButtonBar>
-        </Layout.HeaderActions>
-      </Layout.Header>
+            <Layout.Title>{spanMetrics[SpanMetricsField.SPAN_DESCRIPTION]}</Layout.Title>
+          </Layout.HeaderContent>
+          <Layout.HeaderActions>
+            <ButtonBar gap={1}>
+              <FeedbackWidgetButton />
+            </ButtonBar>
+          </Layout.HeaderActions>
+        </Layout.Header>
+      )}
+
+      {isInDomainView && (
+        <Layout.Header>
+          <FrontendHeader module={ModuleName.RESOURCE} />
+        </Layout.Header>
+      )}
 
       <Layout.Body>
         <Layout.Main fullWidth>
