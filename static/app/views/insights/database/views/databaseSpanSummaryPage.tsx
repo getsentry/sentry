@@ -272,7 +272,7 @@ export function DatabaseSpanSummaryPage({params}: Props) {
                   series={throughputData['spm()']}
                   isLoading={isThroughputDataLoading}
                   error={throughputError}
-                  groupId={groupId}
+                  filters={filters}
                 />
 
                 <DurationChart
@@ -283,7 +283,7 @@ export function DatabaseSpanSummaryPage({params}: Props) {
                   ]}
                   isLoading={isDurationDataLoading}
                   error={durationError}
-                  groupId={groupId}
+                  filters={filters}
                 />
               </ChartContainer>
             </ModuleLayout.Full>

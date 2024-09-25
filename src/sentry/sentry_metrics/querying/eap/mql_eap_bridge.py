@@ -8,11 +8,7 @@ from sentry_protos.snuba.v1alpha.endpoint_aggregate_bucket_pb2 import (
     AggregateBucketResponse,
 )
 from sentry_protos.snuba.v1alpha.request_common_pb2 import RequestMeta
-from sentry_protos.snuba.v1alpha.trace_item_attribute_pb2 import (
-    AttributeKey,
-    AttributeKeyTransformContext,
-    AttributeValue,
-)
+from sentry_protos.snuba.v1alpha.trace_item_attribute_pb2 import AttributeKey, AttributeValue
 from sentry_protos.snuba.v1alpha.trace_item_filter_pb2 import (
     AndFilter,
     ComparisonFilter,
@@ -96,9 +92,6 @@ def make_eap_request(
         granularity_secs=interval,
         key=AttributeKey(
             name=ts.metric.mri.split("/")[1].split("@")[0], type=AttributeKey.TYPE_FLOAT
-        ),
-        attribute_key_transform_context=AttributeKeyTransformContext(
-            project_ids_to_names={project.id: project.slug for project in projects}
         ),
     )
     aggregate_resp = snuba.rpc(aggregate_req, AggregateBucketResponse)

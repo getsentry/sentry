@@ -249,6 +249,7 @@ export function SearchQueryBuilder({
     return {
       ...state,
       disabled,
+      disallowFreeText: Boolean(disallowFreeText),
       disallowWildcard: Boolean(disallowWildcard),
       parsedQuery,
       filterKeySections: filterKeySections ?? [],
@@ -267,6 +268,7 @@ export function SearchQueryBuilder({
   }, [
     state,
     disabled,
+    disallowFreeText,
     disallowWildcard,
     parsedQuery,
     filterKeySections,

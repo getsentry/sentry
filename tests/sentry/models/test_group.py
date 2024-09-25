@@ -341,19 +341,6 @@ class GroupTest(TestCase, SnubaTestCase):
             group = self.create_group(status=status, substatus=substatus)
             assert group.substatus is substatus
 
-    @patch("sentry.models.group.logger")
-    def test_group_invalid_substatus(self, logger):
-        status_substatus_pairs = [
-            (GroupStatus.UNRESOLVED, GroupSubStatus.UNTIL_ESCALATING),
-            (GroupStatus.IGNORED, GroupSubStatus.ONGOING),
-            (GroupStatus.IGNORED, GroupSubStatus.ESCALATING),
-        ]
-
-        for status, substatus in status_substatus_pairs:
-            self.create_group(status=status, substatus=substatus)
-
-        assert logger.error.call_count == len(status_substatus_pairs)
-
 
 class GroupIsOverResolveAgeTest(TestCase):
     def test_simple(self):

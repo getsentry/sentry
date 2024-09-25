@@ -1,4 +1,6 @@
+// biome-ignore lint/nursery/noRestrictedImports: Will be removed with react router 6
 import {createMemoryHistory, Route, Router, RouterContext} from 'react-router';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
@@ -11,29 +13,41 @@ import {ExploreToolbar} from 'sentry/views/explore/toolbar';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {RouteContext} from 'sentry/views/routeContext';
 
+import {SpanTagsProvider} from '../contexts/spanTagsContext';
+
 function renderWithRouter(component) {
   const memoryHistory = createMemoryHistory();
 
   render(
-    <Router
-      history={memoryHistory}
-      render={props => {
-        return (
-          <RouteContext.Provider value={props}>
-            <RouterContext {...props} />
-          </RouteContext.Provider>
-        );
-      }}
-    >
-      <Route path="/" component={component} />
-    </Router>
+    <SpanTagsProvider>
+      <Router
+        history={memoryHistory}
+        render={props => {
+          return (
+            <RouteContext.Provider value={props}>
+              <RouterContext {...props} />
+            </RouteContext.Provider>
+          );
+        }}
+      >
+        <Route path="/" component={component} />
+      </Router>
+    </SpanTagsProvider>
   );
 }
 
 describe('ExploreToolbar', function () {
+  const organization = OrganizationFixture();
+
   beforeEach(function () {
     // without this the `CompactSelect` component errors with a bunch of async updates
     jest.spyOn(console, 'error').mockImplementation();
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/spans/fields/`,
+      method: 'GET',
+      body: [],
+    });
   });
 
   it('allows changing results mode', async function () {
@@ -265,7 +279,13 @@ describe('ExploreToolbar', function () {
     await userEvent.click(within(section).getAllByLabelText('Remove')[0]);
     expect(groupBys).toEqual(['span.description']);
 
-    // only one left so cant be deleted
+    // only 1 left but it's not empty
+    expect(within(section).getByLabelText('Remove')).toBeEnabled();
+
+    await userEvent.click(within(section).getByLabelText('Remove'));
+    expect(groupBys).toEqual(['']);
+
+    // last one and it's empty
     expect(within(section).getByLabelText('Remove')).toBeDisabled();
   });
 });

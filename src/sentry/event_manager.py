@@ -76,9 +76,7 @@ from sentry.grouping.ingest.utils import (
     add_group_id_to_grouphashes,
     check_for_category_mismatch,
     check_for_group_creation_load_shed,
-    extract_hashes,
 )
-from sentry.grouping.result import CalculatedHashes
 from sentry.ingest.inbound_filters import FilterStatKeys
 from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
 from sentry.issues.grouptype import ErrorGroupType, GroupCategory
@@ -553,16 +551,6 @@ class EventManager:
     ) -> Event:
         jobs = [job]
 
-        if is_sample_event(job):
-            logger.info(
-                "save_error_events: processing sample event",
-                extra={
-                    "event.id": job["event"].event_id,
-                    "project_id": project.id,
-                    "sample_event": True,
-                },
-            )
-
         is_reprocessed = is_reprocessed_event(job["data"])
 
         _get_or_create_release_many(jobs, projects)
@@ -595,15 +583,6 @@ class EventManager:
             raise
 
         if not group_info:
-            if is_sample_event(job):
-                logger.info(
-                    "save_error_events: no groupinfo found, returning event",
-                    extra={
-                        "event.id": job["event"].event_id,
-                        "project_id": project.id,
-                        "sample_event": True,
-                    },
-                )
             return job["event"]
 
         # store a reference to the group id to guarantee validation of isolation
@@ -1175,15 +1154,6 @@ def _nodestore_save_many(jobs: Sequence[Job], app_feature: str) -> None:
 
 def _eventstream_insert_many(jobs: Sequence[Job]) -> None:
     for job in jobs:
-        if is_sample_event(job):
-            logger.info(
-                "_eventstream_insert_many: attempting to insert event into eventstream",
-                extra={
-                    "event.id": job["event"].event_id,
-                    "project_id": job["event"].project_id,
-                    "sample_event": True,
-                },
-            )
 
         if job["event"].project_id == settings.SENTRY_PROJECT:
             metrics.incr(
@@ -1216,16 +1186,6 @@ def _eventstream_insert_many(jobs: Sequence[Job]) -> None:
                 for gi in job["groups"]
                 if gi is not None
             ]
-
-        if is_sample_event(job):
-            logger.info(
-                "_eventstream_insert_many: inserting into evenstream",
-                extra={
-                    "event.id": job["event"].event_id,
-                    "project_id": job["event"].project_id,
-                    "sample_event": True,
-                },
-            )
 
         # Skip running grouping for "transaction" events:
         primary_hash = (
@@ -1394,8 +1354,9 @@ def _save_aggregate(
 ) -> GroupInfo | None:
     project = event.project
 
-    primary_hashes, secondary_hashes, hashes = get_hash_values(project, job, metric_tags)
-    has_secondary_hashes = len(extract_hashes(secondary_hashes)) > 0
+    primary_hashes, secondary_hashes = get_hash_values(project, job, metric_tags)
+    hashes = primary_hashes + secondary_hashes
+    has_secondary_hashes = len(secondary_hashes) > 0
 
     # Now that we've used the current and possibly secondary grouping config(s) to calculate the
     # hashes, we're free to perform a config update if permitted. Future events will use the new
@@ -1471,7 +1432,7 @@ def _save_aggregate(
                 GroupHash.objects.filter(id__in=grouphash_ids).select_for_update()
             )
 
-            grouphashes = [gh for gh in all_grouphashes if gh.hash in hashes.hashes]
+            grouphashes = [gh for gh in all_grouphashes if gh.hash in hashes]
 
             # Now check again to see if any of our grouphashes have a group. If we got the lock, the
             # result won't have changed and we still won't find anything. If we didn't get it, we'll
@@ -1484,9 +1445,7 @@ def _save_aggregate(
             # If we still haven't found a matching grouphash, we're now safe to go ahead and talk to
             # seer and/or create the group.
             if existing_grouphash is None:
-                seer_matched_grouphash = maybe_check_seer_for_matching_grouphash(
-                    event, primary_hashes
-                )
+                seer_matched_grouphash = maybe_check_seer_for_matching_grouphash(event)
                 seer_matched_group = (
                     Group.objects.filter(id=seer_matched_grouphash.group_id).first()
                     if seer_matched_grouphash
@@ -1574,7 +1533,7 @@ def _save_aggregate(
 
     new_hashes = [h for h in grouphashes if h.group_id is None]
 
-    primary_hash_values = set(extract_hashes(primary_hashes))
+    primary_hash_values = set(primary_hashes)
     new_hash_values = {gh.hash for gh in new_hashes}
     all_primary_hashes_are_new = primary_hash_values.issubset(new_hash_values)
     record_calculation_metric_with_result(
@@ -1655,7 +1614,7 @@ def _save_aggregate_new(
             result = "found_secondary"
         # If we still haven't found a group, ask Seer for a match (if enabled for the project)
         else:
-            seer_matched_grouphash = maybe_check_seer_for_matching_grouphash(event, primary.hashes)
+            seer_matched_grouphash = maybe_check_seer_for_matching_grouphash(event)
 
             if seer_matched_grouphash:
                 group_info = handle_existing_grouphash(job, seer_matched_grouphash, all_grouphashes)
@@ -1678,7 +1637,7 @@ def _save_aggregate_new(
     # `record_calculation_metric_with_result` can be pulled into `record_hash_calculation_metrics`
     record_calculation_metric_with_result(
         project=project,
-        has_secondary_hashes=len(extract_hashes(secondary.hashes)) > 0,
+        has_secondary_hashes=len(secondary.hashes) > 0,
         result=result,
     )
 
@@ -1695,7 +1654,7 @@ def get_hashes_and_grouphashes(
     job: Job,
     hash_calculation_function: Callable[
         [Project, Job, MutableTags],
-        tuple[GroupingConfig, CalculatedHashes],
+        tuple[GroupingConfig, list[str]],
     ],
     metric_tags: MutableTags,
 ) -> GroupHashInfo:
@@ -1712,7 +1671,7 @@ def get_hashes_and_grouphashes(
     # These will come back as Nones if the calculation decides it doesn't need to run
     grouping_config, hashes = hash_calculation_function(project, job, metric_tags)
 
-    if extract_hashes(hashes):
+    if hashes:
         grouphashes = get_or_create_grouphashes(project, hashes)
 
         existing_grouphash = find_existing_grouphash(grouphashes)
@@ -2250,9 +2209,9 @@ def _process_existing_aggregate(
         "title": _get_updated_group_title(existing_metadata, incoming_metadata),
     }
 
-    update_kwargs = {"times_seen": 1}
-
-    buffer_incr(Group, update_kwargs, {"id": group.id}, updated_group_values)
+    # We pass `times_seen` separately from all of the other columns so that `buffer_inr` knows to
+    # increment rather than overwrite the existing value
+    buffer_incr(Group, {"times_seen": 1}, {"id": group.id}, updated_group_values)
 
     return bool(is_regression)
 

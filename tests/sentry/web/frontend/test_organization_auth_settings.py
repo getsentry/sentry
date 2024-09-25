@@ -20,13 +20,13 @@ from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.models.authproviderreplica import AuthProviderReplica
-from sentry.models.integrations.sentry_app_installation_for_provider import (
-    SentryAppInstallationForProvider,
-)
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.team import Team
 from sentry.organizations.services.organization import organization_service
+from sentry.sentry_apps.models.sentry_app_installation_for_provider import (
+    SentryAppInstallationForProvider,
+)
 from sentry.signals import receivers_raise_on_send
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import AuthProviderTestCase, PermissionTestCase
@@ -331,11 +331,28 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         organization, auth_provider = self.create_org_and_auth_provider("Fly.io")
         self.create_om_and_link_sso(organization)
         path = reverse("sentry-organization-auth-provider-settings", args=[organization.slug])
+        assert AuthProvider.objects.filter(organization_id=organization.id).exists()
+        assert AuthProvider.objects.filter(id=auth_provider.id).exists()
 
         self.login_as(self.user, organization_id=organization.id)
 
         resp = self.client.post(path, {"op": "disable"})
         assert resp.status_code == 405
+
+        # can disable after partner plan end (changes to "non-partner" fly sso)
+        auth_provider.update(provider="fly-non-partner")
+        assert AuthProvider.objects.filter(id=auth_provider.id, provider="fly-non-partner").exists()
+
+        resp = self.client.post(path, {"op": "disable"})
+        assert resp.status_code == 302
+
+        assert not AuthProvider.objects.filter(organization_id=organization.id).exists()
+        assert not AuthProvider.objects.filter(id=auth_provider.id).exists()
+        disable_audit_log = AuditLogEntry.objects.filter(
+            event=audit_log.get_event_id("SSO_DISABLE")
+        ).first()
+        assert disable_audit_log
+        assert disable_audit_log.data["provider"] == "fly"
 
     def test_disable__scim_missing(self):
         organization, auth_provider = self.create_org_and_auth_provider()

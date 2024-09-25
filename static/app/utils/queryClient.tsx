@@ -64,17 +64,6 @@ export type ApiQueryKey =
       >,
     ];
 
-/**
- * isLoading is renamed to isPending in v5, this backports the type to v4
- *
- * TODO(react-query): Remove this when we upgrade to react-query v5
- *
- * @link https://tanstack.com/query/v5/docs/framework/react/guides/migrating-to-v5
- */
-type BackportIsPending<T> = T extends {isLoading: boolean}
-  ? T & {isPending: T['isLoading']}
-  : T;
-
 export interface UseApiQueryOptions<TApiResponse, TError = RequestError>
   extends Omit<
     UseQueryOptions<
@@ -90,10 +79,6 @@ export interface UseApiQueryOptions<TApiResponse, TError = RequestError>
     // We do not include the select option as this is difficult to make interop
     // with the way we extract data out of the ApiResult tuple
     | 'select'
-    // onSuccess and onError are gone in v5, avoid using
-    // TODO(react-query): Remove this when we upgrade to react-query v5
-    | 'onSuccess'
-    | 'onError'
   > {
   /**
    * staleTime is the amount of time (in ms) before cached data gets marked as stale.
@@ -113,9 +98,7 @@ export interface UseApiQueryOptions<TApiResponse, TError = RequestError>
   staleTime: number;
 }
 
-export type UseApiQueryResult<TData, TError> = BackportIsPending<
-  UseQueryResult<TData, TError>
-> & {
+export type UseApiQueryResult<TData, TError> = UseQueryResult<TData, TError> & {
   /**
    * Get a header value from the response
    */
@@ -152,9 +135,6 @@ export function useApiQuery<TResponseData, TError = RequestError>(
   const queryResult = {
     data: data?.[0],
     getResponseHeader: data?.[2]?.getResponseHeader,
-    // Backport isLoading to isPending
-    // TODO(react-query): Remove this when we upgrade to react-query v5 as it will already exist
-    isPending: rest.isLoading,
     ...rest,
   };
 
@@ -297,11 +277,6 @@ function parsePageParam(dir: 'previous' | 'next') {
   };
 }
 
-// TODO(react-query): Remove this when we upgrade to react-query v5
-export type UseInfiniteQueryResult<TData, TError> = BackportIsPending<
-  _UseInfiniteQueryResult<TData, TError>
->;
-
 /**
  * Wraps React Query's useInfiniteQuery for consistent usage in the Sentry app.
  * Query keys should be an array which include an endpoint URL and options such as query params.
@@ -316,14 +291,10 @@ export function useInfiniteApiQuery<TResponseData>({queryKey}: {queryKey: ApiQue
     queryFn: fetchInfiniteQuery<TResponseData>(api),
     getPreviousPageParam: parsePageParam('previous'),
     getNextPageParam: parsePageParam('next'),
+    initialPageParam: undefined,
   });
 
-  // TODO(react-query): Remove this when we upgrade to react-query v5
-  // @ts-expect-error: This is a backport of react-query v5
-  query.isPending = query.isLoading;
-
-  // TODO(react-query): Remove casting when we upgrade to react-query v5
-  return query as UseInfiniteQueryResult<ApiResult<TResponseData>, unknown>;
+  return query;
 }
 
 type ApiMutationVariables<

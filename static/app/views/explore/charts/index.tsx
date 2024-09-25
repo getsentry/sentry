@@ -10,13 +10,20 @@ import {dedupeArray} from 'sentry/utils/dedupeArray';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {useDataset} from 'sentry/views/explore/hooks/useDataset';
 import {useVisualizes} from 'sentry/views/explore/hooks/useVisualizes';
 import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
 import ChartPanel from 'sentry/views/insights/common/components/chartPanel';
-import {useSpanIndexedSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 import {CHART_HEIGHT} from 'sentry/views/insights/database/settings';
+
+import {useGroupBys} from '../hooks/useGroupBys';
+import {useResultMode} from '../hooks/useResultsMode';
+import {useSorts} from '../hooks/useSorts';
+import {TOP_EVENTS_LIMIT, useTopEvents} from '../hooks/useTopEvents';
+import {formatSort} from '../tables/aggregatesTable';
 
 interface ExploreChartsProps {
   query: string;
@@ -44,6 +51,28 @@ export function ExploreCharts({query}: ExploreChartsProps) {
   const [dataset] = useDataset();
   const [visualizes, setVisualizes] = useVisualizes();
   const [interval, setInterval, intervalOptions] = useChartInterval();
+  const [groupBys] = useGroupBys();
+  const [resultMode] = useResultMode();
+  const topEvents = useTopEvents();
+
+  const fields: string[] = useMemo(() => {
+    if (resultMode === 'samples') {
+      return [];
+    }
+
+    return [...groupBys, ...visualizes.flatMap(visualize => visualize.yAxes)].filter(
+      Boolean
+    );
+  }, [resultMode, groupBys, visualizes]);
+  const [sorts] = useSorts({fields});
+
+  const orderby: string | string[] | undefined = useMemo(() => {
+    if (!sorts.length) {
+      return undefined;
+    }
+
+    return sorts.map(formatSort);
+  }, [sorts]);
 
   const yAxes = useMemo(() => {
     const deduped = dedupeArray(visualizes.flatMap(visualize => visualize.yAxes));
@@ -51,15 +80,28 @@ export function ExploreCharts({query}: ExploreChartsProps) {
     return deduped;
   }, [visualizes]);
 
-  const series = useSpanIndexedSeries(
+  const timeSeriesResult = useSortedTimeSeries(
     {
       search: new MutableSearch(query ?? ''),
       yAxis: yAxes,
       interval: interval ?? getInterval(pageFilters.selection.datetime, 'metrics'),
       enabled: true,
+      fields,
+      orderby,
+      topEvents,
     },
     'api.explorer.stats',
     dataset
+  );
+
+  const getSeries = useCallback(
+    (dedupedYAxes: string[]) => {
+      return dedupedYAxes.flatMap(yAxis => {
+        const series = timeSeriesResult.data[yAxis];
+        return series !== undefined ? series : [];
+      });
+    },
+    [timeSeriesResult]
   );
 
   const handleChartTypeChange = useCallback(
@@ -108,10 +150,12 @@ export function ExploreCharts({query}: ExploreChartsProps) {
                   top: '8px',
                   bottom: '0',
                 }}
-                data={dedupedYAxes.map(yAxis => series.data[yAxis])}
-                error={series.error}
-                loading={series.isPending}
-                chartColors={CHART_PALETTE[2]}
+                legendFormatter={value => formatVersion(value)}
+                data={getSeries(dedupedYAxes)}
+                error={timeSeriesResult.error}
+                loading={timeSeriesResult.isPending}
+                // TODO Abdullah: Make chart colors dynamic, with changing topN events count and overlay count.
+                chartColors={CHART_PALETTE[TOP_EVENTS_LIMIT - 1]}
                 type={chartType}
                 // for now, use the first y axis unit
                 aggregateOutputFormat={aggregateOutputType(dedupedYAxes[0])}

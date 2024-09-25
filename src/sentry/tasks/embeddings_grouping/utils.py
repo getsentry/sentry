@@ -43,10 +43,12 @@ from sentry.utils import json, metrics
 from sentry.utils.iterators import chunked
 from sentry.utils.query import RangeQuerySetWrapper
 from sentry.utils.safe import get_path
-from sentry.utils.snuba import RateLimitExceeded, bulk_snuba_queries
+from sentry.utils.snuba import QueryTooManySimultaneous, RateLimitExceeded, bulk_snuba_queries
 
 BACKFILL_NAME = "backfill_grouping_records"
 BULK_DELETE_METADATA_CHUNK_SIZE = 100
+SNUBA_RETRY_EXCEPTIONS = (RateLimitExceeded, QueryTooManySimultaneous)
+NODESTORE_RETRY_EXCEPTIONS = (ServiceUnavailable, DeadlineExceeded)
 
 logger = logging.getLogger(__name__)
 
@@ -302,18 +304,23 @@ def _make_snuba_call(project, snuba_requests, referrer):
             bulk_snuba_queries,
             snuba_requests,
             referrer,
-            retries=3,
-            delay=2,
-            exceptions=RateLimitExceeded,
+            retries=6,
+            delay=15,
+            exceptions=SNUBA_RETRY_EXCEPTIONS,
         )
-    except RateLimitExceeded:
+    except SNUBA_RETRY_EXCEPTIONS as e:
+        message = (
+            "Snuba Rate Limit Exceeded"
+            if isinstance(e, RateLimitExceeded)
+            else "Too Many Simultaneous Snuba Queries"
+        )
         extra = {
             "organization_id": project.organization.id,
             "project_id": project.id,
-            "error": "Snuba Rate Limit Exceeded",
+            "error": message,
         }
         logger.exception(
-            "tasks.backfill_seer_grouping_records.snuba_query_exception",
+            "tasks.backfill_seer_grouping_records.snuba_query_limit_exceeded",
             extra=extra,
         )
         raise
@@ -404,8 +411,8 @@ def _make_seer_call(
     seer_response = _retry_operation(
         post_bulk_grouping_records,
         create_grouping_records_request,
-        retries=5,
-        delay=4,
+        retries=20,
+        delay=15,
         exceptions=Exception,
     )
 
@@ -492,6 +499,7 @@ def send_group_and_stacktrace_to_seer_multithreaded(
         for seer_response in seer_responses:
             if not seer_response["success"]:
                 aggregated_response["success"] = False
+                aggregated_response.update({"reason": seer_response["reason"]})
                 return aggregated_response
 
             aggregated_response["groups_with_neighbor"].update(
@@ -563,9 +571,9 @@ def _make_nodestore_call(project, node_keys):
             node_keys,
             retries=3,
             delay=2,
-            exceptions=(ServiceUnavailable, DeadlineExceeded),
+            exceptions=NODESTORE_RETRY_EXCEPTIONS,
         )
-    except (ServiceUnavailable, DeadlineExceeded) as e:
+    except NODESTORE_RETRY_EXCEPTIONS as e:
         extra = {
             "organization_id": project.organization.id,
             "project_id": project.id,
@@ -652,7 +660,7 @@ def lookup_group_data_stacktrace_bulk(
                         Event.generate_node_id(project_id, event_id),
                         retries=3,
                         delay=2,
-                        exceptions=(ServiceUnavailable, DeadlineExceeded),
+                        exceptions=NODESTORE_RETRY_EXCEPTIONS,
                     )
                     if data is None:
                         extra = {

@@ -11,6 +11,7 @@ import {
   screen,
   userEvent,
   waitFor,
+  within,
 } from 'sentry-test/reactTestingLibrary';
 
 import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
@@ -820,27 +821,25 @@ describe('trace view', () => {
 
       let rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
       await userEvent.click(rows[0]);
-
       await waitFor(() => expect(rows[0]).toHaveFocus());
-      await userEvent.keyboard('{arrowup}');
 
-      expect(
-        await findByText(virtualizedContainer, /transaction-op-9999/i)
-      ).toBeInTheDocument();
+      await userEvent.keyboard('{arrowup}', {delay: null});
       await waitFor(() => {
         rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
         expect(rows[rows.length - 1]).toHaveFocus();
       });
-
-      await userEvent.keyboard('{arrowdown}');
       expect(
-        await findByText(virtualizedContainer, /transaction-op-0/i)
+        await within(virtualizedContainer).findByText(/transaction-op-9999/i)
       ).toBeInTheDocument();
 
+      await userEvent.keyboard('{arrowdown}', {delay: null});
       await waitFor(() => {
         rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
         expect(rows[0]).toHaveFocus();
       });
+      expect(
+        await within(virtualizedContainer).findByText(/transaction-op-0/i)
+      ).toBeInTheDocument();
     });
     it('tab scrolls to next node', async () => {
       const {virtualizedContainer} = await keyboardNavigationTestSetup();

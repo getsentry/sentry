@@ -7,7 +7,7 @@ import {getRelativeDateSuggestions} from 'sentry/components/searchQueryBuilder/t
 import {getDurationSuggestions} from 'sentry/components/searchQueryBuilder/tokens/filter/valueSuggestions/duration';
 import {getNumericSuggestions} from 'sentry/components/searchQueryBuilder/tokens/filter/valueSuggestions/numeric';
 import type {SuggestionSection} from 'sentry/components/searchQueryBuilder/tokens/filter/valueSuggestions/types';
-import type {Token, TokenResult} from 'sentry/components/searchSyntax/parser';
+import {Token, type TokenResult} from 'sentry/components/searchSyntax/parser';
 import {FieldValueType} from 'sentry/utils/fields';
 
 const FILTER_VALUE_NUMERIC = /^-?\d+(\.\d+)?[kmb]?$/i;
@@ -43,10 +43,15 @@ export function getValueSuggestions({
  * Given a value and a valueType, validates and cleans the value.
  * If the value is invalid and cannot be recovered, it will return null.
  */
-export function cleanFilterValue(
-  valueType: FieldValueType | null | undefined,
-  value: string
-): string | null {
+export function cleanFilterValue({
+  valueType,
+  value,
+  token,
+}: {
+  value: string;
+  valueType: FieldValueType | null | undefined;
+  token?: TokenResult<Token.FILTER>;
+}): string | null {
   if (!valueType) {
     return escapeTagValue(value);
   }
@@ -91,6 +96,17 @@ export function cleanFilterValue(
       if (!parsed) {
         return null;
       }
+
+      // This handles the case where the user types 14d without a sign.
+      // We take the sign from the existing token value in this case.
+      if (parsed.type === Token.VALUE_RELATIVE_DATE) {
+        if (!parsed.sign) {
+          const sign = token?.value.text.startsWith('+') ? '+' : '-';
+
+          return `${sign}${value}`;
+        }
+      }
+
       return value;
     default:
       return escapeTagValue(value).trim();

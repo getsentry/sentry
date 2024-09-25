@@ -1,9 +1,9 @@
+from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.models.project import Project
 from sentry.models.projectteam import ProjectTeam
 from sentry.models.rule import Rule
 from sentry.models.team import Team
 from sentry.monitors.models import Monitor, MonitorType
-from sentry.tasks.deletion.scheduled import run_scheduled_deletions
 from sentry.testutils.cases import TestCase
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.types.actor import Actor

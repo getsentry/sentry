@@ -168,6 +168,14 @@ class GroupStatus:
     MUTED = IGNORED
 
 
+STATUS_WITHOUT_SUBSTATUS = {
+    GroupStatus.RESOLVED,
+    GroupStatus.PENDING_DELETION,
+    GroupStatus.DELETION_IN_PROGRESS,
+    GroupStatus.PENDING_MERGE,
+    GroupStatus.REPROCESSING,
+}
+
 # Statuses that can be queried/searched for
 STATUS_QUERY_CHOICES: Mapping[str, int] = {
     "resolved": GroupStatus.RESOLVED,

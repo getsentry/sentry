@@ -1,8 +1,16 @@
+import type {ReactNode} from 'react';
+import styled from '@emotion/styled';
+
+import FeatureBadge from 'sentry/components/badge/featureBadge';
 import type {SelectOption} from 'sentry/components/compactSelect';
+import {space} from 'sentry/styles/space';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
-import {DATABASE_SYSTEM_TO_LABEL} from 'sentry/views/insights/database/utils/constants';
+import {
+  DATABASE_SYSTEM_TO_LABEL,
+  SupportedDatabaseSystem,
+} from 'sentry/views/insights/database/utils/constants';
 import {SpanMetricsField} from 'sentry/views/insights/types';
 
 export function useSystemSelectorOptions() {
@@ -11,7 +19,7 @@ export function useSystemSelectorOptions() {
     ''
   );
 
-  const {data, isLoading, isError} = useSpanMetrics(
+  const {data, isPending, isError} = useSpanMetrics(
     {
       search: MutableSearch.fromQueryObject({'span.op': 'db'}),
 
@@ -25,10 +33,28 @@ export function useSystemSelectorOptions() {
   data.forEach(entry => {
     const system = entry['span.system'];
     if (system) {
-      const label: string =
+      let label: ReactNode = '';
+      const textValue =
         system in DATABASE_SYSTEM_TO_LABEL ? DATABASE_SYSTEM_TO_LABEL[system] : system;
 
-      options.push({value: system, label, textValue: label});
+      const supportedSystemSet: Set<string> = new Set(
+        Object.values(SupportedDatabaseSystem)
+      );
+
+      if (system === SupportedDatabaseSystem.MONGODB) {
+        label = (
+          <LabelContainer>
+            {textValue}
+            <StyledFeatureBadge type={'beta'} />
+          </LabelContainer>
+        );
+      } else {
+        label = textValue;
+      }
+
+      if (supportedSystemSet.has(system)) {
+        options.push({value: system, label, textValue});
+      }
     }
   });
 
@@ -42,5 +68,14 @@ export function useSystemSelectorOptions() {
     setSelectedSystem(options[0].value);
   }
 
-  return {selectedSystem, setSelectedSystem, options, isLoading, isError};
+  return {selectedSystem, setSelectedSystem, options, isLoading: isPending, isError};
 }
+
+const StyledFeatureBadge = styled(FeatureBadge)`
+  margin-left: ${space(1)};
+`;
+
+const LabelContainer = styled('div')`
+  display: flex;
+  align-items: center;
+`;

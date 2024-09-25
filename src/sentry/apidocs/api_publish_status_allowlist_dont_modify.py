@@ -804,8 +804,6 @@ API_PUBLISH_STATUS_ALLOWLIST_DONT_MODIFY = {
     "/api/0/users/{user_id}/permissions/{permission_name}/": {"DELETE", "GET", "POST"},
     "/api/0/users/{user_id}/roles/": {"GET"},
     "/api/0/users/{user_id}/roles/{role_name}/": {"DELETE", "GET", "POST"},
-    "/api/0/users/{user_id}/social-identities/": {"GET"},
-    "/api/0/users/{user_id}/social-identities/{identity_id}/": {"DELETE"},
     "/api/0/users/{user_id}/subscriptions/": {"GET", "PUT", "POST"},
     "/api/0/users/{user_id}/organization-integrations/": {"GET"},
     "/api/0/users/{user_id}/user-identities/": {"GET"},

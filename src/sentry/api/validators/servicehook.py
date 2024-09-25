@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from sentry.models.servicehook import SERVICE_HOOK_EVENTS
+from sentry.sentry_apps.models.servicehook import SERVICE_HOOK_EVENTS
 
 
 class ServiceHookValidator(serializers.Serializer):

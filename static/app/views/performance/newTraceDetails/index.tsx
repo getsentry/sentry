@@ -134,8 +134,8 @@ export function getTraceViewQueryStatus(
     return 'error';
   }
 
-  if (traceQueryStatus === 'loading' || traceMetaQueryStatus === 'loading') {
-    return 'loading';
+  if (traceQueryStatus === 'pending' || traceMetaQueryStatus === 'pending') {
+    return 'pending';
   }
 
   return 'success';
@@ -360,7 +360,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
       return;
     }
 
-    if (props.status === 'loading') {
+    if (props.status === 'pending') {
       const loadingTrace =
         loadingTraceRef.current ??
         TraceTree.Loading(

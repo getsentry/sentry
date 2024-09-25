@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 import omit from 'lodash/omit';
 
-import Feature from 'sentry/components/acl/feature';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Badge from 'sentry/components/badge/badge';
 import FeatureBadge from 'sentry/components/badge/featureBadge';
@@ -11,7 +10,6 @@ import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import Count from 'sentry/components/count';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import EventMessage from 'sentry/components/events/eventMessage';
-import {GroupSummaryHeader} from 'sentry/components/group/groupSummary';
 import {GroupStatusBadge} from 'sentry/components/group/inboxBadges/statusBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Link from 'sentry/components/links/link';
@@ -38,7 +36,7 @@ import {useIssueDetailsHeader} from 'sentry/views/issueDetails/useIssueDetailsHe
 
 import GroupActions from './actions';
 import {Tab} from './types';
-import type {ReprocessingStatus} from './utils';
+import {type ReprocessingStatus, useHasStreamlinedUI} from './utils';
 
 type Props = {
   baseUrl: string;
@@ -63,6 +61,7 @@ export function GroupHeaderTabs({
 }: GroupHeaderTabsProps) {
   const organization = useOrganization();
   const location = useLocation();
+  const hasStreamlinedUI = useHasStreamlinedUI();
 
   const {getReplayCountForIssue} = useReplayCountForIssues({
     statsPeriod: '90d',
@@ -94,7 +93,35 @@ export function GroupHeaderTabs({
     }
   }, [group.issueType, organization]);
 
-  return (
+  return hasStreamlinedUI ? (
+    <StyledTabList hideBorder>
+      <TabList.Item
+        key={Tab.DETAILS}
+        disabled={disabledTabs.includes(Tab.DETAILS)}
+        to={`${baseUrl}${location.search}`}
+      >
+        {t('Details')}
+      </TabList.Item>
+      <TabList.Item
+        key={Tab.USER_FEEDBACK}
+        textValue={t('User Feedback')}
+        hidden={!issueTypeConfig.userFeedback.enabled}
+        disabled={disabledTabs.includes(Tab.USER_FEEDBACK)}
+        to={{pathname: `${baseUrl}feedback/`, query: queryParams}}
+      >
+        {t('User Feedback')} <Badge text={group.userReportCount} />
+      </TabList.Item>
+      <TabList.Item
+        key={Tab.REPLAYS}
+        textValue={t('Replays')}
+        hidden={!hasReplaySupport || !issueTypeConfig.replays.enabled}
+        to={{pathname: `${baseUrl}replays/`, query: queryParams}}
+      >
+        {t('Replays')}
+        <ReplayCountBadge count={replaysCount} />
+      </TabList.Item>
+    </StyledTabList>
+  ) : (
     <StyledTabList hideBorder>
       <TabList.Item
         key={Tab.DETAILS}
@@ -256,12 +283,6 @@ function GroupHeader({
               type={group.type}
               showUnhandled={group.isUnhandled}
             />
-            <Feature features={['organizations:ai-summary']}>
-              <GroupSummaryHeader
-                groupId={group.id}
-                groupCategory={group.issueCategory}
-              />
-            </Feature>
           </TitleWrapper>
           <StatsWrapper>
             {issueTypeConfig.stats.enabled && (

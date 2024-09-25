@@ -413,7 +413,7 @@ class TestCommentWorkflow(GithubCommentTestCase):
         self.cache_key = DEBOUNCE_PR_COMMENT_CACHE_KEY(self.pr.id)
 
     @patch("sentry.integrations.github.tasks.pr_comment.get_top_5_issues_by_count")
-    @patch("sentry.integrations.github.tasks.utils.metrics")
+    @patch("sentry.integrations.source_code_management.commit_context.metrics")
     @responses.activate
     def test_comment_workflow(self, mock_metrics, mock_issues):
         group_objs = Group.objects.order_by("id").all()
@@ -439,10 +439,10 @@ class TestCommentWorkflow(GithubCommentTestCase):
         assert len(pull_request_comment_query) == 1
         assert pull_request_comment_query[0].external_id == 1
         assert pull_request_comment_query[0].comment_type == CommentType.MERGED_PR
-        mock_metrics.incr.assert_called_with("github_pr_comment.comment_created")
+        mock_metrics.incr.assert_called_with("github.pr_comment.comment_created")
 
     @patch("sentry.integrations.github.tasks.pr_comment.get_top_5_issues_by_count")
-    @patch("sentry.integrations.github.tasks.utils.metrics")
+    @patch("sentry.integrations.source_code_management.commit_context.metrics")
     @responses.activate
     @freeze_time(datetime(2023, 6, 8, 0, 0, 0, tzinfo=UTC))
     def test_comment_workflow_updates_comment(self, mock_metrics, mock_issues):
@@ -482,7 +482,7 @@ class TestCommentWorkflow(GithubCommentTestCase):
         pull_request_comment.refresh_from_db()
         assert pull_request_comment.group_ids == [g.id for g in Group.objects.all()]
         assert pull_request_comment.updated_at == timezone.now()
-        mock_metrics.incr.assert_called_with("github_pr_comment.comment_updated")
+        mock_metrics.incr.assert_called_with("github.pr_comment.comment_updated")
 
     @patch("sentry.integrations.github.tasks.pr_comment.get_top_5_issues_by_count")
     @patch("sentry.integrations.github.tasks.pr_comment.metrics")
@@ -521,7 +521,7 @@ class TestCommentWorkflow(GithubCommentTestCase):
         with pytest.raises(ApiError):
             github_comment_workflow(self.pr.id, self.project.id)
             assert cache.get(self.cache_key) is None
-            mock_metrics.incr.assert_called_with("github_pr_comment.api_error")
+            mock_metrics.incr.assert_called_with("github.pr_comment.api_error")
 
         pr_2 = self.create_pr_issues()
         cache_key = DEBOUNCE_PR_COMMENT_CACHE_KEY(pr_2.id)
@@ -531,7 +531,7 @@ class TestCommentWorkflow(GithubCommentTestCase):
         github_comment_workflow(pr_2.id, self.project.id)
         assert cache.get(cache_key) is None
         mock_metrics.incr.assert_called_with(
-            "github_pr_comment.error", tags={"type": "issue_locked_error"}
+            "github.pr_comment.error", tags={"type": "issue_locked_error"}
         )
 
         pr_3 = self.create_pr_issues()
@@ -542,7 +542,7 @@ class TestCommentWorkflow(GithubCommentTestCase):
         github_comment_workflow(pr_3.id, self.project.id)
         assert cache.get(cache_key) is None
         mock_metrics.incr.assert_called_with(
-            "github_pr_comment.error", tags={"type": "rate_limited_error"}
+            "github.pr_comment.error", tags={"type": "rate_limited_error"}
         )
 
     @patch(
@@ -559,7 +559,7 @@ class TestCommentWorkflow(GithubCommentTestCase):
         assert not mock_issues.called
         assert cache.get(self.cache_key) is None
         mock_metrics.incr.assert_called_with(
-            "github_pr_comment.error", tags={"type": "missing_org"}
+            "github.pr_comment.error", tags={"type": "missing_org"}
         )
 
     @patch("sentry.integrations.github.tasks.pr_comment.get_top_5_issues_by_count")
@@ -585,7 +585,7 @@ class TestCommentWorkflow(GithubCommentTestCase):
         assert not mock_issues.called
         assert cache.get(self.cache_key) is None
         mock_metrics.incr.assert_called_with(
-            "github_pr_comment.error", tags={"type": "missing_project"}
+            "github.pr_comment.error", tags={"type": "missing_project"}
         )
 
     @patch(
@@ -611,7 +611,7 @@ class TestCommentWorkflow(GithubCommentTestCase):
         assert not mock_format_comment.called
         assert cache.get(self.cache_key) is None
         mock_metrics.incr.assert_called_with(
-            "github_pr_comment.error", tags={"type": "missing_repo"}
+            "github.pr_comment.error", tags={"type": "missing_repo"}
         )
 
     @patch(
@@ -639,7 +639,7 @@ class TestCommentWorkflow(GithubCommentTestCase):
         assert not mock_format_comment.called
         assert cache.get(self.cache_key) is None
         mock_metrics.incr.assert_called_with(
-            "github_pr_comment.error", tags={"type": "missing_integration"}
+            "github.pr_comment.error", tags={"type": "missing_integration"}
         )
 
     @patch("sentry.integrations.github.tasks.pr_comment.get_top_5_issues_by_count")
@@ -708,7 +708,7 @@ class TestCommentReactionsTask(GithubCommentTestCase):
         del stored_reactions["url"]
         assert self.comment.reactions == stored_reactions
 
-        mock_metrics.incr.assert_called_with("github_pr_comment.comment_reactions.success")
+        mock_metrics.incr.assert_called_with("pr_comment.comment_reactions.success")
 
     @patch("sentry.integrations.github.tasks.pr_comment.metrics")
     @responses.activate
@@ -726,7 +726,7 @@ class TestCommentReactionsTask(GithubCommentTestCase):
 
         self.comment.refresh_from_db()
         assert self.comment.reactions is None
-        mock_metrics.incr.assert_called_with("github_pr_comment.comment_reactions.missing_repo")
+        mock_metrics.incr.assert_called_with("pr_comment.comment_reactions.missing_repo")
 
     @patch("sentry.integrations.github.tasks.pr_comment.metrics")
     @responses.activate
@@ -746,9 +746,7 @@ class TestCommentReactionsTask(GithubCommentTestCase):
 
         self.comment.refresh_from_db()
         assert self.comment.reactions is None
-        mock_metrics.incr.assert_called_with(
-            "github_pr_comment.comment_reactions.missing_integration"
-        )
+        mock_metrics.incr.assert_called_with("pr_comment.comment_reactions.missing_integration")
 
     @patch("sentry.integrations.github.tasks.pr_comment.metrics")
     @responses.activate
@@ -791,7 +789,7 @@ class TestCommentReactionsTask(GithubCommentTestCase):
         assert no_error_comment.reactions == stored_reactions
 
         # assert the last metric emitted is a success
-        mock_metrics.incr.assert_called_with("github_pr_comment.comment_reactions.success")
+        mock_metrics.incr.assert_called_with("pr_comment.comment_reactions.success")
 
     @patch("sentry.integrations.github.tasks.pr_comment.metrics")
     @responses.activate
@@ -810,9 +808,7 @@ class TestCommentReactionsTask(GithubCommentTestCase):
 
         self.comment.refresh_from_db()
         assert self.comment.reactions is None
-        mock_metrics.incr.assert_called_with(
-            "github_pr_comment.comment_reactions.rate_limited_error"
-        )
+        mock_metrics.incr.assert_called_with("pr_comment.comment_reactions.rate_limited_error")
 
     @patch("sentry.integrations.github.tasks.pr_comment.metrics")
     @responses.activate
@@ -828,4 +824,4 @@ class TestCommentReactionsTask(GithubCommentTestCase):
 
         self.comment.refresh_from_db()
         assert self.comment.reactions is None
-        mock_metrics.incr.assert_called_with("github_pr_comment.comment_reactions.not_found_error")
+        mock_metrics.incr.assert_called_with("pr_comment.comment_reactions.not_found_error")

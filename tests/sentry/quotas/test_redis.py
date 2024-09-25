@@ -119,6 +119,7 @@ class RedisQuotaTest(TestCase):
         self.organization.update_option("project-abuse-quota.session-limit", 602)
         self.organization.update_option("organization-abuse-quota.metric-bucket-limit", 603)
         self.organization.update_option("organization-abuse-quota.custom-metric-bucket-limit", 604)
+        self.organization.update_option("project-abuse-quota.span-limit", 605)
 
         metric_abuse_limit_by_id = dict()
         for i, mabq in enumerate(build_metric_abuse_quotas()):
@@ -151,6 +152,14 @@ class RedisQuotaTest(TestCase):
         assert quotas[3].limit == 6020
         assert quotas[3].window == 10
         assert quotas[3].reason_code == "project_abuse_limit"
+
+        assert quotas[4].id == "paspi"
+        assert quotas[4].scope == QuotaScope.PROJECT
+        assert quotas[4].scope_id is None
+        assert quotas[4].categories == {DataCategory.SPAN_INDEXED}
+        assert quotas[4].limit == 6050
+        assert quotas[4].window == 10
+        assert quotas[4].reason_code == "project_abuse_limit"
 
         expected_quotas: dict[tuple[QuotaScope, UseCaseID | None], str] = dict()
         for scope, prefix in [

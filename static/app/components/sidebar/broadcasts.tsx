@@ -1,4 +1,4 @@
-import {Component, Fragment} from 'react';
+import {Component, Fragment, useEffect} from 'react';
 
 import {getAllBroadcasts, markBroadcastsAsSeen} from 'sentry/actionCreators/broadcasts';
 import type {Client} from 'sentry/api';
@@ -8,7 +8,6 @@ import {BroadcastPanelItem} from 'sentry/components/sidebar/broadcastPanelItem';
 import SidebarItem from 'sentry/components/sidebar/sidebarItem';
 import SidebarPanel from 'sentry/components/sidebar/sidebarPanel';
 import SidebarPanelEmpty from 'sentry/components/sidebar/sidebarPanelEmpty';
-import SidebarPanelItem from 'sentry/components/sidebar/sidebarPanelItem';
 import {IconBroadcast} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -28,15 +27,62 @@ type Props = CommonSidebarProps & {
 
 type State = {
   broadcasts: Broadcast[];
-  error: boolean;
   loading: boolean;
 };
+
+function BroadcastSidebarContent({
+  orientation,
+  collapsed,
+  loading,
+  broadcasts,
+  hidePanel,
+  onResetCounter,
+}: {
+  broadcasts: Broadcast[];
+  loading: boolean;
+  onResetCounter: () => void;
+} & Pick<CommonSidebarProps, 'orientation' | 'collapsed' | 'hidePanel'>) {
+  useEffect(() => {
+    return () => {
+      onResetCounter();
+    };
+  }, [onResetCounter]);
+
+  return (
+    <SidebarPanel
+      data-test-id="sidebar-broadcasts-panel"
+      orientation={orientation}
+      collapsed={collapsed}
+      title={t("What's new in Sentry")}
+      hidePanel={hidePanel}
+    >
+      {loading ? (
+        <LoadingIndicator />
+      ) : broadcasts.length === 0 ? (
+        <SidebarPanelEmpty>
+          {t('No recent updates from the Sentry team.')}
+        </SidebarPanelEmpty>
+      ) : (
+        broadcasts.map(item => (
+          <BroadcastPanelItem
+            key={item.id}
+            hasSeen={item.hasSeen}
+            title={item.title}
+            message={item.message}
+            link={item.link}
+            mediaUrl={item.mediaUrl}
+            category={item.category}
+          />
+        ))
+      )}
+    </SidebarPanel>
+  );
+}
 
 class Broadcasts extends Component<Props, State> {
   state: State = {
     broadcasts: [],
     loading: true,
-    error: false,
   };
 
   componentDidMount() {
@@ -75,7 +121,7 @@ class Broadcasts extends Component<Props, State> {
       const data = await getAllBroadcasts(this.props.api, this.props.organization.slug);
       this.setState({loading: false, broadcasts: data || []});
     } catch {
-      this.setState({loading: false, error: true});
+      this.setState({loading: false});
     }
 
     this.startPolling();
@@ -103,10 +149,6 @@ class Broadcasts extends Component<Props, State> {
     }
 
     await markBroadcastsAsSeen(this.props.api, unseenBroadcastIds);
-
-    this.setState(state => ({
-      broadcasts: state.broadcasts.map(item => ({...item, hasSeen: true})),
-    }));
   };
 
   get unseenIds() {
@@ -115,12 +157,17 @@ class Broadcasts extends Component<Props, State> {
       : [];
   }
 
+  handleResetCounter = () => {
+    this.setState(state => ({
+      broadcasts: state.broadcasts.map(item => ({...item, hasSeen: true})),
+    }));
+  };
+
   render() {
-    const {orientation, collapsed, currentPanel, hidePanel, organization} = this.props;
+    const {orientation, collapsed, currentPanel, hidePanel} = this.props;
     const {broadcasts, loading} = this.state;
 
     const unseenPosts = this.unseenIds;
-    const whatIsNewRevampFeature = organization.features.includes('what-is-new-revamp');
 
     return (
       <DemoModeGate>
@@ -138,44 +185,14 @@ class Broadcasts extends Component<Props, State> {
           />
 
           {currentPanel === SidebarPanelKey.BROADCASTS && (
-            <SidebarPanel
-              data-test-id="sidebar-broadcasts-panel"
-              orientation={orientation}
-              collapsed={collapsed}
-              title={t("What's new in Sentry")}
+            <BroadcastSidebarContent
+              loading={loading}
               hidePanel={hidePanel}
-            >
-              {loading ? (
-                <LoadingIndicator />
-              ) : broadcasts.length === 0 ? (
-                <SidebarPanelEmpty>
-                  {t('No recent updates from the Sentry team.')}
-                </SidebarPanelEmpty>
-              ) : whatIsNewRevampFeature ? (
-                broadcasts.map(item => (
-                  <BroadcastPanelItem
-                    key={item.id}
-                    hasSeen={item.hasSeen}
-                    title={item.title}
-                    message={item.message}
-                    link={item.link}
-                    mediaUrl={item.mediaUrl}
-                    category={item.category}
-                  />
-                ))
-              ) : (
-                broadcasts.map(item => (
-                  <SidebarPanelItem
-                    key={item.id}
-                    hasSeen={item.hasSeen}
-                    title={item.title}
-                    message={item.message}
-                    link={item.link}
-                    cta={item.cta}
-                  />
-                ))
-              )}
-            </SidebarPanel>
+              broadcasts={broadcasts}
+              collapsed={collapsed}
+              orientation={orientation}
+              onResetCounter={this.handleResetCounter}
+            />
           )}
         </Fragment>
       </DemoModeGate>

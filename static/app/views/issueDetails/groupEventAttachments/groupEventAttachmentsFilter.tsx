@@ -1,17 +1,22 @@
 import styled from '@emotion/styled';
-import omit from 'lodash/omit';
-import xor from 'lodash/xor';
 
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {isMobilePlatform} from 'sentry/utils/platform';
 import {useLocation} from 'sentry/utils/useLocation';
-import useRouter from 'sentry/utils/useRouter';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 const crashReportTypes = ['event.minidump', 'event.applecrashreport'];
 const SCREENSHOT_TYPE = 'event.screenshot';
+
+export const enum EventAttachmentFilter {
+  ALL = 'all',
+  CRASH_REPORTS = 'onlyCrash',
+  SCREENSHOT = 'screenshot',
+}
+
+type AttachmentFilterValue = `${EventAttachmentFilter}`;
 
 type Props = {
   project: Project;
@@ -19,60 +24,41 @@ type Props = {
 
 function GroupEventAttachmentsFilter(props: Props) {
   const {project} = props;
-  const {query, pathname} = useLocation();
-  const router = useRouter();
-  const {types} = query;
-  const allAttachmentsQuery = omit(query, 'types');
-  const onlyCrashReportsQuery = {
-    ...query,
-    types: crashReportTypes,
-  };
+  const location = useLocation();
+  const navigate = useNavigate();
 
-  const onlyScreenshotQuery = {
-    ...query,
-    types: SCREENSHOT_TYPE,
-  };
-
-  let activeButton: 'all' | 'screenshot' | 'onlyCrash' = 'all';
-
-  if (types === undefined) {
-    activeButton = 'all';
-  } else if (types === SCREENSHOT_TYPE) {
-    activeButton = 'screenshot';
-  } else if (xor(crashReportTypes, types).length === 0) {
-    activeButton = 'onlyCrash';
-  }
+  const activeFilter: AttachmentFilterValue =
+    (location.query.attachmentFilter as AttachmentFilterValue | undefined) ??
+    EventAttachmentFilter.ALL;
 
   return (
     <FilterWrapper>
       <SegmentedControl
-        aria-label={t('Algorithm')}
+        aria-label={t('Attachment Filter')}
         size="sm"
-        value={activeButton}
+        value={activeFilter}
         onChange={key => {
-          switch (key) {
-            case 'screenshot':
-              router.replace({pathname, query: onlyScreenshotQuery});
-              break;
-            case 'onlyCrash':
-              router.replace({pathname, query: onlyCrashReportsQuery});
-              break;
-            case 'all':
-            default:
-              router.replace({pathname, query: allAttachmentsQuery});
-          }
+          navigate(
+            {
+              pathname: location.pathname,
+              query: {...location.query, attachmentFilter: key},
+            },
+            {replace: true}
+          );
         }}
       >
         {[
-          <SegmentedControl.Item key="all">{t('All Attachments')}</SegmentedControl.Item>,
+          <SegmentedControl.Item key={EventAttachmentFilter.ALL}>
+            {t('All Attachments')}
+          </SegmentedControl.Item>,
           ...(isMobilePlatform(project.platform)
             ? [
-                <SegmentedControl.Item key="screenshot">
+                <SegmentedControl.Item key={EventAttachmentFilter.SCREENSHOT}>
                   {t('Screenshots')}
                 </SegmentedControl.Item>,
               ]
             : []),
-          <SegmentedControl.Item key="onlyCrash">
+          <SegmentedControl.Item key={EventAttachmentFilter.CRASH_REPORTS}>
             {t('Only Crash Reports')}
           </SegmentedControl.Item>,
         ]}
@@ -84,7 +70,6 @@ function GroupEventAttachmentsFilter(props: Props) {
 const FilterWrapper = styled('div')`
   display: flex;
   justify-content: flex-end;
-  margin-bottom: ${space(3)};
 `;
 
 export {crashReportTypes, SCREENSHOT_TYPE};
