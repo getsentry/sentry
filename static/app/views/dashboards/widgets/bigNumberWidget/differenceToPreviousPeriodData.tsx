@@ -57,17 +57,25 @@ const Difference = styled(ColorizedRating)`
   display: flex;
   gap: ${space(0.5)};
 
-  @container (min-height: 50px) {
+  @container (min-height: 70px) {
     padding-bottom: 5cqh;
   }
 `;
 
 const Number = styled('div')`
-  font-size: clamp(14px, calc(10px + 4cqi), 30cqh);
+  font-size: 14px;
+
+  @container (min-height: 70px) {
+    font-size: clamp(14px, calc(10px + 4cqi), 30cqh);
+  }
 `;
 
 const Indicator = styled('div')`
-  font-size: clamp(14px, calc(10px + 4cqi), 30cqh);
+  font-size: 14px;
+
+  @container (min-height: 70px) {
+    font-size: clamp(14px, calc(10px + 4cqi), 30cqh);
+  }
 `;
 
 const Deemphasize = styled('span')`
