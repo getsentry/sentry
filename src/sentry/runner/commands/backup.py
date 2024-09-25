@@ -185,7 +185,7 @@ def get_printer(silent: bool, no_prompt: bool) -> Printer:
     return InputOutputPrinter()
 
 
-def get_filter_arg(name: str, from_cmd_line: str, from_file: IO[str] | None) -> str:
+def get_filter_arg(name: str, from_cmd_line: str | None, from_file: IO[str] | None) -> str | None:
     """
     Helper function to load `--filter-...`-style arguments from a file or the command line.
     """
@@ -199,10 +199,13 @@ def get_filter_arg(name: str, from_cmd_line: str, from_file: IO[str] | None) -> 
     return from_file.read() if from_file is not None else from_cmd_line
 
 
-def parse_filter_arg(filter_arg: str) -> set[str] | None:
+def parse_filter_arg(filter_arg: str | None) -> set[str] | None:
+    if filter_arg is None:
+        return None
+
     filter_by = None
     if filter_arg:
-        filter_by = set(filter_arg.split(","))
+        filter_by = {arg.strip() for arg in filter_arg.split(",") if not arg.isspace()}
 
     return filter_by
 
@@ -628,22 +631,26 @@ def import_() -> None:
     help=DECRYPT_WITH_GCP_KMS_HELP,
 )
 @click.option(
-    "--filter-usernames",
-    default="",
-    type=str,
-    help="An optional comma-separated list of users to include. "
-    "If this option is not set, all encountered users are imported.",
-)
-@click.option(
     "--findings-file",
     type=click.File("w"),
     required=False,
     help=FINDINGS_FILE_HELP,
 )
 @click.option(
+    "--filter-usernames",
+    default=None,
+    type=str,
+    required=False,
+    help="An optional comma-separated list of users to include. "
+    "If this option is not set, all encountered users are imported.",
+)
+@click.option(
     "--filter-usernames-file",
     type=click.File("r"),
-    help="Like `--filter-usernames`, except it pulls from a comma-separated file.",
+    required=False,
+    help="Like `--filter-usernames`, except it pulls from a comma-separated file. An empty file"
+    "equates to no usernames being compared. If you'd like to compare all usernames with no filter,"
+    "omit the `--filter-usernames[-file] flag instead.",
 )
 @click.option(
     "--merge-users",
@@ -682,14 +689,13 @@ def import_users(
     from sentry.backup.imports import import_in_user_scope
 
     printer = get_printer(silent=silent, no_prompt=no_prompt)
+    user_filter_arg = get_filter_arg("filter-usernames", filter_usernames, filter_usernames_file)
     with write_import_findings(findings_file, printer):
         import_in_user_scope(
             src,
             decryptor=get_decryptor_from_flags(decrypt_with, decrypt_with_gcp_kms),
             flags=ImportFlags(merge_users=merge_users),
-            user_filter=parse_filter_arg(
-                get_filter_arg("filter-usernames", filter_usernames, filter_usernames_file)
-            ),
+            user_filter=parse_filter_arg(user_filter_arg),
             printer=printer,
         )
 
@@ -708,7 +714,7 @@ def import_users(
 )
 @click.option(
     "--filter-org-slugs",
-    default="",
+    default=None,
     type=str,
     help="An optional comma-separated list of organization slugs to include. "
     "If this option is not set, all encountered organizations are imported. "
@@ -918,14 +924,16 @@ def export() -> None:
 )
 @click.option(
     "--filter-usernames",
-    default="",
+    default=None,
     type=str,
+    required=False,
     help="An optional comma-separated list of users to include. "
     "If this option is not set, all encountered users are imported.",
 )
 @click.option(
     "--filter-usernames-file",
     type=click.File("r"),
+    required=False,
     help="Like `--filter-usernames`, except it pulls from a comma-separated file.",
 )
 @click.option(
@@ -971,14 +979,13 @@ def export_users(
     from sentry.backup.exports import export_in_user_scope
 
     printer = get_printer(silent=silent, no_prompt=no_prompt)
+    user_filter_arg = get_filter_arg("filter-usernames", filter_usernames, filter_usernames_file)
     with write_export_findings(findings_file, printer):
         export_in_user_scope(
             dest,
             encryptor=get_encryptor_from_flags(encrypt_with, encrypt_with_gcp_kms),
             indent=indent,
-            user_filter=parse_filter_arg(
-                get_filter_arg("filter-usernames", filter_usernames, filter_usernames_file)
-            ),
+            user_filter=parse_filter_arg(user_filter_arg),
             printer=printer,
         )
 
@@ -997,7 +1004,7 @@ def export_users(
 )
 @click.option(
     "--filter-org-slugs",
-    default="",
+    default=None,
     type=str,
     help="An optional comma-separated list of organization slugs to include. "
     "If this option is not set, all encountered organizations are exported. "
