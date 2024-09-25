@@ -144,24 +144,31 @@ export function EventDetails({
         </PageErrorBoundary>
       )}
       {pageContent === EventPageContent.EVENT && (
-        <GroupContent>
-          <FloatingEventNavigation
-            event={event}
-            group={group}
-            ref={setNav}
-            query={searchQuery}
-            onViewAllEvents={() => setPageContent(EventPageContent.LIST)}
-          />
-          <ContentPadding>
-            <EventDetailsContent group={group} event={event} project={project} />
-          </ContentPadding>
-        </GroupContent>
+        <PageErrorBoundary
+          mini
+          message={t('There was an error loading the event content')}
+        >
+          <GroupContent>
+            <FloatingEventNavigation
+              event={event}
+              group={group}
+              ref={setNav}
+              query={searchQuery}
+              onViewAllEvents={() => setPageContent(EventPageContent.LIST)}
+            />
+            <ContentPadding>
+              <EventDetailsContent group={group} event={event} project={project} />
+            </ContentPadding>
+          </GroupContent>
+        </PageErrorBoundary>
       )}
-      <ExtraContent>
-        <ContentPadding>
-          <IssueContent group={group} project={project} />
-        </ContentPadding>
-      </ExtraContent>
+      <PageErrorBoundary mini message={t('There was an error loading the issue content')}>
+        <ExtraContent>
+          <ContentPadding>
+            <IssueContent group={group} project={project} />
+          </ContentPadding>
+        </ExtraContent>
+      </PageErrorBoundary>
     </EventDetailsContext.Provider>
   );
 }
@@ -207,6 +214,6 @@ const GraphAlert = styled(Alert)`
 `;
 
 const PageErrorBoundary = styled(ErrorBoundary)`
-  margin: 0 ${space(1.5)};
+  margin: 0;
   border: 1px solid ${p => p.theme.translucentBorder};
 `;
