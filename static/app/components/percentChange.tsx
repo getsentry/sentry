@@ -50,6 +50,10 @@ export function getPolarityRating(
   polarity: Polarity,
   preferredPolarity: Polarity
 ): Rating {
+  if (preferredPolarity === '') {
+    return 'neutral';
+  }
+
   if (polarity === preferredPolarity) {
     return 'good';
   }
