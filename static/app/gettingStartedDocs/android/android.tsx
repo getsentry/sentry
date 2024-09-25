@@ -138,7 +138,9 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
               {
                 description: (
                   <Fragment>
-                    {t('The Sentry wizard will automatically patch your application:')}
+                    <p>
+                      {t('The Sentry wizard will automatically patch your application:')}
+                    </p>
                     <List symbol="bullet">
                       <ListItem>
                         {tct(
@@ -171,17 +173,15 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
                         )}
                       </ListItem>
                     </List>
-                    <p>
-                      {tct(
-                        'Alternatively, you can also [manualSetupLink:set up the SDK manually].',
-                        {
-                          manualSetupLink: (
-                            <ExternalLink href="https://docs.sentry.io/platforms/android/manual-setup/" />
-                          ),
-                        }
-                      )}
-                    </p>
                   </Fragment>
+                ),
+                additionalInfo: tct(
+                  'Alternatively, you can also [manualSetupLink:set up the SDK manually].',
+                  {
+                    manualSetupLink: (
+                      <ExternalLink href="https://docs.sentry.io/platforms/android/manual-setup/" />
+                    ),
+                  }
                 ),
               },
             ],
