@@ -202,6 +202,7 @@ const SidebarHeader = styled('header')`
 
 function SidebarBody({children}) {
   const {indicatorProps, containerProps} = useNavIndicator();
+  // div wrapper is needed to for indicator positioning
   return (
     <div>
       <SidebarIndicator {...indicatorProps} />
