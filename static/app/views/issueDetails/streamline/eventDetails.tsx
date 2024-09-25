@@ -2,10 +2,12 @@ import {useLayoutEffect, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import Feature from 'sentry/components/acl/feature';
 import Alert from 'sentry/components/alert';
 import {CommitRow} from 'sentry/components/commitRow';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {SuspectCommits} from 'sentry/components/events/suspectCommits';
+import {GroupSummary} from 'sentry/components/group/groupSummary';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import {t} from 'sentry/locale';
@@ -85,6 +87,9 @@ export function EventDetails({
 
   return (
     <EventDetailsContext.Provider value={{...eventDetails, dispatch}}>
+      <Feature features={['organizations:ai-summary']}>
+        <GroupSummary groupId={group.id} groupCategory={group.issueCategory} />
+      </Feature>
       <PageErrorBoundary
         mini
         message={t('There was an error loading the suspect commits')}
