@@ -13,7 +13,9 @@ import {getSeriesApiInterval} from 'sentry/components/charts/utils';
 import {Flex} from 'sentry/components/container/flex';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import ErrorBoundary from 'sentry/components/errorBoundary';
+import ExternalLink from 'sentry/components/links/externalLink';
 import NotAvailable from 'sentry/components/notAvailable';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import type {ScoreCardProps} from 'sentry/components/scoreCard';
 import ScoreCard from 'sentry/components/scoreCard';
 import SwitchButton from 'sentry/components/switchButton';
@@ -265,7 +267,23 @@ class UsageStatsOrganization<
       isLoading: loading,
       isError: hasError,
       errors: chartErrors,
-      title: ' ', // Force the title to be blank
+      title: (
+        <Fragment>
+          {t('Project(s) Stats')}
+          <QuestionTooltip
+            size="xs"
+            title={tct(
+              'You can find more information about each category in our [link:docs]',
+              {
+                link: (
+                  <ExternalLink href="https://docs.sentry.io/product/stats/#usage-stats" />
+                ),
+              }
+            )}
+            isHoverable
+          />
+        </Fragment>
+      ),
       footer: this.renderChartFooter(),
       dataCategory,
       dataTransform: chartTransform,
@@ -315,9 +333,15 @@ class UsageStatsOrganization<
       },
       accepted: {
         title: tct('Accepted [dataCategory]', {dataCategory: dataCategoryName}),
-        help: tct('Accepted [dataCategory] were successfully processed by Sentry', {
-          dataCategory,
-        }),
+        help: tct(
+          'Accepted [dataCategory] were successfully processed by Sentry. For more information, read our [docsLink:docs].',
+          {
+            dataCategory,
+            docsLink: (
+              <ExternalLink href="https://docs.sentry.io/product/stats/#accepted" />
+            ),
+          }
+        ),
         score: accepted,
         trend: (
           <UsageStatsPerMin
@@ -331,11 +355,14 @@ class UsageStatsOrganization<
       filtered: {
         title: tct('Filtered [dataCategory]', {dataCategory: dataCategoryName}),
         help: tct(
-          'Filtered [dataCategory] were blocked due to your [filterSettings: inbound data filter] rules',
+          'Filtered [dataCategory] were blocked due to your [filterSettings: inbound data filter] rules. For more information, read our [docsLink:docs].',
           {
             dataCategory,
             filterSettings: (
               <a href="#" onClick={event => navigateToInboundFilterSettings(event)} />
+            ),
+            docsLink: (
+              <ExternalLink href="https://docs.sentry.io/product/stats/#filtered" />
             ),
           }
         ),
@@ -344,16 +371,26 @@ class UsageStatsOrganization<
       rateLimited: {
         title: tct('Rate Limited [dataCategory]', {dataCategory: dataCategoryName}),
         help: tct(
-          'Rate Limited [dataCategory] were discarded due to rate limits or quota',
-          {dataCategory}
+          'Rate Limited [dataCategory] were discarded due to rate limits or quota. For more information, read our [docsLink:docs].',
+          {
+            dataCategory,
+            docsLink: (
+              <ExternalLink href="https://docs.sentry.io/product/stats/#rate-limited" />
+            ),
+          }
         ),
         score: rateLimited,
       },
       invalid: {
         title: tct('Invalid [dataCategory]', {dataCategory: dataCategoryName}),
         help: tct(
-          'Invalid [dataCategory] were sent by the SDK and were discarded because the data did not meet the basic schema requirements',
-          {dataCategory}
+          'Invalid [dataCategory] were sent by the SDK and were discarded because the data did not meet the basic schema requirements. For more information, read our [docsLink:docs].',
+          {
+            dataCategory,
+            docsLink: (
+              <ExternalLink href="https://docs.sentry.io/product/stats/#invalid" />
+            ),
+          }
         ),
         score: invalid,
       },
