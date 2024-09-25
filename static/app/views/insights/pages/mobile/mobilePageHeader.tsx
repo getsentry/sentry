@@ -25,11 +25,12 @@ import {MODULE_TITLES} from 'sentry/views/insights/settings';
 import {ModuleName} from 'sentry/views/insights/types';
 
 type Props = {
+  hideTabs?: boolean;
   module?: ModuleName;
 };
 
 // TODO - add props to append to breadcrumbs and change title
-export function MobileHeader({module}: Props) {
+export function MobileHeader({module, hideTabs}: Props) {
   const navigate = useNavigate();
   const {slug} = useOrganization();
   const moduleURLBuilder = useModuleURLBuilder();
@@ -83,12 +84,14 @@ export function MobileHeader({module}: Props) {
             <FeedbackWidgetButton />
           </ButtonBar>
         </Layout.HeaderActions>
-        <TabList hideBorder>
-          <TabList.Item key={OVERVIEW_PAGE_TITLE}>{OVERVIEW_PAGE_TITLE}</TabList.Item>
-          <TabList.Item key={ModuleName.MOBILE_SCREENS}>
-            {MODULE_TITLES[ModuleName.MOBILE_SCREENS]}
-          </TabList.Item>
-        </TabList>
+        {!hideTabs && (
+          <TabList hideBorder>
+            <TabList.Item key={OVERVIEW_PAGE_TITLE}>{OVERVIEW_PAGE_TITLE}</TabList.Item>
+            <TabList.Item key={ModuleName.MOBILE_SCREENS}>
+              {MODULE_TITLES[ModuleName.MOBILE_SCREENS]}
+            </TabList.Item>
+          </TabList>
+        )}
       </Tabs>
     </Fragment>
   );
