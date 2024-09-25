@@ -1988,6 +1988,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         # make sure the rule wasn't updated - need to refetch
         fresh_dynamic_rule = AlertRule.objects.get(id=dynamic_rule.id)
         assert fresh_dynamic_rule.name == "my rule"
+        assert fresh_dynamic_rule.snuba_query
         assert fresh_dynamic_rule.snuba_query.time_window == 60 * 60
         assert fresh_dynamic_rule.snuba_query.query == "level:error"
 

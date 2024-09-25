@@ -36,7 +36,7 @@ def translate_direction(direction: int) -> str:
 
 
 def get_snuba_query_string(
-    snuba_query: SnubaQuery, event_types: list[SnubaQueryEventType] | None = None
+    snuba_query: SnubaQuery, event_types: list[SnubaQueryEventType.EventType] | None = None
 ) -> str:
     """
     Generate a query string that matches what the OrganizationEventsStatsEndpoint does
@@ -47,9 +47,9 @@ def get_snuba_query_string(
         SnubaQueryEventType.EventType.TRANSACTION: "transaction",
     }
     if not event_types:
-        event_types = snuba_query.event_types
+        event_types = snuba_query.event_types or []
 
-    if len(snuba_query.event_types) > 1:
+    if len(event_types) > 1:
         # e.g. (is:unresolved) AND (event.type:[error, default])
         event_types_list = [
             SNUBA_QUERY_EVENT_TYPE_TO_STRING[event_type] for event_type in event_types
@@ -181,7 +181,7 @@ def fetch_historical_data(
     project: Project,
     start: datetime | None = None,
     end: datetime | None = None,
-    event_types: list[SnubaQueryEventType] | None = None,
+    event_types: list[SnubaQueryEventType.EventType] | None = None,
 ) -> SnubaTSResult | None:
     """
     Fetch 28 days of historical data from Snuba to pass to Seer to build the anomaly detection model
