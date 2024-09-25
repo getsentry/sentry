@@ -317,5 +317,4 @@ API_OWNERSHIP_ALLOWLIST_DONT_MODIFY = [
     "/extensions/jira/uninstalled/",
     "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/filters/",
     "/api/0/teams/{organization_id_or_slug}/{team_id_or_slug}/alerts-triggered/",
-    "/_warmup/",
 ]
