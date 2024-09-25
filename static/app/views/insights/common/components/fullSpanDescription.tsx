@@ -134,7 +134,7 @@ function QueryClippedBox({group, children}: TruncatedQueryClipBoxProps) {
         icon: <IconOpen />,
         onClick: () =>
           navigate({
-            pathname: `${databaseURL}/spans/span/${group}`, // `insights/database/spans/span/${group}/`,
+            pathname: `${databaseURL}/spans/span/${group}`,
           }),
       }}
     >
