@@ -259,24 +259,20 @@ def worker(ignore_unknown_queues: bool, **options: Any) -> None:
 @log_options()
 @configuration
 def taskworker(**options: Any) -> None:
-    from sentry.taskworker.worker import Worker
+    from sentry.taskworker.worker import serve
 
     with managed_bgtasks(role="taskworker"):
-        worker = Worker(
-            namespace=options.get("namespace"),
-        )
-        worker.start()
-        raise SystemExit(worker.exitcode)
+        serve(**options)
 
 
 @run.command()
 @log_options()
 @configuration
-def kafka_task_grpc_server(**options: Any) -> None:
-    from sentry.taskworker.grpc_server import serve
+def kafka_task_grpc(**options: Any) -> None:
+    from sentry.taskworker.consumer_grpc import start
 
     with managed_bgtasks(role="taskworker"):
-        serve()
+        start()
 
 
 @run.command()

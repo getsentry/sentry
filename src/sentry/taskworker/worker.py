@@ -2,26 +2,35 @@ from __future__ import annotations
 
 import logging
 import time
+from concurrent import futures
 
+import grpc
 import orjson
 from django.conf import settings
 from sentry_protos.sentry.v1alpha.taskworker_pb2 import (
     TASK_ACTIVATION_STATUS_COMPLETE,
     TASK_ACTIVATION_STATUS_FAILURE,
     TASK_ACTIVATION_STATUS_RETRY,
+    DispatchRequest,
+    DispatchResponse,
 )
+from sentry_protos.sentry.v1alpha.taskworker_pb2_grpc import (
+    WorkerServiceServicer as BaseWorkerServiceServicer,
+)
+from sentry_protos.sentry.v1alpha.taskworker_pb2_grpc import add_WorkerServiceServicer_to_server
 
 from sentry.taskworker.config import TaskNamespace, taskregistry
 
 logger = logging.getLogger("sentry.taskworker")
 
 
-class Worker:
+class WorkerServicer(BaseWorkerServiceServicer):
     __namespace: TaskNamespace | None = None
 
-    def __init__(self, **options):
+    def __init__(self, **options) -> None:
+        super().__init__()
         self.options = options
-        self.exitcode = None
+        self.do_imports()
 
     @property
     def namespace(self) -> TaskNamespace:
@@ -36,25 +45,8 @@ class Worker:
         for module in settings.TASKWORKER_IMPORTS:
             __import__(module)
 
-    def start(self) -> None:
-        self.do_imports()
-        try:
-            while True:
-                self.process_tasks(self.namespace)
-        except KeyboardInterrupt:
-            self.exitcode = 1
-        except Exception:
-            logger.exception("Worker process crashed")
-
-    def process_tasks(self, namespace: TaskNamespace) -> None:
-        from sentry.taskworker.service.client import task_client
-
-        activation = task_client.get_task(topic=namespace.topic)
-        if not activation:
-            logger.info("No tasks")
-            time.sleep(1)
-            return
-
+    def Dispatch(self, request: DispatchRequest, _) -> DispatchResponse:
+        activation = request.task_activation
         try:
             task_meta = self.namespace.get(activation.taskname)
         except KeyError:
@@ -78,17 +70,12 @@ class Worker:
         task_latency = execution_time - task_added_time
         logger.info("task.complete", extra={"latency": task_latency})
 
-        if next_state == TASK_ACTIVATION_STATUS_COMPLETE:
-            logger.info(
-                "taskworker.task.complete", extra={"task": activation.taskname, "id": activation.id}
-            )
-            task_client.complete_task(task_id=activation.id)
-        else:
-            logger.info(
-                "taskworker.task.change_status",
-                extra={"task": activation.taskname, "state": next_state},
-            )
-            task_client.set_task_status(
-                task_id=activation.id,
-                task_status=next_state,
-            )
+        return DispatchResponse(status=next_state)
+
+
+def serve(**options):
+    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+    add_WorkerServiceServicer_to_server(WorkerServicer(**options), server)
+    server.add_insecure_port("[::]:50051")
+    server.start()
+    server.wait_for_termination()
