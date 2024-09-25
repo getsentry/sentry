@@ -21,6 +21,7 @@ export function BigNumberWidget(props: Props) {
         <BigNumberWidgetVisualization
           data={props.data}
           previousPeriodData={props.previousPeriodData}
+          preferredPolarity={props.preferredPolarity}
           meta={props.meta}
           isLoading={props.isLoading}
           error={props.error}

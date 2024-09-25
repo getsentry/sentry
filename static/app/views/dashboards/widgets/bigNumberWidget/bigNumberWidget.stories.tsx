@@ -151,23 +151,48 @@ export default storyBook(BigNumberWidget, story => {
 
           <NormalWidget>
             <BigNumberWidget
-              title="http_response_code_rate(500)"
+              title="http_rate(500)"
               data={[
                 {
-                  'http_response_code_rate(500)': 0.14227123,
+                  'http_rate(500)': 0.14227123,
                 },
               ]}
               previousPeriodData={[
                 {
-                  'http_response_code_rate(500)': 0.1728139,
+                  'http_rate(500)': 0.1728139,
                 },
               ]}
+              preferredPolarity="-"
               meta={{
                 fields: {
-                  'http_response_code_rate(500)': 'percentage',
+                  'http_rate(500)': 'percentage',
                 },
                 units: {
-                  'http_response_code_rate(500)': null,
+                  'http_rate(500)': null,
+                },
+              }}
+            />
+          </NormalWidget>
+          <NormalWidget>
+            <BigNumberWidget
+              title="http_rate(200)"
+              data={[
+                {
+                  'http_rate(200)': 0.14227123,
+                },
+              ]}
+              previousPeriodData={[
+                {
+                  'http_rate(200)': 0.1728139,
+                },
+              ]}
+              preferredPolarity="+"
+              meta={{
+                fields: {
+                  'http_rate(200)': 'percentage',
+                },
+                units: {
+                  'http_rate(200)': null,
                 },
               }}
             />

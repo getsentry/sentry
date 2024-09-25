@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 
+import type {Polarity} from 'sentry/components/percentChange';
 import {Tooltip} from 'sentry/components/tooltip';
 import {defined} from 'sentry/utils';
 import type {MetaType} from 'sentry/utils/discover/eventView';
@@ -19,11 +20,12 @@ import type {
 export interface Props extends StateProps {
   data?: TableData;
   meta?: Meta;
+  preferredPolarity?: Polarity;
   previousPeriodData?: TableData;
 }
 
 export function BigNumberWidgetVisualization(props: Props) {
-  const {data, previousPeriodData, meta, isLoading, error} = props;
+  const {data, previousPeriodData, preferredPolarity, meta, isLoading, error} = props;
 
   const location = useLocation();
   const organization = useOrganization();
@@ -77,6 +79,7 @@ export function BigNumberWidgetVisualization(props: Props) {
             <DifferenceToPreviousPeriodData
               data={data}
               previousPeriodData={previousPeriodData}
+              preferredPolarity={preferredPolarity}
               formatter={(previousDatum: TableData[number]) =>
                 fieldFormatter(previousDatum, baggage)
               }
