@@ -40,17 +40,17 @@ function Sidebar() {
 export default Sidebar;
 
 export function SidebarItems() {
-  const nav = useNavContext();
+  const {config} = useNavContext();
   return (
     <Fragment>
       <SidebarBody>
-        {nav.config.main.map(item => (
+        {config.main.map(item => (
           <SidebarItem key={item.label} item={item} />
         ))}
       </SidebarBody>
-      {isNonEmptyArray(nav.config.footer) && (
+      {isNonEmptyArray(config.footer) && (
         <SidebarFooter>
-          {nav.config.footer.map(item => (
+          {config.footer.map(item => (
             <SidebarItem key={item.label} item={item} />
           ))}
         </SidebarFooter>
