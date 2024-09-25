@@ -126,10 +126,8 @@ export default function useFlagSeries({_query}: {_query?: Record<string, any>}):
   });
 
   return {
-    seriesName: t('Flags'),
+    seriesName: t('Feature Flags'),
     data: [],
     markLine,
   };
 }
-
-// todo: need to send new series to eventGraph.tsx and add a legend
