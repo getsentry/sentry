@@ -33,9 +33,11 @@ function MobileTopbar() {
       <button onClick={handleClick}>
         {view === 'closed' ? <IconMenu width={16} /> : <IconClose width={16} />}
       </button>
-      <OverlayPortal active={view !== 'closed'}>
-        <SidebarItems />
-      </OverlayPortal>
+      {view !== 'closed' ? (
+        <OverlayPortal>
+          <SidebarItems />
+        </OverlayPortal>
+      ) : null}
     </Topbar>
   );
 }
@@ -83,10 +85,7 @@ const Topbar = styled('div')`
   }
 `;
 
-function OverlayPortal({active = false, children}) {
-  if (!active) {
-    return null;
-  }
+function OverlayPortal({children}) {
   return createPortal(<Overlay>{children}</Overlay>, document.body);
 }
 
