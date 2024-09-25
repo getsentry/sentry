@@ -140,7 +140,6 @@ export function SpanSearchQueryBuilder({
       searchSource={searchSource}
       filterKeySections={filterKeySections}
       getTagValues={getSpanFilterTagValues}
-      disallowFreeText
       disallowUnsupportedFilters
       recentSearches={SavedSearchType.SPAN}
       showUnsubmittedIndicator
