@@ -84,7 +84,7 @@ export function FrontendHeader({module}: Props) {
             <FeedbackWidgetButton />
           </ButtonBar>
         </Layout.HeaderActions>
-        <TabList>
+        <TabList hideBorder>
           <TabList.Item key={OVERVIEW_PAGE_TITLE}>{'Overview'}</TabList.Item>
           <TabList.Item key={ModuleName.VITAL}>
             {MODULE_TITLES[ModuleName.VITAL]}
