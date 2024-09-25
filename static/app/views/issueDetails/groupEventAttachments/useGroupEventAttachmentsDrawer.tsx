@@ -13,8 +13,8 @@ export function useGroupEventAttachmentsDrawer({
   openButtonRef,
 }: {
   group: Group;
-  openButtonRef: React.RefObject<HTMLButtonElement>;
   project: Project;
+  openButtonRef?: React.RefObject<HTMLButtonElement>;
 }) {
   const location = useLocation();
   const navigate = useNavigate();
@@ -45,7 +45,7 @@ export function useGroupEventAttachmentsDrawer({
           }
 
           // Prevent closing the drawer when clicking the button that opens it
-          const viewAllButton = openButtonRef.current;
+          const viewAllButton = openButtonRef?.current;
           if (viewAllButton?.contains(element)) {
             return false;
           }

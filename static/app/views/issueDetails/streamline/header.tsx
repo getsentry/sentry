@@ -237,9 +237,6 @@ export default function StreamlinedGroupHeader({
           />
         </SidebarWorkflowWrapper>
       </InfoWrapper>
-      <div>
-        <GroupHeaderTabs {...{baseUrl, disabledTabs, eventRoute, group, project}} />
-      </div>
     </Header>
   );
 }
