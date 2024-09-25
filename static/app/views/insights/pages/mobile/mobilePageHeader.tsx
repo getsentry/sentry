@@ -14,9 +14,9 @@ import {
   useModuleURLBuilder,
 } from 'sentry/views/insights/common/utils/useModuleURL';
 import {
-  BACKEND_LANDING_SUB_PATH,
-  BACKEND_LANDING_TITLE,
-} from 'sentry/views/insights/pages/backend/settings';
+  MOBILE_LANDING_SUB_PATH,
+  MOBILE_LANDING_TITLE,
+} from 'sentry/views/insights/pages/mobile/settings';
 import {
   DOMAIN_VIEW_BASE_URL,
   OVERVIEW_PAGE_TITLE,
@@ -29,13 +29,13 @@ type Props = {
 };
 
 // TODO - add props to append to breadcrumbs and change title
-export function BackendHeader({module}: Props) {
+export function MobileHeader({module}: Props) {
   const navigate = useNavigate();
   const {slug} = useOrganization();
   const moduleURLBuilder = useModuleURLBuilder();
 
-  const backendBaseUrl = normalizeUrl(
-    `/organizations/${slug}/${DOMAIN_VIEW_BASE_URL}/${BACKEND_LANDING_SUB_PATH}/`
+  const mobileBaseUrl = normalizeUrl(
+    `/organizations/${slug}/${DOMAIN_VIEW_BASE_URL}/${MOBILE_LANDING_SUB_PATH}/`
   );
 
   const crumbs: Crumb[] = [
@@ -45,8 +45,8 @@ export function BackendHeader({module}: Props) {
       preservePageFilters: true,
     },
     {
-      label: BACKEND_LANDING_TITLE,
-      to: backendBaseUrl,
+      label: MOBILE_LANDING_TITLE,
+      to: mobileBaseUrl,
       preservePageFilters: true,
     },
     {
@@ -64,7 +64,7 @@ export function BackendHeader({module}: Props) {
       return;
     }
     if (key === OVERVIEW_PAGE_TITLE) {
-      navigate(backendBaseUrl);
+      navigate(mobileBaseUrl);
       return;
     }
     navigate(`${moduleURLBuilder(key as RoutableModuleNames)}/`);
@@ -76,7 +76,7 @@ export function BackendHeader({module}: Props) {
         <Layout.HeaderContent>
           <Breadcrumbs crumbs={crumbs} />
 
-          <Layout.Title>{BACKEND_LANDING_TITLE}</Layout.Title>
+          <Layout.Title>{MOBILE_LANDING_TITLE}</Layout.Title>
         </Layout.HeaderContent>
         <Layout.HeaderActions>
           <ButtonBar gap={1}>
@@ -85,15 +85,8 @@ export function BackendHeader({module}: Props) {
         </Layout.HeaderActions>
         <TabList hideBorder>
           <TabList.Item key={OVERVIEW_PAGE_TITLE}>{OVERVIEW_PAGE_TITLE}</TabList.Item>
-          <TabList.Item key={ModuleName.DB}>{MODULE_TITLES[ModuleName.DB]}</TabList.Item>
-          <TabList.Item key={ModuleName.HTTP}>
-            {MODULE_TITLES[ModuleName.HTTP]}
-          </TabList.Item>
-          <TabList.Item key={ModuleName.CACHE}>
-            {MODULE_TITLES[ModuleName.CACHE]}
-          </TabList.Item>
-          <TabList.Item key={ModuleName.QUEUE}>
-            {MODULE_TITLES[ModuleName.QUEUE]}
+          <TabList.Item key={ModuleName.MOBILE_SCREENS}>
+            {MODULE_TITLES[ModuleName.MOBILE_SCREENS]}
           </TabList.Item>
         </TabList>
       </Tabs>

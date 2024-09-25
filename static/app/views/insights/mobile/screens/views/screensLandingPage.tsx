@@ -48,9 +48,9 @@ import {
   STATUS_UNKNOWN,
   type VitalItem,
 } from 'sentry/views/insights/mobile/screens/utils';
-import {type InsightLandingProps, ModuleName} from 'sentry/views/insights/types';
+import {ModuleName} from 'sentry/views/insights/types';
 
-export function ScreensLandingPage({disableHeader}: InsightLandingProps) {
+export function ScreensLandingPage() {
   const moduleName = ModuleName.MOBILE_SCREENS;
   const crumbs = useModuleBreadcrumbs(moduleName);
   const location = useLocation();

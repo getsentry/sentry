@@ -29,9 +29,11 @@ import {
   MODULE_TITLE,
   RELEASE_LEVEL,
 } from 'sentry/views/insights/llmMonitoring/settings';
-import {type InsightLandingProps, ModuleName} from 'sentry/views/insights/types';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
+import {ModuleName} from 'sentry/views/insights/types';
 
-export function LLMMonitoringPage({disableHeader}: InsightLandingProps) {
+export function LLMMonitoringPage() {
+  const {isInDomainView} = useDomainViewFilters();
   const organization = useOrganization();
 
   const crumbs = useModuleBreadcrumbs('ai');
@@ -40,7 +42,7 @@ export function LLMMonitoringPage({disableHeader}: InsightLandingProps) {
   return (
     <Layout.Page>
       <NoProjectMessage organization={organization}>
-        {!disableHeader && (
+        {!isInDomainView && (
           <Layout.Header>
             <Layout.HeaderContent>
               <Breadcrumbs crumbs={crumbs} />
@@ -88,14 +90,14 @@ export function LLMMonitoringPage({disableHeader}: InsightLandingProps) {
   );
 }
 
-function PageWithProviders(props: InsightLandingProps) {
+function PageWithProviders() {
   return (
     <ModulePageProviders
       moduleName="ai"
       features="insights-addon-modules"
       analyticEventName="insight.page_loads.ai"
     >
-      <LLMMonitoringPage {...props} />
+      <LLMMonitoringPage />
     </ModulePageProviders>
   );
 }

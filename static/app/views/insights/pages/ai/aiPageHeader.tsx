@@ -14,9 +14,9 @@ import {
   useModuleURLBuilder,
 } from 'sentry/views/insights/common/utils/useModuleURL';
 import {
-  FRONTEND_LANDING_SUB_PATH,
-  FRONTEND_LANDING_TITLE,
-} from 'sentry/views/insights/pages/frontend/settings';
+  AI_LANDING_SUB_PATH,
+  AI_LANDING_TITLE,
+} from 'sentry/views/insights/pages/ai/settings';
 import {
   DOMAIN_VIEW_BASE_URL,
   OVERVIEW_PAGE_TITLE,
@@ -34,9 +34,8 @@ export function AiHeader({module}: Props) {
   const {slug} = useOrganization();
   const moduleURLBuilder = useModuleURLBuilder();
 
-  // TODO - we can probably tweek useModuleURLBuilder to also return the base domain view url i.e useDomainViewUrl('frontend', 'http')
-  const frontendBaseUrl = normalizeUrl(
-    `/organizations/${slug}/${DOMAIN_VIEW_BASE_URL}/${FRONTEND_LANDING_SUB_PATH}/`
+  const aiBaseUrl = normalizeUrl(
+    `/organizations/${slug}/${DOMAIN_VIEW_BASE_URL}/${AI_LANDING_SUB_PATH}/`
   );
 
   const crumbs: Crumb[] = [
@@ -46,8 +45,8 @@ export function AiHeader({module}: Props) {
       preservePageFilters: true,
     },
     {
-      label: FRONTEND_LANDING_TITLE,
-      to: frontendBaseUrl,
+      label: AI_LANDING_TITLE,
+      to: aiBaseUrl,
       preservePageFilters: true,
     },
     {
@@ -65,7 +64,7 @@ export function AiHeader({module}: Props) {
       return;
     }
     if (key === OVERVIEW_PAGE_TITLE) {
-      navigate(frontendBaseUrl);
+      navigate(aiBaseUrl);
       return;
     }
     navigate(`${moduleURLBuilder(key as RoutableModuleNames)}/`);
@@ -77,7 +76,7 @@ export function AiHeader({module}: Props) {
         <Layout.HeaderContent>
           <Breadcrumbs crumbs={crumbs} />
 
-          <Layout.Title>{FRONTEND_LANDING_TITLE}</Layout.Title>
+          <Layout.Title>{AI_LANDING_TITLE}</Layout.Title>
         </Layout.HeaderContent>
         <Layout.HeaderActions>
           <ButtonBar gap={1}>
