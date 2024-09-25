@@ -21,6 +21,14 @@ import type {Environment} from 'sentry/types/project';
 import GroupDetails from 'sentry/views/issueDetails/groupDetails';
 
 jest.unmock('sentry/utils/recreateRoute');
+jest.mock('screenfull', () => ({
+  enabled: true,
+  isFullscreen: false,
+  request: jest.fn(),
+  exit: jest.fn(),
+  on: jest.fn(),
+  off: jest.fn(),
+}));
 
 const SAMPLE_EVENT_ALERT_TEXT =
   'You are viewing a sample error. Configure Sentry to start viewing real errors.';
