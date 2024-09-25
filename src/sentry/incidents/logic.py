@@ -908,7 +908,7 @@ def update_alert_rule(
         elif detection_type == AlertRuleDetectionType.DYNAMIC:
             # NOTE: we set seasonality for EA
             updated_query_fields["resolution"] = timedelta(
-                minutes=time_window if time_window is not None else snuba_query.time_window
+                seconds=time_window if time_window is not None else snuba_query.time_window
             )
             updated_fields["seasonality"] = AlertRuleSeasonality.AUTO
             updated_fields["comparison_delta"] = None
@@ -942,11 +942,22 @@ def update_alert_rule(
                 for k, v in updated_fields.items():
                     setattr(alert_rule, k, v)
 
+                for k, v in updated_query_fields.items():
+                    if k == "dataset":
+                        v = v.value
+                    elif k == "time_window":
+                        v = time_window if time_window else snuba_query.time_window
+                    elif k == "event_types":
+                        continue
+                    setattr(alert_rule.snuba_query, k, v)
+
                 try:
                     # NOTE: if adding a new metric alert type, take care to check that it's handled here
                     rule_status = send_historical_data_to_seer(
                         alert_rule=alert_rule,
                         project=projects[0] if projects else alert_rule.projects.get(),
+                        snuba_query=alert_rule.snuba_query,
+                        event_types=updated_query_fields.get("event_types"),
                     )
                     if rule_status == AlertRuleStatus.NOT_ENOUGH_DATA:
                         # if we don't have at least seven days worth of data, then the dynamic alert won't fire
@@ -998,7 +1009,17 @@ def update_alert_rule(
                 "time_window", timedelta(seconds=snuba_query.time_window)
             )
             updated_query_fields.setdefault("event_types", None)
-            updated_query_fields.setdefault("resolution", timedelta(seconds=snuba_query.resolution))
+            if detection_type and detection_type == AlertRuleDetectionType.DYNAMIC:
+                updated_query_fields.setdefault(
+                    "resolution",
+                    timedelta(
+                        seconds=time_window if time_window is not None else snuba_query.time_window
+                    ),
+                )
+            else:
+                updated_query_fields.setdefault(
+                    "resolution", timedelta(seconds=snuba_query.resolution)
+                )
             update_snuba_query(snuba_query, environment=environment, **updated_query_fields)
 
         existing_subs: Iterable[QuerySubscription] = ()

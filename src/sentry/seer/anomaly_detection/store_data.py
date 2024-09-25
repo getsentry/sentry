@@ -21,11 +21,11 @@ from sentry.seer.anomaly_detection.types import (
 from sentry.seer.anomaly_detection.utils import (
     fetch_historical_data,
     format_historical_data,
+    get_dataset_from_label,
     translate_direction,
 )
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
-from sentry.snuba.models import SnubaQuery
-from sentry.snuba.utils import get_dataset
+from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
 from sentry.utils import json
 from sentry.utils.json import JSONDecodeError
 
@@ -36,6 +36,7 @@ seer_anomaly_detection_connection_pool = connection_from_url(
     timeout=settings.SEER_ANOMALY_DETECTION_TIMEOUT,
 )
 NUM_DAYS = 28
+MIN_DAYS = 7
 
 
 def _get_start_and_end_indices(data: list[TimeSeriesPoint]) -> tuple[int, int]:
@@ -57,16 +58,28 @@ def _get_start_and_end_indices(data: list[TimeSeriesPoint]) -> tuple[int, int]:
     return start, end
 
 
-def send_historical_data_to_seer(alert_rule: AlertRule, project: Project) -> AlertRuleStatus:
+def send_historical_data_to_seer(
+    alert_rule: AlertRule,
+    project: Project,
+    snuba_query=None,
+    event_types: list[SnubaQueryEventType] | None = None,
+) -> AlertRuleStatus:
     """
     Get 28 days of historical data and pass it to Seer to be used for prediction anomalies on the alert.
     """
-    snuba_query = SnubaQuery.objects.get(id=alert_rule.snuba_query_id)
+    if not snuba_query:
+        snuba_query = SnubaQuery.objects.get(id=alert_rule.snuba_query_id)
     window_min = int(snuba_query.time_window / 60)
-    dataset = get_dataset(snuba_query.dataset)
+    dataset = get_dataset_from_label(snuba_query.dataset)
     query_columns = get_query_columns([snuba_query.aggregate], snuba_query.time_window)
+    if not event_types:
+        event_types = snuba_query.event_types
     historical_data = fetch_historical_data(
-        alert_rule=alert_rule, snuba_query=snuba_query, query_columns=query_columns, project=project
+        alert_rule=alert_rule,
+        snuba_query=snuba_query,
+        query_columns=query_columns,
+        project=project,
+        event_types=event_types,
     )
 
     if not historical_data:
@@ -182,7 +195,6 @@ def send_historical_data_to_seer(alert_rule: AlertRule, project: Project) -> Ale
         )
         raise Exception(message)
 
-    MIN_DAYS = 7
     data_start_index, data_end_index = _get_start_and_end_indices(formatted_data)
     if data_start_index == -1:
         return AlertRuleStatus.NOT_ENOUGH_DATA

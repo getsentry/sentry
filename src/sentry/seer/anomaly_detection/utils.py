@@ -35,7 +35,9 @@ def translate_direction(direction: int) -> str:
     return direction_map[AlertRuleThresholdType(direction)]
 
 
-def get_snuba_query_string(snuba_query: SnubaQuery) -> str:
+def get_snuba_query_string(
+    snuba_query: SnubaQuery, event_types: list[SnubaQueryEventType] | None = None
+) -> str:
     """
     Generate a query string that matches what the OrganizationEventsStatsEndpoint does
     """
@@ -44,18 +46,20 @@ def get_snuba_query_string(snuba_query: SnubaQuery) -> str:
         SnubaQueryEventType.EventType.DEFAULT: "default",
         SnubaQueryEventType.EventType.TRANSACTION: "transaction",
     }
+    if not event_types:
+        event_types = snuba_query.event_types
 
     if len(snuba_query.event_types) > 1:
         # e.g. (is:unresolved) AND (event.type:[error, default])
         event_types_list = [
-            SNUBA_QUERY_EVENT_TYPE_TO_STRING[event_type] for event_type in snuba_query.event_types
+            SNUBA_QUERY_EVENT_TYPE_TO_STRING[event_type] for event_type in event_types
         ]
         event_types_string = "(event.type:["
         event_types_string += ", ".join(event_types_list)
         event_types_string += "])"
     else:
         # e.g. (is:unresolved) AND (event.type:error)
-        snuba_query_event_type_string = SNUBA_QUERY_EVENT_TYPE_TO_STRING[snuba_query.event_types[0]]
+        snuba_query_event_type_string = SNUBA_QUERY_EVENT_TYPE_TO_STRING[event_types[0]]
         event_types_string = f"(event.type:{snuba_query_event_type_string})"
     if snuba_query.query:
         snuba_query_string = f"({snuba_query.query}) AND {event_types_string}"
@@ -160,6 +164,16 @@ def format_historical_data(
     return format_snuba_ts_data(data, query_columns, organization)
 
 
+def get_dataset_from_label(dataset_label: str):
+    if dataset_label == "events":
+        # DATASET_OPTIONS expects the name 'errors'
+        dataset_label = "errors"
+    elif dataset_label in ["generic_metrics", "transactions"]:
+        # XXX: performance alerts dataset differs locally vs in prod
+        dataset_label = "discover"
+    return get_dataset(dataset_label)
+
+
 def fetch_historical_data(
     alert_rule: AlertRule,
     snuba_query: SnubaQuery,
@@ -167,6 +181,7 @@ def fetch_historical_data(
     project: Project,
     start: datetime | None = None,
     end: datetime | None = None,
+    event_types: list[SnubaQueryEventType] | None = None,
 ) -> SnubaTSResult | None:
     """
     Fetch 28 days of historical data from Snuba to pass to Seer to build the anomaly detection model
@@ -183,14 +198,7 @@ def fetch_historical_data(
     granularity = snuba_query.time_window
 
     dataset_label = snuba_query.dataset
-
-    if dataset_label == "events":
-        # DATASET_OPTIONS expects the name 'errors'
-        dataset_label = "errors"
-    elif dataset_label in ["generic_metrics", "transactions"]:
-        # XXX: performance alerts dataset differs locally vs in prod
-        dataset_label = "discover"
-    dataset = get_dataset(dataset_label)
+    dataset = get_dataset_from_label(dataset_label)
 
     if not project or not dataset or not alert_rule.organization:
         return None
@@ -213,7 +221,9 @@ def fetch_historical_data(
             start, end, project, alert_rule.organization, granularity
         )
     else:
-        snuba_query_string = get_snuba_query_string(snuba_query)
+        if not event_types:
+            event_types = snuba_query.event_types
+        snuba_query_string = get_snuba_query_string(snuba_query, event_types)
         historical_data = dataset.timeseries_query(
             selected_columns=query_columns,
             query=snuba_query_string,
