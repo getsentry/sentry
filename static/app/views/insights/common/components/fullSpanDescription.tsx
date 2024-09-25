@@ -15,7 +15,6 @@ import {useFullSpanFromTrace} from 'sentry/views/insights/common/queries/useFull
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {prettyPrintJsonString} from 'sentry/views/insights/database/utils/jsonUtils';
 import {ModuleName, SpanIndexedField} from 'sentry/views/insights/types';
-import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 
 const formatter = new SQLishFormatter();
 
