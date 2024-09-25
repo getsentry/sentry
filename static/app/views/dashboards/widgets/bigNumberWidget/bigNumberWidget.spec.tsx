@@ -9,6 +9,7 @@ describe('BigNumberWidget', () => {
         <BigNumberWidget
           title="EPS"
           description="Number of events per second"
+          showDescriptionInTooltip={false}
           data={[
             {
               'eps()': 0.01087819860850493,
