@@ -160,7 +160,7 @@ const SidebarItemWrapper = styled('li')`
     @media (min-width: ${p => p.theme.breakpoints.medium}) {
       flex-direction: column;
       justify-content: center;
-      height: 53px;
+      height: 52px;
       padding: ${space(0.5)} ${space(0.75)};
       border-radius: ${theme.borderRadius};
       font-size: ${theme.fontSizeExtraSmall};
@@ -178,7 +178,7 @@ const SidebarIndicator = styled(motion.span)`
   pointer-events: none;
   margin-inline: ${space(1)};
   width: 58px;
-  height: 53px;
+  height: 52px;
   background: rgba(255, 255, 255, 0.1);
   border-radius: ${theme.borderRadius};
 `;
