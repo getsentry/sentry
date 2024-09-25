@@ -62,7 +62,7 @@ def send_historical_data_to_seer(
     alert_rule: AlertRule,
     project: Project,
     snuba_query=None,
-    event_types: list[SnubaQueryEventType] | None = None,
+    event_types: list[SnubaQueryEventType.EventType] | None = None,
 ) -> AlertRuleStatus:
     """
     Get 28 days of historical data and pass it to Seer to be used for prediction anomalies on the alert.
