@@ -59,10 +59,7 @@ class SnubaTest(TestCase, SnubaTestCase):
             ),
             tenant_ids={"referrer": "testing.test", "organization_id": 1},
         )
-        snuba.raw_snql_query(req)
-
-        # make sure its gone
-        time.sleep(5)  # test will currently fail without the sleep (maybe it take time to delete?)
+        snuba.raw_snql_query(req, use_cache=False)
         assert (
             snuba.query(
                 dataset=Dataset.IssuePlatform,
