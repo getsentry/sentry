@@ -2,7 +2,6 @@ import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import Color from 'color';
 
-import Feature from 'sentry/components/acl/feature';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {Button} from 'sentry/components/button';
 import Count from 'sentry/components/count';
@@ -12,7 +11,6 @@ import {
   AssigneeSelector,
   useHandleAssigneeChange,
 } from 'sentry/components/group/assigneeSelector';
-import {GroupSummaryHeader} from 'sentry/components/group/groupSummary';
 import ParticipantList from 'sentry/components/group/streamlinedParticipantList';
 import Link from 'sentry/components/links/link';
 import Version from 'sentry/components/version';
@@ -169,9 +167,6 @@ export default function StreamlinedGroupHeader({
             )}
             <AttachmentsBadge group={group} project={project} />
           </MessageWrapper>
-          <Feature features={['organizations:ai-summary']}>
-            <GroupSummaryHeader groupId={group.id} groupCategory={group.issueCategory} />
-          </Feature>
         </Heading>
         <AllStats>
           <Stat>
