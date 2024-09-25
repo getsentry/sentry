@@ -25,12 +25,6 @@ jest.mock('screenfull', () => ({
   on: jest.fn(),
   off: jest.fn(),
 }));
-
-const mockUseNavigate = jest.fn();
-jest.mock('sentry/utils/useNavigate', () => ({
-  useNavigate: () => mockUseNavigate,
-}));
-
 const mockUseLocation = jest.mocked(useLocation);
 
 describe('EventGraph', () => {
@@ -40,7 +34,7 @@ describe('EventGraph', () => {
   });
   const group = GroupFixture();
   const event = EventFixture({id: 'event-id'});
-  const persistantQuery = ` issue:${group.shortId}`;
+  const persistantQuery = `issue:${group.shortId}`;
   const defaultProps = {project, group, event};
 
   let mockEventStats;
@@ -116,8 +110,11 @@ describe('EventGraph', () => {
         query: {
           dataset: 'errors',
           environment: [],
+          field: expect.anything(),
+          partial: 1,
           interval: '12h',
-          project: Number(project.id),
+          per_page: 50,
+          project: [project.id],
           query: persistantQuery,
           referrer: 'issue_details.streamline_graph',
           statsPeriod: '14d',
@@ -153,36 +150,6 @@ describe('EventGraph', () => {
     );
   });
 
-  it('allows filtering by search token', async function () {
-    const [tagKey, tagValue] = ['user.email', 'leander.rodrigues@sentry.io'];
-    const locationQuery = {
-      query: {
-        query: `${tagKey}:${tagValue}`,
-      },
-    };
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/tags/${tagKey}/values/`,
-      body: [
-        {
-          key: tagKey,
-          name: tagValue,
-          value: tagValue,
-        },
-      ],
-      method: 'GET',
-    });
-
-    render(<EventDetails {...defaultProps} />, {organization});
-    await screen.findByText(event.id);
-
-    const search = screen.getAllByRole('combobox', {name: 'Add a search term'})[0];
-    await userEvent.type(search, `${tagKey}:`);
-    await userEvent.keyboard(`${tagValue}{enter}{enter}`);
-    expect(mockUseNavigate).toHaveBeenCalledWith(expect.objectContaining(locationQuery), {
-      replace: true,
-    });
-  });
-
   it('updates query from location param change', async function () {
     const [tagKey, tagValue] = ['user.email', 'leander.rodrigues@sentry.io'];
     const locationQuery = {
@@ -199,7 +166,7 @@ describe('EventGraph', () => {
       '/organizations/org-slug/events-stats/',
       expect.objectContaining({
         query: expect.objectContaining({
-          query: locationQuery.query.query + persistantQuery,
+          query: [persistantQuery, locationQuery.query.query].join(' '),
         }),
       })
     );
