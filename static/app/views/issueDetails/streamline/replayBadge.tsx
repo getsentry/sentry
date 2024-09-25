@@ -1,5 +1,7 @@
 import {Fragment, useRef} from 'react';
+import styled from '@emotion/styled';
 
+import {Button} from 'sentry/components/button';
 import {ReplayDrawer} from 'sentry/components/events/eventReplay/replayDrawer';
 import useDrawer, {type DrawerOptions} from 'sentry/components/globalDrawer';
 import {IconPlay} from 'sentry/icons';
@@ -9,7 +11,6 @@ import type {Project} from 'sentry/types/project';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import useReplayCountForIssues from 'sentry/utils/replayCount/useReplayCountForIssues';
 import {Divider} from 'sentry/views/issueDetails/divider';
-import {TextButton} from 'sentry/views/issueDetails/streamline/attachmentsBadge';
 
 export function ReplayBadge({group, project}: {group: Group; project: Project}) {
   const {openDrawer} = useDrawer();
@@ -36,7 +37,7 @@ export function ReplayBadge({group, project}: {group: Group; project: Project}) 
   return (
     <Fragment>
       <Divider />
-      <TextButton
+      <ReplayButton
         ref={openButtonRef}
         type="button"
         priority="link"
@@ -50,7 +51,13 @@ export function ReplayBadge({group, project}: {group: Group; project: Project}) 
         }}
       >
         {tn('%s Replay', '%s Replays', replaysCount)}
-      </TextButton>
+      </ReplayButton>
     </Fragment>
   );
 }
+
+const ReplayButton = styled(Button)`
+  color: ${p => p.theme.gray300};
+  text-decoration: underline;
+  text-decoration-style: dotted;
+`;
