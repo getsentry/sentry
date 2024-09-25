@@ -24,6 +24,7 @@ class Detector(DefaultFieldsModel, OwnerModel):
         blank=True,
         null=True,
         unique=True,
+        on_delete=models.SET_NULL,
     )
 
     class Meta(OwnerModel.Meta):
