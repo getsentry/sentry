@@ -15,11 +15,19 @@ class DataCondition(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Organization
     __repr__ = sane_repr("type", "condition")
 
+    # The condition is the logic condition that needs to be met, gt, lt, eq, etc.
     condition = models.CharField(max_length=200)
+
+    # The threshold is the value that the condition is compared to for numeric expressions
     threshold = models.FloatField(blank=True, null=True)
+
+    # The comparison is the value that the condition is compared to for string expressions
     comparison = models.CharField(max_length=200, blank=True, null=True)
 
+    # The condition_result is the value that is returned if the condition is met, this must be a primitive value
     condition_result = models.JSONField()
+
+    # The type of condition, this is used to initialize the condition classes
     type = models.CharField(max_length=200)
 
     condition_group = models.ForeignKey(
