@@ -77,16 +77,21 @@ each child (such as Event). However, when you delete a project, it won't actuall
 registered Group task. It will instead take a more efficient approach of batch deleting its indirect
 descendants, such as Event, so it can more efficiently bulk delete rows.
 """
+from __future__ import annotations
 
-from .base import BulkModelDeletionTask, ModelDeletionTask, ModelRelation  # NOQA
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from sentry.db.models.base import Model
+    from sentry.deletions.base import BaseDeletionTask
+
 from .manager import DeletionTaskManager
 
-default_manager = DeletionTaskManager(default_task=ModelDeletionTask)
 
-
-def load_defaults() -> None:
+def load_defaults(manager: DeletionTaskManager) -> None:
     from sentry import models
-    from sentry.discover.models import DiscoverSavedQuery
+    from sentry.deletions.base import BulkModelDeletionTask
+    from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryProject
     from sentry.incidents.models.alert_rule import (
         AlertRule,
         AlertRuleTrigger,
@@ -107,83 +112,135 @@ def load_defaults() -> None:
 
     from . import defaults
 
-    default_manager.register(models.Activity, BulkModelDeletionTask)
-    default_manager.register(AlertRule, defaults.AlertRuleDeletionTask)
-    default_manager.register(AlertRuleTrigger, defaults.AlertRuleTriggerDeletionTask)
-    default_manager.register(AlertRuleTriggerAction, defaults.AlertRuleTriggerActionDeletionTask)
-    default_manager.register(models.ApiApplication, defaults.ApiApplicationDeletionTask)
-    default_manager.register(models.ApiGrant, BulkModelDeletionTask)
-    default_manager.register(models.ApiKey, BulkModelDeletionTask)
-    default_manager.register(models.ApiToken, BulkModelDeletionTask)
-    default_manager.register(models.Commit, defaults.CommitDeletionTask)
-    default_manager.register(models.CommitAuthor, defaults.CommitAuthorDeletionTask)
-    default_manager.register(CommitFileChange, BulkModelDeletionTask)
-    default_manager.register(models.Deploy, BulkModelDeletionTask)
-    default_manager.register(DiscoverSavedQuery, defaults.DiscoverSavedQueryDeletionTask)
-    default_manager.register(models.Distribution, BulkModelDeletionTask)
-    default_manager.register(models.EnvironmentProject, BulkModelDeletionTask)
-    default_manager.register(models.Group, defaults.GroupDeletionTask)
-    default_manager.register(models.GroupAssignee, BulkModelDeletionTask)
-    default_manager.register(models.GroupBookmark, BulkModelDeletionTask)
-    default_manager.register(models.GroupCommitResolution, BulkModelDeletionTask)
-    default_manager.register(models.GroupEmailThread, BulkModelDeletionTask)
-    default_manager.register(models.GroupEnvironment, BulkModelDeletionTask)
-    default_manager.register(models.GroupHash, defaults.GroupHashDeletionTask)
-    default_manager.register(models.GroupHashMetadata, BulkModelDeletionTask)
-    default_manager.register(models.GroupHistory, defaults.GroupHistoryDeletionTask)
-    default_manager.register(models.GroupLink, BulkModelDeletionTask)
-    default_manager.register(models.GroupMeta, BulkModelDeletionTask)
-    default_manager.register(models.GroupRedirect, BulkModelDeletionTask)
-    default_manager.register(models.GroupRelease, BulkModelDeletionTask)
-    default_manager.register(models.GroupResolution, BulkModelDeletionTask)
-    default_manager.register(models.GroupRuleStatus, BulkModelDeletionTask)
-    default_manager.register(models.GroupSeen, BulkModelDeletionTask)
-    default_manager.register(models.GroupShare, BulkModelDeletionTask)
-    default_manager.register(models.GroupSnooze, BulkModelDeletionTask)
-    default_manager.register(models.GroupSubscription, BulkModelDeletionTask)
-    default_manager.register(monitor_models.Monitor, defaults.MonitorDeletionTask)
-    default_manager.register(
-        monitor_models.MonitorEnvironment, defaults.MonitorEnvironmentDeletionTask
-    )
-    default_manager.register(models.Organization, defaults.OrganizationDeletionTask)
-    default_manager.register(OrganizationIntegration, defaults.OrganizationIntegrationDeletionTask)
-    default_manager.register(models.OrganizationMember, defaults.OrganizationMemberDeletionTask)
-    default_manager.register(models.OrganizationMemberTeam, BulkModelDeletionTask)
-    default_manager.register(
-        models.PlatformExternalIssue, defaults.PlatformExternalIssueDeletionTask
-    )
-    default_manager.register(models.Project, defaults.ProjectDeletionTask)
-    default_manager.register(models.ProjectBookmark, BulkModelDeletionTask)
-    default_manager.register(models.ProjectKey, BulkModelDeletionTask)
-    default_manager.register(models.PullRequest, defaults.PullRequestDeletionTask)
-    default_manager.register(snuba_models.QuerySubscription, defaults.QuerySubscriptionDeletionTask)
-    default_manager.register(models.Release, defaults.ReleaseDeletionTask)
-    default_manager.register(models.ReleaseCommit, BulkModelDeletionTask)
-    default_manager.register(models.ReleaseEnvironment, BulkModelDeletionTask)
-    default_manager.register(models.ReleaseHeadCommit, BulkModelDeletionTask)
-    default_manager.register(models.ReleaseProject, BulkModelDeletionTask)
-    default_manager.register(models.ReleaseProjectEnvironment, BulkModelDeletionTask)
-    default_manager.register(models.Repository, defaults.RepositoryDeletionTask)
-    default_manager.register(
-        RepositoryProjectPathConfig, defaults.RepositoryProjectPathConfigDeletionTask
-    )
-    default_manager.register(SentryApp, defaults.SentryAppDeletionTask)
-    default_manager.register(SentryAppInstallation, defaults.SentryAppInstallationDeletionTask)
-    default_manager.register(
-        SentryAppInstallationToken, defaults.SentryAppInstallationTokenDeletionTask
-    )
-    default_manager.register(ServiceHook, defaults.ServiceHookDeletionTask)
-    default_manager.register(models.SavedSearch, BulkModelDeletionTask)
-    default_manager.register(models.Team, defaults.TeamDeletionTask)
-    default_manager.register(models.UserReport, BulkModelDeletionTask)
-    default_manager.register(models.ArtifactBundle, defaults.ArtifactBundleDeletionTask)
-    default_manager.register(models.Rule, defaults.RuleDeletionTask)
-    default_manager.register(RuleFireHistory, defaults.RuleFireHistoryDeletionTask)
+    manager.register(models.Activity, BulkModelDeletionTask)
+    manager.register(AlertRule, defaults.AlertRuleDeletionTask)
+    manager.register(AlertRuleTrigger, defaults.AlertRuleTriggerDeletionTask)
+    manager.register(AlertRuleTriggerAction, defaults.AlertRuleTriggerActionDeletionTask)
+    manager.register(models.ApiApplication, defaults.ApiApplicationDeletionTask)
+    manager.register(models.ApiGrant, BulkModelDeletionTask)
+    manager.register(models.ApiKey, BulkModelDeletionTask)
+    manager.register(models.ApiToken, BulkModelDeletionTask)
+    manager.register(models.Commit, defaults.CommitDeletionTask)
+    manager.register(models.CommitAuthor, defaults.CommitAuthorDeletionTask)
+    manager.register(CommitFileChange, BulkModelDeletionTask)
+    manager.register(models.Deploy, BulkModelDeletionTask)
+    manager.register(DiscoverSavedQuery, defaults.DiscoverSavedQueryDeletionTask)
+    manager.register(DiscoverSavedQueryProject, BulkModelDeletionTask)
+    manager.register(models.Distribution, BulkModelDeletionTask)
+    manager.register(models.EnvironmentProject, BulkModelDeletionTask)
+    manager.register(models.Group, defaults.GroupDeletionTask)
+    manager.register(models.GroupAssignee, BulkModelDeletionTask)
+    manager.register(models.GroupBookmark, BulkModelDeletionTask)
+    manager.register(models.GroupCommitResolution, BulkModelDeletionTask)
+    manager.register(models.GroupEmailThread, BulkModelDeletionTask)
+    manager.register(models.GroupEnvironment, BulkModelDeletionTask)
+    manager.register(models.GroupHash, defaults.GroupHashDeletionTask)
+    manager.register(models.GroupHashMetadata, BulkModelDeletionTask)
+    manager.register(models.GroupHistory, defaults.GroupHistoryDeletionTask)
+    manager.register(models.GroupLink, BulkModelDeletionTask)
+    manager.register(models.GroupMeta, BulkModelDeletionTask)
+    manager.register(models.GroupRedirect, BulkModelDeletionTask)
+    manager.register(models.GroupRelease, BulkModelDeletionTask)
+    manager.register(models.GroupResolution, BulkModelDeletionTask)
+    manager.register(models.GroupRuleStatus, BulkModelDeletionTask)
+    manager.register(models.GroupSeen, BulkModelDeletionTask)
+    manager.register(models.GroupShare, BulkModelDeletionTask)
+    manager.register(models.GroupSnooze, BulkModelDeletionTask)
+    manager.register(models.GroupSubscription, BulkModelDeletionTask)
+    manager.register(monitor_models.Monitor, defaults.MonitorDeletionTask)
+    manager.register(monitor_models.MonitorEnvironment, defaults.MonitorEnvironmentDeletionTask)
+    manager.register(models.Organization, defaults.OrganizationDeletionTask)
+    manager.register(OrganizationIntegration, defaults.OrganizationIntegrationDeletionTask)
+    manager.register(models.OrganizationMember, defaults.OrganizationMemberDeletionTask)
+    manager.register(models.OrganizationMemberTeam, BulkModelDeletionTask)
+    manager.register(models.PlatformExternalIssue, defaults.PlatformExternalIssueDeletionTask)
+    manager.register(models.Project, defaults.ProjectDeletionTask)
+    manager.register(models.ProjectBookmark, BulkModelDeletionTask)
+    manager.register(models.ProjectKey, BulkModelDeletionTask)
+    manager.register(models.PullRequest, defaults.PullRequestDeletionTask)
+    manager.register(snuba_models.QuerySubscription, defaults.QuerySubscriptionDeletionTask)
+    manager.register(models.Release, defaults.ReleaseDeletionTask)
+    manager.register(models.ReleaseCommit, BulkModelDeletionTask)
+    manager.register(models.ReleaseEnvironment, BulkModelDeletionTask)
+    manager.register(models.ReleaseHeadCommit, BulkModelDeletionTask)
+    manager.register(models.ReleaseProject, BulkModelDeletionTask)
+    manager.register(models.ReleaseProjectEnvironment, BulkModelDeletionTask)
+    manager.register(models.Repository, defaults.RepositoryDeletionTask)
+    manager.register(RepositoryProjectPathConfig, defaults.RepositoryProjectPathConfigDeletionTask)
+    manager.register(SentryApp, defaults.SentryAppDeletionTask)
+    manager.register(SentryAppInstallation, defaults.SentryAppInstallationDeletionTask)
+    manager.register(SentryAppInstallationToken, defaults.SentryAppInstallationTokenDeletionTask)
+    manager.register(ServiceHook, defaults.ServiceHookDeletionTask)
+    manager.register(models.SavedSearch, BulkModelDeletionTask)
+    manager.register(models.Team, defaults.TeamDeletionTask)
+    manager.register(models.UserReport, BulkModelDeletionTask)
+    manager.register(models.ArtifactBundle, defaults.ArtifactBundleDeletionTask)
+    manager.register(models.Rule, defaults.RuleDeletionTask)
+    manager.register(RuleFireHistory, defaults.RuleFireHistoryDeletionTask)
 
 
-load_defaults()
+_default_manager = None
 
-get = default_manager.get
-register = default_manager.register
-exec_sync = default_manager.exec_sync
-exec_sync_many = default_manager.exec_sync_many
+
+def get_manager() -> DeletionTaskManager:
+    """
+    Get the deletions default_manager
+
+    The first call to this method will create the manager and register all
+    default deletion tasks
+    """
+    from sentry.deletions.base import ModelDeletionTask
+
+    global _default_manager
+
+    if _default_manager is None:
+        _default_manager = DeletionTaskManager(default_task=ModelDeletionTask)
+        load_defaults(_default_manager)
+
+    return _default_manager
+
+
+def __getattr__(name: str) -> Any:
+    # Shim for getsentry
+    if name == "default_manager":
+        return get_manager()
+    raise AttributeError(f"module {__name__} has no attribute {name}")
+
+
+def get(
+    task: type[BaseDeletionTask[Any]] | None = None,
+    **kwargs: Any,
+) -> BaseDeletionTask[Any]:
+    """
+    Get a deletion task for a given Model class.
+
+    Uses the default_manager from get_manager()
+    """
+    return get_manager().get(task, **kwargs)
+
+
+def register(model: type[Model], task: type[BaseDeletionTask[Any]]) -> None:
+    """
+    Register a deletion task for a given model.
+
+    Uses the default_manager from get_manager()
+    """
+    return get_manager().register(model, task)
+
+
+def exec_sync(instance: Model) -> None:
+    """
+    Execute a deletion task synchronously
+
+    Uses the default_manager from get_manager()
+    """
+    return get_manager().exec_sync(instance)
+
+
+def exec_sync_many(instances: list[Model]) -> None:
+    """
+    Execute a deletion task for multiple records synchronously
+
+    Uses the default_manager from get_manager()
+    """
+    return get_manager().exec_sync_many(instances)

@@ -761,7 +761,7 @@ export function SearchQueryBuilderValueCombobox({
 
   const customMenu: CustomComboboxMenu<SelectOptionWithKey<string>> | undefined =
     useMemo(() => {
-      if (!showDatePicker)
+      if (!showDatePicker) {
         return function (props) {
           return (
             <ValueListBox
@@ -773,6 +773,7 @@ export function SearchQueryBuilderValueCombobox({
             />
           );
         };
+      }
 
       return function (props) {
         return (
