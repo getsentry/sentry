@@ -29,6 +29,7 @@ import {
   MODULE_TITLE,
   RELEASE_LEVEL,
 } from 'sentry/views/insights/llmMonitoring/settings';
+import {AiHeader} from 'sentry/views/insights/pages/ai/aiPageHeader';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {ModuleName} from 'sentry/views/insights/types';
 
@@ -60,6 +61,11 @@ export function LLMMonitoringPage() {
                 <FeedbackWidgetButton />
               </ButtonBar>
             </Layout.HeaderActions>
+          </Layout.Header>
+        )}
+        {isInDomainView && (
+          <Layout.Header>
+            <AiHeader module={ModuleName.AI} />
           </Layout.Header>
         )}
         <Layout.Body>
