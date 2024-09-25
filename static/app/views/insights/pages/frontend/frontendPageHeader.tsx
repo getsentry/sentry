@@ -31,7 +31,7 @@ type Props = {
 export function FrontendHeader({module}: Props) {
   const navigate = useNavigate();
   const {slug} = useOrganization();
-  const moduleURLBuilder = useModuleURLBuilder(true);
+  const moduleURLBuilder = useModuleURLBuilder();
 
   // TODO - we can probably tweek useModuleURLBuilder to also return the base domain view url i.e useDomainViewUrl('frontend', 'http')
   const frontendBaseUrl = `/organizations/${slug}/${DOMAIN_VIEW_BASE_URL}/${FRONTEND_LANDING_SUB_PATH}/`;
