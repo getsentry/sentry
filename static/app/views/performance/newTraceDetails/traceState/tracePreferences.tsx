@@ -12,7 +12,8 @@ type TracePreferencesAction =
       type: 'set drawer dimension';
     }
   | {payload: number; type: 'set list width'}
-  | {payload: boolean; type: 'minimize drawer'};
+  | {payload: boolean; type: 'minimize drawer'}
+  | {payload: boolean; type: 'set autogrouping'};
 
 type TraceDrawerPreferences = {
   layoutOptions: TraceLayoutPreferences[];
@@ -23,6 +24,10 @@ type TraceDrawerPreferences = {
 };
 
 export type TracePreferencesState = {
+  autogrouping: {
+    parent: boolean;
+    sibling: boolean;
+  };
   drawer: TraceDrawerPreferences;
   layout: TraceLayoutPreferences;
   list: {
@@ -45,6 +50,10 @@ export const DEFAULT_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
       'drawer bottom': 0.5,
     },
     layoutOptions: ['drawer left', 'drawer right', 'drawer bottom'],
+  },
+  autogrouping: {
+    parent: true,
+    sibling: true,
   },
   layout: 'drawer right',
   list: {
@@ -77,6 +86,37 @@ function correctListWidth(state: TracePreferencesState): TracePreferencesState {
   return state;
 }
 
+function isPreferenceState(parsed: any): parsed is TracePreferencesState {
+  return (
+    parsed?.drawer &&
+    typeof parsed.drawer.minimized === 'boolean' &&
+    Array.isArray(parsed.drawer.layoutOptions) &&
+    parsed.drawer.sizes &&
+    isInt(parsed.drawer.sizes['drawer left']) &&
+    isInt(parsed.drawer.sizes['drawer right']) &&
+    isInt(parsed.drawer.sizes['drawer bottom']) &&
+    parsed.layout &&
+    typeof parsed.layout === 'string' &&
+    parsed.list &&
+    isInt(parsed.list.width)
+  );
+}
+
+function isValidAutogrouping(
+  state: TracePreferencesState
+): state is TracePreferencesState & {autogrouping: undefined} {
+  if (state.autogrouping === undefined) {
+    return false;
+  }
+  if (
+    typeof state.autogrouping.parent !== 'boolean' ||
+    typeof state.autogrouping.sibling !== 'boolean'
+  ) {
+    return false;
+  }
+  return true;
+}
+
 export function loadTraceViewPreferences(key: string): TracePreferencesState | null {
   const stored = localStorage.getItem(key);
 
@@ -85,20 +125,13 @@ export function loadTraceViewPreferences(key: string): TracePreferencesState | n
       const parsed = JSON.parse(stored);
       // We need a more robust way to validate the stored preferences.
       // Since we dont have a schema validation lib, just do it manually for now.
-      if (
-        parsed?.drawer &&
-        typeof parsed.drawer.minimized === 'boolean' &&
-        Array.isArray(parsed.drawer.layoutOptions) &&
-        parsed.drawer.sizes &&
-        isInt(parsed.drawer.sizes['drawer left']) &&
-        isInt(parsed.drawer.sizes['drawer right']) &&
-        isInt(parsed.drawer.sizes['drawer bottom']) &&
-        parsed.layout &&
-        typeof parsed.layout === 'string' &&
-        parsed.list &&
-        isInt(parsed.list.width)
-      ) {
+      if (isPreferenceState(parsed)) {
         correctListWidth(parsed);
+
+        // Correct old preferences that are missing autogrouping
+        if (!isValidAutogrouping(parsed)) {
+          parsed.autogrouping = {...DEFAULT_TRACE_VIEW_PREFERENCES.autogrouping};
+        }
         return parsed;
       }
     } catch (e) {
@@ -133,6 +166,12 @@ export function tracePreferencesReducer(
           },
         },
       };
+    case 'set autogrouping': {
+      return {
+        ...state,
+        autogrouping: {sibling: action.payload, parent: action.payload},
+      };
+    }
     case 'set list width':
       return {
         ...state,
