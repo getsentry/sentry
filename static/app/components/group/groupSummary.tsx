@@ -49,7 +49,7 @@ export function useGroupSummary(groupId: string, groupCategory: IssueCategory) {
     isError: isAutofixSetupError,
   } = useAutofixSetup({groupId});
 
-  const hasGenAIConsent = (autofixSetupData?.genAIConsent.ok ?? false) || true; // TODO
+  const hasGenAIConsent = autofixSetupData?.genAIConsent.ok ?? false;
 
   const queryData = useApiQuery<GroupSummaryData>(
     makeGroupSummaryQueryKey(organization.slug, groupId),
