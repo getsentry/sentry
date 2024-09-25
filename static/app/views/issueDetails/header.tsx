@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 import omit from 'lodash/omit';
 
-import Feature from 'sentry/components/acl/feature';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Badge from 'sentry/components/badge/badge';
 import FeatureBadge from 'sentry/components/badge/featureBadge';
@@ -11,7 +10,6 @@ import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import Count from 'sentry/components/count';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import EventMessage from 'sentry/components/events/eventMessage';
-import {GroupSummaryHeader} from 'sentry/components/group/groupSummary';
 import {GroupStatusBadge} from 'sentry/components/group/inboxBadges/statusBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Link from 'sentry/components/links/link';
@@ -124,32 +122,6 @@ export function GroupHeaderTabs({
         to={{pathname: `${baseUrl}feedback/`, query: queryParams}}
       >
         {t('User Feedback')} <Badge text={group.userReportCount} />
-      </TabList.Item>
-      <TabList.Item
-        key={Tab.ATTACHMENTS}
-        hidden={!hasEventAttachments || !issueTypeConfig.attachments.enabled}
-        disabled={disabledTabs.includes(Tab.ATTACHMENTS)}
-        to={{pathname: `${baseUrl}attachments/`, query: queryParams}}
-      >
-        {t('Attachments')}
-      </TabList.Item>
-      <TabList.Item
-        key={Tab.TAGS}
-        hidden={!issueTypeConfig.tags.enabled}
-        disabled={disabledTabs.includes(Tab.TAGS)}
-        to={{pathname: `${baseUrl}tags/`, query: queryParams}}
-      >
-        {t('Tags')}
-      </TabList.Item>
-      <TabList.Item
-        key={Tab.EVENTS}
-        hidden={!issueTypeConfig.events.enabled}
-        disabled={disabledTabs.includes(Tab.EVENTS)}
-        to={eventRoute}
-      >
-        {group.issueCategory === IssueCategory.ERROR
-          ? t('All Events')
-          : t('Sampled Events')}
       </TabList.Item>
       <TabList.Item
         key={Tab.REPLAYS}
@@ -323,12 +295,6 @@ function GroupHeader({
               type={group.type}
               showUnhandled={group.isUnhandled}
             />
-            <Feature features={['organizations:ai-summary']}>
-              <GroupSummaryHeader
-                groupId={group.id}
-                groupCategory={group.issueCategory}
-              />
-            </Feature>
           </TitleWrapper>
           <StatsWrapper>
             {issueTypeConfig.stats.enabled && (

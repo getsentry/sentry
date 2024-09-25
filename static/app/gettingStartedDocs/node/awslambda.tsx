@@ -12,9 +12,15 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {getJSServerMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {t, tct} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {getInstallConfig, getSdkInitSnippet} from 'sentry/utils/gettingStartedDocs/node';
+import {
+  InstallationMode,
+  platformOptions,
+} from 'sentry/views/onboarding/integrationSetup';
 
-type Params = DocsParams;
+type PlatformOptions = typeof platformOptions;
+type Params = DocsParams<PlatformOptions>;
 
 const getSdkSetupSnippet = (params: Params) => `
 // IMPORTANT: Make sure to import and initialize Sentry at the top of your file.
@@ -39,7 +45,7 @@ Sentry.init({
   // },
 });`;
 
-const onboarding: OnboardingConfig = {
+const onboarding: OnboardingConfig<PlatformOptions> = {
   install: params => [
     {
       type: StepType.INSTALL,
@@ -87,9 +93,21 @@ const onboarding: OnboardingConfig = {
       ],
     },
   ],
+  onPlatformOptionsChange(params) {
+    return option => {
+      if (option.installationMode === InstallationMode.MANUAL) {
+        trackAnalytics('integrations.switch_manual_sdk_setup', {
+          integration_type: 'first_party',
+          integration: 'aws_lambda',
+          view: 'onboarding',
+          organization: params.organization,
+        });
+      }
+    };
+  },
 };
 
-const customMetricsOnboarding: OnboardingConfig = {
+const customMetricsOnboarding: OnboardingConfig<PlatformOptions> = {
   install: params => [
     {
       type: StepType.INSTALL,
@@ -122,7 +140,7 @@ const customMetricsOnboarding: OnboardingConfig = {
   verify: getJSServerMetricsOnboarding().verify,
 };
 
-const crashReportOnboarding: OnboardingConfig = {
+const crashReportOnboarding: OnboardingConfig<PlatformOptions> = {
   introduction: () => getCrashReportModalIntroduction(),
   install: (params: Params) => getCrashReportJavaScriptInstallStep(params),
   configure: () => [
@@ -137,10 +155,11 @@ const crashReportOnboarding: OnboardingConfig = {
   nextSteps: () => [],
 };
 
-const docs: Docs = {
+const docs: Docs<PlatformOptions> = {
   onboarding,
   customMetricsOnboarding,
   crashReportOnboarding,
+  platformOptions,
 };
 
 export default docs;
