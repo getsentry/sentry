@@ -10,7 +10,7 @@ import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import GroupStore from 'sentry/stores/groupStore';
 import type {NoteType} from 'sentry/types/alerts';
-import type {Group} from 'sentry/types/group';
+import type {Group, GroupActivity} from 'sentry/types/group';
 import type {User} from 'sentry/types/user';
 import {uniqueId} from 'sentry/utils/guid';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -18,6 +18,7 @@ import {useTeamsById} from 'sentry/utils/useTeamsById';
 import type {MutateActivityOptions} from 'sentry/views/issueDetails/groupActivity';
 import {groupActivityTypeIconMapping} from 'sentry/views/issueDetails/streamline/groupActivityIcons';
 import getGroupActivityItem from 'sentry/views/issueDetails/streamline/groupActivityItem';
+import {NoteDropdown} from 'sentry/views/issueDetails/streamline/noteDropdown';
 
 function StreamlinedActivitySection({group}: {group: Group}) {
   const organization = useOrganization();
@@ -39,6 +40,18 @@ function StreamlinedActivitySection({group}: {group: Group}) {
     group,
   });
 
+  const deleteOptions: MutateOptions<TData, TError, TVariables, TContext> =
+    useMemo(() => {
+      return {
+        onError: () => {
+          addErrorMessage(t('Failed to delete comment'));
+        },
+        onSuccess: () => {
+          addSuccessMessage(t('Comment removed'));
+        },
+      };
+    }, []);
+
   const createOptions: MutateActivityOptions = useMemo(() => {
     return {
       onError: () => {
@@ -51,7 +64,25 @@ function StreamlinedActivitySection({group}: {group: Group}) {
     };
   }, [group.id]);
 
-  const onCreate = useCallback(
+  const handleDelete = useCallback(
+    (item: GroupActivity) => {
+      const restore = group.activity.find(activity => activity.id === item.id);
+      const index = GroupStore.removeActivity(group.id, item.id);
+
+      if (index === -1 || restore === undefined) {
+        addErrorMessage(t('Failed to delete comment'));
+        return;
+      }
+      mutators.handleDelete(
+        item.id,
+        group.activity.filter(a => a.id !== item.id),
+        deleteOptions
+      );
+    },
+    [deleteOptions, group.activity, mutators, group.id]
+  );
+
+  const handleCreate = useCallback(
     (n: NoteType, _me: User) => {
       mutators.handleCreate(n, group.activity, createOptions);
     },
@@ -66,7 +97,7 @@ function StreamlinedActivitySection({group}: {group: Group}) {
           storageKey="groupinput:latest"
           itemKey={group.id}
           onCreate={n => {
-            onCreate(n, me);
+            handleCreate(n, me);
             setInputId(uniqueId());
           }}
           source="issue-details"
@@ -86,7 +117,12 @@ function StreamlinedActivitySection({group}: {group: Group}) {
 
           return (
             <Timeline.Item
-              title={title}
+              title={
+                <TitleWrapper>
+                  {title}
+                  <NoteDropdown onDelete={() => handleDelete(item)} />
+                </TitleWrapper>
+              }
               timestamp={<TimeSince date={item.dateCreated} />}
               icon={
                 Icon && <Icon {...groupActivityTypeIconMapping[item.type].defaultProps} />
@@ -104,6 +140,12 @@ function StreamlinedActivitySection({group}: {group: Group}) {
 
 const Author = styled('span')`
   font-weight: ${p => p.theme.fontWeightBold};
+`;
+
+const TitleWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  font-weight: normal;
 `;
 
 export default StreamlinedActivitySection;
