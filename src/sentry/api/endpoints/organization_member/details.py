@@ -510,8 +510,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         with transaction.atomic(router.db_for_write(OrganizationMember)):
             # Delete any invite requests and pending invites by the deleted member
             existing_invites = OrganizationMember.objects.filter(
-                Q(invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value)
-                | Q(token__isnull=False),
+                Q(invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value),
                 inviter_id=member.user_id,
                 organization=organization,
             )
