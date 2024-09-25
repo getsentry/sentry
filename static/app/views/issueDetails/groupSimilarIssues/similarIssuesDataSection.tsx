@@ -3,7 +3,7 @@ import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import GroupSimilarIssues from 'sentry/views/issueDetails/groupSimilarIssues';
+import GroupSimilarIssues from 'sentry/views/issueDetails/groupSimilarIssues/similarIssues';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 

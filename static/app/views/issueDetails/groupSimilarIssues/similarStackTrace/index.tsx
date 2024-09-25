@@ -246,6 +246,7 @@ function SimilarStackTrace({params, location, project}: Props) {
 export default SimilarStackTrace;
 
 const Title = styled('h4')`
+  font-size: ${p => p.theme.fontSizeLarge};
   margin-bottom: ${space(0.75)};
 `;
 
