@@ -20,7 +20,6 @@ import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
-import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import type {UptimeRule} from 'sentry/views/alerts/rules/uptime/types';
 
@@ -59,10 +58,8 @@ export function UptimeAlertForm({
   handleDelete,
   rule,
 }: Props) {
-  const organization = useOrganization();
   const {projects} = useProjects();
 
-  const enabledConfiguration = organization.features.includes('uptime-api-create-update');
   const initialData = rule
     ? getFormDataFromRule(rule)
     : {projectSlug: project.slug, method: 'GET', headers: []};
@@ -104,7 +101,7 @@ export function UptimeAlertForm({
         <AlertListItem>{t('Select a project')}</AlertListItem>
         <FormRow>
           <SentryProjectSelectorField
-            disabled={rule !== undefined || !enabledConfiguration}
+            disabled={rule !== undefined}
             disabledReason={t('Existing uptime rules cannot be moved between projects')}
             name="projectSlug"
             label={t('Project')}
@@ -121,7 +118,6 @@ export function UptimeAlertForm({
         <AlertListItem>{t('Configure Request')}</AlertListItem>
         <ConfigurationPanel>
           <TextField
-            disabled={!enabledConfiguration}
             name="url"
             label={t('URL')}
             placeholder={t('The URL to monitor')}
@@ -130,7 +126,6 @@ export function UptimeAlertForm({
             required
           />
           <SelectField
-            disabled={!enabledConfiguration}
             name="method"
             label={t('Method')}
             placeholder={'GET'}
@@ -145,7 +140,6 @@ export function UptimeAlertForm({
             name="headers"
             label={t('Headers')}
             flexibleControlStateSize
-            disabled={!enabledConfiguration}
           />
           <TextareaField
             name="body"
@@ -157,7 +151,6 @@ export function UptimeAlertForm({
             monospace
             placeholder='{"key": "value"}'
             flexibleControlStateSize
-            disabled={!enabledConfiguration}
           />
         </ConfigurationPanel>
         <Observer>

@@ -142,8 +142,7 @@ function Create(props: Props) {
           <LoadingIndicator />
         ) : (
           <Fragment>
-            {organization.features.includes('uptime-api-create-update') &&
-            alertType === AlertRuleType.UPTIME ? (
+            {alertType === AlertRuleType.UPTIME ? (
               <UptimeAlertForm
                 apiMethod="POST"
                 apiUrl={`/projects/${organization.slug}/${project.slug}/uptime/`}
