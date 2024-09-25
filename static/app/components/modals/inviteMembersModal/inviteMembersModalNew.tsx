@@ -1,4 +1,5 @@
 import type {ReactNode} from 'react';
+import {useContext} from 'react';
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
@@ -8,11 +9,7 @@ import ButtonBar from 'sentry/components/buttonBar';
 import InviteButton from 'sentry/components/modals/inviteMembersModal/inviteButton';
 import InviteRowControl from 'sentry/components/modals/inviteMembersModal/inviteRowControlNew';
 import InviteStatusMessage from 'sentry/components/modals/inviteMembersModal/inviteStatusMessage';
-import type {
-  InviteRow,
-  InviteStatus,
-  NormalizedInvite,
-} from 'sentry/components/modals/inviteMembersModal/types';
+import {InviteMembersContext} from 'sentry/components/modals/inviteMembersModal/inviteMembersContext';
 import {ORG_ROLES} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -23,44 +20,44 @@ interface Props {
   Footer: ModalRenderProps['Footer'];
   Header: ModalRenderProps['Header'];
   canSend: boolean;
-  complete: boolean;
   headerInfo: ReactNode;
-  inviteStatus: InviteStatus;
-  invites: NormalizedInvite[];
   member: Member | undefined;
-  pendingInvites: InviteRow[];
-  reset: () => void;
-  sendInvites: () => void;
-  sendingInvites: boolean;
-  setEmails: (emails: string[], index: number) => void;
-  setRole: (role: string, index: number) => void;
-  setTeams: (teams: string[], index: number) => void;
-  willInvite: boolean;
-  error?: string;
 }
 
 export default function InviteMembersModalNew({
   canSend,
-  complete,
   Header,
   Body,
   Footer,
   headerInfo,
-  invites,
-  inviteStatus,
   member,
-  pendingInvites,
-  reset,
-  sendingInvites,
-  sendInvites,
-  setEmails,
-  setRole,
-  setTeams,
-  willInvite,
-  error,
 }: Props) {
+  const {
+    willInvite,
+    invites,
+    setEmails,
+    setRole,
+    setTeams,
+    sendInvites,
+    reset,
+    inviteStatus,
+    sendingInvites,
+    complete,
+    error,
+  } = useContext(InviteMembersContext) ?? {
+    willInvite: false,
+    invites: [],
+    setEmails: () => {},
+    setRole: () => {},
+    setTeams: () => {},
+    reset: () => {},
+    sendInvites: () => {},
+    inviteStatus: {},
+    sendingInvites: false,
+    complete: false,
+    error: undefined,
+  };
   const isValidInvites = invites.length > 0;
-  const {emails, role, teams} = pendingInvites[0] ?? {};
 
   const errorAlert = error ? (
     <Alert type="error" showIcon>
@@ -91,13 +88,8 @@ export default function InviteMembersModalNew({
 
         <Rows>
           <StyledInviteRow
-            disabled={false}
-            emails={[...emails]}
-            role={role}
-            teams={[...teams]}
             roleOptions={member?.orgRoleList ?? ORG_ROLES}
             roleDisabledUnallowed={willInvite}
-            inviteStatus={inviteStatus}
             onRemove={reset}
             onChangeEmails={opts => setEmails(opts?.map(v => v.value) ?? [], 0)}
             onChangeRole={value => setRole(value?.value, 0)}
@@ -108,6 +100,7 @@ export default function InviteMembersModalNew({
         <Footer>
           <FooterContent>
             <div>
+              {/* TODO(mia): remove these props and use InviteMemberContext once old modal is removed */}
               <InviteStatusMessage
                 complete={complete}
                 hasDuplicateEmails={false}

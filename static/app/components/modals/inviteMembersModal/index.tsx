@@ -4,6 +4,7 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {InviteMembersContext} from 'sentry/components/modals/inviteMembersModal/inviteMembersContext';
 import InviteMembersModalNew from 'sentry/components/modals/inviteMembersModal/inviteMembersModalNew';
 import InviteMembersModalView from 'sentry/components/modals/inviteMembersModal/inviteMembersModalview';
 import type {InviteRow} from 'sentry/components/modals/inviteMembersModal/types';
@@ -74,26 +75,31 @@ function InviteMembersModal({
       >
         {({sendInvites: _sendInvites, canSend, headerInfo}) => {
           return organization.features.includes('invite-members-new-modal') ? (
-            <InviteMembersModalNew
-              canSend={canSend}
-              Header={Header}
-              Body={Body}
-              complete={complete}
-              Footer={Footer}
-              headerInfo={headerInfo}
-              invites={invites}
-              inviteStatus={inviteStatus}
-              member={memberResult.data}
-              pendingInvites={pendingInvites}
-              reset={reset}
-              sendingInvites={sendingInvites}
-              sendInvites={sendInvites}
-              setEmails={setEmails}
-              setRole={setRole}
-              setTeams={setTeams}
-              willInvite={willInvite}
-              error={error}
-            />
+            <InviteMembersContext.Provider
+              value={{
+                willInvite,
+                invites,
+                setEmails,
+                setRole,
+                setTeams,
+                sendInvites,
+                reset,
+                inviteStatus,
+                pendingInvites,
+                sendingInvites,
+                complete,
+                error,
+              }}
+            >
+              <InviteMembersModalNew
+                canSend={canSend}
+                Header={Header}
+                Body={Body}
+                Footer={Footer}
+                headerInfo={headerInfo}
+                member={memberResult.data}
+              />
+            </InviteMembersContext.Provider>
           ) : (
             <InviteMembersModalView
               addInviteRow={addInviteRow}
