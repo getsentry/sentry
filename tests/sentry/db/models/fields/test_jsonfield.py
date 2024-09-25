@@ -81,6 +81,7 @@ class JSONFieldTest(TestCase):
         field = JSONField("test")
         field.set_attributes_from_name("json")
         formfield = field.formfield()
+        assert formfield is not None
 
         self.assertEqual(type(formfield), forms.CharField)
         self.assertEqual(type(formfield.widget), forms.Textarea)
@@ -88,6 +89,7 @@ class JSONFieldTest(TestCase):
     def test_formfield_clean_blank(self):
         field = JSONField("test")
         formfield = field.formfield()
+        assert formfield is not None
         self.assertRaisesMessage(
             forms.ValidationError,
             str(formfield.error_messages["required"]),
@@ -98,6 +100,7 @@ class JSONFieldTest(TestCase):
     def test_formfield_clean_none(self):
         field = JSONField("test")
         formfield = field.formfield()
+        assert formfield is not None
         self.assertRaisesMessage(
             forms.ValidationError,
             str(formfield.error_messages["required"]),
@@ -108,11 +111,13 @@ class JSONFieldTest(TestCase):
     def test_formfield_null_and_blank_clean_blank(self):
         field = JSONField("test", null=True, blank=True)
         formfield = field.formfield()
+        assert formfield is not None
         self.assertEqual(formfield.clean(value=""), "")
 
     def test_formfield_blank_clean_blank(self):
         field = JSONField("test", null=False, blank=True)
         formfield = field.formfield()
+        assert formfield is not None
         self.assertEqual(formfield.clean(value=""), "")
 
     def test_default_value(self):
