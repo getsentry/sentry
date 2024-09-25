@@ -88,6 +88,7 @@ class FlagAuditLogModel(Model):
     modified_by = models.CharField(max_length=100)
     modified_by_type = models.PositiveSmallIntegerField(choices=MODIFIED_BY_TYPE_TYPES)
     organization_id = HybridCloudForeignKey("sentry.Organization", null=False, on_delete="CASCADE")
+    tags = models.JSONField()
 
     class Meta:
         app_label = "flags"
