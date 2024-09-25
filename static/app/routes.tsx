@@ -1882,7 +1882,12 @@ function buildRoutes() {
         <Route
           path={TabPaths[Tab.SIMILAR_ISSUES]}
           component={hoc(
-            make(() => import('sentry/views/issueDetails/groupSimilarIssues'))
+            make(
+              () =>
+                import(
+                  'sentry/views/issueDetails/groupSimilarIssues/groupSimilarIssuesTab'
+                )
+            )
           )}
         />
         <Route
