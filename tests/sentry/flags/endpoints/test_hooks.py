@@ -5,12 +5,11 @@ from django.urls import reverse
 
 from sentry.flags.endpoints.hooks import (
     DeserializationError,
-    FlagAuditLogModel,
     InvalidProvider,
     handle_flag_pole_event,
     handle_provider_event,
 )
-from sentry.flags.models import ACTION_MAP, MODIFIED_BY_TYPE_MAP
+from sentry.flags.models import ACTION_MAP, MODIFIED_BY_TYPE_MAP, FlagAuditLogModel
 from sentry.testutils.cases import APITestCase
 from sentry.utils.security.orgauthtoken_token import hash_token
 
@@ -27,11 +26,11 @@ def test_handle_provider_event():
         1,
     )
 
-    assert result["action"] == "created"
+    assert result["action"] == ACTION_MAP["created"]
     assert result["flag"] == "test"
     assert result["modified_at"] == datetime(2024, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
     assert result["modified_by"] == "colton.allen@sentry.io"
-    assert result["modified_by_type"] == "email"
+    assert result["modified_by_type"] == MODIFIED_BY_TYPE_MAP["email"]
     assert result["organization_id"] == 1
 
 
@@ -51,11 +50,11 @@ def test_handle_flag_pole_event():
         1,
     )
 
-    assert result["action"] == "created"
+    assert result["action"] == ACTION_MAP["created"]
     assert result["flag"] == "test"
     assert result["modified_at"] == datetime(2024, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
     assert result["modified_by"] == "colton.allen@sentry.io"
-    assert result["modified_by_type"] == "email"
+    assert result["modified_by_type"] == MODIFIED_BY_TYPE_MAP["email"]
     assert result["organization_id"] == 1
 
 
@@ -104,6 +103,7 @@ class OrganizationFlagsHooksEndpointTestCase(APITestCase):
 
         assert FlagAuditLogModel.objects.count() == 1
         flag = FlagAuditLogModel.objects.first()
+        assert flag is not None
         assert flag.action == ACTION_MAP["created"]
         assert flag.flag == "test"
         assert flag.modified_at == datetime(2024, 1, 1, 0, 0, 0, tzinfo=timezone.utc)

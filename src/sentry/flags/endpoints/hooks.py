@@ -66,15 +66,7 @@ class OrganizationFlagsHooksEndpoint(Endpoint):
     def post(self, request: Request, organization: Organization, provider: str) -> Response:
         try:
             row_data = handle_provider_event(provider, request.data, organization.id)
-
-            action_int = ACTION_MAP[row_data.pop("action")]
-            modified_by_type_int = MODIFIED_BY_TYPE_MAP[row_data.pop("modified_by_type")]
-
-            FlagAuditLogModel.objects.create(
-                action=action_int,
-                modified_by_type=modified_by_type_int,
-                **row_data,
-            )
+            FlagAuditLogModel.objects.create(**row_data)
             return Response(status=200)
         except InvalidProvider:
             raise ResourceDoesNotExist
@@ -96,11 +88,11 @@ the underlying systems.
 class FlagAuditLogRow(TypedDict):
     """A complete flag audit log row instance."""
 
-    action: str
+    action: int
     flag: str
     modified_at: datetime.datetime
     modified_by: str
-    modified_by_type: str
+    modified_by_type: int
     organization_id: int
     tags: dict[str, Any]
 
@@ -151,11 +143,11 @@ def handle_flag_pole_event(request_data: dict[str, Any], organization_id: int) -
     validated_data = serializer.validated_data
 
     return dict(
-        action=validated_data["action"],
+        action=ACTION_MAP[validated_data["action"]],
         flag=validated_data["flag"],
         modified_at=validated_data["modified_at"],
         modified_by=validated_data["modified_by"],
-        modified_by_type="email",
+        modified_by_type=MODIFIED_BY_TYPE_MAP["email"],
         organization_id=organization_id,
         tags={},
     )
