@@ -136,6 +136,26 @@ export function ScreenDetailsPage() {
             {isInDomainView && (
               <Layout.Header>
                 <MobileHeader module={ModuleName.MOBILE_SCREENS} />
+                <Layout.HeaderActions>
+                  <ButtonBar gap={1}>
+                    {isProjectCrossPlatform && <PlatformSelector />}
+                  </ButtonBar>
+                </Layout.HeaderActions>
+
+                {/* TODO - There's two sets of tabs here, we'll have to do some UI work here */}
+                <TabList hideBorder>
+                  {tabs.map(tab => {
+                    const visible =
+                      tab.feature === undefined ||
+                      organization.features?.includes(tab.feature);
+                    return (
+                      <TabList.Item key={tab.key} hidden={!visible} textValue={tab.label}>
+                        {tab.label}
+                        {tab.alpha && <FeatureBadge type="alpha" variant={'badge'} />}
+                      </TabList.Item>
+                    );
+                  })}
+                </TabList>
               </Layout.Header>
             )}
             <Layout.Body>
