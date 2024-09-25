@@ -222,6 +222,7 @@ export type IssueEventParameters = {
     search_type: string;
   };
   'issue_views.add_view.all_saved_searches_saved': {};
+  'issue_views.add_view.banner_dismissed': {};
   'issue_views.add_view.clicked': {};
   'issue_views.add_view.custom_query_saved': {
     query: string;
@@ -389,6 +390,7 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_views.add_view.all_saved_searches_saved':
     'Issue Views: All Saved Searches Saved',
   'issue_views.add_view.recommended_view_saved': 'Issue Views: Recommended View Saved',
+  'issue_views.add_view.banner_dismissed': 'Issue Views: Add View Banner Dismissed',
   'issue_views.shared_view_opened': 'Issue Views: Shared View Opened',
   'issue_views.temp_view_discarded': 'Issue Views: Temporary View Discarded',
   'issue_views.temp_view_saved': 'Issue Views: Temporary View Saved',
