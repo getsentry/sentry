@@ -46,18 +46,18 @@ export default MobileTopbar;
 
 /** When the mobile menu opens, set the main content to `inert` and disable `body` scrolling */
 function updateNavStyleAttributes(view: NavView) {
-  const appContainer = document.querySelector('[data-content]');
-  if (!appContainer) {
+  const mainContent = document.getElementById('main');
+  if (!mainContent) {
     throw new Error(
-      'Unable to match "[data-content]" selector. Please add the `data-content` attribute to the element wrapping the main content.'
+      'Unable to match "#main" element. Please add `id="main"` to the element which wraps the app content.'
     );
   }
 
   if (view !== 'closed') {
-    appContainer.setAttribute('inert', '');
+    mainContent.setAttribute('inert', '');
     document.body.style.setProperty('overflow', 'hidden');
   } else {
-    appContainer.removeAttribute('inert');
+    mainContent.removeAttribute('inert');
     document.body.style.removeProperty('overflow');
   }
 }

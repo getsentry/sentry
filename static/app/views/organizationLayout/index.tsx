@@ -57,7 +57,8 @@ function AppLayout({children, organization}: LayoutProps) {
   return (
     <AppContainer className="app">
       <Nav />
-      <BodyContainer data-content>
+      {/* The `#main` selector is used to make the app content `inert` when an overlay is active */}
+      <BodyContainer id="main">
         {organization && <OrganizationHeader organization={organization} />}
         {organization && <DevToolInit />}
         <Body>{children}</Body>
