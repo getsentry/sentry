@@ -22,10 +22,6 @@ type SelectOption = SelectValue<string>;
 type Props = {
   roleDisabledUnallowed: boolean;
   roleOptions: OrgRole[];
-  onChangeEmails: (emails: SelectOption[]) => void;
-  onChangeRole: (role: SelectOption) => void;
-  onChangeTeams: (teams: SelectOption[]) => void;
-  onRemove: () => void;
 };
 
 function ValueComponent(
@@ -39,19 +35,27 @@ function mapToOptions(values: string[]): SelectOption[] {
   return values.map(value => ({value, label: value}));
 }
 
-function InviteRowControl({
-  roleOptions,
-  roleDisabledUnallowed,
-  onChangeEmails,
-  onChangeRole,
-  onChangeTeams,
-  onRemove,
-}: Props) {
-  const {inviteStatus, pendingInvites} = useContext(InviteMembersContext) ?? {
+function InviteRowControl({roleOptions, roleDisabledUnallowed}: Props) {
+  const {inviteStatus, pendingInvites, setEmails, setRole, setTeams, reset} = useContext(
+    InviteMembersContext
+  ) ?? {
     inviteStatus: {},
     pendingInvites: [],
+    setEmails: () => {},
+    setRole: () => {},
+    setTeams: () => {},
+    reset: () => {},
   };
-  const {emails, role, teams} = pendingInvites[0] ?? {};
+  const emails = [...pendingInvites[0]?.emails];
+  const role = pendingInvites[0]?.role;
+  const teams = [...pendingInvites[0]?.teams];
+
+  const onChangeEmails = (opts: SelectOption[]) => {
+    setEmails(opts?.map(v => v.value) ?? [], 0);
+  };
+  const onChangeRole = (value: SelectOption) => setRole(value?.value, 0);
+  const onChangeTeams = (opts: SelectOption[]) =>
+    setTeams(opts ? opts.map(v => v.value) : [], 0);
 
   const [inputValue, setInputValue] = useState('');
 
@@ -87,7 +91,7 @@ function InviteRowControl({
     const newEmails = input.trim() ? input.trim().split(/[\s,]+/) : [];
     if (newEmails.length > 0) {
       onChangeEmails([
-        ...mapToOptions([...emails]),
+        ...mapToOptions(emails),
         ...newEmails.map(email => ({label: email, value: email})),
       ]);
     }
@@ -108,7 +112,7 @@ function InviteRowControl({
               MultiValue: props => ValueComponent(props, inviteStatus),
               DropdownIndicator: () => null,
             }}
-            options={mapToOptions([...emails])}
+            options={mapToOptions(emails)}
             onBlur={(e: React.ChangeEvent<HTMLInputElement>) => {
               handleInput(e.target.value);
             }}
@@ -119,7 +123,7 @@ function InviteRowControl({
             multiple
             creatable
             clearable
-            onClear={onRemove}
+            onClear={reset}
             menuIsOpen={false}
           />
         </EmailWrapper>

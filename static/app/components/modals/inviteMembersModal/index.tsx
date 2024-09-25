@@ -1,16 +1,21 @@
 import {css} from '@emotion/react';
+import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import Alert from 'sentry/components/alert';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {InviteMembersContext} from 'sentry/components/modals/inviteMembersModal/inviteMembersContext';
-import InviteMembersModalNew from 'sentry/components/modals/inviteMembersModal/inviteMembersModalNew';
+import InviteMembersFooter from 'sentry/components/modals/inviteMembersModal/inviteMembersFooter';
 import InviteMembersModalView from 'sentry/components/modals/inviteMembersModal/inviteMembersModalview';
+import InviteRowControl from 'sentry/components/modals/inviteMembersModal/inviteRowControlNew';
 import type {InviteRow} from 'sentry/components/modals/inviteMembersModal/types';
 import useInviteModal from 'sentry/components/modals/inviteMembersModal/useInviteModal';
 import {InviteModalHook} from 'sentry/components/modals/memberInviteModalCustomization';
+import {ORG_ROLES} from 'sentry/constants';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -66,6 +71,22 @@ function InviteMembersModal({
     );
   }
 
+  const errorAlert = error ? (
+    <Alert type="error" showIcon>
+      {error}
+    </Alert>
+  ) : null;
+
+  const inviteMessage = willInvite ? (
+    <Subtext>{t('Invite unlimited new members to join your organization.')}</Subtext>
+  ) : (
+    <Alert type="warning" showIcon>
+      {t(
+        'You can’t invite users directly, but we’ll forward your request to an org owner or manager for approval.'
+      )}
+    </Alert>
+  );
+
   return (
     <ErrorBoundary>
       <InviteModalHook
@@ -91,14 +112,21 @@ function InviteMembersModal({
                 error,
               }}
             >
-              <InviteMembersModalNew
-                canSend={canSend}
-                Header={Header}
-                Body={Body}
-                Footer={Footer}
-                headerInfo={headerInfo}
-                member={memberResult.data}
-              />
+              <Header closeButton>
+                {errorAlert}
+                <Heading>{t('Invite New Members')}</Heading>
+              </Header>
+              <Body>
+                {inviteMessage}
+                {headerInfo}
+                <StyledInviteRow
+                  roleOptions={memberResult.data?.orgRoleList ?? ORG_ROLES}
+                  roleDisabledUnallowed={willInvite}
+                />
+              </Body>
+              <Footer>
+                <InviteMembersFooter canSend />
+              </Footer>
             </InviteMembersContext.Provider>
           ) : (
             <InviteMembersModalView
@@ -139,6 +167,22 @@ export const modalCss = css`
   width: 100%;
   max-width: 900px;
   margin: 50px auto;
+`;
+
+const Heading = styled('h1')`
+  font-weight: ${p => p.theme.fontWeightNormal};
+  font-size: ${p => p.theme.headerFontSize};
+  margin-top: 0;
+  margin-bottom: ${space(0.75)};
+`;
+
+const Subtext = styled('p')`
+  color: ${p => p.theme.subText};
+  margin-bottom: ${space(3)};
+`;
+
+const StyledInviteRow = styled(InviteRowControl)`
+  margin-bottom: ${space(1.5)};
 `;
 
 export default InviteMembersModal;
