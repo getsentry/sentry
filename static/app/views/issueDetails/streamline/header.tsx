@@ -31,6 +31,7 @@ import GroupActions from 'sentry/views/issueDetails/actions/index';
 import {Divider} from 'sentry/views/issueDetails/divider';
 import GroupPriority from 'sentry/views/issueDetails/groupPriority';
 import {AttachmentsBadge} from 'sentry/views/issueDetails/streamline/attachmentsBadge';
+import {UserFeedbackBadge} from 'sentry/views/issueDetails/streamline/userFeedbackBadge';
 import {useIssueDetailsHeader} from 'sentry/views/issueDetails/useIssueDetailsHeader';
 import type {ReprocessingStatus} from 'sentry/views/issueDetails/utils';
 
@@ -164,6 +165,7 @@ export default function StreamlinedGroupHeader({
               </Fragment>
             )}
             <AttachmentsBadge group={group} project={project} />
+            <UserFeedbackBadge group={group} project={project} />
           </MessageWrapper>
         </Heading>
         <AllStats>
