@@ -33,6 +33,7 @@ import {percent} from 'sentry/utils';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
 import {TagDetailsDrawerContent} from 'sentry/views/issueDetails/groupTags/tagDetailsDrawerContent';
 import {useGroupTags} from 'sentry/views/issueDetails/groupTags/useGroupTags';
@@ -46,7 +47,7 @@ export function GroupTagsDrawer({projectSlug, groupId}: GroupTagsDrawerProps) {
   const location = useLocation();
   const organization = useOrganization();
   const navigate = useNavigate();
-  const tagDrawerKey = location.query.tagDrawerKey as string | undefined;
+  const {tagKey} = useParams<{tagKey: string}>();
   const drawerRef = useRef<HTMLDivElement>(null);
   const {projects} = useProjects();
   const project = projects.find(p => p.slug === projectSlug)!;
@@ -91,28 +92,25 @@ export function GroupTagsDrawer({projectSlug, groupId}: GroupTagsDrawerProps) {
             },
             {
               label: t('All Tags'),
-              to: tagDrawerKey
+              to: tagKey
                 ? {
-                    pathname: location.pathname,
-                    query: {
-                      ...location.query,
-                      tagDrawerKey: undefined,
-                    },
+                    pathname: `/organizations/${organization.slug}/issues/${groupId}/tags/`,
+                    query: location.query,
                   }
                 : undefined,
             },
-            ...(tagDrawerKey ? [{label: tagDrawerKey}] : []),
+            ...(tagKey ? [{label: tagKey}] : []),
           ]}
         />
       </EventDrawerHeader>
       <EventNavigator>
-        <Header>{tagDrawerKey ? t('Tag Details') : t('Tags')}</Header>
-        {tagDrawerKey && (
+        <Header>{tagKey ? t('Tag Details') : t('Tags')}</Header>
+        {tagKey && (
           <ButtonBar gap={1}>
             <LinkButton
               size="sm"
               priority="default"
-              href={`/${organization.slug}/${project.slug}/issues/${groupId}/tags/${tagDrawerKey}/export/`}
+              href={`/${organization.slug}/${project.slug}/issues/${groupId}/tags/${tagKey}/export/`}
             >
               {t('Export Page to CSV')}
             </LinkButton>
@@ -122,7 +120,7 @@ export function GroupTagsDrawer({projectSlug, groupId}: GroupTagsDrawerProps) {
                 queryInfo: {
                   project: project.id,
                   group: groupId,
-                  key: tagDrawerKey,
+                  key: tagKey,
                 },
               }}
             />
@@ -130,7 +128,7 @@ export function GroupTagsDrawer({projectSlug, groupId}: GroupTagsDrawerProps) {
         )}
       </EventNavigator>
       <EventDrawerBody>
-        {tagDrawerKey ? (
+        {tagKey ? (
           <TagDetailsDrawerContent
             project={project}
             groupId={groupId}
@@ -156,16 +154,10 @@ export function GroupTagsDrawer({projectSlug, groupId}: GroupTagsDrawerProps) {
                           priority="link"
                           size="zero"
                           onClick={() => {
-                            navigate(
-                              {
-                                pathname: location.pathname,
-                                query: {
-                                  ...location.query,
-                                  tagDrawerKey: tag.key,
-                                },
-                              },
-                              {replace: true}
-                            );
+                            navigate({
+                              pathname: `${location.pathname}${tag.key}/`,
+                              query: location.query,
+                            });
                           }}
                         >
                           <span data-test-id="tag-title">{tag.key}</span>

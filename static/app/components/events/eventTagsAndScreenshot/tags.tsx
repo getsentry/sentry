@@ -1,7 +1,7 @@
-import {forwardRef, useCallback, useMemo, useRef, useState} from 'react';
+import {forwardRef, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {
   getSentryDefaultTags,
@@ -15,7 +15,8 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
-import {useGroupTagsDrawer} from 'sentry/views/issueDetails/groupTags/useGroupTagsDrawer';
+import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
@@ -31,12 +32,8 @@ export const EventTagsDataSection = forwardRef<HTMLElement, Props>(
   function EventTagsDataSection({event, projectSlug}: Props, ref) {
     const sentryTags = getSentryDefaultTags();
     const hasStreamlinedUI = useHasStreamlinedUI();
-    const openButtonRef = useRef<HTMLButtonElement>(null);
-    const {openTagsDrawer} = useGroupTagsDrawer({
-      projectSlug: projectSlug,
-      groupId: event.groupID!,
-      openButtonRef: openButtonRef,
-    });
+    const organization = useOrganization();
+    const location = useLocation();
 
     const [tagFilter, setTagFilter] = useState<TagFilter>(TagFilter.ALL);
     const handleTagFilterChange = useCallback((value: TagFilter) => {
@@ -61,10 +58,16 @@ export const EventTagsDataSection = forwardRef<HTMLElement, Props>(
 
     const actions = (
       <ButtonBar gap={1}>
-        {hasStreamlinedUI && (
-          <Button onClick={openTagsDrawer} size="xs">
+        {hasStreamlinedUI && event.groupID && (
+          <LinkButton
+            to={{
+              pathname: `/organizations/${organization.slug}/issues/${event.groupID}/tags/`,
+              query: location.query,
+            }}
+            size="xs"
+          >
             {t('View All Issue Tags')}
-          </Button>
+          </LinkButton>
         )}
         <SegmentedControl
           size="xs"

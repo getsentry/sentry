@@ -24,6 +24,7 @@ import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {isUrl} from 'sentry/utils/string/isUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
 import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
@@ -53,7 +54,7 @@ export function TagDetailsDrawerContent({
 }: GroupTagsDrawerTagDetailsProps) {
   const location = useLocation();
   const organization = useOrganization();
-  const tagKey = location.query.tagDrawerKey as string;
+  const {tagKey} = useParams<{tagKey: string}>();
   const environments = useEnvironmentsFromUrl();
 
   const title = tagKey === 'user' ? t('Affected Users') : tagKey;

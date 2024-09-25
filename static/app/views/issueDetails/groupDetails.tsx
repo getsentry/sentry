@@ -12,6 +12,7 @@ import omit from 'lodash/omit';
 import * as qs from 'query-string';
 
 import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
+import useDrawer from 'sentry/components/globalDrawer';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
@@ -59,6 +60,7 @@ import GroupHeader from 'sentry/views/issueDetails//header';
 import {ERROR_TYPES} from 'sentry/views/issueDetails/constants';
 import {useGroupEventAttachmentsDrawer} from 'sentry/views/issueDetails/groupEventAttachments/useGroupEventAttachmentsDrawer';
 import GroupEventDetails from 'sentry/views/issueDetails/groupEventDetails';
+import {useGroupTagsDrawer} from 'sentry/views/issueDetails/groupTags/useGroupTagsDrawer';
 import SampleEventAlert from 'sentry/views/issueDetails/sampleEventAlert';
 import StreamlinedGroupHeader from 'sentry/views/issueDetails/streamline/header';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
@@ -659,6 +661,11 @@ function GroupDetailsContent({
     group,
     project,
   });
+  const {openTagsDrawer} = useGroupTagsDrawer({
+    groupId: group.id,
+    projectSlug: project.slug,
+  });
+  const {isDrawerOpen} = useDrawer();
 
   const {currentTab, baseUrl} = getCurrentRouteInfo({group, event, router, organization});
   const groupReprocessingStatus = getGroupReprocessingStatus(group);
@@ -667,10 +674,16 @@ function GroupDetailsContent({
   const hasStreamlinedUI = useHasStreamlinedUI();
 
   useEffect(() => {
+    if (!hasStreamlinedUI || isDrawerOpen) {
+      return;
+    }
+
     if (currentTab === Tab.ATTACHMENTS) {
       openAttachmentDrawer();
+    } else if (currentTab === Tab.TAGS) {
+      openTagsDrawer();
     }
-  }, [currentTab, openAttachmentDrawer]);
+  }, [currentTab, hasStreamlinedUI, openAttachmentDrawer, openTagsDrawer, isDrawerOpen]);
 
   useTrackView({group, event, project, tab: currentTab});
 

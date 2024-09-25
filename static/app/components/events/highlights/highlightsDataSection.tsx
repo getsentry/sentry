@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {ContextCardContent} from 'sentry/components/events/contexts/contextCard';
@@ -35,7 +35,6 @@ import theme from 'sentry/utils/theme';
 import {useDetailedProject} from 'sentry/utils/useDetailedProject';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useGroupTagsDrawer} from 'sentry/views/issueDetails/groupTags/useGroupTagsDrawer';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
@@ -260,18 +259,19 @@ export default function HighlightsDataSection({
 }: HighlightsDataSectionProps) {
   const organization = useOrganization();
   const hasStreamlinedUI = useHasStreamlinedUI();
-  const openButtonRef = useRef<HTMLButtonElement>(null);
-  const {openTagsDrawer} = useGroupTagsDrawer({
-    groupId,
-    openButtonRef,
-    projectSlug: project.slug,
-  });
+  const location = useLocation();
 
   const viewAllButton = hasStreamlinedUI ? (
     // Streamline details ui has "Jump to" feature, instead we'll show the drawer button
-    <Button ref={openButtonRef} size="xs" onClick={openTagsDrawer}>
+    <LinkButton
+      to={{
+        pathname: `/organizations/${organization.slug}/issues/${groupId}/tags/`,
+        query: location.query,
+      }}
+      size="xs"
+    >
       {t('View All Issue Tags')}
-    </Button>
+    </LinkButton>
   ) : viewAllRef ? (
     <Button
       onClick={() => {

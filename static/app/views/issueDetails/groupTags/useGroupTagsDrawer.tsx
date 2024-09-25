@@ -4,20 +4,20 @@ import useDrawer from 'sentry/components/globalDrawer';
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import useOrganization from 'sentry/utils/useOrganization';
 import {GroupTagsDrawer} from 'sentry/views/issueDetails/groupTags/groupTagsDrawer';
 
 export function useGroupTagsDrawer({
   groupId,
   projectSlug,
-  openButtonRef,
 }: {
   groupId: string;
-  openButtonRef: React.RefObject<HTMLButtonElement>;
   projectSlug: string;
 }) {
   const location = useLocation();
   const navigate = useNavigate();
   const drawer = useDrawer();
+  const organization = useOrganization();
 
   const openTagsDrawer = useCallback(() => {
     drawer.openDrawer(
@@ -25,32 +25,18 @@ export function useGroupTagsDrawer({
       {
         ariaLabel: t('Tags Drawer'),
         onClose: () => {
-          const params = new URL(window.location.href).searchParams;
-          if (params.has('tagDrawerSort') || params.has('tagDrawerKey')) {
-            // Remove drawer state from URL
-            navigate(
-              {
-                pathname: location.pathname,
-                query: {
-                  ...location.query,
-                  tagDrawerSort: undefined,
-                  tagDrawerKey: undefined,
-                },
-              },
-              {replace: true}
-            );
-          }
+          navigate({
+            pathname: `/organizations/${organization.slug}/issues/${groupId}/`,
+            query: {
+              ...location.query,
+              tagDrawerSort: undefined,
+            },
+          });
         },
-        shouldCloseOnInteractOutside: element => {
-          const viewAllButton = openButtonRef.current;
-          if (viewAllButton?.contains(element)) {
-            return false;
-          }
-          return true;
-        },
+        shouldCloseOnLocationChange: false,
       }
     );
-  }, [location, navigate, drawer, projectSlug, groupId, openButtonRef]);
+  }, [location, navigate, drawer, projectSlug, groupId, organization.slug]);
 
   return {openTagsDrawer};
 }

@@ -5,20 +5,20 @@ import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import useOrganization from 'sentry/utils/useOrganization';
 import {GroupEventAttachmentsDrawer} from 'sentry/views/issueDetails/groupEventAttachments/groupEventAttachmentsDrawer';
 
 export function useGroupEventAttachmentsDrawer({
   project,
   group,
-  openButtonRef,
 }: {
   group: Group;
   project: Project;
-  openButtonRef?: React.RefObject<HTMLButtonElement>;
 }) {
   const location = useLocation();
   const navigate = useNavigate();
   const drawer = useDrawer();
+  const organization = useOrganization();
 
   const openAttachmentDrawer = useCallback(() => {
     drawer.openDrawer(
@@ -26,17 +26,15 @@ export function useGroupEventAttachmentsDrawer({
       {
         ariaLabel: 'attachments drawer',
         onClose: () => {
-          if (location.query.attachmentFilter || location.query.cursor) {
-            // Remove drawer state from URL
-            navigate({
-              pathname: location.pathname,
-              query: {
-                ...location.query,
-                attachmentFilter: undefined,
-                cursor: undefined,
-              },
-            });
-          }
+          // Remove drawer state from URL
+          navigate({
+            pathname: `/organizations/${organization.slug}/issues/${group.id}/`,
+            query: {
+              ...location.query,
+              attachmentFilter: undefined,
+              cursor: undefined,
+            },
+          });
         },
         shouldCloseOnInteractOutside: element => {
           // Prevent closing the drawer when deleting an attachment
@@ -44,16 +42,12 @@ export function useGroupEventAttachmentsDrawer({
             return false;
           }
 
-          // Prevent closing the drawer when clicking the button that opens it
-          const viewAllButton = openButtonRef?.current;
-          if (viewAllButton?.contains(element)) {
-            return false;
-          }
           return true;
         },
+        shouldCloseOnLocationChange: false,
       }
     );
-  }, [location, navigate, drawer, project, group, openButtonRef]);
+  }, [location, navigate, drawer, project, group, organization.slug]);
 
   return {openAttachmentDrawer};
 }
