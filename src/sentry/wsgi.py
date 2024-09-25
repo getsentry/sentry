@@ -2,8 +2,6 @@ import io
 import os.path
 import sys
 
-from django.urls import reverse
-
 # Add the project to the python path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), os.pardir))
 
@@ -23,7 +21,7 @@ application = WSGIHandler()
 # trigger a warmup of the application
 application(
     {
-        "PATH_INFO": reverse("sentry-warmup"),
+        "PATH_INFO": "/_health/",
         "REQUEST_METHOD": "GET",
         "SERVER_NAME": "127.0.0.1",
         "SERVER_PORT": "9001",
