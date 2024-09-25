@@ -118,6 +118,7 @@ class FlagAuditLogRow(TypedDict):
     modified_by: str
     modified_by_type: str
     organization_id: int
+    tags: dict[str, Any]
 
 
 class DeserializationError(Exception):
@@ -172,4 +173,5 @@ def handle_flag_pole_event(request_data: dict[str, Any], organization_id: int) -
         modified_by=validated_data["modified_by"],
         modified_by_type="email",
         organization_id=organization_id,
+        tags={},
     )
