@@ -46,7 +46,13 @@ describe('EventDetails', function () {
     ],
   };
   const defaultProps = {project, group, event};
-  let mockActionableItems, mockCommitters, mockTags, mockStats, mockList, mockListMeta;
+
+  let mockActionableItems: jest.Mock;
+  let mockCommitters: jest.Mock;
+  let mockTags: jest.Mock;
+  let mockStats: jest.Mock;
+  let mockList: jest.Mock;
+  let mockListMeta: jest.Mock;
 
   beforeEach(function () {
     PageFiltersStore.init();

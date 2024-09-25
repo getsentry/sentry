@@ -88,7 +88,7 @@ export function SuspectCommits({group, eventId, project, commitRow: CommitRow}: 
 
   return hasStreamlinedUI ? (
     <SuspectCommitWrapper>
-      <ScrollCarousel gap={0.5} transparentMask jumpItemCount={1}>
+      <ScrollCarousel gap={1.5} transparentMask jumpItemCount={1}>
         {commits.slice(0, 100).map((commit, commitIndex) => (
           <StreamlinedPanel key={commitIndex}>
             <Title>{t('Suspect Commit')}</Title>
@@ -166,12 +166,6 @@ const StreamlinedPanel = styled(Panel)`
   margin-bottom: 0;
   width: 100%;
   min-width: 85%;
-  &:last-child {
-    margin-right: ${space(1.5)};
-  }
-  &:first-child {
-    margin-left: ${space(1.5)};
-  }
 `;
 
 const IllustrationContainer = styled('div')`

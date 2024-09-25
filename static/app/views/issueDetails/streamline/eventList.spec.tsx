@@ -40,7 +40,8 @@ describe('EventList', () => {
   const persistantQuery = `issue:${group.shortId}`;
   const totalCount = 100;
 
-  let mockEventList, mockEventListMeta;
+  let mockEventList: jest.Mock;
+  let mockEventListMeta: jest.Mock;
 
   beforeEach(() => {
     mockUseLocation.mockReturnValue(LocationFixture());
