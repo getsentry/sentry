@@ -98,7 +98,7 @@ export function isSubmenuItemActive(
   );
 }
 
-/** Creates a well-formed `LocationDescriptor` from a partial URL string that may contain search params */
+/** Creates a `LocationDescriptor` from a URL string that may contain search params */
 export function makeLocationDescriptorFromTo(to: string): LocationDescriptor {
   const [pathname, search] = to.split('?');
 
