@@ -351,7 +351,6 @@ def _process_message(
     with sentry_sdk.start_transaction(
         op="_process_message",
         name="issues.occurrence_consumer",
-        sampled=True,
     ) as txn:
         try:
             # Messages without payload_type default to an OCCURRENCE payload
