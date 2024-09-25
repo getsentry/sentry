@@ -6,6 +6,7 @@ import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidg
 import * as Layout from 'sentry/components/layouts/thirds';
 import {TabList, Tabs} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
@@ -34,7 +35,9 @@ export function FrontendHeader({module}: Props) {
   const moduleURLBuilder = useModuleURLBuilder();
 
   // TODO - we can probably tweek useModuleURLBuilder to also return the base domain view url i.e useDomainViewUrl('frontend', 'http')
-  const frontendBaseUrl = `/organizations/${slug}/${DOMAIN_VIEW_BASE_URL}/${FRONTEND_LANDING_SUB_PATH}/`;
+  const frontendBaseUrl = normalizeUrl(
+    `/organizations/${slug}/${DOMAIN_VIEW_BASE_URL}/${FRONTEND_LANDING_SUB_PATH}/`
+  );
 
   const crumbs: Crumb[] = [
     {
@@ -65,7 +68,7 @@ export function FrontendHeader({module}: Props) {
       navigate(frontendBaseUrl);
       return;
     }
-    navigate(moduleURLBuilder(key as RoutableModuleNames));
+    navigate(`${moduleURLBuilder(key as RoutableModuleNames)}/`);
   };
 
   return (
