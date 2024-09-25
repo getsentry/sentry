@@ -61,7 +61,7 @@ function makeProfileLinkFromExample(
   return null;
 }
 
-function useMemoryPagination(items: any[], size: number) {
+export function useMemoryPagination(items: any[], size: number) {
   const [pagination, setPagination] = useState({
     start: 0,
     end: size,
