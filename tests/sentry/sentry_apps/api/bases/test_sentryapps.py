@@ -17,6 +17,8 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import control_silo_test
 
+# from rest_framework.request import Request
+
 
 @control_silo_test
 class SentryAppPermissionTest(TestCase):
@@ -197,7 +199,7 @@ class SentryAppInstallationBaseEndpointTest(TestCase):
 
 @control_silo_test
 class AddIntegrationPlatformMetricTagTest(unittest.TestCase):
-    @patch("sentry.sentry_apps.api.bases.sentryapps.add_request_metric_tags")
+    @patch("sentry.api.bases.sentryapps.add_request_metric_tags")
     def test_record_platform_integration_metric(self, add_request_metric_tags):
         @add_integration_platform_metric_tag
         def get(self, request, *args, **kwargs):
