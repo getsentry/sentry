@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from django.urls import URLPattern, URLResolver, re_path
 
+from sentry.api.endpoints.warmup import WarmupEndpoint
 from sentry.web.frontend import csrf_failure
 from sentry.web.frontend.error_404 import Error404View
 from sentry.web.frontend.error_500 import Error500View
@@ -25,6 +26,13 @@ urlpatterns: list[URLResolver | URLPattern] = [
         r"^403-csrf-failure/",
         csrf_failure.view,
         name="error-403-csrf-failure",
+    ),
+    # warmup, used to initialize any connections / pre-load
+    # the application so that user initiated requests are faster
+    re_path(
+        r"^_warmup/$",
+        WarmupEndpoint.as_view(),
+        name="sentry-warmup",
     ),
 ]
 
