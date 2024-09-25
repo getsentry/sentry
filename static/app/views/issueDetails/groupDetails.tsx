@@ -1,11 +1,17 @@
-import {Fragment, useCallback, useEffect, useState} from 'react';
+import {
+  cloneElement,
+  Fragment,
+  isValidElement,
+  useCallback,
+  useEffect,
+  useState,
+} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import omit from 'lodash/omit';
 import * as qs from 'query-string';
 
 import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
-import useDrawer from 'sentry/components/globalDrawer';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
@@ -49,10 +55,8 @@ import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {useUser} from 'sentry/utils/useUser';
-import EventDetails from 'sentry/views/discover/eventDetails';
 import GroupHeader from 'sentry/views/issueDetails//header';
 import {ERROR_TYPES} from 'sentry/views/issueDetails/constants';
-import {useGroupEventAttachments} from 'sentry/views/issueDetails/groupEventAttachments/useGroupEventAttachments';
 import {useGroupEventAttachmentsDrawer} from 'sentry/views/issueDetails/groupEventAttachments/useGroupEventAttachmentsDrawer';
 import GroupEventDetails from 'sentry/views/issueDetails/groupEventDetails';
 import SampleEventAlert from 'sentry/views/issueDetails/sampleEventAlert';
@@ -239,6 +243,7 @@ function useEventApiQuery({
   const eventIdUrl = eventId ?? defaultIssueEvent;
   const recommendedEventQuery =
     typeof location.query.query === 'string' ? location.query.query : undefined;
+  const hasStreamlinedUI = useHasStreamlinedUI();
 
   const queryKey: ApiQueryKey = [
     `/organizations/${organization.slug}/issues/${groupId}/events/${eventIdUrl}/`,
@@ -259,13 +264,13 @@ function useEventApiQuery({
     // Latest/recommended event will change over time, so only cache for 30 seconds
     staleTime: 30000,
     gcTime: 30000,
-    enabled: isLatestOrRecommendedEvent,
+    enabled: isLatestOrRecommendedEvent && (hasStreamlinedUI || isOnDetailsTab),
     retry: false,
   });
   const otherEventQuery = useApiQuery<Event>(queryKey, {
     // Oldest/specific events will never change
     staleTime: Infinity,
-    enabled: !isLatestOrRecommendedEvent,
+    enabled: !isLatestOrRecommendedEvent && (hasStreamlinedUI || isOnDetailsTab),
     retry: false,
   });
 
@@ -657,22 +662,32 @@ function GroupDetailsContent({
 
   const {currentTab, baseUrl} = getCurrentRouteInfo({group, event, router, organization});
   const groupReprocessingStatus = getGroupReprocessingStatus(group);
+  const environments = useEnvironmentsFromUrl();
 
   const hasStreamlinedUI = useHasStreamlinedUI();
 
-  const tab = getCurrentTab({router});
-  const isOnDetailsTab = tab === Tab.DETAILS;
-
   useEffect(() => {
-    if (tab === Tab.ATTACHMENTS) {
+    if (currentTab === Tab.ATTACHMENTS) {
       openAttachmentDrawer();
     }
-  }, [tab, openAttachmentDrawer]);
+  }, [currentTab, openAttachmentDrawer]);
 
   useTrackView({group, event, project, tab: currentTab});
 
-  return (
-    <Fragment>
+  const childProps = {
+    environments,
+    group,
+    project,
+    event,
+    loadingEvent,
+    eventError,
+    groupReprocessingStatus,
+    onRetry: refetchData,
+    baseUrl,
+  };
+
+  return hasStreamlinedUI ? (
+    <div>
       <StreamlinedGroupHeader
         group={group}
         project={project}
@@ -695,54 +710,27 @@ function GroupDetailsContent({
         groupReprocessingStatus={groupReprocessingStatus}
         onRetry={refetchData}
       />
-    </Fragment>
+    </div>
+  ) : (
+    <Tabs
+      value={currentTab}
+      onChange={tab => trackTabChanged({tab, group, project, event, organization})}
+    >
+      <GroupHeader
+        organization={organization}
+        groupReprocessingStatus={groupReprocessingStatus}
+        event={event ?? undefined}
+        group={group}
+        baseUrl={baseUrl}
+        project={project as Project}
+      />
+      <GroupTabPanels>
+        <TabPanels.Item key={currentTab}>
+          {isValidElement(children) ? cloneElement(children, childProps) : children}
+        </TabPanels.Item>
+      </GroupTabPanels>
+    </Tabs>
   );
-
-  // return (
-  //   <Tabs
-  //     value={currentTab}
-  //     onChange={tab => trackTabChanged({tab, group, project, event, organization})}
-  //   >
-  //     {hasStreamlinedUI ? (
-  //       <StreamlinedGroupHeader
-  //         group={group}
-  //         project={project}
-  //         groupReprocessingStatus={groupReprocessingStatus}
-  //         baseUrl={baseUrl}
-  //       />
-  //     ) : (
-  //       <GroupHeader
-  //         organization={organization}
-  //         groupReprocessingStatus={groupReprocessingStatus}
-  //         event={event ?? undefined}
-  //         group={group}
-  //         baseUrl={baseUrl}
-  //         project={project as Project}
-  //       />
-  //     )}
-  //     <GroupTabPanels>
-  //       <TabPanels.Item key={currentTab}>
-  //         {/* <EventDetails event={event} group={group} project={project} /> */}
-  //         <GroupEventDetails
-  //           location={router.location}
-  //           route={router.routes.at(-1)!}
-  //           router={router}
-  //           routes={router.routes}
-  //           routeParams={router.params}
-  //           params={router.params}
-  //           organization={organization}
-  //           event={event!}
-  //           group={group}
-  //           project={project}
-  //           loadingEvent={loadingEvent}
-  //           eventError={eventError}
-  //           groupReprocessingStatus={groupReprocessingStatus}
-  //           onRetry={refetchData}
-  //         />
-  //       </TabPanels.Item>
-  //     </GroupTabPanels>
-  //   </Tabs>
-  // );
 }
 
 function GroupDetailsPageContent(props: GroupDetailsProps & FetchGroupDetailsState) {

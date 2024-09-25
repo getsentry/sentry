@@ -2,10 +2,12 @@ import {useLayoutEffect, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import Feature from 'sentry/components/acl/feature';
 import Alert from 'sentry/components/alert';
 import {CommitRow} from 'sentry/components/commitRow';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {SuspectCommits} from 'sentry/components/events/suspectCommits';
+import {GroupSummary} from 'sentry/components/group/groupSummary';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import {t} from 'sentry/locale';
@@ -85,6 +87,9 @@ export function EventDetails({
 
   return (
     <EventDetailsContext.Provider value={{...eventDetails, dispatch}}>
+      <Feature features={['organizations:ai-summary']}>
+        <GroupSummary groupId={group.id} groupCategory={group.issueCategory} />
+      </Feature>
       <PageErrorBoundary
         mini
         message={t('There was an error loading the suspect commits')}
@@ -144,24 +149,31 @@ export function EventDetails({
         </PageErrorBoundary>
       )}
       {pageContent === EventPageContent.EVENT && (
-        <GroupContent>
-          <FloatingEventNavigation
-            event={event}
-            group={group}
-            ref={setNav}
-            query={searchQuery}
-            onViewAllEvents={() => setPageContent(EventPageContent.LIST)}
-          />
-          <ContentPadding>
-            <EventDetailsContent group={group} event={event} project={project} />
-          </ContentPadding>
-        </GroupContent>
+        <PageErrorBoundary
+          mini
+          message={t('There was an error loading the event content')}
+        >
+          <GroupContent>
+            <FloatingEventNavigation
+              event={event}
+              group={group}
+              ref={setNav}
+              query={searchQuery}
+              onViewAllEvents={() => setPageContent(EventPageContent.LIST)}
+            />
+            <ContentPadding>
+              <EventDetailsContent group={group} event={event} project={project} />
+            </ContentPadding>
+          </GroupContent>
+        </PageErrorBoundary>
       )}
-      <ExtraContent>
-        <ContentPadding>
-          <IssueContent group={group} project={project} />
-        </ContentPadding>
-      </ExtraContent>
+      <PageErrorBoundary mini message={t('There was an error loading the issue content')}>
+        <ExtraContent>
+          <ContentPadding>
+            <IssueContent group={group} project={project} />
+          </ContentPadding>
+        </ExtraContent>
+      </PageErrorBoundary>
     </EventDetailsContext.Provider>
   );
 }
@@ -173,7 +185,7 @@ const SearchFilter = styled(EventSearch)`
 const FilterContainer = styled('div')`
   display: grid;
   grid-template-columns: auto 1fr auto;
-  gap: ${space(1)};
+  gap: ${space(1.5)};
 `;
 
 const FloatingEventNavigation = styled(EventNavigation)`
@@ -207,6 +219,6 @@ const GraphAlert = styled(Alert)`
 `;
 
 const PageErrorBoundary = styled(ErrorBoundary)`
-  margin: 0 ${space(1.5)};
+  margin: 0;
   border: 1px solid ${p => p.theme.translucentBorder};
 `;
