@@ -2,7 +2,7 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
 
-import bannerImage from 'sentry-images/spot/ai-suggestion-banner.svg';
+import bannerImage from 'sentry-images/insights/module-upsells/insights-module-upsell.svg';
 
 import {Button} from 'sentry/components/button';
 import {
