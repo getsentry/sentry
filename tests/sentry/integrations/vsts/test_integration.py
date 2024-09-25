@@ -385,7 +385,7 @@ class VstsIntegrationProviderBuildIntegrationTest(VstsIntegrationTestCase):
         integration.set_pipeline(pipeline)
         with pytest.raises(IntegrationProviderError) as err:
             integration.build_integration(state)
-        assert "ensure third-party app access via OAuth is enabled" in str(err)
+        assert "Azure DevOps organization" in str(err) and "Please ensu" in str(err)
 
     @patch("sentry.integrations.vsts.VstsIntegrationProvider.get_scopes", return_value=FULL_SCOPES)
     def test_create_subscription_unauthorized(self, mock_get_scopes):
@@ -420,7 +420,7 @@ class VstsIntegrationProviderBuildIntegrationTest(VstsIntegrationTestCase):
         integration.set_pipeline(pipeline)
         with pytest.raises(IntegrationProviderError) as err:
             integration.build_integration(state)
-        assert "ensure third-party app access via OAuth is enabled" in str(err)
+        assert "Azure DevOps organization" in str(err) and "Please ensu" in str(err)
 
 
 @control_silo_test
