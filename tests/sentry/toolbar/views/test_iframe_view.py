@@ -5,7 +5,7 @@ from django.urls import reverse
 
 from sentry.testutils.cases import APITestCase
 from sentry.toolbar.views.iframe_view import INVALID_TEMPLATE, SUCCESS_TEMPLATE
-from tests.sentry.toolbar.utils.test_http import get_directives
+from tests.sentry.toolbar.utils.test_csp import get_directives
 
 
 class IframeViewTest(APITestCase):

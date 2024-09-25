@@ -1,4 +1,4 @@
-from sentry.toolbar.utils.http import csp_add_directive
+from sentry.toolbar.utils.csp import csp_add_directive
 
 
 def get_directives(csp: str) -> dict[str, set[str]]:

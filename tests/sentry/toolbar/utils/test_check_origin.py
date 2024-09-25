@@ -1,4 +1,4 @@
-from sentry.toolbar.utils.url import url_matches
+from sentry.toolbar.utils.check_origin import url_matches
 
 
 def test_url_matches_basic():

@@ -4,7 +4,7 @@ from django.http import HttpRequest
 
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.toolbar.utils.http import csp_add_directive
+from sentry.toolbar.utils.csp import csp_add_directive
 from sentry.web.frontend.base import OrganizationView
 
 

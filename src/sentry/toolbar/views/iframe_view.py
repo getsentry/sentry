@@ -5,7 +5,7 @@ from django.http import HttpRequest, HttpResponse
 
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.toolbar.utils.url import check_origin
+from sentry.toolbar.utils.check_origin import check_origin
 from sentry.toolbar.views.base import ToolbarView
 from sentry.web.frontend.base import region_silo_view
 

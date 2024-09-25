@@ -2,7 +2,7 @@ from django.urls import reverse
 
 from sentry.testutils.cases import APITestCase
 from sentry.toolbar.views.login_success_view import SUCCESS_TEMPLATE
-from tests.sentry.toolbar.utils.test_http import get_directives
+from tests.sentry.toolbar.utils.test_csp import get_directives
 
 
 class LoginSuccessViewTest(APITestCase):
