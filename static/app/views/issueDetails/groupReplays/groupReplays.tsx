@@ -278,7 +278,7 @@ function GroupReplaysTable({
   );
 }
 
-const StyledLayoutPage = styled(Layout.Page)`
+export const StyledLayoutPage = styled(Layout.Page)`
   box-shadow: 0px 0px 1px ${p => p.theme.gray200};
   background-color: ${p => p.theme.background};
   gap: ${space(2)};
