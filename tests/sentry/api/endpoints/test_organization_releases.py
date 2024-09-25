@@ -372,6 +372,29 @@ class OrganizationReleaseListTest(APITestCase, BaseMetricsTestCase):
         )
         self.assert_expected_versions(response, [])
 
+    def test_latest_release_filter(self):
+        self.login_as(user=self.user)
+
+        project1 = self.create_project(teams=[self.team], organization=self.organization)
+        project2 = self.create_project(teams=[self.team], organization=self.organization)
+
+        self.create_release(version="test@2.2", project=project1)
+        self.create_release(version="test@2.2-alpha", project=project1)
+        project1_latest_release = self.create_release(version="test@2.2+122", project=project1)
+        self.create_release(version="test@20.2.8", project=project2)
+        project2_latest_release = self.create_release(version="test@21.0.0", project=project2)
+
+        response = self.get_success_response(
+            self.organization.slug, query=f"{RELEASE_ALIAS}:latest"
+        )
+        self.assert_expected_versions(
+            response,
+            [
+                project2_latest_release,
+                project1_latest_release,
+            ],
+        )
+
     def test_query_filter_suffix(self):
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.organization
