@@ -250,6 +250,18 @@ export function DraggableTabBar({
         querySort: tempTab.querySort,
       };
       const newTabs = [...tabs, newTab];
+      navigate(
+        {
+          ...location,
+          query: {
+            ...queryParams,
+            query: tempTab.query,
+            querySort: tempTab.querySort,
+            viewId: tempId,
+          },
+        },
+        {replace: true}
+      );
       setTabs(newTabs);
       setTempTab(undefined);
       tabListState?.setSelectedKey(tempId);
