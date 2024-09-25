@@ -1,7 +1,7 @@
 from sentry import audit_log
 from sentry.audit_log.services.log.service import log_rpc_service
+from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.models.deletedteam import DeletedTeam
-from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.models.team import Team, TeamStatus
 from sentry.slug.errors import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.testutils.cases import APITestCase

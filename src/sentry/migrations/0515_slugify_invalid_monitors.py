@@ -13,8 +13,8 @@ from sentry.new_migrations.migrations import CheckedMigration
 from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 
 if TYPE_CHECKING:
+    from sentry.deletions.models.scheduleddeletion import BaseScheduledDeletion
     from sentry.models.rule import Rule
-    from sentry.models.scheduledeletion import BaseScheduledDeletion
     from sentry.monitors.models import Monitor
 
 

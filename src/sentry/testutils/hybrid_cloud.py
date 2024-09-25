@@ -14,9 +14,12 @@ from django.db import connections, transaction
 from django.db.backends.base.base import BaseDatabaseWrapper
 
 from sentry.db.postgres.transactions import in_test_transaction_enforcement
+from sentry.deletions.models.scheduleddeletion import (
+    BaseScheduledDeletion,
+    get_regional_scheduled_deletion,
+)
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
-from sentry.models.scheduledeletion import BaseScheduledDeletion, get_regional_scheduled_deletion
 from sentry.silo.base import SiloMode
 from sentry.testutils.silo import assume_test_silo_mode
 

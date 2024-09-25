@@ -13,6 +13,7 @@ from sentry_relay.processing import normalize_cardinality_limit_config
 
 from sentry import audit_log
 from sentry.constants import RESERVED_PROJECT_SLUGS, ObjectStatus
+from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.dynamic_sampling import DEFAULT_BIASES, RuleType
 from sentry.dynamic_sampling.rules.base import NEW_MODEL_THRESHOLD_IN_MINUTES
 from sentry.issues.highlights import get_highlight_preset_for_project
@@ -28,7 +29,6 @@ from sentry.models.projectownership import ProjectOwnership
 from sentry.models.projectredirect import ProjectRedirect
 from sentry.models.projectteam import ProjectTeam
 from sentry.models.rule import Rule
-from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.slug.errors import DEFAULT_SLUG_ERROR_MESSAGE

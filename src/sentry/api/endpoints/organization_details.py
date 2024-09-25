@@ -65,6 +65,7 @@ from sentry.constants import (
     UPTIME_AUTODETECTION,
 )
 from sentry.datascrubbing import validate_pii_config_update, validate_pii_selectors
+from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.hybridcloud.rpc import IDEMPOTENCY_KEY_LENGTH
 from sentry.integrations.utils.codecov import has_codecov_integration
 from sentry.lang.native.utils import (
@@ -75,7 +76,6 @@ from sentry.lang.native.utils import (
 from sentry.models.avatars.organization_avatar import OrganizationAvatar
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization, OrganizationStatus
-from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import (
     RpcOrganization,

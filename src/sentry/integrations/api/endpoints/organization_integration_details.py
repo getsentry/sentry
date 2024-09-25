@@ -16,12 +16,12 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
+from sentry.deletions.models.scheduleddeletion import ScheduledDeletion
 from sentry.integrations.api.bases.organization_integrations import (
     OrganizationIntegrationBaseEndpoint,
 )
 from sentry.integrations.api.serializers.models.integration import OrganizationIntegrationSerializer
 from sentry.integrations.models.organization_integration import OrganizationIntegration
-from sentry.models.scheduledeletion import ScheduledDeletion
 from sentry.organizations.services.organization import RpcUserOrganizationContext
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.utils.audit import create_audit_entry

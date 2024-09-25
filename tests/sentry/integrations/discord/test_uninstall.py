@@ -4,11 +4,11 @@ from unittest import mock
 import responses
 
 from sentry.constants import ObjectStatus
+from sentry.deletions.models.scheduleddeletion import ScheduledDeletion
 from sentry.integrations.discord.client import USERS_GUILD_URL, DiscordClient
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.models.organization import Organization
-from sentry.models.scheduledeletion import ScheduledDeletion
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import Factories

@@ -1,8 +1,11 @@
-from collections.abc import MutableMapping
-from typing import Any
+from __future__ import annotations
 
-from sentry.db.models.base import Model
-from sentry.deletions.base import BaseDeletionTask
+from collections.abc import MutableMapping
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from sentry.db.models.base import Model
+    from sentry.deletions.base import BaseDeletionTask
 
 __all__ = ["DeletionTaskManager"]
 

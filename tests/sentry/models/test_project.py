@@ -1,6 +1,7 @@
 from collections.abc import Iterable
 from unittest.mock import patch
 
+from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs_control
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.types import ExternalProviders
@@ -18,7 +19,6 @@ from sentry.models.release import Release
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.models.rule import Rule
-from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorType, ScheduleType
 from sentry.notifications.types import NotificationSettingEnum
 from sentry.notifications.utils.participants import get_notification_recipients

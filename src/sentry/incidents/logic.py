@@ -24,6 +24,7 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.auth.access import SystemAccess
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS, ObjectStatus
 from sentry.db.models import Model
+from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.incidents import tasks
 from sentry.incidents.models.alert_rule import (
     AlertRule,
@@ -62,7 +63,6 @@ from sentry.models.environment import Environment
 from sentry.models.notificationaction import ActionService, ActionTarget
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.relay.config.metric_extraction import on_demand_metrics_feature_flags
 from sentry.search.events.builder.base import BaseQueryBuilder
 from sentry.search.events.constants import (
