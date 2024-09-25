@@ -658,7 +658,7 @@ class ExhaustiveFixtures(Fixtures):
             condition_result="True",
             condition_group=detector_conditions,
         )
-        detector.condition_group = detector_conditions
+        detector.workflow_condition_group = detector_conditions
 
         return org
 
