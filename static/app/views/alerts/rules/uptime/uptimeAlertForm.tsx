@@ -6,6 +6,7 @@ import type {APIRequestMethod} from 'sentry/api';
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import FieldWrapper from 'sentry/components/forms/fieldGroup/fieldWrapper';
+import HiddenField from 'sentry/components/forms/fields/hiddenField';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import SentryMemberTeamSelectorField from 'sentry/components/forms/fields/sentryMemberTeamSelectorField';
 import SentryProjectSelectorField from 'sentry/components/forms/fields/sentryProjectSelectorField';
@@ -45,6 +46,7 @@ function getFormDataFromRule(rule: UptimeRule) {
     method: rule.method,
     body: rule.body,
     headers: rule.headers,
+    intervalSeconds: rule.intervalSeconds,
     owner: rule.owner ? `${rule.owner.type}:${rule.owner.id}` : null,
   };
 }
@@ -99,7 +101,7 @@ export function UptimeAlertForm({
       }
     >
       <List symbol="colored-numeric">
-        <AlertListItem>{t('Select an environment and project')}</AlertListItem>
+        <AlertListItem>{t('Select a project')}</AlertListItem>
         <FormRow>
           <SentryProjectSelectorField
             disabled={rule !== undefined || !enabledConfiguration}
@@ -113,16 +115,7 @@ export function UptimeAlertForm({
             inline={false}
             flexibleControlStateSize
             stacked
-          />
-          <SelectField
-            disabled={!enabledConfiguration}
-            name="environment"
-            label={t('Environment')}
-            hideLabel
-            placeholder={t('Production')}
-            inline={false}
-            flexibleControlStateSize
-            stacked
+            required
           />
         </FormRow>
         <AlertListItem>{t('Configure Request')}</AlertListItem>
@@ -134,6 +127,7 @@ export function UptimeAlertForm({
             placeholder={t('The URL to monitor')}
             flexibleControlStateSize
             monospace
+            required
           />
           <SelectField
             disabled={!enabledConfiguration}
@@ -145,6 +139,7 @@ export function UptimeAlertForm({
               label: option,
             }))}
             flexibleControlStateSize
+            required
           />
           <UptimeHeadersField
             name="headers"
@@ -185,6 +180,7 @@ export function UptimeAlertForm({
             inline={false}
             flexibleControlStateSize
             stacked
+            required
           />
           <SentryMemberTeamSelectorField
             name="owner"
@@ -199,6 +195,7 @@ export function UptimeAlertForm({
               border: 'none',
             }}
           />
+          <HiddenField name="intervalSeconds" defaultValue={60} />
         </FormRow>
       </List>
     </Form>
@@ -231,5 +228,9 @@ const ConfigurationPanel = styled(Panel)`
     display: grid;
     grid-template-columns: subgrid;
     grid-column: 1 / -1;
+
+    label {
+      width: auto;
+    }
   }
 `;

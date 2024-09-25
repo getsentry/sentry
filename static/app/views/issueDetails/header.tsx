@@ -126,16 +126,6 @@ export function GroupHeaderTabs({
         {t('User Feedback')} <Badge text={group.userReportCount} />
       </TabList.Item>
       <TabList.Item
-        key={Tab.EVENTS}
-        hidden={!issueTypeConfig.events.enabled}
-        disabled={disabledTabs.includes(Tab.EVENTS)}
-        to={eventRoute}
-      >
-        {group.issueCategory === IssueCategory.ERROR
-          ? t('All Events')
-          : t('Sampled Events')}
-      </TabList.Item>
-      <TabList.Item
         key={Tab.REPLAYS}
         textValue={t('Replays')}
         hidden={!hasReplaySupport || !issueTypeConfig.replays.enabled}
