@@ -302,8 +302,6 @@ class Monitor(Model):
 
     @property
     def owner_actor(self) -> Actor | None:
-        if not (self.owner_user_id or self.owner_team_id):
-            return None
         return Actor.from_id(user_id=self.owner_user_id, team_id=self.owner_team_id)
 
     @property
