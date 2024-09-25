@@ -293,6 +293,7 @@ function CustomViewsIssueListHeaderTabsContent({
 
   // Update local tabs when new views are received from mutation request
   useEffect(() => {
+    const currentViewId = viewId;
     setDraggableTabs(
       draggableTabs.map(tab => {
         if (tab.id && tab.id[0] === '_') {
@@ -304,19 +305,21 @@ function CustomViewsIssueListHeaderTabsContent({
               tab.querySort === view.querySort &&
               tab.label === view.name
             ) {
+              if (tab.id === currentViewId) {
+                navigate(
+                  normalizeUrl({
+                    ...location,
+                    query: {
+                      ...queryParamsWithPageFilters,
+                      viewId: view.id,
+                    },
+                  }),
+                  {replace: true}
+                );
+              }
               tab.id = view.id;
             }
           });
-          navigate(
-            normalizeUrl({
-              ...location,
-              query: {
-                ...queryParamsWithPageFilters,
-                viewId: tab.id,
-              },
-            }),
-            {replace: true}
-          );
         }
         return tab;
       })
