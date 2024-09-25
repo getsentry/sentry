@@ -36,6 +36,10 @@ server.listen(3000, "127.0.0.1");
 `;
 
 const onboarding: OnboardingConfig = {
+  introduction: () =>
+    tct('In this quick guide you’ll use [strong:npm] or [strong:yarn] to set up:', {
+      strong: <strong />,
+    }),
   install: (params: Params) => [
     {
       type: StepType.INSTALL,
