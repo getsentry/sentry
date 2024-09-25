@@ -1,10 +1,10 @@
 import {
   IconAdd,
+  IconChat,
   IconCheckmark,
   IconClose,
   IconDelete,
   IconEdit,
-  IconFile,
   IconFire,
   IconFlag,
   IconGraph,
@@ -28,7 +28,7 @@ export const groupActivityTypeIconMapping: Record<
   GroupActivityType,
   IconWithDefaultProps
 > = {
-  [GroupActivityType.NOTE]: {Component: IconFile, defaultProps: {}},
+  [GroupActivityType.NOTE]: {Component: IconChat, defaultProps: {}},
   [GroupActivityType.SET_RESOLVED]: {Component: IconCheckmark, defaultProps: {}},
   [GroupActivityType.SET_RESOLVED_BY_AGE]: {Component: IconCheckmark, defaultProps: {}},
   [GroupActivityType.SET_RESOLVED_IN_RELEASE]: {
