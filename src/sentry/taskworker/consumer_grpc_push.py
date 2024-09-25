@@ -1,3 +1,7 @@
+"""
+This module is gRPC client that pushes tasks to the taskworker.
+"""
+
 import logging
 import time
 

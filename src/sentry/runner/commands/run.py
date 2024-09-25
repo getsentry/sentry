@@ -258,21 +258,63 @@ def worker(ignore_unknown_queues: bool, **options: Any) -> None:
 @click.option("--max-tasks-per-child", default=10000)
 @log_options()
 @configuration
-def taskworker(**options: Any) -> None:
-    from sentry.taskworker.worker import serve
+def taskworker_push(**options: Any) -> None:
+    from sentry.taskworker.worker_push import serve
 
     with managed_bgtasks(role="taskworker"):
         serve(**options)
 
 
 @run.command()
+@click.option(
+    "--hostname",
+    "-n",
+    help=(
+        "Set custom hostname, e.g. 'w1.%h'. Expands: %h" "(hostname), %n (name) and %d, (domain)."
+    ),
+)
+@click.option(
+    "--namespace",
+    "-N",
+    help=(
+        "The task namespace, or namespaces to consume from. "
+        "Can be a comma separated list, or * "
+        "Example: -N video,image"
+    ),
+)
+@click.option("--autoreload", is_flag=True, default=False, help="Enable autoreloading.")
+@click.option("--max-tasks-per-child", default=10000)
 @log_options()
 @configuration
-def kafka_task_grpc(**options: Any) -> None:
-    from sentry.taskworker.consumer_grpc import start
+def taskworker_pull(**options: Any) -> None:
+    from sentry.taskworker.worker_pull import Worker
+
+    with managed_bgtasks(role="taskworker"):
+        worker = Worker(
+            namespace=options.get("namespace"),
+        )
+        worker.start()
+        raise SystemExit(worker.exitcode)
+
+
+@run.command()
+@log_options()
+@configuration
+def kafka_task_grpc_push(**options: Any) -> None:
+    from sentry.taskworker.consumer_grpc_push import start
 
     with managed_bgtasks(role="taskworker"):
         start()
+
+
+@run.command()
+@log_options()
+@configuration
+def kafka_task_grpc_pull(**options: Any) -> None:
+    from sentry.taskworker.consumer_grpc_pull import serve
+
+    with managed_bgtasks(role="taskworker"):
+        serve()
 
 
 @run.command()

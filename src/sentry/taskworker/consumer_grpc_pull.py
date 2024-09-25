@@ -1,3 +1,7 @@
+"""
+This module is a gRPC server that listens for task requests from the taskworker.
+"""
+
 import logging
 from concurrent.futures import ThreadPoolExecutor
 
