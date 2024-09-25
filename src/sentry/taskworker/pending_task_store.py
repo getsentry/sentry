@@ -1,6 +1,6 @@
 import logging
 from collections.abc import Sequence
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from django.db.models import Max
 from django.utils import timezone
@@ -54,6 +54,17 @@ class PendingTaskStore:
             task.update(status=task_status)
             if task_status == InflightActivationModel.Status.RETRY:
                 task.update(retry_attempts=task.retry_attempts + 1)
+
+    def set_task_deadline(self, task_id: str, task_deadline: datetime | None):
+        from django.db import router, transaction
+
+        from sentry.taskworker.models import InflightActivationModel
+
+        with transaction.atomic(using=router.db_for_write(InflightActivationModel)):
+            # Pull a select for update here to lock the row while we mutate the retry count
+            task = InflightActivationModel.objects.select_for_update().filter(id=task_id).get()
+
+            task.update(deadline=task_deadline)
 
     def handle_retry_state_tasks(self) -> None:
         from sentry.taskworker.config import taskregistry

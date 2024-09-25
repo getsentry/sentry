@@ -53,6 +53,9 @@ class ConsumerGrpc:
                 task_id=in_flight_activation.activation.id,
                 task_status=TASK_ACTIVATION_STATUS_PENDING,
             )
+            self.pending_task_store.set_task_deadline(
+                task_id=in_flight_activation.activation.id, task_deadline=None
+            )
             time.sleep(1)
 
 
