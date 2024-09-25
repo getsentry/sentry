@@ -1,7 +1,12 @@
 import {createContext, useContext, useMemo} from 'react';
 
 import {createNavConfig} from 'sentry/components/nav/config';
-import type {NavConfig, NavItemLayout, NavSubmenuItem} from 'sentry/components/nav/utils';
+import type {
+  NavConfig,
+  NavItemLayout,
+  NavSidebarItem,
+  NavSubmenuItem,
+} from 'sentry/components/nav/utils';
 import {isNavItemActive, isSubmenuItemActive} from 'sentry/components/nav/utils';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -32,25 +37,13 @@ export function NavContextProvider({children}) {
   const submenu = useMemo<NavContext['submenu']>(() => {
     for (const item of config.main) {
       if (isNavItemActive(item, location) || isSubmenuItemActive(item, location)) {
-        if (!item.submenu) {
-          return undefined;
-        }
-        if (Array.isArray(item.submenu)) {
-          return {main: item.submenu};
-        }
-        return item.submenu;
+        return normalizeSubmenu(item.submenu);
       }
     }
     if (config.footer) {
       for (const item of config.footer) {
         if (isNavItemActive(item, location) || isSubmenuItemActive(item, location)) {
-          if (!item.submenu) {
-            return undefined;
-          }
-          if (Array.isArray(item.submenu)) {
-            return {main: item.submenu};
-          }
-          return item.submenu;
+          return normalizeSubmenu(item.submenu);
         }
       }
     }
@@ -59,3 +52,10 @@ export function NavContextProvider({children}) {
 
   return <NavContext.Provider value={{config, submenu}}>{children}</NavContext.Provider>;
 }
+
+const normalizeSubmenu = (submenu: NavSidebarItem['submenu']): NavContext['submenu'] => {
+  if (Array.isArray(submenu)) {
+    return {main: submenu};
+  }
+  return submenu;
+};
