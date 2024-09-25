@@ -11,6 +11,7 @@ import diagramIssues from 'sentry-images/spot/alerts-wizard-issues.svg';
 import diagramLCP from 'sentry-images/spot/alerts-wizard-lcp.svg';
 import diagramThroughput from 'sentry-images/spot/alerts-wizard-throughput.svg';
 import diagramTransactionDuration from 'sentry-images/spot/alerts-wizard-transaction-duration.svg';
+import diagramUptime from 'sentry-images/spot/alerts-wizard-uptime.svg';
 import diagramUsers from 'sentry-images/spot/alerts-wizard-users-experiencing-errors.svg';
 
 import {t} from 'sentry/locale';
@@ -183,7 +184,14 @@ export const AlertWizardPanelContent: Record<AlertType, PanelContent> = {
     illustration: diagramCrashFreeUsers,
   },
   uptime_monitor: {
-    description: t('Monitor the availability and reliability of your web services.'),
-    examples: [t('When a URL is detected to be down, create an issue.')],
+    description: t(
+      'Alert when the availability or reliability of a monitored URL changes, providing instant notifications and insights to quickly detect and resolve issues.'
+    ),
+    examples: [
+      t('When the URL returns a response status code other than 200.'),
+      t('When the URL response times out after 20 seconds.'),
+      t('When a DNS resolution error is detected for the URL.'),
+    ],
+    illustration: diagramUptime,
   },
 };
