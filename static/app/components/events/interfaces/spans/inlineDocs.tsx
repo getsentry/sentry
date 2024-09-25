@@ -1,7 +1,10 @@
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import ExternalLink from 'sentry/components/links/externalLink';
+import List from 'sentry/components/list';
+import ListItem from 'sentry/components/list/listItem';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
@@ -96,10 +99,17 @@ def eat_pizza(pizza):
           'If you want to have more fine-grained performance monitoring, you can add child spans to your transaction, which can be done by either:'
         )}
       </p>
-      <ul>
-        <li>{t('Using a context manager or')}</li>
-        <li>{t('Using a decorator, (this works on sync and async functions)')}</li>
-      </ul>
+      <List
+        symbol="bullet"
+        css={css`
+          margin-bottom: ${space(3)};
+        `}
+      >
+        <ListItem>{t('Using a context manager or')}</ListItem>
+        <ListItem>
+          {t('Using a decorator, (this works on sync and async functions)')}
+        </ListItem>
+      </List>
       <p>
         {tct(
           'Calling a [code:sentry_sdk.start_span()] will find the current active transaction and attach the span to it.',
@@ -136,7 +146,9 @@ def eat_pizza(pizza):
         {tct(
           `For in-depth instructions on setting up tracing, view [docLink:our documentation].`,
           {
-            docLink: <a href="https://docs.sentry.io/platforms/python/tracing/" />,
+            docLink: (
+              <ExternalLink href="https://docs.sentry.io/platforms/python/tracing/" />
+            ),
           }
         )}
       </p>
@@ -179,7 +191,7 @@ function NodeDocs() {
           `For in-depth instructions on setting up tracing, view [docLink:our documentation].`,
           {
             docLink: (
-              <a href="https://docs.sentry.io/platforms/node/tracing/instrumentation/custom-instrumentation/" />
+              <ExternalLink href="https://docs.sentry.io/platforms/node/tracing/instrumentation/custom-instrumentation/" />
             ),
           }
         )}
@@ -209,7 +221,7 @@ transaction.finish(); // Finishing the transaction will send it to Sentry
           `For in-depth instructions on setting up tracing, view [docLink:our documentation].`,
           {
             docLink: (
-              <a href="https://docs.sentry.io/platforms/react-native/tracing/instrumentation/custom-instrumentation/" />
+              <ExternalLink href="https://docs.sentry.io/platforms/react-native/tracing/instrumentation/custom-instrumentation/" />
             ),
           }
         )}
