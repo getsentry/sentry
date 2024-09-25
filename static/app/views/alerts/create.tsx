@@ -158,7 +158,6 @@ function Create(props: Props) {
             ) : !hasMetricAlerts || alertType === AlertRuleType.ISSUE ? (
               <IssueRuleEditor
                 {...props}
-                project={project}
                 userTeamIds={teams.map(({id}) => id)}
                 members={members}
               />
@@ -171,7 +170,6 @@ function Create(props: Props) {
                   eventView={eventView}
                   wizardTemplate={wizardTemplate}
                   sessionId={sessionId.current}
-                  project={project}
                   userTeamIds={teams.map(({id}) => id)}
                 />
               ) : (
@@ -180,7 +178,6 @@ function Create(props: Props) {
                   eventView={eventView}
                   wizardTemplate={wizardTemplate}
                   sessionId={sessionId.current}
-                  project={project}
                   userTeamIds={teams.map(({id}) => id)}
                 />
               ))
