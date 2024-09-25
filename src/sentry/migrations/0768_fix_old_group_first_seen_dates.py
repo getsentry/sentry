@@ -2,12 +2,11 @@
 
 from datetime import datetime, timezone
 
-from sentry.new_migrations.migrations import CheckedMigration
-
 from django.apps.registry import Apps
 from django.db import migrations
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 
+from sentry.new_migrations.migrations import CheckedMigration
 
 OLD_FIRST_SEEN_CUTOFF = datetime(2000, 1, 1, tzinfo=timezone.utc)
 
