@@ -311,6 +311,10 @@ export type MultiSeriesEventsStats = {
   [seriesName: string]: EventsStats;
 };
 
+export type GroupedMultiSeriesEventsStats = {
+  [seriesName: string]: MultiSeriesEventsStats & {order: number};
+};
+
 export type EventsStatsSeries<F extends string> = {
   data: {
     axis: F;
