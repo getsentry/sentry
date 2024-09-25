@@ -173,6 +173,10 @@ def get_project_key():
 
 
 def traces_sampler(sampling_context):
+    # dont sample warmup requests
+    if sampling_context.get("wsgi_environ", {}).get("PATH_INFO") == "/_warmup/":
+        return 0.0
+
     # Apply sample_rate from custom_sampling_context
     custom_sample_rate = sampling_context.get("sample_rate")
     if custom_sample_rate is not None:
