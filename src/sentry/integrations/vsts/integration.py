@@ -582,7 +582,9 @@ class VstsIntegrationProvider(IntegrationProvider):
                 raise IntegrationProviderError(
                     "Sentry cannot communicate with this Azure DevOps organization.\n"
                     "Please ensure third-party app access via OAuth is enabled \n"
-                    "in the organization's security policy."
+                    "in the organization's security policy \n"
+                    "The user installing the integration must have project administrator permissions. \n"
+                    "The user installing might also need admin permissions depending on the organization's security policy."
                 )
             raise
 
