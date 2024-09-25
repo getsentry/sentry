@@ -46,4 +46,5 @@ def serve():
     add_ConsumerServiceServicer_to_server(ConsumerServicer(), server)
     server.add_insecure_port("[::]:50051")
     server.start()
+    logger.info("grpc server started")
     server.wait_for_termination()

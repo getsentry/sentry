@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import time
 
+import grpc
 import orjson
 from django.conf import settings
 from sentry_protos.sentry.v1alpha.taskworker_pb2 import (
@@ -14,6 +15,7 @@ from sentry_protos.sentry.v1alpha.taskworker_pb2 import (
 from sentry.taskworker.config import TaskNamespace, taskregistry
 
 logger = logging.getLogger("sentry.taskworker")
+result_logger = logging.getLogger("taskworker.results")
 
 
 class Worker:
@@ -49,7 +51,13 @@ class Worker:
     def process_tasks(self, namespace: TaskNamespace) -> None:
         from sentry.taskworker.service.client import task_client
 
-        activation = task_client.get_task(topic=namespace.topic)
+        try:
+            activation = task_client.get_task(topic=namespace.topic)
+        except grpc.RpcError:
+            logger.info("get_task failed. Retrying in 1 second")
+            time.sleep(1)
+            return
+
         if not activation:
             logger.info("No tasks")
             time.sleep(1)
@@ -76,7 +84,9 @@ class Worker:
                 logger.info("taskworker.task.retry", extra={"task": activation.taskname})
                 next_state = TASK_ACTIVATION_STATUS_RETRY
         task_latency = execution_time - task_added_time
-        logger.info("task.complete", extra={"latency": task_latency})
+
+        # Dump results to a log file that is CSV shaped
+        result_logger.info(f"task.complete,{task_added_time},{execution_time},{task_latency}")
 
         if next_state == TASK_ACTIVATION_STATUS_COMPLETE:
             logger.info(
