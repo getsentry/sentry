@@ -72,9 +72,12 @@
 // boots.
 //
 try {
-  // @ts-expect-error features is an array at this point. It is unfortuantely
-  // typed incorrectly
-  if (window.__initialData?.features?.includes('organizations:react-router-6')) {
+  if (
+    process.env.NODE_ENV === 'development' ||
+    // @ts-expect-error features is an array at this point. It is unfortuantely
+    // typed incorrectly
+    window.__initialData?.features?.includes('organizations:react-router-6')
+  ) {
     window.__SENTRY_USING_REACT_ROUTER_SIX = true;
   }
 } catch {
