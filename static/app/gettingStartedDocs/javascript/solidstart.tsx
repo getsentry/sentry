@@ -207,9 +207,12 @@ const onboarding: OnboardingConfig = {
     <Fragment>
       <MaybeBrowserProfilingBetaWarning {...params} />
       <p>
-        {tct('In this quick guide you’ll use [strong:npm] or [strong:yarn] to set up:', {
-          strong: <strong />,
-        })}
+        {tct(
+          'In this quick guide you’ll use [strong:npm], [strong:yarn] or [strong:pnpm] to set up:',
+          {
+            strong: <strong />,
+          }
+        )}
       </p>
     </Fragment>
   ),
@@ -217,10 +220,9 @@ const onboarding: OnboardingConfig = {
     {
       type: StepType.INSTALL,
       description: tct(
-        'Add the Sentry SDK as a dependency using [codeNpm:npm] or [codeYarn:yarn]:',
+        'Add the Sentry SDK as a dependency using [strong:npm], [strong:yarn] or [strong:pnpm]:',
         {
-          codeYarn: <code />,
-          codeNpm: <code />,
+          strong: <strong />,
         }
       ),
       configurations: getInstallConfig(),
