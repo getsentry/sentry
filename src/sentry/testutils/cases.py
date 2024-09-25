@@ -2725,6 +2725,8 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
             assert data["columns"] == widget_data_source.columns
         if "fieldAliases" in data:
             assert data["fieldAliases"] == widget_data_source.field_aliases
+        if "selectedAggregate" in data:
+            assert data["selectedAggregate"] == widget_data_source.selected_aggregate
 
     def get_widgets(self, dashboard_id):
         return DashboardWidget.objects.filter(dashboard_id=dashboard_id).order_by("order")

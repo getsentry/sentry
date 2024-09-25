@@ -936,3 +936,39 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
 
         assert widgets[2].widget_type == DashboardWidgetTypes.get_id_for_type_name("issue")
         assert widgets[2].discover_widget_split is None
+
+    def test_add_widget_with_selected_aggregate(self):
+        data: dict[str, Any] = {
+            "title": "First dashboard",
+            "widgets": [
+                {
+                    "title": "EPM Big Number",
+                    "displayType": "big_number",
+                    "queries": [
+                        {
+                            "name": "",
+                            "fields": ["epm()"],
+                            "columns": [],
+                            "aggregates": ["epm()", "count()"],
+                            "conditions": "",
+                            "orderby": "",
+                            "selectedAggregate": 1,
+                        }
+                    ],
+                },
+            ],
+        }
+        with self.feature({"organizations:dashboards-bignumber-equations": True}):
+            response = self.do_request("post", self.url, data=data)
+        assert response.status_code == 201, response.data
+
+        dashboard = Dashboard.objects.get(organization=self.organization, title="First dashboard")
+
+        widgets = self.get_widgets(dashboard.id)
+        assert len(widgets) == 1
+
+        self.assert_serialized_widget(data["widgets"][0], widgets[0])
+
+        queries = widgets[0].dashboardwidgetquery_set.all()
+        assert len(queries) == 1
+        self.assert_serialized_widget_query(data["widgets"][0]["queries"][0], queries[0])

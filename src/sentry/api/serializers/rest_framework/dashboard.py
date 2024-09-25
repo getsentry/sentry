@@ -160,6 +160,8 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer[Dashboard]):
     on_demand_extraction = DashboardWidgetQueryOnDemandSerializer(many=False, required=False)
     on_demand_extraction_disabled = serializers.BooleanField(required=False)
 
+    selected_aggregate = serializers.IntegerField(required=False, allow_null=True)
+
     required_for_create = {"fields", "conditions"}
 
     validate_id = validate_id
@@ -646,6 +648,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
                     orderby=query.get("orderby", ""),
                     order=i,
                     is_hidden=query.get("is_hidden", False),
+                    selected_aggregate=query.get("selected_aggregate"),
                 )
             )
 
@@ -724,6 +727,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
                         is_hidden=query_data.get("is_hidden", False),
                         orderby=query_data.get("orderby", ""),
                         order=next_order + i,
+                        selected_aggregate=query_data.get("selected_aggregate"),
                     )
                 )
             else:
@@ -742,6 +746,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
         query.columns = data.get("columns", query.columns)
         query.field_aliases = data.get("field_aliases", query.field_aliases)
         query.is_hidden = data.get("is_hidden", query.is_hidden)
+        query.selected_aggregate = data.get("selected_aggregate", query.selected_aggregate)
 
         query.order = order
         query.save()

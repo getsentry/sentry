@@ -10,7 +10,7 @@ hybridcloud: 0016_add_control_cacheversion
 nodestore: 0002_nodestore_no_dictfield
 remote_subscriptions: 0003_drop_remote_subscription
 replays: 0004_index_together
-sentry: 0766_fix_substatus_for_pending_merge
+sentry: 0767_add_selected_aggregate_to_dashboards_widget_query
 social_auth: 0002_default_auto_field
 uptime: 0013_uptime_subscription_new_unique
 workflow_engine: 0005_data_source_detector

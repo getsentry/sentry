@@ -320,6 +320,33 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
         assert response.status_code == 200, response.content
         assert response.data["widgets"][0]["datasetSource"] == "unknown"
 
+    def test_dashboard_widget_query_returns_selected_aggregate(self):
+        widget = DashboardWidget.objects.create(
+            dashboard=self.dashboard,
+            order=2,
+            title="Big Number Widget",
+            display_type=DashboardWidgetDisplayTypes.BIG_NUMBER,
+            widget_type=DashboardWidgetTypes.DISCOVER,
+            interval="1d",
+        )
+        DashboardWidgetQuery.objects.create(
+            widget=widget,
+            fields=["count_unique(issue)", "count()"],
+            columns=[],
+            aggregates=["count_unique(issue)", "count()"],
+            selected_aggregate=1,
+            order=0,
+        )
+        with self.feature({"organizations:dashboards-bignumber-equations": True}):
+            response = self.do_request(
+                "get",
+                self.url(self.dashboard.id),
+            )
+        assert response.status_code == 200, response.content
+
+        assert response.data["widgets"][0]["queries"][0]["selectedAggregate"] is None
+        assert response.data["widgets"][2]["queries"][0]["selectedAggregate"] == 1
+
 
 class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCase):
     def test_delete(self):
@@ -552,6 +579,73 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
 
             for expected_query, actual_query in zip(expected_widget["queries"], queries):
                 self.assert_serialized_widget_query(expected_query, actual_query)
+
+    def test_add_widget_with_selected_aggregate(self):
+        data: dict[str, Any] = {
+            "title": "First dashboard",
+            "widgets": [
+                {
+                    "title": "EPM Big Number",
+                    "displayType": "big_number",
+                    "queries": [
+                        {
+                            "name": "",
+                            "fields": ["epm()"],
+                            "columns": [],
+                            "aggregates": ["epm()", "count()"],
+                            "conditions": "",
+                            "orderby": "",
+                            "selectedAggregate": 1,
+                        }
+                    ],
+                },
+            ],
+        }
+        with self.feature({"organizations:dashboards-bignumber-equations": True}):
+            response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 200, response.data
+
+        widgets = self.get_widgets(self.dashboard.id)
+        assert len(widgets) == 1
+
+        self.assert_serialized_widget(data["widgets"][0], widgets[0])
+
+        queries = widgets[0].dashboardwidgetquery_set.all()
+        assert len(queries) == 1
+        self.assert_serialized_widget_query(data["widgets"][0]["queries"][0], queries[0])
+
+    def test_add_big_number_widget_with_equation(self):
+        data: dict[str, Any] = {
+            "title": "First dashboard",
+            "widgets": [
+                {
+                    "title": "EPM Big Number",
+                    "displayType": "big_number",
+                    "queries": [
+                        {
+                            "name": "",
+                            "fields": ["equation|count()"],
+                            "columns": [],
+                            "aggregates": ["count()", "equation|count()*2"],
+                            "conditions": "",
+                            "orderby": "",
+                            "selectedAggregate": 1,
+                        }
+                    ],
+                },
+            ],
+        }
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 200, response.data
+
+        widgets = self.get_widgets(self.dashboard.id)
+        assert len(widgets) == 1
+
+        self.assert_serialized_widget(data["widgets"][0], widgets[0])
+
+        queries = widgets[0].dashboardwidgetquery_set.all()
+        assert len(queries) == 1
+        self.assert_serialized_widget_query(data["widgets"][0]["queries"][0], queries[0])
 
     def test_add_widget_with_aggregates_and_columns(self):
         data: dict[str, Any] = {
