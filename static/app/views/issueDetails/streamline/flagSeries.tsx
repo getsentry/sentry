@@ -1,7 +1,6 @@
 import {useTheme} from '@emotion/react';
 
 import MarkLine from 'sentry/components/charts/components/markLine';
-import {MOCK_RAW_FLAG_LOG} from 'sentry/components/events/featureFlags/testUtils';
 import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
 import type {Organization} from 'sentry/types/organization';
@@ -9,27 +8,38 @@ import {getFormattedDate} from 'sentry/utils/dates';
 import {useApiQuery} from 'sentry/utils/queryClient';
 // import useOrganization from 'sentry/utils/useOrganization';
 
-// {
-//     "data": [
-//       {
-//         "action": "created",
-//         "flag": "my-flag-name",
-//         "modified_at": "2024-01-01T05:12:33",
-//         "modified_by": "2552",
-//         "modified_by_type": "id",
-//         "tags": {
-//           "environment": "production"
-//         }
-//       }
-//     ]
-//   }
+export const MOCK_RAW_FLAG_LOG = {
+  data: [
+    {
+      action: 'created',
+      flag: 'replay-mobile-ui',
+      modified_at: '2024-09-23T05:12:33',
+      modified_by: '1234',
+      modified_by_type: 'id',
+    },
+    {
+      action: 'modified',
+      flag: 'sentry-pride-logo-footer',
+      modified_at: '2024-09-24T05:12:33',
+      modified_by: '1234',
+      modified_by_type: 'id',
+    },
+    {
+      action: 'modified',
+      flag: 'spam-ingest',
+      modified_at: '2024-09-25T05:12:33',
+      modified_by: '1234',
+      modified_by_type: 'id',
+    },
+  ],
+};
 
 type RawFlag = {
-  action: 'created' | 'modified';
+  action: string;
   flag: string;
   modified_at: string;
   modified_by: string;
-  modified_by_type: 'email' | 'id' | 'type';
+  modified_by_type: string;
   tags?: Record<string, string>;
 };
 
@@ -40,7 +50,7 @@ type FlagSeriesDatapoint = {
   name: string;
   // unix timestamp
   xAxis: number;
-  // value & formatter?
+  // add value & formatter?
 };
 
 function _useOrganizationFlagLog({
@@ -76,10 +86,10 @@ function hydrateFlagData({
   return flagData;
 }
 
-export default function useFlagSeries(): Series {
+export default function useFlagSeries({_query}: {_query?: Record<string, any>}): Series {
   const theme = useTheme();
   // const organization = useOrganization();
-  // const {data, isError, isPending} = useOrganizationFlagLog({organization, query: {}});
+  // const {data, isError, isPending} = useOrganizationFlagLog({organization, query});
   const rawFlagData: RawFlagData = MOCK_RAW_FLAG_LOG;
   const hydratedFlagData: FlagSeriesDatapoint[] = hydrateFlagData({rawFlagData});
 
@@ -123,4 +133,3 @@ export default function useFlagSeries(): Series {
 }
 
 // todo: need to send new series to eventGraph.tsx and add a legend
-// will need to modify tooltips

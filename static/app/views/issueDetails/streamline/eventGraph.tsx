@@ -56,7 +56,7 @@ export function EventGraph({group, groupStats, searchQuery}: EventGraphProps) {
 
   // todo: create legend to change the state of this
   const [flagSeriesVisible, _setFlagSeriesVisible] = useState(true);
-  const flagSeries = useFlagSeries();
+  const flagSeries = useFlagSeries({});
 
   const [isGraphHovered, setIsGraphHovered] = useState(false);
   const eventStats = groupStats['count()'];
