@@ -217,3 +217,33 @@ export const FOR_REVIEW_QUERIES: string[] = [Query.FOR_REVIEW];
 
 export const SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY =
   'issue-stream-saved-searches-sidebar-open';
+
+export enum IssueGroup {
+  ALL = 'all',
+  ERROR_OUTAGE = 'error_outage',
+  TREND = 'trend',
+  CRAFTSMANSHIP = 'craftsmanship',
+  SECURITY = 'security',
+}
+
+const IssueGroupFilter: Record<IssueGroup, string> = {
+  [IssueGroup.ALL]: '',
+  [IssueGroup.ERROR_OUTAGE]: 'issue.category:[error,cron,uptime]',
+  [IssueGroup.TREND]:
+    'issue.type:[profile_function_regression,performance_p95_endpoint_regression,performance_n_plus_one_db_queries]',
+  [IssueGroup.CRAFTSMANSHIP]:
+    'issue.category:replay issue.type:[performance_n_plus_one_db_queries,performance_n_plus_one_api_calls,performance_consecutive_db_queries,performance_render_blocking_asset_span,performance_uncompressed_assets,profile_file_io_main_thread,profile_image_decode_main_thread,profile_json_decode_main_thread,profile_regex_main_thread]',
+  [IssueGroup.SECURITY]: 'event.type:[nel,csp]',
+};
+
+function getIssueGroupFilter(group: IssueGroup): string {
+  if (!Object.hasOwn(IssueGroupFilter, group)) {
+    throw new Error(`Unknown issue group "${group}"`);
+  }
+  return IssueGroupFilter[group];
+}
+
+/** Generate a properly encoded `?query=` string for a given issue group */
+export function getSearchForIssueGroup(group: IssueGroup): string {
+  return `?${new URLSearchParams(`query=is:unresolved+${getIssueGroupFilter(group)}`)}`;
+}
