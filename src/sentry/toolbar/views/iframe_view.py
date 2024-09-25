@@ -1,4 +1,3 @@
-from html import escape
 from typing import Any
 
 from django.http import HttpRequest, HttpResponse
@@ -7,6 +6,10 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.toolbar.utils.url import check_origin
 from sentry.web.frontend.base import OrganizationView, region_silo_view
+
+REFERRER_HEADER = "HTTP_REFERER"  # 1 R is the spelling used here: https://docs.djangoproject.com/en/5.1/ref/request-response/
+SUCCESS_TEMPLATE = "sentry/toolbar/iframe.html"
+INVALID_TEMPLATE = "sentry/toolbar/iframe-invalid.html"
 
 
 @region_silo_view
@@ -42,16 +45,25 @@ class IframeView(OrganizationView):
     def get(
         self, request: HttpRequest, organization: Organization, project: Project, *args, **kwargs
     ):
+        referrer = request.META.get(REFERRER_HEADER)
         if not project:
-            return HttpResponse(
-                "Project does not exist.", status=404
-            )  # TODO: replace with 200 response and template var for "project doesn't exist"
+            return self.respond(
+                INVALID_TEMPLATE,
+                status=404,
+                context={"referrer": referrer, "has_project": False},
+            )
 
         allowed_origins: list[str] = project.get_option("sentry:toolbar_allowed_origins")
-        origin_allowed, info_msg = check_origin(request, allowed_origins)
+        origin_allowed, info_msg = check_origin(referrer, allowed_origins)
         if not origin_allowed:
-            return HttpResponse(
-                escape(info_msg), status=403
-            )  # TODO: replace with 200 response and template var for "project not configured"
+            return self.respond(
+                INVALID_TEMPLATE,
+                status=403,
+                context={
+                    "referrer": referrer,
+                    "has_project": True,
+                    "allow_origin": False,
+                },
+            )
 
-        return self.respond("sentry/toolbar/iframe.html", status=200)
+        return self.respond(SUCCESS_TEMPLATE, status=200, context={"referrer": referrer})

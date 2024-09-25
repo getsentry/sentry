@@ -1,9 +1,5 @@
 from urllib.parse import urlparse
 
-from django.http import HttpRequest
-
-REFERRER_HEADER = "HTTP_REFERER"  # 1 R is the spelling used here: https://docs.djangoproject.com/en/5.1/ref/request-response/
-
 
 def url_matches(referrer_url: str, target_url: str) -> bool:
     """
@@ -38,8 +34,7 @@ def url_matches(referrer_url: str, target_url: str) -> bool:
     )
 
 
-def check_origin(request: HttpRequest, allowed_origins: list[str]) -> tuple[bool, str]:
-    referrer: str | None = request.META.get(REFERRER_HEADER)
+def check_origin(referrer: str | None, allowed_origins: list[str]) -> tuple[bool, str]:
     if referrer:
         if not urlparse(referrer).scheme:
             referrer = "http://" + referrer
@@ -49,4 +44,4 @@ def check_origin(request: HttpRequest, allowed_origins: list[str]) -> tuple[bool
                 return True, f"Matched allowed origin: {origin}"
         return False, f"Referrer {referrer} does not match allowed origins."
 
-    return False, f"Could not validate origin, missing {REFERRER_HEADER} header."
+    return False, "Could not validate origin, missing HTTP_REFERER header."
