@@ -114,9 +114,76 @@ export default storyBook(BigNumberWidget, story => {
       </Fragment>
     );
   });
+
+  story('Previous Period Data', () => {
+    return (
+      <Fragment>
+        <p>
+          <JSXNode name="BigNumberWidget" /> shows the difference of the current data and
+          the previous period data as the difference between the two values, in small text
+          next to the main value.
+        </p>
+
+        <SideBySide>
+          <NormalWidget>
+            <BigNumberWidget
+              title="eps()"
+              data={[
+                {
+                  'eps()': 17.1087819860850493,
+                },
+              ]}
+              previousPeriodData={[
+                {
+                  'eps()': 15.0088607819850493,
+                },
+              ]}
+              meta={{
+                fields: {
+                  'eps()': 'rate',
+                },
+                units: {
+                  'eps()': '1/second',
+                },
+              }}
+            />
+          </NormalWidget>
+
+          <NormalWidget>
+            <BigNumberWidget
+              title="http_response_code_rate(500)"
+              data={[
+                {
+                  'http_response_code_rate(500)': 0.14227123,
+                },
+              ]}
+              previousPeriodData={[
+                {
+                  'http_response_code_rate(500)': 0.1728139,
+                },
+              ]}
+              meta={{
+                fields: {
+                  'http_response_code_rate(500)': 'percentage',
+                },
+                units: {
+                  'http_response_code_rate(500)': null,
+                },
+              }}
+            />
+          </NormalWidget>
+        </SideBySide>
+      </Fragment>
+    );
+  });
 });
 
 const SmallSizingWindow = styled(SizingWindow)`
   width: auto;
   height: 200px;
+`;
+
+const NormalWidget = styled('div')`
+  width: 250px;
+  height: 100px;
 `;
