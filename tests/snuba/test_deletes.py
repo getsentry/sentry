@@ -13,7 +13,7 @@ class SnubaTest(TestCase, SnubaTestCase):
     def test_basic(self) -> None:
         # insert a new issue
         now = datetime.now()
-        id = uuid4()
+        occurrence_id = uuid4()
         issue = (
             2,
             "insert",
@@ -55,20 +55,22 @@ class SnubaTest(TestCase, SnubaTestCase):
             app_id="my_app",
             query=DeleteQuery(
                 StorageKey.SearchIssues.value,
-                {"project_id": [self.project.id], "occurrence_id": [str(id)]},
+                {"project_id": [self.project.id], "occurrence_id": [str(occurrence_id)]},
             ),
             tenant_ids={"referrer": "testing.test", "organization_id": 1},
         )
         snuba.raw_snql_query(req, use_cache=False)
-        assert (
-            snuba.query(
-                dataset=Dataset.IssuePlatform,
-                start=now - timedelta(days=1),
-                end=now + timedelta(days=1),
-                groupby=["project_id"],
-                filter_keys={"project_id": [self.project.id]},
-                referrer="testing.test",
-                tenant_ids={"referrer": "testing.test", "organization_id": 1},
-            )
-            == {}
+        time.sleep(4)
+
+        # check that it's gone
+        response = snuba.query(
+            dataset=Dataset.IssuePlatform,
+            start=now - timedelta(days=1),
+            end=now + timedelta(days=1),
+            groupby=["project_id"],
+            filter_keys={"project_id": [self.project.id]},
+            referrer="testing.test",
+            tenant_ids={"referrer": "testing.test", "organization_id": 1},
+            use_cache=False,
         )
+        assert response == {}
