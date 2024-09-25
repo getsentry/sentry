@@ -35,6 +35,16 @@ public suffix list (PSL). See `extract_domain_parts` fo more details
 SUPPORTED_HTTP_METHODS = ["GET", "POST", "HEAD", "PUT", "DELETE", "PATCH", "OPTIONS"]
 MAX_REQUEST_SIZE_BYTES = 1000
 
+# This matches the jsonschema for the check config
+VALID_INTERVALS = [
+    timedelta(minutes=1),
+    timedelta(minutes=5),
+    timedelta(minutes=10),
+    timedelta(minutes=20),
+    timedelta(minutes=30),
+    timedelta(minutes=60),
+]
+
 HEADERS_LIST_SCHEMA = {
     "type": "array",
     "items": {
@@ -73,8 +83,8 @@ class UptimeMonitorValidator(CamelSnakeSerializer):
         help_text="The ID of the team or user that owns the uptime monitor. (eg. user:51 or team:6)",
     )
     url = URLField(required=True, max_length=255)
-    interval_seconds = serializers.IntegerField(
-        required=True, min_value=60, max_value=int(timedelta(hours=1).total_seconds())
+    interval_seconds = serializers.ChoiceField(
+        required=True, choices=[int(i.total_seconds()) for i in VALID_INTERVALS]
     )
     mode = serializers.IntegerField(required=False)
     method = serializers.ChoiceField(
