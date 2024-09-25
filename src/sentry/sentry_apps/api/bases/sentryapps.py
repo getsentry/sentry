@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Sequence
 from functools import wraps
 from typing import Any
 
@@ -26,6 +27,7 @@ from sentry.organizations.services.organization import (
 )
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.services.app import RpcSentryApp, app_service
+from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils.sdk import Scope
@@ -47,7 +49,7 @@ def catch_raised_errors(func):
     return wrapped
 
 
-def ensure_scoped_permission(request, allowed_scopes):
+def ensure_scoped_permission(request: Request, allowed_scopes: Sequence[str] | None) -> bool:
     """
     Verifies the User making the request has at least one required scope for
     the endpoint being requested.
@@ -98,6 +100,7 @@ class SentryAppsPermission(SentryPermission):
         if context.organization.status != OrganizationStatus.ACTIVE or not context.member:
             raise Http404
 
+        assert request.method, "method must be present in request to get permissions"
         return ensure_scoped_permission(request, self.scope_map.get(request.method))
 
 
@@ -149,6 +152,8 @@ class SentryAppsBaseEndpoint(IntegrationPlatformEndpoint):
 
     def _get_org_context(self, request: Request) -> RpcUserOrganizationContext:
         organization_slug = self._get_organization_slug(request)
+        assert isinstance(request.user, RpcUser), "User must be authenticated to get organization"
+
         if is_active_superuser(request) or is_active_staff(request):
             return self._get_organization_for_superuser_or_staff(request.user, organization_slug)
         else:
@@ -210,6 +215,7 @@ class SentryAppPermission(SentryPermission):
         owner_app = organization_service.get_organization_by_id(
             id=sentry_app.owner_id, user_id=request.user.id
         )
+        assert owner_app, f"owner organization for {sentry_app.name} was not found"
         self.determine_access(request, owner_app)
 
         if superuser_has_permission(request):
@@ -310,6 +316,7 @@ class SentryAppInstallationsPermission(SentryPermission):
         if not any(organization.id == org.id for org in organizations):
             raise Http404
 
+        assert request.method, "method must be present in request to get permissions"
         return ensure_scoped_permission(request, self.scope_map.get(request.method))
 
 
@@ -373,6 +380,9 @@ class SentryAppInstallationPermission(SentryPermission):
         if superuser_has_permission(request):
             return True
 
+        assert isinstance(
+            request.user, (RpcUser, User)
+        ), "user must be authenticated to check if they're a sentry app"
         # if user is an app, make sure it's for that same app
         if request.user.is_sentry_app:
             return request.user.id == installation.sentry_app.proxy_user_id
@@ -384,11 +394,13 @@ class SentryAppInstallationPermission(SentryPermission):
             include_projects=False,
         )
         if (
-            org_context.member is None
+            not org_context
+            or not org_context.member
             or org_context.organization.status != OrganizationStatus.ACTIVE
         ):
             raise Http404
 
+        assert request.method, "method must be present in request to get permissions"
         return ensure_scoped_permission(request, self.scope_map.get(request.method))
 
 
@@ -428,8 +440,12 @@ class SentryAppAuthorizationsPermission(SentryPermission):
         installation_org_context = organization_service.get_organization_by_id(
             id=installation.organization_id, user_id=request.user.id
         )
+        assert installation_org_context, "organization for installation was not found"
         self.determine_access(request, installation_org_context)
 
+        assert isinstance(
+            request.user, (RpcUser, User)
+        ), "user must be authenticated to check if they're a sentry app"
         if not request.user.is_sentry_app:
             return False
 
@@ -457,11 +473,14 @@ class SentryInternalAppTokenPermission(SentryPermission):
         owner_app = organization_service.get_organization_by_id(
             id=sentry_app.owner_id, user_id=request.user.id
         )
+
+        assert owner_app, "Failed to get organization/owner_app to check in has_object_permission"
         self.determine_access(request, owner_app)
 
         if superuser_has_permission(request):
             return True
 
+        assert request.method, "method must be present in request to get permissions"
         return ensure_scoped_permission(request, self.scope_map.get(request.method))
 
 
@@ -495,4 +514,5 @@ class SentryAppStatsPermission(SentryPermission):
         if is_active_superuser(request):
             return True
 
+        assert request.method, "method must be present in request to get permissions"
         return ensure_scoped_permission(request, self.scope_map.get(request.method))

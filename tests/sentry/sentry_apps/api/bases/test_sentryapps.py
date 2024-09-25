@@ -197,7 +197,7 @@ class SentryAppInstallationBaseEndpointTest(TestCase):
 
 @control_silo_test
 class AddIntegrationPlatformMetricTagTest(unittest.TestCase):
-    @patch("sentry.api.bases.sentryapps.add_request_metric_tags")
+    @patch("sentry.sentry_apps.api.bases.sentryapps.add_request_metric_tags")
     def test_record_platform_integration_metric(self, add_request_metric_tags):
         @add_integration_platform_metric_tag
         def get(self, request, *args, **kwargs):
