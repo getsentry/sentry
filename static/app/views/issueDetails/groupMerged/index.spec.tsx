@@ -1,17 +1,10 @@
 import {DetailedEventsFixture} from 'sentry-fixture/events';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {
-  act,
-  render,
-  screen,
-  waitForElementToBeRemoved,
-} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import GroupingStore from 'sentry/stores/groupingStore';
-import {GroupMergedView} from 'sentry/views/issueDetails/groupMerged';
-
-jest.mock('sentry/api');
+import GroupMergedView from 'sentry/views/issueDetails/groupMerged';
 
 describe('Issues -> Merged View', function () {
   const events = DetailedEventsFixture();
@@ -42,9 +35,7 @@ describe('Issues -> Merged View', function () {
   it('renders initially with loading component', async function () {
     const {organization, project, router} = initializeOrg({
       router: {
-        location: {
-          query: {},
-        },
+        params: {groupId: 'groupId'},
       },
     });
 
@@ -52,10 +43,10 @@ describe('Issues -> Merged View', function () {
       <GroupMergedView
         organization={organization}
         project={project}
-        params={{orgId: 'orgId', groupId: 'groupId'}}
+        params={{groupId: 'groupId'}}
         location={router.location}
       />,
-      {router}
+      {router, organization}
     );
 
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
@@ -65,9 +56,7 @@ describe('Issues -> Merged View', function () {
   it('renders with mocked data', async function () {
     const {organization, project, router} = initializeOrg({
       router: {
-        location: {
-          query: {},
-        },
+        params: {groupId: 'groupId'},
       },
     });
 
@@ -75,12 +64,17 @@ describe('Issues -> Merged View', function () {
       <GroupMergedView
         organization={organization}
         project={project}
-        params={{orgId: 'orgId', groupId: 'groupId'}}
+        params={{groupId: 'groupId'}}
         location={router.location}
       />,
-      {router}
+      {router, organization}
     );
 
-    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
+    expect(await screen.findByText(mockData.merged[0].id)).toBeInTheDocument();
+
+    const title = await screen.findByText('Fingerprints included in this issue');
+    expect(title.parentElement).toHaveTextContent(
+      'Fingerprints included in this issue (2)'
+    );
   });
 });

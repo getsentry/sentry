@@ -1,8 +1,7 @@
-import {Component} from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
-import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import QueryCount from 'sentry/components/queryCount';
@@ -20,7 +19,7 @@ import withOrganization from 'sentry/utils/withOrganization';
 import MergedList from './mergedList';
 
 type Props = Pick<
-  RouteComponentProps<{groupId: Group['id']; orgId: Organization['slug']}, {}>,
+  RouteComponentProps<{groupId: Group['id']}, {}>,
   'params' | 'location'
 > & {
   organization: Organization;
@@ -134,55 +133,52 @@ class GroupMergedView extends Component<Props, State> {
     );
 
     return (
-      <Layout.Body>
-        <Layout.Main fullWidth>
-          <HeaderWrapper>
-            <Title>
-              {tct('Fingerprints included in this issue [count]', {
-                count: <QueryCount count={fingerprintsWithLatestEvent.length} />,
-              })}
-            </Title>
-            <small>
-              {
-                // TODO: Once clickhouse is upgraded and the lag is no longer an issue, revisit this wording.
-                // See https://github.com/getsentry/sentry/issues/56334.
-                t(
-                  'This is an experimental feature. All changes may take up to 24 hours take effect.'
-                )
-              }
-            </small>
-          </HeaderWrapper>
+      <Fragment>
+        <HeaderWrapper>
+          <Title>
+            {tct('Fingerprints included in this issue [count]', {
+              count: <QueryCount count={fingerprintsWithLatestEvent.length} />,
+            })}
+          </Title>
+          <small>
+            {
+              // TODO: Once clickhouse is upgraded and the lag is no longer an issue, revisit this wording.
+              // See https://github.com/getsentry/sentry/issues/56334.
+              t(
+                'This is an experimental feature. All changes may take up to 24 hours take effect.'
+              )
+            }
+          </small>
+        </HeaderWrapper>
 
-          {isLoading && <LoadingIndicator />}
-          {isError && (
-            <LoadingError
-              message={t('Unable to load merged events, please try again later')}
-              onRetry={this.fetchData}
-            />
-          )}
+        {isLoading && <LoadingIndicator />}
+        {isError && (
+          <LoadingError
+            message={t('Unable to load merged events, please try again later')}
+            onRetry={this.fetchData}
+          />
+        )}
 
-          {isLoadedSuccessfully && (
-            <MergedList
-              project={project}
-              organization={organization}
-              fingerprints={mergedItems}
-              pageLinks={mergedLinks}
-              groupId={groupId}
-              onUnmerge={this.handleUnmerge}
-              onToggleCollapse={GroupingStore.onToggleCollapseFingerprints}
-            />
-          )}
-        </Layout.Main>
-      </Layout.Body>
+        {isLoadedSuccessfully && (
+          <MergedList
+            project={project}
+            organization={organization}
+            fingerprints={mergedItems}
+            pageLinks={mergedLinks}
+            groupId={groupId}
+            onUnmerge={this.handleUnmerge}
+            onToggleCollapse={GroupingStore.onToggleCollapseFingerprints}
+          />
+        )}
+      </Fragment>
     );
   }
 }
 
-export {GroupMergedView};
-
 export default withOrganization(GroupMergedView);
 
 const Title = styled('h4')`
+  font-size: ${p => p.theme.fontSizeLarge};
   margin-bottom: ${space(0.75)};
 `;
 

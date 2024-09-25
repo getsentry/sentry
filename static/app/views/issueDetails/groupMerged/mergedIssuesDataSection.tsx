@@ -2,7 +2,6 @@ import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
 import GroupMergedView from 'sentry/views/issueDetails/groupMerged';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
@@ -13,7 +12,6 @@ interface MergedIssuesDataSectionProps {
 }
 
 export function MergedIssuesDataSection({project, group}: MergedIssuesDataSectionProps) {
-  const organization = useOrganization();
   const location = useLocation();
 
   return (
@@ -24,11 +22,7 @@ export function MergedIssuesDataSection({project, group}: MergedIssuesDataSectio
     >
       <GroupMergedView
         project={project}
-        params={{
-          groupId: group.id,
-          orgId: organization.id,
-        }}
-        organization={organization}
+        params={{groupId: group.id}}
         location={location}
       />
     </FoldSection>
