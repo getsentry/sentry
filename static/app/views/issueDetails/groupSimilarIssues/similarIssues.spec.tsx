@@ -11,7 +11,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {trackAnalytics} from 'sentry/utils/analytics';
-import GroupSimilarIssues from 'sentry/views/issueDetails/groupSimilarIssues';
+import GroupSimilarIssues from 'sentry/views/issueDetails/groupSimilarIssues/similarIssues';
 
 const MockNavigate = jest.fn();
 jest.mock('sentry/utils/useNavigate', () => ({
