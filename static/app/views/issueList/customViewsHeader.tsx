@@ -17,6 +17,7 @@ import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -222,9 +223,46 @@ function CustomViewsIssueListHeaderTabsContent({
       tabListState?.setSelectedKey(draggableTabs[0].key);
       return;
     }
-    // if a viewId is present, check if it exists in the existing views.
+
     if (viewId) {
+      /**
+       * If the viewId starts with '_', then the user was (almost certainly) in the new view flow.
+       * There is a *slight* chance that instead the user refreshed the page between creating a new view
+       * and when the backend returns a persistent viewId, but this window is typically less than a second, this is a very unlikely edge case.
+       */
+      if (viewId.startsWith('_') && !newViewActive) {
+        const newView: Tab = {
+          id: viewId,
+          key: viewId,
+          label: t('New View'),
+          query: '',
+          querySort: IssueSortOptions.DATE,
+        };
+        setDraggableTabs([...draggableTabs, newView]);
+        navigate(
+          normalizeUrl({
+            ...location,
+            query: {
+              ...queryParamsWithPageFilters,
+              query: '',
+              sort: IssueSortOptions.DATE,
+              viewId: viewId,
+            },
+          }),
+          {replace: true}
+        );
+        if (tabListState) {
+          tabListState.setSelectedKey(viewId);
+          setNewViewActive(true);
+        }
+        return;
+      }
       const selectedTab = draggableTabs.find(tab => tab.id === viewId);
+      /**
+       * If the viewId exists within the user's issue views, then we need to check if the query and sort
+       * match the selected tab's persisted query and sort. If they do, we can simply navigate to that tab.
+       * If they don't, we need to update the tab's unsaved changes.
+       */
       if (selectedTab && query !== undefined && sort) {
         const issueSortOption = Object.values(IssueSortOptions).includes(sort)
           ? sort
@@ -264,6 +302,11 @@ function CustomViewsIssueListHeaderTabsContent({
         tabListState?.setSelectedKey(selectedTab.key);
         return;
       }
+      /**
+       * If the viewId was not found within the user's issue views, this means that the viewId is likely from
+       * another user. In this case, we remove the viewId from the search params and create a temporary tab
+       * with the query and sort from the viewId.
+       */
       if (!selectedTab) {
         // if a viewId does not exist, remove it from the query
         tabListState?.setSelectedKey(TEMPORARY_TAB_KEY);
@@ -284,6 +327,9 @@ function CustomViewsIssueListHeaderTabsContent({
       }
       return;
     }
+    /**
+     * If only a query is present, then simply display the query in a temporary tab.
+     */
     if (query) {
       tabListState?.setSelectedKey(TEMPORARY_TAB_KEY);
       return;
@@ -291,8 +337,10 @@ function CustomViewsIssueListHeaderTabsContent({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigate, organization.slug, query, sort, viewId, tabListState]);
 
-  // Update local tabs when new views are received from mutation request
-  useEffect(() => {
+  // Update local tabs when new views are received from mutation request.
+  // We only want this to run after the first render since this logic should
+  // only trigger when the user adds a new view.
+  useEffectAfterFirstRender(() => {
     setDraggableTabs(
       draggableTabs.map(tab => {
         if (tab.id && tab.id[0] === '_') {
