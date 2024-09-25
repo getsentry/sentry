@@ -6,6 +6,11 @@ from sentry.db.models import DefaultFieldsModel, region_silo_model, sane_repr
 from .data_condition_group import DataConditionGroup
 
 
+def validate_primitive_value(value):
+    if not isinstance(value, (bool, int, float, str)):
+        raise ValueError("This value must be a primitive type.")
+
+
 @region_silo_model
 class DataCondition(DefaultFieldsModel):
     """
@@ -25,7 +30,7 @@ class DataCondition(DefaultFieldsModel):
     comparison = models.CharField(max_length=200, blank=True, null=True)
 
     # The condition_result is the value that is returned if the condition is met, this must be a primitive value
-    condition_result = models.JSONField()
+    condition_result = models.JSONField(validators=[validate_primitive_value])
 
     # The type of condition, this is used to initialize the condition classes
     type = models.CharField(max_length=200)
