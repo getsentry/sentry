@@ -241,7 +241,7 @@ const StyledLayoutBody = styled(Layout.Body)<{
     p.hasStreamlinedUi &&
     css`
       @media (min-width: ${p.theme.breakpoints.large}) {
-        gap: ${space(2)};
+        gap: ${space(1.5)};
         display: ${p.sidebarOpen ? 'grid' : 'block'};
       }
     `}
