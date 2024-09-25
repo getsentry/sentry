@@ -4,11 +4,12 @@ import styled from '@emotion/styled';
 import bannerStar from 'sentry-images/spot/banner-star.svg';
 
 import {Button} from 'sentry/components/button';
+import {openConfirmModal} from 'sentry/components/confirm';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {FormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {IconMegaphone} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SavedSearch} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -44,11 +45,11 @@ const RECOMMENDED_SEARCHES: SearchSuggestion[] = [
 function AddViewPage({savedSearches}: {savedSearches: SavedSearch[]}) {
   const savedSearchTitle = (
     <SavedSearchesTitle>
-      {t('Saved Searches (will be deprecated)')}
+      {t('Saved Searches (will be removed)')}
       <QuestionTooltip
         icon="info"
         title={t(
-          'Saved searches will be deprecated soon. For any you wish to return to, please save them as views.'
+          'Saved searches will be removed soon. For any you wish to return to, please save them as views.'
         )}
         size="sm"
         position="top"
@@ -97,18 +98,57 @@ function SearchSuggestionList({
   searchSuggestions,
   type,
 }: SearchSuggestionListProps) {
-  const {onNewViewSaved} = useContext(NewTabContext);
+  const {onNewViewsSaved} = useContext(NewTabContext);
   const organization = useOrganization();
 
   return (
     <Suggestions>
-      <TitleWrapper>{title}</TitleWrapper>
+      <TitleWrapper>
+        {title}
+        {type === 'saved_searches' && (
+          <StyledButton
+            size="zero"
+            onClick={e => {
+              e.stopPropagation();
+              openConfirmModal({
+                message: (
+                  <ConfirmModalMessage>
+                    {tn(
+                      'Save %s saved search as a view?',
+                      'Save %s saved searches as views?',
+                      searchSuggestions.length
+                    )}
+                  </ConfirmModalMessage>
+                ),
+                onConfirm: () => {
+                  onNewViewsSaved?.(
+                    searchSuggestions.map(suggestion => ({
+                      ...suggestion,
+                      saveQueryToView: true,
+                    }))
+                  );
+                },
+              });
+            }}
+            analyticsEventKey="issue_views.add_view.all_saved_searches_saved"
+            analyticsEventName="Issue Views: All Saved Searches Saved"
+            borderless
+          >
+            {t('Save all')}
+          </StyledButton>
+        )}
+      </TitleWrapper>
       <SuggestionList>
         {searchSuggestions.map((suggestion, index) => (
           <Suggestion
             key={index}
             onClick={() => {
-              onNewViewSaved?.(suggestion.label, suggestion.query, false);
+              onNewViewsSaved?.([
+                {
+                  ...suggestion,
+                  saveQueryToView: false,
+                },
+              ]);
               const analyticsKey =
                 type === 'recommended'
                   ? 'issue_views.add_view.recommended_view_saved'
@@ -135,7 +175,12 @@ function SearchSuggestionList({
                   size="zero"
                   onClick={e => {
                     e.stopPropagation();
-                    onNewViewSaved?.(suggestion.label, suggestion.query, true);
+                    onNewViewsSaved?.([
+                      {
+                        ...suggestion,
+                        saveQueryToView: true,
+                      },
+                    ]);
                     const analyticsKey =
                       type === 'recommended'
                         ? 'issue_views.add_view.recommended_view_saved'
@@ -210,6 +255,8 @@ const StyledOverflowEllipsisTextContainer = styled(OverflowEllipsisTextContainer
 `;
 
 const TitleWrapper = styled('div')`
+  display: flex;
+  justify-content: space-between;
   color: ${p => p.theme.subText};
   font-weight: 550;
   font-size: ${p => p.theme.fontSizeMedium};
@@ -253,6 +300,10 @@ const SuggestionList = styled('ul')`
   }
 
   li:hover {
+    border-bottom: 1px solid transparent;
+  }
+
+  li:last-child {
     border-bottom: 1px solid transparent;
   }
 `;
@@ -341,4 +392,10 @@ const BannerStar3 = styled('img')`
   @media (max-width: ${p => p.theme.breakpoints.large}) {
     display: none;
   }
+`;
+
+const ConfirmModalMessage = styled('div')`
+  display: flex;
+  justify-content: center;
+  font-weight: ${p => p.theme.fontWeightBold};
 `;
