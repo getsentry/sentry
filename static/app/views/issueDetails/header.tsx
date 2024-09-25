@@ -103,18 +103,6 @@ export function GroupHeaderTabs({
         {t('Details')}
       </TabList.Item>
       <TabList.Item
-        key={Tab.ACTIVITY}
-        textValue={t('Activity')}
-        disabled={disabledTabs.includes(Tab.ACTIVITY)}
-        to={{pathname: `${baseUrl}activity/`, query: queryParams}}
-      >
-        {t('Activity')}
-        <IconBadge>
-          {group.numComments}
-          <IconChat size="xs" />
-        </IconBadge>
-      </TabList.Item>
-      <TabList.Item
         key={Tab.USER_FEEDBACK}
         textValue={t('User Feedback')}
         hidden={!issueTypeConfig.userFeedback.enabled}
