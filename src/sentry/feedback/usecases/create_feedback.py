@@ -8,7 +8,7 @@ from uuid import uuid4
 
 import jsonschema
 
-from sentry import features
+from sentry import features, options
 from sentry.constants import DataCategory
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.feedback.usecases.spam_detection import is_spam
@@ -399,3 +399,11 @@ def auto_ignore_spam_feedbacks(project, issue_fingerprint):
                 new_substatus=GroupSubStatus.FOREVER,
             ),
         )
+
+
+def is_in_feedback_denylist(organization):
+    """
+    When possible, avoid using this in consumers. It costs Postgres queries to get project.organization.
+    The denylist is applied in relay for new feedback (UserReportV2).
+    """
+    return organization.slug in options.get("feedback.organizations.slug-denylist")
