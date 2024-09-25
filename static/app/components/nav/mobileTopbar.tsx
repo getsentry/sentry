@@ -104,10 +104,9 @@ const Overlay = styled('div')`
   --color-hover: ${p => p.theme.activeText};
 `;
 
-let appContainer: HTMLDivElement | null = null;
 /** When the mobile menu opens, set the main content to `inert` and disable `body` scrolling */
 function updateNavStyleAttributes(view: NavView) {
-  appContainer = appContainer ?? document.querySelector('[data-content]');
+  const appContainer = document.querySelector('[data-content]');
   if (!appContainer) {
     throw new Error(
       'Unable to match "[data-content]" selector. Please add the `data-content` attribute to the element wrapping the main content.'
