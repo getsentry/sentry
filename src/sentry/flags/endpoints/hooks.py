@@ -20,10 +20,21 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 from sentry.models.organization import Organization
 from sentry.utils.sdk import bind_organization_context
 
+"""HTTP endpoint.
+
+This endpoint accepts only organization authorization tokens. I've made the conscious
+decision to exclude all other forms of authentication. We don't want users accidentally
+writing logs or leaked DSNs generating invalid log entries. An organization token is
+secret and reasonably restricted and so makes sense for this use case where we have
+inter-provider communication.
+
+This endpoint allows writes if any write-level "org" permission was provided.
+"""
+
 
 class OrganizationFlagHookPermission(OrganizationPermission):
     scope_map = {
-        "POST": ["org:read", "org:write", "org:admin"],
+        "POST": ["org:write", "org:admin"],
     }
 
 
