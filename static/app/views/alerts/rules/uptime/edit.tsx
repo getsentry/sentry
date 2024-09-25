@@ -77,18 +77,10 @@ export function UptimeRulesEdit({params, onChangeTitle, organization, project}: 
 
   return (
     <UptimeAlertForm
-      apiMethod="PUT"
-      apiUrl={apiUrl}
+      organization={organization}
       project={project}
       rule={rule}
       handleDelete={handleDelete}
-      onSubmitSuccess={() => {
-        navigate(
-          normalizeUrl(
-            `/organizations/${organization.slug}/alerts/rules/uptime/${params.projectId}/${params.ruleId}/details`
-          )
-        );
-      }}
     />
   );
 }

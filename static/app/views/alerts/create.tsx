@@ -143,18 +143,7 @@ function Create(props: Props) {
         ) : (
           <Fragment>
             {alertType === AlertRuleType.UPTIME ? (
-              <UptimeAlertForm
-                apiMethod="POST"
-                apiUrl={`/projects/${organization.slug}/${project.slug}/uptime/`}
-                project={project}
-                onSubmitSuccess={response => {
-                  router.push(
-                    normalizeUrl(
-                      `/organizations/${organization.slug}/alerts/rules/uptime/${project.slug}/${response.id}/details`
-                    )
-                  );
-                }}
-              />
+              <UptimeAlertForm {...props} />
             ) : !hasMetricAlerts || alertType === AlertRuleType.ISSUE ? (
               <IssueRuleEditor
                 {...props}

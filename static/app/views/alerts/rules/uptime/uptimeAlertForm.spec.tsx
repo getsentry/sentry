@@ -30,15 +30,9 @@ describe('Uptime Alert Form', function () {
     const {organization, project} = initializeOrg();
     OrganizationStore.onUpdate(organization);
 
-    render(
-      <UptimeAlertForm
-        apiMethod="POST"
-        apiUrl={'/update-rule'}
-        project={project}
-        onSubmitSuccess={() => {}}
-      />,
-      {organization}
-    );
+    render(<UptimeAlertForm organization={organization} project={project} />, {
+      organization,
+    });
     await screen.findByText('Configure Request');
 
     await userEvent.clear(input('URL'));
@@ -60,7 +54,7 @@ describe('Uptime Alert Form', function () {
     await selectEvent.select(screen.getByRole('textbox', {name: 'Owner'}), 'Foo Bar');
 
     const updateMock = MockApiClient.addMockResponse({
-      url: '/update-rule',
+      url: `/projects/${organization.slug}/${project.slug}/uptime/`,
       method: 'POST',
     });
 
@@ -99,13 +93,7 @@ describe('Uptime Alert Form', function () {
       owner: ActorFixture(),
     });
     render(
-      <UptimeAlertForm
-        apiMethod="PUT"
-        apiUrl={''}
-        project={project}
-        onSubmitSuccess={() => {}}
-        rule={rule}
-      />,
+      <UptimeAlertForm organization={organization} project={project} rule={rule} />,
       {organization}
     );
     await screen.findByText('Configure Request');
@@ -132,13 +120,7 @@ describe('Uptime Alert Form', function () {
       owner: ActorFixture(),
     });
     render(
-      <UptimeAlertForm
-        apiMethod="PUT"
-        apiUrl={'/update-rule'}
-        project={project}
-        onSubmitSuccess={() => {}}
-        rule={rule}
-      />,
+      <UptimeAlertForm organization={organization} project={project} rule={rule} />,
       {organization}
     );
     await screen.findByText('Configure Request');
@@ -165,7 +147,7 @@ describe('Uptime Alert Form', function () {
     await selectEvent.select(screen.getByRole('textbox', {name: 'Owner'}), 'Foo Bar');
 
     const updateMock = MockApiClient.addMockResponse({
-      url: '/update-rule',
+      url: `/projects/${organization.slug}/${project.slug}/uptime/${rule.id}/`,
       method: 'PUT',
     });
 
@@ -199,13 +181,7 @@ describe('Uptime Alert Form', function () {
       owner: ActorFixture(),
     });
     render(
-      <UptimeAlertForm
-        apiMethod="PUT"
-        apiUrl={'/update-rule'}
-        project={project}
-        onSubmitSuccess={() => {}}
-        rule={rule}
-      />,
+      <UptimeAlertForm organization={organization} project={project} rule={rule} />,
       {organization}
     );
     await screen.findByText('Configure Request');
