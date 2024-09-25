@@ -64,7 +64,7 @@ import {
 import {
   FRONTEND_LANDING_SUB_PATH,
   FRONTEND_LANDING_TITLE,
-} from 'sentry/views/insights/pages/frontendLandingPage';
+} from 'sentry/views/insights/pages/frontend/settings';
 import {
   MOBILE_LANDING_SUB_PATH,
   MOBILE_LANDING_TITLE,
@@ -264,7 +264,7 @@ function Sidebar() {
     </Feature>
   );
 
-  const moduleURLBuilder = useModuleURLBuilder(true);
+  const moduleURLBuilder = useModuleURLBuilder(true, false);
 
   const queries = hasOrganization && (
     <Feature key="db" features="insights-entry-points" organization={organization}>

@@ -23,11 +23,26 @@ export type Filters = {
   module?: ModuleName;
 };
 
+export const useDomainViewFilters = () => {
+  const location = useLocation();
+  const pathSegments = location.pathname.split('/').filter(Boolean);
+  const indexOfPerformance = pathSegments.indexOf('performance');
+  const isInDomainView = indexOfPerformance !== -1;
+
+  const view = pathSegments[indexOfPerformance + 1] as DomainViewFilters['view'];
+
+  if (isInDomainView) {
+    return {
+      view,
+      isInDomainView,
+    };
+  }
+  return {isInDomainView};
+};
+
 export const useFilters = () => {
   const location = useLocation<Filters>();
-
   const filters = pick(location.query, ['module']);
-
   return filters;
 };
 
