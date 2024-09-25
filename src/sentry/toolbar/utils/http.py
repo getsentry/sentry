@@ -12,7 +12,8 @@ def csp_add_directive(csp: str, new_key: str, new_values: list[str]):
 
         key, val = directive.split(maxsplit=1)
         if key == new_key:
-            val = " ".join(new_values + [val])
+            new_values = set(new_values + val.split())
+            val = " ".join(new_values)
             seen_key = True
         new_csp += f"{key} {val};"
 

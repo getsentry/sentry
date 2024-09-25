@@ -10,7 +10,7 @@ def get_directives(csp: str) -> dict[str, set[str]]:
     return res
 
 
-def run_test(csp: str, new_key: str, new_values: list[str]):
+def run_test(csp: str, new_key: str, new_values: list[str]) -> dict[str, set[str]]:
     new_csp = csp_add_directive(csp, new_key, new_values)
     dirs = get_directives(csp)
     new_dirs = get_directives(new_csp)
@@ -20,16 +20,18 @@ def run_test(csp: str, new_key: str, new_values: list[str]):
             assert key in dirs and new_dirs[key] == dirs[key]
         else:
             assert new_dirs[key] == dirs.get(key, set()).union(set(new_values))
-    return new_csp
+    return new_dirs
 
 
-def test_csp_add_directive():
+def test_csp_add_directive_new():
     run_test(
         "media-src *; img-src * blob: data:; base-uri 'none'",
         "script-src",
         ["'unsafe-inline'", "'report-sample'"],
     )
 
+
+def test_csp_add_directive_exists():
     run_test(
         "media-src *; img-src * blob: data:; base-uri 'none'; script-src 'self'",
         "script-src",
@@ -41,3 +43,12 @@ def test_csp_add_directive():
         "script-src",
         ["*.sentry.io", "sentry.io"],
     )
+
+
+def test_csp_add_directive_dup_value():
+    directives = run_test(
+        "script-src 'self'",
+        "script-src",
+        ["'self'"],
+    )
+    assert len(directives["script-src"]) == 1
