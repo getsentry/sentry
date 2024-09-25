@@ -153,11 +153,9 @@ export function EventDetailsContent({
       {hasStreamlinedUI && <TraceDataSection event={event} />}
       <StyledDataSection>
         {!hasStreamlinedUI && (
-          <ErrorBoundary mini message={t('There was an error loading the issue summary')}>
-            <Feature features={['organizations:ai-summary']}>
-              <GroupSummary groupId={group.id} groupCategory={group.issueCategory} />
-            </Feature>
-          </ErrorBoundary>
+          <Feature features={['organizations:ai-summary']}>
+            <GroupSummary groupId={group.id} groupCategory={group.issueCategory} />
+          </Feature>
         )}
         {!hasStreamlinedUI && <TraceDataSection event={event} />}
         {!hasStreamlinedUI && (
