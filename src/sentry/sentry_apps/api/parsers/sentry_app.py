@@ -66,7 +66,7 @@ class URLField(serializers.URLField):
         return url
 
 
-class RequestSentryAppSerializer(Serializer):
+class SentryAppParser(Serializer):
     name = serializers.CharField()
     author = serializers.CharField(required=False, allow_null=True)
     scopes = ApiScopesField(allow_null=True)

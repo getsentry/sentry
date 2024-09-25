@@ -15,7 +15,7 @@ from sentry.integrations.models.integration_feature import (
     IntegrationFeature,
     IntegrationTypes,
 )
-from sentry.sentry_apps.api.serializers.parsers.sentry_app import URLField
+from sentry.sentry_apps.api.parsers.sentry_app import URLField
 
 
 class MetadataField(serializers.JSONField):

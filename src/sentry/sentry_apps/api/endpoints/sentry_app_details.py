@@ -21,7 +21,7 @@ from sentry.auth.staff import is_active_staff
 from sentry.constants import SentryAppStatus
 from sentry.mediators.sentry_app_installations.installation_notifier import InstallationNotifier
 from sentry.organizations.services.organization import organization_service
-from sentry.sentry_apps.api.serializers.parsers.sentry_app import RequestSentryAppSerializer
+from sentry.sentry_apps.api.parsers.sentry_app import SentryAppParser
 from sentry.sentry_apps.api.serializers.sentry_app import (
     SentryAppSerializer as ResponseSentryAppSerializer,
 )
@@ -93,7 +93,7 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
         # isInternal is not field of our model but it is a field of the serializer
         data = request.data.copy()
         data["isInternal"] = sentry_app.status == SentryAppStatus.INTERNAL
-        serializer = RequestSentryAppSerializer(
+        serializer = SentryAppParser(
             sentry_app,
             data=data,
             partial=True,

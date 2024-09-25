@@ -5,7 +5,7 @@ from sentry.api.fields.avatar import AvatarField
 from sentry.utils.avatar import is_black_alpha_only
 
 
-class RequestSentryAppAvatarSerializer(Serializer):
+class SentryAppAvatarParser(Serializer):
     avatar_photo = AvatarField(required=False, is_sentry_app=True)
     avatar_type = serializers.ChoiceField(choices=(("default", "default"), ("upload", "upload")))
     color = serializers.BooleanField(required=True)

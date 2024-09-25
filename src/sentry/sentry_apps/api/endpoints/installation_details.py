@@ -12,9 +12,7 @@ from sentry.api.bases import SentryAppInstallationBaseEndpoint
 from sentry.api.serializers import serialize
 from sentry.mediators.sentry_app_installations.installation_notifier import InstallationNotifier
 from sentry.mediators.sentry_app_installations.updater import Updater
-from sentry.sentry_apps.api.serializers.parsers.sentry_app_installation import (
-    RequestSentryAppInstallationSerializer,
-)
+from sentry.sentry_apps.api.parsers.sentry_app_installation import SentryAppInstallationParser
 from sentry.sentry_apps.api.serializers.sentry_app_installation import (
     SentryAppInstallationSerializer,
 )
@@ -65,9 +63,7 @@ class SentryAppInstallationDetailsEndpoint(SentryAppInstallationBaseEndpoint):
         return Response(status=204)
 
     def put(self, request: Request, installation) -> Response:
-        serializer = RequestSentryAppInstallationSerializer(
-            installation, data=request.data, partial=True
-        )
+        serializer = SentryAppInstallationParser(installation, data=request.data, partial=True)
 
         if serializer.is_valid():
             result = serializer.validated_data

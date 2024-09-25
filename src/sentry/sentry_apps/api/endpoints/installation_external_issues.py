@@ -12,7 +12,7 @@ from sentry.api.serializers import serialize
 from sentry.mediators.external_issues.creator import Creator
 from sentry.models.group import Group
 from sentry.models.project import Project
-from sentry.sentry_apps.api.serializers.parsers.sentry_app import URLField
+from sentry.sentry_apps.api.parsers.sentry_app import URLField
 from sentry.sentry_apps.api.serializers.platform_external_issue import (
     PlatformExternalIssueSerializer as ResponsePlatformExternalIssueSerializer,
 )
