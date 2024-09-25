@@ -1,7 +1,8 @@
+import {Fragment} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 
-import {render, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {ReleaseSeriesProps} from 'sentry/components/charts/releaseSeries';
 import ReleaseSeries from 'sentry/components/charts/releaseSeries';
@@ -14,6 +15,8 @@ describe('ReleaseSeries', function () {
   let releasesMock;
 
   beforeEach(function () {
+    jest.resetAllMocks();
+
     releases = [
       {
         version: 'sentry-android-shop@1.2.0',
@@ -216,6 +219,28 @@ describe('ReleaseSeries', function () {
     );
 
     await waitFor(() => expect(releasesMock).toHaveBeenCalledTimes(2));
+  });
+
+  it('shares release fetches between components with memoize enabled', async function () {
+    render(
+      <Fragment>
+        <ReleaseSeries {...baseSeriesProps} period="42d" memoized>
+          {({releaseSeries}) => {
+            return releaseSeries.length > 0 ? <span>Series 1</span> : null;
+          }}
+        </ReleaseSeries>
+        <ReleaseSeries {...baseSeriesProps} period="42d" memoized>
+          {({releaseSeries}) => {
+            return releaseSeries.length > 0 ? <span>Series 2</span> : null;
+          }}
+        </ReleaseSeries>
+      </Fragment>
+    );
+
+    await waitFor(() => expect(screen.getByText('Series 1')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('Series 2')).toBeInTheDocument());
+
+    await waitFor(() => expect(releasesMock).toHaveBeenCalledTimes(1));
   });
 
   it('generates an eCharts `markLine` series from releases', async function () {

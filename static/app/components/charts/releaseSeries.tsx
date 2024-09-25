@@ -64,6 +64,14 @@ function getOrganizationReleases(
   }) as Promise<[ReleaseMetaBasic[], any, ResponseMeta]>;
 }
 
+const getOrganizationReleasesMemoized = memoize(
+  getOrganizationReleases,
+  (_, __, conditions) =>
+    Object.values(conditions)
+      .map(val => JSON.stringify(val))
+      .join('-')
+);
+
 export interface ReleaseSeriesProps extends WithRouterProps {
   api: Client;
   children: (s: State) => React.ReactNode;
@@ -130,15 +138,6 @@ class ReleaseSeries extends Component<ReleaseSeriesProps, State> {
 
   _isMounted: boolean = false;
 
-  getOrganizationReleasesMemoized = memoize(
-    (api: Client, organization: Organization, conditions: ReleaseConditions) =>
-      getOrganizationReleases(api, organization, conditions),
-    (_, __, conditions) =>
-      Object.values(conditions)
-        .map(val => JSON.stringify(val))
-        .join('-')
-  );
-
   async fetchData() {
     const {
       api,
@@ -164,7 +163,7 @@ class ReleaseSeries extends Component<ReleaseSeriesProps, State> {
     while (hasMore) {
       try {
         const getReleases = memoized
-          ? this.getOrganizationReleasesMemoized
+          ? getOrganizationReleasesMemoized
           : getOrganizationReleases;
         const [newReleases, , resp] = await getReleases(api, organization, conditions);
         releases.push(...newReleases);
