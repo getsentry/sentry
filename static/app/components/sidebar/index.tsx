@@ -60,7 +60,7 @@ import {
 import {
   BACKEND_LANDING_SUB_PATH,
   BACKEND_LANDING_TITLE,
-} from 'sentry/views/insights/pages/backendLandingPage';
+} from 'sentry/views/insights/pages/backend/backendLandingPage';
 import {
   FRONTEND_LANDING_SUB_PATH,
   FRONTEND_LANDING_TITLE,

@@ -17,7 +17,7 @@ import AuthLayout from 'sentry/views/auth/layout';
 import {MODULE_BASE_URLS} from 'sentry/views/insights/common/utils/useModuleURL';
 import {AI_LANDING_SUB_PATH} from 'sentry/views/insights/pages/aiLandingPage';
 import {BACKEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/backendLandingPage';
-import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontendLandingPage';
+import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/settings';
 import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobileLandingPage';
 import {INSIGHTS_BASE_URL} from 'sentry/views/insights/settings';
 import {ModuleName} from 'sentry/views/insights/types';
@@ -1647,7 +1647,9 @@ function buildRoutes() {
       />
       <Route
         path={`${BACKEND_LANDING_SUB_PATH}/`}
-        component={make(() => import('sentry/views/insights/pages/backendLandingPage'))}
+        component={make(
+          () => import('sentry/views/insights/pages/backend/backendLandingPage')
+        )}
       />
       <Route
         path={`${MOBILE_LANDING_SUB_PATH}/`}

@@ -7,20 +7,18 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import {TabList, TabPanels, Tabs} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
 import {PageAlert} from 'sentry/utils/performance/contexts/pageAlert';
-import CachesLandingPage from 'sentry/views/insights/cache/views/cacheLandingPage';
-import DatabaseLandingPage from 'sentry/views/insights/database/views//databaseLandingPage';
-import HTTPLandingPage from 'sentry/views/insights/http/views/httpLandingPage';
+import LLMLandingPage from 'sentry/views/insights/llmMonitoring/views/llmMonitoringLandingPage';
+import {AI_LANDING_TITLE} from 'sentry/views/insights/pages/ai/settings';
 import {OVERVIEW_PAGE_TITLE} from 'sentry/views/insights/pages/settings';
 import {
   type Filters,
   useFilters,
   useUpdateFilters,
 } from 'sentry/views/insights/pages/useFilters';
-import QueuesLandingPage from 'sentry/views/insights/queues/views/queuesLandingPage';
 import {MODULE_TITLES} from 'sentry/views/insights/settings';
 import {type InsightLandingProps, ModuleName} from 'sentry/views/insights/types';
 
-function BackendLandingPage() {
+function AiLandingPage() {
   const filters = useFilters();
   const updateFilters = useUpdateFilters();
 
@@ -33,7 +31,7 @@ function BackendLandingPage() {
       preservePageFilters: true,
     },
     {
-      label: BACKEND_LANDING_TITLE,
+      label: AI_LANDING_TITLE,
       to: undefined,
       preservePageFilters: true,
     },
@@ -65,7 +63,7 @@ function BackendLandingPage() {
           <Layout.HeaderContent>
             <Breadcrumbs crumbs={crumbs} />
 
-            <Layout.Title>{BACKEND_LANDING_TITLE}</Layout.Title>
+            <Layout.Title>{AI_LANDING_TITLE}</Layout.Title>
           </Layout.HeaderContent>
           <Layout.HeaderActions>
             <ButtonBar gap={1}>
@@ -74,17 +72,8 @@ function BackendLandingPage() {
           </Layout.HeaderActions>
           <TabList>
             <TabList.Item key={OVERVIEW_PAGE_TITLE}>{OVERVIEW_PAGE_TITLE}</TabList.Item>
-            <TabList.Item key={ModuleName.DB}>
-              {MODULE_TITLES[ModuleName.DB]}
-            </TabList.Item>
-            <TabList.Item key={ModuleName.HTTP}>
-              {MODULE_TITLES[ModuleName.HTTP]}
-            </TabList.Item>
-            <TabList.Item key={ModuleName.CACHE}>
-              {MODULE_TITLES[ModuleName.CACHE]}
-            </TabList.Item>
-            <TabList.Item key={ModuleName.QUEUE}>
-              {MODULE_TITLES[ModuleName.QUEUE]}
+            <TabList.Item key={ModuleName.AI}>
+              {MODULE_TITLES[ModuleName.AI]}
             </TabList.Item>
           </TabList>
         </Layout.Header>
@@ -92,17 +81,8 @@ function BackendLandingPage() {
           <PageAlert />
           <TabPanels>
             <TabPanels.Item key={OVERVIEW_PAGE_TITLE}>{'overview page'}</TabPanels.Item>
-            <TabPanels.Item key={ModuleName.DB}>
-              <DatabaseLandingPage {...landingPageProps} />
-            </TabPanels.Item>
-            <TabPanels.Item key={ModuleName.HTTP}>
-              <HTTPLandingPage {...landingPageProps} />
-            </TabPanels.Item>
-            <TabPanels.Item key={ModuleName.CACHE}>
-              <CachesLandingPage {...landingPageProps} />
-            </TabPanels.Item>
-            <TabPanels.Item key={ModuleName.QUEUE}>
-              <QueuesLandingPage {...landingPageProps} />
+            <TabPanels.Item key={ModuleName.AI}>
+              <LLMLandingPage {...landingPageProps} />
             </TabPanels.Item>
           </TabPanels>
         </Layout.Main>
@@ -111,7 +91,4 @@ function BackendLandingPage() {
   );
 }
 
-export default BackendLandingPage;
-
-export const BACKEND_LANDING_SUB_PATH = 'backend';
-export const BACKEND_LANDING_TITLE = t('Backend');
+export default AiLandingPage;
