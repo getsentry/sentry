@@ -13,55 +13,61 @@ Required context variables:
   </head>
   <body>
     <script>
-      const referrer = "{{ referrer|escapejs }}";
+      (function() {
+        const referrer = "{{ referrer|escapejs }}";  // This should not be None and match your app's domain.
+        function log(...args) {
+          console.log('iframe:', ...args);
+        }
 
-      function log(...args) {
-        console.log('iframe:', ...args);
-      }
+        if (!referrer || referrer === "None") {
+          log('Invalid referrer', {referrer})
+          return;
+        }
 
-      log('Init', {referrer});
+        log('Init', {referrer});
 
-      const {port1, port2} = new MessageChannel();
+        const {port1, port2} = new MessageChannel();
 
-      const messageDispatch = {
-        'log': log,
-        'fetch': async (url, init) => {
-          const response =  await fetch(url, init);
-          return {
-            ok: response.ok,
-            status: response.status,
-            statusText: response.statusText,
-            url: response.url,
-            headers: Object.fromEntries(response.headers.entries()),
-            text: await response.text(),
+        const messageDispatch = {
+          'log': log,
+          'fetch': async (url, init) => {
+            const response =  await fetch(url, init);
+            return {
+              ok: response.ok,
+              status: response.status,
+              statusText: response.statusText,
+              url: response.url,
+              headers: Object.fromEntries(response.headers.entries()),
+              text: await response.text(),
+            }
+          },
+        };
+
+        port1.addEventListener('message', (postMessage) => {
+          log('port.onMessage', postMessage.data);
+
+          const {$id, message} = postMessage.data;
+          if (!$id) {
+            return; // MessageEvent is malformed, missing $id
           }
-        },
-      };
 
-      port1.addEventListener('message', (postMessage) => {
-        log('port.onMessage', postMessage.data);
+          if (!message.$function || !(message.$function in messageDispatch)) {
+            return; // No-op without a $function to call
+          }
 
-        const {$id, message} = postMessage.data;
-        if (!$id) {
-          return; // MessageEvent is malformed, missing $id
-        }
+          messageDispatch[message.$function]
+            .apply(undefined, message.$args || [])
+            .then($result => port1.postMessage({$id, $result}))
+            .catch((error) => port1.postMessage({$id, $error: error}));
+        });
+        port1.start();
 
-        if (!message.$function || !(message.$function in messageDispatch)) {
-          return; // No-op without a $function to call
-        }
-
-        messageDispatch[message.$function]
-          .apply(undefined, message.$args || [])
-          .then($result => port1.postMessage({$id, $result}))
-          .catch((error) => port1.postMessage({$id, $error: error}));
-      });
-      port1.start();
-
-      window.parent.postMessage({
-        source: 'sentry-toolbar',
-        message: 'port-connect',
-      }, referrer, [port2]);
-      log('Sent', {message: 'port-connect', referrer})
+        window.parent.postMessage({
+          source: 'sentry-toolbar',
+          message: 'port-connect',
+        }, referrer, [port2]);
+        log('Sent', {message: 'port-connect', referrer})
+      })();
     </script>
   </body>
 </html>
