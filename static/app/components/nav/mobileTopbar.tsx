@@ -44,6 +44,28 @@ function MobileTopbar() {
 
 export default MobileTopbar;
 
+/** When the mobile menu opens, set the main content to `inert` and disable `body` scrolling */
+function updateNavStyleAttributes(view: NavView) {
+  const appContainer = document.querySelector('[data-content]');
+  if (!appContainer) {
+    throw new Error(
+      'Unable to match "[data-content]" selector. Please add the `data-content` attribute to the element wrapping the main content.'
+    );
+  }
+
+  if (view !== 'closed') {
+    appContainer.setAttribute('inert', '');
+    document.body.style.setProperty('overflow', 'hidden');
+  } else {
+    appContainer.removeAttribute('inert');
+    document.body.style.removeProperty('overflow');
+  }
+}
+
+function OverlayPortal({children}) {
+  return createPortal(<Overlay>{children}</Overlay>, document.body);
+}
+
 const Topbar = styled('div')`
   height: 40px;
   width: 100vw;
@@ -85,10 +107,6 @@ const Topbar = styled('div')`
   }
 `;
 
-function OverlayPortal({children}) {
-  return createPortal(<Overlay>{children}</Overlay>, document.body);
-}
-
 const Overlay = styled('div')`
   position: fixed;
   top: 40px;
@@ -102,21 +120,3 @@ const Overlay = styled('div')`
   --color: ${p => p.theme.textColor};
   --color-hover: ${p => p.theme.activeText};
 `;
-
-/** When the mobile menu opens, set the main content to `inert` and disable `body` scrolling */
-function updateNavStyleAttributes(view: NavView) {
-  const appContainer = document.querySelector('[data-content]');
-  if (!appContainer) {
-    throw new Error(
-      'Unable to match "[data-content]" selector. Please add the `data-content` attribute to the element wrapping the main content.'
-    );
-  }
-
-  if (view !== 'closed') {
-    appContainer.setAttribute('inert', '');
-    document.body.style.setProperty('overflow', 'hidden');
-  } else {
-    appContainer.removeAttribute('inert');
-    document.body.style.removeProperty('overflow');
-  }
-}
