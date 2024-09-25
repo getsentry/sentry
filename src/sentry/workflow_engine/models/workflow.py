@@ -17,8 +17,8 @@ class Workflow(DefaultFieldsModel):
     name = models.CharField(max_length=200)
     organization = FlexibleForeignKey("sentry.Organization")
 
-    # Required as the 'when' condition for the workflow
-    condition_group = FlexibleForeignKey(DataConditionGroup, blank=True, null=True)
+    # Required as the 'when' condition for the workflow, this evalutes states emitted from the detectors
+    when_condition_group = FlexibleForeignKey(DataConditionGroup, blank=True, null=True)
 
     __repr__ = sane_repr("name", "organization_id")
 
