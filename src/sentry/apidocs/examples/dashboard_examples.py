@@ -56,6 +56,7 @@ DASHBOARD_OBJECT = {
                         }
                     ],
                     "isHidden": False,
+                    "selectedAggregate": None,
                 }
             ],
             "limit": None,
