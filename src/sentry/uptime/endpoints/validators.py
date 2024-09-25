@@ -72,16 +72,29 @@ class UptimeMonitorValidator(CamelSnakeSerializer):
         allow_null=True,
         help_text="The ID of the team or user that owns the uptime monitor. (eg. user:51 or team:6)",
     )
-    url = URLField(required=True, max_length=255)
+    url = URLField(
+        required=True,
+        max_length=255,
+    )
     interval_seconds = serializers.IntegerField(
-        required=True, min_value=60, max_value=int(timedelta(hours=1).total_seconds())
+        required=True,
+        min_value=60,
+        max_value=int(timedelta(hours=1).total_seconds()),
     )
-    mode = serializers.IntegerField(required=False)
+    mode = serializers.IntegerField(
+        required=False,
+    )
     method = serializers.ChoiceField(
-        required=False, choices=list(zip(SUPPORTED_HTTP_METHODS, SUPPORTED_HTTP_METHODS))
+        required=False,
+        choices=list(zip(SUPPORTED_HTTP_METHODS, SUPPORTED_HTTP_METHODS)),
     )
-    headers = serializers.JSONField(required=False)
-    body = serializers.CharField(required=False, allow_null=True)
+    headers = serializers.JSONField(
+        required=False,
+    )
+    body = serializers.CharField(
+        required=False,
+        allow_null=True,
+    )
 
     def validate(self, attrs):
         headers = []
