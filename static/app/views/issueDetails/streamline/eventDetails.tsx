@@ -173,7 +173,7 @@ const SearchFilter = styled(EventSearch)`
 const FilterContainer = styled('div')`
   display: grid;
   grid-template-columns: auto 1fr auto;
-  gap: ${space(1)};
+  gap: ${space(1.5)};
 `;
 
 const FloatingEventNavigation = styled(EventNavigation)`
