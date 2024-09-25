@@ -22,6 +22,7 @@ from sentry_protos.sentry.v1alpha.taskworker_pb2_grpc import add_WorkerServiceSe
 from sentry.taskworker.config import TaskNamespace, taskregistry
 
 logger = logging.getLogger("sentry.taskworker")
+result_logger = logging.getLogger("taskworker.results")
 
 
 class WorkerServicer(BaseWorkerServiceServicer):
@@ -68,7 +69,9 @@ class WorkerServicer(BaseWorkerServiceServicer):
                 logger.info("taskworker.task.retry", extra={"task": activation.taskname})
                 next_state = TASK_ACTIVATION_STATUS_RETRY
         task_latency = execution_time - task_added_time
-        logger.info("task.complete", extra={"latency": task_latency})
+
+        # Dump results to a log file that is CSV shaped
+        result_logger.info(f"task.complete,{task_added_time},{execution_time},{task_latency}")
 
         return DispatchResponse(status=next_state)
 

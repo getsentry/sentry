@@ -120,6 +120,7 @@ class InflightActivationModel(Model):
                 namespace=self.namespace,
                 taskname=self.taskname,
                 parameters=orjson.dumps(self.parameters) if self.parameters else None,
+                received_at=Timestamp(seconds=int(self.received_at.timestamp())),
                 retry_state=RetryState(
                     attempts=self.retry_attempts,
                     kind=self.retry_kind or "",

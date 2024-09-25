@@ -36,6 +36,10 @@ def main(number: int, verbose: bool):
     manager = Manager(honcho_printer)
     processes = [
         {
+            "name": "grpc",
+            "cmd": ["sentry", "run", "kafka-task-grpc-server"],
+        },
+        {
             "name": "consumer",
             "cmd": [
                 "sentry",
@@ -51,10 +55,6 @@ def main(number: int, verbose: bool):
         {
             "name": "worker",
             "cmd": ["sentry", "run", "taskworker", "--namespace", "demos"],
-        },
-        {
-            "name": "grpc",
-            "cmd": ["sentry", "run", "kafka-task-grpc-server"],
         },
     ]
     for process in processes:

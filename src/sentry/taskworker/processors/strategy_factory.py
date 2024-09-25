@@ -16,7 +16,6 @@ from arroyo.processing.strategies import (
 )
 from arroyo.processing.strategies.run_task_with_multiprocessing import MultiprocessingPool
 from arroyo.types import BaseValue, Commit, Message, Partition
-from django.conf import settings
 from google.protobuf.timestamp_pb2 import Timestamp
 from sentry_protos.sentry.v1alpha.taskworker_pb2 import (
     TASK_ACTIVATION_STATUS_PENDING,
@@ -66,12 +65,6 @@ class StrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         # by completed records. Should come from CLI/options
         self.max_pending_timeout = 8 * 60
         self.pending_task_store = PendingTaskStore()
-
-        self.do_imports()
-
-    def do_imports(self) -> None:
-        for module in settings.TASKWORKER_IMPORTS:
-            __import__(module)
 
     def create_with_partitions(
         self, commit: Commit, _: Mapping[Partition, int]

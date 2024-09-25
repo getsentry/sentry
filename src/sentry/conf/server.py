@@ -1331,6 +1331,11 @@ LOGGING: LoggingConfig = {
             "filters": ["important_django_request"],
             "class": "sentry_sdk.integrations.logging.EventHandler",
         },
+        "taskworkerlog": {
+            "level": "INFO",
+            "class": "logging.FileHandler",
+            "filename": "./taskworker.log",
+        },
     },
     "filters": {
         "important_django_request": {
@@ -1376,6 +1381,11 @@ LOGGING: LoggingConfig = {
         "urllib3.connectionpool": {"level": "ERROR", "handlers": ["console"], "propagate": False},
         "boto3": {"level": "WARNING", "handlers": ["console"], "propagate": False},
         "botocore": {"level": "WARNING", "handlers": ["console"], "propagate": False},
+        "taskworker.results": {
+            "level": "INFO",
+            "handlers": ["console", "taskworkerlog"],
+            "propagate": False,
+        },
     },
 }
 
