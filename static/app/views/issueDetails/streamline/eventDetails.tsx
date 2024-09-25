@@ -87,11 +87,11 @@ export function EventDetails({
 
   return (
     <EventDetailsContext.Provider value={{...eventDetails, dispatch}}>
-      <PageErrorBoundary mini message={t('There was an error loading the issue summary')}>
+      <ErrorBoundary mini message={t('There was an error loading the issue summary')}>
         <Feature features={['organizations:ai-summary']}>
           <GroupSummary groupId={group.id} groupCategory={group.issueCategory} />
         </Feature>
-      </PageErrorBoundary>
+      </ErrorBoundary>
       <PageErrorBoundary
         mini
         message={t('There was an error loading the suspect commits')}
