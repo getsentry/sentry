@@ -1,34 +1,42 @@
 import {createContext, useState} from 'react';
 
+export type NewView = {
+  label: string;
+  query: string;
+  /**
+   * If true, the query will be saved to the view.
+   * Otherwise, the query will act as an unsaved change.
+   */
+  saveQueryToView: boolean;
+};
+
 export interface NewTabContext {
   newViewActive: boolean;
-  onNewViewSaved: (label: string, query: string, saveQueryToView: boolean) => void;
+  onNewViewsSaved: (newViews: NewView[]) => void;
   setNewViewActive: (isActive: boolean) => void;
-  setOnNewViewSaved: (
-    onNewViewSaved: (label: string, query: string, saveQueryToView: boolean) => void
-  ) => void;
+  setOnNewViewsSaved: (onNewViewSaved: (newViews: NewView[]) => void) => void;
 }
 
 export const NewTabContext = createContext<NewTabContext>({
   newViewActive: false,
   setNewViewActive: () => {},
-  onNewViewSaved: () => {},
-  setOnNewViewSaved: () => {},
+  onNewViewsSaved: () => {},
+  setOnNewViewsSaved: () => {},
 });
 
 export function NewTabContextProvider({children}: {children: React.ReactNode}) {
   const [newViewActive, setNewViewActive] = useState<boolean>(false);
-  const [onNewViewSaved, setOnNewViewSaved] = useState<NewTabContext['onNewViewSaved']>(
-    () => () => {}
-  );
+  const [onNewViewsSaved, setOnNewViewsSaved] = useState<
+    NewTabContext['onNewViewsSaved']
+  >(() => () => {});
 
   return (
     <NewTabContext.Provider
       value={{
         newViewActive,
         setNewViewActive,
-        onNewViewSaved,
-        setOnNewViewSaved,
+        onNewViewsSaved,
+        setOnNewViewsSaved,
       }}
     >
       {children}
