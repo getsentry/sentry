@@ -255,10 +255,12 @@ const IconContainer = styled('div')`
   flex-shrink: 0;
   margin-right: ${space(1)};
   margin-top: ${space(0.25)};
+  max-height: ${space(2)};
 `;
 
 const IconContainerRight = styled('div')`
   flex-shrink: 0;
   margin-left: ${space(1)};
   margin-top: ${space(0.25)};
+  max-height: ${space(2)};
 `;
