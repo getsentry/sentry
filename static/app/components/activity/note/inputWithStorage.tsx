@@ -139,10 +139,12 @@ function NoteInputWithStorage({
   if (hasStreamlinedUi && source === 'issue-details') {
     return (
       <StreamlinedNoteInput
-        {...props}
         text={value}
         onCreate={handleCreate}
         onChange={handleChange}
+        placeholder={props.placeholder}
+        noteId={props.noteId}
+        onUpdate={props.onUpdate}
       />
     );
   }

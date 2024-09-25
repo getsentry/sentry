@@ -18,7 +18,6 @@ import {useMembers} from 'sentry/utils/useMembers';
 import {useTeams} from 'sentry/utils/useTeams';
 
 type Props = {
-  placeholder: string;
   errorJSON?: CreateError | null;
   /**
    * This is the id of the server's note object and is meant to indicate that
@@ -28,6 +27,7 @@ type Props = {
   onChange?: (e: MentionChangeEvent, extra: {updating?: boolean}) => void;
   onCreate?: (data: NoteType) => void;
   onUpdate?: (data: NoteType) => void;
+  placeholder?: string;
   /**
    * The note text itself
    */
