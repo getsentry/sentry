@@ -64,6 +64,7 @@ const SidebarWrapper = styled('div')`
   width: 100vw;
   padding: ${space(2)} 0;
   border-right: 1px solid ${theme.translucentGray100};
+  /* these colors should be moved to the "theme" object */
   background: #3e2648;
   background: linear-gradient(180deg, #3e2648 0%, #442c4e 100%);
   display: flex;
