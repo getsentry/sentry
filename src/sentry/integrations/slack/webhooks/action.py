@@ -27,7 +27,6 @@ from sentry.auth.access import from_member
 from sentry.exceptions import UnableToAcceptMemberInvitationException
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder
-from sentry.integrations.slack.message_builder.types import SlackBody
 from sentry.integrations.slack.metrics import (
     SLACK_WEBHOOK_GROUP_ACTIONS_FAILURE_DATADOG_METRIC,
     SLACK_WEBHOOK_GROUP_ACTIONS_SUCCESS_DATADOG_METRIC,
@@ -161,8 +160,7 @@ def get_group(slack_request: SlackActionRequest) -> Group | None:
 
 def _is_message(data: Mapping[str, Any]) -> bool:
     """
-    XXX(epurkhiser): Used in coordination with construct_reply.
-     Bot posted messages will not have the type at all.
+    Bot posted messages will not have the type at all.
     """
     return data.get("original_message", {}).get("type") == "message"
 
@@ -893,22 +891,6 @@ class _ModalDialog(ABC):
                     "dialog": self.dialog_type,
                 },
             )
-
-    def _construct_reply(self, attachment: SlackBody, is_message: bool = False) -> SlackBody:
-        # XXX(epurkhiser): Slack is inconsistent about it's expected responses
-        # for interactive action requests.
-        #
-        #  * For _unfurled_ action responses, slack expects the entire
-        #    attachment body used to replace the unfurled attachment to be at
-        #    the top level of the json response body.
-        #
-        #  * For _bot posted message_ action responses, slack expects the
-        #    attachment body used to replace the attachment to be within an
-        #    `attachments` array.
-        if is_message:
-            attachment = {"attachments": [attachment]}
-
-        return attachment
 
 
 class _ResolveDialog(_ModalDialog):
