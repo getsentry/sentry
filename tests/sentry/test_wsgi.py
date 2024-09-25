@@ -1,59 +1,32 @@
-import os
-import select
+import inspect
 import subprocess
 import sys
-import time
 
-from sentry.services.http import PYUWSGI_PROG
+
+def subprocess_test_wsgi_warmup():
+    # isort: off
+    import sentry.wsgi  # noqa
+    import sys
+
+    assert "django.urls.resolvers" in sys.modules
+
+    import django.urls.resolvers
+
+    resolver = django.urls.resolvers.get_resolver()
+    assert resolver._populated is True  # type: ignore[attr-defined]
 
 
 def test_wsgi_init():
-    os.environ["UWSGI_HTTP_SOCKET"] = "127.0.0.1:9001"
-    os.environ["UWSGI_MODULE"] = "sentry.wsgi:application"
-    os.environ["TEST_WARMUP"] = "1"
-    cmd = (
-        sys.executable,
-        "-c",
-        PYUWSGI_PROG,
+    """
+    This test ensures that the wsgi.py file correctly pre-loads the application and
+    various resources we want to be "warm"
+    """
+    subprocess_test = "\n".join(
+        line.lstrip() for line in inspect.getsource(subprocess_test_wsgi_warmup).splitlines()[1:]
     )
-
-    process = subprocess.Popen(
-        cmd,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+    process = subprocess.run(
+        [sys.executable, "-c", subprocess_test],
+        capture_output=True,
         text=True,
     )
-
-    def read_pipes(pipes, timeout=0.1):
-        readable, _, _ = select.select(pipes, [], [], timeout)
-        output = []
-        for pipe in readable:
-            line = pipe.readline()
-            if line:
-                output.append(line)
-        return output
-
-    # Wait for up to 10 seconds for the server to start
-    start_time = time.time()
-    output = []
-    while time.time() - start_time < 10:
-        new_output = read_pipes([process.stdout, process.stderr])
-        output.extend(new_output)
-
-        if "warmup complete" in "".join(output).lower():
-            break
-
-        time.sleep(0.1)
-    else:
-        raise AssertionError("WSGI server did not start within the timeout period")
-
-    full_output = "".join(output)
-    assert "warmup complete" in full_output
-
-    process.kill()
-    process.wait()
-
-    if process.stdout:
-        process.stdout.close()
-    if process.stderr:
-        process.stderr.close()
+    assert process.returncode == 0, process.stderr + process.stdout
