@@ -55,24 +55,10 @@ const getInstallConfig = (params: Params) => [
 ];
 
 const onboarding: OnboardingConfig = {
-  introduction: () => (
-    <Fragment>
-      <p>
-        {tct(
-          "Sentry's integration with [remixLink:Remix] supports Remix 1.0.0 and above.",
-          {
-            remixLink: <ExternalLink href="https://remix.run/" />,
-          }
-        )}
-      </p>
-      <p>
-        {tct('In this quick guide you’ll use [npm] or [yarn] to set up:', {
-          npm: <strong>npm</strong>,
-          yarn: <strong>yarn</strong>,
-        })}
-      </p>
-    </Fragment>
-  ),
+  introduction: () =>
+    tct("Sentry's integration with [remixLink:Remix] supports Remix 1.0.0 and above.", {
+      remixLink: <ExternalLink href="https://remix.run/" />,
+    }),
   install: (params: Params) => getInstallConfig(params),
   configure: () => [
     {
