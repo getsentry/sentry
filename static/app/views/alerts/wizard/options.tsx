@@ -144,12 +144,10 @@ export const getAlertWizardCategories = (org: Organization) => {
       });
     }
 
-    if (org.features.includes('uptime-display-wizard-create')) {
-      result.push({
-        categoryHeading: t('Uptime Monitoring'),
-        options: ['uptime_monitor'],
-      });
-    }
+    result.push({
+      categoryHeading: t('Uptime Monitoring'),
+      options: ['uptime_monitor'],
+    });
     result.push({
       categoryHeading: hasCustomMetrics(org) ? t('Metrics') : t('Custom'),
       options: [hasCustomMetrics(org) ? 'custom_metrics' : 'custom_transactions'],
