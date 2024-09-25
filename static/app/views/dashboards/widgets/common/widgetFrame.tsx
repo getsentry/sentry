@@ -1,28 +1,34 @@
 import styled from '@emotion/styled';
 
 import {HeaderTitle} from 'sentry/components/charts/styles';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
 
 export interface Props {
   children: React.ReactNode;
   description?: string;
+  showDescriptionInTooltip?: boolean;
   title?: string;
 }
 
 export function WidgetFrame(props: Props) {
-  const {title, description, children} = props;
+  const {title, description, showDescriptionInTooltip = true, children} = props;
 
   return (
     <Frame>
-      <Header>
+      <Header showDescriptionInTooltip={showDescriptionInTooltip}>
         <Title>
           <Tooltip title={title} containerDisplayMode="grid" showOnlyOnOverflow>
             <TitleText>{title}</TitleText>
           </Tooltip>
+
+          {description && showDescriptionInTooltip && (
+            <QuestionTooltip size="sm" title={description} />
+          )}
         </Title>
 
-        {description && (
+        {description && !showDescriptionInTooltip && (
           <Tooltip
             title={description}
             containerDisplayMode="grid"
@@ -54,12 +60,12 @@ const Frame = styled('div')`
   background: ${p => p.theme.background};
 `;
 
-const Header = styled('div')`
+const Header = styled('div')<{showDescriptionInTooltip: boolean}>`
   display: flex;
   flex-direction: column;
 
   width: 100%;
-  min-height: 36px;
+  min-height: ${p => (p.showDescriptionInTooltip ? '36px' : '')};
 
   padding: ${space(2)} ${space(1)} 0 ${space(3)};
 `;
