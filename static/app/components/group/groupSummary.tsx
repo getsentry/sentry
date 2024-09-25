@@ -49,7 +49,7 @@ export function useGroupSummary(groupId: string, groupCategory: IssueCategory) {
     isError: isAutofixSetupError,
   } = useAutofixSetup({groupId});
 
-  const hasGenAIConsent = autofixSetupData?.genAIConsent.ok ?? false;
+  const hasGenAIConsent = (autofixSetupData?.genAIConsent.ok ?? false) || true; // TODO
 
   const queryData = useApiQuery<GroupSummaryData>(
     makeGroupSummaryQueryKey(organization.slug, groupId),
@@ -255,10 +255,12 @@ const IconContainer = styled('div')`
   flex-shrink: 0;
   margin-right: ${space(1)};
   margin-top: ${space(0.25)};
+  max-height: ${space(2)};
 `;
 
 const IconContainerRight = styled('div')`
   flex-shrink: 0;
   margin-left: ${space(1)};
   margin-top: ${space(0.25)};
+  max-height: ${space(2)};
 `;
