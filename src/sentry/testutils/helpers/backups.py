@@ -619,6 +619,7 @@ class ExhaustiveFixtures(Fixtures):
 
         notification_condition_group = self.create_data_condition_group(
             logic_type=DataConditionGroup.Type.ANY,
+            organization=org,
         )
 
         send_notification_action = self.create_action(type=Action.Type.Notification, data="")

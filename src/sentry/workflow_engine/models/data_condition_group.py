@@ -18,3 +18,4 @@ class DataConditionGroup(DefaultFieldsModel):
         ALL = "all"
 
     logic_type = models.CharField(max_length=200, choices=Type.choices, default=Type.ANY)
+    organization = models.ForeignKey("sentry.Organization", on_delete=models.CASCADE)
