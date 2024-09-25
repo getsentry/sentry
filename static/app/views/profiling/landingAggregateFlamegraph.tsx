@@ -201,8 +201,8 @@ function LandingAggregaterFlamegraphFunctionBreakdown() {
               </FunctionInfo>
               <Metric>
                 {t('Samples')}: {formatAbbreviatedNumber(frame.aggregate.totalWeight)}
-                {' | '}
-                {t('Instances')}: {frame.instances.length}
+                {/* {' | '}
+                {t('Instances')}: {frame.instances.length} */}
               </Metric>
             </FunctionListItem>
           ))}
