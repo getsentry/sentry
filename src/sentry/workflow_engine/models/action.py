@@ -20,7 +20,7 @@ class Action(DefaultFieldsModel):
         TriggerWorkflow = "TriggerWorkflowAction"
 
     """
-    Required actions will always be invoked, cannot be disabled, and will not be displayed in the UI.
+    Required actions cannot be disabled by the user, and will not be displayed in the UI.
     These actions will be used internally, to trigger other aspects of the system.
     For example, creating a new issue in the Issue Platform or a detector emitting an event.
     """
