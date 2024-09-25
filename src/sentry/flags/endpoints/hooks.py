@@ -1,4 +1,5 @@
 import datetime
+from enum import Enum
 from typing import Any, TypedDict
 
 from django.db import models
@@ -9,11 +10,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.authentication import (
-    ApiKeyAuthentication,
-    OrgAuthTokenAuthentication,
-    UserAuthTokenAuthentication,
-)
+from sentry.api.authentication import OrgAuthTokenAuthentication
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -32,11 +29,7 @@ class OrganizationFlagHookPermission(OrganizationPermission):
 
 @region_silo_endpoint
 class OrganizationFlagsHooksEndpoint(Endpoint):
-    authentication_classes = (
-        ApiKeyAuthentication,
-        OrgAuthTokenAuthentication,
-        UserAuthTokenAuthentication,
-    )
+    authentication_classes = (OrgAuthTokenAuthentication,)
     owner = ApiOwner.REPLAY
     permission_classes = (OrganizationFlagHookPermission,)
     publish_status = {
@@ -67,7 +60,15 @@ class OrganizationFlagsHooksEndpoint(Endpoint):
     def post(self, request: Request, organization: Organization, provider: str) -> Response:
         try:
             row_data = handle_provider_event(provider, request.data, organization.id)
-            FlagAuditLogModel.objects.create(**row_data)
+
+            action_int = ACTION_MAP[row_data.pop("action")]
+            modified_by_type_int = MODIFIED_BY_TYPE_MAP[row_data.pop("modified_by_type")]
+
+            FlagAuditLogModel.objects.create(
+                action=action_int,
+                modified_by_type=modified_by_type_int,
+                **row_data,
+            )
             return Response(status=200)
         except InvalidProvider:
             raise ResourceDoesNotExist
@@ -75,12 +76,54 @@ class OrganizationFlagsHooksEndpoint(Endpoint):
             return Response(exc.errors, status=400)
 
 
+"""Database definition.
+
+Typically this would be extracted into a seperate file. For now it lives here since the
+proclivity for over categorization limits people's ability to reference, to learn, and
+generally to model the program in their mind.
+"""
+
+
+class ActionEnum(Enum):
+    CREATED = 0
+    DELETED = 1
+    UPDATED = 2
+
+
+ACTION_MAP = {
+    "created": ActionEnum.CREATED.value,
+    "deleted": ActionEnum.DELETED.value,
+    "updated": ActionEnum.UPDATED.value,
+}
+
+
+class ModifiedByTypeEnum(Enum):
+    EMAIL = 0
+    ID = 1
+    NAME = 2
+
+
+MODIFIED_BY_TYPE_MAP = {
+    "email": ModifiedByTypeEnum.EMAIL.value,
+    "id": ModifiedByTypeEnum.ID.value,
+    "name": ModifiedByTypeEnum.NAME.value,
+}
+
+
 @region_silo_model
 class FlagAuditLogModel(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
-    ACTION_TYPES = ((0, "created"), (1, "modified"), (2, "removed"))
-    MODIFIED_BY_TYPE_TYPES = ((0, "email"), (1, "name"), (2, "id"))
+    ACTION_TYPES = (
+        (ActionEnum.CREATED, "created"),
+        (ActionEnum.UPDATED, "updated"),
+        (ActionEnum.DELETED, "deleted"),
+    )
+    MODIFIED_BY_TYPE_TYPES = (
+        (ModifiedByTypeEnum.EMAIL, "email"),
+        (ModifiedByTypeEnum.NAME, "name"),
+        (ModifiedByTypeEnum.ID, "id"),
+    )
 
     action = models.PositiveSmallIntegerField(choices=ACTION_TYPES)
     flag = models.CharField(max_length=100)
@@ -153,7 +196,7 @@ limited to what we can extract from the git repository on merge.
 
 
 class FlagPoleSerializer(serializers.Serializer):
-    action = serializers.ChoiceField(choices=("created", "modified"), required=True)
+    action = serializers.ChoiceField(choices=("created", "updated"), required=True)
     flag = serializers.CharField(max_length=100, required=True)
     modified_at = serializers.DateTimeField(required=True)
     modified_by = serializers.CharField(required=True)
