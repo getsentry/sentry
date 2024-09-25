@@ -16,7 +16,7 @@ interface NavItem {
 }
 
 /** NavItems are displayed in either `main` and `footer` sections */
-export interface NavItemLayout<Item extends NavItem> {
+export interface NavItemLayout<Item extends NavSidebarItem | NavSubmenuItem> {
   main: Item[];
   footer?: Item[];
 }
