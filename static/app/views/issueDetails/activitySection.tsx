@@ -48,6 +48,7 @@ function ActivitySection(props: Props) {
             onCreate(n, me);
             setInputId(uniqueId());
           }}
+          source="activity"
           {...noteProps}
         />
       </ActivityItem>
