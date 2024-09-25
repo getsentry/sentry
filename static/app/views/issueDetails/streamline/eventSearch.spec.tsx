@@ -34,7 +34,7 @@ describe('EventSearch', () => {
     query: '',
   };
   const [tagKey, tagValue] = ['user.email', 'leander.rodrigues@sentry.io'];
-  let mockTagKeyQuery;
+  let mockTagKeyQuery: jest.Mock;
 
   beforeEach(() => {
     OrganizationStore.onUpdate(organization, {replace: true});

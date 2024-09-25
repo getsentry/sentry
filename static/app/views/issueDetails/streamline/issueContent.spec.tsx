@@ -13,8 +13,8 @@ describe('IssueContent', () => {
   const group = GroupFixture();
   const event = EventFixture();
 
-  let mockMergedIssues;
-  let mockSimilarIssues;
+  let mockMergedIssues: jest.Mock;
+  let mockSimilarIssues: jest.Mock;
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
