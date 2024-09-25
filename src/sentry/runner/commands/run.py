@@ -256,13 +256,14 @@ def worker(ignore_unknown_queues: bool, **options: Any) -> None:
 )
 @click.option("--autoreload", is_flag=True, default=False, help="Enable autoreloading.")
 @click.option("--max-tasks-per-child", default=10000)
+@click.option("--port", "-P", help=("The port number the sever runs on"), default=50051)
 @log_options()
 @configuration
-def taskworker_push(**options: Any) -> None:
+def taskworker_push(port: int, **options: Any) -> None:
     from sentry.taskworker.worker_push import serve
 
     with managed_bgtasks(role="taskworker"):
-        serve(**options)
+        serve(port, **options)
 
 
 @run.command()
@@ -298,13 +299,22 @@ def taskworker_pull(**options: Any) -> None:
 
 
 @run.command()
+@click.option(
+    "--worker-addrs",
+    "-W",
+    help=(
+        "The address of the workers, in the form of <IP>:<PORT>. "
+        "Can be a comma separated list"
+        "Example: -W 127.0.0.1:50051,127.0.0.1:50052"
+    ),
+)
 @log_options()
 @configuration
-def kafka_task_grpc_push(**options: Any) -> None:
+def kafka_task_grpc_push(worker_addrs: str) -> None:
     from sentry.taskworker.consumer_grpc_push import start
 
     with managed_bgtasks(role="taskworker"):
-        start()
+        start(worker_addrs.split(","))
 
 
 @run.command()

@@ -78,9 +78,10 @@ class WorkerServicer(BaseWorkerServiceServicer):
         return DispatchResponse(status=next_state)
 
 
-def serve(**options):
+def serve(port: int, **options):
+    logger.info("Starting server on: %s", port)
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     add_WorkerServiceServicer_to_server(WorkerServicer(**options), server)
-    server.add_insecure_port("[::]:50051")
+    server.add_insecure_port(f"[::]:{port}")
     server.start()
     server.wait_for_termination()

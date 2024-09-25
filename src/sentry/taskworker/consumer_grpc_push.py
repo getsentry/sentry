@@ -4,11 +4,16 @@ This module is gRPC client that pushes tasks to the taskworker.
 
 import logging
 import time
+from collections import deque
+from collections.abc import Iterable
+from concurrent.futures import FIRST_COMPLETED, wait
+from concurrent.futures.thread import ThreadPoolExecutor
 
 import grpc
 from sentry_protos.sentry.v1alpha.taskworker_pb2 import (
     TASK_ACTIVATION_STATUS_PENDING,
     DispatchRequest,
+    InflightActivation,
 )
 from sentry_protos.sentry.v1alpha.taskworker_pb2_grpc import WorkerServiceStub
 
@@ -18,29 +23,51 @@ logger = logging.getLogger("sentry.taskworker.grpc_server")
 
 
 class ConsumerGrpc:
-    def __init__(self) -> None:
+    def __init__(self, worker_addrs: Iterable[str]) -> None:
         self.pending_task_store = PendingTaskStore()
-        self.host = "localhost"
-        self.server_port = 50051
-        self.channel = grpc.insecure_channel(f"{self.host}:{self.server_port}")
-        self.stub = WorkerServiceStub(self.channel)
+        self.available_stubs = deque(
+            [WorkerServiceStub(grpc.insecure_channel(worker_addr)) for worker_addr in worker_addrs]
+        )
+        self.current_connections = set()
 
     def start(self):
-        while True:
-            self.dispatch_task()
+        with ThreadPoolExecutor(max_workers=len(self.available_stubs)) as executor:
+            logger.info("Starting consumer grpc with %s threads", len(self.available_stubs))
+            while True:
+                inflight_activation = self._poll_pending_task()
 
-    def dispatch_task(self):
-        in_flight_activation = self.pending_task_store.get_pending_task()
-        if not in_flight_activation:
+                if len(self.available_stubs) == 0:
+                    done, not_done = wait(self.current_connections, return_when=FIRST_COMPLETED)
+                    self.available_stubs.extend([future.result() for future in done])
+                    self.current_connections = not_done
+
+                self.current_connections.add(
+                    executor.submit(
+                        self._dispatch_activation,
+                        self.available_stubs.popleft(),
+                        inflight_activation,
+                    )
+                )
+
+    def _poll_pending_task(self) -> InflightActivation:
+        while True:
+            inflight_activation = self.pending_task_store.get_pending_task()
+            if inflight_activation:
+                return inflight_activation
             logger.info("No tasks")
             time.sleep(1)
-            return
+
+    def _dispatch_activation(
+        self,
+        stub: WorkerServiceStub,
+        inflight_activation: InflightActivation,
+    ) -> WorkerServiceStub:
         try:
-            dispatch_task_response = self.stub.Dispatch(
-                DispatchRequest(task_activation=in_flight_activation.activation)
+            dispatch_task_response = stub.Dispatch(
+                DispatchRequest(task_activation=inflight_activation.activation)
             )
             self.pending_task_store.set_task_status(
-                task_id=in_flight_activation.activation.id,
+                task_id=inflight_activation.activation.id,
                 task_status=dispatch_task_response.status,
             )
         except grpc.RpcError as rpc_error:
@@ -50,15 +77,16 @@ class ConsumerGrpc:
                 rpc_error.details(),
             )
             self.pending_task_store.set_task_status(
-                task_id=in_flight_activation.activation.id,
+                task_id=inflight_activation.activation.id,
                 task_status=TASK_ACTIVATION_STATUS_PENDING,
             )
             self.pending_task_store.set_task_deadline(
-                task_id=in_flight_activation.activation.id, task_deadline=None
+                task_id=inflight_activation.activation.id, task_deadline=None
             )
             time.sleep(1)
+        return stub
 
 
-def start():
-    consumer_grpc = ConsumerGrpc()
+def start(worker_addrs: Iterable[str]):
+    consumer_grpc = ConsumerGrpc(worker_addrs)
     consumer_grpc.start()
