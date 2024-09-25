@@ -15,7 +15,7 @@ import ParticipantList from 'sentry/components/group/streamlinedParticipantList'
 import Link from 'sentry/components/links/link';
 import Version from 'sentry/components/version';
 import VersionHoverCard from 'sentry/components/versionHoverCard';
-import {IconDashboard} from 'sentry/icons';
+import {IconChevron, IconPanel} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
@@ -226,7 +226,13 @@ export default function StreamlinedGroupHeader({
           </WorkflowWrapper>
           <Divider />
           <Button
-            icon={<IconDashboard />}
+            icon={
+              sidebarOpen ? (
+                <IconChevron direction="right" />
+              ) : (
+                <IconPanel direction="right" />
+              )
+            }
             title={sidebarOpen ? t('Close Sidebar') : t('Open Sidebar')}
             aria-label={sidebarOpen ? t('Close Sidebar') : t('Open Sidebar')}
             size="sm"
