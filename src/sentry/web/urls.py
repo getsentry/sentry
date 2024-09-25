@@ -14,7 +14,7 @@ from sentry.charts.endpoints import serve_chartcuterie_config
 from sentry.integrations.web.doc_integration_avatar import DocIntegrationAvatarPhotoView
 from sentry.integrations.web.organization_integration_setup import OrganizationIntegrationSetupView
 from sentry.toolbar.views.toolbar_iframe import ToolbarIframeView
-from sentry.toolbar.views.toolbar_login import ToolbarLoginView
+from sentry.toolbar.views.toolbar_login_success import ToolbarLoginSuccessView
 from sentry.users.web import accounts
 from sentry.users.web.account_identity import AccountIdentityAssociateView
 from sentry.users.web.user_avatar import UserAvatarPhotoView
@@ -828,9 +828,9 @@ urlpatterns += [
                     name="sentry-toolbar-iframe",
                 ),
                 re_path(
-                    r"^(?P<organization_slug>[^/\.]+)/(?P<project_id_or_slug>[^/\.]+)/login/$",
-                    ToolbarLoginView.as_view(),
-                    name="sentry-toolbar-login",
+                    r"^(?P<organization_slug>[^/\.]+)/(?P<project_id_or_slug>[^/\.]+)/login-success/$",
+                    ToolbarLoginSuccessView.as_view(),
+                    name="sentry-toolbar-login-success",
                 ),
             ]
         ),
