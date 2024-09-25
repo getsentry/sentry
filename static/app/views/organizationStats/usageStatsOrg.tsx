@@ -25,6 +25,7 @@ import {space} from 'sentry/styles/space';
 import type {DataCategoryInfo, IntervalPeriod} from 'sentry/types/core';
 import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 
 import {FORMAT_DATETIME_DAILY, FORMAT_DATETIME_HOURLY} from './usageChart/utils';
@@ -276,7 +277,10 @@ class UsageStatsOrganization<
               'You can find more information about each category in our [link:docs]',
               {
                 link: (
-                  <ExternalLink href="https://docs.sentry.io/product/stats/#usage-stats" />
+                  <ExternalLink
+                    href="https://docs.sentry.io/product/stats/#usage-stats"
+                    onClick={() => this.handleOnDocsClick('chart-title')}
+                  />
                 ),
               }
             )}
@@ -306,6 +310,21 @@ class UsageStatsOrganization<
 
     return chartProps;
   }
+
+  handleOnDocsClick = (
+    source:
+      | 'card-accepted'
+      | 'card-filtered'
+      | 'card-rate-limited'
+      | 'card-invalid'
+      | 'chart-title'
+  ) => {
+    const {organization} = this.props;
+    trackAnalytics('stats.docs_clicked', {
+      organization,
+      source,
+    });
+  };
 
   get cardMetadata() {
     const {
@@ -338,7 +357,10 @@ class UsageStatsOrganization<
           {
             dataCategory,
             docsLink: (
-              <ExternalLink href="https://docs.sentry.io/product/stats/#accepted" />
+              <ExternalLink
+                href="https://docs.sentry.io/product/stats/#accepted"
+                onClick={() => this.handleOnDocsClick('card-accepted')}
+              />
             ),
           }
         ),
@@ -362,7 +384,10 @@ class UsageStatsOrganization<
               <a href="#" onClick={event => navigateToInboundFilterSettings(event)} />
             ),
             docsLink: (
-              <ExternalLink href="https://docs.sentry.io/product/stats/#filtered" />
+              <ExternalLink
+                href="https://docs.sentry.io/product/stats/#filtered"
+                onClick={() => this.handleOnDocsClick('card-filtered')}
+              />
             ),
           }
         ),
@@ -375,7 +400,10 @@ class UsageStatsOrganization<
           {
             dataCategory,
             docsLink: (
-              <ExternalLink href="https://docs.sentry.io/product/stats/#rate-limited" />
+              <ExternalLink
+                href="https://docs.sentry.io/product/stats/#rate-limited"
+                onClick={() => this.handleOnDocsClick('card-rate-limited')}
+              />
             ),
           }
         ),
@@ -388,7 +416,10 @@ class UsageStatsOrganization<
           {
             dataCategory,
             docsLink: (
-              <ExternalLink href="https://docs.sentry.io/product/stats/#invalid" />
+              <ExternalLink
+                href="https://docs.sentry.io/product/stats/#invalid"
+                onClick={() => this.handleOnDocsClick('card-invalid')}
+              />
             ),
           }
         ),
