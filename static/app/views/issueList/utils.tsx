@@ -243,6 +243,7 @@ function getIssueGroupFilter(group: IssueGroup): string {
   return IssueGroupFilter[group];
 }
 
+/** Generate a properly encoded `?query=` string for a given issue group */
 export function getSearchForIssueGroup(group: IssueGroup): string {
-  return `?query=is:unresolved+${getIssueGroupFilter(group)}`;
+  return `?${new URLSearchParams(`query=is:unresolved+${getIssueGroupFilter(group)}`)}`;
 }
