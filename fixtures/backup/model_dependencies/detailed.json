@@ -31,6 +31,24 @@
       ]
     ]
   },
+  "flags.flagauditlogmodel": {
+    "dangling": false,
+    "foreign_keys": {
+      "organization_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.organization",
+        "nullable": false
+      }
+    },
+    "model": "flags.flagauditlogmodel",
+    "relocation_dependencies": [],
+    "relocation_scope": "Excluded",
+    "silos": [
+      "Region"
+    ],
+    "table_name": "flags_audit_log",
+    "uniques": []
+  },
   "hybridcloud.apikeyreplica": {
     "dangling": false,
     "foreign_keys": {

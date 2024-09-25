@@ -102,6 +102,7 @@
   "hybridcloud.organizationslugreservationreplica",
   "hybridcloud.externalactorreplica",
   "hybridcloud.apikeyreplica",
+  "flags.flagauditlogmodel",
   "feedback.feedback",
   "uptime.projectuptimesubscription",
   "sentry.useroption",
