@@ -674,28 +674,29 @@ function GroupDetailsContent({
     baseUrl,
   };
 
-  return (
+  return hasStreamlinedUI ? (
+    <div>
+      <StreamlinedGroupHeader
+        group={group}
+        project={project}
+        groupReprocessingStatus={groupReprocessingStatus}
+        baseUrl={baseUrl}
+      />
+      {isValidElement(children) ? cloneElement(children, childProps) : children}
+    </div>
+  ) : (
     <Tabs
       value={currentTab}
       onChange={tab => trackTabChanged({tab, group, project, event, organization})}
     >
-      {hasStreamlinedUI ? (
-        <StreamlinedGroupHeader
-          group={group}
-          project={project}
-          groupReprocessingStatus={groupReprocessingStatus}
-          baseUrl={baseUrl}
-        />
-      ) : (
-        <GroupHeader
-          organization={organization}
-          groupReprocessingStatus={groupReprocessingStatus}
-          event={event ?? undefined}
-          group={group}
-          baseUrl={baseUrl}
-          project={project as Project}
-        />
-      )}
+      <GroupHeader
+        organization={organization}
+        groupReprocessingStatus={groupReprocessingStatus}
+        event={event ?? undefined}
+        group={group}
+        baseUrl={baseUrl}
+        project={project as Project}
+      />
       <GroupTabPanels>
         <TabPanels.Item key={currentTab}>
           {isValidElement(children) ? cloneElement(children, childProps) : children}
