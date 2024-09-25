@@ -4,10 +4,13 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any
 
+from django.conf import settings
+
 from sentry.models.organization import Organization
 from sentry.organizations.services.organization import RpcOrganization
 from sentry.users.models import User
 from sentry.users.services.user import RpcUser
+from sentry.utils import metrics
 
 
 class MessagingInteractionType(Enum):
@@ -53,14 +56,28 @@ class MessagingInteractionEvent:
             "organization_id": (self.organization.id if self.organization else None),
         }
 
+    def _record_event(
+        self, event_type: str, sample_rate: float = settings.SENTRY_METRICS_SAMPLE_RATE
+    ) -> None:
+        tag_tokens = ["sentry", "integrations", "messaging", "slo"] + [
+            self.provider,
+            str(self.interaction_type).lower(),
+            event_type,
+        ]
+        tag = ".".join(tag_tokens)
+        metrics.incr(tag, sample_rate=sample_rate)
+
     def record_start(self) -> None:
-        pass  # TODO
+        self._record_event("start")
 
     def record_success(self) -> None:
-        pass  # TODO
+        # As an intermediately shippable state, record a "halt" until we're confident
+        # we're calling `record_failure` on all soft failure conditions. Then we can
+        # change it to "success".
+        self._record_event("halt")
 
     def record_failure(self, exc: Exception | None = None) -> None:
-        pass  # TODO
+        self._record_event("failure", sample_rate=1.0)
 
     @contextmanager
     def capture(self) -> Generator[None, None, None]:
