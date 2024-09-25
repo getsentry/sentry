@@ -40,7 +40,47 @@ describe('FeatureObserver', () => {
       ]);
     });
 
-    it('should remove duplicate flags', () => {
+    it('should remove duplicate flags with a full queue', () => {
+      const inst = new FeatureObserver();
+      inst.observeFlags({organization, bufferSize: 3});
+      expect(inst.getFeatureFlags().values).toEqual([]);
+
+      organization.features.includes('enable-issues');
+      organization.features.includes('replay-mobile-ui');
+      organization.features.includes('enable-discover');
+      expect(inst.getFeatureFlags().values).toEqual([
+        {flag: 'enable-issues', result: true},
+        {flag: 'replay-mobile-ui', result: false},
+        {flag: 'enable-discover', result: false},
+      ]);
+
+      // this is already in the queue; it should be removed and
+      // added back to the end of the queue
+      organization.features.includes('enable-issues');
+      expect(inst.getFeatureFlags().values).toEqual([
+        {flag: 'replay-mobile-ui', result: false},
+        {flag: 'enable-discover', result: false},
+        {flag: 'enable-issues', result: true},
+      ]);
+
+      organization.features.includes('spam-ingest');
+      expect(inst.getFeatureFlags().values).toEqual([
+        {flag: 'enable-discover', result: false},
+        {flag: 'enable-issues', result: true},
+        {flag: 'spam-ingest', result: false},
+      ]);
+
+      // this is already in the queue but in the back
+      // the queue should not change
+      organization.features.includes('spam-ingest');
+      expect(inst.getFeatureFlags().values).toEqual([
+        {flag: 'enable-discover', result: false},
+        {flag: 'enable-issues', result: true},
+        {flag: 'spam-ingest', result: false},
+      ]);
+    });
+
+    it('should remove duplicate flags with an unfilled queue', () => {
       const inst = new FeatureObserver();
       inst.observeFlags({organization, bufferSize: 3});
       expect(inst.getFeatureFlags().values).toEqual([]);
@@ -60,20 +100,12 @@ describe('FeatureObserver', () => {
         {flag: 'enable-issues', result: true},
       ]);
 
-      organization.features.includes('spam-ingest');
-      expect(inst.getFeatureFlags().values).toEqual([
-        {flag: 'replay-mobile-ui', result: false},
-        {flag: 'enable-issues', result: true},
-        {flag: 'spam-ingest', result: false},
-      ]);
-
       // this is already in the queue but in the back
       // the queue should not change
-      organization.features.includes('spam-ingest');
+      organization.features.includes('enable-issues');
       expect(inst.getFeatureFlags().values).toEqual([
         {flag: 'replay-mobile-ui', result: false},
         {flag: 'enable-issues', result: true},
-        {flag: 'spam-ingest', result: false},
       ]);
     });
 

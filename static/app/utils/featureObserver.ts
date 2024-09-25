@@ -43,14 +43,15 @@ export default class FeatureObserver {
         // Check if the flag is already in the buffer
         const index = FLAGS.values.findIndex(f => f.flag === flagName[0]);
 
-        // If at capacity AND the duplicate is not at the end, we need to remove the earliest flag
-        if (FLAGS.values.length === bufferSize && !(index === bufferSize - 1)) {
-          FLAGS.values.shift();
-        }
-
         // The flag is already in the buffer
         if (index !== -1) {
           FLAGS.values.splice(index, 1);
+        }
+
+        // If at capacity, we need to remove the earliest flag
+        // This will only happen if not a duplicate flag
+        if (FLAGS.values.length === bufferSize) {
+          FLAGS.values.shift();
         }
 
         // Store the flag and its result in the buffer
