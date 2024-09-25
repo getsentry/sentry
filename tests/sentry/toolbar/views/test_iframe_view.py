@@ -5,6 +5,7 @@ from django.urls import reverse
 
 from sentry.testutils.cases import APITestCase
 from sentry.toolbar.views.iframe_view import INVALID_TEMPLATE, SUCCESS_TEMPLATE
+from tests.sentry.toolbar.utils.test_http import get_directives
 
 
 class IframeViewTest(APITestCase):
@@ -63,6 +64,18 @@ class IframeViewTest(APITestCase):
         self.project.update_option("sentry:toolbar_allowed_origins", ["https://sentry.io"])
         res = self.client.get(self.url, HTTP_REFERER="https://sentry.io")
         assert res.headers.get("X-Frame-Options") == "ALLOWALL"
+
+    def test_csp(self):
+        self.project.update_option("sentry:toolbar_allowed_origins", ["https://sentry.io"])
+        res = self.client.get(self.url, HTTP_REFERER="https://sentry.io")
+        csp = res.headers.get("Content-Security-Policy")
+        directives = get_directives(csp)
+
+        assert "script-src" in directives
+        script_src = directives["script-src"]
+        for src in ["sentry.io", "*.sentry.io"]:
+            assert src in script_src
+        assert any([src == "'unsafe-inline'" or src.startswith("'nonce-") for src in script_src])
 
 
 def _has_expected_response(
