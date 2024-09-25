@@ -30,7 +30,6 @@ import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageStat
 import GroupActions from 'sentry/views/issueDetails/actions/index';
 import {Divider} from 'sentry/views/issueDetails/divider';
 import GroupPriority from 'sentry/views/issueDetails/groupPriority';
-import {GroupHeaderTabs} from 'sentry/views/issueDetails/header';
 import {AttachmentsBadge} from 'sentry/views/issueDetails/streamline/attachmentsBadge';
 import {useIssueDetailsHeader} from 'sentry/views/issueDetails/useIssueDetailsHeader';
 import type {ReprocessingStatus} from 'sentry/views/issueDetails/utils';
@@ -80,13 +79,12 @@ export default function StreamlinedGroupHeader({
     true
   );
 
-  const {disabledTabs, message, eventRoute, disableActions, shortIdBreadcrumb} =
-    useIssueDetailsHeader({
-      group,
-      groupReprocessingStatus,
-      baseUrl,
-      project,
-    });
+  const {message, eventRoute, disableActions, shortIdBreadcrumb} = useIssueDetailsHeader({
+    group,
+    groupReprocessingStatus,
+    baseUrl,
+    project,
+  });
 
   const activeUser = ConfigStore.get('user');
 
@@ -225,16 +223,14 @@ export default function StreamlinedGroupHeader({
           <Divider />
           <Button
             icon={<IconDashboard />}
-            size="xs"
+            title={sidebarOpen ? t('Close Sidebar') : t('Open Sidebar')}
+            aria-label={sidebarOpen ? t('Close Sidebar') : t('Open Sidebar')}
+            size="sm"
             borderless
-            aria-label={'sidebar-collapse-toggle'}
             onClick={() => setSidebarOpen(!sidebarOpen)}
           />
         </SidebarWorkflowWrapper>
       </InfoWrapper>
-      <div>
-        <GroupHeaderTabs {...{baseUrl, disabledTabs, eventRoute, group, project}} />
-      </div>
     </Header>
   );
 }

@@ -36,7 +36,7 @@ import {useIssueDetailsHeader} from 'sentry/views/issueDetails/useIssueDetailsHe
 
 import GroupActions from './actions';
 import {Tab} from './types';
-import {type ReprocessingStatus, useHasStreamlinedUI} from './utils';
+import type {ReprocessingStatus} from './utils';
 
 type Props = {
   baseUrl: string;
@@ -61,7 +61,6 @@ export function GroupHeaderTabs({
 }: GroupHeaderTabsProps) {
   const organization = useOrganization();
   const location = useLocation();
-  const hasStreamlinedUI = useHasStreamlinedUI();
 
   const {getReplayCountForIssue} = useReplayCountForIssues({
     statsPeriod: '90d',
@@ -93,47 +92,7 @@ export function GroupHeaderTabs({
     }
   }, [group.issueType, organization]);
 
-  return hasStreamlinedUI ? (
-    <StyledTabList hideBorder>
-      <TabList.Item
-        key={Tab.DETAILS}
-        disabled={disabledTabs.includes(Tab.DETAILS)}
-        to={`${baseUrl}${location.search}`}
-      >
-        {t('Details')}
-      </TabList.Item>
-      <TabList.Item
-        key={Tab.ACTIVITY}
-        textValue={t('Activity')}
-        disabled={disabledTabs.includes(Tab.ACTIVITY)}
-        to={{pathname: `${baseUrl}activity/`, query: queryParams}}
-      >
-        {t('Activity')}
-        <IconBadge>
-          {group.numComments}
-          <IconChat size="xs" />
-        </IconBadge>
-      </TabList.Item>
-      <TabList.Item
-        key={Tab.USER_FEEDBACK}
-        textValue={t('User Feedback')}
-        hidden={!issueTypeConfig.userFeedback.enabled}
-        disabled={disabledTabs.includes(Tab.USER_FEEDBACK)}
-        to={{pathname: `${baseUrl}feedback/`, query: queryParams}}
-      >
-        {t('User Feedback')} <Badge text={group.userReportCount} />
-      </TabList.Item>
-      <TabList.Item
-        key={Tab.REPLAYS}
-        textValue={t('Replays')}
-        hidden={!hasReplaySupport || !issueTypeConfig.replays.enabled}
-        to={{pathname: `${baseUrl}replays/`, query: queryParams}}
-      >
-        {t('Replays')}
-        <ReplayCountBadge count={replaysCount} />
-      </TabList.Item>
-    </StyledTabList>
-  ) : (
+  return (
     <StyledTabList hideBorder>
       <TabList.Item
         key={Tab.DETAILS}
