@@ -17,7 +17,7 @@ export const DATA_TYPE_PLURAL = t('Queries');
 export const BASE_URL = 'database';
 
 export const BASE_FILTERS = {
-  'span.module': ModuleName.DB,
+  'span.category': ModuleName.DB,
   has: 'span.description',
 };
 
