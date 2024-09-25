@@ -128,17 +128,21 @@ function AddViewBanner({hasSavedSearches}: {hasSavedSearches: boolean}) {
         <div>{t('A few notes before you get started:')}</div>
         <AFewNotesList>
           <li>
-            <b>Views are for your eyes only.</b> No need to worry about messing up other
-            team members' views
+            <BannerNoteBold>{t('Views are for your eyes only. ')}</BannerNoteBold>
+            {t("No need to worry about messing up other team members' views")}
           </li>
           <li>
-            <b>Drag your views to reorder.</b> The leftmost view is your “default”
-            experience
+            <BannerNoteBold>{t('Drag your views to reorder. ')}</BannerNoteBold>{' '}
+            {t('The leftmost view is your “default” experience')}
           </li>
           {hasSavedSearches && (
             <li>
-              <b>Saved searches will be deprecated in the future. </b> You can save them
-              as views from the list below (only appears if you have saved searches)
+              <BannerNoteBold>
+                {t('Saved searches will be deprecated in the future. ')}
+              </BannerNoteBold>{' '}
+              {t(
+                'You can save them as views from the list below (only appears if you have saved searches)'
+              )}
             </li>
           )}
         </AFewNotesList>
@@ -408,6 +412,11 @@ const Banner = styled('div')`
 `;
 const Title = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
+  font-weight: ${p => p.theme.fontWeightBold};
+`;
+
+const BannerNoteBold = styled('div')`
+  display: inline;
   font-weight: ${p => p.theme.fontWeightBold};
 `;
 
