@@ -405,7 +405,4 @@ def auto_ignore_spam_feedbacks(project, issue_fingerprint):
 
 
 def is_in_feedback_denylist(organization):
-    """
-    Helper to check the options-backed denylist of org slugs. This denylist is also applied in relay for new feedback envelopes (UserReportV2).
-    """
     return organization.slug in options.get("feedback.organizations.slug-denylist")
