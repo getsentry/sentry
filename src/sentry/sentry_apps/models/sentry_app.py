@@ -95,7 +95,7 @@ class SentryAppManager(ParanoidManager["SentryApp"]):
             installations__date_deleted=None,
         ).distinct()
 
-    def visible_for_user(self, request: Request) -> QuerySet:
+    def visible_for_user(self, request: Request) -> QuerySet["SentryApp"]:
         from sentry.auth.superuser import is_active_superuser
 
         if is_active_superuser(request):
@@ -204,7 +204,7 @@ class SentryApp(ParanoidModel, HasApiScopes, Model):
             return result
 
     def is_installed_on(self, organization):
-        from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
+        from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 
         return SentryAppInstallation.objects.filter(
             organization_id=organization.id,

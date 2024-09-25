@@ -392,6 +392,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry",
     "sentry.analytics",
     "sentry.incidents.apps.Config",
+    "sentry.deletions",
     "sentry.discover",
     "sentry.analytics.events",
     "sentry.nodestore",
@@ -739,7 +740,6 @@ CELERY_RESULT_SERIALIZER = "pickle"
 CELERY_ACCEPT_CONTENT = {"pickle"}
 CELERY_IMPORTS = (
     "sentry.data_export.tasks",
-    "sentry.discover.tasks",
     "sentry.deletions.tasks.groups",
     "sentry.deletions.tasks.scheduled",
     "sentry.deletions.tasks.hybrid_cloud",
@@ -996,7 +996,7 @@ CELERYBEAT_SCHEDULE_CONTROL = {
         "options": {"expires": 60 * 25, "queue": "cleanup.control"},
     },
     "schedule-hybrid-cloud-foreign-key-jobs-control": {
-        "task": "sentry.tasks.deletion.hybrid_cloud.schedule_hybrid_cloud_foreign_key_jobs_control",
+        "task": "sentry.deletions.tasks.hybrid_cloud.schedule_hybrid_cloud_foreign_key_jobs_control",
         # Run every 15 minutes
         "schedule": crontab(minute="*/15"),
         "options": {"queue": "cleanup.control"},
@@ -1126,7 +1126,7 @@ CELERYBEAT_SCHEDULE_REGION = {
         "options": {"expires": 60 * 60 * 3},
     },
     "schedule-hybrid-cloud-foreign-key-jobs": {
-        "task": "sentry.tasks.deletion.hybrid_cloud.schedule_hybrid_cloud_foreign_key_jobs",
+        "task": "sentry.deletions.tasks.hybrid_cloud.schedule_hybrid_cloud_foreign_key_jobs",
         # Run every 15 minutes
         "schedule": crontab(minute="*/15"),
     },
@@ -1731,7 +1731,7 @@ SENTRY_METRICS_DISALLOW_BAD_TAGS = IS_DEV
 SENTRY_METRICS_INDEXER = "sentry.sentry_metrics.indexer.postgres.postgres_v2.PostgresIndexer"
 SENTRY_METRICS_INDEXER_OPTIONS: dict[str, Any] = {}
 SENTRY_METRICS_INDEXER_CACHE_TTL = 3600 * 2
-SENTRY_METRICS_INDEXER_TRANSACTIONS_SAMPLE_RATE = 0.1
+SENTRY_METRICS_INDEXER_TRANSACTIONS_SAMPLE_RATE = 0.1  # relative to SENTRY_BACKEND_APM_SAMPLING
 
 SENTRY_METRICS_INDEXER_SPANNER_OPTIONS: dict[str, Any] = {}
 
@@ -2184,10 +2184,6 @@ SENTRY_USE_ISSUE_OCCURRENCE = False
 # This flag activates consuming GroupAttribute messages in the development environment
 SENTRY_USE_GROUP_ATTRIBUTES = True
 
-# This flag activates code paths that are specific for customer domains
-# Deprecated: This setting will be replaced with feature checks for system:multi-region
-SENTRY_USE_CUSTOMER_DOMAINS = False
-
 # This flag activates replay analyzer service in the development environment
 SENTRY_USE_REPLAY_ANALYZER_SERVICE = False
 
@@ -2312,7 +2308,7 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
     "clickhouse": lambda settings, options: (
         {
             "image": (
-                "ghcr.io/getsentry/image-mirror-altinity-clickhouse-server:23.3.19.33.altinitystable"
+                "ghcr.io/getsentry/image-mirror-altinity-clickhouse-server:23.8.11.29.altinitystable"
             ),
             "ports": {"9000/tcp": 9000, "9009/tcp": 9009, "8123/tcp": 8123},
             "ulimits": [{"name": "nofile", "soft": 262144, "hard": 262144}],
@@ -2971,6 +2967,7 @@ SENTRY_REQUEST_METRIC_ALLOWED_PATHS = (
     "sentry.issues.endpoints",
     "sentry.integrations.api.endpoints",
     "sentry.users.api.endpoints",
+    "sentry.sentry_apps.api.endpoints",
 )
 SENTRY_MAIL_ADAPTER_BACKEND = "sentry.mail.adapter.MailAdapter"
 

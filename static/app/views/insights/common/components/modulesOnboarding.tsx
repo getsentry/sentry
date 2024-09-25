@@ -178,6 +178,7 @@ const Header = styled('h3')`
 const SplitContainer = styled(Panel)`
   display: flex;
   justify-content: center;
+  overflow: hidden;
 `;
 
 const ModuleInfo = styled('div')`

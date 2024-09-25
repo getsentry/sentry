@@ -8,7 +8,11 @@ import moment from 'moment-timezone';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import type {PageFilters} from 'sentry/types/core';
 import type {ReactEchartsRef, Series} from 'sentry/types/echarts';
-import type {EventsStats, MultiSeriesEventsStats} from 'sentry/types/organization';
+import type {
+  EventsStats,
+  GroupedMultiSeriesEventsStats,
+  MultiSeriesEventsStats,
+} from 'sentry/types/organization';
 import {defined, escape} from 'sentry/utils';
 import {getFormattedDate} from 'sentry/utils/dates';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
@@ -216,7 +220,7 @@ export function getSeriesSelection(
 }
 
 function isSingleSeriesStats(
-  data: MultiSeriesEventsStats | EventsStats
+  data: MultiSeriesEventsStats | EventsStats | GroupedMultiSeriesEventsStats
 ): data is EventsStats {
   return (
     (defined(data.data) || defined(data.totals)) &&
@@ -226,7 +230,12 @@ function isSingleSeriesStats(
 }
 
 export function isMultiSeriesStats(
-  data: MultiSeriesEventsStats | EventsStats | null | undefined,
+  data:
+    | MultiSeriesEventsStats
+    | EventsStats
+    | GroupedMultiSeriesEventsStats
+    | null
+    | undefined,
   isTopN?: boolean
 ): data is MultiSeriesEventsStats {
   return (

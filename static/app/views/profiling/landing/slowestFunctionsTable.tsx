@@ -9,6 +9,7 @@ import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -237,13 +238,15 @@ function SlowestFunction(props: SlowestFunctionProps) {
         </TableBodyCell>
         <TableBodyCell>
           <Tooltip title={props.function.name}>
-            {exampleLink ? (
-              <Link to={exampleLink}>
-                {props.function.name || t('<unknown function>')}
-              </Link>
-            ) : (
-              props.function.name || t('<unknown function>')
-            )}
+            <TextOverflow>
+              {exampleLink ? (
+                <Link to={exampleLink}>
+                  {props.function.name || t('<unknown function>')}
+                </Link>
+              ) : (
+                props.function.name || t('<unknown function>')
+              )}
+            </TextOverflow>
           </Tooltip>
         </TableBodyCell>
         <TableBodyCell>
@@ -253,9 +256,11 @@ function SlowestFunction(props: SlowestFunctionProps) {
           />{' '}
         </TableBodyCell>
         <TableBodyCell>
-          <Tooltip title={props.function.package || t('<unknown package>')}>
-            {props.function.package}
-          </Tooltip>
+          <TextOverflow>
+            <Tooltip title={props.function.package || t('<unknown package>')}>
+              {props.function.package}
+            </Tooltip>
+          </TextOverflow>
         </TableBodyCell>
         <TableBodyCell>{getPerformanceDuration(props.function.p75 / 1e6)}</TableBodyCell>
         <TableBodyCell>{getPerformanceDuration(props.function.p95 / 1e6)}</TableBodyCell>
@@ -283,7 +288,9 @@ function SlowestFunctionsProjectBadge(props: SlowestFunctionsProjectBadgeProps) 
     for (const example of props.examples) {
       if ('project_id' in example) {
         const project = props.projectsLookupTable[example.project_id];
-        if (project) projects.push(project);
+        if (project) {
+          projects.push(project);
+        }
       }
     }
 
@@ -339,7 +346,9 @@ function SlowestFunctionTimeSeries(props: SlowestFunctionTimeSeriesProps) {
   });
 
   const series: Series[] = useMemo(() => {
-    if (!metrics.isFetched) return [];
+    if (!metrics.isFetched) {
+      return [];
+    }
 
     const serie: Series = {
       seriesName: props.function.name,

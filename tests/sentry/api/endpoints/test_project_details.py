@@ -13,6 +13,7 @@ from sentry_relay.processing import normalize_cardinality_limit_config
 
 from sentry import audit_log
 from sentry.constants import RESERVED_PROJECT_SLUGS, ObjectStatus
+from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.dynamic_sampling import DEFAULT_BIASES, RuleType
 from sentry.dynamic_sampling.rules.base import NEW_MODEL_THRESHOLD_IN_MINUTES
 from sentry.issues.highlights import get_highlight_preset_for_project
@@ -28,7 +29,6 @@ from sentry.models.projectownership import ProjectOwnership
 from sentry.models.projectredirect import ProjectRedirect
 from sentry.models.projectteam import ProjectTeam
 from sentry.models.rule import Rule
-from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.slug.errors import DEFAULT_SLUG_ERROR_MESSAGE
@@ -619,6 +619,7 @@ class ProjectUpdateTest(APITestCase):
             "sentry:token_header": "*",
             "sentry:verify_ssl": False,
             "sentry:replay_hydration_error_issues": True,
+            "sentry:toolbar_allowed_origins": "*.sentry.io\nexample.net  \nnugettrends.com",
             "sentry:replay_rage_click_issues": True,
             "sentry:feedback_user_report_notifications": True,
             "sentry:feedback_ai_spam_detection": True,
@@ -736,6 +737,11 @@ class ProjectUpdateTest(APITestCase):
             ).exists()
         assert project.get_option("feedback:branding") == "0"
         assert project.get_option("sentry:replay_hydration_error_issues") is True
+        assert project.get_option("sentry:toolbar_allowed_origins") == [
+            "*.sentry.io",
+            "example.net",
+            "nugettrends.com",
+        ]
         assert project.get_option("sentry:replay_rage_click_issues") is True
         assert project.get_option("sentry:feedback_user_report_notifications") is True
         assert project.get_option("sentry:feedback_ai_spam_detection") is True
@@ -1413,7 +1419,7 @@ class CopyProjectSettingsTest(APITestCase):
         # default rule
         rules = Rule.objects.filter(project_id=project.id)
         assert len(rules) == 1
-        assert rules[0].label == "Send a notification for new issues"
+        assert rules[0].label == "Send a notification for high priority issues"
 
     def test_simple(self):
         project = self.create_project()

@@ -26,8 +26,8 @@ from sentry.uptime.models import (
     UptimeSubscription,
 )
 from sentry.uptime.subscriptions.subscriptions import (
-    create_uptime_subscription,
     delete_uptime_subscriptions_for_project,
+    get_or_create_uptime_subscription,
     remove_uptime_subscription_if_unused,
 )
 from sentry.uptime.subscriptions.tasks import send_uptime_config_deletion
@@ -69,7 +69,6 @@ def build_active_consecutive_status_key(
 
 class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
     subscription_model = UptimeSubscription
-    topic_for_codec = Topic.UPTIME_RESULTS
 
     def get_subscription_id(self, result: CheckResult) -> str:
         return result["subscription_id"]
@@ -219,7 +218,7 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
                 # If we've had mostly successes throughout the onboarding period then we can graduate the subscription
                 # to active.
                 onboarding_subscription = project_subscription.uptime_subscription
-                active_subscription = create_uptime_subscription(
+                active_subscription = get_or_create_uptime_subscription(
                     onboarding_subscription.url,
                     int(AUTO_DETECTED_ACTIVE_SUBSCRIPTION_INTERVAL.total_seconds()),
                     onboarding_subscription.timeout_ms,
@@ -333,3 +332,4 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
 
 class UptimeResultsStrategyFactory(ResultsStrategyFactory[CheckResult, UptimeSubscription]):
     result_processor_cls = UptimeResultProcessor
+    topic_for_codec = Topic.UPTIME_RESULTS

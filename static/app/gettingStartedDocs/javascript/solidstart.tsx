@@ -1,3 +1,5 @@
+import {Fragment} from 'react';
+
 import ExternalLink from 'sentry/components/links/externalLink';
 import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/crashReportCallout';
 import widgetCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/widgetCallout';
@@ -95,7 +97,7 @@ const getSdkServerSetupSnippet = (params: Params) => `
 import * as Sentry from "@sentry/solidstart";
 
 Sentry.init({
-  dsn: "__PUBLIC_DSN__",
+  dsn: "${params.dsn.public}",
   ${
     params.isPerformanceSelected
       ? `
@@ -127,6 +129,16 @@ export default createMiddleware({
     sentryBeforeResponseMiddleware(),
     // Add your other middleware handlers after \`sentryBeforeResponseMiddleware\`
   ],
+});
+`;
+
+const getSdkMiddlewareLinkSetup = () => `
+import { defineConfig } from "@solidjs/start/config";
+
+export default defineConfig({
+  middleware: "./src/middleware.ts"
+  // Other configuration options
+  // ...
 });
 `;
 
@@ -191,15 +203,26 @@ const getInstallConfig = () => [
 ];
 
 const onboarding: OnboardingConfig = {
-  introduction: MaybeBrowserProfilingBetaWarning,
+  introduction: params => (
+    <Fragment>
+      <MaybeBrowserProfilingBetaWarning {...params} />
+      <p>
+        {tct(
+          'In this quick guide you’ll use [strong:npm], [strong:yarn] or [strong:pnpm] to set up:',
+          {
+            strong: <strong />,
+          }
+        )}
+      </p>
+    </Fragment>
+  ),
   install: () => [
     {
       type: StepType.INSTALL,
       description: tct(
-        'Add the Sentry SDK as a dependency using [codeNpm:npm] or [codeYarn:yarn]:',
+        'Add the Sentry SDK as a dependency using [code:npm], [code:yarn] or [code:pnpm]:',
         {
-          codeYarn: <code />,
-          codeNpm: <code />,
+          code: <code />,
         }
       ),
       configurations: getInstallConfig(),
@@ -251,8 +274,13 @@ const onboarding: OnboardingConfig = {
           ? [
               {
                 description: tct(
-                  'Complete the setup by adding the Sentry middleware to your [code:src/middleware.ts] file',
-                  {code: <code />}
+                  'Complete the setup by adding the Sentry [solidStartMiddlewareLink: middleware] to your [code:src/middleware.ts] file',
+                  {
+                    code: <code />,
+                    solidStartMiddlewareLink: (
+                      <ExternalLink href="https://docs.solidjs.com/solid-start/advanced/middleware" />
+                    ),
+                  }
                 ),
                 code: [
                   {
@@ -263,6 +291,19 @@ const onboarding: OnboardingConfig = {
                     value: 'javascript',
                     language: 'javascript',
                     code: getSdkMiddlewareSetup(),
+                  },
+                ],
+              },
+              {
+                description: tct('And including it in the [code:app.config.ts] file', {
+                  code: <code />,
+                }),
+                code: [
+                  {
+                    label: 'TypeScript',
+                    value: 'javascript',
+                    language: 'javascript',
+                    code: getSdkMiddlewareLinkSetup(),
                   },
                 ],
               },

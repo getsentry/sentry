@@ -517,6 +517,18 @@ class SubscriptionProcessor:
             )
 
         aggregation_value = self.get_aggregation_value(subscription_update)
+        if features.has(
+            "organizations:failure-rate-metric-alert-logging",
+            self.subscription.project.organization,
+        ):
+            logger.info(
+                "Update value in subscription processor",
+                extra={
+                    "result": subscription_update,
+                    "aggregation_value": aggregation_value,
+                    "rule_id": self.alert_rule.id,
+                },
+            )
 
         self.has_anomaly_detection = features.has(
             "organizations:anomaly-detection-alerts", self.subscription.project.organization
@@ -740,7 +752,7 @@ class SubscriptionProcessor:
                     "ad_config": anomaly_detection_config,
                     "context": context,
                     "response_data": response.data,
-                    "reponse_code": response.status,
+                    "response_code": response.status,
                 },
             )
             return None
@@ -754,7 +766,7 @@ class SubscriptionProcessor:
                     "ad_config": anomaly_detection_config,
                     "context": context,
                     "response_data": decoded_data,
-                    "reponse_code": response.status,
+                    "response_code": response.status,
                 },
             )
             return None

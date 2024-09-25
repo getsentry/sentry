@@ -18,9 +18,9 @@ from requests.exceptions import Timeout
 
 from sentry import options
 from sentry.api.exceptions import RequestTimeout
-from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.sentry_apps.models.sentry_app import SentryApp
+from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.silo.util import (
     PROXY_DIRECT_LOCATION_HEADER,
     clean_outbound_headers,
