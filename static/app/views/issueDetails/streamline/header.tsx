@@ -30,7 +30,6 @@ import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageStat
 import GroupActions from 'sentry/views/issueDetails/actions/index';
 import {Divider} from 'sentry/views/issueDetails/divider';
 import GroupPriority from 'sentry/views/issueDetails/groupPriority';
-import {GroupHeaderTabs} from 'sentry/views/issueDetails/header';
 import {AttachmentsBadge} from 'sentry/views/issueDetails/streamline/attachmentsBadge';
 import {UserFeedbackBadge} from 'sentry/views/issueDetails/streamline/userFeedbackBadge';
 import {useIssueDetailsHeader} from 'sentry/views/issueDetails/useIssueDetailsHeader';
@@ -81,13 +80,12 @@ export default function StreamlinedGroupHeader({
     true
   );
 
-  const {disabledTabs, message, eventRoute, disableActions, shortIdBreadcrumb} =
-    useIssueDetailsHeader({
-      group,
-      groupReprocessingStatus,
-      baseUrl,
-      project,
-    });
+  const {message, eventRoute, disableActions, shortIdBreadcrumb} = useIssueDetailsHeader({
+    group,
+    groupReprocessingStatus,
+    baseUrl,
+    project,
+  });
 
   const activeUser = ConfigStore.get('user');
 
@@ -235,9 +233,6 @@ export default function StreamlinedGroupHeader({
           />
         </SidebarWorkflowWrapper>
       </InfoWrapper>
-      <div>
-        <GroupHeaderTabs {...{baseUrl, disabledTabs, eventRoute, group, project}} />
-      </div>
     </Header>
   );
 }
