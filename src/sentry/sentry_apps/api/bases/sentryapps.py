@@ -127,7 +127,7 @@ class SentryAppsBaseEndpoint(IntegrationPlatformEndpoint):
         return organization_slug
 
     def _get_organization_for_superuser_or_staff(
-        self, user: RpcUser, organization_slug: str
+        self, user: RpcUser | User, organization_slug: str
     ) -> RpcUserOrganizationContext:
         context = organization_service.get_organization_by_slug(
             slug=organization_slug, only_visible=False, user_id=user.id
@@ -140,7 +140,7 @@ class SentryAppsBaseEndpoint(IntegrationPlatformEndpoint):
         return context
 
     def _get_organization_for_user(
-        self, user: RpcUser, organization_slug: str
+        self, user: RpcUser | User, organization_slug: str
     ) -> RpcUserOrganizationContext:
         context = organization_service.get_organization_by_slug(
             slug=organization_slug, only_visible=True, user_id=user.id
@@ -152,7 +152,7 @@ class SentryAppsBaseEndpoint(IntegrationPlatformEndpoint):
 
     def _get_org_context(self, request: Request) -> RpcUserOrganizationContext:
         organization_slug = self._get_organization_slug(request)
-        assert isinstance(request.user, RpcUser), "User must be authenticated to get organization"
+        assert request.user.is_authenticated, "User must be authenticated to get organization"
 
         if is_active_superuser(request) or is_active_staff(request):
             return self._get_organization_for_superuser_or_staff(request.user, organization_slug)
@@ -380,8 +380,8 @@ class SentryAppInstallationPermission(SentryPermission):
         if superuser_has_permission(request):
             return True
 
-        assert isinstance(
-            request.user, (RpcUser, User)
+        assert (
+            request.user.is_authenticated
         ), "user must be authenticated to check if they're a sentry app"
         # if user is an app, make sure it's for that same app
         if request.user.is_sentry_app:
@@ -443,8 +443,8 @@ class SentryAppAuthorizationsPermission(SentryPermission):
         assert installation_org_context, "organization for installation was not found"
         self.determine_access(request, installation_org_context)
 
-        assert isinstance(
-            request.user, (RpcUser, User)
+        assert (
+            request.user.is_authenticated
         ), "user must be authenticated to check if they're a sentry app"
         if not request.user.is_sentry_app:
             return False
