@@ -17,25 +17,19 @@ import type {
   GroupActivitySetIgnored,
 } from 'sentry/types/group';
 import {GroupActivityType} from 'sentry/types/group';
-import type {Organization} from 'sentry/types/organization';
+import type {Organization, Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {User} from 'sentry/types/user';
-import {useTeamsById} from 'sentry/utils/useTeamsById';
 import {isSemverRelease} from 'sentry/utils/versions/isSemverRelease';
 
 export default function getGroupActivityItem(
   activity: GroupActivity,
   organization: Organization,
   projectId: Project['id'],
-  author: React.ReactNode
+  author: React.ReactNode,
+  teams: Team[]
 ) {
   const issuesLink = `/organizations/${organization.slug}/issues/`;
-
-  const {teams} = useTeamsById(
-    activity.type === GroupActivityType.ASSIGNED && activity.data.assigneeType === 'team'
-      ? {ids: [activity.data.assignee]}
-      : undefined
-  );
 
   function getIgnoredMessage(data: GroupActivitySetIgnored['data']): {
     message: JSX.Element | string | null;

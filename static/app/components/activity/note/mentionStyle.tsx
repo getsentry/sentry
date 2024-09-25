@@ -5,18 +5,29 @@ import {space} from 'sentry/styles/space';
 type Options = {
   theme: Theme;
   minHeight?: number;
+  streamlined?: boolean;
 };
 
 /**
  * Note this is an object for `react-mentions` component and
  * not a styled component/emotion style
  */
-export function mentionStyle({theme, minHeight}: Options) {
+export function mentionStyle({theme, minHeight, streamlined}: Options) {
   const inputProps = {
     fontSize: theme.fontSizeMedium,
     padding: `${space(1.5)} ${space(2)}`,
     outline: 0,
     border: 0,
+    minHeight,
+    overflow: 'auto',
+  };
+
+  const streamlinedInputProps = {
+    fontSize: theme.fontSizeMedium,
+    padding: `${space(1)} ${space(1.5)}`,
+    outline: 0,
+    border: `1px solid ${theme.border}`,
+    borderRadius: theme.borderRadius,
     minHeight,
     overflow: 'auto',
   };
@@ -56,8 +67,8 @@ export function mentionStyle({theme, minHeight}: Options) {
       },
 
       // Use the same props for the highliter to keep the phantom text aligned
-      highlighter: inputProps,
-      input: inputProps,
+      highlighter: streamlined ? streamlinedInputProps : inputProps,
+      input: streamlined ? streamlinedInputProps : inputProps,
     },
 
     suggestions: {
