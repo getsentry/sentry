@@ -22,7 +22,7 @@ type RouteParams = {
   orgId: string;
 };
 
-type Props = RouteComponentProps<RouteParams, {}> & {
+type Props = Pick<RouteComponentProps<RouteParams, {}>, 'params' | 'location'> & {
   environments: string[];
   group: Group;
   organization: Organization;
