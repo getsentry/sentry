@@ -7,7 +7,7 @@ from sentry.db.models import DefaultFieldsModel, region_silo_model, sane_repr
 @region_silo_model
 class Action(DefaultFieldsModel):
     """
-    Actions are actions that can be taken if the conditions of a DataConditionGrou are satisfied.
+    Actions are actions that can be taken if the conditions of a DataConditionGroup are satisfied.
     Examples include: detectors emitting events, sending notifications, creating an issue in the Issue Platform, etc.
     """
 
@@ -19,6 +19,12 @@ class Action(DefaultFieldsModel):
         Notification = "SendNotificationAction"
         TriggerWorkflow = "TriggerWorkflowAction"
 
+    """
+    Required actions will always be invoked, cannot be disabled, and will not be displayed in the UI.
+    These actions will be used internally, to trigger other aspects of the system.
+    For example, creating a new issue in the Issue Platform or a detector emitting an event.
+    """
     required = models.BooleanField(default=False)
+
     type = models.TextField(choices=Type.choices)
     data = models.JSONField(default=dict)
