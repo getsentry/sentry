@@ -15,7 +15,8 @@ class PendingTaskStore:
         from sentry.taskworker.models import InflightActivationModel
 
         InflightActivationModel.objects.bulk_create(
-            [InflightActivationModel.from_proto(task) for task in batch]
+            [InflightActivationModel.from_proto(task) for task in batch],
+            ignore_conflicts=True,
         )
 
     def get_pending_task(self) -> InflightActivation | None:

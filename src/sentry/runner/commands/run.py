@@ -255,17 +255,23 @@ def worker(ignore_unknown_queues: bool, **options: Any) -> None:
     ),
 )
 @click.option("--autoreload", is_flag=True, default=False, help="Enable autoreloading.")
-@click.option("--max-tasks-per-child", default=10000)
+@click.option(
+    "--max-task-count", help="Number of tasks this worker should run before exiting", default=10000
+)
 @log_options()
 @configuration
 def taskworker(**options: Any) -> None:
+    import time
+
     from sentry.taskworker.worker import Worker
 
     with managed_bgtasks(role="taskworker"):
         worker = Worker(
-            namespace=options.get("namespace"),
+            namespace=options.get("namespace"), max_task_count=options.get("max_task_count")
         )
         worker.start()
+        # Give consumer time to catch up
+        time.sleep(1)
         raise SystemExit(worker.exitcode)
 
 

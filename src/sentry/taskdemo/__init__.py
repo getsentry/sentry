@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import time
 
 logger = logging.getLogger(__name__)
 
@@ -18,6 +19,13 @@ demotasks = taskregistry.create_namespace(
 @demotasks.register(name="demos.say_hello")
 def say_hello(name):
     logger.info("hello %s", name)
+
+
+@demotasks.register(name="demos.variable_time")
+def variable_time(wait=None, taskno=None):
+    logger.info("running task %s with %s delay", taskno, wait)
+    if wait is not None:
+        time.sleep(wait)
 
 
 @demotasks.register(name="demos.broken", retry=Retry(times=5, on=(KeyError,)))
