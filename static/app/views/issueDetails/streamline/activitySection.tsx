@@ -40,17 +40,16 @@ function StreamlinedActivitySection({group}: {group: Group}) {
     group,
   });
 
-  const deleteOptions: MutateOptions<TData, TError, TVariables, TContext> =
-    useMemo(() => {
-      return {
-        onError: () => {
-          addErrorMessage(t('Failed to delete comment'));
-        },
-        onSuccess: () => {
-          addSuccessMessage(t('Comment removed'));
-        },
-      };
-    }, []);
+  const deleteOptions: MutateActivityOptions = useMemo(() => {
+    return {
+      onError: () => {
+        addErrorMessage(t('Failed to delete comment'));
+      },
+      onSuccess: () => {
+        addSuccessMessage(t('Comment removed'));
+      },
+    };
+  }, []);
 
   const createOptions: MutateActivityOptions = useMemo(() => {
     return {
