@@ -70,7 +70,7 @@ export function FrontendHeader({module}: Props) {
 
   return (
     <Fragment>
-      <Tabs value={module || OVERVIEW_PAGE_TITLE} onChange={handleTabChange}>
+      <Tabs value={module ?? OVERVIEW_PAGE_TITLE} onChange={handleTabChange}>
         <Layout.HeaderContent>
           <Breadcrumbs crumbs={crumbs} />
 
