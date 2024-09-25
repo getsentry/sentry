@@ -25,11 +25,11 @@ export type Filters = {
 
 export const useDomainViewFilters = () => {
   const location = useLocation();
-  const pathSegements = location.pathname.split('/').filter(Boolean);
-  const indexOfPerformance = pathSegements.indexOf('performance');
+  const pathSegments = location.pathname.split('/').filter(Boolean);
+  const indexOfPerformance = pathSegments.indexOf('performance');
   const isInDomainView = indexOfPerformance !== -1;
 
-  const view = pathSegements[indexOfPerformance + 1] as DomainViewFilters['view'];
+  const view = pathSegments[indexOfPerformance + 1] as DomainViewFilters['view'];
 
   if (isInDomainView) {
     return {
