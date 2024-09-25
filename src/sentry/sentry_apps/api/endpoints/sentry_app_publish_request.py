@@ -58,8 +58,8 @@ class SentryAppPublishRequestEndpoint(SentryAppBaseEndpoint):
                 status=400,
             )
 
-        assert isinstance(request.user, User) or isinstance(
-            request.user, RpcUser
+        assert isinstance(
+            request.user, (User, RpcUser)
         ), "User must be authenticated to update a Sentry App"
         SentryAppUpdater(
             sentry_app=sentry_app,
