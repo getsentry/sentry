@@ -11,6 +11,7 @@ from sentry.flags.endpoints.hooks import (
     handle_provider_event,
 )
 from sentry.testutils.cases import APITestCase
+from sentry.utils.security.orgauthtoken_token import hash_token
 
 
 def test_handle_provider_event():
@@ -77,7 +78,18 @@ class OrganizationFlagsHooksEndpointTestCase(APITestCase):
         self.url = reverse(self.endpoint, args=(self.organization.slug, "flag-pole"))
 
     def test_post(self):
-        # TODO: Use org token auth!
+        token = "sntrys_abc123_xyz"
+        self.create_org_auth_token(
+            name="Test Token 1",
+            token_hashed=hash_token(token),
+            organization_id=self.organization.id,
+            token_last_characters="xyz",
+            scope_list=["org:read", "org:write", "org:admin"],
+            date_last_used=None,
+        )
+
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
+
         response = self.client.post(
             self.url,
             data={
