@@ -20,7 +20,7 @@ class LoginSuccessViewTest(APITestCase):
 
     def test_csp(self):
         res = self.client.get(self.url)
-        csp = res.headers.get("Content-Security-Policy")
+        csp = res.headers.get("Content-Security-Policy", "")
         directives = get_directives(csp)
 
         assert "script-src" in directives

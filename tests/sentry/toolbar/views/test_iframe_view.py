@@ -68,7 +68,7 @@ class IframeViewTest(APITestCase):
     def test_csp(self):
         self.project.update_option("sentry:toolbar_allowed_origins", ["https://sentry.io"])
         res = self.client.get(self.url, HTTP_REFERER="https://sentry.io")
-        csp = res.headers.get("Content-Security-Policy")
+        csp = res.headers.get("Content-Security-Policy", "")
         directives = get_directives(csp)
 
         assert "script-src" in directives
