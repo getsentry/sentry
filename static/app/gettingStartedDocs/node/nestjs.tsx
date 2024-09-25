@@ -93,6 +93,10 @@ export class AppModule {}
 `;
 
 const onboarding: OnboardingConfig = {
+  introduction: () =>
+    tct('In this quick guide you’ll use [strong:npm] or [strong:yarn] to set up:', {
+      strong: <strong />,
+    }),
   install: params => [
     {
       type: StepType.INSTALL,

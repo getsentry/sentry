@@ -2,7 +2,6 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
-import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {
   platformProductAvailability,
@@ -38,14 +37,6 @@ describe('Onboarding Product Selection', function () {
     render(<ProductSelection organization={organization} platform="javascript-react" />, {
       router,
     });
-
-    // Introduction
-    expect(
-      screen.getByText(
-        textWithMarkupMatcher(/In this quick guide you’ll use npm or yarn/)
-      )
-    ).toBeInTheDocument();
-    expect(screen.queryByText('Prefer to set up Sentry using')).not.toBeInTheDocument();
 
     // Error monitoring shall be checked and disabled by default
     expect(screen.getByRole('checkbox', {name: 'Error Monitoring'})).toBeChecked();
@@ -231,42 +222,6 @@ describe('Onboarding Product Selection', function () {
     expect(screen.getByRole('checkbox', {name: 'Tracing'})).toBeDisabled();
 
     expect(screen.getByRole('checkbox', {name: 'Session Replay'})).toBeDisabled();
-  });
-
-  it('renders npm & yarn info text', function () {
-    const {router} = initializeOrg({
-      router: {
-        location: {
-          query: {product: [ProductSolution.PERFORMANCE_MONITORING]},
-        },
-        params: {},
-      },
-    });
-
-    render(<ProductSelection organization={organization} platform="javascript-react" />, {
-      router,
-    });
-
-    expect(screen.queryByText('npm')).toBeInTheDocument();
-    expect(screen.queryByText('yarn')).toBeInTheDocument();
-  });
-
-  it('does not render npm & yarn info text', function () {
-    const {router} = initializeOrg({
-      router: {
-        location: {
-          query: {product: [ProductSolution.PERFORMANCE_MONITORING]},
-        },
-        params: {},
-      },
-    });
-
-    render(<ProductSelection organization={organization} platform="python-django" />, {
-      router,
-    });
-
-    expect(screen.queryByText('npm')).not.toBeInTheDocument();
-    expect(screen.queryByText('yarn')).not.toBeInTheDocument();
   });
 
   it('triggers onChange callback', async function () {

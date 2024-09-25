@@ -1,5 +1,5 @@
 import type {ReactNode} from 'react';
-import {Fragment, useCallback, useEffect, useMemo} from 'react';
+import {useCallback, useEffect, useMemo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -17,7 +17,6 @@ import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey} from 'sentry/types/project';
 import {useOnboardingQueryParams} from 'sentry/views/onboarding/components/useOnboardingQueryParams';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 // TODO(aknaus): move to types
 export enum ProductSolution {
@@ -380,72 +379,54 @@ export function ProductSelection({
     return null;
   }
 
-  // TODO(aknaus): clean up
-  // The package manager info is only shown for javascript platforms
-  // until we improve multi snippet suppport
-  const showPackageManagerInfo =
-    (platform?.indexOf('javascript') === 0 || platform?.indexOf('node') === 0) &&
-    platform !== 'javascript-astro' &&
-    platform !== 'javascript';
-
   return (
-    <Fragment>
-      {showPackageManagerInfo && (
-        <TextBlock noMargin>
-          {tct('In this quick guide you’ll use [npm] or [yarn] to set up:', {
-            npm: <strong>npm</strong>,
-            yarn: <strong>yarn</strong>,
-          })}
-        </TextBlock>
-      )}
-      <Products>
+    <Products>
+      <Product
+        label={t('Error Monitoring')}
+        disabled={{reason: t("Let's admit it, we all have errors.")}}
+        checked
+        permanentDisabled
+      />
+      {products.includes(ProductSolution.PERFORMANCE_MONITORING) && (
         <Product
-          label={t('Error Monitoring')}
-          disabled={{reason: t("Let's admit it, we all have errors.")}}
-          checked
-          permanentDisabled
+          label={t('Tracing')}
+          description={t(
+            'Automatic performance issue detection across services and context on who is impacted, outliers, regressions, and the root cause of your slowdown.'
+          )}
+          docLink="https://docs.sentry.io/platforms/javascript/guides/react/tracing/"
+          onClick={() => handleClickProduct(ProductSolution.PERFORMANCE_MONITORING)}
+          disabled={disabledProducts[ProductSolution.PERFORMANCE_MONITORING]}
+          checked={urlProducts.includes(ProductSolution.PERFORMANCE_MONITORING)}
         />
-        {products.includes(ProductSolution.PERFORMANCE_MONITORING) && (
-          <Product
-            label={t('Tracing')}
-            description={t(
-              'Automatic performance issue detection across services and context on who is impacted, outliers, regressions, and the root cause of your slowdown.'
-            )}
-            docLink="https://docs.sentry.io/platforms/javascript/guides/react/tracing/"
-            onClick={() => handleClickProduct(ProductSolution.PERFORMANCE_MONITORING)}
-            disabled={disabledProducts[ProductSolution.PERFORMANCE_MONITORING]}
-            checked={urlProducts.includes(ProductSolution.PERFORMANCE_MONITORING)}
-          />
-        )}
-        {products.includes(ProductSolution.SESSION_REPLAY) && (
-          <Product
-            label={t('Session Replay')}
-            description={t(
-              'Video-like reproductions of user sessions with debugging context to help you confirm issue impact and troubleshoot faster.'
-            )}
-            docLink="https://docs.sentry.io/platforms/javascript/guides/react/session-replay/"
-            onClick={() => handleClickProduct(ProductSolution.SESSION_REPLAY)}
-            disabled={disabledProducts[ProductSolution.SESSION_REPLAY]}
-            checked={urlProducts.includes(ProductSolution.SESSION_REPLAY)}
-          />
-        )}
-        {products.includes(ProductSolution.PROFILING) && (
-          <Product
-            label={t('Profiling')}
-            description={tct(
-              '[strong:Requires Tracing]\nSee the exact lines of code causing your performance bottlenecks, for faster troubleshooting and resource optimization.',
-              {
-                strong: <strong />,
-              }
-            )}
-            docLink="https://docs.sentry.io/platforms/python/profiling/"
-            onClick={() => handleClickProduct(ProductSolution.PROFILING)}
-            disabled={disabledProducts[ProductSolution.PROFILING]}
-            checked={urlProducts.includes(ProductSolution.PROFILING)}
-          />
-        )}
-      </Products>
-    </Fragment>
+      )}
+      {products.includes(ProductSolution.SESSION_REPLAY) && (
+        <Product
+          label={t('Session Replay')}
+          description={t(
+            'Video-like reproductions of user sessions with debugging context to help you confirm issue impact and troubleshoot faster.'
+          )}
+          docLink="https://docs.sentry.io/platforms/javascript/guides/react/session-replay/"
+          onClick={() => handleClickProduct(ProductSolution.SESSION_REPLAY)}
+          disabled={disabledProducts[ProductSolution.SESSION_REPLAY]}
+          checked={urlProducts.includes(ProductSolution.SESSION_REPLAY)}
+        />
+      )}
+      {products.includes(ProductSolution.PROFILING) && (
+        <Product
+          label={t('Profiling')}
+          description={tct(
+            '[strong:Requires Tracing]\nSee the exact lines of code causing your performance bottlenecks, for faster troubleshooting and resource optimization.',
+            {
+              strong: <strong />,
+            }
+          )}
+          docLink="https://docs.sentry.io/platforms/python/profiling/"
+          onClick={() => handleClickProduct(ProductSolution.PROFILING)}
+          disabled={disabledProducts[ProductSolution.PROFILING]}
+          checked={urlProducts.includes(ProductSolution.PROFILING)}
+        />
+      )}
+    </Products>
   );
 }
 

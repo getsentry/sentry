@@ -1,3 +1,5 @@
+import {Fragment} from 'react';
+
 import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/crashReportCallout';
 import widgetCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/widgetCallout';
 import TracePropagationMessage from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
@@ -297,7 +299,19 @@ const getInstallConfig = () => [
 ];
 
 const onboarding: OnboardingConfig<PlatformOptions> = {
-  introduction: MaybeBrowserProfilingBetaWarning,
+  introduction: params => (
+    <Fragment>
+      <MaybeBrowserProfilingBetaWarning {...params} />
+      <p>
+        {tct(
+          'In this quick guide you’ll use [strong:npm], [strong:yarn] or [strong:pnpm] to set up:',
+          {
+            strong: <strong />,
+          }
+        )}
+      </p>
+    </Fragment>
+  ),
   install: () => [
     {
       type: StepType.INSTALL,
