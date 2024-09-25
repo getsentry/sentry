@@ -3,6 +3,10 @@ import {createContext, useState} from 'react';
 export type NewView = {
   label: string;
   query: string;
+  /**
+   * If true, the query will be saved to the view.
+   * Otherwise, the query will act as an unsaved change.
+   */
   saveQueryToView: boolean;
 };
 

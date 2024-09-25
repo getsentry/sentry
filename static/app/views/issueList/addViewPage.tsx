@@ -9,7 +9,7 @@ import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {FormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {IconMegaphone} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SavedSearch} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -112,11 +112,13 @@ function SearchSuggestionList({
               e.stopPropagation();
               openConfirmModal({
                 message: (
-                  <b style={{display: 'flex', justifyContent: 'center'}}>
-                    {t('Save ') +
-                      searchSuggestions.length +
-                      t(' saved searches as views?')}
-                  </b>
+                  <ConfirmModalMessage>
+                    {tn(
+                      'Save %s saved search as a view?',
+                      'Save %s saved searches as views?',
+                      searchSuggestions.length
+                    )}
+                  </ConfirmModalMessage>
                 ),
                 onConfirm: () => {
                   onNewViewsSaved?.(
@@ -390,4 +392,10 @@ const BannerStar3 = styled('img')`
   @media (max-width: ${p => p.theme.breakpoints.large}) {
     display: none;
   }
+`;
+
+const ConfirmModalMessage = styled('div')`
+  display: flex;
+  justify-content: center;
+  font-weight: ${p => p.theme.fontWeightBold};
 `;
