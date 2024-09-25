@@ -1,4 +1,9 @@
-import type {ComponentProps, HTMLAttributes, PointerEvent} from 'react';
+import {
+  type ComponentProps,
+  type HTMLAttributes,
+  type PointerEvent,
+  useCallback,
+} from 'react';
 import {useFocusWithin, useHover} from '@react-aria/interactions';
 import {mergeProps} from '@react-aria/utils';
 import {type motion, useMotionValue, useReducedMotion, useSpring} from 'framer-motion';
@@ -25,20 +30,26 @@ export function useNavIndicator(): IndicatorResult {
   const {isHovered, hoverProps} = useHover({});
   const {focusWithinProps} = useFocusWithin({});
 
-  const handlePointerMove = (e: PointerEvent<HTMLUListElement>) => {
-    if (e.target instanceof HTMLAnchorElement) {
-      ty.set(e.target.offsetTop);
-      return;
-    }
-  };
+  const handlePointerMove = useCallback(
+    (e: PointerEvent<HTMLUListElement>) => {
+      if (e.target instanceof HTMLAnchorElement) {
+        ty.set(e.target.offsetTop);
+        return;
+      }
+    },
+    [ty]
+  );
 
-  const handlePointerEnter = (e: PointerEvent<HTMLUListElement>) => {
-    if (e.target instanceof HTMLUListElement) {
-      y.jump(e.target.querySelector('a')!.offsetTop);
-    } else if (e.target instanceof HTMLElement) {
-      y.jump(e.target.offsetTop);
-    }
-  };
+  const handlePointerEnter = useCallback(
+    (e: PointerEvent<HTMLUListElement>) => {
+      if (e.target instanceof HTMLUListElement) {
+        y.jump(e.target.querySelector('a')!.offsetTop);
+      } else if (e.target instanceof HTMLElement) {
+        y.jump(e.target.offsetTop);
+      }
+    },
+    [y]
+  );
 
   return {
     containerProps: mergeProps(hoverProps, focusWithinProps, {
