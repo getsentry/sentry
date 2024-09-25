@@ -10,6 +10,7 @@ from sentry.flags.endpoints.hooks import (
     handle_flag_pole_event,
     handle_provider_event,
 )
+from sentry.flags.models import ACTION_MAP, MODIFIED_BY_TYPE_MAP
 from sentry.testutils.cases import APITestCase
 from sentry.utils.security.orgauthtoken_token import hash_token
 
@@ -103,11 +104,11 @@ class OrganizationFlagsHooksEndpointTestCase(APITestCase):
 
         assert FlagAuditLogModel.objects.count() == 1
         flag = FlagAuditLogModel.objects.first()
-        assert flag.action == "created"
+        assert flag.action == ACTION_MAP["created"]
         assert flag.flag == "test"
         assert flag.modified_at == datetime(2024, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
         assert flag.modified_by == "colton.allen@sentry.io"
-        assert flag.modified_by_type == "email"
+        assert flag.modified_by_type == MODIFIED_BY_TYPE_MAP["email"]
         assert flag.organization_id == self.organization.id
 
     def test_post_unauthorized(self):
