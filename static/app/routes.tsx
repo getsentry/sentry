@@ -1755,22 +1755,17 @@ function buildRoutes() {
             () => import('sentry/views/insights/pages/mobile/mobileOverviewPage')
           )}
         />
-        <Route path={`${MODULE_BASE_URLS[ModuleName.SCREEN_LOAD]}/`}>
+        <Route path={`${MODULE_BASE_URLS[ModuleName.MOBILE_SCREENS]}/`}>
           <IndexRoute
             component={make(
               () =>
-                import(
-                  'sentry/views/insights/mobile/screenload/views/screenloadLandingPage'
-                )
+                import('sentry/views/insights/mobile/screens/views/screensLandingPage')
             )}
           />
           <Route
-            path="spans/"
+            path="details/"
             component={make(
-              () =>
-                import(
-                  'sentry/views/insights/mobile/screenload/views/screenLoadSpansPage'
-                )
+              () => import('sentry/views/insights/mobile/screens/views/screenDetailsPage')
             )}
           />
         </Route>
