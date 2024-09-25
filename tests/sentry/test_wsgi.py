@@ -1,19 +1,17 @@
-import inspect
 import subprocess
 import sys
 
+SUBPROCESS_TEST_WGI_WARMUP = """
+import sys
+assert "sentry.conf.urls" not in sys.modules
 
-def subprocess_test_wsgi_warmup():
-    # isort: off
-    import sentry.wsgi  # noqa
-    import sys
+import sentry.wsgi
+assert "sentry.conf.urls" in sys.modules
 
-    assert "django.urls.resolvers" in sys.modules
-
-    import django.urls.resolvers
-
-    resolver = django.urls.resolvers.get_resolver()
-    assert resolver._populated is True  # type: ignore[attr-defined]
+import django.urls.resolvers
+resolver = django.urls.resolvers.get_resolver()
+assert resolver._populated is True
+"""
 
 
 def test_wsgi_init():
@@ -21,12 +19,6 @@ def test_wsgi_init():
     This test ensures that the wsgi.py file correctly pre-loads the application and
     various resources we want to be "warm"
     """
-    subprocess_test = "\n".join(
-        line.lstrip() for line in inspect.getsource(subprocess_test_wsgi_warmup).splitlines()[1:]
+    subprocess.check_call(
+        [sys.executable, "-c", SUBPROCESS_TEST_WGI_WARMUP],
     )
-    process = subprocess.run(
-        [sys.executable, "-c", subprocess_test],
-        capture_output=True,
-        text=True,
-    )
-    assert process.returncode == 0, process.stderr + process.stdout
