@@ -42,6 +42,7 @@ from sentry.search.events.constants import (
     SEMVER_PACKAGE_ALIAS,
 )
 from sentry.search.events.filter import handle_operator_negation, parse_semver
+from sentry.search.utils import get_latest_release
 from sentry.signals import release_created
 from sentry.snuba.sessions import STATS_PERIODS
 from sentry.types.activity import ActivityType
@@ -101,6 +102,13 @@ def _filter_releases_by_query(queryset, organization, query, filter_params):
                 query_q = ~Q(version__in=raw_value)
             elif search_filter.operator == "IN":
                 query_q = Q(version__in=raw_value)
+            elif raw_value == "latest":
+                latest_releases = get_latest_release(
+                    projects=filter_params["project_id"],
+                    environments=filter_params.get("environment"),
+                    organization_id=organization.id,
+                )
+                query_q = Q(version__in=latest_releases)
             else:
                 query_q = Q(version=search_filter.value.value)
 
