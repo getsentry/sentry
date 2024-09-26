@@ -57,6 +57,7 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
   const organization = useOrganization();
   const {projects} = useProjects();
 
+  const enabledConfiguration = organization.features.includes('uptime-api-create-update');
   const initialData = rule
     ? getFormDataFromRule(rule)
     : {projectSlug: project.slug, method: 'GET', headers: []};
@@ -116,7 +117,7 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
         <AlertListItem>{t('Select a project')}</AlertListItem>
         <FormRow>
           <SentryProjectSelectorField
-            disabled={rule !== undefined}
+            disabled={rule !== undefined || !enabledConfiguration}
             disabledReason={t('Existing uptime rules cannot be moved between projects')}
             name="projectSlug"
             label={t('Project')}
@@ -133,6 +134,7 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
         <AlertListItem>{t('Configure Request')}</AlertListItem>
         <ConfigurationPanel>
           <TextField
+            disabled={!enabledConfiguration}
             name="url"
             label={t('URL')}
             placeholder={t('The URL to monitor')}
@@ -141,6 +143,7 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
             required
           />
           <SelectField
+            disabled={!enabledConfiguration}
             name="method"
             label={t('Method')}
             placeholder={'GET'}
@@ -155,6 +158,7 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
             name="headers"
             label={t('Headers')}
             flexibleControlStateSize
+            disabled={!enabledConfiguration}
           />
           <TextareaField
             name="body"
@@ -166,6 +170,7 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
             monospace
             placeholder='{"key": "value"}'
             flexibleControlStateSize
+            disabled={!enabledConfiguration}
           />
         </ConfigurationPanel>
         <Observer>
