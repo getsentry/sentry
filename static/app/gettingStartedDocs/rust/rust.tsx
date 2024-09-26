@@ -102,11 +102,9 @@ const customMetricsOnboarding: OnboardingConfig = {
     {
       type: StepType.INSTALL,
       description: tct(
-        'You need at least version 0.32.1 of the [codeSentry:sentry] or  [codeSentryCore:sentry-core] crates installed. Enable the [codeFeature:UNSTABLE_metrics] feature:',
+        'You need at least version 0.32.1 of the [code:sentry] or  [code:sentry-core] crates installed. Enable the [code:UNSTABLE_metrics] feature:',
         {
-          codeSentry: <code />,
-          codeSentryCore: <code />,
-          codeSentryFeature: <code />,
+          code: <code />,
         }
       ),
       configurations: [
@@ -123,13 +121,9 @@ const customMetricsOnboarding: OnboardingConfig = {
     {
       type: StepType.VERIFY,
       description: tct(
-        "Then you'll be able to add metrics as [codeCounters:counters], [codeSets:sets], [codeDistribution:distributions], and [codeGauge:gauges]. These are available under the [codeNamespace:Sentry.metrics] namespace. Try out this example:",
+        "Then you'll be able to add metrics as [code:counters], [code:sets], [code:distributions], and [code:gauges]. These are available under the [code:Sentry.metrics] namespace. Try out this example:",
         {
-          codeCounters: <code />,
-          codeSets: <code />,
-          codeDistribution: <code />,
-          codeGauge: <code />,
-          codeNamespace: <code />,
+          code: <code />,
         }
       ),
       configurations: [

@@ -39,10 +39,9 @@ const onboarding: OnboardingConfig = {
     {
       type: StepType.CONFIGURE,
       description: tct(
-        'You should [initCode:init] the SDK in the [deviceReadyCode:deviceReady] function, to make sure the native integrations runs. For more details about Cordova [link:click here]',
+        'You should [code:init] the SDK in the [code:deviceReady] function, to make sure the native integrations runs. For more details about Cordova [link:click here]',
         {
-          initCode: <code />,
-          deviceReadyCode: <code />,
+          code: <code />,
           link: (
             <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/cordova/" />
           ),

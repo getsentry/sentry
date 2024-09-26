@@ -199,10 +199,9 @@ const onboarding: OnboardingConfig = {
     {
       type: StepType.CONFIGURE,
       description: tct(
-        'Then add Sentry to [mauiProgram:MauiProgram.cs] through the [mauiAppBuilderCode:MauiAppBuilder]:',
+        'Then add Sentry to [code:MauiProgram.cs] through the [code:MauiAppBuilder]:',
         {
-          mauiAppBuilderCode: <code />,
-          mauiProgram: <code />,
+          code: <code />,
         }
       ),
       configurations: [

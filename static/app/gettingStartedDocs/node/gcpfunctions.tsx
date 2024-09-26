@@ -80,10 +80,9 @@ const onboarding: OnboardingConfig = {
     {
       type: StepType.CONFIGURE,
       description: tct(
-        'Ensure that Sentry is imported and initialized at the beginning of your file, prior to any other [require:require] or [import:import] statements. Then, use the Sentry SDK to wrap your functions:',
+        'Ensure that Sentry is imported and initialized at the beginning of your file, prior to any other [code:require] or [code:import] statements. Then, use the Sentry SDK to wrap your functions:',
         {
-          import: <code />,
-          require: <code />,
+          code: <code />,
         }
       ),
       configurations: [
@@ -120,10 +119,9 @@ const customMetricsOnboarding: OnboardingConfig = {
     {
       type: StepType.INSTALL,
       description: tct(
-        'You need a minimum version [codeVersion:8.0.0] of [codePackage:@sentry/google-cloud-serverless]:',
+        'You need a minimum version [code:8.0.0] of [code:@sentry/google-cloud-serverless]:',
         {
-          codeVersion: <code />,
-          codePackage: <code />,
+          code: <code />,
         }
       ),
       configurations: getInstallConfig(params, {

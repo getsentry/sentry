@@ -72,10 +72,9 @@ const onboarding: OnboardingConfig = {
             <List symbol="bullet">
               <ListItem>
                 {tct(
-                  "Create two files in the root directory of your project, [clientEntry:entry.client.tsx] and [serverEntry:entry.server.tsx] (if they don't already exist).",
+                  "Create two files in the root directory of your project, [code:entry.client.tsx] and [code:entry.server.tsx] (if they don't already exist).",
                   {
-                    clientEntry: <code />,
-                    serverEntry: <code />,
+                    code: <code />,
                   }
                 )}
               </ListItem>
@@ -89,19 +88,17 @@ const onboarding: OnboardingConfig = {
               </ListItem>
               <ListItem>
                 {tct(
-                  'Create a [cliRc:.sentryclirc] with an auth token to upload source maps (this file is automatically added to your [gitignore:.gitignore]).',
+                  'Create a [code:.sentryclirc] with an auth token to upload source maps (this file is automatically added to your [code:.gitignore]).',
                   {
-                    cliRc: <code />,
-                    gitignore: <code />,
+                    code: <code />,
                   }
                 )}
               </ListItem>
               <ListItem>
                 {tct(
-                  'Adjust your [buildscript:build] script in your [pkgJson:package.json] to automatically upload source maps to Sentry when you build your application.',
+                  'Adjust your [code:build] script in your [code:package.json] to automatically upload source maps to Sentry when you build your application.',
                   {
-                    buildscript: <code />,
-                    pkgJson: <code />,
+                    code: <code />,
                   }
                 )}
               </ListItem>
@@ -157,8 +154,8 @@ const replayOnboarding: OnboardingConfig = {
         <Fragment>
           <TracePropagationMessage />
           {tct(
-            'Note: The Replay integration only needs to be added to your [entryClient:entry.client.tsx] file. It will not run if it is added into [sentryServer:sentry.server.config.js].',
-            {entryClient: <code />, sentryServer: <code />}
+            'Note: The Replay integration only needs to be added to your [code:entry.client.tsx] file. It will not run if it is added into [code:sentry.server.config.js].',
+            {code: <code />}
           )}
         </Fragment>
       ),

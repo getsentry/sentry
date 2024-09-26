@@ -70,11 +70,9 @@ const onboarding: OnboardingConfig = {
             <List symbol="bullet">
               <ListItem>
                 {tct(
-                  'Create or update [hookClientCode:src/hooks.client.js] and [hookServerCode:src/hooks.server.js] with the default [sentryInitCode:Sentry.init] call and SvelteKit hooks handlers.',
+                  'Create or update [code:src/hooks.client.js] and [code:src/hooks.server.js] with the default [code:Sentry.init] call and SvelteKit hooks handlers.',
                   {
-                    hookClientCode: <code />,
-                    hookServerCode: <code />,
-                    sentryInitCode: <code />,
+                    code: <code />,
                   }
                 )}
               </ListItem>
@@ -88,10 +86,9 @@ const onboarding: OnboardingConfig = {
               </ListItem>
               <ListItem>
                 {tct(
-                  'Create [sentryClircCode:.sentryclirc] and [sentryPropertiesCode:sentry.properties] files with configuration for sentry-cli (which is used when automatically uploading source maps).',
+                  'Create [code:.sentryclirc] and [code:sentry.properties] files with configuration for sentry-cli (which is used when automatically uploading source maps).',
                   {
-                    sentryClircCode: <code />,
-                    sentryPropertiesCode: <code />,
+                    code: <code />,
                   }
                 )}
               </ListItem>

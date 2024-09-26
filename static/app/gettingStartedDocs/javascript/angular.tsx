@@ -407,10 +407,9 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
     {
       type: StepType.INSTALL,
       description: tct(
-        'In order to use Session Replay, you will need version 7.27.0 of [codeAngular:@sentry/angular] at minimum. You do not need to install any additional packages.',
+        'In order to use Session Replay, you will need version 7.27.0 of [code:@sentry/angular] at minimum. You do not need to install any additional packages.',
         {
-          codeAngular: <code />,
-          codeIvy: <code />,
+          code: <code />,
         }
       ),
       configurations: getInstallConfig(),
@@ -446,10 +445,9 @@ const feedbackOnboarding: OnboardingConfig<PlatformOptions> = {
     {
       type: StepType.INSTALL,
       description: tct(
-        'For the User Feedback integration to work, you must have the Sentry browser SDK package, or an equivalent framework SDK (e.g. [codeAngular:@sentry/angular]) installed, minimum version 7.85.0.',
+        'For the User Feedback integration to work, you must have the Sentry browser SDK package, or an equivalent framework SDK (e.g. [code:@sentry/angular]) installed, minimum version 7.85.0.',
         {
-          codeAngular: <code />,
-          codeIvy: <code />,
+          code: <code />,
         }
       ),
       configurations: getInstallConfig(),

@@ -50,10 +50,9 @@ const onboarding: OnboardingConfig = {
     {
       type: StepType.INSTALL,
       description: tct(
-        'Install [sentrySdkCode:sentry-sdk] from PyPI with the [sentryQuartCode:quart] extra:',
+        'Install [code:sentry-sdk] from PyPI with the [code:quart] extra:',
         {
-          sentrySdkCode: <code />,
-          sentryQuartCode: <code />,
+          code: <code />,
         }
       ),
       configurations: [
@@ -61,10 +60,9 @@ const onboarding: OnboardingConfig = {
           description:
             params.docsLocation === DocsPageLocation.PROFILING_PAGE
               ? tct(
-                  'You need a minimum version [codeVersion:1.18.0] of the [codePackage:sentry-python] SDK for the profiling feature.',
+                  'You need a minimum version [code:1.18.0] of the [code:sentry-python] SDK for the profiling feature.',
                   {
-                    codeVersion: <code />,
-                    codePackage: <code />,
+                    code: <code />,
                   }
                 )
               : undefined,

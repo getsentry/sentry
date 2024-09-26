@@ -49,12 +49,10 @@ const onboarding: OnboardingConfig = {
       configurations: [
         {
           description: tct(
-            'If you have already integrated a library that generates minidumps and would just like to upload them to Sentry, you need to configure the [minidumpEndpointUrlItalic:Minidump Endpoint URL], which can be found at [projectSettingsItalic:Project Settings > Client Keys (DSN)]. This endpoint expects a [postCode:POST] request with the minidump in the [uploadFileMinidumpCode:upload_file_minidump] field:',
+            'If you have already integrated a library that generates minidumps and would just like to upload them to Sentry, you need to configure the [italic:Minidump Endpoint URL], which can be found at [italic:Project Settings > Client Keys (DSN)]. This endpoint expects a [code:POST] request with the minidump in the [code:upload_file_minidump] field:',
             {
-              postCode: <code />,
-              uploadFileMinidumpCode: <code />,
-              minidumpEndpointUrlItalic: <i />,
-              projectSettingsItalic: <i />,
+              code: <code />,
+              italic: <i />,
             }
           ),
           language: 'bash',

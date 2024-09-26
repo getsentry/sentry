@@ -216,10 +216,9 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
     {
       type: StepType.CONFIGURE,
       description: tct(
-        'Open up [applicationPropertiesCode:src/main/application.properties] (or [applicationYmlCode:src/main/application.yml]) and configure the DSN, and any other settings you need:',
+        'Open up [code:src/main/application.properties] (or [code:src/main/application.yml]) and configure the DSN, and any other settings you need:',
         {
-          applicationPropertiesCode: <code />,
-          applicationYmlCode: <code />,
+          code: <code />,
         }
       ),
       configurations: [

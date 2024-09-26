@@ -349,19 +349,17 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
                     </ListItem>
                     <ListItem>
                       {tct(
-                        'Add a new [phase: Upload Debug Symbols] phase to your [xcodebuild: xcodebuild] build script',
+                        'Add a new [code: Upload Debug Symbols] phase to your [code: xcodebuild] build script',
                         {
-                          phase: <code />,
-                          xcodebuild: <code />,
+                          code: <code />,
                         }
                       )}
                     </ListItem>
                     <ListItem>
                       {tct(
-                        'Create [sentryclirc: .sentryclirc] with an auth token to upload debug symbols (this file is automatically added to [gitignore: .gitignore])',
+                        'Create [code: .sentryclirc] with an auth token to upload debug symbols (this file is automatically added to [code: .gitignore])',
                         {
-                          sentryclirc: <code />,
-                          gitignore: <code />,
+                          code: <code />,
                         }
                       )}
                     </ListItem>
@@ -584,13 +582,9 @@ const metricsOnboarding: OnboardingConfig<PlatformOptions> = {
     {
       type: StepType.VERIFY,
       description: tct(
-        "Then you'll be able to add metrics as [codeCounters:counters], [codeSets:sets], [codeDistribution:distributions], and [codeGauge:gauges]. These are available under the [codeNamespace:SentrySDK.metrics()] namespace.",
+        "Then you'll be able to add metrics as [code:counters], [code:sets], [code:distributions], and [code:gauges]. These are available under the [code:SentrySDK.metrics()] namespace.",
         {
-          codeCounters: <code />,
-          codeSets: <code />,
-          codeDistribution: <code />,
-          codeGauge: <code />,
-          codeNamespace: <code />,
+          code: <code />,
         }
       ),
       configurations: [

@@ -67,13 +67,12 @@ const onboarding: OnboardingConfig = {
         {
           description: params.isProfilingSelected
             ? tct(
-                'Ruby Profiling beta is available since SDK version 5.9.0. We use the [stackprofLink:stackprof gem] to collect profiles for Ruby. Make sure [stackprofCode:stackprof] is loaded before [sentryRubyCode:sentry-ruby].',
+                'Ruby Profiling beta is available since SDK version 5.9.0. We use the [stackprofLink:stackprof gem] to collect profiles for Ruby. Make sure [code:stackprof] is loaded before [code:sentry-ruby].',
                 {
                   stackprofLink: (
                     <ExternalLink href="https://github.com/tmm1/stackprof" />
                   ),
-                  stackprofCode: <code />,
-                  sentryRubyCode: <code />,
+                  code: <code />,
                 }
               )
             : undefined,
@@ -92,10 +91,9 @@ const onboarding: OnboardingConfig = {
     {
       type: StepType.CONFIGURE,
       description: tct(
-        'Add [sentryRackCode:use Sentry::Rack::CaptureExceptions] to your [sentryConfigCode:config.ru] or other rackup file (this is automatically inserted in Rails):',
+        'Add [code:use Sentry::Rack::CaptureExceptions] to your [code:config.ru] or other rackup file (this is automatically inserted in Rails):',
         {
-          sentryRackCode: <code />,
-          sentryConfigCode: <code />,
+          code: <code />,
         }
       ),
       configurations: [
