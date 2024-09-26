@@ -17,9 +17,7 @@ import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import useOrganization from 'sentry/utils/useOrganization';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
-import useFlagSeries, {
-  flagSeriesName,
-} from 'sentry/views/issueDetails/streamline/flagSeries';
+import useFlagSeries from 'sentry/views/issueDetails/streamline/flagSeries';
 import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/useIssueDetailsDiscoverQuery';
 
 export const enum EventGraphSeries {
@@ -78,7 +76,7 @@ export function EventGraph({group, groupStats, searchQuery}: EventGraphProps) {
   );
 
   const [legendSelected, setLegendSelected] = useState({
-    [flagSeriesName]: true,
+    ['Feature Flags']: true,
   });
 
   const flagSeries = useFlagSeries({
@@ -116,7 +114,7 @@ export function EventGraph({group, groupStats, searchQuery}: EventGraphProps) {
       data: eventSeries,
     });
   }
-  series.push(flagSeries);
+  series.push(flagSeries as BarChartSeries);
 
   const legend = Legend({
     theme: theme,
@@ -125,7 +123,7 @@ export function EventGraph({group, groupStats, searchQuery}: EventGraphProps) {
     show: true,
     right: 35,
     top: 5,
-    data: [flagSeriesName],
+    data: ['Feature Flags'],
     selected: legendSelected,
   });
 

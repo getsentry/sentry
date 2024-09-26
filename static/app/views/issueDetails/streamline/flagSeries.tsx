@@ -2,13 +2,10 @@ import {useTheme} from '@emotion/react';
 
 import MarkLine from 'sentry/components/charts/components/markLine';
 import {t} from 'sentry/locale';
-import type {Series} from 'sentry/types/echarts';
 import type {Organization} from 'sentry/types/organization';
 import {getFormattedDate} from 'sentry/utils/dates';
 import {useApiQuery} from 'sentry/utils/queryClient';
 // import useOrganization from 'sentry/utils/useOrganization';
-
-export const flagSeriesName = t('Feature Flags');
 
 export const MOCK_RAW_FLAG_LOG = {
   data: [
@@ -87,7 +84,7 @@ function hydrateFlagData({
   return flagData;
 }
 
-export default function useFlagSeries({_query}: {_query?: Record<string, any>}): Series {
+export default function useFlagSeries({_query}: {_query?: Record<string, any>}) {
   const theme = useTheme();
   // const organization = useOrganization();
   // const {data, isError, isPending} = useOrganizationFlagLog({organization, query});
@@ -128,8 +125,9 @@ export default function useFlagSeries({_query}: {_query?: Record<string, any>}):
   });
 
   return {
-    seriesName: flagSeriesName,
+    seriesName: t('Feature Flags'),
     data: [],
     markLine,
+    type: 'line', // use this type so the bar chart doesn't shrink/grow
   };
 }
