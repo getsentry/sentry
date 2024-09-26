@@ -1,5 +1,6 @@
 from typing import Any
 
+from csp.decorators import csp_update
 from django.http import HttpRequest, HttpResponse
 
 from sentry.models.organization import Organization
@@ -42,6 +43,9 @@ class IframeView(OrganizationView):
         kwargs["project"] = active_project
         return args, kwargs
 
+    @csp_update(
+        SCRIPT_SRC=["sentry.io", "*.sentry.io"]
+    )  # Append to the CSP enforced in prod. Allows running the inline scripts in the response templates.
     def get(
         self, request: HttpRequest, organization: Organization, project: Project, *args, **kwargs
     ):
