@@ -19,6 +19,7 @@ from sentry.sentry_apps.models.sentry_app_installation_token import SentryAppIns
 from sentry.sentry_apps.services.hook import hook_service
 from sentry.tasks.sentry_apps import installation_webhook
 from sentry.users.models.user import User
+from sentry.users.services.user.model import RpcUser
 from sentry.utils import metrics
 
 
@@ -28,7 +29,7 @@ class SentryAppInstallationTokenCreator:
     expires_at: datetime.date | None = None
     generate_audit: bool = False
 
-    def run(self, user: User, request: HttpRequest | None = None) -> ApiToken:
+    def run(self, user: User | RpcUser, request: HttpRequest | None = None) -> ApiToken:
         with transaction.atomic(router.db_for_write(ApiToken)):
             self._check_token_limit()
             api_token = self._create_api_token()
@@ -100,7 +101,7 @@ class SentryAppInstallationCreator:
     slug: str
     notify: bool = True
 
-    def run(self, *, user: User, request: HttpRequest | None) -> SentryAppInstallation:
+    def run(self, *, user: User | RpcUser, request: HttpRequest | None) -> SentryAppInstallation:
         metrics.incr("sentry_apps.installation.attempt")
         with transaction.atomic(router.db_for_write(ApiGrant)):
             api_grant = self._create_api_grant()
@@ -157,7 +158,7 @@ class SentryAppInstallationCreator:
                 data={"sentry_app": self.sentry_app.name},
             )
 
-    def record_analytics(self, user: User) -> None:
+    def record_analytics(self, user: User | RpcUser) -> None:
         analytics.record(
             "sentry_app.installed",
             user_id=user.id,
