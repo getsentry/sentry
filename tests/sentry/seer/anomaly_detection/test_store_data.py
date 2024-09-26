@@ -110,7 +110,6 @@ class AnomalyDetectionStoreDataTest(AlertRuleBase, BaseMetricsTestCase, Performa
         )
         assert result == expected_return_value
 
-
     def test_anomaly_detection_fetch_historical_data(self):
         alert_rule = self.create_alert_rule(organization=self.organization, projects=[self.project])
         snuba_query = SnubaQuery.objects.get(id=alert_rule.snuba_query_id)
