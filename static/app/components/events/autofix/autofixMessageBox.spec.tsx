@@ -61,7 +61,7 @@ describe('AutofixMessageBox', () => {
 
     await waitFor(() => {
       expect(addSuccessMessage).toHaveBeenCalledWith(
-        "Thanks for the input! I'll get to it soon."
+        "Thanks for the input. I'll get to it soon."
       );
     });
   });
