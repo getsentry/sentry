@@ -875,3 +875,38 @@ class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpoin
         assert lower_limit == pytest.approx(193_612, abs=5000)
         assert extrapolated == pytest.approx(500_000)
         assert upper_limit == pytest.approx(806_388, abs=5000)
+
+    def test_span_system(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "foo", "sentry_tags": {"span.system": "postgresql"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"description": "bar", "sentry_tags": {"span.system": "mongodb"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+        response = self.do_request(
+            {
+                "field": ["span.system", "time_spent_percentage()"],
+                "query": "span.system:postgresql",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data == [
+            {
+                "span.system": "postgresql",
+                "time_spent_percentage()": 0.5,
+            },
+        ]
+        assert meta["dataset"] == self.dataset

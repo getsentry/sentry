@@ -538,6 +538,7 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
     sampling_weight = Column("sampling_weight")
     _cached_count = None
     _cached_count_weighted = None
+    _cached_sum_duration = None
 
     def _resolve_span_duration(self, alias: str) -> SelectType:
         # In ClickHouse, duration is an UInt32 whereas self time is a Float64.
@@ -713,11 +714,33 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
                     snql_aggregate=self._resolve_upper_limit,
                     default_result_type="number",
                 ),
+                SnQLFunction(
+                    "time_spent_percentage",
+                    optional_args=[
+                        with_default("span.duration", NumericColumn("column", spans=True)),
+                    ],
+                    snql_aggregate=self._resolve_time_spent_percentage,
+                    default_result_type="percentage",
+                ),
             ]
         }
 
         existing_functions.update(function_converter)
         return existing_functions
+
+    def _resolve_time_spent_percentage(
+        self, args: Mapping[str, str | Column | SelectType | int | float], alias: str
+    ) -> SelectType:
+        _, _, total_time = self._query_total_counts()
+
+        return function_aliases.resolve_division(
+            Function(
+                "sum",
+                [args["column"]],
+            ),
+            total_time,
+            alias,
+        )
 
     def _resolve_sum_weighted(
         self,
@@ -768,7 +791,7 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
                 dataset=self.builder.dataset,
                 params={},
                 snuba_params=self.builder.params,
-                selected_columns=["count()", "count_weighted()"],
+                selected_columns=["count()", "count_weighted()", "sum(span.duration)"],
             )
             total_results = total_query.run_query(Referrer.API_SPANS_TOTAL_COUNT_FIELD.value)
             results = total_query.process_results(total_results)
@@ -776,7 +799,8 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
                 raise Exception("Could not query population size")
             self._cached_count = results["data"][0]["count"]
             self._cached_count_weighted = results["data"][0]["count_weighted"]
-        return self._cached_count, self._cached_count_weighted
+            self._cached_sum_duration = results["data"][0]["sum_span_duration"]
+        return self._cached_count, self._cached_count_weighted, self._cached_sum_duration
 
     def _resolve_margin_of_error(
         self,
@@ -786,7 +810,7 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
         """Calculates the Margin of error for a given value, but unfortunately basis the total count based on
         extrapolated data"""
         # both of these need to be aggregated without a query
-        total_samples, population_size = self._query_total_counts()
+        total_samples, population_size, _ = self._query_total_counts()
         sampled_group = Function("count", [])
         return Function(
             "multiply",
@@ -843,7 +867,7 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
         args: Mapping[str, str | Column | SelectType | int | float],
         alias: str,
     ) -> SelectType:
-        total_samples, _ = self._query_total_counts()
+        total_samples, _, _ = self._query_total_counts()
         sampled_group = Function("count", [])
         proportion_by_sample = Function("divide", [sampled_group, total_samples])
         return Function(
@@ -881,7 +905,7 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
         args: Mapping[str, str | Column | SelectType | int | float],
         alias: str,
     ) -> SelectType:
-        total_samples, _ = self._query_total_counts()
+        total_samples, _, _ = self._query_total_counts()
         sampled_group = Function("count", [])
         proportion_by_sample = Function("divide", [sampled_group, total_samples])
         return Function(
