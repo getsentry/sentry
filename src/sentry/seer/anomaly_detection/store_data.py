@@ -35,7 +35,6 @@ seer_anomaly_detection_connection_pool = connection_from_url(
     settings.SEER_ANOMALY_DETECTION_URL,
     timeout=settings.SEER_ANOMALY_DETECTION_TIMEOUT,
 )
-NUM_DAYS = 28
 MIN_DAYS = 7
 
 

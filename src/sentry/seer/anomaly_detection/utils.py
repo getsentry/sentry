@@ -23,6 +23,12 @@ from sentry.utils.snuba import SnubaTSResult
 
 NUM_DAYS = 28
 
+SNUBA_QUERY_EVENT_TYPE_TO_STRING = {
+    SnubaQueryEventType.EventType.ERROR: "error",
+    SnubaQueryEventType.EventType.DEFAULT: "default",
+    SnubaQueryEventType.EventType.TRANSACTION: "transaction",
+}
+
 
 def translate_direction(direction: int) -> str:
     """
@@ -42,16 +48,11 @@ def get_snuba_query_string(
     """
     Generate a query string that matches what the OrganizationEventsStatsEndpoint does
     """
-    SNUBA_QUERY_EVENT_TYPE_TO_STRING = {
-        SnubaQueryEventType.EventType.ERROR: "error",
-        SnubaQueryEventType.EventType.DEFAULT: "default",
-        SnubaQueryEventType.EventType.TRANSACTION: "transaction",
-    }
     if not event_types:
         event_types = snuba_query.event_types or []
 
     if len(event_types) > 1:
-        # e.g. (is:unresolved) AND (event.type:[error, default])
+        # e.g. '(is:unresolved) AND (event.type:[error, default])'
         event_types_list = [
             SNUBA_QUERY_EVENT_TYPE_TO_STRING[event_type] for event_type in event_types
         ]
@@ -59,7 +60,7 @@ def get_snuba_query_string(
         event_types_string += ", ".join(event_types_list)
         event_types_string += "])"
     else:
-        # e.g. (is:unresolved) AND (event.type:error)
+        # e.g. '(is:unresolved) AND (event.type:error)'
         snuba_query_event_type_string = SNUBA_QUERY_EVENT_TYPE_TO_STRING[event_types[0]]
         event_types_string = f"(event.type:{snuba_query_event_type_string})"
     if snuba_query.query:
@@ -175,6 +176,7 @@ def get_dataset_from_label(dataset_label: str):
     dataset = get_dataset(dataset_label)
     if dataset is None:
         raise ParseError(detail=f"dataset must be one of: {', '.join(DATASET_OPTIONS.keys())}")
+    return dataset
 
 
 def fetch_historical_data(
