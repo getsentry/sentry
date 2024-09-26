@@ -62,8 +62,10 @@ class ConsumerGrpc:
         inflight_activation: InflightActivation,
     ) -> WorkerServiceStub:
         try:
+            timeout_in_sec = inflight_activation.processing_deadline.seconds - time.time()
             dispatch_task_response = stub.Dispatch(
-                DispatchRequest(task_activation=inflight_activation.activation)
+                DispatchRequest(task_activation=inflight_activation.activation),
+                timeout=timeout_in_sec,
             )
             self.pending_task_store.set_task_status(
                 task_id=inflight_activation.activation.id,
@@ -71,7 +73,7 @@ class ConsumerGrpc:
             )
         except grpc.RpcError as rpc_error:
             logger.exception(
-                "Connection lost with worker, code: %s, details: %s",
+                "gRPC failed, code: %s, details: %s",
                 rpc_error.code(),
                 rpc_error.details(),
             )
