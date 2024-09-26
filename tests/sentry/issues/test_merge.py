@@ -12,6 +12,7 @@ from sentry.models.groupinbox import GroupInboxReason, add_group_to_inbox
 from sentry.testutils.cases import TestCase
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
+from sentry.types.group import GroupSubStatus
 
 pytestmark = [requires_snuba]
 
@@ -21,7 +22,9 @@ class HandleIssueMergeTest(TestCase):
         self.groups = []
         self.project_lookup = {self.project.id: self.project}
         for _ in range(5):
-            group = self.create_group()
+            group = self.create_group(
+                status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING
+            )
             add_group_to_inbox(group, GroupInboxReason.NEW)
             self.groups.append(group)
 
@@ -30,18 +33,18 @@ class HandleIssueMergeTest(TestCase):
         Activity.objects.all().delete()
         merge = handle_merge(self.groups, self.project_lookup, self.user)
 
-        statuses = list(
-            Group.objects.filter(id__in=[g.id for g in self.groups]).values_list(
-                "status", flat=True
-            )
-        )
-        assert statuses.count(GroupStatus.PENDING_MERGE) == 4
+        groups = Group.objects.filter(id__in=[g.id for g in self.groups])
+
+        assert len(groups.filter(status=GroupStatus.PENDING_MERGE)) == 4
+        assert len(groups.filter(substatus__isnull=True)) == 4
         assert merge_groups.called
 
         primary_group = self.groups[-1]
         assert Activity.objects.filter(type=ActivityType.MERGE.value, group=primary_group)
         assert merge["parent"] == str(primary_group.id)
         assert len(merge["children"]) == 4
+        assert primary_group.status == GroupStatus.UNRESOLVED
+        assert primary_group.substatus == GroupSubStatus.ONGOING
 
     def test_handle_merge_performance_issues(self) -> None:
         group = Group.objects.create(

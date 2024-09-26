@@ -1525,6 +1525,8 @@ class BaseSpansTestCase(SnubaTestCase):
         sdk_name: str | None = None,
         op: str | None = None,
         status: str | None = None,
+        organization_id: int = 1,
+        is_eap: bool = False,
     ):
         if span_id is None:
             span_id = self._random_span_id()
@@ -1533,7 +1535,7 @@ class BaseSpansTestCase(SnubaTestCase):
 
         payload = {
             "project_id": project_id,
-            "organization_id": 1,
+            "organization_id": organization_id,
             "span_id": span_id,
             "trace_id": trace_id,
             "duration_ms": int(duration),
@@ -1568,7 +1570,7 @@ class BaseSpansTestCase(SnubaTestCase):
         if status is not None:
             payload["sentry_tags"]["status"] = status
 
-        self.store_span(payload)
+        self.store_span(payload, is_eap=is_eap)
 
         if "_metrics_summary" in payload:
             self.store_metrics_summary(payload)
@@ -2723,6 +2725,8 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
             assert data["columns"] == widget_data_source.columns
         if "fieldAliases" in data:
             assert data["fieldAliases"] == widget_data_source.field_aliases
+        if "selectedAggregate" in data:
+            assert data["selectedAggregate"] == widget_data_source.selected_aggregate
 
     def get_widgets(self, dashboard_id):
         return DashboardWidget.objects.filter(dashboard_id=dashboard_id).order_by("order")
@@ -3400,6 +3404,7 @@ class SpanTestCase(BaseTestCase):
         project: Project | None = None,
         start_ts: datetime | None = None,
         duration: int = 1000,
+        measurements: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Create span json, not required for store_span, but with no params passed should just work out of the box"""
         if organization is None:
@@ -3438,6 +3443,8 @@ class SpanTestCase(BaseTestCase):
         # coerce to string
         for tag, value in dict(span["tags"]).items():
             span["tags"][tag] = str(value)
+        if measurements:
+            span["measurements"] = measurements
         return span
 
 

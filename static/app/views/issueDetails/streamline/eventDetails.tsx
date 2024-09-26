@@ -2,13 +2,17 @@ import {useLayoutEffect, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import Feature from 'sentry/components/acl/feature';
+import Alert from 'sentry/components/alert';
 import {CommitRow} from 'sentry/components/commitRow';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {SuspectCommits} from 'sentry/components/events/suspectCommits';
+import {GroupSummary} from 'sentry/components/group/groupSummary';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {MultiSeriesEventsStats} from 'sentry/types/organization';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -22,12 +26,22 @@ import {
   useEventDetailsReducer,
 } from 'sentry/views/issueDetails/streamline/context';
 import {EventGraph} from 'sentry/views/issueDetails/streamline/eventGraph';
+import {EventList} from 'sentry/views/issueDetails/streamline/eventList';
 import {EventNavigation} from 'sentry/views/issueDetails/streamline/eventNavigation';
 import {
   EventSearch,
   useEventQuery,
 } from 'sentry/views/issueDetails/streamline/eventSearch';
-import {useFetchEventStats} from 'sentry/views/issueDetails/streamline/useFetchEvents';
+import {IssueContent} from 'sentry/views/issueDetails/streamline/issueContent';
+import {
+  useIssueDetailsDiscoverQuery,
+  useIssueDetailsEventView,
+} from 'sentry/views/issueDetails/streamline/useIssueDetailsDiscoverQuery';
+
+const enum EventPageContent {
+  EVENT = 'event',
+  LIST = 'list',
+}
 
 export function EventDetails({
   group,
@@ -41,14 +55,24 @@ export function EventDetails({
   const isScreenMedium = useMedia(`(max-width: ${theme.breakpoints.medium})`);
   const {environments} = selection;
   const [nav, setNav] = useState<HTMLDivElement | null>(null);
+  const {eventDetails, dispatch} = useEventDetailsReducer();
 
   const searchQuery = useEventQuery({group});
-  const {eventDetails, dispatch} = useEventDetailsReducer();
-  const {data: groupStats, isPending: isLoadingStats} = useFetchEventStats({
+  const eventView = useIssueDetailsEventView({group});
+
+  const [pageContent, setPageContent] = useState<EventPageContent>(
+    EventPageContent.EVENT
+  );
+
+  const {
+    data: groupStats,
+    isPending: isLoadingStats,
+    error,
+  } = useIssueDetailsDiscoverQuery<MultiSeriesEventsStats>({
     params: {
-      group: group,
-      referrer: 'issue_details.streamline',
-      query: searchQuery,
+      route: 'events-stats',
+      eventView,
+      referrer: 'issue_details.streamline_graph',
     },
   });
 
@@ -63,15 +87,21 @@ export function EventDetails({
 
   return (
     <EventDetailsContext.Provider value={{...eventDetails, dispatch}}>
-      <ErrorBoundary mini message={t('There was an error loading the suspect commits')}>
+      <Feature features={['organizations:ai-summary']}>
+        <GroupSummary groupId={group.id} groupCategory={group.issueCategory} />
+      </Feature>
+      <PageErrorBoundary
+        mini
+        message={t('There was an error loading the suspect commits')}
+      >
         <SuspectCommits
           project={project}
           eventId={event.id}
           group={group}
           commitRow={CommitRow}
         />
-      </ErrorBoundary>
-      <ErrorBoundary mini message={t('There was an error loading the event filters')}>
+      </PageErrorBoundary>
+      <PageErrorBoundary mini message={t('There was an error loading the event filter')}>
         <FilterContainer>
           <EnvironmentPageFilter />
           <SearchFilter
@@ -87,28 +117,76 @@ export function EventDetails({
           />
           <DatePageFilter />
         </FilterContainer>
-      </ErrorBoundary>
-      {!isLoadingStats && groupStats && (
-        <GraphPadding>
-          <ErrorBoundary mini message={t('There was an error loading the event graph')}>
-            <EventGraph groupStats={groupStats} />
-          </ErrorBoundary>
-        </GraphPadding>
+      </PageErrorBoundary>
+      {error ? (
+        <div>
+          <GraphAlert type="error" showIcon>
+            {error.message}
+          </GraphAlert>
+        </div>
+      ) : (
+        <PageErrorBoundary mini message={t('There was an error loading the event graph')}>
+          {!isLoadingStats && groupStats && (
+            <ExtraContent>
+              <EventGraph
+                group={group}
+                groupStats={groupStats}
+                searchQuery={searchQuery}
+              />
+            </ExtraContent>
+          )}
+        </PageErrorBoundary>
       )}
-      <GroupContent navHeight={nav?.offsetHeight}>
-        <FloatingEventNavigation
-          event={event}
-          group={group}
-          ref={setNav}
-          query={searchQuery}
-        />
-        <GroupContentPadding>
-          <EventDetailsContent group={group} event={event} project={project} />
-        </GroupContentPadding>
-      </GroupContent>
+      {pageContent === EventPageContent.LIST && (
+        <PageErrorBoundary mini message={t('There was an error loading the event list')}>
+          <GroupContent>
+            <EventList
+              group={group}
+              project={project}
+              onClose={() => setPageContent(EventPageContent.EVENT)}
+            />
+          </GroupContent>
+        </PageErrorBoundary>
+      )}
+      {pageContent === EventPageContent.EVENT && (
+        <PageErrorBoundary
+          mini
+          message={t('There was an error loading the event content')}
+        >
+          <GroupContent>
+            <FloatingEventNavigation
+              event={event}
+              group={group}
+              ref={setNav}
+              query={searchQuery}
+              onViewAllEvents={() => setPageContent(EventPageContent.LIST)}
+            />
+            <ContentPadding>
+              <EventDetailsContent group={group} event={event} project={project} />
+            </ContentPadding>
+          </GroupContent>
+        </PageErrorBoundary>
+      )}
+      <PageErrorBoundary mini message={t('There was an error loading the issue content')}>
+        <ExtraContent>
+          <ContentPadding>
+            <IssueContent group={group} project={project} />
+          </ContentPadding>
+        </ExtraContent>
+      </PageErrorBoundary>
     </EventDetailsContext.Provider>
   );
 }
+
+const SearchFilter = styled(EventSearch)`
+  border-radius: ${p => p.theme.borderRadius};
+`;
+
+const FilterContainer = styled('div')`
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: ${space(1.5)};
+`;
 
 const FloatingEventNavigation = styled(EventNavigation)`
   position: sticky;
@@ -117,34 +195,30 @@ const FloatingEventNavigation = styled(EventNavigation)`
     top: ${p => p.theme.sidebar.mobileHeight};
   }
   background: ${p => p.theme.background};
-  z-index: 100;
-  border-radius: 6px 6px 0 0;
+  z-index: 500;
+  border-radius: ${p => p.theme.borderRadiusTop};
 `;
 
-const SearchFilter = styled(EventSearch)`
-  border-radius: ${p => p.theme.borderRadius};
-`;
-
-const GraphPadding = styled('div')`
+const ExtraContent = styled('div')`
   border: 1px solid ${p => p.theme.translucentBorder};
   background: ${p => p.theme.background};
   border-radius: ${p => p.theme.borderRadius};
-  padding: ${space(1.5)} ${space(1)};
 `;
 
-const GroupContent = styled('div')<{navHeight?: number}>`
-  border: 1px solid ${p => p.theme.translucentBorder};
-  background: ${p => p.theme.background};
-  border-radius: ${p => p.theme.borderRadius};
+const GroupContent = styled(ExtraContent)`
   position: relative;
 `;
 
-const GroupContentPadding = styled('div')`
+const ContentPadding = styled('div')`
   padding: ${space(1)} ${space(1.5)};
 `;
 
-const FilterContainer = styled('div')`
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  gap: ${space(1)};
+const GraphAlert = styled(Alert)`
+  margin: 0;
+  border: 1px solid ${p => p.theme.translucentBorder};
+`;
+
+const PageErrorBoundary = styled(ErrorBoundary)`
+  margin: 0;
+  border: 1px solid ${p => p.theme.translucentBorder};
 `;

@@ -26,4 +26,10 @@ describe('PercentChange', function () {
 
     expect(screen.getByText('+5.52%')).toHaveAttribute('data-rating', 'good');
   });
+
+  it('respects lack of polarity preference', () => {
+    render(<PercentChange value={0.0552} preferredPolarity="" />);
+
+    expect(screen.getByText('+5.52%')).toHaveAttribute('data-rating', 'neutral');
+  });
 });

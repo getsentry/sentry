@@ -15,6 +15,15 @@ import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import StreamlinedGroupHeader from 'sentry/views/issueDetails/streamline/header';
 import {ReprocessingStatus} from 'sentry/views/issueDetails/utils';
 
+jest.mock('screenfull', () => ({
+  enabled: true,
+  isFullscreen: false,
+  request: jest.fn(),
+  exit: jest.fn(),
+  on: jest.fn(),
+  off: jest.fn(),
+}));
+
 describe('UpdatedGroupHeader', () => {
   const baseUrl = 'BASE_URL/';
   const organization = OrganizationFixture();
@@ -53,6 +62,10 @@ describe('UpdatedGroupHeader', () => {
       MockApiClient.addMockResponse({
         url: `/organizations/org-slug/releases/${encodeURIComponent(firstRelease.version)}/deploys/`,
         body: {},
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues/${group.id}/attachments/`,
+        body: [],
       });
     });
 

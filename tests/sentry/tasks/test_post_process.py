@@ -1471,7 +1471,7 @@ class ProcessCommitsTestMixin(BasePostProgressGroupMixin):
         ]
 
     @patch(
-        "sentry.integrations.github.GitHubIntegration.get_commit_context_all_frames",
+        "sentry.integrations.github.integration.GitHubIntegration.get_commit_context_all_frames",
         return_value=github_blame_return_value,
     )
     def test_logic_fallback_no_scm(self, mock_get_commit_context):
@@ -1492,7 +1492,7 @@ class ProcessCommitsTestMixin(BasePostProgressGroupMixin):
         assert not mock_get_commit_context.called
 
     @patch(
-        "sentry.integrations.github_enterprise.GitHubEnterpriseIntegration.get_commit_context_all_frames",
+        "sentry.integrations.github_enterprise.integration.GitHubEnterpriseIntegration.get_commit_context_all_frames",
     )
     def test_github_enterprise(self, mock_get_commit_context):
         mock_get_commit_context.return_value = self.github_blame_all_files_return_value
@@ -1528,7 +1528,7 @@ class ProcessCommitsTestMixin(BasePostProgressGroupMixin):
             type=GroupOwnerType.SUSPECT_COMMIT.value,
         )
 
-    @patch("sentry.integrations.github.GitHubIntegration.get_commit_context_all_frames")
+    @patch("sentry.integrations.github.integration.GitHubIntegration.get_commit_context_all_frames")
     def test_skip_when_not_is_new(self, mock_get_commit_context):
         """
         Tests that we do not process commit context if the group isn't new.
@@ -1549,7 +1549,7 @@ class ProcessCommitsTestMixin(BasePostProgressGroupMixin):
         ).exists()
 
     @patch(
-        "sentry.integrations.github.GitHubIntegration.get_commit_context_all_frames",
+        "sentry.integrations.github.integration.GitHubIntegration.get_commit_context_all_frames",
     )
     def test_does_not_skip_when_is_new(self, mock_get_commit_context):
         """

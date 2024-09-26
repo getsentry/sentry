@@ -143,7 +143,7 @@ export default function useAggregatedQueryKeys<AggregatableQueryKey, Data>({
         predicate: isQueryKeyInBatch,
       });
       queuedAggregatableBatch.forEach(queryKey => {
-        queryClient.setQueryData(
+        queryClient.setQueryData<boolean>(
           ['aggregate', cacheKey, key, 'inFlight', queryKey],
           true
         );
@@ -210,7 +210,7 @@ export default function useAggregatedQueryKeys<AggregatableQueryKey, Data>({
       // Cache sentinel data for the new cacheKeys
       newQueryKeys
         .map(agg => ['aggregate', cacheKey, key, 'queued', agg])
-        .forEach(queryKey => queryClient.setQueryData(queryKey, true));
+        .forEach(queryKey => queryClient.setQueryData<boolean>(queryKey, true));
 
       if (newQueryKeys.length) {
         setData(readCache());

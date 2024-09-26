@@ -1,4 +1,4 @@
-import {Fragment, useMemo, useRef} from 'react';
+import {Fragment, useMemo} from 'react';
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -11,7 +11,6 @@ import {Chevron} from 'sentry/components/chevron';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {DropdownMenuFooter} from 'sentry/components/dropdownMenu/footer';
-import useFeedbackWidget from 'sentry/components/feedback/widget/useFeedbackWidget';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import Placeholder from 'sentry/components/placeholder';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -127,29 +126,6 @@ function PriorityChangeActor({
   );
 }
 
-function GroupPriorityFeedback() {
-  const buttonRef = useRef<HTMLButtonElement>(null);
-  const feedback = useFeedbackWidget({
-    buttonRef,
-    messagePlaceholder: t('How can we make priority better for you?'),
-  });
-
-  if (!feedback) {
-    return null;
-  }
-
-  return (
-    <StyledButton
-      ref={buttonRef}
-      size="zero"
-      borderless
-      onClick={e => e.stopPropagation()}
-    >
-      {t('Give Feedback')}
-    </StyledButton>
-  );
-}
-
 const DataConsentLearnMore = HookOrDefault({
   hookName: 'component:data-consent-priority-learn-more',
   defaultComponent: null,
@@ -179,9 +155,13 @@ function GroupPriorityLearnMore() {
         <strong>{t('Time to prioritize!')}</strong>
       </p>
       <p>
-        {t(
-          'Use priority to make your issue stream more actionable. Sentry will automatically assign a priority score to new issues and filter low priority issues from the default view.'
-        )}
+        {organization.features.includes('issue-stream-custom-views')
+          ? t(
+              'Use priority to make your issue stream more actionable. Sentry will automatically assign a priority score to new issues.'
+            )
+          : t(
+              'Use priority to make your issue stream more actionable. Sentry will automatically assign a priority score to new issues and filter low priority issues from the default view.'
+            )}
       </p>
       <LinkButton
         href="https://docs.sentry.io/product/issues/issue-priority/"
@@ -218,7 +198,6 @@ export function GroupPriorityDropdown({
       menuTitle={
         <MenuTitleContainer>
           <div>{t('Set Priority')}</div>
-          <GroupPriorityFeedback />
         </MenuTitleContainer>
       }
       minMenuWidth={230}
@@ -229,7 +208,7 @@ export function GroupPriorityDropdown({
           size="zero"
         >
           <GroupPriorityBadge priority={value}>
-            <Chevron direction={isOpen ? 'up' : 'down'} size="small" />
+            <Chevron light direction={isOpen ? 'up' : 'down'} size="small" />
           </GroupPriorityBadge>
         </DropdownButton>
       )}
@@ -287,18 +266,6 @@ const MenuTitleContainer = styled('div')`
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-`;
-
-const StyledButton = styled(Button)`
-  font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.subText};
-  font-weight: ${p => p.theme.fontWeightNormal};
-  padding: 0;
-  border: none;
-
-  &:hover {
-    color: ${p => p.theme.subText};
-  }
 `;
 
 const StyledFooter = styled(DropdownMenuFooter)`

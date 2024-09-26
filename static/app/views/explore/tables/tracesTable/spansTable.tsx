@@ -49,7 +49,7 @@ export function SpanTable({
 
   const [query] = useUserQuery();
 
-  const {data, isLoading, isError} = useTraceSpans({
+  const {data, isPending, isError} = useTraceSpans({
     trace,
     fields: [
       ...FIELDS,
@@ -72,12 +72,12 @@ export function SpanTable({
   const spans = useMemo(() => data?.data ?? [], [data]);
 
   const showErrorState = useMemo(() => {
-    return !isLoading && isError;
-  }, [isLoading, isError]);
+    return !isPending && isError;
+  }, [isPending, isError]);
 
   const hasData = useMemo(() => {
-    return !isLoading && !showErrorState && spans.length > 0;
-  }, [spans, isLoading, showErrorState]);
+    return !isPending && !showErrorState && spans.length > 0;
+  }, [spans, isPending, showErrorState]);
 
   return (
     <SpanTablePanelItem span={6} overflow>
@@ -96,7 +96,7 @@ export function SpanTable({
           <StyledPanelHeader align="right" lightText>
             {t('Timestamp')}
           </StyledPanelHeader>
-          {isLoading && (
+          {isPending && (
             <StyledPanelItem span={5} overflow>
               <LoadingIndicator />
             </StyledPanelItem>

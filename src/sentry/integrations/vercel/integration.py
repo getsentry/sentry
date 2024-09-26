@@ -19,19 +19,19 @@ from sentry.integrations.base import (
 )
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import integration_service
-from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
-from sentry.models.integrations.sentry_app_installation_for_provider import (
-    SentryAppInstallationForProvider,
-)
-from sentry.models.integrations.sentry_app_installation_token import SentryAppInstallationToken
 from sentry.organizations.services.organization import RpcOrganizationSummary
 from sentry.pipeline import NestedPipelineView
 from sentry.projects.services.project_key import project_key_service
+from sentry.sentry_apps.logic import SentryAppCreator
+from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
+from sentry.sentry_apps.models.sentry_app_installation_for_provider import (
+    SentryAppInstallationForProvider,
+)
+from sentry.sentry_apps.models.sentry_app_installation_token import SentryAppInstallationToken
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.users.models.user import User
 from sentry.utils.http import absolute_uri
 
-from ...sentry_apps.apps import SentryAppCreator
 from .client import VercelClient
 
 logger = logging.getLogger("sentry.integrations.vercel")

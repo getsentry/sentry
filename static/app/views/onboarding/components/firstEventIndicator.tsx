@@ -37,6 +37,7 @@ function FirstEventIndicator({children, ...props}: FirstEventIndicatorProps) {
               onClick={() =>
                 trackAnalytics('growth.onboarding_take_to_error', {
                   organization: props.organization,
+                  platform: props.project.platform,
                 })
               }
               to={`/organizations/${props.organization.slug}/issues/${

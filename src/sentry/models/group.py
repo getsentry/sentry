@@ -605,14 +605,6 @@ class Group(Model):
             ("project", "short_id"),
             ("project", "id"),
         )
-        constraints = [
-            models.CheckConstraint(
-                check=Q(status=GroupStatus.IGNORED, substatus__in=IGNORED_SUBSTATUS_CHOICES)
-                | Q(status=GroupStatus.UNRESOLVED, substatus__in=UNRESOLVED_SUBSTATUS_CHOICES)
-                | Q(status__in=STATUS_WITHOUT_SUBSTATUS, substatus__isnull=True),
-                name="substatus_is_valid_for_status",
-            )
-        ]
 
     __repr__ = sane_repr("project_id")
 

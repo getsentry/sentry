@@ -1,6 +1,7 @@
 import type {UseQueryResult} from '@tanstack/react-query';
 import {BroadcastFixture} from 'sentry-fixture/broadcast';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {ProjectKeysFixture} from 'sentry-fixture/projectKeys';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -15,8 +16,6 @@ import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import type {PlatformKey, Project} from 'sentry/types/project';
 import type {StatuspageIncident} from 'sentry/types/system';
 import * as incidentsHook from 'sentry/utils/useServiceIncidents';
-
-import {generateDocKeys} from './utils';
 
 jest.mock('sentry/utils/useServiceIncidents');
 
@@ -228,21 +227,15 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
     });
     ProjectsStore.loadInitialData([project]);
 
-    const docApiMocks: any = {};
-    const docKeys = generateDocKeys(project.platform!);
-
-    docKeys.forEach(docKey => {
-      docApiMocks[docKey] = MockApiClient.addMockResponse({
-        url: `/projects/${organization.slug}/${project.slug}/docs/${docKey}/`,
-        method: 'GET',
-        body: {html: `<h1>${docKey}</h1> content`},
-      });
-    });
-
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/`,
       method: 'GET',
       body: {},
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/keys/`,
+      body: ProjectKeysFixture(),
     });
 
     renderSidebar({
@@ -261,11 +254,5 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
         textWithMarkupMatcher('Adding Performance to your React project is simple.')
       )
     ).toBeInTheDocument();
-
-    for (const docKey of docKeys) {
-      expect(
-        await screen.findByText(textWithMarkupMatcher(`${docKey} content`))
-      ).toBeInTheDocument();
-    }
   });
 });

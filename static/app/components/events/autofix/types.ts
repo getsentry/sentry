@@ -18,7 +18,6 @@ export enum AutofixStepType {
   DEFAULT = 'default',
   ROOT_CAUSE_ANALYSIS = 'root_cause_analysis',
   CHANGES = 'changes',
-  USER_RESPONSE = 'user_response',
 }
 
 export enum AutofixCodebaseIndexingStatus {
@@ -71,15 +70,11 @@ export type AutofixData = {
 export type AutofixProgressItem = {
   message: string;
   timestamp: string;
-  type: 'INFO' | 'WARNING' | 'ERROR' | 'NEED_MORE_INFORMATION' | 'USER_RESPONSE';
+  type: 'INFO' | 'WARNING' | 'ERROR' | 'NEED_MORE_INFORMATION';
   data?: any;
 };
 
-export type AutofixStep =
-  | AutofixDefaultStep
-  | AutofixRootCauseStep
-  | AutofixChangesStep
-  | AutofixUserResponseStep;
+export type AutofixStep = AutofixDefaultStep | AutofixRootCauseStep | AutofixChangesStep;
 
 interface BaseStep {
   id: string;
@@ -91,7 +86,41 @@ interface BaseStep {
   completedMessage?: string;
 }
 
+export type CodeSnippetContext = {
+  file_path: string;
+  repo_name: string;
+  snippet: string;
+};
+
+export type StacktraceContext = {
+  code_snippet: string;
+  col_no: number;
+  file_name: string;
+  function: string;
+  line_no: number;
+  repo_name: string;
+  vars_as_json: string;
+};
+
+export type BreadcrumbContext = {
+  body: string;
+  category: string;
+  data_as_json: string;
+  level: string;
+  type: string;
+};
+
+export type AutofixInsight = {
+  breadcrumb_context: BreadcrumbContext[];
+  codebase_context: CodeSnippetContext[];
+  error_message_context: string[];
+  insight: string;
+  justification: string;
+  stacktrace_context: StacktraceContext[];
+};
+
 export interface AutofixDefaultStep extends BaseStep {
+  insights: AutofixInsight[];
   type: AutofixStepType.DEFAULT;
 }
 
@@ -124,31 +153,17 @@ export interface AutofixChangesStep extends BaseStep {
   type: AutofixStepType.CHANGES;
 }
 
-export interface AutofixUserResponseStep extends BaseStep {
-  text: string;
-  type: AutofixStepType.USER_RESPONSE;
-  user_id: number;
-}
-
-export type AutofixRootCauseCodeContextSnippet = {
-  file_path: string;
-  repo_name: string;
-  snippet: string;
-};
-
 export type AutofixRootCauseCodeContext = {
   description: string;
   id: string;
   title: string;
-  snippet?: AutofixRootCauseCodeContextSnippet;
+  snippet?: CodeSnippetContext;
 };
 
 export type AutofixRootCauseData = {
-  actionability: number;
   code_context: AutofixRootCauseCodeContext[];
   description: string;
   id: string;
-  likelihood: number;
   title: string;
   reproduction?: string;
 };
