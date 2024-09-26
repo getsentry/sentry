@@ -10,7 +10,7 @@ export type InviteMembersContextProps = {
   complete: boolean;
   inviteStatus: InviteStatus;
   invites: NormalizedInvite[];
-  pendingInvites: InviteRow[];
+  pendingInvites: InviteRow;
   reset: () => void;
   sendInvites: () => void;
   sendingInvites: boolean;
@@ -25,7 +25,11 @@ export const InviteMembersContext = createContext<InviteMembersContextProps>({
   complete: false,
   inviteStatus: {},
   invites: [],
-  pendingInvites: [],
+  pendingInvites: {
+    emails: new Set(),
+    role: '',
+    teams: new Set(),
+  },
   reset: () => {},
   sendInvites: () => {},
   sendingInvites: false,

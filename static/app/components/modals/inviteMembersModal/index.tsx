@@ -106,7 +106,7 @@ function InviteMembersModal({
                 sendInvites,
                 reset,
                 inviteStatus,
-                pendingInvites,
+                pendingInvites: pendingInvites[0],
                 sendingInvites,
                 complete,
                 error,

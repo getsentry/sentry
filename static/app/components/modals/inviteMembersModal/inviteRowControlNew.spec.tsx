@@ -25,13 +25,11 @@ describe('InviteRowControlNew', function () {
     complete: false,
     inviteStatus: {},
     invites: [],
-    pendingInvites: [
-      {
-        emails: new Set<string>(),
-        teams: new Set<string>(),
-        role: '',
-      },
-    ],
+    pendingInvites: {
+      emails: new Set<string>(),
+      role: '',
+      teams: new Set<string>(),
+    },
     reset: () => {},
     sendInvites: () => {},
     sendingInvites: false,
@@ -123,12 +121,10 @@ describe('InviteRowControlNew', function () {
     render(
       getComponent({
         ...providerProps,
-        pendingInvites: [
-          {
-            ...providerProps.pendingInvites[0],
-            role: 'billing',
-          },
-        ],
+        pendingInvites: {
+          ...providerProps.pendingInvites[0],
+          role: 'billing',
+        },
       })
     );
     const teamInput = screen.getByLabelText('Add to Team');
@@ -140,12 +136,10 @@ describe('InviteRowControlNew', function () {
     render(
       getComponent({
         ...providerProps,
-        pendingInvites: [
-          {
-            ...providerProps.pendingInvites[0],
-            role: 'member',
-          },
-        ],
+        pendingInvites: {
+          ...providerProps.pendingInvites[0],
+          role: 'member',
+        },
         setTeams: mockSetTeams,
       })
     );
