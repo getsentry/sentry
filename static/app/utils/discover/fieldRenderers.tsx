@@ -339,6 +339,7 @@ type SpecialField = {
 };
 
 type SpecialFields = {
+  'apdex()': SpecialField;
   attachments: SpecialField;
   'count_unique(user)': SpecialField;
   'error.handled': SpecialField;
@@ -376,6 +377,19 @@ const RightAlignedContainer = styled('span')`
 const SPECIAL_FIELDS: SpecialFields = {
   // This is a custom renderer for a field outside discover
   // TODO - refactor code and remove from this file or add ability to query for attachments in Discover
+  'apdex()': {
+    sortField: 'apdex()',
+    renderFunc: data => {
+      const field = 'apdex()';
+
+      return (
+        <NumberContainer>
+          {/* Always render Apdex with 3 decimal places */}
+          {typeof data[field] === 'number' ? formatFloat(data[field], 3) : emptyValue}
+        </NumberContainer>
+      );
+    },
+  },
   attachments: {
     sortField: null,
     renderFunc: (data, {organization, projectSlug}) => {
