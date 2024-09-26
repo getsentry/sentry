@@ -380,6 +380,16 @@ class FilteringTests(ExportTestCase):
             assert not self.exists(data, OrganizationMember, "user_email", "user_b_only")
             assert not self.exists(data, OrganizationMember, "email", "invited-b@example.com")
 
+    """
+    If this test fails, it's because a newly created model was given an relocation_scope
+    that is not correctly exporting the models created in backup.py
+
+    To fix this you can:
+    - Add a reference to the organization model
+    - Remove the model from the relocation scope; using RelocationScope.Excluded
+    - Reach out to #discuss-open-source on slack for customizations / more detailed support
+    """
+
     def test_export_filter_orgs_empty(self):
         a = self.create_exhaustive_user("user_a_only")
         b = self.create_exhaustive_user("user_b_only")
