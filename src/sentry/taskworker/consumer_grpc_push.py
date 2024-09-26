@@ -34,8 +34,6 @@ class ConsumerGrpc:
         with ThreadPoolExecutor(max_workers=len(self.available_stubs)) as executor:
             logger.info("Starting consumer grpc with %s threads", len(self.available_stubs))
             while True:
-                inflight_activation = self._poll_pending_task()
-
                 if len(self.available_stubs) == 0:
                     done, not_done = wait(self.current_connections, return_when=FIRST_COMPLETED)
                     self.available_stubs.extend([future.result() for future in done])
@@ -45,7 +43,7 @@ class ConsumerGrpc:
                     executor.submit(
                         self._dispatch_activation,
                         self.available_stubs.popleft(),
-                        inflight_activation,
+                        self._poll_pending_task(),
                     )
                 )
 
