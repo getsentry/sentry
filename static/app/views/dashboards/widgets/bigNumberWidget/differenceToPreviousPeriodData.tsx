@@ -47,8 +47,8 @@ export function DifferenceToPreviousPeriodData({
 
   return (
     <Difference rating={rating}>
-      <Indicator>{directionMarker}</Indicator>
-      <Number>{formatter(differenceAsDatum)}</Number>
+      <Text>{directionMarker}</Text>
+      <Text>{formatter(differenceAsDatum)}</Text>
     </Difference>
   );
 }
@@ -56,24 +56,17 @@ export function DifferenceToPreviousPeriodData({
 const Difference = styled(ColorizedRating)`
   display: flex;
   gap: ${space(0.25)};
+  margin-bottom: 6cqh;
 
-  @container (min-height: 70px) {
-    padding-bottom: 5cqh;
+  @container (min-height: 50px) {
+    margin-bottom: 10cqh;
   }
 `;
 
-const Number = styled('div')`
+const Text = styled('div')`
   font-size: 14px;
 
-  @container (min-height: 70px) {
-    font-size: clamp(14px, calc(10px + 4cqi), 30cqh);
-  }
-`;
-
-const Indicator = styled('div')`
-  font-size: 14px;
-
-  @container (min-height: 70px) {
+  @container (min-height: 50px) {
     font-size: clamp(14px, calc(10px + 4cqi), 30cqh);
   }
 `;

@@ -40,6 +40,11 @@ export default storyBook(BigNumberWidget, story => {
                   'eps()': 0.01087819860850493,
                 },
               ]}
+              previousPeriodData={[
+                {
+                  'eps()': 0.01087819860850493,
+                },
+              ]}
               meta={{
                 fields: {
                   'eps()': 'rate',
@@ -210,5 +215,4 @@ const SmallSizingWindow = styled(SizingWindow)`
 
 const NormalWidget = styled('div')`
   width: 250px;
-  height: 100px;
 `;
