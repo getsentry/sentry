@@ -51,6 +51,7 @@ class ConsumerGrpc:
         while True:
             inflight_activation = self.pending_task_store.get_pending_task()
             if inflight_activation:
+                logger.info("Polled task %s", inflight_activation.activation.id)
                 return inflight_activation
             logger.info("No tasks")
             time.sleep(1)
