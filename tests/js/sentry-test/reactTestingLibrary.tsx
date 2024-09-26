@@ -1,10 +1,10 @@
 import {Component} from 'react';
-import {Router} from 'react-router-dom';
+import {type RouteObject, RouterProvider, useRouteError} from 'react-router-dom';
 import {cache} from '@emotion/css'; // eslint-disable-line @emotion/no-vanilla
 import {CacheProvider, ThemeProvider} from '@emotion/react';
+import {createMemoryHistory, createRouter} from '@remix-run/router';
 import * as rtl from '@testing-library/react'; // eslint-disable-line no-restricted-imports
 import userEvent from '@testing-library/user-event'; // eslint-disable-line no-restricted-imports
-import {createMemoryHistory} from 'history';
 import * as qs from 'query-string';
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
@@ -77,14 +77,20 @@ function makeAllTheProviders(providers: ProviderOptions) {
 
     // Inject legacy react-router 3 style router mocked navigation functions
     // into the memory history used in react router 6
+    //
+    // TODO(epurkhiser): In a world without react-router 3 we should figure out
+    // how to write our tests in a simpler way without all these shims
 
     const history = createMemoryHistory();
+    Object.defineProperty(history, 'location', {get: () => router.location});
     history.replace = router.replace;
     history.push = (path: any) => {
       if (typeof path === 'object' && path.search) {
         path.query = qs.parse(path.search);
         delete path.search;
         delete path.hash;
+        delete path.state;
+        delete path.key;
       }
 
       // XXX(epurkhiser): This is a hack for react-router 3 to 6. react-router
@@ -99,24 +105,36 @@ function makeAllTheProviders(providers: ProviderOptions) {
       router.push(path);
     };
 
-    // TODO(__SENTRY_USING_REACT_ROUTER_SIX): For some reason getsentry is
-    // infering the type of this wrong. Unclear why that is happening
-    const Router6 = Router as any;
+    // By default react-router 6 catches exceptions and displays the stack
+    // trace. For tests we want them to bubble out
+    function ErrorBoundary(): React.ReactNode {
+      throw useRouteError();
+    }
 
-    const routerContainer = window.__SENTRY_USING_REACT_ROUTER_SIX ? (
-      <Router6 location={router.location} navigator={history}>
-        {content}
-      </Router6>
-    ) : (
-      content
-    );
+    const routes: RouteObject[] = [
+      {
+        path: '*',
+        element: content,
+        errorElement: <ErrorBoundary />,
+      },
+    ];
+
+    const memoryRouter = createRouter({
+      future: {v7_prependBasename: true},
+      history,
+      routes,
+    }).initialize();
 
     return (
       <LegacyRouterProvider>
         <CacheProvider value={{...cache, compat: true}}>
           <ThemeProvider theme={lightTheme}>
             <QueryClientProvider client={makeTestQueryClient()}>
-              {routerContainer}
+              {window.__SENTRY_USING_REACT_ROUTER_SIX ? (
+                <RouterProvider router={memoryRouter} />
+              ) : (
+                content
+              )}
             </QueryClientProvider>
           </ThemeProvider>
         </CacheProvider>
