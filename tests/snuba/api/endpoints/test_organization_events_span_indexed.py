@@ -525,7 +525,9 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
         assert response.data["data"] == [{"foo": "", "count()": 1}]
 
 
-@pytest.mark.xfail(reason="Snuba is prefixing keys, and Sentry wasn't updated first")
+@pytest.mark.xfail(
+    reason="Snuba is not stable for the EAP dataset, xfailing since its prone to failure"
+)
 class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpointTest):
     is_eap = True
 
@@ -649,7 +651,11 @@ class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpoin
         self.store_spans(
             [
                 self.create_span(
-                    {"description": "foo", "sentry_tags": {"status": "success", "foo": "five"}},
+                    {
+                        "description": "foo",
+                        "sentry_tags": {"status": "success"},
+                        "tags": {"foo": "five"},
+                    },
                     measurements={"foo": {"value": 5}},
                     start_ts=self.ten_mins_ago,
                 ),
@@ -678,7 +684,11 @@ class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpoin
         self.store_spans(
             [
                 self.create_span(
-                    {"description": "foo", "sentry_tags": {"status": "success", "foo": "five"}},
+                    {
+                        "description": "foo",
+                        "sentry_tags": {"status": "success"},
+                        "tags": {"foo": "five"},
+                    },
                     measurements={"foo": {"value": 5}},
                     start_ts=self.ten_mins_ago,
                 ),
@@ -707,7 +717,11 @@ class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpoin
         self.store_spans(
             [
                 self.create_span(
-                    {"description": "foo", "sentry_tags": {"status": "success", "foo": "five"}},
+                    {
+                        "description": "foo",
+                        "sentry_tags": {"status": "success"},
+                        "tags": {"foo": "five"},
+                    },
                     measurements={"foo": {"value": 5}},
                     start_ts=self.ten_mins_ago,
                 ),
@@ -754,17 +768,29 @@ class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpoin
         self.store_spans(
             [
                 self.create_span(
-                    {"description": "baz", "sentry_tags": {"status": "success", "foo": "five"}},
+                    {
+                        "description": "baz",
+                        "sentry_tags": {"status": "success"},
+                        "tags": {"foo": "five"},
+                    },
                     measurements={"foo": {"value": 71}},
                     start_ts=self.ten_mins_ago,
                 ),
                 self.create_span(
-                    {"description": "foo", "sentry_tags": {"status": "success", "foo": "five"}},
+                    {
+                        "description": "foo",
+                        "sentry_tags": {"status": "success"},
+                        "tags": {"foo": "five"},
+                    },
                     measurements={"foo": {"value": 5}},
                     start_ts=self.ten_mins_ago,
                 ),
                 self.create_span(
-                    {"description": "bar", "sentry_tags": {"status": "success", "foo": "five"}},
+                    {
+                        "description": "bar",
+                        "sentry_tags": {"status": "success"},
+                        "tags": {"foo": "five"},
+                    },
                     measurements={"foo": {"value": 8}},
                     start_ts=self.ten_mins_ago,
                 ),

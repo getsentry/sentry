@@ -201,13 +201,19 @@ SPAN_EAP_COLUMN_MAP = {
     "trace": "trace_id",
     "transaction": "segment_name",
     "transaction.id": "segment_id",
+    "transaction.method": "attr_str[transaction.method]",
     "is_transaction": "is_segment",
     "segment.id": "segment_id",
     # We should be able to delete origin.transaction and just use transaction
     "origin.transaction": "segment_name",
+    # Copy paste, unsure if this is truth in production
+    "messaging.destination.name": "attr_str[messaging.destination.name]",
+    "messaging.message.id": "attr_str[messaging.message.id]",
     "span.status_code": "attr_str[status_code]",
     "replay.id": "attr_str[replay_id]",
     "span.ai.pipeline.group": "attr_str[ai_pipeline_group]",
+    "trace.status": "attr_str[trace.status]",
+    "browser.name": "attr_str[browser.name]",
     "ai.total_tokens.used": "attr_num[ai_total_tokens_used]",
     "ai.total_cost": "attr_num[ai_total_cost]",
 }
