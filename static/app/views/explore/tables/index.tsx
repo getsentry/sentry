@@ -42,7 +42,7 @@ function ExploreAggregatesTable() {
 function ExploreSamplesTable() {
   const [tab, setTab] = useState(Tab.SPAN);
   const [fields, setFields] = useSampleFields();
-  const tags = useSpanTags();
+  const {data: tags} = useSpanTags();
 
   const openColumnEditor = useCallback(() => {
     openModal(
@@ -51,7 +51,7 @@ function ExploreSamplesTable() {
           {...modalProps}
           columns={fields}
           onColumnsChange={setFields}
-          tags={tags}
+          tags={tags ?? {}}
         />
       ),
       {closeEvents: 'escape-key'}

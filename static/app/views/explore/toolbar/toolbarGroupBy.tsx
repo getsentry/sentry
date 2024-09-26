@@ -23,7 +23,7 @@ interface ToolbarGroupByProps {
 }
 
 export function ToolbarGroupBy({disabled}: ToolbarGroupByProps) {
-  const tags = useSpanTags();
+  const {data: tags} = useSpanTags();
 
   const [groupBys, setGroupBys] = useGroupBys();
 
@@ -31,7 +31,7 @@ export function ToolbarGroupBy({disabled}: ToolbarGroupByProps) {
     return [
       // hard code in an empty option
       {label: t('None'), value: ''},
-      ...Object.keys(tags).map(tagKey => {
+      ...Object.keys(tags ?? {}).map(tagKey => {
         return {
           label: tagKey,
           value: tagKey,
