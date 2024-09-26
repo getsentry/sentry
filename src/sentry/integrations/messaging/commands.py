@@ -82,10 +82,11 @@ class MessagingIntegrationCommandDispatcher(Generic[R], ABC):
         raise NotImplementedError
 
     def dispatch(self, cmd_input: CommandInput) -> R:
-        candidate_handlers: list[tuple[CommandSlug, Callable[[CommandInput], R]]] = []
-        for (command, callback) in self.command_handlers:
-            for slug in command.get_all_command_slugs():
-                candidate_handlers.append((slug, callback))
+        candidate_handlers = [
+            (slug, callback)
+            for (command, callback) in self.command_handlers
+            for slug in command.get_all_command_slugs()
+        ]
 
         def parsing_order(handler: tuple[CommandSlug, Callable[[CommandInput], R]]) -> int:
             # Sort by descending length of arg tokens. If one slug is a prefix of
