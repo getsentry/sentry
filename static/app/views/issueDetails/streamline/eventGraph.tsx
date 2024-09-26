@@ -118,6 +118,29 @@ export function EventGraph({group, groupStats, searchQuery}: EventGraphProps) {
   }
   series.push(flagSeries);
 
+  const legend = Legend({
+    theme: theme,
+    orient: 'horizontal',
+    align: 'left',
+    show: true,
+    right: 35,
+    top: 5,
+    data: [flagSeriesName],
+    selected: legendSelected,
+  });
+
+  const onLegendSelectChanged = useMemo(
+    () =>
+      ({name, selected: record}) => {
+        const newValue = record[name];
+        setLegendSelected(prevState => ({
+          ...prevState,
+          [name]: newValue,
+        }));
+      },
+    []
+  );
+
   return (
     <GraphWrapper>
       <SummaryContainer>
@@ -154,24 +177,8 @@ export function EventGraph({group, groupStats, searchQuery}: EventGraphProps) {
         <BarChart
           height={100}
           series={series}
-          legend={Legend({
-            theme: theme,
-            orient: 'horizontal',
-            align: 'left',
-            show: true,
-            right: 35,
-            top: 5,
-            data: [flagSeriesName],
-            selected: legendSelected,
-          })}
-          onLegendSelectChanged={s => {
-            const selected = s.name;
-            const newValue = s.selected[selected];
-            setLegendSelected(prevState => ({
-              ...prevState,
-              [selected]: newValue,
-            }));
-          }}
+          legend={legend}
+          onLegendSelectChanged={onLegendSelectChanged}
           isGroupedByDate
           showTimeInTooltip
           grid={{
