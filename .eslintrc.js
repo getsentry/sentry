@@ -89,6 +89,10 @@ module.exports = {
             message:
               "Use 'useLocation', 'useParams', 'useNavigate', 'useRoutes' from sentry/utils instead.",
           },
+          {
+            name: 'qs',
+            message: 'Please use query-string instead of qs',
+          },
         ],
       },
     ],
