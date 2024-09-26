@@ -15,21 +15,21 @@ export const MOCK_RAW_FLAG_LOG = {
     {
       action: 'created',
       flag: 'replay-mobile-ui',
-      modified_at: '2024-09-23T05:12:33',
-      modified_by: '1234',
-      modified_by_type: 'id',
-    },
-    {
-      action: 'modified',
-      flag: 'sentry-pride-logo-footer',
       modified_at: '2024-09-24T05:12:33',
       modified_by: '1234',
       modified_by_type: 'id',
     },
     {
       action: 'modified',
-      flag: 'spam-ingest',
+      flag: 'sentry-pride-logo-footer',
       modified_at: '2024-09-25T05:12:33',
+      modified_by: '1234',
+      modified_by_type: 'id',
+    },
+    {
+      action: 'modified',
+      flag: 'spam-ingest',
+      modified_at: '2024-09-26T05:12:33',
       modified_by: '1234',
       modified_by_type: 'id',
     },
@@ -52,7 +52,6 @@ type FlagSeriesDatapoint = {
   name: string;
   // unix timestamp
   xAxis: number;
-  // add value & formatter?
 };
 
 function _useOrganizationFlagLog({
@@ -82,7 +81,7 @@ function hydrateFlagData({
   const flagData = rawFlagData.data.map(f => {
     return {
       xAxis: Date.parse(f.modified_at),
-      name: f.flag,
+      name: `${f.flag} ${f.action}`,
     };
   });
   return flagData;
@@ -115,7 +114,8 @@ export default function useFlagSeries({_query}: {_query?: Record<string, any>}):
           '<div class="tooltip-series">',
           `<div><span class="tooltip-label"><strong>${t(
             'Feature Flag'
-          )}</strong></span> ${data.name}</div>`,
+          )}</strong></span></div>`,
+          `<div>${data.name}</div>`,
           '</div>',
           '<div class="tooltip-footer">',
           time,

@@ -159,7 +159,8 @@ export function EventGraph({group, groupStats, searchQuery}: EventGraphProps) {
             orient: 'horizontal',
             align: 'left',
             show: true,
-            right: 10,
+            right: 35,
+            top: 5,
             data: [flagSeriesName],
             selected: legendSelected,
           })}
@@ -174,7 +175,7 @@ export function EventGraph({group, groupStats, searchQuery}: EventGraphProps) {
           isGroupedByDate
           showTimeInTooltip
           grid={{
-            top: 25, // leave room for legend
+            top: 28, // leave room for legend
             left: 8,
             right: 8,
             bottom: 0,
