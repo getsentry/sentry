@@ -290,13 +290,34 @@ export function Trace({
         : Promise.resolve(null);
 
     promise
-      .then(maybeNode => {
-        onTraceLoad(trace, maybeNode?.node ?? null, maybeNode?.index ?? null);
+      .then(async () => {
+        if (!scrollQueueRef.current?.path && !scrollQueueRef.current?.eventId) {
+          return;
+        }
 
-        if (!maybeNode) {
+        const node = scrollQueueRef.current?.eventId
+          ? trace.findByEventId(trace.root, scrollQueueRef.current?.eventId)
+          : scrollQueueRef.current?.path
+            ? trace.findByPath(trace.root, scrollQueueRef.current?.path)
+            : null;
+
+        if (!node) {
           Sentry.captureMessage('Failed to find and scroll to node in tree');
           return;
         }
+
+        // When users are coming off an eventID link, we want to fetch the children
+        // of the node that the eventID points to. This is because the eventID link
+        // only points to the transaction, but we want to fetch the children of the
+        // transaction to show the user the list of spans in that transaction
+        if (scrollQueueRef.current.eventId && node?.canFetch) {
+          await trace.zoomIn(node, true, {api, organization}).catch(_e => {
+            Sentry.captureMessage('Failed to fetch children of eventId on mount');
+          });
+        }
+
+        const index = trace.list.indexOf(node);
+        onTraceLoad(trace, node, index === -1 ? null : index);
       })
       .finally(() => {
         // Important to set scrollQueueRef.current to null and trigger a rerender
