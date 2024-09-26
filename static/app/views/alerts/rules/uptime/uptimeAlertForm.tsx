@@ -1,55 +1,100 @@
+import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
+import {observe} from 'mobx';
+import {Observer} from 'mobx-react';
 
-import type {APIRequestMethod} from 'sentry/api';
-import Alert from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import FieldWrapper from 'sentry/components/forms/fieldGroup/fieldWrapper';
+import HiddenField from 'sentry/components/forms/fields/hiddenField';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import SentryMemberTeamSelectorField from 'sentry/components/forms/fields/sentryMemberTeamSelectorField';
 import SentryProjectSelectorField from 'sentry/components/forms/fields/sentryProjectSelectorField';
+import TextareaField from 'sentry/components/forms/fields/textareaField';
 import TextField from 'sentry/components/forms/fields/textField';
-import Form, {type FormProps} from 'sentry/components/forms/form';
+import Form from 'sentry/components/forms/form';
+import FormModel from 'sentry/components/forms/model';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
-import {IconLab} from 'sentry/icons';
+import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import useOrganization from 'sentry/utils/useOrganization';
+import useProjects from 'sentry/utils/useProjects';
 import type {UptimeRule} from 'sentry/views/alerts/rules/uptime/types';
 
+import {HTTPSnippet} from './httpSnippet';
+import {UptimeHeadersField} from './uptimeHeadersField';
+
 interface Props {
-  apiMethod: APIRequestMethod;
-  apiUrl: string;
-  onSubmitSuccess: FormProps['onSubmitSuccess'];
+  organization: Organization;
   project: Project;
   handleDelete?: () => void;
   rule?: UptimeRule;
 }
 
+const HTTP_METHOD_OPTIONS = ['GET', 'POST', 'HEAD', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'];
+
 function getFormDataFromRule(rule: UptimeRule) {
-  const owner = rule.owner ? `${rule.owner.type}:${rule.owner.id}` : null;
-  const {name, url, projectSlug} = rule;
-  return {owner, name, url, projectSlug};
+  return {
+    name: rule.name,
+    url: rule.url,
+    projectSlug: rule.projectSlug,
+    method: rule.method,
+    body: rule.body,
+    headers: rule.headers,
+    intervalSeconds: rule.intervalSeconds,
+    owner: rule.owner ? `${rule.owner.type}:${rule.owner.id}` : null,
+  };
 }
 
-export function UptimeAlertForm({
-  apiMethod,
-  apiUrl,
-  project,
-  onSubmitSuccess,
-  handleDelete,
-  rule,
-}: Props) {
-  const initialData = rule ? getFormDataFromRule(rule) : {projectSlug: project.slug};
+export function UptimeAlertForm({project, handleDelete, rule}: Props) {
+  const navigate = useNavigate();
+  const organization = useOrganization();
+  const {projects} = useProjects();
+
+  const initialData = rule
+    ? getFormDataFromRule(rule)
+    : {projectSlug: project.slug, method: 'GET', headers: []};
+
+  const [formModel] = useState(() => new FormModel());
+
+  // XXX(epurkhiser): The forms API endpoint is derived from the selcted
+  // project. We don't have an easy way to interpolate this into the <Form />
+  // components `apiEndpoint` prop, so instead we setup a mobx observer on
+  // value of the project slug and use that to update the endpoint of the form
+  // model
+  useEffect(
+    () =>
+      observe(formModel, () => {
+        const projectSlug = formModel.getValue('projectSlug');
+        const apiEndpoint = rule
+          ? `/projects/${organization.slug}/${projectSlug}/uptime/${rule.id}/`
+          : `/projects/${organization.slug}/${projectSlug}/uptime/`;
+
+        function onSubmitSuccess(response: any) {
+          navigate(
+            normalizeUrl(
+              `/organizations/${organization.slug}/alerts/rules/uptime/${projectSlug}/${response.id}/details/`
+            )
+          );
+        }
+        formModel.setFormOptions({apiEndpoint, onSubmitSuccess});
+      }),
+    [formModel, navigate, organization.slug, rule]
+  );
 
   return (
-    <UptimeForm
-      apiMethod={apiMethod}
-      apiEndpoint={apiUrl}
+    <Form
+      model={formModel}
+      apiMethod={rule ? 'PUT' : 'POST'}
       saveOnBlur={false}
       initialData={initialData}
-      onSubmitSuccess={onSubmitSuccess}
+      submitLabel={rule ? t('Save Rule') : t('Create Rule')}
       extraButton={
         rule && handleDelete ? (
           <Confirm
@@ -67,49 +112,72 @@ export function UptimeAlertForm({
         ) : undefined
       }
     >
-      <Alert type="info" showIcon icon={<IconLab />}>
-        {t(
-          'Uptime Monitoring is currently in Early Access. Additional configuration options will be available soon.'
-        )}
-      </Alert>
       <List symbol="colored-numeric">
-        <AlertListItem>{t('Select an environment and project')}</AlertListItem>
+        <AlertListItem>{t('Select a project')}</AlertListItem>
         <FormRow>
           <SentryProjectSelectorField
-            disabled
+            disabled={rule !== undefined}
+            disabledReason={t('Existing uptime rules cannot be moved between projects')}
             name="projectSlug"
             label={t('Project')}
+            placeholder={t('Choose Project')}
             hideLabel
-            projects={[project]}
+            projects={projects}
             valueIsSlug
             inline={false}
             flexibleControlStateSize
             stacked
-          />
-          <SelectField
-            disabled
-            name="environment"
-            label={t('Environment')}
-            hideLabel
-            placeholder={t('Production')}
-            inline={false}
-            flexibleControlStateSize
-            stacked
+            required
           />
         </FormRow>
-        <AlertListItem>{t('Set a URL to monitor')}</AlertListItem>
-        <FormRow>
+        <AlertListItem>{t('Configure Request')}</AlertListItem>
+        <ConfigurationPanel>
           <TextField
-            disabled
             name="url"
             label={t('URL')}
-            hideLabel
             placeholder={t('The URL to monitor')}
-            inline={false}
             flexibleControlStateSize
-            stacked
+            monospace
+            required
           />
-        </FormRow>
+          <SelectField
+            name="method"
+            label={t('Method')}
+            placeholder={'GET'}
+            options={HTTP_METHOD_OPTIONS.map(option => ({
+              value: option,
+              label: option,
+            }))}
+            flexibleControlStateSize
+            required
+          />
+          <UptimeHeadersField
+            name="headers"
+            label={t('Headers')}
+            flexibleControlStateSize
+          />
+          <TextareaField
+            name="body"
+            label={t('Body')}
+            visible={({model}) => !['GET', 'HEAD'].includes(model.getValue('method'))}
+            rows={4}
+            maxRows={15}
+            autosize
+            monospace
+            placeholder='{"key": "value"}'
+            flexibleControlStateSize
+          />
+        </ConfigurationPanel>
+        <Observer>
+          {() => (
+            <HTTPSnippet
+              url={formModel.getValue('url')}
+              method={formModel.getValue('method')}
+              headers={formModel.getValue('headers')}
+              body={formModel.getValue('body')}
+            />
+          )}
+        </Observer>
         <AlertListItem>{t('Establish ownership')}</AlertListItem>
         <FormRow>
           <TextField
@@ -120,6 +188,7 @@ export function UptimeAlertForm({
             inline={false}
             flexibleControlStateSize
             stacked
+            required
           />
           <SentryMemberTeamSelectorField
             name="owner"
@@ -134,17 +203,12 @@ export function UptimeAlertForm({
               border: 'none',
             }}
           />
+          <HiddenField name="intervalSeconds" defaultValue={60} />
         </FormRow>
       </List>
-    </UptimeForm>
+    </Form>
   );
 }
-
-const UptimeForm = styled(Form)`
-  ${FieldWrapper} {
-    padding: 0;
-  }
-`;
 
 const AlertListItem = styled(ListItem)`
   margin: ${space(2)} 0 ${space(1)} 0;
@@ -156,4 +220,25 @@ const FormRow = styled('div')`
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   align-items: center;
   gap: ${space(2)};
+
+  ${FieldWrapper} {
+    padding: 0;
+  }
+`;
+
+const ConfigurationPanel = styled(Panel)`
+  display: grid;
+  gap: 0 ${space(2)};
+  grid-template-columns: max-content 1fr;
+  align-items: center;
+
+  ${FieldWrapper} {
+    display: grid;
+    grid-template-columns: subgrid;
+    grid-column: 1 / -1;
+
+    label {
+      width: auto;
+    }
+  }
 `;
