@@ -47,6 +47,8 @@ const Frame = styled('div')`
   height: 100%;
   width: 100%;
 
+  padding: ${space(2)};
+
   border-radius: ${p => p.theme.panelBorderRadius};
   border: ${p => p.theme.border};
   border: 1px ${p => 'solid ' + p.theme.border};
@@ -58,10 +60,7 @@ const Header = styled('div')`
   display: flex;
   flex-direction: column;
 
-  width: 100%;
   min-height: 36px;
-
-  padding: ${space(2)} ${space(1)} 0 ${space(3)};
 `;
 
 const Title = styled('div')`

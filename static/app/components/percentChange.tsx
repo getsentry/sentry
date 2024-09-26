@@ -34,7 +34,7 @@ export function PercentChange({
   );
 }
 
-function getPolarity(value: number): Polarity {
+export function getPolarity(value: number): Polarity {
   if (value > 0) {
     return '+';
   }
@@ -46,7 +46,14 @@ function getPolarity(value: number): Polarity {
   return '';
 }
 
-function getPolarityRating(polarity: Polarity, preferredPolarity: Polarity): Rating {
+export function getPolarityRating(
+  polarity: Polarity,
+  preferredPolarity: Polarity
+): Rating {
+  if (preferredPolarity === '') {
+    return 'neutral';
+  }
+
   if (polarity === preferredPolarity) {
     return 'good';
   }
@@ -58,7 +65,7 @@ function getPolarityRating(polarity: Polarity, preferredPolarity: Polarity): Rat
   return 'neutral';
 }
 
-const ColorizedRating = styled('div')<{
+export const ColorizedRating = styled('div')<{
   rating: Rating;
 }>`
   color: ${p =>
