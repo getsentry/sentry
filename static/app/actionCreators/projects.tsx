@@ -14,7 +14,7 @@ import LatestContextStore from 'sentry/stores/latestContextStore';
 import ProjectsStatsStore from 'sentry/stores/projectsStatsStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import type {Team} from 'sentry/types/organization';
-import type {PlatformKey, Project} from 'sentry/types/project';
+import type {Project} from 'sentry/types/project';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
@@ -353,29 +353,6 @@ export function removeProject({
     method: 'DELETE',
     data: {origin},
   });
-}
-
-/**
- * Load platform documentation specific to the project. The DSN and various
- * other project specific secrets will be included in the documentation.
- *
- * @param api API Client
- * @param orgSlug Organization Slug
- * @param projectSlug Project Slug
- * @param platform Project platform.
- */
-export function loadDocs({
-  api,
-  orgSlug,
-  projectSlug,
-  platform,
-}: {
-  api: Client;
-  orgSlug: string;
-  platform: PlatformKey | 'python-tracing' | 'node-tracing' | 'react-native-tracing';
-  projectSlug: string;
-}) {
-  return api.requestPromise(`/projects/${orgSlug}/${projectSlug}/docs/${platform}/`);
 }
 
 /**
