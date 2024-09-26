@@ -102,7 +102,7 @@ const getConfigureStep = (params: Params) => {
     configurations: [
       {
         description: tct(
-          'Register the [codeSentry@sentry/gatsby] plugin in your Gatsby configuration file (typically [code:gatsby-config.js]).',
+          'Register the [code:Sentry@sentry/gatsby] plugin in your Gatsby configuration file (typically [code:gatsby-config.js]).',
           {code: <code />}
         ),
         code: [
