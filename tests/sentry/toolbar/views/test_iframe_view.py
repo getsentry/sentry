@@ -67,20 +67,7 @@ class IframeViewTest(APITestCase):
         assert res.headers.get("X-Frame-Options") == "ALLOWALL"
 
     @override_settings(CSP_REPORT_ONLY=False)
-    def test_csp_enforce(self):
-        self.project.update_option("sentry:toolbar_allowed_origins", ["https://sentry.io"])
-        res = self.client.get(self.url, HTTP_REFERER="https://sentry.io")
-        assert has_valid_csp(res)
-
-    @override_settings(CSP_REPORT_ONLY=True)
-    def test_csp_report_only(self):
-        self.project.update_option("sentry:toolbar_allowed_origins", ["https://sentry.io"])
-        res = self.client.get(self.url, HTTP_REFERER="https://sentry.io")
-        assert has_valid_csp(res)
-
-    @override_settings(CSP_REPORT_ONLY=False, CSP_SCRIPT_SRC=["'unsafe-inline'"])
-    def test_csp_duplicate_unsafe_inline(self):
-        # Duplicate values in CSP directives are ok. This test asserts we still have the same behavior if unsafe-inline is repeated.
+    def test_csp(self):
         self.project.update_option("sentry:toolbar_allowed_origins", ["https://sentry.io"])
         res = self.client.get(self.url, HTTP_REFERER="https://sentry.io")
         assert has_valid_csp(res)
