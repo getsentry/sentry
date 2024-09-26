@@ -41,6 +41,7 @@ class DashboardWidgetQueryResponse(TypedDict):
     widgetId: str
     onDemand: list[OnDemandResponse]
     isHidden: bool
+    selectedAggregate: int | None
 
 
 class ThresholdType(TypedDict):
@@ -164,6 +165,7 @@ class DashboardWidgetQuerySerializer(Serializer):
             "widgetId": str(obj.widget_id),
             "onDemand": attrs["onDemand"],
             "isHidden": obj.is_hidden,
+            "selectedAggregate": obj.selected_aggregate,
         }
 
 

@@ -73,8 +73,8 @@ const onboarding: OnboardingConfig = {
     {
       type: StepType.CONFIGURE,
       description: tct(
-        "Access the Sentry configuration window by going to Unity's top menu: [toolsCode:Tools] > [sentryCode:Sentry] and enter the following DSN:",
-        {toolsCode: <code />, sentryCode: <code />}
+        "Access the Sentry configuration window by going to Unity's top menu: [code:Tools] > [code:Sentry] and enter the following DSN:",
+        {code: <code />}
       ),
       configurations: [
         {
@@ -198,13 +198,9 @@ const metricsOnboarding: OnboardingConfig = {
     {
       type: StepType.VERIFY,
       description: tct(
-        "Then you'll be able to add metrics as [codeCounters:counters], [codeSets:sets], [codeDistribution:distributions], [codeGauge:gauges], and [codeTimings:timings].",
+        "Then you'll be able to add metrics as [code:counters], [code:sets], [code:distributions], [code:gauges], and [code:timings].",
         {
-          codeCounters: <code />,
-          codeSets: <code />,
-          codeDistribution: <code />,
-          codeGauge: <code />,
-          codeTimings: <code />,
+          code: <code />,
         }
       ),
       configurations: [

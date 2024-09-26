@@ -225,7 +225,7 @@ function CustomViewsIssueListHeaderTabsContent({
     // if a viewId is present, check if it exists in the existing views.
     if (viewId) {
       const selectedTab = draggableTabs.find(tab => tab.id === viewId);
-      if (selectedTab && query && sort) {
+      if (selectedTab && query !== undefined && sort) {
         const issueSortOption = Object.values(IssueSortOptions).includes(sort)
           ? sort
           : IssueSortOptions.DATE;
@@ -237,7 +237,7 @@ function CustomViewsIssueListHeaderTabsContent({
 
         setDraggableTabs(
           draggableTabs.map(tab =>
-            tab.key === selectedTab!.key
+            tab.key === selectedTab.key
               ? {
                   ...tab,
                   unsavedChanges,
@@ -289,10 +289,11 @@ function CustomViewsIssueListHeaderTabsContent({
       return;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [navigate, organization.slug, query, sort, viewId]);
+  }, [navigate, organization.slug, query, sort, viewId, tabListState]);
 
   // Update local tabs when new views are received from mutation request
   useEffect(() => {
+    const currentViewId = viewId;
     setDraggableTabs(
       draggableTabs.map(tab => {
         if (tab.id && tab.id[0] === '_') {
@@ -304,19 +305,21 @@ function CustomViewsIssueListHeaderTabsContent({
               tab.querySort === view.querySort &&
               tab.label === view.name
             ) {
+              if (tab.id === currentViewId) {
+                navigate(
+                  normalizeUrl({
+                    ...location,
+                    query: {
+                      ...queryParamsWithPageFilters,
+                      viewId: view.id,
+                    },
+                  }),
+                  {replace: true}
+                );
+              }
               tab.id = view.id;
             }
           });
-          navigate(
-            normalizeUrl({
-              ...location,
-              query: {
-                ...queryParamsWithPageFilters,
-                viewId: tab.id,
-              },
-            }),
-            {replace: true}
-          );
         }
         return tab;
       })
@@ -326,6 +329,9 @@ function CustomViewsIssueListHeaderTabsContent({
 
   useEffect(() => {
     if (viewId?.startsWith('_')) {
+      if (draggableTabs.find(tab => tab.id === viewId)?.label.endsWith('(Copy)')) {
+        return;
+      }
       // If the user types in query manually while the new view flow is showing,
       // then replace the add view flow with the issue stream with the query loaded,
       // and persist the query
