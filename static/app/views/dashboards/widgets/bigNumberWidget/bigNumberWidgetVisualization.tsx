@@ -9,7 +9,10 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {AutoSizedText} from 'sentry/views/dashboards/widgetCard/autoSizedText';
 import {DifferenceToPreviousPeriodData} from 'sentry/views/dashboards/widgets/bigNumberWidget/differenceToPreviousPeriodData';
-import {NO_DATA_PLACEHOLDER} from 'sentry/views/dashboards/widgets/bigNumberWidget/settings';
+import {
+  DEEMPHASIS_COLOR_NAME,
+  NO_DATA_PLACEHOLDER,
+} from 'sentry/views/dashboards/widgets/bigNumberWidget/settings';
 import {ErrorPanel} from 'sentry/views/dashboards/widgets/common/errorPanel';
 import type {
   Meta,
@@ -124,5 +127,5 @@ const NumberContainerOverride = styled('div')`
 `;
 
 const Deemphasize = styled('span')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme[DEEMPHASIS_COLOR_NAME]};
 `;

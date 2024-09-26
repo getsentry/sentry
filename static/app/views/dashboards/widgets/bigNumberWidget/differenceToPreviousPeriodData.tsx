@@ -9,7 +9,10 @@ import {
 } from 'sentry/components/percentChange';
 import {IconArrow} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
-import {NO_DATA_PLACEHOLDER} from 'sentry/views/dashboards/widgets/bigNumberWidget/settings';
+import {
+  DEEMPHASIS_COLOR_NAME,
+  NO_DATA_PLACEHOLDER,
+} from 'sentry/views/dashboards/widgets/bigNumberWidget/settings';
 import type {TableData} from 'sentry/views/dashboards/widgets/common/types';
 
 interface Props {
@@ -72,7 +75,7 @@ const Text = styled('div')`
 `;
 
 const Deemphasize = styled('span')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme[DEEMPHASIS_COLOR_NAME]};
 `;
 
 function getDifferenceDirectionMarker(difference: number) {
