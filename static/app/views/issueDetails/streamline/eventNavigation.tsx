@@ -1,9 +1,7 @@
-import {type CSSProperties, forwardRef} from 'react';
-import {Fragment} from 'react';
+import {type CSSProperties, forwardRef, Fragment, useMemo} from 'react';
 import {css, type SerializedStyles, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import color from 'color';
-import omit from 'lodash/omit';
 
 import {Button, LinkButton} from 'sentry/components/button';
 import {Chevron} from 'sentry/components/chevron';
@@ -46,7 +44,9 @@ export const MIN_NAV_HEIGHT = 44;
 type EventNavigationProps = {
   event: Event;
   group: Group;
+  onViewAllEvents: (e: React.MouseEvent) => void;
   className?: string;
+  query?: string;
   style?: CSSProperties;
 };
 
@@ -61,7 +61,7 @@ const EventNavLabels = {
   [EventNavOptions.RECOMMENDED]: t('Recommended'),
   [EventNavOptions.OLDEST]: t('First'),
   [EventNavOptions.LATEST]: t('Last'),
-  [EventNavOptions.CUSTOM]: t('Custom'),
+  [EventNavOptions.CUSTOM]: t('Specific'),
 };
 
 const EventNavOrder = [
@@ -83,7 +83,7 @@ const sectionLabels = {
 };
 
 export const EventNavigation = forwardRef<HTMLDivElement, EventNavigationProps>(
-  function EventNavigation({event, group, ...props}, ref) {
+  function EventNavigation({event, group, query, onViewAllEvents, ...props}, ref) {
     const location = useLocation();
     const organization = useOrganization();
     const theme = useTheme();
@@ -107,7 +107,10 @@ export const EventNavigation = forwardRef<HTMLDivElement, EventNavigationProps>(
 
     const hasEventError = actionableItems?.errors && actionableItems.errors.length > 0;
 
-    const getSelectedOption = () => {
+    const selectedOption = useMemo(() => {
+      if (query?.trim()) {
+        return EventNavOptions.CUSTOM;
+      }
       switch (params.eventId) {
         case EventNavOptions.RECOMMENDED:
         case EventNavOptions.LATEST:
@@ -118,9 +121,7 @@ export const EventNavigation = forwardRef<HTMLDivElement, EventNavigationProps>(
         default:
           return EventNavOptions.CUSTOM;
       }
-    };
-
-    const selectedOption = getSelectedOption();
+    }, [query, params.eventId, defaultIssueEvent]);
 
     const hasPreviousEvent = defined(event.previousEventID);
     const hasNextEvent = defined(event.nextEventID);
@@ -218,19 +219,9 @@ export const EventNavigation = forwardRef<HTMLDivElement, EventNavigationProps>(
                 />
               </Tooltip>
             </Navigation>
-            <LinkButton
-              to={{
-                pathname: normalizeUrl(
-                  `/organizations/${organization.slug}/issues/${group.id}/events/`
-                ),
-                query: omit(location.query, 'query'),
-              }}
-              borderless
-              size="xs"
-              css={grayText}
-            >
+            <Button onClick={onViewAllEvents} borderless size="xs" css={grayText}>
               {isMobile ? '' : t('View')} {t('All Events')}
-            </LinkButton>
+            </Button>
           </NavigationWrapper>
         </EventNavigationWrapper>
         <EventInfoJumpToWrapper>
@@ -409,6 +400,7 @@ const EventInfo = styled('div')`
   gap: ${space(1)};
   flex-direction: row;
   align-items: center;
+  line-height: 1.2;
 `;
 
 const JumpTo = styled('div')`

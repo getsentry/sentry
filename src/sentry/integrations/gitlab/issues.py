@@ -115,9 +115,8 @@ class GitlabIssuesSpec(SourceCodeIssueIntegration):
             return
 
         try:
-            client.create_issue_comment(
-                project_id=project_id, issue_id=issue_id, data={"body": comment}
-            )
+            # GitLab has projects which are equivalent to repos
+            client.create_comment(repo=project_id, issue_id=issue_id, data={"body": comment})
         except ApiError as e:
             raise IntegrationError(self.message_from_error(e))
 

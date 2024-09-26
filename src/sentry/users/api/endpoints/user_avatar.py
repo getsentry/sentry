@@ -8,7 +8,7 @@ from sentry import options
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.avatar import AvatarMixin
-from sentry.api.bases.user import UserEndpoint
+from sentry.users.api.bases.user import UserEndpoint
 from sentry.users.models.user import User
 from sentry.users.models.user_avatar import UserAvatar
 from sentry.users.services.user.serial import serialize_rpc_user

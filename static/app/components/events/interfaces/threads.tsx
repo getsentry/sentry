@@ -2,7 +2,6 @@ import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {StacktraceBanners} from 'sentry/components/events/interfaces/crashContent/exception/banners/stacktraceBanners';
 import {getLockReason} from 'sentry/components/events/interfaces/threads/threadSelector/lockReason';
 import {
@@ -225,15 +224,20 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel}: Props)
   const hideThreadTags = activeThreadId === undefined || !activeThreadName;
 
   const threadComponent = (
-    <Fragment>
+    <ThreadTraceWrapper
+      style={{
+        // TODO(issues): Remove on streamline issues ui GA
+        padding:
+          !hasMoreThanOneThread || hasStreamlinedUI
+            ? undefined
+            : `${space(1)} ${space(4)}`,
+      }}
+    >
       {hasMoreThanOneThread && (
         <Fragment>
           <Grid>
-            <EventDataSection
-              type="threads"
-              title={t('Threads')}
-              showPermalink={!hasStreamlinedUI}
-            >
+            <div>
+              <ThreadHeading>{t('Threads')}</ThreadHeading>
               {activeThread && (
                 <Wrapper>
                   <ThreadSelector
@@ -247,13 +251,10 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel}: Props)
                   />
                 </Wrapper>
               )}
-            </EventDataSection>
+            </div>
             {activeThread?.state && (
-              <EventDataSection
-                title={t('Thread State')}
-                type="thread-state"
-                showPermalink={!hasStreamlinedUI}
-              >
+              <div>
+                <ThreadHeading>{t('Thread State')}</ThreadHeading>
                 <ThreadStateWrapper>
                   {getThreadStateIcon(threadStateDisplay)}
                   <ThreadState>{threadStateDisplay}</ThreadState>
@@ -267,17 +268,14 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel}: Props)
                   )}
                   <LockReason>{getLockReason(activeThread?.heldLocks)}</LockReason>
                 </ThreadStateWrapper>
-              </EventDataSection>
+              </div>
             )}
           </Grid>
           {!hideThreadTags && (
-            <EventDataSection
-              title={t('Thread Tags')}
-              type={'thread-tags'}
-              showPermalink={!hasStreamlinedUI}
-            >
+            <div>
+              <ThreadHeading>{t('Thread Tags')}</ThreadHeading>
               {renderPills()}
-            </EventDataSection>
+            </div>
           )}
         </Fragment>
       )}
@@ -289,7 +287,7 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel}: Props)
         fullStackTrace={stackView === StackView.FULL}
         title={hasMoreThanOneThread ? t('Thread Stack Trace') : t('Stack Trace')}
         platform={platform}
-        isNestedSection
+        isNestedSection={hasMoreThanOneThread}
         hasMinified={
           !!exception?.values?.find(value => value.rawStacktrace) ||
           !!activeThread?.rawStacktrace
@@ -356,10 +354,11 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel}: Props)
           );
         }}
       </TraceEventDataSection>
-    </Fragment>
+    </ThreadTraceWrapper>
   );
 
-  return hasStreamlinedUI ? (
+  // If there is only one thread, we expect the stacktrace to wrap itself in a section
+  return hasMoreThanOneThread && hasStreamlinedUI ? (
     <InterimSection
       title={tn('Stack Trace', 'Stack Traces', threads.length)}
       type={SectionKey.STACKTRACE}
@@ -400,4 +399,17 @@ const Wrapper = styled('div')`
   flex-wrap: wrap;
   flex-grow: 1;
   justify-content: flex-start;
+`;
+
+const ThreadTraceWrapper = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(2)};
+`;
+
+const ThreadHeading = styled('h3')`
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSizeMedium};
+  font-weight: ${p => p.theme.fontWeightBold};
+  margin-bottom: ${space(1)};
 `;

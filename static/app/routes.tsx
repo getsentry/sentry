@@ -1,4 +1,5 @@
 import {Fragment, lazy} from 'react';
+// biome-ignore lint/nursery/noRestrictedImports: warning
 import {IndexRedirect, Redirect} from 'react-router';
 import memoize from 'lodash/memoize';
 
@@ -14,6 +15,10 @@ import withDomainRequired from 'sentry/utils/withDomainRequired';
 import App from 'sentry/views/app';
 import AuthLayout from 'sentry/views/auth/layout';
 import {MODULE_BASE_URLS} from 'sentry/views/insights/common/utils/useModuleURL';
+import {AI_LANDING_SUB_PATH} from 'sentry/views/insights/pages/aiLandingPage';
+import {BACKEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/backendLandingPage';
+import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/settings';
+import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobileLandingPage';
 import {INSIGHTS_BASE_URL} from 'sentry/views/insights/settings';
 import {ModuleName} from 'sentry/views/insights/types';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
@@ -28,7 +33,6 @@ import RouteNotFound from 'sentry/views/routeNotFound';
 import SettingsWrapper from 'sentry/views/settings/components/settingsWrapper';
 
 import {IndexRoute, Route} from './components/route';
-import {buildReactRouter6Routes} from './utils/reactRouter6Compat/router';
 
 const hook = (name: HookName) => HookStore.get(name).map(cb => cb());
 
@@ -260,25 +264,24 @@ function buildRoutes() {
         <Route path=":step/" component={make(() => import('sentry/views/relocation'))} />
       </Route>
       {USING_CUSTOMER_DOMAIN && (
-        <Route
-          path="/onboarding/"
-          component={errorHandler(withDomainRequired(OrganizationContainer))}
-          key="orgless-onboarding"
-        >
-          <IndexRedirect to="welcome/" />
+        <Fragment>
+          <Redirect from="/onboarding/" to="/onboarding/welcome/" />
           <Route
-            path=":step/"
-            component={make(() => import('sentry/views/onboarding'))}
-          />
-        </Route>
+            path="/onboarding/:step/"
+            component={errorHandler(withDomainRequired(OrganizationContainer))}
+            key="orgless-onboarding"
+          >
+            <IndexRoute component={make(() => import('sentry/views/onboarding'))} />
+          </Route>
+        </Fragment>
       )}
+      <Redirect from="/onboarding/:orgId/" to="/onboarding/:orgId/welcome/" />
       <Route
-        path="/onboarding/:orgId/"
+        path="/onboarding/:orgId/:step/"
         component={withDomainRedirect(errorHandler(OrganizationContainer))}
         key="org-onboarding"
       >
-        <IndexRedirect to="welcome/" />
-        <Route path=":step/" component={make(() => import('sentry/views/onboarding'))} />
+        <IndexRoute component={make(() => import('sentry/views/onboarding'))} />
       </Route>
       <Route
         path="/stories/"
@@ -421,7 +424,6 @@ function buildRoutes() {
             )}
           />
         </Route>
-        {hook('routes:api')}
       </Route>
       <Route
         path="close-account/"
@@ -556,6 +558,11 @@ function buildRoutes() {
         name={t('Replays')}
         component={make(() => import('sentry/views/settings/project/projectReplays'))}
       />
+      <Route
+        path="toolbar/"
+        name={t('Developer Toolbar')}
+        component={make(() => import('sentry/views/settings/project/toolbar'))}
+      />
       <Route path="source-maps/" name={t('Source Maps')}>
         <IndexRoute
           component={make(() => import('sentry/views/settings/projectSourceMaps'))}
@@ -682,7 +689,7 @@ function buildRoutes() {
         () => import('sentry/views/settings/organization/organizationSettingsLayout')
       )}
     >
-      {hook('routes:organization')}
+      {hook('routes:settings')}
       {!USING_CUSTOMER_DOMAIN && (
         <IndexRoute
           name={t('General')}
@@ -1634,6 +1641,73 @@ function buildRoutes() {
         path="trends/"
         component={make(() => import('sentry/views/performance/trends'))}
       />
+      <Route path={`${FRONTEND_LANDING_SUB_PATH}/`}>
+        <IndexRoute
+          component={make(
+            () => import('sentry/views/insights/pages/frontend/frontendLandingPage')
+          )}
+        />
+        <Route path={`${MODULE_BASE_URLS[ModuleName.HTTP]}/`}>
+          <IndexRoute
+            component={make(
+              () => import('sentry/views/insights/http/views/httpLandingPage')
+            )}
+          />
+          <Route
+            path="domains/"
+            component={make(
+              () => import('sentry/views/insights/http/views/httpDomainSummaryPage')
+            )}
+          />
+        </Route>
+        <Route path={`${MODULE_BASE_URLS[ModuleName.VITAL]}/`}>
+          <IndexRoute
+            component={make(
+              () =>
+                import(
+                  'sentry/views/insights/browser/webVitals/views/webVitalsLandingPage'
+                )
+            )}
+          />
+          <Route
+            path="overview/"
+            component={make(
+              () => import('sentry/views/insights/browser/webVitals/views/pageOverview')
+            )}
+          />
+        </Route>
+        <Route path={`${MODULE_BASE_URLS[ModuleName.RESOURCE]}/`}>
+          <IndexRoute
+            component={make(
+              () =>
+                import(
+                  'sentry/views/insights/browser/resources/views/resourcesLandingPage'
+                )
+            )}
+          />
+          <Route
+            path="spans/span/:groupId/"
+            component={make(
+              () =>
+                import(
+                  'sentry/views/insights/browser/resources/views/resourceSummaryPage'
+                )
+            )}
+          />
+        </Route>
+      </Route>
+      <Route
+        path={`${BACKEND_LANDING_SUB_PATH}/`}
+        component={make(() => import('sentry/views/insights/pages/backendLandingPage'))}
+      />
+      <Route
+        path={`${MOBILE_LANDING_SUB_PATH}/`}
+        component={make(() => import('sentry/views/insights/pages/mobileLandingPage'))}
+      />
+      <Route
+        path={`${AI_LANDING_SUB_PATH}/`}
+        component={make(() => import('sentry/views/insights/pages/aiLandingPage'))}
+      />
       <Route path="summary/">
         <IndexRoute
           component={make(
@@ -1785,7 +1859,9 @@ function buildRoutes() {
         />
         <Route
           path={TabPaths[Tab.TAGS]}
-          component={hoc(make(() => import('sentry/views/issueDetails/groupTags')))}
+          component={hoc(
+            make(() => import('sentry/views/issueDetails/groupTags/groupTagsTab'))
+          )}
         />
         <Route
           path={`${TabPaths[Tab.TAGS]}:tagKey/`}
@@ -1806,12 +1882,19 @@ function buildRoutes() {
         <Route
           path={TabPaths[Tab.SIMILAR_ISSUES]}
           component={hoc(
-            make(() => import('sentry/views/issueDetails/groupSimilarIssues'))
+            make(
+              () =>
+                import(
+                  'sentry/views/issueDetails/groupSimilarIssues/groupSimilarIssuesTab'
+                )
+            )
           )}
         />
         <Route
           path={TabPaths[Tab.MERGED]}
-          component={hoc(make(() => import('sentry/views/issueDetails/groupMerged')))}
+          component={hoc(
+            make(() => import('sentry/views/issueDetails/groupMerged/groupMergedTab'))
+          )}
         />
       </Fragment>
     );
@@ -1917,7 +2000,7 @@ function buildRoutes() {
     <Route component={errorHandler(OrganizationRoot)}>
       <Redirect from="/organizations/:orgId/teams/new/" to="/settings/:orgId/teams/" />
       <Route path="/organizations/:orgId/">
-        {hook('routes:organization')}
+        {hook('routes:legacy-organization-redirects')}
         <IndexRedirect to="issues/" />
         <Redirect from="teams/" to="/settings/:orgId/teams/" />
         <Redirect from="teams/your-teams/" to="/settings/:orgId/teams/" />
@@ -2281,10 +2364,6 @@ function buildRoutes() {
 // We load routes both when initializing the SDK (for routing integrations) and
 // when the app renders Main. Memoize to avoid rebuilding the route tree.
 export const routes = memoize(buildRoutes);
-
-// XXX(epurkhiser): Transforms the legacy react-router 3 routest tree into a
-// react-router 6 style routes tree.
-export const routes6 = buildReactRouter6Routes(buildRoutes());
 
 // Exported for use in tests.
 export {buildRoutes};

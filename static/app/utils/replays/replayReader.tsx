@@ -41,6 +41,7 @@ import {
   EventType,
   getNodeIds,
   IncrementalSource,
+  isCLSFrame,
   isDeadClick,
   isDeadRageClick,
   isPaintFrame,
@@ -537,10 +538,7 @@ export default class ReplayReader {
   getErrorFrames = () => this._errors;
 
   getConsoleFrames = memoize(() =>
-    this._sortedBreadcrumbFrames.filter(
-      frame =>
-        frame.category === 'console' || !BreadcrumbCategories.includes(frame.category)
-    )
+    this._sortedBreadcrumbFrames.filter(frame => frame.category === 'console')
   );
 
   getNavigationFrames = memoize(() =>
@@ -588,11 +586,18 @@ export default class ReplayReader {
     this._sortedSpanFrames.filter((frame): frame is MemoryFrame => frame.op === 'memory')
   );
 
+  getCustomFrames = memoize(() =>
+    this._sortedBreadcrumbFrames.filter(
+      frame => !BreadcrumbCategories.includes(frame.category)
+    )
+  );
+
   getChapterFrames = memoize(() =>
     this._trimFramesToClipWindow(
       [
         ...this.getPerfFrames(),
         ...this.getWebVitalFrames(),
+        ...this.getCustomFrames(),
         ...this._sortedBreadcrumbFrames.filter(frame =>
           [
             'replay.hydrate-error',
@@ -637,16 +642,21 @@ export default class ReplayReader {
       let lastTimestamp = 0;
       const groupedCls: WebVitalFrame[] = [];
 
-      for (const cls of allWebVitals) {
-        if (cls.description === 'cumulative-layout-shift') {
-          if (lastTimestamp === cls.timestampMs) {
-            groupedCls.push(cls);
+      for (const frame of allWebVitals) {
+        if (isCLSFrame(frame)) {
+          if (lastTimestamp === frame.timestampMs) {
+            groupedCls.push(frame);
           } else {
-            lastTimestamp = cls.timestampMs;
+            lastTimestamp = frame.timestampMs;
           }
         }
       }
-      return allWebVitals.filter(frame => !groupedCls.includes(frame)).reverse();
+      return allWebVitals
+        .filter(
+          frame =>
+            !groupedCls.includes(frame) && frame.description !== 'first-input-delay'
+        )
+        .reverse();
     }
     return [];
   });

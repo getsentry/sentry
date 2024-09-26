@@ -1,7 +1,7 @@
 import logging
 from typing import Any
 
-from sentry import features, options
+from sentry import options
 from sentry.models.group import Group
 from sentry.models.grouphash import GroupHash
 from sentry.seer.similarity.grouping_records import (
@@ -56,10 +56,7 @@ def call_delete_seer_grouping_records_by_hash(
         project = group.project if group else None
     if (
         project
-        and (
-            features.has("projects:similarity-embeddings-grouping", project)
-            or project.get_option("sentry:similarity_backfill_completed")
-        )
+        and project.get_option("sentry:similarity_backfill_completed")
         and not killswitch_enabled(project.id)
         and not options.get("seer.similarity-embeddings-delete-by-hash-killswitch.enabled")
     ):

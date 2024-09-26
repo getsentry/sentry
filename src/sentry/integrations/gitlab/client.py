@@ -226,13 +226,25 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
         """
         return self.post(GitLabApiClientPath.issues.format(project=project), data=data)
 
-    def create_issue_comment(self, project_id, issue_id, data):
+    def create_comment(self, repo: str, issue_id: str, data: dict[str, Any]):
         """Create an issue note/comment
 
         See https://docs.gitlab.com/ee/api/notes.html#create-new-issue-note
         """
         return self.post(
-            GitLabApiClientPath.notes.format(project=project_id, issue_id=issue_id), data=data
+            GitLabApiClientPath.create_note.format(project=repo, issue_id=issue_id), data=data
+        )
+
+    def update_comment(self, repo: str, issue_id: str, comment_id: str, data: dict[str, Any]):
+        """Modify existing issue note
+
+        See https://docs.gitlab.com/ee/api/notes.html#modify-existing-issue-note
+        """
+        return self.put(
+            GitLabApiClientPath.update_note.format(
+                project=repo, issue_id=issue_id, note_id=comment_id
+            ),
+            data=data,
         )
 
     def search_project_issues(self, project_id, query, iids=None):

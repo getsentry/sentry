@@ -1,6 +1,4 @@
 import logging
-import zoneinfo
-from datetime import datetime
 from typing import Any
 
 from django.conf import settings
@@ -14,11 +12,9 @@ from rest_framework.response import Response
 from sentry import roles
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
-from sentry.api.bases.user import UserAndStaffPermission, UserEndpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.endpoints.organization_details import post_org_pending_deletion
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.user import DetailedSelfUserSerializer
 from sentry.api.serializers.rest_framework import CamelSnakeModelSerializer
 from sentry.auth.elevated_mode import has_elevated_mode
 from sentry.constants import LANGUAGES
@@ -27,31 +23,19 @@ from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import RpcOrganizationDeleteState
+from sentry.users.api.bases.user import UserAndStaffPermission, UserEndpoint
+from sentry.users.api.serializers.user import DetailedSelfUserSerializer
 from sentry.users.models.user import User
 from sentry.users.models.user_option import UserOption
 from sentry.users.models.useremail import UserEmail
 from sentry.users.services.user.serial import serialize_generic_user
-from sentry.utils.dates import AVAILABLE_TIMEZONES
+from sentry.utils.dates import get_timezone_choices
 
 audit_logger = logging.getLogger("sentry.audit.user")
 delete_logger = logging.getLogger("sentry.deletions.api")
 
 
-def _get_timezone_choices() -> list[tuple[str, str]]:
-    build_results = []
-    for tz in AVAILABLE_TIMEZONES:
-        now = datetime.now(zoneinfo.ZoneInfo(tz))
-        offset = now.strftime("%z")
-        build_results.append((int(offset), tz, f"(UTC{offset}) {tz}"))
-    build_results.sort()
-
-    results: list[tuple[str, str]] = []
-    for item in build_results:
-        results.append(item[1:])
-    return results
-
-
-TIMEZONE_CHOICES = _get_timezone_choices()
+TIMEZONE_CHOICES = get_timezone_choices()
 
 
 class UserOptionsSerializer(serializers.Serializer[UserOption]):

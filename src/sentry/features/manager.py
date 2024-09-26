@@ -14,6 +14,7 @@ from django.conf import settings
 
 from sentry import options
 from sentry.users.services.user.model import RpcUser
+from sentry.utils import flag as flag_manager
 from sentry.utils import metrics
 from sentry.utils.types import Dict
 
@@ -284,6 +285,7 @@ class FeatureManager(RegisteredFeatureManager):
                         tags={"feature": name, "result": rv},
                         sample_rate=sample_rate,
                     )
+                    flag_manager.process_flag_result(name, rv)
                     return rv
 
                 if self._entity_handler and not skip_entity:
@@ -294,6 +296,7 @@ class FeatureManager(RegisteredFeatureManager):
                             tags={"feature": name, "result": rv},
                             sample_rate=sample_rate,
                         )
+                        flag_manager.process_flag_result(name, rv)
                         return rv
 
                 rv = settings.SENTRY_FEATURES.get(feature.name, False)
@@ -303,6 +306,7 @@ class FeatureManager(RegisteredFeatureManager):
                         tags={"feature": name, "result": rv},
                         sample_rate=sample_rate,
                     )
+                    flag_manager.process_flag_result(name, rv)
                     return rv
 
                 # Features are by default disabled if no plugin or default enables them
@@ -311,7 +315,7 @@ class FeatureManager(RegisteredFeatureManager):
                     tags={"feature": name, "result": False},
                     sample_rate=sample_rate,
                 )
-
+                flag_manager.process_flag_result(name, False)
                 return False
         except Exception as e:
             if in_random_rollout("features.error.capture_rate"):

@@ -11,7 +11,6 @@ from sentry import options
 from sentry.grouping.component import GroupingComponent
 from sentry.grouping.enhancer import LATEST_VERSION, Enhancements
 from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
-from sentry.grouping.result import CalculatedHashes
 from sentry.grouping.strategies.base import DEFAULT_GROUPING_ENHANCEMENTS_BASE, GroupingContext
 from sentry.grouping.strategies.configurations import CONFIGURATIONS
 from sentry.grouping.utils import (
@@ -21,7 +20,6 @@ from sentry.grouping.utils import (
     resolve_fingerprint_values,
 )
 from sentry.grouping.variants import (
-    HIERARCHICAL_VARIANTS,
     BaseVariant,
     BuiltInFingerprintVariant,
     ChecksumVariant,
@@ -45,14 +43,13 @@ HASH_RE = re.compile(r"^[0-9a-f]{32}$")
 @dataclass
 class GroupHashInfo:
     config: GroupingConfig
-    hashes: CalculatedHashes
+    hashes: list[str]
     grouphashes: list[GroupHash]
     existing_grouphash: GroupHash | None
 
 
 NULL_GROUPING_CONFIG: GroupingConfig = {"id": "", "enhancements": ""}
-NULL_HASHES = CalculatedHashes([])
-NULL_GROUPHASH_INFO = GroupHashInfo(NULL_GROUPING_CONFIG, NULL_HASHES, [], None)
+NULL_GROUPHASH_INFO = GroupHashInfo(NULL_GROUPING_CONFIG, [], [], None)
 
 
 class GroupingConfigNotFound(LookupError):
@@ -297,6 +294,7 @@ def _get_calculated_grouping_variants_for_event(
     return rv
 
 
+# This is called by the Event model in get_grouping_variants()
 def get_grouping_variants_for_event(
     event: Event, config: StrategyConfiguration | None = None
 ) -> dict[str, BaseVariant]:
@@ -374,25 +372,16 @@ def get_grouping_variants_for_event(
     return rv
 
 
-def sort_grouping_variants(variants: dict[str, BaseVariant]) -> tuple[KeyedVariants, KeyedVariants]:
-    """Sort a sequence of variants into flat and hierarchical variants"""
+def sort_grouping_variants(variants: dict[str, BaseVariant]) -> KeyedVariants:
+    """Sort a sequence of variants into flat variants"""
 
     flat_variants = []
-    hierarchical_variants = []
 
     for name, variant in variants.items():
-        if name in HIERARCHICAL_VARIANTS:
-            hierarchical_variants.append((name, variant))
-        else:
-            flat_variants.append((name, variant))
+        flat_variants.append((name, variant))
 
     # Sort system variant to the back of the list to resolve ambiguities when
     # choosing primary_hash for Snuba
     flat_variants.sort(key=lambda name_and_variant: 1 if name_and_variant[0] == "system" else 0)
 
-    # Sort hierarchical_variants by order defined in HIERARCHICAL_VARIANTS
-    hierarchical_variants.sort(
-        key=lambda name_and_variant: HIERARCHICAL_VARIANTS.index(name_and_variant[0])
-    )
-
-    return flat_variants, hierarchical_variants
+    return flat_variants

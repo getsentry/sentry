@@ -3,6 +3,7 @@
     The goal is to eventually add pagination for all and shrink this list.
     DO NOT ADD ANY NEW APIS
 """
+
 SENTRY_API_PAGINATION_ALLOWLIST_DO_NOT_MODIFY = {
     "ApiTokensEndpoint",
     "AssistantEndpoint",
@@ -103,7 +104,7 @@ SENTRY_API_PAGINATION_ALLOWLIST_DO_NOT_MODIFY = {
     "UserPermissionsConfigEndpoint",
     "UserPermissionsEndpoint",
     "UserRolesEndpoint",
-    "UserSocialIdentitiesIndexEndpoint",
     "UserSubscriptionsEndpoint",
     "UserUserRolesEndpoint",
+    "VstsSearchEndpoint",
 }

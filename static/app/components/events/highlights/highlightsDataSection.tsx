@@ -24,7 +24,7 @@ import {
 } from 'sentry/components/events/highlights/util';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {IconEdit, IconMegaphone} from 'sentry/icons';
+import {IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
@@ -33,15 +33,16 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import useReplayData from 'sentry/utils/replays/hooks/useReplayData';
 import theme from 'sentry/utils/theme';
 import {useDetailedProject} from 'sentry/utils/useDetailedProject';
-import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useGroupTagsDrawer} from 'sentry/views/issueDetails/groupTags/useGroupTagsDrawer';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 interface HighlightsDataSectionProps {
   event: Event;
+  groupId: string;
   project: Project;
   viewAllRef?: React.RefObject<HTMLElement>;
 }
@@ -254,13 +255,24 @@ function HighlightsData({
 export default function HighlightsDataSection({
   viewAllRef,
   event,
+  groupId,
   project,
 }: HighlightsDataSectionProps) {
   const organization = useOrganization();
-  const openForm = useFeedbackForm();
   const hasStreamlinedUI = useHasStreamlinedUI();
+  const openButtonRef = useRef<HTMLButtonElement>(null);
+  const {openTagsDrawer} = useGroupTagsDrawer({
+    groupId,
+    openButtonRef,
+    projectSlug: project.slug,
+  });
 
-  const viewAllButton = viewAllRef ? (
+  const viewAllButton = hasStreamlinedUI ? (
+    // Streamline details ui has "Jump to" feature, instead we'll show the drawer button
+    <Button ref={openButtonRef} size="xs" onClick={openTagsDrawer}>
+      {t('View All Issue Tags')}
+    </Button>
+  ) : viewAllRef ? (
     <Button
       onClick={() => {
         trackAnalytics('highlights.issue_details.view_all_clicked', {organization});
@@ -288,26 +300,6 @@ export default function HighlightsDataSection({
       actions={
         <ErrorBoundary mini>
           <ButtonBar gap={1}>
-            {openForm && (
-              <Button
-                aria-label={t('Give Feedback')}
-                icon={<IconMegaphone />}
-                size={'xs'}
-                onClick={() =>
-                  openForm({
-                    messagePlaceholder: t(
-                      'How can we make tags, context or highlights more useful to you?'
-                    ),
-                    tags: {
-                      ['feedback.source']: 'issue_details_highlights',
-                      ['feedback.owner']: 'issues',
-                    },
-                  })
-                }
-              >
-                {t('Feedback')}
-              </Button>
-            )}
             {viewAllButton}
             <EditHighlightsButton project={project} event={event} />
           </ButtonBar>

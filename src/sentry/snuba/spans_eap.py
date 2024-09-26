@@ -10,7 +10,7 @@ from sentry.models.organization import Organization
 from sentry.search.events.builder.spans_indexed import (
     SpansEAPQueryBuilder,
     TimeseriesSpanEAPIndexedQueryBuilder,
-    TopEventsSpanIndexedQueryBuilder,
+    TopEventsSpanEAPQueryBuilder,
 )
 from sentry.search.events.types import EventsResponse, QueryBuilderConfig, SnubaParams
 from sentry.snuba import discover
@@ -183,7 +183,7 @@ def top_events_timeseries(
                 query_source=query_source,
             )
 
-    top_events_builder = TopEventsSpanIndexedQueryBuilder(
+    top_events_builder = TopEventsSpanEAPQueryBuilder(
         Dataset.SpansEAP,
         {},
         rollup,
@@ -200,7 +200,7 @@ def top_events_timeseries(
         ),
     )
     if len(top_events["data"]) == limit and include_other:
-        other_events_builder = TopEventsSpanIndexedQueryBuilder(
+        other_events_builder = TopEventsSpanEAPQueryBuilder(
             Dataset.SpansEAP,
             {},
             rollup,

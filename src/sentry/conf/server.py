@@ -323,6 +323,7 @@ USE_TZ = True
 # This is because CommonMiddleware Sets the Content-Length header for non-streaming responses.
 MIDDLEWARE: tuple[str, ...] = (
     "csp.middleware.CSPMiddleware",
+    "sentry.middleware.flag.FlagMiddleware",
     "sentry.middleware.health.HealthCheck",
     "sentry.middleware.security.SecurityHeadersMiddleware",
     "sentry.middleware.env.SentryEnvMiddleware",
@@ -391,10 +392,12 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry",
     "sentry.analytics",
     "sentry.incidents.apps.Config",
+    "sentry.deletions",
     "sentry.discover",
     "sentry.analytics.events",
     "sentry.nodestore",
     "sentry.users",
+    "sentry.sentry_apps",
     "sentry.integrations",
     "sentry.monitors",
     "sentry.uptime",
@@ -737,7 +740,9 @@ CELERY_RESULT_SERIALIZER = "pickle"
 CELERY_ACCEPT_CONTENT = {"pickle"}
 CELERY_IMPORTS = (
     "sentry.data_export.tasks",
-    "sentry.discover.tasks",
+    "sentry.deletions.tasks.groups",
+    "sentry.deletions.tasks.scheduled",
+    "sentry.deletions.tasks.hybrid_cloud",
     "sentry.hybridcloud.tasks.deliver_webhooks",
     "sentry.hybridcloud.tasks.backfill_outboxes",
     "sentry.hybridcloud.tasks.deliver_from_outbox",
@@ -750,8 +755,6 @@ CELERY_IMPORTS = (
     "sentry.replays.tasks",
     "sentry.monitors.tasks.clock_pulse",
     "sentry.monitors.tasks.detect_broken_monitor_envs",
-    # TODO(@anonrig): Remove this when AppStore integration is removed.
-    "sentry.tasks.app_store_connect",
     "sentry.tasks.assemble",
     "sentry.tasks.auth",
     "sentry.tasks.auto_remove_inbox",
@@ -767,10 +770,6 @@ CELERY_IMPORTS = (
     "sentry.tasks.collect_project_platforms",
     "sentry.tasks.commits",
     "sentry.tasks.commit_context",
-    "sentry.tasks.deletion",
-    "sentry.tasks.deletion.scheduled",
-    "sentry.tasks.deletion.groups",
-    "sentry.tasks.deletion.hybrid_cloud",
     "sentry.tasks.digests",
     "sentry.tasks.email",
     "sentry.tasks.files",
@@ -854,8 +853,6 @@ CELERY_QUEUES_REGION = [
     Queue("auth", routing_key="auth"),
     Queue("alerts", routing_key="alerts"),
     Queue("app_platform", routing_key="app_platform"),
-    # TODO(@anonrig): Remove this when all AppStore connect data is removed.
-    Queue("appstoreconnect", routing_key="sentry.tasks.app_store_connect.#"),
     Queue("assemble", routing_key="assemble"),
     Queue("backfill_seer_grouping_records", routing_key="backfill_seer_grouping_records"),
     Queue("buffers.process_pending", routing_key="buffers.process_pending"),
@@ -961,7 +958,6 @@ CELERY_QUEUES_REGION = [
     Queue("on_demand_metrics", routing_key="on_demand_metrics"),
     Queue("check_new_issue_threshold_met", routing_key="check_new_issue_threshold_met"),
     Queue("integrations_slack_activity_notify", routing_key="integrations_slack_activity_notify"),
-    Queue("split_discover_query_dataset", routing_key="split_discover_query_dataset"),
 ]
 
 from celery.schedules import crontab
@@ -988,19 +984,19 @@ CELERYBEAT_SCHEDULE_CONTROL = {
         "options": {"expires": 60, "queue": "outbox.control"},
     },
     "schedule-deletions-control": {
-        "task": "sentry.tasks.deletion.run_scheduled_deletions_control",
+        "task": "sentry.deletions.tasks.run_scheduled_deletions_control",
         # Run every 15 minutes
         "schedule": crontab(minute="*/15"),
         "options": {"expires": 60 * 25, "queue": "cleanup.control"},
     },
     "reattempt-deletions-control": {
-        "task": "sentry.tasks.deletion.reattempt_deletions_control",
+        "task": "sentry.deletions.tasks.reattempt_deletions_control",
         # 03:00 PDT, 07:00 EDT, 10:00 UTC
         "schedule": crontab(hour="10", minute="0"),
         "options": {"expires": 60 * 25, "queue": "cleanup.control"},
     },
     "schedule-hybrid-cloud-foreign-key-jobs-control": {
-        "task": "sentry.tasks.deletion.hybrid_cloud.schedule_hybrid_cloud_foreign_key_jobs_control",
+        "task": "sentry.deletions.tasks.hybrid_cloud.schedule_hybrid_cloud_foreign_key_jobs_control",
         # Run every 15 minutes
         "schedule": crontab(minute="*/15"),
         "options": {"queue": "cleanup.control"},
@@ -1112,13 +1108,13 @@ CELERYBEAT_SCHEDULE_REGION = {
         "options": {"expires": 60 * 25},
     },
     "schedule-deletions": {
-        "task": "sentry.tasks.deletion.run_scheduled_deletions",
+        "task": "sentry.deletions.tasks.run_scheduled_deletions",
         # Run every 15 minutes
         "schedule": crontab(minute="*/15"),
         "options": {"expires": 60 * 25},
     },
     "reattempt-deletions": {
-        "task": "sentry.tasks.deletion.reattempt_deletions",
+        "task": "sentry.deletions.tasks.reattempt_deletions",
         # 03:00 PDT, 07:00 EDT, 10:00 UTC
         "schedule": crontab(hour="10", minute="0"),
         "options": {"expires": 60 * 25},
@@ -1130,7 +1126,7 @@ CELERYBEAT_SCHEDULE_REGION = {
         "options": {"expires": 60 * 60 * 3},
     },
     "schedule-hybrid-cloud-foreign-key-jobs": {
-        "task": "sentry.tasks.deletion.hybrid_cloud.schedule_hybrid_cloud_foreign_key_jobs",
+        "task": "sentry.deletions.tasks.hybrid_cloud.schedule_hybrid_cloud_foreign_key_jobs",
         # Run every 15 minutes
         "schedule": crontab(minute="*/15"),
     },
@@ -1530,10 +1526,6 @@ SENTRY_RELAY_TASK_APM_SAMPLING = 0
 # sample rate for ingest consumer processing functions
 SENTRY_INGEST_CONSUMER_APM_SAMPLING = 0
 
-# TODO(@anonrig): Remove this when all AppStore connect data is removed.
-# sample rate for Apple App Store Connect tasks transactions
-SENTRY_APPCONNECT_APM_SAMPLING = SENTRY_BACKEND_APM_SAMPLING
-
 # sample rate for suspect commits task
 SENTRY_SUSPECT_COMMITS_APM_SAMPLING = 0
 
@@ -1739,7 +1731,7 @@ SENTRY_METRICS_DISALLOW_BAD_TAGS = IS_DEV
 SENTRY_METRICS_INDEXER = "sentry.sentry_metrics.indexer.postgres.postgres_v2.PostgresIndexer"
 SENTRY_METRICS_INDEXER_OPTIONS: dict[str, Any] = {}
 SENTRY_METRICS_INDEXER_CACHE_TTL = 3600 * 2
-SENTRY_METRICS_INDEXER_TRANSACTIONS_SAMPLE_RATE = 0.1
+SENTRY_METRICS_INDEXER_TRANSACTIONS_SAMPLE_RATE = 0.1  # relative to SENTRY_BACKEND_APM_SAMPLING
 
 SENTRY_METRICS_INDEXER_SPANNER_OPTIONS: dict[str, Any] = {}
 
@@ -1819,7 +1811,7 @@ SENTRY_MANAGED_USER_FIELDS = ()
 OPENAI_API_KEY: str | None = None
 
 # AI Suggested Fix default model
-SENTRY_AI_SUGGESTED_FIX_MODEL: str = os.getenv("SENTRY_AI_SUGGESTED_FIX_MODEL", "gpt-3.5-turbo-16k")
+SENTRY_AI_SUGGESTED_FIX_MODEL: str = os.getenv("SENTRY_AI_SUGGESTED_FIX_MODEL", "gpt-4o-mini")
 
 SENTRY_API_PAGINATION_ALLOWLIST = SENTRY_API_PAGINATION_ALLOWLIST_DO_NOT_MODIFY
 
@@ -2192,10 +2184,6 @@ SENTRY_USE_ISSUE_OCCURRENCE = False
 # This flag activates consuming GroupAttribute messages in the development environment
 SENTRY_USE_GROUP_ATTRIBUTES = True
 
-# This flag activates code paths that are specific for customer domains
-# Deprecated: This setting will be replaced with feature checks for system:multi-region
-SENTRY_USE_CUSTOMER_DOMAINS = False
-
 # This flag activates replay analyzer service in the development environment
 SENTRY_USE_REPLAY_ANALYZER_SERVICE = False
 
@@ -2320,7 +2308,7 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
     "clickhouse": lambda settings, options: (
         {
             "image": (
-                "ghcr.io/getsentry/image-mirror-altinity-clickhouse-server:23.3.19.33.altinitystable"
+                "ghcr.io/getsentry/image-mirror-altinity-clickhouse-server:23.8.11.29.altinitystable"
             ),
             "ports": {"9000/tcp": 9000, "9009/tcp": 9009, "8123/tcp": 8123},
             "ulimits": [{"name": "nofile", "soft": 262144, "hard": 262144}],
@@ -2480,19 +2468,19 @@ SENTRY_SELF_HOSTED = True
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "24.8.0"
+SELF_HOSTED_STABLE_VERSION = "24.9.0"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
 SENTRY_USE_X_FORWARDED_FOR = True
 
 SENTRY_DEFAULT_INTEGRATIONS = (
-    "sentry.integrations.bitbucket.BitbucketIntegrationProvider",
-    "sentry.integrations.bitbucket_server.BitbucketServerIntegrationProvider",
+    "sentry.integrations.bitbucket.integration.BitbucketIntegrationProvider",
+    "sentry.integrations.bitbucket_server.integration.BitbucketServerIntegrationProvider",
     "sentry.integrations.slack.SlackIntegrationProvider",
-    "sentry.integrations.github.GitHubIntegrationProvider",
-    "sentry.integrations.github_enterprise.GitHubEnterpriseIntegrationProvider",
-    "sentry.integrations.gitlab.GitlabIntegrationProvider",
+    "sentry.integrations.github.integration.GitHubIntegrationProvider",
+    "sentry.integrations.github_enterprise.integration.GitHubEnterpriseIntegrationProvider",
+    "sentry.integrations.gitlab.integration.GitlabIntegrationProvider",
     "sentry.integrations.jira.JiraIntegrationProvider",
     "sentry.integrations.jira_server.JiraServerIntegrationProvider",
     "sentry.integrations.vsts.VstsIntegrationProvider",
@@ -2979,6 +2967,7 @@ SENTRY_REQUEST_METRIC_ALLOWED_PATHS = (
     "sentry.issues.endpoints",
     "sentry.integrations.api.endpoints",
     "sentry.users.api.endpoints",
+    "sentry.sentry_apps.api.endpoints",
 )
 SENTRY_MAIL_ADAPTER_BACKEND = "sentry.mail.adapter.MailAdapter"
 
@@ -3155,10 +3144,14 @@ SEER_GROUPING_BACKFILL_URL = SEER_DEFAULT_URL
 
 SEER_ANOMALY_DETECTION_MODEL_VERSION = "v1"
 SEER_ANOMALY_DETECTION_URL = SEER_DEFAULT_URL  # for local development, these share a URL
-SEER_ANOMALY_DETECTION_TIMEOUT = 15
+SEER_ANOMALY_DETECTION_TIMEOUT = 5
 
 SEER_ANOMALY_DETECTION_ENDPOINT_URL = (
     f"/{SEER_ANOMALY_DETECTION_MODEL_VERSION}/anomaly-detection/detect"
+)
+
+SEER_ALERT_DELETION_URL = (
+    f"/{SEER_ANOMALY_DETECTION_MODEL_VERSION}/anomaly-detection/delete-alert-data"
 )
 
 SEER_AUTOFIX_GITHUB_APP_USER_ID = 157164994

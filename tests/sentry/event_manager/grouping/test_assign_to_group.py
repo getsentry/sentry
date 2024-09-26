@@ -12,14 +12,14 @@ import pytest
 from sentry.event_manager import _create_group, _save_aggregate, _save_aggregate_new
 from sentry.eventstore.models import Event
 from sentry.grouping.ingest.hashing import (
-    _calculate_primary_hash,
-    _calculate_secondary_hash,
+    _calculate_primary_hashes,
+    _calculate_secondary_hashes,
     find_existing_grouphash,
-    find_existing_grouphash_new,
 )
 from sentry.grouping.ingest.metrics import record_calculation_metric_with_result
 from sentry.models.grouphash import GroupHash
 from sentry.models.project import Project
+from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG, LEGACY_GROUPING_CONFIG
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.eventprocessing import save_new_event
 from sentry.testutils.helpers.features import Feature
@@ -31,19 +31,11 @@ from sentry.testutils.skips import requires_snuba
 pytestmark = [requires_snuba]
 
 
-LEGACY_CONFIG = "legacy:2019-03-12"
-NEWSTYLE_CONFIG = "newstyle:2023-01-11"
-MOBILE_CONFIG = "mobile:2021-02-12"
-
-
 @contextmanager
 def patch_grouping_helpers(return_values: dict[str, Any]):
     wrapped_find_existing_grouphash = capture_results(find_existing_grouphash, return_values)
-    wrapped_find_existing_grouphash_new = capture_results(
-        find_existing_grouphash_new, return_values
-    )
-    wrapped_calculate_primary_hash = capture_results(_calculate_primary_hash, return_values)
-    wrapped_calculate_secondary_hash = capture_results(_calculate_secondary_hash, return_values)
+    wrapped_calculate_primary_hashes = capture_results(_calculate_primary_hashes, return_values)
+    wrapped_calculate_secondary_hashes = capture_results(_calculate_secondary_hashes, return_values)
 
     with (
         mock.patch(
@@ -51,17 +43,13 @@ def patch_grouping_helpers(return_values: dict[str, Any]):
             wraps=wrapped_find_existing_grouphash,
         ) as find_existing_grouphash_spy,
         mock.patch(
-            "sentry.event_manager.find_existing_grouphash_new",
-            wraps=wrapped_find_existing_grouphash_new,
-        ) as find_existing_grouphash_new_spy,
+            "sentry.grouping.ingest.hashing._calculate_primary_hashes",
+            wraps=wrapped_calculate_primary_hashes,
+        ) as calculate_primary_hashes_spy,
         mock.patch(
-            "sentry.grouping.ingest.hashing._calculate_primary_hash",
-            wraps=wrapped_calculate_primary_hash,
-        ) as calculate_primary_hash_spy,
-        mock.patch(
-            "sentry.grouping.ingest.hashing._calculate_secondary_hash",
-            wraps=wrapped_calculate_secondary_hash,
-        ) as calculate_secondary_hash_spy,
+            "sentry.grouping.ingest.hashing._calculate_secondary_hashes",
+            wraps=wrapped_calculate_secondary_hashes,
+        ) as calculate_secondary_hashes_spy,
         mock.patch(
             "sentry.event_manager._create_group",
             # No return-value-wrapping necessary here, since all we need
@@ -76,9 +64,8 @@ def patch_grouping_helpers(return_values: dict[str, Any]):
     ):
         yield {
             "find_existing_grouphash": find_existing_grouphash_spy,
-            "find_existing_grouphash_new": find_existing_grouphash_new_spy,
-            "_calculate_primary_hash": calculate_primary_hash_spy,
-            "_calculate_secondary_hash": calculate_secondary_hash_spy,
+            "_calculate_primary_hashes": calculate_primary_hashes_spy,
+            "_calculate_secondary_hashes": calculate_secondary_hashes_spy,
             "_create_group": create_group_spy,
             "record_calculation_metric": record_calculation_metric_spy,
         }
@@ -145,10 +132,6 @@ def get_results_from_saving_event(
     existing_group_id: int | None = None,
     new_logic_enabled: bool = False,
 ):
-    find_existing_grouphash_fn = (
-        "find_existing_grouphash_new" if new_logic_enabled else "find_existing_grouphash"
-    )
-
     # Whether or not these are assigned a value depends on the values of `in_transition` and
     # `existing_group_id`. Everything else we'll return will definitely get a value and therefore
     # doesn't need to be initialized.
@@ -171,9 +154,9 @@ def get_results_from_saving_event(
             "sentry.event_manager.project_uses_optimized_grouping", return_value=new_logic_enabled
         ),
     ):
-        calculate_secondary_hash_spy = spies["_calculate_secondary_hash"]
+        calculate_secondary_hash_spy = spies["_calculate_secondary_hashes"]
         create_group_spy = spies["_create_group"]
-        calculate_primary_hash_spy = spies["_calculate_primary_hash"]
+        calculate_primary_hash_spy = spies["_calculate_primary_hashes"]
         record_calculation_metric_spy = spies["record_calculation_metric"]
 
         set_grouping_configs(
@@ -188,10 +171,7 @@ def get_results_from_saving_event(
             gh.hash: gh.group_id for gh in GroupHash.objects.filter(project_id=project.id)
         }
 
-        hash_search_results = return_values[find_existing_grouphash_fn]
-        # The current logic wraps the search result in an extra layer which we need to unwrap
-        if not new_logic_enabled:
-            hash_search_results = list(map(lambda result: result[0], hash_search_results))
+        hash_search_results = return_values["find_existing_grouphash"]
         # Filter out all the Nones to see if we actually found anything
         filtered_results = list(filter(lambda result: bool(result), hash_search_results))
         hash_search_result = filtered_results[0] if filtered_results else None
@@ -204,7 +184,7 @@ def get_results_from_saving_event(
         primary_hash_calculated = calculate_primary_hash_spy.call_count == 1
         secondary_hash_calculated = calculate_secondary_hash_spy.call_count == 1
 
-        primary_hash = return_values["_calculate_primary_hash"][0].hashes[0]
+        primary_hash = return_values["_calculate_primary_hashes"][0][0]
         primary_hash_found = bool(hash_search_result) and hash_search_result.hash == primary_hash
 
         new_group_created = create_group_spy.call_count == 1
@@ -229,7 +209,7 @@ def get_results_from_saving_event(
             )
 
         if secondary_hash_calculated:
-            secondary_hash = return_values["_calculate_secondary_hash"][0].hashes[0]
+            secondary_hash = return_values["_calculate_secondary_hashes"][0][0]
             hashes_different = secondary_hash != primary_hash
             secondary_hash_found = (
                 bool(hash_search_result) and hash_search_result.hash == secondary_hash
@@ -286,8 +266,8 @@ def test_new_group(
     results = get_results_from_saving_event(
         event_data=event_data,
         project=project,
-        primary_config=NEWSTYLE_CONFIG,
-        secondary_config=LEGACY_CONFIG,
+        primary_config=DEFAULT_GROUPING_CONFIG,
+        secondary_config=LEGACY_GROUPING_CONFIG,
         in_transition=in_transition,
         new_logic_enabled=new_logic_enabled,
     )
@@ -345,14 +325,14 @@ def test_existing_group_no_new_hash(
     event_data = {"message": "testing, testing, 123"}
 
     # Set the stage by creating a group with the soon-to-be-secondary hash
-    existing_event = save_event_with_grouping_config(event_data, project, LEGACY_CONFIG)
+    existing_event = save_event_with_grouping_config(event_data, project, LEGACY_GROUPING_CONFIG)
 
     # Now save a new, identical, event with an updated grouping config
     results = get_results_from_saving_event(
         event_data=event_data,
         project=project,
-        primary_config=NEWSTYLE_CONFIG,
-        secondary_config=LEGACY_CONFIG,
+        primary_config=DEFAULT_GROUPING_CONFIG,
+        secondary_config=LEGACY_GROUPING_CONFIG,
         in_transition=in_transition,
         existing_group_id=existing_event.group_id,
         new_logic_enabled=new_logic_enabled,
@@ -417,7 +397,7 @@ def test_existing_group_new_hash_exists(
     # Set the stage by creating a group tied to the new hash (and possibly the legacy hash as well)
     if secondary_hash_exists:
         existing_event = save_event_with_grouping_config(
-            event_data, project, NEWSTYLE_CONFIG, LEGACY_CONFIG, True
+            event_data, project, DEFAULT_GROUPING_CONFIG, LEGACY_GROUPING_CONFIG, True
         )
         assert existing_event.group_id is not None
         assert (
@@ -427,7 +407,9 @@ def test_existing_group_new_hash_exists(
             == 2
         )
     else:
-        existing_event = save_event_with_grouping_config(event_data, project, NEWSTYLE_CONFIG)
+        existing_event = save_event_with_grouping_config(
+            event_data, project, DEFAULT_GROUPING_CONFIG
+        )
         assert existing_event.group_id is not None
         assert (
             GroupHash.objects.filter(
@@ -440,8 +422,8 @@ def test_existing_group_new_hash_exists(
     results = get_results_from_saving_event(
         event_data=event_data,
         project=project,
-        primary_config=NEWSTYLE_CONFIG,
-        secondary_config=LEGACY_CONFIG,
+        primary_config=DEFAULT_GROUPING_CONFIG,
+        secondary_config=LEGACY_GROUPING_CONFIG,
         in_transition=in_transition,
         existing_group_id=existing_event.group_id,
         new_logic_enabled=new_logic_enabled,
@@ -493,19 +475,13 @@ def test_existing_group_new_hash_exists(
 @pytest.mark.parametrize(
     "in_transition", (True, False), ids=(" in_transition: True ", " in_transition: False ")
 )
-@pytest.mark.parametrize(
-    "mobile_config", (True, False), ids=(" mobile_config: True ", " mobile_config: False ")
-)
-@pytest.mark.parametrize(
-    "id_qualifies", (True, False), ids=(" id_qualifies: True ", " id_qualifies: False ")
-)
+@pytest.mark.parametrize("id_qualifies", (True,), ids=(" id_qualifies: True ",))
 @patch("sentry.event_manager._save_aggregate_new", wraps=_save_aggregate_new)
 @patch("sentry.event_manager._save_aggregate", wraps=_save_aggregate)
 def test_uses_regular_or_optimized_grouping_as_appropriate(
     mock_save_aggregate: MagicMock,
     mock_save_aggregate_new: MagicMock,
     id_qualifies: bool,
-    mobile_config: bool,
     in_transition: bool,
     flag_on: bool,
     killswitch_enabled: bool,
@@ -518,7 +494,7 @@ def test_uses_regular_or_optimized_grouping_as_appropriate(
         # Keep making projects until we get an id which matches `id_qualifies`
         org = Factories.create_organization()
         project = Factories.create_project(organization=org)
-        while (project.id % 5 >= 4) if id_qualifies else (project.id % 5 < 4):
+        while (project.id % 5 >= 5) if id_qualifies else (project.id % 5 < 5):
             project = Factories.create_project(organization=org)
 
     with (
@@ -526,10 +502,11 @@ def test_uses_regular_or_optimized_grouping_as_appropriate(
         patch("sentry.grouping.ingest.config.is_in_transition", return_value=in_transition),
         override_options({"grouping.config_transition.killswitch_enabled": killswitch_enabled}),
     ):
-        config = MOBILE_CONFIG if mobile_config else NEWSTYLE_CONFIG
-        save_event_with_grouping_config({"message": "Dogs are great!"}, project, config)
+        save_event_with_grouping_config(
+            {"message": "Dogs are great!"}, project, DEFAULT_GROUPING_CONFIG
+        )
 
-    if mobile_config or killswitch_enabled:
+    if killswitch_enabled:
         assert mock_save_aggregate.call_count == 1
     elif flag_on:
         assert mock_save_aggregate_new.call_count == 1

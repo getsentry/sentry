@@ -10,7 +10,7 @@ from sentry.integrations.discord.message_builder.base.component.button import Di
 from sentry.integrations.discord.message_builder.base.embed.base import DiscordMessageEmbed
 from sentry.integrations.discord.message_builder.base.embed.field import DiscordMessageEmbedField
 from sentry.integrations.discord.message_builder.base.embed.footer import DiscordMessageEmbedFooter
-from sentry.integrations.message_builder import (
+from sentry.integrations.messaging.message_builder import (
     build_attachment_text,
     build_attachment_title,
     build_footer,

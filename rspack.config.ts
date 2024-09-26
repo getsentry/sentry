@@ -289,16 +289,16 @@ const appConfig: rspack.Configuration = {
      * Without this, webpack will still output all of the unused locale files despite
      * the application never loading any of them.
      */
-    // new ContextReplacementPlugin(
-    //   /sentry-locale$/,
-    //   path.join(__dirname, 'src', 'sentry', 'locale', path.sep),
-    //   true,
-    //   new RegExp(`(${supportedLocales.join('|')})/.*\\.po$`)
-    // ),
-    // new ContextReplacementPlugin(
-    //   /moment\/locale/,
-    //   new RegExp(`(${supportedLanguages.join('|')})\\.js$`)
-    // ),
+    new ContextReplacementPlugin(
+      /sentry-locale$/,
+      path.join(__dirname, 'src', 'sentry', 'locale', path.sep),
+      true,
+      new RegExp(`(${supportedLocales.join('|')})/.*\\.po$`)
+    ),
+    new ContextReplacementPlugin(
+      /moment\/locale/,
+      new RegExp(`(${supportedLanguages.join('|')})\\.js$`)
+    ),
 
     /**
      * Copies file logo-sentry.svg to the dist/entrypoints directory so that it can be accessed by
@@ -670,7 +670,7 @@ if (IS_UI_DEV_ONLY || SENTRY_EXPERIMENTAL_SPA) {
       ...(IS_UI_DEV_ONLY
         ? {devServer: `https://127.0.0.1:${SENTRY_WEBPACK_PROXY_PORT}`}
         : {}),
-      favicon: path.resolve(sentryDjangoAppPath, 'images', 'favicon_dev.png'),
+      favicon: path.resolve(sentryDjangoAppPath, 'images', 'favicon-dev.png'),
       template: path.resolve(staticPrefix, 'index.ejs'),
       mobile: true,
       excludeChunks: ['pipeline'],
@@ -700,4 +700,27 @@ if (IS_PRODUCTION) {
 if (env.WEBPACK_CACHE_PATH) {
   appConfig.cache = true;
 }
+
+// appConfig.plugins?.push(
+//   sentryWebpackPlugin({
+//     applicationKey: 'sentry-spa',
+//     telemetry: false,
+//     sourcemaps: {
+//       disable: true,
+//     },
+//     release: {
+//       create: false,
+//     },
+//     reactComponentAnnotation: {
+//       enabled: true,
+//     },
+//     bundleSizeOptimizations: {
+//       // This is enabled so that our SDKs send exceptions to Sentry
+//       excludeDebugStatements: false,
+//       excludeReplayIframe: true,
+//       excludeReplayShadowDom: true,
+//     },
+//   })
+// );
+
 export default appConfig;

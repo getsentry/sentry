@@ -66,7 +66,7 @@ export function highlightNode(replayer: Replayer, props: AddHighlightParams) {
 
   const nodes =
     'nodeIds' in props
-      ? props.nodeIds.map(nodeId => mirror.getNode(nodeId))
+      ? new Set(props.nodeIds.map(nodeId => mirror.getNode(nodeId)))
       : [replayer.iframe.contentDocument?.body.querySelector(props.selector)];
 
   for (const node of nodes) {

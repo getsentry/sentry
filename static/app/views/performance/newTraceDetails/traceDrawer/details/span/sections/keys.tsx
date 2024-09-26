@@ -67,6 +67,52 @@ function partitionSizes(data: RawSpanType['data']): {
   };
 }
 
+function getSpanAggregateMeasurements(node: TraceTreeNode<TraceTree.Span>) {
+  if (!/^ai\.pipeline($|\.)/.test(node.value.op ?? '')) {
+    return [];
+  }
+
+  let sum = 0;
+  TraceTreeNode.ForEachChild(node, n => {
+    if (
+      isSpanNode(n) &&
+      typeof n?.value?.measurements?.ai_total_tokens_used?.value === 'number'
+    ) {
+      sum += n.value.measurements.ai_total_tokens_used.value;
+    }
+  });
+  return [
+    {
+      key: 'ai.pipeline',
+      subject: 'sum(ai_total_tokens_used)',
+      value: sum,
+    },
+  ];
+}
+
+export function hasSpanKeys(node: TraceTreeNode<TraceTree.Span>) {
+  const span = node.value;
+  const {sizeKeys, nonSizeKeys} = partitionSizes(span?.data ?? {});
+  const allZeroSizes = SIZE_DATA_KEYS.map(key => sizeKeys[key]).every(
+    value => value === 0
+  );
+  const unknownKeys = Object.keys(span).filter(key => {
+    return !isHiddenDataKey(key) && !rawSpanKeys.has(key as any);
+  });
+  const timingKeys = getSpanSubTimings(span) ?? [];
+  const aggregateMeasurements: SectionCardKeyValueList =
+    getSpanAggregateMeasurements(node);
+
+  return (
+    !allZeroSizes ||
+    unknownKeys.length > 0 ||
+    timingKeys.length > 0 ||
+    aggregateMeasurements.length > 0 ||
+    Object.keys(nonSizeKeys).length > 0 ||
+    Object.keys(sizeKeys).length > 0
+  );
+}
+
 export function SpanKeys({node}: {node: TraceTreeNode<TraceTree.Span>}) {
   const span = node.value;
   const {sizeKeys, nonSizeKeys} = partitionSizes(span?.data ?? {});
@@ -81,26 +127,7 @@ export function SpanKeys({node}: {node: TraceTreeNode<TraceTree.Span>}) {
   const items: SectionCardKeyValueList = [];
 
   const aggregateMeasurements: SectionCardKeyValueList = useMemo(() => {
-    if (!/^ai\.pipeline($|\.)/.test(node.value.op ?? '')) {
-      return [];
-    }
-
-    let sum = 0;
-    TraceTreeNode.ForEachChild(node, n => {
-      if (
-        isSpanNode(n) &&
-        typeof n?.value?.measurements?.ai_total_tokens_used?.value === 'number'
-      ) {
-        sum += n.value.measurements.ai_total_tokens_used.value;
-      }
-    });
-    return [
-      {
-        key: 'ai.pipeline',
-        subject: 'sum(ai_total_tokens_used)',
-        value: sum,
-      },
-    ];
+    return getSpanAggregateMeasurements(node);
   }, [node]);
 
   if (allZeroSizes) {

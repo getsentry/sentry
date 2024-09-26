@@ -9,6 +9,7 @@ from django.conf import settings
 from django.core.cache import cache
 
 from sentry import features, options
+from sentry.grouping.strategies.configurations import CONFIGURATIONS
 from sentry.locks import locks
 from sentry.models.project import Project
 from sentry.projectoptions.defaults import BETA_GROUPING_CONFIG, DEFAULT_GROUPING_CONFIG
@@ -19,7 +20,7 @@ logger = logging.getLogger("sentry.events.grouping")
 Job = MutableMapping[str, Any]
 
 # Used to migrate projects that have no activity via getsentry scripts
-CONFIGS_TO_DEPRECATE = ("mobile:2021-02-12",)
+CONFIGS_TO_DEPRECATE = ()
 
 
 # Used by getsentry script. Remove it once the script has been updated to call update_grouping_config_if_needed
@@ -56,11 +57,15 @@ def update_grouping_config_if_needed(project: Project, source: str) -> None:
         # preserve group continuity).
         expiry = int(time.time()) + settings.SENTRY_GROUPING_UPDATE_MIGRATION_PHASE
 
-        changes = {
-            "sentry:secondary_grouping_config": current_config,
-            "sentry:secondary_grouping_expiry": expiry,
-            "sentry:grouping_config": new_config,
-        }
+        changes: dict[str, str | int] = {"sentry:grouping_config": new_config}
+        # If the current config is valid we will have a migration period
+        if current_config in CONFIGURATIONS.keys():
+            changes.update(
+                {
+                    "sentry:secondary_grouping_config": current_config,
+                    "sentry:secondary_grouping_expiry": expiry,
+                }
+            )
 
         for key, value in changes.items():
             project.update_option(key, value)
@@ -86,11 +91,7 @@ def is_in_transition(project: Project) -> bool:
 
 
 def project_uses_optimized_grouping(project: Project) -> bool:
-    primary_grouping_config = project.get_option("sentry:grouping_config")
-    secondary_grouping_config = project.get_option("sentry:secondary_grouping_config")
-    has_mobile_config = "mobile:2021-02-12" in [primary_grouping_config, secondary_grouping_config]
-
-    if has_mobile_config or options.get("grouping.config_transition.killswitch_enabled"):
+    if options.get("grouping.config_transition.killswitch_enabled"):
         return False
 
     return (
@@ -99,5 +100,6 @@ def project_uses_optimized_grouping(project: Project) -> bool:
             project.organization,
         )
         or (is_in_transition(project))
-        or project.id % 5 < 4  # 80% of all non-transition projects
+        # TODO: Yes, this is everyone - this check will soon be removed entirely
+        or project.id % 5 < 5  # 100% of all non-transition projects
     )

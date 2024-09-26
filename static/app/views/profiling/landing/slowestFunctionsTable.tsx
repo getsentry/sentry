@@ -9,6 +9,7 @@ import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -112,9 +113,6 @@ export function SlowestFunctionsTable({userQuery}: {userQuery?: string}) {
   }, [query.data?.metrics]);
 
   const pagination = useMemoryPagination(sortedMetrics, 5);
-  const [expandedFingerprint, setExpandedFingerprint] = useState<
-    Profiling.FunctionMetric['fingerprint'] | null
-  >(null);
 
   const projectsLookupTable = useMemo(() => {
     return projects.reduce(
@@ -199,8 +197,6 @@ export function SlowestFunctionsTable({userQuery}: {userQuery?: string}) {
                   key={i}
                   function={f}
                   projectsLookupTable={projectsLookupTable}
-                  expanded={f.fingerprint === expandedFingerprint}
-                  onExpandClick={setExpandedFingerprint}
                 />
               );
             })}
@@ -211,15 +207,12 @@ export function SlowestFunctionsTable({userQuery}: {userQuery?: string}) {
 }
 
 interface SlowestFunctionProps {
-  expanded: boolean;
   function: NonNullable<Profiling.Schema['metrics']>[0];
-  onExpandClick: React.Dispatch<
-    React.SetStateAction<Profiling.FunctionMetric['fingerprint'] | null>
-  >;
   projectsLookupTable: Record<string, Project>;
 }
 
 function SlowestFunction(props: SlowestFunctionProps) {
+  const [expanded, setExpanded] = useState(false);
   const organization = useOrganization();
 
   const exampleLink = makeProfileLinkFromExample(
@@ -235,9 +228,9 @@ function SlowestFunction(props: SlowestFunctionProps) {
         <TableBodyCell>
           <div>
             <Button
-              icon={<IconChevron direction={props.expanded ? 'up' : 'down'} />}
+              icon={<IconChevron direction={expanded ? 'up' : 'down'} />}
               aria-label={t('View Function Metrics')}
-              onClick={() => props.onExpandClick(props.function.fingerprint)}
+              onClick={() => setExpanded(!expanded)}
               size="xs"
               borderless
             />
@@ -245,13 +238,15 @@ function SlowestFunction(props: SlowestFunctionProps) {
         </TableBodyCell>
         <TableBodyCell>
           <Tooltip title={props.function.name}>
-            {exampleLink ? (
-              <Link to={exampleLink}>
-                {props.function.name || t('<unknown function>')}
-              </Link>
-            ) : (
-              props.function.name || t('<unknown function>')
-            )}
+            <TextOverflow>
+              {exampleLink ? (
+                <Link to={exampleLink}>
+                  {props.function.name || t('<unknown function>')}
+                </Link>
+              ) : (
+                props.function.name || t('<unknown function>')
+              )}
+            </TextOverflow>
           </Tooltip>
         </TableBodyCell>
         <TableBodyCell>
@@ -261,15 +256,17 @@ function SlowestFunction(props: SlowestFunctionProps) {
           />{' '}
         </TableBodyCell>
         <TableBodyCell>
-          <Tooltip title={props.function.package || t('<unknown package>')}>
-            {props.function.package}
-          </Tooltip>
+          <TextOverflow>
+            <Tooltip title={props.function.package || t('<unknown package>')}>
+              {props.function.package}
+            </Tooltip>
+          </TextOverflow>
         </TableBodyCell>
         <TableBodyCell>{getPerformanceDuration(props.function.p75 / 1e6)}</TableBodyCell>
         <TableBodyCell>{getPerformanceDuration(props.function.p95 / 1e6)}</TableBodyCell>
         <TableBodyCell>{getPerformanceDuration(props.function.p99 / 1e6)}</TableBodyCell>
       </TableRow>
-      {props.expanded ? (
+      {expanded ? (
         <SlowestFunctionTimeSeries
           function={props.function}
           projectsLookupTable={props.projectsLookupTable}
@@ -291,7 +288,9 @@ function SlowestFunctionsProjectBadge(props: SlowestFunctionsProjectBadgeProps) 
     for (const example of props.examples) {
       if ('project_id' in example) {
         const project = props.projectsLookupTable[example.project_id];
-        if (project) projects.push(project);
+        if (project) {
+          projects.push(project);
+        }
       }
     }
 
@@ -347,7 +346,9 @@ function SlowestFunctionTimeSeries(props: SlowestFunctionTimeSeriesProps) {
   });
 
   const series: Series[] = useMemo(() => {
-    if (!metrics.isFetched) return [];
+    if (!metrics.isFetched) {
+      return [];
+    }
 
     const serie: Series = {
       seriesName: props.function.name,

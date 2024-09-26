@@ -13,9 +13,13 @@ from sentry.auth.providers.saml2.provider import SAML2AcceptACSView, SAML2Metada
 from sentry.charts.endpoints import serve_chartcuterie_config
 from sentry.integrations.web.doc_integration_avatar import DocIntegrationAvatarPhotoView
 from sentry.integrations.web.organization_integration_setup import OrganizationIntegrationSetupView
+from sentry.toolbar.views.iframe_view import IframeView
+from sentry.toolbar.views.login_success_view import LoginSuccessView
+from sentry.users.web import accounts
+from sentry.users.web.account_identity import AccountIdentityAssociateView
+from sentry.users.web.user_avatar import UserAvatarPhotoView
 from sentry.web import api
-from sentry.web.frontend import accounts, generic
-from sentry.web.frontend.account_identity import AccountIdentityAssociateView
+from sentry.web.frontend import generic
 from sentry.web.frontend.auth_channel_login import AuthChannelLoginView
 from sentry.web.frontend.auth_close import AuthCloseView
 from sentry.web.frontend.auth_login import AuthLoginView
@@ -47,7 +51,6 @@ from sentry.web.frontend.setup_wizard import SetupWizardView
 from sentry.web.frontend.shared_group_details import SharedGroupDetailsView
 from sentry.web.frontend.sudo import SudoView
 from sentry.web.frontend.twofactor import TwoFactorAuthView, u2f_appid
-from sentry.web.frontend.user_avatar import UserAvatarPhotoView
 
 __all__ = ("urlpatterns",)
 
@@ -812,6 +815,25 @@ urlpatterns += [
         r"^replays/selectors/",
         react_page_view,
         name="replays-selectors",
+    ),
+    # Dev toolbar
+    re_path(
+        r"^toolbar/",
+        include(
+            [
+                # Although the pattern looks project-scoped, these are OrganizationViews (auth and perms are org-scoped).
+                re_path(
+                    r"^(?P<organization_slug>[^/\.]+)/(?P<project_id_or_slug>[^/\.]+)/iframe/$",
+                    IframeView.as_view(),
+                    name="sentry-toolbar-iframe",
+                ),
+                re_path(
+                    r"^(?P<organization_slug>[^/\.]+)/(?P<project_id_or_slug>[^/\.]+)/login-success/$",
+                    LoginSuccessView.as_view(),
+                    name="sentry-toolbar-login-success",
+                ),
+            ]
+        ),
     ),
     # Crons
     re_path(

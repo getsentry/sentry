@@ -1,22 +1,29 @@
 import 'intersection-observer'; // polyfill
 
-import {useContext, useState} from 'react';
+import {useCallback, useContext, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import type {Node} from '@react-types/shared';
+import {motion} from 'framer-motion';
 
-import {DraggableTabList} from 'sentry/components/draggableTabs/draggableTabList';
+import {
+  DraggableTabList,
+  TEMPORARY_TAB_KEY,
+} from 'sentry/components/draggableTabs/draggableTabList';
 import type {DraggableTabListItemProps} from 'sentry/components/draggableTabs/item';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {TabsContext} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import {defined} from 'sentry/utils';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import useOrganization from 'sentry/utils/useOrganization';
 import {DraggableTabMenuButton} from 'sentry/views/issueList/groupSearchViewTabs/draggableTabMenuButton';
 import EditableTabTitle from 'sentry/views/issueList/groupSearchViewTabs/editableTabTitle';
-import type {IssueSortOptions} from 'sentry/views/issueList/utils';
+import {IssueSortOptions} from 'sentry/views/issueList/utils';
+import {NewTabContext, type NewView} from 'sentry/views/issueList/utils/newTabContext';
 
 export interface Tab {
   id: string;
@@ -104,12 +111,15 @@ export function DraggableTabBar({
   // TODO: Extract this to a separate component encompassing Tab.Item in the future
   const [editingTabKey, setEditingTabKey] = useState<string | null>(null);
 
+  const organization = useOrganization();
   const navigate = useNavigate();
   const location = useLocation();
 
   const {cursor: _cursor, page: _page, ...queryParams} = router?.location?.query ?? {};
+  const {viewId} = queryParams;
 
   const {tabListState} = useContext(TabsContext);
+  const {setNewViewActive, setOnNewViewsSaved} = useContext(NewTabContext);
 
   const handleOnReorder = (newOrder: Node<DraggableTabListItemProps>[]) => {
     const newTabs = newOrder
@@ -120,6 +130,9 @@ export function DraggableTabBar({
       .filter(defined);
     setTabs(newTabs);
     onReorder?.(newTabs);
+    trackAnalytics('issue_views.reordered_views', {
+      organization,
+    });
   };
 
   const handleOnSaveChanges = () => {
@@ -137,6 +150,9 @@ export function DraggableTabBar({
       });
       setTabs(newTabs);
       onSave?.(newTabs);
+      trackAnalytics('issue_views.saved_changes', {
+        organization,
+      });
     }
   };
 
@@ -160,6 +176,9 @@ export function DraggableTabBar({
         },
       });
       onDiscard?.();
+      trackAnalytics('issue_views.discarded_changes', {
+        organization,
+      });
     }
   };
 
@@ -171,6 +190,9 @@ export function DraggableTabBar({
       );
       setTabs(newTabs);
       onTabRenamed?.(newTabs, newLabel);
+      trackAnalytics('issue_views.renamed_view', {
+        organization,
+      });
     }
   };
 
@@ -199,6 +221,9 @@ export function DraggableTabBar({
       setTabs(newTabs);
       tabListState?.setSelectedKey(tempId);
       onDuplicate?.(newTabs);
+      trackAnalytics('issue_views.duplicated_view', {
+        organization,
+      });
     }
   };
 
@@ -208,6 +233,9 @@ export function DraggableTabBar({
       setTabs(newTabs);
       tabListState?.setSelectedKey(newTabs[0].key);
       onDelete?.(newTabs);
+      trackAnalytics('issue_views.deleted_view', {
+        organization,
+      });
     }
   };
 
@@ -222,9 +250,25 @@ export function DraggableTabBar({
         querySort: tempTab.querySort,
       };
       const newTabs = [...tabs, newTab];
+      navigate(
+        {
+          ...location,
+          query: {
+            ...queryParams,
+            query: tempTab.query,
+            querySort: tempTab.querySort,
+            viewId: tempId,
+          },
+        },
+        {replace: true}
+      );
       setTabs(newTabs);
+      setTempTab(undefined);
       tabListState?.setSelectedKey(tempId);
       onSaveTempView?.(newTabs);
+      trackAnalytics('issue_views.temp_view_saved', {
+        organization,
+      });
     }
   };
 
@@ -232,9 +276,14 @@ export function DraggableTabBar({
     tabListState?.setSelectedKey(tabs[0].key);
     setTempTab(undefined);
     onDiscardTempView?.();
+    trackAnalytics('issue_views.temp_view_discarded', {
+      organization,
+    });
   };
 
-  const handleOnAddView = () => {
+  const handleCreateNewView = () => {
+    // Triggers the add view flow page
+    setNewViewActive(true);
     const tempId = generateTempViewId();
     const currentTab = tabs.find(tab => tab.key === tabListState?.selectedKey);
     if (currentTab) {
@@ -244,29 +293,91 @@ export function DraggableTabBar({
           id: tempId,
           key: tempId,
           label: 'New View',
-          query: currentTab.unsavedChanges
-            ? currentTab.unsavedChanges[0]
-            : currentTab.query,
-          querySort: currentTab.unsavedChanges
-            ? currentTab.unsavedChanges[1]
-            : currentTab.querySort,
+          query: '',
+          querySort: IssueSortOptions.DATE,
         },
       ];
       navigate({
         ...location,
         query: {
           ...queryParams,
+          query: '',
           viewId: tempId,
         },
       });
       setTabs(newTabs);
       tabListState?.setSelectedKey(tempId);
-      onAddView?.(newTabs);
+      trackAnalytics('issue_views.add_view.clicked', {
+        organization,
+      });
     }
   };
 
+  const handleNewViewsSaved: NewTabContext['onNewViewsSaved'] = useCallback<
+    NewTabContext['onNewViewsSaved']
+  >(
+    () => (newViews: NewView[]) => {
+      if (newViews.length === 0) {
+        return;
+      }
+      setNewViewActive(false);
+      const {label, query, saveQueryToView} = newViews[0];
+      const remainingNewViews: Tab[] = newViews.slice(1)?.map(view => {
+        const newId = generateTempViewId();
+        const viewToTab: Tab = {
+          id: newId,
+          key: newId,
+          label: view.label,
+          query: view.query,
+          querySort: IssueSortOptions.DATE,
+          unsavedChanges: view.saveQueryToView
+            ? undefined
+            : [view.query, IssueSortOptions.DATE],
+        };
+        return viewToTab;
+      });
+      let updatedTabs: Tab[] = tabs.map(tab => {
+        if (tab.key === viewId) {
+          return {
+            ...tab,
+            label: label,
+            query: saveQueryToView ? query : '',
+            querySort: IssueSortOptions.DATE,
+            unsavedChanges: saveQueryToView ? undefined : [query, IssueSortOptions.DATE],
+          };
+        }
+        return tab;
+      });
+
+      if (remainingNewViews.length > 0) {
+        updatedTabs = [...updatedTabs, ...remainingNewViews];
+      }
+
+      setTabs(updatedTabs);
+      navigate(
+        {
+          ...location,
+          query: {
+            ...queryParams,
+            query: query,
+            sort: IssueSortOptions.DATE,
+          },
+        },
+        {replace: true}
+      );
+      onAddView?.(updatedTabs);
+    },
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [location, navigate, onAddView, setNewViewActive, setTabs, tabs, viewId]
+  );
+
+  useEffect(() => {
+    setOnNewViewsSaved(handleNewViewsSaved);
+  }, [setOnNewViewsSaved, handleNewViewsSaved]);
+
   const makeMenuOptions = (tab: Tab): MenuItemProps[] => {
-    if (tab.key === 'temporary-tab') {
+    if (tab.key === TEMPORARY_TAB_KEY) {
       return makeTempViewMenuOptions({
         onSaveTempView: handleOnSaveTempView,
         onDiscardTempView: handleOnDiscardTempView,
@@ -294,23 +405,24 @@ export function DraggableTabBar({
     <DraggableTabList
       onReorder={handleOnReorder}
       defaultSelectedKey={initialTabKey}
-      onAddView={handleOnAddView}
+      onAddView={handleCreateNewView}
       orientation="horizontal"
       hideBorder
     >
       {allTabs.map(tab => (
         <DraggableTabList.Item
-          textValue={`${tab.label} tab`}
+          textValue={tab.label}
           key={tab.key}
           to={normalizeUrl({
             query: {
               ...queryParams,
               query: tab.unsavedChanges?.[0] ?? tab.query,
               sort: tab.unsavedChanges?.[1] ?? tab.querySort,
-              ...(tab.id !== 'temporary-tab' ? {viewId: tab.id} : {}),
+              viewId: tab.id !== TEMPORARY_TAB_KEY ? tab.id : undefined,
             },
             pathname: `/organizations/${orgSlug}/issues/`,
           })}
+          disabled={tab.key === editingTabKey}
         >
           <TabContentWrap>
             <EditableTabTitle
@@ -318,14 +430,27 @@ export function DraggableTabBar({
               isEditing={editingTabKey === tab.key}
               setIsEditing={isEditing => setEditingTabKey(isEditing ? tab.key : null)}
               onChange={newLabel => handleOnTabRenamed(newLabel.trim(), tab.key)}
-              isSelected={tabListState?.selectedKey === tab.key}
+              tabKey={tab.key}
             />
-            {tabListState?.selectedKey === tab.key && (
-              <DraggableTabMenuButton
-                hasUnsavedChanges={!!tab.unsavedChanges}
-                menuOptions={makeMenuOptions(tab)}
-                aria-label={`${tab.label} Tab Options`}
-              />
+            {/* If tablistState isn't initialized, we want to load the elipsis menu
+                for the initial tab, that way it won't load in a second later
+                and cause the tabs to shift and animate on load.
+            */}
+            {((tabListState && tabListState?.selectedKey === tab.key) ||
+              (!tabListState && tab.key === initialTabKey)) && (
+              <motion.div
+                // This stops the ellipsis menu from animating in on load (when tabListState isn't initialized yet),
+                // but enables the animation later on when switching tabs
+                initial={tabListState ? {opacity: 0} : false}
+                animate={{opacity: 1}}
+                transition={{delay: 0.1}}
+              >
+                <DraggableTabMenuButton
+                  hasUnsavedChanges={!!tab.unsavedChanges}
+                  menuOptions={makeMenuOptions(tab)}
+                  aria-label={`${tab.label} Ellipsis Menu`}
+                />
+              </motion.div>
             )}
           </TabContentWrap>
         </DraggableTabList.Item>
@@ -339,9 +464,9 @@ const makeDefaultMenuOptions = ({
   onDuplicate,
   onDelete,
 }: {
-  onDelete?: (key: string) => void;
-  onDuplicate?: (key: string) => void;
-  onRename?: (key: string) => void;
+  onDelete?: () => void;
+  onDuplicate?: () => void;
+  onRename?: () => void;
 }): MenuItemProps[] => {
   const menuOptions: MenuItemProps[] = [
     {
@@ -373,11 +498,11 @@ const makeUnsavedChangesMenuOptions = ({
   onSave,
   onDiscard,
 }: {
-  onDelete?: (key: string) => void;
-  onDiscard?: (key: string) => void;
-  onDuplicate?: (key: string) => void;
-  onRename?: (key: string) => void;
-  onSave?: (key: string) => void;
+  onDelete?: () => void;
+  onDiscard?: () => void;
+  onDuplicate?: () => void;
+  onRename?: () => void;
+  onSave?: () => void;
 }): MenuItemProps[] => {
   return [
     {

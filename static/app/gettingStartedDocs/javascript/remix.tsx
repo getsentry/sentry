@@ -23,14 +23,14 @@ import {getJSMetricsOnboarding} from 'sentry/components/onboarding/gettingStarte
 import {
   getReplayConfigureDescription,
   getReplaySDKSetupSnippet,
+  getReplayVerifyStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
 
-const getConfigStep = ({isSelfHosted, urlPrefix}: Params) => {
+const getConfigStep = ({isSelfHosted, urlPrefix, organization, projectSlug}: Params) => {
   const urlParam = !isSelfHosted && urlPrefix ? `--url ${urlPrefix}` : '';
-
   return [
     {
       description: tct(
@@ -42,7 +42,7 @@ const getConfigStep = ({isSelfHosted, urlPrefix}: Params) => {
         }
       ),
       language: 'bash',
-      code: `npx @sentry/wizard@latest -i remix ${urlParam}`,
+      code: `npx @sentry/wizard@latest -i remix ${urlParam}  --org ${organization.slug} --project ${projectSlug}`,
     },
   ];
 };
@@ -164,7 +164,7 @@ const replayOnboarding: OnboardingConfig = {
       ),
     },
   ],
-  verify: () => [],
+  verify: getReplayVerifyStep(),
   nextSteps: () => [],
 };
 

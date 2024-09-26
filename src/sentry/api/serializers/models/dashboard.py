@@ -5,7 +5,6 @@ import orjson
 
 from sentry import features
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.api.serializers.models.user import UserSerializerResponse
 from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.discover.models import DatasetSourcesTypes
 from sentry.models.dashboard import Dashboard
@@ -17,6 +16,7 @@ from sentry.models.dashboard_widget import (
     DashboardWidgetTypes,
 )
 from sentry.snuba.metrics.extraction import OnDemandMetricSpecVersioning
+from sentry.users.api.serializers.user import UserSerializerResponse
 from sentry.users.services.user.service import user_service
 from sentry.utils.dates import outside_retention_with_modified_start, parse_timestamp
 
@@ -41,6 +41,7 @@ class DashboardWidgetQueryResponse(TypedDict):
     widgetId: str
     onDemand: list[OnDemandResponse]
     isHidden: bool
+    selectedAggregate: int | None
 
 
 class ThresholdType(TypedDict):
@@ -164,6 +165,7 @@ class DashboardWidgetQuerySerializer(Serializer):
             "widgetId": str(obj.widget_id),
             "onDemand": attrs["onDemand"],
             "isHidden": obj.is_hidden,
+            "selectedAggregate": obj.selected_aggregate,
         }
 
 

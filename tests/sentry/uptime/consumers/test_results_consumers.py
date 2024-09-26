@@ -19,7 +19,7 @@ from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
 from sentry.conf.types import kafka_definition
 from sentry.issues.grouptype import UptimeDomainCheckFailure
 from sentry.models.group import Group, GroupStatus
-from sentry.testutils.cases import UptimeTestCase
+from sentry.testutils.helpers.options import override_options
 from sentry.uptime.consumers.results_consumer import (
     AUTO_DETECTED_ACTIVE_SUBSCRIPTION_INTERVAL,
     ONBOARDING_MONITOR_PERIOD,
@@ -38,7 +38,7 @@ from sentry.uptime.models import (
 from tests.sentry.uptime.subscriptions.test_tasks import ProducerTestMixin
 
 
-class ProcessResultTest(UptimeTestCase, ProducerTestMixin):
+class ProcessResultTest(ProducerTestMixin):
     def setUp(self):
         super().setUp()
         self.partition = Partition(Topic("test"), 0)
@@ -46,7 +46,8 @@ class ProcessResultTest(UptimeTestCase, ProducerTestMixin):
             subscription_id=uuid.uuid4().hex, interval_seconds=300
         )
         self.project_subscription = self.create_project_uptime_subscription(
-            uptime_subscription=self.subscription
+            uptime_subscription=self.subscription,
+            owner=self.user,
         )
 
     def send_result(self, result: CheckResult):
@@ -71,11 +72,13 @@ class ProcessResultTest(UptimeTestCase, ProducerTestMixin):
             self.subscription.subscription_id,
             scheduled_check_time=datetime.now() - timedelta(minutes=5),
         )
-        with mock.patch(
-            "sentry.uptime.consumers.results_consumer.metrics"
-        ) as metrics, self.feature("organizations:uptime-create-issues"), mock.patch(
-            "sentry.uptime.consumers.results_consumer.ACTIVE_FAILURE_THRESHOLD",
-            new=2,
+        with (
+            mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
+            self.feature("organizations:uptime-create-issues"),
+            mock.patch(
+                "sentry.uptime.consumers.results_consumer.ACTIVE_FAILURE_THRESHOLD",
+                new=2,
+            ),
         ):
             self.send_result(result)
             metrics.incr.assert_has_calls(
@@ -120,13 +123,56 @@ class ProcessResultTest(UptimeTestCase, ProducerTestMixin):
         hashed_fingerprint = md5(str(self.project_subscription.id).encode("utf-8")).hexdigest()
         group = Group.objects.get(grouphash__hash=hashed_fingerprint)
         assert group.issue_type == UptimeDomainCheckFailure
+        assignee = group.get_assignee()
+        assert assignee and (assignee.id == self.user.id)
+        self.project_subscription.refresh_from_db()
+        assert self.project_subscription.uptime_status == UptimeStatus.FAILED
+
+    def test_restricted_host_provider_id(self):
+        """
+        Test that we do NOT create an issue when the host provider identifier
+        has been restricted using the
+        `restrict-issue-creation-by-hosting-provider-id` option.
+        """
+        result = self.create_uptime_result(
+            self.subscription.subscription_id,
+            scheduled_check_time=datetime.now() - timedelta(minutes=5),
+        )
+        with (
+            mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
+            self.feature("organizations:uptime-create-issues"),
+            mock.patch(
+                "sentry.uptime.consumers.results_consumer.ACTIVE_FAILURE_THRESHOLD",
+                new=1,
+            ),
+            override_options({"uptime.restrict-issue-creation-by-hosting-provider-id": ["TEST"]}),
+        ):
+            self.send_result(result)
+            metrics.incr.assert_has_calls(
+                [
+                    call(
+                        "uptime.result_processor.restricted_by_provider",
+                        sample_rate=1.0,
+                        tags={"host_provider_id": "TEST"},
+                    ),
+                ],
+                any_order=True,
+            )
+
+        # Issue is not created
+        hashed_fingerprint = md5(str(self.project_subscription.id).encode("utf-8")).hexdigest()
+        with pytest.raises(Group.DoesNotExist):
+            Group.objects.get(grouphash__hash=hashed_fingerprint)
+
+        # subscription status is still updated
         self.project_subscription.refresh_from_db()
         assert self.project_subscription.uptime_status == UptimeStatus.FAILED
 
     def test_reset_fail_count(self):
-        with mock.patch(
-            "sentry.uptime.consumers.results_consumer.metrics"
-        ) as metrics, self.feature("organizations:uptime-create-issues"):
+        with (
+            mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
+            self.feature("organizations:uptime-create-issues"),
+        ):
             self.send_result(
                 self.create_uptime_result(
                     self.subscription.subscription_id,
@@ -206,9 +252,12 @@ class ProcessResultTest(UptimeTestCase, ProducerTestMixin):
 
     def test_no_create_issues_feature(self):
         result = self.create_uptime_result(self.subscription.subscription_id)
-        with mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics, mock.patch(
-            "sentry.uptime.consumers.results_consumer.ACTIVE_FAILURE_THRESHOLD",
-            new=1,
+        with (
+            mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
+            mock.patch(
+                "sentry.uptime.consumers.results_consumer.ACTIVE_FAILURE_THRESHOLD",
+                new=1,
+            ),
         ):
             self.send_result(result)
             metrics.incr.assert_has_calls(
@@ -232,11 +281,13 @@ class ProcessResultTest(UptimeTestCase, ProducerTestMixin):
         assert self.project_subscription.uptime_status == UptimeStatus.FAILED
 
     def test_resolve(self):
-        with mock.patch(
-            "sentry.uptime.consumers.results_consumer.metrics"
-        ) as metrics, self.feature("organizations:uptime-create-issues"), mock.patch(
-            "sentry.uptime.consumers.results_consumer.ACTIVE_FAILURE_THRESHOLD",
-            new=2,
+        with (
+            mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
+            self.feature("organizations:uptime-create-issues"),
+            mock.patch(
+                "sentry.uptime.consumers.results_consumer.ACTIVE_FAILURE_THRESHOLD",
+                new=2,
+            ),
         ):
             self.send_result(
                 self.create_uptime_result(
@@ -315,9 +366,10 @@ class ProcessResultTest(UptimeTestCase, ProducerTestMixin):
     def test_no_subscription(self):
         subscription_id = uuid.uuid4().hex
         result = self.create_uptime_result(subscription_id)
-        with mock.patch(
-            "sentry.uptime.consumers.results_consumer.metrics"
-        ) as metrics, self.feature("organizations:uptime-create-issues"):
+        with (
+            mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
+            self.feature("organizations:uptime-create-issues"),
+        ):
             self.send_result(result)
             metrics.incr.assert_has_calls(
                 [call("uptime.result_processor.subscription_not_found", sample_rate=1.0)]
@@ -330,9 +382,10 @@ class ProcessResultTest(UptimeTestCase, ProducerTestMixin):
             build_last_update_key(self.project_subscription),
             int(result["scheduled_check_time_ms"]),
         )
-        with mock.patch(
-            "sentry.uptime.consumers.results_consumer.metrics"
-        ) as metrics, self.feature("organizations:uptime-create-issues"):
+        with (
+            mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
+            self.feature("organizations:uptime-create-issues"),
+        ):
             self.send_result(result)
             metrics.incr.assert_has_calls(
                 [
@@ -396,9 +449,10 @@ class ProcessResultTest(UptimeTestCase, ProducerTestMixin):
         redis = _get_cluster()
         key = build_onboarding_failure_key(self.project_subscription)
         assert redis.get(key) is None
-        with mock.patch(
-            "sentry.uptime.consumers.results_consumer.metrics"
-        ) as metrics, self.feature("organizations:uptime-create-issues"):
+        with (
+            mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
+            self.feature("organizations:uptime-create-issues"),
+        ):
             self.send_result(result)
             metrics.incr.assert_has_calls(
                 [
@@ -475,9 +529,10 @@ class ProcessResultTest(UptimeTestCase, ProducerTestMixin):
         redis = _get_cluster()
         key = build_onboarding_failure_key(self.project_subscription)
         assert redis.get(key) is None
-        with mock.patch(
-            "sentry.uptime.consumers.results_consumer.metrics"
-        ) as metrics, self.feature("organizations:uptime-create-issues"):
+        with (
+            mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
+            self.feature("organizations:uptime-create-issues"),
+        ):
             self.send_result(result)
             metrics.incr.assert_has_calls(
                 [
@@ -513,9 +568,11 @@ class ProcessResultTest(UptimeTestCase, ProducerTestMixin):
         redis = _get_cluster()
         key = build_onboarding_failure_key(self.project_subscription)
         assert redis.get(key) is None
-        with mock.patch(
-            "sentry.uptime.consumers.results_consumer.metrics"
-        ) as metrics, self.tasks(), self.feature("organizations:uptime-create-issues"):
+        with (
+            mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
+            self.tasks(),
+            self.feature("organizations:uptime-create-issues"),
+        ):
             self.send_result(result)
             metrics.incr.assert_has_calls(
                 [

@@ -122,6 +122,12 @@ export type RawSpanFrame =
   | CompatibleReplayWebVitalFrame;
 export type SpanFrameEvent = TSpanFrameEvent;
 
+export type CustomEvent<T = RecordingFrame> = T extends RecordingFrame & {
+  type: EventType.Custom;
+}
+  ? T
+  : never;
+
 export function isRecordingFrame(
   attachment: Record<string, any>
 ): attachment is RecordingFrame {
@@ -194,6 +200,10 @@ export function isConsoleFrame(frame: BreadcrumbFrame): frame is ConsoleFrame {
 
 export function isWebVitalFrame(frame: SpanFrame): frame is WebVitalFrame {
   return frame.op === 'web-vital';
+}
+
+export function isCLSFrame(frame: WebVitalFrame): frame is WebVitalFrame {
+  return frame.description === 'cumulative-layout-shift';
 }
 
 export function isPaintFrame(frame: SpanFrame): frame is PaintFrame {
@@ -340,6 +350,7 @@ export const BreadcrumbCategories = [
   'device.battery',
   'device.connectivity',
   'device.orientation',
+  'feedback',
   'navigation',
   'replay.init',
   'replay.mutations',

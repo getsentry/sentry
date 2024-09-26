@@ -169,12 +169,12 @@ class Relocation(DefaultFieldsModelExisting):
         constraints = [
             models.CheckConstraint(
                 name="scheduled_pause_at_step_greater_than_current_step",
-                check=models.Q(scheduled_pause_at_step__gt=models.F("step"))
+                condition=models.Q(scheduled_pause_at_step__gt=models.F("step"))
                 | models.Q(scheduled_pause_at_step__isnull=True),
             ),
             models.CheckConstraint(
                 name="scheduled_cancel_at_step_greater_than_current_step",
-                check=models.Q(scheduled_cancel_at_step__gt=models.F("step"))
+                condition=models.Q(scheduled_cancel_at_step__gt=models.F("step"))
                 | models.Q(scheduled_cancel_at_step__isnull=True),
             ),
         ]

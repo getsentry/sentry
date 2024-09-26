@@ -1,4 +1,5 @@
 import {
+  REGISTERS_ARM,
   REGISTERS_ARM64,
   REGISTERS_MIPS,
   REGISTERS_PPC,
@@ -20,7 +21,7 @@ function getRegisterMap(deviceArch: string) {
   }
 
   if (deviceArch.startsWith('arm')) {
-    return REGISTERS_ARM64;
+    return REGISTERS_ARM;
   }
 
   if (deviceArch.startsWith('mips')) {

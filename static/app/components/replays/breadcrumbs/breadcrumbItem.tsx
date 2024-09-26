@@ -9,7 +9,6 @@ import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {Flex} from 'sentry/components/container/flex';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import Link from 'sentry/components/links/link';
-import ObjectInspector from 'sentry/components/objectInspector';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {OpenReplayComparisonButton} from 'sentry/components/replays/breadcrumbs/openReplayComparisonButton';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
@@ -34,6 +33,7 @@ import type {
 } from 'sentry/utils/replays/types';
 import {
   isBreadcrumbFrame,
+  isCLSFrame,
   isErrorFrame,
   isFeedbackFrame,
   isHydrationErrorFrame,
@@ -87,17 +87,19 @@ function BreadcrumbItem({
         {description}
       </Description>
     ) : (
-      <InspectorWrapper>
-        <ObjectInspector
-          data={description}
-          expandPaths={expandPaths}
-          onExpand={onInspectorExpanded}
-          theme={{
-            TREENODE_FONT_SIZE: '0.7rem',
-            ARROW_FONT_SIZE: '0.5rem',
+      <Wrapper>
+        <StructuredEventData
+          initialExpandedPaths={expandPaths ?? []}
+          onToggleExpand={(expandedPaths, path) => {
+            onInspectorExpanded(
+              path,
+              Object.fromEntries(expandedPaths.map(item => [item, true]))
+            );
           }}
+          data={description}
+          withAnnotatedText
         />
-      </InspectorWrapper>
+      </Wrapper>
     );
   }, [description, expandPaths, onInspectorExpanded]);
 
@@ -237,11 +239,7 @@ function WebVitalData({
   const selectors = frameToExtraction?.get(frame)?.selectors;
 
   const webVitalData = {value: frame.data.value};
-  if (
-    frame.description === 'cumulative-layout-shift' &&
-    frame.data.attributions &&
-    selectors
-  ) {
+  if (isCLSFrame(frame) && frame.data.attributions && selectors) {
     const layoutShifts: {[x: string]: ReactNode[]}[] = [];
     for (const attr of frame.data.attributions) {
       const elements: ReactNode[] = [];
@@ -298,17 +296,19 @@ function WebVitalData({
   }
 
   return (
-    <StructuredEventData
-      initialExpandedPaths={expandPaths ?? []}
-      onToggleExpand={(expandedPaths, path) => {
-        onInspectorExpanded(
-          path,
-          Object.fromEntries(expandedPaths.map(item => [item, true]))
-        );
-      }}
-      data={webVitalData}
-      withAnnotatedText
-    />
+    <Wrapper>
+      <StructuredEventData
+        initialExpandedPaths={expandPaths ?? []}
+        onToggleExpand={(expandedPaths, path) => {
+          onInspectorExpanded(
+            path,
+            Object.fromEntries(expandedPaths.map(item => [item, true]))
+          );
+        }}
+        data={webVitalData}
+        withAnnotatedText
+      />
+    </Wrapper>
   );
 }
 
@@ -377,10 +377,6 @@ const CrumbIssueWrapper = styled('div')`
   gap: ${space(0.5)};
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.subText};
-`;
-
-const InspectorWrapper = styled('div')`
-  font-family: ${p => p.theme.text.familyMono};
 `;
 
 const CrumbDetails = styled('div')`
@@ -522,6 +518,12 @@ const SelectorButton = styled(Button)`
   margin: 0 ${space(0.5)};
   height: auto;
   min-height: auto;
+`;
+
+const Wrapper = styled('div')`
+  pre {
+    margin: 0;
+  }
 `;
 
 export default memo(BreadcrumbItem);

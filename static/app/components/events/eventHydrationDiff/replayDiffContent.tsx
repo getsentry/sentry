@@ -54,6 +54,7 @@ export default function ReplayDiffContent({event, group, orgSlug, replaySlug}: P
       <ErrorBoundary mini>
         <ReplayGroupContextProvider groupId={group?.id} eventId={event.id}>
           <ReplaySliderDiff
+            minHeight="355px"
             leftOffsetMs={leftOffsetMs}
             replay={replay}
             rightOffsetMs={rightOffsetMs}

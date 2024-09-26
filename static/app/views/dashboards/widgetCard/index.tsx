@@ -41,6 +41,7 @@ import withPageFilters from 'sentry/utils/withPageFilters';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
 import {DASHBOARD_CHART_GROUP} from 'sentry/views/dashboards/dashboard';
+import {DiscoverSplitAlert} from 'sentry/views/dashboards/discoverSplitAlert';
 import {MetricWidgetCard} from 'sentry/views/dashboards/metrics/widgetCard';
 import {Toolbar} from 'sentry/views/dashboards/widgetCard/toolbar';
 
@@ -331,6 +332,7 @@ class WidgetCard extends Component<Props, State> {
                         )}
                       <ExtractedMetricsTag queryKey={widget} />
                       <DisplayOnDemandWarnings widget={widget} />
+                      <DiscoverSplitAlert widget={widget} />
                     </WidgetTitleRow>
                     {widget.description && (
                       <Tooltip
@@ -533,7 +535,7 @@ export const WidgetDescription = styled('small')`
 
 const WidgetTitle = styled(HeaderTitle)`
   ${p => p.theme.overflowEllipsis};
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeightBold};
 `;
 
 const WidgetHeaderWrapper = styled('div')`

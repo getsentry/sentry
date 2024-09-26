@@ -462,6 +462,7 @@ export function HTTPSamplesPanel() {
                   }}
                   isLoading={isDurationDataFetching}
                   error={durationError}
+                  filters={filters}
                 />
               </ModuleLayout.Full>
             </Fragment>

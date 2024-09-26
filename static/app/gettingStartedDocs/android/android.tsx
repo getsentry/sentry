@@ -12,7 +12,10 @@ import type {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {MobileBetaBanner} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {getAndroidMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
-import {getReplayMobileConfigureDescription} from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
+import {
+  getReplayMobileConfigureDescription,
+  getReplayVerifyStep,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import {feedbackOnboardingCrashApiJava} from 'sentry/gettingStartedDocs/java/java';
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
@@ -135,7 +138,9 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
               {
                 description: (
                   <Fragment>
-                    {t('The Sentry wizard will automatically patch your application:')}
+                    <p>
+                      {t('The Sentry wizard will automatically patch your application:')}
+                    </p>
                     <List symbol="bullet">
                       <ListItem>
                         {tct(
@@ -168,17 +173,15 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
                         )}
                       </ListItem>
                     </List>
-                    <p>
-                      {tct(
-                        'Alternatively, you can also [manualSetupLink:set up the SDK manually].',
-                        {
-                          manualSetupLink: (
-                            <ExternalLink href="https://docs.sentry.io/platforms/android/manual-setup/" />
-                          ),
-                        }
-                      )}
-                    </p>
                   </Fragment>
+                ),
+                additionalInfo: tct(
+                  'Alternatively, you can also [manualSetupLink:set up the SDK manually].',
+                  {
+                    manualSetupLink: (
+                      <ExternalLink href="https://docs.sentry.io/platforms/android/manual-setup/" />
+                    ),
+                  }
                 ),
               },
             ],
@@ -431,7 +434,12 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
       ],
     },
   ],
-  verify: () => [],
+  verify: getReplayVerifyStep({
+    replayOnErrorSampleRateName:
+      'options\u200b.experimental\u200b.sessionReplay\u200b.errorSampleRate',
+    replaySessionSampleRateName:
+      'options\u200b.experimental\u200b.sessionReplay\u200b.sessionSampleRate',
+  }),
   nextSteps: () => [],
 };
 

@@ -298,7 +298,9 @@ export const useDeleteEventAttachmentOptimistic = (
       );
     },
     onMutate: async variables => {
-      await queryClient.cancelQueries(makeFetchEventAttachmentsQueryKey(variables));
+      await queryClient.cancelQueries({
+        queryKey: makeFetchEventAttachmentsQueryKey(variables),
+      });
 
       const previous = getApiQueryData<FetchEventAttachmentResponse>(
         queryClient,

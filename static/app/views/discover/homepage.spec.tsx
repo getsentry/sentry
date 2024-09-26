@@ -665,7 +665,8 @@ describe('Discover > Homepage', () => {
           dataset: 'transactions',
           name: 'homepage query',
           project: undefined,
-          query: 'event.type:error',
+          query: '',
+          field: 'environment',
           queryDataset: 'transaction-like',
         }),
       })

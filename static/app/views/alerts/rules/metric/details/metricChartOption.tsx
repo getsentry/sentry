@@ -402,7 +402,6 @@ export function getMetricAlertChartOption({
         }
       });
   }
-
   if (anomalies) {
     const anomalyBlocks: MarkAreaComponentOption['data'] = [];
     let start: string | undefined;
@@ -445,9 +444,10 @@ export function getMetricAlertChartOption({
       });
     if (start && end) {
       // push in the last block
+      // Create a marker line for the start of the anomaly
+      series.push(createAnomalyMarkerSeries(theme.purple300, start));
       anomalyBlocks.push([
         {
-          name: 'Anomaly Detected',
           xAxis: start,
         },
         {

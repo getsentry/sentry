@@ -1,3 +1,5 @@
+import {Fragment} from 'react';
+
 import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/crashReportCallout';
 import widgetCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/widgetCallout';
 import TracePropagationMessage from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
@@ -24,6 +26,7 @@ import {
 import {
   getReplayConfigOptions,
   getReplayConfigureDescription,
+  getReplayVerifyStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import {t, tct} from 'sentry/locale';
@@ -61,7 +64,7 @@ const getSentryInitLayout = (params: Params, siblingOption: string): string => {
     integrations: [${
       params.isPerformanceSelected
         ? `
-          Sentry.browserTracingIntegration(),`
+          Sentry.browserTracingIntegration({ router }),`
         : ''
     }${
       params.isReplaySelected
@@ -144,7 +147,16 @@ const getNextStep = (
 };
 
 const onboarding: OnboardingConfig<PlatformOptions> = {
-  introduction: MaybeBrowserProfilingBetaWarning,
+  introduction: params => (
+    <Fragment>
+      <MaybeBrowserProfilingBetaWarning {...params} />
+      <p>
+        {tct('In this quick guide you’ll use [strong:npm] or [strong:yarn] to set up:', {
+          strong: <strong />,
+        })}
+      </p>
+    </Fragment>
+  ),
   install: () => [
     {
       type: StepType.INSTALL,
@@ -165,8 +177,9 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      description: t(
-        "Initialize Sentry as early as possible in your application's lifecycle."
+      description: tct(
+        "Initialize Sentry as early as possible in your application's lifecycle, usually your Vue app's entry point ([code:main.ts/js]).",
+        {code: <code />}
       ),
       configurations: getSetupConfiguration(params),
     },
@@ -221,7 +234,9 @@ function getSiblingImportsSetupConfiguration(siblingOption: string): string {
   switch (siblingOption) {
     case VueVersion.VUE3:
       return `import {createApp} from "vue";
-          import {createRouter} from "vue-router";`;
+          import {createRouter} from "vue-router";
+          import router from "./router";
+          `;
     case VueVersion.VUE2:
     default:
       return `import Vue from "vue";
@@ -248,9 +263,6 @@ function getVueConstSetup(siblingOption: string): string {
     case VueVersion.VUE3:
       return `
           const app = createApp({
-            // ...
-          });
-          const router = createRouter({
             // ...
           });
           `;
@@ -311,7 +323,7 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
       additionalInfo: <TracePropagationMessage />,
     },
   ],
-  verify: () => [],
+  verify: getReplayVerifyStep(),
   nextSteps: () => [],
 };
 

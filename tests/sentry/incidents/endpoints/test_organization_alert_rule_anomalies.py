@@ -12,9 +12,8 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleSeasonality,
     AlertRuleSensitivity,
 )
-from sentry.seer.anomaly_detection.types import AnomalyType
+from sentry.seer.anomaly_detection.types import AnomalyType, StoreDataResponse
 from sentry.testutils.cases import SnubaTestCase
-from sentry.testutils.factories import EventType
 from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
@@ -49,8 +48,8 @@ class AlertRuleAnomalyEndpointTest(AlertRuleBase, SnubaTestCase):
                     "timestamp": iso_format(two_weeks_ago + timedelta(minutes=1)),
                     "fingerprint": ["group1"],
                     "tags": {"sentry:user": self.user.email},
+                    "exception": [{"value": "BadError"}],
                 },
-                event_type=EventType.ERROR,
                 project_id=self.project.id,
             )
             self.store_event(
@@ -60,10 +59,14 @@ class AlertRuleAnomalyEndpointTest(AlertRuleBase, SnubaTestCase):
                     "timestamp": iso_format(two_weeks_ago + timedelta(days=10)),
                     "fingerprint": ["group2"],
                     "tags": {"sentry:user": self.user.email},
+                    "exception": [{"value": "BadError"}],
                 },
-                event_type=EventType.ERROR,
                 project_id=self.project.id,
             )
+        seer_store_data_return_value: StoreDataResponse = {"success": True}
+        mock_seer_store_request.return_value = HTTPResponse(
+            orjson.dumps(seer_store_data_return_value), status=200
+        )
 
         alert_rule = self.create_alert_rule(
             time_window=15,
@@ -71,10 +74,9 @@ class AlertRuleAnomalyEndpointTest(AlertRuleBase, SnubaTestCase):
             seasonality=AlertRuleSeasonality.AUTO,
             detection_type=AlertRuleDetectionType.DYNAMIC,
         )
-
         self.login_as(self.user)
-
         seer_return_value = {
+            "success": True,
             "timeseries": [
                 {
                     "anomaly": {
@@ -92,9 +94,8 @@ class AlertRuleAnomalyEndpointTest(AlertRuleBase, SnubaTestCase):
                     "timestamp": 2,
                     "value": 1,
                 },
-            ]
+            ],
         }
-        mock_seer_store_request.return_value = HTTPResponse(status=200)
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
         with outbox_runner():
             resp = self.get_success_response(
@@ -110,7 +111,7 @@ class AlertRuleAnomalyEndpointTest(AlertRuleBase, SnubaTestCase):
         assert mock_seer_store_request.call_count == 1
         assert mock_seer_request.call_count == 1
         assert mock_seer_request.call_args.args[0] == "POST"
-        assert mock_seer_request.call_args.args[1] == SEER_ANOMALY_DETECTION_ENDPOINT_URL
+        assert mock_seer_request.call_args.args[1] == SEER_ANOMALY_DETECTION_ENDPOINT_URL + "?"
         assert resp.data == seer_return_value["timeseries"]
 
     @with_feature("organizations:anomaly-detection-alerts")
@@ -121,6 +122,11 @@ class AlertRuleAnomalyEndpointTest(AlertRuleBase, SnubaTestCase):
     def test_alert_not_enough_data(self, mock_seer_store_request):
         self.create_team(organization=self.organization, members=[self.user])
         two_weeks_ago = before_now(days=14).replace(hour=10, minute=0, second=0, microsecond=0)
+
+        seer_return_value: StoreDataResponse = {"success": True}
+        mock_seer_store_request.return_value = HTTPResponse(
+            orjson.dumps(seer_return_value), status=200
+        )
         alert_rule = self.create_alert_rule(
             time_window=15,
             sensitivity=AlertRuleSensitivity.MEDIUM,
@@ -129,7 +135,6 @@ class AlertRuleAnomalyEndpointTest(AlertRuleBase, SnubaTestCase):
         )
 
         self.login_as(self.user)
-        mock_seer_store_request.return_value = HTTPResponse(status=200)
         with outbox_runner():
             resp = self.get_success_response(
                 self.organization.slug,
@@ -163,8 +168,8 @@ class AlertRuleAnomalyEndpointTest(AlertRuleBase, SnubaTestCase):
                     "timestamp": iso_format(two_weeks_ago + timedelta(minutes=1)),
                     "fingerprint": ["group1"],
                     "tags": {"sentry:user": self.user.email},
+                    "exception": [{"value": "BadError"}],
                 },
-                event_type=EventType.ERROR,
                 project_id=self.project.id,
             )
             self.store_event(
@@ -174,11 +179,15 @@ class AlertRuleAnomalyEndpointTest(AlertRuleBase, SnubaTestCase):
                     "timestamp": iso_format(two_weeks_ago + timedelta(days=10)),
                     "fingerprint": ["group2"],
                     "tags": {"sentry:user": self.user.email},
+                    "exception": [{"value": "BadError"}],
                 },
-                event_type=EventType.ERROR,
                 project_id=self.project.id,
             )
 
+        seer_return_value: StoreDataResponse = {"success": True}
+        mock_seer_store_request.return_value = HTTPResponse(
+            orjson.dumps(seer_return_value), status=200
+        )
         alert_rule = self.create_alert_rule(
             time_window=15,
             sensitivity=AlertRuleSensitivity.MEDIUM,
@@ -187,7 +196,6 @@ class AlertRuleAnomalyEndpointTest(AlertRuleBase, SnubaTestCase):
         )
 
         self.login_as(self.user)
-        mock_seer_store_request.return_value = HTTPResponse(status=200)
         mock_seer_request.side_effect = TimeoutError
         with outbox_runner():
             resp = self.get_error_response(
@@ -232,8 +240,8 @@ class AlertRuleAnomalyEndpointTest(AlertRuleBase, SnubaTestCase):
                     "timestamp": iso_format(two_weeks_ago + timedelta(minutes=1)),
                     "fingerprint": ["group1"],
                     "tags": {"sentry:user": self.user.email},
+                    "exception": [{"value": "BadError"}],
                 },
-                event_type=EventType.ERROR,
                 project_id=self.project.id,
             )
             self.store_event(
@@ -243,11 +251,15 @@ class AlertRuleAnomalyEndpointTest(AlertRuleBase, SnubaTestCase):
                     "timestamp": iso_format(two_weeks_ago + timedelta(days=10)),
                     "fingerprint": ["group2"],
                     "tags": {"sentry:user": self.user.email},
+                    "exception": [{"value": "BadError"}],
                 },
-                event_type=EventType.ERROR,
                 project_id=self.project.id,
             )
 
+        seer_return_value: StoreDataResponse = {"success": True}
+        mock_seer_store_request.return_value = HTTPResponse(
+            orjson.dumps(seer_return_value), status=200
+        )
         alert_rule = self.create_alert_rule(
             time_window=15,
             sensitivity=AlertRuleSensitivity.MEDIUM,
@@ -256,7 +268,6 @@ class AlertRuleAnomalyEndpointTest(AlertRuleBase, SnubaTestCase):
         )
 
         self.login_as(self.user)
-        mock_seer_store_request.return_value = HTTPResponse(status=200)
         mock_seer_request.return_value = HTTPResponse("Bad stuff", status=500)
         with outbox_runner():
             resp = self.get_error_response(

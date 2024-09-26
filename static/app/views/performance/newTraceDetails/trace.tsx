@@ -135,8 +135,12 @@ function maybeFocusRow(
   node: TraceTreeNode<TraceTree.NodeValue>,
   previouslyFocusedNodeRef: React.MutableRefObject<TraceTreeNode<TraceTree.NodeValue> | null>
 ) {
-  if (!ref) return;
-  if (node === previouslyFocusedNodeRef.current) return;
+  if (!ref) {
+    return;
+  }
+  if (node === previouslyFocusedNodeRef.current) {
+    return;
+  }
   previouslyFocusedNodeRef.current = node;
   ref.focus();
 }
@@ -144,6 +148,7 @@ function maybeFocusRow(
 interface TraceProps {
   forceRerender: number;
   initializedRef: React.MutableRefObject<boolean>;
+  isEmbedded: boolean;
   manager: VirtualizedViewManager;
   onRowClick: (
     node: TraceTreeNode<TraceTree.NodeValue>,
@@ -188,6 +193,7 @@ export function Trace({
   initializedRef,
   forceRerender,
   trace_id,
+  isEmbedded,
 }: TraceProps) {
   const theme = useTheme();
   const api = useApi();
@@ -397,11 +403,17 @@ export function Trace({
         });
       }
       if (event.key === 'ArrowLeft') {
-        if (node.zoomedIn) onNodeZoomIn(event, node, false);
-        else if (node.expanded) onNodeExpand(event, node, false);
+        if (node.zoomedIn) {
+          onNodeZoomIn(event, node, false);
+        } else if (node.expanded) {
+          onNodeExpand(event, node, false);
+        }
       } else if (event.key === 'ArrowRight') {
-        if (!node.expanded) onNodeExpand(event, node, true);
-        else if (node.expanded && node.canFetch) onNodeZoomIn(event, node, true);
+        if (!node.expanded) {
+          onNodeExpand(event, node, true);
+        } else if (node.expanded && node.canFetch) {
+          onNodeZoomIn(event, node, true);
+        }
       }
     },
     [manager, onNodeExpand, onNodeZoomIn, traceDispatch]
@@ -455,6 +467,7 @@ export function Trace({
           onRowKeyDown={onRowKeyDown}
           tree={trace}
           trace_id={trace_id}
+          isEmbedded={isEmbedded}
         />
       );
     },
@@ -584,6 +597,7 @@ export function Trace({
 
 function RenderRow(props: {
   index: number;
+  isEmbedded: boolean;
   isSearchResult: boolean;
   manager: VirtualizedViewManager;
   node: TraceTreeNode<TraceTree.NodeValue>;
@@ -701,7 +715,7 @@ function RenderRow(props: {
       <div
         key={props.index}
         ref={r =>
-          props.tabIndex === 0
+          props.tabIndex === 0 && !props.isEmbedded
             ? maybeFocusRow(r, props.node, props.previouslyFocusedNodeRef)
             : null
         }
@@ -769,7 +783,7 @@ function RenderRow(props: {
       <div
         key={props.index}
         ref={r =>
-          props.tabIndex === 0
+          props.tabIndex === 0 && !props.isEmbedded
             ? maybeFocusRow(r, props.node, props.previouslyFocusedNodeRef)
             : null
         }
@@ -858,7 +872,7 @@ function RenderRow(props: {
       <div
         key={props.index}
         ref={r =>
-          props.tabIndex === 0
+          props.tabIndex === 0 && !props.isEmbedded
             ? maybeFocusRow(r, props.node, props.previouslyFocusedNodeRef)
             : null
         }
@@ -944,7 +958,7 @@ function RenderRow(props: {
       <div
         key={props.index}
         ref={r =>
-          props.tabIndex === 0
+          props.tabIndex === 0 && !props.isEmbedded
             ? maybeFocusRow(r, props.node, props.previouslyFocusedNodeRef)
             : null
         }
@@ -994,7 +1008,7 @@ function RenderRow(props: {
       <div
         key={props.index}
         ref={r =>
-          props.tabIndex === 0
+          props.tabIndex === 0 && !props.isEmbedded
             ? maybeFocusRow(r, props.node, props.previouslyFocusedNodeRef)
             : null
         }
@@ -1069,7 +1083,7 @@ function RenderRow(props: {
       <div
         key={props.index}
         ref={r =>
-          props.tabIndex === 0
+          props.tabIndex === 0 && !props.isEmbedded
             ? maybeFocusRow(r, props.node, props.previouslyFocusedNodeRef)
             : null
         }
@@ -1452,12 +1466,16 @@ interface BackgroundPatternsProps {
 
 function BackgroundPatterns(props: BackgroundPatternsProps) {
   const performance_issues = useMemo(() => {
-    if (!props.performance_issues.size) return [];
+    if (!props.performance_issues.size) {
+      return [];
+    }
     return [...props.performance_issues];
   }, [props.performance_issues]);
 
   const errors = useMemo(() => {
-    if (!props.errors.size) return [];
+    if (!props.errors.size) {
+      return [];
+    }
     return [...props.errors];
   }, [props.errors]);
 

@@ -119,7 +119,7 @@ function PerformanceSetupBanner({
       localStorageKey={LOCAL_STORAGE_KEY}
       docsRoute="https://docs.sentry.io/product/performance/"
       organization={organization}
-      primaryButtonText={t('Start Checklist')}
+      primaryButtonText={t('Set Up Tracing')}
     />
   );
 }
@@ -206,7 +206,7 @@ function PerformanceQuotaExceededWarning(props: ErrorOnlyWarningsProps) {
       image={emptyTraceImg}
       title={title}
       description={tct(
-        'Spans are being dropped and monitoring is impacted. To start seeing traces with spans, increase your [billingType].',
+        'Spans are being dropped. To start seeing traces with spans, increase your [billingType].',
         {
           billingType: subscription?.onDemandBudgets?.enabled ? t('budget') : t('quota'),
         }

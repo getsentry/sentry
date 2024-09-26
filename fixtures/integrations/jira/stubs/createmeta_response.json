@@ -47,10 +47,12 @@
               "name": "Issue Type",
               "key": "issuetype",
               "hasDefaultValue": false,
-              "operations": ["set"]
+              "operations": ["set"],
+              "schema": { "type": "issuetype", "system": "issuetype" }
             },
             "labels": {
               "required": false,
+              "operations": ["add", "set", "remove"],
               "schema": {
                 "type": "array",
                 "items": "string",
@@ -89,6 +91,7 @@
             "customfield_10200": {
               "operations": ["set"],
               "required": false,
+              "key": "customfield_10200",
               "schema": {
                 "type": "option",
                 "custom": "com.codebarrel.jira.iconselectlist:icon-select-cf",
@@ -125,6 +128,7 @@
                 "customId": 10202
               },
               "name": "Feature",
+              "key": "customfield_10300",
               "hasDefaultValue": false,
               "operations": ["add", "set", "remove"],
               "allowedValues": [

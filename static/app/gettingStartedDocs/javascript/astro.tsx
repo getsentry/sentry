@@ -19,7 +19,10 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {getJSMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {getProfilingDocumentHeaderConfigurationStep} from 'sentry/components/onboarding/gettingStartedDoc/utils/profilingOnboarding';
-import {getReplaySDKSetupSnippet} from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
+import {
+  getReplaySDKSetupSnippet,
+  getReplayVerifyStep,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
@@ -52,7 +55,7 @@ export default defineConfig({
 });
 `;
 
-const getVerifyAstroSnippet = () => `
+const getVerifySnippet = () => `
 <!-- your-page.astro -->
 ---
 ---
@@ -92,10 +95,23 @@ const getInstallConfig = () => [
 ];
 
 const onboarding: OnboardingConfig = {
-  introduction: () =>
-    tct("Sentry's integration with [astroLink:Astro] supports Astro 3.0.0 and above.", {
-      astroLink: <ExternalLink href="https://astro.build/" />,
-    }),
+  introduction: () => (
+    <Fragment>
+      <p>
+        {tct(
+          "Sentry's integration with [astroLink:Astro] supports Astro 3.0.0 and above.",
+          {
+            astroLink: <ExternalLink href="https://astro.build/" />,
+          }
+        )}
+      </p>
+      <p>
+        {tct("In this quick guide you'll use the [astrocli:astro] CLI to set up:", {
+          astrocli: <strong />,
+        })}
+      </p>
+    </Fragment>
+  ),
   install: () => getInstallConfig(),
   configure: (params: Params) => [
     {
@@ -160,7 +176,7 @@ const onboarding: OnboardingConfig = {
               label: 'Astro',
               value: 'html',
               language: 'html',
-              code: getVerifyAstroSnippet(),
+              code: getVerifySnippet(),
             },
           ],
         },
@@ -287,10 +303,9 @@ import * as Sentry from "@sentry/astro";`,
             },
           ],
           additionalInfo: tct(
-            `Note that creating your own [code:sentry.client.config.js] file will override the default settings in your [code2:astro.config.js] file. Learn more about this [link:here].`,
+            `Note that creating your own [code:sentry.client.config.js] file will override the default settings in your [code:astro.config.js] file. Learn more about this [link:here].`,
             {
               code: <code />,
-              code2: <code />,
               link: (
                 <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/astro/manual-setup/#manual-sdk-initialization" />
               ),
@@ -302,7 +317,7 @@ import * as Sentry from "@sentry/astro";`,
       isOptional: true,
     },
   ],
-  verify: () => [],
+  verify: getReplayVerifyStep(),
   nextSteps: () => [],
 };
 

@@ -309,7 +309,7 @@ class GitHubApiClientTest(TestCase):
         )
 
         self.github_client.update_comment(
-            repo=self.repo.name, comment_id="1", data={"body": "world"}
+            repo=self.repo.name, issue_id="1", comment_id="1", data={"body": "world"}
         )
         assert responses.calls[1].response.status_code == 200
         assert responses.calls[1].request.body == b'{"body": "world"}'

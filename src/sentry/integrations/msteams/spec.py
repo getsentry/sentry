@@ -2,15 +2,20 @@ from sentry import analytics
 from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.integrations.base import IntegrationProvider
-from sentry.integrations.messaging import MessagingIdentityLinkViewSet, MessagingIntegrationSpec
+from sentry.integrations.messaging.spec import (
+    MessagingIdentityLinkViewSet,
+    MessagingIntegrationSpec,
+)
 from sentry.models.notificationaction import ActionService
 from sentry.rules.actions import IntegrationEventAction
+
+PROVIDER = "msteams"
 
 
 class MsTeamsMessagingSpec(MessagingIntegrationSpec):
     @property
     def provider_slug(self) -> str:
-        return "msteams"
+        return PROVIDER
 
     @property
     def action_service(self) -> ActionService:

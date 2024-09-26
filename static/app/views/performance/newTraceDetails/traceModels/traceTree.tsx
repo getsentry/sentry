@@ -1,7 +1,7 @@
 import type {Theme} from '@emotion/react';
 import * as Sentry from '@sentry/react';
 import type {Location} from 'history';
-import qs from 'qs';
+import * as qs from 'query-string';
 
 import type {Client} from 'sentry/api';
 import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
@@ -230,7 +230,11 @@ function isServerRequestHandlerTransactionNode(
 }
 
 function isBrowserRequestSpan(value: TraceTree.Span): boolean {
-  return value.op === 'browser' && value.description === 'request';
+  return (
+    // Adjust for SDK changes in https://github.com/getsentry/sentry-javascript/pull/13527
+    value.op === 'browser.request' ||
+    (value.op === 'browser' && value.description === 'request')
+  );
 }
 
 function getPageloadTransactionChildCount(
@@ -375,7 +379,9 @@ function shouldCollapseNodeByDefault(node: TraceTreeNode<TraceTree.NodeValue>) {
 }
 
 function startTimestamp(node: TraceTreeNode<TraceTree.NodeValue>) {
-  if (node.space) return node.space[0];
+  if (node.space) {
+    return node.space[0];
+  }
 
   if (isTraceNode(node)) {
     return 0;
@@ -737,7 +743,9 @@ export class TraceTree {
           })
         );
 
-        if (cancelled) return;
+        if (cancelled) {
+          return;
+        }
 
         const updatedData = results.reduce(
           (acc, result) => {
@@ -1432,7 +1440,7 @@ export class TraceTree {
           return result;
         }
 
-        return null;
+        return result;
       }
     );
   }
@@ -2591,15 +2599,14 @@ function hasEventWithEventId(
 function findInTreeByEventId(start: TraceTreeNode<TraceTree.NodeValue>, eventId: string) {
   return TraceTreeNode.Find(start, node => {
     if (isTransactionNode(node)) {
-      if (node.value.event_id === eventId) {
-        return true;
-      }
-    } else if (isSpanNode(node)) {
-      return node.value.span_id === eventId;
-    } else if (isTraceErrorNode(node)) {
       return node.value.event_id === eventId;
     }
-
+    if (isSpanNode(node)) {
+      return node.value.span_id === eventId;
+    }
+    if (isTraceErrorNode(node)) {
+      return node.value.event_id === eventId;
+    }
     return hasEventWithEventId(node, eventId);
   });
 }
@@ -2687,12 +2694,24 @@ export function traceNodeAnalyticsName(node: TraceTreeNode<TraceTree.NodeValue>)
   if (isAutogroupedNode(node)) {
     return isParentAutogroupedNode(node) ? 'parent autogroup' : 'sibling autogroup';
   }
-  if (isSpanNode(node)) return 'span';
-  if (isTransactionNode(node)) return 'transaction';
-  if (isMissingInstrumentationNode(node)) return 'missing instrumentation';
-  if (isRootNode(node)) return 'root';
-  if (isTraceNode(node)) return 'trace';
-  if (isTraceErrorNode(node)) return 'error';
+  if (isSpanNode(node)) {
+    return 'span';
+  }
+  if (isTransactionNode(node)) {
+    return 'transaction';
+  }
+  if (isMissingInstrumentationNode(node)) {
+    return 'missing instrumentation';
+  }
+  if (isRootNode(node)) {
+    return 'root';
+  }
+  if (isTraceNode(node)) {
+    return 'trace';
+  }
+  if (isTraceErrorNode(node)) {
+    return 'error';
+  }
   return 'unknown';
 }
 

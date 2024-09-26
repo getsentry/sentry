@@ -225,7 +225,3 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
 
 class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsStatsSpansMetricsEndpointTest):
     is_eap = True
-
-    @pytest.mark.xfail(reason="Not implemented yet")
-    def test_top_events(self):
-        super().test_top_events()

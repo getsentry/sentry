@@ -29,6 +29,8 @@ import {RouteContext} from 'sentry/views/routeContext';
 
 const TRACE_ID = '797cda4e24844bdc90e0efe741616047';
 
+jest.mock('screenfull', () => ({}));
+
 const makeDefaultMockData = (
   organization?: Organization,
   project?: Project,
@@ -349,6 +351,22 @@ const mockGroupApis = (
   MockApiClient.addMockResponse({
     url: `/projects/${organization.slug}/${project.slug}/`,
     body: project,
+  });
+
+  MockApiClient.addMockResponse({
+    url: `/issues/${group.id}/autofix/setup/`,
+    method: 'GET',
+    body: {
+      integration: {
+        ok: true,
+      },
+      genAIConsent: {
+        ok: true,
+      },
+      githubWriteIntegration: {
+        ok: true,
+      },
+    },
   });
 };
 

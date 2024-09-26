@@ -501,8 +501,9 @@ register("slack.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 register("slack.verification-token", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 register("slack.signing-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 
-# Discord
-register("discord.validate-user", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+# Slack Middleware Parser
+register("send-slack-response-from-control-silo", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Codecov Integration
 register("codecov.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
@@ -571,6 +572,11 @@ register(
 # VSTS Integration
 register("vsts.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 register("vsts.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
+
+# New VSTS Integration
+register("vsts_new.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
+register("vsts_new.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
+
 # VSTS Integration - with limited scopes
 register("vsts-limited.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 register("vsts-limited.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
@@ -1208,6 +1214,12 @@ register(
 )
 register(
     "project-abuse-quota.session-limit",
+    type=Int,
+    default=0,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "project-abuse-quota.span-limit",
     type=Int,
     default=0,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
@@ -1874,7 +1886,6 @@ register(
 register(
     "hybrid_cloud.disable_relative_upload_urls", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE
 )
-register("hybrid_cloud.allow_cross_db_tombstones", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("hybrid_cloud.disable_tombstone_cleanup", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Flagpole Configuration (used in getsentry)
@@ -2661,6 +2672,16 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "similarity.backfill_project_cohort_size",
+    default=1000,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "similarity.backfill_total_worker_count",
+    default=6,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "similarity.new_project_seer_grouping.enabled",
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -2684,5 +2705,39 @@ register(
 )
 
 register(
-    "ecosystem:enable_integration_form_error_raise", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE
+    "ecosystem:enable_integration_form_error_raise", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE
+)
+
+# Controls the rate of using the sentry api shared secret for communicating to sentry.
+register(
+    "seer.api.use-nonce-signature",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "ownership.munge_data_for_performance",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Restrict uptime issue creation for specific host provider identifiers. Items
+# in this list map to the `host_provider_id` column in the UptimeSubscription
+# table.
+#
+# This may be used to stop issue creation in the event that a network / hosting
+# provider blocks the uptime checker causing false positives.
+register(
+    "uptime.restrict-issue-creation-by-hosting-provider-id",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "releases.no_snuba_for_release_creation",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

@@ -1,3 +1,5 @@
+import {Fragment} from 'react';
+
 import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/crashReportCallout';
 import widgetCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/widgetCallout';
 import TracePropagationMessage from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
@@ -23,6 +25,7 @@ import {
 import {
   getReplayConfigOptions,
   getReplayConfigureDescription,
+  getReplayVerifyStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import {t, tct} from 'sentry/locale';
 
@@ -95,9 +98,11 @@ const app = new App({
 export default app;
 `;
 
-const getVerifySvelteSnippet = () => `
+const getVerifySnippet = () => `
 // SomeComponent.svelte
-<button type="button" on:click="{unknownFunction}">Break the world</button>`;
+<button type="button" on:click="{unknownFunction}">
+  Break the world
+</button>`;
 
 const getInstallConfig = () => [
   {
@@ -120,7 +125,16 @@ const getInstallConfig = () => [
 ];
 
 const onboarding: OnboardingConfig = {
-  introduction: MaybeBrowserProfilingBetaWarning,
+  introduction: params => (
+    <Fragment>
+      <MaybeBrowserProfilingBetaWarning {...params} />
+      <p>
+        {tct('In this quick guide you’ll use [strong:npm] or [strong:yarn] to set up:', {
+          strong: <strong />,
+        })}
+      </p>
+    </Fragment>
+  ),
   install: () => [
     {
       type: StepType.INSTALL,
@@ -159,6 +173,7 @@ const onboarding: OnboardingConfig = {
     },
     getUploadSourceMapsStep({
       guideLink: 'https://docs.sentry.io/platforms/javascript/guides/svelte/sourcemaps/',
+      ...params,
     }),
   ],
   verify: () => [
@@ -174,7 +189,7 @@ const onboarding: OnboardingConfig = {
               label: 'JavaScript',
               value: 'javascript',
               language: 'javascript',
-              code: getVerifySvelteSnippet(),
+              code: getVerifySnippet(),
             },
           ],
         },
@@ -243,7 +258,7 @@ const replayOnboarding: OnboardingConfig = {
       ],
     },
   ],
-  verify: () => [],
+  verify: getReplayVerifyStep(),
   nextSteps: () => [],
 };
 

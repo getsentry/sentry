@@ -2,6 +2,7 @@ import {Fragment, lazy, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {usePrompt} from 'sentry/actionCreators/prompts';
+import Feature from 'sentry/components/acl/feature';
 import {Button} from 'sentry/components/button';
 import {CommitRow} from 'sentry/components/commitRow';
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -29,6 +30,7 @@ import {EventTagsAndScreenshot} from 'sentry/components/events/eventTagsAndScree
 import {ScreenshotDataSection} from 'sentry/components/events/eventTagsAndScreenshot/screenshot/screenshotDataSection';
 import EventTagsDataSection from 'sentry/components/events/eventTagsAndScreenshot/tags';
 import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
+import {EventFeatureFlagList} from 'sentry/components/events/featureFlags/eventFeatureFlagList';
 import {EventGroupingInfo} from 'sentry/components/events/groupingInfo';
 import HighlightsDataSection from 'sentry/components/events/highlights/highlightsDataSection';
 import {HighlightsIconSummary} from 'sentry/components/events/highlights/highlightsIconSummary';
@@ -42,6 +44,7 @@ import {Exception} from 'sentry/components/events/interfaces/exception';
 import {Generic} from 'sentry/components/events/interfaces/generic';
 import {Message} from 'sentry/components/events/interfaces/message';
 import {AnrRootCause} from 'sentry/components/events/interfaces/performance/anrRootCause';
+import {EventTraceView} from 'sentry/components/events/interfaces/performance/eventTraceView';
 import {SpanEvidenceSection} from 'sentry/components/events/interfaces/performance/spanEvidence';
 import {Request} from 'sentry/components/events/interfaces/request';
 import {StackTrace} from 'sentry/components/events/interfaces/stackTrace';
@@ -53,6 +56,7 @@ import {EventRRWebIntegration} from 'sentry/components/events/rrwebIntegration';
 import {DataSection} from 'sentry/components/events/styles';
 import {SuspectCommits} from 'sentry/components/events/suspectCommits';
 import {EventUserFeedback} from 'sentry/components/events/userFeedback';
+import {GroupSummary} from 'sentry/components/group/groupSummary';
 import LazyLoad from 'sentry/components/lazyLoad';
 import Placeholder from 'sentry/components/placeholder';
 import {useHasNewTimelineUI} from 'sentry/components/timeline/utils';
@@ -115,6 +119,7 @@ export function EventDetailsContent({
   const isANR = mechanism === 'ANR' || mechanism === 'AppExitInfo';
   const showPossibleSolutionsHigher = shouldShowCustomErrorResourceConfig(group, project);
   const groupingCurrentLevel = group?.metadata?.current_level;
+  const hasFeatureFlagSection = organization.features.includes('feature-flag-ui');
 
   const hasActionableItems = actionableItemsEnabled({
     eventId: event.id,
@@ -147,6 +152,11 @@ export function EventDetailsContent({
       )}
       {hasStreamlinedUI && <TraceDataSection event={event} />}
       <StyledDataSection>
+        {!hasStreamlinedUI && (
+          <Feature features={['organizations:ai-summary']}>
+            <GroupSummary groupId={group.id} groupCategory={group.issueCategory} />
+          </Feature>
+        )}
         {!hasStreamlinedUI && <TraceDataSection event={event} />}
         {!hasStreamlinedUI && (
           <SuspectCommits
@@ -226,7 +236,12 @@ export function EventDetailsContent({
           project={project}
         />
       )}
-      <HighlightsDataSection event={event} project={project} viewAllRef={tagsRef} />
+      <HighlightsDataSection
+        groupId={group.id}
+        event={event}
+        project={project}
+        viewAllRef={tagsRef}
+      />
       {showPossibleSolutionsHigher && (
         <ResourcesAndPossibleSolutionsIssueDetailsContent
           event={event}
@@ -344,6 +359,12 @@ export function EventDetailsContent({
           />
         </EntryErrorBoundary>
       ) : null}
+      <EventTraceView
+        group={group}
+        event={event}
+        organization={organization}
+        projectSlug={project.slug}
+      />
       {!showPossibleSolutionsHigher && (
         <ResourcesAndPossibleSolutionsIssueDetailsContent
           event={event}
@@ -374,6 +395,9 @@ export function EventDetailsContent({
         </div>
       )}
       <EventContexts group={group} event={event} />
+      {hasFeatureFlagSection && (
+        <EventFeatureFlagList group={group} project={project} event={event} />
+      )}
       <EventExtraData event={event} />
       <EventPackageData event={event} />
       <EventDevice event={event} />
@@ -381,7 +405,7 @@ export function EventDetailsContent({
       {hasStreamlinedUI && (
         <ScreenshotDataSection event={event} projectSlug={project.slug} />
       )}
-      <EventAttachments event={event} projectSlug={project.slug} />
+      <EventAttachments event={event} project={project} group={group} />
       <EventSdk sdk={event.sdk} meta={event._meta?.sdk} />
       {hasStreamlinedUI && (
         <EventProcessingErrors event={event} project={project} isShare={false} />

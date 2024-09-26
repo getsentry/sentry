@@ -1,5 +1,5 @@
 from sentry.constants import ObjectStatus
-from sentry.models.scheduledeletion import RegionScheduledDeletion
+from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorStatus
 from sentry.testutils.cases import MonitorTestCase
 from sentry.testutils.helpers.datetime import freeze_time

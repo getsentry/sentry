@@ -66,7 +66,7 @@ class ProjectRuleActionsEndpoint(ProjectEndpoint):
         )
 
         if features.has(
-            "projects:verbose-test-alert-reporting", project=project, user=request.user
+            "projects:verbose-test-alert-reporting", project=project, actor=request.user
         ):
             return self.execute_future_on_test_event(test_event, rule)
         else:
@@ -108,7 +108,7 @@ class ProjectRuleActionsEndpoint(ProjectEndpoint):
                     # If we encounter some unexpected exception, we probably
                     # don't want to continue executing more callbacks.
                     logger.warning(
-                        "%s.test_alert.unexpected_exception", callback_name, extra={"exc": exc}
+                        "%s.test_alert.unexpected_exception", callback_name, exc_info=True
                     )
                     break
 

@@ -139,7 +139,7 @@ const makeEventWithThreads = (threads: Thread[]): Event => {
     fingerprints: ['58f1f47bea5239ea25397888dc9253d1'],
     groupingConfig: {
       enhancements: 'eJybzDRxY25-UmZOqpWRgZGhroGJroHRBABbUQb_',
-      id: 'mobile:2021-02-12',
+      id: 'newstyle:2023-01-11',
     },
     release: null,
     userReport: null,

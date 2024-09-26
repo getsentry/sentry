@@ -5,17 +5,21 @@ import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Series} from 'sentry/types/echarts';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {ALERTS} from 'sentry/views/insights/browser/webVitals/alerts';
 import {ORDER} from 'sentry/views/insights/browser/webVitals/components/charts/performanceScoreChart';
 import {
   useProjectWebVitalsScoresTimeseriesQuery,
   type WebVitalsScoreBreakdown,
 } from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useProjectWebVitalsScoresTimeseriesQuery';
+import {DEFAULT_QUERY_FILTER} from 'sentry/views/insights/browser/webVitals/settings';
 import {applyStaticWeightsToTimeseries} from 'sentry/views/insights/browser/webVitals/utils/applyStaticWeightsToTimeseries';
 import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {PERFORMANCE_SCORE_WEIGHTS} from 'sentry/views/insights/browser/webVitals/utils/scoreThresholds';
 import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
-import type {SubregionCode} from 'sentry/views/insights/types';
+import ChartPanel from 'sentry/views/insights/common/components/chartPanel';
+import {SpanMetricsField, type SubregionCode} from 'sentry/views/insights/types';
 
 type Props = {
   browserTypes?: BrowserType[];
@@ -90,9 +94,24 @@ export function PerformanceScoreBreakdownChart({
     return {name, value};
   });
 
+  // We need to reproduce the same query filters that were used to fetch the timeseries data so that they can be propagated to the alerts
+  const search = new MutableSearch(ALERTS.total.query ?? '');
+  if (transaction) {
+    search.addFilterValue('transaction', transaction);
+  }
+  if (subregions) {
+    search.addDisjunctionFilterValues(SpanMetricsField.USER_GEO_SUBREGION, subregions);
+  }
+  if (browserTypes) {
+    search.addDisjunctionFilterValues(SpanMetricsField.BROWSER_NAME, browserTypes);
+  }
+  const query = [DEFAULT_QUERY_FILTER, search.formatString()].join(' ').trim();
+
   return (
-    <ChartContainer>
-      <PerformanceScoreLabel>{t('Score Breakdown')}</PerformanceScoreLabel>
+    <StyledChartPanel
+      title={t('Score Breakdown')}
+      alertConfigs={Object.values(ALERTS).map(alertConfig => ({...alertConfig, query}))}
+    >
       <PerformanceScoreSubtext>{performanceScoreSubtext}</PerformanceScoreSubtext>
       <Chart
         stacked
@@ -135,24 +154,12 @@ export function PerformanceScoreBreakdownChart({
           },
         }}
       />
-    </ChartContainer>
+    </StyledChartPanel>
   );
 }
 
-const ChartContainer = styled('div')`
-  padding: ${space(2)} ${space(2)} ${space(1)} ${space(2)};
+const StyledChartPanel = styled(ChartPanel)`
   flex: 1;
-  border: 1px solid ${p => p.theme.gray200};
-  border-radius: ${p => p.theme.borderRadius};
-  position: relative;
-  min-width: 320px;
-`;
-
-const PerformanceScoreLabel = styled('div')`
-  width: 100%;
-  font-size: ${p => p.theme.fontSizeLarge};
-  color: ${p => p.theme.textColor};
-  font-weight: ${p => p.theme.fontWeightBold};
 `;
 
 const PerformanceScoreSubtext = styled('div')`
