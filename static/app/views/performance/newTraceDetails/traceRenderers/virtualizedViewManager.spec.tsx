@@ -329,7 +329,6 @@ describe('VirtualizedViewManger', () => {
       );
 
       manager.list = makeList();
-
       const result = await TraceTree.ExpandToPath(tree, tree.list[0].path, () => void 0, {
         api: api,
         organization,

@@ -1484,7 +1484,7 @@ export class TraceTree {
 
     if (segments.length === 1 && segments[0] === 'trace-root') {
       rerender();
-      return Promise.resolve(null);
+      return Promise.resolve(tree.root.children[0]);
     }
 
     // Keep parent reference as we traverse the tree so that we can only
