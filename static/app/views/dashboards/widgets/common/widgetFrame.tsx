@@ -51,6 +51,7 @@ const Frame = styled('div')`
   flex-direction: column;
 
   height: 100%;
+  min-height: 96px;
   width: 100%;
 
   padding: ${space(2)};
