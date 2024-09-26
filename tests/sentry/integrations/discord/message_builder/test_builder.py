@@ -1,3 +1,4 @@
+from sentry.integrations.discord.message_builder import LEVEL_TO_COLOR
 from sentry.integrations.discord.message_builder.base.base import DiscordMessageBuilder
 from sentry.integrations.discord.message_builder.base.component.action_row import DiscordActionRow
 from sentry.integrations.discord.message_builder.base.component.button import (
@@ -13,7 +14,6 @@ from sentry.integrations.discord.message_builder.base.flags import (
     EPHEMERAL_FLAG,
     DiscordMessageFlags,
 )
-from sentry.integrations.discord.message_builder.constants import LEVEL_TO_COLOR
 from sentry.integrations.discord.requests.base import DiscordMessageComponentTypes
 from sentry.testutils.cases import TestCase
 

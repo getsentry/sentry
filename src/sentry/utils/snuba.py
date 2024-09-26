@@ -188,6 +188,9 @@ SPAN_EAP_COLUMN_MAP = {
     # message also maps to span description but gets special handling
     # to support wild card searching by default
     "message": "name",
+    # These sample columns are for debugging only and shouldn't be used
+    "sampling_weight": "sampling_weight",
+    "sampling_factor": "sampling_factor",
     "span.domain": "attr_str[domain]",
     "span.group": "attr_str[group]",
     "span.op": "attr_str[op]",
@@ -1461,7 +1464,11 @@ def resolve_column(dataset) -> Callable:
             return col
         if isinstance(col, int) or isinstance(col, float):
             return col
-        if isinstance(col, str) and (col.startswith("tags[") or QUOTED_LITERAL_RE.match(col)):
+        if (
+            dataset != Dataset.SpansEAP
+            and isinstance(col, str)
+            and (col.startswith("tags[") or QUOTED_LITERAL_RE.match(col))
+        ):
             return col
 
         # Some dataset specific logic:
@@ -1473,6 +1480,9 @@ def resolve_column(dataset) -> Callable:
             if isinstance(col, str) and col.startswith("sentry_tags["):
                 # Replace the first instance of sentry tags with attr str instead
                 return col.replace("sentry_tags", "attr_str", 1)
+            if isinstance(col, str) and col.startswith("tags["):
+                # Replace the first instance of sentry tags with attr str instead
+                return col.replace("tags", "attr_str", 1)
             measurement_name = get_measurement_name(col)
             if measurement_name:
                 return f"attr_num[{measurement_name}]"

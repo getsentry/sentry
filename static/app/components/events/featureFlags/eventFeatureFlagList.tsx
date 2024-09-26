@@ -6,17 +6,24 @@ import {CompactSelect} from 'sentry/components/compactSelect';
 import DropdownButton from 'sentry/components/dropdownButton';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {
+  ALPHA_OPTIONS,
   CardContainer,
+  EVAL_ORDER_OPTIONS,
   FeatureFlagDrawer,
-  FLAG_SORT_OPTIONS,
+  FlagControlOptions,
   FlagSort,
-  getLabel,
+  getDefaultFlagSort,
+  getFlagSortLabel,
+  getSortGroupLabel,
+  SORT_GROUP_OPTIONS,
+  sortedFlags,
+  SortGroup,
 } from 'sentry/components/events/featureFlags/featureFlagDrawer';
 import useDrawer from 'sentry/components/globalDrawer';
 import KeyValueData, {
   type KeyValueDataContentProps,
 } from 'sentry/components/keyValueData';
-import {IconMegaphone, IconSort} from 'sentry/icons';
+import {IconMegaphone, IconSearch, IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event, FeatureFlag} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -55,7 +62,8 @@ export function EventFeatureFlagList({
     </Button>
   ) : null;
 
-  const [sortMethod, setSortMethod] = useState<FlagSort>(FlagSort.NEWEST);
+  const [flagSort, setFlagSort] = useState<FlagSort>(FlagSort.NEWEST);
+  const [sortGroup, setSortGroup] = useState<SortGroup>(SortGroup.EVAL_ORDER);
   const {closeDrawer, isDrawerOpen, openDrawer} = useDrawer();
   const viewAllButtonRef = useRef<HTMLButtonElement>(null);
   const organization = useOrganization();
@@ -78,48 +86,40 @@ export function EventFeatureFlagList({
     [event]
   );
 
-  const handleSortAlphabetical = (flags: KeyValueDataContentProps[]) => {
-    return [...flags].sort((a, b) => {
-      return a.item.key.localeCompare(b.item.key);
-    });
-  };
-
-  const sortedFlags =
-    sortMethod === FlagSort.ALPHA
-      ? handleSortAlphabetical(hydratedFlags)
-      : sortMethod === FlagSort.OLDEST
-        ? [...hydratedFlags].reverse()
-        : hydratedFlags;
-
-  const onViewAllFlags = useCallback(() => {
-    trackAnalytics('flags.view-all-clicked', {
-      organization,
-    });
-    openDrawer(
-      () => (
-        <FeatureFlagDrawer
-          group={group}
-          event={event}
-          project={project}
-          hydratedFlags={hydratedFlags}
-          initialSort={sortMethod}
-        />
-      ),
-      {
-        ariaLabel: t('Feature flags drawer'),
-        // We prevent a click on the 'View All' button from closing the drawer so that
-        // we don't reopen it immediately, and instead let the button handle this itself.
-        shouldCloseOnInteractOutside: element => {
-          const viewAllButton = viewAllButtonRef.current;
-          if (viewAllButton?.contains(element)) {
-            return false;
-          }
-          return true;
-        },
-        transitionProps: {stiffness: 1000},
-      }
-    );
-  }, [openDrawer, event, group, project, sortMethod, hydratedFlags, organization]);
+  const onViewAllFlags = useCallback(
+    (focusControl?: FlagControlOptions) => {
+      trackAnalytics('flags.view-all-clicked', {
+        organization,
+      });
+      openDrawer(
+        () => (
+          <FeatureFlagDrawer
+            group={group}
+            event={event}
+            project={project}
+            hydratedFlags={hydratedFlags}
+            initialSortGroup={sortGroup}
+            initialFlagSort={flagSort}
+            focusControl={focusControl}
+          />
+        ),
+        {
+          ariaLabel: t('Feature flags drawer'),
+          // We prevent a click on the 'View All' button from closing the drawer so that
+          // we don't reopen it immediately, and instead let the button handle this itself.
+          shouldCloseOnInteractOutside: element => {
+            const viewAllButton = viewAllButtonRef.current;
+            if (viewAllButton?.contains(element)) {
+              return false;
+            }
+            return true;
+          },
+          transitionProps: {stiffness: 1000},
+        }
+      );
+    },
+    [openDrawer, event, group, project, hydratedFlags, organization, flagSort, sortGroup]
+  );
 
   if (!hydratedFlags.length) {
     return null;
@@ -129,9 +129,17 @@ export function EventFeatureFlagList({
     <ButtonBar gap={1}>
       {feedbackButton}
       <Button
+        aria-label={t('Open Feature Flag Search')}
+        icon={<IconSearch size="xs" />}
+        size="xs"
+        title={t('Open Search')}
+        onClick={() => onViewAllFlags(FlagControlOptions.SEARCH)}
+      />
+      <Button
         size="xs"
         aria-label={t('View All')}
         ref={viewAllButtonRef}
+        title={t('View All Flags')}
         onClick={() => {
           isDrawerOpen ? closeDrawer() : onViewAllFlags();
         }}
@@ -139,13 +147,29 @@ export function EventFeatureFlagList({
         {t('View All')}
       </Button>
       <CompactSelect
-        value={sortMethod}
-        options={FLAG_SORT_OPTIONS}
+        value={sortGroup}
+        options={SORT_GROUP_OPTIONS}
         triggerProps={{
-          'aria-label': t('Sort Flags'),
+          'aria-label': t('Sort Group'),
         }}
         onChange={selection => {
-          setSortMethod(selection.value);
+          setFlagSort(getDefaultFlagSort(selection.value));
+          setSortGroup(selection.value);
+        }}
+        trigger={triggerProps => (
+          <DropdownButton {...triggerProps} size="xs">
+            {getSortGroupLabel(sortGroup)}
+          </DropdownButton>
+        )}
+      />
+      <CompactSelect
+        value={flagSort}
+        options={sortGroup === SortGroup.EVAL_ORDER ? EVAL_ORDER_OPTIONS : ALPHA_OPTIONS}
+        triggerProps={{
+          'aria-label': t('Flag Sort Type'),
+        }}
+        onChange={selection => {
+          setFlagSort(selection.value);
           trackAnalytics('flags.sort-flags', {
             organization,
             sortMethod: selection.value,
@@ -153,7 +177,7 @@ export function EventFeatureFlagList({
         }}
         trigger={triggerProps => (
           <DropdownButton {...triggerProps} size="xs" icon={<IconSort />}>
-            {getLabel(sortMethod)}
+            {getFlagSortLabel(flagSort)}
           </DropdownButton>
         )}
       />
@@ -161,7 +185,7 @@ export function EventFeatureFlagList({
   );
 
   // Split the flags list into two columns for display
-  const truncatedItems = sortedFlags.slice(0, 20);
+  const truncatedItems = sortedFlags({flags: hydratedFlags, sort: flagSort}).slice(0, 20);
   const columnOne = truncatedItems.slice(0, 10);
   let columnTwo: typeof truncatedItems = [];
   if (truncatedItems.length > 10) {

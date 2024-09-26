@@ -10,18 +10,13 @@ import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SeriesDataUnit} from 'sentry/types/echarts';
 import type {Group} from 'sentry/types/group';
-import type {
-  EventsStats,
-  MultiSeriesEventsStats,
-  NewQuery,
-} from 'sentry/types/organization';
-import EventView from 'sentry/utils/discover/eventView';
+import type {EventsStats, MultiSeriesEventsStats} from 'sentry/types/organization';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import theme from 'sentry/utils/theme';
 import useOrganization from 'sentry/utils/useOrganization';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
-import {useFetchEventStatsQuery} from 'sentry/views/issueDetails/streamline/useFetchEventStats';
+import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/useIssueDetailsDiscoverQuery';
 
 export const enum EventGraphSeries {
   EVENT = 'event',
@@ -68,28 +63,13 @@ export function EventGraph({group, groupStats, searchQuery}: EventGraphProps) {
     () => createSeriesAndCount(userStats),
     [userStats]
   );
-  const discoverStatsQuery = useFetchEventStatsQuery({
-    group: group,
-    query: searchQuery,
-    referrer: 'issue_details.streamline_link',
-  });
 
-  const discoverUrl = useMemo(() => {
-    const discoverQuery: NewQuery = {
-      ...discoverStatsQuery,
-      version: 2,
-      projects: [discoverStatsQuery.project],
-      range: discoverStatsQuery.statsPeriod,
-      fields: ['title', 'release', 'environment', 'user.display', 'timestamp'],
-      name: group.title || group.type,
-    };
-    const discoverView = EventView.fromSavedQuery(discoverQuery);
-    return discoverView.getResultsViewUrlTarget(
-      organization.slug,
-      false,
-      hasDatasetSelector(organization) ? SavedQueryDatasets.ERRORS : undefined
-    );
-  }, [group, organization, discoverStatsQuery]);
+  const eventView = useIssueDetailsEventView({group, queryProps: {query: searchQuery}});
+  const discoverUrl = eventView.getResultsViewUrlTarget(
+    organization.slug,
+    false,
+    hasDatasetSelector(organization) ? SavedQueryDatasets.ERRORS : undefined
+  );
 
   const series: BarChartSeries[] = [];
 

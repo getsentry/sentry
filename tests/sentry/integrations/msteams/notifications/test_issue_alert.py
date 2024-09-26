@@ -13,10 +13,10 @@ pytestmark = [requires_snuba]
 
 
 @patch(
-    "sentry.integrations.msteams.client.MsTeamsClientMixin.get_user_conversation_id",
+    "sentry.integrations.msteams.MsTeamsClientMixin.get_user_conversation_id",
     Mock(return_value="some_conversation_id"),
 )
-@patch("sentry.integrations.msteams.client.MsTeamsClientMixin.send_card")
+@patch("sentry.integrations.msteams.MsTeamsClientMixin.send_card")
 class MSTeamsIssueAlertNotificationTest(MSTeamsActivityNotificationTest):
     def test_issue_alert_user(self, mock_send_card: MagicMock):
         """Test that issue alerts are sent to a MS Teams user."""

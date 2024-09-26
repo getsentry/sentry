@@ -9,16 +9,28 @@ export const isValidJson = (str: string) => {
   return true;
 };
 
-export function prettyPrintJsonString(json: string) {
+export function prettyPrintJsonString(json: string): {
+  failed: boolean;
+  isTruncated: boolean;
+  prettifiedQuery: string;
+} {
   try {
-    return JSON.stringify(JSON.parse(json), null, 4);
+    return {
+      prettifiedQuery: JSON.stringify(JSON.parse(json), null, 4),
+      isTruncated: false,
+      failed: false,
+    };
   } catch {
     // Attempt to repair the JSON
     try {
       const repairedJson = jsonrepair(json);
-      return JSON.stringify(JSON.parse(repairedJson), null, 4);
+      return {
+        prettifiedQuery: JSON.stringify(JSON.parse(repairedJson), null, 4),
+        isTruncated: true,
+        failed: false,
+      };
     } catch {
-      return json;
+      return {prettifiedQuery: json, isTruncated: false, failed: true};
     }
   }
 }

@@ -29,7 +29,6 @@ import {decodeList} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import {SetupDocsLoader} from 'sentry/views/onboarding/setupDocsLoader';
 import {GettingStartedWithProjectContext} from 'sentry/views/projects/gettingStartedWithProjectContext';
 
 import {OtherPlatformsInfo} from './otherPlatformsInfo';
@@ -58,7 +57,6 @@ export function ProjectInstallPlatform({
   const gettingStartedWithProjectContext = useContext(GettingStartedWithProjectContext);
 
   const isSelfHosted = ConfigStore.get('isSelfHosted');
-  const showLoaderOnboarding = location.query.showLoader === 'true';
 
   const products = useMemo(
     () => decodeList(location.query.product ?? []) as ProductSolution[],
@@ -171,13 +169,6 @@ export function ProjectInstallPlatform({
         <OtherPlatformsInfo
           projectSlug={project.slug}
           platform={platform.name ?? 'other'}
-        />
-      ) : showLoaderOnboarding ? (
-        <SetupDocsLoader
-          organization={organization}
-          project={project}
-          location={location}
-          platform={currentPlatform.id}
         />
       ) : (
         <SdkDocumentation

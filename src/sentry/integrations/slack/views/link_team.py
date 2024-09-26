@@ -16,12 +16,13 @@ from sentry.integrations.slack.metrics import (
     SLACK_LINK_TEAM_MSG_SUCCESS_DATADOG_METRIC,
 )
 from sentry.integrations.slack.sdk_client import SlackSdkClient
-from sentry.integrations.slack.views.base import build_linking_url as base_build_linking_url
 from sentry.integrations.slack.views.linkage import SlackLinkageView
 from sentry.models.team import Team
 from sentry.utils import metrics
 from sentry.web.frontend.base import region_silo_view
 from sentry.web.helpers import render_to_response
+
+from . import build_linking_url as base_build_linking_url
 
 ALLOWED_METHODS = ["GET", "POST"]
 

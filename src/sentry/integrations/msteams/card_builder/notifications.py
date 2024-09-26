@@ -8,7 +8,8 @@ from sentry.integrations.messaging.message_builder import (
     build_attachment_title,
     get_title_link,
 )
-from sentry.integrations.msteams.card_builder.base import MSTEAMS_URL_FORMAT, MSTeamsMessageBuilder
+from sentry.integrations.msteams.card_builder import MSTEAMS_URL_FORMAT
+from sentry.integrations.msteams.card_builder.base import MSTeamsMessageBuilder
 from sentry.integrations.msteams.card_builder.block import OpenUrlAction
 from sentry.integrations.types import ExternalProviders
 from sentry.notifications.notifications.activity.base import GroupActivityNotification

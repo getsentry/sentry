@@ -1,5 +1,6 @@
 import mapValues from 'lodash/mapValues';
 
+import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {STATIC_FIELD_TAGS_WITHOUT_TRANSACTION_FIELDS} from 'sentry/components/events/searchBarFieldConstants';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -46,7 +47,8 @@ export type AlertType =
   | 'custom_metrics'
   | 'llm_tokens'
   | 'llm_cost'
-  | 'insights_metrics';
+  | 'insights_metrics'
+  | 'uptime_monitor';
 
 export enum MEPAlertsQueryType {
   ERROR = 0,
@@ -60,7 +62,7 @@ export enum MEPAlertsDataset {
   METRICS_ENHANCED = 'metricsEnhanced',
 }
 
-export type MetricAlertType = Exclude<AlertType, 'issues'>;
+export type MetricAlertType = Exclude<AlertType, 'issues' | 'uptime_monitor'>;
 
 export const DatasetMEPAlertQueryTypes: Record<
   Exclude<Dataset, 'search_issues' | Dataset.SESSIONS>, // IssuePlatform (search_issues) is not used in alerts, so we can exclude it here
@@ -90,6 +92,16 @@ export const AlertWizardAlertNames: Record<AlertType, string> = {
   llm_cost: t('LLM cost'),
   llm_tokens: t('LLM token usage'),
   insights_metrics: t('Insights Metric'),
+  uptime_monitor: t('Uptime Monitor'),
+};
+
+/**
+ * Additional elements to render after the name of the alert rule type. Useful
+ * for adding feature badges or other call-outs for newer alert types.
+ */
+export const AlertWizardExtraContent: Partial<Record<AlertType, React.ReactNode>> = {
+  insights_metrics: <FeatureBadge type="alpha" />,
+  uptime_monitor: <FeatureBadge type="beta" />,
 };
 
 type AlertWizardCategory = {
@@ -131,6 +143,11 @@ export const getAlertWizardCategories = (org: Organization) => {
         options: ['llm_tokens', 'llm_cost'],
       });
     }
+
+    result.push({
+      categoryHeading: t('Uptime Monitoring'),
+      options: ['uptime_monitor'],
+    });
     result.push({
       categoryHeading: hasCustomMetrics(org) ? t('Metrics') : t('Custom'),
       options: [hasCustomMetrics(org) ? 'custom_metrics' : 'custom_transactions'],

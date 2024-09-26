@@ -95,7 +95,7 @@ class SentryAppManager(ParanoidManager["SentryApp"]):
             installations__date_deleted=None,
         ).distinct()
 
-    def visible_for_user(self, request: Request) -> QuerySet:
+    def visible_for_user(self, request: Request) -> QuerySet["SentryApp"]:
         from sentry.auth.superuser import is_active_superuser
 
         if is_active_superuser(request):
