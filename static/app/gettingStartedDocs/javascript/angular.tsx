@@ -1,3 +1,5 @@
+import {Fragment} from 'react';
+
 import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/crashReportCallout';
 import widgetCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/widgetCallout';
 import TracePropagationMessage from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
@@ -297,7 +299,19 @@ const getInstallConfig = () => [
 ];
 
 const onboarding: OnboardingConfig<PlatformOptions> = {
-  introduction: MaybeBrowserProfilingBetaWarning,
+  introduction: params => (
+    <Fragment>
+      <MaybeBrowserProfilingBetaWarning {...params} />
+      <p>
+        {tct(
+          'In this quick guide you’ll use [strong:npm], [strong:yarn] or [strong:pnpm] to set up:',
+          {
+            strong: <strong />,
+          }
+        )}
+      </p>
+    </Fragment>
+  ),
   install: () => [
     {
       type: StepType.INSTALL,
@@ -393,10 +407,9 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
     {
       type: StepType.INSTALL,
       description: tct(
-        'In order to use Session Replay, you will need version 7.27.0 of [codeAngular:@sentry/angular] at minimum. You do not need to install any additional packages.',
+        'In order to use Session Replay, you will need version 7.27.0 of [code:@sentry/angular] at minimum. You do not need to install any additional packages.',
         {
-          codeAngular: <code />,
-          codeIvy: <code />,
+          code: <code />,
         }
       ),
       configurations: getInstallConfig(),
@@ -432,10 +445,9 @@ const feedbackOnboarding: OnboardingConfig<PlatformOptions> = {
     {
       type: StepType.INSTALL,
       description: tct(
-        'For the User Feedback integration to work, you must have the Sentry browser SDK package, or an equivalent framework SDK (e.g. [codeAngular:@sentry/angular]) installed, minimum version 7.85.0.',
+        'For the User Feedback integration to work, you must have the Sentry browser SDK package, or an equivalent framework SDK (e.g. [code:@sentry/angular]) installed, minimum version 7.85.0.',
         {
-          codeAngular: <code />,
-          codeIvy: <code />,
+          code: <code />,
         }
       ),
       configurations: getInstallConfig(),
