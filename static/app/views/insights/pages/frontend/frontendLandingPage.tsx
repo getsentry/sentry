@@ -66,12 +66,6 @@ function FrontendLandingPage() {
     organization
   );
 
-  // TODO - verify this list
-  const transactionOpSearch = new MutableSearch('')
-    .addDisjunctionFilterValues('transaction.op', ['navigation', 'pageload'])
-    .formatString();
-
-  eventView.query = transactionOpSearch;
   // TODO - this should come from MetricsField / EAP fields
   eventView.fields = [
     {field: 'team_key_transaction'},
@@ -83,6 +77,14 @@ function FrontendLandingPage() {
     {field: 'p75(transaction.duration)'},
     {field: 'p95(transaction.duration)'},
   ].map(field => ({...field, width: COL_WIDTH_UNDEFINED}));
+
+  const tableEventView = eventView.clone();
+  // TODO - verify this list, we might want to include non navigation/pageload transactions such as function, but then we should rename the column from route
+  const transactionOpSearch = new MutableSearch('')
+    .addDisjunctionFilterValues('transaction.op', ['navigation', 'pageload'])
+    .formatString();
+
+  tableEventView.query = transactionOpSearch;
 
   const showOnboarding = onboardingProject !== undefined;
 
@@ -179,6 +181,7 @@ function FrontendLandingPage() {
                   columnTitles={FRONTEND_COLUMN_TITLES}
                   setError={setPageError}
                   {...sharedProps}
+                  eventView={tableEventView}
                 />
               </PerformanceDisplayProvider>
             </ModuleLayout.Full>
