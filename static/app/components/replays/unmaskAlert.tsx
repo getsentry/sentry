@@ -27,7 +27,7 @@ function unmaskAlert() {
             'Unmask non-sensitive text (****) and media (img, svg, video). [link:Learn more].',
             {
               link: (
-                <ExternalLink href="https://docs.sentry.io/platforms/javascript/session-replay/privacy/" />
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/session-replay/privacy/#privacy-configuration" />
               ),
             }
           )}
