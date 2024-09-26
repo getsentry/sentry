@@ -976,6 +976,11 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
     trace: tree,
   });
 
+  const isLoading = !!(
+    tree.type === 'loading' ||
+    tree.type !== 'trace' ||
+    scrollQueueRef.current
+  );
   return (
     <Fragment>
       <TraceTypeWarnings
@@ -1003,13 +1008,14 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
           scheduler={traceScheduler}
           forceRerender={forceRender}
           isEmbedded={props.isEmbedded}
+          isLoading={isLoading}
         />
 
         {tree.type === 'error' ? (
           <TraceError />
         ) : tree.type === 'empty' ? (
           <TraceEmpty />
-        ) : tree.type === 'loading' || tree.type !== 'trace' ? (
+        ) : isLoading ? (
           <TraceLoading />
         ) : null}
 

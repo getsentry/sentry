@@ -89,6 +89,7 @@ function computeNextIndexFromAction(
 interface TraceProps {
   forceRerender: number;
   isEmbedded: boolean;
+  isLoading: boolean;
   manager: VirtualizedViewManager;
   onRowClick: (
     node: TraceTreeNode<TraceTree.NodeValue>,
@@ -118,6 +119,7 @@ export function Trace({
   forceRerender,
   trace_id,
   isEmbedded,
+  isLoading,
 }: TraceProps) {
   const theme = useTheme();
   const api = useApi();
@@ -352,10 +354,10 @@ export function Trace({
   );
 
   const render = useMemo(() => {
-    return trace.type !== 'trace'
+    return trace.type !== 'trace' || isLoading
       ? r => renderLoadingRow(r)
       : r => renderVirtualizedRow(r);
-  }, [renderLoadingRow, renderVirtualizedRow, trace.type]);
+  }, [isLoading, renderLoadingRow, renderVirtualizedRow, trace.type]);
 
   const traceNode = trace.root.children[0];
   const traceStartTimestamp = traceNode?.space?.[0];
