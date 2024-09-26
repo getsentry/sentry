@@ -1,10 +1,10 @@
 import type {ModuleName} from 'webpack-cli';
 
 import {useLocation} from 'sentry/utils/useLocation';
-import {AI_LANDING_SUB_PATH} from 'sentry/views/insights/pages/aiLandingPage';
-import {BACKEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/backendLandingPage';
+import {AI_LANDING_SUB_PATH} from 'sentry/views/insights/pages/ai/settings';
+import {BACKEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/backend/settings';
 import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/settings';
-import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobileLandingPage';
+import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settings';
 
 export type DomainView =
   | typeof FRONTEND_LANDING_SUB_PATH
