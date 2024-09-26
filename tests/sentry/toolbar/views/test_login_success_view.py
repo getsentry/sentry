@@ -2,7 +2,7 @@ from django.test import override_settings
 from django.urls import reverse
 
 from sentry.testutils.cases import APITestCase
-from sentry.toolbar.views import has_valid_csp
+from sentry.toolbar.utils.testutils import has_valid_csp
 from sentry.toolbar.views.login_success_view import SUCCESS_TEMPLATE
 
 
