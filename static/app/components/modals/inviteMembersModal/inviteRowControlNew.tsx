@@ -36,16 +36,8 @@ function mapToOptions(values: string[]): SelectOption[] {
 }
 
 function InviteRowControl({roleOptions, roleDisabledUnallowed}: Props) {
-  const {inviteStatus, pendingInvites, setEmails, setRole, setTeams, reset} = useContext(
-    InviteMembersContext
-  ) ?? {
-    inviteStatus: {},
-    pendingInvites: [],
-    setEmails: () => {},
-    setRole: () => {},
-    setTeams: () => {},
-    reset: () => {},
-  };
+  const {inviteStatus, pendingInvites, setEmails, setRole, setTeams, reset} =
+    useContext(InviteMembersContext);
   const emails = [...pendingInvites[0]?.emails];
   const role = pendingInvites[0]?.role;
   const teams = [...pendingInvites[0]?.teams];

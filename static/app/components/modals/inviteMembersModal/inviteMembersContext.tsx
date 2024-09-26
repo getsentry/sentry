@@ -21,6 +21,16 @@ export type InviteMembersContextProps = {
   error?: string;
 };
 
-export const InviteMembersContext = createContext<InviteMembersContextProps | undefined>(
-  undefined
-);
+export const InviteMembersContext = createContext<InviteMembersContextProps>({
+  complete: false,
+  inviteStatus: {},
+  invites: [],
+  pendingInvites: [],
+  reset: () => {},
+  sendInvites: () => {},
+  sendingInvites: false,
+  setEmails: () => {},
+  setRole: () => {},
+  setTeams: () => {},
+  willInvite: false,
+});

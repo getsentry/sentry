@@ -13,14 +13,7 @@ interface Props {
 
 export default function InviteMembersFooter({canSend}: Props) {
   const {willInvite, invites, sendInvites, inviteStatus, sendingInvites, complete} =
-    useContext(InviteMembersContext) ?? {
-      willInvite: false,
-      invites: [],
-      sendInvites: () => {},
-      inviteStatus: {},
-      sendingInvites: false,
-      complete: false,
-    };
+    useContext(InviteMembersContext);
   const isValidInvites = invites.length > 0;
 
   return (
