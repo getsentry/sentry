@@ -240,7 +240,7 @@ def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
         project = Project.objects.filter(id=project_id).get()
         set_assemble_status(AssembleTask.DIF, project_id, checksum, ChunkFileState.ASSEMBLING)
 
-        logger.debug(
+        logger.info(
             "assembling file",
             extra={"project_id": project_id, "checksum": checksum, "debug_id": debug_id},
         )
@@ -255,7 +255,7 @@ def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
         if rv is None:
             return
 
-        logger.debug(
+        logger.info(
             "file successfully assembled",
             extra={"project_id": project_id, "checksum": checksum, "debug_id": debug_id},
         )
@@ -266,7 +266,7 @@ def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
             # We only permit split difs to hit this endpoint.
             # The client is required to split them up first or we error.
             try:
-                logger.debug(
+                logger.info(
                     "detecting dif",
                     extra={"project_id": project_id, "checksum": checksum, "debug_id": debug_id},
                 )
@@ -292,13 +292,13 @@ def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
                 )
                 return
 
-            logger.debug(
+            logger.info(
                 "creating `DIF` object",
                 extra={"project_id": project_id, "checksum": checksum, "debug_id": debug_id},
             )
             dif, created = create_dif_from_id(project, result[0], file=file)
             delete_file = False
-            logger.debug(
+            logger.info(
                 "`DIF` created",
                 extra={"project_id": project_id, "checksum": checksum, "debug_id": debug_id},
             )
