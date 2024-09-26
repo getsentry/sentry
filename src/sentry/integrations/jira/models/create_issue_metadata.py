@@ -30,6 +30,9 @@ class JiraSchemaTypes(str, Enum):
     team = "team"
     number = "number"
     json = "json"
+    version = "version"
+    component = "component"
+    priority = "priority"
     any = "any"
 
 

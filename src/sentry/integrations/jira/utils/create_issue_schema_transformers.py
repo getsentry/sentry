@@ -44,6 +44,9 @@ def get_type_transformer_mappings(user_id_field: str) -> TransformerType:
         JiraSchemaTypes.issue_link.value: lambda x: {"key": x},
         JiraSchemaTypes.project.value: id_obj_transformer,
         JiraSchemaTypes.number.value: parse_number_field,
+        JiraSchemaTypes.priority.value: id_obj_transformer,
+        JiraSchemaTypes.version.value: id_obj_transformer,
+        JiraSchemaTypes.component: id_obj_transformer,
     }
 
     return transformers
