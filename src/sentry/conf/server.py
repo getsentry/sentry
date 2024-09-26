@@ -26,11 +26,7 @@ from sentry.conf.types.logging_config import LoggingConfig
 from sentry.conf.types.role_dict import RoleDict
 from sentry.conf.types.sdk_config import ServerSdkConfig
 from sentry.utils import json  # NOQA (used in getsentry config)
-from sentry.utils.celery import (
-    crontab_with_minute_jitter,
-    make_split_queues,
-    make_split_task_queues,
-)
+from sentry.utils.celery import crontab_with_minute_jitter
 from sentry.utils.types import Type, type_from_value
 
 
@@ -981,12 +977,6 @@ CELERY_QUEUES_REGION = [
     Queue("check_new_issue_threshold_met", routing_key="check_new_issue_threshold_met"),
     Queue("integrations_slack_activity_notify", routing_key="integrations_slack_activity_notify"),
 ]
-
-CELERY_QUEUES_REGION = (
-    CELERY_QUEUES_REGION
-    + make_split_queues(CELERY_SPLIT_QUEUE_ROUTES)
-    + make_split_task_queues(CELERY_SPLIT_QUEUE_TASK_ROUTES)
-)
 
 from celery.schedules import crontab
 
