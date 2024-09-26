@@ -17,6 +17,7 @@ import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -298,34 +299,48 @@ function CustomViewsIssueListHeaderTabsContent({
   }, [navigate, organization.slug, query, sort, viewId, tabListState]);
 
   // Update local tabs when new views are received from mutation request
-  useEffect(() => {
-    const currentViewId = viewId;
+  useEffectAfterFirstRender(() => {
+    // Find views with ids that are not in the current tabs
+    const newlyCreatedViews = views.filter(
+      view => !draggableTabs.find(tab => tab.id === view.id)
+    );
     setDraggableTabs(
       draggableTabs.map(tab => {
+        // Temp viewIds are prefixed with '_'
         if (tab.id && tab.id[0] === '_') {
-          // Temp viewIds are prefixed with '_'
-          views.forEach(view => {
-            if (
+          // Find a view that matches the tempView
+          const matchedViewIdx = newlyCreatedViews.findIndex(
+            view =>
               view.id &&
-              tab.query === view.query &&
-              tab.querySort === view.querySort &&
-              tab.label === view.name
-            ) {
-              if (tab.id === currentViewId) {
-                navigate(
-                  normalizeUrl({
-                    ...location,
-                    query: {
-                      ...queryParamsWithPageFilters,
-                      viewId: view.id,
-                    },
-                  }),
-                  {replace: true}
-                );
-              }
-              tab.id = view.id;
+              view.name === tab.label &&
+              view.query === tab.query &&
+              view.querySort === tab.querySort
+          );
+          // A match has been found for the newly created view
+          if (matchedViewIdx !== -1) {
+            const matchedView = newlyCreatedViews[matchedViewIdx];
+            // Remove the matched view from the list of newly created views so
+            // that it is not matched again
+            newlyCreatedViews.splice(matchedViewIdx, 1);
+            // If this is the tab we're currently on, update the viewId in the URL
+            if (tab.id === viewId) {
+              navigate(
+                normalizeUrl({
+                  ...location,
+                  query: {
+                    ...queryParamsWithPageFilters,
+                    viewId: matchedView.id,
+                  },
+                }),
+                {replace: true}
+              );
             }
-          });
+            if (matchedView.id) {
+              tab.id = matchedView.id;
+              tab.key = matchedView.id;
+            }
+            return tab;
+          }
         }
         return tab;
       })
