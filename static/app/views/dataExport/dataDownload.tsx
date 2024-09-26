@@ -12,8 +12,8 @@ import {space} from 'sentry/styles/space';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import Layout from 'sentry/views/auth/layout';
-import { useNavigate } from 'sentry/utils/useNavigate';
 
 export enum DownloadStatus {
   EARLY = 'EARLY',
