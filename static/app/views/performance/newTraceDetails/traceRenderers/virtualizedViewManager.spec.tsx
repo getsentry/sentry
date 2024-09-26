@@ -335,7 +335,7 @@ describe('VirtualizedViewManger', () => {
         organization,
       });
 
-      expect(result?.node).toBe(tree.list[0]);
+      expect(result).toBe(tree.list[0]);
     });
 
     it('scrolls to transaction', async () => {
@@ -360,7 +360,7 @@ describe('VirtualizedViewManger', () => {
         organization,
       });
 
-      expect(result?.node).toBe(tree.list[2]);
+      expect(result).toBe(tree.list[2]);
     });
 
     it('scrolls to nested transaction', async () => {
@@ -404,7 +404,7 @@ describe('VirtualizedViewManger', () => {
         }
       );
 
-      expect(result?.node).toBe(tree.list[tree.list.length - 1]);
+      expect(result).toBe(tree.list[tree.list.length - 1]);
     });
 
     it('scrolls to spans of expanded transaction', async () => {
@@ -441,7 +441,7 @@ describe('VirtualizedViewManger', () => {
       );
 
       expect(tree.list[1].zoomedIn).toBe(true);
-      expect(result?.node).toBe(tree.list[2]);
+      expect(result).toBe(tree.list[2]);
     });
 
     it('scrolls to span -> transaction -> span -> transaction', async () => {
@@ -678,7 +678,7 @@ describe('VirtualizedViewManger', () => {
         organization,
       });
 
-      expect(result?.node).toBe(tree.list[2]);
+      expect(result).toBe(tree.list[2]);
     });
 
     describe('error handling', () => {

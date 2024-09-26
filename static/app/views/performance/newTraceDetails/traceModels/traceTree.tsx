@@ -1459,7 +1459,7 @@ export class TraceTree {
     tree: TraceTree,
     rerender: () => void,
     options: ViewManagerScrollToOptions
-  ): Promise<{index: number; node: TraceTreeNode<TraceTree.NodeValue>} | null | null> {
+  ): Promise<TraceTreeNode<TraceTree.NodeValue> | null> {
     const node = tree.findByEventId(tree.root, eventId);
 
     if (!node) {
@@ -1474,7 +1474,7 @@ export class TraceTree {
     scrollQueue: TraceTree.NodePath[],
     rerender: () => void,
     options: ViewManagerScrollToOptions
-  ): Promise<null> {
+  ): Promise<TraceTreeNode<TraceTree.NodeValue> | null> {
     const segments = [...scrollQueue];
     const list = tree.list;
 
@@ -1491,7 +1491,7 @@ export class TraceTree {
     // perform searching in the current level and not the entire tree
     let parent: TraceTreeNode<TraceTree.NodeValue> = tree.root;
 
-    const recurseToRow = async (): Promise<null> => {
+    const recurseToRow = async (): Promise<TraceTreeNode<TraceTree.NodeValue> | null> => {
       const path = segments.pop();
       let current = findInTreeFromSegment(parent, path!);
 
@@ -1545,42 +1545,8 @@ export class TraceTree {
         return recurseToRow();
       }
 
-      // We are at the last path segment (the node that the user clicked on)
-      // and we should scroll the view to this node.
-      let index = current ? tree.list.findIndex(node => node === current) : -1;
-
-      // We have found the node, yet it is somehow not in the visible tree.
-      // This means that the path we were given did not match the current tree.
-      // This sometimes happens when we receive external links like span-x, txn-y
-      // however the resulting tree looks like span-x, autogroup, txn-y. In this case,
-      // we should expand the autogroup node and try to find the node again.
-      if (current && index === -1) {
-        let parent_node = current.parent;
-        while (parent_node) {
-          // Transactions break autogrouping chains, so we can stop here
-          if (isTransactionNode(parent_node)) {
-            break;
-          }
-          if (isAutogroupedNode(parent_node)) {
-            tree.expand(parent_node, true);
-            index = current ? tree.list.findIndex(node => node === current) : -1;
-            // This is very wasteful as it performs O(n^2) search each time we expand a node...
-            // In most cases though, we should be operating on a tree with sub 10k elements and hopefully
-            // a low autogrouped node count.
-            if (index !== -1) {
-              break;
-            }
-          }
-          parent_node = parent_node.parent;
-        }
-      }
-
-      if (index === -1) {
-        throw new Error(`Couldn't find node in list ${scrollQueue.join(',')}`);
-      }
-
       rerender();
-      return null;
+      return current;
     };
 
     return recurseToRow();
