@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 import orjson
 import responses
 from rest_framework import status
@@ -39,8 +41,9 @@ class SlackCommandsLinkTeamTestBase(SlackCommandsTest):
 
 
 class SlackCommandsLinkTeamTest(SlackCommandsLinkTeamTestBase):
+    @patch("sentry.integrations.messaging.metrics.MessagingInteractionEvent.record_start")
     @responses.activate
-    def test_link_another_team_to_channel(self):
+    def test_link_another_team_to_channel(self, mock_record):
         """
         Test that we block a user who tries to link a second team to a
         channel that already has a team linked to it.
@@ -58,6 +61,8 @@ class SlackCommandsLinkTeamTest(SlackCommandsLinkTeamTestBase):
         )
         data = orjson.loads(response.content)
         assert CHANNEL_ALREADY_LINKED_MESSAGE in get_response_text(data)
+
+        mock_record.assert_called()
 
     @responses.activate
     def test_link_team_from_dm(self):

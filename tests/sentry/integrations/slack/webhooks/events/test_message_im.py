@@ -92,7 +92,8 @@ class MessageIMEventTest(BaseEventTest, IntegratedApiTestCase):
             == "Here are the commands you can use. Commands not working? Re-install the app!"
         )
 
-    def test_user_message_link(self):
+    @patch("sentry.integrations.messaging.metrics.MessagingInteractionEvent.record_start")
+    def test_user_message_link(self, mock_record):
         """
         Test that when a user types in "link" to the DM we reply with the correct response.
         """
@@ -104,6 +105,8 @@ class MessageIMEventTest(BaseEventTest, IntegratedApiTestCase):
 
         data = self.mock_post.call_args[1]
         assert "Link your Slack identity" in get_response_text(data)
+
+        mock_record.assert_called()
 
     def test_user_message_already_linked_sdk(self):
         """

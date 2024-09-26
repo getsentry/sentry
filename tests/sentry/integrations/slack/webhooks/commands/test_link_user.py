@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.slack.views.link_identity import SUCCESS_LINKED_MESSAGE, build_linking_url
 from sentry.integrations.slack.views.unlink_identity import (
@@ -102,10 +104,13 @@ class SlackUnlinkIdentityViewTest(SlackCommandsTest):
 class SlackCommandsUnlinkUserTest(SlackCommandsTest):
     """Slash commands results are generated on Region Silo"""
 
-    def test_unlink_command(self):
+    @patch("sentry.integrations.messaging.metrics.MessagingInteractionEvent.record_start")
+    def test_unlink_command(self, mock_record):
         self.link_user()
         data = self.send_slack_message("unlink")
         assert "to unlink your identity" in get_response_text(data)
+
+        mock_record.assert_called()
 
     def test_unlink_command_already_unlinked(self):
         data = self.send_slack_message("unlink")

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 from unittest import mock
+from unittest.mock import patch
 
 from sentry.integrations.discord.message_builder.base.component import (
     DiscordComponentCustomIds as CustomIds,
@@ -162,7 +163,8 @@ class DiscordMessageComponentInteractionTest(APITestCase):
         assert response.status_code == 200
         assert self.get_message_content(response) == INVALID_GROUP_ID
 
-    def test_assign(self):
+    @patch("sentry.integrations.messaging.metrics.MessagingInteractionEvent.record_start")
+    def test_assign(self, mock_record):
         response = self.send_interaction(
             {
                 "component_type": DiscordMessageComponentTypes.SELECT,
@@ -172,6 +174,8 @@ class DiscordMessageComponentInteractionTest(APITestCase):
         )
         assert response.status_code == 200
         assert self.get_message_content(response) == ASSIGNEE_UPDATED
+
+        mock_record.assert_called()
 
     def test_resolve_dialog(self):
         response = self.send_interaction(

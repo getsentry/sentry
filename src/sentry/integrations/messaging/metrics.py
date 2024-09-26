@@ -67,11 +67,11 @@ class MessagingInteractionEvent:
         tag = ".".join(tag_tokens)
         metrics.incr(tag, sample_rate=sample_rate)
 
-        # TEMP for development. TODO: Remove
-        raise Exception(f"Hit MessagingInteractionEvent: {tag}")
-
     def record_start(self) -> None:
         self._record_event("start")
+
+        # TEMP for development. TODO: Remove
+        raise Exception("Hit MessagingInteractionEvent: start")
 
     def record_success(self) -> None:
         # As an intermediately shippable state, record a "halt" until we're confident

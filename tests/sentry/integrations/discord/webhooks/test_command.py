@@ -246,7 +246,8 @@ class DiscordCommandInteractionTest(APITestCase):
             assert data["data"]["flags"] == EPHEMERAL_FLAG
             assert response.status_code == 200
 
-    def test_help(self):
+    @mock.patch("sentry.integrations.messaging.metrics.MessagingInteractionEvent.record_start")
+    def test_help(self, mock_record):
         with mock.patch(
             "sentry.integrations.discord.requests.base.verify_signature", return_value=True
         ):
@@ -267,3 +268,5 @@ class DiscordCommandInteractionTest(APITestCase):
             assert HELP_MESSAGE in data["data"]["content"]
             assert data["data"]["flags"] == EPHEMERAL_FLAG
             assert response.status_code == 200
+
+        mock_record.assert_called()
