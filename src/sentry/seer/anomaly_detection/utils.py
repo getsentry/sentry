@@ -3,6 +3,7 @@ from typing import Any
 
 from django.utils import timezone
 from django.utils.datastructures import MultiValueDict
+from rest_framework.exceptions import ParseError
 
 from sentry import release_health
 from sentry.api.bases.organization_events import resolve_axis_column
@@ -17,7 +18,7 @@ from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.sessions_v2 import QueryDefinition
-from sentry.snuba.utils import get_dataset
+from sentry.snuba.utils import DATASET_OPTIONS, get_dataset
 from sentry.utils.snuba import SnubaTSResult
 
 NUM_DAYS = 28
@@ -171,7 +172,9 @@ def get_dataset_from_label(dataset_label: str):
     elif dataset_label in ["generic_metrics", "transactions"]:
         # XXX: performance alerts dataset differs locally vs in prod
         dataset_label = "discover"
-    return get_dataset(dataset_label)
+    dataset = get_dataset(dataset_label)
+    if dataset is None:
+        raise ParseError(detail=f"dataset must be one of: {', '.join(DATASET_OPTIONS.keys())}")
 
 
 def fetch_historical_data(
