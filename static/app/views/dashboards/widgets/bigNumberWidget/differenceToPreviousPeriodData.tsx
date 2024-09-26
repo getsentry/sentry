@@ -18,8 +18,8 @@ import type {TableData} from 'sentry/views/dashboards/widgets/common/types';
 interface Props {
   data: TableData;
   field: string;
-  formatter: (datum: TableData[number]) => React.ReactNode;
   previousPeriodData: TableData;
+  renderer: (datum: TableData[number]) => React.ReactNode;
   preferredPolarity?: Polarity;
 }
 
@@ -28,7 +28,7 @@ export function DifferenceToPreviousPeriodData({
   previousPeriodData,
   preferredPolarity = '',
   field,
-  formatter,
+  renderer,
 }: Props) {
   const currentValue = data[0][field];
   const previousValue = previousPeriodData[0][field];
@@ -51,7 +51,7 @@ export function DifferenceToPreviousPeriodData({
   return (
     <Difference rating={rating}>
       <Text>{directionMarker}</Text>
-      <Text>{formatter(differenceAsDatum)}</Text>
+      <Text>{renderer(differenceAsDatum)}</Text>
     </Difference>
   );
 }

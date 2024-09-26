@@ -83,7 +83,7 @@ export function BigNumberWidgetVisualization(props: Props) {
               data={data}
               previousPeriodData={previousPeriodData}
               preferredPolarity={preferredPolarity}
-              formatter={(previousDatum: TableData[number]) =>
+              renderer={(previousDatum: TableData[number]) =>
                 fieldRenderer(previousDatum, baggage)
               }
               field={field}
