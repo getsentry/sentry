@@ -1,13 +1,5 @@
 ---
-<<<<<<< HEAD
-<<<<<<< HEAD
-created: '2024-09-17T12:19:51.014511+00:00'
-=======
-created: '2024-09-13T18:54:42.196428+00:00'
->>>>>>> 2b539135d0b (feat(auth): add org level api access)
-=======
-created: '2024-09-13T19:02:32.104869+00:00'
->>>>>>> 24aea8081e6 (removed api application changes)
+created: '2024-09-26T13:53:02.152740+00:00'
 creator: sentry
 source: tests/sentry/backup/test_comparators.py
 ---
@@ -18,6 +10,11 @@ source: tests/sentry/backup/test_comparators.py
     - organization_id
     - project_id
   model_name: feedback.feedback
+- comparators:
+  - class: ForeignKeyComparator
+    fields:
+    - organization_id
+  model_name: flags.flagauditlogmodel
 - comparators:
   - class: ForeignKeyComparator
     fields:
