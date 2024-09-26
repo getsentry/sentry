@@ -1,0 +1,27 @@
+from django.db import models
+
+from sentry.backup.scopes import RelocationScope
+from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo_model
+
+from .detector import Detector
+
+
+@region_silo_model
+class DetectorState(DefaultFieldsModel):
+    __relocation_scope__ = RelocationScope.Organization
+
+    class Type(models.TextChoices):
+        ACTIVE = "active"
+        INACTIVE = "inactive"
+
+    detector = FlexibleForeignKey(Detector)
+
+    # This key is used when a detector is using group-by
+    # allows us to link to a specific group from a single detector
+    detector_group_key = models.CharField(max_length=200, blank=True, null=True)
+
+    # If the status is currently active or not
+    status = models.CharField(max_length=200, choices=Type.choices)
+
+    # The current state of the detector
+    state = models.CharField(max_length=200, blank=True, null=True)
