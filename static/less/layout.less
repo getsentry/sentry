@@ -521,3 +521,56 @@ body.auth {
     }
   }
 }
+
+// Wizard crap
+
+.gradient-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: -1;
+  background-image: linear-gradient(180deg, #201633 0%, #7c498a 100%);
+}
+
+.wizard-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  margin-top: 32px;
+}
+
+.wizard-logo-container {
+  text-align: center;
+  width: min-content;
+}
+
+.wizard-logo-container a {
+  color: white;
+  font-size: 46px;
+  width: min-content;
+  text-align: center;
+}
+
+.wizard-box {
+  position: relative;
+  background-color: white;
+  border-radius: 7px;
+  padding: 16px 40px;
+  border: 2px solid #201633;
+}
+
+.sunset-outline {
+  border-radius: 11px;
+  background: linear-gradient(45deg, #6a5fc1 0%, #ff5980 48.96%, #f1b71c 100%);
+  padding: 4px;
+  box-shadow:
+    0 20px 25px -5px rgb(0 0 0 / 0.1),
+    0 8px 10px -6px rgb(0 0 0 / 0.1);
+}
+
+.wizard-help-text {
+  text-align: center;
+}

@@ -82,7 +82,7 @@ function SetupWizard({hash = false, organizations}: Props) {
         </LoadingIndicator>
       ) : (
         <SuccessWrapper>
-          <SuccessCheckmark color="green300" size="xl" isCircled />
+          <SuccessCheckmark size="xl" isCircled />
           <SuccessHeading>
             {t('Return to your terminal to complete your setup.')}
           </SuccessHeading>
@@ -94,16 +94,20 @@ function SetupWizard({hash = false, organizations}: Props) {
 
 const SuccessCheckmark = styled(IconCheckmark)`
   flex-shrink: 0;
+  color: #52cb8a;
 `;
 
 const SuccessHeading = styled('h5')`
   margin: 0;
+  text-align: center;
 `;
 
 const SuccessWrapper = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(3)};
+  gap: ${space(2)};
+  margin: 16px 0;
+  padding-right: 16px;
 `;
 
 export default SetupWizard;

@@ -1,4 +1,4 @@
-{% extends "sentry/bases/auth.html" %}
+{% extends "sentry/layout.html" %}
 
 {% load crispy_forms_tags %}
 {% load i18n %}
@@ -7,26 +7,41 @@
 
 {% block title %}{% trans "Sentry - Setup Wizard" %}{% endblock %}
 
-{% block auth_main %}
-  <div id="setup-wizard-container">
-    <div class="loading">
-      <div class="loading-mask"></div>
-      <div class="loading-indicator" data-test-id="loading-indicator"></div>
+{% block content %}
+  <div class="gradient-bg"></div>
+
+
+  <div class="wizard-page">
+    <div class="wizard-logo-container">
+      <a href="https://sentry.io/welcome/">
+        <span class="icon-sentry-logo-full"></span>
+      </a>
+    </div>
+    <div class="sunset-outline">
+      <div class="wizard-box">
+        <div id="setup-wizard-container">
+          <div class="loading">
+            <div class="loading-mask"></div>
+            <div class="loading-indicator" data-test-id="loading-indicator"></div>
+          </div>
+        </div>
+        <p class="wizard-help-text">Need help with your account?  Click <a class="help-center-link" href="https://sentry.zendesk.com/hc/en-us">here</a> to check out our help center.</p>
+      </div>
     </div>
   </div>
 
   {% script %}
-  <script>
-    window.__onSentryInit = window.__onSentryInit || [];
-    window.__onSentryInit.push({
-      name: 'renderReact',
-      component: 'SetupWizard',
-      container: '#setup-wizard-container',
-      props: {
-        hash: {{ hash|to_json|safe }},
-        organizations: {{ organizations|to_json|safe }},
-      },
-    });
-  </script>
+    <script>
+      window.__onSentryInit = window.__onSentryInit || [];
+      window.__onSentryInit.push({
+        name: 'renderReact',
+        component: 'SetupWizard',
+        container: '#setup-wizard-container',
+        props: {
+          hash: {{ hash|to_json|safe }},
+          organizations: {{ organizations|to_json|safe }},
+        },
+      });
+    </script>
   {% endscript %}
 {% endblock %}
