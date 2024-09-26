@@ -11,7 +11,7 @@ class Action(DefaultFieldsModel):
     Examples include: detectors emitting events, sending notifications, creating an issue in the Issue Platform, etc.
     """
 
-    __relocation_scope__ = RelocationScope.Organization
+    __relocation_scope__ = RelocationScope.Excluded
     __repr__ = sane_repr("workflow_id", "type")
 
     # TODO (@saponifi3d): Don't hardcode these values
