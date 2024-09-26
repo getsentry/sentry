@@ -96,7 +96,7 @@ function BackendLandingPage() {
               <DatabaseLandingPage {...landingPageProps} />
             </TabPanels.Item>
             <TabPanels.Item key={ModuleName.HTTP}>
-              <HTTPLandingPage {...landingPageProps} />
+              <HTTPLandingPage />
             </TabPanels.Item>
             <TabPanels.Item key={ModuleName.CACHE}>
               <CachesLandingPage {...landingPageProps} />

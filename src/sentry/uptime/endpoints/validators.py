@@ -1,5 +1,7 @@
+from collections.abc import Sequence
 from datetime import timedelta
 
+import jsonschema
 from drf_spectacular.utils import extend_schema_serializer
 from rest_framework import serializers
 from rest_framework.fields import URLField
@@ -11,6 +13,8 @@ from sentry.auth.superuser import is_active_superuser
 from sentry.uptime.detectors.url_extraction import extract_domain_parts
 from sentry.uptime.models import ProjectUptimeSubscription, ProjectUptimeSubscriptionMode
 from sentry.uptime.subscriptions.subscriptions import (
+    MAX_MANUAL_SUBSCRIPTIONS_PER_ORG,
+    MaxManualUptimeSubscriptionsReached,
     get_or_create_project_uptime_subscription,
     update_project_uptime_subscription,
 )
@@ -31,14 +35,39 @@ public suffix list (PSL). See `extract_domain_parts` fo more details
 SUPPORTED_HTTP_METHODS = ["GET", "POST", "HEAD", "PUT", "DELETE", "PATCH", "OPTIONS"]
 MAX_REQUEST_SIZE_BYTES = 1000
 
+# This matches the jsonschema for the check config
+VALID_INTERVALS = [
+    timedelta(minutes=1),
+    timedelta(minutes=5),
+    timedelta(minutes=10),
+    timedelta(minutes=20),
+    timedelta(minutes=30),
+    timedelta(minutes=60),
+]
 
-def compute_http_request_size(method: str, url: str, headers: dict[str, str], body: str):
+HEADERS_LIST_SCHEMA = {
+    "type": "array",
+    "items": {
+        "type": "array",
+        "prefixItems": [
+            {"type": "string"},
+            {"type": "string"},
+        ],
+    },
+}
+
+
+def compute_http_request_size(
+    method: str, url: str, headers: Sequence[tuple[str, str]], body: str | None
+):
     request_line_size = len(f"{method} {url} HTTP/1.1\r\n")
     headers_size = sum(
-        len(key) + len(value.encode("utf-8")) + len("\r\n") for key, value in headers.items()
+        len(key) + len(value.encode("utf-8")) + len("\r\n") for key, value in headers
     )
-    body_size = len(body.encode("utf-8"))
-    return request_line_size + headers_size + len("\r\n") + body_size
+    body_size = 0
+    if body is not None:
+        body_size = len(body.encode("utf-8")) + len("\r\n")
+    return request_line_size + headers_size + body_size
 
 
 @extend_schema_serializer()
@@ -49,30 +78,30 @@ class UptimeMonitorValidator(CamelSnakeSerializer):
         help_text="Name of the uptime monitor",
     )
     owner = ActorField(
-        required=True,
+        required=False,
         allow_null=True,
         help_text="The ID of the team or user that owns the uptime monitor. (eg. user:51 or team:6)",
     )
     url = URLField(required=True, max_length=255)
-    interval_seconds = serializers.IntegerField(
-        required=True, min_value=60, max_value=int(timedelta(days=1).total_seconds())
+    interval_seconds = serializers.ChoiceField(
+        required=True, choices=[int(i.total_seconds()) for i in VALID_INTERVALS]
     )
     mode = serializers.IntegerField(required=False)
     method = serializers.ChoiceField(
         required=False, choices=list(zip(SUPPORTED_HTTP_METHODS, SUPPORTED_HTTP_METHODS))
     )
     headers = serializers.JSONField(required=False)
-    body = serializers.CharField(required=False)
+    body = serializers.CharField(required=False, allow_null=True)
 
     def validate(self, attrs):
-        headers = {}
+        headers = []
         method = "GET"
-        body = ""
+        body = None
         url = ""
         if self.instance:
             headers = self.instance.uptime_subscription.headers
             method = self.instance.uptime_subscription.method
-            body = self.instance.uptime_subscription.body or ""
+            body = self.instance.uptime_subscription.body
             url = self.instance.uptime_subscription.url
 
         request_size = compute_http_request_size(
@@ -100,6 +129,13 @@ class UptimeMonitorValidator(CamelSnakeSerializer):
             )
         return url
 
+    def validate_headers(self, headers):
+        try:
+            jsonschema.validate(headers, HEADERS_LIST_SCHEMA)
+            return headers
+        except jsonschema.ValidationError:
+            raise serializers.ValidationError("Expected array of header tuples.")
+
     def validate_mode(self, mode):
         if not is_active_superuser(self.context["request"]):
             raise serializers.ValidationError("Only superusers can modify `mode`")
@@ -115,15 +151,20 @@ class UptimeMonitorValidator(CamelSnakeSerializer):
         method_headers_body = {
             k: v for k, v in validated_data.items() if k in {"method", "headers", "body"}
         }
-        uptime_monitor, created = get_or_create_project_uptime_subscription(
-            project=self.context["project"],
-            url=validated_data["url"],
-            interval_seconds=validated_data["interval_seconds"],
-            name=validated_data["name"],
-            mode=validated_data.get("mode", ProjectUptimeSubscriptionMode.MANUAL),
-            owner=validated_data["owner"],
-            **method_headers_body,
-        )
+        try:
+            uptime_monitor, created = get_or_create_project_uptime_subscription(
+                project=self.context["project"],
+                url=validated_data["url"],
+                interval_seconds=validated_data["interval_seconds"],
+                name=validated_data["name"],
+                mode=validated_data.get("mode", ProjectUptimeSubscriptionMode.MANUAL),
+                owner=validated_data["owner"],
+                **method_headers_body,
+            )
+        except MaxManualUptimeSubscriptionsReached:
+            raise serializers.ValidationError(
+                f"You may have at most {MAX_MANUAL_SUBSCRIPTIONS_PER_ORG} uptime monitors per organization"
+            )
         if not created:
             raise serializers.ValidationError(
                 "A monitor with these parameters already exists in this project"

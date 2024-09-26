@@ -165,5 +165,11 @@ def get_org_from_uptime_monitor(uptime_monitor: ProjectUptimeSubscription) -> tu
 
 
 @cache_func_for_models([(ProjectUptimeSubscription, get_org_from_uptime_monitor)])
-def get_active_monitor_count_for_org(organization: Organization) -> int:
-    return ProjectUptimeSubscription.objects.filter(project__organization=organization).count()
+def get_active_auto_monitor_count_for_org(organization: Organization) -> int:
+    return ProjectUptimeSubscription.objects.filter(
+        project__organization=organization,
+        mode__in=[
+            ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING,
+            ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE,
+        ],
+    ).count()

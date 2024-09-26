@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import Feature from 'sentry/components/acl/feature';
 import AvatarList from 'sentry/components/avatar/avatarList';
 import {DateTime} from 'sentry/components/dateTime';
 import type {OnAssignCallback} from 'sentry/components/deprecatedAssigneeSelectorDropdown';
@@ -10,7 +9,6 @@ import {EventThroughput} from 'sentry/components/events/eventStatisticalDetector
 import AssignedTo from 'sentry/components/group/assignedTo';
 import ExternalIssueList from 'sentry/components/group/externalIssuesList';
 import {StreamlinedExternalIssueList} from 'sentry/components/group/externalIssuesList/streamlinedExternalIssueList';
-import {GroupSummary} from 'sentry/components/group/groupSummary';
 import GroupReleaseStats from 'sentry/components/group/releaseStats';
 import TagFacets, {
   BACKEND_TAGS,
@@ -42,10 +40,8 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useUser} from 'sentry/utils/useUser';
 import {ParticipantList} from 'sentry/views/issueDetails/participantList';
-import {
-  getGroupDetailsQueryData,
-  useHasStreamlinedUI,
-} from 'sentry/views/issueDetails/utils';
+import {makeFetchGroupQueryKey} from 'sentry/views/issueDetails/useGroup';
+import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 type Props = {
   environments: string[];
@@ -57,10 +53,11 @@ type Props = {
 
 function useFetchAllEnvsGroupData(organization: OrganizationSummary, group: Group) {
   return useApiQuery<Group>(
-    [
-      `/organizations/${organization.slug}/issues/${group.id}/`,
-      {query: getGroupDetailsQueryData()},
-    ],
+    makeFetchGroupQueryKey({
+      organizationSlug: organization.slug,
+      groupId: group.id,
+      environments: [],
+    }),
     {
       staleTime: 30000,
       gcTime: 30000,
@@ -258,9 +255,6 @@ export default function GroupSidebar({
 
   return (
     <Container>
-      <Feature features={['organizations:ai-summary']}>
-        <GroupSummary groupId={group.id} groupCategory={group.issueCategory} />
-      </Feature>
       {hasStreamlinedUI && event && (
         <ErrorBoundary mini>
           <StreamlinedExternalIssueList group={group} event={event} project={project} />

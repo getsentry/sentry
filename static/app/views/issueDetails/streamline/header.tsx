@@ -2,8 +2,8 @@ import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import Color from 'color';
 
-import Feature from 'sentry/components/acl/feature';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
+import {Button} from 'sentry/components/button';
 import Count from 'sentry/components/count';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import EventMessage from 'sentry/components/events/eventMessage';
@@ -11,11 +11,11 @@ import {
   AssigneeSelector,
   useHandleAssigneeChange,
 } from 'sentry/components/group/assigneeSelector';
-import {GroupSummaryHeader} from 'sentry/components/group/groupSummary';
 import ParticipantList from 'sentry/components/group/streamlinedParticipantList';
 import Link from 'sentry/components/links/link';
 import Version from 'sentry/components/version';
 import VersionHoverCard from 'sentry/components/versionHoverCard';
+import {IconDashboard} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
@@ -26,11 +26,13 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
+import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import GroupActions from 'sentry/views/issueDetails/actions/index';
 import {Divider} from 'sentry/views/issueDetails/divider';
 import GroupPriority from 'sentry/views/issueDetails/groupPriority';
-import {GroupHeaderTabs} from 'sentry/views/issueDetails/header';
 import {AttachmentsBadge} from 'sentry/views/issueDetails/streamline/attachmentsBadge';
+import {ReplayBadge} from 'sentry/views/issueDetails/streamline/replayBadge';
+import {UserFeedbackBadge} from 'sentry/views/issueDetails/streamline/userFeedbackBadge';
 import {useIssueDetailsHeader} from 'sentry/views/issueDetails/useIssueDetailsHeader';
 import type {ReprocessingStatus} from 'sentry/views/issueDetails/utils';
 
@@ -75,13 +77,17 @@ export default function StreamlinedGroupHeader({
     group,
   });
 
-  const {disabledTabs, message, eventRoute, disableActions, shortIdBreadcrumb} =
-    useIssueDetailsHeader({
-      group,
-      groupReprocessingStatus,
-      baseUrl,
-      project,
-    });
+  const [sidebarOpen, setSidebarOpen] = useSyncedLocalStorageState(
+    'issue-details-sidebar-open',
+    true
+  );
+
+  const {message, eventRoute, disableActions, shortIdBreadcrumb} = useIssueDetailsHeader({
+    group,
+    groupReprocessingStatus,
+    baseUrl,
+    project,
+  });
 
   const {userParticipants, teamParticipants, displayUsers} = useMemo(() => {
     return {
@@ -159,10 +165,9 @@ export default function StreamlinedGroupHeader({
               </Fragment>
             )}
             <AttachmentsBadge group={group} project={project} />
+            <UserFeedbackBadge group={group} project={project} />
+            <ReplayBadge group={group} project={project} />
           </MessageWrapper>
-          <Feature features={['organizations:ai-summary']}>
-            <GroupSummaryHeader groupId={group.id} groupCategory={group.issueCategory} />
-          </Feature>
         </Heading>
         <AllStats>
           <Stat>
@@ -191,36 +196,44 @@ export default function StreamlinedGroupHeader({
           event={event}
           query={location.query}
         />
-        <PriorityWorkflowWrapper>
-          <Wrapper>
-            {t('Priority')}
-            <GroupPriority group={group} />
-          </Wrapper>
-          <Wrapper>
-            {t('Assignee')}
-            <AssigneeSelector
-              group={group}
-              assigneeLoading={assigneeLoading}
-              handleAssigneeChange={handleAssigneeChange}
-            />
-          </Wrapper>
-          {group.participants.length > 0 && (
+        <SidebarWorkflowWrapper>
+          <WorkflowWrapper>
             <Wrapper>
-              {t('Participants')}
-              <ParticipantList users={userParticipants} teams={teamParticipants} />
+              {t('Priority')}
+              <GroupPriority group={group} />
             </Wrapper>
-          )}
-          {displayUsers.length > 0 && (
             <Wrapper>
-              {t('Viewers')}
-              <ParticipantList users={displayUsers} />
+              {t('Assignee')}
+              <AssigneeSelector
+                group={group}
+                assigneeLoading={assigneeLoading}
+                handleAssigneeChange={handleAssigneeChange}
+              />
             </Wrapper>
-          )}
-        </PriorityWorkflowWrapper>
+            {group.participants.length > 0 && (
+              <Wrapper>
+                {t('Participants')}
+                <ParticipantList users={userParticipants} teams={teamParticipants} />
+              </Wrapper>
+            )}
+            {displayUsers.length > 0 && (
+              <Wrapper>
+                {t('Viewers')}
+                <ParticipantList users={displayUsers} />
+              </Wrapper>
+            )}
+          </WorkflowWrapper>
+          <Divider />
+          <Button
+            icon={<IconDashboard />}
+            title={sidebarOpen ? t('Close Sidebar') : t('Open Sidebar')}
+            aria-label={sidebarOpen ? t('Close Sidebar') : t('Open Sidebar')}
+            size="sm"
+            borderless
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+          />
+        </SidebarWorkflowWrapper>
       </InfoWrapper>
-      <div>
-        <GroupHeaderTabs {...{baseUrl, disabledTabs, eventRoute, group, project}} />
-      </div>
     </Header>
   );
 }
@@ -309,7 +322,13 @@ const InfoWrapper = styled('div')<{isResolvedOrIgnored: boolean}>`
   flex-wrap: wrap;
 `;
 
-const PriorityWorkflowWrapper = styled('div')`
+const SidebarWorkflowWrapper = styled('div')`
+  display: flex;
+  gap: ${space(0.5)};
+  align-items: center;
+`;
+
+const WorkflowWrapper = styled('div')`
   display: flex;
   column-gap: ${space(2)};
   flex-wrap: wrap;
