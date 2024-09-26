@@ -134,7 +134,7 @@ describe('Access', function () {
         })
       );
 
-      render(<Access>{childrenMock}</Access>, {organization});
+      render(<Access access={[]}>{childrenMock}</Access>, {organization});
 
       expect(childrenMock).toHaveBeenCalledWith({
         hasAccess: true,
@@ -149,9 +149,14 @@ describe('Access', function () {
         })
       );
 
-      render(<Access isSuperuser>{childrenMock}</Access>, {
-        organization,
-      });
+      render(
+        <Access access={[]} isSuperuser>
+          {childrenMock}
+        </Access>,
+        {
+          organization,
+        }
+      );
 
       expect(childrenMock).toHaveBeenCalledWith({
         hasAccess: true,
@@ -166,9 +171,14 @@ describe('Access', function () {
         })
       );
 
-      render(<Access isSuperuser>{childrenMock}</Access>, {
-        organization,
-      });
+      render(
+        <Access access={[]} isSuperuser>
+          {childrenMock}
+        </Access>,
+        {
+          organization,
+        }
+      );
 
       expect(childrenMock).toHaveBeenCalledWith({
         hasAccess: true,
@@ -208,7 +218,7 @@ describe('Access', function () {
       );
 
       render(
-        <Access isSuperuser>
+        <Access access={[]} isSuperuser>
           <p>The Child</p>
         </Access>,
         {organization}
@@ -225,7 +235,7 @@ describe('Access', function () {
       );
 
       render(
-        <Access isSuperuser>
+        <Access access={[]} isSuperuser>
           <p>The Child</p>
         </Access>,
         {organization}
