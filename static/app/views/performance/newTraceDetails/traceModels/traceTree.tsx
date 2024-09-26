@@ -1100,6 +1100,7 @@ export class TraceTree {
     }
 
     parent.zoomedIn = true;
+
     TraceTree.AutogroupSiblingSpanNodes(parent);
     TraceTree.AutogroupDirectChildrenSpanNodes(parent);
 
