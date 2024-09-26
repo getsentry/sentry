@@ -735,7 +735,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
         if (maybeNode) {
           previouslyFocusedNodeRef.current = null;
           const index = tree.list.findIndex(n => n === maybeNode);
-          if (index !== -1) {
+          if (index === -1) {
             Sentry.captureMessage('Trace tree node is not visible in tree');
             return;
           }
@@ -789,7 +789,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
         if (maybeNode) {
           previouslyFocusedNodeRef.current = null;
           const index = tree.list.findIndex(n => n === maybeNode);
-          if (index !== -1) {
+          if (index === -1) {
             Sentry.captureMessage('Trace tree node is not visible in tree');
             return;
           }
