@@ -165,7 +165,7 @@ export function ProjectSourceMapsUploads({location, router, project}: Props) {
         )}
       </TextBlock>
       <SearchBarWithMarginBottom
-        placeholder={t('TODO Filter by Debug ID or Upload ID')}
+        placeholder={t('Filter by Debug ID or Upload ID')}
         onSearch={handleSearch}
         query={query}
       />
