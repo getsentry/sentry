@@ -87,7 +87,6 @@ class AnomalyDetectionStoreDataTest(AlertRuleBase, BaseMetricsTestCase, Performa
         )
         assert result == expected_return_value
 
-
     def test_anomaly_detection_format_historical_data_none_value(self):
         """
         Test that we don't end up with a None value, but rather 0.
@@ -195,10 +194,6 @@ class AnomalyDetectionStoreDataTest(AlertRuleBase, BaseMetricsTestCase, Performa
         assert {"time": int(event1.datetime.timestamp()), "count": 1} in result.data.get("data")
         assert {"time": int(event2.datetime.timestamp()), "count": 1} in result.data.get("data")
 
-
-    @pytest.mark.skip(
-        reason="This test is flaking, skipping for now - this feature isn't released."
-    )
     def test_anomaly_detection_format_historical_data_crash_rate_alert(self):
         expected_return_value = [
             {"timestamp": self.time_1_ts, "value": 0},
