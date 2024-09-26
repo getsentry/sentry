@@ -12,8 +12,8 @@ import {space} from 'sentry/styles/space';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import {useRouteContext} from 'sentry/utils/useRouteContext';
 import Layout from 'sentry/views/auth/layout';
+import { useNavigate } from 'sentry/utils/useNavigate';
 
 export enum DownloadStatus {
   EARLY = 'EARLY',
@@ -56,7 +56,7 @@ function DataDownload({params: {orgId, dataExportId}}: Props) {
     staleTime: 0,
   });
 
-  const route = useRouteContext();
+  const navigate = useNavigate();
 
   if (isError) {
     const errDetail = error?.responseJSON?.detail;
@@ -155,7 +155,6 @@ function DataDownload({params: {orgId, dataExportId}}: Props) {
   };
 
   const openInDiscover = () => {
-    const navigator = route.router;
     const {
       query: {info},
     } = download;
@@ -165,7 +164,7 @@ function DataDownload({params: {orgId, dataExportId}}: Props) {
       query: info,
     };
 
-    navigator.push(normalizeUrl(to));
+    navigate(normalizeUrl(to));
   };
 
   const renderOpenInDiscover = () => {
