@@ -19,7 +19,6 @@ import ChartPanel from 'sentry/views/insights/common/components/chartPanel';
 import {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 import {CHART_HEIGHT} from 'sentry/views/insights/database/settings';
 
-import {useSpanTags} from '../contexts/spanTagsContext';
 import {useGroupBys} from '../hooks/useGroupBys';
 import {useResultMode} from '../hooks/useResultsMode';
 import {useSorts} from '../hooks/useSorts';
@@ -52,9 +51,8 @@ export function ExploreCharts({query}: ExploreChartsProps) {
   const [dataset] = useDataset();
   const [visualizes, setVisualizes] = useVisualizes();
   const [interval, setInterval, intervalOptions] = useChartInterval();
-  const [groupBys] = useGroupBys();
+  const [groupBys, , isLoadingGroupBys] = useGroupBys();
   const [resultMode] = useResultMode();
-  const {isLoading: isSpansTagsLoading} = useSpanTags();
   const topEvents = useTopEvents();
 
   const fields: string[] = useMemo(() => {
@@ -87,7 +85,7 @@ export function ExploreCharts({query}: ExploreChartsProps) {
       search: new MutableSearch(query ?? ''),
       yAxis: yAxes,
       interval: interval ?? getInterval(pageFilters.selection.datetime, 'metrics'),
-      enabled: !isSpansTagsLoading,
+      enabled: !isLoadingGroupBys,
       fields,
       orderby,
       topEvents,

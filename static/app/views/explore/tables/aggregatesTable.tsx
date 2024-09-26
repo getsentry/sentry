@@ -31,7 +31,6 @@ import {useUserQuery} from 'sentry/views/explore/hooks/useUserQuery';
 import {useVisualizes} from 'sentry/views/explore/hooks/useVisualizes';
 import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
 
-import {useSpanTags} from '../contexts/spanTagsContext';
 import {TOP_EVENTS_LIMIT, useTopEvents} from '../hooks/useTopEvents';
 
 export function formatSort(sort: Sort): string {
@@ -46,9 +45,8 @@ export function AggregatesTable({}: AggregatesTableProps) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const topEvents = useTopEvents();
-  const {isLoading: isLoadingTags} = useSpanTags();
   const [dataset] = useDataset();
-  const [groupBys] = useGroupBys();
+  const [groupBys, , isLoadingGroupBys] = useGroupBys();
   const [visualizes] = useVisualizes();
   const fields = useMemo(() => {
     return [...groupBys, ...visualizes.flatMap(visualize => visualize.yAxes)].filter(
@@ -76,7 +74,7 @@ export function AggregatesTable({}: AggregatesTableProps) {
     eventView,
     initialData: [],
     referrer: 'api.explore.spans-aggregates-table',
-    enabled: !isLoadingTags,
+    enabled: !isLoadingGroupBys,
   });
 
   const {tableStyles} = useTableStyles({
