@@ -336,9 +336,7 @@ describe('Modals -> WidgetViewerModal', function () {
         expect(initialData.router.replace).toHaveBeenCalledWith(
           expect.objectContaining({
             pathname: '/mock-pathname/',
-            query: {
-              query: 1,
-            },
+            query: {query: 1},
           })
         );
         // Need to manually set the new router location and rerender to simulate the dropdown selection click
@@ -755,9 +753,7 @@ describe('Modals -> WidgetViewerModal', function () {
         expect(initialData.router.push).toHaveBeenCalledWith(
           expect.objectContaining({
             pathname: '/mock-pathname/',
-            query: {
-              sort: '-count()',
-            },
+            query: {sort: '-count()'},
           })
         );
         // Need to manually set the new router location and rerender to simulate the sortable column click
@@ -833,9 +829,7 @@ describe('Modals -> WidgetViewerModal', function () {
         await userEvent.click(screen.getByRole('button', {name: 'Next'}));
         expect(initialData.router.replace).toHaveBeenCalledWith(
           expect.objectContaining({
-            query: {
-              cursor: '0:10:0',
-            },
+            query: {cursor: '0:10:0'},
           })
         );
         // Need to manually set the new router location and rerender to simulate the next page click
@@ -1394,9 +1388,7 @@ describe('Modals -> WidgetViewerModal', function () {
       expect(initialData.router.push).toHaveBeenCalledWith(
         expect.objectContaining({
           pathname: '/mock-pathname/',
-          query: {
-            sort: '-sum(session)',
-          },
+          query: {sort: '-sum(session)'},
         })
       );
       // Need to manually set the new router location and rerender to simulate the sortable column click

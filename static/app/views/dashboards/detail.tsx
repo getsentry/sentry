@@ -703,6 +703,7 @@ class DashboardDetail extends Component<Props, State> {
   renderWidgetBuilder = () => {
     const {children, dashboard, onDashboardUpdate} = this.props;
     const {modifiedDashboard} = this.state;
+
     return (
       <Fragment>
         <OnRouteLeave
@@ -1037,6 +1038,7 @@ class DashboardDetail extends Component<Props, State> {
                                   );
                                 }}
                               />
+
                               <WidgetViewerContext.Provider value={{seriesData, setData}}>
                                 <Dashboard
                                   paramDashboardId={dashboardId}
