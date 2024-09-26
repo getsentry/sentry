@@ -1,3 +1,5 @@
+[![Open in DevZero](https://assets.devzero.io/open-in-devzero.svg)](https://www.devzero.io/dashboard/recipes/new?repo-url=https://github.com/getsentry/sentry)
+
 <p align="center">
   <p align="center">
     <a href="https://sentry.io/?utm_source=github&utm_medium=logo" target="_blank">
