@@ -1725,7 +1725,6 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                     extra={
                         "count": len(group_ids_to_pass_to_snuba),
                         "max_candidates": max_candidates,
-                        "projects": [p.id for p in projects],
                     },
                 )
                 span.set_data("Max Candidates", max_candidates)
@@ -1876,6 +1875,12 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                 select.append(Column("group_first_seen", attr_entity))
 
             select.append(sort_func)
+
+            if group_ids_to_pass_to_snuba is not None:
+                self.logger.info(
+                    "GroupAttributesExecutor: conditions",
+                    extra={"where_conditions": where_conditions},
+                )
 
             query = Query(
                 match=Join([Relationship(joined_entity, "attributes_inner", attr_entity)]),
