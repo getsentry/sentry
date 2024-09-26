@@ -16,7 +16,11 @@ interface Props
 
 export function BigNumberWidget(props: Props) {
   return (
-    <WidgetFrame title={props.title} description={props.description}>
+    <WidgetFrame
+      title={props.title}
+      description={props.description}
+      showDescriptionInTooltip={props.showDescriptionInTooltip}
+    >
       <BigNumberResizeWrapper>
         <BigNumberWidgetVisualization
           data={props.data}
