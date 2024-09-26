@@ -624,7 +624,8 @@ class ExhaustiveFixtures(Fixtures):
 
         send_notification_action = self.create_action(type=Action.Type.Notification, data="")
         self.create_data_condition_group_action(
-            action=send_notification_action, condition_group=notification_condition_group
+            action=send_notification_action,
+            condition_group=notification_condition_group,
         )
 
         # TODO @saponifi3d: Update warning to be DetectorState.Critical
@@ -645,6 +646,7 @@ class ExhaustiveFixtures(Fixtures):
         self.create_data_source_detector(data_source, detector)
         detector_conditions = self.create_data_condition_group(
             logic_type=DataConditionGroup.Type.ALL,
+            organization=org,
         )
 
         # TODO @saponifi3d: Create or define trigger workflow action type
