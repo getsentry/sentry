@@ -36,6 +36,10 @@ const DEFAULT_ISSUE_DETAILS_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
     },
     layoutOptions: [],
   },
+  autogroup: {
+    parent: true,
+    sibling: true,
+  },
   layout: 'drawer bottom',
   list: {
     width: 0.5,
