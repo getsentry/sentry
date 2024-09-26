@@ -13,6 +13,7 @@ import {BarChart} from 'sentry/components/charts/barChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import {LineChart} from 'sentry/components/charts/lineChart';
+import ReleaseSeries from 'sentry/components/charts/releaseSeries';
 import SimpleTableChart from 'sentry/components/charts/simpleTableChart';
 import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
@@ -101,7 +102,6 @@ type WidgetCardChartProps = Pick<
     type: 'legendselectchanged';
   }>;
   onZoom?: AugmentedEChartDataZoomHandler;
-  releaseSeries?: Series[];
   shouldResize?: boolean;
   showSlider?: boolean;
   timeseriesResultsTypes?: Record<string, AggregationOutputType>;
@@ -279,15 +279,71 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
     const {widget} = this.props;
     const stacked = widget.queries[0]?.columns.length > 0;
 
+    // const {selection, location, organization} = this.props;
+    // const {start, end, period, utc} = selection.datetime;
+    // const {environments, projects} = selection;
+
+    // console.log(utc);
+
     switch (widget.displayType) {
       case 'bar':
         return <BarChart {...chartProps} stacked={stacked} />;
       case 'area':
       case 'top_n':
+        // return organization.features.includes('dashboards-releases-on-charts') ? (
+        //   <ReleaseSeries
+        //     end={end}
+        //     start={start}
+        //     period={period}
+        //     environments={environments}
+        //     projects={projects}
+        //     organization={organization}
+        //     utc={utc}
+        //     memoized
+        //   >
+        //     {({releaseSeries}) => {
+        //       console.log('releases', releaseSeries);
+        //       location.query.unselectedSeries = 'Releases';
+        //       chartProps.legend.selected = getSeriesSelection(location);
+        //       return (
+        //         <AreaChart
+        //           stacked
+        //           {...chartProps}
+        //           series={[...chartProps.series, ...releaseSeries]}
+        //         />
+        //       );
+        //     }}
+        //   </ReleaseSeries>
+        // ) : (
         return <AreaChart stacked {...chartProps} />;
+      // );
       case 'line':
       default:
+        // return organization.features.includes('dashboards-releases-on-charts') ? (
+        //   <ReleaseSeries
+        //     end={end}
+        //     start={start}
+        //     period={period}
+        //     utc={utc}
+        //     environments={environments}
+        //     projects={projects}
+        //     organization={organization}
+        //     memoized
+        //   >
+        //     {({releaseSeries}) => {
+        //       location.query.unselectedSeries = 'Releases';
+        //       chartProps.legend.selected = getSeriesSelection(location);
+        //       return (
+        //         <LineChart
+        //           {...chartProps}
+        //           series={[...chartProps.series, ...releaseSeries]}
+        //         />
+        //       );
+        //     }}
+        //   </ReleaseSeries>
+        // ) : (
         return <LineChart {...chartProps} />;
+      // );
     }
   }
 
@@ -306,7 +362,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
       chartZoomOptions,
       timeseriesResultsTypes,
       shouldResize,
-      releaseSeries,
+      organization,
     } = this.props;
 
     if (widget.displayType === 'table') {
@@ -342,6 +398,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
 
     const {location, router, selection, onLegendSelectChanged} = this.props;
     const {start, end, period, utc} = selection.datetime;
+    const {projects, environments} = selection;
 
     const legend = {
       left: 0,
@@ -522,17 +579,55 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
 
           const forwardedRef = this.props.chartGroup ? this.handleRef : undefined;
 
-          location.query.unselectedSeries = 'Releases';
-          legend.selected = getSeriesSelection(location);
+          return organization.features.includes('dashboards-releases-on-charts') &&
+            (widget.displayType === DisplayType.LINE ||
+              widget.displayType === DisplayType.AREA) ? (
+            <ReleaseSeries
+              end={end}
+              start={start}
+              period={period}
+              environments={environments}
+              projects={projects}
+              memoized
+            >
+              {({releaseSeries}) => {
+                location.query.unselectedSeries = 'Releases';
+                legend.selected = getSeriesSelection(location);
 
-          const updatedReleaseSeries =
-            releaseSeries &&
-            (widget.displayType === DisplayType.AREA ||
-              widget.displayType === DisplayType.LINE)
-              ? releaseSeries
-              : [];
-
-          return (
+                return (
+                  <TransitionChart loading={loading} reloading={loading}>
+                    <LoadingScreen loading={loading} />
+                    <ChartWrapper
+                      autoHeightResize={shouldResize ?? true}
+                      noPadding={noPadding}
+                    >
+                      {getDynamicText({
+                        value: this.chartComponent({
+                          ...zoomRenderProps,
+                          ...chartOptions,
+                          // Override default datazoom behaviour for updating Global Selection Header
+                          ...(onZoom
+                            ? {
+                                onDataZoom: (evt, chartProps) =>
+                                  // Need to pass seriesStart and seriesEnd to onZoom since slider zooms
+                                  // callback with percentage instead of datetime values. Passing seriesStart
+                                  // and seriesEnd allows calculating datetime values with percentage.
+                                  onZoom({...evt, seriesStart, seriesEnd}, chartProps),
+                              }
+                            : {}),
+                          legend,
+                          series: [...series, ...releaseSeries],
+                          onLegendSelectChanged,
+                          forwardedRef,
+                        }),
+                        fixed: <Placeholder height="200px" testId="skeleton-ui" />,
+                      })}
+                    </ChartWrapper>
+                  </TransitionChart>
+                );
+              }}
+            </ReleaseSeries>
+          ) : (
             <TransitionChart loading={loading} reloading={loading}>
               <LoadingScreen loading={loading} />
               <ChartWrapper autoHeightResize={shouldResize ?? true} noPadding={noPadding}>
@@ -551,14 +646,9 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
                         }
                       : {}),
                     legend,
-                    series: this.props.organization.features.includes(
-                      'dashboards-releases-on-charts'
-                    )
-                      ? [...series, ...updatedReleaseSeries]
-                      : [...series],
+                    series,
                     onLegendSelectChanged,
                     forwardedRef,
-                    selection,
                   }),
                   fixed: <Placeholder height="200px" testId="skeleton-ui" />,
                 })}

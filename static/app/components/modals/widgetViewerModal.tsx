@@ -103,7 +103,6 @@ export interface WidgetViewerModalOptions {
   onEdit?: () => void;
   onMetricWidgetEdit?: (widget: Widget) => void;
   pageLinks?: string;
-  releaseSeries?: Series[];
   seriesData?: Series[];
   seriesResultsType?: Record<string, AggregationOutputType>;
   tableData?: TableDataWithTitle[];
@@ -182,7 +181,6 @@ function WidgetViewerModal(props: Props) {
     pageLinks: defaultPageLinks,
     seriesResultsType,
     dashboardFilters,
-    releaseSeries,
   } = props;
   const location = useLocation();
   const {projects} = useProjects();
@@ -222,6 +220,27 @@ function WidgetViewerModal(props: Props) {
   const [modalTableSelection, setModalTableSelection] =
     useState<PageFilters>(locationPageFilter);
   const modalChartSelection = useRef(modalTableSelection);
+
+  useEffect(() => {
+    // have the query legend values update
+    const legendData = seriesData?.reduce((prevSeries, series) => {
+      prevSeries[series.seriesName] = series.seriesName === 'Releases' ? false : true;
+      return prevSeries;
+    }, {});
+
+    const definedLegendData = legendData ? legendData : {};
+
+    router.replace({
+      pathname: location.pathname,
+      query: {
+        ...location.query,
+        [WidgetViewerQueryField.LEGEND]: Object.keys(definedLegendData).filter(
+          key => definedLegendData[key]
+        ),
+      },
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Detect when a user clicks back and set the PageFilter state to match the location
   // We need to use useEffect to prevent infinite looping rerenders due to the setModalTableSelection call
@@ -872,7 +891,6 @@ function WidgetViewerModal(props: Props) {
                 showSlider={shouldShowSlider}
                 noPadding
                 chartZoomOptions={chartZoomOptions}
-                releaseSeries={releaseSeries}
               />
             ) : (
               <MemoizedWidgetCardChartContainer
@@ -890,7 +908,6 @@ function WidgetViewerModal(props: Props) {
                 showSlider={shouldShowSlider}
                 noPadding
                 chartZoomOptions={chartZoomOptions}
-                releaseSeries={releaseSeries}
               />
             )}
           </Container>

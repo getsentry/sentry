@@ -6,7 +6,6 @@ import type {Location} from 'history';
 import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
 
-import ReleaseSeries from 'sentry/components/charts/releaseSeries';
 import {TableCell} from 'sentry/components/charts/simpleTableChart';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
@@ -91,9 +90,6 @@ export function VisualizationStep({
     value,
   }));
 
-  const {start, end, period} = pageFilters.datetime;
-  const {projects, environments} = pageFilters;
-
   return (
     <StyledBuildStep
       title={t('Choose your visualization')}
@@ -118,64 +114,26 @@ export function VisualizationStep({
         />
       </FieldGroup>
       <VisualizationWrapper displayType={displayType}>
-        {organization.features.includes('dashboards-releases-on-charts') ? (
-          <ReleaseSeries
-            end={end}
-            start={start}
-            period={period}
-            environments={environments}
-            projects={projects}
-          >
-            {({releaseSeries}) => {
-              return (
-                <WidgetCard
-                  organization={organization}
-                  selection={pageFilters}
-                  widget={debouncedWidget}
-                  dashboardFilters={
-                    getDashboardFiltersFromURL(location) ?? dashboardFilters
-                  }
-                  isEditingDashboard={false}
-                  widgetLimitReached={false}
-                  renderErrorMessage={errorMessage =>
-                    typeof errorMessage === 'string' && (
-                      <PanelAlert type="error">{errorMessage}</PanelAlert>
-                    )
-                  }
-                  noLazyLoad
-                  showStoredAlert
-                  noDashboardsMEPProvider={noDashboardsMEPProvider}
-                  isWidgetInvalid={isWidgetInvalid}
-                  onDataFetched={onDataFetched}
-                  onWidgetSplitDecision={onWidgetSplitDecision}
-                  shouldResize={false}
-                  releaseSeries={releaseSeries}
-                />
-              );
-            }}
-          </ReleaseSeries>
-        ) : (
-          <WidgetCard
-            organization={organization}
-            selection={pageFilters}
-            widget={debouncedWidget}
-            dashboardFilters={getDashboardFiltersFromURL(location) ?? dashboardFilters}
-            isEditingDashboard={false}
-            widgetLimitReached={false}
-            renderErrorMessage={errorMessage =>
-              typeof errorMessage === 'string' && (
-                <PanelAlert type="error">{errorMessage}</PanelAlert>
-              )
-            }
-            noLazyLoad
-            showStoredAlert
-            noDashboardsMEPProvider={noDashboardsMEPProvider}
-            isWidgetInvalid={isWidgetInvalid}
-            onDataFetched={onDataFetched}
-            onWidgetSplitDecision={onWidgetSplitDecision}
-            shouldResize={false}
-          />
-        )}
+        <WidgetCard
+          organization={organization}
+          selection={pageFilters}
+          widget={debouncedWidget}
+          dashboardFilters={getDashboardFiltersFromURL(location) ?? dashboardFilters}
+          isEditingDashboard={false}
+          widgetLimitReached={false}
+          renderErrorMessage={errorMessage =>
+            typeof errorMessage === 'string' && (
+              <PanelAlert type="error">{errorMessage}</PanelAlert>
+            )
+          }
+          noLazyLoad
+          showStoredAlert
+          noDashboardsMEPProvider={noDashboardsMEPProvider}
+          isWidgetInvalid={isWidgetInvalid}
+          onDataFetched={onDataFetched}
+          onWidgetSplitDecision={onWidgetSplitDecision}
+          shouldResize={false}
+        />
       </VisualizationWrapper>
     </StyledBuildStep>
   );

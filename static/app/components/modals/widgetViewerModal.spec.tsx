@@ -311,7 +311,6 @@ describe('Modals -> WidgetViewerModal', function () {
               query: {
                 viewerEnd: '2022-03-01T07:33:20',
                 viewerStart: '2022-03-01T02:00:00',
-                unselectedSeries: 'Releases',
               },
             })
           )
@@ -337,7 +336,9 @@ describe('Modals -> WidgetViewerModal', function () {
         expect(initialData.router.replace).toHaveBeenCalledWith(
           expect.objectContaining({
             pathname: '/mock-pathname/',
-            query: {query: 1, unselectedSeries: 'Releases'},
+            query: {
+              query: 1,
+            },
           })
         );
         // Need to manually set the new router location and rerender to simulate the dropdown selection click
@@ -371,13 +372,13 @@ describe('Modals -> WidgetViewerModal', function () {
       it('renders with first legend disabled by default', async function () {
         mockEvents();
         // Rerender with first legend disabled
-        initialData.router.location.query = {legend: ['Query Name', 'Releases']};
+        initialData.router.location.query = {legend: ['Query Name']};
         await renderModal({initialData, widget: mockWidget});
         expect(ReactEchartsCore).toHaveBeenLastCalledWith(
           expect.objectContaining({
             option: expect.objectContaining({
               legend: expect.objectContaining({
-                selected: {Releases: false},
+                selected: {'Query Name': false},
               }),
             }),
           }),
@@ -464,7 +465,6 @@ describe('Modals -> WidgetViewerModal', function () {
               query: {
                 viewerEnd: '2022-03-01T05:53:20',
                 viewerStart: '2022-03-01T03:40:00',
-                unselectedSeries: 'Releases',
               },
             })
           )
@@ -755,7 +755,9 @@ describe('Modals -> WidgetViewerModal', function () {
         expect(initialData.router.push).toHaveBeenCalledWith(
           expect.objectContaining({
             pathname: '/mock-pathname/',
-            query: {sort: '-count()', unselectedSeries: 'Releases'},
+            query: {
+              sort: '-count()',
+            },
           })
         );
         // Need to manually set the new router location and rerender to simulate the sortable column click
@@ -831,7 +833,9 @@ describe('Modals -> WidgetViewerModal', function () {
         await userEvent.click(screen.getByRole('button', {name: 'Next'}));
         expect(initialData.router.replace).toHaveBeenCalledWith(
           expect.objectContaining({
-            query: {cursor: '0:10:0', unselectedSeries: 'Releases'},
+            query: {
+              cursor: '0:10:0',
+            },
           })
         );
         // Need to manually set the new router location and rerender to simulate the next page click
@@ -921,7 +925,6 @@ describe('Modals -> WidgetViewerModal', function () {
             query: {
               viewerEnd: '2022-03-01T05:53:20',
               viewerStart: '2022-03-01T03:40:00',
-              unselectedSeries: 'Releases',
             },
           })
         );
@@ -1391,7 +1394,9 @@ describe('Modals -> WidgetViewerModal', function () {
       expect(initialData.router.push).toHaveBeenCalledWith(
         expect.objectContaining({
           pathname: '/mock-pathname/',
-          query: {sort: '-sum(session)', unselectedSeries: 'Releases'},
+          query: {
+            sort: '-sum(session)',
+          },
         })
       );
       // Need to manually set the new router location and rerender to simulate the sortable column click

@@ -22,7 +22,6 @@ import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
-import type {Series} from 'sentry/types/echarts';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -54,7 +53,7 @@ import {
 } from './layoutUtils';
 import SortableWidget from './sortableWidget';
 import type {DashboardDetails, Widget} from './types';
-import {DashboardWidgetSource, DisplayType, WidgetType} from './types';
+import {DashboardWidgetSource, WidgetType} from './types';
 import {connectDashboardCharts, getDashboardFiltersFromURL} from './utils';
 
 export const DRAG_HANDLE_CLASS = 'widget-drag';
@@ -95,7 +94,6 @@ type Props = {
   onSetNewWidget?: () => void;
   paramDashboardId?: string;
   paramTemplateId?: string;
-  releaseSeries?: Series[];
 };
 
 type State = {
@@ -400,10 +398,6 @@ class Dashboard extends Component<Props, State> {
       isPreview,
 
       dashboardFilters: getDashboardFiltersFromURL(location) ?? dashboard.filters,
-      releaseSeries:
-        widget.displayType === DisplayType.AREA || widget.displayType === DisplayType.LINE
-          ? this.props.releaseSeries
-          : undefined,
     };
 
     const key = constructGridItemKey(widget);
