@@ -4,7 +4,7 @@ import type {Polarity} from 'sentry/components/percentChange';
 import {Tooltip} from 'sentry/components/tooltip';
 import {defined} from 'sentry/utils';
 import type {MetaType} from 'sentry/utils/discover/eventView';
-import {getFieldFormatter} from 'sentry/utils/discover/fieldRenderers';
+import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {AutoSizedText} from 'sentry/views/dashboards/widgetCard/autoSizedText';
@@ -52,8 +52,8 @@ export function BigNumberWidgetVisualization(props: Props) {
   const field = fields[0];
 
   // TODO: meta as MetaType is a white lie. `MetaType` doesn't know that types can be null, but they can!
-  const fieldFormatter = meta
-    ? getFieldFormatter(field, meta as MetaType, false)
+  const fieldRenderer = meta
+    ? getFieldRenderer(field, meta as MetaType, false)
     : value => value.toString();
 
   const unit = meta?.units?.[field];
@@ -63,7 +63,7 @@ export function BigNumberWidgetVisualization(props: Props) {
     unit: unit ?? undefined, // TODO: Field formatters think units can't be null but they can
   };
 
-  const rendered = fieldFormatter(datum, baggage);
+  const rendered = fieldRenderer(datum, baggage);
 
   return (
     <AutoResizeParent>
@@ -81,7 +81,7 @@ export function BigNumberWidgetVisualization(props: Props) {
               previousPeriodData={previousPeriodData}
               preferredPolarity={preferredPolarity}
               formatter={(previousDatum: TableData[number]) =>
-                fieldFormatter(previousDatum, baggage)
+                fieldRenderer(previousDatum, baggage)
               }
               field={field}
             />
