@@ -93,7 +93,7 @@ const DEFAULT_REPLAY_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
     },
     layoutOptions: [],
   },
-  autogrouping: {
+  autogroup: {
     parent: true,
     sibling: true,
   },

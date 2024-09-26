@@ -24,7 +24,7 @@ type TraceDrawerPreferences = {
 };
 
 export type TracePreferencesState = {
-  autogrouping: {
+  autogroup: {
     parent: boolean;
     sibling: boolean;
   };
@@ -51,7 +51,7 @@ export const DEFAULT_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
     },
     layoutOptions: ['drawer left', 'drawer right', 'drawer bottom'],
   },
-  autogrouping: {
+  autogroup: {
     parent: true,
     sibling: true,
   },
@@ -105,12 +105,12 @@ function isPreferenceState(parsed: any): parsed is TracePreferencesState {
 function isValidAutogrouping(
   state: TracePreferencesState
 ): state is TracePreferencesState & {autogrouping: undefined} {
-  if (state.autogrouping === undefined) {
+  if (state.autogroup === undefined) {
     return false;
   }
   if (
-    typeof state.autogrouping.parent !== 'boolean' ||
-    typeof state.autogrouping.sibling !== 'boolean'
+    typeof state.autogroup.parent !== 'boolean' ||
+    typeof state.autogroup.sibling !== 'boolean'
   ) {
     return false;
   }
@@ -130,7 +130,7 @@ export function loadTraceViewPreferences(key: string): TracePreferencesState | n
 
         // Correct old preferences that are missing autogrouping
         if (!isValidAutogrouping(parsed)) {
-          parsed.autogrouping = {...DEFAULT_TRACE_VIEW_PREFERENCES.autogrouping};
+          parsed.autogroup = {...DEFAULT_TRACE_VIEW_PREFERENCES.autogroup};
         }
         return parsed;
       }
@@ -169,7 +169,7 @@ export function tracePreferencesReducer(
     case 'set autogrouping': {
       return {
         ...state,
-        autogrouping: {sibling: action.payload, parent: action.payload},
+        autogroup: {sibling: action.payload, parent: action.payload},
       };
     }
     case 'set list width':
