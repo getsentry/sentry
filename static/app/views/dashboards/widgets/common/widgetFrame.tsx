@@ -53,6 +53,7 @@ const Frame = styled('div')`
   height: 100%;
   min-height: 96px;
   width: 100%;
+  min-width: 120px;
 
   padding: ${space(2)};
 
