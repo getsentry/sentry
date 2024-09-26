@@ -67,7 +67,19 @@ export function ReplaySliderDiff({
   );
 }
 
-function DiffSides({leftOffsetMs, replay, rightOffsetMs, viewDimensions, width}) {
+function DiffSides({
+  leftOffsetMs,
+  replay,
+  rightOffsetMs,
+  viewDimensions,
+  width,
+}: {
+  leftOffsetMs: number;
+  replay: ReplayReader | null;
+  rightOffsetMs: number;
+  viewDimensions: {height: number; width: number};
+  width: string | undefined;
+}) {
   const rightSideElem = useRef<HTMLDivElement>(null);
   const dividerElem = useRef<HTMLDivElement>(null);
 
