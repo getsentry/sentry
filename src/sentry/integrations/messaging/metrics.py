@@ -1,7 +1,6 @@
-from collections.abc import Generator
-from contextlib import contextmanager
 from dataclasses import dataclass
 from enum import Enum
+from types import TracebackType
 from typing import Any
 
 from django.conf import settings
@@ -37,7 +36,11 @@ class MessagingInteractionType(Enum):
     MARK_ONGOING = "MARK_ONGOING"
 
 
-@dataclass(frozen=True)
+class MessagingInteractionEventStateError(Exception):
+    pass
+
+
+@dataclass
 class MessagingInteractionEvent:
     """An instance to be recorded of a user interacting through a messaging app."""
 
@@ -48,7 +51,12 @@ class MessagingInteractionEvent:
     user: User | RpcUser | None = None
     organization: Organization | RpcOrganization | None = None
 
-    def get_logging_data(self) -> dict[str, Any]:
+    def __post_init__(self) -> None:
+        self._has_started = False
+        self._has_halted = False
+        self._has_failed = False
+
+    def _get_logging_data(self) -> dict[str, Any]:
         return {
             "interaction_type": self.interaction_type.value,
             "provider": self.provider,
@@ -68,47 +76,43 @@ class MessagingInteractionEvent:
         metrics.incr(tag, sample_rate=sample_rate)
 
     def record_start(self) -> None:
+        if self._has_started:
+            raise MessagingInteractionEventStateError("This context has already been entered")
+        self._has_started = True
+
         self._record_event("start")
 
-        # TEMP for development. TODO: Remove
-        raise Exception("Hit MessagingInteractionEvent: start")
-
     def record_success(self) -> None:
+        if not self._has_started:
+            raise MessagingInteractionEventStateError("This context has not yet been entered")
+        if self._has_halted or self._has_failed:
+            raise MessagingInteractionEventStateError("This context has already been exited")
+        self._has_halted = True
+
         # As an intermediately shippable state, record a "halt" until we're confident
         # we're calling `record_failure` on all soft failure conditions. Then we can
         # change it to "success".
         self._record_event("halt")
 
-    def record_failure(self, exc: Exception | None = None) -> None:
+    def record_failure(self, exc: BaseException | None = None) -> None:
+        if not self._has_started:
+            raise MessagingInteractionEventStateError("This context has not yet been entered")
+        if self._has_halted or self._has_failed:
+            raise MessagingInteractionEventStateError("This context has already been exited")
+        self._has_failed = True
+
         self._record_event("failure", sample_rate=1.0)
 
-    @contextmanager
-    def capture(self) -> Generator[None, None, None]:
+    def __enter__(self) -> None:
         self.record_start()
-        try:
-            yield
-        except MessagingInteractionException as exc:
-            self.record_failure(exc)
-            return
-        except Exception as exc:
-            self.record_failure(exc)
-            raise
-        else:
-            # "Success" may be misleading without further refactoring, as we will
-            # reach this point as long as the span closes without raising an
-            # exception, even if we caught an exception and/or displayed an error
-            # status to the user before returning. See MessagingInteractionException
-            # for one potential way to address this.
+
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType,
+    ) -> None:
+        if exc_value is not None:
+            self.record_failure(exc_value)
+        elif not self._has_failed:
             self.record_success()
-
-
-class MessagingInteractionException(Exception):
-    """Special exception class that halts a MessagingInteractionEvent span.
-
-    Development note: This is a preliminary idea. The intent is that we would raise
-    this exception in cases where we want to record that the interaction failed,
-    but we want to soft-fail (display an error status to the user and gracefully
-    return) rather than raise a general exception.
-
-    TODO: Either put this into practice or delete it
-    """
