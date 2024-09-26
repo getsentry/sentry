@@ -12,7 +12,7 @@ import type ReplayReader from 'sentry/utils/replays/replayReader';
 
 interface Props {
   leftOffsetMs: number;
-  replay: null | ReplayReader;
+  replay: ReplayReader;
   rightOffsetMs: number;
 }
 

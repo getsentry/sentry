@@ -14,7 +14,7 @@ import {OrganizationContext} from 'sentry/views/organizationContext';
 interface Props extends ModalRenderProps {
   leftOffsetMs: number;
   organization: Organization;
-  replay: null | ReplayReader;
+  replay: ReplayReader;
   rightOffsetMs: number;
 }
 

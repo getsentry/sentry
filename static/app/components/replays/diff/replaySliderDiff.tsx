@@ -19,7 +19,7 @@ import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 
 interface Props {
   leftOffsetMs: number;
-  replay: null | ReplayReader;
+  replay: ReplayReader;
   rightOffsetMs: number;
   minHeight?: `${number}px` | `${number}%`;
 }
@@ -75,7 +75,7 @@ function DiffSides({
   width,
 }: {
   leftOffsetMs: number;
-  replay: ReplayReader | null;
+  replay: ReplayReader;
   rightOffsetMs: number;
   viewDimensions: {height: number; width: number};
   width: string | undefined;

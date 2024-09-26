@@ -15,7 +15,7 @@ const LazyComparisonModal = lazy(
 interface Props {
   children: ReactNode;
   leftOffsetMs: number;
-  replay: null | ReplayReader;
+  replay: ReplayReader;
   rightOffsetMs: number;
   surface: string;
   size?: ButtonProps['size'];
