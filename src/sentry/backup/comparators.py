@@ -865,13 +865,27 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
             ],
             "sentry.userrole": [DateUpdatedComparator("date_updated")],
             "sentry.userroleuser": [DateUpdatedComparator("date_updated")],
+            "workflow_engine.action": [DateUpdatedComparator("date_updated", "date_added")],
+            "workflow_engine.datacondition": [DateUpdatedComparator("date_updated", "date_added")],
+            "workflow_engine.dataconditiongroup": [
+                DateUpdatedComparator("date_updated", "date_added")
+            ],
+            "workflow_engine.dataconditiongroupaction": [
+                DateUpdatedComparator("date_updated", "date_added")
+            ],
             "workflow_engine.datasource": [DateUpdatedComparator("date_updated", "date_added")],
             "workflow_engine.datasourcedetector": [
                 DateUpdatedComparator("date_updated", "date_added")
             ],
             "workflow_engine.detector": [DateUpdatedComparator("date_updated", "date_added")],
+            "workflow_engine.detectorworkflow": [
+                DateUpdatedComparator("date_updated", "date_added")
+            ],
             "workflow_engine.workflow": [DateUpdatedComparator("date_updated", "date_added")],
             "workflow_engine.workflowaction": [DateUpdatedComparator("date_updated", "date_added")],
+            "workflow_engine.workflowdataconditiongroup": [
+                DateUpdatedComparator("date_updated", "date_added")
+            ],
         },
     )
 

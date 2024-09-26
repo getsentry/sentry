@@ -856,6 +856,17 @@
     "uptime.uptimesubscription"
   ],
   "uptime.uptimesubscription": [],
+  "workflow_engine.action": [],
+  "workflow_engine.datacondition": [
+    "workflow_engine.dataconditiongroup"
+  ],
+  "workflow_engine.dataconditiongroup": [
+    "sentry.organization"
+  ],
+  "workflow_engine.dataconditiongroupaction": [
+    "workflow_engine.action",
+    "workflow_engine.dataconditiongroup"
+  ],
   "workflow_engine.datasource": [
     "sentry.organization"
   ],
@@ -866,12 +877,22 @@
   "workflow_engine.detector": [
     "sentry.organization",
     "sentry.team",
-    "sentry.user"
+    "sentry.user",
+    "workflow_engine.dataconditiongroup"
+  ],
+  "workflow_engine.detectorworkflow": [
+    "workflow_engine.detector",
+    "workflow_engine.workflow"
   ],
   "workflow_engine.workflow": [
-    "sentry.organization"
+    "sentry.organization",
+    "workflow_engine.dataconditiongroup"
   ],
   "workflow_engine.workflowaction": [
+    "workflow_engine.workflow"
+  ],
+  "workflow_engine.workflowdataconditiongroup": [
+    "workflow_engine.dataconditiongroup",
     "workflow_engine.workflow"
   ]
 }
