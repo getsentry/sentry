@@ -10,7 +10,7 @@ import useDismissAlert from 'sentry/utils/useDismissAlert';
 
 const LOCAL_STORAGE_KEY = 'replay-unmask-alert-dismissed';
 
-function unmaskAlert() {
+function UnmaskAlert() {
   const {dismiss, isDismissed} = useDismissAlert({key: LOCAL_STORAGE_KEY});
   const {data, isError, isPending} = useUserViewedReplays();
 
@@ -20,7 +20,7 @@ function unmaskAlert() {
 
   return (
     <UnmaskAlertContainer data-test-id="unmask-alert">
-      <UnmaskAlert>
+      <Alert>
         <StyledIconInfo size="xs" />
         <div>
           {tct(
@@ -39,12 +39,12 @@ function unmaskAlert() {
           aria-label={t('Close Alert')}
           onClick={dismiss}
         />
-      </UnmaskAlert>
+      </Alert>
     </UnmaskAlertContainer>
   );
 }
 
-export default unmaskAlert;
+export default UnmaskAlert;
 
 const UnmaskAlertContainer = styled('div')`
   position: absolute;
@@ -56,7 +56,7 @@ const UnmaskAlertContainer = styled('div')`
   pointer-events: none;
 `;
 
-const UnmaskAlert = styled('div')`
+const Alert = styled('div')`
   display: inline-flex;
   align-items: flex-start;
   justify-items: center;
