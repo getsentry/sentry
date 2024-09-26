@@ -1,14 +1,15 @@
 /* eslint-env node */
 /* eslint import/no-nodejs-modules:0 */
 
+import {RsdoctorWebpackPlugin} from '@rsdoctor/webpack-plugin';
 import rspack from '@rspack/core';
 import ReactRefreshRspackPlugin from '@rspack/plugin-react-refresh';
+import {sentryWebpackPlugin} from '@sentry/webpack-plugin';
 import CompressionPlugin from 'compression-webpack-plugin';
+import ForkTsCheckerWebpackPlugin from 'fork-ts-checker-webpack-plugin';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
 import fs from 'node:fs';
 import path from 'node:path';
-// TODO(@anonrig): Remove this when Rspack bundles it.
-import {ContextReplacementPlugin} from 'webpack';
 import type {ProxyConfigArray} from 'webpack-dev-server';
 
 import LastBuiltPlugin from './build-utils/last-built-plugin';
@@ -58,7 +59,7 @@ const HAS_WEBPACK_DEV_SERVER_CONFIG =
 const NO_DEV_SERVER = !!env.NO_DEV_SERVER; // Do not run webpack dev server
 const SHOULD_FORK_TS = DEV_MODE && !env.NO_TS_FORK;
 const SHOULD_HOT_MODULE_RELOAD = DEV_MODE && !!env.SENTRY_UI_HOT_RELOAD;
-// const SHOULD_LAZY_LOAD = DEV_MODE && !!env.SENTRY_UI_LAZY_LOAD;
+const SHOULD_ADD_RSDOCTOR = Boolean(env.RSDOCTOR);
 
 // Deploy previews are built using vercel. We can check if we're in vercel's
 // build process by checking the existence of the PULL_REQUEST env var.
@@ -281,6 +282,23 @@ const appConfig: rspack.Configuration = {
       'process.env.SENTRY_RELEASE_VERSION': JSON.stringify(SENTRY_RELEASE_VERSION),
     }),
 
+    ...(SHOULD_FORK_TS
+      ? [
+          new ForkTsCheckerWebpackPlugin({
+            typescript: {
+              configFile: path.resolve(__dirname, './config/tsconfig.build.json'),
+              configOverwrite: {
+                compilerOptions: {incremental: true},
+              },
+              memoryLimit: 4096,
+            },
+            devServer: false,
+          }),
+        ]
+      : []),
+
+    ...(SHOULD_ADD_RSDOCTOR ? [new RsdoctorWebpackPlugin({})] : []),
+
     /**
      * Restrict translation files that are pulled in through app/translations.jsx
      * and through moment/locale/* to only those which we create bundles for via
@@ -289,13 +307,13 @@ const appConfig: rspack.Configuration = {
      * Without this, webpack will still output all of the unused locale files despite
      * the application never loading any of them.
      */
-    new ContextReplacementPlugin(
+    new rspack.ContextReplacementPlugin(
       /sentry-locale$/,
       path.join(__dirname, 'src', 'sentry', 'locale', path.sep),
       true,
       new RegExp(`(${supportedLocales.join('|')})/.*\\.po$`)
     ),
-    new ContextReplacementPlugin(
+    new rspack.ContextReplacementPlugin(
       /moment\/locale/,
       new RegExp(`(${supportedLanguages.join('|')})\\.js$`)
     ),
@@ -363,7 +381,6 @@ const appConfig: rspack.Configuration = {
     modules: ['node_modules'],
     extensions: ['.js', '.tsx', '.ts', '.json', '.less'],
     symlinks: false,
-    // tsConfigPath: path.resolve(__dirname, './tsconfig.json'),
   },
   output: {
     crossOriginLoading: 'anonymous',
@@ -435,17 +452,6 @@ if (
     if (IS_UI_DEV_ONLY) {
       appConfig.output = {};
     }
-
-    // if (SHOULD_LAZY_LOAD) {
-    //   appConfig.experiments = {
-    //     lazyCompilation: {
-    //       // enable lazy compilation for dynamic imports
-    //       imports: true,
-    //       // disable lazy compilation for entries
-    //       entries: false,
-    //     },
-    //   };
-    // }
   }
 
   appConfig.devServer = {
@@ -539,14 +545,6 @@ if (
     appConfig.output!.publicPath = '/_static/dist/sentry/';
   }
 }
-
-// if (SHOULD_FORK_TS) {
-//   appConfig.plugins?.push(
-//     new WebpackHookPlugin({
-//       onBuildStart: ['yarn tsc -p ./config/tsconfig.build.json --watch --incremental'],
-//     }) as unknown as rspack.RspackPluginInstance
-//   );
-// }
 
 // XXX(epurkhiser): Sentry (development) can be run in an experimental
 // pure-SPA mode, where ONLY /api* requests are proxied directly to the API
@@ -701,26 +699,26 @@ if (env.WEBPACK_CACHE_PATH) {
   appConfig.cache = true;
 }
 
-// appConfig.plugins?.push(
-//   sentryWebpackPlugin({
-//     applicationKey: 'sentry-spa',
-//     telemetry: false,
-//     sourcemaps: {
-//       disable: true,
-//     },
-//     release: {
-//       create: false,
-//     },
-//     reactComponentAnnotation: {
-//       enabled: true,
-//     },
-//     bundleSizeOptimizations: {
-//       // This is enabled so that our SDKs send exceptions to Sentry
-//       excludeDebugStatements: false,
-//       excludeReplayIframe: true,
-//       excludeReplayShadowDom: true,
-//     },
-//   })
-// );
+appConfig.plugins?.push(
+  sentryWebpackPlugin({
+    applicationKey: 'sentry-spa',
+    telemetry: false,
+    sourcemaps: {
+      disable: true,
+    },
+    release: {
+      create: false,
+    },
+    reactComponentAnnotation: {
+      enabled: true,
+    },
+    bundleSizeOptimizations: {
+      // This is enabled so that our SDKs send exceptions to Sentry
+      excludeDebugStatements: false,
+      excludeReplayIframe: true,
+      excludeReplayShadowDom: true,
+    },
+  })
+);
 
 export default appConfig;
