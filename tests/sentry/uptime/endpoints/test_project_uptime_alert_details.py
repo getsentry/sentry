@@ -38,7 +38,7 @@ class ProjectUptimeAlertDetailsPutEndpointTest(ProjectUptimeAlertDetailsBaseEndp
             name="test",
             owner=f"user:{self.user.id}",
             url="https://santry.io",
-            interval_seconds=120,
+            interval_seconds=300,
             headers=[["hello", "world"]],
             body="something",
         )
@@ -50,7 +50,7 @@ class ProjectUptimeAlertDetailsPutEndpointTest(ProjectUptimeAlertDetailsBaseEndp
         uptime_sub = proj_sub.uptime_subscription
         uptime_sub.refresh_from_db()
         assert uptime_sub.url == "https://santry.io"
-        assert uptime_sub.interval_seconds == 120
+        assert uptime_sub.interval_seconds == 300
         assert uptime_sub.headers == [["hello", "world"]]
         assert uptime_sub.body == "something"
 
@@ -61,7 +61,7 @@ class ProjectUptimeAlertDetailsPutEndpointTest(ProjectUptimeAlertDetailsBaseEndp
             name="test",
             owner=f"user:{self.user.id}",
             url="https://santry.io",
-            interval_seconds=120,
+            interval_seconds=300,
             headers=[["hello", "world"]],
             body=None,
         )
@@ -73,7 +73,7 @@ class ProjectUptimeAlertDetailsPutEndpointTest(ProjectUptimeAlertDetailsBaseEndp
         uptime_sub = proj_sub.uptime_subscription
         uptime_sub.refresh_from_db()
         assert uptime_sub.url == "https://santry.io"
-        assert uptime_sub.interval_seconds == 120
+        assert uptime_sub.interval_seconds == 300
         assert uptime_sub.headers == [["hello", "world"]]
         assert uptime_sub.body is None
 
