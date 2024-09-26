@@ -479,7 +479,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
             organization_id=group.project.organization.id,
         )
 
-        with MessagingInteractionEvent(interaction_type, PROVIDER):
+        with MessagingInteractionEvent(interaction_type, PROVIDER).capture():
             return client.put(
                 path=f"/projects/{group.project.organization.slug}/{group.project.slug}/issues/",
                 params={"id": group.id},

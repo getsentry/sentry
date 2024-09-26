@@ -100,7 +100,7 @@ class DiscordMessageComponentHandler(DiscordInteractionHandler):
 
         if self.custom_id.startswith(CustomIds.ASSIGN_DIALOG):
             logger.info("discord.interaction.component.assign_dialog", extra={**logging_data})
-            with record_event(MessagingInteractionType.ASSIGN_DIALOG):
+            with record_event(MessagingInteractionType.ASSIGN_DIALOG).capture():
                 return self.assign_dialog()
 
         elif self.custom_id.startswith(CustomIds.ASSIGN):
@@ -108,32 +108,32 @@ class DiscordMessageComponentHandler(DiscordInteractionHandler):
                 "discord.interaction.component.assign",
                 extra={**logging_data, "assign_to": self.request.get_selected_options()[0]},
             )
-            with record_event(MessagingInteractionType.ASSIGN):
+            with record_event(MessagingInteractionType.ASSIGN).capture():
                 return self.assign()
 
         elif self.custom_id.startswith(CustomIds.RESOLVE_DIALOG):
             logger.info("discord.interaction.component.resolve_dialog", extra={**logging_data})
-            with record_event(MessagingInteractionType.RESOLVE_DIALOG):
+            with record_event(MessagingInteractionType.RESOLVE_DIALOG).capture():
                 return self.resolve_dialog()
 
         elif self.custom_id.startswith(CustomIds.RESOLVE):
             logger.info("discord.interaction.component.resolve", extra={**logging_data})
-            with record_event(MessagingInteractionType.RESOLVE):
+            with record_event(MessagingInteractionType.RESOLVE).capture():
                 return self.resolve()
 
         elif self.custom_id.startswith(CustomIds.UNRESOLVE):
             logger.info("discord.interaction.component.unresolve", extra={**logging_data})
-            with record_event(MessagingInteractionType.UNRESOLVE):
+            with record_event(MessagingInteractionType.UNRESOLVE).capture():
                 return self.unresolve()
 
         elif self.custom_id.startswith(CustomIds.MARK_ONGOING):
             logger.info("discord.interaction.component.mark_ongoing", extra={**logging_data})
-            with record_event(MessagingInteractionType.MARK_ONGOING):
+            with record_event(MessagingInteractionType.MARK_ONGOING).capture():
                 return self.unresolve(from_mark_ongoing=True)
 
         elif self.custom_id.startswith(CustomIds.ARCHIVE):
             logger.info("discord.interaction.component.archive", extra={**logging_data})
-            with record_event(MessagingInteractionType.ARCHIVE):
+            with record_event(MessagingInteractionType.ARCHIVE).capture():
                 return self.archive()
 
         logger.warning("discord.interaction.component.unknown_custom_id", extra={**logging_data})

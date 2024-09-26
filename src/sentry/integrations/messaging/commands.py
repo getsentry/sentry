@@ -146,7 +146,7 @@ class MessagingIntegrationCommandDispatcher(Generic[R], ABC):
         for handler in candidate_handlers:
             if handler.slug.does_match(cmd_input):
                 arg_input = cmd_input.adjust(handler.slug)
-                with self.get_event(handler.command):
+                with self.get_event(handler.command).capture():
                     return handler.callback(arg_input)
 
         raise CommandNotMatchedError(f"{cmd_input=!r}", cmd_input)
