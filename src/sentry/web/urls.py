@@ -9,6 +9,7 @@ from django.urls import URLPattern, URLResolver, re_path
 from django.views.generic import RedirectView
 
 from sentry.api.endpoints.oauth_userinfo import OAuthUserInfoEndpoint
+from sentry.api.endpoints.warmup import WarmupEndpoint
 from sentry.auth.providers.saml2.provider import SAML2AcceptACSView, SAML2MetadataView, SAML2SLSView
 from sentry.charts.endpoints import serve_chartcuterie_config
 from sentry.integrations.web.doc_integration_avatar import DocIntegrationAvatarPhotoView
@@ -92,6 +93,13 @@ if settings.DEBUG:
     ]
 
 urlpatterns += [
+    # warmup, used to initialize any connections / pre-load
+    # the application so that user initiated requests are faster
+    re_path(
+        r"^_warmup/$",
+        WarmupEndpoint.as_view(),
+        name="sentry-warmup",
+    ),
     re_path(
         r"^api/(?P<project_id>[\w_-]+)/crossdomain\.xml$",
         api.crossdomain_xml,
