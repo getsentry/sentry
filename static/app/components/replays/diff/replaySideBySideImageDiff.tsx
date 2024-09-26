@@ -1,10 +1,13 @@
 import styled from '@emotion/styled';
 
 import {Flex} from 'sentry/components/container/flex';
-import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
-import ReplayPlayer from 'sentry/components/replays/replayPlayer';
+import ReplayPlayer from 'sentry/components/replays/player/replayPlayer';
+import ReplayPlayerMeasurer from 'sentry/components/replays/player/replayPlayerMeasurer';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {ReplayPlayerEventsContextProvider} from 'sentry/utils/replays/playback/providers/replayPlayerEventsContext';
+import {ReplayPlayerPluginsContextProvider} from 'sentry/utils/replays/playback/providers/replayPlayerPluginsContext';
+import {ReplayPlayerStateContextProvider} from 'sentry/utils/replays/playback/providers/replayPlayerStateContext';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
 
 interface Props {
@@ -14,8 +17,6 @@ interface Props {
 }
 
 export function ReplaySideBySideImageDiff({leftOffsetMs, replay, rightOffsetMs}: Props) {
-  const fetching = false;
-
   return (
     <Flex column>
       <DiffHeader>
@@ -28,31 +29,24 @@ export function ReplaySideBySideImageDiff({leftOffsetMs, replay, rightOffsetMs}:
       </DiffHeader>
 
       <ReplayGrid>
-        <ReplayContextProvider
-          analyticsContext="replay_comparison_modal_left"
-          initialTimeOffsetMs={{offsetMs: leftOffsetMs}}
-          isFetching={fetching}
-          replay={replay}
-        >
-          <Border>
-            <ReplayPlayer isPreview />
-          </Border>
-        </ReplayContextProvider>
-
-        <ReplayContextProvider
-          analyticsContext="replay_comparison_modal_right"
-          initialTimeOffsetMs={{offsetMs: rightOffsetMs}}
-          isFetching={fetching}
-          replay={replay}
-        >
-          {rightOffsetMs > 0 ? (
+        <ReplayPlayerPluginsContextProvider>
+          <ReplayPlayerEventsContextProvider replay={replay}>
             <Border>
-              <ReplayPlayer isPreview />
+              <ReplayPlayerStateContextProvider>
+                <ReplayPlayerMeasurer measure="width">
+                  {style => <ReplayPlayer style={style} offsetMs={leftOffsetMs} />}
+                </ReplayPlayerMeasurer>
+              </ReplayPlayerStateContextProvider>
             </Border>
-          ) : (
-            <div />
-          )}
-        </ReplayContextProvider>
+            <Border>
+              <ReplayPlayerStateContextProvider>
+                <ReplayPlayerMeasurer measure="width">
+                  {style => <ReplayPlayer style={style} offsetMs={rightOffsetMs} />}
+                </ReplayPlayerMeasurer>
+              </ReplayPlayerStateContextProvider>
+            </Border>
+          </ReplayPlayerEventsContextProvider>
+        </ReplayPlayerPluginsContextProvider>
       </ReplayGrid>
     </Flex>
   );
