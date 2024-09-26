@@ -407,6 +407,7 @@ export function DraggableTabBar({
       defaultSelectedKey={initialTabKey}
       onAddView={handleCreateNewView}
       orientation="horizontal"
+      editingTabKey={editingTabKey ?? undefined}
       hideBorder
     >
       {allTabs.map(tab => (
