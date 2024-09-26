@@ -17,7 +17,9 @@ import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import useOrganization from 'sentry/utils/useOrganization';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
-import useFlagSeries from 'sentry/views/issueDetails/streamline/flagSeries';
+import useFlagSeries, {
+  flagSeriesName,
+} from 'sentry/views/issueDetails/streamline/flagSeries';
 import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/useIssueDetailsDiscoverQuery';
 
 export const enum EventGraphSeries {
@@ -75,9 +77,8 @@ export function EventGraph({group, groupStats, searchQuery}: EventGraphProps) {
     hasDatasetSelector(organization) ? SavedQueryDatasets.ERRORS : undefined
   );
 
-  const flagsLegend = t('Feature Flags');
   const [legendSelected, setLegendSelected] = useState({
-    [flagsLegend]: true,
+    [flagSeriesName]: true,
   });
 
   const flagSeries = useFlagSeries({
@@ -155,14 +156,11 @@ export function EventGraph({group, groupStats, searchQuery}: EventGraphProps) {
           series={series}
           legend={Legend({
             theme: theme,
-            orient: 'vertical',
+            orient: 'horizontal',
             align: 'left',
-            itemGap: 2,
             show: true,
-            left: 30,
-            top: 10,
-            bottom: 10,
-            data: [flagsLegend],
+            right: 10,
+            data: [flagSeriesName],
             selected: legendSelected,
           })}
           onLegendSelectChanged={s => {
@@ -176,7 +174,7 @@ export function EventGraph({group, groupStats, searchQuery}: EventGraphProps) {
           isGroupedByDate
           showTimeInTooltip
           grid={{
-            top: 8,
+            top: 25, // leave room for legend
             left: 8,
             right: 8,
             bottom: 0,

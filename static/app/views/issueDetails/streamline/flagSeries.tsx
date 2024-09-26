@@ -8,6 +8,8 @@ import {getFormattedDate} from 'sentry/utils/dates';
 import {useApiQuery} from 'sentry/utils/queryClient';
 // import useOrganization from 'sentry/utils/useOrganization';
 
+export const flagSeriesName = t('Feature Flags');
+
 export const MOCK_RAW_FLAG_LOG = {
   data: [
     {
@@ -108,7 +110,7 @@ export default function useFlagSeries({_query}: {_query?: Record<string, any>}):
     tooltip: {
       trigger: 'item',
       formatter: ({data}: any) => {
-        const time = getFormattedDate(data.xAxis, 'MMM D, YYYY LT');
+        const time = getFormattedDate(data.xAxis, 'MMM D, YYYY LT z');
         return [
           '<div class="tooltip-series">',
           `<div><span class="tooltip-label"><strong>${t(
@@ -126,7 +128,7 @@ export default function useFlagSeries({_query}: {_query?: Record<string, any>}):
   });
 
   return {
-    seriesName: t('Feature Flags'),
+    seriesName: flagSeriesName,
     data: [],
     markLine,
   };
