@@ -117,28 +117,24 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
   const hasGithubSourceLink = (frame.sourceLink || '').startsWith(
     'https://www.github.com/'
   );
-  const [isQueryEnabled, setIsQueryEnabled] = useState(
-    hasGithubSourceLink ? false : !frame.inApp
-  );
+  const [shouldStartQuery, setShouldStartQuery] = useState(false);
   const project = useMemo(
     () => projects.find(p => p.id === event.projectID),
     [projects, event]
   );
 
   useEffect(() => {
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    if (!validFilePath) {
-      return setIsQueryEnabled(false);
-    }
-    // Skip fetching if we already have the Source Link
-    if (!hasGithubSourceLink && frame.inApp) {
-      // Introduce a delay before enabling the query
-      timer = setTimeout(() => {
-        setIsQueryEnabled(true);
-      }, 100); // Delay of 100ms
-    }
+    // The stacktrace link is rendered on hover
+    // Delay the query until the mouse hovers the frame for more than 50ms
+    const timer = setTimeout(() => {
+      setShouldStartQuery(true);
+    }, 50); // Delay of 50ms
     return () => timer && clearTimeout(timer);
-  }, [validFilePath, hasGithubSourceLink, frame]);
+  }, []);
+
+  const isQueryEnabled = hasGithubSourceLink
+    ? false
+    : shouldStartQuery && validFilePath && frame.inApp;
 
   const {
     data: match,
@@ -246,7 +242,7 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
     );
   }
 
-  if (isPending || !match) {
+  if ((isPending && isQueryEnabled) || !match) {
     const placeholderWidth = coverageEnabled ? '40px' : '14px';
     return (
       <StacktraceLinkWrapper>

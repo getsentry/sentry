@@ -80,6 +80,7 @@ def build_occurrence_from_result(
         culprit="",  # TODO: The url?
         detection_time=datetime.now(timezone.utc),
         level="error",
+        assignee=project_subscription.owner,
     )
 
 
