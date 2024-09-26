@@ -514,6 +514,14 @@ if (IS_ACCEPTANCE_TEST) {
   appConfig.plugins?.push(new LastBuiltPlugin({basePath: __dirname}));
 }
 
+appConfig.plugins?.push(
+  new webpack.NormalModuleReplacementPlugin(
+    /compiler-runtime/i,
+    // static/app/react-compiler-runtime-index.js
+    path.resolve(staticPrefix, 'app', 'react-compiler-runtime-index.js')
+  )
+);
+
 // Dev only! Hot module reloading
 if (
   FORCE_WEBPACK_DEV_SERVER ||

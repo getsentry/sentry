@@ -22,7 +22,11 @@ const config: TransformOptions = {
     ['@babel/preset-typescript', {allowDeclareFields: true}],
   ],
   overrides: [],
-  plugins: ['@emotion/babel-plugin', '@babel/plugin-transform-runtime'],
+  plugins: [
+    ['babel-plugin-react-compiler', {}],
+    '@emotion/babel-plugin',
+    '@babel/plugin-transform-runtime',
+  ],
   env: {
     production: {
       plugins: [['babel-plugin-add-react-displayname']],
