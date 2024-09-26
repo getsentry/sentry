@@ -2,10 +2,13 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import Alert from 'sentry/components/alert';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {
+  ErrorAlert,
+  InviteMessage,
+} from 'sentry/components/modals/inviteMembersModal/inviteHeaderMessages';
 import {InviteMembersContext} from 'sentry/components/modals/inviteMembersModal/inviteMembersContext';
 import InviteMembersFooter from 'sentry/components/modals/inviteMembersModal/inviteMembersFooter';
 import InviteMembersModalView from 'sentry/components/modals/inviteMembersModal/inviteMembersModalview';
@@ -71,22 +74,6 @@ function InviteMembersModal({
     );
   }
 
-  const errorAlert = error ? (
-    <Alert type="error" showIcon>
-      {error}
-    </Alert>
-  ) : null;
-
-  const inviteMessage = willInvite ? (
-    <Subtext>{t('Invite unlimited new members to join your organization.')}</Subtext>
-  ) : (
-    <Alert type="warning" showIcon>
-      {t(
-        'You can’t invite users directly, but we’ll forward your request to an org owner or manager for approval.'
-      )}
-    </Alert>
-  );
-
   return (
     <ErrorBoundary>
       <InviteModalHook
@@ -113,11 +100,11 @@ function InviteMembersModal({
               }}
             >
               <Header closeButton>
-                {errorAlert}
+                <ErrorAlert />
                 <Heading>{t('Invite New Members')}</Heading>
               </Header>
               <Body>
-                {inviteMessage}
+                <InviteMessage />
                 {headerInfo}
                 <StyledInviteRow
                   roleOptions={memberResult.data?.orgRoleList ?? ORG_ROLES}
@@ -174,11 +161,6 @@ const Heading = styled('h1')`
   font-size: ${p => p.theme.headerFontSize};
   margin-top: 0;
   margin-bottom: ${space(0.75)};
-`;
-
-const Subtext = styled('p')`
-  color: ${p => p.theme.subText};
-  margin-bottom: ${space(3)};
 `;
 
 const StyledInviteRow = styled(InviteRowControl)`

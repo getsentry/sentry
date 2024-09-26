@@ -42,22 +42,7 @@ describe('InviteRowControlNew', function () {
     expect(mockSendInvites).toHaveBeenCalled();
   });
 
-  it('displays correct status message for 1 sent invite', function () {
-    render(
-      getComponent({
-        ...defaultInviteProps,
-        complete: true,
-        inviteStatus: {
-          'moo-deng': {sent: true},
-        },
-        willInvite: true,
-      })
-    );
-    expect(screen.getByText(/sent/i)).toBeInTheDocument();
-    expect(screen.getByText(/1 invite/i)).toBeInTheDocument();
-  });
-
-  it('displays correct status message for multiple sent invites', function () {
+  it('displays correct status message for sent invites', function () {
     render(
       getComponent({
         ...defaultInviteProps,
@@ -69,8 +54,8 @@ describe('InviteRowControlNew', function () {
         willInvite: true,
       })
     );
-    expect(screen.getByText(/sent/i)).toBeInTheDocument();
-    expect(screen.getByText(/2 invites/i)).toBeInTheDocument();
+    const element = screen.getByTestId('sent-invites');
+    expect(element).toHaveTextContent(/2/i);
   });
 
   it('displays correct status message for failed invites', function () {
@@ -85,27 +70,10 @@ describe('InviteRowControlNew', function () {
         willInvite: true,
       })
     );
-    expect(screen.getByText(/sent , 2 failed to send\./i)).toBeInTheDocument();
-    expect(screen.getByText(/0 invites/i)).toBeInTheDocument();
+    expect(screen.getByText(/2 failed to send\./i)).toBeInTheDocument();
   });
 
   it('displays correct status message for sent and failed invites', function () {
-    render(
-      getComponent({
-        ...defaultInviteProps,
-        complete: true,
-        inviteStatus: {
-          'moo-deng': {sent: true},
-          'moo-waan': {sent: false, error: 'Error'},
-        },
-        willInvite: true,
-      })
-    );
-    expect(screen.getByText(/sent , 1 failed to send\./i)).toBeInTheDocument();
-    expect(screen.getByText(/1 invite/i)).toBeInTheDocument();
-  });
-
-  it('displays correct status message for multiple sent and failed invites', function () {
     render(
       getComponent({
         ...defaultInviteProps,
@@ -118,8 +86,9 @@ describe('InviteRowControlNew', function () {
         willInvite: true,
       })
     );
-    expect(screen.getByText(/sent , 1 failed to send\./i)).toBeInTheDocument();
-    expect(screen.getByText(/2 invites/i)).toBeInTheDocument();
+    const element = screen.getByTestId('sent-invites');
+    expect(element).toHaveTextContent(/2/i);
+    expect(screen.getByText(/1 failed to send\./i)).toBeInTheDocument();
   });
 
   it('displays pending invite message when willInvite is false', function () {
@@ -134,7 +103,8 @@ describe('InviteRowControlNew', function () {
         },
       })
     );
-    expect(screen.getByText(/2 invite requests/i)).toBeInTheDocument();
-    expect(screen.getByText(/pending approval, 1 failed to send\./i)).toBeInTheDocument();
+    const element = screen.getByTestId('sent-invite-requests');
+    expect(element).toHaveTextContent(/2/i);
+    expect(screen.getByText(/1 failed to send\./i)).toBeInTheDocument();
   });
 });

@@ -21,6 +21,7 @@ export default function InviteMembersFooter({canSend}: Props) {
       <div>
         {/* TODO(mia): remove these props and use InviteMemberContext once old modal is removed */}
         <InviteStatusMessage
+          data-test-id="invite-status-message"
           complete={complete}
           hasDuplicateEmails={false}
           inviteStatus={inviteStatus}
