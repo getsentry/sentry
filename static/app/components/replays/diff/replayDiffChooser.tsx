@@ -11,7 +11,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 interface Props {
   leftOffsetMs: number;
-  replay: null | ReplayReader;
+  replay: ReplayReader;
   rightOffsetMs: number;
   defaultTab?: DiffType;
 }
