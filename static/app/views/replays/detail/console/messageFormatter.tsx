@@ -1,4 +1,3 @@
-import type {OnExpandCallback} from 'sentry/components/objectInspector';
 import {defined} from 'sentry/utils';
 import type {BreadcrumbFrame, ConsoleFrame} from 'sentry/utils/replays/types';
 import {isConsoleFrame} from 'sentry/utils/replays/types';
@@ -6,8 +5,8 @@ import Format from 'sentry/views/replays/detail/console/format';
 
 interface Props {
   frame: BreadcrumbFrame;
+  onExpand: (path: string, expandedState: Record<string, boolean>) => void;
   expandPaths?: string[];
-  onExpand?: OnExpandCallback;
 }
 
 // There is a special case where `console.error()` is called with an Error object.
