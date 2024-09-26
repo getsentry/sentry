@@ -142,8 +142,8 @@ const onboarding: OnboardingConfig = {
           description: (
             <p>
               {tct(
-                "Additionally, you'll need to set up your [sentryCode:Sentry] settings on [appsettingsCode:appsettings.json]:",
-                {sentryCode: <code />, appsettingsCode: <code />}
+                "Additionally, you'll need to set up your [code:Sentry] settings on [code:appsettings.json]:",
+                {code: <code />}
               )}
             </p>
           ),
