@@ -108,7 +108,7 @@ class SpansEAPQueryBuilder(SpansIndexedQueryBuilderMixin, BaseQueryBuilder):
                 return Function(
                     "if",
                     [
-                        Function("notEquals", [unprefixed_field, ""]),
+                        Function("mapContains", [Column("attr_str"), key]),
                         unprefixed_field,
                         prefixed_field,
                     ],
@@ -142,7 +142,7 @@ class SpansEAPQueryBuilder(SpansIndexedQueryBuilderMixin, BaseQueryBuilder):
         col = Function(
             "if",
             [
-                Function("notEquals", [unprefixed_field, "" if attr_type == "attr_str" else 0]),
+                Function("mapContains", [Column(attr_type), field]),
                 unprefixed_field,
                 prefixed_field,
             ],
