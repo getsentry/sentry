@@ -54,13 +54,6 @@ function renderMockRequests({
       },
     },
   });
-
-  if (project.slug !== 'javascript-react') {
-    MockApiClient.addMockResponse({
-      url: `/projects/${orgSlug}/${project.slug}/docs/${project.platform}/`,
-      body: {html: ''},
-    });
-  }
 }
 
 describe('Onboarding Setup Docs', function () {
