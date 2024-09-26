@@ -44,6 +44,7 @@ import {capitalize} from 'sentry/utils/string/capitalize';
 import withApi from 'sentry/utils/withApi';
 import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constants';
 import {shouldUseErrorsDiscoverDataset} from 'sentry/views/alerts/rules/utils';
+import type {Anomaly} from 'sentry/views/alerts/types';
 import {isSessionAggregate, SESSION_AGGREGATE_TO_FIELD} from 'sentry/views/alerts/utils';
 import {getComparisonMarkLines} from 'sentry/views/alerts/utils/getComparisonMarkLines';
 import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
@@ -77,6 +78,7 @@ type Props = {
   thresholdType: MetricRule['thresholdType'];
   timeWindow: MetricRule['timeWindow'];
   triggers: Trigger[];
+  anomalies?: Anomaly[];
   comparisonDelta?: number;
   formattedAggregate?: string;
   header?: React.ReactNode;
@@ -305,6 +307,7 @@ class TriggersChart extends PureComponent<Props, State> {
     isReloading: boolean;
     orgFeatures: string[];
     timeseriesData: Series[];
+    anomalies?: Anomaly[];
     comparisonData?: Series[];
     comparisonMarkLines?: LineChartSeries[];
     errorMessage?: string;
@@ -359,6 +362,9 @@ class TriggersChart extends PureComponent<Props, State> {
             minValue={minBy(timeseriesData[0]?.data, ({value}) => value)?.value}
             maxValue={maxBy(timeseriesData[0]?.data, ({value}) => value)?.value}
             data={timeseriesData}
+            includePrevious={
+              this.props.comparisonType === AlertRuleComparisonType.DYNAMIC
+            }
             comparisonData={comparisonData ?? []}
             comparisonSeriesName={this.comparisonSeriesName}
             comparisonMarkLines={comparisonMarkLines ?? []}
@@ -579,6 +585,11 @@ class TriggersChart extends PureComponent<Props, State> {
               thresholdType
             );
           }
+          // console.log('timeseriesData', {
+          //   timeWindow,
+          //   timeseriesData,
+          //   comparisonTimeseriesData,
+          // });
 
           return this.renderChart({
             timeseriesData: timeseriesData as Series[],
@@ -586,6 +597,7 @@ class TriggersChart extends PureComponent<Props, State> {
             isReloading: reloading,
             comparisonData: comparisonTimeseriesData,
             comparisonMarkLines,
+            anomalies: [],
             errorMessage,
             isQueryValid,
             errored,
