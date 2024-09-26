@@ -10,9 +10,11 @@ export function ReplayPlayerEventsContextProvider({
   replay,
 }: {
   children: React.ReactNode;
-  replay: ReplayReader;
+  replay: ReplayReader | null;
 }) {
-  return <context.Provider value={replay.getRRWebFrames()}>{children}</context.Provider>;
+  return (
+    <context.Provider value={replay?.getRRWebFrames() ?? []}>{children}</context.Provider>
+  );
 }
 
 export function useReplayPlayerEvents() {
