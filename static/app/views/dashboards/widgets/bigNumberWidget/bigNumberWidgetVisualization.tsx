@@ -68,7 +68,7 @@ export function BigNumberWidgetVisualization(props: Props) {
   return (
     <AutoResizeParent>
       <AutoSizedText>
-        <NumberContainer>
+        <NumberAndDifferenceContainer>
           <NumberContainerOverride>
             <Tooltip title={datum[field]} isHoverable delay={0}>
               {rendered}
@@ -86,7 +86,7 @@ export function BigNumberWidgetVisualization(props: Props) {
               field={field}
             />
           )}
-        </NumberContainer>
+        </NumberAndDifferenceContainer>
       </AutoSizedText>
     </AutoResizeParent>
   );
@@ -107,7 +107,7 @@ const AutoResizeParent = styled('div')`
   }
 `;
 
-const NumberContainer = styled('div')`
+const NumberAndDifferenceContainer = styled('div')`
   display: flex;
   align-items: flex-end;
   gap: min(8px, 3cqw);
