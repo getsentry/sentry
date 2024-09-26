@@ -887,7 +887,7 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
             alias,
         )
 
-    def _query_total_counts(self) -> tuple[float | int, float | int]:
+    def _query_total_counts(self) -> tuple[float | int, float | int, float | int]:
         if self._cached_count is None:
             total_query = spans_indexed.SpansEAPQueryBuilder(
                 dataset=self.builder.dataset,
