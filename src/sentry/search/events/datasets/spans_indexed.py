@@ -843,35 +843,37 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
         args: Mapping[str, str | Column | SelectType | int | float],
         alias: str,
     ) -> SelectType:
-        total_samples, _ = self._query_total_counts()
+        _, total_proportion = self._query_total_counts()
         sampled_group = Function("count", [])
-        proportion_by_sample = Function("divide", [sampled_group, total_samples])
-        return Function(
+        proportion_by_sample = Function(
             "divide",
             [
+                sampled_group,
                 Function(
-                    "multiply",
+                    "multiply", [total_proportion, Function("avg", [Column("sampling_factor")])]
+                ),
+            ],
+            "proportion_by_sample",
+        )
+        return Function(
+            "multiply",
+            [
+                Function(
+                    "arrayMax",
                     [
-                        Function(
-                            "arrayMax",
-                            [
+                        [
+                            0,
+                            Function(
+                                "minus",
                                 [
-                                    0,
-                                    Function(
-                                        "minus",
-                                        [
-                                            proportion_by_sample,
-                                            self._resolve_margin_of_error(args, "margin_of_error"),
-                                        ],
-                                    ),
-                                ]
-                            ],
-                        ),
-                        total_samples,
+                                    proportion_by_sample,
+                                    self._resolve_margin_of_error(args, "margin_of_error"),
+                                ],
+                            ),
+                        ]
                     ],
                 ),
-                # Math assumes a single sampling_weight
-                Function("avg", [Column("sampling_factor")]),
+                total_proportion,
             ],
             alias,
         )
@@ -881,34 +883,29 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
         args: Mapping[str, str | Column | SelectType | int | float],
         alias: str,
     ) -> SelectType:
-        total_samples, _ = self._query_total_counts()
+        _, total_proportion = self._query_total_counts()
         sampled_group = Function("count", [])
-        proportion_by_sample = Function("divide", [sampled_group, total_samples])
-        return Function(
+        proportion_by_sample = Function(
             "divide",
             [
+                sampled_group,
                 Function(
-                    "multiply",
+                    "multiply", [total_proportion, Function("avg", [Column("sampling_factor")])]
+                ),
+            ],
+            "proportion_by_sample",
+        )
+        return Function(
+            "multiply",
+            [
+                Function(
+                    "plus",
                     [
-                        Function(
-                            "arrayMin",
-                            [
-                                [
-                                    1,
-                                    Function(
-                                        "plus",
-                                        [
-                                            proportion_by_sample,
-                                            self._resolve_margin_of_error(args, "margin_of_error"),
-                                        ],
-                                    ),
-                                ]
-                            ],
-                        ),
-                        total_samples,
+                        proportion_by_sample,
+                        self._resolve_margin_of_error(args, "margin_of_error"),
                     ],
                 ),
-                Function("avg", [Column("sampling_factor")]),
+                total_proportion,
             ],
             alias,
         )
