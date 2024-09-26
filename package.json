@@ -244,7 +244,7 @@
     "build-deprecated-docs": "yarn install-api-docs && ts-node api-docs/index.ts api-docs/openapi.json tests/apidocs/openapi-deprecated.json",
     "diff-docs": "yarn install-api-docs && ts-node api-docs/openapi-diff.ts",
     "deref-api-docs": "ts-node api-docs/index.ts tests/apidocs/openapi-spectacular.json tests/apidocs/openapi-derefed.json",
-    "build-chartcuterie-config": "NODE_ENV=production rspack --config=config/webpack.chartcuterie.config.ts",
+    "build-chartcuterie-config": "NODE_ENV=production rspack --config=./config/rspack.chartcuterie.config.ts",
     "build-acceptance": "IS_ACCEPTANCE_TEST=1 NODE_ENV=production rspack",
     "build-production": "NODE_ENV=production rspack --mode production",
     "build": "NODE_OPTIONS=--max-old-space-size=4096 rspack",
