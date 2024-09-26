@@ -1,18 +1,22 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
+import TransactionNameSearchBar from 'sentry/components/performance/searchBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {canUseMetricsData} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {PageAlert, usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
@@ -23,7 +27,6 @@ import {OVERVIEW_PAGE_TITLE} from 'sentry/views/insights/pages/settings';
 import {useFilters} from 'sentry/views/insights/pages/useFilters';
 import type {ModuleName} from 'sentry/views/insights/types';
 import {generateFrontendOtherPerformanceEventView} from 'sentry/views/performance/data';
-import {FRONTEND_OTHER_COLUMN_TITLES} from 'sentry/views/performance/landing/data';
 import {
   DoubleChartRow,
   TripleChartRow,
@@ -31,7 +34,21 @@ import {
 import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
 import Onboarding from 'sentry/views/performance/onboarding';
 import Table from 'sentry/views/performance/table';
-import {ProjectPerformanceType} from 'sentry/views/performance/utils';
+import {
+  getTransactionSearchQuery,
+  ProjectPerformanceType,
+} from 'sentry/views/performance/utils';
+
+export const FRONTEND_COLUMN_TITLES = [
+  'route',
+  'project',
+  'operation',
+  'tpm',
+  'p50()',
+  'p75()',
+  'p95()',
+  'users',
+];
 
 function FrontendLandingPage() {
   const filters = useFilters();
@@ -40,6 +57,7 @@ function FrontendLandingPage() {
   const {setPageError} = usePageAlert();
   const {projects} = useProjects();
   const onboardingProject = useOnboardingProject();
+  const navigate = useNavigate();
 
   const withStaticFilters = canUseMetricsData(organization);
   const eventView = generateFrontendOtherPerformanceEventView(
@@ -47,6 +65,24 @@ function FrontendLandingPage() {
     withStaticFilters,
     organization
   );
+
+  // TODO - verify this list
+  const transactionOpSearch = new MutableSearch('')
+    .addDisjunctionFilterValues('transaction.op', ['navigation', 'pageload'])
+    .formatString();
+
+  eventView.query = transactionOpSearch;
+  // TODO - this should come from MetricsField / EAP fields
+  eventView.fields = [
+    {field: 'team_key_transaction'},
+    {field: 'transaction'},
+    {field: 'project'},
+    {field: 'transaction.op'},
+    {field: 'tpm()'},
+    {field: 'p50(transaction.duration)'},
+    {field: 'p75(transaction.duration)'},
+    {field: 'p95(transaction.duration)'},
+  ].map(field => ({...field, width: COL_WIDTH_UNDEFINED}));
 
   const showOnboarding = onboardingProject !== undefined;
 
@@ -72,6 +108,36 @@ function FrontendLandingPage() {
 
   const sharedProps = {eventView, location, organization, withStaticFilters};
 
+  const getFreeTextFromQuery = (query: string) => {
+    const conditions = new MutableSearch(query);
+    const transactionValues = conditions.getFilterValues('transaction');
+    if (transactionValues.length) {
+      return transactionValues[0];
+    }
+    if (conditions.freeText.length > 0) {
+      // raw text query will be wrapped in wildcards in generatePerformanceEventView
+      // so no need to wrap it here
+      return conditions.freeText.join(' ');
+    }
+    return '';
+  };
+
+  function handleSearch(searchQuery: string) {
+    trackAnalytics('performance.domains.frontend.search', {organization});
+
+    navigate({
+      pathname: location.pathname,
+      query: {
+        ...location.query,
+        cursor: undefined,
+        query: String(searchQuery).trim() || undefined,
+        isDefaultQuery: false,
+      },
+    });
+  }
+
+  const derivedQuery = getTransactionSearchQuery(location, eventView.query);
+
   if (showOnboarding) {
     return <Onboarding project={onboardingProject} organization={organization} />;
   }
@@ -83,30 +149,40 @@ function FrontendLandingPage() {
       </Layout.Header>
       <Layout.Body>
         <Layout.Main fullWidth>
-          <ModuleLayout.Full>
-            <ToolRibbon>
-              <PageFilterBar condensed>
-                <ProjectPageFilter />
-                <EnvironmentPageFilter />
-                <DatePageFilter />
-              </PageFilterBar>
-            </ToolRibbon>
-          </ModuleLayout.Full>
-          <PageAlert />
-          <PerformanceDisplayProvider
-            value={{performanceType: ProjectPerformanceType.FRONTEND_OTHER}}
-          >
-            <div data-test-id="frontend-other-view">
-              <DoubleChartRow allowedCharts={doubleChartRowCharts} {...sharedProps} />
-              <TripleChartRow allowedCharts={tripleChartRowCharts} {...sharedProps} />
-              <Table
-                projects={projects}
-                columnTitles={FRONTEND_OTHER_COLUMN_TITLES}
-                setError={setPageError}
-                {...sharedProps}
-              />
-            </div>
-          </PerformanceDisplayProvider>
+          <ModuleLayout.Layout>
+            <ModuleLayout.Full>
+              <ToolRibbon>
+                <PageFilterBar condensed>
+                  <ProjectPageFilter />
+                  <EnvironmentPageFilter />
+                  <DatePageFilter />
+                </PageFilterBar>
+                <StyledTransactionNameSearchBar
+                  organization={organization}
+                  eventView={eventView}
+                  onSearch={(query: string) => {
+                    handleSearch(query);
+                  }}
+                  query={getFreeTextFromQuery(derivedQuery)}
+                />
+              </ToolRibbon>
+            </ModuleLayout.Full>
+            <PageAlert />
+            <ModuleLayout.Full>
+              <PerformanceDisplayProvider
+                value={{performanceType: ProjectPerformanceType.FRONTEND_OTHER}}
+              >
+                <DoubleChartRow allowedCharts={doubleChartRowCharts} {...sharedProps} />
+                <TripleChartRow allowedCharts={tripleChartRowCharts} {...sharedProps} />
+                <Table
+                  projects={projects}
+                  columnTitles={FRONTEND_COLUMN_TITLES}
+                  setError={setPageError}
+                  {...sharedProps}
+                />
+              </PerformanceDisplayProvider>
+            </ModuleLayout.Full>
+          </ModuleLayout.Layout>
         </Layout.Main>
       </Layout.Body>
     </Fragment>
@@ -125,16 +201,8 @@ function FrontendLandingPageWithProviders() {
   );
 }
 
-const SearchContainerWithFilter = styled('div')`
-  display: grid;
-  grid-template-rows: auto auto;
-  gap: ${space(2)};
-  margin-bottom: ${space(2)};
-
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
-    grid-template-rows: auto;
-    grid-template-columns: auto 1fr;
-  }
+const StyledTransactionNameSearchBar = styled(TransactionNameSearchBar)`
+  flex: 2;
 `;
 
 export default FrontendLandingPageWithProviders;
