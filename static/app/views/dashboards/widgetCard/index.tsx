@@ -189,6 +189,7 @@ class WidgetCard extends Component<Props, State> {
           tableData={tableData}
           pageLinks={pageLinks}
           totalIssuesCount={totalIssuesCount}
+          description={widget.description}
         />
       </StyledWidgetCardContextMenuContainer>
     );
@@ -336,16 +337,6 @@ class WidgetCard extends Component<Props, State> {
                       <DisplayOnDemandWarnings widget={widget} />
                       <DiscoverSplitAlert widget={widget} />
                     </WidgetTitleRow>
-                    {widget.description && (
-                      <Tooltip
-                        title={widget.description}
-                        containerDisplayMode="grid"
-                        showOnlyOnOverflow
-                        isHoverable
-                      >
-                        <WidgetDescription>{widget.description}</WidgetDescription>
-                      </Tooltip>
-                    )}
                   </WidgetHeaderDescription>
                   {this.renderContextMenu()}
                 </WidgetHeaderWrapper>

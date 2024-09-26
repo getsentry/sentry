@@ -8,7 +8,8 @@ import {openConfirmModal} from 'sentry/components/confirm';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {isWidgetViewerPath} from 'sentry/components/modals/widgetViewerModal/utils';
-import {IconEllipsis, IconExpand} from 'sentry/icons';
+import {Tooltip} from 'sentry/components/tooltip';
+import {IconEllipsis, IconExpand, IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
@@ -42,6 +43,7 @@ type Props = {
   selection: PageFilters;
   widget: Widget;
   widgetLimitReached: boolean;
+  description?: string;
   index?: string;
   isPreview?: boolean;
   onDelete?: () => void;
@@ -73,6 +75,7 @@ function WidgetCardContextMenu({
   pageLinks,
   totalIssuesCount,
   seriesResultsType,
+  description,
 }: Props) {
   const {isMetricsData} = useDashboardsMEPContext();
 
@@ -276,6 +279,16 @@ function WidgetCardContextMenu({
                     {t('Indexed')}
                   </SampledTag>
                 )}
+              {description && (
+                <Tooltip title={description} containerDisplayMode="grid" isHoverable>
+                  <Button
+                    aria-label={t('Widget description')}
+                    borderless
+                    size="xs"
+                    icon={<IconInfo />}
+                  />
+                </Tooltip>
+              )}
               <StyledDropdownMenuControl
                 items={menuOptions}
                 triggerProps={{
