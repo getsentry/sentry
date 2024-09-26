@@ -1,5 +1,5 @@
 ---
-created: '2024-09-12T18:50:41.219403+00:00'
+created: '2024-09-26T02:26:48.750717+00:00'
 creator: sentry
 source: tests/sentry/backup/test_sanitize.py
 ---
@@ -212,6 +212,16 @@ source: tests/sentry/backup/test_sanitize.py
   sanitized_fields:
   - date_added
   - date_updated
+- model_name: workflow_engine.dataconditiongroup
+  ordinal: 1
+  sanitized_fields:
+  - date_added
+  - date_updated
+- model_name: workflow_engine.dataconditiongroup
+  ordinal: 2
+  sanitized_fields:
+  - date_added
+  - date_updated
 - model_name: workflow_engine.datasource
   ordinal: 1
   sanitized_fields:
@@ -229,19 +239,33 @@ source: tests/sentry/backup/test_sanitize.py
   - date_added
   - date_updated
   - name
-- model_name: workflow_engine.workflow
-  ordinal: 2
+- model_name: workflow_engine.workflowaction
+  ordinal: 1
   sanitized_fields:
   - date_added
   - date_updated
-  - name
-- model_name: workflow_engine.workflowaction
+- model_name: workflow_engine.workflowdataconditiongroup
+  ordinal: 1
+  sanitized_fields:
+  - date_added
+  - date_updated
+- model_name: workflow_engine.detectorworkflow
   ordinal: 1
   sanitized_fields:
   - date_added
   - date_updated
 - model_name: workflow_engine.datasourcedetector
   ordinal: 1
+  sanitized_fields:
+  - date_added
+  - date_updated
+- model_name: workflow_engine.datacondition
+  ordinal: 1
+  sanitized_fields:
+  - date_added
+  - date_updated
+- model_name: workflow_engine.datacondition
+  ordinal: 2
   sanitized_fields:
   - date_added
   - date_updated

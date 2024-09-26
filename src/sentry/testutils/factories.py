@@ -171,11 +171,17 @@ from sentry.users.services.user import RpcUser
 from sentry.utils import loremipsum
 from sentry.utils.performance_issues.performance_problem import PerformanceProblem
 from sentry.workflow_engine.models import (
+    Action,
+    DataCondition,
+    DataConditionGroup,
+    DataConditionGroupAction,
     DataSource,
     DataSourceDetector,
     Detector,
+    DetectorWorkflow,
     Workflow,
     WorkflowAction,
+    WorkflowDataConditionGroup,
 )
 from social_auth.models import UserSocialAuth
 
@@ -2065,13 +2071,41 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
-    def create_workflowaction(
-        workflow: Workflow | None = None,
+    def create_workflow_action(
         **kwargs,
     ) -> WorkflowAction:
+        return WorkflowAction.objects.create(**kwargs)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_data_condition_group(
+        **kwargs,
+    ) -> DataConditionGroup:
+        return DataConditionGroup.objects.create(**kwargs)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_workflow_data_condition_group(
+        workflow: Workflow | None = None,
+        condition_group: DataConditionGroup | None = None,
+        **kwargs,
+    ) -> WorkflowDataConditionGroup:
         if workflow is None:
             workflow = Factories.create_workflow()
-        return WorkflowAction.objects.create(workflow=workflow, **kwargs)
+
+        if not condition_group:
+            condition_group = Factories.create_data_condition_group()
+
+        return WorkflowDataConditionGroup.objects.create(
+            workflow=workflow, condition_group=condition_group
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_data_condition(
+        **kwargs,
+    ) -> DataCondition:
+        return DataCondition.objects.create(**kwargs)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
@@ -2118,3 +2152,36 @@ class Factories:
         if detector is None:
             detector = Factories.create_detector()
         return DataSourceDetector.objects.create(data_source=data_source, detector=detector)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_action(**kwargs) -> Action:
+        return Action.objects.create(**kwargs)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_detector_workflow(
+        detector: Detector | None = None,
+        workflow: Workflow | None = None,
+        **kwargs,
+    ) -> DetectorWorkflow:
+        if detector is None:
+            detector = Factories.create_detector()
+        if workflow is None:
+            workflow = Factories.create_workflow()
+        return DetectorWorkflow.objects.create(detector=detector, workflow=workflow, **kwargs)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_data_condition_group_action(
+        action: Action | None = None,
+        condition_group: DataConditionGroup | None = None,
+        **kwargs,
+    ) -> DataConditionGroupAction:
+        if action is None:
+            action = Factories.create_action()
+        if condition_group is None:
+            condition_group = Factories.create_data_condition_group()
+        return DataConditionGroupAction.objects.create(
+            action=action, condition_group=condition_group, **kwargs
+        )

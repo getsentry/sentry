@@ -6,6 +6,10 @@ from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo
 
 @region_silo_model
 class DataSourceDetector(DefaultFieldsModel):
+    """
+    Lookup table that maps a DataSource to a Detector. This is used to determine which detectors are available for a given data source.
+    """
+
     __relocation_scope__ = RelocationScope.Organization
 
     data_source = FlexibleForeignKey("workflow_engine.DataSource")

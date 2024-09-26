@@ -13,7 +13,19 @@ class Detector(DefaultFieldsModel, OwnerModel):
 
     organization = FlexibleForeignKey("sentry.Organization")
     name = models.CharField(max_length=200)
+
+    # The data sources that the detector is watching
     data_sources = models.ManyToManyField("workflow_engine.DataSource", through=DataSourceDetector)
+
+    # The conditions that must be met for the detector to be considered 'active'
+    # This will emit an event for the workflow to process
+    workflow_condition_group = FlexibleForeignKey(
+        "workflow_engine.DataConditionGroup",
+        blank=True,
+        null=True,
+        unique=True,
+        on_delete=models.SET_NULL,
+    )
 
     class Meta(OwnerModel.Meta):
         constraints = OwnerModel.Meta.constraints + [
