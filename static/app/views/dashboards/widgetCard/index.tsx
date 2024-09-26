@@ -170,25 +170,27 @@ class WidgetCard extends Component<Props, State> {
     }
 
     return (
-      <WidgetCardContextMenu
-        organization={organization}
-        widget={widget}
-        selection={selection}
-        showContextMenu={showContextMenu}
-        isPreview={isPreview}
-        widgetLimitReached={widgetLimitReached}
-        onDuplicate={onDuplicate}
-        onEdit={onEdit}
-        onDelete={onDelete}
-        router={router}
-        location={location}
-        index={index}
-        seriesData={seriesData}
-        seriesResultsType={seriesResultsType}
-        tableData={tableData}
-        pageLinks={pageLinks}
-        totalIssuesCount={totalIssuesCount}
-      />
+      <StyledWidgetCardContextMenuContainer>
+        <WidgetCardContextMenu
+          organization={organization}
+          widget={widget}
+          selection={selection}
+          showContextMenu={showContextMenu}
+          isPreview={isPreview}
+          widgetLimitReached={widgetLimitReached}
+          onDuplicate={onDuplicate}
+          onEdit={onEdit}
+          onDelete={onDelete}
+          router={router}
+          location={location}
+          index={index}
+          seriesData={seriesData}
+          seriesResultsType={seriesResultsType}
+          tableData={tableData}
+          pageLinks={pageLinks}
+          totalIssuesCount={totalIssuesCount}
+        />
+      </StyledWidgetCardContextMenuContainer>
     );
   }
 
@@ -499,6 +501,13 @@ const ErrorCard = styled(Placeholder)`
   margin-bottom: ${space(2)};
 `;
 
+const StyledWidgetCardContextMenuContainer = styled('div')`
+  opacity: 0;
+  transform: scale(0);
+  transition: opacity 0.1s;
+  z-index: 1;
+`;
+
 export const WidgetCardPanel = styled(Panel, {
   shouldForwardProp: prop => prop !== 'isDragging',
 })<{
@@ -511,6 +520,14 @@ export const WidgetCardPanel = styled(Panel, {
   min-height: 96px;
   display: flex;
   flex-direction: column;
+
+  :hover
+    ${StyledWidgetCardContextMenuContainer},
+    :focus-within
+    ${StyledWidgetCardContextMenuContainer} {
+    opacity: 1;
+    transform: scale(1);
+  }
 `;
 
 const StoredDataAlert = styled(Alert)`
