@@ -3,7 +3,7 @@ import {createContext, useContext} from 'react';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
 import type {RecordingFrame} from 'sentry/utils/replays/types';
 
-const context = createContext<RecordingFrame[] | undefined>([]);
+const context = createContext<RecordingFrame[]>([]);
 
 export function ReplayPlayerEventsContextProvider({
   children,
@@ -12,7 +12,9 @@ export function ReplayPlayerEventsContextProvider({
   children: React.ReactNode;
   replay: ReplayReader | null;
 }) {
-  return <context.Provider value={replay?.getRRWebFrames()}>{children}</context.Provider>;
+  return (
+    <context.Provider value={replay?.getRRWebFrames() ?? []}>{children}</context.Provider>
+  );
 }
 
 export function useReplayPlayerEvents() {
