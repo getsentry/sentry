@@ -139,10 +139,9 @@ const onboarding: OnboardingConfig = {
     {
       type: StepType.INSTALL,
       description: tct(
-        'Add the Sentry SDK as a dependency using [codeNpm:npm] or [codeYarn:yarn]:',
+        'Add the Sentry SDK as a dependency using [code:npm] or [code:yarn]:',
         {
-          codeYarn: <code />,
-          codeNpm: <code />,
+          code: <code />,
         }
       ),
       configurations: getInstallConfig(),
