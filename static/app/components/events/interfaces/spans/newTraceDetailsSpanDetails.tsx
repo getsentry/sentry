@@ -345,14 +345,9 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
       return (
         <SpanDetails>
           {organization.features.includes('profiling') ? (
-            <GapSpanDetails event={event} span={span} resetCellMeasureCache={() => {}} />
+            <GapSpanDetails event={event} span={span} />
           ) : (
-            <InlineDocs
-              orgSlug={organization.slug}
-              platform={event.sdk?.name || ''}
-              projectSlug={event?.projectSlug ?? ''}
-              resetCellMeasureCache={() => {}}
-            />
+            <InlineDocs platform={event.sdk?.name || ''} />
           )}
         </SpanDetails>
       );
