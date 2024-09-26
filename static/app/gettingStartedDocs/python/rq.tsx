@@ -80,13 +80,9 @@ const onboarding: OnboardingConfig = {
   install: () => [
     {
       type: StepType.INSTALL,
-      description: tct(
-        'Install [code:sentry-sdk] from PyPI with the [sentryRQCode:rq] extra:',
-        {
-          code: <code />,
-          sentryRQCode: <code />,
-        }
-      ),
+      description: tct('Install [code:sentry-sdk] from PyPI with the [code:rq] extra:', {
+        code: <code />,
+      }),
       configurations: [
         {
           language: 'bash',
@@ -189,19 +185,17 @@ const onboarding: OnboardingConfig = {
         <div>
           <p>
             {tct(
-              'When you run [codeMain:python main.py] a transaction named [codeTrxName:testing_sentry] in the Performance section of Sentry will be created.',
+              'When you run [code:python main.py] a transaction named [code:testing_sentry] in the Performance section of Sentry will be created.',
               {
-                codeMain: <code />,
-                codeTrxName: <code />,
+                code: <code />,
               }
             )}
           </p>
           <p>
             {tct(
-              'If you run the RQ worker with [codeWorker:rq worker -c mysettings] a transaction for the execution of [codeFunction:hello()] will be created. Additionally, an error event will be sent to Sentry and will be connected to the transaction.',
+              'If you run the RQ worker with [code:rq worker -c mysettings] a transaction for the execution of [code:hello()] will be created. Additionally, an error event will be sent to Sentry and will be connected to the transaction.',
               {
-                codeWorker: <code />,
-                codeFunction: <code />,
+                code: <code />,
               }
             )}
           </p>

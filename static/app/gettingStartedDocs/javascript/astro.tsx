@@ -72,10 +72,9 @@ const getInstallConfig = () => [
   {
     type: StepType.INSTALL,
     description: tct(
-      'Install the [sentryAstroPkg:@sentry/astro] package with the [astroCli:astro] CLI:',
+      'Install the [code:@sentry/astro] package with the [code:astro] CLI:',
       {
-        sentryAstroPkg: <code />,
-        astroCli: <code />,
+        code: <code />,
       }
     ),
     configurations: [
@@ -95,10 +94,23 @@ const getInstallConfig = () => [
 ];
 
 const onboarding: OnboardingConfig = {
-  introduction: () =>
-    tct("Sentry's integration with [astroLink:Astro] supports Astro 3.0.0 and above.", {
-      astroLink: <ExternalLink href="https://astro.build/" />,
-    }),
+  introduction: () => (
+    <Fragment>
+      <p>
+        {tct(
+          "Sentry's integration with [astroLink:Astro] supports Astro 3.0.0 and above.",
+          {
+            astroLink: <ExternalLink href="https://astro.build/" />,
+          }
+        )}
+      </p>
+      <p>
+        {tct("In this quick guide you'll use the [astrocli:astro] CLI to set up:", {
+          astrocli: <strong />,
+        })}
+      </p>
+    </Fragment>
+  ),
   install: () => getInstallConfig(),
   configure: (params: Params) => [
     {
@@ -290,10 +302,9 @@ import * as Sentry from "@sentry/astro";`,
             },
           ],
           additionalInfo: tct(
-            `Note that creating your own [code:sentry.client.config.js] file will override the default settings in your [code2:astro.config.js] file. Learn more about this [link:here].`,
+            `Note that creating your own [code:sentry.client.config.js] file will override the default settings in your [code:astro.config.js] file. Learn more about this [link:here].`,
             {
               code: <code />,
-              code2: <code />,
               link: (
                 <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/astro/manual-setup/#manual-sdk-initialization" />
               ),

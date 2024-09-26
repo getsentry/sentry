@@ -101,4 +101,16 @@ describe('formatMongoDBQuery', function () {
     );
     expect(truncatedEntry).toBeInTheDocument();
   });
+
+  it('properly handles formatting MongoDB queries when the operation entry is the last entry', function () {
+    const query = `{"first_key":"first_value","second_key":"second_value","findOne":"my_collection"}`;
+    const tokenizedQuery = formatMongoDBQuery(query, 'findOne');
+    render(<Fragment>{tokenizedQuery}</Fragment>);
+
+    const boldedText = screen.getByText(/"findOne": "my_collection"/i);
+    expect(boldedText).toContainHTML('<b>"findOne": "my_collection"</b>');
+
+    const commaTokens = screen.getAllByText(',');
+    expect(commaTokens).toHaveLength(2);
+  });
 });

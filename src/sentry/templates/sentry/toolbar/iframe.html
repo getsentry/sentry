@@ -1,15 +1,67 @@
+{% comment %}
+Template returned for authenticated, valid requests to /iframe. The iframe serves as a proxy for Sentry API requests.
+Required context variables:
+- referrer:         string. HTTP header from the request object.
+{% endcomment %}
 {% load sentry_helpers %}
 {% load sentry_assets %}
 <!DOCTYPE html>
-<html>
-<head>
-  <title></title>
-</head>
-<body>
-  {% script %}
-  <script>
-  console.log("Hello World!");
-  </script>
-  {% endscript %}
-</body>
+<html lang="en">
+  <head>
+    <title>Sentry DevToolbar iFrame</title>
+    <link rel="icon" type="image/png" href="{% absolute_asset_url "sentry" "images/favicon.png" %}">
+  </head>
+  <body>
+    <script>
+      const referrer = "{{ referrer|escapejs }}";
+
+      function log(...args) {
+        console.log('iframe:', ...args);
+      }
+
+      log('Init', {referrer});
+
+      const {port1, port2} = new MessageChannel();
+
+      const messageDispatch = {
+        'log': log,
+        'fetch': async (url, init) => {
+          const response =  await fetch(url, init);
+          return {
+            ok: response.ok,
+            status: response.status,
+            statusText: response.statusText,
+            url: response.url,
+            headers: Object.fromEntries(response.headers.entries()),
+            text: await response.text(),
+          }
+        },
+      };
+
+      port1.addEventListener('message', (postMessage) => {
+        log('port.onMessage', postMessage.data);
+
+        const {$id, message} = postMessage.data;
+        if (!$id) {
+          return; // MessageEvent is malformed, missing $id
+        }
+
+        if (!message.$function || !(message.$function in messageDispatch)) {
+          return; // No-op without a $function to call
+        }
+
+        messageDispatch[message.$function]
+          .apply(undefined, message.$args || [])
+          .then($result => port1.postMessage({$id, $result}))
+          .catch((error) => port1.postMessage({$id, $error: error}));
+      });
+      port1.start();
+
+      window.parent.postMessage({
+        source: 'sentry-toolbar',
+        message: 'port-connect',
+      }, referrer, [port2]);
+      log('Sent', {message: 'port-connect', referrer})
+    </script>
+  </body>
 </html>

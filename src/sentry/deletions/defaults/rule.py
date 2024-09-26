@@ -1,8 +1,11 @@
-from ..base import ModelDeletionTask, ModelRelation
+from collections.abc import Sequence
+
+from sentry.deletions.base import BaseRelation, ModelDeletionTask, ModelRelation
+from sentry.models.rule import Rule
 
 
-class RuleDeletionTask(ModelDeletionTask):
-    def get_child_relations(self, instance):
+class RuleDeletionTask(ModelDeletionTask[Rule]):
+    def get_child_relations(self, instance: Rule) -> list[BaseRelation]:
         from sentry.models.grouprulestatus import GroupRuleStatus
         from sentry.models.rule import RuleActivity
         from sentry.models.rulefirehistory import RuleFireHistory
@@ -13,7 +16,7 @@ class RuleDeletionTask(ModelDeletionTask):
             ModelRelation(RuleActivity, {"rule_id": instance.id}),
         ]
 
-    def mark_deletion_in_progress(self, instance_list):
+    def mark_deletion_in_progress(self, instance_list: Sequence[Rule]) -> None:
         from sentry.constants import ObjectStatus
 
         for instance in instance_list:

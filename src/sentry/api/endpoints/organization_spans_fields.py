@@ -31,6 +31,16 @@ from sentry.snuba.referrer import Referrer
 from sentry.tagstore.types import TagKey, TagValue
 from sentry.utils import snuba
 
+# This causes problems if a user sends an attribute with any of these values
+# but the meta table currently can't handle that anyways
+# More users will see the 3 of these since they're on everything so lets try to make
+# the common usecase more reasonable
+TAG_NAME_MAPPING = {
+    "segment_name": "transaction",
+    "name": "span.description",
+    "service": "project",
+}
+
 
 class OrganizationSpansFieldsEndpointBase(OrganizationEventsV2EndpointBase):
     publish_status = {
@@ -108,7 +118,11 @@ class OrganizationSpansFieldsEndpoint(OrganizationSpansFieldsEndpointBase):
 
             paginator = ChainPaginator(
                 [
-                    [TagKey(tag.name) for tag in rpc_response.tags if tag.name],
+                    [
+                        TagKey(TAG_NAME_MAPPING.get(tag.name, tag.name))
+                        for tag in rpc_response.tags
+                        if tag.name
+                    ],
                 ],
                 max_limit=max_span_tags,
             )

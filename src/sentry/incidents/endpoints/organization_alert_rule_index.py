@@ -217,9 +217,6 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
             ),
         )
 
-        if not features.has("organizations:uptime-rule-api", organization):
-            uptime_rules = ProjectUptimeSubscription.objects.none()
-
         if not features.has("organizations:performance-view", organization):
             # Filter to only error alert rules
             alert_rules = alert_rules.filter(snuba_query__dataset=Dataset.Events.value)

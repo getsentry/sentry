@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import Feature from 'sentry/components/acl/feature';
 import AvatarList from 'sentry/components/avatar/avatarList';
 import {DateTime} from 'sentry/components/dateTime';
 import type {OnAssignCallback} from 'sentry/components/deprecatedAssigneeSelectorDropdown';
@@ -10,7 +9,6 @@ import {EventThroughput} from 'sentry/components/events/eventStatisticalDetector
 import AssignedTo from 'sentry/components/group/assignedTo';
 import ExternalIssueList from 'sentry/components/group/externalIssuesList';
 import {StreamlinedExternalIssueList} from 'sentry/components/group/externalIssuesList/streamlinedExternalIssueList';
-import {GroupSummary} from 'sentry/components/group/groupSummary';
 import GroupReleaseStats from 'sentry/components/group/releaseStats';
 import TagFacets, {
   BACKEND_TAGS,
@@ -28,7 +26,6 @@ import IssueListCacheStore from 'sentry/stores/IssueListCacheStore';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group, TeamParticipant, UserParticipant} from 'sentry/types/group';
-import {IssueType} from 'sentry/types/group';
 import type {Organization, OrganizationSummary} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {CurrentRelease} from 'sentry/types/release';
@@ -43,10 +40,8 @@ import {getAnalyicsDataForProject} from 'sentry/utils/projects';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {ParticipantList} from 'sentry/views/issueDetails/participantList';
-import {
-  getGroupDetailsQueryData,
-  useHasStreamlinedUI,
-} from 'sentry/views/issueDetails/utils';
+import {makeFetchGroupQueryKey} from 'sentry/views/issueDetails/useGroup';
+import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 type Props = {
   environments: string[];
@@ -58,10 +53,11 @@ type Props = {
 
 function useFetchAllEnvsGroupData(organization: OrganizationSummary, group: Group) {
   return useApiQuery<Group>(
-    [
-      `/organizations/${organization.slug}/issues/${group.id}/`,
-      {query: getGroupDetailsQueryData()},
-    ],
+    makeFetchGroupQueryKey({
+      organizationSlug: organization.slug,
+      groupId: group.id,
+      environments: [],
+    }),
     {
       staleTime: 30000,
       gcTime: 30000,
@@ -259,9 +255,6 @@ export default function GroupSidebar({
 
   return (
     <Container>
-      <Feature features={['organizations:ai-summary']}>
-        <GroupSummary groupId={group.id} groupCategory={group.issueCategory} />
-      </Feature>
       {hasStreamlinedUI && event && (
         <ErrorBoundary mini>
           <StreamlinedExternalIssueList group={group} event={event} project={project} />
@@ -299,13 +292,8 @@ export default function GroupSidebar({
                   ? BACKEND_TAGS
                   : DEFAULT_TAGS
           }
-          event={event}
           tagFormatter={TAGS_FORMATTER}
           project={project}
-          isStatisticalDetector={
-            group.issueType === IssueType.PERFORMANCE_DURATION_REGRESSION ||
-            group.issueType === IssueType.PERFORMANCE_ENDPOINT_REGRESSION
-          }
         />
       )}
       {issueTypeConfig.regression.enabled && event && (

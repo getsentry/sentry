@@ -164,13 +164,15 @@ describe('Performance > Transaction Tags', function () {
     // It shows the tag chart
     expect(screen.getByText('Heat Map')).toBeInTheDocument();
 
-    expect(browserHistory.replace).toHaveBeenCalledWith({
-      query: {
-        project: '1',
-        statsPeriod: '14d',
-        tagKey: 'hardwareConcurrency',
-        transaction: 'Test Transaction',
-      },
+    await waitFor(() => {
+      expect(browserHistory.replace).toHaveBeenCalledWith({
+        query: {
+          project: '1',
+          statsPeriod: '14d',
+          tagKey: 'hardwareConcurrency',
+          transaction: 'Test Transaction',
+        },
+      });
     });
 
     expect(await screen.findByRole('radio', {name: 'hardwareConcurrency'})).toBeChecked();
@@ -189,13 +191,15 @@ describe('Performance > Transaction Tags', function () {
       expect(screen.getByRole('table')).toBeInTheDocument();
     });
 
-    expect(browserHistory.replace).toHaveBeenCalledWith({
-      query: {
-        project: '1',
-        statsPeriod: '14d',
-        tagKey: 'hardwareConcurrency',
-        transaction: 'Test Transaction',
-      },
+    await waitFor(() => {
+      expect(browserHistory.replace).toHaveBeenCalledWith({
+        query: {
+          project: '1',
+          statsPeriod: '14d',
+          tagKey: 'hardwareConcurrency',
+          transaction: 'Test Transaction',
+        },
+      });
     });
 
     await waitFor(() => expect(histogramMock).toHaveBeenCalledTimes(1));
@@ -226,13 +230,15 @@ describe('Performance > Transaction Tags', function () {
       expect(screen.getByRole('table')).toBeInTheDocument();
     });
 
-    expect(browserHistory.replace).toHaveBeenCalledWith({
-      query: {
-        project: '1',
-        statsPeriod: '14d',
-        tagKey: 'effectiveConnectionType',
-        transaction: 'Test Transaction',
-      },
+    await waitFor(() => {
+      expect(browserHistory.replace).toHaveBeenCalledWith({
+        query: {
+          project: '1',
+          statsPeriod: '14d',
+          tagKey: 'effectiveConnectionType',
+          transaction: 'Test Transaction',
+        },
+      });
     });
 
     await waitFor(() => expect(histogramMock).toHaveBeenCalledTimes(1));
@@ -286,13 +292,15 @@ describe('Performance > Transaction Tags', function () {
 
     expect(await screen.findByText('Suspect Tags')).toBeInTheDocument();
 
-    expect(browserHistory.replace).toHaveBeenCalledWith({
-      query: {
-        project: '1',
-        statsPeriod: '14d',
-        tagKey: 'hardwareConcurrency',
-        transaction: 'Test Transaction',
-      },
+    await waitFor(() => {
+      expect(browserHistory.replace).toHaveBeenCalledWith({
+        query: {
+          project: '1',
+          statsPeriod: '14d',
+          tagKey: 'hardwareConcurrency',
+          transaction: 'Test Transaction',
+        },
+      });
     });
 
     expect(await screen.findByRole('radio', {name: 'hardwareConcurrency'})).toBeChecked();
@@ -319,13 +327,15 @@ describe('Performance > Transaction Tags', function () {
     // Choose a different tag
     await userEvent.click(screen.getByRole('radio', {name: 'effectiveConnectionType'}));
 
-    expect(browserHistory.replace).toHaveBeenCalledWith({
-      query: {
-        project: '1',
-        statsPeriod: '14d',
-        tagKey: 'effectiveConnectionType',
-        transaction: 'Test Transaction',
-      },
+    await waitFor(() => {
+      expect(browserHistory.replace).toHaveBeenCalledWith({
+        query: {
+          project: '1',
+          statsPeriod: '14d',
+          tagKey: 'effectiveConnectionType',
+          transaction: 'Test Transaction',
+        },
+      });
     });
   });
 

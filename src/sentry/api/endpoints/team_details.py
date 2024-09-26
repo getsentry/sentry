@@ -23,7 +23,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.examples.team_examples import TeamExamples
 from sentry.apidocs.parameters import GlobalParams, TeamParams
-from sentry.models.scheduledeletion import RegionScheduledDeletion
+from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.models.team import Team, TeamStatus
 
 

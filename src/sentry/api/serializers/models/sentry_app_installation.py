@@ -6,8 +6,8 @@ from typing import Any
 from sentry.api.serializers import Serializer, register
 from sentry.constants import SentryAppInstallationStatus
 from sentry.hybridcloud.services.organization_mapping import organization_mapping_service
-from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.models.sentry_app import SentryApp
+from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 
