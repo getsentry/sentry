@@ -31,6 +31,11 @@ describe('useRouter', () => {
   });
 
   it('throws error when called outside of routes provider', function () {
+    // XXX(epurkhiser): This test does nothing in react router 6 land
+    if (window.__SENTRY_USING_REACT_ROUTER_SIX) {
+      return;
+    }
+
     // Error is expected, do not fail when calling console.error
     jest.spyOn(console, 'error').mockImplementation();
 
