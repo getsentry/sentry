@@ -43,6 +43,7 @@ from sentry.uptime.models import (
 from sentry.users.models.identity import Identity, IdentityProvider
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
+from sentry.workflow_engine.models import DataSource, Detector, Workflow
 
 
 class Fixtures:
@@ -633,20 +634,39 @@ class Fixtures:
     def create_dashboard_widget_query(self, *args, **kwargs):
         return Factories.create_dashboard_widget_query(*args, **kwargs)
 
-    def create_workflow(self, *args, **kwargs):
+    def create_workflow_action(self, *args, **kwargs) -> Workflow:
+        return Factories.create_workflow_action(*args, **kwargs)
+
+    def create_workflow(self, *args, **kwargs) -> Workflow:
         return Factories.create_workflow(*args, **kwargs)
 
-    def create_workflowaction(self, *args, **kwargs):
-        return Factories.create_workflowaction(*args, **kwargs)
-
-    def create_data_source(self, *args, **kwargs):
+    def create_data_source(self, *args, **kwargs) -> DataSource:
         return Factories.create_data_source(*args, **kwargs)
 
-    def create_detector(self, *args, **kwargs):
+    def create_data_condition(self, *args, **kwargs):
+        return Factories.create_data_condition(*args, **kwargs)
+
+    def create_detector(self, *args, **kwargs) -> Detector:
         return Factories.create_detector(*args, **kwargs)
 
     def create_data_source_detector(self, *args, **kwargs):
         return Factories.create_data_source_detector(*args, **kwargs)
+
+    def create_data_condition_group(self, *args, **kwargs):
+        return Factories.create_data_condition_group(*args, **kwargs)
+
+    def create_data_condition_group_action(self, *args, **kwargs):
+        return Factories.create_data_condition_group_action(*args, **kwargs)
+
+    def create_detector_workflow(self, *args, **kwargs):
+        return Factories.create_detector_workflow(*args, **kwargs)
+
+    def create_workflow_data_condition_group(self, *args, **kwargs):
+        return Factories.create_workflow_data_condition_group(*args, **kwargs)
+
+    # workflow_engine action
+    def create_action(self, *args, **kwargs):
+        return Factories.create_action(*args, **kwargs)
 
     def create_uptime_subscription(
         self,
