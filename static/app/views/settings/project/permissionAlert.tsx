@@ -7,8 +7,8 @@ import type {Project} from 'sentry/types/project';
 
 interface Props extends React.ComponentPropsWithoutRef<typeof Alert> {
   access?: Scope[];
-  project?: Project | null | undefined;
-  team?: Team | null | undefined;
+  project?: Project;
+  team?: Team;
 }
 
 export const permissionAlertText = t(
