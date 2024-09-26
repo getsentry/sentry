@@ -65,22 +65,27 @@ SAMPLED_TASKS = {
     "sentry.tasks.relay.invalidate_project_config": settings.SENTRY_RELAY_TASK_APM_SAMPLING,
     "sentry.ingest.transaction_clusterer.tasks.spawn_clusterers": settings.SENTRY_RELAY_TASK_APM_SAMPLING,
     "sentry.ingest.transaction_clusterer.tasks.cluster_projects": settings.SENTRY_RELAY_TASK_APM_SAMPLING,
-    "sentry.tasks.process_buffer.process_incr": 0.01,
+    "sentry.tasks.process_buffer.process_incr": 0.1 * settings.SENTRY_BACKEND_APM_SAMPLING,
     "sentry.replays.tasks.delete_recording_segments": settings.SAMPLED_DEFAULT_RATE,
     "sentry.replays.tasks.delete_replay_recording_async": settings.SAMPLED_DEFAULT_RATE,
     "sentry.tasks.summaries.weekly_reports.schedule_organizations": 1.0,
-    "sentry.tasks.summaries.weekly_reports.prepare_organization_report": 0.1,
-    "sentry.profiles.task.process_profile": 0.01,
+    "sentry.tasks.summaries.weekly_reports.prepare_organization_report": 0.1
+    * settings.SENTRY_BACKEND_APM_SAMPLING,
+    "sentry.profiles.task.process_profile": 0.1 * settings.SENTRY_BACKEND_APM_SAMPLING,
     "sentry.tasks.derive_code_mappings.process_organizations": settings.SAMPLED_DEFAULT_RATE,
     "sentry.tasks.derive_code_mappings.derive_code_mappings": settings.SAMPLED_DEFAULT_RATE,
     "sentry.monitors.tasks.clock_pulse": 1.0,
     "sentry.tasks.auto_enable_codecov": settings.SAMPLED_DEFAULT_RATE,
-    "sentry.dynamic_sampling.tasks.boost_low_volume_projects": 0.2,
-    "sentry.dynamic_sampling.tasks.boost_low_volume_transactions": 0.2,
-    "sentry.dynamic_sampling.tasks.recalibrate_orgs": 0.2,
-    "sentry.dynamic_sampling.tasks.sliding_window_org": 0.2,
-    "sentry.dynamic_sampling.tasks.custom_rule_notifications": 0.2,
-    "sentry.dynamic_sampling.tasks.clean_custom_rule_notifications": 0.2,
+    "sentry.dynamic_sampling.tasks.boost_low_volume_projects": 0.2
+    * settings.SENTRY_BACKEND_APM_SAMPLING,
+    "sentry.dynamic_sampling.tasks.boost_low_volume_transactions": 0.2
+    * settings.SENTRY_BACKEND_APM_SAMPLING,
+    "sentry.dynamic_sampling.tasks.recalibrate_orgs": 0.2 * settings.SENTRY_BACKEND_APM_SAMPLING,
+    "sentry.dynamic_sampling.tasks.sliding_window_org": 0.2 * settings.SENTRY_BACKEND_APM_SAMPLING,
+    "sentry.dynamic_sampling.tasks.custom_rule_notifications": 0.2
+    * settings.SENTRY_BACKEND_APM_SAMPLING,
+    "sentry.dynamic_sampling.tasks.clean_custom_rule_notifications": 0.2
+    * settings.SENTRY_BACKEND_APM_SAMPLING,
     "sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project": 1.0,
 }
 
