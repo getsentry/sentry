@@ -734,28 +734,32 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
       }).then(maybeNode => {
         if (maybeNode) {
           previouslyFocusedNodeRef.current = null;
-          scrollRowIntoView(maybeNode.node, maybeNode.index, 'center if outside', true);
+          const index = tree.list.findIndex(n => n === maybeNode);
+          if (index === -1) {
+            Sentry.captureMessage('Trace tree node is not visible in tree');
+            return;
+          }
+          scrollRowIntoView(maybeNode, index, 'center if outside', true);
           traceDispatch({
             type: 'set roving index',
-            node: maybeNode.node,
-            index: maybeNode.index,
+            node: maybeNode,
+            index: index,
             action_source: 'click',
           });
           setRowAsFocused(
-            maybeNode.node,
+            maybeNode,
             null,
             traceStateRef.current.search.resultsLookup,
             null,
             0
           );
 
-          if (traceStateRef.current.search.resultsLookup.has(maybeNode.node)) {
+          if (traceStateRef.current.search.resultsLookup.has(maybeNode)) {
             traceDispatch({
               type: 'set search iterator index',
-              resultIndex: maybeNode.index,
-              resultIteratorIndex: traceStateRef.current.search.resultsLookup.get(
-                maybeNode.node
-              )!,
+              resultIndex: index,
+              resultIteratorIndex:
+                traceStateRef.current.search.resultsLookup.get(maybeNode)!,
             });
           } else if (traceStateRef.current.search.resultIteratorIndex !== null) {
             traceDispatch({type: 'clear search iterator index'});
@@ -784,21 +788,25 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
       }).then(maybeNode => {
         if (maybeNode) {
           previouslyFocusedNodeRef.current = null;
-          scrollRowIntoView(maybeNode.node, maybeNode.index, 'center if outside', true);
+          const index = tree.list.findIndex(n => n === maybeNode);
+          if (index === -1) {
+            Sentry.captureMessage('Trace tree node is not visible in tree');
+            return;
+          }
+          scrollRowIntoView(maybeNode, index, 'center if outside', true);
           traceDispatch({
             type: 'set roving index',
-            node: maybeNode.node,
-            index: maybeNode.index,
+            node: maybeNode,
+            index: index,
             action_source: 'click',
           });
 
-          if (traceStateRef.current.search.resultsLookup.has(maybeNode.node)) {
+          if (traceStateRef.current.search.resultsLookup.has(maybeNode)) {
             traceDispatch({
               type: 'set search iterator index',
-              resultIndex: maybeNode.index,
-              resultIteratorIndex: traceStateRef.current.search.resultsLookup.get(
-                maybeNode.node
-              )!,
+              resultIndex: index,
+              resultIteratorIndex:
+                traceStateRef.current.search.resultsLookup.get(maybeNode)!,
             });
           } else if (traceStateRef.current.search.resultIteratorIndex !== null) {
             traceDispatch({type: 'clear search iterator index'});
