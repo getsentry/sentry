@@ -172,9 +172,6 @@ export default storyBook(BigNumberWidget, story => {
                 fields: {
                   'http_rate(500)': 'percentage',
                 },
-                units: {
-                  'http_rate(500)': null,
-                },
               }}
             />
           </NormalWidget>
@@ -195,9 +192,6 @@ export default storyBook(BigNumberWidget, story => {
               meta={{
                 fields: {
                   'http_rate(200)': 'percentage',
-                },
-                units: {
-                  'http_rate(200)': null,
                 },
               }}
             />
