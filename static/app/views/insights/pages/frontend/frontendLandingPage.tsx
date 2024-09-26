@@ -1,8 +1,9 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import Feature from 'sentry/components/acl/feature';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import * as Layout from 'sentry/components/layouts/thirds';
+import {NoAccess} from 'sentry/components/noAccess';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
@@ -145,7 +146,11 @@ function FrontendLandingPage() {
   }
 
   return (
-    <Fragment>
+    <Feature
+      features="insights-domain-view"
+      organization={organization}
+      renderDisabled={NoAccess}
+    >
       <Layout.Header>
         <FrontendHeader module={filters.module as ModuleName} />
       </Layout.Header>
@@ -188,7 +193,7 @@ function FrontendLandingPage() {
           </ModuleLayout.Layout>
         </Layout.Main>
       </Layout.Body>
-    </Fragment>
+    </Feature>
   );
 }
 
