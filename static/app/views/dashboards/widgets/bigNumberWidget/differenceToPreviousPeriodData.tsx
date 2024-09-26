@@ -55,7 +55,7 @@ export function DifferenceToPreviousPeriodData({
 
 const Difference = styled(ColorizedRating)`
   display: flex;
-  gap: ${space(0.5)};
+  gap: ${space(0.25)};
 
   @container (min-height: 70px) {
     padding-bottom: 5cqh;
