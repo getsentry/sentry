@@ -28,3 +28,9 @@ class LoginSuccessViewTest(APITestCase):
     def test_csp_report_only(self):
         res = self.client.get(self.url)
         assert has_valid_csp(res)
+
+    @override_settings(CSP_REPORT_ONLY=False, CSP_SCRIPT_SRC=["'unsafe-inline'"])
+    def test_csp_duplicate_unsafe_inline(self):
+        # Duplicate values in CSP directives are ok. This test asserts we still have the same behavior if unsafe-inline is repeated.
+        res = self.client.get(self.url)
+        assert has_valid_csp(res)

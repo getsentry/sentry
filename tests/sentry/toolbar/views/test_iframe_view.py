@@ -78,6 +78,13 @@ class IframeViewTest(APITestCase):
         res = self.client.get(self.url, HTTP_REFERER="https://sentry.io")
         assert has_valid_csp(res)
 
+    @override_settings(CSP_REPORT_ONLY=False, CSP_SCRIPT_SRC=["'unsafe-inline'"])
+    def test_csp_duplicate_unsafe_inline(self):
+        # Duplicate values in CSP directives are ok. This test asserts we still have the same behavior if unsafe-inline is repeated.
+        self.project.update_option("sentry:toolbar_allowed_origins", ["https://sentry.io"])
+        res = self.client.get(self.url, HTTP_REFERER="https://sentry.io")
+        assert has_valid_csp(res)
+
 
 def _has_expected_response(
     response, status_code: int, template_name: str, required_context: dict[str, Any]
