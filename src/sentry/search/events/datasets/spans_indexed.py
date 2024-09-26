@@ -21,6 +21,7 @@ from sentry.search.events.fields import (
     NumericColumn,
     SnQLFieldColumn,
     SnQLFunction,
+    SnQLStringArg,
     with_default,
 )
 from sentry.search.events.types import SelectType, WhereType
@@ -722,6 +723,23 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
                     snql_aggregate=self._resolve_time_spent_percentage,
                     default_result_type="percentage",
                 ),
+                SnQLFunction(
+                    "http_response_count",
+                    required_args=[
+                        SnQLStringArg("code"),
+                    ],
+                    snql_aggregate=self._resolve_http_response_count,
+                    default_result_type="integer",
+                ),
+                SnQLFunction(
+                    "count_web_vitals",
+                    required_args=[
+                        NumericColumn("column"),
+                        SnQLStringArg("quality", allowed_strings=["good", "meh", "poor", "any"]),
+                    ],
+                    snql_aggregate=self._resolve_web_vital_function,
+                    default_result_type="integer",
+                ),
             ]
         }
 
@@ -741,6 +759,90 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
             total_time,
             alias,
         )
+
+    def _resolve_http_response_count(
+        self, args: Mapping[str, str | Column | SelectType | int | float], alias: str
+    ) -> SelectType:
+        return Function(
+            "countIf",
+            [
+                Function(
+                    "startsWith",
+                    [
+                        self.builder.resolve_field("span.status_code"),
+                        args["code"],
+                    ],
+                )
+            ],
+            alias,
+        )
+
+    def _resolve_web_vital_function(
+        self, args: Mapping[str, str | Column], alias: str
+    ) -> SelectType:
+        column = args["column"]
+        quality = args["quality"].lower()
+
+        assert isinstance(column, Column), "first arg to count_web_vitals must be a column"
+        if column.subscriptable != "attr_num":
+            raise InvalidSearchQuery("count_web_vitals only supports numeric attributes")
+        elif column.key not in constants.VITAL_THRESHOLDS:
+            raise InvalidSearchQuery(f"count_web_vitals doesn't support {column.key}")
+
+        if quality == "good":
+            return Function(
+                "countIf",
+                [Function("less", [column, constants.VITAL_THRESHOLDS[column.key]["meh"]])],
+                alias,
+            )
+        elif quality == "meh":
+            return Function(
+                "countIf",
+                [
+                    Function(
+                        "and",
+                        [
+                            Function(
+                                "greaterOrEquals",
+                                [column, constants.VITAL_THRESHOLDS[column.key]["meh"]],
+                            ),
+                            Function(
+                                "less", [column, constants.VITAL_THRESHOLDS[column.key]["poor"]]
+                            ),
+                        ],
+                    )
+                ],
+                alias,
+            )
+        elif quality == "poor":
+            return Function(
+                "countIf",
+                [
+                    Function(
+                        "greaterOrEquals",
+                        [
+                            column,
+                            constants.VITAL_THRESHOLDS[column.key]["poor"],
+                        ],
+                    )
+                ],
+                alias,
+            )
+        elif quality == "any":
+            return Function(
+                "countIf",
+                [
+                    Function(
+                        "greaterOrEquals",
+                        [
+                            column,
+                            0,
+                        ],
+                    )
+                ],
+                alias,
+            )
+        return None
 
     def _resolve_sum_weighted(
         self,

@@ -525,9 +525,9 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
         assert response.data["data"] == [{"foo": "", "count()": 1}]
 
 
-@pytest.mark.xfail(
-    reason="Snuba is not stable for the EAP dataset, xfailing since its prone to failure"
-)
+# @pytest.mark.xfail(
+#     reason="Snuba is not stable for the EAP dataset, xfailing since its prone to failure"
+# )
 class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpointTest):
     is_eap = True
 
@@ -907,6 +907,74 @@ class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpoin
             {
                 "span.system": "postgresql",
                 "time_spent_percentage()": 0.5,
+            },
+        ]
+        assert meta["dataset"] == self.dataset
+
+    def test_http_response_count(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "foo", "sentry_tags": {"status_code": "400"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"description": "bar", "sentry_tags": {"status_code": "500"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+        response = self.do_request(
+            {
+                "field": ["http_response_count(5)"],
+                "query": "",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data == [
+            {
+                "http_response_count(5)": 1,
+            },
+        ]
+        assert meta["dataset"] == self.dataset
+
+    def test_count_web_vitals(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "foo", "measurements": {"lcp": {"value": 4000}}},
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"description": "foo", "measurements": {"lcp": {"value": 100}}},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+        response = self.do_request(
+            {
+                "field": ["count_web_vitals(measurements.lcp, good)"],
+                "query": "",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data == [
+            {
+                "count_web_vitals(measurements.lcp, good)": 1,
             },
         ]
         assert meta["dataset"] == self.dataset
