@@ -132,30 +132,6 @@ describe('getFieldRenderer', function () {
     });
   });
 
-  describe('apdex()', function () {
-    it.each([
-      [0, '0'],
-      [0.2, '0.200'],
-      [0.61, '0.610'],
-      [0.781, '0.781'],
-      [0.771231, '0.771'],
-      [0.99999, '0.999'],
-      [1.0, '1'],
-    ])('format %s', (value, expected) => {
-      const renderer = getFieldRenderer('apdex()', {}, false);
-
-      render(
-        renderer(
-          {
-            'apdex()': value,
-          },
-          {location, organization}
-        ) as React.ReactElement<any, any>
-      );
-      expect(screen.getByText(expected)).toBeInTheDocument();
-    });
-  });
-
   describe('date', function () {
     beforeEach(function () {
       ConfigStore.loadInitialData(

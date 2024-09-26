@@ -45,6 +45,7 @@ import {
 import {getShortEventId} from 'sentry/utils/events';
 import {formatRate} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
+import {formatApdex} from 'sentry/utils/number/formatApdex';
 import {formatFloat} from 'sentry/utils/number/formatFloat';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import toPercent from 'sentry/utils/number/toPercent';
@@ -384,8 +385,7 @@ const SPECIAL_FIELDS: SpecialFields = {
 
       return (
         <NumberContainer>
-          {/* Always render Apdex with 3 decimal places */}
-          {typeof data[field] === 'number' ? formatFloat(data[field], 3) : emptyValue}
+          {typeof data[field] === 'number' ? formatApdex(data[field]) : emptyValue}
         </NumberContainer>
       );
     },
