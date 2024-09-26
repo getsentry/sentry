@@ -8,6 +8,10 @@ import {
 } from 'react';
 
 export const enum SectionKey {
+  ISSUE_TRACKING = 'issue-tracking',
+  ISSUE_WORKFLOW = 'issue-workflow',
+  ISSUE_ACTIVITY = 'issue-activity',
+
   TRACE = 'trace',
 
   USER_FEEDBACK = 'user-feedback',

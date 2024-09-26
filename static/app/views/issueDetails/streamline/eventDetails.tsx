@@ -1,4 +1,4 @@
-import {useLayoutEffect, useState} from 'react';
+import {Fragment, useLayoutEffect, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -40,7 +40,7 @@ import {
 
 const enum EventPageContent {
   EVENT = 'event',
-  LIST = 'list',
+  IMPACT = 'impact',
 }
 
 export function EventDetails({
@@ -87,66 +87,80 @@ export function EventDetails({
 
   return (
     <EventDetailsContext.Provider value={{...eventDetails, dispatch}}>
-      <Feature features={['organizations:ai-summary']}>
-        <GroupSummary groupId={group.id} groupCategory={group.issueCategory} />
-      </Feature>
-      <PageErrorBoundary
-        mini
-        message={t('There was an error loading the suspect commits')}
-      >
-        <SuspectCommits
-          project={project}
-          eventId={event.id}
-          group={group}
-          commitRow={CommitRow}
-        />
-      </PageErrorBoundary>
-      <PageErrorBoundary mini message={t('There was an error loading the event filter')}>
-        <FilterContainer>
-          <EnvironmentPageFilter />
-          <SearchFilter
-            group={group}
-            handleSearch={query => {
-              navigate({...location, query: {...location.query, query}}, {replace: true});
-            }}
-            environments={environments}
-            query={searchQuery}
-            queryBuilderProps={{
-              disallowFreeText: true,
-            }}
-          />
-          <DatePageFilter />
-        </FilterContainer>
-      </PageErrorBoundary>
-      {error ? (
-        <div>
-          <GraphAlert type="error" showIcon>
-            {error.message}
-          </GraphAlert>
-        </div>
-      ) : (
-        <PageErrorBoundary mini message={t('There was an error loading the event graph')}>
-          {!isLoadingStats && groupStats && (
-            <ExtraContent>
-              <EventGraph
-                group={group}
-                groupStats={groupStats}
-                searchQuery={searchQuery}
-              />
-            </ExtraContent>
-          )}
-        </PageErrorBoundary>
-      )}
-      {pageContent === EventPageContent.LIST && (
-        <PageErrorBoundary mini message={t('There was an error loading the event list')}>
-          <GroupContent>
-            <EventList
-              group={group}
+      {pageContent === EventPageContent.IMPACT && (
+        <Fragment>
+          <Feature features={['organizations:ai-summary']}>
+            <GroupSummary groupId={group.id} groupCategory={group.issueCategory} />
+          </Feature>
+          <PageErrorBoundary
+            mini
+            message={t('There was an error loading the suspect commits')}
+          >
+            <SuspectCommits
               project={project}
-              onClose={() => setPageContent(EventPageContent.EVENT)}
+              eventId={event.id}
+              group={group}
+              commitRow={CommitRow}
             />
-          </GroupContent>
-        </PageErrorBoundary>
+          </PageErrorBoundary>
+          <PageErrorBoundary
+            mini
+            message={t('There was an error loading the event filter')}
+          >
+            <FilterContainer>
+              <EnvironmentPageFilter />
+              <SearchFilter
+                group={group}
+                handleSearch={query => {
+                  navigate(
+                    {...location, query: {...location.query, query}},
+                    {replace: true}
+                  );
+                }}
+                environments={environments}
+                query={searchQuery}
+                queryBuilderProps={{
+                  disallowFreeText: true,
+                }}
+              />
+              <DatePageFilter />
+            </FilterContainer>
+          </PageErrorBoundary>
+          {error ? (
+            <div>
+              <GraphAlert type="error" showIcon>
+                {error.message}
+              </GraphAlert>
+            </div>
+          ) : (
+            <PageErrorBoundary
+              mini
+              message={t('There was an error loading the event graph')}
+            >
+              {!isLoadingStats && groupStats && (
+                <ExtraContent>
+                  <EventGraph
+                    group={group}
+                    groupStats={groupStats}
+                    searchQuery={searchQuery}
+                  />
+                </ExtraContent>
+              )}
+            </PageErrorBoundary>
+          )}
+          <PageErrorBoundary
+            mini
+            message={t('There was an error loading the event list')}
+          >
+            <GroupContent>
+              <EventList
+                group={group}
+                project={project}
+                onClose={() => setPageContent(EventPageContent.EVENT)}
+              />
+            </GroupContent>
+          </PageErrorBoundary>
+        </Fragment>
       )}
       {pageContent === EventPageContent.EVENT && (
         <PageErrorBoundary

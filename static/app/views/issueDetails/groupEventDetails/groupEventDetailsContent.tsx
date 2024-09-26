@@ -150,7 +150,6 @@ export function EventDetailsContent({
       {hasActionableItems && !hasStreamlinedUI && (
         <ActionableItems event={event} project={project} isShare={false} />
       )}
-      {hasStreamlinedUI && <TraceDataSection event={event} />}
       <StyledDataSection>
         {!hasStreamlinedUI && (
           <Feature features={['organizations:ai-summary']}>
@@ -236,25 +235,6 @@ export function EventDetailsContent({
           project={project}
         />
       )}
-      <HighlightsDataSection
-        groupId={group.id}
-        event={event}
-        project={project}
-        viewAllRef={tagsRef}
-      />
-      {showPossibleSolutionsHigher && (
-        <ResourcesAndPossibleSolutionsIssueDetailsContent
-          event={event}
-          project={project}
-          group={group}
-        />
-      )}
-      <EventEvidence event={event} group={group} project={project} />
-      {defined(eventEntries[EntryType.MESSAGE]) && (
-        <EntryErrorBoundary type={EntryType.MESSAGE}>
-          <Message event={event} data={eventEntries[EntryType.MESSAGE].data} />
-        </EntryErrorBoundary>
-      )}
       {defined(eventEntries[EntryType.EXCEPTION]) && (
         <EntryErrorBoundary type={EntryType.EXCEPTION}>
           <Exception
@@ -283,6 +263,19 @@ export function EventDetailsContent({
             projectSlug={projectSlug}
             groupingCurrentLevel={groupingCurrentLevel}
           />
+        </EntryErrorBoundary>
+      )}
+      {showPossibleSolutionsHigher && (
+        <ResourcesAndPossibleSolutionsIssueDetailsContent
+          event={event}
+          project={project}
+          group={group}
+        />
+      )}
+      <EventEvidence event={event} group={group} project={project} />
+      {defined(eventEntries[EntryType.MESSAGE]) && (
+        <EntryErrorBoundary type={EntryType.MESSAGE}>
+          <Message event={event} data={eventEntries[EntryType.MESSAGE].data} />
         </EntryErrorBoundary>
       )}
       {isANR && (
@@ -359,6 +352,7 @@ export function EventDetailsContent({
           />
         </EntryErrorBoundary>
       ) : null}
+      {hasStreamlinedUI && <TraceDataSection event={event} />}
       <EventTraceView
         group={group}
         event={event}
@@ -387,6 +381,12 @@ export function EventDetailsContent({
           <Request event={event} data={eventEntries[EntryType.REQUEST].data} />
         </EntryErrorBoundary>
       )}
+      <HighlightsDataSection
+        groupId={group.id}
+        event={event}
+        project={project}
+        viewAllRef={tagsRef}
+      />
       {hasStreamlinedUI ? (
         <EventTagsDataSection event={event} projectSlug={project.slug} ref={tagsRef} />
       ) : (

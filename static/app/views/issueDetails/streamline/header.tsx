@@ -11,11 +11,9 @@ import {
   AssigneeSelector,
   useHandleAssigneeChange,
 } from 'sentry/components/group/assigneeSelector';
-import ParticipantList from 'sentry/components/group/streamlinedParticipantList';
 import Link from 'sentry/components/links/link';
 import Version from 'sentry/components/version';
 import VersionHoverCard from 'sentry/components/versionHoverCard';
-import {IconDashboard} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
@@ -27,9 +25,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
-import GroupActions from 'sentry/views/issueDetails/actions/index';
 import {Divider} from 'sentry/views/issueDetails/divider';
-import GroupPriority from 'sentry/views/issueDetails/groupPriority';
 import {AttachmentsBadge} from 'sentry/views/issueDetails/streamline/attachmentsBadge';
 import {ReplayBadge} from 'sentry/views/issueDetails/streamline/replayBadge';
 import {UserFeedbackBadge} from 'sentry/views/issueDetails/streamline/userFeedbackBadge';
@@ -185,56 +181,6 @@ export default function StreamlinedGroupHeader({
           </Stat>
         </AllStats>
       </HeadingGrid>
-
-      <StyledBreak />
-      <InfoWrapper
-        isResolvedOrIgnored={group.status === 'resolved' || group.status === 'ignored'}
-      >
-        <GroupActions
-          group={group}
-          project={project}
-          disabled={disableActions}
-          event={event}
-          query={location.query}
-        />
-        <SidebarWorkflowWrapper>
-          <WorkflowWrapper>
-            <Wrapper>
-              {t('Priority')}
-              <GroupPriority group={group} />
-            </Wrapper>
-            <Wrapper>
-              {t('Assignee')}
-              <AssigneeSelector
-                group={group}
-                assigneeLoading={assigneeLoading}
-                handleAssigneeChange={handleAssigneeChange}
-              />
-            </Wrapper>
-            {group.participants.length > 0 && (
-              <Wrapper>
-                {t('Participants')}
-                <ParticipantList users={userParticipants} teams={teamParticipants} />
-              </Wrapper>
-            )}
-            {displayUsers.length > 0 && (
-              <Wrapper>
-                {t('Viewers')}
-                <ParticipantList users={displayUsers} />
-              </Wrapper>
-            )}
-          </WorkflowWrapper>
-          <Divider />
-          <Button
-            icon={<IconDashboard />}
-            title={sidebarOpen ? t('Close Sidebar') : t('Open Sidebar')}
-            aria-label={sidebarOpen ? t('Close Sidebar') : t('Open Sidebar')}
-            size="sm"
-            borderless
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-          />
-        </SidebarWorkflowWrapper>
-      </InfoWrapper>
     </Header>
   );
 }
@@ -248,6 +194,7 @@ const HeadingGrid = styled('div')`
   grid-template-columns: minmax(0, 1fr) auto;
   gap: ${space(2)};
   align-items: center;
+  margin-bottom: ${space(3)};
 `;
 
 const Heading = styled('div')``;
