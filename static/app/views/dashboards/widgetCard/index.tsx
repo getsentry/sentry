@@ -502,6 +502,7 @@ const ErrorCard = styled(Placeholder)`
 `;
 
 const StyledWidgetCardContextMenuContainer = styled('div')`
+  width: 0;
   opacity: 0;
   transform: scale(0);
   transition: opacity 0.1s;
@@ -525,6 +526,7 @@ export const WidgetCardPanel = styled(Panel, {
     ${StyledWidgetCardContextMenuContainer},
     :focus-within
     ${StyledWidgetCardContextMenuContainer} {
+    width: auto;
     opacity: 1;
     transform: scale(1);
   }
