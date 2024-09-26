@@ -141,10 +141,6 @@ function FrontendLandingPage() {
 
   const derivedQuery = getTransactionSearchQuery(location, eventView.query);
 
-  if (showOnboarding) {
-    return <Onboarding project={onboardingProject} organization={organization} />;
-  }
-
   return (
     <Feature
       features="insights-domain-view"
@@ -164,31 +160,39 @@ function FrontendLandingPage() {
                   <EnvironmentPageFilter />
                   <DatePageFilter />
                 </PageFilterBar>
-                <StyledTransactionNameSearchBar
-                  organization={organization}
-                  eventView={eventView}
-                  onSearch={(query: string) => {
-                    handleSearch(query);
-                  }}
-                  query={getFreeTextFromQuery(derivedQuery)}
-                />
+                {!showOnboarding && (
+                  <StyledTransactionNameSearchBar
+                    organization={organization}
+                    eventView={eventView}
+                    onSearch={(query: string) => {
+                      handleSearch(query);
+                    }}
+                    query={getFreeTextFromQuery(derivedQuery)}
+                  />
+                )}
               </ToolRibbon>
             </ModuleLayout.Full>
             <PageAlert />
             <ModuleLayout.Full>
-              <PerformanceDisplayProvider
-                value={{performanceType: ProjectPerformanceType.FRONTEND_OTHER}}
-              >
-                <DoubleChartRow allowedCharts={doubleChartRowCharts} {...sharedProps} />
-                <TripleChartRow allowedCharts={tripleChartRowCharts} {...sharedProps} />
-                <Table
-                  projects={projects}
-                  columnTitles={FRONTEND_COLUMN_TITLES}
-                  setError={setPageError}
-                  {...sharedProps}
-                  eventView={tableEventView}
-                />
-              </PerformanceDisplayProvider>
+              {!showOnboarding && (
+                <PerformanceDisplayProvider
+                  value={{performanceType: ProjectPerformanceType.FRONTEND_OTHER}}
+                >
+                  <DoubleChartRow allowedCharts={doubleChartRowCharts} {...sharedProps} />
+                  <TripleChartRow allowedCharts={tripleChartRowCharts} {...sharedProps} />
+                  <Table
+                    projects={projects}
+                    columnTitles={FRONTEND_COLUMN_TITLES}
+                    setError={setPageError}
+                    {...sharedProps}
+                    eventView={tableEventView}
+                  />
+                </PerformanceDisplayProvider>
+              )}
+
+              {showOnboarding && (
+                <Onboarding project={onboardingProject} organization={organization} />
+              )}
             </ModuleLayout.Full>
           </ModuleLayout.Layout>
         </Layout.Main>
