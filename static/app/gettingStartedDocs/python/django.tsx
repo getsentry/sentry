@@ -53,10 +53,9 @@ const onboarding: OnboardingConfig = {
           description:
             params.docsLocation === DocsPageLocation.PROFILING_PAGE
               ? tct(
-                  'You need a minimum version [codeVersion:1.18.0] of the [codePackage:sentry-python] SDK for the profiling feature.',
+                  'You need a minimum version [code:1.18.0] of the [code:sentry-python] SDK for the profiling feature.',
                   {
-                    codeVersion: <code />,
-                    codePackage: <code />,
+                    code: <code />,
                   }
                 )
               : undefined,
@@ -70,10 +69,9 @@ const onboarding: OnboardingConfig = {
     {
       type: StepType.CONFIGURE,
       description: tct(
-        'Initialize the Sentry SDK in your Django [codeSettings:settings.py] file:',
+        'Initialize the Sentry SDK in your Django [code:settings.py] file:',
         {
-          codeDjango: <code />,
-          codeSettings: <code />,
+          code: <code />,
         }
       ),
       configurations: [

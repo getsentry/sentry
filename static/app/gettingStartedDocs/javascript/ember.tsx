@@ -132,10 +132,9 @@ const onboarding: OnboardingConfig = {
     {
       type: StepType.CONFIGURE,
       description: tct(
-        'You should [initCode:init] the Sentry SDK as soon as possible during your application load up in [appCode:app.js], before initializing Ember:',
+        'You should [code:init] the Sentry SDK as soon as possible during your application load up in [code:app.js], before initializing Ember:',
         {
-          initCode: <code />,
-          appCode: <code />,
+          code: <code />,
         }
       ),
       configurations: [

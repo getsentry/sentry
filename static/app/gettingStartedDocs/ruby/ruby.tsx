@@ -63,13 +63,12 @@ const onboarding: OnboardingConfig = {
         {
           description: params.isProfilingSelected
             ? tct(
-                'Ruby Profiling beta is available since SDK version 5.9.0. We use the [stackprofLink:stackprof gem] to collect profiles for Ruby. Make sure [stackprofCode:stackprof] is loaded before [sentryRubyCode:sentry-ruby].',
+                'Ruby Profiling beta is available since SDK version 5.9.0. We use the [stackprofLink:stackprof gem] to collect profiles for Ruby. Make sure [code:stackprof] is loaded before [code:sentry-ruby].',
                 {
                   stackprofLink: (
                     <ExternalLink href="https://github.com/tmm1/stackprof" />
                   ),
-                  stackprofCode: <code />,
-                  sentryRubyCode: <code />,
+                  code: <code />,
                 }
               )
             : undefined,
@@ -88,8 +87,8 @@ const onboarding: OnboardingConfig = {
     {
       type: StepType.CONFIGURE,
       description: tct(
-        'To use Sentry Ruby all you need is your DSN. Like most Sentry libraries it will honor the [sentryDSN:SENTRY_DSN] environment variable. You can find it on the project settings page under API Keys. You can either export it as environment variable or manually configure it with [sentryInit:Sentry.init]:',
-        {sentryDSN: <code />, sentryInit: <code />}
+        'To use Sentry Ruby all you need is your DSN. Like most Sentry libraries it will honor the [code:SENTRY_DSN] environment variable. You can find it on the project settings page under API Keys. You can either export it as environment variable or manually configure it with [code:Sentry.init]:',
+        {code: <code />}
       ),
       configurations: [
         {

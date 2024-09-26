@@ -169,10 +169,9 @@ const onboarding: OnboardingConfig = {
     {
       type: StepType.CONFIGURE,
       description: tct(
-        'Add Sentry to [programCode:Program.cs] through the [webHostCode:WebHostBuilder]:',
+        'Add Sentry to [code:Program.cs] through the [code:WebHostBuilder]:',
         {
-          webHostCode: <code />,
-          programCode: <code />,
+          code: <code />,
         }
       ),
       configurations: [

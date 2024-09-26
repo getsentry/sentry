@@ -31,10 +31,9 @@ const onboarding: OnboardingConfig = {
     {
       type: StepType.INSTALL,
       description: tct(
-        'Install [sentrySdkCode:sentry-sdk] from PyPI with the [sentrySanicCode:sanic] extra:',
+        'Install [code:sentry-sdk] from PyPI with the [code:sanic] extra:',
         {
-          sentrySdkCode: <code />,
-          sentrySanicCode: <code />,
+          code: <code />,
         }
       ),
       configurations: [

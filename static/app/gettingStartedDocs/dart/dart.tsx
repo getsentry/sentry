@@ -91,10 +91,9 @@ const metricsOnboarding: OnboardingConfig = {
     {
       type: StepType.INSTALL,
       description: tct(
-        'You need Sentry Dart SDK version [codeVersion:7.19.0] or higher. Learn more about installation methods in our [docsLink:full documentation].',
+        'You need Sentry Dart SDK version [code:7.19.0] or higher. Learn more about installation methods in our [docsLink:full documentation].',
         {
-          package: <code />,
-          codeVersion: <code />,
+          code: <code />,
           docsLink: <Link to={`/projects/${params.projectSlug}/getting-started/`} />,
         }
       ),
@@ -131,13 +130,9 @@ const metricsOnboarding: OnboardingConfig = {
     {
       type: StepType.VERIFY,
       description: tct(
-        "Then you'll be able to add metrics as [codeCounters:counters], [codeSets:sets], [codeDistribution:distributions], and [codeGauge:gauges]. These are available under the [codeNamespace:Sentry.metrics()] namespace.",
+        "Then you'll be able to add metrics as [code:counters], [code:sets], [code:distributions], and [code:gauges]. These are available under the [code:Sentry.metrics()] namespace.",
         {
-          codeCounters: <code />,
-          codeSets: <code />,
-          codeDistribution: <code />,
-          codeGauge: <code />,
-          codeNamespace: <code />,
+          code: <code />,
         }
       ),
       configurations: [
@@ -223,13 +218,9 @@ const onboarding: OnboardingConfig = {
           language: 'dart',
           code: getConfigureSnippet(params),
           additionalInfo: tct(
-            'You can configure the [sentryDsn: SENTRY_DSN], [sentryRelease: SENTRY_RELEASE], [sentryDist: SENTRY_DIST], and [sentryEnv: SENTRY_ENVIRONMENT] via the Dart environment variables passing the [dartDefine: --dart-define] flag to the compiler, as noted in the code sample.',
+            'You can configure the [code: SENTRY_DSN], [code: SENTRY_RELEASE], [code: SENTRY_DIST], and [code: SENTRY_ENVIRONMENT] via the Dart environment variables passing the [code: --dart-define] flag to the compiler, as noted in the code sample.',
             {
-              sentryDsn: <code />,
-              sentryRelease: <code />,
-              sentryDist: <code />,
-              sentryEnv: <code />,
-              dartDefine: <code />,
+              code: <code />,
             }
           ),
         },

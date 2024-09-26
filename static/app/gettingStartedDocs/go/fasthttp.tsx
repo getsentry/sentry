@@ -161,8 +161,8 @@ const onboarding: OnboardingConfig = {
               <strong>{t('Options')}</strong>
               <p>
                 {tct(
-                  '[sentryfasthttpCode:sentryfasthttp] accepts a struct of [optionsCode:Options] that allows you to configure how the handler will behave.',
-                  {sentryfasthttpCode: <code />, optionsCode: <code />}
+                  '[code:sentryfasthttp] accepts a struct of [code:Options] that allows you to configure how the handler will behave.',
+                  {code: <code />}
                 )}
               </p>
               {t('Currently it respects 3 options:')}
@@ -179,22 +179,19 @@ const onboarding: OnboardingConfig = {
         <Fragment>
           <p>
             {tct(
-              "[sentryfasthttpCode:sentryfasthttp] attaches an instance of [sentryHubLink:*sentry.Hub] to the request's context, which makes it available throughout the rest of the request's lifetime. You can access it by using the [getHubFromContextCode:sentryfasthttp.GetHubFromContext()] method on the context itself in any of your proceeding middleware and routes. And it should be used instead of the global [captureMessageCode:sentry.CaptureMessage], [captureExceptionCode:sentry.CaptureException], or any other calls, as it keeps the separation of data between the requests.",
+              "[code:sentryfasthttp] attaches an instance of [sentryHubLink:*sentry.Hub] to the request's context, which makes it available throughout the rest of the request's lifetime. You can access it by using the [code:sentryfasthttp.GetHubFromContext()] method on the context itself in any of your proceeding middleware and routes. And it should be used instead of the global [code:sentry.CaptureMessage], [code:sentry.CaptureException], or any other calls, as it keeps the separation of data between the requests.",
               {
-                sentryfasthttpCode: <code />,
                 sentryHubLink: (
                   <ExternalLink href="https://pkg.go.dev/github.com/getsentry/sentry-go#Hub" />
                 ),
-                getHubFromContextCode: <code />,
-                captureMessageCode: <code />,
-                captureExceptionCode: <code />,
+                code: <code />,
               }
             )}
           </p>
           <AlertWithoutMarginBottom>
             {tct(
-              "Keep in mind that [sentryHubCode:*sentry.Hub] won't be available in middleware attached before [sentryfasthttpCode:sentryfasthttp]!",
-              {sentryfasthttpCode: <code />, sentryHubCode: <code />}
+              "Keep in mind that [code:*sentry.Hub] won't be available in middleware attached before [code:sentryfasthttp]!",
+              {code: <code />}
             )}
           </AlertWithoutMarginBottom>
         </Fragment>

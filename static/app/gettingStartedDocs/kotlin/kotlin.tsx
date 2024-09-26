@@ -139,7 +139,7 @@ try {
 const onboarding: OnboardingConfig<PlatformOptions> = {
   introduction: () =>
     tct(
-      "Sentry supports Kotlin for both JVM and Android. This wizard guides you through set up in the JVM scenario. If you're interested in [strong:Android], head over to the [gettingStartedWithAndroidLink:Getting Started] for that SDK instead. At its core, Sentry for Java provides a raw client for sending events to Sentry. If you use [strong2:Spring Boot, Spring, Logback, JUL, or Log4j2], head over to our [gettingStartedWithJavaLink:Getting Started for Sentry Java].",
+      "Sentry supports Kotlin for both JVM and Android. This wizard guides you through set up in the JVM scenario. If you're interested in [strong:Android], head over to the [gettingStartedWithAndroidLink:Getting Started] for that SDK instead. At its core, Sentry for Java provides a raw client for sending events to Sentry. If you use [strong:Spring Boot, Spring, Logback, JUL, or Log4j2], head over to our [gettingStartedWithJavaLink:Getting Started for Sentry Java].",
       {
         gettingStartedWithAndroidLink: (
           <ExternalLink href="https://docs.sentry.io/platforms/android/" />
@@ -148,7 +148,6 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
           <ExternalLink href="https://docs.sentry.io/platforms/java/" />
         ),
         strong: <strong />,
-        strong2: <strong />,
       }
     ),
   install: params => [

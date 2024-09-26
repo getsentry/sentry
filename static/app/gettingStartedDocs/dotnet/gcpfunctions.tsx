@@ -127,10 +127,9 @@ const onboarding: OnboardingConfig = {
     {
       type: StepType.CONFIGURE,
       description: tct(
-        'Then, add Sentry to the [functionCode:Function] class through [functionStartupCode:FunctionsStartup]:',
+        'Then, add Sentry to the [code:Function] class through [code:FunctionsStartup]:',
         {
-          functionCode: <code />,
-          functionStartupCode: <code />,
+          code: <code />,
         }
       ),
       configurations: [
@@ -143,8 +142,8 @@ const onboarding: OnboardingConfig = {
           description: (
             <p>
               {tct(
-                "Additionally, you'll need to set up your [sentryCode:Sentry] settings on [appsettingsCode:appsettings.json]:",
-                {sentryCode: <code />, appsettingsCode: <code />}
+                "Additionally, you'll need to set up your [code:Sentry] settings on [code:appsettings.json]:",
+                {code: <code />}
               )}
             </p>
           ),

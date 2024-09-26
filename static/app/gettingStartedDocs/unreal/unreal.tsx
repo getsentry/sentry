@@ -172,8 +172,8 @@ const onboarding: OnboardingConfig = {
               additionalInfo: (
                 <p>
                   {tct(
-                    'If a [crashReportCode:CrashReportClient] section already exists, simply changing the value of [dataRouterUrlCode:DataRouterUrl] is enough.',
-                    {crashReportCode: <code />, dataRouterUrlCode: <code />}
+                    'If a [code:CrashReportClient] section already exists, simply changing the value of [code:DataRouterUrl] is enough.',
+                    {code: <code />}
                   )}
                 </p>
               ),
@@ -188,11 +188,9 @@ const onboarding: OnboardingConfig = {
         <Fragment>
           <p>
             {tct(
-              'To allow Sentry to fully process native crashes and provide you with symbolicated stack traces, you need to upload [debugInformationItalic:debug information files] (sometimes also referred to as [debugSymbolsItalic:debug symbols] or just [symbolsItalic:symbols]). We recommend uploading debug information during your build or release process.',
+              'To allow Sentry to fully process native crashes and provide you with symbolicated stack traces, you need to upload [italic:debug information files] (sometimes also referred to as [italic:debug symbols] or just [italic:symbols]). We recommend uploading debug information during your build or release process.',
               {
-                debugInformationItalic: <i />,
-                symbolsItalic: <i />,
-                debugSymbolsItalic: <i />,
+                italic: <i />,
               }
             )}
           </p>

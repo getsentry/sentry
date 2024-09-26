@@ -72,10 +72,9 @@ const getInstallConfig = () => [
   {
     type: StepType.INSTALL,
     description: tct(
-      'Install the [sentryAstroPkg:@sentry/astro] package with the [astroCli:astro] CLI:',
+      'Install the [code:@sentry/astro] package with the [code:astro] CLI:',
       {
-        sentryAstroPkg: <code />,
-        astroCli: <code />,
+        code: <code />,
       }
     ),
     configurations: [
