@@ -5,7 +5,7 @@ from django.http import HttpResponseRedirect
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
-from sentry import features
+from sentry import features, options
 from sentry.models.organization import Organization
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline import Pipeline, PipelineProvider
@@ -46,6 +46,9 @@ class IdentityProviderPipeline(Pipeline):
             "organizations:migrate-azure-devops-integration", organization
         ):
             provider_key = "vsts_new"
+        # TODO(iamrajjoshi): Delete this after Azure DevOps migration is complete
+        if provider_key == "vsts_login" and options.get("vsts.social-auth-migration"):
+            provider_key = "vsts_login_new"
 
         return super().get_provider(provider_key)
 
