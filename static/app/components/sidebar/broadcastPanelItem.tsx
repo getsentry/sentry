@@ -1,4 +1,5 @@
 import {useCallback} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Tag from 'sentry/components/badge/tag';
@@ -7,6 +8,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Broadcast} from 'sentry/types/system';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 
 export const BROADCAST_CATEGORIES: Record<NonNullable<Broadcast['category']>, string> = {
@@ -32,6 +34,8 @@ export function BroadcastPanelItem({
   category,
 }: BroadcastPanelItemProps) {
   const organization = useOrganization();
+  const theme = useTheme();
+  const isScreenExtraLarge = useMedia(`(min-width: ${theme.breakpoints.xxlarge})`);
 
   const handlePanelClicked = useCallback(() => {
     trackAnalytics('whats_new.link_clicked', {organization, title, category});
@@ -46,7 +50,9 @@ export function BroadcastPanelItem({
         </Title>
         <Message>{message}</Message>
       </TextBlock>
-      {mediaUrl && <Media src={mediaUrl} alt={title} />}
+      {mediaUrl && (
+        <Media src={mediaUrl} alt={title} isScreenExtraLarge={isScreenExtraLarge} />
+      )}
     </SidebarPanelItemRoot>
   );
 }
@@ -79,10 +85,11 @@ const TextBlock = styled('div')`
   align-items: flex-start;
 `;
 
-const Media = styled('img')`
+const Media = styled('img')<{isScreenExtraLarge: boolean}>`
   border-radius: ${p => p.theme.borderRadius};
   border: 1px solid ${p => p.theme.translucentGray200};
   max-width: 100%;
+  image-rendering: ${p => (p.isScreenExtraLarge ? 'pixelated' : 'auto')};
 `;
 
 const CategoryTag = styled(Tag)`
