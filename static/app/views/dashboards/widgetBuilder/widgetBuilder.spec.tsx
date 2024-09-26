@@ -1371,10 +1371,14 @@ describe('WidgetBuilder', function () {
     const {router} = renderTestComponent();
 
     const alertMock = jest.fn();
-    const setRouteLeaveHookMock = jest.spyOn(router, 'setRouteLeaveHook');
-    setRouteLeaveHookMock.mockImplementationOnce((_route, _callback) => {
-      return alertMock();
-    });
+    if (window.__SENTRY_USING_REACT_ROUTER_SIX) {
+      window.confirm = alertMock;
+    } else {
+      const setRouteLeaveHookMock = jest.spyOn(router, 'setRouteLeaveHook');
+      setRouteLeaveHookMock.mockImplementationOnce((_route, _callback) => {
+        return alertMock();
+      });
+    }
 
     const customWidgetLabels = await screen.findByText('Custom Widget');
     // EditableText and chart title
@@ -1397,10 +1401,14 @@ describe('WidgetBuilder', function () {
     const {router} = renderTestComponent();
 
     const alertMock = jest.fn();
-    const setRouteLeaveHookMock = jest.spyOn(router, 'setRouteLeaveHook');
-    setRouteLeaveHookMock.mockImplementationOnce((_route, _callback) => {
-      return alertMock();
-    });
+    if (window.__SENTRY_USING_REACT_ROUTER_SIX) {
+      window.confirm = alertMock;
+    } else {
+      const setRouteLeaveHookMock = jest.spyOn(router, 'setRouteLeaveHook');
+      setRouteLeaveHookMock.mockImplementationOnce((_route, _callback) => {
+        return alertMock();
+      });
+    }
 
     const descriptionTextArea = await screen.findByRole('textbox', {
       name: 'Widget Description',
@@ -1426,7 +1434,9 @@ describe('WidgetBuilder', function () {
 
   it('does not trigger alert dialog if no changes', async function () {
     renderTestComponent();
-    const alertMock = jest.spyOn(window, 'alert');
+    const alertMock = window.__SENTRY_USING_REACT_ROUTER_SIX
+      ? jest.spyOn(window, 'confirm')
+      : jest.spyOn(window, 'alert');
 
     await userEvent.click(await screen.findByText('Cancel'));
     expect(alertMock).not.toHaveBeenCalled();
