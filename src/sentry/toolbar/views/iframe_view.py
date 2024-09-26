@@ -44,9 +44,7 @@ class IframeView(OrganizationView):
         kwargs["project"] = active_project
         return args, kwargs
 
-    @csp_update(
-        SCRIPT_SRC=TOOLBAR_CSP_SCRIPT_SRC
-    )  # Appends to the CSP enforced in prod. Allows running the inline scripts in the response templates.
+    @csp_update(SCRIPT_SRC=TOOLBAR_CSP_SCRIPT_SRC)
     def get(
         self, request: HttpRequest, organization: Organization, project: Project, *args, **kwargs
     ):

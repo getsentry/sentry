@@ -9,8 +9,6 @@ SUCCESS_TEMPLATE = "sentry/toolbar/login-success.html"
 
 @region_silo_view
 class LoginSuccessView(OrganizationView):
-    @csp_update(
-        SCRIPT_SRC=TOOLBAR_CSP_SCRIPT_SRC
-    )  # Appends to the CSP enforced in prod. Allows running the inline scripts in the response templates.
+    @csp_update(SCRIPT_SRC=TOOLBAR_CSP_SCRIPT_SRC)
     def get(self, request: HttpRequest, organization, project_id_or_slug):
         return self.respond(SUCCESS_TEMPLATE, status=200)
