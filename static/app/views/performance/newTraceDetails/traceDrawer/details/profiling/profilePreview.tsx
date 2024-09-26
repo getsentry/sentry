@@ -126,14 +126,7 @@ export function ProfilePreview({event, node}: SpanProfileProps) {
   // This project has received a profile before so they've already
   // set up profiling. No point showing the profiling setup again.
   if (!docsLink || project?.hasProfiles) {
-    return (
-      <InlineDocs
-        resetCellMeasureCache={() => void 0}
-        orgSlug={organization.slug}
-        platform={event.sdk?.name || ''}
-        projectSlug={event?.projectSlug ?? project?.slug ?? ''}
-      />
-    );
+    return <InlineDocs platform={event.sdk?.name || ''} />;
   }
 
   // At this point we must have a project on a supported
