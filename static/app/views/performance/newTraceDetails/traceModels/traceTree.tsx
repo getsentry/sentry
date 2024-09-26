@@ -835,6 +835,45 @@ export class TraceTree {
     }
   }
 
+  findByEventId(
+    start: TraceTreeNode<TraceTree.NodeValue>,
+    eventId: string
+  ): TraceTreeNode<TraceTree.NodeValue> | null {
+    return TraceTreeNode.Find(start, node => {
+      if (isTransactionNode(node)) {
+        return node.value.event_id === eventId;
+      }
+      if (isSpanNode(node)) {
+        return node.value.span_id === eventId;
+      }
+      if (isTraceErrorNode(node)) {
+        return node.value.event_id === eventId;
+      }
+      return hasEventWithEventId(node, eventId);
+    });
+  }
+
+  findByPath(
+    start: TraceTreeNode<TraceTree.NodeValue>,
+    path: TraceTree.NodePath[]
+  ): TraceTreeNode<TraceTree.NodeValue> | null {
+    const queue = [...path];
+    let segment = start;
+    let node: TraceTreeNode<TraceTree.NodeValue> | null = null;
+
+    while (queue.length > 0) {
+      const current = queue.pop()!;
+
+      node = findInTreeFromSegment(segment, current);
+      if (!node) {
+        return null;
+      }
+      segment = node;
+    }
+
+    return node;
+  }
+
   get shape(): TraceType {
     const trace = this.root.children[0];
     if (!trace) {
@@ -1420,29 +1459,14 @@ export class TraceTree {
     tree: TraceTree,
     rerender: () => void,
     options: ViewManagerScrollToOptions
-  ): Promise<{index: number; node: TraceTreeNode<TraceTree.NodeValue>} | null | null> {
-    const node = findInTreeByEventId(tree.root, eventId);
+  ): Promise<TraceTreeNode<TraceTree.NodeValue> | null> {
+    const node = tree.findByEventId(tree.root, eventId);
 
     if (!node) {
       return Promise.resolve(null);
     }
 
-    return TraceTree.ExpandToPath(tree, node.path, rerender, options).then(
-      async result => {
-        // When users are coming off an eventID link, we want to fetch the children
-        // of the node that the eventID points to. This is because the eventID link
-        // only points to the transaction, but we want to fetch the children of the
-        // transaction to show the user the list of spans in that transaction
-        if (result?.node?.canFetch) {
-          await tree.zoomIn(result.node, true, options).catch(_e => {
-            Sentry.captureMessage('Failed to fetch children of eventId on mount');
-          });
-          return result;
-        }
-
-        return result;
-      }
-    );
+    return TraceTree.ExpandToPath(tree, node.path, rerender, options);
   }
 
   static ExpandToPath(
@@ -1450,7 +1474,7 @@ export class TraceTree {
     scrollQueue: TraceTree.NodePath[],
     rerender: () => void,
     options: ViewManagerScrollToOptions
-  ): Promise<{index: number; node: TraceTreeNode<TraceTree.NodeValue>} | null | null> {
+  ): Promise<TraceTreeNode<TraceTree.NodeValue> | null> {
     const segments = [...scrollQueue];
     const list = tree.list;
 
@@ -1460,17 +1484,14 @@ export class TraceTree {
 
     if (segments.length === 1 && segments[0] === 'trace-root') {
       rerender();
-      return Promise.resolve({index: 0, node: tree.root.children[0]});
+      return Promise.resolve(tree.root.children[0]);
     }
 
     // Keep parent reference as we traverse the tree so that we can only
     // perform searching in the current level and not the entire tree
     let parent: TraceTreeNode<TraceTree.NodeValue> = tree.root;
 
-    const recurseToRow = async (): Promise<{
-      index: number;
-      node: TraceTreeNode<TraceTree.NodeValue>;
-    } | null | null> => {
+    const recurseToRow = async (): Promise<TraceTreeNode<TraceTree.NodeValue> | null> => {
       const path = segments.pop();
       let current = findInTreeFromSegment(parent, path!);
 
@@ -1524,42 +1545,8 @@ export class TraceTree {
         return recurseToRow();
       }
 
-      // We are at the last path segment (the node that the user clicked on)
-      // and we should scroll the view to this node.
-      let index = current ? tree.list.findIndex(node => node === current) : -1;
-
-      // We have found the node, yet it is somehow not in the visible tree.
-      // This means that the path we were given did not match the current tree.
-      // This sometimes happens when we receive external links like span-x, txn-y
-      // however the resulting tree looks like span-x, autogroup, txn-y. In this case,
-      // we should expand the autogroup node and try to find the node again.
-      if (current && index === -1) {
-        let parent_node = current.parent;
-        while (parent_node) {
-          // Transactions break autogrouping chains, so we can stop here
-          if (isTransactionNode(parent_node)) {
-            break;
-          }
-          if (isAutogroupedNode(parent_node)) {
-            tree.expand(parent_node, true);
-            index = current ? tree.list.findIndex(node => node === current) : -1;
-            // This is very wasteful as it performs O(n^2) search each time we expand a node...
-            // In most cases though, we should be operating on a tree with sub 10k elements and hopefully
-            // a low autogrouped node count.
-            if (index !== -1) {
-              break;
-            }
-          }
-          parent_node = parent_node.parent;
-        }
-      }
-
-      if (index === -1) {
-        throw new Error(`Couldn't find node in list ${scrollQueue.join(',')}`);
-      }
-
       rerender();
-      return {index, node: current};
+      return current;
     };
 
     return recurseToRow();
@@ -2594,21 +2581,6 @@ function hasEventWithEventId(
   }
 
   return false;
-}
-
-function findInTreeByEventId(start: TraceTreeNode<TraceTree.NodeValue>, eventId: string) {
-  return TraceTreeNode.Find(start, node => {
-    if (isTransactionNode(node)) {
-      return node.value.event_id === eventId;
-    }
-    if (isSpanNode(node)) {
-      return node.value.span_id === eventId;
-    }
-    if (isTraceErrorNode(node)) {
-      return node.value.event_id === eventId;
-    }
-    return hasEventWithEventId(node, eventId);
-  });
 }
 
 function findInTreeFromSegment(
