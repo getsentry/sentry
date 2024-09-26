@@ -40,7 +40,7 @@ export function ReplaySideBySideImageDiff({leftOffsetMs, replay, rightOffsetMs}:
             </Border>
             <Border>
               <ReplayPlayerStateContextProvider>
-                <ReplayPlayerMeasurer measure="both">
+                <ReplayPlayerMeasurer measure="width">
                   {style => <ReplayPlayer style={style} offsetMs={rightOffsetMs} />}
                 </ReplayPlayerMeasurer>
               </ReplayPlayerStateContextProvider>
