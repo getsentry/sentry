@@ -1,9 +1,11 @@
 from typing import Any
 from unittest.mock import Mock, patch
 
+from django.test import override_settings
 from django.urls import reverse
 
 from sentry.testutils.cases import APITestCase
+from sentry.toolbar.views import has_valid_csp
 from sentry.toolbar.views.iframe_view import INVALID_TEMPLATE, SUCCESS_TEMPLATE
 
 
@@ -63,6 +65,18 @@ class IframeViewTest(APITestCase):
         self.project.update_option("sentry:toolbar_allowed_origins", ["https://sentry.io"])
         res = self.client.get(self.url, HTTP_REFERER="https://sentry.io")
         assert res.headers.get("X-Frame-Options") == "ALLOWALL"
+
+    @override_settings(CSP_REPORT_ONLY=False)
+    def test_csp_enforce(self):
+        self.project.update_option("sentry:toolbar_allowed_origins", ["https://sentry.io"])
+        res = self.client.get(self.url, HTTP_REFERER="https://sentry.io")
+        assert has_valid_csp(res)
+
+    @override_settings(CSP_REPORT_ONLY=True)
+    def test_csp_report_only(self):
+        self.project.update_option("sentry:toolbar_allowed_origins", ["https://sentry.io"])
+        res = self.client.get(self.url, HTTP_REFERER="https://sentry.io")
+        assert has_valid_csp(res)
 
 
 def _has_expected_response(
