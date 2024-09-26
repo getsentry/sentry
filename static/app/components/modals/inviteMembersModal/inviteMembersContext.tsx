@@ -21,14 +21,14 @@ export type InviteMembersContextProps = {
   error?: string;
 };
 
-export const InviteMembersContext = createContext<InviteMembersContextProps>({
+export const defaultInviteProps = {
   complete: false,
   inviteStatus: {},
   invites: [],
   pendingInvites: {
-    emails: new Set(),
+    emails: new Set<string>(),
     role: '',
-    teams: new Set(),
+    teams: new Set<string>(),
   },
   reset: () => {},
   sendInvites: () => {},
@@ -37,4 +37,7 @@ export const InviteMembersContext = createContext<InviteMembersContextProps>({
   setRole: () => {},
   setTeams: () => {},
   willInvite: false,
-});
+};
+
+export const InviteMembersContext =
+  createContext<InviteMembersContextProps>(defaultInviteProps);

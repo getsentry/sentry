@@ -2,7 +2,10 @@ import {TeamFixture} from 'sentry-fixture/team';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {InviteMembersContext} from 'sentry/components/modals/inviteMembersModal/inviteMembersContext';
+import {
+  defaultInviteProps,
+  InviteMembersContext,
+} from 'sentry/components/modals/inviteMembersModal/inviteMembersContext';
 import InviteRowControlNew from 'sentry/components/modals/inviteMembersModal/inviteRowControlNew';
 import TeamStore from 'sentry/stores/teamStore';
 
@@ -20,24 +23,6 @@ describe('InviteRowControlNew', function () {
     },
   ];
   const teams = teamData.map(data => TeamFixture(data));
-
-  const providerProps = {
-    complete: false,
-    inviteStatus: {},
-    invites: [],
-    pendingInvites: {
-      emails: new Set<string>(),
-      role: '',
-      teams: new Set<string>(),
-    },
-    reset: () => {},
-    sendInvites: () => {},
-    sendingInvites: false,
-    setEmails: () => {},
-    setRole: () => {},
-    setTeams: () => {},
-    willInvite: true,
-  };
 
   const getComponent = props => (
     <InviteMembersContext.Provider value={props}>
@@ -68,7 +53,7 @@ describe('InviteRowControlNew', function () {
   });
 
   it('renders', function () {
-    render(getComponent(providerProps));
+    render(getComponent(defaultInviteProps));
 
     expect(screen.getByText('Email addresses')).toBeInTheDocument();
     expect(screen.getByText('Role')).toBeInTheDocument();
@@ -82,7 +67,7 @@ describe('InviteRowControlNew', function () {
   ])('updates email addresses when new emails are inputted', ({email, delimiter}) => {
     it(`invokes the mock correctly with one using delimiter "${delimiter}"`, async () => {
       const mockSetEmails = jest.fn();
-      render(getComponent({...providerProps, setEmails: mockSetEmails}));
+      render(getComponent({...defaultInviteProps, setEmails: mockSetEmails}));
       const emailInput = screen.getByLabelText('Email Addresses');
       await userEvent.type(emailInput, `${email}${delimiter}`);
       expect(mockSetEmails).toHaveBeenCalled();
@@ -90,7 +75,7 @@ describe('InviteRowControlNew', function () {
 
     it(`invokes the mock correctly with many using delimiter "${delimiter}"`, async () => {
       const mockSetEmails = jest.fn();
-      render(getComponent({...providerProps, setEmails: mockSetEmails}));
+      render(getComponent({...defaultInviteProps, setEmails: mockSetEmails}));
       const emailInput = screen.getByLabelText('Email Addresses');
       await userEvent.type(emailInput, `${email}${delimiter}`);
       await userEvent.type(emailInput, `${email}${delimiter}`);
@@ -101,7 +86,7 @@ describe('InviteRowControlNew', function () {
 
   it('updates email addresses when new emails are inputted and input is unfocussed', async function () {
     const mockSetEmails = jest.fn();
-    render(getComponent({...providerProps, setEmails: mockSetEmails}));
+    render(getComponent({...defaultInviteProps, setEmails: mockSetEmails}));
     const emailInput = screen.getByLabelText('Email Addresses');
     await userEvent.type(emailInput, 'test-unfocus@example.com');
     await userEvent.tab();
@@ -110,7 +95,7 @@ describe('InviteRowControlNew', function () {
 
   it('updates role value when new role is selected', async function () {
     const mockSetRole = jest.fn();
-    render(getComponent({...providerProps, setRole: mockSetRole}));
+    render(getComponent({...defaultInviteProps, setRole: mockSetRole}));
     const roleInput = screen.getByLabelText('Role');
     await userEvent.click(roleInput);
     await userEvent.click(screen.getByText('Billing'));
@@ -120,9 +105,9 @@ describe('InviteRowControlNew', function () {
   it('disables team selection when team roles are not allowed', function () {
     render(
       getComponent({
-        ...providerProps,
+        ...defaultInviteProps,
         pendingInvites: {
-          ...providerProps.pendingInvites[0],
+          ...defaultInviteProps.pendingInvites,
           role: 'billing',
         },
       })
@@ -135,9 +120,9 @@ describe('InviteRowControlNew', function () {
     const mockSetTeams = jest.fn();
     render(
       getComponent({
-        ...providerProps,
+        ...defaultInviteProps,
         pendingInvites: {
-          ...providerProps.pendingInvites[0],
+          ...defaultInviteProps.pendingInvites,
           role: 'member',
         },
         setTeams: mockSetTeams,
