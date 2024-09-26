@@ -68,12 +68,11 @@ function ExploreSamplesTable() {
           </TabList>
         </Tabs>
         <Button
-          size="sm"
           disabled={tab !== Tab.SPAN}
           onClick={openColumnEditor}
           icon={<IconTable />}
         >
-          {t('Columns')}
+          {t('Edit Table')}
         </Button>
       </SamplesTableHeader>
       {tab === Tab.SPAN && <SpansTable />}
@@ -86,5 +85,5 @@ const SamplesTableHeader = styled('div')`
   display: flex;
   flex-direction: row;
   justify-content: space-between;
-  margin-bottom: ${space(1)};
+  margin-bottom: ${space(2)};
 `;
