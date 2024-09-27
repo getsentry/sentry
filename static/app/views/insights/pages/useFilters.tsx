@@ -1,12 +1,10 @@
-import pick from 'lodash/pick';
 import type {ModuleName} from 'webpack-cli';
 
 import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
-import {AI_LANDING_SUB_PATH} from 'sentry/views/insights/pages/aiLandingPage';
-import {BACKEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/backendLandingPage';
+import {AI_LANDING_SUB_PATH} from 'sentry/views/insights/pages/ai/settings';
+import {BACKEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/backend/settings';
 import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/settings';
-import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobileLandingPage';
+import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settings';
 
 export type DomainView =
   | typeof FRONTEND_LANDING_SUB_PATH
@@ -48,25 +46,4 @@ export const useDomainViewFilters = () => {
     };
   }
   return {isInDomainView};
-};
-
-export const useFilters = () => {
-  const location = useLocation<Filters>();
-  const filters = pick(location.query, ['module']);
-  return filters;
-};
-
-export const useUpdateFilters = () => {
-  const location = useLocation<Filters>();
-  const navigate = useNavigate();
-
-  return (newFilters: Filters) => {
-    navigate({
-      pathname: location.pathname,
-      query: {
-        ...location.query,
-        ...newFilters,
-      },
-    });
-  };
 };
