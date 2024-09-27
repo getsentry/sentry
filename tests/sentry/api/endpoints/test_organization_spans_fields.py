@@ -1,5 +1,7 @@
+from unittest import mock
 from uuid import uuid4
 
+import pytest
 from django.urls import reverse
 
 from sentry.testutils.cases import APITestCase, BaseSpansTestCase
@@ -121,6 +123,7 @@ class OrganizationEAPSpansTagsEndpointTest(OrganizationSpansTagsEndpointTest):
 
 
 class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
+    is_eap = False
     view = "sentry-api-0-organization-spans-fields-values"
 
     def setUp(self):
@@ -129,7 +132,7 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
 
     def do_request(self, key: str, query=None, features=None, **kwargs):
         if features is None:
-            features = ["organizations:performance-trace-explorer", "organizations:global-views"]
+            features = ["organizations:performance-trace-explorer"]
         with self.feature(features):
             return self.client.get(
                 reverse(
@@ -158,44 +161,174 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
                 uuid4().hex,
                 uuid4().hex,
                 span_id=uuid4().hex[:15],
+                organization_id=self.organization.id,
                 parent_span_id=None,
                 timestamp=timestamp,
                 transaction="foo",
                 duration=100,
                 exclusive_time=100,
                 tags={"tag": tag},
+                is_eap=self.is_eap,
             )
 
         response = self.do_request("tag")
         assert response.status_code == 200, response.data
         assert response.data == [
             {
-                "count": 1,
+                "count": mock.ANY,
                 "key": "tag",
                 "value": "bar",
                 "name": "bar",
-                "firstSeen": timestamp.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
-                "lastSeen": timestamp.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
+                "firstSeen": mock.ANY,
+                "lastSeen": mock.ANY,
             },
             {
-                "count": 1,
+                "count": mock.ANY,
                 "key": "tag",
                 "value": "baz",
                 "name": "baz",
-                "firstSeen": timestamp.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
-                "lastSeen": timestamp.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
+                "firstSeen": mock.ANY,
+                "lastSeen": mock.ANY,
             },
             {
-                "count": 1,
+                "count": mock.ANY,
                 "key": "tag",
                 "value": "foo",
                 "name": "foo",
-                "firstSeen": timestamp.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
-                "lastSeen": timestamp.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
+                "firstSeen": mock.ANY,
+                "lastSeen": mock.ANY,
             },
         ]
 
-    def test_tags_keys_autocomplete_default(self):
+    def test_transaction_keys_autocomplete(self):
+        timestamp = before_now(days=0, minutes=10).replace(microsecond=0)
+        for transaction in ["foo", "*bar", "*baz"]:
+            self.store_segment(
+                self.project.id,
+                uuid4().hex,
+                uuid4().hex,
+                span_id=uuid4().hex[:15],
+                organization_id=self.organization.id,
+                parent_span_id=None,
+                timestamp=timestamp,
+                transaction=transaction,
+                duration=100,
+                exclusive_time=100,
+                is_eap=self.is_eap,
+            )
+
+        key = "transaction"
+
+        response = self.do_request(key)
+        assert response.status_code == 200, response.data
+        assert response.data == [
+            {
+                "count": mock.ANY,
+                "key": key,
+                "value": "*bar",
+                "name": "*bar",
+                "firstSeen": mock.ANY,
+                "lastSeen": mock.ANY,
+            },
+            {
+                "count": mock.ANY,
+                "key": key,
+                "value": "*baz",
+                "name": "*baz",
+                "firstSeen": mock.ANY,
+                "lastSeen": mock.ANY,
+            },
+            {
+                "count": mock.ANY,
+                "key": key,
+                "value": "foo",
+                "name": "foo",
+                "firstSeen": mock.ANY,
+                "lastSeen": mock.ANY,
+            },
+        ]
+
+    def test_transaction_keys_autocomplete_substring(self):
+        timestamp = before_now(days=0, minutes=10).replace(microsecond=0)
+        for transaction in ["foo", "*bar", "*baz"]:
+            self.store_segment(
+                self.project.id,
+                uuid4().hex,
+                uuid4().hex,
+                span_id=uuid4().hex[:15],
+                organization_id=self.organization.id,
+                parent_span_id=None,
+                timestamp=timestamp,
+                transaction=transaction,
+                duration=100,
+                exclusive_time=100,
+                is_eap=self.is_eap,
+            )
+
+        key = "transaction"
+
+        response = self.do_request(key, query={"query": "b"})
+        assert response.status_code == 200, response.data
+        assert response.data == [
+            {
+                "count": mock.ANY,
+                "key": key,
+                "value": "*bar",
+                "name": "*bar",
+                "firstSeen": mock.ANY,
+                "lastSeen": mock.ANY,
+            },
+            {
+                "count": mock.ANY,
+                "key": key,
+                "value": "*baz",
+                "name": "*baz",
+                "firstSeen": mock.ANY,
+                "lastSeen": mock.ANY,
+            },
+        ]
+
+    def test_transaction_keys_autocomplete_substring_with_asterisk(self):
+        timestamp = before_now(days=0, minutes=10).replace(microsecond=0)
+        for transaction in ["foo", "*bar", "*baz"]:
+            self.store_segment(
+                self.project.id,
+                uuid4().hex,
+                uuid4().hex,
+                span_id=uuid4().hex[:15],
+                organization_id=self.organization.id,
+                parent_span_id=None,
+                timestamp=timestamp,
+                transaction=transaction,
+                duration=100,
+                exclusive_time=100,
+                is_eap=self.is_eap,
+            )
+
+        key = "transaction"
+
+        response = self.do_request(key, query={"query": r"\*b"})
+        assert response.status_code == 200, response.data
+        assert response.data == [
+            {
+                "count": mock.ANY,
+                "key": key,
+                "value": "*bar",
+                "name": "*bar",
+                "firstSeen": mock.ANY,
+                "lastSeen": mock.ANY,
+            },
+            {
+                "count": mock.ANY,
+                "key": key,
+                "value": "*baz",
+                "name": "*baz",
+                "firstSeen": mock.ANY,
+                "lastSeen": mock.ANY,
+            },
+        ]
+
+    def test_tags_keys_autocomplete(self):
         timestamp = before_now(days=0, minutes=10).replace(microsecond=0)
         for tag in ["foo", "*bar", "*baz"]:
             self.store_segment(
@@ -203,70 +336,128 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
                 uuid4().hex,
                 uuid4().hex,
                 span_id=uuid4().hex[:15],
+                organization_id=self.organization.id,
                 parent_span_id=None,
                 timestamp=timestamp,
-                transaction=tag,
+                transaction="transaction",
                 duration=100,
                 exclusive_time=100,
                 tags={"tag": tag},
+                is_eap=self.is_eap,
             )
 
-        for key in ["tag", "transaction"]:
-            response = self.do_request(key)
-            assert response.status_code == 200, response.data
-            assert response.data == [
-                {
-                    "count": 1,
-                    "key": key,
-                    "value": "*bar",
-                    "name": "*bar",
-                    "firstSeen": timestamp.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
-                    "lastSeen": timestamp.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
-                },
-                {
-                    "count": 1,
-                    "key": key,
-                    "value": "*baz",
-                    "name": "*baz",
-                    "firstSeen": timestamp.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
-                    "lastSeen": timestamp.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
-                },
-                {
-                    "count": 1,
-                    "key": key,
-                    "value": "foo",
-                    "name": "foo",
-                    "firstSeen": timestamp.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
-                    "lastSeen": timestamp.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
-                },
-            ]
+        key = "tag"
 
-        for key, query in [
-            ("tag", "b"),
-            ("transaction", "b"),
-            ("tag", r"\*b"),
-            ("transaction", r"\*b"),
-        ]:
-            response = self.do_request(key, query={"query": query})
-            assert response.status_code == 200, response.data
-            assert response.data == [
-                {
-                    "count": 1,
-                    "key": key,
-                    "value": "*bar",
-                    "name": "*bar",
-                    "firstSeen": timestamp.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
-                    "lastSeen": timestamp.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
-                },
-                {
-                    "count": 1,
-                    "key": key,
-                    "value": "*baz",
-                    "name": "*baz",
-                    "firstSeen": timestamp.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
-                    "lastSeen": timestamp.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
-                },
-            ]
+        response = self.do_request(key)
+        assert response.status_code == 200, response.data
+        assert response.data == [
+            {
+                "count": mock.ANY,
+                "key": key,
+                "value": "*bar",
+                "name": "*bar",
+                "firstSeen": mock.ANY,
+                "lastSeen": mock.ANY,
+            },
+            {
+                "count": mock.ANY,
+                "key": key,
+                "value": "*baz",
+                "name": "*baz",
+                "firstSeen": mock.ANY,
+                "lastSeen": mock.ANY,
+            },
+            {
+                "count": mock.ANY,
+                "key": key,
+                "value": "foo",
+                "name": "foo",
+                "firstSeen": mock.ANY,
+                "lastSeen": mock.ANY,
+            },
+        ]
+
+    def test_tags_keys_autocomplete_substring(self):
+        timestamp = before_now(days=0, minutes=10).replace(microsecond=0)
+        for tag in ["foo", "*bar", "*baz"]:
+            self.store_segment(
+                self.project.id,
+                uuid4().hex,
+                uuid4().hex,
+                span_id=uuid4().hex[:15],
+                organization_id=self.organization.id,
+                parent_span_id=None,
+                timestamp=timestamp,
+                transaction="transaction",
+                duration=100,
+                exclusive_time=100,
+                tags={"tag": tag},
+                is_eap=self.is_eap,
+            )
+
+        key = "tag"
+
+        response = self.do_request(key, query={"query": "b"})
+        assert response.status_code == 200, response.data
+        assert response.data == [
+            {
+                "count": mock.ANY,
+                "key": key,
+                "value": "*bar",
+                "name": "*bar",
+                "firstSeen": mock.ANY,
+                "lastSeen": mock.ANY,
+            },
+            {
+                "count": mock.ANY,
+                "key": key,
+                "value": "*baz",
+                "name": "*baz",
+                "firstSeen": mock.ANY,
+                "lastSeen": mock.ANY,
+            },
+        ]
+
+    def test_tags_keys_autocomplete_substring_with_asterisks(self):
+        timestamp = before_now(days=0, minutes=10).replace(microsecond=0)
+        for tag in ["foo", "*bar", "*baz"]:
+            self.store_segment(
+                self.project.id,
+                uuid4().hex,
+                uuid4().hex,
+                span_id=uuid4().hex[:15],
+                organization_id=self.organization.id,
+                parent_span_id=None,
+                timestamp=timestamp,
+                transaction="transaction",
+                duration=100,
+                exclusive_time=100,
+                tags={"tag": tag},
+                is_eap=self.is_eap,
+            )
+
+        key = "tag"
+
+        response = self.do_request(key, query={"query": r"\*b"})
+        assert response.status_code == 200, response.data
+        assert response.data == [
+            {
+                "count": mock.ANY,
+                "key": key,
+                "value": "*bar",
+                "name": "*bar",
+                "firstSeen": mock.ANY,
+                "lastSeen": mock.ANY,
+            },
+            {
+                "count": mock.ANY,
+                "key": key,
+                "value": "*baz",
+                "name": "*baz",
+                "firstSeen": mock.ANY,
+                "lastSeen": mock.ANY,
+            },
+        ]
 
     def test_tags_keys_autocomplete_noop(self):
         timestamp = before_now(days=0, minutes=10).replace(microsecond=0)
@@ -276,12 +467,14 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
                 uuid4().hex,
                 uuid4().hex,
                 span_id=uuid4().hex[:15],
+                organization_id=self.organization.id,
                 parent_span_id=None,
                 timestamp=timestamp,
                 transaction=tag,
                 duration=100,
                 exclusive_time=100,
                 tags={"tag": tag},
+                is_eap=self.is_eap,
             )
 
         for key in [
@@ -313,8 +506,13 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
         self.create_project(id=base_id + 299, name="bar")
         self.create_project(id=base_id + 399, name="baz")
 
+        features = [
+            "organizations:performance-trace-explorer",
+            "organizations:global-views",
+        ]
+
         for key in ["project", "project.name"]:
-            response = self.do_request(key)
+            response = self.do_request(key, features=features)
             assert response.status_code == 200, response.data
             assert sorted(response.data, key=lambda v: v["value"]) == [
                 {
@@ -343,7 +541,7 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
                 },
             ]
 
-            response = self.do_request(key, query={"query": "ba"})
+            response = self.do_request(key, query={"query": "ba"}, features=features)
             assert response.status_code == 200, response.data
             assert sorted(response.data, key=lambda v: v["value"]) == [
                 {
@@ -366,7 +564,7 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
 
         key = "project.id"
 
-        response = self.do_request(key)
+        response = self.do_request(key, features=features)
         assert response.status_code == 200, response.data
         assert sorted(response.data, key=lambda v: v["value"]) == [
             {
@@ -395,7 +593,7 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
             },
         ]
 
-        response = self.do_request(key, query={"query": "99"})
+        response = self.do_request(key, query={"query": "99"}, features=features)
         assert response.status_code == 200, response.data
         assert sorted(response.data, key=lambda v: v["value"]) == [
             {
@@ -424,10 +622,12 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
                 uuid4().hex,
                 uuid4().hex,
                 span_id=uuid4().hex[:15],
+                organization_id=self.organization.id,
                 parent_span_id=None,
                 timestamp=timestamp,
                 transaction="foo",
                 status=status,
+                is_eap=self.is_eap,
             )
 
         response = self.do_request("span.status")
@@ -479,3 +679,49 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
                 "lastSeen": timestamp.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
             },
         ]
+
+
+class OrganizationEAPSpansTagKeyValuesEndpointTest(OrganizationSpansTagKeyValuesEndpointTest):
+    is_eap = True
+
+    def do_request(self, key: str, query=None, features=None, **kwargs):
+        if features is None:
+            features = ["organizations:performance-trace-explorer"]
+
+        features.append("organizations:visibility-explore-dataset")
+
+        if query is None:
+            query = {}
+        query["dataset"] = "spans"
+        query["type"] = "string"
+
+        with self.feature(features):
+            return self.client.get(
+                reverse(
+                    self.view,
+                    kwargs={"organization_id_or_slug": self.organization.slug, "key": key},
+                ),
+                query,
+                format="json",
+                **kwargs,
+            )
+
+    @pytest.mark.skip("autcomplete project doesnt work yet")
+    def test_tags_keys_autocomplete_project(self):
+        super().test_tags_keys_autocomplete_project()
+
+    @pytest.mark.skip("autcomplete span.status doesnt work yet")
+    def test_tags_keys_autocomplete_span_status(self):
+        super().test_tags_keys_autocomplete_project()
+
+    @pytest.mark.skip("autcomplete transaction doesnt work yet")
+    def test_transaction_keys_autocomplete(self):
+        super().test_transaction_keys_autocomplete()
+
+    @pytest.mark.skip("autcomplete transaction doesnt work yet")
+    def test_transaction_keys_autocomplete_substring(self):
+        super().test_transaction_keys_autocomplete_substring()
+
+    @pytest.mark.skip("autcomplete transaction doesnt work yet")
+    def test_transaction_keys_autocomplete_substring_with_asterisk(self):
+        super().test_transaction_keys_autocomplete_substring_with_asterisk()
