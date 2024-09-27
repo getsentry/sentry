@@ -41,6 +41,7 @@ type Props = {
   organization: Organization;
   router: InjectedRouter;
   selection: PageFilters;
+  title: string;
   widget: Widget;
   widgetLimitReached: boolean;
   description?: string;
@@ -76,6 +77,7 @@ function WidgetCardContextMenu({
   totalIssuesCount,
   seriesResultsType,
   description,
+  title,
 }: Props) {
   const {isMetricsData} = useDashboardsMEPContext();
 
@@ -279,16 +281,25 @@ function WidgetCardContextMenu({
                     {t('Indexed')}
                   </SampledTag>
                 )}
-              {description && (
-                <Tooltip title={description} containerDisplayMode="grid" isHoverable>
-                  <Button
-                    aria-label={t('Widget description')}
-                    borderless
-                    size="xs"
-                    icon={<IconInfo />}
-                  />
-                </Tooltip>
-              )}
+              <Tooltip
+                title={
+                  <span>
+                    <WidgetTooltipTitle>{title}</WidgetTooltipTitle>
+                    {description && (
+                      <WidgetTooltipDescription>{description}</WidgetTooltipDescription>
+                    )}
+                  </span>
+                }
+                containerDisplayMode="grid"
+                isHoverable
+              >
+                <WidgetTooltipButton
+                  aria-label={t('Widget description')}
+                  borderless
+                  size="xs"
+                  icon={<IconInfo />}
+                />
+              </Tooltip>
               <StyledDropdownMenuControl
                 items={menuOptions}
                 triggerProps={{
@@ -344,4 +355,21 @@ const StyledDropdownMenuControl = styled(DropdownMenu)`
 
 const SampledTag = styled(Tag)`
   margin-right: ${space(0.5)};
+`;
+
+const WidgetTooltipTitle = styled('div')`
+  font-weight: bold;
+  font-size: ${p => p.theme.fontSizeMedium};
+  text-align: left;
+`;
+
+const WidgetTooltipDescription = styled('div')`
+  margin-top: ${space(0.5)};
+  font-size: ${p => p.theme.fontSizeSmall};
+  text-align: left;
+`;
+
+// We're using a button here to preserve tab accessibility
+const WidgetTooltipButton = styled(Button)`
+  pointer-events: none;
 `;

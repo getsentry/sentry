@@ -190,6 +190,7 @@ class WidgetCard extends Component<Props, State> {
           pageLinks={pageLinks}
           totalIssuesCount={totalIssuesCount}
           description={widget.description}
+          title={widget.title}
         />
       </StyledWidgetCardContextMenuContainer>
     );
