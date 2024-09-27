@@ -142,7 +142,8 @@ def format_snuba_ts_data(
             count_data = data[1]
             count = 0
             if len(count_data):
-                count = count_data[0].get("count", 0)
+                # there are sometimes None values from snuba
+                count = count_data[0].get("count", 0) or 0
             ts_point = TimeSeriesPoint(timestamp=data[0], value=count)
             formatted_data.append(ts_point)
     return formatted_data
