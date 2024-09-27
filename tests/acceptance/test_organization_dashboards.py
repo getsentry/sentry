@@ -413,6 +413,9 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
         with self.feature(FEATURE_NAMES + EDIT_FEATURE):
             self.page.visit_dashboard_detail()
 
+            # Hover over the widget to show widget actions
+            self.browser.move_to('[aria-label="Widget panel"]')
+
             self.browser.element('[aria-label="Widget actions"]').click()
             self.browser.element('[data-test-id="delete-widget"]').click()
             self.browser.element('[data-test-id="confirm-button"]').click()
