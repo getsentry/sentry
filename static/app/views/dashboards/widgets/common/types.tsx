@@ -1,6 +1,6 @@
 export type Meta = {
   fields: Record<string, string>;
-  units: Record<string, string | null>;
+  units?: Record<string, string | null>;
 };
 
 export type TableData = Record<string, number | string | undefined>[];
