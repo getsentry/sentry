@@ -2,8 +2,10 @@ from __future__ import annotations
 
 from collections.abc import Callable, Mapping
 
+from django.utils.functional import cached_property
 from snuba_sdk import Column, Direction, Function, OrderBy
 
+from sentry import options
 from sentry.api.event_search import SearchFilter
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.events import constants
@@ -21,6 +23,7 @@ from sentry.search.events.fields import (
     NumericColumn,
     SnQLFieldColumn,
     SnQLFunction,
+    SnQLStringArg,
     with_default,
 )
 from sentry.search.events.types import SelectType, WhereType
@@ -700,16 +703,19 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
                 ),
                 SnQLFunction(
                     "margin_of_error",
+                    optional_args=[with_default("fpc", SnQLStringArg("fpc"))],
                     snql_aggregate=self._resolve_margin_of_error,
                     default_result_type="number",
                 ),
                 SnQLFunction(
                     "lower_count_limit",
+                    optional_args=[with_default("fpc", SnQLStringArg("fpc"))],
                     snql_aggregate=self._resolve_lower_limit,
                     default_result_type="number",
                 ),
                 SnQLFunction(
                     "upper_count_limit",
+                    optional_args=[with_default("fpc", SnQLStringArg("fpc"))],
                     snql_aggregate=self._resolve_upper_limit,
                     default_result_type="number",
                 ),
@@ -744,8 +750,13 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
         alias: str | None = None,
     ) -> SelectType:
         return Function(
-            "sum",
-            [Function("multiply", [Column("sign"), self.sampling_weight])],
+            "round",
+            [
+                Function(
+                    "sum",
+                    [Function("multiply", [Column("sign"), self.sampling_weight])],
+                )
+            ],
             alias,
         )
 
@@ -778,6 +789,10 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
             self._cached_count_weighted = results["data"][0]["count_weighted"]
         return self._cached_count, self._cached_count_weighted
 
+    @cached_property
+    def _zscore(self):
+        return options.get("performance.confidence.z-score")
+
     def _resolve_margin_of_error(
         self,
         args: Mapping[str, str | Column | SelectType | int | float],
@@ -792,14 +807,16 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
             "multiply",
             [
                 # Based on a z score for a confidence level of 95%
-                1.96,
+                self._zscore,
                 Function(
                     "multiply",
                     [
                         # Unadjusted Margin of Error
                         self._resolve_unadjusted_margin(sampled_group, total_samples),
                         # Finite Population Correction
-                        self._resolve_finite_population_correction(total_samples, population_size),
+                        self._resolve_finite_population_correction(
+                            args, total_samples, population_size
+                        ),
                     ],
                 ),
             ],
@@ -822,20 +839,25 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
 
     def _resolve_finite_population_correction(
         self,
+        args: Mapping[str, str | Column | SelectType | int | float],
         total_samples: SelectType,
         population_size: int | float,
     ) -> SelectType:
-        return Function(
-            "sqrt",
-            [
-                Function(
-                    "divide",
-                    [
-                        Function("minus", [population_size, total_samples]),
-                        Function("minus", [population_size, 1]),
-                    ],
-                )
-            ],
+        return (
+            Function(
+                "sqrt",
+                [
+                    Function(
+                        "divide",
+                        [
+                            Function("minus", [population_size, total_samples]),
+                            Function("minus", [population_size, 1]),
+                        ],
+                    )
+                ],
+            )
+            if args["fpc"] == "fpc"
+            else 1
         )
 
     def _resolve_lower_limit(
