@@ -213,7 +213,13 @@ export function getSpanAncestryAndGroupingItems({
 
   items.push({
     key: 'parent_span_id',
-    value: span.parent_span_id || '',
+    value: node.parent ? (
+      <a href="#" onClick={() => onParentClick(node.parent!)}>
+        {span.parent_span_id || ''}
+      </a>
+    ) : (
+      span.parent_span_id || ''
+    ),
     subject: t('Parent Span ID'),
   });
 
