@@ -1,4 +1,5 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {BigNumberWidget} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidget';
 
@@ -31,6 +32,21 @@ describe('BigNumberWidget', () => {
   });
 
   describe('Visualization', () => {
+    it('Explains missing data', () => {
+      render(
+        <BigNumberWidget
+          data={[{}]}
+          meta={{
+            fields: {
+              'p95(span.duration)': 'number',
+            },
+          }}
+        />
+      );
+
+      expect(screen.getByText('No Data')).toBeInTheDocument();
+    });
+
     it('Formats duration data', () => {
       render(
         <BigNumberWidget
@@ -75,6 +91,27 @@ describe('BigNumberWidget', () => {
       await userEvent.hover(screen.getByText('178m'));
 
       expect(screen.getByText('178451214')).toBeInTheDocument();
+    });
+
+    it('Respect maximum value', () => {
+      render(
+        <BigNumberWidget
+          title="Count"
+          data={[
+            {
+              'count()': 178451214,
+            },
+          ]}
+          maximumValue={100000000}
+          meta={{
+            fields: {
+              'count()': 'integer',
+            },
+          }}
+        />
+      );
+
+      expect(screen.getByText(textWithMarkupMatcher('>100m'))).toBeInTheDocument();
     });
   });
 
