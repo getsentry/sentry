@@ -259,6 +259,7 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
             display_type=DashboardWidgetDisplayTypes.LINE_CHART,
             widget_type=DashboardWidgetTypes.DISCOVER,
             interval="1d",
+            detail={"layout": {"x": 0, "y": 0, "w": 2, "h": 2, "minH": 2}},
         )
         DashboardWidgetQuery.objects.create(
             widget=existing_widget, fields=["count()"], columns=[], aggregates=["count()"], order=0
