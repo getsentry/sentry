@@ -163,6 +163,7 @@ describe('Dashboards > WidgetCard', function () {
       />
     );
 
+    await userEvent.hover(await screen.findByLabelText('Widget description'));
     expect(await screen.findByText('Valid widget description')).toBeInTheDocument();
   });
 

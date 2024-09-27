@@ -8,7 +8,8 @@ import {openConfirmModal} from 'sentry/components/confirm';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {isWidgetViewerPath} from 'sentry/components/modals/widgetViewerModal/utils';
-import {IconEllipsis, IconExpand} from 'sentry/icons';
+import {Tooltip} from 'sentry/components/tooltip';
+import {IconEllipsis, IconExpand, IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
@@ -42,6 +43,7 @@ type Props = {
   selection: PageFilters;
   widget: Widget;
   widgetLimitReached: boolean;
+  description?: string;
   index?: string;
   isPreview?: boolean;
   onDelete?: () => void;
@@ -52,6 +54,7 @@ type Props = {
   seriesResultsType?: Record<string, AggregationOutputType>;
   showContextMenu?: boolean;
   tableData?: TableDataWithTitle[];
+  title?: string;
   totalIssuesCount?: string;
 };
 
@@ -73,6 +76,8 @@ function WidgetCardContextMenu({
   pageLinks,
   totalIssuesCount,
   seriesResultsType,
+  description,
+  title,
 }: Props) {
   const {isMetricsData} = useDashboardsMEPContext();
 
@@ -276,6 +281,27 @@ function WidgetCardContextMenu({
                     {t('Indexed')}
                   </SampledTag>
                 )}
+              {title && (
+                <Tooltip
+                  title={
+                    <span>
+                      <WidgetTooltipTitle>{title}</WidgetTooltipTitle>
+                      {description && (
+                        <WidgetTooltipDescription>{description}</WidgetTooltipDescription>
+                      )}
+                    </span>
+                  }
+                  containerDisplayMode="grid"
+                  isHoverable
+                >
+                  <WidgetTooltipButton
+                    aria-label={t('Widget description')}
+                    borderless
+                    size="xs"
+                    icon={<IconInfo />}
+                  />
+                </Tooltip>
+              )}
               <StyledDropdownMenuControl
                 items={menuOptions}
                 triggerProps={{
@@ -331,4 +357,21 @@ const StyledDropdownMenuControl = styled(DropdownMenu)`
 
 const SampledTag = styled(Tag)`
   margin-right: ${space(0.5)};
+`;
+
+const WidgetTooltipTitle = styled('div')`
+  font-weight: bold;
+  font-size: ${p => p.theme.fontSizeMedium};
+  text-align: left;
+`;
+
+const WidgetTooltipDescription = styled('div')`
+  margin-top: ${space(0.5)};
+  font-size: ${p => p.theme.fontSizeSmall};
+  text-align: left;
+`;
+
+// We're using a button here to preserve tab accessibility
+const WidgetTooltipButton = styled(Button)`
+  pointer-events: none;
 `;
