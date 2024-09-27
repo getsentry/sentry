@@ -31,7 +31,7 @@ import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import {useDeleteDebugIdBundle} from 'sentry/views/settings/projectSourceMaps/useDeleteDebugIdBundle';
 
 type Props = RouteComponentProps<
-  {bundleId: string; orgId: string; projectId: string},
+  {orgId: string; projectId: string; bundleId?: string},
   {}
 > & {
   project: Project;
@@ -298,7 +298,7 @@ const formatDist = (dist: string | string[] | null) => {
     return dist.join(', ');
   }
   if (dist === null) {
-    return 'none';
+    return t('none');
   }
   return dist;
 };
@@ -345,7 +345,6 @@ export function SourceMapUploadDeleteButton({
 
 const ReleasesWrapper = styled('pre')`
   max-height: 200px;
-  overflow-y: auto !important;
 `;
 
 const StyledKeyValueList = styled(KeyValueList)`

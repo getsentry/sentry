@@ -1,13 +1,15 @@
 import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 
+import {navigateTo} from 'sentry/actionCreators/navigation';
 import SwitchButton from 'sentry/components/switchButton';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import type {InjectedRouter, RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {FlexContainer} from 'sentry/utils/discover/styles';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import {ProjectSourceMaps} from './projectSourceMaps';
@@ -28,35 +30,30 @@ type Props = RouteComponentProps<
 };
 
 const hasSourceMapUploadsView = (org: Organization) =>
-  org.features.includes('new-source-map-uploads-view');
+  org.features.includes('new-source-map-uploads-view') || true;
 
-export function ToggleSourceMapUploadsView({router}) {
-  const useSourceMapUploadsView =
-    router.location.query.useSourceMapUploadsView === 'true';
-
+export function ToggleSourceMapUploadsView({router}: {router: InjectedRouter}) {
+  const sourceMapUploads = router.location.query.sourceMapUploads === 'true';
+  const location = useLocation();
   const org = useOrganization();
 
   const toggle = useCallback(() => {
-    const newVal = useSourceMapUploadsView ? undefined : 'true';
-    router.push({
-      ...location,
-      query: {...router.location.query, useSourceMapUploadsView: newVal},
-    });
-  }, [router, useSourceMapUploadsView]);
+    const newVal = sourceMapUploads ? undefined : 'true';
+
+    navigateTo(
+      {pathname: location.pathname, query: {...location.query, sourceMapUploads: newVal}},
+      router
+    );
+  }, [router, sourceMapUploads, location]);
 
   if (!hasSourceMapUploadsView(org)) {
     return null;
   }
 
   return (
-    <SwitchButtonContainer
-      style={{
-        opacity: useSourceMapUploadsView ? 1.0 : 0.75,
-        gap: space(1),
-      }}
-    >
+    <SwitchButtonContainer>
       {t('New Source Maps Experience')}
-      <SwitchButton isActive={useSourceMapUploadsView} size="sm" toggle={toggle} />
+      <SwitchButton isActive={sourceMapUploads} size="sm" toggle={toggle} />
     </SwitchButtonContainer>
   );
 }
@@ -65,6 +62,7 @@ const SwitchButtonContainer = styled(FlexContainer)`
   position: absolute;
   right: ${space(4)};
   padding: ${space(2)};
+  gap: ${space(1)};
   top: 80px;
 `;
 
@@ -80,14 +78,14 @@ export default function ProjectSourceMapsContainer({params, location, ...props}:
       />
     );
   }
-  if (location.query.useSourceMapUploadsView === 'true' && hasSourceMapUploadsView(org)) {
+  if (location.query.sourceMapUploads && hasSourceMapUploadsView(org)) {
     return (
       <Fragment>
         <ToggleSourceMapUploadsView router={props.router} />
         <ProjectSourceMapsUploads
           {...props}
           location={location}
-          params={{...params, bundleId: params.bundleId!}}
+          params={{...params, bundleId: params.bundleId}}
         />
       </Fragment>
     );
