@@ -1585,8 +1585,6 @@ def _save_aggregate(
     return GroupInfo(group, is_new, is_regression)
 
 
-# TODO: None of the seer logic has been added to this version yet, so you can't simultaneously use
-# optimized transitions and seer
 def _save_aggregate_new(
     event: Event,
     job: Job,
