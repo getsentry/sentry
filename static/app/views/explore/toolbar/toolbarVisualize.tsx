@@ -2,6 +2,7 @@ import {Fragment, useCallback, useMemo} from 'react';
 
 import {Button} from 'sentry/components/button';
 import {CompactSelect, type SelectOption} from 'sentry/components/compactSelect';
+import {IconAdd} from 'sentry/icons';
 import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
@@ -24,7 +25,7 @@ import {
   ToolbarFooterButton,
   ToolbarHeader,
   ToolbarHeaderButton,
-  ToolbarHeading,
+  ToolbarLabel,
   ToolbarRow,
   ToolbarSection,
 } from './styles';
@@ -119,10 +120,14 @@ export function ToolbarVisualize({}: ToolbarVisualizeProps) {
   return (
     <ToolbarSection data-test-id="section-visualizes">
       <ToolbarHeader>
-        <ToolbarHeading>{t('Visualize')}</ToolbarHeading>
-        <ToolbarHeaderButton size="xs" onClick={addChart} borderless>
-          {t('+Add Chart')}
-        </ToolbarHeaderButton>
+        <ToolbarLabel>{t('Visualize')}</ToolbarLabel>
+        <ToolbarHeaderButton
+          size="zero"
+          icon={<IconAdd />}
+          onClick={addChart}
+          aria-label={t('Add Chart')}
+          borderless
+        />
       </ToolbarHeader>
       <div>
         {parsedVisualizeGroups.map((parsedVisualizeGroup, group) => {
@@ -131,13 +136,11 @@ export function ToolbarVisualize({}: ToolbarVisualizeProps) {
               {parsedVisualizeGroup.map((parsedVisualize, index) => (
                 <ToolbarRow key={index}>
                   <CompactSelect
-                    size="sm"
                     options={fieldOptions}
                     value={parsedVisualize.arguments[0]}
                     onChange={newField => setChartField(group, index, newField)}
                   />
                   <CompactSelect
-                    size="sm"
                     options={aggregateOptions}
                     value={parsedVisualize?.name}
                     onChange={newAggregate =>
@@ -150,17 +153,20 @@ export function ToolbarVisualize({}: ToolbarVisualizeProps) {
                     size="zero"
                     disabled={lastVisualization}
                     onClick={() => deleteOverlay(group, index)}
-                    aria-label={t('Remove')}
+                    aria-label={t('Remove Overlay')}
                   />
                 </ToolbarRow>
               ))}
               <ToolbarFooter>
                 <ToolbarFooterButton
-                  size="xs"
-                  onClick={() => addOverlay(group)}
                   borderless
+                  size="zero"
+                  icon={<IconAdd />}
+                  onClick={() => addOverlay(group)}
+                  priority="link"
+                  aria-label={t('Add Overlay')}
                 >
-                  {t('+Add Overlay')}
+                  {t('Add Overlay')}
                 </ToolbarFooterButton>
               </ToolbarFooter>
             </Fragment>
