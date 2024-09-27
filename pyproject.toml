@@ -427,7 +427,6 @@ disable_error_code = [
 # begin: stronger typing
 [[tool.mypy.overrides]]
 module = [
-    "sentry.api.endpoints.issues.*",
     "sentry.api.helpers.deprecation",
     "sentry.api.helpers.source_map_helper",
     "sentry.auth.services.*",
@@ -468,6 +467,7 @@ module = [
     "sentry.issues.endpoints.organization_searches",
     "sentry.issues.endpoints.project_events",
     "sentry.issues.endpoints.project_stacktrace_link",
+    "sentry.issues.endpoints.related_issues",
     "sentry.issues.endpoints.shared_group_details",
     "sentry.issues.endpoints.team_groups_old",
     "sentry.issues.escalating_group_forecast",
@@ -559,7 +559,6 @@ module = [
     "sentry.web.frontend.auth_provider_login",
     "sentry.web.frontend.csv",
     "sentry_plugins.base",
-    "tests.sentry.api.endpoints.issues.*",
     "tests.sentry.event_manager.test_event_manager",
     "tests.sentry.grouping.test_fingerprinting",
     "tests.sentry.hybridcloud.*",
@@ -569,6 +568,7 @@ module = [
     "tests.sentry.issues.endpoints.test_organization_group_search_views",
     "tests.sentry.issues.endpoints.test_organization_searches",
     "tests.sentry.issues.endpoints.test_project_stacktrace_link",
+    "tests.sentry.issues.endpoints.test_related_issues",
     "tests.sentry.issues.endpoints.test_source_map_debug",
     "tests.sentry.issues.test_attributes",
     "tests.sentry.issues.test_escalating",
