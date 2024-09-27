@@ -4,7 +4,7 @@ from rest_framework.serializers import Serializer, ValidationError
 from sentry.constants import SentryAppInstallationStatus
 
 
-class SentryAppInstallationSerializer(Serializer):
+class SentryAppInstallationParser(Serializer):
     status = serializers.CharField()
 
     def validate_status(self, new_status):

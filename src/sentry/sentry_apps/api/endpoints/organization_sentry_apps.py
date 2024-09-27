@@ -11,6 +11,9 @@ from sentry.api.serializers import serialize
 from sentry.constants import SentryAppStatus
 from sentry.organizations.services.organization import RpcOrganization
 from sentry.organizations.services.organization.model import RpcUserOrganizationContext
+from sentry.sentry_apps.api.serializers.sentry_app import (
+    SentryAppSerializer as ResponseSentryAppSerializer,
+)
 from sentry.sentry_apps.models.sentry_app import SentryApp
 
 
@@ -39,5 +42,7 @@ class OrganizationSentryAppsEndpoint(ControlSiloOrganizationEndpoint):
             queryset=queryset,
             order_by="-date_added",
             paginator_cls=OffsetPaginator,
-            on_results=lambda x: serialize(x, request.user, access=request.access),
+            on_results=lambda x: serialize(
+                x, request.user, access=request.access, serializer=ResponseSentryAppSerializer()
+            ),
         )
