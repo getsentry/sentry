@@ -43,7 +43,7 @@ function useGroupBysImpl({location, navigate, tagsResults}: Options): GroupBysRe
 
     // Filter out groupBys that are not in span field supported tags
     const validGroupBys = isLoadingTags
-      ? rawGroupBys
+      ? []
       : rawGroupBys.filter(groupBy => groupBy === '' || tags?.hasOwnProperty(groupBy));
 
     if (validGroupBys.length) {
