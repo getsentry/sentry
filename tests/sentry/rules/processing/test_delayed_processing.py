@@ -133,7 +133,10 @@ class CreateEventTestCase(TestCase, BaseEventFrequencyPercentTest):
         return cast(
             GroupEvent,
             self.store_event(
-                data=data, project_id=project_id, assert_no_errors=False, event_type=EventType.ERROR
+                data=data,
+                project_id=project_id,
+                assert_no_errors=False,
+                default_event_type=EventType.ERROR,
             ),
         )
 
