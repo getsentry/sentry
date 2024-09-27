@@ -53,11 +53,7 @@ from sentry.grouping.api import (
     GroupingConfig,
     get_grouping_config_dict_for_project,
 )
-from sentry.grouping.ingest.config import (
-    is_in_transition,
-    project_uses_optimized_grouping,
-    update_grouping_config_if_needed,
-)
+from sentry.grouping.ingest.config import is_in_transition, update_grouping_config_if_needed
 from sentry.grouping.ingest.hashing import (
     find_existing_grouphash,
     get_hash_values,
@@ -517,12 +513,10 @@ class EventManager:
             return jobs[0]["event"]
         else:
             project = job["event"].project
-            job["optimized_grouping"] = project_uses_optimized_grouping(project)
             job["in_grouping_transition"] = is_in_transition(project)
             metric_tags = {
                 "platform": job["event"].platform or "unknown",
                 "sdk": normalized_sdk_tag_from_event(job["event"].data),
-                "using_transition_optimization": job["optimized_grouping"],
                 "in_transition": job["in_grouping_transition"],
             }
             # This metric allows differentiating from all calls to the `event_manager.save` metric
