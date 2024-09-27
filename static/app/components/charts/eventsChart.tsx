@@ -46,7 +46,7 @@ import {
   isEquation,
 } from 'sentry/utils/discover/fields';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {decodeList} from 'sentry/utils/queryString';
+import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 
 import EventsRequest from './eventsRequest';
 
@@ -78,6 +78,7 @@ type ChartProps = {
    * a list of series names that are also disableable.
    */
   disableableSeries?: string[];
+  forceChartType?: string;
   fromDiscover?: boolean;
   height?: number;
   interval?: string;
@@ -137,7 +138,7 @@ class Chart extends Component<ChartProps, State> {
   }
 
   getChartComponent(): ChartComponent {
-    const {showDaily, timeseriesData, yAxis, chartComponent} = this.props;
+    const {showDaily, timeseriesData, yAxis, chartComponent, forceChartType} = this.props;
 
     if (defined(chartComponent)) {
       return chartComponent;
@@ -148,7 +149,7 @@ class Chart extends Component<ChartProps, State> {
     }
 
     if (timeseriesData.length > 1) {
-      switch (aggregateMultiPlotType(yAxis)) {
+      switch (forceChartType || aggregateMultiPlotType(yAxis)) {
         case 'line':
           return LineChart;
         case 'area':
@@ -541,6 +542,7 @@ class EventsChart extends Component<EventsChartProps> {
     // Include previous only on relative dates (defaults to relative if no start and end)
     const includePrevious = !disablePrevious && !start && !end;
 
+    const forceChartType = decodeScalar(router.location.query.forceChartType);
     const yAxisArray = decodeList(yAxis);
     const yAxisSeriesNames = yAxisArray.map(name => {
       let yAxisLabel = name && isEquation(name) ? getEquation(name) : name;
@@ -590,6 +592,7 @@ class EventsChart extends Component<EventsChartProps> {
           {isValidElement(chartHeader) && chartHeader}
 
           <ThemedChart
+            forceChartType={forceChartType}
             zoomRenderProps={zoomRenderProps}
             loading={loading || !!loadingAdditionalSeries}
             reloading={reloading || !!reloadingAdditionalSeries}
