@@ -1,7 +1,7 @@
 import moment from 'moment-timezone';
 
-import ConfigStore from 'sentry/stores/configStore';
 import {getFormat} from 'sentry/utils/dates';
+import {useUser} from 'sentry/utils/useUser';
 
 export interface DateTimeProps extends React.HTMLAttributes<HTMLTimeElement> {
   /**
@@ -59,7 +59,7 @@ export function DateTime({
   forcedTimezone,
   ...props
 }: DateTimeProps) {
-  const user = ConfigStore.get('user');
+  const user = useUser();
   const options = user?.options;
 
   const formatString =

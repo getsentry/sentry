@@ -5,7 +5,7 @@ import type {Config} from 'sentry/types/system';
 export function ConfigFixture(params: Partial<Config> = {}): Config {
   return {
     theme: 'light',
-    user: UserFixture(),
+    user: params.user || UserFixture(),
     messages: [],
     languageCode: 'en',
     csrfCookieName: 'csrf-test-cookie',

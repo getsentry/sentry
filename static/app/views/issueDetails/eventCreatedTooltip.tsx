@@ -4,9 +4,9 @@ import moment from 'moment-timezone';
 
 import AutoSelectText from 'sentry/components/autoSelectText';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
+import {useUser} from 'sentry/utils/useUser';
 
 const formatDateDelta = (reference: moment.Moment, observed: moment.Moment) => {
   const duration = moment.duration(Math.abs(+observed - +reference));
@@ -34,7 +34,7 @@ type Props = {
 };
 
 export default function EventCreatedTooltip({event}: Props) {
-  const user = ConfigStore.get('user');
+  const user = useUser();
   const options = user?.options ?? {};
   const format = options.clock24Hours ? 'HH:mm:ss z' : 'LTS z';
   const dateCreated = event.dateCreated ? moment(event.dateCreated) : null;

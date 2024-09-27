@@ -4,10 +4,10 @@ import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useUser} from 'sentry/utils/useUser';
 
 const EXCLUDED_CONDITIONS = [
   'event.type:error',
@@ -25,7 +25,7 @@ const EXCLUDED_CONDITIONS = [
 ];
 
 export function SampleDataAlert({query}: {query?: string}) {
-  const user = ConfigStore.get('user');
+  const user = useUser();
   const {slug, isDynamicallySampled} = useOrganization();
 
   const {dismiss, isDismissed} = useDismissAlert({

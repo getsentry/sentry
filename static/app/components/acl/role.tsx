@@ -1,10 +1,10 @@
 import {useMemo} from 'react';
 
-import ConfigStore from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {isRenderFunc} from 'sentry/utils/isRenderFunc';
+import {useUser} from 'sentry/utils/useUser';
 import withOrganization from 'sentry/utils/withOrganization';
 
 type RoleRenderProps = {
@@ -57,7 +57,7 @@ interface RoleProps {
 }
 
 function Role({role, organization, children}: RoleProps): React.ReactElement | null {
-  const user = ConfigStore.get('user');
+  const user = useUser();
 
   const hasRole = useMemo(
     () => checkUserRole(user, organization, role),

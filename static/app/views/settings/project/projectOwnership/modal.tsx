@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import type {Event, Frame} from 'sentry/types/event';
 import type {TagWithTopValues} from 'sentry/types/group';
@@ -12,6 +11,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {uniq} from 'sentry/utils/array/uniq';
 import {safeURL} from 'sentry/utils/url/safeURL';
+import {useUser} from 'sentry/utils/useUser';
 import OwnerInput from 'sentry/views/settings/project/projectOwnership/ownerInput';
 
 type IssueOwnershipResponse = {
@@ -80,17 +80,17 @@ function OwnershipSuggestions({
   urls: string[];
   eventData?: Event;
 }) {
-  const email = ConfigStore.get('user')?.email;
-  if (!email) {
+  const user = useUser();
+  if (!user.email) {
     return null;
   }
 
-  const pathSuggestion = paths.length ? `path:${paths[0]} ${email}` : null;
-  const urlSuggestion = urls.length ? `url:${getUrlPath(urls[0])} ${email}` : null;
+  const pathSuggestion = paths.length ? `path:${paths[0]} ${user.email}` : null;
+  const urlSuggestion = urls.length ? `url:${getUrlPath(urls[0])} ${user.email}` : null;
 
   const transactionTag = eventData?.tags?.find(({key}) => key === 'transaction');
   const transactionSuggestion = transactionTag
-    ? `tags.transaction:${transactionTag.value} ${email}`
+    ? `tags.transaction:${transactionTag.value} ${user.email}`
     : null;
 
   return (
