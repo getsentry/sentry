@@ -1,5 +1,5 @@
 from sentry.mediators.external_issues.creator import Creator
-from sentry.models.platformexternalissue import PlatformExternalIssue
+from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
 from sentry.sentry_apps.services.app import app_service
 from sentry.testutils.cases import TestCase
 

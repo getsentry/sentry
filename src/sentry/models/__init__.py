@@ -1,3 +1,4 @@
+from ..sentry_apps.models.platformexternalissue import *  # NOQA
 from .activity import *  # NOQA
 from .apiapplication import *  # NOQA
 from .apiauthorization import *  # NOQA
@@ -75,7 +76,6 @@ from .organizationonboardingtask import *  # NOQA
 from .organizationslugreservation import *  # NOQA
 from .organizationslugreservationreplica import *  # NOQA
 from .orgauthtoken import *  # NOQA
-from .platformexternalissue import *  # NOQA
 from .project import *  # NOQA
 from .projectbookmark import *  # NOQA
 from .projectcodeowners import *  # NOQA
