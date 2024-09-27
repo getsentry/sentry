@@ -162,9 +162,30 @@ export default function useInviteModal({organization, initialData, source}: Prop
     [api, organization, willInvite]
   );
 
+  const removeSentInvites = useCallback(() => {
+    setState(prev => {
+      const emails = prev.pendingInvites[0].emails;
+      const filteredEmails = Array.from(emails).filter(
+        email => !prev.inviteStatus[email]?.sent
+      );
+      return {
+        ...prev,
+        pendingInvites: [
+          {
+            ...prev.pendingInvites[0],
+            emails: new Set(filteredEmails),
+          },
+        ],
+      };
+    });
+  }, []);
+
   const sendInvites = useCallback(async () => {
     setState(prev => ({...prev, sendingInvites: true}));
     await Promise.all(invites.map(sendInvite));
+    if (organization.features.includes('members-invite-teammates')) {
+      removeSentInvites();
+    }
     setState(prev => ({...prev, sendingInvites: false, complete: true}));
 
     trackAnalytics(
@@ -174,7 +195,7 @@ export default function useInviteModal({organization, initialData, source}: Prop
         modal_session: sessionId.current,
       }
     );
-  }, [organization, invites, sendInvite, willInvite]);
+  }, [organization, invites, sendInvite, willInvite, removeSentInvites]);
 
   const addInviteRow = useCallback(() => {
     setState(prev => ({

@@ -4,6 +4,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconCheckmark, IconWarning} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import type {InviteStatus} from './types';
 
@@ -22,6 +23,9 @@ export default function InviteStatusMessage({
   sendingInvites,
   willInvite,
 }: Props) {
+  const organization = useOrganization();
+  const isNewInviteModal = organization.features.includes('invite-members-new-modal');
+
   if (sendingInvites) {
     return (
       <StatusMessage>
@@ -44,10 +48,39 @@ export default function InviteStatusMessage({
           {tn('%s invite', '%s invites', sentCount)}
         </strong>
       );
+      const failedInvites = (
+        <strong data-test-id="failed-invites">
+          {tn('%s invite', '%s invites', errorCount)}
+        </strong>
+      );
       const tctComponents = {
         invites,
         failed: errorCount,
+        failedInvites,
       };
+
+      if (isNewInviteModal) {
+        return (
+          <div>
+            {sentCount > 0 && (
+              <StatusMessage status="success">
+                <IconCheckmark size="sm" />
+                <span>{tct('[invites] sent.', tctComponents)}</span>
+              </StatusMessage>
+            )}
+            {errorCount > 0 && (
+              <StatusMessage status="error" isNewInviteModal>
+                <IconWarning size="sm" />
+                <span>
+                  {sentCount === 0
+                    ? tct('Sent [invites], [failed] failed to send.', tctComponents)
+                    : tct('[failedInvites] failed to send.', tctComponents)}
+                </span>
+              </StatusMessage>
+            )}
+          </div>
+        );
+      }
 
       return (
         <StatusMessage status="success">
@@ -65,10 +98,41 @@ export default function InviteStatusMessage({
         {tn('%s invite request', '%s invite requests', sentCount)}
       </strong>
     );
+    const failedInviteRequests = (
+      <strong data-test-id="failed-invite-requests">
+        {tn('%s invite request', '%s invite requests', errorCount)}
+      </strong>
+    );
     const tctComponents = {
       inviteRequests,
       failed: errorCount,
+      failedInviteRequests,
     };
+    if (isNewInviteModal) {
+      return (
+        <div>
+          {sentCount > 0 && (
+            <StatusMessage status="success">
+              <IconCheckmark size="sm" />
+              <span>{tct('[inviteRequests] pending approval.', tctComponents)}</span>
+            </StatusMessage>
+          )}
+          {errorCount > 0 && (
+            <StatusMessage status="error" isNewInviteModal>
+              <IconWarning size="sm" />
+              <span>
+                {sentCount === 0
+                  ? tct(
+                      '[inviteRequests] pending approval, [failed] failed to send.',
+                      tctComponents
+                    )
+                  : tct('[failedInviteRequests] failed to send.', tctComponents)}
+              </span>
+            </StatusMessage>
+          )}
+        </div>
+      );
+    }
     return (
       <StatusMessage status="success">
         <IconCheckmark size="sm" />
@@ -82,6 +146,7 @@ export default function InviteStatusMessage({
     );
   }
 
+  // TODO(mia): remove once old modal is removed
   if (hasDuplicateEmails) {
     return (
       <StatusMessage status="error">
@@ -94,14 +159,21 @@ export default function InviteStatusMessage({
   return null;
 }
 
-export const StatusMessage = styled('div')<{status?: 'success' | 'error'}>`
+export const StatusMessage = styled('div')<{
+  isNewInviteModal?: boolean;
+  status?: 'success' | 'error';
+}>`
   display: flex;
   gap: ${space(1)};
   align-items: center;
   font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => (p.status === 'error' ? p.theme.errorText : p.theme.textColor)};
+  color: ${p =>
+    p.status === 'error' && !p.isNewInviteModal ? p.theme.errorText : p.theme.textColor};
 
   > :first-child {
-    ${p => p.status === 'success' && `color: ${p.theme.successText}`};
+    ${p =>
+      p.status === 'success'
+        ? `color: ${p.theme.successText}`
+        : p.status === 'error' && p.isNewInviteModal && `color: ${p.theme.errorText}`};
   }
 `;

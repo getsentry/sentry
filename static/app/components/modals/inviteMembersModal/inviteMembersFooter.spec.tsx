@@ -1,3 +1,5 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {
@@ -7,14 +9,17 @@ import {
 import InviteMembersFooter from 'sentry/components/modals/inviteMembersModal/inviteMembersFooter';
 
 describe('InviteRowControlNew', function () {
-  const getComponent = props => (
-    <InviteMembersContext.Provider value={props}>
-      <InviteMembersFooter canSend />
-    </InviteMembersContext.Provider>
-  );
+  const renderComponent = props => {
+    render(
+      <InviteMembersContext.Provider value={{...defaultInviteProps, ...props}}>
+        <InviteMembersFooter canSend />
+      </InviteMembersContext.Provider>,
+      {organization: OrganizationFixture({features: ['invite-members-new-modal']})}
+    );
+  };
 
   it('disables send button when there are no emails', function () {
-    render(getComponent(defaultInviteProps));
+    renderComponent({});
 
     const sendButton = screen.getByLabelText(/send invite/i);
     expect(sendButton).toBeDisabled();
@@ -22,19 +27,16 @@ describe('InviteRowControlNew', function () {
 
   it('enables send button when there are emails', async function () {
     const mockSendInvites = jest.fn();
-    render(
-      getComponent({
-        ...defaultInviteProps,
-        invites: [
-          {
-            email: 'moo-deng@email.com',
-            role: 'member',
-            teams: new Set<string>(['moo-deng']),
-          },
-        ],
-        sendInvites: mockSendInvites,
-      })
-    );
+    renderComponent({
+      invites: [
+        {
+          email: 'moo-deng@email.com',
+          role: 'member',
+          teams: new Set<string>(['moo-deng']),
+        },
+      ],
+      sendInvites: mockSendInvites,
+    });
 
     const sendButton = screen.getByLabelText(/send invite/i);
     expect(sendButton).toBeEnabled();
@@ -43,68 +45,54 @@ describe('InviteRowControlNew', function () {
   });
 
   it('displays correct status message for sent invites', function () {
-    render(
-      getComponent({
-        ...defaultInviteProps,
-        complete: true,
-        inviteStatus: {
-          'moo-deng': {sent: true},
-          'moo-waan': {sent: true},
-        },
-        willInvite: true,
-      })
-    );
-    const element = screen.getByTestId('sent-invites');
-    expect(element).toHaveTextContent(/2/i);
+    renderComponent({
+      complete: true,
+      inviteStatus: {
+        'moo-deng': {sent: true},
+        'moo-waan': {sent: true},
+      },
+      willInvite: true,
+    });
+    expect(screen.getByTestId('sent-invites')).toHaveTextContent(/2/i);
+    expect(screen.queryByTestId('failed-invites')).not.toBeInTheDocument();
   });
 
   it('displays correct status message for failed invites', function () {
-    render(
-      getComponent({
-        ...defaultInviteProps,
-        complete: true,
-        inviteStatus: {
-          'moo-deng': {sent: false, error: 'Error'},
-          'moo-waan': {sent: false, error: 'Error'},
-        },
-        willInvite: true,
-      })
-    );
-    expect(screen.getByText(/2 failed to send\./i)).toBeInTheDocument();
+    renderComponent({
+      complete: true,
+      inviteStatus: {
+        'moo-deng': {sent: false, error: 'Error'},
+        'moo-waan': {sent: false, error: 'Error'},
+      },
+      willInvite: true,
+    });
+    expect(screen.getByText(/2/i)).toBeInTheDocument();
   });
 
   it('displays correct status message for sent and failed invites', function () {
-    render(
-      getComponent({
-        ...defaultInviteProps,
-        complete: true,
-        inviteStatus: {
-          'moo-deng': {sent: true},
-          'moo-waan': {sent: true},
-          'moo-toon': {sent: false, error: 'Error'},
-        },
-        willInvite: true,
-      })
-    );
-    const element = screen.getByTestId('sent-invites');
-    expect(element).toHaveTextContent(/2/i);
-    expect(screen.getByText(/1 failed to send\./i)).toBeInTheDocument();
+    renderComponent({
+      complete: true,
+      inviteStatus: {
+        'moo-deng': {sent: true},
+        'moo-waan': {sent: true},
+        'moo-toon': {sent: false, error: 'Error'},
+      },
+      willInvite: true,
+    });
+    expect(screen.getByTestId('sent-invites')).toHaveTextContent(/2/i);
+    expect(screen.getByTestId('failed-invites')).toHaveTextContent(/1/i);
   });
 
   it('displays pending invite message when willInvite is false', function () {
-    render(
-      getComponent({
-        ...defaultInviteProps,
-        complete: true,
-        inviteStatus: {
-          'moo-deng': {sent: true},
-          'moo-waan': {sent: true},
-          'moo-toon': {sent: false, error: 'Error'},
-        },
-      })
-    );
-    const element = screen.getByTestId('sent-invite-requests');
-    expect(element).toHaveTextContent(/2/i);
-    expect(screen.getByText(/1 failed to send\./i)).toBeInTheDocument();
+    renderComponent({
+      complete: true,
+      inviteStatus: {
+        'moo-deng': {sent: true},
+        'moo-waan': {sent: true},
+        'moo-toon': {sent: false, error: 'Error'},
+      },
+    });
+    expect(screen.getByTestId('sent-invite-requests')).toHaveTextContent(/2/i);
+    expect(screen.getByTestId('failed-invite-requests')).toHaveTextContent(/1/i);
   });
 });
