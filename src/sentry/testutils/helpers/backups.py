@@ -614,9 +614,6 @@ class ExhaustiveFixtures(Fixtures):
         detector = self.create_detector(organization=org)
         self.create_detector_workflow(detector=detector, workflow=workflow)
 
-        # TODO @saponifi3d: Delete this once the migration to remove the model is complete
-        self.create_workflow_action(workflow=workflow)
-
         notification_condition_group = self.create_data_condition_group(
             logic_type=DataConditionGroup.Type.ANY,
             organization=org,
@@ -628,7 +625,7 @@ class ExhaustiveFixtures(Fixtures):
             condition_group=notification_condition_group,
         )
 
-        # TODO @saponifi3d: Update warning to be DetectorState.Critical
+        # TODO @saponifi3d: Update comparison to be DetectorState.Critical
         self.create_data_condition(
             condition="eq",
             comparison="critical",

@@ -13,4 +13,4 @@ replays: 0004_index_together
 sentry: 0768_fix_old_group_first_seen_dates
 social_auth: 0002_default_auto_field
 uptime: 0013_uptime_subscription_new_unique
-workflow_engine: 0006_data_conditions
+workflow_engine: 0007_loosen_workflow_action_relationship

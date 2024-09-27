@@ -888,9 +888,6 @@
     "sentry.organization",
     "workflow_engine.dataconditiongroup"
   ],
-  "workflow_engine.workflowaction": [
-    "workflow_engine.workflow"
-  ],
   "workflow_engine.workflowdataconditiongroup": [
     "workflow_engine.dataconditiongroup",
     "workflow_engine.workflow"

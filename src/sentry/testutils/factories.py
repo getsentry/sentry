@@ -180,7 +180,6 @@ from sentry.workflow_engine.models import (
     Detector,
     DetectorWorkflow,
     Workflow,
-    WorkflowAction,
     WorkflowDataConditionGroup,
 )
 from social_auth.models import UserSocialAuth
@@ -2074,13 +2073,6 @@ class Factories:
         if name is None:
             name = petname.generate(2, " ", letters=10).title()
         return Workflow.objects.create(organization=organization, name=name)
-
-    @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
-    def create_workflow_action(
-        **kwargs,
-    ) -> WorkflowAction:
-        return WorkflowAction.objects.create(**kwargs)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
