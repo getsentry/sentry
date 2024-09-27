@@ -3,6 +3,7 @@
 import os
 import subprocess
 import sys
+import textwrap
 
 
 def run_command(command):
@@ -14,24 +15,40 @@ def run_command(command):
         sys.exit(1)
 
 
+def print_help():
+    help_message = textwrap.dedent(
+        """
+    Usage: ./bin/make-migration.py [options]
+
+    This script runs three commands in sequence:
+    1. sentry django makemigrations (with any provided arguments)
+    2. ./bin/generate-model-dependency-fixtures
+    3. SENTRY_SNAPSHOTS_WRITEBACK=1 pytest (specific test files)
+
+    Options:
+        -h, --help    Show this help message and exit
+
+    Any other options provided will be passed directly to the 'sentry django makemigrations' command.
+    """
+    )
+
+    sys.stdout.write(help_message)
+
+
 def main():
     if "-h" in sys.argv or "--help" in sys.argv:
-        sys.stdout.write("This script runs the following commands:\n")
-        sys.stdout.write("1. sentry django makemigrations\n")
-        sys.stdout.write("2. ./bin/generate-model-dependency-fixtures\n")
-        sys.stdout.write("3. SENTRY_SNAPSHOTS_WRITEBACK=1 pytest ...\n")
-        sys.stdout.write("\n")
-        sys.stdout.write(
-            "Ensure all tests/sentry/backup files have been updated before running this script.\n"
-        )
+        print_help()
         sys.exit(0)
+
+    current_dir = os.path.dirname(os.path.realpath(__file__))
 
     # Command 1: sentry django makemigrations (with potential additional args)
     makemigrations_cmd = ["sentry", "django", "makemigrations"] + sys.argv[1:]
     run_command(makemigrations_cmd)
 
     # Command 2: ./bin/generate-model-dependency-fixtures
-    run_command(["./bin/generate-model-dependency-fixtures"])
+    generate_fixtures_cmd = [os.path.join(current_dir, "bin", "generate-model-dependency-fixtures")]
+    run_command(generate_fixtures_cmd)
 
     # Command 3: SENTRY_SNAPSHOTS_WRITEBACK=1 pytest ...
     pytest_cmd = [
