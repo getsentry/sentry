@@ -11,11 +11,10 @@ export function getUploadSourceMapsStep({
   projectId,
   newOrg,
   isSelfHosted,
-  urlPrefix,
 }: DocsParams & {
   guideLink: string;
 }) {
-  const urlParam = !isSelfHosted && urlPrefix ? `--url ${urlPrefix}` : '';
+  const urlParam = isSelfHosted ? '' : '--saas';
   return {
     title: t('Upload Source Maps'),
     description: (
