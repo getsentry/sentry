@@ -23,6 +23,8 @@ import {ReadoutRibbon, ToolRibbon} from 'sentry/views/insights/common/components
 import {getTimeSpentExplanation} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
+import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {LatencyChart} from 'sentry/views/insights/queues/charts/latencyChart';
 import {ThroughputChart} from 'sentry/views/insights/queues/charts/throughputChart';
 import {MessageSpanSamplesPanel} from 'sentry/views/insights/queues/components/messageSpanSamplesPanel';
@@ -30,9 +32,11 @@ import {TransactionsTable} from 'sentry/views/insights/queues/components/tables/
 import {useQueuesMetricsQuery} from 'sentry/views/insights/queues/queries/useQueuesMetricsQuery';
 import {Referrer} from 'sentry/views/insights/queues/referrers';
 import {DESTINATION_TITLE} from 'sentry/views/insights/queues/settings';
+import {ModuleName} from 'sentry/views/insights/types';
 import Onboarding from 'sentry/views/performance/onboarding';
 
 function DestinationSummaryPage() {
+  const {isInDomainView} = useDomainViewFilters();
   const organization = useOrganization();
   const onboardingProject = useOnboardingProject();
 
@@ -49,25 +53,33 @@ function DestinationSummaryPage() {
 
   return (
     <Fragment>
-      <Layout.Header>
-        <Layout.HeaderContent>
-          <Breadcrumbs
-            crumbs={[
-              ...crumbs,
-              {
-                label: DESTINATION_TITLE,
-              },
-            ]}
-          />
+      {!isInDomainView && (
+        <Layout.Header>
+          <Layout.HeaderContent>
+            <Breadcrumbs
+              crumbs={[
+                ...crumbs,
+                {
+                  label: DESTINATION_TITLE,
+                },
+              ]}
+            />
 
-          <Layout.Title>{destination}</Layout.Title>
-        </Layout.HeaderContent>
-        <Layout.HeaderActions>
-          <ButtonBar gap={1}>
-            <FeedbackWidgetButton />
-          </ButtonBar>
-        </Layout.HeaderActions>
-      </Layout.Header>
+            <Layout.Title>{destination}</Layout.Title>
+          </Layout.HeaderContent>
+          <Layout.HeaderActions>
+            <ButtonBar gap={1}>
+              <FeedbackWidgetButton />
+            </ButtonBar>
+          </Layout.HeaderActions>
+        </Layout.Header>
+      )}
+
+      {isInDomainView && (
+        <Layout.Header>
+          <BackendHeader module={ModuleName.QUEUE} />
+        </Layout.Header>
+      )}
 
       <Layout.Body>
         <Layout.Main fullWidth>

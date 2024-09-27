@@ -52,7 +52,10 @@ import {
   MODULE_DOC_LINK,
   NULL_DOMAIN_DESCRIPTION,
 } from 'sentry/views/insights/http/settings';
+import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
+import {BACKEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/backend/settings';
 import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
+import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/settings';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import type {SpanMetricsQueryFilters} from 'sentry/views/insights/types';
 import {ModuleName, SpanFunction, SpanMetricsField} from 'sentry/views/insights/types';
@@ -65,7 +68,7 @@ type Query = {
 export function HTTPDomainSummaryPage() {
   const location = useLocation<Query>();
   const {projects} = useProjects();
-  const {isInDomainView} = useDomainViewFilters();
+  const {isInDomainView, view} = useDomainViewFilters();
 
   // TODO: Fetch sort information using `useLocationQuery`
   const sortField = decodeScalar(location.query?.[QueryParameterNames.TRANSACTIONS_SORT]);
@@ -208,9 +211,15 @@ export function HTTPDomainSummaryPage() {
         </Layout.Header>
       )}
 
-      {isInDomainView && (
+      {isInDomainView && view === FRONTEND_LANDING_SUB_PATH && (
         <Layout.Header>
           <FrontendHeader module={ModuleName.HTTP} />
+        </Layout.Header>
+      )}
+
+      {isInDomainView && view === BACKEND_LANDING_SUB_PATH && (
+        <Layout.Header>
+          <BackendHeader module={ModuleName.HTTP} />
         </Layout.Header>
       )}
 

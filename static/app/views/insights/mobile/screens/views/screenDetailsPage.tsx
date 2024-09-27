@@ -21,6 +21,8 @@ import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries
 import {PlatformSelector} from 'sentry/views/insights/mobile/screenload/components/platformSelector';
 import {ScreenLoadSpansContent as ScreenLoadPage} from 'sentry/views/insights/mobile/screenload/views/screenLoadSpansPage';
 import {ScreenSummaryContent as UiPage} from 'sentry/views/insights/mobile/ui/views/screenSummaryPage';
+import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {ModuleName} from 'sentry/views/insights/types';
 
 type Query = {
@@ -38,6 +40,7 @@ type Tab = {
 };
 
 export function ScreenDetailsPage() {
+  const {isInDomainView} = useDomainViewFilters();
   const location: Location = useLocation<Query>();
   const organization = useOrganization();
   const {isProjectCrossPlatform} = useCrossPlatformProject();
@@ -102,31 +105,59 @@ export function ScreenDetailsPage() {
       <Layout.Page>
         <PageAlertProvider>
           <Tabs value={selectedTabKey} onChange={tabKey => handleTabChange(tabKey)}>
-            <Layout.Header>
-              <Layout.HeaderContent style={{margin: 0}}>
-                <Breadcrumbs crumbs={crumbs} />
-                <Layout.Title>{transactionName}</Layout.Title>
-              </Layout.HeaderContent>
-              <Layout.HeaderActions>
-                <ButtonBar gap={1}>
-                  {isProjectCrossPlatform && <PlatformSelector />}
-                </ButtonBar>
-              </Layout.HeaderActions>
+            {!isInDomainView && (
+              <Layout.Header>
+                <Layout.HeaderContent style={{margin: 0}}>
+                  <Breadcrumbs crumbs={crumbs} />
+                  <Layout.Title>{transactionName}</Layout.Title>
+                </Layout.HeaderContent>
+                <Layout.HeaderActions>
+                  <ButtonBar gap={1}>
+                    {isProjectCrossPlatform && <PlatformSelector />}
+                  </ButtonBar>
+                </Layout.HeaderActions>
 
-              <TabList hideBorder>
-                {tabs.map(tab => {
-                  const visible =
-                    tab.feature === undefined ||
-                    organization.features?.includes(tab.feature);
-                  return (
-                    <TabList.Item key={tab.key} hidden={!visible} textValue={tab.label}>
-                      {tab.label}
-                      {tab.alpha && <FeatureBadge type="alpha" variant={'badge'} />}
-                    </TabList.Item>
-                  );
-                })}
-              </TabList>
-            </Layout.Header>
+                <TabList hideBorder>
+                  {tabs.map(tab => {
+                    const visible =
+                      tab.feature === undefined ||
+                      organization.features?.includes(tab.feature);
+                    return (
+                      <TabList.Item key={tab.key} hidden={!visible} textValue={tab.label}>
+                        {tab.label}
+                        {tab.alpha && <FeatureBadge type="alpha" variant={'badge'} />}
+                      </TabList.Item>
+                    );
+                  })}
+                </TabList>
+              </Layout.Header>
+            )}
+
+            {isInDomainView && (
+              <Layout.Header>
+                <MobileHeader module={ModuleName.MOBILE_SCREENS} hideTabs />
+                <Layout.HeaderActions>
+                  <ButtonBar gap={1}>
+                    {isProjectCrossPlatform && <PlatformSelector />}
+                  </ButtonBar>
+                </Layout.HeaderActions>
+
+                {/* TODO - There's two sets of tabs here, we'll have to do some UI work here */}
+                <TabList hideBorder>
+                  {tabs.map(tab => {
+                    const visible =
+                      tab.feature === undefined ||
+                      organization.features?.includes(tab.feature);
+                    return (
+                      <TabList.Item key={tab.key} hidden={!visible} textValue={tab.label}>
+                        {tab.label}
+                        {tab.alpha && <FeatureBadge type="alpha" variant={'badge'} />}
+                      </TabList.Item>
+                    );
+                  })}
+                </TabList>
+              </Layout.Header>
+            )}
             <Layout.Body>
               <Layout.Main fullWidth>
                 <PageAlert />

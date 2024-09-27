@@ -32,7 +32,10 @@ import {
 } from 'sentry/views/insights/llmMonitoring/components/charts/llmMonitoringCharts';
 import {PipelineSpansTable} from 'sentry/views/insights/llmMonitoring/components/tables/pipelineSpansTable';
 import {RELEASE_LEVEL} from 'sentry/views/insights/llmMonitoring/settings';
+import {AiHeader} from 'sentry/views/insights/pages/ai/aiPageHeader';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {
+  ModuleName,
   SpanFunction,
   SpanMetricsField,
   type SpanMetricsQueryFilters,
@@ -49,6 +52,7 @@ type Query = {
 };
 
 export function LLMMonitoringPage({params}: Props) {
+  const {isInDomainView} = useDomainViewFilters();
   const location = useLocation<Query>();
 
   const organization = useOrganization();
@@ -121,22 +125,30 @@ export function LLMMonitoringPage({params}: Props) {
   return (
     <Layout.Page>
       <NoProjectMessage organization={organization}>
-        <Layout.Header>
-          <Layout.HeaderContent>
-            <Breadcrumbs
-              crumbs={[
-                ...crumbs,
-                {
-                  label: t('Pipeline Summary'),
-                },
-              ]}
-            />
-            <Layout.Title>
-              {spanDescription}
-              <FeatureBadge type={RELEASE_LEVEL} />
-            </Layout.Title>
-          </Layout.HeaderContent>
-        </Layout.Header>
+        {!isInDomainView && (
+          <Layout.Header>
+            <Layout.HeaderContent>
+              <Breadcrumbs
+                crumbs={[
+                  ...crumbs,
+                  {
+                    label: t('Pipeline Summary'),
+                  },
+                ]}
+              />
+              <Layout.Title>
+                {spanDescription}
+                <FeatureBadge type={RELEASE_LEVEL} />
+              </Layout.Title>
+            </Layout.HeaderContent>
+          </Layout.Header>
+        )}
+
+        {isInDomainView && (
+          <Layout.Header>
+            <AiHeader module={ModuleName.AI} />
+          </Layout.Header>
+        )}
         <Layout.Body>
           <Layout.Main fullWidth>
             <ModuleLayout.Layout>

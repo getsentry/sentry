@@ -40,13 +40,12 @@ import {
   MODULE_DOC_LINK,
   MODULE_TITLE,
 } from 'sentry/views/insights/database/settings';
-import {
-  type InsightLandingProps,
-  ModuleName,
-  SpanMetricsField,
-} from 'sentry/views/insights/types';
+import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
+import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
 
-export function DatabaseLandingPage({disableHeader}: InsightLandingProps) {
+export function DatabaseLandingPage() {
+  const {isInDomainView} = useDomainViewFilters();
   const organization = useOrganization();
   const moduleName = ModuleName.DB;
   const location = useLocation();
@@ -164,7 +163,7 @@ export function DatabaseLandingPage({disableHeader}: InsightLandingProps) {
 
   return (
     <React.Fragment>
-      {!disableHeader && (
+      {!isInDomainView && (
         <Layout.Header>
           <Layout.HeaderContent>
             <Breadcrumbs crumbs={crumbs} />
@@ -182,6 +181,12 @@ export function DatabaseLandingPage({disableHeader}: InsightLandingProps) {
               <FeedbackWidgetButton />
             </ButtonBar>
           </Layout.HeaderActions>
+        </Layout.Header>
+      )}
+
+      {isInDomainView && (
+        <Layout.Header>
+          <BackendHeader module={ModuleName.DB} />
         </Layout.Header>
       )}
 
@@ -255,14 +260,14 @@ function AlertBanner(props) {
 
 const LIMIT: number = 25;
 
-function PageWithProviders(props: InsightLandingProps) {
+function PageWithProviders() {
   return (
     <ModulePageProviders
       moduleName="db"
       features="insights-initial-modules"
       analyticEventName="insight.page_loads.db"
     >
-      <DatabaseLandingPage {...props} />
+      <DatabaseLandingPage />
     </ModulePageProviders>
   );
 }
