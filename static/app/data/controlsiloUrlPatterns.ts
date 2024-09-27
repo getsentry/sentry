@@ -43,6 +43,7 @@ const patterns: RegExp[] = [
   new RegExp('^api/0/_admin/instance-level-oauth/$'),
   new RegExp('^api/0/_admin/instance-level-oauth/[^/]+/$'),
   new RegExp('^_admin/'),
+  new RegExp('^_warmup/$'),
   new RegExp('^api/0/organizations/[^/]+/api-keys/$'),
   new RegExp('^api/0/organizations/[^/]+/api-keys/[^/]+/$'),
   new RegExp('^api/0/organizations/[^/]+/audit-logs/$'),
