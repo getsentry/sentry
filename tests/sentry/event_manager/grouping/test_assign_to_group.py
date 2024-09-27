@@ -1,15 +1,13 @@
 from __future__ import annotations
 
 from contextlib import contextmanager
-from random import randint
 from time import time
 from typing import Any
 from unittest import mock
-from unittest.mock import MagicMock, patch
 
 import pytest
 
-from sentry.event_manager import _create_group, _save_aggregate_new
+from sentry.event_manager import _create_group
 from sentry.eventstore.models import Event
 from sentry.grouping.ingest.hashing import (
     _calculate_primary_hashes,
@@ -20,10 +18,7 @@ from sentry.grouping.ingest.metrics import record_calculation_metric_with_result
 from sentry.models.grouphash import GroupHash
 from sentry.models.project import Project
 from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG, LEGACY_GROUPING_CONFIG
-from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.eventprocessing import save_new_event
-from sentry.testutils.helpers.features import Feature
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.pytest.mocking import capture_results
 from sentry.testutils.skips import requires_snuba
@@ -417,45 +412,3 @@ def test_existing_group_new_hash_exists(
         "secondary_grouphash_existed_already": None,
         "secondary_grouphash_exists_now": None,
     }
-
-
-@django_db_all
-@pytest.mark.parametrize(
-    "killswitch_enabled",
-    (True, False),
-    ids=(" killswitch_enabled: True ", " killswitch_enabled: False "),
-)
-@pytest.mark.parametrize("flag_on", (True, False), ids=(" flag_on: True ", " flag_on: False "))
-@pytest.mark.parametrize(
-    "in_transition", (True, False), ids=(" in_transition: True ", " in_transition: False ")
-)
-@pytest.mark.parametrize("id_qualifies", (True,), ids=(" id_qualifies: True ",))
-@patch("sentry.event_manager._save_aggregate_new", wraps=_save_aggregate_new)
-def test_uses_regular_or_optimized_grouping_as_appropriate(
-    mock_save_aggregate_new: MagicMock,
-    id_qualifies: bool,
-    in_transition: bool,
-    flag_on: bool,
-    killswitch_enabled: bool,
-):
-    # The snowflake id seems to sometimes get stuck generating nothing but even numbers, so replace
-    # it with something we know will generate both odds and evens
-    with patch(
-        "sentry.utils.snowflake.generate_snowflake_id", side_effect=lambda _: randint(1, 1000)
-    ):
-        # Keep making projects until we get an id which matches `id_qualifies`
-        org = Factories.create_organization()
-        project = Factories.create_project(organization=org)
-        while (project.id % 5 >= 5) if id_qualifies else (project.id % 5 < 5):
-            project = Factories.create_project(organization=org)
-
-    with (
-        Feature({"organizations:grouping-suppress-unnecessary-secondary-hash": flag_on}),
-        patch("sentry.grouping.ingest.config.is_in_transition", return_value=in_transition),
-        override_options({"grouping.config_transition.killswitch_enabled": killswitch_enabled}),
-    ):
-        save_event_with_grouping_config(
-            {"message": "Dogs are great!"}, project, DEFAULT_GROUPING_CONFIG
-        )
-
-    assert mock_save_aggregate_new.call_count == 1
