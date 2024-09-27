@@ -91,7 +91,7 @@ class JiraServerRegionIntegrationTest(JiraServerIntegrationBaseTest):
                 "timestamp": self.min_ago,
             },
             project_id=self.project.id,
-            event_type=EventType.ERROR,
+            default_event_type=EventType.DEFAULT,
         )
         group = event.group
         assert group is not None
@@ -271,7 +271,7 @@ class JiraServerRegionIntegrationTest(JiraServerIntegrationBaseTest):
                 "timestamp": self.min_ago,
             },
             project_id=self.project.id,
-            event_type=EventType.ERROR,
+            default_event_type=EventType.DEFAULT,
         )
         group = event.group
 
@@ -324,7 +324,7 @@ class JiraServerRegionIntegrationTest(JiraServerIntegrationBaseTest):
                 "timestamp": self.min_ago,
             },
             project_id=self.project.id,
-            event_type=EventType.ERROR,
+            default_event_type=EventType.DEFAULT,
         )
         group = event.group
 
@@ -386,7 +386,7 @@ class JiraServerRegionIntegrationTest(JiraServerIntegrationBaseTest):
                 "timestamp": self.min_ago,
             },
             project_id=self.project.id,
-            event_type=EventType.ERROR,
+            default_event_type=EventType.DEFAULT,
         )
         group = event.group
         assert group is not None
@@ -420,7 +420,7 @@ class JiraServerRegionIntegrationTest(JiraServerIntegrationBaseTest):
                 "timestamp": self.min_ago,
             },
             project_id=self.project.id,
-            event_type=EventType.ERROR,
+            default_event_type=EventType.DEFAULT,
         )
         group = event.group
         assert group is not None
@@ -490,7 +490,7 @@ class JiraServerRegionIntegrationTest(JiraServerIntegrationBaseTest):
                 "timestamp": self.min_ago,
             },
             project_id=self.project.id,
-            event_type=EventType.ERROR,
+            default_event_type=EventType.DEFAULT,
         )
         group = event.group
         assert group is not None
@@ -533,7 +533,7 @@ class JiraServerRegionIntegrationTest(JiraServerIntegrationBaseTest):
                 "timestamp": self.min_ago,
             },
             project_id=self.project.id,
-            event_type=EventType.ERROR,
+            default_event_type=EventType.DEFAULT,
         )
         group = event.group
         assert group is not None

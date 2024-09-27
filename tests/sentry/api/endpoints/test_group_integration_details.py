@@ -27,7 +27,7 @@ class GroupIntegrationDetailsTest(APITestCase):
                 "message": "message",
             },
             project_id=self.project.id,
-            event_type=EventType.ERROR,
+            default_event_type=EventType.DEFAULT,
         )
         self.group = self.event.group
 

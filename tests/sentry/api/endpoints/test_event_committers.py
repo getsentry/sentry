@@ -28,7 +28,7 @@ class EventCommittersTest(APITestCase):
                 "release": release.version,
             },
             project_id=project.id,
-            event_type=EventType.ERROR,
+            default_event_type=EventType.DEFAULT,
         )
 
         url = reverse(
@@ -159,7 +159,6 @@ class EventCommittersTest(APITestCase):
                 "timestamp": iso_format(before_now(minutes=1)),
             },
             project_id=self.project.id,
-            event_type=EventType.ERROR,
         )
         assert event.group is not None
 
@@ -220,7 +219,6 @@ class EventCommittersTest(APITestCase):
                 "timestamp": iso_format(before_now(minutes=1)),
             },
             project_id=self.project.id,
-            event_type=EventType.ERROR,
         )
         assert event.group is not None
 

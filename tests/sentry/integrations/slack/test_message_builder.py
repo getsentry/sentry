@@ -500,7 +500,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             },
             project_id=self.project.id,
             assert_no_errors=False,
-            event_type=EventType.ERROR,
+            default_event_type=EventType.DEFAULT,
         )
         assert event.group
         group = event.group
@@ -565,7 +565,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             },
             project_id=self.project.id,
             assert_no_errors=False,
-            event_type=EventType.ERROR,
+            default_event_type=EventType.DEFAULT,
         )
         assert event.group
         group = event.group
