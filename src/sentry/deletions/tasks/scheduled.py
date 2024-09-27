@@ -8,12 +8,12 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.db import router, transaction
 from django.utils import timezone
 
-from sentry.exceptions import DeleteAborted
-from sentry.models.scheduledeletion import (
+from sentry.deletions.models.scheduleddeletion import (
     BaseScheduledDeletion,
     RegionScheduledDeletion,
     ScheduledDeletion,
 )
+from sentry.exceptions import DeleteAborted
 from sentry.signals import pending_delete
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry

@@ -3,16 +3,18 @@ import styled from '@emotion/styled';
 
 import bannerStar from 'sentry-images/spot/banner-star.svg';
 
-import {Button} from 'sentry/components/button';
+import {usePrompt} from 'sentry/actionCreators/prompts';
+import {Button, LinkButton} from 'sentry/components/button';
+import {openConfirmModal} from 'sentry/components/confirm';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
+import ExternalLink from 'sentry/components/links/externalLink';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {FormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
-import {IconMegaphone} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {IconClose} from 'sentry/icons';
+import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SavedSearch} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useOrganization from 'sentry/utils/useOrganization';
 import {OverflowEllipsisTextContainer} from 'sentry/views/insights/common/components/textAlign';
 import {NewTabContext} from 'sentry/views/issueList/utils/newTabContext';
@@ -42,35 +44,34 @@ const RECOMMENDED_SEARCHES: SearchSuggestion[] = [
 ];
 
 function AddViewPage({savedSearches}: {savedSearches: SavedSearch[]}) {
+  const toolTipContents = (
+    <Container>
+      {t(
+        'Saved searches will be deprecated soon. For any you wish to return to, please save them as views.'
+      )}
+      <ExternalLink href={'https://docs.sentry.io/product/issues/issue-views'}>
+        {t('Learn More')}
+      </ExternalLink>
+    </Container>
+  );
+
   const savedSearchTitle = (
     <SavedSearchesTitle>
-      {t('Saved Searches (will be deprecated)')}
+      {t('Saved Searches (will be removed)')}
       <QuestionTooltip
         icon="info"
-        title={t(
-          'Saved searches will be deprecated soon. For any you wish to return to, please save them as views.'
-        )}
+        title={toolTipContents}
         size="sm"
         position="top"
         skipWrapper
+        isHoverable
       />
     </SavedSearchesTitle>
   );
 
   return (
     <AddViewWrapper>
-      <Banner>
-        <BannerStar1 src={bannerStar} />
-        <BannerStar2 src={bannerStar} />
-        <BannerStar3 src={bannerStar} />
-        <Title>{t('Find what you need, faster')}</Title>
-        <SubTitle>
-          {t(
-            "Save your issue searches for quick access. Views are for your eyes only – no need to worry about messing up other team members' views."
-          )}
-        </SubTitle>
-        <FeedbackButton />
-      </Banner>
+      <AddViewBanner hasSavedSearches={savedSearches && savedSearches.length !== 0} />
       <SearchSuggestionList
         title={'Recommended Searches'}
         searchSuggestions={RECOMMENDED_SEARCHES}
@@ -92,27 +93,135 @@ function AddViewPage({savedSearches}: {savedSearches: SavedSearch[]}) {
   );
 }
 
+function AddViewBanner({hasSavedSearches}: {hasSavedSearches: boolean}) {
+  const organization = useOrganization();
+
+  const {isPromptDismissed, dismissPrompt} = usePrompt({
+    feature: 'issue_views_add_view_banner',
+    organization,
+  });
+
+  return !isPromptDismissed ? (
+    <Banner>
+      <BannerStar1 src={bannerStar} />
+      <BannerStar2 src={bannerStar} />
+      <BannerStar3 src={bannerStar} />
+      <Title>
+        {t('Welcome to the new Issue Views experience (Early Adopter only)')}
+        <DismissButton
+          analyticsEventKey="issue_views.add_view.banner_dismissed"
+          analyticsEventName="'Issue Views: Add View Banner Dismissed"
+          size="zero"
+          borderless
+          icon={<IconClose size="xs" />}
+          aria-label={t('Dismiss')}
+          onClick={() => dismissPrompt()}
+        />
+      </Title>
+      <SubTitle>
+        <div>
+          {t(
+            'Issues just got a lot more personalized! Save your frequent issue searches for quick access.'
+          )}
+        </div>
+        <div>{t('A few notes before you get started:')}</div>
+        <AFewNotesList>
+          <li>
+            <BannerNoteBold>{t('Views are for your eyes only. ')}</BannerNoteBold>
+            {t("No need to worry about messing up other team members' views")}
+          </li>
+          <li>
+            <BannerNoteBold>{t('Drag your views to reorder. ')}</BannerNoteBold>{' '}
+            {t('The leftmost view is your “default” experience')}
+          </li>
+          {hasSavedSearches && (
+            <li>
+              <BannerNoteBold>
+                {t('Saved searches will be deprecated in the future. ')}
+              </BannerNoteBold>{' '}
+              {t(
+                'You can save them as views from the list below (only appears if you have saved searches)'
+              )}
+            </li>
+          )}
+        </AFewNotesList>
+      </SubTitle>
+      <FittedLinkButton
+        size="sm"
+        href="https://docs.sentry.io/product/issues/issue-views"
+        external
+      >
+        {t('Read Docs')}
+      </FittedLinkButton>
+    </Banner>
+  ) : null;
+}
+
 function SearchSuggestionList({
   title,
   searchSuggestions,
   type,
 }: SearchSuggestionListProps) {
-  const {onNewViewSaved} = useContext(NewTabContext);
+  const {onNewViewsSaved} = useContext(NewTabContext);
   const organization = useOrganization();
+
+  const analyticsKey =
+    type === 'recommended'
+      ? 'issue_views.add_view.recommended_view_saved'
+      : 'issue_views.add_view.saved_search_saved';
+  const analyticsEventName =
+    type === 'recommended'
+      ? 'Issue Views: Recommended View Saved'
+      : 'Issue Views: Saved Search Saved';
 
   return (
     <Suggestions>
-      <TitleWrapper>{title}</TitleWrapper>
+      <TitleWrapper>
+        {title}
+        {type === 'saved_searches' && (
+          <StyledButton
+            size="zero"
+            onClick={e => {
+              e.stopPropagation();
+              openConfirmModal({
+                message: (
+                  <ConfirmModalMessage>
+                    {tn(
+                      'Save %s saved search as a view?',
+                      'Save %s saved searches as views?',
+                      searchSuggestions.length
+                    )}
+                  </ConfirmModalMessage>
+                ),
+                onConfirm: () => {
+                  onNewViewsSaved?.(
+                    searchSuggestions.map(suggestion => ({
+                      ...suggestion,
+                      saveQueryToView: true,
+                    }))
+                  );
+                },
+              });
+            }}
+            analyticsEventKey="issue_views.add_view.all_saved_searches_saved"
+            analyticsEventName="Issue Views: All Saved Searches Saved"
+            borderless
+          >
+            {t('Save all')}
+          </StyledButton>
+        )}
+      </TitleWrapper>
       <SuggestionList>
         {searchSuggestions.map((suggestion, index) => (
           <Suggestion
             key={index}
             onClick={() => {
-              onNewViewSaved?.(suggestion.label, suggestion.query, false);
-              const analyticsKey =
-                type === 'recommended'
-                  ? 'issue_views.add_view.recommended_view_saved'
-                  : 'issue_views.add_view.saved_search_saved';
+              onNewViewsSaved?.([
+                {
+                  ...suggestion,
+                  saveQueryToView: false,
+                },
+              ]);
               trackAnalytics(analyticsKey, {
                 organization,
                 persisted: false,
@@ -135,17 +244,19 @@ function SearchSuggestionList({
                   size="zero"
                   onClick={e => {
                     e.stopPropagation();
-                    onNewViewSaved?.(suggestion.label, suggestion.query, true);
-                    const analyticsKey =
-                      type === 'recommended'
-                        ? 'issue_views.add_view.recommended_view_saved'
-                        : 'issue_views.add_view.saved_search_saved';
-                    trackAnalytics(analyticsKey, {
-                      organization,
-                      persisted: true,
-                      label: suggestion.label,
-                      query: suggestion.query,
-                    });
+                    onNewViewsSaved?.([
+                      {
+                        ...suggestion,
+                        saveQueryToView: true,
+                      },
+                    ]);
+                  }}
+                  analyticsEventKey={analyticsKey}
+                  analyticsEventName={analyticsEventName}
+                  analyticsParams={{
+                    persisted: true,
+                    label: suggestion.label,
+                    query: suggestion.query,
                   }}
                   borderless
                 >
@@ -158,33 +269,6 @@ function SearchSuggestionList({
         ))}
       </SuggestionList>
     </Suggestions>
-  );
-}
-
-function FeedbackButton() {
-  const openForm = useFeedbackForm();
-
-  if (!openForm) {
-    return null;
-  }
-
-  return (
-    <Button
-      size="xs"
-      icon={<IconMegaphone />}
-      onClick={() =>
-        openForm({
-          messagePlaceholder: t('How can we make custom views better for you?'),
-          tags: {
-            ['feedback.source']: 'custom_views',
-            ['feedback.owner']: 'issues',
-          },
-        })
-      }
-      style={{width: 'fit-content'}}
-    >
-      {t('Give Feedback')}
-    </Button>
   );
 }
 
@@ -210,6 +294,8 @@ const StyledOverflowEllipsisTextContainer = styled(OverflowEllipsisTextContainer
 `;
 
 const TitleWrapper = styled('div')`
+  display: flex;
+  justify-content: space-between;
   color: ${p => p.theme.subText};
   font-weight: 550;
   font-size: ${p => p.theme.fontSizeMedium};
@@ -255,6 +341,10 @@ const SuggestionList = styled('ul')`
   li:hover {
     border-bottom: 1px solid transparent;
   }
+
+  li:last-child {
+    border-bottom: 1px solid transparent;
+  }
 `;
 
 const Suggestion = styled('li')`
@@ -296,9 +386,17 @@ const Title = styled('div')`
   font-weight: ${p => p.theme.fontWeightBold};
 `;
 
+const BannerNoteBold = styled('div')`
+  display: inline;
+  font-weight: ${p => p.theme.fontWeightBold};
+`;
+
 const SubTitle = styled('div')`
+  display: flex;
+  flex-direction: column;
   font-weight: ${p => p.theme.fontWeightNormal};
   font-size: ${p => p.theme.fontSizeMedium};
+  gap: ${space(0.5)};
 `;
 
 const AddViewWrapper = styled('div')`
@@ -341,4 +439,33 @@ const BannerStar3 = styled('img')`
   @media (max-width: ${p => p.theme.breakpoints.large}) {
     display: none;
   }
+`;
+
+const ConfirmModalMessage = styled('div')`
+  display: flex;
+  justify-content: center;
+  font-weight: ${p => p.theme.fontWeightBold};
+`;
+
+const Container = styled('div')`
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  gap: ${space(1)};
+`;
+
+const AFewNotesList = styled('ul')`
+  margin-bottom: ${space(0.5)};
+`;
+
+const FittedLinkButton = styled(LinkButton)`
+  width: fit-content;
+`;
+
+const DismissButton = styled(Button)`
+  position: absolute;
+  top: ${space(1)};
+  right: ${space(1)};
+  color: ${p => p.theme.subText};
 `;

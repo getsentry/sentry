@@ -508,15 +508,16 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
             )
 
         with transaction.atomic(router.db_for_write(OrganizationMember)):
-            # Delete any invite requests and pending invites by the deleted member
-            existing_invites = OrganizationMember.objects.filter(
-                Q(invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value)
-                | Q(token__isnull=False),
-                inviter_id=member.user_id,
-                organization=organization,
-            )
-            for om in existing_invites:
-                om.delete()
+            if member.user_id:
+                # Delete any invite requests and pending invites by the deleted member
+                existing_invites = OrganizationMember.objects.filter(
+                    Q(invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value)
+                    | Q(token__isnull=False),
+                    inviter_id=member.user_id,
+                    organization=organization,
+                )
+                for om in existing_invites:
+                    om.delete()
 
         self.create_audit_entry(
             request=request,

@@ -182,13 +182,9 @@ const customMetricsOnboarding: OnboardingConfig = {
     {
       type: StepType.VERIFY,
       description: tct(
-        "Then you'll be able to add metrics as [codeCounters:counters], [codeSets:sets], [codeDistribution:distributions], and [codeGauge:gauges].",
+        "Then you'll be able to add metrics as [code:counters], [code:sets], [code:distributions], and [code:gauges].",
         {
-          codeCounters: <code />,
-          codeSets: <code />,
-          codeDistribution: <code />,
-          codeGauge: <code />,
-          codeNamespace: <code />,
+          code: <code />,
         }
       ),
       configurations: [

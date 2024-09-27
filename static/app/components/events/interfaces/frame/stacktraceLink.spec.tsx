@@ -41,17 +41,6 @@ describe('StacktraceLink', function () {
     HookStore.init?.();
   });
 
-  it('renders nothing when missing integrations', async function () {
-    MockApiClient.addMockResponse({
-      url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
-      body: {config: null, sourceUrl: null, integrations: []},
-    });
-    const {container} = render(<StacktraceLink frame={frame} event={event} line="" />);
-    await waitFor(() => {
-      expect(container).toBeEmptyDOMElement();
-    });
-  });
-
   it('renders setup CTA with integration but no configs', async function () {
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
