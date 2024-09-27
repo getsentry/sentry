@@ -75,6 +75,10 @@ def handle_send_historical_data_to_seer(
         if rule_status == AlertRuleStatus.NOT_ENOUGH_DATA:
             # if we don't have at least seven days worth of data, then the dynamic alert won't fire
             alert_rule.update(status=AlertRuleStatus.NOT_ENOUGH_DATA.value)
+        elif (
+            rule_status == AlertRuleStatus.PENDING and alert_rule.status != AlertRuleStatus.PENDING
+        ):
+            alert_rule.update(status=AlertRuleStatus.PENDING.value)
     except (TimeoutError, MaxRetryError):
         raise TimeoutError(f"Failed to send data to Seer - cannot {method} alert rule.")
     except ParseError:
