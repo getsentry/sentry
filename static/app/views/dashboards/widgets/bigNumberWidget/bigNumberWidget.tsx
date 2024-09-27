@@ -19,7 +19,6 @@ export function BigNumberWidget(props: Props) {
     <WidgetFrame
       title={props.title}
       description={props.description}
-      showDescriptionInTooltip={props.showDescriptionInTooltip}
       actions={props.actions}
     >
       <BigNumberResizeWrapper>
