@@ -15,9 +15,7 @@ from django.db.models import QuerySet
 from django.db.models.signals import post_save
 from django.forms import ValidationError
 from django.utils import timezone as django_timezone
-from parsimonious.exceptions import ParseError
 from snuba_sdk import Column, Condition, Limit, Op
-from urllib3.exceptions import MaxRetryError, TimeoutError
 
 from sentry import analytics, audit_log, features, quotas
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -71,7 +69,7 @@ from sentry.search.events.constants import (
 )
 from sentry.search.events.fields import is_function, resolve_field
 from sentry.seer.anomaly_detection.delete_rule import delete_rule_in_seer
-from sentry.seer.anomaly_detection.store_data import send_historical_data_to_seer
+from sentry.seer.anomaly_detection.store_data import send_new_rule_data, update_rule_data
 from sentry.sentry_apps.services.app import RpcSentryAppInstallation, app_service
 from sentry.shared_integrations.exceptions import (
     ApiTimeoutError,
@@ -568,12 +566,9 @@ def create_alert_rule(
     """
     if monitor_type == AlertRuleMonitorTypeInt.ACTIVATED and not activation_condition:
         raise ValidationError("Activation condition required for activated alert rule")
-    if detection_type == AlertRuleDetectionType.DYNAMIC:
-        resolution = time_window
-    else:
-        resolution = get_alert_resolution(time_window, organization)
 
     if detection_type == AlertRuleDetectionType.DYNAMIC:
+        resolution = time_window
         # NOTE: we hardcode seasonality for EA
         seasonality = AlertRuleSeasonality.AUTO
         if not (sensitivity):
@@ -581,7 +576,7 @@ def create_alert_rule(
         if time_window not in DYNAMIC_TIME_WINDOWS:
             raise ValidationError(INVALID_TIME_WINDOW)
     else:
-        # NOTE: we hardcode seasonality for EA
+        resolution = get_alert_resolution(time_window, organization)
         seasonality = None
         if sensitivity:
             raise ValidationError("Sensitivity is not a valid field for this alert type")
@@ -657,26 +652,8 @@ def create_alert_rule(
                 raise ResourceDoesNotExist(
                     "Your organization does not have access to this feature."
                 )
-
-            try:
-                # NOTE: if adding a new metric alert type, take care to check that it's handled here
-                rule_status = send_historical_data_to_seer(
-                    alert_rule=alert_rule, project=projects[0]
-                )
-                if rule_status == AlertRuleStatus.NOT_ENOUGH_DATA:
-                    # if we don't have at least seven days worth of data, then the dynamic alert won't fire
-                    alert_rule.update(status=AlertRuleStatus.NOT_ENOUGH_DATA.value)
-            except (TimeoutError, MaxRetryError):
-                alert_rule.delete()
-                raise TimeoutError("Failed to send data to Seer - cannot create alert rule.")
-            except ParseError:
-                alert_rule.delete()
-                raise ParseError("Failed to parse Seer store data response")
-            except (ValidationError, Exception):
-                alert_rule.delete()
-                raise
-            else:
-                metrics.incr("anomaly_detection_alert.created")
+            # NOTE: if adding a new metric alert type, take care to check that it's handled here
+            send_new_rule_data(alert_rule, projects[0])
 
         if user:
             create_audit_entry_from_user(
@@ -936,31 +913,9 @@ def update_alert_rule(
                 raise ResourceDoesNotExist(
                     "Your organization does not have access to this feature."
                 )
-
-            if updated_fields.get("detection_type") == AlertRuleDetectionType.DYNAMIC and (
-                alert_rule.detection_type != AlertRuleDetectionType.DYNAMIC or query or aggregate
-            ):
-                for k, v in updated_fields.items():
-                    setattr(alert_rule, k, v)
-
-                try:
-                    # NOTE: if adding a new metric alert type, take care to check that it's handled here
-                    rule_status = send_historical_data_to_seer(
-                        alert_rule=alert_rule,
-                        project=projects[0] if projects else alert_rule.projects.get(),
-                    )
-                    if rule_status == AlertRuleStatus.NOT_ENOUGH_DATA:
-                        # if we don't have at least seven days worth of data, then the dynamic alert won't fire
-                        alert_rule.update(status=AlertRuleStatus.NOT_ENOUGH_DATA.value)
-                except (TimeoutError, MaxRetryError):
-                    raise TimeoutError("Failed to send data to Seer - cannot update alert rule.")
-                except ParseError:
-                    raise ParseError(
-                        "Failed to parse Seer store data response - cannot update alert rule."
-                    )
-                except (ValidationError, Exception):
-                    # If there's no historical data available—something went wrong when querying snuba
-                    raise ValidationError("Failed to send data to Seer - cannot update alert rule.")
+            # NOTE: if adding a new metric alert type, take care to check that it's handled here
+            project = projects[0] if projects else alert_rule.projects.get()
+            update_rule_data(alert_rule, project, updated_fields, updated_query_fields)
         else:
             # if this was a dynamic rule, delete the data in Seer
             if alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC:
