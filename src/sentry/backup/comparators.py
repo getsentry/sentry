@@ -882,7 +882,6 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
                 DateUpdatedComparator("date_updated", "date_added")
             ],
             "workflow_engine.workflow": [DateUpdatedComparator("date_updated", "date_added")],
-            "workflow_engine.workflowaction": [DateUpdatedComparator("date_updated", "date_added")],
             "workflow_engine.workflowdataconditiongroup": [
                 DateUpdatedComparator("date_updated", "date_added")
             ],
