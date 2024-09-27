@@ -111,7 +111,7 @@ from sentry.users.models.user_option import UserOption
 from sentry.users.models.userip import UserIP
 from sentry.users.models.userrole import UserRole, UserRoleUser
 from sentry.utils import json
-from sentry.workflow_engine.models import Action, DataConditionGroup
+from sentry.workflow_engine.models import Action, DataConditionGroup, DetectorState
 
 __all__ = [
     "export_to_file",
@@ -613,6 +613,7 @@ class ExhaustiveFixtures(Fixtures):
         workflow = self.create_workflow(organization=org)
         detector = self.create_detector(organization=org)
         self.create_detector_workflow(detector=detector, workflow=workflow)
+        self.create_detector_state(status=DetectorState.Type.INACTIVE, detector=detector)
 
         notification_condition_group = self.create_data_condition_group(
             logic_type=DataConditionGroup.Type.ANY,
