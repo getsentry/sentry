@@ -2,7 +2,7 @@ import datetime
 
 import orjson
 
-from sentry.api.serializers import AppPlatformEvent
+from sentry.sentry_apps.api.serializers.app_platform_event import AppPlatformEvent
 from sentry.testutils.cases import TestCase
 
 

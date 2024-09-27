@@ -12,6 +12,7 @@ from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.validators import ServiceHookValidator
 from sentry.constants import ObjectStatus
+from sentry.sentry_apps.api.serializers.servicehook import ServiceHookSerializer
 from sentry.sentry_apps.models.servicehook import ServiceHook
 from sentry.sentry_apps.services.hook import hook_service
 
@@ -65,7 +66,7 @@ class ProjectServiceHooksEndpoint(ProjectEndpoint):
             request=request,
             queryset=queryset,
             order_by="-id",
-            on_results=lambda x: serialize(x, request.user),
+            on_results=lambda x: serialize(x, request.user, ServiceHookSerializer()),
         )
 
     def post(self, request: Request, project) -> Response:
@@ -130,5 +131,6 @@ class ProjectServiceHooksEndpoint(ProjectEndpoint):
         )
 
         return self.respond(
-            serialize(ServiceHook.objects.get(id=hook.id), request.user), status=201
+            serialize(ServiceHook.objects.get(id=hook.id), request.user, ServiceHookSerializer()),
+            status=201,
         )

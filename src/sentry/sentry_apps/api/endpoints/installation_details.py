@@ -10,9 +10,12 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases import SentryAppInstallationBaseEndpoint
 from sentry.api.serializers import serialize
-from sentry.api.serializers.rest_framework import SentryAppInstallationSerializer
 from sentry.mediators.sentry_app_installations.installation_notifier import InstallationNotifier
 from sentry.mediators.sentry_app_installations.updater import Updater
+from sentry.sentry_apps.api.parsers.sentry_app_installation import SentryAppInstallationParser
+from sentry.sentry_apps.api.serializers.sentry_app_installation import (
+    SentryAppInstallationSerializer,
+)
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.utils.audit import create_audit_entry
 
@@ -28,7 +31,11 @@ class SentryAppInstallationDetailsEndpoint(SentryAppInstallationBaseEndpoint):
 
     def get(self, request: Request, installation) -> Response:
         return Response(
-            serialize(SentryAppInstallation.objects.get(id=installation.id), access=request.access)
+            serialize(
+                objects=SentryAppInstallation.objects.get(id=installation.id),
+                access=request.access,
+                serializer=SentryAppInstallationSerializer(),
+            )
         )
 
     def delete(self, request: Request, installation) -> Response:
@@ -56,7 +63,7 @@ class SentryAppInstallationDetailsEndpoint(SentryAppInstallationBaseEndpoint):
         return Response(status=204)
 
     def put(self, request: Request, installation) -> Response:
-        serializer = SentryAppInstallationSerializer(installation, data=request.data, partial=True)
+        serializer = SentryAppInstallationParser(installation, data=request.data, partial=True)
 
         if serializer.is_valid():
             result = serializer.validated_data
@@ -66,6 +73,10 @@ class SentryAppInstallationDetailsEndpoint(SentryAppInstallationBaseEndpoint):
             )
 
             return Response(
-                serialize(SentryAppInstallation.objects.get(id=installation.id), request.user)
+                serialize(
+                    objects=SentryAppInstallation.objects.get(id=installation.id),
+                    user=request.user,
+                    serializer=SentryAppInstallationSerializer(),
+                )
             )
         return Response(serializer.errors, status=400)

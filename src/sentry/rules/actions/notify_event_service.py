@@ -7,7 +7,6 @@ from typing import Any
 from django import forms
 
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.app_platform_event import AppPlatformEvent
 from sentry.eventstore.models import GroupEvent
 from sentry.incidents.endpoints.serializers.incident import IncidentSerializer
 from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
@@ -19,6 +18,7 @@ from sentry.plugins.base import plugins
 from sentry.rules.actions.base import EventAction
 from sentry.rules.actions.services import PluginService
 from sentry.rules.base import CallbackFuture
+from sentry.sentry_apps.api.serializers.app_platform_event import AppPlatformEvent
 from sentry.sentry_apps.services.app import RpcSentryAppService, app_service
 from sentry.tasks.sentry_apps import notify_sentry_app
 from sentry.utils import json, metrics

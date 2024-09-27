@@ -14,6 +14,9 @@ from sentry.auth.superuser import superuser_has_permission
 from sentry.constants import SENTRY_APP_SLUG_MAX_LENGTH, SentryAppStatus
 from sentry.features.exceptions import FeatureNotRegistered
 from sentry.integrations.models.integration_feature import IntegrationFeature, IntegrationTypes
+from sentry.sentry_apps.api.serializers.sentry_app_installation import (
+    SentryAppInstallationSerializer,
+)
 from sentry.sentry_apps.installations import SentryAppInstallationCreator
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
@@ -41,7 +44,9 @@ class SentryAppInstallationsEndpoint(SentryAppInstallationsBaseEndpoint):
             queryset=queryset,
             order_by="-date_added",
             paginator_cls=OffsetPaginator,
-            on_results=lambda x: serialize(x, request.user, access=request.access),
+            on_results=lambda x: serialize(
+                x, request.user, access=request.access, serializer=SentryAppInstallationSerializer()
+            ),
         )
 
     def post(self, request: Request, organization) -> Response:
@@ -99,4 +104,6 @@ class SentryAppInstallationsEndpoint(SentryAppInstallationsBaseEndpoint):
                 organization_id=organization.id, slug=slug, notify=True
             ).run(user=request.user, request=request)
 
-        return Response(serialize(install, access=request.access))
+        return Response(
+            serialize(install, access=request.access, serializer=SentryAppInstallationSerializer())
+        )
