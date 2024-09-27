@@ -6,9 +6,9 @@ import AvatarList from 'sentry/components/avatar/avatarList';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconShow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
 import type {AvatarUser, User} from 'sentry/types/user';
 import {userDisplayName} from 'sentry/utils/formatters';
+import {useUser} from 'sentry/utils/useUser';
 
 type Props = {
   // Avatar size
@@ -35,7 +35,7 @@ function SeenByList({
   iconPosition = 'left',
   className,
 }: Props) {
-  const activeUser = ConfigStore.get('user');
+  const activeUser = useUser();
   const displayUsers = seenBy.filter(user => activeUser.id !== user.id);
 
   if (displayUsers.length === 0) {

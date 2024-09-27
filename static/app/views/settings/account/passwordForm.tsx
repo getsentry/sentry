@@ -9,11 +9,13 @@ import PanelAlert from 'sentry/components/panels/panelAlert';
 import PanelItem from 'sentry/components/panels/panelItem';
 import accountPasswordFields from 'sentry/data/forms/accountPassword';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import {useUser} from 'sentry/utils/useUser';
 
 type OnSubmitSuccess = Parameters<NonNullable<FormProps['onSubmitSuccess']>>;
 
 function PasswordForm() {
+  const user = useUser();
+
   function handleSubmitSuccess(_change: OnSubmitSuccess[0], model: OnSubmitSuccess[1]) {
     // Reset form on success
     model.resetForm();
@@ -23,8 +25,6 @@ function PasswordForm() {
   function handleSubmitError() {
     addErrorMessage('Error changing password');
   }
-
-  const user = ConfigStore.get('user');
 
   return (
     <Form

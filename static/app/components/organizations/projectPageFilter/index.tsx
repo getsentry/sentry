@@ -17,7 +17,6 @@ import BookmarkStar from 'sentry/components/projects/bookmarkStar';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {IconOpen, IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
@@ -26,6 +25,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {useRoutes} from 'sentry/utils/useRoutes';
+import {useUser} from 'sentry/utils/useUser';
 
 import {DesyncedFilterMessage} from '../pageFilters/desyncedFilter';
 
@@ -93,6 +93,7 @@ export function ProjectPageFilter({
   footerMessage,
   ...selectProps
 }: ProjectPageFilterProps) {
+  const user = useUser();
   const router = useRouter();
   const routes = useRoutes();
   const organization = useOrganization();
@@ -106,13 +107,12 @@ export function ProjectPageFilter({
   );
 
   const showNonMemberProjects = useMemo(() => {
-    const {isSuperuser} = ConfigStore.get('user');
     const isOrgAdminOrManager =
       organization.orgRole === 'owner' || organization.orgRole === 'manager';
     const isOpenMembership = organization.features.includes('open-membership');
 
-    return isSuperuser || isOrgAdminOrManager || isOpenMembership;
-  }, [organization.orgRole, organization.features]);
+    return user.isSuperuser || isOrgAdminOrManager || isOpenMembership;
+  }, [user, organization.orgRole, organization.features]);
 
   const nonMemberProjects = useMemo(
     () => (showNonMemberProjects ? otherProjects : []),
