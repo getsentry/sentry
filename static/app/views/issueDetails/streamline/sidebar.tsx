@@ -1,6 +1,5 @@
 import styled from '@emotion/styled';
 
-import ErrorBoundary from 'sentry/components/errorBoundary';
 import {StreamlinedExternalIssueList} from 'sentry/components/group/externalIssuesList/streamlinedExternalIssueList';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
@@ -10,7 +9,7 @@ import StreamlinedActivitySection from 'sentry/views/issueDetails/streamline/act
 import GroupActions from 'sentry/views/issueDetails/actions/index';
 import {useIssueDetailsHeader} from 'sentry/views/issueDetails/useIssueDetailsHeader';
 import {useLocation} from 'sentry/utils/useLocation';
-import {ReprocessingStatus} from 'sentry/views/issueDetails/utils';
+import type {ReprocessingStatus} from 'sentry/views/issueDetails/utils';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOrganization from 'sentry/utils/useOrganization';
 import ParticipantList from 'sentry/components/group/streamlinedParticipantList';
@@ -19,14 +18,15 @@ import {
   useHandleAssigneeChange,
 } from 'sentry/components/group/assigneeSelector';
 import GroupPriority from 'sentry/views/issueDetails/groupPriority';
-import {useMemo, useState} from 'react';
+import {useMemo} from 'react';
 import ConfigStore from 'sentry/stores/configStore';
 import {t} from 'sentry/locale';
 import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {Button} from 'sentry/components/button';
-import {IconClose, IconPanel} from 'sentry/icons';
+import {IconChevron, IconPanel} from 'sentry/icons';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
+import {NewIssueExperienceButton} from 'sentry/views/issueDetails/actions/newIssueExperienceButton';
 
 type Props = {
   group: Group;
@@ -81,7 +81,7 @@ export default function StreamlinedSidebar({
 
   if (!isSidebarOpen) {
     return (
-      <Sidebar>
+      <Sidebar isSidebarOpen={false}>
         <SidebarToggle
           aria-label={t('Close Sidebar')}
           title={t('Open Sidebar')}
@@ -95,15 +95,17 @@ export default function StreamlinedSidebar({
   }
 
   return (
-    <Sidebar>
-      <Button
-        icon={<IconClose direction="right" />}
-        title={t('Open Sidebar')}
-        aria-label={t('Open Sidebar')}
+    <Sidebar isSidebarOpen>
+      <CollapseButton
+        icon={<IconChevron direction="right" />}
+        title={t('Collapse Sidebar')}
+        aria-label={t('Collapse Sidebar')}
         size="sm"
         borderless
         onClick={onToggleSidebar}
       />
+
+      <NewIssueExperienceButton />
       <FoldSection
         sectionKey={SectionKey.ISSUE_WORKFLOW}
         title={'Workflow'}
@@ -115,6 +117,7 @@ export default function StreamlinedSidebar({
           disabled={disableActions}
           event={event}
           query={location.query}
+          isPrototype
         />
         <WorkflowActions>
           <Wrapper>
@@ -163,13 +166,14 @@ export default function StreamlinedSidebar({
   );
 }
 
-const Sidebar = styled('div')`
+const Sidebar = styled('div')<{isSidebarOpen?: boolean}>`
   display: flex;
   flex-direction: column;
-  gap: ${space(1.5)};
   background-color: ${p => p.theme.background};
   height: 100%;
   border-left: 1px solid ${p => p.theme.translucentBorder};
+  max-width: 325px;
+  padding: ${p => (p.isSidebarOpen ? space(1.5) : 0)};
 `;
 
 const WorkflowActions = styled('div')``;
@@ -210,4 +214,15 @@ const SidebarIcon = styled(IconPanel)`
   display: block;
   margin: 50px auto;
   color: ${p => p.theme.subText};
+`;
+
+const CollapseButton = styled(Button)`
+  border-radius: 0;
+  border-bottom: 1px solid ${p => p.theme.translucentBorder};
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: ${p => p.theme.background};
+  color: ${p => p.theme.subText};
+  margin: -${space(1.5)} -${space(1.5)} ${space(1.5)};
 `;

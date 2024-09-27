@@ -66,15 +66,17 @@ export function NewIssueExperienceButton() {
             query: {...location.query, streamline: hasStreamlinedUI ? '0' : '1'},
           });
         }}
-      />
+      >
+        {hasStreamlinedUI ? t('Back to Basics') : t('Want to see the future?')}
+      </StyledButton>
       {hasStreamlinedUI && feedbackButton}
     </ButtonBar>
   );
 }
 
 const StyledButton = styled(Button)<{enabled: boolean}>`
-  color: ${p => (p.enabled ? p.theme.button.primary.background : 'inherit')};
+  color: ${p => (p.enabled ? 'inherit' : p.theme.button.primary.background)};
   :hover {
-    color: ${p => (p.enabled ? p.theme.button.primary.background : 'inherit')};
+    color: ${p => (p.enabled ? 'inherit' : p.theme.button.primary.background)};
   }
 `;

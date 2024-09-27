@@ -42,6 +42,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {ParticipantList} from 'sentry/views/issueDetails/participantList';
 import {makeFetchGroupQueryKey} from 'sentry/views/issueDetails/useGroup';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
+import {NewIssueExperienceButton} from 'sentry/views/issueDetails/actions/newIssueExperienceButton';
 
 type Props = {
   environments: string[];
@@ -255,6 +256,7 @@ export default function GroupSidebar({
 
   return (
     <Container>
+      <NewIssueExperienceButton />
       {hasStreamlinedUI && event && (
         <ErrorBoundary mini>
           <StreamlinedExternalIssueList group={group} event={event} project={project} />

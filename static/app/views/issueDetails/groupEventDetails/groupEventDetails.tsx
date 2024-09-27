@@ -37,6 +37,8 @@ import {
   useEnvironmentsFromUrl,
   useHasStreamlinedUI,
 } from '../utils';
+import {Button} from 'sentry/components/button';
+import {t} from 'sentry/locale';
 
 const EscalatingIssuesFeedback = HookOrDefault({
   hookName: 'component:escalating-issues-banner-feedback',
@@ -189,6 +191,12 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
           ) : (
             <Fragment>
               <MainLayoutComponent>
+                {hasStreamlinedUI && (
+                  <EventNavigationWrapper>
+                    <Button>{t('Events')}</Button>
+                    <Button>{t('Impact')}</Button>
+                  </EventNavigationWrapper>
+                )}
                 {!hasStreamlinedUI && renderGroupStatusBanner()}
                 <EscalatingIssuesFeedback organization={organization} group={group} />
                 {eventWithMeta && issueTypeConfig.stats.enabled && !hasStreamlinedUI && (
@@ -227,6 +235,20 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
     </TransactionProfileIdProvider>
   );
 }
+
+const EventNavigationWrapper = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: ${p => p.theme.fontSizeSmall};
+  padding: ${space(1)} ${space(1)};
+  background: ${p => p.theme.background};
+  min-height: 44px;
+
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+    padding: ${space(1)} ${space(1.5)};
+  }
+`;
 
 const StyledLayoutBody = styled(Layout.Body)<{
   hasStreamlinedUi: boolean;

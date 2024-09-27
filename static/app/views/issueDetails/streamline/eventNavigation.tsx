@@ -219,9 +219,6 @@ export const EventNavigation = forwardRef<HTMLDivElement, EventNavigationProps>(
                 />
               </Tooltip>
             </Navigation>
-            <Button onClick={onViewAllEvents} borderless size="xs" css={grayText}>
-              {isMobile ? '' : t('View')} {t('All Events')}
-            </Button>
           </NavigationWrapper>
         </EventNavigationWrapper>
         <EventInfoJumpToWrapper>
@@ -371,7 +368,6 @@ const NavigationWrapper = styled('div')`
 
 const Navigation = styled('div')`
   display: flex;
-  border-right: 1px solid ${p => p.theme.gray100};
 `;
 
 const StyledTimeSince = styled(TimeSince)`
