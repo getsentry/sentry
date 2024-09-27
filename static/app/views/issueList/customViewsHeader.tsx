@@ -348,6 +348,7 @@ function CustomViewsIssueListHeaderTabsContent({
             ? {
                 ...tab,
                 unsavedChanges: [query, sort ?? IssueSortOptions.DATE],
+                isCommitted: true,
               }
             : tab
         );
