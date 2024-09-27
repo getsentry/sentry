@@ -1,0 +1,50 @@
+#!/usr/bin/env python
+
+import os
+import subprocess
+import sys
+
+
+def run_command(command):
+    try:
+        return subprocess.run(command, check=True)
+    except subprocess.CalledProcessError as e:
+        sys.stderr.write(f"Error executing command: {' '.join(command)}\n")
+        sys.stderr.write(f"Error details: {e}\n")
+        sys.exit(1)
+
+
+def main():
+    if "-h" in sys.argv or "--help" in sys.argv:
+        sys.stdout.write("This script runs the following commands:\n")
+        sys.stdout.write("1. sentry django makemigrations\n")
+        sys.stdout.write("2. ./bin/generate-model-dependency-fixtures\n")
+        sys.stdout.write("3. SENTRY_SNAPSHOTS_WRITEBACK=1 pytest ...\n")
+        sys.stdout.write("\n")
+        sys.stdout.write(
+            "Ensure all tests/sentry/backup files have been updated before running this script.\n"
+        )
+        sys.exit(0)
+
+    # Command 1: sentry django makemigrations (with potential additional args)
+    makemigrations_cmd = ["sentry", "django", "makemigrations"] + sys.argv[1:]
+    run_command(makemigrations_cmd)
+
+    # Command 2: ./bin/generate-model-dependency-fixtures
+    run_command(["./bin/generate-model-dependency-fixtures"])
+
+    # Command 3: SENTRY_SNAPSHOTS_WRITEBACK=1 pytest ...
+    pytest_cmd = [
+        "pytest",
+        "tests/sentry/backup/test_comparators.py",
+        "tests/sentry/backup/test_releases.py",
+        "tests/sentry/backup/test_sanitize.py",
+        "tests/sentry/tasks/test_relocation.py",
+    ]
+    env = os.environ.copy()
+    env["SENTRY_SNAPSHOTS_WRITEBACK"] = "1"
+    subprocess.run(pytest_cmd, check=True, env=env)
+
+
+if __name__ == "__main__":
+    main()
