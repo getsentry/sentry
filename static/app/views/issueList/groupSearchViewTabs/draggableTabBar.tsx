@@ -27,6 +27,12 @@ import {NewTabContext, type NewView} from 'sentry/views/issueList/utils/newTabCo
 
 export interface Tab {
   id: string;
+  /**
+   * False for tabs that were added view the "Add View" button, but
+   * have not been edited in any way. Only tabs with isCommitted=true
+   * will be saved to the backend.
+   */
+  isCommitted: boolean;
   key: string;
   label: string;
   query: string;
@@ -122,7 +128,7 @@ export function DraggableTabBar({
   const {setNewViewActive, setOnNewViewsSaved} = useContext(NewTabContext);
 
   const handleOnReorder = (newOrder: Node<DraggableTabListItemProps>[]) => {
-    const newTabs = newOrder
+    const newTabs: Tab[] = newOrder
       .map(node => {
         const foundTab = tabs.find(tab => tab.key === node.key);
         return foundTab?.key === node.key ? foundTab : null;
@@ -138,7 +144,7 @@ export function DraggableTabBar({
   const handleOnSaveChanges = () => {
     const originalTab = tabs.find(tab => tab.key === tabListState?.selectedKey);
     if (originalTab) {
-      const newTabs = tabs.map(tab => {
+      const newTabs: Tab[] = tabs.map(tab => {
         return tab.key === tabListState?.selectedKey && tab.unsavedChanges
           ? {
               ...tab,
@@ -186,7 +192,7 @@ export function DraggableTabBar({
     const renamedTab = tabs.find(tb => tb.key === tabKey);
     if (renamedTab && newLabel !== renamedTab.label) {
       const newTabs = tabs.map(tab =>
-        tab.key === renamedTab.key ? {...tab, label: newLabel} : tab
+        tab.key === renamedTab.key ? {...tab, label: newLabel, isCommitted: true} : tab
       );
       setTabs(newTabs);
       onTabRenamed?.(newTabs, newLabel);
@@ -201,13 +207,14 @@ export function DraggableTabBar({
     if (idx !== -1) {
       const tempId = generateTempViewId();
       const duplicatedTab = tabs[idx];
-      const newTabs = [
+      const newTabs: Tab[] = [
         ...tabs.slice(0, idx + 1),
         {
           ...duplicatedTab,
           id: tempId,
           key: tempId,
           label: `${duplicatedTab.label} (Copy)`,
+          isCommitted: true,
         },
         ...tabs.slice(idx + 1),
       ];
@@ -248,6 +255,7 @@ export function DraggableTabBar({
         label: 'New View',
         query: tempTab.query,
         querySort: tempTab.querySort,
+        isCommitted: true,
       };
       const newTabs = [...tabs, newTab];
       navigate(
@@ -287,7 +295,7 @@ export function DraggableTabBar({
     const tempId = generateTempViewId();
     const currentTab = tabs.find(tab => tab.key === tabListState?.selectedKey);
     if (currentTab) {
-      const newTabs = [
+      const newTabs: Tab[] = [
         ...tabs,
         {
           id: tempId,
@@ -295,6 +303,7 @@ export function DraggableTabBar({
           label: 'New View',
           query: '',
           querySort: IssueSortOptions.DATE,
+          isCommitted: false,
         },
       ];
       navigate({
@@ -333,6 +342,7 @@ export function DraggableTabBar({
           unsavedChanges: view.saveQueryToView
             ? undefined
             : [view.query, IssueSortOptions.DATE],
+          isCommitted: true,
         };
         return viewToTab;
       });
@@ -344,6 +354,7 @@ export function DraggableTabBar({
             query: saveQueryToView ? query : '',
             querySort: IssueSortOptions.DATE,
             unsavedChanges: saveQueryToView ? undefined : [query, IssueSortOptions.DATE],
+            isCommitted: true,
           };
         }
         return tab;
