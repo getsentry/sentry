@@ -130,7 +130,13 @@ const shouldWidgetCardChartMemo = (prevProps, props) => {
   );
   const isNotTopNWidget =
     props.widget.displayType !== DisplayType.TOP_N && !defined(props.widget.limit);
-  return selectionMatches && chartZoomOptionsMatches && (sortMatches || isNotTopNWidget);
+  const legendMatches = isEqual(props.legendOptions, prevProps.legendOptions);
+  return (
+    selectionMatches &&
+    chartZoomOptionsMatches &&
+    (sortMatches || isNotTopNWidget) &&
+    legendMatches
+  );
 };
 
 // WidgetCardChartContainer and WidgetCardChart rerenders if selection was changed.
@@ -220,27 +226,6 @@ function WidgetViewerModal(props: Props) {
   const [modalTableSelection, setModalTableSelection] =
     useState<PageFilters>(locationPageFilter);
   const modalChartSelection = useRef(modalTableSelection);
-
-  useEffect(() => {
-    // have the query legend values update
-    const legendData = seriesData?.reduce((prevSeries, series) => {
-      prevSeries[series.seriesName] = series.seriesName === 'Releases' ? false : true;
-      return prevSeries;
-    }, {});
-
-    const definedLegendData = legendData ? legendData : {};
-
-    router.replace({
-      pathname: location.pathname,
-      query: {
-        ...location.query,
-        [WidgetViewerQueryField.LEGEND]: Object.keys(definedLegendData).filter(
-          key => definedLegendData[key]
-        ),
-      },
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   // Detect when a user clicks back and set the PageFilter state to match the location
   // We need to use useEffect to prevent infinite looping rerenders due to the setModalTableSelection call

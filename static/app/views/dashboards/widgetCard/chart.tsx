@@ -535,8 +535,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
               memoized
             >
               {({releaseSeries}) => {
-                location.query.unselectedSeries = 'Releases';
-                legend.selected = getSeriesSelection(location);
+                legend.selected = {Releases: false, ...legend.selected};
 
                 return (
                   <TransitionChart loading={loading} reloading={loading}>
