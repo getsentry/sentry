@@ -39,7 +39,11 @@ export default function InviteStatusMessage({
     const errorCount = statuses.filter(i => i.error).length;
 
     if (willInvite) {
-      const invites = <strong>{tn('%s invite', '%s invites', sentCount)}</strong>;
+      const invites = (
+        <strong data-test-id="sent-invites">
+          {tn('%s invite', '%s invites', sentCount)}
+        </strong>
+      );
       const tctComponents = {
         invites,
         failed: errorCount,
@@ -57,7 +61,9 @@ export default function InviteStatusMessage({
       );
     }
     const inviteRequests = (
-      <strong>{tn('%s invite request', '%s invite requests', sentCount)}</strong>
+      <strong data-test-id="sent-invite-requests">
+        {tn('%s invite request', '%s invite requests', sentCount)}
+      </strong>
     );
     const tctComponents = {
       inviteRequests,

@@ -1,4 +1,4 @@
-import {useCallback, useState} from 'react';
+import {useCallback, useContext, useState} from 'react';
 import type {MultiValueProps} from 'react-select';
 import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
@@ -6,6 +6,7 @@ import styled from '@emotion/styled';
 
 import type {StylesConfig} from 'sentry/components/forms/controls/selectControl';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
+import {InviteMembersContext} from 'sentry/components/modals/inviteMembersModal/inviteMembersContext';
 import RoleSelectControl from 'sentry/components/roleSelectControl';
 import TeamSelector from 'sentry/components/teamSelector';
 import {t} from 'sentry/locale';
@@ -19,22 +20,13 @@ import type {InviteStatus} from './types';
 type SelectOption = SelectValue<string>;
 
 type Props = {
-  disabled: boolean;
-  emails: string[];
-  inviteStatus: InviteStatus;
-  onChangeEmails: (emails: SelectOption[]) => void;
-  onChangeRole: (role: SelectOption) => void;
-  onChangeTeams: (teams: SelectOption[]) => void;
-  onRemove: () => void;
-  role: string;
   roleDisabledUnallowed: boolean;
   roleOptions: OrgRole[];
-  teams: string[];
 };
 
 function ValueComponent(
   props: MultiValueProps<SelectOption>,
-  inviteStatus: Props['inviteStatus']
+  inviteStatus: InviteStatus
 ) {
   return renderEmailValue(inviteStatus[props.data.value], props);
 }
@@ -43,19 +35,20 @@ function mapToOptions(values: string[]): SelectOption[] {
   return values.map(value => ({value, label: value}));
 }
 
-function InviteRowControl({
-  disabled,
-  emails,
-  role,
-  teams,
-  roleOptions,
-  roleDisabledUnallowed,
-  inviteStatus,
-  onRemove,
-  onChangeEmails,
-  onChangeRole,
-  onChangeTeams,
-}: Props) {
+function InviteRowControl({roleDisabledUnallowed, roleOptions}: Props) {
+  const {inviteStatus, pendingInvites, setEmails, setRole, setTeams, reset} =
+    useContext(InviteMembersContext);
+  const emails = [...(pendingInvites.emails ?? [])];
+  const role = pendingInvites.role ?? '';
+  const teams = [...(pendingInvites.teams ?? [])];
+
+  const onChangeEmails = (opts: SelectOption[]) => {
+    setEmails(opts?.map(v => v.value) ?? [], 0);
+  };
+  const onChangeRole = (value: SelectOption) => setRole(value?.value, 0);
+  const onChangeTeams = (opts: SelectOption[]) =>
+    setTeams(opts ? opts.map(v => v.value) : [], 0);
+
   const [inputValue, setInputValue] = useState('');
 
   const theme = useTheme();
@@ -104,7 +97,6 @@ function InviteRowControl({
           <SelectControl
             aria-label={t('Email Addresses')}
             data-test-id="select-emails"
-            disabled={disabled}
             placeholder={t('Enter one or more emails')}
             inputValue={inputValue}
             value={emails}
@@ -123,7 +115,7 @@ function InviteRowControl({
             multiple
             creatable
             clearable
-            onClear={onRemove}
+            onClear={reset}
             menuIsOpen={false}
           />
         </EmailWrapper>
@@ -134,7 +126,6 @@ function InviteRowControl({
           <RoleSelectControl
             aria-label={t('Role')}
             data-test-id="select-role"
-            disabled={disabled}
             value={role}
             roles={roleOptions}
             disableUnallowed={roleDisabledUnallowed}
@@ -151,7 +142,7 @@ function InviteRowControl({
           <TeamSelector
             aria-label={t('Add to Team')}
             data-test-id="select-teams"
-            disabled={isTeamRolesAllowed ? disabled : true}
+            disabled={!isTeamRolesAllowed}
             placeholder={isTeamRolesAllowed ? t('None') : t('Role cannot join teams')}
             value={isTeamRolesAllowed ? teams : []}
             onChange={onChangeTeams}
@@ -169,7 +160,7 @@ function InviteRowControl({
  * The email select control has custom selected item states as items
  * show their delivery status after the form is submitted.
  */
-function getStyles(theme: Theme, inviteStatus: Props['inviteStatus']): StylesConfig {
+function getStyles(theme: Theme, inviteStatus: InviteStatus): StylesConfig {
   return {
     multiValue: (provided, {data}: MultiValueProps<SelectOption>) => {
       const status = inviteStatus[data.value];
