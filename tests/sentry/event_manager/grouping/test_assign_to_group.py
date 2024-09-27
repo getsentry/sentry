@@ -9,7 +9,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from sentry.event_manager import _create_group, _save_aggregate, _save_aggregate_new
+from sentry.event_manager import _create_group, _save_aggregate_new
 from sentry.eventstore.models import Event
 from sentry.grouping.ingest.hashing import (
     _calculate_primary_hashes,
@@ -130,7 +130,6 @@ def get_results_from_saving_event(
     secondary_config: str,
     in_transition: bool,
     existing_group_id: int | None = None,
-    new_logic_enabled: bool = False,
 ):
     # Whether or not these are assigned a value depends on the values of `in_transition` and
     # `existing_group_id`. Everything else we'll return will definitely get a value and therefore
@@ -148,12 +147,7 @@ def get_results_from_saving_event(
 
     return_values: dict[str, list[Any]] = {}
 
-    with (
-        patch_grouping_helpers(return_values) as spies,
-        mock.patch(
-            "sentry.event_manager.project_uses_optimized_grouping", return_value=new_logic_enabled
-        ),
-    ):
+    with patch_grouping_helpers(return_values) as spies:
         calculate_secondary_hash_spy = spies["_calculate_secondary_hashes"]
         create_group_spy = spies["_create_group"]
         calculate_primary_hash_spy = spies["_calculate_primary_hashes"]
@@ -250,13 +244,7 @@ def get_results_from_saving_event(
 @pytest.mark.parametrize(
     "in_transition", (True, False), ids=(" in_transition: True ", " in_transition: False ")
 )
-@pytest.mark.parametrize(
-    "new_logic_enabled",
-    (True, False),
-    ids=(" new_logic_enabled: True ", " new_logic_enabled: False "),
-)
 def test_new_group(
-    new_logic_enabled: bool,
     in_transition: bool,
     default_project: Project,
 ):
@@ -269,7 +257,6 @@ def test_new_group(
         primary_config=DEFAULT_GROUPING_CONFIG,
         secondary_config=LEGACY_GROUPING_CONFIG,
         in_transition=in_transition,
-        new_logic_enabled=new_logic_enabled,
     )
 
     if in_transition:
@@ -311,13 +298,7 @@ def test_new_group(
 @pytest.mark.parametrize(
     "in_transition", (True, False), ids=(" in_transition: True ", " in_transition: False ")
 )
-@pytest.mark.parametrize(
-    "new_logic_enabled",
-    (True, False),
-    ids=(" new_logic_enabled: True ", " new_logic_enabled: False "),
-)
 def test_existing_group_no_new_hash(
-    new_logic_enabled: bool,
     in_transition: bool,
     default_project: Project,
 ):
@@ -335,7 +316,6 @@ def test_existing_group_no_new_hash(
         secondary_config=LEGACY_GROUPING_CONFIG,
         in_transition=in_transition,
         existing_group_id=existing_event.group_id,
-        new_logic_enabled=new_logic_enabled,
     )
 
     if in_transition:
@@ -376,18 +356,12 @@ def test_existing_group_no_new_hash(
     "in_transition", (True, False), ids=(" in_transition: True ", " in_transition: False ")
 )
 @pytest.mark.parametrize(
-    "new_logic_enabled",
-    (True, False),
-    ids=(" new_logic_enabled: True ", " new_logic_enabled: False "),
-)
-@pytest.mark.parametrize(
     "secondary_hash_exists",
     (True, False),
     ids=(" secondary_hash_exists: True ", " secondary_hash_exists: False "),
 )
 def test_existing_group_new_hash_exists(
     secondary_hash_exists: bool,
-    new_logic_enabled: bool,
     in_transition: bool,
     default_project: Project,
 ):
@@ -426,43 +400,23 @@ def test_existing_group_new_hash_exists(
         secondary_config=LEGACY_GROUPING_CONFIG,
         in_transition=in_transition,
         existing_group_id=existing_event.group_id,
-        new_logic_enabled=new_logic_enabled,
     )
 
-    if in_transition and not new_logic_enabled:
-        assert results == {
-            "primary_hash_calculated": True,
-            "secondary_hash_calculated": True,
-            "hashes_different": True,
-            "primary_hash_found": True,
-            "secondary_hash_found": False,  # We found the new hash first and quit looking
-            "new_group_created": False,
-            "event_assigned_to_given_existing_group": True,
-            "primary_grouphash_existed_already": True,
-            "secondary_grouphash_existed_already": secondary_hash_exists,
-            "primary_grouphash_exists_now": True,
-            "secondary_grouphash_exists_now": True,
-            "result_tag_value_for_metrics": "found_primary",
-        }
-    # Equivalent to `elif (in_transition and new_logic_enabled) or not in_transition`. In other
-    # words, with the new logic, if the new hash exists, it doesn't matter whether we're in
-    # transition or not - no extra calculations are performed.
-    else:
-        assert results == {
-            "primary_hash_calculated": True,
-            "secondary_hash_calculated": False,
-            "primary_hash_found": True,
-            "new_group_created": False,
-            "event_assigned_to_given_existing_group": True,
-            "primary_grouphash_existed_already": True,
-            "primary_grouphash_exists_now": True,
-            "result_tag_value_for_metrics": "found_primary",
-            # The rest are moot since no secondary hash was calculated.
-            "hashes_different": None,
-            "secondary_hash_found": None,
-            "secondary_grouphash_existed_already": None,
-            "secondary_grouphash_exists_now": None,
-        }
+    assert results == {
+        "primary_hash_calculated": True,
+        "secondary_hash_calculated": False,
+        "primary_hash_found": True,
+        "new_group_created": False,
+        "event_assigned_to_given_existing_group": True,
+        "primary_grouphash_existed_already": True,
+        "primary_grouphash_exists_now": True,
+        "result_tag_value_for_metrics": "found_primary",
+        # The rest are moot since no secondary hash was calculated.
+        "hashes_different": None,
+        "secondary_hash_found": None,
+        "secondary_grouphash_existed_already": None,
+        "secondary_grouphash_exists_now": None,
+    }
 
 
 @django_db_all
@@ -477,9 +431,7 @@ def test_existing_group_new_hash_exists(
 )
 @pytest.mark.parametrize("id_qualifies", (True,), ids=(" id_qualifies: True ",))
 @patch("sentry.event_manager._save_aggregate_new", wraps=_save_aggregate_new)
-@patch("sentry.event_manager._save_aggregate", wraps=_save_aggregate)
 def test_uses_regular_or_optimized_grouping_as_appropriate(
-    mock_save_aggregate: MagicMock,
     mock_save_aggregate_new: MagicMock,
     id_qualifies: bool,
     in_transition: bool,
@@ -506,13 +458,4 @@ def test_uses_regular_or_optimized_grouping_as_appropriate(
             {"message": "Dogs are great!"}, project, DEFAULT_GROUPING_CONFIG
         )
 
-    if killswitch_enabled:
-        assert mock_save_aggregate.call_count == 1
-    elif flag_on:
-        assert mock_save_aggregate_new.call_count == 1
-    elif in_transition:
-        assert mock_save_aggregate_new.call_count == 1
-    elif id_qualifies:
-        assert mock_save_aggregate_new.call_count == 1
-    else:
-        assert mock_save_aggregate.call_count == 1
+    assert mock_save_aggregate_new.call_count == 1
