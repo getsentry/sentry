@@ -33,13 +33,8 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 
 type Params = DocsParams;
 
-const getInstallSnippet = ({
-  isSelfHosted,
-  urlPrefix,
-  organization,
-  projectSlug,
-}: Params) => {
-  const urlParam = !isSelfHosted && urlPrefix ? `--url ${urlPrefix}` : '';
+const getInstallSnippet = ({isSelfHosted, organization, projectSlug}: Params) => {
+  const urlParam = isSelfHosted ? '' : '--saas';
   return `npx @sentry/wizard@latest -i nextjs ${urlParam} --org ${organization.slug} --project ${projectSlug}`;
 };
 

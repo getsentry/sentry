@@ -27,13 +27,8 @@ import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
 
-const getInstallConfig = ({
-  isSelfHosted,
-  urlPrefix,
-  organization,
-  projectSlug,
-}: Params) => {
-  const urlParam = !isSelfHosted && urlPrefix ? `--url ${urlPrefix}` : '';
+const getInstallConfig = ({isSelfHosted, organization, projectSlug}: Params) => {
+  const urlParam = isSelfHosted ? '' : '--saas';
 
   return [
     {
