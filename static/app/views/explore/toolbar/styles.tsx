@@ -12,37 +12,45 @@ export const ToolbarHeader = styled('div')`
   flex-direction: row;
   justify-content: space-between;
   align-items: baseline;
+  margin-bottom: ${space(0.5)};
 `;
 
-export const ToolbarHeading = styled('h6')<{disabled?: boolean}>`
-  color: ${p => (p.disabled ? p.theme.gray300 : p.theme.purple300)};
+export const ToolbarLabel = styled('h6')<{disabled?: boolean}>`
+  color: ${p => (p.disabled ? p.theme.gray300 : p.theme.gray500)};
   height: ${p => p.theme.form.md.height};
   min-height: ${p => p.theme.form.md.minHeight};
   font-size: ${p => p.theme.form.md.fontSize};
-  line-height: ${p => p.theme.form.md.lineHeight};
   text-decoration: underline dotted
-    ${p => (p.disabled ? p.theme.gray300 : p.theme.purple300)};
-  margin: 0 0 ${space(1)} 0;
+    ${p => (p.disabled ? p.theme.gray300 : p.theme.gray300)};
+  margin: 0;
 `;
 
 export const ToolbarHeaderButton = styled(Button)<{disabled?: boolean}>`
-  color: ${p => (p.disabled ? p.theme.gray300 : p.theme.purple300)};
+  color: ${p => (p.disabled ? p.theme.gray300 : p.theme.gray500)};
 `;
 
 export const ToolbarFooterButton = styled(Button)<{disabled?: boolean}>`
-  color: ${p => p.theme.gray300};
+  color: ${p => (p.disabled ? p.theme.gray300 : p.theme.linkColor)};
 `;
 
 export const ToolbarFooter = styled('div')<{disabled?: boolean}>`
-  margin-top: ${space(0.5)};
+  margin: ${space(0.5)} 0;
 `;
 
 export const ToolbarRow = styled('div')`
   display: flex;
-  justify-content: space-between;
+  flex-direction: row;
   gap: ${space(0.5)};
+  margin-bottom: ${space(0.5)};
 
-  :not(:first-child) {
-    padding-top: ${space(1)};
+  div,
+  label,
+  span {
+    flex-grow: 1;
+
+    > button {
+      width: 100%;
+      font-weight: normal;
+    }
   }
 `;

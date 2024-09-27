@@ -65,35 +65,31 @@ function ExploreContentImpl({}: ExploreContentProps) {
         <Layout.Page>
           <Layout.Header>
             <Layout.HeaderContent>
-              <Title>{t('Explore')}</Title>
+              <Layout.Title>{t('Explore')}</Layout.Title>
             </Layout.HeaderContent>
             <Layout.HeaderActions>
               <ButtonBar gap={1}>
                 <Button onClick={switchToOldTraceExplorer}>
-                  {t('Switch to old Trace Explore')}
+                  {t('Switch to Old Trace Explore')}
                 </Button>
                 <FeedbackWidgetButton />
               </ButtonBar>
             </Layout.HeaderActions>
           </Layout.Header>
           <Body>
-            <FilterActions>
-              <PageFilterBar condensed>
-                <ProjectPageFilter />
-                <EnvironmentPageFilter />
-                <DatePageFilter />
-              </PageFilterBar>
-              <SpanSearchQueryBuilder
-                supportedAggregates={supportedAggregates}
-                projects={selection.projects}
-                initialQuery={userQuery}
-                onSearch={setUserQuery}
-                searchSource="explore"
-              />
-            </FilterActions>
-            <Side>
-              <ExploreToolbar extras={toolbarExtras} />
-            </Side>
+            <PageFilterBar condensed>
+              <ProjectPageFilter />
+              <EnvironmentPageFilter />
+              <DatePageFilter />
+            </PageFilterBar>
+            <StyledSpanSearchQueryBuilder
+              supportedAggregates={supportedAggregates}
+              projects={selection.projects}
+              initialQuery={userQuery}
+              onSearch={setUserQuery}
+              searchSource="explore"
+            />
+            <ExploreToolbar extras={toolbarExtras} />
             <Main fullWidth>
               <ExploreCharts query={userQuery} />
               <ExploreTables />
@@ -113,34 +109,20 @@ export function ExploreContent(props: ExploreContentProps) {
   );
 }
 
-const Title = styled(Layout.Title)`
-  margin-bottom: ${space(2)};
-`;
-
-const FilterActions = styled('div')`
-  grid-column: 1 / -1;
-  display: grid;
-  gap: ${space(2)};
-  grid-template-columns: auto;
-
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
-    grid-template-columns: auto 1fr;
-  }
-`;
-
 const Body = styled(Layout.Body)`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(2)};
+
   @media (min-width: ${p => p.theme.breakpoints.large}) {
-    display: grid;
-    grid-template-columns: 275px minmax(100px, auto);
-    align-content: start;
-    gap: ${p => (!p.noRowGap ? `${space(3)}` : `0 ${space(3)}`)};
+    grid-template-columns: 300px minmax(100px, auto);
   }
+`;
+
+const StyledSpanSearchQueryBuilder = styled(SpanSearchQueryBuilder)`
+  grid-column: 2/3;
 `;
 
 const Main = styled(Layout.Main)`
   grid-column: 2/3;
-`;
-
-const Side = styled(Layout.Side)`
-  grid-column: 1/2;
 `;

@@ -126,7 +126,7 @@ export function ExploreCharts({query}: ExploreChartsProps) {
                 <ChartSettingsContainer>
                   <CompactSelect
                     size="xs"
-                    triggerProps={{prefix: t('Display')}}
+                    triggerProps={{prefix: t('Type')}}
                     value={chartType}
                     options={exploreChartTypeOptions}
                     onChange={option => handleChartTypeChange(option.value, index)}
@@ -173,7 +173,7 @@ const ChartContainer = styled('div')`
   display: grid;
   gap: 0;
   grid-template-columns: 1fr;
-  margin-bottom: ${space(3)};
+  margin-bottom: ${space(2)};
 `;
 
 const ChartHeader = styled('div')`
