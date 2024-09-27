@@ -317,7 +317,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
                     "fingerprint": ["group1"],
                     "tags": {"sentry:user": self.user.email},
                 },
-                event_type=EventType.ERROR,
+                default_event_type=EventType.ERROR,
                 project_id=self.project.id,
             )
             self.store_event(
@@ -328,7 +328,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
                     "fingerprint": ["group2"],
                     "tags": {"sentry:user": self.user.email},
                 },
-                event_type=EventType.ERROR,
+                default_event_type=EventType.ERROR,
                 project_id=self.project.id,
             )
 

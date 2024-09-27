@@ -73,7 +73,7 @@ class DailySummaryTest(
                     data=data,
                     project_id=project_id,
                     assert_no_errors=False,
-                    event_type=EventType.ERROR,
+                    default_event_type=EventType.DEFAULT,
                 )
             elif category == DataCategory.TRANSACTION:
                 event = self.create_performance_issue()
@@ -749,7 +749,7 @@ class DailySummaryTest(
                 data=data,
                 project_id=self.project.id,
                 assert_no_errors=False,
-                event_type=EventType.ERROR,
+                default_event_type=EventType.DEFAULT,
             )
             self.store_outcomes(
                 {
@@ -798,7 +798,7 @@ class DailySummaryTest(
                 data=data,
                 project_id=self.project.id,
                 assert_no_errors=False,
-                event_type=EventType.ERROR,
+                default_event_type=EventType.DEFAULT,
             )
             self.store_outcomes(
                 {
@@ -847,7 +847,7 @@ class DailySummaryTest(
                 data=data,
                 project_id=self.project.id,
                 assert_no_errors=False,
-                event_type=EventType.ERROR,
+                default_event_type=EventType.DEFAULT,
             )
             self.store_outcomes(
                 {
