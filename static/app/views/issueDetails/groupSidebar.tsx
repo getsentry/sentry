@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import Feature from 'sentry/components/acl/feature';
 import AvatarList from 'sentry/components/avatar/avatarList';
 import {DateTime} from 'sentry/components/dateTime';
 import type {OnAssignCallback} from 'sentry/components/deprecatedAssigneeSelectorDropdown';
@@ -10,7 +9,6 @@ import {EventThroughput} from 'sentry/components/events/eventStatisticalDetector
 import AssignedTo from 'sentry/components/group/assignedTo';
 import ExternalIssueList from 'sentry/components/group/externalIssuesList';
 import {StreamlinedExternalIssueList} from 'sentry/components/group/externalIssuesList/streamlinedExternalIssueList';
-import {GroupSummary} from 'sentry/components/group/groupSummary';
 import GroupReleaseStats from 'sentry/components/group/releaseStats';
 import TagFacets, {
   BACKEND_TAGS,
@@ -23,7 +21,6 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {backend, frontend} from 'sentry/data/platformCategories';
 import {t, tn} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
 import IssueListCacheStore from 'sentry/stores/IssueListCacheStore';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
@@ -41,6 +38,7 @@ import {isMobilePlatform} from 'sentry/utils/platform';
 import {getAnalyicsDataForProject} from 'sentry/utils/projects';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useUser} from 'sentry/utils/useUser';
 import {ParticipantList} from 'sentry/views/issueDetails/participantList';
 import {makeFetchGroupQueryKey} from 'sentry/views/issueDetails/useGroup';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
@@ -84,6 +82,7 @@ export default function GroupSidebar({
   organization,
   environments,
 }: Props) {
+  const activeUser = useUser();
   const {data: allEnvironmentsGroupData} = useFetchAllEnvsGroupData(organization, group);
   const {data: currentRelease} = useFetchCurrentRelease(organization, group);
   const hasStreamlinedUI = useHasStreamlinedUI();
@@ -211,7 +210,6 @@ export default function GroupSidebar({
 
   const renderSeenByList = () => {
     const {seenBy} = group;
-    const activeUser = ConfigStore.get('user');
     const displayUsers = seenBy.filter(user => activeUser.id !== user.id);
 
     if (!displayUsers.length) {
@@ -257,9 +255,6 @@ export default function GroupSidebar({
 
   return (
     <Container>
-      <Feature features={['organizations:ai-summary']}>
-        <GroupSummary groupId={group.id} groupCategory={group.issueCategory} />
-      </Feature>
       {hasStreamlinedUI && event && (
         <ErrorBoundary mini>
           <StreamlinedExternalIssueList group={group} event={event} project={project} />

@@ -19,7 +19,6 @@ from sentry.api.serializers.models.group import (
     SeenStats,
     snuba_tsdb,
 )
-from sentry.api.serializers.models.platformexternalissue import PlatformExternalIssueSerializer
 from sentry.api.serializers.models.plugin import is_plugin_deprecated
 from sentry.constants import StatsPeriod
 from sentry.integrations.api.serializers.models.external_issue import ExternalIssueSerializer
@@ -32,6 +31,9 @@ from sentry.models.groupinbox import get_inbox_details
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupowner import get_owner_details
 from sentry.models.platformexternalissue import PlatformExternalIssue
+from sentry.sentry_apps.api.serializers.platform_external_issue import (
+    PlatformExternalIssueSerializer,
+)
 from sentry.snuba.dataset import Dataset
 from sentry.tsdb.base import TSDBModel
 from sentry.utils import metrics

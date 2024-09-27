@@ -4,6 +4,7 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo_model, sane_repr
 
 
+# TODO - @saponifi3d delete this model in a separate pr, it's now an "action"
 @region_silo_model
 class WorkflowAction(DefaultFieldsModel):
     """

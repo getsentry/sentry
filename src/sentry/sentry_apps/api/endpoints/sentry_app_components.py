@@ -17,6 +17,7 @@ from sentry.sentry_apps.api.bases.sentryapps import (
     SentryAppBaseEndpoint,
     add_integration_platform_metric_tag,
 )
+from sentry.sentry_apps.api.serializers.sentry_app_component import SentryAppComponentSerializer
 from sentry.sentry_apps.components import SentryAppComponentPreparer
 from sentry.sentry_apps.models.sentry_app_component import SentryAppComponent
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
@@ -37,7 +38,9 @@ class SentryAppComponentsEndpoint(SentryAppBaseEndpoint):
             request=request,
             queryset=sentry_app.components.all(),
             paginator_cls=OffsetPaginator,
-            on_results=lambda x: serialize(x, request.user, errors=[]),
+            on_results=lambda x: serialize(
+                x, request.user, errors=[], serializer=SentryAppComponentSerializer()
+            ),
         )
 
 
@@ -86,5 +89,7 @@ class OrganizationSentryAppComponentsEndpoint(ControlSiloOrganizationEndpoint):
             request=request,
             queryset=components,
             paginator_cls=OffsetPaginator,
-            on_results=lambda x: serialize(x, request.user, errors=errors),
+            on_results=lambda x: serialize(
+                x, request.user, serializer=SentryAppComponentSerializer(), errors=errors
+            ),
         )
