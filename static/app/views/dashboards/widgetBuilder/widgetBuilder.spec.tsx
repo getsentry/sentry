@@ -991,7 +991,9 @@ describe('WidgetBuilder', function () {
     expect(await screen.findByText('tag:value')).toBeInTheDocument();
 
     // Table display, column, and sort field
-    expect(screen.getAllByText('count()')).toHaveLength(3);
+    await waitFor(() => {
+      expect(screen.getAllByText('count()')).toHaveLength(3);
+    });
     // Table display and column
     expect(screen.getAllByText('failure_count()')).toHaveLength(2);
     // Table display
