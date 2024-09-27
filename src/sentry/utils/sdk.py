@@ -28,6 +28,7 @@ from sentry.utils import metrics
 from sentry.utils.db import DjangoAtomicIntegration
 from sentry.utils.flag import get_flags_serialized
 from sentry.utils.rust import RustInfoIntegration
+from sentry.utils.safe import get_path
 
 # Can't import models in utils because utils should be the bottom of the food chain
 if TYPE_CHECKING:
@@ -82,7 +83,6 @@ SAMPLED_TASKS = {
     "sentry.dynamic_sampling.tasks.custom_rule_notifications": 0.2,
     "sentry.dynamic_sampling.tasks.clean_custom_rule_notifications": 0.2,
     "sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project": 1.0,
-    "sentry.tasks.assemble.assemble_dif": 1.0,  # Temporary addition to diagnose a bug
 }
 
 if settings.ADDITIONAL_SAMPLED_TASKS:
@@ -185,6 +185,14 @@ def traces_sampler(sampling_context):
 
     if "celery_job" in sampling_context:
         task_name = sampling_context["celery_job"].get("task")
+
+        # Temporarily sample the `assemble_dif` task at 100% for the
+        # sentry-test/rust project for debugging purposes
+        if (
+            task_name == "sentry.tasks.assemble.assemble_dif"
+            and get_path(sampling_context, "celery_job", "kwargs", "project_id") == 1041156
+        ):
+            return 1.0
 
         if task_name in SAMPLED_TASKS:
             return SAMPLED_TASKS[task_name]
