@@ -82,6 +82,7 @@ SAMPLED_TASKS = {
     "sentry.dynamic_sampling.tasks.custom_rule_notifications": 0.2,
     "sentry.dynamic_sampling.tasks.clean_custom_rule_notifications": 0.2,
     "sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project": 1.0,
+    "sentry.tasks.assemble.assemble_dif": 1.0,  # Temporary addition to diagnose a bug
 }
 
 if settings.ADDITIONAL_SAMPLED_TASKS:
