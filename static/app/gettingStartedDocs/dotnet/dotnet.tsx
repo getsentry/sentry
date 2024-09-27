@@ -201,10 +201,9 @@ const onboarding: OnboardingConfig = {
     {
       type: StepType.CONFIGURE,
       description: tct(
-        'Initialize the SDK as early as possible. For example, call [sentrySdkCode:SentrySdk.Init] in your [programCode:Program.cs] file:',
+        'Initialize the SDK as early as possible. For example, call [code:SentrySdk.Init] in your [code:Program.cs] file:',
         {
-          sentrySdkCode: <code />,
-          programCode: <code />,
+          code: <code />,
         }
       ),
       configurations: [

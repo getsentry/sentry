@@ -22,7 +22,6 @@ from sentry.api.helpers.group_index import (
 )
 from sentry.api.serializers import GroupSerializer, GroupSerializerSnuba, serialize
 from sentry.api.serializers.models.group_stream import get_actions, get_available_issue_plugins
-from sentry.api.serializers.models.platformexternalissue import PlatformExternalIssueSerializer
 from sentry.api.serializers.models.plugin import PluginSerializer
 from sentry.api.serializers.models.team import TeamSerializer
 from sentry.integrations.api.serializers.models.external_issue import ExternalIssueSerializer
@@ -41,6 +40,9 @@ from sentry.models.groupsubscription import GroupSubscriptionManager
 from sentry.models.team import Team
 from sentry.models.userreport import UserReport
 from sentry.plugins.base import plugins
+from sentry.sentry_apps.api.serializers.platform_external_issue import (
+    PlatformExternalIssueSerializer,
+)
 from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
 from sentry.tasks.post_process import fetch_buffered_group_stats
 from sentry.types.ratelimit import RateLimit, RateLimitCategory

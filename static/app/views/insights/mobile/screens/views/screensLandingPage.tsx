@@ -48,9 +48,12 @@ import {
   STATUS_UNKNOWN,
   type VitalItem,
 } from 'sentry/views/insights/mobile/screens/utils';
-import {type InsightLandingProps, ModuleName} from 'sentry/views/insights/types';
+import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
+import {ModuleName} from 'sentry/views/insights/types';
 
-export function ScreensLandingPage({disableHeader}: InsightLandingProps) {
+export function ScreensLandingPage() {
+  const {isInDomainView} = useDomainViewFilters();
   const moduleName = ModuleName.MOBILE_SCREENS;
   const crumbs = useModuleBreadcrumbs(moduleName);
   const location = useLocation();
@@ -225,7 +228,7 @@ export function ScreensLandingPage({disableHeader}: InsightLandingProps) {
     <ModulePageProviders moduleName="mobile-screens" features={[MODULE_FEATURE]}>
       <Layout.Page>
         <PageAlertProvider>
-          {!disableHeader && (
+          {!isInDomainView && (
             <Layout.Header>
               <Layout.HeaderContent>
                 <Breadcrumbs crumbs={crumbs} />
@@ -243,6 +246,11 @@ export function ScreensLandingPage({disableHeader}: InsightLandingProps) {
                   <FeedbackWidgetButton />
                 </ButtonBar>
               </Layout.HeaderActions>
+            </Layout.Header>
+          )}
+          {isInDomainView && (
+            <Layout.Header>
+              <MobileHeader module={ModuleName.MOBILE_SCREENS} />
             </Layout.Header>
           )}
 

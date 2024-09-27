@@ -377,6 +377,9 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
         with self.feature(FEATURE_NAMES + EDIT_FEATURE):
             self.page.visit_dashboard_detail()
 
+            # Hover over the widget to show widget actions
+            self.browser.move_to('[aria-label="Widget panel"]')
+
             self.browser.element('[aria-label="Widget actions"]').click()
             self.browser.element('[data-test-id="duplicate-widget"]').click()
             self.page.wait_until_loaded()
@@ -409,6 +412,9 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
         )
         with self.feature(FEATURE_NAMES + EDIT_FEATURE):
             self.page.visit_dashboard_detail()
+
+            # Hover over the widget to show widget actions
+            self.browser.move_to('[aria-label="Widget panel"]')
 
             self.browser.element('[aria-label="Widget actions"]').click()
             self.browser.element('[data-test-id="delete-widget"]').click()
@@ -512,6 +518,9 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
         with self.feature(FEATURE_NAMES + EDIT_FEATURE):
             self.page.visit_dashboard_detail()
 
+            # Hover over the widget to show widget actions
+            self.browser.move_to('[aria-label="Widget panel"]')
+
             dropdown_trigger = self.browser.element('[aria-label="Widget actions"]')
             dropdown_trigger.click()
 
@@ -562,6 +571,9 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
         )
         with self.feature(FEATURE_NAMES + EDIT_FEATURE):
             self.page.visit_dashboard_detail()
+
+            # Hover over the widget to show widget actions
+            self.browser.move_to('[aria-label="Widget panel"]')
 
             # Open edit modal for first widget
             dropdown_trigger = self.browser.element('[aria-label="Widget actions"]')
