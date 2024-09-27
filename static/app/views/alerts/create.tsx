@@ -142,7 +142,8 @@ function Create(props: Props) {
           <LoadingIndicator />
         ) : (
           <Fragment>
-            {alertType === AlertRuleType.UPTIME ? (
+            {alertType === AlertRuleType.UPTIME &&
+            organization.features.includes('uptime-api-create-update') ? (
               <UptimeAlertForm {...props} />
             ) : !hasMetricAlerts || alertType === AlertRuleType.ISSUE ? (
               <IssueRuleEditor

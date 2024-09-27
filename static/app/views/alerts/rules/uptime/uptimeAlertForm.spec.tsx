@@ -1,5 +1,6 @@
 import {ActorFixture} from 'sentry-fixture/actor';
 import {MemberFixture} from 'sentry-fixture/member';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {TeamFixture} from 'sentry-fixture/team';
 import {UptimeRuleFixture} from 'sentry-fixture/uptimeRule';
 
@@ -27,7 +28,9 @@ describe('Uptime Alert Form', function () {
   }
 
   it('can create a new rule', async function () {
-    const {organization, project} = initializeOrg();
+    const {organization, project} = initializeOrg({
+      organization: OrganizationFixture({features: ['uptime-api-create-update']}),
+    });
     OrganizationStore.onUpdate(organization);
 
     render(<UptimeAlertForm organization={organization} project={project} />, {
@@ -77,7 +80,9 @@ describe('Uptime Alert Form', function () {
   });
 
   it('renders existing rule', async function () {
-    const {organization, project} = initializeOrg();
+    const {organization, project} = initializeOrg({
+      organization: OrganizationFixture({features: ['uptime-api-create-update']}),
+    });
     OrganizationStore.onUpdate(organization);
 
     const rule = UptimeRuleFixture({
@@ -110,7 +115,9 @@ describe('Uptime Alert Form', function () {
   });
 
   it('can edit an existing rule', async function () {
-    const {organization, project} = initializeOrg();
+    const {organization, project} = initializeOrg({
+      organization: OrganizationFixture({features: ['uptime-api-create-update']}),
+    });
     OrganizationStore.onUpdate(organization);
 
     const rule = UptimeRuleFixture({
@@ -173,7 +180,9 @@ describe('Uptime Alert Form', function () {
   });
 
   it('does not show body for GET and HEAD', async function () {
-    const {organization, project} = initializeOrg();
+    const {organization, project} = initializeOrg({
+      organization: OrganizationFixture({features: ['uptime-api-create-update']}),
+    });
     OrganizationStore.onUpdate(organization);
 
     const rule = UptimeRuleFixture({
