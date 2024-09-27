@@ -87,6 +87,29 @@ class AnomalyDetectionStoreDataTest(AlertRuleBase, BaseMetricsTestCase, Performa
         )
         assert result == expected_return_value
 
+    def test_anomaly_detection_format_historical_data_none_value(self):
+        """
+        Test that we don't end up with a None value, but rather 0.
+        """
+        expected_return_value = [
+            {"timestamp": self.time_1_ts, "value": 1},
+            {"timestamp": self.time_2_ts, "value": 0},
+        ]
+        snuba_raw_data = [
+            {"p95_measurements_fid": 1, "time": self.time_1_ts},
+            {"p95_measurements_fid": None, "time": self.time_2_ts},
+        ]
+        data = SnubaTSResult(
+            data={"data": snuba_raw_data}, start=self.time_1_dt, end=self.time_2_dt, rollup=3600
+        )
+        result = format_historical_data(
+            data=data,
+            query_columns=["p95_measurements_fid"],
+            dataset=errors,
+            organization=self.organization,
+        )
+        assert result == expected_return_value
+
     def test_anomaly_detection_fetch_historical_data(self):
         alert_rule = self.create_alert_rule(organization=self.organization, projects=[self.project])
         snuba_query = SnubaQuery.objects.get(id=alert_rule.snuba_query_id)
