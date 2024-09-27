@@ -79,6 +79,7 @@ class EventDataDeletionTask(BaseDeletionTask[Group]):
         events = self.get_unfetched_events()
         if events:
             self.delete_events_from_nodestore(events)
+            self.delete_dangling_attachments_and_user_reports(events)
             # This value will be used in the next call to chunk
             self.last_event = events[-1]
             # As long as it returns True the task will keep iterating
@@ -121,7 +122,6 @@ class EventDataDeletionTask(BaseDeletionTask[Group]):
         # Remove from nodestore
         node_ids = [Event.generate_node_id(event.project_id, event.event_id) for event in events]
         nodestore.backend.delete_multi(node_ids)
-        self.delete_dangling_attachments_and_user_reports(events)
 
     def delete_dangling_attachments_and_user_reports(self, events: Sequence[Event]) -> None:
         # Remove EventAttachment and UserReport *again* as those may not have a
