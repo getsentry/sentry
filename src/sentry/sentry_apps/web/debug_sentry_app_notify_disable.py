@@ -7,7 +7,7 @@ from sentry.models.organization import Organization
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 
-from .mail import MailPreview
+from ...web.frontend.debug.mail import MailPreview
 
 
 class DebugSentryAppNotifyDisableView(View):
