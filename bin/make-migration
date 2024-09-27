@@ -36,6 +36,14 @@ def print_help():
 
 
 def main():
+    """
+    If there are test failures after this command has run make sure to:
+        - check the relocation scope information
+        - check to see if there are additional snapshots to update for the 3rd command
+        - check that test/utils/helpers/backups.py is setup correctly
+        - check that the test fixtures have been updated correctly
+    """
+
     if "-h" in sys.argv or "--help" in sys.argv:
         print_help()
         sys.exit(0)
