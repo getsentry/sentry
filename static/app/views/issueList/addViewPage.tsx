@@ -10,12 +10,11 @@ import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import ExternalLink from 'sentry/components/links/externalLink';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {FormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
-import {IconClose, IconMegaphone} from 'sentry/icons';
+import {IconClose} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SavedSearch} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useOrganization from 'sentry/utils/useOrganization';
 import {OverflowEllipsisTextContainer} from 'sentry/views/insights/common/components/textAlign';
 import {NewTabContext} from 'sentry/views/issueList/utils/newTabContext';
@@ -154,7 +153,6 @@ function AddViewBanner({hasSavedSearches}: {hasSavedSearches: boolean}) {
       >
         {t('Read Docs')}
       </FittedLinkButton>
-      <FeedbackButton />
     </Banner>
   ) : null;
 }
@@ -271,33 +269,6 @@ function SearchSuggestionList({
         ))}
       </SuggestionList>
     </Suggestions>
-  );
-}
-
-function FeedbackButton() {
-  const openForm = useFeedbackForm();
-
-  if (!openForm) {
-    return null;
-  }
-
-  return (
-    <Button
-      size="xs"
-      icon={<IconMegaphone />}
-      onClick={() =>
-        openForm({
-          messagePlaceholder: t('How can we make custom views better for you?'),
-          tags: {
-            ['feedback.source']: 'custom_views',
-            ['feedback.owner']: 'issues',
-          },
-        })
-      }
-      style={{width: 'fit-content'}}
-    >
-      {t('Give Feedback')}
-    </Button>
   );
 }
 
