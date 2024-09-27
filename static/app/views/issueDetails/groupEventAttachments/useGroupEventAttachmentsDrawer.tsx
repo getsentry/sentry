@@ -5,8 +5,8 @@ import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
 import {GroupEventAttachmentsDrawer} from 'sentry/views/issueDetails/groupEventAttachments/groupEventAttachmentsDrawer';
+import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
 export function useGroupEventAttachmentsDrawer({
   project,
@@ -18,7 +18,7 @@ export function useGroupEventAttachmentsDrawer({
   const location = useLocation();
   const navigate = useNavigate();
   const drawer = useDrawer();
-  const organization = useOrganization();
+  const {baseUrl} = useGroupDetailsRoute();
 
   const openAttachmentDrawer = useCallback(() => {
     drawer.openDrawer(
@@ -28,7 +28,7 @@ export function useGroupEventAttachmentsDrawer({
         onClose: () => {
           // Remove drawer state from URL
           navigate({
-            pathname: `/organizations/${organization.slug}/issues/${group.id}/`,
+            pathname: baseUrl,
             query: {
               ...location.query,
               attachmentFilter: undefined,
@@ -47,7 +47,7 @@ export function useGroupEventAttachmentsDrawer({
         shouldCloseOnLocationChange: false,
       }
     );
-  }, [location, navigate, drawer, project, group, organization.slug]);
+  }, [location, navigate, drawer, project, group, baseUrl]);
 
   return {openAttachmentDrawer};
 }

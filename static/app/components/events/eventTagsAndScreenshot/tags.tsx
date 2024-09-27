@@ -16,9 +16,9 @@ import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 import {EventTags} from '../eventTags';
@@ -32,7 +32,6 @@ export const EventTagsDataSection = forwardRef<HTMLElement, Props>(
   function EventTagsDataSection({event, projectSlug}: Props, ref) {
     const sentryTags = getSentryDefaultTags();
     const hasStreamlinedUI = useHasStreamlinedUI();
-    const organization = useOrganization();
     const location = useLocation();
 
     const [tagFilter, setTagFilter] = useState<TagFilter>(TagFilter.ALL);
@@ -61,7 +60,7 @@ export const EventTagsDataSection = forwardRef<HTMLElement, Props>(
         {hasStreamlinedUI && event.groupID && (
           <LinkButton
             to={{
-              pathname: `/organizations/${organization.slug}/issues/${event.groupID}/tags/`,
+              pathname: `${location.pathname}${TabPaths[Tab.TAGS]}`,
               query: location.query,
             }}
             size="xs"

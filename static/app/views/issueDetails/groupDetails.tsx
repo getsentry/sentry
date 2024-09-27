@@ -46,7 +46,6 @@ import recreateRoute from 'sentry/utils/recreateRoute';
 import useDisableRouteAnalytics from 'sentry/utils/routeAnalytics/useDisableRouteAnalytics';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
 import {useDetailedProject} from 'sentry/utils/useDetailedProject';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -63,8 +62,11 @@ import GroupEventDetails from 'sentry/views/issueDetails/groupEventDetails';
 import {useGroupTagsDrawer} from 'sentry/views/issueDetails/groupTags/useGroupTagsDrawer';
 import SampleEventAlert from 'sentry/views/issueDetails/sampleEventAlert';
 import StreamlinedGroupHeader from 'sentry/views/issueDetails/streamline/header';
-import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
+import {useReplaysDrawer} from 'sentry/views/issueDetails/streamline/useReplaysDrawer';
+import {useUserFeedbackDrawer} from 'sentry/views/issueDetails/streamline/useUserFeedbackDrawer';
+import {Tab} from 'sentry/views/issueDetails/types';
 import {makeFetchGroupQueryKey, useGroup} from 'sentry/views/issueDetails/useGroup';
+import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 import {
   getGroupEventDetailsQueryData,
   getGroupReprocessingStatus,
@@ -118,57 +120,19 @@ function getFetchDataRequestErrorType(status?: number | null): Error {
   return null;
 }
 
-function getCurrentTab({router}: {router: RouteProps['router']}) {
-  const currentRoute = router.routes[router.routes.length - 1];
-
-  // If we're in the tag details page ("/tags/:tagKey/")
-  if (router.params.tagKey) {
-    return Tab.TAGS;
-  }
-  return (
-    Object.values(Tab).find(tab => currentRoute.path === TabPaths[tab]) ?? Tab.DETAILS
-  );
-}
-
-function getCurrentRouteInfo({
-  group,
-  event,
-  organization,
-  router,
-}: {
-  event: Event | null;
-  group: Group;
-  organization: Organization;
-  router: RouteProps['router'];
-}): {
-  baseUrl: string;
-  currentTab: Tab;
-} {
-  const currentTab = getCurrentTab({router});
-
-  const baseUrl = normalizeUrl(
-    `/organizations/${organization.slug}/issues/${group.id}/${
-      router.params.eventId && event ? `events/${event.id}/` : ''
-    }`
-  );
-
-  return {baseUrl, currentTab};
-}
-
 function getReprocessingNewRoute({
   group,
-  event,
-  organization,
+  currentTab,
   router,
+  baseUrl,
 }: {
-  event: Event | null;
+  baseUrl: string;
+  currentTab: Tab;
   group: Group;
-  organization: Organization;
   router: RouteProps['router'];
 }) {
   const {routes, params, location} = router;
   const {groupId} = params;
-  const {currentTab, baseUrl} = getCurrentRouteInfo({group, event, organization, router});
 
   const {id: nextGroupId} = group;
 
@@ -240,7 +204,7 @@ function useEventApiQuery({
 }) {
   const organization = useOrganization();
   const location = useLocation<{query?: string}>();
-  const router = useRouter();
+  const {currentTab: tab} = useGroupDetailsRoute();
   const defaultIssueEvent = useDefaultIssueEvent();
   const eventIdUrl = eventId ?? defaultIssueEvent;
   const recommendedEventQuery =
@@ -257,7 +221,6 @@ function useEventApiQuery({
     },
   ];
 
-  const tab = getCurrentTab({router});
   const isOnDetailsTab = tab === Tab.DETAILS;
 
   const isLatestOrRecommendedEvent =
@@ -333,6 +296,7 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
 
   const [allProjectChanged, setAllProjectChanged] = useState<boolean>(false);
 
+  const {currentTab, baseUrl} = useGroupDetailsRoute();
   const environments = useEnvironmentsFromUrl();
 
   const groupId = params.groupId;
@@ -385,16 +349,16 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
     if (group && event) {
       const reprocessingNewRoute = getReprocessingNewRoute({
         group,
-        event,
+        currentTab,
         router,
-        organization,
+        baseUrl,
       });
 
       if (reprocessingNewRoute) {
         browserHistory.push(reprocessingNewRoute);
       }
     }
-  }, [group, event, router, organization]);
+  }, [group, event, router, currentTab, baseUrl]);
 
   useEffect(() => {
     const matchingProjectSlug = group?.project?.slug;
@@ -665,9 +629,11 @@ function GroupDetailsContent({
     groupId: group.id,
     projectSlug: project.slug,
   });
+  const {openUserFeedbackDrawer} = useUserFeedbackDrawer({group, project});
+  const {openReplaysDrawer} = useReplaysDrawer({group, project});
   const {isDrawerOpen} = useDrawer();
 
-  const {currentTab, baseUrl} = getCurrentRouteInfo({group, event, router, organization});
+  const {currentTab, baseUrl} = useGroupDetailsRoute();
   const groupReprocessingStatus = getGroupReprocessingStatus(group);
   const environments = useEnvironmentsFromUrl();
 
@@ -682,8 +648,20 @@ function GroupDetailsContent({
       openAttachmentDrawer();
     } else if (currentTab === Tab.TAGS) {
       openTagsDrawer();
+    } else if (currentTab === Tab.USER_FEEDBACK) {
+      openUserFeedbackDrawer();
+    } else if (currentTab === Tab.REPLAYS) {
+      openReplaysDrawer();
     }
-  }, [currentTab, hasStreamlinedUI, openAttachmentDrawer, openTagsDrawer, isDrawerOpen]);
+  }, [
+    currentTab,
+    hasStreamlinedUI,
+    isDrawerOpen,
+    openAttachmentDrawer,
+    openTagsDrawer,
+    openUserFeedbackDrawer,
+    openReplaysDrawer,
+  ]);
 
   useTrackView({group, event, project, tab: currentTab});
 

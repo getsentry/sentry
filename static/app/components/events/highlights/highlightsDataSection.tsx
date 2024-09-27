@@ -37,11 +37,12 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
+import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 interface HighlightsDataSectionProps {
   event: Event;
-  groupId: string;
   project: Project;
   viewAllRef?: React.RefObject<HTMLElement>;
 }
@@ -254,18 +255,18 @@ function HighlightsData({
 export default function HighlightsDataSection({
   viewAllRef,
   event,
-  groupId,
   project,
 }: HighlightsDataSectionProps) {
   const organization = useOrganization();
   const hasStreamlinedUI = useHasStreamlinedUI();
   const location = useLocation();
+  const {baseUrl} = useGroupDetailsRoute();
 
   const viewAllButton = hasStreamlinedUI ? (
     // Streamline details ui has "Jump to" feature, instead we'll show the drawer button
     <LinkButton
       to={{
-        pathname: `/organizations/${organization.slug}/issues/${groupId}/tags/`,
+        pathname: `${baseUrl}${TabPaths[Tab.TAGS]}`,
         query: location.query,
       }}
       size="xs"
