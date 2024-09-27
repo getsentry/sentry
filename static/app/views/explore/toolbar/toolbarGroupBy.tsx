@@ -24,9 +24,9 @@ interface ToolbarGroupByProps {
 }
 
 export function ToolbarGroupBy({disabled}: ToolbarGroupByProps) {
-  const tags = useSpanTags();
+  const {data: tags} = useSpanTags();
 
-  const [groupBys, setGroupBys] = useGroupBys();
+  const {groupBys, setGroupBys} = useGroupBys();
 
   const options: SelectOption<Field>[] = useMemo(() => {
     return [
