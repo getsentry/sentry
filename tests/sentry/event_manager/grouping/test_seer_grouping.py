@@ -94,121 +94,72 @@ class SeerEventManagerGroupingTest(TestCase):
     @patch("sentry.grouping.ingest.seer.should_call_seer_for_grouping", return_value=True)
     @patch("sentry.grouping.ingest.seer.get_seer_similar_issues", return_value=({}, None))
     def test_calls_seer_if_no_group_found(self, mock_get_seer_similar_issues: MagicMock, _):
-        for use_optimized_grouping, event_message in [
-            (True, "Dogs are great!"),
-            (False, "Adopt don't shop"),
-        ]:
-            with patch(
-                "sentry.event_manager.project_uses_optimized_grouping",
-                return_value=use_optimized_grouping,
-            ):
-                save_new_event({"message": event_message}, self.project)
-                assert (
-                    mock_get_seer_similar_issues.call_count == 1
-                ), f"Case {use_optimized_grouping} failed"
-                mock_get_seer_similar_issues.reset_mock()
+        save_new_event({"message": "Dogs are great!"}, self.project)
+        assert mock_get_seer_similar_issues.call_count == 1
 
     @patch("sentry.grouping.ingest.seer.should_call_seer_for_grouping", return_value=True)
     @patch("sentry.grouping.ingest.seer.get_seer_similar_issues", return_value=({}, None))
     def test_bypasses_seer_if_group_found(self, mock_get_seer_similar_issues: MagicMock, _):
-        for use_optimized_grouping, event_message in [
-            (True, "Dogs are great!"),
-            (False, "Adopt don't shop"),
-        ]:
-            with patch(
-                "sentry.event_manager.project_uses_optimized_grouping",
-                return_value=use_optimized_grouping,
-            ):
-                existing_event = save_new_event({"message": event_message}, self.project)
-                assert mock_get_seer_similar_issues.call_count == 1
+        existing_event = save_new_event({"message": "Dogs are great!"}, self.project)
+        assert mock_get_seer_similar_issues.call_count == 1
 
-                new_event = save_new_event({"message": event_message}, self.project)
-                assert existing_event.group_id == new_event.group_id
-                assert mock_get_seer_similar_issues.call_count == 1  # didn't get called again
-
-                mock_get_seer_similar_issues.reset_mock()
+        new_event = save_new_event({"message": "Dogs are great!"}, self.project)
+        assert existing_event.group_id == new_event.group_id
+        assert mock_get_seer_similar_issues.call_count == 1  # didn't get called again
 
     @patch("sentry.grouping.ingest.seer.should_call_seer_for_grouping", return_value=True)
     def test_stores_seer_results_in_metadata(self, _):
-        for use_optimized_grouping, existing_event_message, new_event_message in [
-            (True, "Dogs are great!", "Adopt don't shop"),
-            (False, "Maisey is silly", "Charlie is goofy"),
-        ]:
-            with patch(
-                "sentry.event_manager.project_uses_optimized_grouping",
-                return_value=use_optimized_grouping,
-            ):
-                existing_event = save_new_event({"message": existing_event_message}, self.project)
+        existing_event = save_new_event({"message": "Dogs are great!"}, self.project)
 
-                seer_result_data = SeerSimilarIssueData(
-                    parent_hash=NonNone(existing_event.get_primary_hash()),
-                    parent_group_id=NonNone(existing_event.group_id),
-                    stacktrace_distance=0.01,
-                    message_distance=0.05,
-                    should_group=True,
-                )
+        seer_result_data = SeerSimilarIssueData(
+            parent_hash=NonNone(existing_event.get_primary_hash()),
+            parent_group_id=NonNone(existing_event.group_id),
+            stacktrace_distance=0.01,
+            message_distance=0.05,
+            should_group=True,
+        )
 
-                with patch(
-                    "sentry.grouping.ingest.seer.get_similarity_data_from_seer",
-                    return_value=[seer_result_data],
-                ):
-                    new_event = save_new_event({"message": new_event_message}, self.project)
-                    expected_metadata = {
-                        "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
-                        "results": [asdict(seer_result_data)],
-                    }
+        with patch(
+            "sentry.grouping.ingest.seer.get_similarity_data_from_seer",
+            return_value=[seer_result_data],
+        ):
+            new_event = save_new_event({"message": "Adopt don't shop"}, self.project)
+            expected_metadata = {
+                "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
+                "results": [asdict(seer_result_data)],
+            }
 
-                assert new_event.data["seer_similarity"] == expected_metadata
+        assert new_event.data["seer_similarity"] == expected_metadata
 
     @patch("sentry.grouping.ingest.seer.should_call_seer_for_grouping", return_value=True)
     def test_assigns_event_to_neighbor_group_if_found(self, _):
-        for use_optimized_grouping, existing_event_message, new_event_message in [
-            (True, "Dogs are great!", "Adopt don't shop"),
-            (False, "Maisey is silly", "Charlie is goofy"),
-        ]:
-            with patch(
-                "sentry.event_manager.project_uses_optimized_grouping",
-                return_value=use_optimized_grouping,
-            ):
-                existing_event = save_new_event({"message": existing_event_message}, self.project)
+        existing_event = save_new_event({"message": "Dogs are great!"}, self.project)
 
-                seer_result_data = SeerSimilarIssueData(
-                    parent_hash=NonNone(existing_event.get_primary_hash()),
-                    parent_group_id=NonNone(existing_event.group_id),
-                    stacktrace_distance=0.01,
-                    message_distance=0.05,
-                    should_group=True,
-                )
+        seer_result_data = SeerSimilarIssueData(
+            parent_hash=NonNone(existing_event.get_primary_hash()),
+            parent_group_id=NonNone(existing_event.group_id),
+            stacktrace_distance=0.01,
+            message_distance=0.05,
+            should_group=True,
+        )
 
-                with patch(
-                    "sentry.grouping.ingest.seer.get_similarity_data_from_seer",
-                    return_value=[seer_result_data],
-                ) as mock_get_similarity_data:
-                    new_event = save_new_event({"message": new_event_message}, self.project)
+        with patch(
+            "sentry.grouping.ingest.seer.get_similarity_data_from_seer",
+            return_value=[seer_result_data],
+        ) as mock_get_similarity_data:
+            new_event = save_new_event({"message": "Adopt don't shop"}, self.project)
 
-                    assert mock_get_similarity_data.call_count == 1
-                    assert existing_event.group_id == new_event.group_id
-
-                    mock_get_similarity_data.reset_mock()
+            assert mock_get_similarity_data.call_count == 1
+            assert existing_event.group_id == new_event.group_id
 
     @patch("sentry.grouping.ingest.seer.should_call_seer_for_grouping", return_value=True)
     def test_creates_new_group_if_no_neighbor_found(self, _):
-        for use_optimized_grouping, existing_event_message, new_event_message in [
-            (True, "Dogs are great!", "Adopt don't shop"),
-            (False, "Maisey is silly", "Charlie is goofy"),
-        ]:
-            with patch(
-                "sentry.event_manager.project_uses_optimized_grouping",
-                return_value=use_optimized_grouping,
-            ):
-                existing_event = save_new_event({"message": existing_event_message}, self.project)
+        existing_event = save_new_event({"message": "Dogs are great!"}, self.project)
 
-                with patch(
-                    "sentry.grouping.ingest.seer.get_similarity_data_from_seer", return_value=[]
-                ) as mock_get_similarity_data:
-                    new_event = save_new_event({"message": new_event_message}, self.project)
+        with patch(
+            "sentry.grouping.ingest.seer.get_similarity_data_from_seer", return_value=[]
+        ) as mock_get_similarity_data:
+            new_event = save_new_event({"message": "Adopt don't shop"}, self.project)
 
-                    assert mock_get_similarity_data.call_count == 1
-                    assert existing_event.group_id != new_event.group_id
-
-                    mock_get_similarity_data.reset_mock()
+            assert mock_get_similarity_data.call_count == 1
+            assert existing_event.group_id != new_event.group_id
