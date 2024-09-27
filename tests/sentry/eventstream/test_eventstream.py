@@ -1,3 +1,4 @@
+import itertools
 import logging
 import time
 from datetime import timedelta
@@ -8,7 +9,7 @@ from django.test import override_settings
 from django.utils import timezone
 from snuba_sdk import Column, Condition, Entity, Op, Query, Request
 
-from sentry import nodestore, options
+from sentry import nodestore
 from sentry.event_manager import EventManager
 from sentry.eventstore.models import Event
 from sentry.eventstream.base import EventStreamEventType
@@ -339,7 +340,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
 
     @override_settings()
     @patch("sentry.eventstream.backend.insert", autospec=True)
-    def test_queue_split_router(self, mock_eventstream_insert):
+    def test_queue_legacy_split_router(self, mock_eventstream_insert):
         event = self.__build_transaction_event()
         event.group_id = None
         event.groups = [self.group]
@@ -358,19 +359,27 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
             "group_states": [{"id": event.groups[0].id, **group_state}],
         }
 
-        rollout = options.get("celery_split_queue_legacy_mode")
-        options.set("celery_split_queue_legacy_mode", [])
-        try:
-            headers, body = self.__produce_payload(*insert_args, **insert_kwargs)
+        queues_gen = itertools.cycle(
+            [
+                "post_process_transactions_1",
+                "post_process_transactions_2",
+                "post_process_transactions_3",
+            ]
+        )
+
+        with override_settings(
+            SENTRY_POST_PROCESS_QUEUE_SPLIT_ROUTER={
+                "post_process_transactions": lambda: next(queues_gen)
+            }
+        ):
+            _, body = self.__produce_payload(*insert_args, **insert_kwargs)
             assert body["queue"] == "post_process_transactions_1"
-            headers, body = self.__produce_payload(*insert_args, **insert_kwargs)
+            _, body = self.__produce_payload(*insert_args, **insert_kwargs)
             assert body["queue"] == "post_process_transactions_2"
-            headers, body = self.__produce_payload(*insert_args, **insert_kwargs)
+            _, body = self.__produce_payload(*insert_args, **insert_kwargs)
             assert body["queue"] == "post_process_transactions_3"
-            headers, body = self.__produce_payload(*insert_args, **insert_kwargs)
+            _, body = self.__produce_payload(*insert_args, **insert_kwargs)
             assert body["queue"] == "post_process_transactions_1"
-        finally:
-            options.set("celery_split_queue_legacy_mode", rollout)
 
         # test default assignment
         insert_kwargs = {
