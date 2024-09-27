@@ -170,25 +170,29 @@ class WidgetCard extends Component<Props, State> {
     }
 
     return (
-      <WidgetCardContextMenu
-        organization={organization}
-        widget={widget}
-        selection={selection}
-        showContextMenu={showContextMenu}
-        isPreview={isPreview}
-        widgetLimitReached={widgetLimitReached}
-        onDuplicate={onDuplicate}
-        onEdit={onEdit}
-        onDelete={onDelete}
-        router={router}
-        location={location}
-        index={index}
-        seriesData={seriesData}
-        seriesResultsType={seriesResultsType}
-        tableData={tableData}
-        pageLinks={pageLinks}
-        totalIssuesCount={totalIssuesCount}
-      />
+      <StyledWidgetCardContextMenuContainer>
+        <WidgetCardContextMenu
+          organization={organization}
+          widget={widget}
+          selection={selection}
+          showContextMenu={showContextMenu}
+          isPreview={isPreview}
+          widgetLimitReached={widgetLimitReached}
+          onDuplicate={onDuplicate}
+          onEdit={onEdit}
+          onDelete={onDelete}
+          router={router}
+          location={location}
+          index={index}
+          seriesData={seriesData}
+          seriesResultsType={seriesResultsType}
+          tableData={tableData}
+          pageLinks={pageLinks}
+          totalIssuesCount={totalIssuesCount}
+          description={widget.description}
+          title={widget.title}
+        />
+      </StyledWidgetCardContextMenuContainer>
     );
   }
 
@@ -312,7 +316,7 @@ class WidgetCard extends Component<Props, State> {
               }
               disabled={Number(this.props.index) !== 0}
             >
-              <WidgetCardPanel isDragging={false}>
+              <WidgetCardPanel isDragging={false} aria-label={t('Widget panel')}>
                 <WidgetHeaderWrapper>
                   <WidgetHeaderDescription>
                     <WidgetTitleRow>
@@ -334,16 +338,6 @@ class WidgetCard extends Component<Props, State> {
                       <DisplayOnDemandWarnings widget={widget} />
                       <DiscoverSplitAlert widget={widget} />
                     </WidgetTitleRow>
-                    {widget.description && (
-                      <Tooltip
-                        title={widget.description}
-                        containerDisplayMode="grid"
-                        showOnlyOnOverflow
-                        isHoverable
-                      >
-                        <WidgetDescription>{widget.description}</WidgetDescription>
-                      </Tooltip>
-                    )}
                   </WidgetHeaderDescription>
                   {this.renderContextMenu()}
                 </WidgetHeaderWrapper>
@@ -499,6 +493,11 @@ const ErrorCard = styled(Placeholder)`
   margin-bottom: ${space(2)};
 `;
 
+const StyledWidgetCardContextMenuContainer = styled('div')`
+  opacity: 1;
+  transition: opacity 0.1s;
+`;
+
 export const WidgetCardPanel = styled(Panel, {
   shouldForwardProp: prop => prop !== 'isDragging',
 })<{
@@ -511,6 +510,19 @@ export const WidgetCardPanel = styled(Panel, {
   min-height: 96px;
   display: flex;
   flex-direction: column;
+
+  &:not(:hover):not(:focus-within) {
+    ${StyledWidgetCardContextMenuContainer} {
+      opacity: 0;
+      clip: rect(0 0 0 0);
+      clip-path: inset(50%);
+      height: 1px;
+      overflow: hidden;
+      position: absolute;
+      white-space: nowrap;
+      width: 1px;
+    }
+  }
 `;
 
 const StoredDataAlert = styled(Alert)`
