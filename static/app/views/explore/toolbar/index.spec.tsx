@@ -56,7 +56,7 @@ describe('ExploreToolbar', function () {
     function Component() {
       [resultMode] = useResultMode();
       [sampleFields] = useSampleFields();
-      [groupBys] = useGroupBys();
+      ({groupBys} = useGroupBys());
       return <ExploreToolbar />;
     }
 
@@ -233,7 +233,7 @@ describe('ExploreToolbar', function () {
     let groupBys;
 
     function Component() {
-      [groupBys] = useGroupBys();
+      ({groupBys} = useGroupBys());
       return <ExploreToolbar />;
     }
     renderWithRouter(Component);

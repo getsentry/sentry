@@ -51,7 +51,7 @@ export function ExploreCharts({query}: ExploreChartsProps) {
   const [dataset] = useDataset();
   const [visualizes, setVisualizes] = useVisualizes();
   const [interval, setInterval, intervalOptions] = useChartInterval();
-  const [groupBys, , isLoadingGroupBys] = useGroupBys();
+  const {groupBys, isLoadingGroupBys} = useGroupBys();
   const [resultMode] = useResultMode();
   const topEvents = useTopEvents();
 

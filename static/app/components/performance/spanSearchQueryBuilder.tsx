@@ -94,7 +94,7 @@ export function SpanSearchQueryBuilder({
       {
         value: 'custom_fields',
         label: 'Custom Tags',
-        children: Object.keys(customTags ?? {}),
+        children: Object.keys(customTags),
       },
     ];
   }, [customTags]);

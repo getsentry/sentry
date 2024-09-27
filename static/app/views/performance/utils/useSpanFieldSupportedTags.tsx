@@ -4,12 +4,7 @@ import {getHasTag} from 'sentry/components/events/searchBar';
 import type {PageFilters} from 'sentry/types/core';
 import type {TagCollection} from 'sentry/types/group';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {
-  type ApiQueryKey,
-  useApiQuery,
-  type UseApiQueryResult,
-} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
+import {type ApiQueryKey, useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {SpanIndexedField, SpanMetricsField} from 'sentry/views/insights/types';
@@ -38,7 +33,7 @@ interface SpanFieldEntry {
   key: string;
   name: string;
 }
-type SpanFieldsResponse = SpanFieldEntry[];
+export type SpanFieldsResponse = SpanFieldEntry[];
 
 const getDynamicSpanFieldsEndpoint = (
   orgSlug: string,
@@ -65,9 +60,7 @@ export function useSpanMetricsFieldSupportedTags(options?: {excludedTags?: strin
   );
 }
 
-export function useSpanFieldCustomTags(options?: {
-  projects?: PageFilters['projects'];
-}): UseApiQueryResult<TagCollection, RequestError> {
+export function useSpanFieldCustomTags(options?: {projects?: PageFilters['projects']}) {
   const {projects} = options || {};
   const {selection} = usePageFilters();
   const organization = useOrganization();
@@ -93,16 +86,13 @@ export function useSpanFieldCustomTags(options?: {
     );
   }, [data]);
 
-  // XXX: We need to cast here because unwrapping `data` breaks the type returned by
-  //      useQuery above. The react-query library's UseQueryResult is a union type and
-  //      too complex to recreate here so casting the entire object is more appropriate.
-  return {...rest, data: tags} as UseApiQueryResult<TagCollection, RequestError>;
+  return {...rest, data: tags};
 }
 
 export function useSpanFieldSupportedTags(options?: {
   excludedTags?: string[];
   projects?: PageFilters['projects'];
-}): UseApiQueryResult<TagCollection, RequestError> {
+}) {
   const {excludedTags = [], projects} = options || {};
   // we do not yet support span field search by SPAN_AI_PIPELINE_GROUP and SPAN_CATEGORY should not be surfaced to users
   const staticTags: TagCollection = getSpanFieldSupportedTags(
@@ -124,8 +114,5 @@ export function useSpanFieldSupportedTags(options?: {
     };
   }, [customTags, staticTags]);
 
-  // XXX: We need to cast here because unwrapping `data` breaks the type returned by
-  //      useQuery above. The react-query library's UseQueryResult is a union type and
-  //      too complex to recreate here so casting the entire object is more appropriate.
-  return {...rest, data: tags} as UseApiQueryResult<TagCollection, RequestError>;
+  return {...rest, data: tags};
 }

@@ -27,7 +27,7 @@ describe('useResultMode', function () {
 
     function TestPage() {
       [sampleFields] = useSampleFields();
-      [, setGroupBys] = useGroupBys();
+      ({setGroupBys} = useGroupBys());
       [resultMode, setResultMode] = useResultMode();
       return null;
     }

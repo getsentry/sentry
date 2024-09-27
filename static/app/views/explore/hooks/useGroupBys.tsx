@@ -8,16 +8,25 @@ import type RequestError from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import type {Field} from 'sentry/views/explore/hooks/useSampleFields';
+import type {SpanFieldsResponse} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
 
 import {useSpanTags} from '../contexts/spanTagsContext';
 
 interface Options {
   location: Location;
   navigate: ReturnType<typeof useNavigate>;
-  tagsResults: UseApiQueryResult<TagCollection, RequestError>;
+  tagsResults: Omit<UseApiQueryResult<SpanFieldsResponse, RequestError>, 'data'> & {
+    data: TagCollection;
+  };
 }
 
-export function useGroupBys(): [Field[], (fields: Field[]) => void, boolean] {
+type GroupBysResult = {
+  groupBys: Field[];
+  isLoadingGroupBys: boolean;
+  setGroupBys: (fields: Field[]) => void;
+};
+
+export function useGroupBys(): GroupBysResult {
   const location = useLocation();
   const navigate = useNavigate();
   const tagsResults = useSpanTags();
@@ -26,11 +35,7 @@ export function useGroupBys(): [Field[], (fields: Field[]) => void, boolean] {
   return useGroupBysImpl(options);
 }
 
-function useGroupBysImpl({
-  location,
-  navigate,
-  tagsResults,
-}: Options): [Field[], (fields: Field[]) => void, boolean] {
+function useGroupBysImpl({location, navigate, tagsResults}: Options): GroupBysResult {
   const {data: tags, isLoading: isLoadingTags} = tagsResults;
 
   const groupBys = useMemo(() => {
@@ -61,5 +66,9 @@ function useGroupBysImpl({
     [location, navigate]
   );
 
-  return [groupBys, setGroupBys, isLoadingTags];
+  return {
+    groupBys,
+    setGroupBys,
+    isLoadingGroupBys: isLoadingTags,
+  };
 }

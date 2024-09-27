@@ -25,13 +25,13 @@ interface ToolbarGroupByProps {
 export function ToolbarGroupBy({disabled}: ToolbarGroupByProps) {
   const {data: tags} = useSpanTags();
 
-  const [groupBys, setGroupBys] = useGroupBys();
+  const {groupBys, setGroupBys} = useGroupBys();
 
   const options: SelectOption<Field>[] = useMemo(() => {
     return [
       // hard code in an empty option
       {label: t('None'), value: ''},
-      ...Object.keys(tags ?? {}).map(tagKey => {
+      ...Object.keys(tags).map(tagKey => {
         return {
           label: tagKey,
           value: tagKey,

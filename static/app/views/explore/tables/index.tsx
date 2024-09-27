@@ -51,7 +51,7 @@ function ExploreSamplesTable() {
           {...modalProps}
           columns={fields}
           onColumnsChange={setFields}
-          tags={tags ?? {}}
+          tags={tags}
         />
       ),
       {closeEvents: 'escape-key'}

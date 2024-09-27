@@ -4,10 +4,16 @@ import {createContext, useContext} from 'react';
 import type {TagCollection} from 'sentry/types/group';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
-import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
+import {
+  type SpanFieldsResponse,
+  useSpanFieldSupportedTags,
+} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
 
 const SpanTagsContext = createContext<
-  UseApiQueryResult<TagCollection, RequestError> | undefined
+  | (Omit<UseApiQueryResult<SpanFieldsResponse, RequestError>, 'data'> & {
+      data: TagCollection;
+    })
+  | undefined
 >(undefined);
 
 export function SpanTagsProvider({children}: {children: React.ReactNode}) {
@@ -16,7 +22,7 @@ export function SpanTagsProvider({children}: {children: React.ReactNode}) {
   return <SpanTagsContext.Provider value={results}>{children}</SpanTagsContext.Provider>;
 }
 
-export const useSpanTags = (): UseApiQueryResult<TagCollection, RequestError> => {
+export const useSpanTags = () => {
   const context = useContext(SpanTagsContext);
 
   if (context === undefined) {
