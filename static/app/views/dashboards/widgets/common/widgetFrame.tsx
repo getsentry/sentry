@@ -29,7 +29,9 @@ export function WidgetFrame(props: Props) {
           </Tooltip>
 
           {description && showDescriptionInTooltip && (
-            <QuestionTooltip size="sm" title={description} />
+            <TooltipAligner>
+              <QuestionTooltip size="sm" title={description} />
+            </TooltipAligner>
           )}
 
           {actions && actions.length > 0 && (
@@ -80,7 +82,9 @@ const Frame = styled('div')`
   flex-direction: column;
 
   height: 100%;
+  min-height: 96px;
   width: 100%;
+  min-width: 120px;
 
   padding: ${space(2)};
 
@@ -117,6 +121,12 @@ const TitleText = styled(HeaderTitle)`
 
 const TitleActions = styled('div')`
   margin-left: auto;
+`;
+
+const TooltipAligner = styled('div')`
+  font-size: 0;
+  line-height: 1;
+  margin-bottom: 2px;
 `;
 
 const VisualizationWrapper = styled('div')`

@@ -9,14 +9,17 @@ import {
 } from 'sentry/components/percentChange';
 import {IconArrow} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
-import {NO_DATA_PLACEHOLDER} from 'sentry/views/dashboards/widgets/bigNumberWidget/settings';
+import {
+  DEEMPHASIS_COLOR_NAME,
+  NO_DATA_PLACEHOLDER,
+} from 'sentry/views/dashboards/widgets/bigNumberWidget/settings';
 import type {TableData} from 'sentry/views/dashboards/widgets/common/types';
 
 interface Props {
   data: TableData;
   field: string;
-  formatter: (datum: TableData[number]) => React.ReactNode;
   previousPeriodData: TableData;
+  renderer: (datum: TableData[number]) => React.ReactNode;
   preferredPolarity?: Polarity;
 }
 
@@ -25,7 +28,7 @@ export function DifferenceToPreviousPeriodData({
   previousPeriodData,
   preferredPolarity = '',
   field,
-  formatter,
+  renderer,
 }: Props) {
   const currentValue = data[0][field];
   const previousValue = previousPeriodData[0][field];
@@ -47,31 +50,32 @@ export function DifferenceToPreviousPeriodData({
 
   return (
     <Difference rating={rating}>
-      <Indicator>{directionMarker}</Indicator>
-      <Number>{formatter(differenceAsDatum)}</Number>
+      <Text>{directionMarker}</Text>
+      <Text>{renderer(differenceAsDatum)}</Text>
     </Difference>
   );
 }
 
 const Difference = styled(ColorizedRating)`
   display: flex;
-  gap: ${space(0.5)};
+  gap: ${space(0.25)};
+  margin-bottom: 6cqh;
 
   @container (min-height: 50px) {
-    padding-bottom: 5cqh;
+    margin-bottom: 10cqh;
   }
 `;
 
-const Number = styled('div')`
-  font-size: clamp(14px, calc(10px + 4cqi), 30cqh);
-`;
+const Text = styled('div')`
+  font-size: 14px;
 
-const Indicator = styled('div')`
-  font-size: clamp(14px, calc(10px + 4cqi), 30cqh);
+  @container (min-height: 50px) {
+    font-size: clamp(14px, calc(10px + 4cqi), 30cqh);
+  }
 `;
 
 const Deemphasize = styled('span')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme[DEEMPHASIS_COLOR_NAME]};
 `;
 
 function getDifferenceDirectionMarker(difference: number) {

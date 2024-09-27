@@ -17,11 +17,14 @@ from sentry.api.bases.sentryapps import (
     catch_raised_errors,
 )
 from sentry.api.serializers import serialize
-from sentry.api.serializers.rest_framework import SentryAppSerializer
 from sentry.auth.staff import is_active_staff
 from sentry.constants import SentryAppStatus
 from sentry.mediators.sentry_app_installations.installation_notifier import InstallationNotifier
 from sentry.organizations.services.organization import organization_service
+from sentry.sentry_apps.api.parsers.sentry_app import SentryAppParser
+from sentry.sentry_apps.api.serializers.sentry_app import (
+    SentryAppSerializer as ResponseSentryAppSerializer,
+)
 from sentry.sentry_apps.logic import SentryAppUpdater
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
@@ -50,7 +53,14 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
     permission_classes = (SentryAppDetailsEndpointPermission,)
 
     def get(self, request: Request, sentry_app) -> Response:
-        return Response(serialize(sentry_app, request.user, access=request.access))
+        return Response(
+            serialize(
+                sentry_app,
+                request.user,
+                access=request.access,
+                serializer=ResponseSentryAppSerializer(),
+            )
+        )
 
     @catch_raised_errors
     def put(self, request: Request, sentry_app) -> Response:
@@ -83,7 +93,7 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
         # isInternal is not field of our model but it is a field of the serializer
         data = request.data.copy()
         data["isInternal"] = sentry_app.status == SentryAppStatus.INTERNAL
-        serializer = SentryAppSerializer(
+        serializer = SentryAppParser(
             sentry_app,
             data=data,
             partial=True,
@@ -115,7 +125,14 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
                 popularity=result.get("popularity"),
             ).run(user=request.user)
 
-            return Response(serialize(updated_app, request.user, access=request.access))
+            return Response(
+                serialize(
+                    updated_app,
+                    request.user,
+                    access=request.access,
+                    serializer=ResponseSentryAppSerializer(),
+                )
+            )
 
         # log any errors with schema
         if "schema" in serializer.errors:

@@ -11,7 +11,6 @@ from rest_framework import status
 from rest_framework.request import Request
 from slack_sdk.errors import SlackApiError
 
-from sentry import options
 from sentry.hybridcloud.outbox.category import WebhookProviderIdentifier
 from sentry.integrations.middleware.hybrid_cloud.parser import (
     BaseRequestParser,
@@ -186,10 +185,7 @@ class SlackRequestParser(BaseRequestParser):
 
         # if we are able to  send a response to Slack from control itself to beat the 3 second timeout, we should do so
         try:
-            if (
-                options.get("send-slack-response-from-control-silo")
-                and self.action_option in CONTROL_RESPONSE_ACTIONS
-            ):
+            if self.action_option in CONTROL_RESPONSE_ACTIONS:
                 CONTROL_RESPONSE_ACTIONS[self.action_option](self.request, self.action_option)
         except ValueError:
             logger.exception(
