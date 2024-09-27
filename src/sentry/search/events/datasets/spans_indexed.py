@@ -878,24 +878,29 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
             "proportion_by_sample",
         )
         return Function(
-            "multiply",
+            "round",
             [
                 Function(
-                    "arrayMax",
+                    "multiply",
                     [
-                        [
-                            0,
-                            Function(
-                                "minus",
+                        Function(
+                            "arrayMax",
+                            [
                                 [
-                                    proportion_by_sample,
-                                    self._resolve_margin_of_error(args, "margin_of_error"),
-                                ],
-                            ),
-                        ]
+                                    0,
+                                    Function(
+                                        "minus",
+                                        [
+                                            proportion_by_sample,
+                                            self._resolve_margin_of_error(args, "margin_of_error"),
+                                        ],
+                                    ),
+                                ]
+                            ],
+                        ),
+                        total_proportion,
                     ],
-                ),
-                total_proportion,
+                )
             ],
             alias,
         )
@@ -918,16 +923,21 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
             "proportion_by_sample",
         )
         return Function(
-            "multiply",
+            "round",
             [
                 Function(
-                    "plus",
+                    "multiply",
                     [
-                        proportion_by_sample,
-                        self._resolve_margin_of_error(args, "margin_of_error"),
+                        Function(
+                            "plus",
+                            [
+                                proportion_by_sample,
+                                self._resolve_margin_of_error(args, "margin_of_error"),
+                            ],
+                        ),
+                        total_proportion,
                     ],
-                ),
-                total_proportion,
+                )
             ],
             alias,
         )
