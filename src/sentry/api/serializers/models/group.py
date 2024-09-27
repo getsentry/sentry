@@ -648,7 +648,7 @@ class GroupSerializerBase(Serializer, ABC):
 
     @staticmethod
     def _resolve_external_issue_annotations(groups: Sequence[Group]) -> Mapping[int, Sequence[Any]]:
-        from sentry.models.platformexternalissue import PlatformExternalIssue
+        from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
 
         # find the external issues for sentry apps and add them in
         return (
