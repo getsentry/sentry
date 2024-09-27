@@ -1936,48 +1936,40 @@ function buildRoutes() {
         />
         <Route
           path={TabPaths[Tab.REPLAYS]}
-          // Remove component after GA of issue-details-streamline
           component={hoc(make(() => import('sentry/views/issueDetails/groupReplays')))}
         />
         <Route
           path={TabPaths[Tab.ACTIVITY]}
-          // Remove component after GA of issue-details-streamline
           component={hoc(make(() => import('sentry/views/issueDetails/groupActivity')))}
         />
         <Route
           path={TabPaths[Tab.EVENTS]}
-          // Remove component after GA of issue-details-streamline
           component={hoc(make(() => import('sentry/views/issueDetails/groupEvents')))}
         />
         <Route
           path={TabPaths[Tab.TAGS]}
-          // Remove component after GA of issue-details-streamline
           component={hoc(
             make(() => import('sentry/views/issueDetails/groupTags/groupTagsTab'))
           )}
         />
         <Route
           path={`${TabPaths[Tab.TAGS]}:tagKey/`}
-          // Remove component after GA of issue-details-streamline
           component={make(() => import('sentry/views/issueDetails/groupTagValues'))}
         />
         <Route
           path={TabPaths[Tab.USER_FEEDBACK]}
-          // Remove component after GA of issue-details-streamline
           component={hoc(
             make(() => import('sentry/views/issueDetails/groupUserFeedback'))
           )}
         />
         <Route
           path={TabPaths[Tab.ATTACHMENTS]}
-          // Remove component after GA of issue-details-streamline
           component={hoc(
             make(() => import('sentry/views/issueDetails/groupEventAttachments'))
           )}
         />
         <Route
           path={TabPaths[Tab.SIMILAR_ISSUES]}
-          // Redirect to issue details after GA of issue-details-streamline
           component={hoc(
             make(
               () =>
@@ -1989,7 +1981,6 @@ function buildRoutes() {
         />
         <Route
           path={TabPaths[Tab.MERGED]}
-          // Redirect to issue details after GA of issue-details-streamline
           component={hoc(
             make(() => import('sentry/views/issueDetails/groupMerged/groupMergedTab'))
           )}
