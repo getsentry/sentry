@@ -1009,17 +1009,7 @@ def update_alert_rule(
                 "time_window", timedelta(seconds=snuba_query.time_window)
             )
             updated_query_fields.setdefault("event_types", None)
-            if detection_type and detection_type == AlertRuleDetectionType.DYNAMIC:
-                updated_query_fields.setdefault(
-                    "resolution",
-                    timedelta(
-                        seconds=time_window if time_window is not None else snuba_query.time_window
-                    ),
-                )
-            else:
-                updated_query_fields.setdefault(
-                    "resolution", timedelta(seconds=snuba_query.resolution)
-                )
+            updated_query_fields.setdefault("resolution", timedelta(seconds=snuba_query.resolution))
             update_snuba_query(snuba_query, environment=environment, **updated_query_fields)
 
         existing_subs: Iterable[QuerySubscription] = ()
