@@ -24,7 +24,9 @@ export function WidgetFrame(props: Props) {
           </Tooltip>
 
           {description && showDescriptionInTooltip && (
-            <QuestionTooltip size="sm" title={description} />
+            <TooltipAligner>
+              <QuestionTooltip size="sm" title={description} />
+            </TooltipAligner>
           )}
         </Title>
 
@@ -51,7 +53,9 @@ const Frame = styled('div')`
   flex-direction: column;
 
   height: 100%;
+  min-height: 96px;
   width: 100%;
+  min-width: 120px;
 
   padding: ${space(2)};
 
@@ -84,6 +88,12 @@ const Description = styled('small')`
 const TitleText = styled(HeaderTitle)`
   ${p => p.theme.overflowEllipsis};
   font-weight: ${p => p.theme.fontWeightBold};
+`;
+
+const TooltipAligner = styled('div')`
+  font-size: 0;
+  line-height: 1;
+  margin-bottom: 2px;
 `;
 
 const VisualizationWrapper = styled('div')`

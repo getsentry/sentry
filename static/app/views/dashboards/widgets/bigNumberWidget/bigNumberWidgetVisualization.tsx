@@ -4,12 +4,15 @@ import type {Polarity} from 'sentry/components/percentChange';
 import {Tooltip} from 'sentry/components/tooltip';
 import {defined} from 'sentry/utils';
 import type {MetaType} from 'sentry/utils/discover/eventView';
-import {getFieldFormatter} from 'sentry/utils/discover/fieldRenderers';
+import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {AutoSizedText} from 'sentry/views/dashboards/widgetCard/autoSizedText';
 import {DifferenceToPreviousPeriodData} from 'sentry/views/dashboards/widgets/bigNumberWidget/differenceToPreviousPeriodData';
-import {NO_DATA_PLACEHOLDER} from 'sentry/views/dashboards/widgets/bigNumberWidget/settings';
+import {
+  DEEMPHASIS_COLOR_NAME,
+  NO_DATA_PLACEHOLDER,
+} from 'sentry/views/dashboards/widgets/bigNumberWidget/settings';
 import {ErrorPanel} from 'sentry/views/dashboards/widgets/common/errorPanel';
 import type {
   Meta,
@@ -52,8 +55,8 @@ export function BigNumberWidgetVisualization(props: Props) {
   const field = fields[0];
 
   // TODO: meta as MetaType is a white lie. `MetaType` doesn't know that types can be null, but they can!
-  const fieldFormatter = meta
-    ? getFieldFormatter(field, meta as MetaType, false)
+  const fieldRenderer = meta
+    ? getFieldRenderer(field, meta as MetaType, false)
     : value => value.toString();
 
   const unit = meta?.units?.[field];
@@ -63,12 +66,12 @@ export function BigNumberWidgetVisualization(props: Props) {
     unit: unit ?? undefined, // TODO: Field formatters think units can't be null but they can
   };
 
-  const rendered = fieldFormatter(datum, baggage);
+  const rendered = fieldRenderer(datum, baggage);
 
   return (
     <AutoResizeParent>
       <AutoSizedText>
-        <NumberContainer>
+        <NumberAndDifferenceContainer>
           <NumberContainerOverride>
             <Tooltip title={datum[field]} isHoverable delay={0}>
               {rendered}
@@ -80,13 +83,13 @@ export function BigNumberWidgetVisualization(props: Props) {
               data={data}
               previousPeriodData={previousPeriodData}
               preferredPolarity={preferredPolarity}
-              formatter={(previousDatum: TableData[number]) =>
-                fieldFormatter(previousDatum, baggage)
+              renderer={(previousDatum: TableData[number]) =>
+                fieldRenderer(previousDatum, baggage)
               }
               field={field}
             />
           )}
-        </NumberContainer>
+        </NumberAndDifferenceContainer>
       </AutoSizedText>
     </AutoResizeParent>
   );
@@ -107,7 +110,7 @@ const AutoResizeParent = styled('div')`
   }
 `;
 
-const NumberContainer = styled('div')`
+const NumberAndDifferenceContainer = styled('div')`
   display: flex;
   align-items: flex-end;
   gap: min(8px, 3cqw);
@@ -124,5 +127,5 @@ const NumberContainerOverride = styled('div')`
 `;
 
 const Deemphasize = styled('span')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme[DEEMPHASIS_COLOR_NAME]};
 `;
