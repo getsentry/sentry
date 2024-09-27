@@ -16,6 +16,8 @@ import {DEFAULT_LOCALE_DATA, setLocale} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import * as performanceForSentry from 'sentry/utils/performanceForSentry';
 
+window.__SENTRY_USING_REACT_ROUTER_SIX = true;
+
 /**
  * Set locale to English
  */
