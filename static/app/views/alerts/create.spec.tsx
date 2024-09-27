@@ -161,7 +161,7 @@ describe('ProjectAlertsCreate', function () {
         'The issue is older or newer than...',
       ]);
 
-      await userEvent.click(screen.getAllByLabelText('Delete Node')[2]);
+      await userEvent.click(screen.getAllByLabelText('Delete Node')[1]);
 
       await userEvent.click(screen.getByText('Save Rule'));
 
@@ -174,10 +174,7 @@ describe('ProjectAlertsCreate', function () {
               actions: [],
               conditions: [
                 expect.objectContaining({
-                  id: 'sentry.rules.conditions.high_priority_issue.NewHighPriorityIssueCondition',
-                }),
-                expect.objectContaining({
-                  id: 'sentry.rules.conditions.high_priority_issue.ExistingHighPriorityIssueCondition',
+                  id: 'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition',
                 }),
               ],
               filterMatch: 'all',
@@ -199,7 +196,6 @@ describe('ProjectAlertsCreate', function () {
         body: ProjectAlertRuleFixture(),
       });
       // delete node
-      await userEvent.click(screen.getAllByLabelText('Delete Node')[0]);
       await userEvent.click(screen.getAllByLabelText('Delete Node')[0]);
 
       // Change name of alert rule
@@ -267,7 +263,7 @@ describe('ProjectAlertsCreate', function () {
         'Send a notification to all legacy integrations',
       ]);
 
-      await userEvent.click(screen.getAllByLabelText('Delete Node')[2]);
+      await userEvent.click(screen.getAllByLabelText('Delete Node')[1]);
 
       await userEvent.click(screen.getByText('Save Rule'));
 
@@ -280,10 +276,7 @@ describe('ProjectAlertsCreate', function () {
               actions: [],
               conditions: [
                 expect.objectContaining({
-                  id: 'sentry.rules.conditions.high_priority_issue.NewHighPriorityIssueCondition',
-                }),
-                expect.objectContaining({
-                  id: 'sentry.rules.conditions.high_priority_issue.ExistingHighPriorityIssueCondition',
+                  id: 'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition',
                 }),
               ],
               filterMatch: 'all',
@@ -340,10 +333,7 @@ describe('ProjectAlertsCreate', function () {
               filterMatch: 'any',
               conditions: [
                 expect.objectContaining({
-                  id: 'sentry.rules.conditions.high_priority_issue.NewHighPriorityIssueCondition',
-                }),
-                expect.objectContaining({
-                  id: 'sentry.rules.conditions.high_priority_issue.ExistingHighPriorityIssueCondition',
+                  id: 'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition',
                 }),
               ],
               actions: [],
@@ -392,10 +382,7 @@ describe('ProjectAlertsCreate', function () {
               actions: [],
               conditions: [
                 expect.objectContaining({
-                  id: 'sentry.rules.conditions.high_priority_issue.NewHighPriorityIssueCondition',
-                }),
-                expect.objectContaining({
-                  id: 'sentry.rules.conditions.high_priority_issue.ExistingHighPriorityIssueCondition',
+                  id: 'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition',
                 }),
               ],
               filterMatch: 'all',
@@ -455,11 +442,7 @@ describe('ProjectAlertsCreate', function () {
                 },
               ],
               actions: [],
-              conditions: [
-                expect.objectContaining({
-                  id: 'sentry.rules.conditions.high_priority_issue.ExistingHighPriorityIssueCondition',
-                }),
-              ],
+              conditions: [],
               frequency: 60 * 24,
               name: 'myname',
               owner: null,
@@ -501,10 +484,7 @@ describe('ProjectAlertsCreate', function () {
               ],
               conditions: [
                 expect.objectContaining({
-                  id: 'sentry.rules.conditions.high_priority_issue.NewHighPriorityIssueCondition',
-                }),
-                expect.objectContaining({
-                  id: 'sentry.rules.conditions.high_priority_issue.ExistingHighPriorityIssueCondition',
+                  id: 'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition',
                 }),
               ],
               filterMatch: 'all',
@@ -551,10 +531,7 @@ describe('ProjectAlertsCreate', function () {
               actionMatch: 'any',
               conditions: [
                 expect.objectContaining({
-                  id: 'sentry.rules.conditions.high_priority_issue.NewHighPriorityIssueCondition',
-                }),
-                expect.objectContaining({
-                  id: 'sentry.rules.conditions.high_priority_issue.ExistingHighPriorityIssueCondition',
+                  id: 'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition',
                 }),
               ],
               filterMatch: 'all',
@@ -584,7 +561,6 @@ describe('ProjectAlertsCreate', function () {
       });
       createWrapper();
       // delete existion conditions
-      await userEvent.click(screen.getAllByLabelText('Delete Node')[0]);
       await userEvent.click(screen.getAllByLabelText('Delete Node')[0]);
 
       await waitFor(() => {
@@ -629,7 +605,6 @@ describe('ProjectAlertsCreate', function () {
     it('shows error for incompatible conditions', async () => {
       createWrapper();
       await userEvent.click(screen.getAllByLabelText('Delete Node')[0]);
-      await userEvent.click(screen.getAllByLabelText('Delete Node')[0]);
 
       await selectEvent.select(screen.getByText('Add optional trigger...'), [
         'A new issue is created',
@@ -655,7 +630,6 @@ describe('ProjectAlertsCreate', function () {
 
     it('test any filterMatch', async () => {
       createWrapper();
-      await userEvent.click(screen.getAllByLabelText('Delete Node')[0]);
       await userEvent.click(screen.getAllByLabelText('Delete Node')[0]);
 
       await selectEvent.select(screen.getByText('Add optional trigger...'), [
@@ -707,7 +681,6 @@ describe('ProjectAlertsCreate', function () {
 
     createWrapper({organization: {features: ['noisy-alert-warning']}});
     await userEvent.click((await screen.findAllByLabelText('Delete Node'))[0]);
-    await userEvent.click((await screen.findAllByLabelText('Delete Node'))[0]);
 
     await selectEvent.select(screen.getByText('Add action...'), [
       'Suggested Assignees, Team, or Member',
@@ -739,7 +712,6 @@ describe('ProjectAlertsCreate', function () {
 
   it('does not display noisy alert banner for legacy integrations', async function () {
     createWrapper({organization: {features: ['noisy-alert-warning']}});
-    await userEvent.click((await screen.findAllByLabelText('Delete Node'))[0]);
     await userEvent.click((await screen.findAllByLabelText('Delete Node'))[0]);
 
     await selectEvent.select(screen.getByText('Add action...'), [
