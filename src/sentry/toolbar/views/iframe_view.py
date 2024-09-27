@@ -5,7 +5,7 @@ from django.http import HttpRequest, HttpResponse
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.toolbar.utils.url import check_origin
-from sentry.toolbar.views import toolbar_csp
+from sentry.toolbar.views import require_script_src_nonce
 from sentry.web.frontend.base import OrganizationView, region_silo_view
 
 REFERRER_HEADER = "HTTP_REFERER"  # 1 R is the spelling used here: https://docs.djangoproject.com/en/5.1/ref/request-response/
@@ -43,7 +43,7 @@ class IframeView(OrganizationView):
         kwargs["project"] = active_project
         return args, kwargs
 
-    @toolbar_csp
+    @require_script_src_nonce
     def get(
         self, request: HttpRequest, organization: Organization, project: Project, *args, **kwargs
     ):
