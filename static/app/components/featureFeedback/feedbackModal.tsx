@@ -30,6 +30,7 @@ import {defined} from 'sentry/utils';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useProjects from 'sentry/utils/useProjects';
+import {useUser} from 'sentry/utils/useUser';
 
 export const feedbackClient = new BrowserClient({
   // feedback project under Sentry organization
@@ -95,7 +96,7 @@ export function FeedbackModal<T extends Data>({
   const location = useLocation();
 
   const theme = useTheme();
-  const user = ConfigStore.get('user');
+  const user = useUser();
   const isSelfHosted = ConfigStore.get('isSelfHosted');
   const [state, setState] = useState<T>(
     props.children === undefined
