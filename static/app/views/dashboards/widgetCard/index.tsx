@@ -315,7 +315,7 @@ class WidgetCard extends Component<Props, State> {
               }
               disabled={Number(this.props.index) !== 0}
             >
-              <WidgetCardPanel isDragging={false}>
+              <WidgetCardPanel isDragging={false} aria-label={t('Widget panel')}>
                 <WidgetHeaderWrapper>
                   <WidgetHeaderDescription>
                     <WidgetTitleRow>
@@ -493,11 +493,8 @@ const ErrorCard = styled(Placeholder)`
 `;
 
 const StyledWidgetCardContextMenuContainer = styled('div')`
-  width: 0;
-  opacity: 0;
-  transform: scale(0);
+  opacity: 1;
   transition: opacity 0.1s;
-  z-index: 1;
 `;
 
 export const WidgetCardPanel = styled(Panel, {
@@ -513,13 +510,17 @@ export const WidgetCardPanel = styled(Panel, {
   display: flex;
   flex-direction: column;
 
-  :hover
-    ${StyledWidgetCardContextMenuContainer},
-    :focus-within
+  &:not(:hover):not(:focus-within) {
     ${StyledWidgetCardContextMenuContainer} {
-    width: auto;
-    opacity: 1;
-    transform: scale(1);
+      opacity: 0;
+      clip: rect(0 0 0 0);
+      clip-path: inset(50%);
+      height: 1px;
+      overflow: hidden;
+      position: absolute;
+      white-space: nowrap;
+      width: 1px;
+    }
   }
 `;
 
