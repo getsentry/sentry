@@ -790,7 +790,12 @@ describe('trace view', () => {
       await userEvent.keyboard('{arrowright}');
       expect(await screen.findByText('special-span')).toBeInTheDocument();
       await userEvent.keyboard('{arrowdown}');
-      await waitFor(() => expect(rows[2]).toHaveFocus());
+      await waitFor(() => {
+        const updatedRows = virtualizedContainer.querySelectorAll(
+          VISIBLE_TRACE_ROW_SELECTOR
+        );
+        expect(updatedRows[2]).toHaveFocus();
+      });
 
       expect(await screen.findByTestId('trace-drawer-title')).toHaveTextContent(
         'special-span'
