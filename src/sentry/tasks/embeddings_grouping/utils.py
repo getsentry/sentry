@@ -374,6 +374,7 @@ def get_events_from_nodestore(
                 CreateGroupingRecordData(
                     group_id=group_id,
                     project_id=project.id,
+                    message=filter_null_from_string(event.title),
                     exception_type=(
                         filter_null_from_string(exception_type) if exception_type else None
                     ),
