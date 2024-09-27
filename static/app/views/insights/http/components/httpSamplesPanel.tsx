@@ -88,7 +88,7 @@ export function HTTPSamplesPanel() {
 
   const {projects} = useProjects();
   const {selection} = usePageFilters();
-  const supportedTags = useSpanFieldSupportedTags();
+  const {data: supportedTags} = useSpanFieldSupportedTags();
 
   const project = projects.find(p => query.project === p.id);
 

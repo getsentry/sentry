@@ -24,7 +24,7 @@ export function ExploreToolbar({extras}: ExploreToolbarProps) {
 
   const [sampleFields] = useSampleFields();
 
-  const [groupBys] = useGroupBys();
+  const {groupBys} = useGroupBys();
   const [visualizes] = useVisualizes();
 
   const fields = useMemo(() => {

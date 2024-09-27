@@ -8,7 +8,7 @@ export const TOP_EVENTS_LIMIT: number = 5;
 
 export function useTopEvents(): number | undefined {
   const [visualizes] = useVisualizes();
-  const [groupBys] = useGroupBys();
+  const {groupBys} = useGroupBys();
   const [resultMode] = useResultMode();
 
   const hasChartWithMultipleYaxes = useMemo(() => {
