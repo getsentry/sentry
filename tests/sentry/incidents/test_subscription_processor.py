@@ -60,7 +60,7 @@ from sentry.seer.anomaly_detection.types import (
 from sentry.seer.anomaly_detection.utils import translate_direction
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.indexer.postgres.models import MetricsKeyIndexer
-from sentry.sentry_metrics.utils import resolve_tag_key, resolve_tag_value
+from sentry.sentry_metrics.utils import resolve_tag_key
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.testutils.cases import BaseMetricsTestCase, SnubaTestCase, TestCase
@@ -3534,11 +3534,6 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
             }
         )
         self.assert_no_active_incident(rule)
-        self.entity_subscription_metrics.incr.assert_has_calls(
-            [
-                call("incidents.entity_subscription.metric_index_not_found"),
-            ]
-        )
         self.metrics.incr.assert_has_calls(
             [
                 call("incidents.alert_rules.ignore_update_no_session_data"),
@@ -3546,62 +3541,6 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
             ],
             any_order=True,
         )
-
-
-class MetricsCrashRateAlertProcessUpdateV1Test(MetricsCrashRateAlertProcessUpdateTest):
-    """Repeat MetricsCrashRateUpdateAlertTest with old (v1) subscription updates.
-
-    This entire test class can be removed once all subscriptions have been migrated to v2
-    """
-
-    def send_crash_rate_alert_update(self, rule, value, subscription, time_delta=None, count=EMPTY):
-        org_id = self.organization.id
-        self.email_action_handler.reset_mock()
-        if time_delta is None:
-            time_delta = timedelta()
-        processor = SubscriptionProcessor(subscription)
-
-        if time_delta is not None:
-            timestamp = timezone.now() + time_delta
-        else:
-            timestamp = timezone.now()
-        timestamp = timestamp.replace(microsecond=0)
-
-        with (
-            self.feature(["organizations:incidents", "organizations:performance-view"]),
-            self.capture_on_commit_callbacks(execute=True),
-        ):
-            if value is None:
-                numerator, denominator = 0, 0
-            else:
-                if count is EMPTY:
-                    numerator, denominator = value.as_integer_ratio()
-                else:
-                    denominator = count
-                    numerator = int(value * denominator)
-            session_status = resolve_tag_key(UseCaseKey.RELEASE_HEALTH, org_id, "session.status")
-            tag_value_init = resolve_tag_value(UseCaseKey.RELEASE_HEALTH, org_id, "init")
-            tag_value_crashed = resolve_tag_value(UseCaseKey.RELEASE_HEALTH, org_id, "crashed")
-            processor.process_update(
-                {
-                    "entity": "entity",
-                    "subscription_id": (
-                        subscription.subscription_id if subscription else uuid4().hex
-                    ),
-                    "values": {
-                        "data": [
-                            {"project_id": 8, session_status: tag_value_init, "value": denominator},
-                            {
-                                "project_id": 8,
-                                session_status: tag_value_crashed,
-                                "value": numerator,
-                            },
-                        ]
-                    },
-                    "timestamp": timestamp,
-                }
-            )
-        return processor
 
 
 class TestBuildAlertRuleStatKeys(unittest.TestCase):
