@@ -183,7 +183,7 @@ export default function useInviteModal({organization, initialData, source}: Prop
   const sendInvites = useCallback(async () => {
     setState(prev => ({...prev, sendingInvites: true}));
     await Promise.all(invites.map(sendInvite));
-    if (organization.features.includes('members-invite-teammates')) {
+    if (organization.features.includes('invite-members-new-modal')) {
       removeSentInvites();
     }
     setState(prev => ({...prev, sendingInvites: false, complete: true}));
