@@ -1658,33 +1658,45 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             time_window=60,
             detection_type=AlertRuleDetectionType.DYNAMIC,
         )
+        snuba_query = SnubaQuery.objects.get(id=dynamic_rule.snuba_query_id)
+        assert dynamic_rule.snuba_query.resolution == 60 * 60
         assert mock_seer_request.call_count == 1
         mock_seer_request.reset_mock()
         # update time_window
-        update_alert_rule(dynamic_rule, time_window=30)
+        update_alert_rule(
+            dynamic_rule,
+            time_window=30,
+            detection_type=AlertRuleDetectionType.DYNAMIC,
+        )
+        snuba_query.refresh_from_db()
+        assert snuba_query.resolution == 30 * 60
         assert mock_seer_request.call_count == 0
         mock_seer_request.reset_mock()
         # update name
         update_alert_rule(dynamic_rule, name="everything is broken")
+        dynamic_rule.refresh_from_db()
+        assert dynamic_rule.name == "everything is broken"
         assert mock_seer_request.call_count == 0
         mock_seer_request.reset_mock()
         # update query
         update_alert_rule(
             dynamic_rule,
             query="is:unresolved",
-            time_window=30,
             detection_type=AlertRuleDetectionType.DYNAMIC,
         )
         assert mock_seer_request.call_count == 1
+        snuba_query.refresh_from_db()
+        assert snuba_query.query == "is:unresolved"
         mock_seer_request.reset_mock()
         # update aggregate
         update_alert_rule(
             dynamic_rule,
             aggregate="count_unique(user)",
-            time_window=30,
             detection_type=AlertRuleDetectionType.DYNAMIC,
         )
         assert mock_seer_request.call_count == 1
+        snuba_query.refresh_from_db()
+        assert snuba_query.aggregate == "count_unique(user)"
 
     @with_feature("organizations:anomaly-detection-alerts")
     @patch(
