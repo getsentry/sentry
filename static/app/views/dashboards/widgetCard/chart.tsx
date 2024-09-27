@@ -230,8 +230,8 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
       if (
         !field ||
         !result.data?.length ||
-        selected_field === 'equation|' ||
-        selected_field === ''
+        selectedField === 'equation|' ||
+        selectedField === ''
       ) {
         return <BigNumber key={`big_number:${result.title}`}>{'\u2014'}</BigNumber>;
       }
