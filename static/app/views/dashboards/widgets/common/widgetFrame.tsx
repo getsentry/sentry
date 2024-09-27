@@ -1,19 +1,24 @@
 import styled from '@emotion/styled';
 
+import {Button} from 'sentry/components/button';
 import {HeaderTitle} from 'sentry/components/charts/styles';
+import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {Tooltip} from 'sentry/components/tooltip';
+import {IconEllipsis} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
 export interface Props {
-  children: React.ReactNode;
+  actions?: MenuItemProps[];
+  children?: React.ReactNode;
   description?: string;
   showDescriptionInTooltip?: boolean;
   title?: string;
 }
 
 export function WidgetFrame(props: Props) {
-  const {title, description, showDescriptionInTooltip = true, children} = props;
+  const {title, description, showDescriptionInTooltip = true, actions, children} = props;
 
   return (
     <Frame>
@@ -27,6 +32,30 @@ export function WidgetFrame(props: Props) {
             <TooltipAligner>
               <QuestionTooltip size="sm" title={description} />
             </TooltipAligner>
+          )}
+
+          {actions && actions.length > 0 && (
+            <TitleActions>
+              {actions.length === 1 ? (
+                <Button size="xs" onClick={actions[0].onAction}>
+                  {actions[0].label}
+                </Button>
+              ) : null}
+
+              {actions.length > 1 ? (
+                <DropdownMenu
+                  items={actions}
+                  triggerProps={{
+                    'aria-label': t('Actions'),
+                    size: 'xs',
+                    borderless: true,
+                    showChevron: false,
+                    icon: <IconEllipsis direction="down" size="sm" />,
+                  }}
+                  position="bottom-end"
+                />
+              ) : null}
+            </TitleActions>
           )}
         </Title>
 
@@ -88,6 +117,10 @@ const Description = styled('small')`
 const TitleText = styled(HeaderTitle)`
   ${p => p.theme.overflowEllipsis};
   font-weight: ${p => p.theme.fontWeightBold};
+`;
+
+const TitleActions = styled('div')`
+  margin-left: auto;
 `;
 
 const TooltipAligner = styled('div')`
