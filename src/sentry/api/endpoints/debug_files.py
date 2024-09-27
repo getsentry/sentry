@@ -15,7 +15,7 @@ from rest_framework.response import Response
 from symbolic.debuginfo import normalize_debug_id
 from symbolic.exceptions import SymbolicError
 
-from sentry import ratelimits, roles
+from sentry import ratelimits
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -39,6 +39,7 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
 from sentry.models.release import Release, get_artifact_counts
 from sentry.models.releasefile import ReleaseFile
+from sentry.roles import organization_roles
 from sentry.tasks.assemble import (
     AssembleTask,
     ChunkFileState,
@@ -53,7 +54,7 @@ DIF_MIMETYPES = {v: k for k, v in KNOWN_DIF_FORMATS.items()}
 _release_suffix = re.compile(r"^(.*)\s+\(([^)]+)\)\s*$")
 
 
-def upload_from_request(request, project):
+def upload_from_request(request: Request, project: Project):
     if "file" not in request.data:
         return Response({"detail": "Missing uploaded file"}, status=400)
     fileobj = request.data["file"]
@@ -61,7 +62,7 @@ def upload_from_request(request, project):
     return Response(serialize(files, request.user), status=201)
 
 
-def has_download_permission(request, project):
+def has_download_permission(request: Request, project: Project):
     if is_system_auth(request.auth) or is_active_superuser(request):
         return True
 
@@ -72,7 +73,7 @@ def has_download_permission(request, project):
     required_role = organization.get_option("sentry:debug_files_role") or DEBUG_FILES_ROLE_DEFAULT
 
     if request.user.is_sentry_app:
-        if roles.get(required_role).priority > roles.get("member").priority:
+        if organization_roles.can_manage("member", required_role):
             return request.access.has_scope("project:write")
         else:
             return request.access.has_scope("project:read")
@@ -86,7 +87,12 @@ def has_download_permission(request, project):
     except OrganizationMember.DoesNotExist:
         return False
 
-    return roles.get(current_role).priority >= roles.get(required_role).priority
+    if organization_roles.can_manage(current_role, required_role):
+        return True
+
+    # There's an edge case where a team admin is an org member but the required
+    # role is org admin. In that case, the team admin should be able to download.
+    return required_role == "admin" and request.access.has_project_scope(project, "project:write")
 
 
 def _has_delete_permission(access: Access, project: Project) -> bool:
@@ -104,7 +110,7 @@ class ProguardArtifactReleasesEndpoint(ProjectEndpoint):
     }
     permission_classes = (ProjectReleasePermission,)
 
-    def post(self, request: Request, project) -> Response:
+    def post(self, request: Request, project: Project) -> Response:
         release_name = request.data.get("release_name")
         proguard_uuid = request.data.get("proguard_uuid")
 
@@ -153,7 +159,7 @@ class ProguardArtifactReleasesEndpoint(ProjectEndpoint):
                 status=status.HTTP_409_CONFLICT,
             )
 
-    def get(self, request: Request, project) -> Response:
+    def get(self, request: Request, project: Project) -> Response:
         """
         List a Project's Proguard Associated Releases
         ````````````````````````````````````````
@@ -189,7 +195,7 @@ class DebugFilesEndpoint(ProjectEndpoint):
     }
     permission_classes = (ProjectReleasePermission,)
 
-    def download(self, debug_file_id, project):
+    def download(self, debug_file_id, project: Project):
         rate_limited = ratelimits.backend.is_limited(
             project=project,
             key=f"rl:DSymFilesEndpoint:download:{debug_file_id}:{project.id}",
@@ -223,7 +229,7 @@ class DebugFilesEndpoint(ProjectEndpoint):
         except OSError:
             raise Http404
 
-    def get(self, request: Request, project) -> Response:
+    def get(self, request: Request, project: Project) -> Response:
         """
         List a Project's Debug Information Files
         ````````````````````````````````````````
@@ -240,7 +246,7 @@ class DebugFilesEndpoint(ProjectEndpoint):
         :auth: required
         """
         download_requested = request.GET.get("id") is not None
-        if download_requested and (has_download_permission(request, project)):
+        if download_requested and has_download_permission(request, project):
             return self.download(request.GET.get("id"), project)
         elif download_requested:
             return Response(status=403)
@@ -335,7 +341,7 @@ class DebugFilesEndpoint(ProjectEndpoint):
 
         return Response(status=404)
 
-    def post(self, request: Request, project) -> Response:
+    def post(self, request: Request, project: Project) -> Response:
         """
         Upload a New File
         `````````````````
@@ -367,7 +373,7 @@ class UnknownDebugFilesEndpoint(ProjectEndpoint):
     }
     permission_classes = (ProjectReleasePermission,)
 
-    def get(self, request: Request, project) -> Response:
+    def get(self, request: Request, project: Project) -> Response:
         checksums = request.GET.getlist("checksums")
         missing = ProjectDebugFile.objects.find_missing(checksums, project=project)
         return Response({"missing": missing})
@@ -382,7 +388,7 @@ class AssociateDSymFilesEndpoint(ProjectEndpoint):
     permission_classes = (ProjectReleasePermission,)
 
     # Legacy endpoint, kept for backwards compatibility
-    def post(self, request: Request, project) -> Response:
+    def post(self, request: Request, project: Project) -> Response:
         return Response({"associatedDsymFiles": []})
 
 
@@ -394,7 +400,7 @@ class DifAssembleEndpoint(ProjectEndpoint):
     }
     permission_classes = (ProjectReleasePermission,)
 
-    def post(self, request: Request, project) -> Response:
+    def post(self, request: Request, project: Project) -> Response:
         """
         Assemble one or multiple chunks (FileBlob) into debug files
         ````````````````````````````````````````````````````````````
@@ -517,7 +523,7 @@ class SourceMapsEndpoint(ProjectEndpoint):
     }
     permission_classes = (ProjectReleasePermission,)
 
-    def get(self, request: Request, project) -> Response:
+    def get(self, request: Request, project: Project) -> Response:
         """
         List a Project's Source Map Archives
         ````````````````````````````````````
@@ -549,7 +555,7 @@ class SourceMapsEndpoint(ProjectEndpoint):
 
             queryset = queryset.filter(query_q)
 
-        def expose_release(release, count):
+        def expose_release(release, count: int):
             return {
                 "type": "release",
                 "id": release["id"],
@@ -581,7 +587,7 @@ class SourceMapsEndpoint(ProjectEndpoint):
             on_results=serialize_results,
         )
 
-    def delete(self, request: Request, project) -> Response:
+    def delete(self, request: Request, project: Project) -> Response:
         """
         Delete an Archive
         ```````````````````````````````````````````````````
