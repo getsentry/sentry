@@ -33,6 +33,7 @@ describe.skip('DraggableTabBar', () => {
       query: 'priority:high',
       querySort: IssueSortOptions.DATE,
       unsavedChanges: ['priority:low', IssueSortOptions.DATE],
+      isCommitted: true,
     },
     {
       id: '2',
@@ -40,6 +41,7 @@ describe.skip('DraggableTabBar', () => {
       label: 'For Review',
       query: 'is:unassigned',
       querySort: IssueSortOptions.DATE,
+      isCommitted: true,
     },
     {
       id: '3',
@@ -47,6 +49,7 @@ describe.skip('DraggableTabBar', () => {
       label: 'Regressed',
       query: 'is:regressed',
       querySort: IssueSortOptions.DATE,
+      isCommitted: true,
     },
   ];
 
