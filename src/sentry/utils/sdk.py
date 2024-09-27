@@ -28,6 +28,7 @@ from sentry.utils import metrics
 from sentry.utils.db import DjangoAtomicIntegration
 from sentry.utils.flag import get_flags_serialized
 from sentry.utils.rust import RustInfoIntegration
+from sentry.utils.safe import get_path
 
 # Can't import models in utils because utils should be the bottom of the food chain
 if TYPE_CHECKING:
@@ -178,6 +179,10 @@ def get_project_key():
 
 
 def traces_sampler(sampling_context):
+    # dont sample warmup requests
+    if sampling_context.get("wsgi_environ", {}).get("PATH_INFO") == "/_warmup/":
+        return 0.0
+
     # Apply sample_rate from custom_sampling_context
     custom_sample_rate = sampling_context.get("sample_rate")
     if custom_sample_rate is not None:
@@ -189,6 +194,14 @@ def traces_sampler(sampling_context):
 
     if "celery_job" in sampling_context:
         task_name = sampling_context["celery_job"].get("task")
+
+        # Temporarily sample the `assemble_dif` task at 100% for the
+        # sentry-test/rust project for debugging purposes
+        if (
+            task_name == "sentry.tasks.assemble.assemble_dif"
+            and get_path(sampling_context, "celery_job", "kwargs", "project_id") == 1041156
+        ):
+            return 1.0
 
         if task_name in SAMPLED_TASKS:
             return SAMPLED_TASKS[task_name]

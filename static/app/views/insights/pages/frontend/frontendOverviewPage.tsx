@@ -25,8 +25,6 @@ import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
 import {OVERVIEW_PAGE_TITLE} from 'sentry/views/insights/pages/settings';
-import {useFilters} from 'sentry/views/insights/pages/useFilters';
-import type {ModuleName} from 'sentry/views/insights/types';
 import {generateFrontendOtherPerformanceEventView} from 'sentry/views/performance/data';
 import {
   DoubleChartRow,
@@ -52,7 +50,6 @@ export const FRONTEND_COLUMN_TITLES = [
 ];
 
 function FrontendLandingPage() {
-  const filters = useFilters();
   const organization = useOrganization();
   const location = useLocation();
   const {setPageError} = usePageAlert();
@@ -141,6 +138,7 @@ function FrontendLandingPage() {
 
   const derivedQuery = getTransactionSearchQuery(location, eventView.query);
 
+function FrontendOverviewPage() {
   return (
     <Feature
       features="insights-domain-view"
@@ -148,7 +146,7 @@ function FrontendLandingPage() {
       renderDisabled={NoAccess}
     >
       <Layout.Header>
-        <FrontendHeader module={filters.module as ModuleName} />
+        <FrontendHeader />
       </Layout.Header>
       <Layout.Body>
         <Layout.Main fullWidth>
@@ -201,13 +199,13 @@ function FrontendLandingPage() {
   );
 }
 
-function FrontendLandingPageWithProviders() {
+function FrontendOverviewPageWithProviders() {
   const organization = useOrganization();
 
   return (
     <PageFiltersContainer>
       <SentryDocumentTitle title={OVERVIEW_PAGE_TITLE} orgSlug={organization.slug}>
-        <FrontendLandingPage />
+        <FrontendOverviewPage />
       </SentryDocumentTitle>
     </PageFiltersContainer>
   );
@@ -217,4 +215,4 @@ const StyledTransactionNameSearchBar = styled(TransactionNameSearchBar)`
   flex: 2;
 `;
 
-export default FrontendLandingPageWithProviders;
+export default FrontendOverviewPageWithProviders;

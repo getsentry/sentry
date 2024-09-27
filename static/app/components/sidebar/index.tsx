@@ -56,11 +56,11 @@ import {MODULE_SIDEBAR_TITLE as HTTP_MODULE_SIDEBAR_TITLE} from 'sentry/views/in
 import {
   AI_LANDING_SUB_PATH,
   AI_LANDING_TITLE,
-} from 'sentry/views/insights/pages/aiLandingPage';
+} from 'sentry/views/insights/pages/ai/settings';
 import {
   BACKEND_LANDING_SUB_PATH,
   BACKEND_LANDING_TITLE,
-} from 'sentry/views/insights/pages/backendLandingPage';
+} from 'sentry/views/insights/pages/backend/settings';
 import {
   FRONTEND_LANDING_SUB_PATH,
   FRONTEND_LANDING_TITLE,
@@ -68,7 +68,7 @@ import {
 import {
   MOBILE_LANDING_SUB_PATH,
   MOBILE_LANDING_TITLE,
-} from 'sentry/views/insights/pages/mobileLandingPage';
+} from 'sentry/views/insights/pages/mobile/settings';
 import {MODULE_TITLES} from 'sentry/views/insights/settings';
 import MetricsOnboardingSidebar from 'sentry/views/metrics/ddmOnboarding/sidebar';
 
