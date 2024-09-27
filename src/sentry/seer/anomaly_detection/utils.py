@@ -190,7 +190,7 @@ def fetch_historical_data(
         dataset_label = "errors"
     elif dataset_label in ["generic_metrics", "transactions"]:
         # XXX: performance alerts dataset differs locally vs in prod
-        dataset_label = "discover"
+        dataset_label = "metricsEnhanced"
     dataset = get_dataset(dataset_label)
 
     if not project or not dataset or not alert_rule.organization:
