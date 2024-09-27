@@ -208,16 +208,16 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
       const fields = Object.keys(tableMeta);
 
       let field = fields[0];
-      let selected_field = field;
+      let selectedField = field;
 
       if (
         organization.features.includes('dashboards-bignumber-equations') &&
         defined(widget.queries[0].selectedAggregate)
       ) {
         const index = widget.queries[0].selectedAggregate;
-        selected_field = widget.queries[0].aggregates[index];
-        if (fields.includes(selected_field)) {
-          field = selected_field;
+        selectedField = widget.queries[0].aggregates[index];
+        if (fields.includes(selectedField)) {
+          field = selectedField;
         }
       }
 
