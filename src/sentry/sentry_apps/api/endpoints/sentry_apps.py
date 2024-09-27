@@ -12,10 +12,13 @@ from sentry.api.base import control_silo_endpoint
 from sentry.api.bases import SentryAppsBaseEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.api.serializers.rest_framework import SentryAppSerializer
 from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import SentryAppStatus
+from sentry.sentry_apps.api.parsers.sentry_app import SentryAppParser
+from sentry.sentry_apps.api.serializers.sentry_app import (
+    SentryAppSerializer as ResponseSentryAppSerializer,
+)
 from sentry.sentry_apps.logic import SentryAppCreator
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.users.models.user import User
@@ -73,7 +76,9 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
             queryset=queryset,
             order_by="-date_added",
             paginator_cls=OffsetPaginator,
-            on_results=lambda x: serialize(x, request.user, access=request.access),
+            on_results=lambda x: serialize(
+                x, request.user, access=request.access, serializer=ResponseSentryAppSerializer()
+            ),
         )
 
     def post(self, request: Request, organization) -> Response:
@@ -109,7 +114,7 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
                 status=403,
             )
 
-        serializer = SentryAppSerializer(data=data, access=request.access)
+        serializer = SentryAppParser(data=data, access=request.access)
 
         if serializer.is_valid():
             if data.get("isInternal"):
@@ -141,7 +146,12 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
                 # we generate and validate the slug here instead of the serializer since the slug never changes
                 return Response(e.detail, status=400)
 
-            return Response(serialize(sentry_app, access=request.access), status=201)
+            return Response(
+                serialize(
+                    sentry_app, access=request.access, serializer=ResponseSentryAppSerializer()
+                ),
+                status=201,
+            )
 
         # log any errors with schema
         if "schema" in serializer.errors:

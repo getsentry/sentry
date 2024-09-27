@@ -1,11 +1,15 @@
 from django.db import router
 from django.utils.functional import cached_property
 
-from sentry.api.serializers import AppPlatformEvent, SentryAppInstallationSerializer, serialize
+from sentry.api.serializers import serialize
 from sentry.coreapi import APIUnauthorized
 from sentry.mediators.mediator import Mediator
 from sentry.mediators.param import Param
 from sentry.models.apigrant import ApiGrant
+from sentry.sentry_apps.api.serializers.app_platform_event import AppPlatformEvent
+from sentry.sentry_apps.api.serializers.sentry_app_installation import (
+    SentryAppInstallationSerializer,
+)
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.users.services.user.model import RpcUser

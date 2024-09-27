@@ -2,7 +2,6 @@ from jsonschema.exceptions import ValidationError as SchemaValidationError
 from rest_framework import serializers
 from rest_framework.serializers import Serializer, ValidationError
 
-from sentry.api.fields.avatar import AvatarField
 from sentry.api.serializers.rest_framework.base import camel_to_snake_case
 from sentry.api.validators.sentry_apps.schema import validate_ui_element_schema
 from sentry.integrations.models.integration_feature import Feature
@@ -12,7 +11,6 @@ from sentry.sentry_apps.models.sentry_app import (
     UUID_CHARS_IN_SLUG,
     VALID_EVENT_RESOURCES,
 )
-from sentry.utils.avatar import is_black_alpha_only
 
 
 class ApiScopesField(serializers.Field):
@@ -68,7 +66,7 @@ class URLField(serializers.URLField):
         return url
 
 
-class SentryAppSerializer(Serializer):
+class SentryAppParser(Serializer):
     name = serializers.CharField()
     author = serializers.CharField(required=False, allow_null=True)
     scopes = ApiScopesField(allow_null=True)
@@ -177,30 +175,5 @@ class SentryAppSerializer(Serializer):
         # validate author for public integrations
         if not get_current_value("isInternal") and not get_current_value("author"):
             raise ValidationError({"author": "author required for public integrations"})
-
-        return attrs
-
-
-class SentryAppAvatarSerializer(Serializer):
-    avatar_photo = AvatarField(required=False, is_sentry_app=True)
-    avatar_type = serializers.ChoiceField(choices=(("default", "default"), ("upload", "upload")))
-    color = serializers.BooleanField(required=True)
-
-    def validate(self, attrs):
-        attrs = super().validate(attrs)
-
-        if attrs.get("avatar_type") == "upload" and not attrs.get("avatar_photo"):
-            raise serializers.ValidationError({"avatar_photo": "A logo is required."})
-
-        if (
-            not attrs.get("color")
-            and attrs.get("avatar_type") == "upload"
-            and not is_black_alpha_only(attrs.get("avatar_photo"))
-        ):
-            raise serializers.ValidationError(
-                {
-                    "avatar_photo": "The icon must only use black and should contain an alpha channel."
-                }
-            )
 
         return attrs

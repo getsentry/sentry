@@ -21,7 +21,7 @@ from sentry.utils.audit import create_system_audit_entry
 from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
 
 if TYPE_CHECKING:
-    from sentry.api.serializers import AppPlatformEvent
+    from sentry.sentry_apps.api.serializers.app_platform_event import AppPlatformEvent
     from sentry.sentry_apps.services.app.model import RpcSentryApp
 
 

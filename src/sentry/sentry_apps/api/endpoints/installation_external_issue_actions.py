@@ -10,6 +10,9 @@ from sentry.api.serializers import serialize
 from sentry.mediators.external_issues.issue_link_creator import IssueLinkCreator
 from sentry.models.group import Group
 from sentry.models.project import Project
+from sentry.sentry_apps.api.serializers.platform_external_issue import (
+    PlatformExternalIssueSerializer,
+)
 from sentry.users.models.user import User
 from sentry.users.services.user.serial import serialize_rpc_user
 
@@ -71,4 +74,6 @@ class SentryAppInstallationExternalIssueActionsEndpoint(SentryAppInstallationBas
         except Exception:
             return Response({"error": "Error communicating with Sentry App service"}, status=400)
 
-        return Response(serialize(external_issue))
+        return Response(
+            serialize(objects=external_issue, serializer=PlatformExternalIssueSerializer())
+        )

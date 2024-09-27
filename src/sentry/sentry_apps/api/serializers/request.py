@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Mapping, MutableMapping
+from collections.abc import Mapping, MutableMapping, Sequence
 from typing import Any
 
 from django.urls import reverse
@@ -17,7 +17,9 @@ class RequestSerializer(Serializer):
     def __init__(self, sentry_app: SentryApp) -> None:
         self.sentry_app = sentry_app
 
-    def get_attrs(self, item_list: list[Any], user: Any, **kwargs: Any) -> MutableMapping[Any, Any]:
+    def get_attrs(
+        self, item_list: Sequence[Any], user: Any, **kwargs: Any
+    ) -> MutableMapping[Any, Any]:
         project_ids = {item.data.get("project_id") for item in item_list}
         projects = Project.objects.filter(id__in=project_ids)
         projects_by_id = {project.id: project for project in projects}
