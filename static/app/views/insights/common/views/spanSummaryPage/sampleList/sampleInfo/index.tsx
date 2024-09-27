@@ -12,18 +12,19 @@ import {
   DataTitles,
   getThroughputTitle,
 } from 'sentry/views/insights/common/views/spans/types';
-import type {SpanMetricsQueryFilters} from 'sentry/views/insights/types';
+import type {SpanMetricsQueryFilters, SubregionCode} from 'sentry/views/insights/types';
 import {SpanMetricsField} from 'sentry/views/insights/types';
 
 type Props = {
   groupId: string;
   transactionName: string;
   displayedMetrics?: string[];
+  subregions?: SubregionCode[];
   transactionMethod?: string;
 };
 
 function SampleInfo(props: Props) {
-  const {groupId, transactionName, transactionMethod} = props;
+  const {groupId, transactionName, transactionMethod, subregions} = props;
   const {setPageError} = usePageAlert();
 
   const ribbonFilters: SpanMetricsQueryFilters = {
@@ -35,7 +36,11 @@ function SampleInfo(props: Props) {
     ribbonFilters['transaction.method'] = transactionMethod;
   }
 
-  const {data, error, isLoading} = useSpanMetrics(
+  if (subregions) {
+    ribbonFilters[SpanMetricsField.USER_GEO_SUBREGION] = `[${subregions.join(',')}]`;
+  }
+
+  const {data, error, isPending} = useSpanMetrics(
     {
       search: MutableSearch.fromQueryObject(ribbonFilters),
       fields: [
@@ -62,14 +67,14 @@ function SampleInfo(props: Props) {
         title={getThroughputTitle(spanMetrics?.[SpanMetricsField.SPAN_OP])}
         value={spanMetrics?.['spm()']}
         unit={RateUnit.PER_MINUTE}
-        isLoading={isLoading}
+        isLoading={isPending}
       />
 
       <MetricReadout
         title={DataTitles.avg}
         value={spanMetrics?.[`avg(${SpanMetricsField.SPAN_SELF_TIME})`]}
         unit={DurationUnit.MILLISECOND}
-        isLoading={isLoading}
+        isLoading={isPending}
       />
 
       <MetricReadout
@@ -80,7 +85,7 @@ function SampleInfo(props: Props) {
           spanMetrics?.[0]?.['time_spent_percentage()'],
           spanMetrics?.[SpanMetricsField.SPAN_OP]
         )}
-        isLoading={isLoading}
+        isLoading={isPending}
       />
     </StyledReadoutRibbon>
   );

@@ -1,5 +1,3 @@
-import {Fragment} from 'react';
-
 import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list/';
 import ListItem from 'sentry/components/list/listItem';
@@ -23,83 +21,81 @@ import {getJSMetricsOnboarding} from 'sentry/components/onboarding/gettingStarte
 import {
   getReplayConfigureDescription,
   getReplaySDKSetupSnippet,
+  getReplayVerifyStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
 
-const getInstallConfig = () => [
-  {
-    type: StepType.INSTALL,
-    description: tct(
-      'Configure your app automatically with the [wizardLink:Sentry wizard].',
-      {
-        wizardLink: (
-          <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/sveltekit/#install" />
-        ),
-      }
-    ),
-    configurations: [
-      {
-        language: 'bash',
-        code: `npx @sentry/wizard@latest -i sveltekit`,
-      },
-    ],
-  },
-];
+const getInstallConfig = ({isSelfHosted, organization, projectSlug}: Params) => {
+  const urlParam = isSelfHosted ? '' : '--saas';
+
+  return [
+    {
+      type: StepType.INSTALL,
+      description: tct(
+        'Configure your app automatically with the [wizardLink:Sentry wizard].',
+        {
+          wizardLink: (
+            <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/sveltekit/#install" />
+          ),
+        }
+      ),
+      configurations: [
+        {
+          language: 'bash',
+          code: `npx @sentry/wizard@latest -i sveltekit ${urlParam}  --org ${organization.slug} --project ${projectSlug}`,
+        },
+      ],
+    },
+  ];
+};
 
 const onboarding: OnboardingConfig = {
-  install: () => getInstallConfig(),
+  install: (params: Params) => getInstallConfig(params),
   configure: () => [
     {
       type: StepType.CONFIGURE,
+      description: t(
+        'The Sentry wizard will automatically patch your application to configure the Sentry SDK:'
+      ),
       configurations: [
         {
           description: (
-            <Fragment>
-              {t(
-                'The Sentry wizard will automatically patch your application to configure the Sentry SDK:'
-              )}
-              <List symbol="bullet">
-                <ListItem>
-                  {tct(
-                    'Create or update [hookClientCode:src/hooks.client.js] and [hookServerCode:src/hooks.server.js] with the default [sentryInitCode:Sentry.init] call and SvelteKit hooks handlers.',
-                    {
-                      hookClientCode: <code />,
-                      hookServerCode: <code />,
-                      sentryInitCode: <code />,
-                    }
-                  )}
-                </ListItem>
-                <ListItem>
-                  {tct(
-                    'Update [code:vite.config.js] to add source maps upload and auto-instrumentation via Vite plugins.',
-                    {
-                      code: <code />,
-                    }
-                  )}
-                </ListItem>
-                <ListItem>
-                  {tct(
-                    'Create [sentryClircCode:.sentryclirc] and [sentryPropertiesCode:sentry.properties] files with configuration for sentry-cli (which is used when automatically uploading source maps).',
-                    {
-                      sentryClircCode: <code />,
-                      sentryPropertiesCode: <code />,
-                    }
-                  )}
-                </ListItem>
-              </List>
-              <p>
+            <List symbol="bullet">
+              <ListItem>
                 {tct(
-                  'Alternatively, you can also [manualSetupLink:set up the SDK manually].',
+                  'Create or update [code:src/hooks.client.js] and [code:src/hooks.server.js] with the default [code:Sentry.init] call and SvelteKit hooks handlers.',
                   {
-                    manualSetupLink: (
-                      <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/sveltekit/manual-setup/" />
-                    ),
+                    code: <code />,
                   }
                 )}
-              </p>
-            </Fragment>
+              </ListItem>
+              <ListItem>
+                {tct(
+                  'Update [code:vite.config.js] to add source maps upload and auto-instrumentation via Vite plugins.',
+                  {
+                    code: <code />,
+                  }
+                )}
+              </ListItem>
+              <ListItem>
+                {tct(
+                  'Create [code:.sentryclirc] and [code:sentry.properties] files with configuration for sentry-cli (which is used when automatically uploading source maps).',
+                  {
+                    code: <code />,
+                  }
+                )}
+              </ListItem>
+            </List>
+          ),
+          additionalInfo: tct(
+            'Alternatively, you can also [manualSetupLink:set up the SDK manually].',
+            {
+              manualSetupLink: (
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/sveltekit/manual-setup/" />
+              ),
+            }
           ),
         },
       ],
@@ -109,7 +105,7 @@ const onboarding: OnboardingConfig = {
 };
 
 const replayOnboarding: OnboardingConfig = {
-  install: () => getInstallConfig(),
+  install: (params: Params) => getInstallConfig(params),
   configure: (params: Params) => [
     {
       type: StepType.CONFIGURE,
@@ -136,12 +132,12 @@ const replayOnboarding: OnboardingConfig = {
       ],
     },
   ],
-  verify: () => [],
+  verify: getReplayVerifyStep(),
   nextSteps: () => [],
 };
 
 const feedbackOnboarding: OnboardingConfig = {
-  install: () => [
+  install: (params: Params) => [
     {
       type: StepType.INSTALL,
       description: tct(
@@ -150,7 +146,7 @@ const feedbackOnboarding: OnboardingConfig = {
           code: <code />,
         }
       ),
-      configurations: getInstallConfig(),
+      configurations: getInstallConfig(params),
     },
   ],
   configure: (params: Params) => [
@@ -208,7 +204,7 @@ const crashReportOnboarding: OnboardingConfig = {
 const docs: Docs = {
   onboarding,
   feedbackOnboardingNpm: feedbackOnboarding,
-  replayOnboardingNpm: replayOnboarding,
+  replayOnboarding,
   customMetricsOnboarding: getJSMetricsOnboarding({getInstallConfig}),
   crashReportOnboarding,
 };

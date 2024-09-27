@@ -1,11 +1,4 @@
-import {OrganizationFixture} from 'sentry-fixture/organization';
-
-import {
-  render,
-  renderGlobalModal,
-  screen,
-  userEvent,
-} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {PageHeaderActions} from 'sentry/views/metrics/pageHeaderActions';
 
@@ -25,31 +18,6 @@ describe('Metrics Page Header Actions', function () {
       await userEvent.click(button);
 
       expect(addCustomMetric).toHaveBeenCalled();
-    });
-
-    it('display "Create Metric" button', async function () {
-      render(
-        <PageHeaderActions showAddMetricButton addCustomMetric={() => jest.fn()} />,
-        {
-          organization: OrganizationFixture({
-            features: [
-              'custom-metrics-extraction-rule',
-              'custom-metrics-extraction-rule-ui',
-            ],
-          }),
-        }
-      );
-      renderGlobalModal();
-
-      const button = screen.getByRole('button', {name: 'Create Metric'});
-
-      expect(button).toBeInTheDocument();
-
-      await userEvent.click(button);
-
-      expect(
-        await screen.findByRole('heading', {name: 'Create Metric'})
-      ).toBeInTheDocument();
     });
   });
 });

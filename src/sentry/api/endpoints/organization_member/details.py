@@ -4,6 +4,7 @@ from django.db import router, transaction
 from django.db.models import Q
 from drf_spectacular.utils import extend_schema, inline_serializer
 from rest_framework import serializers
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.serializers import ValidationError
@@ -44,6 +45,8 @@ from . import get_allowed_org_roles, save_team_assignments
 ERR_NO_AUTH = "You cannot remove this member with an unauthenticated API request."
 ERR_INSUFFICIENT_ROLE = "You cannot remove a member who has more access than you."
 ERR_INSUFFICIENT_SCOPE = "You are missing the member:admin scope."
+ERR_MEMBER_INVITE = "You cannot modify invitations sent by someone else."
+ERR_MEMBER_REINVITE = "You can only reinvite members; you cannot modify other member details."
 ERR_ONLY_OWNER = "You cannot remove the only remaining owner of the organization."
 ERR_UNINVITABLE = "You cannot send an invitation to a user who is already a full member."
 ERR_EXPIRED = "You cannot resend an expired invitation without regenerating the token."
@@ -74,7 +77,7 @@ class RelaxedMemberPermission(OrganizationPermission):
     scope_map = {
         "GET": ["member:read", "member:write", "member:admin"],
         "POST": ["member:write", "member:admin"],
-        "PUT": ["member:write", "member:admin"],
+        "PUT": ["member:invite", "member:write", "member:admin"],
         # DELETE checks for role comparison as you can either remove a member
         # with a lower access role, or yourself, without having the req. scope
         "DELETE": ["member:read", "member:write", "member:admin"],
@@ -123,6 +126,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
+        examples=OrganizationExamples.UPDATE_ORG_MEMBER,
     )
     def get(
         self,
@@ -133,7 +137,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         """
         Retrieve an organization member's details.
 
-        Will return a pending invite as long as it's already approved.
+        Response will be a pending invite if it has been approved by organization owners or managers but is waiting to be accepted by the invitee.
         """
         allowed_roles = get_allowed_org_roles(request, organization, member)
         return Response(
@@ -216,6 +220,26 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                 },
                 status=403,
             )
+
+        is_member = not (
+            request.access.has_scope("member:invite") and request.access.has_scope("member:admin")
+        )
+        enable_member_invite = (
+            features.has("organizations:members-invite-teammates", organization)
+            and not organization.flags.disable_member_invite
+        )
+        # Members can only resend invites
+        reinvite_request_only = set(result.keys()).issubset({"reinvite", "regenerate"})
+        # Members can only resend invites that they sent
+        is_invite_from_user = member.inviter_id == request.user.id
+
+        if is_member:
+            if not enable_member_invite or not member.is_pending:
+                raise PermissionDenied
+            if not reinvite_request_only:
+                return Response({"detail": ERR_MEMBER_REINVITE}, status=403)
+            if not is_invite_from_user:
+                return Response({"detail": ERR_MEMBER_INVITE}, status=403)
 
         # XXX(dcramer): if/when this expands beyond reinvite we need to check
         # access level
@@ -363,6 +387,32 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                 tags={"target_org_role": role, "count": omt_update_count},
             )
 
+    def _handle_deletion_by_member(
+        self,
+        request: Request,
+        organization: Organization,
+        member: OrganizationMember,
+        acting_member: OrganizationMember,
+    ) -> Response:
+        # Members can only delete invitations
+        if not member.is_pending:
+            return Response({"detail": ERR_INSUFFICIENT_SCOPE}, status=400)
+        # Members can only delete invitations that they sent
+        if member.inviter_id != acting_member.user_id:
+            return Response({"detail": ERR_MEMBER_INVITE}, status=400)
+
+        audit_data = member.get_audit_log_data()
+        member.delete()
+        self.create_audit_entry(
+            request=request,
+            organization=organization,
+            target_object=member.id,
+            target_user_id=member.user_id,
+            event=audit_log.get_event_id("MEMBER_REMOVE"),
+            data=audit_data,
+        )
+        return Response(status=204)
+
     @extend_schema(
         operation_id="Delete an Organization Member",
         parameters=[
@@ -398,6 +448,14 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
             else:
                 if acting_member != member:
                     if not request.access.has_scope("member:admin"):
+                        if (
+                            features.has("organizations:members-invite-teammates", organization)
+                            and not organization.flags.disable_member_invite
+                            and request.access.has_scope("member:invite")
+                        ):
+                            return self._handle_deletion_by_member(
+                                request, organization, member, acting_member
+                            )
                         return Response({"detail": ERR_INSUFFICIENT_SCOPE}, status=400)
                     else:
                         can_manage = roles.can_manage(acting_member.role, member.role)
@@ -450,15 +508,16 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
             )
 
         with transaction.atomic(router.db_for_write(OrganizationMember)):
-            # Delete any invite requests and pending invites by the deleted member
-            existing_invites = OrganizationMember.objects.filter(
-                Q(invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value)
-                | Q(token__isnull=False),
-                inviter_id=member.user_id,
-                organization=organization,
-            )
-            for om in existing_invites:
-                om.delete()
+            if member.user_id:
+                # Delete any invite requests and pending invites by the deleted member
+                existing_invites = OrganizationMember.objects.filter(
+                    Q(invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value)
+                    | Q(token__isnull=False),
+                    inviter_id=member.user_id,
+                    organization=organization,
+                )
+                for om in existing_invites:
+                    om.delete()
 
         self.create_audit_entry(
             request=request,

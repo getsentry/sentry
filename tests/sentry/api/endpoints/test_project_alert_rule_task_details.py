@@ -2,7 +2,7 @@ from uuid import uuid4
 
 from django.urls import reverse
 
-from sentry.integrations.slack.utils import RedisRuleStatus
+from sentry.integrations.slack.utils.rule_status import RedisRuleStatus
 from sentry.testutils.cases import APITestCase
 
 

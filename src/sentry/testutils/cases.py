@@ -99,11 +99,9 @@ from sentry.models.deploy import Deploy
 from sentry.models.environment import Environment
 from sentry.models.files.file import File
 from sentry.models.groupmeta import GroupMeta
-from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
 from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.models.options.project_option import ProjectOption
-from sentry.models.options.user_option import UserOption
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
@@ -111,7 +109,6 @@ from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.repository import Repository
 from sentry.models.rule import RuleSource
-from sentry.models.useremail import UserEmail
 from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorType, ScheduleType
 from sentry.notifications.notifications.base import alert_page_needs_org_id
 from sentry.notifications.types import FineTuningAPIKey
@@ -145,7 +142,10 @@ from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
 from sentry.testutils.helpers.slack import install_slack
 from sentry.testutils.pytest.selenium import Browser
 from sentry.types.condition_activity import ConditionActivity, ConditionActivityType
+from sentry.users.models.identity import Identity, IdentityProvider, IdentityStatus
 from sentry.users.models.user import User
+from sentry.users.models.user_option import UserOption
+from sentry.users.models.useremail import UserEmail
 from sentry.utils import json
 from sentry.utils.auth import SsoSession
 from sentry.utils.json import dumps_htmlsafe
@@ -1369,18 +1369,29 @@ class SnubaTestCase(BaseTestCase):
             == 200
         )
 
-    def store_span(self, span):
+    def store_span(self, span, is_eap=False):
         assert (
             requests.post(
-                settings.SENTRY_SNUBA + "/tests/entities/spans/insert", data=json.dumps([span])
+                settings.SENTRY_SNUBA + f"/tests/entities/{'eap_' if is_eap else ''}spans/insert",
+                data=json.dumps([span]),
             ).status_code
             == 200
         )
 
-    def store_spans(self, spans):
+    def store_spans(self, spans, is_eap=False):
         assert (
             requests.post(
-                settings.SENTRY_SNUBA + "/tests/entities/spans/insert", data=json.dumps(spans)
+                settings.SENTRY_SNUBA + f"/tests/entities/{'eap_' if is_eap else ''}spans/insert",
+                data=json.dumps(spans),
+            ).status_code
+            == 200
+        )
+
+    def store_issues(self, issues):
+        assert (
+            requests.post(
+                settings.SENTRY_SNUBA + "/tests/entities/search_issues/insert",
+                data=json.dumps(issues),
             ).status_code
             == 200
         )
@@ -1514,6 +1525,8 @@ class BaseSpansTestCase(SnubaTestCase):
         sdk_name: str | None = None,
         op: str | None = None,
         status: str | None = None,
+        organization_id: int = 1,
+        is_eap: bool = False,
     ):
         if span_id is None:
             span_id = self._random_span_id()
@@ -1522,7 +1535,7 @@ class BaseSpansTestCase(SnubaTestCase):
 
         payload = {
             "project_id": project_id,
-            "organization_id": 1,
+            "organization_id": organization_id,
             "span_id": span_id,
             "trace_id": trace_id,
             "duration_ms": int(duration),
@@ -1557,7 +1570,7 @@ class BaseSpansTestCase(SnubaTestCase):
         if status is not None:
             payload["sentry_tags"]["status"] = status
 
-        self.store_span(payload)
+        self.store_span(payload, is_eap=is_eap)
 
         if "_metrics_summary" in payload:
             self.store_metrics_summary(payload)
@@ -1718,6 +1731,7 @@ class BaseMetricsTestCase(SnubaTestCase):
         timestamp: int,
         value: Any,
         aggregation_option: AggregationOption | None = None,
+        sampling_weight: int | None = None,
     ) -> None:
 
         parsed = parse_mri(mri)
@@ -1802,6 +1816,9 @@ class BaseMetricsTestCase(SnubaTestCase):
 
         if aggregation_option:
             msg["aggregation_option"] = aggregation_option.value
+
+        if sampling_weight:
+            msg["sampling_weight"] = sampling_weight
 
         if METRIC_PATH_MAPPING[use_case_id] == UseCaseKey.PERFORMANCE:
             entity = f"generic_metrics_{cls.ENTITY_SHORTHANDS[metric_type]}s"
@@ -2087,6 +2104,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         "user": "metrics_sets",
         "function.duration": "metrics_distributions",
         "measurements.inp": "metrics_distributions",
+        "messaging.message.receive.latency": "metrics_gauges",
     }
     ON_DEMAND_KEY_MAP = {
         "c": TransactionMetricKey.COUNT_ON_DEMAND.value,
@@ -2707,6 +2725,8 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
             assert data["columns"] == widget_data_source.columns
         if "fieldAliases" in data:
             assert data["fieldAliases"] == widget_data_source.field_aliases
+        if "selectedAggregate" in data:
+            assert data["selectedAggregate"] == widget_data_source.selected_aggregate
 
     def get_widgets(self, dashboard_id):
         return DashboardWidget.objects.filter(dashboard_id=dashboard_id).order_by("order")
@@ -3287,7 +3307,29 @@ class MonitorIngestTestCase(MonitorTestCase):
         self.token = self.create_internal_integration_token(install=app, user=self.user)
 
 
-class UptimeTestCase(TestCase):
+class UptimeTestCaseMixin:
+    def setUp(self):
+        super().setUp()
+        self.mock_resolve_hostname_ctx = mock.patch(
+            "sentry.uptime.rdap.query.resolve_hostname", return_value="192.168.0.1"
+        )
+        self.mock_resolve_rdap_provider_ctx = mock.patch(
+            "sentry.uptime.rdap.query.resolve_rdap_provider", return_value="https://fake.com/"
+        )
+        self.mock_requests_get_ctx = mock.patch("sentry.uptime.rdap.query.requests.get")
+        self.mock_resolve_hostname = self.mock_resolve_hostname_ctx.__enter__()
+        self.mock_resolve_rdap_provider = self.mock_resolve_rdap_provider_ctx.__enter__()
+        self.mock_requests_get = self.mock_requests_get_ctx.__enter__()
+        self.mock_requests_get.return_value.json.return_value = {"entities": [{"handle": "hi"}]}
+
+    def tearDown(self):
+        super().tearDown()
+        self.mock_resolve_hostname_ctx.__exit__(None, None, None)
+        self.mock_resolve_rdap_provider_ctx.__exit__(None, None, None)
+        self.mock_requests_get_ctx.__exit__(None, None, None)
+
+
+class UptimeTestCase(UptimeTestCaseMixin, TestCase):
     def create_uptime_result(
         self,
         subscription_id: str | None = None,
@@ -3303,6 +3345,7 @@ class UptimeTestCase(TestCase):
             "subscription_id": subscription_id,
             "status": status,
             "status_reason": {"type": CHECKSTATUSREASONTYPE_TIMEOUT, "description": "it timed out"},
+            "span_id": uuid.uuid4().hex,
             "trace_id": uuid.uuid4().hex,
             "scheduled_check_time_ms": int(scheduled_check_time.timestamp() * 1000),
             "actual_check_time_ms": int(datetime.now().replace(microsecond=0).timestamp() * 1000),
@@ -3361,6 +3404,7 @@ class SpanTestCase(BaseTestCase):
         project: Project | None = None,
         start_ts: datetime | None = None,
         duration: int = 1000,
+        measurements: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Create span json, not required for store_span, but with no params passed should just work out of the box"""
         if organization is None:
@@ -3399,6 +3443,8 @@ class SpanTestCase(BaseTestCase):
         # coerce to string
         for tag, value in dict(span["tags"]).items():
             span["tags"][tag] = str(value)
+        if measurements:
+            span["measurements"] = measurements
         return span
 
 

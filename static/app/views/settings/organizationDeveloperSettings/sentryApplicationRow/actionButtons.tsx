@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import ConfirmDelete from 'sentry/components/confirmDelete';
 import {IconDelete, IconStats, IconUpgrade} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -32,13 +32,13 @@ function ActionButtons({
   disableDeleteReason,
 }: Props) {
   const appDashboardButton = (
-    <StyledButton
+    <StyledLinkButton
       size="xs"
       icon={<IconStats />}
       to={`/settings/${org.slug}/developer-settings/${app.slug}/dashboard/`}
     >
       {t('Dashboard')}
-    </StyledButton>
+    </StyledLinkButton>
   );
 
   const publishRequestButton = showPublish ? (
@@ -98,6 +98,10 @@ const ButtonHolder = styled('div')`
 `;
 
 const StyledButton = styled(Button)`
+  color: ${p => p.theme.subText};
+`;
+
+const StyledLinkButton = styled(LinkButton)`
   color: ${p => p.theme.subText};
 `;
 

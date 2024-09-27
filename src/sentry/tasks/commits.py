@@ -70,6 +70,8 @@ def handle_invalid_identity(identity, commit_failure=False):
     name="sentry.tasks.commits.fetch_commits",
     queue="commits",
     default_retry_delay=60 * 5,
+    soft_time_limit=60 * 15,
+    time_limit=60 * 15 + 5,
     max_retries=5,
     silo_mode=SiloMode.REGION,
 )

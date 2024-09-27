@@ -4,7 +4,6 @@ import dataclasses
 import functools
 import logging
 import os
-import random
 import re
 import time
 from collections import namedtuple
@@ -14,16 +13,18 @@ from contextlib import contextmanager
 from copy import deepcopy
 from datetime import datetime, timedelta, timezone
 from hashlib import sha1
-from typing import Any
+from typing import Any, Protocol, TypeVar
 from urllib.parse import urlparse
 
+import sentry_protos.snuba.v1alpha.request_common_pb2
 import sentry_sdk
 import sentry_sdk.scope
 import urllib3
 from dateutil.parser import parse as parse_datetime
 from django.conf import settings
 from django.core.cache import cache
-from snuba_sdk import MetricsQuery, Request
+from google.protobuf.message import Message as ProtobufMessage
+from snuba_sdk import DeleteQuery, MetricsQuery, Request
 from snuba_sdk.legacy import json_to_snql
 
 from sentry.models.environment import Environment
@@ -142,7 +143,6 @@ SPAN_COLUMN_MAP = {
     "user.id": "sentry_tags[user.id]",
     "user.email": "sentry_tags[user.email]",
     "user.username": "sentry_tags[user.username]",
-    "profile_id": "profile_id",  # deprecated in favour of `profile.id`
     "profile.id": "profile_id",
     "cache.hit": "sentry_tags[cache.hit]",
     "transaction.method": "sentry_tags[transaction.method]",
@@ -170,6 +170,52 @@ SPAN_COLUMN_MAP = {
     "messaging.message.id": "sentry_tags[messaging.message.id]",
     "tags.key": "tags.key",
     "tags.value": "tags.value",
+    "user.geo.subregion": "sentry_tags[user.geo.subregion]",
+    "user.geo.country_code": "sentry_tags[user.geo.country_code]",
+}
+
+SPAN_EAP_COLUMN_MAP = {
+    "id": "span_id",
+    "span_id": "span_id",  # ideally this would be temporary, but unfortunately its heavily hardcoded in the FE
+    "organization.id": "organization_id",
+    "project": "project_id",
+    "project.id": "project_id",
+    "project_id": "project_id",
+    "span.action": "attr_str[action]",
+    # For some reason the decision was made to store description as name? its called description everywhere else though
+    "span.description": "name",
+    "description": "name",
+    # message also maps to span description but gets special handling
+    # to support wild card searching by default
+    "message": "name",
+    # These sample columns are for debugging only and shouldn't be used
+    "sampling_weight": "sampling_weight",
+    "sampling_factor": "sampling_factor",
+    "span.domain": "attr_str[domain]",
+    "span.group": "attr_str[group]",
+    "span.op": "attr_str[op]",
+    "span.category": "attr_str[category]",
+    "span.self_time": "exclusive_time_ms",
+    "span.status": "attr_str[status]",
+    "timestamp": "timestamp",
+    "trace": "trace_id",
+    "transaction": "segment_name",
+    "transaction.id": "segment_id",
+    "transaction.method": "attr_str[transaction.method]",
+    "is_transaction": "is_segment",
+    "segment.id": "segment_id",
+    # We should be able to delete origin.transaction and just use transaction
+    "origin.transaction": "segment_name",
+    # Copy paste, unsure if this is truth in production
+    "messaging.destination.name": "attr_str[messaging.destination.name]",
+    "messaging.message.id": "attr_str[messaging.message.id]",
+    "span.status_code": "attr_str[status_code]",
+    "replay.id": "attr_str[replay_id]",
+    "span.ai.pipeline.group": "attr_str[ai_pipeline_group]",
+    "trace.status": "attr_str[trace.status]",
+    "browser.name": "attr_str[browser.name]",
+    "ai.total_tokens.used": "attr_num[ai_total_tokens_used]",
+    "ai.total_cost": "attr_num[ai_total_cost]",
 }
 
 METRICS_SUMMARIES_COLUMN_MAP = {
@@ -241,6 +287,7 @@ DATASETS: dict[Dataset, dict[str, str]] = {
     Dataset.MetricsSummaries: METRICS_SUMMARIES_COLUMN_MAP,
     Dataset.PerformanceMetrics: METRICS_COLUMN_MAP,
     Dataset.SpansIndexed: SPAN_COLUMN_MAP,
+    Dataset.SpansEAP: SPAN_EAP_COLUMN_MAP,
     Dataset.IssuePlatform: ISSUE_PLATFORM_MAP,
     Dataset.Replays: {},
 }
@@ -255,6 +302,7 @@ DATASET_FIELDS = {
     Dataset.Sessions: SESSIONS_FIELD_LIST,
     Dataset.IssuePlatform: list(ISSUE_PLATFORM_MAP.values()),
     Dataset.SpansIndexed: list(SPAN_COLUMN_MAP.values()),
+    Dataset.SpansEAP: list(SPAN_EAP_COLUMN_MAP.values()),
     Dataset.MetricsSummaries: list(METRICS_SUMMARIES_COLUMN_MAP.values()),
 }
 
@@ -1043,6 +1091,15 @@ def _apply_cache_and_build_results(
     return [result[1] for result in results]
 
 
+def _is_rejected_query(body: Any) -> bool:
+    return (
+        "quota_allowance" in body
+        and "summary" in body["quota_allowance"]
+        and "rejected_by" in body["quota_allowance"]["summary"]
+        and body["quota_allowance"]["summary"]["rejected_by"] is not None
+    )
+
+
 def _bulk_snuba_query(snuba_requests: Sequence[SnubaRequest]) -> ResultSet:
     snuba_requests_list = list(snuba_requests)
 
@@ -1055,8 +1112,8 @@ def _bulk_snuba_query(snuba_requests: Sequence[SnubaRequest]) -> ResultSet:
                     _snuba_query,
                     [
                         (
-                            sentry_sdk.Scope.get_isolation_scope().fork(),
-                            sentry_sdk.Scope.get_current_scope().fork(),
+                            sentry_sdk.Scope.get_isolation_scope(),
+                            sentry_sdk.Scope.get_current_scope(),
                             snuba_request,
                         )
                         for snuba_request in snuba_requests_list
@@ -1068,8 +1125,8 @@ def _bulk_snuba_query(snuba_requests: Sequence[SnubaRequest]) -> ResultSet:
             query_results = [
                 _snuba_query(
                     (
-                        sentry_sdk.Scope.get_isolation_scope().fork(),
-                        sentry_sdk.Scope.get_current_scope().fork(),
+                        sentry_sdk.Scope.get_isolation_scope(),
+                        sentry_sdk.Scope.get_current_scope(),
                         snuba_requests_list[0],
                     )
                 )
@@ -1099,37 +1156,18 @@ def _bulk_snuba_query(snuba_requests: Sequence[SnubaRequest]) -> ResultSet:
                 raise UnexpectedResponseError(f"Could not decode JSON response: {response.data!r}")
 
             allocation_policy_prefix = "allocation_policy."
-            if "quota_allowance" in body and "summary" in body["quota_allowance"]:
+            if _is_rejected_query(body):
                 quota_allowance_summary = body["quota_allowance"]["summary"]
-                span.set_tag(
-                    f"{allocation_policy_prefix}threads_used",
-                    quota_allowance_summary["threads_used"],
-                )
-                sentry_sdk.set_tag(
-                    f"{allocation_policy_prefix}threads_used",
-                    quota_allowance_summary["threads_used"],
-                )
-                for k, v in quota_allowance_summary["throttled_by"].items():
-                    k = allocation_policy_prefix + "throttling_policy." + k
-                    span.set_tag(k, v)
-                    sentry_sdk.set_tag(k, v)
-                for k, v in quota_allowance_summary["rejected_by"].items():
-                    k = allocation_policy_prefix + "rejecting_policy." + k
-                    span.set_tag(k, v)
-                    sentry_sdk.set_tag(k, v)
-
-                if (
-                    "throttled_by" in quota_allowance_summary
-                    and quota_allowance_summary["throttled_by"]
-                ):
-                    metrics.incr("snuba.client.query.throttle", tags={"referrer": referrer})
-                    if random.random() < 0.01:
-                        logger.warning(
-                            "Warning: Query is throttled", extra={"response.data": response.data}
-                        )
-                        sentry_sdk.capture_message(
-                            f"Warning: Query from referrer {referrer} is throttled", level="warning"
-                        )
+                for k, v in quota_allowance_summary.items():
+                    if isinstance(v, dict):
+                        for nested_k, nested_v in v.items():
+                            span.set_tag(allocation_policy_prefix + k + "." + nested_k, nested_v)
+                            sentry_sdk.set_tag(
+                                allocation_policy_prefix + k + "." + nested_k, nested_v
+                            )
+                    else:
+                        span.set_tag(allocation_policy_prefix + k, v)
+                        sentry_sdk.set_tag(allocation_policy_prefix + k, v)
 
             if response.status != 200:
                 _log_request_query(snuba_requests_list[index].request)
@@ -1173,6 +1211,66 @@ def _log_request_query(req: Request) -> None:
     )
 
 
+RPCResponseType = TypeVar("RPCResponseType", bound=ProtobufMessage)
+
+
+class SnubaRPCRequest(Protocol):
+    def SerializeToString(self, deterministic: bool = ...) -> bytes:
+        ...
+
+    @property
+    def meta(self) -> sentry_protos.snuba.v1alpha.request_common_pb2.RequestMeta:
+        ...
+
+
+def rpc(req: SnubaRPCRequest, resp_type: type[RPCResponseType]) -> RPCResponseType:
+    """
+    You want to call a snuba RPC. Here's how you do it:
+
+    start_time_proto = ProtobufTimestamp()
+    start_time_proto.FromDatetime(start)
+    end_time_proto = ProtobufTimestamp()
+    end_time_proto.FromDatetime(end)
+    aggregate_req = AggregateBucketRequest(
+        meta=RequestMeta(
+            organization_id=organization.id,
+            cogs_category="events_analytics_platform",
+            referrer=referrer,
+            project_ids=[project.id for project in projects],
+            start_timestamp=start_time_proto,
+            end_timestamp=end_time_proto,
+        ),
+        aggregate=AggregateBucketRequest.FUNCTION_SUM,
+        filter=TraceItemFilter(
+            comparison_filter=ComparisonFilter(
+                key=AttributeKey(name="op", type=AttributeKey.Type.TYPE_STRING),
+                value=AttributeValue(val_str="ai.run"),
+            )
+        ),
+        granularity_secs=60,
+        key=AttributeKey(
+            name="duration", type=AttributeKey.TYPE_FLOAT
+        ),
+        attribute_key_transform_context=AttributeKeyTransformContext(),
+    )
+    aggregate_resp = snuba.rpc(aggregate_req, AggregateBucketResponse)
+    """
+    referrer = req.meta.referrer
+    with sentry_sdk.start_span(op="snuba_rpc.run", description=req.__class__.__name__) as span:
+        span.set_tag("snuba.referrer", referrer)
+        http_resp = _snuba_pool.urlopen(
+            "POST",
+            f"/rpc/{req.__class__.__name__}",
+            body=req.SerializeToString(),
+            headers={
+                "referer": referrer,
+            },
+        )
+        resp = resp_type()
+        resp.ParseFromString(http_resp.data)
+        return resp
+
+
 RawResult = tuple[str, urllib3.response.HTTPResponse, Translator, Translator]
 
 
@@ -1210,6 +1308,13 @@ def _snuba_query(
                         snuba_request.forward,
                         snuba_request.reverse,
                     )
+                elif isinstance(request.query, DeleteQuery):
+                    return (
+                        referrer,
+                        _raw_delete_query(request, headers),
+                        snuba_request.forward,
+                        snuba_request.reverse,
+                    )
 
                 return (
                     referrer,
@@ -1219,6 +1324,29 @@ def _snuba_query(
                 )
             except urllib3.exceptions.HTTPError as err:
                 raise SnubaError(err)
+
+
+def _raw_delete_query(
+    request: Request, headers: Mapping[str, str]
+) -> urllib3.response.HTTPResponse:
+    query = request.query
+    if not isinstance(query, DeleteQuery):
+        raise ValueError(
+            f"Expected request to contain a DeleteQuery but it was of type {type(request.query)}"
+        )
+
+    # Enter hub such that http spans are properly nested
+    with timer("delete_query"):
+        referrer = headers.get("referer", "unknown")
+        with sentry_sdk.start_span(op="snuba_delete.validation", description=referrer) as span:
+            span.set_tag("snuba.referrer", referrer)
+            body = request.serialize()
+
+        with sentry_sdk.start_span(op="snuba_delete.run", description=body) as span:
+            span.set_tag("snuba.referrer", referrer)
+            return _snuba_pool.urlopen(
+                "DELETE", f"/{query.storage_name}", body=body, headers=headers
+            )
 
 
 def _raw_mql_query(request: Request, headers: Mapping[str, str]) -> urllib3.response.HTTPResponse:
@@ -1342,7 +1470,11 @@ def resolve_column(dataset) -> Callable:
             return col
         if isinstance(col, int) or isinstance(col, float):
             return col
-        if isinstance(col, str) and (col.startswith("tags[") or QUOTED_LITERAL_RE.match(col)):
+        if (
+            dataset != Dataset.SpansEAP
+            and isinstance(col, str)
+            and (col.startswith("tags[") or QUOTED_LITERAL_RE.match(col))
+        ):
             return col
 
         # Some dataset specific logic:
@@ -1350,6 +1482,16 @@ def resolve_column(dataset) -> Callable:
 
             if isinstance(col, (list, tuple)) or col in ("project_id", "group_id"):
                 return col
+        elif dataset == Dataset.SpansEAP:
+            if isinstance(col, str) and col.startswith("sentry_tags["):
+                # Replace the first instance of sentry tags with attr str instead
+                return col.replace("sentry_tags", "attr_str", 1)
+            if isinstance(col, str) and col.startswith("tags["):
+                # Replace the first instance of sentry tags with attr str instead
+                return col.replace("tags", "attr_str", 1)
+            measurement_name = get_measurement_name(col)
+            if measurement_name:
+                return f"attr_num[{measurement_name}]"
         elif (
             dataset == Dataset.SpansIndexed
             and isinstance(col, str)
@@ -1372,6 +1514,8 @@ def resolve_column(dataset) -> Callable:
         span_op_breakdown_name = get_span_op_breakdown_name(col)
         if "span_op_breakdowns_key" in DATASETS[dataset] and span_op_breakdown_name:
             return f"span_op_breakdowns[{span_op_breakdown_name}]"
+        if dataset == Dataset.SpansEAP:
+            return f"attr_str[{col}]"
         return f"tags[{col}]"
 
     return _resolve_column

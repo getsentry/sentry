@@ -100,7 +100,6 @@ export enum DataCategoryExact {
   MONITOR_SEAT = 'monitorSeat',
   PROFILE_DURATION = 'profileDuration',
   SPAN = 'span',
-  SPAN_INDEXED = 'span_indexed',
   METRIC_SECOND = 'metricSecond',
 }
 

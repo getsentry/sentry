@@ -19,6 +19,7 @@ import {
 import {
   getReplayConfigOptions,
   getReplayConfigureDescription,
+  getReplayVerifyStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import {t, tct} from 'sentry/locale';
 
@@ -170,10 +171,9 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
       description: (
         <p>
           {tct(
-            `Install the Sentry Capacitor SDK as a dependency using [codeNpm:npm] or [codeYarn:yarn], alongside the Sentry [siblingName:] SDK:`,
+            `Install the Sentry Capacitor SDK as a dependency using [code:npm] or [code:yarn], alongside the Sentry [siblingName:] SDK:`,
             {
-              codeYarn: <code />,
-              codeNpm: <code />,
+              code: <code />,
               siblingName: getSiblingName(params.platformOptions.siblingOption),
             }
           )}
@@ -436,7 +436,7 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
       additionalInfo: <TracePropagationMessage />,
     },
   ],
-  verify: () => [],
+  verify: getReplayVerifyStep(),
   nextSteps: () => [],
 };
 
@@ -487,7 +487,7 @@ const docs: Docs<PlatformOptions> = {
   onboarding,
   platformOptions,
   feedbackOnboardingNpm: feedbackOnboarding,
-  replayOnboardingNpm: replayOnboarding,
+  replayOnboarding,
   crashReportOnboarding,
 };
 

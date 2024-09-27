@@ -14,8 +14,10 @@ import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {DatePicker} from 'sentry/components/calendar';
 import Checkbox from 'sentry/components/checkbox';
+import type {SelectOptionWithKey} from 'sentry/components/compactSelect/types';
 import {inputStyles} from 'sentry/components/input';
 import {Overlay} from 'sentry/components/overlay';
+import type {CustomComboboxMenuProps} from 'sentry/components/searchQueryBuilder/tokens/combobox';
 import {parseFilterValueDate} from 'sentry/components/searchQueryBuilder/tokens/filter/parsers/date/parser';
 import {Token} from 'sentry/components/searchSyntax/parser';
 import {IconArrow} from 'sentry/icons';
@@ -24,15 +26,14 @@ import {space} from 'sentry/styles/space';
 import {DEFAULT_DAY_START_TIME, getInternalDate} from 'sentry/utils/dates';
 import mergeRefs from 'sentry/utils/mergeRefs';
 
-type SearchBarDatePickerProps = {
+interface SearchBarDatePickerProps
+  extends CustomComboboxMenuProps<SelectOptionWithKey<string>> {
   handleSelectDateTime: (value: string) => void;
   isOpen: boolean;
   dateString?: string;
   handleBack?: () => void;
   handleSave?: (value: string) => void;
-  listBoxRef?: React.RefObject<HTMLDivElement>;
-  popoverRef?: React.RefObject<HTMLDivElement>;
-};
+}
 
 type TimeInputProps = {
   disabled: boolean;
@@ -73,6 +74,7 @@ function SpecificDatePicker({
   handleBack,
   handleSave,
   isOpen,
+  overlayProps,
 }: SearchBarDatePickerProps) {
   const parsedToken = useMemo(() => {
     if (!dateString) {
@@ -102,109 +104,111 @@ function SpecificDatePicker({
   const hasTime = Boolean(parsedToken?.time);
 
   return (
-    <SearchBarDatePickerOverlay
-      data-test-id="specific-date-picker"
-      ref={popoverRef}
-      // Otherwise clicks will propagate to the grid and close the dropdown
-      onClick={e => e.stopPropagation()}
-    >
-      {isOpen ? (
-        <Fragment>
-          <DatePicker
-            date={internalDate}
-            onChange={newDate => {
-              if (newDate instanceof Date) {
-                handleSelectDateTime(
-                  createDateStringFromSelection({
-                    date: getInternalDate(newDate, utc),
-                    time,
-                    utc,
-                  })
-                );
-              }
-            }}
-          />
-          <ControlsWrapper>
-            <CheckboxLabel>
-              <Checkbox
-                checked={hasTime}
-                onChange={e => {
-                  if (e.target.checked) {
-                    handleSelectDateTime(
-                      createDateStringFromSelection({
-                        date: internalDate,
-                        time: DEFAULT_DAY_START_TIME,
-                        utc,
-                      })
-                    );
-                  } else {
-                    handleSelectDateTime(
-                      createDateStringFromSelection({
-                        date: internalDate,
-                        utc: true,
-                      })
-                    );
-                  }
-                }}
-              />
-              {t('Include time')}
-            </CheckboxLabel>
-            <TimeUtcWrapper>
-              <TimeInput
-                disabled={!hasTime}
-                time={time ?? DEFAULT_DAY_START_TIME}
-                setTime={newTime => {
+    <StyledPositionWrapper {...overlayProps} visible={isOpen}>
+      <SearchBarDatePickerOverlay
+        data-test-id="specific-date-picker"
+        ref={popoverRef}
+        // Otherwise clicks will propagate to the grid and close the dropdown
+        onClick={e => e.stopPropagation()}
+      >
+        {isOpen ? (
+          <Fragment>
+            <DatePicker
+              date={internalDate}
+              onChange={newDate => {
+                if (newDate instanceof Date) {
                   handleSelectDateTime(
                     createDateStringFromSelection({
-                      date: internalDate,
-                      time: newTime,
+                      date: getInternalDate(newDate, utc),
+                      time,
                       utc,
                     })
                   );
-                }}
-              />
-              <UtcPickerLabel>
-                {t('UTC')}
+                }
+              }}
+            />
+            <ControlsWrapper>
+              <CheckboxLabel>
                 <Checkbox
-                  disabled={!hasTime}
+                  checked={hasTime}
                   onChange={e => {
+                    if (e.target.checked) {
+                      handleSelectDateTime(
+                        createDateStringFromSelection({
+                          date: internalDate,
+                          time: DEFAULT_DAY_START_TIME,
+                          utc,
+                        })
+                      );
+                    } else {
+                      handleSelectDateTime(
+                        createDateStringFromSelection({
+                          date: internalDate,
+                          utc: true,
+                        })
+                      );
+                    }
+                  }}
+                />
+                {t('Include time')}
+              </CheckboxLabel>
+              <TimeUtcWrapper>
+                <TimeInput
+                  disabled={!hasTime}
+                  time={time ?? DEFAULT_DAY_START_TIME}
+                  setTime={newTime => {
                     handleSelectDateTime(
                       createDateStringFromSelection({
                         date: internalDate,
-                        time,
-                        utc: e.target.checked,
+                        time: newTime,
+                        utc,
                       })
                     );
                   }}
-                  checked={utc}
                 />
-              </UtcPickerLabel>
-            </TimeUtcWrapper>
-          </ControlsWrapper>
-          <ButtonsFooter>
-            <ButtonBar gap={1}>
-              <Button
-                size="xs"
-                icon={<IconArrow direction="left" />}
-                onClick={handleBack}
-              >
-                {t('Back')}
-              </Button>
-              <Button
-                size="xs"
-                priority="primary"
-                disabled={!dateString}
-                onClick={() => {
-                  handleSave?.(dateString!);
-                }}
-              >
-                {t('Save')}
-              </Button>
-            </ButtonBar>
-          </ButtonsFooter>
-        </Fragment>
-      ) : null}
-    </SearchBarDatePickerOverlay>
+                <UtcPickerLabel>
+                  {t('UTC')}
+                  <Checkbox
+                    disabled={!hasTime}
+                    onChange={e => {
+                      handleSelectDateTime(
+                        createDateStringFromSelection({
+                          date: internalDate,
+                          time,
+                          utc: e.target.checked,
+                        })
+                      );
+                    }}
+                    checked={utc}
+                  />
+                </UtcPickerLabel>
+              </TimeUtcWrapper>
+            </ControlsWrapper>
+            <ButtonsFooter>
+              <ButtonBar gap={1}>
+                <Button
+                  size="xs"
+                  icon={<IconArrow direction="left" />}
+                  onClick={handleBack}
+                >
+                  {t('Back')}
+                </Button>
+                <Button
+                  size="xs"
+                  priority="primary"
+                  disabled={!dateString}
+                  onClick={() => {
+                    handleSave?.(dateString!);
+                  }}
+                >
+                  {t('Save')}
+                </Button>
+              </ButtonBar>
+            </ButtonsFooter>
+          </Fragment>
+        ) : null}
+      </SearchBarDatePickerOverlay>
+    </StyledPositionWrapper>
   );
 }
 
@@ -259,6 +263,11 @@ const TimeInput = forwardRef(
     );
   }
 );
+
+const StyledPositionWrapper = styled('div')<{visible?: boolean}>`
+  display: ${p => (p.visible ? 'block' : 'none')};
+  z-index: ${p => p.theme.zIndex.tooltip};
+`;
 
 const SearchBarDatePickerOverlay = styled(Overlay)`
   min-width: 332px;

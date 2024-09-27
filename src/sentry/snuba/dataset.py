@@ -52,6 +52,8 @@ class Dataset(Enum):
     indexed spans are similar to indexed transactions in the fields available to search
     """
 
+    SpansEAP = "eap_spans"
+
     MetricsSummaries = "metrics_summaries"
     """
     Summaries of all metrics within a span. Used to correlate indexed
@@ -82,3 +84,4 @@ class EntityKey(Enum):
 @unique
 class StorageKey(Enum):
     ProfileChunks = "profile_chunks"
+    SearchIssues = "search_issues"

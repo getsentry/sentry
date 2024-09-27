@@ -257,7 +257,7 @@ function MonitorForm({
       <StyledList symbol="colored-numeric">
         <StyledListItem>{t('Add a name and project')}</StyledListItem>
         <ListItemSubText>{t('The name will show up in notifications.')}</ListItemSubText>
-        <InputGroup>
+        <InputGroup noPadding>
           <TextField
             name="name"
             label={t('Name')}
@@ -310,7 +310,7 @@ function MonitorForm({
             link: <ExternalLink href="https://en.wikipedia.org/wiki/Cron" />,
           })}
         </ListItemSubText>
-        <InputGroup>
+        <InputGroup noPadding>
           {monitor !== undefined && (
             <StyledAlert type="info">
               {t(
@@ -551,9 +551,6 @@ export default MonitorForm;
 
 const StyledList = styled(List)`
   width: 800px;
-  ${FieldWrapper} {
-    padding: 0;
-  }
 `;
 
 const StyledAlert = styled(Alert)`
@@ -576,13 +573,17 @@ const ListItemSubText = styled(Text)`
   color: ${p => p.theme.subText};
 `;
 
-const InputGroup = styled('div')`
+const InputGroup = styled('div')<{noPadding?: boolean}>`
   padding-left: ${space(4)};
   margin-top: ${space(1)};
   margin-bottom: ${space(4)};
   display: flex;
   flex-direction: column;
   gap: ${space(1)};
+
+  ${FieldWrapper} {
+    ${p => p.noPadding && `padding: 0;`};
+  }
 `;
 
 const MultiColumnInput = styled('div')<{columns?: string}>`

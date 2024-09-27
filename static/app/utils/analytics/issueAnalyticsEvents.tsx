@@ -2,6 +2,7 @@ import type {SourceMapProcessingIssueType} from 'sentry/components/events/interf
 import type {FieldValue} from 'sentry/components/forms/model';
 import type {PriorityLevel} from 'sentry/types/group';
 import type {IntegrationType} from 'sentry/types/integrations';
+import type {Broadcast} from 'sentry/types/system';
 import type {BaseEventAnalyticsParams} from 'sentry/utils/analytics/workflowAnalyticsEvents';
 import type {CommonGroupAnalyticsData} from 'sentry/utils/events';
 
@@ -139,6 +140,9 @@ export type IssueEventParameters = {
   'issue_details.sourcemap_wizard_copy': SourceMapWizardParam;
   'issue_details.sourcemap_wizard_dismiss': SourceMapWizardParam;
   'issue_details.sourcemap_wizard_learn_more': SourceMapWizardParam;
+  'issue_details.streamline_ui_toggle': {
+    isEnabled: boolean;
+  };
   'issue_details.view_hierarchy.hover_rendering_system': {
     platform?: string;
     user_org_role?: string;
@@ -217,6 +221,32 @@ export type IssueEventParameters = {
     search_source: string;
     search_type: string;
   };
+  'issue_views.add_view.all_saved_searches_saved': {};
+  'issue_views.add_view.banner_dismissed': {};
+  'issue_views.add_view.clicked': {};
+  'issue_views.add_view.custom_query_saved': {
+    query: string;
+  };
+  'issue_views.add_view.recommended_view_saved': {
+    label: string;
+    persisted: boolean;
+    query: string;
+  };
+  'issue_views.add_view.saved_search_saved': {
+    query: string;
+  };
+  'issue_views.deleted_view': {};
+  'issue_views.discarded_changes': {};
+  'issue_views.duplicated_view': {};
+  'issue_views.renamed_view': {};
+  'issue_views.reordered_views': {};
+  'issue_views.saved_changes': {};
+  'issue_views.shared_view_opened': {
+    query: string;
+  };
+  'issue_views.switched_views': {};
+  'issue_views.temp_view_discarded': {};
+  'issue_views.temp_view_saved': {};
   'issues_stream.archived': {
     action_status_details?: string;
     action_substatus?: string | null;
@@ -244,6 +274,7 @@ export type IssueEventParameters = {
     priority: PriorityLevel;
   };
   'issues_tab.viewed': {
+    issue_views_enabled: boolean;
     num_issues: number;
     num_new_issues: number;
     num_old_issues: number;
@@ -293,7 +324,8 @@ export type IssueEventParameters = {
   'tag.clicked': {
     is_clickable: boolean;
   };
-  'whats_new.link_clicked': {title?: string};
+  'whats_new.link_clicked': Pick<Broadcast, 'title'> &
+    Partial<Pick<Broadcast, 'category'>>;
 };
 
 export type IssueEventKey = keyof IssueEventParameters;
@@ -327,6 +359,7 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
     'Issue Details: Similar Issues: Diff Clicked',
   'issue_details.similar_issues.similarity_embeddings_feedback_recieved':
     'Issue Details: Similar Issues: Similarity Embeddings Feedback Recieved',
+  'issue_details.streamline_ui_toggle': 'Streamline: UI Toggle Clicked',
   'issue_details.view_hierarchy.hover_rendering_system':
     'View Hierarchy: Hovered rendering system icon',
   'issue_details.view_hierarchy.select_from_tree': 'View Hierarchy: Selection from tree',
@@ -343,6 +376,24 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_error_banner.proguard_misconfigured.clicked':
     'Proguard Potentially Misconfigured Issue Error Banner Link Clicked',
   'issues_tab.viewed': 'Viewed Issues Tab',
+  'issue_views.switched_views': 'Issue Views: Switched Views',
+  'issue_views.saved_changes': 'Issue Views: Updated View',
+  'issue_views.discarded_changes': 'Issue Views: Discarded Changes',
+  'issue_views.renamed_view': 'Issue Views: Renamed View',
+  'issue_views.duplicated_view': 'Issue Views: Duplicated View',
+  'issue_views.deleted_view': 'Issue Views: Deleted View',
+  'issue_views.reordered_views': 'Issue Views: Views Reordered',
+  'issue_views.add_view.clicked': 'Issue Views: Add View Clicked',
+  'issue_views.add_view.custom_query_saved':
+    'Issue Views: Custom Query Saved From Add View',
+  'issue_views.add_view.saved_search_saved': 'Issue Views: Saved Search Saved',
+  'issue_views.add_view.all_saved_searches_saved':
+    'Issue Views: All Saved Searches Saved',
+  'issue_views.add_view.recommended_view_saved': 'Issue Views: Recommended View Saved',
+  'issue_views.add_view.banner_dismissed': 'Issue Views: Add View Banner Dismissed',
+  'issue_views.shared_view_opened': 'Issue Views: Shared View Opened',
+  'issue_views.temp_view_discarded': 'Issue Views: Temporary View Discarded',
+  'issue_views.temp_view_saved': 'Issue Views: Temporary View Saved',
   'issue_search.failed': 'Issue Search: Failed',
   'issue_search.empty': 'Issue Search: Empty',
   'issue.search_sidebar_clicked': 'Issue Search Sidebar Clicked',

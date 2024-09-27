@@ -33,8 +33,8 @@ class Email(Model):
 
     @classmethod
     def query_for_relocation_export(cls, q: models.Q, pk_map: PrimaryKeyMap) -> models.Q:
-        from sentry.models.useremail import UserEmail
         from sentry.users.models.user import User
+        from sentry.users.models.useremail import UserEmail
 
         # `Sentry.Email` models don't have any explicit dependencies on `Sentry.User`, so we need to
         # find them manually via `UserEmail`.

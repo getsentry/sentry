@@ -1,5 +1,4 @@
 import {Component, Fragment} from 'react';
-import type {WithRouterProps} from 'react-router';
 import type {useSortable} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
@@ -21,16 +20,13 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
+import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {getFormattedDate} from 'sentry/utils/dates';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {parseFunction} from 'sentry/utils/discover/fields';
-import {
-  hasCustomMetrics,
-  hasCustomMetricsExtractionRules,
-} from 'sentry/utils/metrics/features';
-import {VirtualMetricsContextProvider} from 'sentry/utils/metrics/virtualMetricsContext';
+import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import {hasOnDemandMetricWidgetFeature} from 'sentry/utils/onDemandMetrics/features';
 import {ExtractedMetricsTag} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {
@@ -45,6 +41,7 @@ import withPageFilters from 'sentry/utils/withPageFilters';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
 import {DASHBOARD_CHART_GROUP} from 'sentry/views/dashboards/dashboard';
+import {DiscoverSplitAlert} from 'sentry/views/dashboards/discoverSplitAlert';
 import {MetricWidgetCard} from 'sentry/views/dashboards/metrics/widgetCard';
 import {Toolbar} from 'sentry/views/dashboards/widgetCard/toolbar';
 
@@ -173,25 +170,29 @@ class WidgetCard extends Component<Props, State> {
     }
 
     return (
-      <WidgetCardContextMenu
-        organization={organization}
-        widget={widget}
-        selection={selection}
-        showContextMenu={showContextMenu}
-        isPreview={isPreview}
-        widgetLimitReached={widgetLimitReached}
-        onDuplicate={onDuplicate}
-        onEdit={onEdit}
-        onDelete={onDelete}
-        router={router}
-        location={location}
-        index={index}
-        seriesData={seriesData}
-        seriesResultsType={seriesResultsType}
-        tableData={tableData}
-        pageLinks={pageLinks}
-        totalIssuesCount={totalIssuesCount}
-      />
+      <StyledWidgetCardContextMenuContainer>
+        <WidgetCardContextMenu
+          organization={organization}
+          widget={widget}
+          selection={selection}
+          showContextMenu={showContextMenu}
+          isPreview={isPreview}
+          widgetLimitReached={widgetLimitReached}
+          onDuplicate={onDuplicate}
+          onEdit={onEdit}
+          onDelete={onDelete}
+          router={router}
+          location={location}
+          index={index}
+          seriesData={seriesData}
+          seriesResultsType={seriesResultsType}
+          tableData={tableData}
+          pageLinks={pageLinks}
+          totalIssuesCount={totalIssuesCount}
+          description={widget.description}
+          title={widget.title}
+        />
+      </StyledWidgetCardContextMenuContainer>
     );
   }
 
@@ -282,25 +283,7 @@ class WidgetCard extends Component<Props, State> {
 
     if (widget.widgetType === WidgetType.METRICS) {
       if (hasCustomMetrics(organization)) {
-        return hasCustomMetricsExtractionRules(organization) ? (
-          <VirtualMetricsContextProvider>
-            <MetricWidgetCard
-              index={this.props.index}
-              isEditingDashboard={this.props.isEditingDashboard}
-              onEdit={this.props.onEdit}
-              onDelete={this.props.onDelete}
-              onDuplicate={this.props.onDuplicate}
-              router={this.props.router}
-              location={this.props.location}
-              organization={organization}
-              selection={selection}
-              widget={widget}
-              dashboardFilters={dashboardFilters}
-              renderErrorMessage={renderErrorMessage}
-              showContextMenu={this.props.showContextMenu}
-            />
-          </VirtualMetricsContextProvider>
-        ) : (
+        return (
           <MetricWidgetCard
             index={this.props.index}
             isEditingDashboard={this.props.isEditingDashboard}
@@ -333,7 +316,7 @@ class WidgetCard extends Component<Props, State> {
               }
               disabled={Number(this.props.index) !== 0}
             >
-              <WidgetCardPanel isDragging={false}>
+              <WidgetCardPanel isDragging={false} aria-label={t('Widget panel')}>
                 <WidgetHeaderWrapper>
                   <WidgetHeaderDescription>
                     <WidgetTitleRow>
@@ -353,17 +336,8 @@ class WidgetCard extends Component<Props, State> {
                         )}
                       <ExtractedMetricsTag queryKey={widget} />
                       <DisplayOnDemandWarnings widget={widget} />
+                      <DiscoverSplitAlert widget={widget} />
                     </WidgetTitleRow>
-                    {widget.description && (
-                      <Tooltip
-                        title={widget.description}
-                        containerDisplayMode="grid"
-                        showOnlyOnOverflow
-                        isHoverable
-                      >
-                        <WidgetDescription>{widget.description}</WidgetDescription>
-                      </Tooltip>
-                    )}
                   </WidgetHeaderDescription>
                   {this.renderContextMenu()}
                 </WidgetHeaderWrapper>
@@ -519,6 +493,11 @@ const ErrorCard = styled(Placeholder)`
   margin-bottom: ${space(2)};
 `;
 
+const StyledWidgetCardContextMenuContainer = styled('div')`
+  opacity: 1;
+  transition: opacity 0.1s;
+`;
+
 export const WidgetCardPanel = styled(Panel, {
   shouldForwardProp: prop => prop !== 'isDragging',
 })<{
@@ -531,6 +510,19 @@ export const WidgetCardPanel = styled(Panel, {
   min-height: 96px;
   display: flex;
   flex-direction: column;
+
+  &:not(:hover):not(:focus-within) {
+    ${StyledWidgetCardContextMenuContainer} {
+      opacity: 0;
+      clip: rect(0 0 0 0);
+      clip-path: inset(50%);
+      height: 1px;
+      overflow: hidden;
+      position: absolute;
+      white-space: nowrap;
+      width: 1px;
+    }
+  }
 `;
 
 const StoredDataAlert = styled(Alert)`
@@ -555,7 +547,7 @@ export const WidgetDescription = styled('small')`
 
 const WidgetTitle = styled(HeaderTitle)`
   ${p => p.theme.overflowEllipsis};
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeightBold};
 `;
 
 const WidgetHeaderWrapper = styled('div')`

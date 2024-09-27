@@ -1,5 +1,4 @@
 import {useCallback, useMemo} from 'react';
-import type {WithRouterProps} from 'react-router';
 import type {Location} from 'history';
 
 import {updateProjects} from 'sentry/actionCreators/pageFilters';
@@ -9,6 +8,7 @@ import Link from 'sentry/components/links/link';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import {t, tct} from 'sentry/locale';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
+import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type EventView from 'sentry/utils/discover/eventView';

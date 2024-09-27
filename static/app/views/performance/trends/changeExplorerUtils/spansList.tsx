@@ -145,7 +145,7 @@ export function SpansList(props: SpansListProps) {
 
   const {
     data: totalTransactionsBefore,
-    isLoading: transactionsLoadingBefore,
+    isPending: transactionsLoadingBefore,
     isError: transactionsErrorBefore,
   } = useDiscoverQuery(
     getQueryParams(
@@ -167,7 +167,7 @@ export function SpansList(props: SpansListProps) {
 
   const {
     data: totalTransactionsAfter,
-    isLoading: transactionsLoadingAfter,
+    isPending: transactionsLoadingAfter,
     isError: transactionsErrorAfter,
   } = useDiscoverQuery(
     getQueryParams(

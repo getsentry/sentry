@@ -1,4 +1,3 @@
-import type {RouteComponentProps} from 'react-router';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptorObject} from 'history';
@@ -12,6 +11,7 @@ import {TimeRangeSelector} from 'sentry/components/timeRangeSelector';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {DateString} from 'sentry/types/core';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {TeamWithProjects} from 'sentry/types/project';
 import {uniq} from 'sentry/utils/array/uniq';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';

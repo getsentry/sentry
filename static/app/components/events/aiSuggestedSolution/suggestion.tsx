@@ -2,7 +2,7 @@ import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import LoadingError from 'sentry/components/loadingError';
@@ -57,9 +57,9 @@ function ErrorDescription({
         action={
           <ButtonBar gap={2}>
             <Button onClick={onHideSuggestion}>{t('Dismiss')}</Button>
-            <Button priority="primary" to={`/settings/${organizationSlug}/legal/`}>
+            <LinkButton priority="primary" to={`/settings/${organizationSlug}/legal/`}>
               {t('Accept in Settings')}
-            </Button>
+            </LinkButton>
           </ButtonBar>
         }
       />
@@ -110,7 +110,7 @@ export function Suggestion({onHideSuggestion, projectSlug, event}: Props) {
 
   const {
     data,
-    isLoading: dataIsLoading,
+    isPending: dataIsLoading,
     isError: dataIsError,
     refetch: dataRefetch,
     error,

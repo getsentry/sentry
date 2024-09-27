@@ -4,7 +4,7 @@ import type {Sort} from 'sentry/utils/discover/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useSpansIndexed} from 'sentry/views/insights/common/queries/useDiscover';
 import {useEventDetails} from 'sentry/views/insights/common/queries/useEventDetails';
-import {SpanIndexedField} from 'sentry/views/insights/types';
+import {SpanIndexedField, type SpanIndexedProperty} from 'sentry/views/insights/types';
 
 const DEFAULT_SORT: Sort[] = [{field: 'timestamp', kind: 'desc'}];
 
@@ -34,7 +34,7 @@ export function useFullSpanFromTrace(
         SpanIndexedField.TRANSACTION_ID,
         SpanIndexedField.PROJECT,
         SpanIndexedField.ID,
-        ...(sorts?.map(sort => sort.field as SpanIndexedField) || []),
+        ...(sorts?.map(sort => sort.field as SpanIndexedProperty) || []),
       ],
     },
     'api.starfish.full-span-from-trace'
@@ -60,7 +60,7 @@ export function useFullSpanFromTrace(
   // N.B. There isn't a great pattern for us to merge the responses together,
   // so we're only merging the three most important properties
   return {
-    isLoading: indexedSpansResponse.isLoading || eventDetailsResponse.isLoading,
+    isLoading: indexedSpansResponse.isPending || eventDetailsResponse.isPending,
     isFetching: indexedSpansResponse.isFetching || eventDetailsResponse.isFetching,
     isError: indexedSpansResponse.isError || eventDetailsResponse.isError,
     data: fullSpan,

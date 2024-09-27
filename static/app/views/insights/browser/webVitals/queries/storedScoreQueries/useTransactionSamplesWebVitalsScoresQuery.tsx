@@ -17,7 +17,7 @@ import {
 import {mapWebVitalToOrderBy} from 'sentry/views/insights/browser/webVitals/utils/mapWebVitalToOrderBy';
 import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {useWebVitalsSort} from 'sentry/views/insights/browser/webVitals/utils/useWebVitalsSort';
-import {SpanIndexedField} from 'sentry/views/insights/types';
+import {SpanIndexedField, type SubregionCode} from 'sentry/views/insights/types';
 
 type Props = {
   transaction: string;
@@ -27,6 +27,7 @@ type Props = {
   orderBy?: WebVitals | null;
   query?: string;
   sortName?: string;
+  subregions?: SubregionCode[];
   webVital?: WebVitals;
   withProfiles?: boolean;
 };
@@ -41,6 +42,7 @@ export const useTransactionSamplesWebVitalsScoresQuery = ({
   sortName,
   webVital,
   browserTypes,
+  subregions,
 }: Props) => {
   const organization = useOrganization();
   const pageFilters = usePageFilters();
@@ -63,6 +65,12 @@ export const useTransactionSamplesWebVitalsScoresQuery = ({
   }
   if (browserTypes) {
     mutableSearch.addDisjunctionFilterValues(SpanIndexedField.BROWSER_NAME, browserTypes);
+  }
+  if (subregions) {
+    mutableSearch.addDisjunctionFilterValues(
+      SpanIndexedField.USER_GEO_SUBREGION,
+      subregions
+    );
   }
 
   const eventView = EventView.fromNewQueryWithPageFilters(
@@ -96,7 +104,12 @@ export const useTransactionSamplesWebVitalsScoresQuery = ({
 
   eventView.sorts = [sort];
 
-  const {data, isLoading, ...rest} = useDiscoverQuery({
+  const {
+    data,
+    isPending,
+    isLoading: _,
+    ...rest
+  } = useDiscoverQuery({
     eventView,
     limit: limit ?? 50,
     location,
@@ -110,7 +123,7 @@ export const useTransactionSamplesWebVitalsScoresQuery = ({
 
   const toNumber = (item: ReactText) => (item ? parseFloat(item.toString()) : undefined);
   const tableData: TransactionSampleRowWithScore[] =
-    !isLoading && data?.data.length
+    !isPending && data?.data.length
       ? (data.data.map(
           row => ({
             id: row.id?.toString(),
@@ -149,7 +162,7 @@ export const useTransactionSamplesWebVitalsScoresQuery = ({
 
   return {
     data: tableData,
-    isLoading,
+    isLoading: isPending,
     ...rest,
   };
 };

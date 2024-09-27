@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
@@ -27,35 +27,47 @@ import {ModulesOnboarding} from 'sentry/views/insights/common/components/modules
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import {DomainSelector} from 'sentry/views/insights/common/views/spans/selectors/domainSelector';
+import SubregionSelector from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
+import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {ModuleName} from 'sentry/views/insights/types';
 
 const {SPAN_OP, SPAN_DOMAIN} = BrowserStarfishFields;
 
 function ResourcesLandingPage() {
   const filters = useResourceModuleFilters();
+  const {isInDomainView} = useDomainViewFilters();
   const crumbs = useModuleBreadcrumbs('resource');
 
   return (
     <React.Fragment>
       <PageAlertProvider>
-        <Layout.Header>
-          <Layout.HeaderContent>
-            <Breadcrumbs crumbs={crumbs} />
+        {!isInDomainView && (
+          <Layout.Header>
+            <Layout.HeaderContent>
+              <Breadcrumbs crumbs={crumbs} />
 
-            <Layout.Title>
-              {MODULE_TITLE}
-              <PageHeadingQuestionTooltip
-                docsUrl={MODULE_DOC_LINK}
-                title={MODULE_DESCRIPTION}
-              />
-            </Layout.Title>
-          </Layout.HeaderContent>
-          <Layout.HeaderActions>
-            <ButtonBar gap={1}>
-              <FeedbackWidgetButton />
-            </ButtonBar>
-          </Layout.HeaderActions>
-        </Layout.Header>
+              <Layout.Title>
+                {MODULE_TITLE}
+                <PageHeadingQuestionTooltip
+                  docsUrl={MODULE_DOC_LINK}
+                  title={MODULE_DESCRIPTION}
+                />
+              </Layout.Title>
+            </Layout.HeaderContent>
+            <Layout.HeaderActions>
+              <ButtonBar gap={1}>
+                <FeedbackWidgetButton />
+              </ButtonBar>
+            </Layout.HeaderActions>
+          </Layout.Header>
+        )}
+
+        {isInDomainView && (
+          <Layout.Header>
+            <FrontendHeader module={ModuleName.RESOURCE} />
+          </Layout.Header>
+        )}
         <Layout.Body>
           <Layout.Main fullWidth>
             <PageAlert />
@@ -64,15 +76,18 @@ function ResourcesLandingPage() {
                 <ModulePageFilterBar
                   moduleName={ModuleName.RESOURCE}
                   extraFilters={
-                    <DomainSelector
-                      moduleName={ModuleName.RESOURCE}
-                      emptyOptionLocation="top"
-                      value={filters[SPAN_DOMAIN] || ''}
-                      additionalQuery={[
-                        ...DEFAULT_RESOURCE_FILTERS,
-                        `${SPAN_OP}:[${DEFAULT_RESOURCE_TYPES.join(',')}]`,
-                      ]}
-                    />
+                    <Fragment>
+                      <DomainSelector
+                        moduleName={ModuleName.RESOURCE}
+                        emptyOptionLocation="top"
+                        value={filters[SPAN_DOMAIN] || ''}
+                        additionalQuery={[
+                          ...DEFAULT_RESOURCE_FILTERS,
+                          `${SPAN_OP}:[${DEFAULT_RESOURCE_TYPES.join(',')}]`,
+                        ]}
+                      />
+                      <SubregionSelector />
+                    </Fragment>
                   }
                 />
               </ToolRibbon>

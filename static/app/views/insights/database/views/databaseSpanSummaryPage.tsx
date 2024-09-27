@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
@@ -12,6 +11,7 @@ import {EnvironmentPageFilter} from 'sentry/components/organizations/environment
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -42,6 +42,8 @@ import {ThroughputChart} from 'sentry/views/insights/database/components/charts/
 import {isAValidSort} from 'sentry/views/insights/database/components/tables/queriesTable';
 import {QueryTransactionsTable} from 'sentry/views/insights/database/components/tables/queryTransactionsTable';
 import {DEFAULT_DURATION_AGGREGATE} from 'sentry/views/insights/database/settings';
+import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import type {SpanMetricsQueryFilters} from 'sentry/views/insights/types';
 import {
   ModuleName,
@@ -61,6 +63,7 @@ type Query = {
 type Props = RouteComponentProps<Query, {groupId: string}>;
 
 export function DatabaseSpanSummaryPage({params}: Props) {
+  const {isInDomainView} = useDomainViewFilters();
   const location = useLocation<Query>();
 
   const selectedAggregate = DEFAULT_DURATION_AGGREGATE;
@@ -79,7 +82,7 @@ export function DatabaseSpanSummaryPage({params}: Props) {
 
   const sort = decodeSorts(sortField).filter(isAValidSort).at(0) ?? DEFAULT_SORT;
 
-  const {data: indexedSpansByGroupId, isLoading: areIndexedSpansByGroupIdLoading} =
+  const {data: indexedSpansByGroupId, isPending: areIndexedSpansByGroupIdLoading} =
     useSpansIndexed(
       {
         search: MutableSearch.fromQueryObject({'span.group': params.groupId}),
@@ -93,7 +96,7 @@ export function DatabaseSpanSummaryPage({params}: Props) {
       'api.starfish.span-description'
     );
 
-  const {data, isLoading: areSpanMetricsLoading} = useSpanMetrics(
+  const {data, isPending: areSpanMetricsLoading} = useSpanMetrics(
     {
       search: MutableSearch.fromQueryObject(filters),
       fields: [
@@ -116,7 +119,7 @@ export function DatabaseSpanSummaryPage({params}: Props) {
   const spanMetrics = data[0] ?? {};
 
   const {
-    isLoading: isTransactionsListLoading,
+    isPending: isTransactionsListLoading,
     data: transactionsList,
     meta: transactionsListMeta,
     error: transactionsListError,
@@ -152,7 +155,7 @@ export function DatabaseSpanSummaryPage({params}: Props) {
   };
 
   const {
-    isLoading: isThroughputDataLoading,
+    isPending: isThroughputDataLoading,
     data: throughputData,
     error: throughputError,
   } = useSpanMetricsSeries(
@@ -165,7 +168,7 @@ export function DatabaseSpanSummaryPage({params}: Props) {
   );
 
   const {
-    isLoading: isDurationDataLoading,
+    isPending: isDurationDataLoading,
     data: durationData,
     error: durationError,
   } = useSpanMetricsSeries(
@@ -183,24 +186,32 @@ export function DatabaseSpanSummaryPage({params}: Props) {
 
   return (
     <Fragment>
-      <Layout.Header>
-        <Layout.HeaderContent>
-          <Breadcrumbs
-            crumbs={[
-              ...crumbs,
-              {
-                label: 'Query Summary',
-              },
-            ]}
-          />
-          <Layout.Title>{t('Query Summary')}</Layout.Title>
-        </Layout.HeaderContent>
-        <Layout.HeaderActions>
-          <ButtonBar gap={1}>
-            <FeedbackWidgetButton />
-          </ButtonBar>
-        </Layout.HeaderActions>
-      </Layout.Header>
+      {!isInDomainView && (
+        <Layout.Header>
+          <Layout.HeaderContent>
+            <Breadcrumbs
+              crumbs={[
+                ...crumbs,
+                {
+                  label: 'Query Summary',
+                },
+              ]}
+            />
+            <Layout.Title>{t('Query Summary')}</Layout.Title>
+          </Layout.HeaderContent>
+          <Layout.HeaderActions>
+            <ButtonBar gap={1}>
+              <FeedbackWidgetButton />
+            </ButtonBar>
+          </Layout.HeaderActions>
+        </Layout.Header>
+      )}
+
+      {isInDomainView && (
+        <Layout.Header>
+          <BackendHeader module={ModuleName.DB} />
+        </Layout.Header>
+      )}
 
       <Layout.Body>
         <Layout.Main fullWidth>
@@ -272,6 +283,7 @@ export function DatabaseSpanSummaryPage({params}: Props) {
                   series={throughputData['spm()']}
                   isLoading={isThroughputDataLoading}
                   error={throughputError}
+                  filters={filters}
                 />
 
                 <DurationChart
@@ -282,6 +294,7 @@ export function DatabaseSpanSummaryPage({params}: Props) {
                   ]}
                   isLoading={isDurationDataLoading}
                   error={durationError}
+                  filters={filters}
                 />
               </ChartContainer>
             </ModuleLayout.Full>

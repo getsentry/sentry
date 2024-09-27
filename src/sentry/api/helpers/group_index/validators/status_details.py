@@ -64,6 +64,7 @@ class StatusDetailsValidator(serializers.Serializer):
             raise serializers.ValidationError(
                 "Your organization does not have access to this feature."
             )
+
         try:
             return (
                 Release.objects.filter(projects=project, organization_id=project.organization_id)

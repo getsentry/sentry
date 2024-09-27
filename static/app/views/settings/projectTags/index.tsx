@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -21,6 +20,7 @@ import {IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {TagWithTopValues} from 'sentry/types/group';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {
   setApiQueryData,
   useApiQuery,
@@ -46,14 +46,14 @@ function ProjectTags(props: Props) {
   const {projects} = useProjects();
   const {projectId} = props.params;
 
-  const project = projects.find(p => p.id === projectId);
+  const project = projects.find(p => p.slug === projectId);
 
   const api = useApi();
   const queryClient = useQueryClient();
 
   const {
     data: tags,
-    isLoading,
+    isPending,
     isError,
   } = useApiQuery<TagWithTopValues[]>(
     [`/projects/${organization.slug}/${projectId}/tags/`],
@@ -77,7 +77,7 @@ function ProjectTags(props: Props) {
     },
   });
 
-  if (isLoading) {
+  if (isPending) {
     return <LoadingIndicator />;
   }
 

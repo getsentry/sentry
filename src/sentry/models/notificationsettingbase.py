@@ -3,11 +3,11 @@ from django.conf import settings
 from django.db import models
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import BoundedBigIntegerField, DefaultFieldsModel, FlexibleForeignKey
+from sentry.db.models import BoundedBigIntegerField, DefaultFieldsModelExisting, FlexibleForeignKey
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 
 
-class NotificationSettingBase(DefaultFieldsModel):
+class NotificationSettingBase(DefaultFieldsModelExisting):
     __relocation_scope__ = RelocationScope.Excluded
 
     scope_type = models.CharField(max_length=32, null=False)

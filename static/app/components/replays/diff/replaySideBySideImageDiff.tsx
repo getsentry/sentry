@@ -1,50 +1,52 @@
 import styled from '@emotion/styled';
 
 import {Flex} from 'sentry/components/container/flex';
-import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
-import ReplayPlayer from 'sentry/components/replays/replayPlayer';
+import ReplayPlayer from 'sentry/components/replays/player/replayPlayer';
+import ReplayPlayerMeasurer from 'sentry/components/replays/player/replayPlayerMeasurer';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {ReplayPlayerEventsContextProvider} from 'sentry/utils/replays/playback/providers/replayPlayerEventsContext';
+import {ReplayPlayerPluginsContextProvider} from 'sentry/utils/replays/playback/providers/replayPlayerPluginsContext';
+import {ReplayPlayerStateContextProvider} from 'sentry/utils/replays/playback/providers/replayPlayerStateContext';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
 
 interface Props {
   leftOffsetMs: number;
-  replay: null | ReplayReader;
+  replay: ReplayReader;
   rightOffsetMs: number;
 }
 
 export function ReplaySideBySideImageDiff({leftOffsetMs, replay, rightOffsetMs}: Props) {
-  const fetching = false;
-
   return (
-    <Flex gap={space(2)} column>
+    <Flex column>
       <DiffHeader>
-        <Flex flex="1" align="center">
-          {t('Before Hydration')}
-        </Flex>
-        <Flex flex="1" align="center">
-          {t('After Hydration')}
-        </Flex>
+        <Before flex="1" align="center">
+          {t('Before')}
+        </Before>
+        <After flex="1" align="center">
+          {t('After')}
+        </After>
       </DiffHeader>
 
       <ReplayGrid>
-        <ReplayContextProvider
-          analyticsContext="replay_comparison_modal_left"
-          initialTimeOffsetMs={{offsetMs: leftOffsetMs}}
-          isFetching={fetching}
-          replay={replay}
-        >
-          <ReplayPlayer isPreview />
-        </ReplayContextProvider>
-
-        <ReplayContextProvider
-          analyticsContext="replay_comparison_modal_right"
-          initialTimeOffsetMs={{offsetMs: rightOffsetMs}}
-          isFetching={fetching}
-          replay={replay}
-        >
-          {rightOffsetMs > 0 ? <ReplayPlayer isPreview /> : <div />}
-        </ReplayContextProvider>
+        <ReplayPlayerPluginsContextProvider>
+          <ReplayPlayerEventsContextProvider replay={replay}>
+            <Border>
+              <ReplayPlayerStateContextProvider>
+                <ReplayPlayerMeasurer measure="width">
+                  {style => <ReplayPlayer style={style} offsetMs={leftOffsetMs} />}
+                </ReplayPlayerMeasurer>
+              </ReplayPlayerStateContextProvider>
+            </Border>
+            <Border>
+              <ReplayPlayerStateContextProvider>
+                <ReplayPlayerMeasurer measure="width">
+                  {style => <ReplayPlayer style={style} offsetMs={rightOffsetMs} />}
+                </ReplayPlayerMeasurer>
+              </ReplayPlayerStateContextProvider>
+            </Border>
+          </ReplayPlayerEventsContextProvider>
+        </ReplayPlayerPluginsContextProvider>
       </ReplayGrid>
     </Flex>
   );
@@ -65,9 +67,29 @@ const DiffHeader = styled('div')`
   div:last-child {
     padding-left: ${space(2)};
   }
+
+  padding: 10px 0;
 `;
 
 const ReplayGrid = styled('div')`
   display: grid;
   grid-template-columns: 1fr 1fr;
+`;
+
+export const Before = styled(Flex)`
+  color: ${p => p.theme.red300};
+`;
+
+export const After = styled(Flex)`
+  color: ${p => p.theme.green300};
+`;
+
+const Border = styled('span')`
+  border: 3px solid;
+  border-radius: ${space(0.5)};
+  border-color: ${p => p.theme.red300};
+  & + & {
+    border-color: ${p => p.theme.green300};
+  }
+  overflow: hidden;
 `;

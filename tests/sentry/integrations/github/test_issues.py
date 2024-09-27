@@ -11,7 +11,6 @@ from pytest import fixture
 
 from sentry.integrations.github import client
 from sentry.integrations.github.integration import GitHubIntegration
-from sentry.integrations.github.issues import GitHubIssueBasic
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.services.integration import integration_service
 from sentry.issues.grouptype import FeedbackGroup
@@ -239,9 +238,9 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
     def test_performance_issues_content(self):
         """Test that a GitHub issue created from a performance issue has the expected title and description"""
         event = self.create_performance_issue()
-        description = GitHubIssueBasic().get_group_description(event.group, event)
+        description = self.install.get_group_description(event.group, event)
         assert "db - SELECT `books_author`.`id`, `books_author" in description
-        title = GitHubIssueBasic().get_group_title(event.group, event)
+        title = self.install.get_group_title(event.group, event)
         assert title == "N+1 Query"
 
     def test_generic_issues_content(self):
@@ -259,11 +258,11 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
         group_event = event.for_group(event.groups[0])
         group_event.occurrence = occurrence
 
-        description = GitHubIssueBasic().get_group_description(group_event.group, group_event)
+        description = self.install.get_group_description(group_event.group, group_event)
         assert group_event.occurrence.evidence_display[0].value in description
         assert group_event.occurrence.evidence_display[1].value in description
         assert group_event.occurrence.evidence_display[2].value in description
-        title = GitHubIssueBasic().get_group_title(group_event.group, group_event)
+        title = self.install.get_group_title(group_event.group, group_event)
         assert title == group_event.occurrence.issue_title
 
     def test_error_issues_content(self):
@@ -278,9 +277,9 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
         )
         assert event.group is not None
 
-        description = GitHubIssueBasic().get_group_description(event.group, event)
+        description = self.install.get_group_description(event.group, event)
         assert "oh no" in description
-        title = GitHubIssueBasic().get_group_title(event.group, event)
+        title = self.install.get_group_title(event.group, event)
         assert title == event.title
 
     @responses.activate

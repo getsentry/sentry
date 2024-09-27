@@ -27,6 +27,7 @@ describe('QuickTraceMeta', function () {
     transactions: 0,
     errors: 0,
     performance_issues: 0,
+    transactiontoSpanChildrenCount: {},
   };
 
   it('renders basic UI', function () {
@@ -121,6 +122,7 @@ describe('QuickTraceMeta', function () {
           transactions: 1,
           errors: 0,
           performance_issues: 0,
+          transactiontoSpanChildrenCount: {},
         }}
         anchor="left"
         errorDest="issue"

@@ -1,7 +1,7 @@
 import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import type {ProfilingBreadcrumbsProps} from 'sentry/components/profiling/profilingBreadcrumbs';
@@ -95,9 +95,9 @@ function ProfileHeader({transaction, projectId, eventId}: ProfileHeaderProps) {
       <StyledHeaderActions>
         <FeedbackWidgetButton />
         {transactionTarget && (
-          <Button size="sm" onClick={handleGoToTransaction} to={transactionTarget}>
+          <LinkButton size="sm" onClick={handleGoToTransaction} to={transactionTarget}>
             {t('Go to Transaction')}
-          </Button>
+          </LinkButton>
         )}
       </StyledHeaderActions>
     </SmallerLayoutHeader>

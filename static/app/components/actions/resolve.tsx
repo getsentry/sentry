@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -229,13 +230,22 @@ function ResolveActions({
       {
         key: 'current-release',
         label: t('The current release'),
-        details: actionTitle
-          ? actionTitle
-          : latestRelease
-            ? `${formatVersion(latestRelease.version)} (${
-                isSemver ? t('semver') : t('non-semver')
-              })`
-            : null,
+        details: (
+          <CurrentReleaseWrapper>
+            {actionTitle ? (
+              actionTitle
+            ) : latestRelease ? (
+              <Fragment>
+                <div>
+                  <MaxReleaseWidthWrapper>
+                    {formatVersion(latestRelease.version)}
+                  </MaxReleaseWidthWrapper>
+                </div>{' '}
+                ({isSemver ? t('semver') : t('non-semver')})
+              </Fragment>
+            ) : null}
+          </CurrentReleaseWrapper>
+        ),
         onAction: () => onActionOrConfirm(handleCurrentReleaseResolution),
       },
       {
@@ -262,7 +272,14 @@ function ResolveActions({
             size={size}
             priority={priority}
             aria-label={t('More resolve options')}
-            icon={<Chevron weight="medium" direction={isOpen ? 'up' : 'down'} />}
+            icon={
+              <Chevron
+                light
+                color="subText"
+                weight="medium"
+                direction={isOpen ? 'up' : 'down'}
+              />
+            }
             disabled={isDisabled}
           />
         )}
@@ -400,4 +417,15 @@ const SetupReleases = styled('div')`
 const SetupReleasesHeader = styled('h6')`
   font-size: ${p => p.theme.fontSizeMedium};
   margin-bottom: ${space(1)};
+`;
+
+const CurrentReleaseWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.25)};
+`;
+
+const MaxReleaseWidthWrapper = styled('div')`
+  ${p => p.theme.overflowEllipsis};
+  max-width: 250px;
 `;

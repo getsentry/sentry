@@ -29,7 +29,10 @@ import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
+import SubregionSelector from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
 import {SampleList} from 'sentry/views/insights/common/views/spanSummaryPage/sampleList';
+import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceMetadataHeader';
 
@@ -46,15 +49,21 @@ const {
 function ResourceSummary() {
   const webVitalsModuleURL = useModuleURL('vital');
   const {groupId} = useParams();
+  const {isInDomainView} = useDomainViewFilters();
   const filters = useResourceModuleFilters();
   const selectedSpanOp = filters[SPAN_OP];
   const {
     query: {transaction},
   } = useLocation();
-  const {data, isLoading} = useSpanMetrics(
+  const {data, isPending} = useSpanMetrics(
     {
       search: MutableSearch.fromQueryObject({
         'span.group': groupId,
+        ...(filters[SpanMetricsField.USER_GEO_SUBREGION]
+          ? {
+              [SpanMetricsField.USER_GEO_SUBREGION]: `[${filters[SpanMetricsField.USER_GEO_SUBREGION].join(',')}]`,
+            }
+          : {}),
       }),
       fields: [
         `avg(${SPAN_SELF_TIME})`,
@@ -88,25 +97,33 @@ function ResourceSummary() {
 
   return (
     <React.Fragment>
-      <Layout.Header>
-        <Layout.HeaderContent>
-          <Breadcrumbs
-            crumbs={[
-              ...crumbs,
-              {
-                label: tct('[dataType] Summary', {dataType: DATA_TYPE}),
-              },
-            ]}
-          />
+      {!isInDomainView && (
+        <Layout.Header>
+          <Layout.HeaderContent>
+            <Breadcrumbs
+              crumbs={[
+                ...crumbs,
+                {
+                  label: tct('[dataType] Summary', {dataType: DATA_TYPE}),
+                },
+              ]}
+            />
 
-          <Layout.Title>{spanMetrics[SpanMetricsField.SPAN_DESCRIPTION]}</Layout.Title>
-        </Layout.HeaderContent>
-        <Layout.HeaderActions>
-          <ButtonBar gap={1}>
-            <FeedbackWidgetButton />
-          </ButtonBar>
-        </Layout.HeaderActions>
-      </Layout.Header>
+            <Layout.Title>{spanMetrics[SpanMetricsField.SPAN_DESCRIPTION]}</Layout.Title>
+          </Layout.HeaderContent>
+          <Layout.HeaderActions>
+            <ButtonBar gap={1}>
+              <FeedbackWidgetButton />
+            </ButtonBar>
+          </Layout.HeaderActions>
+        </Layout.Header>
+      )}
+
+      {isInDomainView && (
+        <Layout.Header>
+          <FrontendHeader module={ModuleName.RESOURCE} />
+        </Layout.Header>
+      )}
 
       <Layout.Body>
         <Layout.Main fullWidth>
@@ -123,9 +140,10 @@ function ResourceSummary() {
                   <RenderBlockingSelector
                     value={filters[RESOURCE_RENDER_BLOCKING_STATUS] || ''}
                   />
+                  <SubregionSelector />
                 </ToolRibbon>
                 <ResourceInfo
-                  isLoading={isLoading}
+                  isLoading={isPending}
                   avgContentLength={spanMetrics[`avg(${HTTP_RESPONSE_CONTENT_LENGTH})`]}
                   avgDecodedContentLength={
                     spanMetrics[`avg(${HTTP_DECODED_RESPONSE_CONTENT_LENGTH})`]
@@ -154,6 +172,7 @@ function ResourceSummary() {
             <ModuleLayout.Full>
               <SampleList
                 transactionRoute={webVitalsModuleURL}
+                subregions={filters[SpanMetricsField.USER_GEO_SUBREGION]}
                 groupId={groupId}
                 moduleName={ModuleName.RESOURCE}
                 transactionName={transaction as string}

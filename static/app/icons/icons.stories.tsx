@@ -1029,6 +1029,22 @@ const SECTIONS: TSection[] = [
         name: 'Tap',
         defaultProps: {},
       },
+      {
+        id: 'thumb',
+        keywords: ['feedback', 'good'],
+        additionalProps: ['direction'],
+        name: 'Thumb',
+        defaultProps: {},
+      },
+      {
+        id: 'thumb',
+        keywords: ['feedback', 'bad', 'poor'],
+        additionalProps: ['direction'],
+        name: 'Thumb',
+        defaultProps: {
+          direction: ['down'],
+        },
+      },
     ],
   },
   {

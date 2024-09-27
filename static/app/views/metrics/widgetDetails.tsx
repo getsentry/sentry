@@ -2,7 +2,7 @@ import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {
   type Field,
@@ -170,9 +170,9 @@ export function MetricDetails({
           ]}
           requireAll
         >
-          <OpenInTracesButton to={tracesTarget} size="sm">
+          <LinkButton to={tracesTarget} size="sm">
             {t('Open in Traces')}
-          </OpenInTracesButton>
+          </LinkButton>
         </Feature>
       </TabsAndAction>
       <ContentWrapper>
@@ -225,8 +225,6 @@ const ContentWrapper = styled('div')`
   position: relative;
   padding-top: ${space(1)};
 `;
-
-const OpenInTracesButton = styled(Button)``;
 
 const TabsAndAction = styled('div')`
   display: grid;

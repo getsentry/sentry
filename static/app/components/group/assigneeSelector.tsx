@@ -31,7 +31,7 @@ export function useHandleAssigneeChange({
   organization: Organization;
   onAssign?: OnAssignCallback;
 }) {
-  const {mutate: handleAssigneeChange, isLoading: assigneeLoading} = useMutation<
+  const {mutate: handleAssigneeChange, isPending: assigneeLoading} = useMutation<
     AssignableEntity | null,
     RequestError,
     AssignableEntity | null
@@ -112,6 +112,6 @@ const StyledDropdownButton = styled(Button)`
   border: none;
   padding: 0;
   height: unset;
-  border-radius: 10px;
+  border-radius: 20px;
   box-shadow: none;
 `;

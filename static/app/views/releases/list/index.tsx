@@ -1,6 +1,5 @@
 import {Fragment} from 'react';
 import {forceCheck} from 'react-lazyload';
-import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
@@ -35,6 +34,7 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {Tag} from 'sentry/types/group';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {AvatarProject, Project} from 'sentry/types/project';
 import type {Release} from 'sentry/types/release';
@@ -50,7 +50,6 @@ import withProjects from 'sentry/utils/withProjects';
 import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 
 import Header from '../components/header';
-import ReleaseFeedbackBanner from '../components/releaseFeedbackBanner';
 import ReleaseArchivedNotice from '../detail/overview/releaseArchivedNotice';
 import {isMobileRelease} from '../utils';
 
@@ -552,10 +551,6 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
           <Header />
           <Layout.Body>
             <Layout.Main fullWidth>
-              {organization.features.includes('releases-v2-banner') && (
-                <ReleaseFeedbackBanner />
-              )}
-
               {this.renderHealthCta()}
 
               <ReleasesPageFilterBar condensed>
@@ -581,6 +576,7 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
                       getTagValues={this.getTagValues}
                       placeholder={t('Search by version, build, package, or stage')}
                       searchSource="releases"
+                      showUnsubmittedIndicator
                     />
                   ) : (
                     <StyledSmartSearchBar

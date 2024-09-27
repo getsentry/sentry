@@ -9,13 +9,12 @@ import diagramFailureRate from 'sentry-images/spot/alerts-wizard-failure-rate.sv
 import diagramFID from 'sentry-images/spot/alerts-wizard-fid.svg';
 import diagramIssues from 'sentry-images/spot/alerts-wizard-issues.svg';
 import diagramLCP from 'sentry-images/spot/alerts-wizard-lcp.svg';
-import diagramSpanMetrics from 'sentry-images/spot/alerts-wizard-span-metrics.svg';
 import diagramThroughput from 'sentry-images/spot/alerts-wizard-throughput.svg';
 import diagramTransactionDuration from 'sentry-images/spot/alerts-wizard-transaction-duration.svg';
+import diagramUptime from 'sentry-images/spot/alerts-wizard-uptime.svg';
 import diagramUsers from 'sentry-images/spot/alerts-wizard-users-experiencing-errors.svg';
 
-import ExternalLink from 'sentry/components/links/externalLink';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 
 import type {AlertType} from './options';
 
@@ -144,21 +143,6 @@ export const AlertWizardPanelContent: Record<AlertType, PanelContent> = {
     ],
     illustration: diagramCustomMetrics,
   },
-  span_metrics: {
-    description: tct(
-      'Alert on custom [link:span metrics] that you have configured, such as number of sign-ups or duration of your login.',
-      {
-        link: <ExternalLink href="https://docs.sentry.io/product/explore/metrics/" />,
-      }
-    ),
-    examples: [
-      t('When the number of sign-ups dropped by 10% compared to the previous week.'),
-      t(
-        'When the 75th percentile of your login flow is taking longer than 500 milliseconds.'
-      ),
-    ],
-    illustration: diagramSpanMetrics,
-  },
   llm_tokens: {
     description: t(
       'Receive an alert when the total number of tokens used by your LLMs reaches a limit.'
@@ -171,6 +155,14 @@ export const AlertWizardPanelContent: Record<AlertType, PanelContent> = {
       'Receive an alert when the total cost of tokens used by your LLMs reaches a limit.'
     ),
     examples: [t('When there are more than $100 used by LLM  within an hour')],
+    illustration: diagramCustomMetrics,
+  },
+  insights_metrics: {
+    description: t('Alert on insights metrics.'),
+    examples: [
+      t('When your average time in queue exceeds 100ms.'),
+      t('When your app runs more than 1000 queries in a minute.'),
+    ],
     illustration: diagramCustomMetrics,
   },
   crash_free_sessions: {
@@ -190,5 +182,16 @@ export const AlertWizardPanelContent: Record<AlertType, PanelContent> = {
       t('When the Crash Free Rate is below 97%, send an email notification to yourself.'),
     ],
     illustration: diagramCrashFreeUsers,
+  },
+  uptime_monitor: {
+    description: t(
+      'Alert when the availability or reliability of a monitored URL changes, providing instant notifications and insights to quickly detect and resolve issues.'
+    ),
+    examples: [
+      t('When the URL returns a response status code other than 200.'),
+      t('When the URL response times out after 20 seconds.'),
+      t('When a DNS resolution error is detected for the URL.'),
+    ],
+    illustration: diagramUptime,
   },
 };

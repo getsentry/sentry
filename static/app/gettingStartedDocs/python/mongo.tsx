@@ -1,9 +1,10 @@
 import ExternalLink from 'sentry/components/links/externalLink';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import type {
-  Docs,
-  DocsParams,
-  OnboardingConfig,
+import {
+  type Docs,
+  DocsPageLocation,
+  type DocsParams,
+  type OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getPythonMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {crashReportOnboardingPython} from 'sentry/gettingStartedDocs/python/python';
@@ -42,23 +43,22 @@ const onboarding: OnboardingConfig = {
     {
       type: StepType.INSTALL,
       description: tct(
-        'Install [sentrySdkCode:sentry-sdk] from PyPI with the [pymongoCode:pymongo] extra:',
+        'Install [code:sentry-sdk] from PyPI with the [code:pymongo] extra:',
         {
-          sentrySdkCode: <code />,
-          pymongoCode: <code />,
+          code: <code />,
         }
       ),
       configurations: [
         {
-          description: params.isProfilingSelected
-            ? tct(
-                'You need a minimum version [codeVersion:1.18.0] of the [codePackage:sentry-python] SDK for the profiling feature.',
-                {
-                  codeVersion: <code />,
-                  codePackage: <code />,
-                }
-              )
-            : undefined,
+          description:
+            params.docsLocation === DocsPageLocation.PROFILING_PAGE
+              ? tct(
+                  'You need a minimum version [code:1.18.0] of the [code:sentry-python] SDK for the profiling feature.',
+                  {
+                    code: <code />,
+                  }
+                )
+              : undefined,
           language: 'bash',
           code: getInstallSnippet(),
         },

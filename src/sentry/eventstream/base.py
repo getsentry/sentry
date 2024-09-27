@@ -6,6 +6,8 @@ from datetime import datetime
 from enum import Enum
 from typing import TYPE_CHECKING, Any, Optional, TypedDict, cast
 
+from django.conf import settings
+
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.tasks.post_process import post_process_group
 from sentry.utils.cache import cache_key_for_event
@@ -100,11 +102,15 @@ class EventStream(Service):
     def _get_queue_for_post_process(self, event: Event | GroupEvent) -> str:
         event_type = self._get_event_type(event)
         if event_type == EventStreamEventType.Transaction:
-            return "post_process_transactions"
+            default_queue = "post_process_transactions"
         elif event_type == EventStreamEventType.Generic:
-            return "post_process_issue_platform"
+            default_queue = "post_process_issue_platform"
         else:
-            return "post_process_errors"
+            default_queue = "post_process_errors"
+
+        return settings.SENTRY_POST_PROCESS_QUEUE_SPLIT_ROUTER.get(
+            default_queue, lambda: default_queue
+        )()
 
     def _get_occurrence_data(self, event: Event | GroupEvent) -> MutableMapping[str, Any]:
         occurrence = cast(Optional[IssueOccurrence], getattr(event, "occurrence", None))

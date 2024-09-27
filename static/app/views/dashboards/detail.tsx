@@ -1,5 +1,5 @@
-import {cloneElement, Component, isValidElement} from 'react';
-import type {PlainRoute, RouteComponentProps} from 'react-router';
+import {cloneElement, Component, Fragment, isValidElement} from 'react';
+import type {Location} from 'react-router-dom';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 import isEqualWith from 'lodash/isEqualWith';
@@ -27,6 +27,7 @@ import {USING_CUSTOMER_DOMAIN} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
+import type {PlainRoute, RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
@@ -37,6 +38,7 @@ import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metr
 import {MetricsResultsMetaProvider} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {OnDemandControlProvider} from 'sentry/utils/performance/contexts/onDemandControl';
+import {OnRouteLeave} from 'sentry/utils/reactRouter6Compat/onRouteLeave';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -175,9 +177,6 @@ class DashboardDetail extends Component<Props, State> {
   };
 
   componentDidMount() {
-    const {route, router} = this.props;
-    router.setRouteLeaveHook(route, this.onRouteLeave);
-    window.addEventListener('beforeunload', this.onUnload);
     this.checkIfShouldMountWidgetViewerModal();
   }
 
@@ -188,10 +187,6 @@ class DashboardDetail extends Component<Props, State> {
       // Widget builder can toggle Edit state when saving
       this.setState({dashboardState: this.props.initialState});
     }
-  }
-
-  componentWillUnmount() {
-    window.removeEventListener('beforeunload', this.onUnload);
   }
 
   checkIfShouldMountWidgetViewerModal() {
@@ -343,39 +338,25 @@ class DashboardDetail extends Component<Props, State> {
     });
   };
 
-  onRouteLeave = () => {
-    const {dashboard} = this.props;
-    const {modifiedDashboard} = this.state;
-
+  onLegacyRouteLeave = () => {
     if (
       ![
         DashboardState.VIEW,
         DashboardState.PENDING_DELETE,
         DashboardState.PREVIEW,
       ].includes(this.state.dashboardState) &&
-      !isEqual(modifiedDashboard, dashboard)
+      !isEqual(this.state.modifiedDashboard, this.props.dashboard)
     ) {
       return UNSAVED_MESSAGE;
     }
     return undefined;
   };
 
-  onUnload = (event: BeforeUnloadEvent) => {
-    const {dashboard} = this.props;
-    const {modifiedDashboard} = this.state;
-
-    if (
-      [
-        DashboardState.VIEW,
-        DashboardState.PENDING_DELETE,
-        DashboardState.PREVIEW,
-      ].includes(this.state.dashboardState) ||
-      isEqual(modifiedDashboard, dashboard)
-    ) {
-      return;
-    }
-    event.preventDefault();
-    event.returnValue = UNSAVED_MESSAGE;
+  onRouteLeave = (state: {currentLocation: Location; nextLocation: Location}) => {
+    return (
+      state.currentLocation.pathname !== state.nextLocation.pathname &&
+      !!this.onLegacyRouteLeave()
+    );
   };
 
   onDelete = (dashboard: State['modifiedDashboard']) => () => {
@@ -719,29 +700,43 @@ class DashboardDetail extends Component<Props, State> {
     }));
   };
 
-  renderWidgetBuilder() {
+  renderWidgetBuilder = () => {
     const {children, dashboard, onDashboardUpdate} = this.props;
     const {modifiedDashboard} = this.state;
 
-    return isValidElement(children)
-      ? cloneElement<any>(children, {
-          dashboard: modifiedDashboard ?? dashboard,
-          onSave: this.isEditingDashboard
-            ? this.onUpdateWidget
-            : this.handleUpdateWidgetList,
-          updateDashboardSplitDecision: (widgetId: string, splitDecision: WidgetType) => {
-            handleUpdateDashboardSplit({
-              widgetId,
-              splitDecision,
-              dashboard,
-              modifiedDashboard,
-              stateSetter: this.setState.bind(this),
-              onDashboardUpdate,
-            });
-          },
-        })
-      : children;
-  }
+    return (
+      <Fragment>
+        <OnRouteLeave
+          router={this.props.router}
+          route={this.props.route}
+          message={UNSAVED_MESSAGE}
+          legacyWhen={this.onLegacyRouteLeave}
+          when={this.onRouteLeave}
+        />
+        {isValidElement(children)
+          ? cloneElement<any>(children, {
+              dashboard: modifiedDashboard ?? dashboard,
+              onSave: this.isEditingDashboard
+                ? this.onUpdateWidget
+                : this.handleUpdateWidgetList,
+              updateDashboardSplitDecision: (
+                widgetId: string,
+                splitDecision: WidgetType
+              ) => {
+                handleUpdateDashboardSplit({
+                  widgetId,
+                  splitDecision,
+                  dashboard,
+                  modifiedDashboard,
+                  stateSetter: this.setState.bind(this),
+                  onDashboardUpdate,
+                });
+              },
+            })
+          : children}
+      </Fragment>
+    );
+  };
 
   renderDefaultDashboardDetail() {
     const {organization, dashboard, dashboards, params, router, location} = this.props;
@@ -760,6 +755,13 @@ class DashboardDetail extends Component<Props, State> {
           },
         }}
       >
+        <OnRouteLeave
+          router={this.props.router}
+          route={this.props.route}
+          message={UNSAVED_MESSAGE}
+          legacyWhen={this.onLegacyRouteLeave}
+          when={this.onRouteLeave}
+        />
         <Layout.Page withPadding>
           <OnDemandControlProvider location={location}>
             <MetricsResultsMetaProvider>
@@ -887,6 +889,13 @@ class DashboardDetail extends Component<Props, State> {
             },
           }}
         >
+          <OnRouteLeave
+            router={this.props.router}
+            route={this.props.route}
+            message={UNSAVED_MESSAGE}
+            legacyWhen={this.onLegacyRouteLeave}
+            when={this.onRouteLeave}
+          />
           <Layout.Page>
             <OnDemandControlProvider location={location}>
               <MetricsResultsMetaProvider>

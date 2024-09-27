@@ -1,6 +1,5 @@
 import type {ChangeEvent, ReactNode} from 'react';
 import {Fragment} from 'react';
-import type {RouteComponentProps} from 'react-router';
 import {components} from 'react-select';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
@@ -57,6 +56,7 @@ import {
   IssueAlertConditionType,
   IssueAlertFilterType,
 } from 'sentry/types/alerts';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {OnboardingTaskKey} from 'sentry/types/onboarding';
 import type {Member, Organization, Team} from 'sentry/types/organization';
 import type {Environment, Project} from 'sentry/types/project';
@@ -326,14 +326,10 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
     if (!ruleId && !this.isDuplicateRule) {
       // now that we've loaded all the possible conditions, we can populate the
       // value of conditions for a new alert
-      if (this.props.organization.features.includes('priority-ga-features')) {
-        this.handleChange('conditions', [
-          {id: IssueAlertConditionType.NEW_HIGH_PRIORITY_ISSUE},
-          {id: IssueAlertConditionType.EXISTING_HIGH_PRIORITY_ISSUE},
-        ]);
-      } else {
-        this.handleChange('conditions', [{id: IssueAlertConditionType.FIRST_SEEN_EVENT}]);
-      }
+      this.handleChange('conditions', [
+        {id: IssueAlertConditionType.NEW_HIGH_PRIORITY_ISSUE},
+        {id: IssueAlertConditionType.EXISTING_HIGH_PRIORITY_ISSUE},
+      ]);
     }
   }
 
@@ -1181,7 +1177,6 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
     return (
       <Main fullWidth>
         <PermissionAlert access={['alerts:write']} project={project} />
-
         <StyledForm
           key={isSavedAlertRule(rule) ? rule.id : undefined}
           onCancel={this.handleCancel}

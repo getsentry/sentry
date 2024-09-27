@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 import {Observer} from 'mobx-react';
@@ -39,6 +38,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Scope} from 'sentry/types/core';
 import type {SentryApp} from 'sentry/types/integrations';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {InternalAppApiToken, NewInternalAppApiToken} from 'sentry/types/user';
 import {browserHistory} from 'sentry/utils/browserHistory';

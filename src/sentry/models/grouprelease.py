@@ -34,7 +34,7 @@ class GroupRelease(Model):
         unique_together = (("group_id", "release_id", "environment"),)
         indexes = (
             models.Index(fields=("group_id", "first_seen")),
-            models.Index(fields=("group_id", "last_seen")),
+            models.Index(fields=("group_id", "-last_seen")),
         )
 
     __repr__ = sane_repr("group_id", "release_id")

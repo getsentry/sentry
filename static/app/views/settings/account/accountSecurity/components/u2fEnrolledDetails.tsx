@@ -1,7 +1,7 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import {DateTime} from 'sentry/components/dateTime';
 import EmptyMessage from 'sentry/components/emptyMessage';
@@ -47,9 +47,9 @@ function U2fEnrolledDetails(props) {
             />
           ))}
         <AddAnotherPanelItem>
-          <Button to="/settings/account/security/mfa/u2f/enroll/" size="sm">
+          <LinkButton to="/settings/account/security/mfa/u2f/enroll/" size="sm">
             {t('Add Another Device')}
-          </Button>
+          </LinkButton>
         </AddAnotherPanelItem>
       </PanelBody>
     </Panel>

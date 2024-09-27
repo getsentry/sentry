@@ -85,7 +85,7 @@ export function CountChart({chartHeight}: Props) {
     secondaryRelease
   )} span.description:["Cold Start","Warm Start"]`;
 
-  const {data: series, isLoading: isSeriesLoading} = useEventsStatsQuery({
+  const {data: series, isPending: isSeriesLoading} = useEventsStatsQuery({
     eventView: EventView.fromNewQueryWithPageFilters(
       {
         name: '',

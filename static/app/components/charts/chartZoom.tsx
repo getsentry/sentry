@@ -1,7 +1,7 @@
 import {Component} from 'react';
-import type {InjectedRouter} from 'react-router';
 import type {
   DataZoomComponentOption,
+  ECharts,
   InsideDataZoomComponentOption,
   ToolboxComponentOption,
   XAXisComponentOption,
@@ -20,6 +20,7 @@ import type {
   EChartFinishedHandler,
   EChartRestoreHandler,
 } from 'sentry/types/echarts';
+import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import {getUtcDateString, getUtcToLocalDateObject} from 'sentry/utils/dates';
 
 const getDate = date =>
@@ -100,6 +101,15 @@ class ChartZoom extends Component<Props> {
     this.saveCurrentPeriod(this.props);
   }
 
+  componentWillUnmount(): void {
+    document.body.removeEventListener('keydown', this.handleKeyDown);
+    document.body.removeEventListener('mouseup', this.handleMouseUp);
+    this.$chart?.removeEventListener('mousedown', this.handleMouseDown);
+  }
+
+  chart?: ECharts;
+  $chart?: HTMLElement;
+  isCancellingZoom?: boolean;
   history: Period[];
   currentPeriod?: Period;
   zooming: (() => void) | null = null;
@@ -184,8 +194,33 @@ class ChartZoom extends Component<Props> {
   /**
    * Enable zoom immediately instead of having to toggle to zoom
    */
-  handleChartReady = chart => {
+  handleChartReady = (chart: ECharts) => {
     this.props.onChartReady?.(chart);
+
+    this.chart = chart;
+    this.$chart = chart.getDom();
+
+    this.$chart.addEventListener('mousedown', this.handleMouseDown);
+  };
+
+  handleKeyDown = evt => {
+    if (!this.chart) {
+      return;
+    }
+
+    // This handler only exists if mouse down was caught inside the chart.
+    // Therefore, no need to check any other state.
+    if (evt.key === 'Escape') {
+      evt.stopPropagation();
+      // Mark the component as currently cancelling a zoom selection. This allows
+      // us to prevent "restore" handlers from running
+      this.isCancellingZoom = true;
+
+      // "restore" removes the current chart zoom selection
+      this.chart.dispatchAction({
+        type: 'restore',
+      });
+    }
   };
 
   /**
@@ -194,6 +229,15 @@ class ChartZoom extends Component<Props> {
    * Updates URL state to reflect initial params
    */
   handleZoomRestore = (evt, chart) => {
+    if (this.isCancellingZoom) {
+      // If this restore is caused by a zoom cancel, do not run handlers!
+      // The regular handler restores to the earliest point in the zoom history
+      // and we do not want that. We want to cancel the selection and do nothing
+      // else. Reset `isCancellingZoom` here in case the dispatch was async
+      this.isCancellingZoom = false;
+      return;
+    }
+
     if (!this.history.length) {
       return;
     }
@@ -204,6 +248,22 @@ class ChartZoom extends Component<Props> {
     this.history = [];
 
     this.props.onRestore?.(evt, chart);
+  };
+
+  handleMouseDown = () => {
+    // Register `mouseup` and `keydown` listeners on mouse down
+    // This ensures that there is only one live listener at a time
+    // regardless of how many charts are rendered. NOTE: It's
+    // important to set `useCapture: true` in the `"keydown"` handler
+    // otherwise the Escape will close whatever modal or panel the
+    // chart is in. Those elements register their handlers _earlier_.
+    document.body.addEventListener('mouseup', this.handleMouseUp);
+    document.body.addEventListener('keydown', this.handleKeyDown, true);
+  };
+
+  handleMouseUp = () => {
+    document.body.removeEventListener('mouseup', this.handleMouseUp);
+    document.body.removeEventListener('keydown', this.handleKeyDown, true);
   };
 
   handleDataZoom = (evt, chart) => {

@@ -3,12 +3,12 @@ import styled from '@emotion/styled';
 import keyBy from 'lodash/keyBy';
 import * as qs from 'query-string';
 
-import Feature from 'sentry/components/acl/feature';
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import {Button} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import SearchBar from 'sentry/components/events/searchBar';
 import Link from 'sentry/components/links/link';
+import {SpanSearchQueryBuilder} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -20,10 +20,10 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import useRouter from 'sentry/utils/useRouter';
 import {CacheHitMissChart} from 'sentry/views/insights/cache/components/charts/hitMissChart';
 import {TransactionDurationChart} from 'sentry/views/insights/cache/components/charts/transactionDurationChart';
 import {SpanSamplesTable} from 'sentry/views/insights/cache/components/tables/spanSamplesTable';
@@ -62,11 +62,11 @@ import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanF
 
 // This is similar to http sample table, its difficult to use the generic span samples sidebar as we require a bunch of custom things.
 export function CacheSamplePanel() {
-  const router = useRouter();
+  const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();
   const {selection} = usePageFilters();
-  const supportedTags = useSpanFieldSupportedTags({
+  const {data: supportedTags} = useSpanFieldSupportedTags({
     excludedTags: [SpanIndexedField.CACHE_HIT],
   });
 
@@ -92,7 +92,7 @@ export function CacheSamplePanel() {
       organization,
       source: ModuleName.CACHE,
     });
-    router.replace({
+    navigate({
       pathname: location.pathname,
       query: {
         ...location.query,
@@ -114,7 +114,7 @@ export function CacheSamplePanel() {
     'project.id': query.project,
   };
 
-  const {data: cacheHitRateData, isLoading: isCacheHitRateLoading} = useSpanMetricsSeries(
+  const {data: cacheHitRateData, isPending: isCacheHitRateLoading} = useSpanMetricsSeries(
     {
       search: MutableSearch.fromQueryObject(filters satisfies SpanMetricsQueryFilters),
       yAxis: [`${SpanFunction.CACHE_MISS_RATE}()`],
@@ -138,7 +138,7 @@ export function CacheSamplePanel() {
       Referrer.SAMPLES_CACHE_METRICS_RIBBON
     );
 
-  const {data: transactionDurationData, isLoading: isTransactionDurationLoading} =
+  const {data: transactionDurationData, isPending: isTransactionDurationLoading} =
     useMetrics(
       {
         search: MutableSearch.fromQueryObject({
@@ -233,7 +233,7 @@ export function CacheSamplePanel() {
   const project = projects.find(p => query.project === p.id);
 
   const handleSearch = (newSpanSearchQuery: string) => {
-    router.replace({
+    navigate({
       pathname: location.pathname,
       query: {
         ...location.query,
@@ -243,10 +243,10 @@ export function CacheSamplePanel() {
   };
 
   const handleClose = () => {
-    router.replace({
-      pathname: router.location.pathname,
+    navigate({
+      pathname: location.pathname,
       query: {
-        ...router.location.query,
+        ...location.query,
         transaction: undefined,
         transactionMethod: undefined,
       },
@@ -392,8 +392,16 @@ export function CacheSamplePanel() {
             />
           </ModuleLayout.Half>
 
-          <Feature features="performance-sample-panel-search">
-            <ModuleLayout.Full>
+          <ModuleLayout.Full>
+            {organization.features.includes('search-query-builder-performance') ? (
+              <SpanSearchQueryBuilder
+                searchSource={`${ModuleName.CACHE}-sample-panel`}
+                initialQuery={query.spanSearchQuery}
+                onSearch={handleSearch}
+                placeholder={t('Search for span attributes')}
+                projects={selection.projects}
+              />
+            ) : (
               <SearchBar
                 searchSource={`${ModuleName.CACHE}-sample-panel`}
                 query={query.spanSearchQuery}
@@ -404,8 +412,8 @@ export function CacheSamplePanel() {
                 dataset={DiscoverDatasets.SPANS_INDEXED}
                 projectIds={selection.projects}
               />
-            </ModuleLayout.Full>
-          </Feature>
+            )}
+          </ModuleLayout.Full>
 
           <Fragment>
             <ModuleLayout.Full>

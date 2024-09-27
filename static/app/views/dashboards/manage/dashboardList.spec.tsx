@@ -140,11 +140,11 @@ describe('Dashboards - DashboardList', function () {
 
     expect(screen.getByRole('link', {name: 'Dashboard 1'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/dashboard/1/?'
+      '/organizations/org-slug/dashboard/1/'
     );
     expect(screen.getByRole('link', {name: 'Dashboard 2'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/dashboard/2/?'
+      '/organizations/org-slug/dashboard/2/'
     );
   });
 

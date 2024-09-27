@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 SOFT_TIMEOUT = 600
 SOFT_TIMEOUT_FUZZINESS = 10
-HARD_TIMEOUT = 7200
+HARD_TIMEOUT = 3 * 24 * 60 * 60  # 3 days = 259200 seconds
 
 REACT_MAPPING_URL = (
     "https://raw.githubusercontent.com/facebook/react/master/scripts/error-codes/codes.json"

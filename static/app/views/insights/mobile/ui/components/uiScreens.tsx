@@ -84,7 +84,7 @@ export function UIScreens() {
 
   const {
     data: topTransactionsData,
-    isLoading: topTransactionsLoading,
+    isPending: topTransactionsLoading,
     pageLinks,
   } = useTableQuery({
     eventView: tableEventView,
@@ -111,7 +111,7 @@ export function UIScreens() {
       : ''
   }`.trim();
 
-  const {data: releaseEvents, isLoading: isReleaseEventsLoading} = useTableQuery({
+  const {data: releaseEvents, isPending: isReleaseEventsLoading} = useTableQuery({
     eventView: EventView.fromNewQueryWithPageFilters(
       {
         name: '',

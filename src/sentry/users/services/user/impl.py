@@ -9,11 +9,6 @@ from django.db import router, transaction
 from django.db.models import F, Q, QuerySet
 from django.utils.text import slugify
 
-from sentry.api.serializers import (
-    DetailedSelfUserSerializer,
-    DetailedUserSerializer,
-    UserSerializer,
-)
 from sentry.api.serializers.base import Serializer, serialize
 from sentry.auth.services.auth import AuthenticationContext
 from sentry.db.models.query import in_iexact
@@ -21,13 +16,18 @@ from sentry.hybridcloud.rpc.filter_query import FilterQueryDatabaseImpl, OpaqueS
 from sentry.hybridcloud.services.organization_mapping.model import RpcOrganizationMapping
 from sentry.hybridcloud.services.organization_mapping.serial import serialize_organization_mapping
 from sentry.models.authidentity import AuthIdentity
-from sentry.models.avatars import UserAvatar
 from sentry.models.organization import OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
-from sentry.models.useremail import UserEmail
 from sentry.signals import user_signup
+from sentry.users.api.serializers.user import (
+    DetailedSelfUserSerializer,
+    DetailedUserSerializer,
+    UserSerializer,
+)
 from sentry.users.models.user import User
+from sentry.users.models.user_avatar import UserAvatar
+from sentry.users.models.useremail import UserEmail
 from sentry.users.services.user import (
     RpcAvatar,
     RpcUser,

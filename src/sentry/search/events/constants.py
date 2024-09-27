@@ -101,6 +101,7 @@ WEB_VITALS_PERFORMANCE_SCORE_WEIGHTS: dict[str, float] = {
 }
 
 TAG_KEY_RE = re.compile(r"^(sentry_tags|tags)\[(?P<tag>.*)\]$")
+TYPED_TAG_KEY_RE = re.compile(r"^(sentry_tags|tags)\[(?P<tag>.*),\s*(?P<type>.*)\]$")
 # Based on general/src/protocol/tags.rs in relay
 VALID_FIELD_PATTERN = re.compile(r"^[a-zA-Z0-9_.:-]*$")
 
@@ -262,6 +263,8 @@ FUNCTION_ALIASES = {
 
 METRICS_FUNCTION_ALIASES: dict[str, str] = {}
 
+SPAN_MODULE_CATEGORY_VALUES = ["cache", "db", "http", "queue", "resource"]
+
 SPAN_FUNCTION_ALIASES = {
     "sps": "eps",
     "spm": "epm",
@@ -318,6 +321,7 @@ DEFAULT_METRIC_TAGS = {
     "device.class",
     "environment",
     "geo.country_code",
+    "user.geo.subregion",
     "has_profile",
     "histogram_outlier",
     "http.method",

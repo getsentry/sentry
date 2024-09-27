@@ -10,10 +10,9 @@ from django.core.cache import cache
 from django.test import override_settings
 
 from fixtures.gitlab import GET_COMMIT_RESPONSE, GitLabTestCase
-from sentry.integrations.gitlab import GitlabIntegrationProvider
 from sentry.integrations.gitlab.blame import GitLabCommitResponse, GitLabFileBlameResponseItem
 from sentry.integrations.gitlab.client import GitLabApiClient, GitLabSetupApiClient
-from sentry.integrations.gitlab.integration import GitlabIntegration
+from sentry.integrations.gitlab.integration import GitlabIntegration, GitlabIntegrationProvider
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.source_code_management.commit_context import (
@@ -21,7 +20,6 @@ from sentry.integrations.source_code_management.commit_context import (
     FileBlameInfo,
     SourceLineInfo,
 )
-from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiUnauthorized
 from sentry.silo.base import SiloMode
@@ -29,6 +27,7 @@ from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_SIGNATURE_H
 from sentry.testutils.cases import IntegrationTestCase
 from sentry.testutils.helpers.integrations import get_installation_of_type
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
+from sentry.users.models.identity import Identity, IdentityProvider, IdentityStatus
 from tests.sentry.integrations.test_helpers import add_control_silo_proxy_response
 
 

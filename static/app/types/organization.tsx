@@ -52,8 +52,10 @@ export interface Organization extends OrganizationSummary {
   aggregatedDataConsent: boolean;
   alertsMemberWrite: boolean;
   allowJoinRequests: boolean;
+  allowMemberInvite: boolean;
   allowMemberProjectCreation: boolean;
   allowSharedIssues: boolean;
+  allowSuperuserAccess: boolean;
   attachmentsRole: string;
   /** @deprecated use orgRoleList instead. */
   availableRoles: {id: string; name: string}[];
@@ -257,7 +259,7 @@ export interface NewQuery {
   expired?: boolean;
   id?: string;
   interval?: string;
-  orderby?: string;
+  orderby?: string | string[];
   projects?: Readonly<number[]>;
   query?: string;
   queryDataset?: SavedQueryDatasets;
@@ -307,6 +309,10 @@ export type EventsStats = {
 // API response format for multiple series
 export type MultiSeriesEventsStats = {
   [seriesName: string]: EventsStats;
+};
+
+export type GroupedMultiSeriesEventsStats = {
+  [seriesName: string]: MultiSeriesEventsStats & {order: number};
 };
 
 export type EventsStatsSeries<F extends string> = {

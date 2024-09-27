@@ -1,10 +1,8 @@
 import {useState} from 'react';
-import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
-import Tag from 'sentry/components/badge/tag';
 import CreateAlertButton from 'sentry/components/createAlertButton';
 import {Hovercard} from 'sentry/components/hovercard';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -17,9 +15,9 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {hasCustomMetricsExtractionRules} from 'sentry/utils/metrics/features';
 import BuilderBreadCrumbs from 'sentry/views/alerts/builder/builderBreadCrumbs';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {AlertRuleType} from 'sentry/views/alerts/types';
@@ -27,6 +25,7 @@ import {AlertRuleType} from 'sentry/views/alerts/types';
 import type {AlertType, WizardRuleTemplate} from './options';
 import {
   AlertWizardAlertNames,
+  AlertWizardExtraContent,
   AlertWizardRuleTemplates,
   getAlertWizardCategories,
 } from './options';
@@ -117,7 +116,11 @@ function AlertWizard({organization, params, location, projectId}: AlertWizardPro
               priority="primary"
               to={{
                 pathname: `/organizations/${organization.slug}/alerts/new/${
-                  isMetricAlert ? AlertRuleType.METRIC : AlertRuleType.ISSUE
+                  isMetricAlert
+                    ? AlertRuleType.METRIC
+                    : alertOption === 'uptime_monitor'
+                      ? AlertRuleType.UPTIME
+                      : AlertRuleType.ISSUE
                 }/`,
                 query: {
                   ...(metricRuleTemplate ? metricRuleTemplate : {}),
@@ -163,10 +166,7 @@ function AlertWizard({organization, params, location, projectId}: AlertWizardPro
                         return [
                           alertType,
                           AlertWizardAlertNames[alertType],
-                          alertType === 'custom_metrics' &&
-                          hasCustomMetricsExtractionRules(organization) ? (
-                            <Tag type="warning">{t('deprecated')}</Tag>
-                          ) : null,
+                          AlertWizardExtraContent[alertType],
                         ];
                       })}
                       onChange={option => handleChangeAlertOption(option as AlertType)}

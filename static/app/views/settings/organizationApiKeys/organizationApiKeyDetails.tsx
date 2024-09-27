@@ -1,5 +1,3 @@
-import type {RouteComponentProps} from 'react-router';
-
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import ApiForm from 'sentry/components/forms/apiForm';
 import MultipleCheckbox from 'sentry/components/forms/controls/multipleCheckbox';
@@ -11,6 +9,7 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import {API_ACCESS_SCOPES} from 'sentry/constants';
 import {t} from 'sentry/locale';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import recreateRoute from 'sentry/utils/recreateRoute';

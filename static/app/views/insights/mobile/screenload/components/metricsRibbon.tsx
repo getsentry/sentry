@@ -75,7 +75,7 @@ export function MobileMetricsRibbon({
     projects: selection.projects,
   };
   const eventView = EventView.fromNewQueryWithLocation(newQuery, location);
-  const {data, isLoading} = useTableQuery({
+  const {data, isPending} = useTableQuery({
     eventView,
     enabled: !isReleasesLoading,
     referrer,
@@ -90,7 +90,7 @@ export function MobileMetricsRibbon({
           unit={unit}
           dataKey={dataKey}
           data={data}
-          isLoading={isLoading}
+          isLoading={isPending}
           preferredPolarity={preferredPolarity}
         />
       ))}

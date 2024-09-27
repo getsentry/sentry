@@ -54,6 +54,25 @@ export const TabsContext = createContext<TabContext>({
   setTabListState: () => {},
 });
 
+export function TabStateProvider<T extends string | number>({
+  children,
+  ...props
+}: Omit<TabsProps<T>, 'className'>) {
+  const [tabListState, setTabListState] = useState<TabListState<any>>();
+
+  return (
+    <TabsContext.Provider
+      value={{
+        rootProps: {...props, orientation: 'horizontal'},
+        tabListState,
+        setTabListState,
+      }}
+    >
+      {children}
+    </TabsContext.Provider>
+  );
+}
+
 /**
  * Root tabs component. Provides the necessary data (via React context) for
  * child components (TabList and TabPanels) to work together. See example
@@ -65,16 +84,12 @@ export function Tabs<T extends string | number>({
   children,
   ...props
 }: TabsProps<T>) {
-  const [tabListState, setTabListState] = useState<TabListState<any>>();
-
   return (
-    <TabsContext.Provider
-      value={{rootProps: {...props, orientation}, tabListState, setTabListState}}
-    >
+    <TabStateProvider orientation={orientation} {...props}>
       <TabsWrap orientation={orientation} className={className}>
         {children}
       </TabsWrap>
-    </TabsContext.Provider>
+    </TabStateProvider>
   );
 }
 

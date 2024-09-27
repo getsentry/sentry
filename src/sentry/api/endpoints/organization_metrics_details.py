@@ -6,6 +6,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationAndStaffPermission, OrganizationEndpoint
 from sentry.models.organization import Organization
+from sentry.sentry_metrics.querying.eap.metrics_details import get_eap_meta
 from sentry.sentry_metrics.querying.metadata import get_metrics_meta
 from sentry.sentry_metrics.use_case_utils import get_use_case_ids
 
@@ -26,8 +27,9 @@ class OrganizationMetricsDetailsEndpoint(OrganizationEndpoint):
             return Response(
                 {"detail": "You must supply at least one project to see its metrics"}, status=404
             )
-
-        metrics = get_metrics_meta(
+        metrics = []
+        metrics += get_eap_meta(projects)
+        metrics += get_metrics_meta(
             organization=organization, projects=projects, use_case_ids=get_use_case_ids(request)
         )
 

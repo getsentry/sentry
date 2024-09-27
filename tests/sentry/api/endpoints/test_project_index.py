@@ -4,18 +4,17 @@ from django.urls import reverse
 from rest_framework import status
 
 from sentry.constants import ObjectStatus
-from sentry.models.apitoken import ApiToken
-from sentry.models.integrations.sentry_app_installation_token import SentryAppInstallationToken
-from sentry.models.project import Project
-from sentry.models.projectkey import ProjectKey
-from sentry.silo.base import SiloMode
-from sentry.silo.safety import unguarded_write
-from sentry.tasks.deletion.hybrid_cloud import (
+from sentry.deletions.tasks.hybrid_cloud import (
     schedule_hybrid_cloud_foreign_key_jobs,
     schedule_hybrid_cloud_foreign_key_jobs_control,
 )
+from sentry.models.apitoken import ApiToken
+from sentry.models.project import Project
+from sentry.models.projectkey import ProjectKey
+from sentry.sentry_apps.models.sentry_app_installation_token import SentryAppInstallationToken
+from sentry.silo.base import SiloMode
+from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 
@@ -250,7 +249,6 @@ class ProjectsListTest(APITestCase):
         assert self.project.name.encode("utf-8") in response.content
 
     @responses.activate
-    @override_options({"hybrid_cloud.allow_cross_db_tombstones": True})
     def test_deleted_token_with_public_integration(self):
         token = self.get_installed_unpublished_sentry_app_access_token()
 

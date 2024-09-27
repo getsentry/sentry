@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING
 from sentry.identity.services.identity import RpcIdentity, RpcIdentityProvider
 
 if TYPE_CHECKING:
-    from sentry.models.identity import Identity, IdentityProvider
+    from sentry.users.models.identity import Identity, IdentityProvider
 
 
 def serialize_identity_provider(identity_provider: "IdentityProvider") -> RpcIdentityProvider:

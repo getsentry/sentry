@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from datetime import datetime
 from enum import Enum
 from typing import ClassVar
 from uuid import uuid4
@@ -223,7 +224,7 @@ class Incident(Model):
         indexes = (models.Index(fields=("alert_rule", "type", "status")),)
 
     @property
-    def current_end_date(self):
+    def current_end_date(self) -> datetime:
         """
         Returns the current end of the incident. Either the date it was closed,
         or the current time if it's still open.

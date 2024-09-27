@@ -5,6 +5,7 @@ from rest_framework.exceptions import NotFound, ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -51,6 +52,14 @@ class OrganizationMetricsTagsEndpoint(OrganizationEndpoint):
         metric_name = metric_names[0]
         if not is_mri(metric_name):
             raise BadRequest(message="Please provide a valid MRI to query a metric's tags.")
+
+        if all(
+            features.has("projects:use-eap-spans-for-metrics-explorer", project)
+            for project in projects
+        ):
+            if metric_name.startswith("d:eap"):
+                # TODO hack for EAP, return a fixed list
+                return Response([Tag(key="color"), Tag(key="location")])
 
         try:
             if metric_name.startswith("e:"):

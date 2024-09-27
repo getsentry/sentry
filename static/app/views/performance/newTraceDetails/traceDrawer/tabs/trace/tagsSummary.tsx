@@ -15,7 +15,7 @@ import {generateQueryWithTag} from 'sentry/utils';
 import type EventView from 'sentry/utils/discover/eventView';
 import {formatTagKey} from 'sentry/utils/discover/fields';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
-import type {UseInfiniteQueryResult} from 'sentry/utils/queryClient';
+import type {InfiniteData, UseInfiniteQueryResult} from 'sentry/utils/queryClient';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import StyledEmptyStateWarning from 'sentry/views/replays/detail/emptyState';
 
@@ -43,7 +43,10 @@ type TagSummaryProps = {
   eventView: EventView;
   location: Location;
   organization: Organization;
-  tagsInfiniteQueryResults: UseInfiniteQueryResult<ApiResult<Tag[]>, unknown>;
+  tagsInfiniteQueryResults: UseInfiniteQueryResult<
+    InfiniteData<ApiResult<Tag[]>, unknown>,
+    Error
+  >;
   totalValues: number | null;
 };
 
@@ -116,14 +119,18 @@ export function TagsSummary(props: TagSummaryProps) {
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-    isLoading, // If anything is loaded yet
+    isPending, // If anything is loaded yet
   } = props.tagsInfiniteQueryResults;
 
   const tags: Tag[] = useMemo(() => {
     if (!data) {
       return [];
     }
-    return data.pages.flatMap(([pageData]) => (isEmpty(pageData) ? [] : pageData));
+    // filter out replayId since we no longer want to
+    // display this trace details
+    return data.pages
+      .flatMap(([pageData]) => (isEmpty(pageData) ? [] : pageData))
+      .filter(d => d.key !== 'replayId');
   }, [data]);
 
   return (
@@ -149,7 +156,7 @@ export function TagsSummary(props: TagSummaryProps) {
                   ))}
                 </StyledTagFacetList>
               ) : null}
-              {isLoading || isFetchingNextPage ? (
+              {isPending || isFetchingNextPage ? (
                 <TagsSummaryPlaceholder />
               ) : tags.length === 0 ? (
                 <StyledEmptyStateWarning small>

@@ -274,7 +274,7 @@ class Monitor(Model):
         ]
         constraints = [
             models.CheckConstraint(
-                check=(
+                condition=(
                     models.Q(owner_team_id__isnull=False, owner_user_id__isnull=True)
                     | models.Q(owner_team_id__isnull=True, owner_user_id__isnull=False)
                     | models.Q(owner_team_id__isnull=True, owner_user_id__isnull=True)
@@ -301,8 +301,6 @@ class Monitor(Model):
 
     @property
     def owner_actor(self) -> Actor | None:
-        if not (self.owner_user_id or self.owner_team_id):
-            return None
         return Actor.from_id(user_id=self.owner_user_id, team_id=self.owner_team_id)
 
     @property

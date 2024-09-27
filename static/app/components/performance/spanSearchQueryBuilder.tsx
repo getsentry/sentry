@@ -9,7 +9,13 @@ import type {PageFilters} from 'sentry/types/core';
 import {SavedSearchType, type Tag, type TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import {isAggregateField, isMeasurement} from 'sentry/utils/discover/fields';
-import {DEVICE_CLASS_TAG_VALUES, isDeviceClass} from 'sentry/utils/fields';
+import {
+  type AggregationKey,
+  DEVICE_CLASS_TAG_VALUES,
+  FieldKind,
+  getFieldDefinition,
+  isDeviceClass,
+} from 'sentry/utils/fields';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -27,7 +33,27 @@ interface SpanSearchQueryBuilderProps {
   onSearch?: (query: string, state: CallbackSearchState) => void;
   placeholder?: string;
   projects?: PageFilters['projects'];
+  supportedAggregates?: AggregationKey[];
 }
+
+const getFunctionTags = (supportedAggregates: AggregationKey[] | undefined) => {
+  if (!supportedAggregates?.length) {
+    return {};
+  }
+
+  return supportedAggregates.reduce((acc, item) => {
+    acc[item] = {
+      key: item,
+      name: item,
+      kind: FieldKind.FUNCTION,
+    };
+    return acc;
+  }, {});
+};
+
+const getSpanFieldDefinition = (key: string) => {
+  return getFieldDefinition(key, 'span');
+};
 
 export function SpanSearchQueryBuilder({
   initialQuery,
@@ -36,26 +62,31 @@ export function SpanSearchQueryBuilder({
   onSearch,
   placeholder,
   projects,
+  supportedAggregates,
 }: SpanSearchQueryBuilderProps) {
   const api = useApi();
   const organization = useOrganization();
   const {selection} = usePageFilters();
 
+  const functionTags = useMemo(() => {
+    return getFunctionTags(supportedAggregates);
+  }, [supportedAggregates]);
+
   const placeholderText = useMemo(() => {
     return placeholder ?? t('Search for spans, users, tags, and more');
   }, [placeholder]);
 
-  const customTags = useSpanFieldCustomTags({
+  const {data: customTags} = useSpanFieldCustomTags({
     projects: projects ?? selection.projects,
   });
 
-  const supportedTags = useSpanFieldSupportedTags({
+  const {data: supportedTags} = useSpanFieldSupportedTags({
     projects: projects ?? selection.projects,
   });
 
   const filterTags: TagCollection = useMemo(() => {
-    return {...supportedTags};
-  }, [supportedTags]);
+    return {...functionTags, ...supportedTags};
+  }, [supportedTags, functionTags]);
 
   const filterKeySections = useMemo(() => {
     return [
@@ -104,13 +135,14 @@ export function SpanSearchQueryBuilder({
       placeholder={placeholderText}
       filterKeys={filterTags}
       initialQuery={initialQuery}
+      fieldDefinitionGetter={getSpanFieldDefinition}
       onSearch={onSearch}
       searchSource={searchSource}
       filterKeySections={filterKeySections}
       getTagValues={getSpanFilterTagValues}
-      disallowFreeText
       disallowUnsupportedFilters
       recentSearches={SavedSearchType.SPAN}
+      showUnsubmittedIndicator
     />
   );
 }

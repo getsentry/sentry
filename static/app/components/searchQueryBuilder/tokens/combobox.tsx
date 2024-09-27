@@ -28,7 +28,6 @@ import {
   getHiddenOptions,
 } from 'sentry/components/compactSelect/utils';
 import {GrowingInput} from 'sentry/components/growingInput';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Overlay} from 'sentry/components/overlay';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {itemIsSection} from 'sentry/components/searchQueryBuilder/tokens/utils';
@@ -56,9 +55,9 @@ type SearchQueryBuilderComboboxProps<T extends SelectOptionOrSectionWithKey<stri
   onCustomValueCommitted: (value: string) => void;
   /**
    * Called when the user selects an option from the dropdown.
-   * Passes the value of the selected item.
+   * Passes the selected option.
    */
-  onOptionSelected: (value: string) => void;
+  onOptionSelected: (option: T) => void;
   token: TokenResult<Token>;
   autoFocus?: boolean;
   /**
@@ -71,7 +70,6 @@ type SearchQueryBuilderComboboxProps<T extends SelectOptionOrSectionWithKey<stri
    */
   description?: ReactNode;
   filterValue?: string;
-  isLoading?: boolean;
   /**
    * When passing `isOpen`, the open state is controlled by the parent.
    */
@@ -107,14 +105,22 @@ type SearchQueryBuilderComboboxProps<T extends SelectOptionOrSectionWithKey<stri
   tabIndex?: number;
 };
 
-export type CustomComboboxMenu<T> = (props: {
+type OverlayProps = ReturnType<typeof useOverlay>['overlayProps'];
+
+export type CustomComboboxMenuProps<T> = {
+  filterValue: string;
   hiddenOptions: Set<SelectKey>;
   isOpen: boolean;
   listBoxProps: AriaListBoxOptions<T>;
   listBoxRef: React.RefObject<HTMLUListElement>;
+  overlayProps: OverlayProps;
   popoverRef: React.RefObject<HTMLDivElement>;
   state: ComboBoxState<T>;
-}) => React.ReactNode;
+};
+
+export type CustomComboboxMenu<T> = (
+  props: CustomComboboxMenuProps<T>
+) => React.ReactNode;
 
 const DESCRIPTION_POPPER_OPTIONS = {
   placement: 'top-start' as const,
@@ -129,12 +135,15 @@ const DESCRIPTION_POPPER_OPTIONS = {
   ],
 };
 
-function findItemInSections(items: SelectOptionOrSectionWithKey<string>[], key: Key) {
+function findItemInSections<T extends SelectOptionOrSectionWithKey<string>>(
+  items: T[],
+  key: Key
+): T | null {
   for (const item of items) {
     if (itemIsSection(item)) {
       const option = item.options.find(child => child.key === key);
       if (option) {
-        return option;
+        return option as T;
       }
     } else {
       if (item.key === key) {
@@ -149,7 +158,6 @@ function menuIsOpen({
   state,
   hiddenOptions,
   totalOptions,
-  isLoading,
   hasCustomMenu,
   isOpen,
 }: {
@@ -157,12 +165,11 @@ function menuIsOpen({
   state: ComboBoxState<any>;
   totalOptions: number;
   hasCustomMenu?: boolean;
-  isLoading?: boolean;
   isOpen?: boolean;
 }) {
   const openState = isOpen ?? state.isOpen;
 
-  if (isLoading || hasCustomMenu) {
+  if (hasCustomMenu) {
     return openState;
   }
 
@@ -200,61 +207,72 @@ function useHiddenItems<T extends SelectOptionOrSectionWithKey<string>>({
 // The menu size can change from things like loading states, long options,
 // or custom menus like a date picker. This hook ensures that the overlay
 // is updated in response to these changes.
-function useUpdateOverlayPositionOnMenuContentChange({
-  inputValue,
-  isLoading,
-  isOpen,
+function useUpdateOverlayPositionOnContentChange({
+  contentRef,
   updateOverlayPosition,
-  hasCustomMenu,
+  isOpen,
 }: {
-  inputValue: string;
+  contentRef: React.RefObject<HTMLDivElement>;
   isOpen: boolean;
   updateOverlayPosition: (() => void) | null;
-  hasCustomMenu?: boolean;
-  isLoading?: boolean;
 }) {
-  const previousValues = usePrevious({isLoading, isOpen, inputValue, hasCustomMenu});
+  const resizeObserverRef = useRef<ResizeObserver | null>(null);
+
+  // Keep a ref to the updateOverlayPosition function so that we can
+  // access the latest value in the resize observer callback.
+  const updateOverlayPositionRef = useRef(updateOverlayPosition);
+  if (updateOverlayPositionRef.current !== updateOverlayPosition) {
+    updateOverlayPositionRef.current = updateOverlayPosition;
+  }
 
   useLayoutEffect(() => {
-    if (
-      (isOpen && previousValues?.inputValue !== inputValue) ||
-      previousValues?.isLoading !== isLoading ||
-      hasCustomMenu !== previousValues?.hasCustomMenu
-    ) {
-      updateOverlayPosition?.();
+    resizeObserverRef.current = new ResizeObserver(() => {
+      if (!updateOverlayPositionRef.current) {
+        return;
+      }
+      updateOverlayPositionRef.current?.();
+    });
+
+    return () => {
+      resizeObserverRef.current?.disconnect();
+      resizeObserverRef.current = null;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useLayoutEffect(() => {
+    if (!contentRef.current || !resizeObserverRef.current || !isOpen) {
+      return () => {};
     }
-  }, [
-    inputValue,
-    isLoading,
-    isOpen,
-    previousValues,
-    updateOverlayPosition,
-    hasCustomMenu,
-  ]);
+
+    resizeObserverRef.current?.observe(contentRef.current);
+
+    return () => {
+      resizeObserverRef.current?.disconnect();
+    };
+  }, [contentRef, isOpen, updateOverlayPosition]);
 }
 
 function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
   customMenu,
   filterValue,
   hiddenOptions,
-  isLoading,
   isOpen,
   listBoxProps,
   listBoxRef,
   popoverRef,
   state,
-  totalOptions,
+  overlayProps,
 }: {
   filterValue: string;
   hiddenOptions: Set<SelectKey>;
   isOpen: boolean;
   listBoxProps: AriaListBoxOptions<any>;
   listBoxRef: React.RefObject<HTMLUListElement>;
+  overlayProps: OverlayProps;
   popoverRef: React.RefObject<HTMLDivElement>;
   state: ComboBoxState<any>;
-  totalOptions: number;
   customMenu?: CustomComboboxMenu<T>;
-  isLoading?: boolean;
 }) {
   if (customMenu) {
     return customMenu({
@@ -264,16 +282,14 @@ function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
       hiddenOptions,
       listBoxProps,
       state,
+      overlayProps,
+      filterValue,
     });
   }
 
   return (
-    <ListBoxOverlay ref={popoverRef}>
-      {isLoading && hiddenOptions.size >= totalOptions ? (
-        <LoadingWrapper>
-          <LoadingIndicator mini />
-        </LoadingWrapper>
-      ) : (
+    <StyledPositionWrapper {...overlayProps} visible={isOpen}>
+      <ListBoxOverlay ref={popoverRef}>
         <ListBox
           {...listBoxProps}
           ref={listBoxRef}
@@ -282,11 +298,10 @@ function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
           hiddenOptions={hiddenOptions}
           keyDownHandler={() => true}
           overlayIsOpen={isOpen}
-          showSectionHeaders={!filterValue}
           size="sm"
         />
-      )}
-    </ListBoxOverlay>
+      </ListBoxOverlay>
+    </StyledPositionWrapper>
   );
 }
 
@@ -316,7 +331,6 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
     shouldFilterResults = true,
     shouldCloseOnInteractOutside,
     onPaste,
-    isLoading,
     onClick,
     customMenu,
     isOpen: incomingIsOpen,
@@ -337,12 +351,14 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
   });
 
   const onSelectionChange = useCallback(
-    (key: Key) => {
+    (key: Key | null) => {
+      if (!key) {
+        return;
+      }
+
       const selectedOption = findItemInSections(items, key);
-      if (selectedOption && 'textValue' in selectedOption && selectedOption.textValue) {
-        onOptionSelected(selectedOption.textValue);
-      } else if (key) {
-        onOptionSelected(key.toString());
+      if (selectedOption) {
+        onOptionSelected(selectedOption);
       }
     },
     [items, onOptionSelected]
@@ -428,7 +444,6 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
     state,
     hiddenOptions,
     totalOptions,
-    isLoading,
     hasCustomMenu,
     isOpen: incomingIsOpen,
   });
@@ -445,7 +460,7 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
     type: 'listbox',
     isOpen,
     position: 'bottom-start',
-    offset: [-12, 8],
+    offset: [-12, 12],
     isKeyboardDismissDisabled: true,
     shouldCloseOnBlur: true,
     shouldCloseOnInteractOutside: el => {
@@ -463,7 +478,12 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
       }
       state.close();
     },
-    preventOverflowOptions: {boundary: document.body, altAxis: true},
+    shouldApplyMinWidth: false,
+    preventOverflowOptions: {boundary: document.body},
+    flipOptions: {
+      // We don't want the menu to ever flip to the other side of the input
+      fallbackPlacements: [],
+    },
   });
 
   const descriptionPopper = usePopper(
@@ -482,12 +502,10 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
     [inputProps, state, onClick]
   );
 
-  useUpdateOverlayPositionOnMenuContentChange({
-    inputValue,
-    isLoading,
-    isOpen,
+  useUpdateOverlayPositionOnContentChange({
+    contentRef: popoverRef,
     updateOverlayPosition,
-    hasCustomMenu,
+    isOpen,
   });
 
   // useCombobox will hide outside elements with aria-hidden="true" when it is open [1].
@@ -532,20 +550,17 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
           <DescriptionOverlay>{description}</DescriptionOverlay>
         </StyledPositionWrapper>
       ) : null}
-      <StyledPositionWrapper {...overlayProps} visible={isOpen}>
-        <OverlayContent
-          customMenu={customMenu}
-          filterValue={filterValue}
-          hiddenOptions={hiddenOptions}
-          isLoading={isLoading}
-          isOpen={isOpen}
-          listBoxProps={listBoxProps}
-          listBoxRef={listBoxRef}
-          popoverRef={popoverRef}
-          state={state}
-          totalOptions={totalOptions}
-        />
-      </StyledPositionWrapper>
+      <OverlayContent
+        customMenu={customMenu}
+        filterValue={filterValue}
+        hiddenOptions={hiddenOptions}
+        isOpen={isOpen}
+        listBoxProps={listBoxProps}
+        listBoxRef={listBoxRef}
+        popoverRef={popoverRef}
+        state={state}
+        overlayProps={overlayProps}
+      />
     </Wrapper>
   );
 }
@@ -604,11 +619,4 @@ const DescriptionOverlay = styled(Overlay)`
   max-width: 400px;
   padding: ${space(1)} ${space(1.5)};
   line-height: 1.2;
-`;
-
-const LoadingWrapper = styled('div')`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 140px;
 `;

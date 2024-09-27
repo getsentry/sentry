@@ -324,7 +324,7 @@ function useThroughputStats({datetime, event, group}: UseThroughputStatsOptions)
 
   if (statsType === 'functions' && functionInterval) {
     return {
-      isLoading: functionStats.isLoading,
+      isLoading: functionStats.isPending,
       isError: functionStats.isError,
       series: functionData,
     };
@@ -332,7 +332,7 @@ function useThroughputStats({datetime, event, group}: UseThroughputStatsOptions)
 
   if (statsType === 'transactions' && transactionInterval) {
     return {
-      isLoading: transactionStats.isLoading,
+      isLoading: transactionStats.isPending,
       isError: transactionStats.isError,
       series: transactionData,
     };

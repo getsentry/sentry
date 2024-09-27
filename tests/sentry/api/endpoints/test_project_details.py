@@ -13,6 +13,7 @@ from sentry_relay.processing import normalize_cardinality_limit_config
 
 from sentry import audit_log
 from sentry.constants import RESERVED_PROJECT_SLUGS, ObjectStatus
+from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.dynamic_sampling import DEFAULT_BIASES, RuleType
 from sentry.dynamic_sampling.rules.base import NEW_MODEL_THRESHOLD_IN_MINUTES
 from sentry.issues.highlights import get_highlight_preset_for_project
@@ -28,7 +29,6 @@ from sentry.models.projectownership import ProjectOwnership
 from sentry.models.projectredirect import ProjectRedirect
 from sentry.models.projectteam import ProjectTeam
 from sentry.models.rule import Rule
-from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.slug.errors import DEFAULT_SLUG_ERROR_MESSAGE
@@ -619,6 +619,7 @@ class ProjectUpdateTest(APITestCase):
             "sentry:token_header": "*",
             "sentry:verify_ssl": False,
             "sentry:replay_hydration_error_issues": True,
+            "sentry:toolbar_allowed_origins": "*.sentry.io\nexample.net  \nnugettrends.com",
             "sentry:replay_rage_click_issues": True,
             "sentry:feedback_user_report_notifications": True,
             "sentry:feedback_ai_spam_detection": True,
@@ -736,6 +737,11 @@ class ProjectUpdateTest(APITestCase):
             ).exists()
         assert project.get_option("feedback:branding") == "0"
         assert project.get_option("sentry:replay_hydration_error_issues") is True
+        assert project.get_option("sentry:toolbar_allowed_origins") == [
+            "*.sentry.io",
+            "example.net",
+            "nugettrends.com",
+        ]
         assert project.get_option("sentry:replay_rage_click_issues") is True
         assert project.get_option("sentry:feedback_user_report_notifications") is True
         assert project.get_option("sentry:feedback_ai_spam_detection") is True
@@ -1325,21 +1331,6 @@ class ProjectUpdateTest(APITestCase):
             assert resp.status_code == 200
             assert project.get_option("sentry:symbol_sources", orjson.dumps([source1]).decode())
 
-    @with_feature("organizations:metrics-extrapolation")
-    def test_extrapolate_metrics_with_permission(self):
-        # test when the value is set to False
-        resp = self.get_success_response(self.org_slug, self.proj_slug, extrapolateMetrics=False)
-        assert self.project.get_option("sentry:extrapolate_metrics") is False
-        assert resp.data["extrapolateMetrics"] is False
-        # test when the value is set to True
-        resp = self.get_success_response(self.org_slug, self.proj_slug, extrapolateMetrics=True)
-        assert self.project.get_option("sentry:extrapolate_metrics") is True
-        assert resp.data["extrapolateMetrics"] is True
-
-    def test_extrapolate_metrics_without_permission(self):
-        resp = self.get_response(self.org_slug, self.proj_slug, extrapolateMetrics=True)
-        assert resp.status_code == 400
-
     @with_feature("organizations:uptime-settings")
     def test_uptime_settings(self):
         # test when the value is set to False
@@ -1428,7 +1419,7 @@ class CopyProjectSettingsTest(APITestCase):
         # default rule
         rules = Rule.objects.filter(project_id=project.id)
         assert len(rules) == 1
-        assert rules[0].label == "Send a notification for new issues"
+        assert rules[0].label == "Send a notification for high priority issues"
 
     def test_simple(self):
         project = self.create_project()
@@ -1606,13 +1597,13 @@ class ProjectDeleteTest(APITestCase):
             model_name="Project", object_id=self.project.id
         ).exists()
 
-    @with_feature("projects:similarity-embeddings-grouping")
     @mock.patch(
         "sentry.tasks.delete_seer_grouping_records.call_seer_delete_project_grouping_records.apply_async"
     )
     def test_delete_project_and_delete_grouping_records(
         self, mock_call_seer_delete_project_grouping_records
     ):
+        self.project.update_option("sentry:similarity_backfill_completed", int(time()))
         self._delete_project_and_assert_deleted()
         mock_call_seer_delete_project_grouping_records.assert_called_with(args=[self.project.id])
 

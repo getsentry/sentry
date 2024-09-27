@@ -107,9 +107,9 @@ export function useProfilingTransactionQuickSummary(
     functions,
     // general
     isLoading:
-      slowestProfileQuery.isLoading ||
-      latestProfileQuery.isLoading ||
-      functionsQuery.isLoading,
+      slowestProfileQuery.isPending ||
+      latestProfileQuery.isPending ||
+      functionsQuery.isPending,
   };
 }
 

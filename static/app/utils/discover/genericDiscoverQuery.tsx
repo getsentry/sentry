@@ -11,6 +11,7 @@ import type EventView from 'sentry/utils/discover/eventView';
 import {isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';
 import type {QueryBatching} from 'sentry/utils/performance/contexts/genericQueryBatcher';
 import {PerformanceEventViewContext} from 'sentry/utils/performance/contexts/performanceEventViewContext';
+import type {UseQueryOptions} from 'sentry/utils/queryClient';
 
 import useApi from '../useApi';
 import useOrganization from '../useOrganization';
@@ -85,7 +86,10 @@ type BaseDiscoverQueryProps = {
    * passed, but cursor will be ignored.
    */
   noPagination?: boolean;
-  options?: Omit<Parameters<typeof useQuery>[2], 'initialData'>;
+  options?: Omit<
+    UseQueryOptions<[any, string | undefined, ResponseMeta<any> | undefined], QueryError>,
+    'queryKey' | 'queryFn'
+  >;
   /**
    * A container for query batching data and functions.
    */
@@ -144,7 +148,7 @@ type ComponentProps<T, P> = {
    * Allows components to modify the payload before it is set.
    */
   getRequestPayload?: (props: Props<T, P>) => any;
-  options?: Omit<Parameters<typeof useQuery>[2], 'initialData'>;
+  options?: BaseDiscoverQueryProps['options'];
   /**
    * An external hook to parse errors in case there are differences for a specific api.
    */
@@ -422,15 +426,15 @@ export function useGenericDiscoverQuery<T, P>(props: Props<T, P>) {
   const url = `/organizations/${orgSlug}/${route}/`;
   const apiPayload = getPayload<T, P>(props);
 
-  const res = useQuery<[T, string | undefined, ResponseMeta<T> | undefined], QueryError>(
-    [route, apiPayload],
-    ({signal: _signal}) =>
+  const res = useQuery<[T, string | undefined, ResponseMeta<T> | undefined], QueryError>({
+    queryKey: [route, apiPayload],
+    queryFn: ({signal: _signal}) =>
       doDiscoverQuery<T>(api, url, apiPayload, {
         queryBatching: props.queryBatching,
         skipAbort: props.skipAbort,
       }),
-    options
-  );
+    ...options,
+  });
 
   return {
     ...res,

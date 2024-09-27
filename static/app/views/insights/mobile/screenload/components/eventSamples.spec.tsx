@@ -104,7 +104,7 @@ describe('ScreenLoadEventSamples', function () {
     // Transaction is a link
     expect(await screen.findByRole('link', {name: '4142de70'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/performance/project1:4142de70494989c04f023ce1727ac856f31b7f92/?'
+      '/organizations/org-slug/performance/project1:4142de70494989c04f023ce1727ac856f31b7f92/'
     );
 
     // Profile is a button

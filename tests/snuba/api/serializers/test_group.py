@@ -14,13 +14,13 @@ from sentry.models.groupresolution import GroupResolution
 from sentry.models.groupsnooze import GroupSnooze
 from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.notificationsettingoption import NotificationSettingOption
-from sentry.models.options.user_option import UserOption
 from sentry.notifications.types import NotificationSettingsOptionEnum
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.group import PriorityLevel
+from sentry.users.models.user_option import UserOption
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 

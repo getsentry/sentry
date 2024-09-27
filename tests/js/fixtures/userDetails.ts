@@ -31,7 +31,7 @@ export function UserDetailsFixture(params: Partial<User> = {}): User {
       defaultIssueEvent: 'recommended',
       avatarType: 'gravatar',
       theme: 'light',
-      issueDetailsNewExperienceQ42023: false,
+      prefersIssueDetailsStreamlinedUI: false,
     },
     avatar: {avatarUuid: null, avatarType: 'letter_avatar'},
     lastLogin: '2018-01-25T19:57:46.973Z',

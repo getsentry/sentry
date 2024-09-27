@@ -10,10 +10,10 @@ from sentry.features.flagpole_context import (
     user_context_transformer,
 )
 from sentry.hybridcloud.services.organization_mapping import organization_mapping_service
-from sentry.models.useremail import UserEmail
 from sentry.organizations.services.organization import organization_service
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
+from sentry.users.models.useremail import UserEmail
 
 
 class TestSentryFlagpoleContext(TestCase):

@@ -26,11 +26,11 @@ from sentry.integrations.services.repository import repository_service
 from sentry.integrations.services.repository.model import RpcRepository
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.integrations.tasks.migrate_repo import migrate_repo
-from sentry.models.identity import Identity
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization import RpcOrganizationSummary
 from sentry.pipeline import PipelineView
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
+from sentry.users.models.identity import Identity
 from sentry.web.helpers import render_to_response
 
 from .client import BitbucketServerClient, BitbucketServerSetupClient
@@ -249,12 +249,12 @@ class BitbucketServerIntegration(RepositoryIntegration):
             identity=self.default_identity,
         )
 
-    @property
-    def username(self):
-        return self.model.name
+    # IntegrationInstallation methods
 
     def error_message_from_json(self, data):
         return data.get("error", {}).get("message", "unknown error")
+
+    # RepositoryIntegration methods
 
     def get_repositories(self, query=None):
         if not query:
@@ -309,6 +309,12 @@ class BitbucketServerIntegration(RepositoryIntegration):
 
     def extract_source_path_from_source_url(self, repo: Repository, url: str) -> str:
         raise IntegrationFeatureNotImplementedError
+
+    # Bitbucket Server only methods
+
+    @property
+    def username(self):
+        return self.model.name
 
 
 class BitbucketServerIntegrationProvider(IntegrationProvider):

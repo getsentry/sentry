@@ -4,9 +4,9 @@ import responses
 
 from sentry.integrations.msteams.constants import SALT
 from sentry.integrations.msteams.unlink_identity import build_unlinking_url
-from sentry.models.identity import Identity, IdentityStatus
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
+from sentry.users.models.identity import Identity, IdentityStatus
 from sentry.utils.signing import unsign
 
 

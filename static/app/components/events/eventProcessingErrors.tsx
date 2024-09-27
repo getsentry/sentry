@@ -14,7 +14,7 @@ import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import useOrganization from 'sentry/utils/useOrganization';
-import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 type Props = {
@@ -104,7 +104,7 @@ export function EventProcessingErrors({event, project, isShare}: Props) {
     isShare,
   });
 
-  if (!actionableItems || !proguardErrors) {
+  if (!actionableItems || actionableItems.errors.length === 0 || !proguardErrors) {
     return null;
   }
 
@@ -118,10 +118,14 @@ export function EventProcessingErrors({event, project, isShare}: Props) {
       }))
     );
 
+  if (!errors.length) {
+    return null;
+  }
+
   return (
     <InterimSection
       title={t('Event Processing Errors')}
-      type={FoldSectionKey.PROCESSING_ERROR}
+      type={SectionKey.PROCESSING_ERROR}
     >
       <KeyValueData.Container>
         {errors.map((error, idx) => {

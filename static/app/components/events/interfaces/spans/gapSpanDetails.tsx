@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import emptyStateImg from 'sentry-images/spot/profiling-empty-state.svg';
 
-import {Button, LinkButton} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {FlamegraphPreview} from 'sentry/components/profiling/flamegraph/flamegraphPreview';
@@ -31,15 +31,10 @@ import type {GapSpanType} from './types';
 
 interface GapSpanDetailsProps {
   event: Readonly<EventTransaction>;
-  resetCellMeasureCache: () => void;
   span: Readonly<GapSpanType>;
 }
 
-export function GapSpanDetails({
-  event,
-  resetCellMeasureCache,
-  span,
-}: GapSpanDetailsProps) {
+export function GapSpanDetails({event, span}: GapSpanDetailsProps) {
   const {projects} = useProjects();
   const project = useMemo(
     () => projects.find(p => p.id === event.projectID),
@@ -121,14 +116,7 @@ export function GapSpanDetails({
   // This project has received a profile before so they've already
   // set up profiling. No point showing the profiling setup again.
   if (!docsLink || project?.hasProfiles) {
-    return (
-      <InlineDocs
-        orgSlug={organization.slug}
-        platform={event.sdk?.name || ''}
-        projectSlug={event?.projectSlug ?? project?.slug ?? ''}
-        resetCellMeasureCache={resetCellMeasureCache}
-      />
-    );
+    return <InlineDocs platform={event.sdk?.name || ''} />;
   }
 
   // At this point we must have a project on a supported
@@ -215,9 +203,9 @@ function ProfilePreviewHeader({canvasView, event, organization}: ProfilePreviewP
           )}
         />
       </HeaderContainer>
-      <Button size="xs" onClick={handleGoToProfile} to={target}>
+      <LinkButton size="xs" onClick={handleGoToProfile} to={target}>
         {t('View Profile')}
-      </Button>
+      </LinkButton>
     </HeaderContainer>
   );
 }

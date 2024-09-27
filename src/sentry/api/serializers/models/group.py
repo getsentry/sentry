@@ -16,7 +16,6 @@ from sentry import features, tagstore
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.actor import ActorSerializer
 from sentry.api.serializers.models.plugin import is_plugin_deprecated
-from sentry.api.serializers.models.user import UserSerializerResponse
 from sentry.app import env
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.auth.superuser import is_active_superuser
@@ -51,6 +50,7 @@ from sentry.tagstore.snuba.backend import fix_tag_value_data
 from sentry.tagstore.types import GroupTagValue
 from sentry.tsdb.snuba import SnubaTSDB
 from sentry.types.group import SUBSTATUS_TO_STR, PriorityLevel
+from sentry.users.api.serializers.user import UserSerializerResponse
 from sentry.users.models.user import User
 from sentry.users.services.user.serial import serialize_generic_user
 from sentry.users.services.user.service import user_service
@@ -111,7 +111,6 @@ class GroupMetadataResponseOptional(TypedDict, total=False):
 
 class GroupMetadataResponse(GroupMetadataResponseOptional):
     value: str
-    display_title_with_tree_label: bool
 
 
 class GroupSubscriptionResponseOptional(TypedDict, total=False):
@@ -184,9 +183,12 @@ class GroupSerializerBase(Serializer, ABC):
         for team in Team.objects.filter(id__in=all_team_ids.keys()):
             for group_id in all_team_ids[team.id]:
                 result[group_id] = team
-        for user in user_service.get_many_by_id(ids=list(all_user_ids.keys())):
-            for group_id in all_user_ids[user.id]:
-                result[group_id] = user
+
+        user_ids = list(all_user_ids.keys())
+        if user_ids:
+            for user in user_service.get_many_by_id(ids=user_ids):
+                for group_id in all_user_ids[user.id]:
+                    result[group_id] = user
 
         return result
 
@@ -646,7 +648,7 @@ class GroupSerializerBase(Serializer, ABC):
 
     @staticmethod
     def _resolve_external_issue_annotations(groups: Sequence[Group]) -> Mapping[int, Sequence[Any]]:
-        from sentry.models.platformexternalissue import PlatformExternalIssue
+        from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
 
         # find the external issues for sentry apps and add them in
         return (

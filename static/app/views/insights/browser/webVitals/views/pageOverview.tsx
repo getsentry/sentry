@@ -19,7 +19,7 @@ import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
-import {decodeScalar} from 'sentry/utils/queryString';
+import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -38,7 +38,13 @@ import decodeBrowserTypes from 'sentry/views/insights/browser/webVitals/utils/qu
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
-import {SpanIndexedField} from 'sentry/views/insights/types';
+import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
+import {
+  ModuleName,
+  SpanIndexedField,
+  type SubregionCode,
+} from 'sentry/views/insights/types';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 export enum LandingDisplayField {
@@ -71,6 +77,7 @@ export function PageOverview() {
   const location = useLocation();
   const {projects} = useProjects();
   const router = useRouter();
+  const {isInDomainView} = useDomainViewFilters();
   const transaction = location.query.transaction
     ? Array.isArray(location.query.transaction)
       ? location.query.transaction[0]
@@ -94,13 +101,17 @@ export function PageOverview() {
 
   const query = decodeScalar(location.query.query);
   const browserTypes = decodeBrowserTypes(location.query[SpanIndexedField.BROWSER_NAME]);
+  const subregions = decodeList(
+    location.query[SpanIndexedField.USER_GEO_SUBREGION]
+  ) as SubregionCode[];
 
-  const {data: pageData, isLoading} = useProjectRawWebVitalsQuery({
+  const {data: pageData, isPending} = useProjectRawWebVitalsQuery({
     transaction,
     browserTypes,
+    subregions,
   });
-  const {data: projectScores, isLoading: isProjectScoresLoading} =
-    useProjectWebVitalsScoresQuery({transaction, browserTypes});
+  const {data: projectScores, isPending: isProjectScoresLoading} =
+    useProjectWebVitalsScoresQuery({transaction, browserTypes, subregions});
 
   if (transaction === undefined) {
     // redirect user to webvitals landing page
@@ -120,7 +131,7 @@ export function PageOverview() {
     });
 
   const projectScore =
-    isProjectScoresLoading || isLoading
+    isProjectScoresLoading || isPending
       ? undefined
       : calculatePerformanceScoreFromStoredTableDataRow(projectScores?.data?.[0]);
 
@@ -142,40 +153,47 @@ export function PageOverview() {
           });
         }}
       >
-        <Layout.Header>
-          <Layout.HeaderContent>
-            <Breadcrumbs
-              crumbs={[...crumbs, ...(transaction ? [{label: 'Page Summary'}] : [])]}
-            />
-            <Layout.Title>
-              {transaction && project && <ProjectAvatar project={project} size={24} />}
-              {transaction ?? t('Page Loads')}
-            </Layout.Title>
-          </Layout.HeaderContent>
-          <Layout.HeaderActions>
-            <ButtonBar gap={1}>
-              <FeedbackWidgetButton />
-              {transactionSummaryTarget && (
-                <LinkButton
-                  to={transactionSummaryTarget}
-                  onClick={() => {
-                    trackAnalytics('insight.vital.overview.open_transaction_summary', {
-                      organization,
-                    });
-                  }}
-                  size="sm"
-                >
-                  {t('View Transaction Summary')}
-                </LinkButton>
-              )}
-            </ButtonBar>
-          </Layout.HeaderActions>
-          <TabList hideBorder>
-            {LANDING_DISPLAYS.map(({label, field}) => (
-              <TabList.Item key={field}>{label}</TabList.Item>
-            ))}
-          </TabList>
-        </Layout.Header>
+        {!isInDomainView && (
+          <Layout.Header>
+            <Layout.HeaderContent>
+              <Breadcrumbs
+                crumbs={[...crumbs, ...(transaction ? [{label: 'Page Summary'}] : [])]}
+              />
+              <Layout.Title>
+                {transaction && project && <ProjectAvatar project={project} size={24} />}
+                {transaction ?? t('Page Loads')}
+              </Layout.Title>
+            </Layout.HeaderContent>
+            <Layout.HeaderActions>
+              <ButtonBar gap={1}>
+                <FeedbackWidgetButton />
+                {transactionSummaryTarget && (
+                  <LinkButton
+                    to={transactionSummaryTarget}
+                    onClick={() => {
+                      trackAnalytics('insight.vital.overview.open_transaction_summary', {
+                        organization,
+                      });
+                    }}
+                    size="sm"
+                  >
+                    {t('View Transaction Summary')}
+                  </LinkButton>
+                )}
+              </ButtonBar>
+            </Layout.HeaderActions>
+            <TabList hideBorder>
+              {LANDING_DISPLAYS.map(({label, field}) => (
+                <TabList.Item key={field}>{label}</TabList.Item>
+              ))}
+            </TabList>
+          </Layout.Header>
+        )}
+        {isInDomainView && (
+          <Layout.Header>
+            <FrontendHeader module={ModuleName.VITAL} />
+          </Layout.Header>
+        )}
         {tab === LandingDisplayField.SPANS ? (
           <Layout.Body>
             <Layout.Main fullWidth>
@@ -194,7 +212,11 @@ export function PageOverview() {
                 <BrowserTypeSelector />
               </TopMenuContainer>
               <Flex>
-                <PerformanceScoreBreakdownChart transaction={transaction} />
+                <PerformanceScoreBreakdownChart
+                  transaction={transaction}
+                  browserTypes={browserTypes}
+                  subregions={subregions}
+                />
               </Flex>
               <WebVitalMetersContainer>
                 <WebVitalMeters
@@ -223,8 +245,9 @@ export function PageOverview() {
               <PageOverviewSidebar
                 projectScore={projectScore}
                 transaction={transaction}
-                projectScoreIsLoading={isLoading}
+                projectScoreIsLoading={isPending}
                 browserTypes={browserTypes}
+                subregions={subregions}
               />
             </Layout.Side>
           </Layout.Body>
@@ -273,5 +296,5 @@ const PageSamplePerformanceTableContainer = styled('div')`
 `;
 
 const WebVitalMetersContainer = styled('div')`
-  margin: ${space(2)} 0 ${space(4)} 0;
+  margin: ${space(2)} 0;
 `;

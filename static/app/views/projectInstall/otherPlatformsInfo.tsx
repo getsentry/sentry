@@ -24,13 +24,13 @@ export function OtherPlatformsInfo({
   const {
     data = [],
     isError,
-    isLoading,
+    isPending,
     refetch,
   } = useApiQuery<ProjectKey[]>([`/projects/${organization.slug}/${projectSlug}/keys/`], {
     staleTime: Infinity,
   });
 
-  if (isLoading) {
+  if (isPending) {
     return <LoadingIndicator />;
   }
 

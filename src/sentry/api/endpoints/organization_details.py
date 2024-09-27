@@ -48,7 +48,6 @@ from sentry.constants import (
     DATA_CONSENT_DEFAULT,
     DEBUG_FILES_ROLE_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
-    EXTRAPOLATE_METRICS_DEFAULT,
     GITHUB_COMMENT_BOT_DEFAULT,
     ISSUE_ALERTS_THREAD_DEFAULT,
     JOIN_REQUESTS_DEFAULT,
@@ -66,6 +65,7 @@ from sentry.constants import (
     UPTIME_AUTODETECTION,
 )
 from sentry.datascrubbing import validate_pii_config_update, validate_pii_selectors
+from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.hybridcloud.rpc import IDEMPOTENCY_KEY_LENGTH
 from sentry.integrations.utils.codecov import has_codecov_integration
 from sentry.lang.native.utils import (
@@ -76,8 +76,6 @@ from sentry.lang.native.utils import (
 from sentry.models.avatars.organization_avatar import OrganizationAvatar
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization, OrganizationStatus
-from sentry.models.scheduledeletion import RegionScheduledDeletion
-from sentry.models.useremail import UserEmail
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import (
     RpcOrganization,
@@ -95,7 +93,6 @@ ERR_DEFAULT_ORG = "You cannot remove the default organization."
 ERR_NO_USER = "This request requires an authenticated user."
 ERR_NO_2FA = "Cannot require two-factor authentication without personal two-factor enabled."
 ERR_SSO_ENABLED = "Cannot require two-factor authentication with SSO enabled"
-ERR_EMAIL_VERIFICATION = "Cannot require email verification before verifying your email address."
 ERR_3RD_PARTY_PUBLISHED_APP = "Cannot delete an organization that owns a published integration. Contact support if you need assistance."
 ERR_PLAN_REQUIRED = "A paid plan is required to enable this feature."
 
@@ -217,7 +214,6 @@ ORG_OPTIONS = (
         bool,
         METRICS_ACTIVATE_LAST_FOR_GAUGES_DEFAULT,
     ),
-    ("extrapolateMetrics", "sentry:extrapolate_metrics", bool, EXTRAPOLATE_METRICS_DEFAULT),
     ("uptimeAutodetection", "sentry:uptime_autodetection", bool, UPTIME_AUTODETECTION),
 )
 
@@ -245,6 +241,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
 
     openMembership = serializers.BooleanField(required=False)
     allowSharedIssues = serializers.BooleanField(required=False)
+    allowMemberInvite = serializers.BooleanField(required=False)
     allowMemberProjectCreation = serializers.BooleanField(required=False)
     allowSuperuserAccess = serializers.BooleanField(required=False)
     enhancedPrivacy = serializers.BooleanField(required=False)
@@ -274,12 +271,10 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     aggregatedDataConsent = serializers.BooleanField(required=False)
     genAIConsent = serializers.BooleanField(required=False)
     require2FA = serializers.BooleanField(required=False)
-    requireEmailVerification = serializers.BooleanField(required=False)
     trustedRelays = serializers.ListField(child=TrustedRelaySerializer(), required=False)
     allowJoinRequests = serializers.BooleanField(required=False)
     relayPiiConfig = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     apdexThreshold = serializers.IntegerField(min_value=1, required=False)
-    extrapolateMetrics = serializers.BooleanField(required=False)
     uptimeAutodetection = serializers.BooleanField(required=False)
 
     @cached_property
@@ -293,24 +288,6 @@ class OrganizationSerializer(BaseOrganizationSerializer):
         org = self.context["organization"]
         org_auth_provider = auth_service.get_auth_provider(organization_id=org.id)
         return org_auth_provider is not None
-
-    def validate_extrapolateMetrics(self, value):
-        from sentry import features
-
-        organization = self.context["organization"]
-        request = self.context["request"]
-
-        # Metrics extrapolation can only be toggled when the metrics-extrapolation flag is enabled.
-        has_metrics_extrapolation = features.has(
-            "organizations:metrics-extrapolation", organization, actor=request.user
-        )
-
-        if not has_metrics_extrapolation:
-            raise serializers.ValidationError(
-                "Organization does not have the metrics extrapolation feature enabled"
-            )
-        else:
-            return value
 
     def validate_relayPiiConfig(self, value):
         organization = self.context["organization"]
@@ -350,13 +327,6 @@ class OrganizationSerializer(BaseOrganizationSerializer):
 
         if value and self._has_sso_enabled():
             raise serializers.ValidationError(ERR_SSO_ENABLED)
-        return value
-
-    def validate_requireEmailVerification(self, value):
-        user = self.context["user"]
-        has_verified = UserEmail.objects.get_primary_email(user).is_verified
-        if value and not has_verified:
-            raise serializers.ValidationError(ERR_EMAIL_VERIFICATION)
         return value
 
     def validate_trustedRelays(self, value):
@@ -459,8 +429,6 @@ class OrganizationSerializer(BaseOrganizationSerializer):
         return incoming
 
     def save(self):
-        from sentry import features
-
         org = self.context["organization"]
         changed_data = {}
         if not hasattr(org, "__data"):
@@ -505,15 +473,12 @@ class OrganizationSerializer(BaseOrganizationSerializer):
             org.flags.codecov_access = data["codecovAccess"]
         if "require2FA" in data:
             org.flags.require_2fa = data["require2FA"]
-        if (
-            features.has("organizations:required-email-verification", org)
-            and "requireEmailVerification" in data
-        ):
-            org.flags.require_email_verification = data["requireEmailVerification"]
         if "allowMemberProjectCreation" in data:
             org.flags.disable_member_project_creation = not data["allowMemberProjectCreation"]
         if "allowSuperuserAccess" in data:
             org.flags.prevent_superuser_access = not data["allowSuperuserAccess"]
+        if "allowMemberInvite" in data:
+            org.flags.disable_member_invite = not data["allowMemberInvite"]
         if "name" in data:
             org.name = data["name"]
         if "slug" in data:
@@ -532,6 +497,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
                 "codecov_access": org.flags.codecov_access.is_set,
                 "disable_member_project_creation": org.flags.disable_member_project_creation.is_set,
                 "prevent_superuser_access": org.flags.prevent_superuser_access.is_set,
+                "disable_member_invite": org.flags.disable_member_invite.is_set,
             },
         }
 
@@ -558,11 +524,6 @@ class OrganizationSerializer(BaseOrganizationSerializer):
             )
         if data.get("require2FA") is True:
             org.handle_2fa_required(self.context["request"])
-        if (
-            features.has("organizations:required-email-verification", org)
-            and data.get("requireEmailVerification") is True
-        ):
-            org.handle_email_verification_required(self.context["request"])
         return org, changed_data
 
 
@@ -617,12 +578,10 @@ def post_org_pending_deletion(
     exclude_fields=[
         "accountRateLimit",
         "projectRateLimit",
-        "requireEmailVerification",
         "apdexThreshold",
         "genAIConsent",
         "metricsActivatePercentiles",
         "metricsActivateLastForGauges",
-        "extrapolateMetrics",
     ]
 )
 class OrganizationDetailsPutSerializer(serializers.Serializer):
@@ -827,14 +786,12 @@ Below is an example of a payload for a set of advanced data scrubbing rules for 
     projectRateLimit = serializers.IntegerField(
         min_value=PROJECT_RATE_LIMIT_DEFAULT, required=False
     )
-    requireEmailVerification = serializers.BooleanField(required=False)
     apdexThreshold = serializers.IntegerField(required=False)
 
     # TODO: publish when GA'd
     genAIConsent = serializers.BooleanField(required=False)
     metricsActivatePercentiles = serializers.BooleanField(required=False)
     metricsActivateLastForGauges = serializers.BooleanField(required=False)
-    extrapolateMetrics = serializers.BooleanField(required=False)
 
 
 # NOTE: We override the permission class of this endpoint in getsentry with the OrganizationDetailsPermission class

@@ -1,5 +1,4 @@
 import {Fragment, useCallback, useMemo} from 'react';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -16,6 +15,7 @@ import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView, {type MetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {ColumnType} from 'sentry/utils/discover/fields';
@@ -102,7 +102,7 @@ type Props = {
 export default function SpanSummaryTable(props: Props) {
   const {project} = props;
   const organization = useOrganization();
-  const supportedTags = useSpanFieldSupportedTags();
+  const {data: supportedTags} = useSpanFieldSupportedTags();
   const {spanSlug} = useParams();
   const navigate = useNavigate();
   const [spanOp, groupId] = spanSlug.split(':');
@@ -126,7 +126,7 @@ export default function SpanSummaryTable(props: Props) {
   const {
     data: rowData,
     pageLinks,
-    isLoading: isRowDataLoading,
+    isPending: isRowDataLoading,
   } = useSpansIndexed(
     {
       fields: [
@@ -161,7 +161,7 @@ export default function SpanSummaryTable(props: Props) {
   );
 
   const {
-    isLoading: isTxnDurationDataLoading,
+    isPending: isTxnDurationDataLoading,
     data: txnDurationData,
     isError: isTxnDurationError,
   } = useGenericDiscoverQuery<

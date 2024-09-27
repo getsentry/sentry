@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-import configparser
 import os
 import shlex
 import subprocess
 
 from devenv import constants
-from devenv.lib import colima, config, fs, limactl, proc, venv, volta
+from devenv.lib import colima, config, fs, limactl, proc, venv
 
 
 # TODO: need to replace this with a nicer process executor in devenv.lib
@@ -15,8 +14,12 @@ def run_procs(
     reporoot: str,
     venv_path: str,
     _procs: tuple[tuple[str, tuple[str, ...], dict[str, str]], ...],
+    verbose: bool = False,
 ) -> bool:
     procs: list[tuple[str, tuple[str, ...], subprocess.Popen[bytes]]] = []
+
+    stdout = subprocess.PIPE if not verbose else None
+    stderr = subprocess.STDOUT if not verbose else None
 
     for name, cmd, extra_env in _procs:
         print(f"⏳ {name}")
@@ -26,7 +29,6 @@ def run_procs(
             **constants.user_environ,
             **proc.base_env,
             "VIRTUAL_ENV": venv_path,
-            "VOLTA_HOME": f"{reporoot}/.devenv/bin/volta-home",
             "PATH": f"{venv_path}/bin:{reporoot}/.devenv/bin:{proc.base_path}",
         }
         if extra_env:
@@ -37,8 +39,8 @@ def run_procs(
                 cmd,
                 subprocess.Popen(
                     cmd,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.STDOUT,
+                    stdout=stdout,
+                    stderr=stderr,
                     env=env,
                     cwd=reporoot,
                 ),
@@ -50,15 +52,15 @@ def run_procs(
         out, _ = p.communicate()
         if p.returncode != 0:
             all_good = False
+            out_str = f"Output:\n{out.decode()}" if not verbose else ""
             print(
                 f"""
 ❌ {name}
 
-failed command (code p.returncode):
+failed command (code {p.returncode}):
     {shlex.join(final_cmd)}
 
-Output:
-{out.decode()}
+{out_str}
 
 """
             )
@@ -71,8 +73,32 @@ Output:
 def main(context: dict[str, str]) -> int:
     repo = context["repo"]
     reporoot = context["reporoot"]
+    repo_config = config.get_config(f"{reporoot}/devenv/config.ini")
+
+    # TODO: context["verbose"]
+    verbose = os.environ.get("SENTRY_DEVENV_VERBOSE") is not None
 
     FRONTEND_ONLY = os.environ.get("SENTRY_DEVENV_FRONTEND_ONLY") is not None
+
+    # repo-local devenv needs to update itself first with a successful sync
+    # so it'll take 2 syncs to get onto devenv-managed node, it is what it is
+    try:
+        from devenv.lib import node
+
+        node.install(
+            repo_config["node"]["version"],
+            repo_config["node"][constants.SYSTEM_MACHINE],
+            repo_config["node"][f"{constants.SYSTEM_MACHINE}_sha256"],
+            reporoot,
+        )
+        node.install_yarn(repo_config["node"]["yarn_version"], reporoot)
+    except ImportError:
+        from devenv.lib import volta
+
+        volta.install(reporoot)
+
+    # no more imports from devenv past this point! if the venv is recreated
+    # then we won't have access to devenv libs until it gets reinstalled
 
     # venv's still needed for frontend because repo-local devenv and pre-commit
     # exist inside it
@@ -81,17 +107,7 @@ def main(context: dict[str, str]) -> int:
     print(f"ensuring {repo} venv at {venv_dir}...")
     venv.ensure(venv_dir, python_version, url, sha256)
 
-    # TODO: move volta version into per-repo config
-    try:
-        volta.install(reporoot)
-    except TypeError:
-        # this is needed for devenv <=1.4.0,>1.2.3 to finish syncing and therefore update itself
-        volta.install()
-
     if constants.DARWIN:
-        repo_config = configparser.ConfigParser()
-        repo_config.read(f"{reporoot}/devenv/config.ini")
-
         try:
             colima.install(
                 repo_config["colima"]["version"],
@@ -133,6 +149,7 @@ def main(context: dict[str, str]) -> int:
                 {},
             ),
         ),
+        verbose,
     ):
         return 1
 
@@ -168,6 +185,7 @@ def main(context: dict[str, str]) -> int:
                 {},
             ),
         ),
+        verbose,
     ):
         return 1
 
@@ -191,6 +209,7 @@ def main(context: dict[str, str]) -> int:
                 {},
             ),
         ),
+        verbose,
     ):
         return 1
 
@@ -206,6 +225,7 @@ def main(context: dict[str, str]) -> int:
             ),
             ("pre-commit dependencies", ("pre-commit", "install", "--install-hooks", "-f"), {}),
         ),
+        verbose,
     ):
         return 1
 
@@ -235,7 +255,7 @@ def main(context: dict[str, str]) -> int:
         exit=True,
     )
 
-    if run_procs(
+    if not run_procs(
         repo,
         reporoot,
         venv_dir,
@@ -246,7 +266,37 @@ def main(context: dict[str, str]) -> int:
                 {},
             ),
         ),
+        verbose,
     ):
-        return 0
+        return 1
 
-    return 1
+    # faster prerequisite check than starting up sentry and running createuser idempotently
+    stdout = proc.run(
+        (
+            "docker",
+            "exec",
+            "sentry_postgres",
+            "psql",
+            "sentry",
+            "postgres",
+            "-t",
+            "-c",
+            "select exists (select from auth_user where email = 'admin@sentry.io')",
+        ),
+        stdout=True,
+    )
+    if stdout != "t":
+        proc.run(
+            (
+                f"{venv_dir}/bin/sentry",
+                "createuser",
+                "--superuser",
+                "--email",
+                "admin@sentry.io",
+                "--password",
+                "admin",
+                "--no-input",
+            )
+        )
+
+    return 0

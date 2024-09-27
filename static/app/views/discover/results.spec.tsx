@@ -8,6 +8,7 @@ import selectEvent from 'sentry-test/selectEvent';
 
 import * as PageFilterPersistence from 'sentry/components/organizations/pageFilters/persistence';
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {SavedSearchType} from 'sentry/types/group';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
 import Results from 'sentry/views/discover/results';
@@ -622,7 +623,7 @@ describe('Results', function () {
       const {router} = initializeOrg({
         organization,
         router: {
-          location: {query: {id: '1', statsPeriod: '24h'}},
+          location: {pathname: '/', query: {id: '1', statsPeriod: '24h'}},
         },
       });
 
@@ -648,12 +649,12 @@ describe('Results', function () {
 
       expect(screen.getByRole('link', {name: 'timestamp'})).toHaveAttribute(
         'href',
-        'undefined?field=title&field=event.type&field=project&field=user.display&field=timestamp&id=1&name=new&query=&sort=-timestamp&statsPeriod=24h&topEvents=5'
+        '/?field=title&field=event.type&field=project&field=user.display&field=timestamp&id=1&name=new&query=&sort=-timestamp&statsPeriod=24h&topEvents=5'
       );
 
       expect(screen.getByRole('link', {name: 'project'})).toHaveAttribute(
         'href',
-        'undefined?field=title&field=event.type&field=project&field=user.display&field=timestamp&id=1&name=new&query=&sort=-project&statsPeriod=24h&topEvents=5'
+        '/?field=title&field=event.type&field=project&field=user.display&field=timestamp&id=1&name=new&query=&sort=-project&statsPeriod=24h&topEvents=5'
       );
 
       // NOTE: This uses a legacy redirect for project event to the issue group event link
@@ -664,12 +665,12 @@ describe('Results', function () {
 
       expect(screen.getByRole('link', {name: 'user.display'})).toHaveAttribute(
         'href',
-        'undefined?field=title&field=event.type&field=project&field=user.display&field=timestamp&id=1&name=new&query=&sort=user.display&statsPeriod=24h&topEvents=5'
+        '/?field=title&field=event.type&field=project&field=user.display&field=timestamp&id=1&name=new&query=&sort=user.display&statsPeriod=24h&topEvents=5'
       );
 
       expect(screen.getByRole('link', {name: 'title'})).toHaveAttribute(
         'href',
-        'undefined?field=title&field=event.type&field=project&field=user.display&field=timestamp&id=1&name=new&query=&sort=-title&statsPeriod=24h&topEvents=5'
+        '/?field=title&field=event.type&field=project&field=user.display&field=timestamp&id=1&name=new&query=&sort=-title&statsPeriod=24h&topEvents=5'
       );
     });
 
@@ -682,6 +683,7 @@ describe('Results', function () {
         organization,
         router: {
           location: {
+            pathname: '/',
             query: {
               id: '1',
               statsPeriod: '7d',
@@ -714,7 +716,7 @@ describe('Results', function () {
 
       expect(screen.getByRole('link', {name: 'timestamp'})).toHaveAttribute(
         'href',
-        'undefined?environment=production&field=title&field=event.type&field=project&field=user.display&field=timestamp&id=1&name=new&project=2&query=&sort=-timestamp&statsPeriod=7d&topEvents=5'
+        '/?environment=production&field=title&field=event.type&field=project&field=user.display&field=timestamp&id=1&name=new&project=2&query=&sort=-timestamp&statsPeriod=7d&topEvents=5'
       );
     });
 
@@ -1543,9 +1545,10 @@ describe('Results', function () {
       });
       expect(mockRequests.eventsResultsMock).toHaveBeenCalledTimes(1);
       await waitFor(() => {
-        expect(
-          screen.getByRole('button', {name: 'Dataset Transactions'})
-        ).toBeInTheDocument();
+        expect(screen.getByRole('tab', {name: 'Transactions'})).toHaveAttribute(
+          'aria-selected',
+          'true'
+        );
       });
 
       expect(
@@ -1620,7 +1623,10 @@ describe('Results', function () {
       });
       expect(mockRequests.eventsResultsMock).toHaveBeenCalledTimes(1);
 
-      expect(screen.getByRole('button', {name: 'Dataset Errors'})).toBeInTheDocument();
+      expect(screen.getByRole('tab', {name: 'Errors'})).toHaveAttribute(
+        'aria-selected',
+        'true'
+      );
 
       expect(mockRequests.eventsStatsMock).toHaveBeenCalledWith(
         '/organizations/org-slug/events-stats/',
@@ -1738,6 +1744,218 @@ describe('Results', function () {
             dataset: 'errors',
           }),
         })
+      );
+    });
+
+    it('shows the search history for the error dataset', async function () {
+      const organization = OrganizationFixture({
+        features: [
+          'discover-basic',
+          'discover-query',
+          'performance-discover-dataset-selector',
+        ],
+      });
+
+      const {router} = initializeOrg({
+        organization,
+        router: {
+          location: {query: {id: '1'}},
+        },
+      });
+
+      ProjectsStore.loadInitialData([ProjectFixture()]);
+
+      renderMockRequests();
+
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/recent-searches/',
+        body: [
+          {
+            query: 'event.type:error',
+          },
+        ],
+        match: [
+          (_url, options) => {
+            return options.query?.type === SavedSearchType.ERROR;
+          },
+        ],
+      });
+
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/recent-searches/',
+        body: [
+          {
+            query: 'transaction.status:ok',
+          },
+        ],
+        match: [
+          (_url, options) => {
+            return options.query?.type === SavedSearchType.TRANSACTION;
+          },
+        ],
+      });
+
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/discover/saved/1/',
+        method: 'GET',
+        statusCode: 200,
+        body: {
+          id: '1',
+          name: 'new',
+          projects: [],
+          version: 2,
+          expired: false,
+          dateCreated: '2021-04-08T17:53:25.195782Z',
+          dateUpdated: '2021-04-09T12:13:18.567264Z',
+          createdBy: {
+            id: '2',
+          },
+          environment: [],
+          fields: ['title', 'event.type', 'project', 'user.display', 'timestamp'],
+          widths: ['-1', '-1', '-1', '-1', '-1'],
+          range: '24h',
+          orderby: '-user.display',
+          queryDataset: 'error-events',
+        },
+      });
+
+      render(
+        <Results
+          organization={organization}
+          location={router.location}
+          router={router}
+          loading={false}
+          setSavedQuery={jest.fn()}
+        />,
+        {
+          router: router,
+          organization,
+        }
+      );
+
+      await userEvent.click(
+        screen.getByPlaceholderText('Search for events, users, tags, and more')
+      );
+      expect(screen.getByTestId('filter-token')).toHaveTextContent('event.type:error');
+    });
+
+    it('shows the search history for the transaction dataset', async function () {
+      const organization = OrganizationFixture({
+        features: [
+          'discover-basic',
+          'discover-query',
+          'performance-discover-dataset-selector',
+        ],
+      });
+
+      const {router} = initializeOrg({
+        organization,
+        router: {
+          location: {query: {id: '1'}},
+        },
+      });
+
+      ProjectsStore.loadInitialData([ProjectFixture()]);
+
+      renderMockRequests();
+
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/recent-searches/',
+        body: [
+          {
+            query: 'event.type:error',
+          },
+        ],
+        match: [
+          (_url, options) => {
+            return options.query?.type === SavedSearchType.ERROR;
+          },
+        ],
+      });
+
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/recent-searches/',
+        body: [
+          {
+            query: 'transaction.status:ok',
+          },
+        ],
+        match: [
+          (_url, options) => {
+            return options.query?.type === SavedSearchType.TRANSACTION;
+          },
+        ],
+      });
+
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events/',
+        body: {
+          meta: {
+            fields: {
+              id: 'string',
+              title: 'string',
+              'project.name': 'string',
+              timestamp: 'date',
+              'user.id': 'string',
+            },
+            discoverSplitDecision: 'transaction-like',
+          },
+          data: [
+            {
+              trace: 'test',
+              id: 'deadbeef',
+              'user.id': 'alberto leal',
+              title: eventTitle,
+              'project.name': 'project-slug',
+              timestamp: '2019-05-23T22:12:48+00:00',
+            },
+          ],
+        },
+      });
+
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/discover/saved/1/',
+        method: 'GET',
+        statusCode: 200,
+        body: {
+          id: '1',
+          name: 'new',
+          projects: [],
+          version: 2,
+          expired: false,
+          dateCreated: '2021-04-08T17:53:25.195782Z',
+          dateUpdated: '2021-04-09T12:13:18.567264Z',
+          createdBy: {
+            id: '2',
+          },
+          environment: [],
+          fields: ['title', 'event.type', 'project', 'user.display', 'timestamp'],
+          widths: ['-1', '-1', '-1', '-1', '-1'],
+          range: '24h',
+          orderby: '-user.display',
+          queryDataset: 'transaction-like',
+        },
+      });
+
+      render(
+        <Results
+          organization={organization}
+          location={router.location}
+          router={router}
+          loading={false}
+          setSavedQuery={jest.fn()}
+        />,
+        {
+          router: router,
+          organization,
+        }
+      );
+
+      await userEvent.click(
+        screen.getByPlaceholderText('Search for events, users, tags, and more')
+      );
+      expect(screen.getByTestId('filter-token')).toHaveTextContent(
+        'transaction.status:ok'
       );
     });
   });

@@ -7,6 +7,7 @@ import {openModal} from 'sentry/actionCreators/modal';
 import {fetchOrganizations} from 'sentry/actionCreators/organizations';
 import {Alert} from 'sentry/components/alert';
 import {LinkButton} from 'sentry/components/button';
+import Checkbox from 'sentry/components/checkbox';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
@@ -165,15 +166,23 @@ function AccountClose() {
 
           {organizations?.map(({organization, singleOwner}) => (
             <PanelItem key={organization.slug}>
-              <label>
-                <input
-                  style={{marginRight: 6}}
-                  type="checkbox"
-                  value={organization.slug}
-                  onChange={evt => handleChange(organization, singleOwner, evt)}
+              <label
+                css={{
+                  display: 'flex',
+                  alignItems: 'center',
+                }}
+              >
+                <Checkbox
+                  css={{
+                    marginRight: 6,
+                  }}
                   name="organizations"
                   checked={orgsToRemove.has(organization.slug)}
                   disabled={singleOwner}
+                  value={organization.slug}
+                  onChange={evt => handleChange(organization, singleOwner, evt)}
+                  size="sm"
+                  role="checkbox"
                 />
                 {organization.slug}
               </label>

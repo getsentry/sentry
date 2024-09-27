@@ -1,16 +1,16 @@
 import {Component, Fragment} from 'react';
-import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import type {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/alert';
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NavTabs from 'sentry/components/navTabs';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {AuthConfig} from 'sentry/types/auth';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import withApi from 'sentry/utils/withApi';
 
 import LoginForm from './loginForm';
@@ -127,9 +127,9 @@ class Login extends Component<Props, State> {
               <Alert
                 type="warning"
                 trailingItems={
-                  <Button to="/" size="xs">
+                  <LinkButton to="/" size="xs">
                     Reload
-                  </Button>
+                  </LinkButton>
                 }
               >
                 {tct(

@@ -2,12 +2,12 @@ import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
-import Feature from 'sentry/components/acl/feature';
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import {Button} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import SearchBar from 'sentry/components/events/searchBar';
 import Link from 'sentry/components/links/link';
+import {SpanSearchQueryBuilder} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -15,7 +15,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
-import {decodeScalar} from 'sentry/utils/queryString';
+import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import {
   EMPTY_OPTION_VALUE,
   escapeFilterValue,
@@ -24,10 +24,10 @@ import {
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import useRouter from 'sentry/utils/useRouter';
 import {computeAxisMax} from 'sentry/views/insights/common/components/chart';
 import DetailPanel from 'sentry/views/insights/common/components/detailPanel';
 import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
@@ -68,7 +68,7 @@ import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceMe
 import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
 
 export function HTTPSamplesPanel() {
-  const router = useRouter();
+  const navigate = useNavigate();
   const location = useLocation();
 
   const query = useLocationQuery({
@@ -80,6 +80,7 @@ export function HTTPSamplesPanel() {
       panel: decodePanel,
       responseCodeClass: decodeResponseCodeClass,
       spanSearchQuery: decodeScalar,
+      [SpanMetricsField.USER_GEO_SUBREGION]: decodeList,
     },
   });
 
@@ -87,7 +88,7 @@ export function HTTPSamplesPanel() {
 
   const {projects} = useProjects();
   const {selection} = usePageFilters();
-  const supportedTags = useSpanFieldSupportedTags();
+  const {data: supportedTags} = useSpanFieldSupportedTags();
 
   const project = projects.find(p => query.project === p.id);
 
@@ -110,7 +111,7 @@ export function HTTPSamplesPanel() {
       organization,
       source: ModuleName.HTTP,
     });
-    router.replace({
+    navigate({
       pathname: location.pathname,
       query: {
         ...location.query,
@@ -126,7 +127,7 @@ export function HTTPSamplesPanel() {
       organization,
       source: ModuleName.HTTP,
     });
-    router.replace({
+    navigate({
       pathname: location.pathname,
       query: {
         ...location.query,
@@ -137,20 +138,29 @@ export function HTTPSamplesPanel() {
 
   const isPanelOpen = Boolean(detailKey);
 
-  // The ribbon is above the data selectors, and not affected by them. So, it has its own filters.
-  const ribbonFilters: SpanMetricsQueryFilters = {
-    ...BASE_FILTERS,
+  const ADDITONAL_FILTERS = {
     'span.domain':
       query.domain === '' ? EMPTY_OPTION_VALUE : escapeFilterValue(query.domain),
     transaction: query.transaction,
+    ...(query[SpanMetricsField.USER_GEO_SUBREGION].length > 0
+      ? {
+          [SpanMetricsField.USER_GEO_SUBREGION]: `[${query[SpanMetricsField.USER_GEO_SUBREGION].join(',')}]`,
+        }
+      : {}),
+  };
+
+  // The ribbon is above the data selectors, and not affected by them. So, it has its own filters.
+  const ribbonFilters: SpanMetricsQueryFilters = {
+    ...BASE_FILTERS,
+    ...ADDITONAL_FILTERS,
+    ...new MutableSearch(query.spanSearchQuery).filters,
   };
 
   // These filters are for the charts and samples tables
   const filters: SpanMetricsQueryFilters = {
     ...BASE_FILTERS,
-    'span.domain':
-      query.domain === '' ? EMPTY_OPTION_VALUE : escapeFilterValue(query.domain),
-    transaction: query.transaction,
+    ...ADDITONAL_FILTERS,
+    ...new MutableSearch(query.spanSearchQuery).filters,
   };
 
   const responseCodeInRange = query.responseCodeClass
@@ -270,20 +280,26 @@ export function HTTPSamplesPanel() {
   );
 
   const handleSearch = (newSpanSearchQuery: string) => {
-    router.replace({
+    navigate({
       pathname: location.pathname,
       query: {
         ...location.query,
         spanSearchQuery: newSpanSearchQuery,
       },
     });
+
+    if (query.panel === 'duration') {
+      refetchDurationSpanSamples();
+    } else {
+      refetchResponseCodeSpanSamples();
+    }
   };
 
   const handleClose = () => {
-    router.replace({
-      pathname: router.location.pathname,
+    navigate({
+      pathname: location.pathname,
       query: {
-        ...router.location.query,
+        ...location.query,
         transaction: undefined,
         transactionMethod: undefined,
       },
@@ -446,6 +462,7 @@ export function HTTPSamplesPanel() {
                   }}
                   isLoading={isDurationDataFetching}
                   error={durationError}
+                  filters={filters}
                 />
               </ModuleLayout.Full>
             </Fragment>
@@ -463,8 +480,16 @@ export function HTTPSamplesPanel() {
             </Fragment>
           )}
 
-          <Feature features="performance-sample-panel-search">
-            <ModuleLayout.Full>
+          <ModuleLayout.Full>
+            {organization.features.includes('search-query-builder-performance') ? (
+              <SpanSearchQueryBuilder
+                projects={selection.projects}
+                initialQuery={query.spanSearchQuery}
+                onSearch={handleSearch}
+                placeholder={t('Search for span attributes')}
+                searchSource={`${ModuleName.HTTP}-sample-panel`}
+              />
+            ) : (
               <SearchBar
                 searchSource={`${ModuleName.HTTP}-sample-panel`}
                 query={query.spanSearchQuery}
@@ -475,8 +500,8 @@ export function HTTPSamplesPanel() {
                 dataset={DiscoverDatasets.SPANS_INDEXED}
                 projectIds={selection.projects}
               />
-            </ModuleLayout.Full>
-          </Feature>
+            )}
+          </ModuleLayout.Full>
 
           {query.panel === 'duration' && (
             <Fragment>

@@ -58,6 +58,10 @@ export type SidebarItemProps = {
    * Additional badge to display after label
    */
   badge?: number;
+  /**
+   * Custom tooltip title for the badge
+   */
+  badgeTitle?: string;
   className?: string;
   /**
    * Is sidebar in a collapsed state
@@ -70,6 +74,7 @@ export type SidebarItemProps = {
    * prop.
    */
   exact?: boolean;
+  hasNewNav?: boolean;
   /**
    * Sidebar has a panel open
    */
@@ -80,20 +85,20 @@ export type SidebarItemProps = {
    * Additional badge letting users know a tab is in alpha.
    */
   isAlpha?: boolean;
+
   /**
    * Additional badge letting users know a tab is in beta.
    */
   isBeta?: boolean;
+
   /**
    * Is main item in a floating accordion
    */
   isMainItem?: boolean;
-
   /**
    * Is this item nested within another item
    */
   isNested?: boolean;
-
   /**
    * Specify the variant for the badge.
    */
@@ -143,6 +148,8 @@ function SidebarItem({
   isNested,
   isMainItem,
   isOpenInFloatingSidebar,
+  hasNewNav,
+  badgeTitle,
   ...props
 }: SidebarItemProps) {
   const {setExpandedItemId, shouldAccordionFloat} = useContext(ExpandedContext);
@@ -156,8 +163,13 @@ function SidebarItem({
   const isActiveRouter =
     !hasPanel && router && isItemActive({to, label: labelString}, exact);
 
-  const isInFloatingAccordion = (isNested || isMainItem) && shouldAccordionFloat;
+  // TODO: floating accordion should be transformed into secondary panel
+  let isInFloatingAccordion = (isNested || isMainItem) && shouldAccordionFloat;
+  if (hasNewNav) {
+    isInFloatingAccordion = false;
+  }
   const hasLink = Boolean(to);
+  const isInCollapsedState = (!isInFloatingAccordion && collapsed) || hasNewNav;
 
   const isActive = defined(active) ? active : isActiveRouter;
   const isTop = orientation === 'top' && !isInFloatingAccordion;
@@ -176,8 +188,11 @@ function SidebarItem({
   );
 
   const toProps: LocationDescriptor = useMemo(() => {
+    if (!to && !href) {
+      return '#';
+    }
     return {
-      pathname: to ? to : href ?? '#',
+      pathname: to ? to : href,
       search,
       state: {source: SIDEBAR_NAVIGATION_SOURCE},
     };
@@ -185,9 +200,9 @@ function SidebarItem({
 
   const badges = (
     <Fragment>
-      {showIsNew && <FeatureBadge type="new" variant={variant} />}
-      {isBeta && <FeatureBadge type="beta" variant={variant} />}
-      {isAlpha && <FeatureBadge type="alpha" variant={variant} />}
+      {showIsNew && <FeatureBadge type="new" variant={variant} title={badgeTitle} />}
+      {isBeta && <FeatureBadge type="beta" variant={variant} title={badgeTitle} />}
+      {isAlpha && <FeatureBadge type="alpha" variant={variant} title={badgeTitle} />}
     </Fragment>
   );
 
@@ -202,13 +217,12 @@ function SidebarItem({
     [href, to, id, onClick, recordAnalytics, showIsNew, isNewSeenKey, setExpandedItemId]
   );
 
-  const isInCollapsedState = !isInFloatingAccordion && collapsed;
-
   return (
     <Tooltip
       disabled={
         (!isInCollapsedState && !isTop) ||
-        (shouldAccordionFloat && isOpenInFloatingSidebar)
+        (shouldAccordionFloat && isOpenInFloatingSidebar) ||
+        hasNewNav
       }
       title={
         <Flex align="center">
@@ -229,10 +243,21 @@ function SidebarItem({
             className={className}
             aria-current={isActive ? 'page' : undefined}
             onClick={handleItemClick}
+            hasNewNav={hasNewNav}
           >
-            <InteractionStateLayer isPressed={isActive} color="white" higherOpacity />
-            <SidebarItemWrapper collapsed={isInCollapsedState}>
-              {!isInFloatingAccordion && <SidebarItemIcon>{icon}</SidebarItemIcon>}
+            {hasNewNav ? (
+              <StyledInteractionStateLayer
+                isPressed={isActive}
+                color="white"
+                higherOpacity
+              />
+            ) : (
+              <InteractionStateLayer isPressed={isActive} color="white" higherOpacity />
+            )}
+            <SidebarItemWrapper collapsed={isInCollapsedState} hasNewNav={hasNewNav}>
+              {!isInFloatingAccordion && (
+                <SidebarItemIcon hasNewNav={hasNewNav}>{icon}</SidebarItemIcon>
+              )}
               {!isInCollapsedState && !isTop && (
                 <SidebarItemLabel
                   isInFloatingAccordion={isInFloatingAccordion}
@@ -270,6 +295,12 @@ function SidebarItem({
                   {badge}
                 </SidebarItemBadge>
               )}
+              {!isInFloatingAccordion && hasNewNav && (
+                <LabelHook id={id}>
+                  <TruncatedLabel hasNewNav={hasNewNav}>{label}</TruncatedLabel>
+                  {additionalContent ?? badges}
+                </LabelHook>
+              )}
               {trailingItems}
             </SidebarItemWrapper>
           </StyledSidebarItem>
@@ -304,7 +335,9 @@ export function isItemActive(
       location.pathname.includes('/alerts/') &&
       !location.pathname.startsWith('/settings/')) ||
     (item?.label === 'Releases' && location.pathname.includes('/release-thresholds/')) ||
-    (item?.label === 'Performance' && location.pathname.includes('/performance/'))
+    (item?.label === 'Performance' &&
+      location.pathname.includes('/performance/') &&
+      !location.pathname.startsWith('/settings/'))
   );
 }
 
@@ -326,6 +359,7 @@ const getActiveStyle = ({
   isInFloatingAccordion,
 }: {
   active?: string;
+  hasNewNav?: boolean;
   isInFloatingAccordion?: boolean;
   theme?: Theme;
 }) => {
@@ -364,23 +398,33 @@ const StyledSidebarItem = styled(Link, {
   position: relative;
   cursor: pointer;
   font-size: 15px;
-  height: ${p => (p.isInFloatingAccordion ? '35px' : '30px')};
+  height: ${p => (p.isInFloatingAccordion ? '35px' : p.hasNewNav ? '40px' : '30px')};
   flex-shrink: 0;
   border-radius: ${p => p.theme.borderRadius};
   transition: none;
-
-  &:before {
-    display: block;
-    content: '';
-    position: absolute;
-    top: 4px;
-    left: calc(-${space(2)} - 1px);
-    bottom: 6px;
-    width: 5px;
-    border-radius: 0 3px 3px 0;
-    background-color: transparent;
-    transition: 0.15s background-color linear;
-  }
+  ${p => {
+    if (!p.hasNewNav) {
+      return css`
+        &:before {
+          display: block;
+          content: '';
+          position: absolute;
+          top: 4px;
+          left: calc(-${space(2)} - 1px);
+          bottom: 6px;
+          width: 5px;
+          border-radius: 0 3px 3px 0;
+          background-color: transparent;
+          transition: 0.15s background-color linear;
+        }
+      `;
+    }
+    return css`
+      margin: ${space(2)} 0;
+      width: 100px;
+      align-self: center;
+    `;
+  }}
 
   @media (max-width: ${p => p.theme.breakpoints.medium}) {
     &:before {
@@ -421,10 +465,11 @@ const StyledSidebarItem = styled(Link, {
   ${getActiveStyle};
 `;
 
-const SidebarItemWrapper = styled('div')<{collapsed?: boolean}>`
+const SidebarItemWrapper = styled('div')<{collapsed?: boolean; hasNewNav?: boolean}>`
   display: flex;
   align-items: center;
   justify-content: center;
+  ${p => p.hasNewNav && 'flex-direction: column;'}
   width: 100%;
 
   ${p => !p.collapsed && `padding-right: ${space(1)};`}
@@ -433,7 +478,7 @@ const SidebarItemWrapper = styled('div')<{collapsed?: boolean}>`
   }
 `;
 
-const SidebarItemIcon = styled('span')`
+const SidebarItemIcon = styled('span')<{hasNewNav?: boolean}>`
   display: flex;
   align-items: center;
   justify-content: center;
@@ -446,6 +491,13 @@ const SidebarItemIcon = styled('span')`
     width: 18px;
     height: 18px;
   }
+  ${p =>
+    p.hasNewNav &&
+    css`
+      @media (max-width: ${p.theme.breakpoints.medium}) {
+        display: none;
+      }
+    `};
 `;
 
 const SidebarItemLabel = styled('span')<{
@@ -461,8 +513,12 @@ const SidebarItemLabel = styled('span')<{
   overflow: hidden;
 `;
 
-const TruncatedLabel = styled(TextOverflow)`
-  margin-right: auto;
+const TruncatedLabel = styled(TextOverflow)<{hasNewNav?: boolean}>`
+  ${p =>
+    !p.hasNewNav &&
+    css`
+      margin-right: auto;
+    `}
 `;
 
 const getCollapsedBadgeStyle = ({collapsed, theme}) => {
@@ -502,4 +558,9 @@ const CollapsedFeatureBadge = styled(FeatureBadge)`
   position: absolute;
   top: 2px;
   right: 2px;
+`;
+
+const StyledInteractionStateLayer = styled(InteractionStateLayer)`
+  height: ${16 * 2 + 40}px;
+  width: 70px;
 `;

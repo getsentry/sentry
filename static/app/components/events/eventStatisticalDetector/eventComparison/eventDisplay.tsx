@@ -146,7 +146,7 @@ function EventDisplay({
   const location = useLocation();
   const [selectedEventId, setSelectedEventId] = useState<string>('');
 
-  const {data, isLoading, isError} = useFetchSampleEvents({
+  const {data, isPending, isError} = useFetchSampleEvents({
     start,
     end,
     transaction,
@@ -176,7 +176,7 @@ function EventDisplay({
     return null;
   }
 
-  if (isLoading || isFetching) {
+  if (isPending || isFetching) {
     return <LoadingIndicator />;
   }
 

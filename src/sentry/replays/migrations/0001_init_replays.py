@@ -54,7 +54,6 @@ class Migration(CheckedMigration):
                     ("project_id", "replay_id", "sequence_id"),
                     ("project_id", "replay_id", "file_id"),
                 },
-                "index_together": {("replay_id", "sequence_id")},
             },
         ),
     ]

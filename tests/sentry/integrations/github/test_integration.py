@@ -15,13 +15,13 @@ from django.urls import reverse
 import sentry
 from fixtures.github import INSTALLATION_EVENT_EXAMPLE
 from sentry.constants import ObjectStatus
-from sentry.integrations.github import (
+from sentry.integrations.github import client
+from sentry.integrations.github.client import MINIMUM_REQUESTS
+from sentry.integrations.github.integration import (
     API_ERRORS,
-    MINIMUM_REQUESTS,
+    GitHubIntegration,
     GitHubIntegrationProvider,
-    client,
 )
-from sentry.integrations.github.integration import GitHubIntegration
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.source_code_management.commit_context import (
@@ -400,7 +400,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
                 ),
             )
         )
-        assert b"Invalid installation request." in resp.content
+        assert b"Invalid state" in resp.content
 
     @responses.activate
     @override_options({"github-app.webhook-secret": ""})
@@ -459,7 +459,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             self.assertTemplateUsed(resp, "sentry/integrations/github-integration-failed.html")
             assert resp.status_code == 200
             assert b'window.opener.postMessage({"success":false' in resp.content
-            assert b"Invalid installation request." in resp.content
+            assert b"Authenticated user is not the same as who installed the app" in resp.content
 
     @responses.activate
     def test_disable_plugin_when_fully_migrated(self):

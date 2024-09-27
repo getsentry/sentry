@@ -95,6 +95,7 @@ function makeSingleTransactionTree(): TraceTree {
         }),
       ],
     }),
+    null,
     null
   );
 }
@@ -323,17 +324,17 @@ describe('VirtualizedViewManger', () => {
           transactions: [makeTransaction()],
           orphan_errors: [],
         }),
+        null,
         null
       );
 
       manager.list = makeList();
-
       const result = await TraceTree.ExpandToPath(tree, tree.list[0].path, () => void 0, {
         api: api,
         organization,
       });
 
-      expect(result?.node).toBe(tree.list[0]);
+      expect(result).toBe(tree.list[0]);
     });
 
     it('scrolls to transaction', async () => {
@@ -347,6 +348,7 @@ describe('VirtualizedViewManger', () => {
             }),
           ],
         }),
+        null,
         null
       );
 
@@ -357,7 +359,7 @@ describe('VirtualizedViewManger', () => {
         organization,
       });
 
-      expect(result?.node).toBe(tree.list[2]);
+      expect(result).toBe(tree.list[2]);
     });
 
     it('scrolls to nested transaction', async () => {
@@ -380,6 +382,7 @@ describe('VirtualizedViewManger', () => {
             }),
           ],
         }),
+        null,
         null
       );
 
@@ -400,7 +403,7 @@ describe('VirtualizedViewManger', () => {
         }
       );
 
-      expect(result?.node).toBe(tree.list[tree.list.length - 1]);
+      expect(result).toBe(tree.list[tree.list.length - 1]);
     });
 
     it('scrolls to spans of expanded transaction', async () => {
@@ -416,6 +419,7 @@ describe('VirtualizedViewManger', () => {
             }),
           ],
         }),
+        null,
         null
       );
 
@@ -436,43 +440,7 @@ describe('VirtualizedViewManger', () => {
       );
 
       expect(tree.list[1].zoomedIn).toBe(true);
-      expect(result?.node).toBe(tree.list[2]);
-    });
-
-    it('scrolls to empty data node of expanded transaction', async () => {
-      manager.list = makeList();
-
-      const tree = TraceTree.FromTrace(
-        makeTrace({
-          transactions: [
-            makeTransaction({
-              event_id: 'event_id',
-              project_slug: 'project',
-              children: [],
-            }),
-          ],
-        }),
-        null
-      );
-
-      MockApiClient.addMockResponse({
-        url: EVENT_REQUEST_URL,
-        method: 'GET',
-        body: makeEvent(undefined, []),
-      });
-
-      const result = await TraceTree.ExpandToPath(
-        tree,
-        ['empty-node', 'txn-event_id'],
-        () => void 0,
-        {
-          api: api,
-          organization,
-        }
-      );
-
-      expect(tree.list[1].zoomedIn).toBe(true);
-      expect(result?.node).toBe(tree.list[2]);
+      expect(result).toBe(tree.list[2]);
     });
 
     it('scrolls to span -> transaction -> span -> transaction', async () => {
@@ -494,6 +462,7 @@ describe('VirtualizedViewManger', () => {
             }),
           ],
         }),
+        null,
         null
       );
 
@@ -699,6 +668,7 @@ describe('VirtualizedViewManger', () => {
             },
           ],
         }),
+        null,
         null
       );
 
@@ -707,7 +677,7 @@ describe('VirtualizedViewManger', () => {
         organization,
       });
 
-      expect(result?.node).toBe(tree.list[2]);
+      expect(result).toBe(tree.list[2]);
     });
 
     describe('error handling', () => {

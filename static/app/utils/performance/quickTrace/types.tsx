@@ -139,4 +139,5 @@ export type TraceMeta = {
   performance_issues: number;
   projects: number;
   transactions: number;
+  transactiontoSpanChildrenCount: Record<string, number>;
 };

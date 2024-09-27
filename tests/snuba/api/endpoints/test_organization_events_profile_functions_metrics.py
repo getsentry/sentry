@@ -11,7 +11,7 @@ pytestmark = pytest.mark.sentry_metrics
 FUNCTION_DURATION_MRI = "d:profiles/function.duration@millisecond"
 
 
-class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPerformanceTestCase):
+class OrganizationEventsProfileFunctionsMetricsEndpointTest(MetricsEnhancedPerformanceTestCase):
     viewname = "sentry-api-0-organization-events"
 
     # Poor intentionally omitted for test_measurement_rating_that_does_not_exist

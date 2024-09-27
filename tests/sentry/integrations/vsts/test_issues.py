@@ -22,7 +22,6 @@ from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration_external_project import IntegrationExternalProject
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.vsts.integration import VstsIntegration
-from sentry.models.identity import Identity
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.silo.base import SiloMode
 from sentry.silo.util import PROXY_PATH
@@ -30,6 +29,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.testutils.skips import requires_snuba
+from sentry.users.models.identity import Identity
 from sentry.users.services.user.service import user_service
 
 pytestmark = [requires_snuba]

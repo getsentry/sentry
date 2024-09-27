@@ -1,5 +1,4 @@
 import {useState} from 'react';
-import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
@@ -25,6 +24,7 @@ import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event, EventTag} from 'sentry/types/event';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -83,7 +83,7 @@ function EventDetailsContent(props: Props) {
 
   const {
     data: event,
-    isLoading,
+    isPending,
     error,
   } = useApiQuery<Event>(
     [`/organizations/${props.organization.slug}/events/${props.eventSlug}/`],
@@ -173,14 +173,14 @@ function EventDetailsContent(props: Props) {
                 {transactionSummaryTarget && (
                   <Feature organization={organization} features="performance-view">
                     {({hasFeature}) => (
-                      <Button
+                      <LinkButton
                         size="sm"
                         disabled={!hasFeature}
                         priority="primary"
                         to={transactionSummaryTarget}
                       >
                         {t('Go to Summary')}
-                      </Button>
+                      </LinkButton>
                     )}
                   </Feature>
                 )}
@@ -318,7 +318,7 @@ function EventDetailsContent(props: Props) {
     return render();
   }
 
-  if (isLoading) {
+  if (isPending) {
     return <LoadingIndicator />;
   }
 
@@ -356,7 +356,7 @@ function EventDetailsContent(props: Props) {
   const eventSlug = getEventSlug();
   const projectSlug = eventSlug.split(':')[0];
 
-  const title = generateTitle({eventView, event, organization});
+  const title = generateTitle({eventView, event});
 
   return (
     <SentryDocumentTitle

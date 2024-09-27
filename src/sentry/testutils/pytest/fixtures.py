@@ -70,7 +70,7 @@ def task_runner():
 def default_user(factories):
     """A default (super)user with email ``admin@localhost`` and password ``admin``.
 
-    :returns: A :class:`sentry.models.user.User` instance.
+    :returns: A :class:`sentry.users.models.user.User` instance.
     """
     return factories.create_user(email="admin@localhost", is_superuser=True)
 
@@ -319,6 +319,7 @@ def call_snuba(settings):
 @pytest.fixture
 def reset_snuba(call_snuba):
     init_endpoints = [
+        "/tests/events_analytics_platform/drop",
         "/tests/spans/drop",
         "/tests/events/drop",
         "/tests/functions/drop",
@@ -328,7 +329,6 @@ def reset_snuba(call_snuba):
         "/tests/generic_metrics/drop",
         "/tests/search_issues/drop",
         "/tests/group_attributes/drop",
-        "/tests/spans/drop",
     ]
 
     assert all(

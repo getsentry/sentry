@@ -216,15 +216,16 @@ def devservices() -> None:
         click.echo("Assuming docker (CI).")
         return
 
-    if USE_DOCKER_DESKTOP:
-        click.echo("Using docker desktop.")
-        ensure_docker_cli_context("desktop-linux")
-    if USE_COLIMA:
-        click.echo("Using colima.")
-        ensure_docker_cli_context("colima")
-    if USE_ORBSTACK:
-        click.echo("Using orbstack.")
-        ensure_docker_cli_context("orbstack")
+    if DARWIN:
+        if USE_DOCKER_DESKTOP:
+            click.echo("Using docker desktop.")
+            ensure_docker_cli_context("desktop-linux")
+        if USE_COLIMA:
+            click.echo("Using colima.")
+            ensure_docker_cli_context("colima")
+        if USE_ORBSTACK:
+            click.echo("Using orbstack.")
+            ensure_docker_cli_context("orbstack")
 
 
 @devservices.command()

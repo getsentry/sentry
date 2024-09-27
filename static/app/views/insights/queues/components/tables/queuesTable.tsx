@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
-import qs from 'qs';
+import * as qs from 'query-string';
 
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
@@ -109,7 +109,7 @@ export function QueuesTable({error, destination, sort}: Props) {
   const location = useLocation();
   const organization = useOrganization();
 
-  const {data, isLoading, meta, pageLinks} = useQueuesByDestinationQuery({
+  const {data, isPending, meta, pageLinks} = useQueuesByDestinationQuery({
     destination,
     sort,
     referrer: Referrer.QUEUES_LANDING_DESTINATIONS_TABLE,
@@ -126,7 +126,7 @@ export function QueuesTable({error, destination, sort}: Props) {
     <Fragment>
       <GridEditable
         aria-label={t('Queues')}
-        isLoading={isLoading}
+        isLoading={isPending}
         error={error}
         data={data}
         columnOrder={COLUMN_ORDER}

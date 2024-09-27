@@ -3,12 +3,13 @@ from collections.abc import Sequence
 from typing import Any
 
 from sentry.integrations.services.integration import integration_service
-from sentry.integrations.slack.utils import (
-    SLACK_RATE_LIMITED_MESSAGE,
-    RedisRuleStatus,
+from sentry.integrations.slack.utils.channel import (
+    SlackChannelIdData,
+    get_channel_id_with_timeout,
     strip_channel_name,
 )
-from sentry.integrations.slack.utils.channel import SlackChannelIdData, get_channel_id_with_timeout
+from sentry.integrations.slack.utils.constants import SLACK_RATE_LIMITED_MESSAGE
+from sentry.integrations.slack.utils.rule_status import RedisRuleStatus
 from sentry.mediators.project_rules.creator import Creator
 from sentry.mediators.project_rules.updater import Updater
 from sentry.models.project import Project

@@ -7,7 +7,6 @@ from typing import Any, TypedDict
 
 import sentry_sdk
 from django.db.models import Q
-from django.db.utils import OperationalError
 from google.api_core.exceptions import DeadlineExceeded, ServiceUnavailable
 from snuba_sdk import Column, Condition, Entity, Limit, Op, Query, Request
 
@@ -44,10 +43,12 @@ from sentry.utils import json, metrics
 from sentry.utils.iterators import chunked
 from sentry.utils.query import RangeQuerySetWrapper
 from sentry.utils.safe import get_path
-from sentry.utils.snuba import RateLimitExceeded, bulk_snuba_queries
+from sentry.utils.snuba import QueryTooManySimultaneous, RateLimitExceeded, bulk_snuba_queries
 
 BACKFILL_NAME = "backfill_grouping_records"
 BULK_DELETE_METADATA_CHUNK_SIZE = 100
+SNUBA_RETRY_EXCEPTIONS = (RateLimitExceeded, QueryTooManySimultaneous)
+NODESTORE_RETRY_EXCEPTIONS = (ServiceUnavailable, DeadlineExceeded)
 
 logger = logging.getLogger(__name__)
 
@@ -97,6 +98,26 @@ def filter_snuba_results(snuba_results, groups_to_backfill_with_no_embedding, pr
     return filtered_snuba_results, groups_to_backfill_with_no_embedding_has_snuba_row
 
 
+def create_project_cohort(worker_number: int, last_processed_project_id: int | None) -> list[int]:
+    """
+    Create project cohort by the following calculation: project_id % threads == worker_number
+    to assign projects uniquely to available threads
+    """
+    project_id_filter = Q()
+    if last_processed_project_id is not None:
+        project_id_filter = Q(id__gt=last_processed_project_id)
+    total_worker_count = options.get("similarity.backfill_total_worker_count")
+    cohort_size = options.get("similarity.backfill_project_cohort_size")
+
+    project_cohort_list = (
+        Project.objects.filter(project_id_filter)
+        .values_list("id", flat=True)
+        .extra(where=["id %% %s = %s"], params=[total_worker_count, worker_number])
+        .order_by("id")[:cohort_size]
+    )
+    return list(project_cohort_list)
+
+
 @sentry_sdk.tracing.trace
 def initialize_backfill(
     project_id: int,
@@ -122,58 +143,40 @@ def initialize_backfill(
 
 
 def _make_postgres_call_with_filter(group_id_filter: Q, project_id: int, batch_size: int):
+    """
+    Return the filtered batch of group ids to be backfilled, the last group id in the raw batch,
+    and the length of the raw batch.
+    """
+
     groups_to_backfill_batch_raw = (
         Group.objects.filter(
             group_id_filter,
             project_id=project_id,
             type=ErrorGroupType.type_id,
-            times_seen__gt=1,
         )
-        .values_list("id", "data", "status", "last_seen")
+        .values_list("id", "data", "status", "last_seen", "times_seen")
         .order_by("-id")[:batch_size]
     )
 
-    # Filter out groups that are pending deletion in memory so postgres won't make a bad query plan
+    # Filter out groups that are pending deletion and have times_seen > 1 in memory so postgres won't make a bad query plan
     # Get the last queried group id while we are iterating; even if it's not valid to be backfilled
     # we want to keep the value to be used as an filter for the next batch
-    groups_to_backfill_batch, batch_end_group_id = [], None
+    groups_to_backfill_batch, batch_raw_end_group_id, backfill_batch_raw_length = [], None, 0
     for group in groups_to_backfill_batch_raw:
-        if group[2] not in [
-            GroupStatus.PENDING_DELETION,
-            GroupStatus.DELETION_IN_PROGRESS,
-        ] and group[3] > datetime.now(UTC) - timedelta(days=90):
+        if (
+            group[2]
+            not in [
+                GroupStatus.PENDING_DELETION,
+                GroupStatus.DELETION_IN_PROGRESS,
+            ]
+            and group[3] > datetime.now(UTC) - timedelta(days=90)
+            and group[4] > 1
+        ):
             groups_to_backfill_batch.append((group[0], group[1]))
-        batch_end_group_id = group[0]
+        batch_raw_end_group_id = group[0]
+        backfill_batch_raw_length += 1
 
-    return groups_to_backfill_batch, batch_end_group_id
-
-
-def _make_postgres_call_with_retry(group_id_filter: Q, project_id: int, batch_size: int):
-    """
-    Try postgres query. If it has an operational error, retry with a decreased batch size.
-    """
-    try:
-        groups_to_backfill_batch, batch_end_group_id = _make_postgres_call_with_filter(
-            group_id_filter, project_id, batch_size
-        )
-    except OperationalError:
-        batch_size = batch_size // 2
-        try:
-            logger.info(
-                "tasks.backfill_seer_grouping_records.postgres_query_retry",
-                extra={"project_id": project_id, "batch_size": batch_size},
-            )
-            groups_to_backfill_batch, batch_end_group_id = _make_postgres_call_with_filter(
-                group_id_filter, project_id, batch_size
-            )
-        except OperationalError:
-            logger.exception(
-                "tasks.backfill_seer_grouping_records.postgres_query_operational_error",
-                extra={"project_id": project_id, "batch_size": batch_size},
-            )
-            raise
-
-    return (groups_to_backfill_batch, batch_size, batch_end_group_id)
+    return groups_to_backfill_batch, batch_raw_end_group_id, backfill_batch_raw_length
 
 
 @sentry_sdk.tracing.trace
@@ -184,20 +187,22 @@ def get_current_batch_groups_from_postgres(
     if last_processed_group_id is not None:
         group_id_filter = Q(id__lt=last_processed_group_id)
 
-    (groups_to_backfill_batch, batch_size, batch_end_group_id) = _make_postgres_call_with_retry(
-        group_id_filter, project.id, batch_size
-    )
-    total_groups_to_backfill_length = len(groups_to_backfill_batch)
+    (
+        groups_to_backfill_batch,
+        batch_end_group_id,
+        backfill_batch_raw_length,
+    ) = _make_postgres_call_with_filter(group_id_filter, project.id, batch_size)
 
     logger.info(
         "backfill_seer_grouping_records.batch",
         extra={
             "project_id": project.id,
-            "batch_len": total_groups_to_backfill_length,
+            "batch_len": len(groups_to_backfill_batch),
             "last_processed_group_id": batch_end_group_id,
         },
     )
-    if total_groups_to_backfill_length == 0:
+
+    if backfill_batch_raw_length == 0:
         logger.info(
             "backfill_seer_grouping_records.no_more_groups",
             extra={"project_id": project.id},
@@ -299,18 +304,23 @@ def _make_snuba_call(project, snuba_requests, referrer):
             bulk_snuba_queries,
             snuba_requests,
             referrer,
-            retries=3,
-            delay=2,
-            exceptions=RateLimitExceeded,
+            retries=6,
+            delay=15,
+            exceptions=SNUBA_RETRY_EXCEPTIONS,
         )
-    except RateLimitExceeded:
+    except SNUBA_RETRY_EXCEPTIONS as e:
+        message = (
+            "Snuba Rate Limit Exceeded"
+            if isinstance(e, RateLimitExceeded)
+            else "Too Many Simultaneous Snuba Queries"
+        )
         extra = {
             "organization_id": project.organization.id,
             "project_id": project.id,
-            "error": "Snuba Rate Limit Exceeded",
+            "error": message,
         }
         logger.exception(
-            "tasks.backfill_seer_grouping_records.snuba_query_exception",
+            "tasks.backfill_seer_grouping_records.snuba_query_limit_exceeded",
             extra=extra,
         )
         raise
@@ -364,7 +374,6 @@ def get_events_from_nodestore(
                 CreateGroupingRecordData(
                     group_id=group_id,
                     project_id=project.id,
-                    message=filter_null_from_string(event.title),
                     exception_type=(
                         filter_null_from_string(exception_type) if exception_type else None
                     ),
@@ -398,20 +407,13 @@ def get_events_from_nodestore(
 def _make_seer_call(
     create_grouping_records_request: CreateGroupingRecordsRequest, project_id: int
 ) -> BulkCreateGroupingRecordsResponse | None:
-    try:
-        seer_response = _retry_operation(
-            post_bulk_grouping_records,
-            create_grouping_records_request,
-            retries=3,
-            delay=2,
-            exceptions=Exception,
-        )
-    except Exception as e:
-        logger.exception(
-            "tasks.backfill_seer_grouping_records.seer_exception_after_retries",
-            extra={"project_id": project_id, "error": e},
-        )
-        raise
+    seer_response = _retry_operation(
+        post_bulk_grouping_records,
+        create_grouping_records_request,
+        retries=20,
+        delay=15,
+        exceptions=Exception,
+    )
 
     return seer_response
 
@@ -496,6 +498,7 @@ def send_group_and_stacktrace_to_seer_multithreaded(
         for seer_response in seer_responses:
             if not seer_response["success"]:
                 aggregated_response["success"] = False
+                aggregated_response.update({"reason": seer_response["reason"]})
                 return aggregated_response
 
             aggregated_response["groups_with_neighbor"].update(
@@ -515,13 +518,6 @@ def update_groups(project, seer_response, group_id_batch_filtered, group_hashes_
             "request_hash": group_hashes_dict[group.id],
         }
         if str(group.id) in groups_with_neighbor:
-            logger.info(
-                "backfill_seer_grouping_records.found_neighbor",
-                extra={
-                    "project_id": project.id,
-                    "group_id": group.id,
-                },
-            )
             # TODO: remove this try catch once the helper is made
             try:
                 seer_similarity["results"] = [
@@ -574,9 +570,9 @@ def _make_nodestore_call(project, node_keys):
             node_keys,
             retries=3,
             delay=2,
-            exceptions=(ServiceUnavailable, DeadlineExceeded),
+            exceptions=NODESTORE_RETRY_EXCEPTIONS,
         )
-    except (ServiceUnavailable, DeadlineExceeded) as e:
+    except NODESTORE_RETRY_EXCEPTIONS as e:
         extra = {
             "organization_id": project.organization.id,
             "project_id": project.id,
@@ -663,7 +659,7 @@ def lookup_group_data_stacktrace_bulk(
                         Event.generate_node_id(project_id, event_id),
                         retries=3,
                         delay=2,
-                        exceptions=(ServiceUnavailable, DeadlineExceeded),
+                        exceptions=NODESTORE_RETRY_EXCEPTIONS,
                     )
                     if data is None:
                         extra = {

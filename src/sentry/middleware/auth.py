@@ -14,7 +14,7 @@ from sentry.api.authentication import (
     OrgAuthTokenAuthentication,
     UserAuthTokenAuthentication,
 )
-from sentry.models.userip import UserIP
+from sentry.users.models.userip import UserIP
 from sentry.utils.auth import AuthUserPasswordExpired, logger
 
 
@@ -37,7 +37,10 @@ def get_user(request):
                 # If the nonces don't match, this session is anonymous.
                 logger.info(
                     "user.auth.invalid-nonce",
-                    extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": user.id},
+                    extra={
+                        "ip_address": request.META["REMOTE_ADDR"],
+                        "user_id": user.id,
+                    },
                 )
                 user = AnonymousUser()
             else:
@@ -83,7 +86,7 @@ class AuthenticationMiddleware(MiddlewareMixin):
         self, request: HttpRequest, exception: Exception
     ) -> HttpResponseBase | None:
         if isinstance(exception, AuthUserPasswordExpired):
-            from sentry.web.frontend.accounts import expired
+            from sentry.users.web.accounts import expired
 
             return expired(request, exception.user)
         else:

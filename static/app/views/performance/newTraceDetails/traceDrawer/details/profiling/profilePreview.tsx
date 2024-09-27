@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import emptyStateImg from 'sentry-images/spot/profiling-empty-state.svg';
 
-import {Button, LinkButton} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import InlineDocs from 'sentry/components/events/interfaces/spans/inlineDocs';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -126,14 +126,7 @@ export function ProfilePreview({event, node}: SpanProfileProps) {
   // This project has received a profile before so they've already
   // set up profiling. No point showing the profiling setup again.
   if (!docsLink || project?.hasProfiles) {
-    return (
-      <InlineDocs
-        resetCellMeasureCache={() => void 0}
-        orgSlug={organization.slug}
-        platform={event.sdk?.name || ''}
-        projectSlug={event?.projectSlug ?? project?.slug ?? ''}
-      />
-    );
+    return <InlineDocs platform={event.sdk?.name || ''} />;
   }
 
   // At this point we must have a project on a supported
@@ -189,9 +182,9 @@ function ProfilePreviewHeader({canvasView, event, organization}: ProfilePreviewP
           )}
         />
       </HeaderContainer>
-      <Button size="xs" onClick={handleGoToProfile} to={target}>
+      <LinkButton size="xs" onClick={handleGoToProfile} to={target}>
         {t('View Profile')}
-      </Button>
+      </LinkButton>
     </HeaderContainer>
   );
 }

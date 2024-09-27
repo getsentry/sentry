@@ -160,7 +160,14 @@ export function AddWidgetButton({onAddWidget, ...buttonProps}: Props & ButtonPro
         key: DataSet.METRICS,
         label: t('Metrics'),
         onAction: () => handleAction(DataSet.METRICS),
-        trailingItems: <FeatureBadge type="beta" />,
+        trailingItems: (
+          <FeatureBadge
+            type="beta"
+            title={
+              'The Metrics beta will end and we will retire the current solution on October 7th, 2024'
+            }
+          />
+        ),
       });
     }
 

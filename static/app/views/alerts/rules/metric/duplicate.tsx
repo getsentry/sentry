@@ -1,9 +1,9 @@
-import type {RouteComponentProps} from 'react-router';
 import pick from 'lodash/pick';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Project} from 'sentry/types/project';
 import type EventView from 'sentry/utils/discover/eventView';
 import {uniqueId} from 'sentry/utils/guid';
@@ -40,7 +40,7 @@ function MetricRuleDuplicate({
   const organization = useOrganization();
   const {
     data: duplicateTargetRule,
-    isLoading,
+    isPending,
     isError,
     refetch,
   } = useApiQuery<MetricRule>(
@@ -66,7 +66,7 @@ function MetricRuleDuplicate({
     otherProps.router.push(normalizeUrl(target));
   };
 
-  if (isLoading) {
+  if (isPending) {
     return <LoadingIndicator />;
   }
 

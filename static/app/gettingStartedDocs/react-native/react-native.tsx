@@ -9,11 +9,16 @@ import type {
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {MobileBetaBanner} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {
   getCrashReportApiIntroduction,
   getCrashReportInstallDescription,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {getReactNativeMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
+import {
+  getReplayMobileConfigureDescription,
+  getReplayVerifyStep,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
@@ -72,6 +77,27 @@ shopCheckout() {
   }
 }`;
 
+const getReplaySetupSnippet = (params: Params) => `
+import * as Sentry from '@sentry/react-native';
+
+Sentry.init({
+  dsn: "${params.dsn.public}",
+  _experiments: {
+    replaysSessionSampleRate: 1.0,
+    replaysOnErrorSampleRate: 1.0,
+  },
+  integrations: [
+    Sentry.mobileReplayIntegration(),
+  ],
+});`;
+
+const getReplayConfigurationSnippet = () => `
+Sentry.mobileReplayIntegration({
+  maskAllText: true,
+  maskAllImages: true,
+  maskAllVectors: true,
+}),`;
+
 const onboarding: OnboardingConfig = {
   install: () => [
     {
@@ -108,11 +134,9 @@ const onboarding: OnboardingConfig = {
                 </ListItem>
                 <ListItem>
                   {tct(
-                    "Android Specifics: We hook into Gradle for the source map build process. When you run [gradLewCode:./gradlew] assembleRelease, source maps are automatically built and uploaded to Sentry. If you have enabled Gradle's [orgGradleCode:org.gradle.configureondemand] feature, you'll need a clean build, or you'll need to disable this feature to upload the source map on every build by setting [orgGradleCodeConfigureCode:org.gradle.configureondemand=false] or remove it.",
+                    "Android Specifics: We hook into Gradle for the source map build process. When you run [code:./gradlew] assembleRelease, source maps are automatically built and uploaded to Sentry. If you have enabled Gradle's [code:org.gradle.configureondemand] feature, you'll need a clean build, or you'll need to disable this feature to upload the source map on every build by setting [code:org.gradle.configureondemand=false] or remove it.",
                     {
-                      gradLewCode: <code />,
-                      orgGradleCode: <code />,
-                      orgGradleCodeConfigureCode: <code />,
+                      code: <code />,
                     }
                   )}
                 </ListItem>
@@ -381,11 +405,90 @@ const getInstallConfig = () => [
   },
 ];
 
+const replayOnboarding: OnboardingConfig = {
+  introduction: () => (
+    <MobileBetaBanner link="https://docs.sentry.io/platforms/react-native/session-replay/" />
+  ),
+  install: (params: Params) => [
+    {
+      type: StepType.INSTALL,
+      description: t(
+        'Make sure your Sentry React Native SDK version is at least 5.26.0. If you already have the SDK installed, you can update it to the latest version with:'
+      ),
+      configurations: [
+        {
+          code: [
+            {
+              label: 'npm',
+              value: 'npm',
+              language: 'bash',
+              code: `npm install @sentry/react-native --save`,
+            },
+            {
+              label: 'yarn',
+              value: 'yarn',
+              language: 'bash',
+              code: `yarn add @sentry/react-native`,
+            },
+            {
+              label: 'pnpm',
+              value: 'pnpm',
+              language: 'bash',
+              code: `pnpm add @sentry/react-native`,
+            },
+          ],
+        },
+        {
+          description: t(
+            'To set up the integration, add the following to your Sentry initialization:'
+          ),
+        },
+        {
+          code: [
+            {
+              label: 'JavaScript',
+              value: 'javascript',
+              language: 'javascript',
+              code: getReplaySetupSnippet(params),
+            },
+          ],
+        },
+      ],
+    },
+  ],
+  configure: () => [
+    {
+      type: StepType.CONFIGURE,
+      description: getReplayMobileConfigureDescription({
+        link: 'https://docs.sentry.io/platforms/react-native/session-replay/#privacy',
+      }),
+      configurations: [
+        {
+          description: t(
+            'The following code is the default configuration, which masks and blocks everything.'
+          ),
+          code: [
+            {
+              label: 'JavaScript',
+              value: 'javascript',
+              language: 'javascript',
+              code: getReplayConfigurationSnippet(),
+            },
+          ],
+        },
+      ],
+    },
+  ],
+  verify: getReplayVerifyStep(),
+  nextSteps: () => [],
+};
+
 const docs: Docs = {
   onboarding,
   feedbackOnboardingCrashApi,
   crashReportOnboarding: feedbackOnboardingCrashApi,
   customMetricsOnboarding: getReactNativeMetricsOnboarding({getInstallConfig}),
+  replayOnboarding,
 };
 
 export default docs;

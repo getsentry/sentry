@@ -1,5 +1,7 @@
 import {useMemo} from 'react';
+import styled from '@emotion/styled';
 
+import Alert from 'sentry/components/alert';
 import {EventContexts} from 'sentry/components/events/contexts';
 import {EventAttachments} from 'sentry/components/events/eventAttachments';
 import {EventEvidence} from 'sentry/components/events/eventEvidence';
@@ -7,11 +9,15 @@ import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
 import {EventRRWebIntegration} from 'sentry/components/events/rrwebIntegration';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import type {LazyRenderProps} from 'sentry/components/lazyRender';
+import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {CustomMetricsEventData} from 'sentry/components/metrics/customMetricsEventData';
+import {
+  CustomMetricsEventData,
+  eventHasCustomMetrics,
+} from 'sentry/components/metrics/customMetricsEventData';
 import {Tooltip} from 'sentry/components/tooltip';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -29,17 +35,19 @@ import type {
   TraceTreeNode,
 } from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 
+import {traceAnalytics} from '../../../traceAnalytics';
+import {getCustomInstrumentationLink} from '../../../traceConfigurations';
 import {IssueList} from '../issues/issues';
 import {TraceDrawerComponents} from '../styles';
 
-import {AdditionalData} from './sections/additionalData';
+import {AdditionalData, hasAdditionalData} from './sections/additionalData';
 import {BreadCrumbs} from './sections/breadCrumbs';
 import {Entries} from './sections/entries';
 import GeneralInfo from './sections/generalInfo';
-import {Measurements} from './sections/measurements';
+import {hasMeasurements, Measurements} from './sections/measurements';
 import ReplayPreview from './sections/replayPreview';
 import {Request} from './sections/request';
-import {Sdk} from './sections/sdk';
+import {hasSDKContext, Sdk} from './sections/sdk';
 
 export const LAZY_RENDER_PROPS: Partial<LazyRenderProps> = {
   observerOptions: {rootMargin: '50px'},
@@ -103,7 +111,7 @@ export function TransactionNodeDetails({
   const {
     data: event,
     isError,
-    isLoading,
+    isPending,
   } = useTransaction({
     node,
     organization,
@@ -119,7 +127,7 @@ export function TransactionNodeDetails({
     Referrer.TRACE_DRAWER_TRANSACTION_CACHE_METRICS
   );
 
-  if (isLoading) {
+  if (isPending) {
     return <LoadingIndicator />;
   }
 
@@ -131,6 +139,24 @@ export function TransactionNodeDetails({
 
   return (
     <TraceDrawerComponents.DetailContainer>
+      {!node.canFetch ? (
+        <StyledAlert type="info" showIcon>
+          {tct(
+            'This transaction does not have any child spans. You can add more child spans via [customInstrumentationLink:custom instrumentation].',
+            {
+              customInstrumentationLink: (
+                <ExternalLink
+                  onClick={() => {
+                    traceAnalytics.trackMissingSpansDocLinkClicked(organization);
+                  }}
+                  href={getCustomInstrumentationLink(project)}
+                />
+              ),
+            }
+          )}
+        </StyledAlert>
+      ) : null}
+
       <TransactionNodeDetailHeader
         node={node}
         organization={organization}
@@ -149,16 +175,22 @@ export function TransactionNodeDetails({
           event={event}
           location={location}
         />
-        <AdditionalData event={event} />
-        <Measurements event={event} location={location} organization={organization} />
+        {hasAdditionalData(event) ? <AdditionalData event={event} /> : null}
+        {hasMeasurements(event) ? (
+          <Measurements event={event} location={location} organization={organization} />
+        ) : null}
         {cacheMetrics.length > 0 ? <CacheMetrics cacheMetrics={cacheMetrics} /> : null}
-        <Sdk event={event} />
-        <CustomMetricsEventData
-          metricsSummary={event._metrics_summary}
-          startTimestamp={event.startTimestamp}
-          projectId={event.projectID}
-        />
-        <TraceDrawerComponents.TraceDataSection event={event} />
+        {hasSDKContext(event) ? <Sdk event={event} /> : null}
+        {eventHasCustomMetrics(organization, event._metrics_summary) ? (
+          <CustomMetricsEventData
+            metricsSummary={event._metrics_summary}
+            startTimestamp={event.startTimestamp}
+            projectId={event.projectID}
+          />
+        ) : null}
+        {event.contexts.trace?.data ? (
+          <TraceDrawerComponents.TraceDataSection event={event} />
+        ) : null}
       </TraceDrawerComponents.SectionCardGroup>
 
       <Request event={event} />
@@ -185,8 +217,8 @@ export function TransactionNodeDetails({
 
       <BreadCrumbs event={event} organization={organization} />
 
-      {event.projectSlug ? (
-        <EventAttachments event={event} projectSlug={event.projectSlug} />
+      {project ? (
+        <EventAttachments event={event} project={project} group={undefined} />
       ) : null}
 
       {project ? <EventViewHierarchy event={event} project={project} /> : null}
@@ -201,3 +233,7 @@ export function TransactionNodeDetails({
     </TraceDrawerComponents.DetailContainer>
   );
 }
+
+const StyledAlert = styled(Alert)`
+  margin: 0;
+`;

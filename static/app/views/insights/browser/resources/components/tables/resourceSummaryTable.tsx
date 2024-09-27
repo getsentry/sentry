@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
 import type {GridColumnHeader, GridColumnOrder} from 'sentry/components/gridEditable';
@@ -9,6 +8,7 @@ import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
@@ -27,13 +27,18 @@ import {
   DataTitles,
   getThroughputTitle,
 } from 'sentry/views/insights/common/views/spans/types';
-import {SpanIndexedField, SpanMetricsField} from 'sentry/views/insights/types';
+import {
+  ModuleName,
+  SpanIndexedField,
+  SpanMetricsField,
+} from 'sentry/views/insights/types';
 
 const {
   RESOURCE_RENDER_BLOCKING_STATUS,
   SPAN_SELF_TIME,
   HTTP_RESPONSE_CONTENT_LENGTH,
   TRANSACTION,
+  USER_GEO_SUBREGION,
 } = SpanMetricsField;
 
 type Row = {
@@ -52,9 +57,10 @@ function ResourceSummaryTable() {
   const sort = useResourceSummarySort();
   const filters = useResourceModuleFilters();
   const cursor = decodeScalar(location.query?.[QueryParameterNames.PAGES_CURSOR]);
-  const {data, isLoading, pageLinks} = useResourcePagesQuery(groupId, {
+  const {data, isPending, pageLinks} = useResourcePagesQuery(groupId, {
     sort,
     cursor,
+    subregions: filters[USER_GEO_SUBREGION],
     renderBlockingStatus: filters[RESOURCE_RENDER_BLOCKING_STATUS],
   });
 
@@ -124,7 +130,7 @@ function ResourceSummaryTable() {
                 <TitleWrapper>{t('Example')}</TitleWrapper>
                 <FullSpanDescription
                   group={groupId}
-                  language="http"
+                  moduleName={ModuleName.RESOURCE}
                   filters={{
                     [SpanIndexedField.RESOURCE_RENDER_BLOCKING_STATUS]:
                       row[RESOURCE_RENDER_BLOCKING_STATUS],
@@ -163,7 +169,7 @@ function ResourceSummaryTable() {
     <Fragment>
       <GridEditable
         data={data || []}
-        isLoading={isLoading}
+        isLoading={isPending}
         columnOrder={columnOrder}
         columnSortBy={[
           {

@@ -2,7 +2,7 @@ import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import SpanSummaryButton from 'sentry/components/events/interfaces/spans/spanSummaryButton';
 import {t} from 'sentry/locale';
@@ -25,6 +25,24 @@ import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSum
 import {TraceDrawerComponents} from '../../styles';
 
 const formatter = new SQLishFormatter();
+
+export function hasFormattedSpanDescription(node: TraceTreeNode<TraceTree.Span>) {
+  const span = node.value;
+  const resolvedModule: ModuleName = resolveSpanModule(
+    span.sentry_tags?.op,
+    span.sentry_tags?.category
+  );
+
+  const formattedDescription =
+    resolvedModule !== ModuleName.DB
+      ? span.description ?? ''
+      : formatter.toString(span.description ?? '');
+
+  return (
+    !!formattedDescription &&
+    [ModuleName.DB, ModuleName.RESOURCE].includes(resolvedModule)
+  );
+}
 
 export function SpanDescription({
   node,
@@ -50,10 +68,7 @@ export function SpanDescription({
     return formatter.toString(span.description ?? '');
   }, [span.description, resolvedModule]);
 
-  if (
-    !formattedDescription ||
-    ![ModuleName.DB, ModuleName.RESOURCE].includes(resolvedModule)
-  ) {
+  if (!hasFormattedSpanDescription(node)) {
     return null;
   }
 
@@ -68,7 +83,7 @@ export function SpanDescription({
     !span.op || !span.hash ? null : (
       <ButtonGroup>
         <SpanSummaryButton event={event} organization={organization} span={span} />
-        <Button
+        <LinkButton
           size="xs"
           to={spanDetailsRouteWithQuery({
             orgSlug: organization.slug,
@@ -91,7 +106,7 @@ export function SpanDescription({
           }}
         >
           {hasNewSpansUIFlag ? t('View Span Summary') : t('View Similar Spans')}
-        </Button>
+        </LinkButton>
       </ButtonGroup>
     );
 

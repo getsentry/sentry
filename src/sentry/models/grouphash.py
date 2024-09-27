@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
@@ -8,6 +12,10 @@ from sentry.db.models import (
     Model,
     region_silo_model,
 )
+from sentry.db.models.base import sane_repr
+
+if TYPE_CHECKING:
+    from sentry.models.grouphashmetadata import GroupHashMetadata
 
 
 @region_silo_model
@@ -17,9 +25,6 @@ class GroupHash(Model):
     class State:
         UNLOCKED = None
         LOCKED_IN_MIGRATION = 1
-
-        # This hierarchical grouphash should be ignored/skipped for finding the group.
-        SPLIT = 2
 
     project = FlexibleForeignKey("sentry.Project", null=True)
     hash = models.CharField(max_length=32)
@@ -35,3 +40,12 @@ class GroupHash(Model):
         app_label = "sentry"
         db_table = "sentry_grouphash"
         unique_together = (("project", "hash"),)
+
+    @property
+    def metadata(self) -> GroupHashMetadata | None:
+        try:
+            return self._metadata
+        except AttributeError:
+            return None
+
+    __repr__ = sane_repr("group_id", "hash")

@@ -1,6 +1,5 @@
 import IndicatorBadge from 'sentry/components/devtoolbar/components/indicatorBadge';
 import useSessionStatus from 'sentry/components/devtoolbar/components/releases/useSessionStatus';
-import {IconFire} from 'sentry/icons';
 
 export default function CrashCountBadge() {
   const {data} = useSessionStatus();
@@ -18,7 +17,7 @@ export default function CrashCountBadge() {
 
   // over 10% of sessions were crashes
   if (crashPercent > 10) {
-    return <IndicatorBadge icon={<IconFire size="xs" />} variant="red" />;
+    return <IndicatorBadge variant="red" />;
   }
   return null;
 }

@@ -1,6 +1,4 @@
-import userEvent from '@testing-library/user-event';
-
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import VitalCard from 'sentry/views/insights/mobile/screens/components/vitalCard';
 

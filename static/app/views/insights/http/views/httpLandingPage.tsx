@@ -9,7 +9,7 @@ import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
-import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
+import {decodeList, decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -19,10 +19,12 @@ import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLay
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
+import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
+import SubregionSelector from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
 import {DurationChart} from 'sentry/views/insights/http/components/charts/durationChart';
 import {ResponseRateChart} from 'sentry/views/insights/http/components/charts/responseRateChart';
 import {ThroughputChart} from 'sentry/views/insights/http/components/charts/throughputChart';
@@ -37,11 +39,17 @@ import {
   MODULE_DOC_LINK,
   MODULE_TITLE,
 } from 'sentry/views/insights/http/settings';
-import {ModuleName} from 'sentry/views/insights/types';
+import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
+import {BACKEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/backend/settings';
+import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
+import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/settings';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
+import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
 
 export function HTTPLandingPage() {
   const organization = useOrganization();
   const location = useLocation();
+  const {isInDomainView, view} = useDomainViewFilters();
 
   const sortField = decodeScalar(location.query?.[QueryParameterNames.DOMAINS_SORT]);
 
@@ -51,15 +59,25 @@ export function HTTPLandingPage() {
   const query = useLocationQuery({
     fields: {
       'span.domain': decodeScalar,
+      [SpanMetricsField.USER_GEO_SUBREGION]: decodeList,
     },
   });
 
+  const ADDITIONAL_FILTERS = {};
+
+  if (query[SpanMetricsField.USER_GEO_SUBREGION].length > 0) {
+    ADDITIONAL_FILTERS[SpanMetricsField.USER_GEO_SUBREGION] =
+      `[${query[SpanMetricsField.USER_GEO_SUBREGION].join(',')}]`;
+  }
+
   const chartFilters = {
     ...BASE_FILTERS,
+    ...ADDITIONAL_FILTERS,
   };
 
   const tableFilters = {
     ...BASE_FILTERS,
+    ...ADDITIONAL_FILTERS,
     'span.domain': query['span.domain'] ? `*${query['span.domain']}*` : undefined,
   };
 
@@ -82,7 +100,7 @@ export function HTTPLandingPage() {
   };
 
   const {
-    isLoading: isThroughputDataLoading,
+    isPending: isThroughputDataLoading,
     data: throughputData,
     error: throughputError,
   } = useSpanMetricsSeries(
@@ -94,7 +112,7 @@ export function HTTPLandingPage() {
   );
 
   const {
-    isLoading: isDurationDataLoading,
+    isPending: isDurationDataLoading,
     data: durationData,
     error: durationError,
   } = useSpanMetricsSeries(
@@ -106,7 +124,7 @@ export function HTTPLandingPage() {
   );
 
   const {
-    isLoading: isResponseCodeDataLoading,
+    isPending: isResponseCodeDataLoading,
     data: responseCodeData,
     error: responseCodeError,
   } = useSpanMetricsSeries(
@@ -145,30 +163,49 @@ export function HTTPLandingPage() {
 
   return (
     <React.Fragment>
-      <Layout.Header>
-        <Layout.HeaderContent>
-          <Breadcrumbs crumbs={crumbs} />
+      {!isInDomainView && (
+        <Layout.Header>
+          <Layout.HeaderContent>
+            <Breadcrumbs crumbs={crumbs} />
 
-          <Layout.Title>
-            {MODULE_TITLE}
-            <PageHeadingQuestionTooltip
-              docsUrl={MODULE_DOC_LINK}
-              title={MODULE_DESCRIPTION}
-            />
-          </Layout.Title>
-        </Layout.HeaderContent>
-        <Layout.HeaderActions>
-          <ButtonBar gap={1}>
-            <FeedbackWidgetButton />
-          </ButtonBar>
-        </Layout.HeaderActions>
-      </Layout.Header>
+            <Layout.Title>
+              {MODULE_TITLE}
+              <PageHeadingQuestionTooltip
+                docsUrl={MODULE_DOC_LINK}
+                title={MODULE_DESCRIPTION}
+              />
+            </Layout.Title>
+          </Layout.HeaderContent>
+          <Layout.HeaderActions>
+            <ButtonBar gap={1}>
+              <FeedbackWidgetButton />
+            </ButtonBar>
+          </Layout.HeaderActions>
+        </Layout.Header>
+      )}
+
+      {isInDomainView && view === FRONTEND_LANDING_SUB_PATH && (
+        <Layout.Header>
+          <FrontendHeader module={ModuleName.HTTP} />
+        </Layout.Header>
+      )}
+
+      {isInDomainView && view === BACKEND_LANDING_SUB_PATH && (
+        <Layout.Header>
+          <BackendHeader module={ModuleName.HTTP} />
+        </Layout.Header>
+      )}
 
       <Layout.Body>
         <Layout.Main fullWidth>
           <ModuleLayout.Layout>
             <ModuleLayout.Full>
-              <ModulePageFilterBar moduleName={ModuleName.HTTP} />
+              <ToolRibbon>
+                <ModulePageFilterBar
+                  moduleName={ModuleName.HTTP}
+                  extraFilters={<SubregionSelector />}
+                />
+              </ToolRibbon>
             </ModuleLayout.Full>
 
             <ModulesOnboarding moduleName={ModuleName.HTTP}>
@@ -177,6 +214,7 @@ export function HTTPLandingPage() {
                   series={throughputData['spm()']}
                   isLoading={isThroughputDataLoading}
                   error={throughputError}
+                  filters={chartFilters}
                 />
               </ModuleLayout.Third>
 
@@ -185,6 +223,7 @@ export function HTTPLandingPage() {
                   series={[durationData[`avg(span.self_time)`]]}
                   isLoading={isDurationDataLoading}
                   error={durationError}
+                  filters={chartFilters}
                 />
               </ModuleLayout.Third>
 
@@ -206,6 +245,7 @@ export function HTTPLandingPage() {
                   ]}
                   isLoading={isResponseCodeDataLoading}
                   error={responseCodeError}
+                  filters={chartFilters}
                 />
               </ModuleLayout.Third>
 

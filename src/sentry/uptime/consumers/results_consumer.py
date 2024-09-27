@@ -10,7 +10,7 @@ from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
     CheckResult,
 )
 
-from sentry import features
+from sentry import features, options
 from sentry.conf.types.kafka_definition import Topic
 from sentry.remote_subscriptions.consumers.result_consumer import (
     ResultProcessor,
@@ -26,8 +26,8 @@ from sentry.uptime.models import (
     UptimeSubscription,
 )
 from sentry.uptime.subscriptions.subscriptions import (
-    create_uptime_subscription,
     delete_uptime_subscriptions_for_project,
+    get_or_create_uptime_subscription,
     remove_uptime_subscription_if_unused,
 )
 from sentry.uptime.subscriptions.tasks import send_uptime_config_deletion
@@ -44,10 +44,10 @@ ONBOARDING_FAILURE_THRESHOLD = 3
 # ONBOARDING_MONITOR_PERIOD.
 ONBOARDING_FAILURE_REDIS_TTL = ONBOARDING_MONITOR_PERIOD
 # How frequently we should run active auto-detected subscriptions
-AUTO_DETECTED_ACTIVE_SUBSCRIPTION_INTERVAL = timedelta(minutes=5)
+AUTO_DETECTED_ACTIVE_SUBSCRIPTION_INTERVAL = timedelta(minutes=1)
 # When in active monitoring mode, how many failures in a row do we need to see to mark the monitor as down, or how many
 # successes in a row do we need to mark it up
-ACTIVE_FAILURE_THRESHOLD = 2
+ACTIVE_FAILURE_THRESHOLD = 3
 ACTIVE_RECOVERY_THRESHOLD = 1
 # The TTL of the redis key used to track consecutive statuses
 ACTIVE_THRESHOLD_REDIS_TTL = timedelta(minutes=60)
@@ -69,7 +69,6 @@ def build_active_consecutive_status_key(
 
 class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
     subscription_model = UptimeSubscription
-    topic_for_codec = Topic.UPTIME_RESULTS
 
     def get_subscription_id(self, result: CheckResult) -> str:
         return result["subscription_id"]
@@ -143,15 +142,17 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
                 # earliest delay stat for each scheduled check for the monitor here, and so this stat will be a more
                 # accurate measurement of delay/duration.
                 if result["duration_ms"]:
-                    metrics.gauge(
+                    metrics.distribution(
                         "uptime.result_processor.check_result.duration",
                         result["duration_ms"],
                         sample_rate=1.0,
+                        unit="millisecond",
                     )
-                metrics.gauge(
+                metrics.distribution(
                     "uptime.result_processor.check_result.delay",
                     result["actual_check_time_ms"] - result["scheduled_check_time_ms"],
                     sample_rate=1.0,
+                    unit="millisecond",
                 )
 
             if project_subscription.mode == ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING:
@@ -217,7 +218,7 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
                 # If we've had mostly successes throughout the onboarding period then we can graduate the subscription
                 # to active.
                 onboarding_subscription = project_subscription.uptime_subscription
-                active_subscription = create_uptime_subscription(
+                active_subscription = get_or_create_uptime_subscription(
                     onboarding_subscription.url,
                     int(AUTO_DETECTED_ACTIVE_SUBSCRIPTION_INTERVAL.total_seconds()),
                     onboarding_subscription.timeout_ms,
@@ -256,9 +257,26 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
             if not self.has_reached_status_threshold(project_subscription, result["status"]):
                 return
 
-            if features.has(
-                "organizations:uptime-create-issues", project_subscription.project.organization
-            ):
+            issue_creation_flag_enabled = features.has(
+                "organizations:uptime-create-issues",
+                project_subscription.project.organization,
+            )
+
+            # Do not create uptime issue occurences for
+            restricted_host_provider_ids = options.get(
+                "uptime.restrict-issue-creation-by-hosting-provider-id"
+            )
+            host_provider_id = project_subscription.uptime_subscription.host_provider_id
+            issue_creation_restricted_by_provider = host_provider_id in restricted_host_provider_ids
+
+            if issue_creation_restricted_by_provider:
+                metrics.incr(
+                    "uptime.result_processor.restricted_by_provider",
+                    sample_rate=1.0,
+                    tags={"host_provider_id": host_provider_id},
+                )
+
+            if issue_creation_flag_enabled and not issue_creation_restricted_by_provider:
                 create_issue_platform_occurrence(result, project_subscription)
                 metrics.incr("uptime.result_processor.active.sent_occurrence", sample_rate=1.0)
                 logger.info(
@@ -314,3 +332,4 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
 
 class UptimeResultsStrategyFactory(ResultsStrategyFactory[CheckResult, UptimeSubscription]):
     result_processor_cls = UptimeResultProcessor
+    topic_for_codec = Topic.UPTIME_RESULTS

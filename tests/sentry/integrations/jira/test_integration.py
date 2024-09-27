@@ -95,7 +95,7 @@ class RegionJiraIntegrationTest(APITestCase):
                 "timestamp": self.min_ago,
             },
             project_id=self.project.id,
-            event_type=EventType.ERROR,
+            default_event_type=EventType.DEFAULT,
         )
         group = event.group
         assert group is not None
@@ -148,6 +148,7 @@ class RegionJiraIntegrationTest(APITestCase):
                     "label": "Issue Type",
                     "type": "select",
                 },
+                {"label": "Team", "name": "customfield_10001", "required": False, "type": "text"},
                 {
                     "name": "customfield_10200",
                     "default": "",
@@ -214,7 +215,7 @@ class RegionJiraIntegrationTest(APITestCase):
                 "timestamp": self.min_ago,
             },
             project_id=self.project.id,
-            event_type=EventType.ERROR,
+            default_event_type=EventType.DEFAULT,
         )
         group = event.group
 
@@ -234,7 +235,7 @@ class RegionJiraIntegrationTest(APITestCase):
                 "timestamp": self.min_ago,
             },
             project_id=self.project.id,
-            event_type=EventType.ERROR,
+            default_event_type=EventType.DEFAULT,
         )
         group = event.group
         installation = self.integration.get_installation(self.organization.id)
@@ -289,7 +290,7 @@ class RegionJiraIntegrationTest(APITestCase):
                 "timestamp": self.min_ago,
             },
             project_id=self.project.id,
-            event_type=EventType.ERROR,
+            default_event_type=EventType.DEFAULT,
         )
         group = event.group
         installation = self.integration.get_installation(self.organization.id)
@@ -303,6 +304,7 @@ class RegionJiraIntegrationTest(APITestCase):
                 "title",
                 "description",
                 "issuetype",
+                "customfield_10001",
                 "customfield_10200",
                 "customfield_10300",
                 "customfield_10400",
@@ -325,6 +327,7 @@ class RegionJiraIntegrationTest(APITestCase):
                 "title",
                 "description",
                 "issuetype",
+                "customfield_10001",
                 "customfield_10300",
                 "customfield_10400",
                 "customfield_10500",
@@ -341,7 +344,7 @@ class RegionJiraIntegrationTest(APITestCase):
                 "timestamp": self.min_ago,
             },
             project_id=self.project.id,
-            event_type=EventType.ERROR,
+            default_event_type=EventType.DEFAULT,
         )
         group = event.group
         assert group is not None
@@ -376,7 +379,7 @@ class RegionJiraIntegrationTest(APITestCase):
                 "timestamp": self.min_ago,
             },
             project_id=self.project.id,
-            event_type=EventType.ERROR,
+            default_event_type=EventType.DEFAULT,
         )
         group = event.group
         assert group is not None
@@ -412,7 +415,7 @@ class RegionJiraIntegrationTest(APITestCase):
                 "timestamp": self.min_ago,
             },
             project_id=self.project.id,
-            event_type=EventType.ERROR,
+            default_event_type=EventType.DEFAULT,
         )
         group = event.group
         assert group is not None
@@ -458,7 +461,7 @@ class RegionJiraIntegrationTest(APITestCase):
                 "timestamp": self.min_ago,
             },
             project_id=self.project.id,
-            event_type=EventType.ERROR,
+            default_event_type=EventType.DEFAULT,
         )
         group = event.group
         assert group is not None

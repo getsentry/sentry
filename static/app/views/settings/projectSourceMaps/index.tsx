@@ -1,5 +1,4 @@
-import type {RouteComponentProps} from 'react-router';
-
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Project} from 'sentry/types/project';
 
 import {ProjectSourceMaps} from './projectSourceMaps';

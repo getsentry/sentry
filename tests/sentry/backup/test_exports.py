@@ -14,8 +14,6 @@ from sentry.models.options.option import Option
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.orgauthtoken import OrgAuthToken
-from sentry.models.useremail import UserEmail
-from sentry.models.userpermission import UserPermission
 from sentry.testutils.helpers.backups import (
     BackupTransactionTestCase,
     ValidationError,
@@ -25,6 +23,8 @@ from sentry.testutils.helpers.backups import (
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.users.models.email import Email
 from sentry.users.models.user import User
+from sentry.users.models.useremail import UserEmail
+from sentry.users.models.userpermission import UserPermission
 from sentry.users.models.userrole import UserRole, UserRoleUser
 from tests.sentry.backup import get_matching_exportable_models
 
@@ -379,6 +379,16 @@ class FilteringTests(ExportTestCase):
             # ...but not members of different, unexported orgs.
             assert not self.exists(data, OrganizationMember, "user_email", "user_b_only")
             assert not self.exists(data, OrganizationMember, "email", "invited-b@example.com")
+
+    """
+    If this test fails, it's because a newly created model was given an relocation_scope
+    that is not correctly exporting the models created in backup.py
+
+    To fix this you can:
+    - Add a reference to the organization model
+    - Remove the model from the relocation scope; using RelocationScope.Excluded
+    - Reach out to #discuss-open-source on slack for customizations / more detailed support
+    """
 
     def test_export_filter_orgs_empty(self):
         a = self.create_exhaustive_user("user_a_only")

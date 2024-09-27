@@ -13,7 +13,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {DebugFile} from 'sentry/types/debugFiles';
 import {DebugFileFeature} from 'sentry/types/debugFiles';
-import type {Image, ImageCandidate, ImageStatus} from 'sentry/types/debugImage';
+import type {ImageCandidate, ImageWithCombinedStatus} from 'sentry/types/debugImage';
 import {CandidateDownloadStatus} from 'sentry/types/debugImage';
 import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
@@ -38,7 +38,7 @@ type DebugImageDetailsProps = ModalRenderProps & {
   event: Event;
   organization: Organization;
   projSlug: Project['slug'];
-  image?: Image & {status: ImageStatus};
+  image?: ImageWithCombinedStatus;
   onReprocessEvent?: () => void;
 };
 
@@ -216,7 +216,7 @@ export function DebugImageDetails({
 
   const {
     data: debugFiles,
-    isLoading,
+    isPending,
     isError,
     refetch,
   } = useApiQuery<DebugFile[]>(
@@ -249,7 +249,7 @@ export function DebugImageDetails({
   );
 
   const {code_file, status} = image ?? {};
-  const candidates = getCandidates({debugFiles, image, isLoading});
+  const candidates = getCandidates({debugFiles, image, isLoading: isPending});
   const baseUrl = api.baseUrl;
   const fileName = getFileName(code_file);
   const haveCandidatesUnappliedDebugFile = candidates.some(
@@ -264,7 +264,7 @@ export function DebugImageDetails({
     return <LoadingError />;
   }
 
-  const shouldShowLoadingIndicator = isLoading && hasUploadedDebugFiles;
+  const shouldShowLoadingIndicator = isPending && hasUploadedDebugFiles;
 
   const handleDelete = async (debugId: string) => {
     try {

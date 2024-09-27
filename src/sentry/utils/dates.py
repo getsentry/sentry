@@ -184,3 +184,17 @@ def outside_retention_with_modified_start(
     start = max(start, now - timedelta(days=retention))
 
     return start > end, start
+
+
+def get_timezone_choices() -> list[tuple[str, str]]:
+    build_results = []
+    for tz in AVAILABLE_TIMEZONES:
+        now = datetime.now(zoneinfo.ZoneInfo(tz))
+        offset = now.strftime("%z")
+        build_results.append((int(offset), tz, f"(UTC{offset}) {tz}"))
+    build_results.sort()
+
+    results: list[tuple[str, str]] = []
+    for item in build_results:
+        results.append(item[1:])
+    return results

@@ -242,6 +242,35 @@ class CreateSubscriptionInSnubaTest(BaseSnubaTaskTest):
                     request_body = json.loads(pool.urlopen.call_args[1]["body"])
                     assert request_body["granularity"] == expected_granularity
 
+    def test_insights_query_spm(self):
+        time_window = 3600
+        sub = self.create_subscription(
+            QuerySubscription.Status.CREATING,
+            query="span.module:db",
+            aggregate="spm()",
+            dataset=Dataset.PerformanceMetrics,
+            time_window=time_window,
+        )
+        with patch("sentry.snuba.tasks._snuba_pool") as pool:
+            resp = Mock()
+            resp.status = 202
+            resp.data = json.dumps({"subscription_id": "123"})
+            pool.urlopen.return_value = resp
+
+            create_subscription_in_snuba(sub.id)
+            request_body = json.loads(pool.urlopen.call_args[1]["body"])
+            # Validate that the spm function uses the correct time window
+            assert (
+                "divide(countIf(value, equals(metric_id, 9223372036854776213)), divide(3600, 60)) AS `spm`"
+                in request_body["query"]
+            )
+            assert request_body["granularity"] == 60
+            assert request_body["time_window"] == time_window
+
+            sub = QuerySubscription.objects.get(id=sub.id)
+            assert sub.status == QuerySubscription.Status.ACTIVE.value
+            assert sub.subscription_id is not None
+
 
 class UpdateSubscriptionInSnubaTest(BaseSnubaTaskTest):
     expected_status = QuerySubscription.Status.UPDATING
@@ -266,6 +295,27 @@ class UpdateSubscriptionInSnubaTest(BaseSnubaTaskTest):
         assert sub.status == QuerySubscription.Status.ACTIVE.value
         assert sub.subscription_id is not None
 
+    def test_insights_query_spm(self):
+        sub = self.create_subscription(
+            QuerySubscription.Status.CREATING,
+            query="span.module:db",
+            aggregate="spm()",
+            dataset=Dataset.PerformanceMetrics,
+        )
+        create_subscription_in_snuba(sub.id)
+        sub = QuerySubscription.objects.get(id=sub.id)
+        assert sub.status == QuerySubscription.Status.ACTIVE.value
+        assert sub.subscription_id is not None
+
+        sub.status = QuerySubscription.Status.UPDATING.value
+        sub.update(
+            status=QuerySubscription.Status.UPDATING.value, subscription_id=sub.subscription_id
+        )
+        update_subscription_in_snuba(sub.id)
+        sub = QuerySubscription.objects.get(id=sub.id)
+        assert sub.status == QuerySubscription.Status.ACTIVE.value
+        assert sub.subscription_id is not None
+
 
 class DeleteSubscriptionFromSnubaTest(BaseSnubaTaskTest):
     expected_status = QuerySubscription.Status.DELETING
@@ -275,6 +325,18 @@ class DeleteSubscriptionFromSnubaTest(BaseSnubaTaskTest):
         subscription_id = f"1/{uuid4().hex}"
         sub = self.create_subscription(
             QuerySubscription.Status.DELETING, subscription_id=subscription_id
+        )
+        delete_subscription_from_snuba(sub.id)
+        assert not QuerySubscription.objects.filter(id=sub.id).exists()
+
+    def test_insights_query_spm(self):
+        subscription_id = f"1/{uuid4().hex}"
+        sub = self.create_subscription(
+            QuerySubscription.Status.DELETING,
+            subscription_id=subscription_id,
+            query="span.module:db",
+            aggregate="spm()",
+            dataset=Dataset.PerformanceMetrics,
         )
         delete_subscription_from_snuba(sub.id)
         assert not QuerySubscription.objects.filter(id=sub.id).exists()

@@ -222,8 +222,8 @@ function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewP
   );
 
   return (
-    <Fragment>
-      <Panel>
+    <FlamegraphContainer>
+      <StyledPanel>
         <DifferentialFlamegraphTransactionToolbar
           transaction={props.transaction}
           onNextTransactionClick={props.onNextTransactionClick}
@@ -238,7 +238,7 @@ function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewP
           canvasPoolManager={canvasPoolManager}
         />
         <DifferentialFlamegraphContainer>
-          {props.after.isLoading || props.before.isLoading ? (
+          {props.after.isPending || props.before.isPending ? (
             <LoadingIndicatorContainer>
               <LoadingIndicator />
             </LoadingIndicatorContainer>
@@ -263,12 +263,12 @@ function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewP
           />
         </DifferentialFlamegraphContainer>
         <DifferentialFlamegraphExplanationBar negated={negated} />
-      </Panel>
+      </StyledPanel>
 
-      <Panel>
+      <StyledPanel>
         <DifferentialFlamegraphFunctionsContainer>
           <DifferentialFlamegraphChangedFunctions
-            loading={props.after.isLoading || props.before.isLoading}
+            loading={props.after.isPending || props.before.isPending}
             title={t('Slower functions')}
             subtitle={t('after regression')}
             functions={differentialFlamegraph.increasedFrames}
@@ -276,7 +276,7 @@ function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewP
             makeFunctionLink={makeFunctionFlamechartLink}
           />
           <DifferentialFlamegraphChangedFunctions
-            loading={props.after.isLoading || props.before.isLoading}
+            loading={props.after.isPending || props.before.isPending}
             title={t('Faster functions')}
             subtitle={t('after regression')}
             functions={differentialFlamegraph.decreasedFrames}
@@ -284,12 +284,12 @@ function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewP
             makeFunctionLink={makeFunctionFlamechartLink}
           />
         </DifferentialFlamegraphFunctionsContainer>
-      </Panel>
+      </StyledPanel>
 
-      <Panel>
+      <StyledPanel>
         <DifferentialFlamegraphFunctionsContainer>
           <DifferentialFlamegraphChangedFunctions
-            loading={props.after.isLoading || props.before.isLoading}
+            loading={props.after.isPending || props.before.isPending}
             title={t('New functions')}
             subtitle={t('after regression')}
             functions={differentialFlamegraph.newFrames}
@@ -297,7 +297,7 @@ function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewP
             makeFunctionLink={makeFunctionFlamechartLink}
           />
           <DifferentialFlamegraphChangedFunctions
-            loading={props.after.isLoading || props.before.isLoading}
+            loading={props.after.isPending || props.before.isPending}
             title={t('Removed functions')}
             subtitle={t('after regression')}
             functions={differentialFlamegraph.removedFrames}
@@ -305,8 +305,8 @@ function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewP
             makeFunctionLink={makeFunctionFlamechartLink}
           />
         </DifferentialFlamegraphFunctionsContainer>
-      </Panel>
-    </Fragment>
+      </StyledPanel>
+    </FlamegraphContainer>
   );
 }
 
@@ -809,4 +809,14 @@ const DifferentialFlamegraphContainer = styled('div')`
   position: relative;
   width: 100%;
   height: 420px;
+`;
+
+const FlamegraphContainer = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(1.5)};
+`;
+
+const StyledPanel = styled(Panel)`
+  margin-bottom: 0;
 `;

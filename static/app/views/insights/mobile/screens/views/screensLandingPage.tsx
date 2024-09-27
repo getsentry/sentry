@@ -48,9 +48,12 @@ import {
   STATUS_UNKNOWN,
   type VitalItem,
 } from 'sentry/views/insights/mobile/screens/utils';
+import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {ModuleName} from 'sentry/views/insights/types';
 
 export function ScreensLandingPage() {
+  const {isInDomainView} = useDomainViewFilters();
   const moduleName = ModuleName.MOBILE_SCREENS;
   const crumbs = useModuleBreadcrumbs(moduleName);
   const location = useLocation();
@@ -225,24 +228,31 @@ export function ScreensLandingPage() {
     <ModulePageProviders moduleName="mobile-screens" features={[MODULE_FEATURE]}>
       <Layout.Page>
         <PageAlertProvider>
-          <Layout.Header>
-            <Layout.HeaderContent>
-              <Breadcrumbs crumbs={crumbs} />
-              <Layout.Title>
-                {MODULE_TITLE}
-                <PageHeadingQuestionTooltip
-                  docsUrl={MODULE_DOC_LINK}
-                  title={MODULE_DESCRIPTION}
-                />
-              </Layout.Title>
-            </Layout.HeaderContent>
-            <Layout.HeaderActions>
-              <ButtonBar gap={1}>
-                {isProjectCrossPlatform && <PlatformSelector />}
-                <FeedbackWidgetButton />
-              </ButtonBar>
-            </Layout.HeaderActions>
-          </Layout.Header>
+          {!isInDomainView && (
+            <Layout.Header>
+              <Layout.HeaderContent>
+                <Breadcrumbs crumbs={crumbs} />
+                <Layout.Title>
+                  {MODULE_TITLE}
+                  <PageHeadingQuestionTooltip
+                    docsUrl={MODULE_DOC_LINK}
+                    title={MODULE_DESCRIPTION}
+                  />
+                </Layout.Title>
+              </Layout.HeaderContent>
+              <Layout.HeaderActions>
+                <ButtonBar gap={1}>
+                  {isProjectCrossPlatform && <PlatformSelector />}
+                  <FeedbackWidgetButton />
+                </ButtonBar>
+              </Layout.HeaderActions>
+            </Layout.Header>
+          )}
+          {isInDomainView && (
+            <Layout.Header>
+              <MobileHeader module={ModuleName.MOBILE_SCREENS} />
+            </Layout.Header>
+          )}
 
           <Layout.Body>
             <Layout.Main fullWidth>

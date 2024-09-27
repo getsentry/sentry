@@ -66,7 +66,7 @@ function sortIssuesByLevel(a: TraceError, b: TraceError): number {
 
 function Issue(props: IssueProps) {
   const {
-    isLoading,
+    isPending,
     data: fetchedIssue,
     isError,
   } = useApiQuery<Group>(
@@ -84,7 +84,7 @@ function Issue(props: IssueProps) {
     }
   );
 
-  return isLoading ? (
+  return isPending ? (
     <StyledLoadingIndicatorWrapper>
       <LoadingIndicator size={24} mini />
     </StyledLoadingIndicatorWrapper>

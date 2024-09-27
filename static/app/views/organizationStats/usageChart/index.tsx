@@ -26,7 +26,7 @@ import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
 
 import {formatUsageWithUnits} from '../utils';
 
-import {getTooltipFormatter, getXAxisDates, getXAxisLabelInterval} from './utils';
+import {getTooltipFormatter, getXAxisDates, getXAxisLabelVisibility} from './utils';
 
 const GIGABYTE = 10 ** 9;
 
@@ -77,12 +77,6 @@ export const CHART_OPTIONS_DATACATEGORY: CategoryOption[] = [
   {
     label: DATA_CATEGORY_INFO.span.titleName,
     value: DATA_CATEGORY_INFO.span.plural,
-    disabled: false,
-    yAxisMinInterval: 100,
-  },
-  {
-    label: DATA_CATEGORY_INFO.span_indexed.titleName,
-    value: DATA_CATEGORY_INFO.span_indexed.plural,
     disabled: false,
     yAxisMinInterval: 100,
   },
@@ -259,8 +253,7 @@ function chartMetadata({
   chartLabel: React.ReactNode;
   tooltipValueFormatter: (val?: number) => string;
   xAxisData: string[];
-  xAxisLabelInterval: number;
-  xAxisTickInterval: number;
+  xAxisLabelVisibility: Record<number, boolean>;
   yAxisMinInterval: number;
 } {
   const selectDataCategory = categoryOptions.find(o => o.value === dataCategory);
@@ -293,11 +286,6 @@ function chartMetadata({
     throw new Error('UsageChart: Unable to parse data time period');
   }
 
-  const {xAxisTickInterval, xAxisLabelInterval} = getXAxisLabelInterval(
-    dataPeriod,
-    dataPeriod / barPeriod
-  );
-
   const {label, yAxisMinInterval} = selectDataCategory;
 
   /**
@@ -314,12 +302,13 @@ function chartMetadata({
     usageDateInterval
   );
 
+  const {xAxisLabelVisibility} = getXAxisLabelVisibility(dataPeriod, xAxisDates);
+
   return {
     chartLabel: label,
     chartData,
     xAxisData: xAxisDates,
-    xAxisTickInterval,
-    xAxisLabelInterval,
+    xAxisLabelVisibility,
     yAxisMinInterval,
     tooltipValueFormatter: getTooltipFormatter(dataCategory),
   };
@@ -373,9 +362,8 @@ function UsageChartBody({
     chartData,
     tooltipValueFormatter,
     xAxisData,
-    xAxisTickInterval,
-    xAxisLabelInterval,
     yAxisMinInterval,
+    xAxisLabelVisibility,
   } = chartMetadata({
     categoryOptions,
     dataCategory,
@@ -491,11 +479,12 @@ function UsageChartBody({
         name: 'Date',
         data: xAxisData,
         axisTick: {
-          interval: xAxisTickInterval,
           alignWithLabel: true,
         },
         axisLabel: {
-          interval: xAxisLabelInterval,
+          interval: function (index: number) {
+            return xAxisLabelVisibility[index];
+          },
           formatter: (label: string) => label.slice(0, 6), // Limit label to 6 chars
         },
         theme,

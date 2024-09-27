@@ -16,7 +16,7 @@ import type {SpanSample} from 'sentry/views/insights/common/queries/useSpanSampl
 import {useSpanSamples} from 'sentry/views/insights/common/queries/useSpanSamples';
 import {AverageValueMarkLine} from 'sentry/views/insights/common/utils/averageValueMarkLine';
 import {useSampleScatterPlotSeries} from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/durationChart/useSampleScatterPlotSeries';
-import type {SpanMetricsQueryFilters} from 'sentry/views/insights/types';
+import type {SpanMetricsQueryFilters, SubregionCode} from 'sentry/views/insights/types';
 import {SpanMetricsField} from 'sentry/views/insights/types';
 
 const {SPAN_SELF_TIME, SPAN_OP} = SpanMetricsField;
@@ -34,6 +34,7 @@ type Props = {
   release?: string;
   spanDescription?: string;
   spanSearch?: MutableSearch;
+  subregions?: SubregionCode[];
   transactionMethod?: string;
 };
 
@@ -49,6 +50,7 @@ function DurationChart({
   release,
   spanSearch,
   platform,
+  subregions,
   additionalFilters,
 }: Props) {
   const {setPageError} = usePageAlert();
@@ -67,12 +69,16 @@ function DurationChart({
     filters.release = release;
   }
 
+  if (subregions) {
+    filters[SpanMetricsField.USER_GEO_SUBREGION] = `[${subregions.join(',')}]`;
+  }
+
   if (platform) {
     filters['os.name'] = platform;
   }
 
   const {
-    isLoading,
+    isPending,
     data: spanMetricsSeriesData,
     error: spanMetricsSeriesError,
   } = useSpanMetricsSeries(
@@ -101,7 +107,7 @@ function DurationChart({
 
   const {
     data: spans,
-    isLoading: areSpanSamplesLoading,
+    isPending: areSpanSamplesLoading,
     isRefetching: areSpanSamplesRefetching,
   } = useSpanSamples({
     groupId,
@@ -177,7 +183,7 @@ function DurationChart({
           onHighlight={handleChartHighlight}
           aggregateOutputFormat="duration"
           data={[spanMetricsSeriesData?.[`avg(${SPAN_SELF_TIME})`], baselineAvgSeries]}
-          loading={isLoading}
+          loading={isPending}
           scatterPlot={
             areSpanSamplesLoading || areSpanSamplesRefetching
               ? undefined

@@ -23,30 +23,34 @@ import {getJSMetricsOnboarding} from 'sentry/components/onboarding/gettingStarte
 import {
   getReplayConfigureDescription,
   getReplaySDKSetupSnippet,
+  getReplayVerifyStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
 
-const getConfigStep = () => [
-  {
-    description: tct(
-      'Configure your app automatically with the [wizardLink:Sentry wizard].',
-      {
-        wizardLink: (
-          <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/remix/#install" />
-        ),
-      }
-    ),
-    language: 'bash',
-    code: `npx @sentry/wizard@latest -i remix`,
-  },
-];
+const getConfigStep = ({isSelfHosted, organization, projectSlug}: Params) => {
+  const urlParam = isSelfHosted ? '' : '--saas';
+  return [
+    {
+      description: tct(
+        'Configure your app automatically with the [wizardLink:Sentry wizard].',
+        {
+          wizardLink: (
+            <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/remix/#install" />
+          ),
+        }
+      ),
+      language: 'bash',
+      code: `npx @sentry/wizard@latest -i remix ${urlParam}  --org ${organization.slug} --project ${projectSlug}`,
+    },
+  ];
+};
 
-const getInstallConfig = () => [
+const getInstallConfig = (params: Params) => [
   {
     type: StepType.INSTALL,
-    configurations: getConfigStep(),
+    configurations: getConfigStep(params),
   },
 ];
 
@@ -55,7 +59,7 @@ const onboarding: OnboardingConfig = {
     tct("Sentry's integration with [remixLink:Remix] supports Remix 1.0.0 and above.", {
       remixLink: <ExternalLink href="https://remix.run/" />,
     }),
-  install: () => getInstallConfig(),
+  install: (params: Params) => getInstallConfig(params),
   configure: () => [
     {
       type: StepType.CONFIGURE,
@@ -68,10 +72,9 @@ const onboarding: OnboardingConfig = {
             <List symbol="bullet">
               <ListItem>
                 {tct(
-                  "Create two files in the root directory of your project, [clientEntry:entry.client.tsx] and [serverEntry:entry.server.tsx] (if they don't already exist).",
+                  "Create two files in the root directory of your project, [code:entry.client.tsx] and [code:entry.server.tsx] (if they don't already exist).",
                   {
-                    clientEntry: <code />,
-                    serverEntry: <code />,
+                    code: <code />,
                   }
                 )}
               </ListItem>
@@ -85,19 +88,17 @@ const onboarding: OnboardingConfig = {
               </ListItem>
               <ListItem>
                 {tct(
-                  'Create a [cliRc:.sentryclirc] with an auth token to upload source maps (this file is automatically added to your [gitignore:.gitignore]).',
+                  'Create a [code:.sentryclirc] with an auth token to upload source maps (this file is automatically added to your [code:.gitignore]).',
                   {
-                    cliRc: <code />,
-                    gitignore: <code />,
+                    code: <code />,
                   }
                 )}
               </ListItem>
               <ListItem>
                 {tct(
-                  'Adjust your [buildscript:build] script in your [pkgJson:package.json] to automatically upload source maps to Sentry when you build your application.',
+                  'Adjust your [code:build] script in your [code:package.json] to automatically upload source maps to Sentry when you build your application.',
                   {
-                    buildscript: <code />,
-                    pkgJson: <code />,
+                    code: <code />,
                   }
                 )}
               </ListItem>
@@ -125,7 +126,7 @@ const onboarding: OnboardingConfig = {
 };
 
 const replayOnboarding: OnboardingConfig = {
-  install: () => getInstallConfig(),
+  install: (params: Params) => getInstallConfig(params),
   configure: (params: Params) => [
     {
       type: StepType.CONFIGURE,
@@ -136,7 +137,7 @@ const replayOnboarding: OnboardingConfig = {
         {
           code: [
             {
-              label: 'JavaScript',
+              label: 'entry.client.tsx',
               value: 'javascript',
               language: 'javascript',
               code: getReplaySDKSetupSnippet({
@@ -153,19 +154,19 @@ const replayOnboarding: OnboardingConfig = {
         <Fragment>
           <TracePropagationMessage />
           {tct(
-            'Note: The Replay integration only needs to be added to your [entryClient:entry.client.tsx] file. It will not run if it is added into [sentryServer:sentry.server.config.js].',
-            {entryClient: <code />, sentryServer: <code />}
+            'Note: The Replay integration only needs to be added to your [code:entry.client.tsx] file. It will not run if it is added into [code:sentry.server.config.js].',
+            {code: <code />}
           )}
         </Fragment>
       ),
     },
   ],
-  verify: () => [],
+  verify: getReplayVerifyStep(),
   nextSteps: () => [],
 };
 
 const feedbackOnboarding: OnboardingConfig = {
-  install: () => [
+  install: (params: Params) => [
     {
       type: StepType.INSTALL,
       description: tct(
@@ -174,7 +175,7 @@ const feedbackOnboarding: OnboardingConfig = {
           code: <code />,
         }
       ),
-      configurations: getConfigStep(),
+      configurations: getConfigStep(params),
     },
   ],
   configure: (params: Params) => [
@@ -190,7 +191,7 @@ const feedbackOnboarding: OnboardingConfig = {
         {
           code: [
             {
-              label: 'JavaScript',
+              label: 'entry.client.tsx',
               value: 'javascript',
               language: 'javascript',
               code: getFeedbackSDKSetupSnippet({
@@ -202,9 +203,20 @@ const feedbackOnboarding: OnboardingConfig = {
           ],
         },
       ],
-      additionalInfo: crashReportCallout({
-        link: 'https://docs.sentry.io/platforms/javascript/guides/remix/user-feedback/#user-feedback-api',
-      }),
+      additionalInfo: (
+        <Fragment>
+          <p>
+            {tct(
+              'Note: The Feedback integration only needs to be added to your [code:entry.client.tsx] file.',
+              {code: <code />}
+            )}
+          </p>
+
+          {crashReportCallout({
+            link: 'https://docs.sentry.io/platforms/javascript/guides/remix/user-feedback/#user-feedback-api',
+          })}
+        </Fragment>
+      ),
     },
   ],
   verify: () => [],
@@ -232,7 +244,7 @@ const crashReportOnboarding: OnboardingConfig = {
 const docs: Docs = {
   onboarding,
   feedbackOnboardingNpm: feedbackOnboarding,
-  replayOnboardingNpm: replayOnboarding,
+  replayOnboarding,
   customMetricsOnboarding: getJSMetricsOnboarding({getInstallConfig}),
   crashReportOnboarding,
 };

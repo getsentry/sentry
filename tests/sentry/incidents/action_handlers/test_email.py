@@ -1,6 +1,7 @@
 from functools import cached_property
 from unittest.mock import patch
 
+import orjson
 import pytest
 import responses
 from django.conf import settings
@@ -26,8 +27,7 @@ from sentry.incidents.models.alert_rule import (
 from sentry.incidents.models.incident import INCIDENT_STATUS, IncidentStatus, TriggerStatus
 from sentry.incidents.utils.types import AlertRuleActivationConditionType
 from sentry.models.notificationsettingoption import NotificationSettingOption
-from sentry.models.options.user_option import UserOption
-from sentry.models.useremail import UserEmail
+from sentry.seer.anomaly_detection.types import StoreDataResponse
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.dataset import Dataset
@@ -36,6 +36,8 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode_of
+from sentry.users.models.user_option import UserOption
+from sentry.users.models.useremail import UserEmail
 
 from . import FireTest
 
@@ -351,7 +353,9 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
     def test_dynamic_alert(self, mock_seer_request):
-        mock_seer_request.return_value = HTTPResponse(status=200)
+
+        seer_return_value: StoreDataResponse = {"success": True}
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
         trigger_status = TriggerStatus.ACTIVE
         alert_rule = self.create_alert_rule(
             detection_type=AlertRuleDetectionType.DYNAMIC,

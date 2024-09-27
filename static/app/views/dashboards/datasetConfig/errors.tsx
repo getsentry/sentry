@@ -4,7 +4,7 @@ import {doEventsRequest} from 'sentry/actionCreators/events';
 import type {Client} from 'sentry/api';
 import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
-import type {TagCollection} from 'sentry/types/group';
+import {SavedSearchType, type TagCollection} from 'sentry/types/group';
 import type {
   EventsStats,
   MultiSeriesEventsStats,
@@ -15,9 +15,9 @@ import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQue
 import type {MetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {
-  AGGREGATIONS,
   ERROR_FIELDS,
   ERRORS_AGGREGATION_FUNCTIONS,
+  getAggregations,
   isEquation,
   isEquationAlias,
 } from 'sentry/utils/discover/fields';
@@ -69,7 +69,9 @@ export const ErrorsConfig: DatasetConfig<
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
   enableEquations: true,
   getCustomFieldRenderer: getCustomEventsFieldRenderer,
-  SearchBar: EventsSearchBar,
+  SearchBar: props => (
+    <EventsSearchBar savedSearchType={SavedSearchType.ERROR} {...props} />
+  ),
   filterSeriesSortOptions,
   filterYAxisAggregateParams,
   filterYAxisOptions,
@@ -120,13 +122,14 @@ function getEventsTableFieldOptions(
   tags?: TagCollection,
   _customMeasurements?: CustomMeasurementCollection
 ) {
+  const aggregates = getAggregations(DiscoverDatasets.ERRORS);
   return generateFieldOptions({
     organization,
     tagKeys: Object.values(tags ?? {}).map(({key}) => key),
-    aggregations: Object.keys(AGGREGATIONS)
+    aggregations: Object.keys(aggregates)
       .filter(key => ERRORS_AGGREGATION_FUNCTIONS.includes(key as AggregationKey))
       .reduce((obj, key) => {
-        obj[key] = AGGREGATIONS[key];
+        obj[key] = aggregates[key];
         return obj;
       }, {}),
     fieldKeys: ERROR_FIELDS,

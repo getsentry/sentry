@@ -14,7 +14,7 @@ import type {
 } from 'sentry/views/insights/browser/webVitals/types';
 import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {useWebVitalsSort} from 'sentry/views/insights/browser/webVitals/utils/useWebVitalsSort';
-import {SpanIndexedField} from 'sentry/views/insights/types';
+import {SpanIndexedField, type SubregionCode} from 'sentry/views/insights/types';
 
 type Props = {
   browserTypes?: BrowserType[];
@@ -24,6 +24,7 @@ type Props = {
   query?: string;
   shouldEscapeFilters?: boolean;
   sortName?: string;
+  subregions?: SubregionCode[];
   transaction?: string | null;
   webVital?: WebVitals | 'total';
 };
@@ -38,6 +39,7 @@ export const useTransactionWebVitalsScoresQuery = ({
   query,
   shouldEscapeFilters = true,
   browserTypes,
+  subregions,
 }: Props) => {
   const organization = useOrganization();
   const pageFilters = usePageFilters();
@@ -63,6 +65,10 @@ export const useTransactionWebVitalsScoresQuery = ({
   if (browserTypes) {
     search.addDisjunctionFilterValues(SpanIndexedField.BROWSER_NAME, browserTypes);
   }
+  if (subregions) {
+    search.addDisjunctionFilterValues(SpanIndexedField.USER_GEO_SUBREGION, subregions);
+  }
+
   const eventView = EventView.fromNewQueryWithPageFilters(
     {
       fields: [
@@ -97,7 +103,7 @@ export const useTransactionWebVitalsScoresQuery = ({
 
   eventView.sorts = [sort];
 
-  const {data, isLoading, ...rest} = useDiscoverQuery({
+  const {data, isPending, ...rest} = useDiscoverQuery({
     eventView,
     limit: limit ?? 50,
     location,
@@ -110,7 +116,7 @@ export const useTransactionWebVitalsScoresQuery = ({
   });
 
   const tableData: RowWithScoreAndOpportunity[] =
-    !isLoading && data?.data.length
+    !isPending && data?.data.length
       ? data.data.map(row => {
           // Map back performance score key so we don't have to handle both keys in the UI
           if (row['performance_score(measurements.score.total)'] !== undefined) {
@@ -163,7 +169,7 @@ export const useTransactionWebVitalsScoresQuery = ({
   return {
     data: tableData,
     meta: data?.meta as EventsMetaType,
-    isLoading,
+    isPending,
     ...rest,
   };
 };

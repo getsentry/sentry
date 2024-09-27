@@ -78,11 +78,9 @@ from sentry.models.groupsearchview import GroupSearchView
 from sentry.models.groupseen import GroupSeen
 from sentry.models.groupshare import GroupShare
 from sentry.models.groupsubscription import GroupSubscription
-from sentry.models.integrations.sentry_app import SentryApp
 from sentry.models.options.option import ControlOption, Option
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.options.project_template_option import ProjectTemplateOption
-from sentry.models.options.user_option import UserOption
 from sentry.models.organization import Organization
 from sentry.models.organizationaccessrequest import OrganizationAccessRequest
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
@@ -96,14 +94,10 @@ from sentry.models.relay import Relay, RelayUsage
 from sentry.models.rule import NeglectedRule, RuleActivity, RuleActivityType
 from sentry.models.savedsearch import SavedSearch, Visibility
 from sentry.models.search_common import SearchType
-from sentry.models.userip import UserIP
 from sentry.monitors.models import Monitor, MonitorType, ScheduleType
 from sentry.nodestore.django.models import Node
-from sentry.sentry_apps.apps import SentryAppUpdater
-from sentry.sentry_metrics.models import (
-    SpanAttributeExtractionRuleCondition,
-    SpanAttributeExtractionRuleConfig,
-)
+from sentry.sentry_apps.logic import SentryAppUpdater
+from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import TestCase, TransactionTestCase
@@ -113,8 +107,11 @@ from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.token import AuthTokenType
 from sentry.users.models.authenticator import Authenticator
 from sentry.users.models.user import User
+from sentry.users.models.user_option import UserOption
+from sentry.users.models.userip import UserIP
 from sentry.users.models.userrole import UserRole, UserRoleUser
 from sentry.utils import json
+from sentry.workflow_engine.models import Action, DataConditionGroup
 
 __all__ = [
     "export_to_file",
@@ -461,19 +458,6 @@ class ExhaustiveFixtures(Fixtures):
             sample_rate=0.5,
             query="environment:prod event.type:transaction",
         )
-        span_attribute_extraction_rule_config = SpanAttributeExtractionRuleConfig.objects.create(
-            project=project,
-            span_attribute="my_attribute",
-            created_by_id=owner.id,
-            unit="none",
-            tags=["tag1", "tag2"],
-            aggregates=["count", "sum", "avg", "min", "max", "p50", "p75", "p90", "p95", "p99"],
-        )
-        SpanAttributeExtractionRuleCondition.objects.create(
-            created_by_id=owner.id,
-            value="key:value",
-            config=span_attribute_extraction_rule_config,
-        )
 
         # Environment*
         self.create_environment(project=project)
@@ -624,6 +608,60 @@ class ExhaustiveFixtures(Fixtures):
             access_start=timezone.now(),
             access_end=timezone.now() + timedelta(days=1),
         )
+
+        # Setup a test 'Issue Rule' and 'Automation'
+        workflow = self.create_workflow(organization=org)
+        detector = self.create_detector(organization=org)
+        self.create_detector_workflow(detector=detector, workflow=workflow)
+
+        # TODO @saponifi3d: Delete this once the migration to remove the model is complete
+        self.create_workflow_action(workflow=workflow)
+
+        notification_condition_group = self.create_data_condition_group(
+            logic_type=DataConditionGroup.Type.ANY,
+            organization=org,
+        )
+
+        send_notification_action = self.create_action(type=Action.Type.Notification, data="")
+        self.create_data_condition_group_action(
+            action=send_notification_action,
+            condition_group=notification_condition_group,
+        )
+
+        # TODO @saponifi3d: Update warning to be DetectorState.Critical
+        self.create_data_condition(
+            condition="eq",
+            comparison="critical",
+            type="WorkflowCondition",
+            condition_result="True",
+            condition_group=notification_condition_group,
+        )
+
+        self.create_workflow_data_condition_group(
+            workflow=workflow, condition_group=notification_condition_group
+        )
+
+        data_source = self.create_data_source(organization=org)
+
+        self.create_data_source_detector(data_source, detector)
+        detector_conditions = self.create_data_condition_group(
+            logic_type=DataConditionGroup.Type.ALL,
+            organization=org,
+        )
+
+        # TODO @saponifi3d: Create or define trigger workflow action type
+        trigger_workflows_action = self.create_action(type=Action.Type.TriggerWorkflow, data="")
+        self.create_data_condition_group_action(
+            action=trigger_workflows_action, condition_group=detector_conditions
+        )
+        self.create_data_condition(
+            condition="eq",
+            comparison="critical",
+            type="DetectorCondition",
+            condition_result="True",
+            condition_group=detector_conditions,
+        )
+        detector.workflow_condition_group = detector_conditions
 
         return org
 

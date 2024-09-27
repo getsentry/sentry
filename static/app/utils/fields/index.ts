@@ -2,6 +2,7 @@ import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import {SpanIndexedField} from 'sentry/views/insights/types';
 
+import {CONDITIONS_ARGUMENTS, WEB_VITALS_QUALITY} from '../discover/types';
 // Don't forget to update https://docs.sentry.io/product/sentry-basics/search/searchable-properties/ for any changes made here
 
 export enum FieldKind {
@@ -268,6 +269,10 @@ export type AggregateValueParameter = {
 
 export type AggregateParameter = AggregateColumnParameter | AggregateValueParameter;
 
+export type ParameterDependentValueType = (
+  parameters: Array<string | null>
+) => FieldValueType;
+
 export interface FieldDefinition {
   kind: FieldKind;
   valueType: FieldValueType | null;
@@ -277,6 +282,12 @@ export interface FieldDefinition {
    * can also be used with operators like `>=` or `<`.
    */
   allowComparisonOperators?: boolean;
+  /**
+   * Allow wildcard (*) matching for this field.
+   * This is only valid for string fields and will default to true.
+   * Note that the `disallowWilcard` setting will override this.
+   */
+  allowWildcard?: boolean;
   /**
    * Default value for the field
    */
@@ -299,6 +310,11 @@ export interface FieldDefinition {
   keywords?: string[];
   /**
    * Only valid for aggregate fields.
+   * Modifies the value type based on the parameters passed to the function.
+   */
+  parameterDependentValueType?: ParameterDependentValueType;
+  /**
+   * Only valid for aggregate fields.
    * Defines the number and type of parameters that the function accepts.
    */
   parameters?: AggregateParameter[];
@@ -308,128 +324,553 @@ export interface FieldDefinition {
   values?: string[];
 }
 
+type ColumnValidator = (field: {key: string; valueType: FieldValueType}) => boolean;
+
+function validateForNumericAggregate(
+  validColumnTypes: FieldValueType[]
+): ColumnValidator {
+  return function ({key, valueType}) {
+    // these built-in columns cannot be applied to numeric aggregates such as percentile(...)
+    if (
+      [
+        FieldKey.DEVICE_BATTERY_LEVEL,
+        FieldKey.STACK_COLNO,
+        FieldKey.STACK_LINENO,
+        FieldKey.STACK_STACK_LEVEL,
+      ].includes(key as FieldKey)
+    ) {
+      return false;
+    }
+
+    return validColumnTypes.includes(valueType);
+  };
+}
+
+function getDynamicFieldValueType(parameters: Array<string | null>): FieldValueType {
+  const column = parameters[0];
+  const fieldDef = column ? getFieldDefinition(column) : null;
+  return fieldDef?.valueType ?? FieldValueType.NUMBER;
+}
+
+function validateAndDenyListColumns(
+  validColumnTypes: FieldValueType[],
+  deniedColumns: string[]
+): ColumnValidator {
+  return function ({key, valueType}) {
+    return validColumnTypes.includes(valueType) && !deniedColumns.includes(key);
+  };
+}
+
+function validateAllowedColumns(validColumns: string[]): ColumnValidator {
+  return function ({key}): boolean {
+    return validColumns.includes(key);
+  };
+}
+
 export const AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
   [AggregationKey.COUNT]: {
     desc: t('count of events'),
     kind: FieldKind.FUNCTION,
     valueType: FieldValueType.NUMBER,
+    parameters: [],
   },
   [AggregationKey.COUNT_UNIQUE]: {
     desc: t('Unique count of the field values'),
     kind: FieldKind.FUNCTION,
     valueType: FieldValueType.INTEGER,
+    parameters: [
+      {
+        name: 'column',
+        kind: 'column',
+        columnTypes: [
+          FieldValueType.STRING,
+          FieldValueType.DURATION,
+          FieldValueType.NUMBER,
+          FieldValueType.INTEGER,
+          FieldValueType.DURATION,
+          FieldValueType.BOOLEAN,
+        ],
+        defaultValue: 'user',
+        required: true,
+      },
+    ],
   },
   [AggregationKey.COUNT_MISERABLE]: {
     desc: t('Count of unique miserable users'),
     kind: FieldKind.FUNCTION,
+    parameters: [
+      {
+        name: 'column',
+        kind: 'column',
+        columnTypes: validateAllowedColumns(['user']),
+        defaultValue: 'user',
+        required: true,
+      },
+      {
+        name: 'value',
+        kind: 'value',
+        dataType: FieldValueType.NUMBER,
+        defaultValue: '300',
+        required: true,
+      },
+    ],
     valueType: FieldValueType.NUMBER,
   },
   [AggregationKey.COUNT_IF]: {
     desc: t('Count of events matching the parameter conditions'),
     kind: FieldKind.FUNCTION,
     valueType: FieldValueType.NUMBER,
+    parameters: [
+      {
+        name: 'column',
+        kind: 'column',
+        columnTypes: validateAndDenyListColumns(
+          [FieldValueType.STRING, FieldValueType.NUMBER, FieldValueType.DURATION],
+          ['id', 'issue', 'user.display']
+        ),
+        defaultValue: 'transaction.duration',
+        required: true,
+      },
+      {
+        name: 'value',
+        kind: 'value',
+        dataType: FieldValueType.STRING,
+        defaultValue: CONDITIONS_ARGUMENTS[0].value,
+        options: CONDITIONS_ARGUMENTS,
+        required: true,
+      },
+      {
+        name: 'value',
+        kind: 'value',
+        dataType: FieldValueType.STRING,
+        defaultValue: '300',
+        required: true,
+      },
+    ],
   },
   [AggregationKey.COUNT_WEB_VITALS]: {
     desc: t('Count of web vitals with a specific status'),
     kind: FieldKind.FUNCTION,
     valueType: FieldValueType.NUMBER,
+    parameters: [
+      {
+        name: 'column',
+        kind: 'column',
+        columnTypes: function ({key}): boolean {
+          return [
+            WebVital.LCP,
+            WebVital.FP,
+            WebVital.FCP,
+            WebVital.FID,
+            WebVital.CLS,
+          ].includes(key as WebVital);
+        },
+        defaultValue: WebVital.LCP,
+        required: true,
+      },
+      {
+        name: 'value',
+        kind: 'value',
+        options: WEB_VITALS_QUALITY,
+        dataType: FieldValueType.STRING,
+        defaultValue: WEB_VITALS_QUALITY[0].value,
+        required: true,
+      },
+    ],
   },
   [AggregationKey.EPS]: {
     desc: t('Events per second'),
     kind: FieldKind.FUNCTION,
     valueType: FieldValueType.NUMBER,
+    parameters: [],
   },
   [AggregationKey.EPM]: {
     desc: t('Events per minute'),
     kind: FieldKind.FUNCTION,
     valueType: FieldValueType.NUMBER,
+    parameters: [],
   },
   [AggregationKey.FAILURE_RATE]: {
     desc: t('Failed event percentage based on transaction.status'),
     kind: FieldKind.FUNCTION,
     valueType: FieldValueType.PERCENTAGE,
+    parameters: [],
   },
   [AggregationKey.FAILURE_COUNT]: {
     desc: t('Failed event count based on transaction.status'),
     kind: FieldKind.FUNCTION,
     valueType: FieldValueType.NUMBER,
+    parameters: [],
   },
   [AggregationKey.MIN]: {
     desc: t('Returns the minimum value of the selected field'),
     kind: FieldKind.FUNCTION,
+    defaultValue: '300ms',
     valueType: null,
+    parameterDependentValueType: getDynamicFieldValueType,
+    parameters: [
+      {
+        name: 'column',
+        kind: 'column',
+        columnTypes: validateForNumericAggregate([
+          FieldValueType.INTEGER,
+          FieldValueType.NUMBER,
+          FieldValueType.DURATION,
+          FieldValueType.DATE,
+          FieldValueType.PERCENTAGE,
+        ]),
+        defaultValue: 'transaction.duration',
+        required: true,
+      },
+    ],
   },
   [AggregationKey.MAX]: {
     desc: t('Returns maximum value of the selected field'),
     kind: FieldKind.FUNCTION,
+    defaultValue: '300ms',
     valueType: null,
+    parameterDependentValueType: getDynamicFieldValueType,
+    parameters: [
+      {
+        name: 'column',
+        kind: 'column',
+        columnTypes: validateForNumericAggregate([
+          FieldValueType.INTEGER,
+          FieldValueType.NUMBER,
+          FieldValueType.DURATION,
+          FieldValueType.DATE,
+          FieldValueType.PERCENTAGE,
+        ]),
+        defaultValue: 'transaction.duration',
+        required: true,
+      },
+    ],
   },
   [AggregationKey.SUM]: {
     desc: t('Returns the total value for the selected field'),
     kind: FieldKind.FUNCTION,
+    defaultValue: '300ms',
     valueType: null,
+    parameterDependentValueType: getDynamicFieldValueType,
+    parameters: [
+      {
+        name: 'column',
+        kind: 'column',
+        columnTypes: validateForNumericAggregate([
+          FieldValueType.DURATION,
+          FieldValueType.NUMBER,
+          FieldValueType.PERCENTAGE,
+        ]),
+        required: true,
+        defaultValue: 'transaction.duration',
+      },
+    ],
   },
   [AggregationKey.ANY]: {
     desc: t('Not Recommended, a random field value'),
     kind: FieldKind.FUNCTION,
+    defaultValue: '300ms',
     valueType: null,
+    parameterDependentValueType: getDynamicFieldValueType,
+    parameters: [
+      {
+        name: 'column',
+        kind: 'column',
+        columnTypes: [
+          FieldValueType.STRING,
+          FieldValueType.INTEGER,
+          FieldValueType.NUMBER,
+          FieldValueType.DURATION,
+          FieldValueType.DATE,
+          FieldValueType.BOOLEAN,
+        ],
+        required: true,
+        defaultValue: 'transaction.duration',
+      },
+    ],
   },
   [AggregationKey.P50]: {
     desc: t('Returns the 50th percentile of the selected field'),
     kind: FieldKind.FUNCTION,
+    defaultValue: '300ms',
     valueType: null,
+    parameterDependentValueType: getDynamicFieldValueType,
+    parameters: [
+      {
+        name: 'column',
+        kind: 'column',
+        columnTypes: validateForNumericAggregate([
+          FieldValueType.DURATION,
+          FieldValueType.NUMBER,
+          FieldValueType.PERCENTAGE,
+        ]),
+        defaultValue: 'transaction.duration',
+        required: false,
+      },
+    ],
   },
   [AggregationKey.P75]: {
     desc: t('Returns the 75th percentile of the selected field'),
     kind: FieldKind.FUNCTION,
+    defaultValue: '300ms',
     valueType: null,
+    parameterDependentValueType: getDynamicFieldValueType,
+    parameters: [
+      {
+        name: 'column',
+        kind: 'column',
+        columnTypes: validateForNumericAggregate([
+          FieldValueType.DURATION,
+          FieldValueType.NUMBER,
+          FieldValueType.PERCENTAGE,
+        ]),
+        defaultValue: 'transaction.duration',
+        required: false,
+      },
+    ],
   },
   [AggregationKey.P90]: {
     desc: t('Returns the 90th percentile of the selected field'),
     kind: FieldKind.FUNCTION,
+    defaultValue: '300ms',
     valueType: null,
+    parameterDependentValueType: getDynamicFieldValueType,
+    parameters: [
+      {
+        name: 'column',
+        kind: 'column',
+        columnTypes: validateForNumericAggregate([
+          FieldValueType.DURATION,
+          FieldValueType.NUMBER,
+          FieldValueType.PERCENTAGE,
+        ]),
+        defaultValue: 'transaction.duration',
+        required: false,
+      },
+    ],
   },
   [AggregationKey.P95]: {
     desc: t('Returns the 95th percentile of the selected field'),
     kind: FieldKind.FUNCTION,
+    defaultValue: '300ms',
     valueType: null,
+    parameterDependentValueType: getDynamicFieldValueType,
+    parameters: [
+      {
+        name: 'column',
+        kind: 'column',
+        columnTypes: validateForNumericAggregate([
+          FieldValueType.DURATION,
+          FieldValueType.NUMBER,
+          FieldValueType.PERCENTAGE,
+        ]),
+        defaultValue: 'transaction.duration',
+        required: false,
+      },
+    ],
   },
   [AggregationKey.P99]: {
     desc: t('Returns the 99th percentile of the selected field'),
     kind: FieldKind.FUNCTION,
+    defaultValue: '300ms',
     valueType: null,
+    parameterDependentValueType: getDynamicFieldValueType,
+    parameters: [
+      {
+        name: 'column',
+        kind: 'column',
+        columnTypes: validateForNumericAggregate([
+          FieldValueType.DURATION,
+          FieldValueType.NUMBER,
+          FieldValueType.PERCENTAGE,
+        ]),
+        defaultValue: 'transaction.duration',
+        required: false,
+      },
+    ],
   },
   [AggregationKey.P100]: {
     desc: t('Returns the 100th percentile of the selected field'),
     kind: FieldKind.FUNCTION,
+    defaultValue: '300ms',
     valueType: null,
+    parameterDependentValueType: getDynamicFieldValueType,
+    parameters: [
+      {
+        name: 'column',
+        kind: 'column',
+        columnTypes: validateForNumericAggregate([
+          FieldValueType.DURATION,
+          FieldValueType.NUMBER,
+          FieldValueType.PERCENTAGE,
+        ]),
+        defaultValue: 'transaction.duration',
+        required: false,
+      },
+    ],
   },
   [AggregationKey.PERCENTILE]: {
     desc: t('Returns the percentile of the selected field'),
     kind: FieldKind.FUNCTION,
+    defaultValue: '300ms',
     valueType: null,
+    parameterDependentValueType: getDynamicFieldValueType,
+    parameters: [
+      {
+        name: 'column',
+        kind: 'column',
+        columnTypes: validateForNumericAggregate([
+          FieldValueType.DURATION,
+          FieldValueType.NUMBER,
+          FieldValueType.PERCENTAGE,
+        ]),
+        defaultValue: 'transaction.duration',
+        required: true,
+      },
+      {
+        name: 'value',
+        kind: 'value',
+        dataType: FieldValueType.NUMBER,
+        defaultValue: '0.5',
+        required: true,
+      },
+    ],
   },
   [AggregationKey.AVG]: {
     desc: t('Returns averages for a selected field'),
     kind: FieldKind.FUNCTION,
+    defaultValue: '300ms',
     valueType: null,
+    parameterDependentValueType: getDynamicFieldValueType,
+    parameters: [
+      {
+        name: 'column',
+        kind: 'column',
+        columnTypes: validateForNumericAggregate([
+          FieldValueType.DURATION,
+          FieldValueType.NUMBER,
+          FieldValueType.PERCENTAGE,
+        ]),
+        defaultValue: 'transaction.duration',
+        required: false,
+      },
+    ],
   },
   [AggregationKey.APDEX]: {
     desc: t('Performance score based on a duration threshold'),
     kind: FieldKind.FUNCTION,
     valueType: FieldValueType.NUMBER,
+    parameters: [
+      {
+        name: 'value',
+        kind: 'value',
+        dataType: FieldValueType.NUMBER,
+        defaultValue: '300',
+        required: true,
+      },
+    ],
   },
   [AggregationKey.USER_MISERY]: {
     desc: t(
       'User-weighted performance metric that counts the number of unique users who were frustrated'
     ),
     kind: FieldKind.FUNCTION,
-    valueType: null,
+    valueType: FieldValueType.NUMBER,
+    parameters: [
+      {
+        name: 'value',
+        kind: 'value',
+        dataType: FieldValueType.NUMBER,
+        defaultValue: '300',
+        required: true,
+      },
+    ],
   },
   [AggregationKey.LAST_SEEN]: {
     desc: t('Issues last seen at a date and time'),
     kind: FieldKind.FUNCTION,
     valueType: FieldValueType.DATE,
+    parameters: [],
+  },
+};
+
+// TODO: Extend the two lists below with more options upon backend support
+export const ALLOWED_EXPLORE_VISUALIZE_FIELDS: SpanIndexedField[] = [
+  SpanIndexedField.SPAN_DURATION,
+  SpanIndexedField.SPAN_SELF_TIME,
+];
+
+export const ALLOWED_EXPLORE_VISUALIZE_AGGREGATES: AggregationKey[] = [
+  AggregationKey.COUNT,
+  AggregationKey.MIN,
+  AggregationKey.MAX,
+  AggregationKey.AVG,
+  AggregationKey.P50,
+  AggregationKey.P75,
+  AggregationKey.P90,
+  AggregationKey.P95,
+  AggregationKey.P99,
+  AggregationKey.P100,
+];
+
+export const SPAN_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
+  ...AGGREGATION_FIELDS,
+  [AggregationKey.COUNT]: {
+    ...AGGREGATION_FIELDS[AggregationKey.COUNT],
+    valueType: FieldValueType.NUMBER,
+    parameters: [
+      {
+        name: 'column',
+        kind: 'column',
+        columnTypes: function ({key}): boolean {
+          return ALLOWED_EXPLORE_VISUALIZE_FIELDS.includes(key as SpanIndexedField);
+        },
+        defaultValue: 'span.duration',
+        required: true,
+      },
+    ],
+  },
+  [AggregationKey.MIN]: {
+    ...AGGREGATION_FIELDS[AggregationKey.MIN],
+    parameters: [
+      {
+        name: 'column',
+        kind: 'column',
+        columnTypes: function ({key}): boolean {
+          return ALLOWED_EXPLORE_VISUALIZE_FIELDS.includes(key as SpanIndexedField);
+        },
+        defaultValue: 'span.duration',
+        required: true,
+      },
+    ],
+  },
+  [AggregationKey.MAX]: {
+    ...AGGREGATION_FIELDS[AggregationKey.MAX],
+    parameters: [
+      {
+        name: 'column',
+        kind: 'column',
+        columnTypes: function ({key}): boolean {
+          return ALLOWED_EXPLORE_VISUALIZE_FIELDS.includes(key as SpanIndexedField);
+        },
+        defaultValue: 'span.duration',
+        required: true,
+      },
+    ],
+  },
+  [AggregationKey.AVG]: {
+    ...AGGREGATION_FIELDS[AggregationKey.AVG],
+    parameters: [
+      {
+        name: 'column',
+        kind: 'column',
+        columnTypes: function ({key}): boolean {
+          return ALLOWED_EXPLORE_VISUALIZE_FIELDS.includes(key as SpanIndexedField);
+        },
+        defaultValue: 'span.duration',
+        required: true,
+      },
+    ],
   },
 };
 
@@ -665,11 +1106,13 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     desc: t('Assignee of the issue as a user ID'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+    allowWildcard: false,
   },
   [FieldKey.ASSIGNED_OR_SUGGESTED]: {
     desc: t('Assignee or suggestee of the issue as a user ID'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+    allowWildcard: false,
   },
   [FieldKey.CULPRIT]: {
     deprecated: true,
@@ -680,6 +1123,7 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     desc: t('The issues bookmarked by a user ID'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+    allowWildcard: false,
   },
   [FieldKey.BROWSER_NAME]: {
     desc: t('Name of the browser'),
@@ -877,30 +1321,32 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     desc: t('The properties of an issue (i.e. Resolved, unresolved)'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
-    keywords: ['ignored', 'assigned', 'for_review', 'unassigned', 'linked', 'unlinked'],
     defaultValue: 'unresolved',
+    allowWildcard: false,
   },
   [FieldKey.ISSUE]: {
     desc: t('The issue identification short code'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+    allowWildcard: false,
   },
   [FieldKey.ISSUE_CATEGORY]: {
     desc: t('Category of issue (error or performance)'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
-    keywords: ['error', 'performance'],
+    allowWildcard: false,
   },
   [FieldKey.ISSUE_PRIORITY]: {
     desc: t('The priority of the issue'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
-    keywords: ['high', 'medium', 'low'],
+    allowWildcard: false,
   },
   [FieldKey.ISSUE_TYPE]: {
     desc: t('Type of problem the issue represents (i.e. N+1 Query)'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+    allowWildcard: false,
   },
   [FieldKey.LAST_SEEN]: {
     desc: t('Issues last seen at a given time'),
@@ -970,6 +1416,7 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     desc: t('Determines if a tag or field exists in an event'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+    allowWildcard: false,
   },
   [FieldKey.OS_NAME]: {
     desc: t('Name of the Operating System'),
@@ -1193,6 +1640,11 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
   },
 };
 
+const SPAN_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
+  ...EVENT_FIELD_DEFINITIONS,
+  ...SPAN_AGGREGATION_FIELDS,
+};
+
 export const ISSUE_PROPERTY_FIELDS: FieldKey[] = [
   FieldKey.AGE,
   FieldKey.ASSIGNED_OR_SUGGESTED,
@@ -1398,6 +1850,7 @@ export enum ReplayFieldKey {
   OS_VERSION = 'os.version',
   SEEN_BY_ME = 'seen_by_me',
   URLS = 'urls',
+  URL = 'url',
   VIEWED_BY_ME = 'viewed_by_me',
 }
 
@@ -1451,6 +1904,7 @@ export const REPLAY_FIELDS = [
   ReplayFieldKey.SEEN_BY_ME,
   FieldKey.TRACE,
   ReplayFieldKey.URLS,
+  ReplayFieldKey.URL,
   FieldKey.USER_EMAIL,
   FieldKey.USER_ID,
   FieldKey.USER_IP,
@@ -1523,6 +1977,11 @@ const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
     desc: t('Whether you have seen this replay before (true/false)'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.BOOLEAN,
+  },
+  [ReplayFieldKey.URL]: {
+    desc: t('A url visited within the replay'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
   },
   [ReplayFieldKey.URLS]: {
     desc: t('List of urls that were visited within the replay'),
@@ -1727,7 +2186,7 @@ const FEEDBACK_FIELD_DEFINITIONS: Record<FeedbackFieldKey, FieldDefinition> = {
 
 export const getFieldDefinition = (
   key: string,
-  type: 'event' | 'replay' | 'replay_click' | 'feedback' = 'event'
+  type: 'event' | 'replay' | 'replay_click' | 'feedback' | 'span' = 'event'
 ): FieldDefinition | null => {
   switch (type) {
     case 'replay':
@@ -1749,6 +2208,8 @@ export const getFieldDefinition = (
         return EVENT_FIELD_DEFINITIONS[key];
       }
       return null;
+    case 'span':
+      return SPAN_FIELD_DEFINITIONS[key] ?? null;
     case 'event':
     default:
       return EVENT_FIELD_DEFINITIONS[key] ?? null;

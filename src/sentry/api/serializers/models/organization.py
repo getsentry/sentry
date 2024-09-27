@@ -34,7 +34,6 @@ from sentry.constants import (
     DATA_CONSENT_DEFAULT,
     DEBUG_FILES_ROLE_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
-    EXTRAPOLATE_METRICS_DEFAULT,
     GITHUB_COMMENT_BOT_DEFAULT,
     ISSUE_ALERTS_THREAD_DEFAULT,
     JOIN_REQUESTS_DEFAULT,
@@ -74,7 +73,7 @@ _ORGANIZATION_SCOPE_PREFIX = "organizations:"
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-    from sentry.api.serializers import UserSerializerResponse, UserSerializerResponseSelf
+    from sentry.users.api.serializers.user import UserSerializerResponse, UserSerializerResponseSelf
 
 # A mapping of OrganizationOption keys to a list of frontend features, and functions to apply the feature.
 # Enabling feature-flagging frontend components without an extra API call/endpoint to verify
@@ -324,8 +323,6 @@ class OrganizationSerializer(Serializer):
     def serialize(
         self, obj: Organization, attrs: Mapping[str, Any], user: User, **kwargs: Any
     ) -> OrganizationSerializerResponse:
-        from sentry import features
-
         if attrs.get("avatar"):
             avatar = {
                 "avatarType": attrs["avatar"].get_avatar_type_display(),
@@ -349,11 +346,10 @@ class OrganizationSerializer(Serializer):
             "dateCreated": obj.date_added,
             "isEarlyAdopter": bool(obj.flags.early_adopter),
             "require2FA": bool(obj.flags.require_2fa),
-            "requireEmailVerification": bool(
-                features.has("organizations:required-email-verification", obj)
-                and obj.flags.require_email_verification
-            ),
+            # requireEmailVerification has been deprecated
+            "requireEmailVerification": False,
             "avatar": avatar,
+            "allowMemberInvite": not obj.flags.disable_member_invite,
             "allowMemberProjectCreation": not obj.flags.disable_member_project_creation,
             "allowSuperuserAccess": not obj.flags.prevent_superuser_access,
             "links": {
@@ -471,7 +467,6 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     metricAlertsThreadFlag: bool
     metricsActivatePercentiles: bool
     metricsActivateLastForGauges: bool
-    extrapolateMetrics: bool
     requiresSso: bool
 
 
@@ -533,10 +528,8 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 ),
                 "openMembership": bool(obj.flags.allow_joinleave),
                 "require2FA": bool(obj.flags.require_2fa),
-                "requireEmailVerification": bool(
-                    features.has("organizations:required-email-verification", obj)
-                    and obj.flags.require_email_verification
-                ),
+                # The requireEmailVerification feature has been removed, this field is deprecated.
+                "requireEmailVerification": False,
                 "allowSharedIssues": not obj.flags.disable_shared_issues,
                 "enhancedPrivacy": bool(obj.flags.enhanced_privacy),
                 "dataScrubber": bool(
@@ -614,11 +607,6 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             }
         )
 
-        if features.has("organizations:metrics-extrapolation", obj):
-            context["extrapolateMetrics"] = bool(
-                obj.get_option("sentry:extrapolate_metrics", EXTRAPOLATE_METRICS_DEFAULT)
-            )
-
         if features.has("organizations:uptime-settings", obj):
             context["uptimeAutodetection"] = bool(
                 obj.get_option("sentry:uptime_autodetection", UPTIME_AUTODETECTION)
@@ -666,7 +654,6 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         "genAIConsent",
         "metricsActivatePercentiles",
         "metricsActivateLastForGauges",
-        "extrapolateMetrics",
         "quota",
     ]
 )

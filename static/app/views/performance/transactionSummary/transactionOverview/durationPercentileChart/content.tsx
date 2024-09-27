@@ -68,7 +68,7 @@ function Content({
 
   const {
     data: chartData,
-    isLoading,
+    isPending,
     isError,
   } = useApiQuery<{data: ApiResult[]}>(
     [`/organizations/${organization.slug}/events/`, {query: apiPayload}],
@@ -85,7 +85,7 @@ function Content({
     );
   }
 
-  if (isLoading) {
+  if (isPending) {
     return <LoadingPanel data-test-id="histogram-loading" />;
   }
 

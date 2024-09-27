@@ -1,8 +1,4 @@
-from sentry.users.models.authenticator import *  # NOQA
-from sentry.users.models.email import *  # NOQA
-from sentry.users.models.user import *  # NOQA
-from sentry.users.models.userrole import *  # NOQA
-
+from ..sentry_apps.models.platformexternalissue import *  # NOQA
 from .activity import *  # NOQA
 from .apiapplication import *  # NOQA
 from .apiauthorization import *  # NOQA
@@ -46,6 +42,7 @@ from .groupcommitresolution import *  # NOQA
 from .groupemailthread import *  # NOQA
 from .groupenvironment import *  # NOQA
 from .grouphash import *  # NOQA
+from .grouphashmetadata import *  # NOQA
 from .grouphistory import *  # NOQA
 from .groupinbox import *  # NOQA
 from .grouplink import *  # NOQA
@@ -61,11 +58,9 @@ from .groupshare import *  # NOQA
 from .groupsnooze import *  # NOQA
 from .groupsubscription import *  # NOQA
 from .grouptombstone import *  # NOQA
-from .identity import *  # NOQA
 from .importchunk import *  # NOQA
 from .integrations import *  # NOQA
 from .latestreporeleaseenvironment import *  # NOQA
-from .lostpasswordhash import *  # NOQA
 from .notificationmessage import *  # NOQA
 from .notificationsettingoption import *  # NOQA
 from .notificationsettingprovider import *  # NOQA
@@ -81,7 +76,6 @@ from .organizationonboardingtask import *  # NOQA
 from .organizationslugreservation import *  # NOQA
 from .organizationslugreservationreplica import *  # NOQA
 from .orgauthtoken import *  # NOQA
-from .platformexternalissue import *  # NOQA
 from .project import *  # NOQA
 from .projectbookmark import *  # NOQA
 from .projectcodeowners import *  # NOQA
@@ -113,14 +107,10 @@ from .savedsearch import *  # NOQA
 from .scheduledeletion import *  # NOQA
 from .search_common import *  # NOQA
 from .sentryshot import *  # NOQA
-from .servicehook import *  # NOQA
 from .sourcemapprocessingissue import *  # NOQA
 from .statistical_detectors import *  # NOQA
 from .team import *  # NOQA
 from .teamreplica import *  # NOQA
 from .tombstone import *  # NOQA
 from .transaction_threshold import *  # NOQA
-from .useremail import *  # NOQA
-from .userip import *  # NOQA
-from .userpermission import *  # NOQA
 from .userreport import *  # NOQA

@@ -66,6 +66,8 @@ GETTING_STARTED_DOCS_PLATFORMS = [
     "apple-macos",
     "bun",
     "capacitor",
+    "cloudflare-pages",
+    "cloudflare-workers",
     "cordova",
     "dart",
     "deno",
@@ -109,6 +111,7 @@ GETTING_STARTED_DOCS_PLATFORMS = [
     "javascript-solidstart",
     "javascript-svelte",
     "javascript-sveltekit",
+    "javascript-nuxt",
     "javascript-vue",
     "kotlin",
     "minidump",
@@ -467,6 +470,7 @@ class Project(Model, PendingDeletionMixin):
         return self.slug
 
     def transfer_to(self, organization):
+        from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
         from sentry.incidents.models.alert_rule import AlertRule
         from sentry.integrations.models.external_issue import ExternalIssue
         from sentry.models.environment import Environment, EnvironmentProject
@@ -474,7 +478,6 @@ class Project(Model, PendingDeletionMixin):
         from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
         from sentry.models.releases.release_project import ReleaseProject
         from sentry.models.rule import Rule
-        from sentry.models.scheduledeletion import RegionScheduledDeletion
         from sentry.monitors.models import Monitor
 
         old_org_id = self.organization_id

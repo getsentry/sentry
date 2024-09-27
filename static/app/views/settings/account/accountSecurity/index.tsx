@@ -1,9 +1,8 @@
-import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openEmailVerification} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import CircleIndicator from 'sentry/components/circleIndicator';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
@@ -19,6 +18,7 @@ import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Authenticator} from 'sentry/types/auth';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {OrganizationSummary} from 'sentry/types/organization';
 import oxfordizeArray from 'sentry/utils/oxfordizeArray';
 import recreateRoute from 'sentry/utils/recreateRoute';
@@ -159,13 +159,13 @@ function AccountSecurity({
 
                     <Actions>
                       {!isBackupInterface && !isEnrolled && hasVerifiedEmail && (
-                        <Button
+                        <LinkButton
                           to={`/settings/account/security/mfa/${id}/enroll/`}
                           size="sm"
                           priority="primary"
                         >
                           {t('Add')}
-                        </Button>
+                        </LinkButton>
                       )}
                       {!isBackupInterface && !isEnrolled && !hasVerifiedEmail && (
                         <Button
@@ -178,12 +178,12 @@ function AccountSecurity({
                       )}
 
                       {isEnrolled && authId && (
-                        <Button
+                        <LinkButton
                           to={`/settings/account/security/mfa/${authId}/`}
                           size="sm"
                         >
                           {configureButton}
-                        </Button>
+                        </LinkButton>
                       )}
 
                       {!isBackupInterface && isEnrolled && (

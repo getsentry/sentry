@@ -26,7 +26,9 @@ from sentry.conf.types.sdk_config import SdkConfig
 from sentry.features.rollout import in_random_rollout
 from sentry.utils import metrics
 from sentry.utils.db import DjangoAtomicIntegration
+from sentry.utils.flag import get_flags_serialized
 from sentry.utils.rust import RustInfoIntegration
+from sentry.utils.safe import get_path
 
 # Can't import models in utils because utils should be the bottom of the food chain
 if TYPE_CHECKING:
@@ -54,8 +56,6 @@ SAMPLED_TASKS = {
     "sentry.tasks.store.process_event": settings.SENTRY_PROCESS_EVENT_APM_SAMPLING,
     "sentry.tasks.store.process_event_from_reprocessing": settings.SENTRY_PROCESS_EVENT_APM_SAMPLING,
     "sentry.tasks.store.save_event_transaction": settings.SENTRY_PROCESS_EVENT_APM_SAMPLING,
-    # TODO(@anonrig): Remove this once AppStore connect integration is removed.
-    "sentry.tasks.app_store_connect.dsym_download": settings.SENTRY_APPCONNECT_APM_SAMPLING,
     "sentry.tasks.process_suspect_commits": settings.SENTRY_SUSPECT_COMMITS_APM_SAMPLING,
     "sentry.tasks.process_commit_context": settings.SENTRY_SUSPECT_COMMITS_APM_SAMPLING,
     "sentry.tasks.post_process.post_process_group": settings.SENTRY_POST_PROCESS_GROUP_APM_SAMPLING,
@@ -66,22 +66,27 @@ SAMPLED_TASKS = {
     "sentry.tasks.relay.invalidate_project_config": settings.SENTRY_RELAY_TASK_APM_SAMPLING,
     "sentry.ingest.transaction_clusterer.tasks.spawn_clusterers": settings.SENTRY_RELAY_TASK_APM_SAMPLING,
     "sentry.ingest.transaction_clusterer.tasks.cluster_projects": settings.SENTRY_RELAY_TASK_APM_SAMPLING,
-    "sentry.tasks.process_buffer.process_incr": 0.01,
+    "sentry.tasks.process_buffer.process_incr": 0.1 * settings.SENTRY_BACKEND_APM_SAMPLING,
     "sentry.replays.tasks.delete_recording_segments": settings.SAMPLED_DEFAULT_RATE,
     "sentry.replays.tasks.delete_replay_recording_async": settings.SAMPLED_DEFAULT_RATE,
     "sentry.tasks.summaries.weekly_reports.schedule_organizations": 1.0,
-    "sentry.tasks.summaries.weekly_reports.prepare_organization_report": 0.1,
-    "sentry.profiles.task.process_profile": 0.01,
+    "sentry.tasks.summaries.weekly_reports.prepare_organization_report": 0.1
+    * settings.SENTRY_BACKEND_APM_SAMPLING,
+    "sentry.profiles.task.process_profile": 0.1 * settings.SENTRY_BACKEND_APM_SAMPLING,
     "sentry.tasks.derive_code_mappings.process_organizations": settings.SAMPLED_DEFAULT_RATE,
     "sentry.tasks.derive_code_mappings.derive_code_mappings": settings.SAMPLED_DEFAULT_RATE,
     "sentry.monitors.tasks.clock_pulse": 1.0,
     "sentry.tasks.auto_enable_codecov": settings.SAMPLED_DEFAULT_RATE,
-    "sentry.dynamic_sampling.tasks.boost_low_volume_projects": 0.2,
-    "sentry.dynamic_sampling.tasks.boost_low_volume_transactions": 0.2,
-    "sentry.dynamic_sampling.tasks.recalibrate_orgs": 0.2,
-    "sentry.dynamic_sampling.tasks.sliding_window_org": 0.2,
-    "sentry.dynamic_sampling.tasks.custom_rule_notifications": 0.2,
-    "sentry.dynamic_sampling.tasks.clean_custom_rule_notifications": 0.2,
+    "sentry.dynamic_sampling.tasks.boost_low_volume_projects": 0.2
+    * settings.SENTRY_BACKEND_APM_SAMPLING,
+    "sentry.dynamic_sampling.tasks.boost_low_volume_transactions": 0.2
+    * settings.SENTRY_BACKEND_APM_SAMPLING,
+    "sentry.dynamic_sampling.tasks.recalibrate_orgs": 0.2 * settings.SENTRY_BACKEND_APM_SAMPLING,
+    "sentry.dynamic_sampling.tasks.sliding_window_org": 0.2 * settings.SENTRY_BACKEND_APM_SAMPLING,
+    "sentry.dynamic_sampling.tasks.custom_rule_notifications": 0.2
+    * settings.SENTRY_BACKEND_APM_SAMPLING,
+    "sentry.dynamic_sampling.tasks.clean_custom_rule_notifications": 0.2
+    * settings.SENTRY_BACKEND_APM_SAMPLING,
     "sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project": 1.0,
 }
 
@@ -174,6 +179,10 @@ def get_project_key():
 
 
 def traces_sampler(sampling_context):
+    # dont sample warmup requests
+    if sampling_context.get("wsgi_environ", {}).get("PATH_INFO") == "/_warmup/":
+        return 0.0
+
     # Apply sample_rate from custom_sampling_context
     custom_sample_rate = sampling_context.get("sample_rate")
     if custom_sample_rate is not None:
@@ -185,6 +194,14 @@ def traces_sampler(sampling_context):
 
     if "celery_job" in sampling_context:
         task_name = sampling_context["celery_job"].get("task")
+
+        # Temporarily sample the `assemble_dif` task at 100% for the
+        # sentry-test/rust project for debugging purposes
+        if (
+            task_name == "sentry.tasks.assemble.assemble_dif"
+            and get_path(sampling_context, "celery_job", "kwargs", "project_id") == 1041156
+        ):
+            return 1.0
 
         if task_name in SAMPLED_TASKS:
             return SAMPLED_TASKS[task_name]
@@ -236,6 +253,11 @@ def before_send(event: Event, _: Hint) -> Event | None:
             event["tags"]["silo_mode"] = str(settings.SILO_MODE)
         if settings.SENTRY_REGION:
             event["tags"]["sentry_region"] = settings.SENTRY_REGION
+
+    if "contexts" not in event:
+        event["contexts"] = {}
+    event["contexts"]["flags"] = {"values": get_flags_serialized()}
+
     return event
 
 

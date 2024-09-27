@@ -4,7 +4,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 
-const path = 'http://some.url/';
+const path = '/some-path/';
 
 describe('GlobalSelectionLink', function () {
   const getRouter = (query?: {environment: string; project: string[]}) =>
@@ -20,7 +20,7 @@ describe('GlobalSelectionLink', function () {
     render(<GlobalSelectionLink to={path}>Go somewhere!</GlobalSelectionLink>, {router});
     expect(screen.getByText('Go somewhere!')).toHaveAttribute(
       'href',
-      'http://some.url/?environment=staging&project=foo&project=bar'
+      '/some-path/?environment=staging&project=foo&project=bar'
     );
 
     await userEvent.click(screen.getByText('Go somewhere!'));

@@ -30,7 +30,7 @@ type ReleaseStatsType = {usersBreakdown: CrashFreeTimeBreakdown} | null;
 function TotalCrashFreeUsers({location, organization, projectSlug, version}: Props) {
   const {
     data: releaseStats,
-    isLoading,
+    isPending,
     isError,
   } = useApiQuery<ReleaseStatsType>(
     [
@@ -49,7 +49,7 @@ function TotalCrashFreeUsers({location, organization, projectSlug, version}: Pro
     {staleTime: 0}
   );
 
-  if (isLoading) {
+  if (isPending) {
     return <LoadingIndicator />;
   }
 

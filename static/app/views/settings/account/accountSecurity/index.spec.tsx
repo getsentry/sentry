@@ -42,14 +42,7 @@ describe('AccountSecurity', function () {
 
   function renderComponent() {
     return render(
-      <AccountSecurityWrapper
-        location={router.location}
-        route={router.routes[0]}
-        routes={router.routes}
-        router={router}
-        routeParams={router.params}
-        params={{...router.params, authId: '15'}}
-      >
+      <AccountSecurityWrapper>
         <AccountSecurity
           deleteDisabled={false}
           authenticators={[]}
@@ -65,7 +58,12 @@ describe('AccountSecurity', function () {
           routeParams={router.params}
           params={{...router.params, authId: '15'}}
         />
-      </AccountSecurityWrapper>
+      </AccountSecurityWrapper>,
+      {
+        router: {
+          params: {authId: '15'},
+        },
+      }
     );
   }
 

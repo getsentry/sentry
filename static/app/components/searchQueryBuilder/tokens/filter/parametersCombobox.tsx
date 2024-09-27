@@ -7,10 +7,10 @@ import {getEscapedKey} from 'sentry/components/compactSelect/utils';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {SearchQueryBuilderCombobox} from 'sentry/components/searchQueryBuilder/tokens/combobox';
 import {FunctionDescription} from 'sentry/components/searchQueryBuilder/tokens/filter/functionDescription';
-import {replaceCommaSeparatedValue} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
+import {replaceCommaSeparatedValue} from 'sentry/components/searchQueryBuilder/tokens/filter/replaceCommaSeparatedValue';
 import type {AggregateFilter} from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
-import {FieldValueType} from 'sentry/utils/fields';
+import {FieldKind, FieldValueType} from 'sentry/utils/fields';
 
 type ParametersComboboxProps = {
   onCommit: () => void;
@@ -30,16 +30,6 @@ function getInitialInputValue(token: AggregateFilter) {
   }
 
   return '';
-}
-
-// Args are null if none are provided. If that is the case, we can use the space
-// within the parens for determining where replacements should be made.
-function getArgsToken(token: AggregateFilter) {
-  if (!token.key.args) {
-    return token.key.argsSpaceBefore;
-  }
-
-  return token.key.args;
 }
 
 function getParameterAtCursorPosition(
@@ -112,7 +102,12 @@ function useParameterSuggestions({
   const parameterSuggestions = useMemo<SuggestionItem[]>(() => {
     switch (parameterDefinition?.kind) {
       case 'column': {
-        const potentialColumns = Object.values(filterKeys);
+        const potentialColumns = Object.values(filterKeys).filter(filterKey => {
+          const fieldDef = getFieldDefinition(filterKey.key);
+          return (
+            fieldDef?.kind !== FieldKind.EQUATION && fieldDef?.kind !== FieldKind.FUNCTION
+          );
+        });
         const {columnTypes} = parameterDefinition;
 
         if (typeof columnTypes === 'function') {
@@ -206,7 +201,7 @@ export function SearchQueryBuilderParametersCombobox({
 
   const handleInputValueConfirmed = useCallback(
     (value: string) => {
-      dispatch({type: 'UPDATE_AGGREGATE_ARGS', token: getArgsToken(token), value});
+      dispatch({type: 'UPDATE_AGGREGATE_ARGS', token, value});
 
       onCommit();
     },
@@ -214,12 +209,16 @@ export function SearchQueryBuilderParametersCombobox({
   );
 
   const handleOptionSelected = useCallback(
-    (value: string) => {
-      const newValue = replaceCommaSeparatedValue(inputValue, selectionIndex, value);
+    (option: SelectOptionWithKey<string>) => {
+      const newValue = replaceCommaSeparatedValue(
+        inputValue,
+        selectionIndex,
+        option.value
+      );
 
       dispatch({
         type: 'UPDATE_AGGREGATE_ARGS',
-        token: getArgsToken(token),
+        token,
         value: newValue,
       });
       setInputValue(newValue);

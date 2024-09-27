@@ -72,9 +72,9 @@ function SetupMessagingIntegrationButton({
   });
 
   if (
-    projectQuery.isLoading ||
+    projectQuery.isPending ||
     projectQuery.isError ||
-    integrationQuery.isLoading ||
+    integrationQuery.isPending ||
     integrationQuery.isError
   ) {
     return null;

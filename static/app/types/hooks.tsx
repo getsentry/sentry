@@ -1,5 +1,3 @@
-import type {Route, RouteComponentProps, RouteContextInterface} from 'react-router';
-
 import type {ChildrenRenderFn} from 'sentry/components/acl/feature';
 import type {Guide} from 'sentry/components/assistant/types';
 import type {ButtonProps} from 'sentry/components/button';
@@ -21,6 +19,11 @@ import type {NavigationItem, NavigationSection} from 'sentry/views/settings/type
 import type {ExperimentKey} from './experiments';
 import type {Group} from './group';
 import type {Integration, IntegrationProvider} from './integrations';
+import type {
+  Route,
+  RouteComponentProps,
+  RouteContextInterface,
+} from './legacyReactRouter';
 import type {Member, Organization} from './organization';
 import type {Project} from './project';
 import type {User} from './user';
@@ -59,9 +62,9 @@ export type HookName = keyof Hooks;
  * Route hooks.
  */
 export type RouteHooks = {
-  'routes:api': RoutesHook;
-  'routes:organization': RoutesHook;
+  'routes:legacy-organization-redirects': RoutesHook;
   'routes:root': RoutesHook;
+  'routes:settings': RoutesHook;
 };
 
 /**
@@ -120,12 +123,10 @@ type OrganizationHeaderProps = {
   organization: Organization;
 };
 
-type ProductSelectionAvailabilityProps = Pick<
+type ProductSelectionAvailabilityProps = Omit<
   ProductSelectionProps,
-  'lazyLoader' | 'skipLazyLoader' | 'platform' | 'withBottomMargin'
-> & {
-  organization: Organization;
-};
+  'disabledProducts' | 'productsPerPlatform'
+>;
 
 type FirstPartyIntegrationAlertProps = {
   integrations: Integration[];

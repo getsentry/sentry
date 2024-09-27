@@ -9,8 +9,7 @@ export function AutofixRootCauseData(
     id: '100',
     title: 'This is the title of a root cause.',
     description: 'This is the description of a root cause.',
-    actionability: 0.8,
-    likelihood: 0.9,
+    reproduction: 'This is the reproduction of a root cause.',
     code_context: [AutofixRootCauseCodeContext()],
     ...params,
   };

@@ -36,18 +36,18 @@ export function StreamlinedExternalIssueList({
 
   if (isLoading) {
     return (
-      <SidebarSection.Wrap data-test-id="linked-issues">
-        <SidebarSection.Title>{t('Issue Tracking')}</SidebarSection.Title>
+      <div data-test-id="linked-issues">
+        <StyledSectionTitle>{t('Issue Tracking')}</StyledSectionTitle>
         <SidebarSection.Content>
           <Placeholder height="25px" />
         </SidebarSection.Content>
-      </SidebarSection.Wrap>
+      </div>
     );
   }
 
   return (
-    <SidebarSection.Wrap data-test-id="linked-issues">
-      <SidebarSection.Title>{t('Issue Tracking')}</SidebarSection.Title>
+    <div data-test-id="linked-issues">
+      <StyledSectionTitle>{t('Issue Tracking')}</StyledSectionTitle>
       <SidebarSection.Content>
         {integrations.length || linkedIssues.length ? (
           <IssueActionWrapper>
@@ -130,7 +130,7 @@ export function StreamlinedExternalIssueList({
           </AlertLink>
         )}
       </SidebarSection.Content>
-    </SidebarSection.Wrap>
+    </div>
   );
 }
 
@@ -138,6 +138,10 @@ const IssueActionWrapper = styled('div')`
   display: flex;
   flex-wrap: wrap;
   gap: ${space(1)};
+`;
+
+const StyledSectionTitle = styled(SidebarSection.Title)`
+  margin-top: ${space(0.25)};
 `;
 
 const LinkedIssue = styled(LinkButton)`

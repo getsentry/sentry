@@ -50,7 +50,7 @@ function TeamStability({
 
   const {
     data: periodSessions,
-    isLoading: isPeriodSessionsLoading,
+    isPending: isPeriodSessionsLoading,
     isError: isPeriodSessionsError,
     refetch: refetchPeriodSessions,
   } = useApiQuery<SessionApiResponse>(
@@ -68,7 +68,7 @@ function TeamStability({
 
   const {
     data: weekSessions,
-    isLoading: isWeekSessionsLoading,
+    isPending: isWeekSessionsLoading,
     isError: isWeekSessionsError,
     refetch: refetchWeekSessions,
   } = useApiQuery<SessionApiResponse>(

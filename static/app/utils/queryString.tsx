@@ -140,7 +140,27 @@ export function decodeSorts(value: QueryValue, fallback?: string): Sort[] {
   );
 }
 
+export function decodeBoolean(value: QueryValue): boolean | undefined;
+export function decodeBoolean(value: QueryValue, fallback: boolean): boolean;
+export function decodeBoolean(
+  value: QueryValue,
+  fallback?: boolean
+): boolean | undefined {
+  const unwrapped = decodeScalar(value);
+
+  if (unwrapped === 'true') {
+    return true;
+  }
+
+  if (unwrapped === 'false') {
+    return false;
+  }
+
+  return fallback;
+}
+
 const queryString = {
+  decodeBoolean,
   decodeInteger,
   decodeList,
   decodeScalar,

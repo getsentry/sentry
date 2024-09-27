@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import type {RouteComponentProps} from 'react-router';
 
 import {
   addErrorMessage,
@@ -14,6 +13,7 @@ import Pagination from 'sentry/components/pagination';
 import Panel from 'sentry/components/panels/panel';
 import {IconAdd, IconFlag} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project, ProjectKey} from 'sentry/types/project';
 import routeTitleGen from 'sentry/utils/routeTitle';

@@ -13,7 +13,10 @@ import SidebarDropdownMenu from './sidebarDropdownMenu.styled';
 import SidebarMenuItem from './sidebarMenuItem';
 import type {CommonSidebarProps} from './types';
 
-type Props = Pick<CommonSidebarProps, 'collapsed' | 'hidePanel' | 'orientation'> & {
+type Props = Pick<
+  CommonSidebarProps,
+  'collapsed' | 'hidePanel' | 'orientation' | 'hasNewNav'
+> & {
   organization: Organization;
 };
 

@@ -1,5 +1,7 @@
 import {
+  type AggregateFilter,
   allOperators,
+  FilterType,
   filterTypeConfig,
   interchangeableFilterOperators,
   type TermOperator,
@@ -8,9 +10,29 @@ import {
 } from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
 import {escapeDoubleQuotes} from 'sentry/utils';
-import {getFieldDefinition} from 'sentry/utils/fields';
+import {
+  type FieldDefinition,
+  FieldValueType,
+  getFieldDefinition,
+} from 'sentry/utils/fields';
 
-const SHOULD_ESCAPE_REGEX = /[\s"()]/;
+const SHOULD_ESCAPE_REGEX = /[\s"(),]/;
+
+export function isAggregateFilterToken(
+  token: TokenResult<Token.FILTER>
+): token is AggregateFilter {
+  switch (token.filter) {
+    case FilterType.AGGREGATE_DATE:
+    case FilterType.AGGREGATE_DURATION:
+    case FilterType.AGGREGATE_NUMERIC:
+    case FilterType.AGGREGATE_PERCENTAGE:
+    case FilterType.AGGREGATE_RELATIVE_DATE:
+    case FilterType.AGGREGATE_SIZE:
+      return true;
+    default:
+      return false;
+  }
+}
 
 export function getValidOpsForFilter(
   filterToken: TokenResult<Token.FILTER>
@@ -70,27 +92,53 @@ export function formatFilterValue(token: TokenResult<Token.FILTER>['value']): st
 }
 
 /**
- * Replaces the focused parameter (at cursorPosition) with the new value.
- * If cursorPosition is null, will default to the end of the string.
+ * Gets the value type for a given token.
  *
- * Example:
- * replaceCommaSeparatedValue('foo,bar,baz', 5, 'new') => 'foo,new,baz'
+ * For most tokens, this is the value type of the field definition.
+ * For aggregate tokens, this can be dependent on the function parameters.
  */
-export function replaceCommaSeparatedValue(
-  value: string,
-  cursorPosition: number | null,
-  replacement: string
-) {
-  const items = value.split(',');
+export function getFilterValueType(
+  token: TokenResult<Token.FILTER>,
+  fieldDefinition: FieldDefinition | null
+): FieldValueType {
+  if (isAggregateFilterToken(token)) {
+    const args = token.key.args?.args.map(arg => arg.value?.value ?? null);
 
-  let characterCount = 0;
-  for (let i = 0; i < items.length; i++) {
-    characterCount += items[i].length + 1;
-    if (characterCount > (cursorPosition ?? value.length + 1)) {
-      const newItems = [...items.slice(0, i), replacement, ...items.slice(i + 1)];
-      return newItems.map(item => item.trim()).join(',');
+    if (fieldDefinition?.parameterDependentValueType && args) {
+      return fieldDefinition.parameterDependentValueType(args);
     }
   }
 
-  return value;
+  return fieldDefinition?.valueType ?? FieldValueType.STRING;
+}
+
+export function getArgsToken(token: AggregateFilter) {
+  // Args are null if none are provided. If that is the case, we can use the space
+  // within the parens for determining where replacements should be made.
+  if (!token.key.args) {
+    return token.key.argsSpaceBefore;
+  }
+
+  return token.key.args;
+}
+
+export function convertTokenTypeToValueType(tokenType: Token): FieldValueType {
+  switch (tokenType) {
+    case Token.VALUE_BOOLEAN:
+      return FieldValueType.BOOLEAN;
+    case Token.VALUE_ISO_8601_DATE:
+    case Token.VALUE_RELATIVE_DATE:
+      return FieldValueType.DATE;
+    case Token.VALUE_DURATION:
+      return FieldValueType.DURATION;
+    case Token.VALUE_NUMBER:
+    case Token.VALUE_NUMBER_LIST:
+      return FieldValueType.NUMBER;
+    case Token.VALUE_PERCENTAGE:
+      return FieldValueType.PERCENTAGE;
+    case Token.VALUE_TEXT:
+    case Token.VALUE_TEXT_LIST:
+    default:
+      return FieldValueType.STRING;
+  }
 }

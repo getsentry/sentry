@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import dataclasses
 import functools
 import logging
 import time
@@ -61,7 +62,7 @@ from sentry.models.release import Release
 from sentry.models.team import Team
 from sentry.search.events.builder.discover import UnresolvedQuery
 from sentry.search.events.filter import convert_search_filter_to_snuba_query, format_search_filter
-from sentry.search.events.types import ParamsType, SnubaParams
+from sentry.search.events.types import SnubaParams
 from sentry.snuba.dataset import Dataset
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
@@ -503,6 +504,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                 )
             except UnsupportedSearchQuery:
                 pass
+
         query_params_for_categories = {
             gc: query_params
             for gc, query_params in query_params_for_categories.items()
@@ -1162,6 +1164,8 @@ class InvalidQueryForExecutor(Exception):
 
 
 class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
+    logger = logging.getLogger("sentry.search.groupattributessnuba")
+
     def get_times_seen_filter(
         self, search_filter: SearchFilter, joined_entity: Entity
     ) -> Condition:
@@ -1195,7 +1199,7 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         self,
         search_filter: SearchFilter,
         joined_entity: Entity,
-        snuba_params: ParamsType,
+        snuba_params: SnubaParams,
     ) -> Condition:
         """
         Returns the basic lookup for a search filter.
@@ -1204,6 +1208,8 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         query_builder = UnresolvedQuery(
             dataset=dataset, entity=joined_entity, snuba_params=snuba_params, params={}
         )
+        query_builder.start = snuba_params.start
+        query_builder.end = snuba_params.end
         return query_builder.convert_search_filter_to_condition(search_filter)
 
     def get_assigned(
@@ -1460,6 +1466,13 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
             conditions=top_level_conditions,
         )
 
+    sort_strategies = {
+        "new": "first_seen_score",
+        "date": "last_seen_score",
+        "freq": "times_seen",
+        "user": "user_count",
+    }
+
     def get_last_seen_aggregation(self, joined_entity: Entity) -> Function:
         return Function(
             "ifNull",
@@ -1476,7 +1489,7 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                 ),
                 0,
             ],
-            alias="last_seen_score",
+            alias=self.sort_strategies["date"],
         )
 
     def get_first_seen_aggregation(self) -> Function:
@@ -1495,7 +1508,7 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                 ),
                 0,
             ],
-            alias="first_seen_score",
+            alias=self.sort_strategies["new"],
         )
 
     def get_handled_condition(
@@ -1608,22 +1621,16 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         "first_release": (get_first_release_condition, Clauses.WHERE),
         "firstRelease": (get_first_release_condition, Clauses.WHERE),
     }
-    times_seen_aggregation = Function("count", [], alias="times_seen")
 
     def get_sort_defs(self, entity):
         return {
             "date": self.get_last_seen_aggregation(entity),
             "new": self.get_first_seen_aggregation(),
-            "freq": self.times_seen_aggregation,
-            "user": Function("uniq", [Column("tags[sentry:user]", entity)], "user_count"),
+            "freq": Function("count", [], alias=self.sort_strategies["freq"]),
+            "user": Function(
+                "uniq", [Column("tags[sentry:user]", entity)], self.sort_strategies["user"]
+            ),
         }
-
-    sort_strategies = {
-        "new": "first_seen_score",
-        "date": "last_seen_score",
-        "freq": "times_seen",
-        "user": "user_count",
-    }
 
     def should_check_search_issues(
         self, group_categories: Sequence[str], search_filters: Sequence[SearchFilter]
@@ -1713,6 +1720,13 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                         : max_candidates + 1
                     ]
                 )
+                self.logger.info(
+                    "GroupAttributesExecutor: found snuba candidates",
+                    extra={
+                        "count": len(group_ids_to_pass_to_snuba),
+                        "max_candidates": max_candidates,
+                    },
+                )
                 span.set_data("Max Candidates", max_candidates)
                 span.set_data("Result Size", len(group_ids_to_pass_to_snuba))
 
@@ -1720,6 +1734,7 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                     metrics.incr(
                         "snuba.search.group_attributes.too_many_candidates", skip_internal=False
                     )
+                    self.logger.info("GroupAttributesExecutor: too many candidates")
                     group_ids_to_pass_to_snuba = None
 
         # remove the search filters that are only for postgres
@@ -1763,6 +1778,10 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
 
                 # limit groups and events to the group ids
                 for entity_with_group_id in [attr_entity, joined_entity]:
+                    self.logger.info(
+                        "GroupAttributesExecutor: adding group_id filter to entity",
+                        extra={"entity": entity_with_group_id.name},
+                    )
                     where_conditions.append(
                         Condition(
                             Column("group_id", entity_with_group_id),
@@ -1818,25 +1837,22 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
             # handle types based on issue.type and issue.category
             if not is_errors:
                 raw_group_types = group_types_from(search_filters)
-                if raw_group_types is not None:
-                    # no possible groups, return empty
-                    if len(raw_group_types) == 0:
-                        metrics.incr(
-                            "snuba.search.group_attributes.no_possible_groups", skip_internal=False
-                        )
-                        return self.empty_result
-
-                    # filter out the group types that are not visible to the org/user
-                    group_types = [
-                        gt.type_id
-                        for gt in grouptype.registry.get_visible(organization, actor)
-                        if gt.type_id in raw_group_types
-                    ]
-                    where_conditions.append(
-                        Condition(Column("occurrence_type_id", joined_entity), Op.IN, group_types)
+                # no possible groups, return empty
+                if len(raw_group_types) == 0:
+                    metrics.incr(
+                        "snuba.search.group_attributes.no_possible_groups", skip_internal=False
                     )
+                    return self.empty_result
 
-            sort_func = self.get_sort_defs(joined_entity)[sort_by]
+                # filter out the group types that are not visible to the org/user
+                group_types = [
+                    gt.type_id
+                    for gt in grouptype.registry.get_visible(organization, actor)
+                    if gt.type_id in raw_group_types
+                ]
+                where_conditions.append(
+                    Condition(Column("occurrence_type_id", joined_entity), Op.IN, group_types)
+                )
 
             if environments:
                 where_conditions.append(
@@ -1844,6 +1860,8 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                         Column("environment", joined_entity), Op.IN, [e.name for e in environments]
                     )
                 )
+
+            sort_func = self.get_sort_defs(joined_entity)[sort_by]
 
             if cursor is not None:
                 op = Op.GTE if cursor.is_prev else Op.LTE
@@ -1858,13 +1876,21 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
 
             select.append(sort_func)
 
+            if group_ids_to_pass_to_snuba is not None:
+                self.logger.info(
+                    "GroupAttributesExecutor: conditions",
+                    extra={"where_conditions": where_conditions},
+                )
+
             query = Query(
                 match=Join([Relationship(joined_entity, "attributes_inner", attr_entity)]),
                 select=select,
                 where=where_conditions,
                 groupby=groupby,
                 having=having,
-                orderby=[OrderBy(sort_func, direction=Direction.DESC)],
+                orderby=[
+                    OrderBy(dataclasses.replace(sort_func, alias=None), direction=Direction.DESC)
+                ],
                 limit=Limit(limit + 1),
             )
             dataset = Dataset.Events.value if is_errors else Dataset.IssuePlatform.value

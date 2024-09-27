@@ -80,6 +80,7 @@ def build_occurrence_from_result(
         culprit="",  # TODO: The url?
         detection_time=datetime.now(timezone.utc),
         level="error",
+        assignee=project_subscription.owner,
     )
 
 
@@ -98,10 +99,10 @@ def build_event_data_for_occurrence(
         "received": datetime.fromtimestamp(result["actual_check_time_ms"] / 1000),
         "sdk": None,
         "tags": {
-            "uptime_rule": project_subscription.id,
+            "uptime_rule": str(project_subscription.id),
         },
         "timestamp": occurrence.detection_time.isoformat(),
-        "contexts": {"trace": {"trace_id": result["trace_id"], "span_id": None}},
+        "contexts": {"trace": {"trace_id": result["trace_id"], "span_id": result.get("span_id")}},
     }
 
 

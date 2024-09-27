@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import dataclasses
+import logging
 from collections.abc import Mapping, MutableMapping, Sequence
 from typing import Any
 
@@ -16,7 +17,7 @@ from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils.safe import get_path
 
-from ..utils import logger
+_logger = logging.getLogger(__name__)
 
 
 def _get_field_id_option(data: Mapping[str, Any], field_name: str) -> str | None:
@@ -234,10 +235,10 @@ class SlackRequest:
         self._info("slack.request")
 
     def _error(self, key: str) -> None:
-        logger.error(key, extra={**self.logging_data})
+        _logger.error(key, extra={**self.logging_data})
 
     def _info(self, key: str) -> None:
-        logger.info(key, extra={**self.logging_data})
+        _logger.info(key, extra={**self.logging_data})
 
 
 class SlackDMRequest(SlackRequest):

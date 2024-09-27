@@ -47,7 +47,11 @@ class Migration(CheckedMigration):
             ],
             options={
                 "db_table": "feedback_feedback",
-                "index_together": {("project_id", "date_added")},
+                "indexes": [
+                    models.Index(
+                        fields=["project_id", "date_added"], name="feedback_fe_project_84fbf7_idx"
+                    )
+                ],
             },
         ),
     ]

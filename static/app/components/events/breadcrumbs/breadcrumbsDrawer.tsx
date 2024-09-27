@@ -1,9 +1,8 @@
-import {Fragment, useCallback, useMemo, useState} from 'react';
+import {useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
-import {Breadcrumbs as NavigationBreadcrumbs} from 'sentry/components/breadcrumbs';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {CompactSelect} from 'sentry/components/compactSelect';
@@ -16,12 +15,23 @@ import {
   useBreadcrumbFilters,
 } from 'sentry/components/events/breadcrumbs/utils';
 import {
+  CrumbContainer,
+  EventDrawerBody,
+  EventDrawerContainer,
+  EventDrawerHeader,
+  EventNavigator,
+  Header,
+  NavigationCrumbs,
+  SearchInput,
+  ShortId,
+} from 'sentry/components/events/eventDrawer';
+import {
   applyBreadcrumbSearch,
   BREADCRUMB_SORT_LOCALSTORAGE_KEY,
   BREADCRUMB_SORT_OPTIONS,
   BreadcrumbSort,
 } from 'sentry/components/events/interfaces/breadcrumbs';
-import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
+import useFocusControl from 'sentry/components/events/useFocusControl';
 import {InputGroup} from 'sentry/components/inputGroup';
 import {IconClock, IconFilter, IconSearch, IconSort, IconTimer} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -38,21 +48,6 @@ export const enum BreadcrumbControlOptions {
   SEARCH = 'search',
   FILTER = 'filter',
   SORT = 'sort',
-}
-
-function useFocusControl(initialFocusControl?: BreadcrumbControlOptions) {
-  const [focusControl, setFocusControl] = useState(initialFocusControl);
-  // If the focused control element is blurred, unset the state to remove styles
-  // This will allow us to simulate :focus-visible on the button elements.
-  const getFocusProps = useCallback(
-    (option: BreadcrumbControlOptions) => {
-      return option === focusControl
-        ? {autoFocus: true, onBlur: () => setFocusControl(undefined)}
-        : {};
-    },
-    [focusControl]
-  );
-  return {getFocusProps};
 }
 
 interface BreadcrumbsDrawerProps {
@@ -72,6 +67,7 @@ export function BreadcrumbsDrawer({
 }: BreadcrumbsDrawerProps) {
   const organization = useOrganization();
   const theme = useTheme();
+  const [container, setContainer] = useState<HTMLElement | null>(null);
 
   const [search, setSearch] = useState('');
   const [filters, setFilters] = useState<string[]>([]);
@@ -205,8 +201,8 @@ export function BreadcrumbsDrawer({
   );
 
   return (
-    <Fragment>
-      <DrawerHeader>
+    <EventDrawerContainer>
+      <EventDrawerHeader>
         <NavigationCrumbs
           crumbs={[
             {
@@ -221,12 +217,12 @@ export function BreadcrumbsDrawer({
             {label: t('Breadcrumbs')},
           ]}
         />
-      </DrawerHeader>
-      <DrawerBody>
-        <HeaderGrid>
-          <Header>{t('Breadcrumbs')}</Header>
-          {actions}
-        </HeaderGrid>
+      </EventDrawerHeader>
+      <EventNavigator>
+        <Header>{t('Breadcrumbs')}</Header>
+        {actions}
+      </EventNavigator>
+      <EventDrawerBody ref={setContainer}>
         <TimelineContainer>
           {displayCrumbs.length === 0 ? (
             <EmptyMessage>
@@ -249,38 +245,18 @@ export function BreadcrumbsDrawer({
             <BreadcrumbsTimeline
               breadcrumbs={displayCrumbs}
               startTimeString={startTimeString}
+              containerElement={container}
             />
           )}
         </TimelineContainer>
-      </DrawerBody>
-    </Fragment>
+      </EventDrawerBody>
+    </EventDrawerContainer>
   );
 }
 
 const VisibleFocusButton = styled(Button)`
   box-shadow: ${p => (p.autoFocus ? p.theme.button.default.focusBorder : 'transparent')} 0
     0 0 1px;
-`;
-
-const HeaderGrid = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr auto;
-  align-items: center;
-  column-gap: ${space(1)};
-  margin: ${space(1)} 0 ${space(2)};
-`;
-
-const Header = styled('h3')`
-  display: block;
-  font-size: ${p => p.theme.fontSizeExtraLarge};
-  font-weight: ${p => p.theme.fontWeightBold};
-  margin: 0;
-`;
-
-const SearchInput = styled(InputGroup.Input)`
-  border: 0;
-  box-shadow: unset;
-  color: inherit;
 `;
 
 const TimelineContainer = styled('div')`
@@ -294,21 +270,4 @@ const EmptyMessage = styled('div')`
   align-items: center;
   color: ${p => p.theme.subText};
   padding: ${space(3)} ${space(1)};
-`;
-
-const NavigationCrumbs = styled(NavigationBreadcrumbs)`
-  margin: 0;
-  padding: 0;
-`;
-
-const CrumbContainer = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
-`;
-
-const ShortId = styled('div')`
-  font-family: ${p => p.theme.text.family};
-  font-size: ${p => p.theme.fontSizeMedium};
-  line-height: 1;
 `;

@@ -1,16 +1,14 @@
-import {render, screen} from '@testing-library/react';
 import type {Location} from 'history';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {ThemeAndStyleProvider} from 'sentry/components/themeAndStyleProvider';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
+
 import EventView from 'sentry/utils/discover/eventView';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import ScreensOverviewTable from 'sentry/views/insights/mobile/screens/components/screensOverviewTable';
 
-jest.mock('sentry/utils/useOrganization');
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/views/insights/common/utils/useModuleURL');
 jest.mock('sentry/utils/usePageFilters');
@@ -33,7 +31,6 @@ describe('ScreensOverviewTable', () => {
     state: undefined,
   } as Location;
 
-  jest.mocked(useOrganization).mockReturnValue(organization);
   jest.mocked(useLocation).mockReturnValue(location);
   jest.mocked(usePageFilters).mockReturnValue({
     isReady: true,
@@ -71,14 +68,15 @@ describe('ScreensOverviewTable', () => {
 
   it('renders columns', async () => {
     render(
-      <ThemeAndStyleProvider>
-        <ScreensOverviewTable
-          data={mockData}
-          eventView={mockEventView}
-          isLoading={false}
-          pageLinks=""
-        />
-      </ThemeAndStyleProvider>
+      <ScreensOverviewTable
+        data={mockData}
+        eventView={mockEventView}
+        isLoading={false}
+        pageLinks=""
+      />,
+      {
+        organization,
+      }
     );
 
     // headers

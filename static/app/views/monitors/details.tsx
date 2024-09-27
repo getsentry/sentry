@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
 
@@ -17,6 +16,7 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -61,11 +61,11 @@ function MonitorDetails({params, location}: Props) {
     staleTime: 0,
     refetchOnWindowFocus: true,
     // Refetches while we are waiting for the user to send their first check-in
-    refetchInterval: data => {
-      if (!data) {
+    refetchInterval: query => {
+      if (!query.state.data) {
         return false;
       }
-      const [monitorData] = data;
+      const [monitorData] = query.state.data;
       return hasLastCheckIn(monitorData) ? false : DEFAULT_POLL_INTERVAL_MS;
     },
   });

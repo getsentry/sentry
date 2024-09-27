@@ -11,6 +11,7 @@ import {
   screen,
   userEvent,
   waitFor,
+  within,
 } from 'sentry-test/reactTestingLibrary';
 
 import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
@@ -79,6 +80,7 @@ function mockTraceMetaResponse(resp?: Partial<ResponseType>) {
         performance_issues: 0,
         projects: 0,
         transactions: 0,
+        transaction_child_count_map: [],
       },
     }),
   });
@@ -261,7 +263,18 @@ async function keyboardNavigationTestSetup() {
       orphan_errors: [],
     },
   });
-  mockTraceMetaResponse();
+  mockTraceMetaResponse({
+    body: {
+      errors: 0,
+      performance_issues: 0,
+      projects: 0,
+      transactions: 0,
+      transaction_child_count_map: keyboard_navigation_transactions.map(t => ({
+        'transaction.id': t.event_id,
+        count: 5,
+      })),
+    },
+  });
   mockTraceRootFacets();
   mockTraceRootEvent('0');
   mockTraceEventDetails();
@@ -777,7 +790,12 @@ describe('trace view', () => {
       await userEvent.keyboard('{arrowright}');
       expect(await screen.findByText('special-span')).toBeInTheDocument();
       await userEvent.keyboard('{arrowdown}');
-      await waitFor(() => expect(rows[2]).toHaveFocus());
+      await waitFor(() => {
+        const updatedRows = virtualizedContainer.querySelectorAll(
+          VISIBLE_TRACE_ROW_SELECTOR
+        );
+        expect(updatedRows[2]).toHaveFocus();
+      });
 
       expect(await screen.findByTestId('trace-drawer-title')).toHaveTextContent(
         'special-span'
@@ -808,27 +826,25 @@ describe('trace view', () => {
 
       let rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
       await userEvent.click(rows[0]);
-
       await waitFor(() => expect(rows[0]).toHaveFocus());
-      await userEvent.keyboard('{arrowup}');
 
-      expect(
-        await findByText(virtualizedContainer, /transaction-op-9999/i)
-      ).toBeInTheDocument();
+      await userEvent.keyboard('{arrowup}', {delay: null});
       await waitFor(() => {
         rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
         expect(rows[rows.length - 1]).toHaveFocus();
       });
-
-      await userEvent.keyboard('{arrowdown}');
       expect(
-        await findByText(virtualizedContainer, /transaction-op-0/i)
+        await within(virtualizedContainer).findByText(/transaction-op-9999/i)
       ).toBeInTheDocument();
 
+      await userEvent.keyboard('{arrowdown}', {delay: null});
       await waitFor(() => {
         rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
         expect(rows[0]).toHaveFocus();
       });
+      expect(
+        await within(virtualizedContainer).findByText(/transaction-op-0/i)
+      ).toBeInTheDocument();
     });
     it('tab scrolls to next node', async () => {
       const {virtualizedContainer} = await keyboardNavigationTestSetup();
@@ -1082,7 +1098,6 @@ describe('trace view', () => {
       });
     });
     it('during search, expanding a row retriggers search', async () => {
-      mockTraceMetaResponse();
       mockTraceRootFacets();
       mockTraceRootEvent('0');
       mockTraceEventDetails();
@@ -1117,6 +1132,33 @@ describe('trace view', () => {
             }),
           ],
           orphan_errors: [],
+        },
+      });
+
+      mockTraceMetaResponse({
+        body: {
+          errors: 0,
+          performance_issues: 0,
+          projects: 0,
+          transactions: 0,
+          transaction_child_count_map: [
+            {
+              'transaction.id': '0',
+              count: 5,
+            },
+            {
+              'transaction.id': '1',
+              count: 5,
+            },
+            {
+              'transaction.id': '2',
+              count: 5,
+            },
+            {
+              'transaction.id': '3',
+              count: 5,
+            },
+          ],
         },
       });
 

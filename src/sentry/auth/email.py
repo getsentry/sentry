@@ -5,9 +5,9 @@ from collections.abc import Collection, Iterable
 from dataclasses import dataclass
 
 from sentry.models.organization import Organization
-from sentry.models.useremail import UserEmail
 from sentry.organizations.services.organization import organization_service
 from sentry.users.models.user import User
+from sentry.users.models.useremail import UserEmail
 from sentry.utils import metrics
 
 

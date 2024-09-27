@@ -1,8 +1,8 @@
-import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {BreadcrumbProvider} from 'sentry/views/settings/components/settingsBreadcrumb/context';
 import SettingsLayout from 'sentry/views/settings/components/settingsLayout';
 import SettingsNavigation from 'sentry/views/settings/components/settingsNavigation';

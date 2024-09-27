@@ -2,10 +2,10 @@ import pytest
 from django.conf import settings
 
 from sentry import newsletter
-from sentry.models.useremail import UserEmail
 from sentry.newsletter.dummy import DummyNewsletter
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
+from sentry.users.models.useremail import UserEmail
 
 
 @pytest.mark.skipif(

@@ -102,11 +102,29 @@ class RecentSearchesListTest(APITestCase):
                 date_added=timezone.now() - timedelta(hours=1),
             ),
         ]
+        error_recent_search = RecentSearch.objects.create(
+            organization=self.organization,
+            user_id=self.user.id,
+            type=SearchType.ERROR.value,
+            query="some test",
+            last_seen=timezone.now(),
+            date_added=timezone.now(),
+        )
+        transaction_recent_search = RecentSearch.objects.create(
+            organization=self.organization,
+            user_id=self.user.id,
+            type=SearchType.TRANSACTION.value,
+            query="some test",
+            last_seen=timezone.now(),
+            date_added=timezone.now(),
+        )
         self.check_results(issue_recent_searches, search_type=SearchType.ISSUE)
         self.check_results([event_recent_search], search_type=SearchType.EVENT)
         self.check_results([session_recent_search], search_type=SearchType.SESSION)
         self.check_results([metric_recent_search], search_type=SearchType.METRIC)
         self.check_results([span_recent_search], search_type=SearchType.SPAN)
+        self.check_results([error_recent_search], search_type=SearchType.ERROR)
+        self.check_results([transaction_recent_search], search_type=SearchType.TRANSACTION)
 
     def test_param_validation(self):
         self.login_as(user=self.user)

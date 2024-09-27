@@ -6,7 +6,6 @@ import {
   useEffect,
   useState,
 } from 'react';
-import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import omit from 'lodash/omit';
@@ -25,6 +24,7 @@ import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {GroupStatus, IssueCategory, IssueType} from 'sentry/types/group';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
@@ -58,10 +58,10 @@ import {useUser} from 'sentry/utils/useUser';
 import GroupHeader from 'sentry/views/issueDetails//header';
 import {ERROR_TYPES} from 'sentry/views/issueDetails/constants';
 import SampleEventAlert from 'sentry/views/issueDetails/sampleEventAlert';
-import StreamlinedGroupHeader from 'sentry/views/issueDetails/streamlinedHeader';
+import StreamlinedGroupHeader from 'sentry/views/issueDetails/streamline/header';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
+import {makeFetchGroupQueryKey, useGroup} from 'sentry/views/issueDetails/useGroup';
 import {
-  getGroupDetailsQueryData,
   getGroupEventDetailsQueryData,
   getGroupReprocessingStatus,
   markEventSeen,
@@ -260,7 +260,7 @@ function useEventApiQuery({
   const latestOrRecommendedEvent = useApiQuery<Event>(queryKey, {
     // Latest/recommended event will change over time, so only cache for 30 seconds
     staleTime: 30000,
-    cacheTime: 30000,
+    gcTime: 30000,
     enabled: isOnDetailsTab && isLatestOrRecommendedEvent,
     retry: false,
   });
@@ -283,23 +283,6 @@ function useEventApiQuery({
   }, [latestOrRecommendedEvent.isError]);
 
   return isLatestOrRecommendedEvent ? latestOrRecommendedEvent : otherEventQuery;
-}
-
-type FetchGroupQueryParameters = {
-  environments: string[];
-  groupId: string;
-  organizationSlug: string;
-};
-
-function makeFetchGroupQueryKey({
-  groupId,
-  organizationSlug,
-  environments,
-}: FetchGroupQueryParameters): ApiQueryKey {
-  return [
-    `/organizations/${organizationSlug}/issues/${groupId}/`,
-    {query: getGroupDetailsQueryData({environments})},
-  ];
 }
 
 /**
@@ -351,7 +334,7 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
 
   const {
     data: event,
-    isLoading: loadingEvent,
+    isPending: loadingEvent,
     isError,
     refetch: refetchEvent,
   } = useEventApiQuery({
@@ -362,18 +345,11 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
 
   const {
     data: groupData,
-    isLoading: loadingGroup,
+    isPending: loadingGroup,
     isError: isGroupError,
     error: groupError,
     refetch: refetchGroupCall,
-  } = useApiQuery<Group>(
-    makeFetchGroupQueryKey({organizationSlug: organization.slug, groupId, environments}),
-    {
-      staleTime: 30000,
-      cacheTime: 30000,
-      retry: false,
-    }
-  );
+  } = useGroup({groupId});
 
   /**
    * Allows the GroupEventHeader to display the previous event while the new event is loading.
@@ -547,7 +523,6 @@ function useTrackView({
   tab: Tab;
   project?: Project;
 }) {
-  const organization = useOrganization();
   const location = useLocation();
   const {alert_date, alert_rule_id, alert_type, ref_fallback, stream_index, query} =
     location.query;
@@ -569,10 +544,7 @@ function useTrackView({
     alert_type: typeof alert_type === 'string' ? alert_type : undefined,
     ref_fallback,
     group_event_type: groupEventType,
-    has_hierarchical_grouping:
-      !!organization.features?.includes('grouping-stacktrace-ui') &&
-      !!(event?.metadata?.current_tree_label || event?.metadata?.finest_tree_label),
-    new_issue_experience: user?.options?.issueDetailsNewExperienceQ42023 ?? false,
+    prefers_streamlined_ui: user?.options?.prefersIssueDetailsStreamlinedUI ?? false,
   });
   // Set default values for properties that may be updated in subcomponents.
   // Must be separate from the above values, otherwise the actual values filled in
@@ -702,28 +674,29 @@ function GroupDetailsContent({
     baseUrl,
   };
 
-  return (
+  return hasStreamlinedUI ? (
+    <div>
+      <StreamlinedGroupHeader
+        group={group}
+        project={project}
+        groupReprocessingStatus={groupReprocessingStatus}
+        baseUrl={baseUrl}
+      />
+      {isValidElement(children) ? cloneElement(children, childProps) : children}
+    </div>
+  ) : (
     <Tabs
       value={currentTab}
       onChange={tab => trackTabChanged({tab, group, project, event, organization})}
     >
-      {hasStreamlinedUI ? (
-        <StreamlinedGroupHeader
-          group={group}
-          project={project}
-          groupReprocessingStatus={groupReprocessingStatus}
-          baseUrl={baseUrl}
-        />
-      ) : (
-        <GroupHeader
-          organization={organization}
-          groupReprocessingStatus={groupReprocessingStatus}
-          event={event ?? undefined}
-          group={group}
-          baseUrl={baseUrl}
-          project={project as Project}
-        />
-      )}
+      <GroupHeader
+        organization={organization}
+        groupReprocessingStatus={groupReprocessingStatus}
+        event={event ?? undefined}
+        group={group}
+        baseUrl={baseUrl}
+        project={project as Project}
+      />
       <GroupTabPanels>
         <TabPanels.Item key={currentTab}>
           {isValidElement(children) ? cloneElement(children, childProps) : children}
@@ -841,7 +814,7 @@ function GroupDetails(props: GroupDetailsProps) {
       return defaultTitle;
     }
 
-    const {title} = getTitle(group, organization?.features);
+    const {title} = getTitle(group);
     const message = getMessage(group);
 
     const eventDetails = `${organization.slug} — ${group.project.slug}`;

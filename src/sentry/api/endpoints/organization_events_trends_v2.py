@@ -49,7 +49,7 @@ _query_thread_pool = ThreadPoolExecutor()
 @region_silo_endpoint
 class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     enforce_rate_limit = True
     rate_limits = {
@@ -90,6 +90,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
         selected_columns = ["project_id", "transaction"]
 
         query = request.GET.get("query")
+        query_source = self.get_request_source(request)
 
         def get_top_events(user_query, snuba_params, event_limit, referrer):
             top_event_columns = selected_columns[:]
@@ -101,7 +102,6 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             return metrics_query(
                 top_event_columns,
                 query=user_query,
-                params={},
                 snuba_params=snuba_params,
                 orderby=["-count()"],
                 limit=event_limit,
@@ -109,6 +109,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                 auto_aggregations=True,
                 use_aggregate_conditions=True,
                 granularity=DAY_GRANULARITY_IN_SECONDS,
+                query_source=query_source,
             )
 
         def generate_top_transaction_query(events):
@@ -147,13 +148,13 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             result = metrics_performance.bulk_timeseries_query(
                 timeseries_columns,
                 queries,
-                params={},
                 snuba_params=pruned_snuba_params,
                 rollup=rollup,
                 zerofill_results=zerofill_results,
                 referrer=Referrer.API_TRENDS_GET_EVENT_STATS_V2_TIMESERIES.value,
                 groupby=[Column("project_id"), Column("transaction")],
                 apply_formatting=False,
+                query_source=query_source,
             )
 
             # Parse results

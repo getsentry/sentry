@@ -51,6 +51,7 @@ def assert_matching_organization_mapping(
             org.flags.disable_member_project_creation
         )
         assert org_mapping.prevent_superuser_access == bool(org.flags.prevent_superuser_access)
+        assert org_mapping.disable_member_invite == bool(org.flags.disable_member_invite)
 
 
 @control_silo_test(regions=create_test_regions("us"), include_monolith_run=True)

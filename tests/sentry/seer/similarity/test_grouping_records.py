@@ -15,6 +15,7 @@ from sentry.seer.similarity.grouping_records import (
     delete_grouping_records_by_hash,
     post_bulk_grouping_records,
 )
+from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json
 
 DUMMY_POOL = ConnectionPool("dummy")
@@ -25,14 +26,12 @@ CREATE_GROUPING_RECORDS_REQUEST_PARAMS: CreateGroupingRecordsRequest = {
             "group_id": 1,
             "hash": "hash-1",
             "project_id": 1,
-            "message": "message",
             "exception_type": "Error",
         },
         {
             "group_id": 2,
             "hash": "hash-2",
             "project_id": 1,
-            "message": "message 2",
             "exception_type": "Error",
         },
     ],
@@ -157,6 +156,7 @@ def test_post_bulk_grouping_records_use_reranking(
     )
 
 
+@django_db_all
 @mock.patch("sentry.seer.similarity.grouping_records.logger")
 @mock.patch("sentry.seer.similarity.grouping_records.seer_grouping_connection_pool.urlopen")
 def test_delete_grouping_records_by_hash_success(
@@ -200,6 +200,7 @@ def test_delete_grouping_records_by_hash_timeout(
     )
 
 
+@django_db_all
 @mock.patch("sentry.seer.similarity.grouping_records.logger")
 @mock.patch("sentry.seer.similarity.grouping_records.seer_grouping_connection_pool.urlopen")
 def test_delete_grouping_records_by_hash_failure(

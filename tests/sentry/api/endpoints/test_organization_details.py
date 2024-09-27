@@ -20,8 +20,10 @@ from sentry import options as sentry_options
 from sentry.api.endpoints.organization_details import ERR_NO_2FA, ERR_SSO_ENABLED
 from sentry.api.serializers.models.organization import TrustedRelaySerializer
 from sentry.api.utils import generate_region_url
+from sentry.auth.authenticators.recovery_code import RecoveryCodeInterface
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.constants import RESERVED_ORGANIZATION_SLUGS, ObjectStatus
+from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.authprovider import AuthProvider
 from sentry.models.avatars.organization_avatar import OrganizationAvatar
@@ -31,7 +33,6 @@ from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationslugreservation import OrganizationSlugReservation
-from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.signals import project_created
 from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import APITestCase, TwoFactorAPITestCase
@@ -406,10 +407,9 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
     @responses.activate
     @patch(
-        "sentry.integrations.github.GitHubApiClient.get_repositories",
+        "sentry.integrations.github.integration.GitHubApiClient.get_repositories",
         return_value=[{"name": "cool-repo", "full_name": "testgit/cool-repo"}],
     )
-    @with_feature("organizations:metrics-extrapolation")
     @with_feature("organizations:codecov-integration")
     def test_various_options(self, mock_get_repositories):
         initial = self.organization.get_audit_log_data()
@@ -429,6 +429,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             "isEarlyAdopter": True,
             "codecovAccess": True,
             "allowSuperuserAccess": False,
+            "allowMemberInvite": False,
             "aiSuggestedSolution": False,
             "githubOpenPRBot": False,
             "githubNudgeInvite": False,
@@ -453,7 +454,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             "metricAlertsThreadFlag": False,
             "metricsActivatePercentiles": False,
             "metricsActivateLastForGauges": True,
-            "extrapolateMetrics": True,
             "uptimeAutodetection": False,
         }
 
@@ -472,6 +472,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert org.flags.early_adopter
         assert org.flags.codecov_access
         assert org.flags.prevent_superuser_access
+        assert org.flags.disable_member_invite
         assert not org.flags.allow_joinleave
         assert org.flags.disable_shared_issues
         assert org.flags.enhanced_privacy
@@ -491,7 +492,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert options.get("sentry:events_member_admin") is False
         assert options.get("sentry:metrics_activate_percentiles") is False
         assert options.get("sentry:metrics_activate_last_for_gauges") is True
-        assert options.get("sentry:extrapolate_metrics") is True
         assert options.get("sentry:uptime_autodetection") is False
 
         # log created
@@ -506,6 +506,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert (
             "to {}".format(not data["allowSuperuserAccess"]) in log.data["prevent_superuser_access"]
         )
+        assert "to {}".format(not data["allowMemberInvite"]) in log.data["disable_member_invite"]
         assert "to {}".format(data["enhancedPrivacy"]) in log.data["enhanced_privacy"]
         assert "to {}".format(not data["allowSharedIssues"]) in log.data["disable_shared_issues"]
         assert "to {}".format(data["require2FA"]) in log.data["require_2fa"]
@@ -536,12 +537,11 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             "to {}".format(data["metricsActivateLastForGauges"])
             in log.data["metricsActivateLastForGauges"]
         )
-        assert "to {}".format(data["extrapolateMetrics"]) in log.data["extrapolateMetrics"]
         assert "to {}".format(data["uptimeAutodetection"]) in log.data["uptimeAutodetection"]
 
     @responses.activate
     @patch(
-        "sentry.integrations.github.GitHubApiClient.get_repositories",
+        "sentry.integrations.github.client.GitHubApiClient.get_repositories",
         return_value=[{"name": "abc", "full_name": "testgit/abc"}],
     )
     @with_feature("organizations:codecov-integration")
@@ -940,22 +940,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         self.create_organization(slug="taken")
         self.get_error_response(self.organization.slug, slug="taken", status_code=400)
 
-    @with_feature("organizations:metrics-extrapolation")
-    def test_extrapolate_metrics_with_permission(self):
-        # test when the value is set to False
-        resp = self.get_success_response(self.organization.slug, **{"extrapolateMetrics": False})
-        assert self.organization.get_option("sentry:extrapolate_metrics") is False
-        assert b"extrapolateMetrics" in resp.content
-
-        # test when the value is set to True
-        resp = self.get_success_response(self.organization.slug, **{"extrapolateMetrics": True})
-        assert self.organization.get_option("sentry:extrapolate_metrics") is True
-        assert b"extrapolateMetrics" in resp.content
-
-    def test_extrapolate_metrics_without_permission(self):
-        resp = self.get_response(self.organization.slug, **{"extrapolateMetrics": False})
-        assert resp.status_code == 400
-
 
 class OrganizationDeleteTest(OrganizationDetailsTestBase):
     method = "delete"
@@ -1131,6 +1115,12 @@ class OrganizationSettings2FATest(TwoFactorAPITestCase):
 
     def test_cannot_enforce_2fa_without_2fa_enabled(self):
         with assume_test_silo_mode_of(Authenticator):
+            assert not self.owner.has_2fa()
+        self.assert_cannot_enable_org_2fa(self.organization, self.owner, 400, ERR_NO_2FA)
+
+        # having recovery codes only (backup method) should not allow to enforce org 2FA
+        with assume_test_silo_mode_of(Authenticator):
+            RecoveryCodeInterface().enroll(self.owner)
             assert not self.owner.has_2fa()
         self.assert_cannot_enable_org_2fa(self.organization, self.owner, 400, ERR_NO_2FA)
 

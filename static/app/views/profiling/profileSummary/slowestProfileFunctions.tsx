@@ -122,7 +122,7 @@ export function SlowestProfileFunctions(props: SlowestProfileFunctionsProps) {
         />
       </SlowestFunctionsTitleContainer>
       <SlowestFunctionsList>
-        {functionsQuery.isLoading ? (
+        {functionsQuery.isPending ? (
           <SlowestFunctionsQueryState>
             <LoadingIndicator size={36} />
           </SlowestFunctionsQueryState>

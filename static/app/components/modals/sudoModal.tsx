@@ -19,6 +19,7 @@ import type {Authenticator} from 'sentry/types/auth';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import useRouter from 'sentry/utils/useRouter';
+import {useUser} from 'sentry/utils/useUser';
 import {OrganizationLoaderContext} from 'sentry/views/organizationContext';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
@@ -61,6 +62,7 @@ function SudoModal({
   Body,
   closeButton,
 }: Props) {
+  const user = useUser();
   const router = useRouter();
   const api = useApi();
   const [state, setState] = useState<State>({
@@ -222,22 +224,12 @@ function SudoModal({
     return authLoginPath;
   };
 
-  const handleLogout = async () => {
-    try {
-      await logout(api);
-    } catch {
-      // ignore errors
-    }
-    window.location.assign(getAuthLoginPath());
-  };
-
   const renderBodyContent = () => {
-    const user = ConfigStore.get('user');
     const isSelfHosted = ConfigStore.get('isSelfHosted');
     const validateSUForm = ConfigStore.get('validateSUForm');
 
     if (errorType === ErrorCodes.INVALID_SSO_SESSION) {
-      handleLogout();
+      logout(api, getAuthLoginPath());
       return null;
     }
 

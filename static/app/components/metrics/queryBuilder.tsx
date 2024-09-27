@@ -7,7 +7,6 @@ import uniqBy from 'lodash/uniqBy';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import type {SelectOption} from 'sentry/components/compactSelect';
 import {CompactSelect} from 'sentry/components/compactSelect';
-import {MetricQuerySelect} from 'sentry/components/metrics/metricQuerySelect';
 import {
   MetricSearchBar,
   type MetricSearchBarProps,
@@ -19,19 +18,13 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {MRI} from 'sentry/types/metrics';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {
-  getDefaultAggregation,
-  isAllowedAggregation,
-  isVirtualMetric,
-} from 'sentry/utils/metrics';
-import {BUILT_IN_CONDITION_ID} from 'sentry/utils/metrics/extractionRules';
+import {getDefaultAggregation, isAllowedAggregation} from 'sentry/utils/metrics';
 import {hasMetricsNewInputs} from 'sentry/utils/metrics/features';
 import {parseMRI} from 'sentry/utils/metrics/mri';
 import type {MetricsQuery} from 'sentry/utils/metrics/types';
 import {useIncrementQueryMetric} from 'sentry/utils/metrics/useIncrementQueryMetric';
 import {useVirtualizedMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
 import {useMetricsTags} from 'sentry/utils/metrics/useMetricsTags';
-import {useVirtualMetricsContext} from 'sentry/utils/metrics/virtualMetricsContext';
 import theme from 'sentry/utils/theme';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -59,8 +52,6 @@ export const QueryBuilder = memo(function QueryBuilder({
 }: QueryBuilderProps) {
   const organization = useOrganization();
   const pageFilters = usePageFilters();
-  const {getAggregations, getConditions, resolveVirtualMRI, getTags} =
-    useVirtualMetricsContext();
 
   const {
     data: meta,
@@ -69,20 +60,12 @@ export const QueryBuilder = memo(function QueryBuilder({
     refetch: refetchMeta,
   } = useVirtualizedMetricsMeta(pageFilters.selection);
 
-  const resolvedMRI = useMemo(() => {
-    if (!isVirtualMetric(metricsQuery) || !metricsQuery.condition) {
-      return metricsQuery.mri;
+  const {data: tagsData = [], isPending: tagsIsLoading} = useMetricsTags(
+    metricsQuery.mri,
+    {
+      projects: projectIds,
     }
-    return resolveVirtualMRI(
-      metricsQuery.mri,
-      metricsQuery.condition,
-      metricsQuery.aggregation
-    ).mri;
-  }, [metricsQuery, resolveVirtualMRI]);
-
-  const {data: tagsData = [], isLoading: tagsIsLoading} = useMetricsTags(resolvedMRI, {
-    projects: projectIds,
-  });
+  );
 
   const groupByOptions = useMemo(() => {
     const options = uniqBy(tagsData, 'key').map(tag => ({
@@ -94,42 +77,16 @@ export const QueryBuilder = memo(function QueryBuilder({
       isQueryable: true, // allow group by this tag
     }));
 
-    if (
-      isVirtualMetric(metricsQuery) &&
-      metricsQuery.condition &&
-      metricsQuery.condition !== BUILT_IN_CONDITION_ID
-    ) {
-      const tagsFromExtractionRules = getTags(metricsQuery.mri, metricsQuery.condition);
-      for (const tag of tagsFromExtractionRules) {
-        if (!options.find(o => o.key === tag.key)) {
-          // if the tag has not been seen in the selected time range
-          // but exists in the extraction rule, it should be disabled in the group by dropdown
-          options.push({
-            key: tag.key,
-            trailingItems: metricsQuery.query?.includes(`${tag.key}:`) ? (
-              <TagWarningIcon />
-            ) : undefined,
-            isQueryable: false, // do not allow group by this tag
-          });
-        }
-      }
-    }
     return options;
-  }, [tagsData, metricsQuery, getTags]);
+  }, [tagsData, metricsQuery]);
 
   const selectedMeta = useMemo(() => {
     return meta.find(metric => metric.mri === metricsQuery.mri);
   }, [meta, metricsQuery.mri]);
 
   const metricAggregates = useMemo(() => {
-    if (!isVirtualMetric(metricsQuery) || !metricsQuery.condition) {
-      return selectedMeta?.operations.filter(isAllowedAggregation) ?? [];
-    }
-
-    return getAggregations(metricsQuery.mri, metricsQuery.condition).filter(
-      isAllowedAggregation
-    );
-  }, [getAggregations, metricsQuery, selectedMeta?.operations]);
+    return selectedMeta?.operations.filter(isAllowedAggregation) ?? [];
+  }, [selectedMeta?.operations]);
 
   const incrementQueryMetric = useIncrementQueryMetric({
     ...metricsQuery,
@@ -155,27 +112,13 @@ export const QueryBuilder = memo(function QueryBuilder({
       }
 
       // If it is a virtual MRI we need to check for the new conditions and aggregations
-      if (isVirtualMetric({mri: mriValue})) {
-        const spanConditions = getConditions(mriValue);
-        queryChanges.condition = spanConditions[0]?.id;
-        const aggegates = getAggregations(mriValue, queryChanges.condition);
-        queryChanges.aggregation = aggegates[0];
-      } else {
-        queryChanges.condition = undefined;
-      }
+      queryChanges.condition = undefined;
 
       trackAnalytics('ddm.widget.metric', {organization});
       incrementQueryMetric('ddm.widget.metric', queryChanges);
       onChange(queryChanges);
     },
-    [
-      getAggregations,
-      getConditions,
-      incrementQueryMetric,
-      metricsQuery.mri,
-      onChange,
-      organization,
-    ]
+    [incrementQueryMetric, metricsQuery.mri, onChange, organization]
   );
 
   const handleOpChange = useCallback(
@@ -212,26 +155,6 @@ export const QueryBuilder = memo(function QueryBuilder({
       });
     },
     [incrementQueryMetric, onChange, organization]
-  );
-
-  const handleConditionChange = useCallback(
-    (conditionId: number) => {
-      trackAnalytics('ddm.widget.condition', {organization});
-      const newAggregates = getAggregations(metricsQuery.mri, conditionId);
-
-      const changes: Partial<MetricsQuery> = {
-        condition: conditionId,
-        // Changing the query may change the available tags
-        groupBy: undefined,
-      };
-
-      if (!newAggregates.includes(metricsQuery.aggregation)) {
-        changes.aggregation = newAggregates[0];
-      }
-
-      onChange(changes);
-    },
-    [getAggregations, metricsQuery.aggregation, metricsQuery.mri, onChange, organization]
   );
 
   const handleMetricTagClick = useCallback(
@@ -350,49 +273,22 @@ export const QueryBuilder = memo(function QueryBuilder({
             position="bottom"
             disabled={index !== 0}
           >
-            {selectedMeta && isVirtualMetric(selectedMeta) ? (
-              <QueryFieldGroup>
-                <QueryFieldGroup.Label css={fixedWidthLabelCss}>
-                  {t('Where')}
-                </QueryFieldGroup.Label>
-                <MetricQuerySelect
-                  mri={metricsQuery.mri}
-                  conditionId={metricsQuery.condition}
-                  onChange={handleConditionChange}
-                />
-                <QueryFieldGroup.Label css={autoWidthLabelCss}>
-                  {t('And')}
-                </QueryFieldGroup.Label>
-                <SearchBar
-                  hasMetricsNewInputs
-                  mri={resolvedMRI}
-                  disabled={!metricsQuery.mri}
-                  onChange={handleQueryChange}
-                  query={metricsQuery.query}
-                  projectIds={projectIdStrings}
-                  blockedTags={
-                    selectedMeta?.blockingStatus?.flatMap(s => s.blockedTags) ?? []
-                  }
-                />
-              </QueryFieldGroup>
-            ) : (
-              <QueryFieldGroup>
-                <QueryFieldGroup.Label css={fixedWidthLabelCss}>
-                  {t('Where')}
-                </QueryFieldGroup.Label>
-                <SearchBar
-                  hasMetricsNewInputs
-                  mri={resolvedMRI}
-                  disabled={!metricsQuery.mri}
-                  onChange={handleQueryChange}
-                  query={metricsQuery.query}
-                  projectIds={projectIdStrings}
-                  blockedTags={
-                    selectedMeta?.blockingStatus?.flatMap(s => s.blockedTags) ?? []
-                  }
-                />
-              </QueryFieldGroup>
-            )}
+            <QueryFieldGroup>
+              <QueryFieldGroup.Label css={fixedWidthLabelCss}>
+                {t('Where')}
+              </QueryFieldGroup.Label>
+              <SearchBar
+                hasMetricsNewInputs
+                mri={metricsQuery.mri}
+                disabled={!metricsQuery.mri}
+                onChange={handleQueryChange}
+                query={metricsQuery.query}
+                projectIds={projectIdStrings}
+                blockedTags={
+                  selectedMeta?.blockingStatus?.flatMap(s => s.blockedTags) ?? []
+                }
+              />
+            </QueryFieldGroup>
           </FullWidthGuideAnchor>
         </FilterBy>
         {alias}
@@ -415,13 +311,6 @@ export const QueryBuilder = memo(function QueryBuilder({
               value={metricsQuery.mri}
             />
           </GuideAnchor>
-          {selectedMeta && isVirtualMetric(selectedMeta) ? (
-            <MetricQuerySelect
-              mri={metricsQuery.mri}
-              conditionId={metricsQuery.condition}
-              onChange={handleConditionChange}
-            />
-          ) : null}
         </FlexBlock>
         <FlexBlock>
           <GuideAnchor
@@ -474,7 +363,7 @@ export const QueryBuilder = memo(function QueryBuilder({
         </FlexBlock>
       </FlexBlock>
       <SearchBar
-        mri={resolvedMRI}
+        mri={metricsQuery.mri}
         disabled={!metricsQuery.mri}
         onChange={handleQueryChange}
         query={metricsQuery.query}
@@ -586,12 +475,6 @@ const FilterBy = styled('div')<{hasSymbols: boolean; isModal?: boolean}>`
         grid-column: ${p.hasSymbols ? '6/6' : '5/5'};
       }
     `}
-`;
-
-const autoWidthLabelCss = css`
-  width: auto;
-  min-width: auto;
-  white-space: nowrap;
 `;
 
 const fixedWidthLabelCss = css`

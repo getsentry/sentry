@@ -26,7 +26,7 @@ from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.http import absolute_uri
 
 from .client import BitbucketApiClient
-from .issues import BitbucketIssueBasicMixin
+from .issues import BitbucketIssuesSpec
 from .repository import BitbucketRepositoryProvider
 
 DESCRIPTION = """
@@ -82,7 +82,7 @@ metadata = IntegrationMetadata(
 scopes = ("issue:write", "pullrequest", "webhook", "repository")
 
 
-class BitbucketIntegration(RepositoryIntegration, BitbucketIssueBasicMixin):
+class BitbucketIntegration(RepositoryIntegration, BitbucketIssuesSpec):
     @property
     def integration_name(self) -> str:
         return "bitbucket"
@@ -90,12 +90,12 @@ class BitbucketIntegration(RepositoryIntegration, BitbucketIssueBasicMixin):
     def get_client(self):
         return BitbucketApiClient(integration=self.model)
 
-    @property
-    def username(self):
-        return self.model.name
+    # IntegrationInstallation methods
 
     def error_message_from_json(self, data):
         return data.get("error", {}).get("message", "unknown error")
+
+    # RepositoryIntegration methods
 
     def get_repositories(self, query=None):
         username = self.model.metadata.get("uuid", self.username)
@@ -155,6 +155,12 @@ class BitbucketIntegration(RepositoryIntegration, BitbucketIssueBasicMixin):
         url = url.replace(f"{repo.url}/src/", "")
         _, _, source_path = url.partition("/")
         return source_path
+
+    # Bitbucket only methods
+
+    @property
+    def username(self):
+        return self.model.name
 
 
 class BitbucketIntegrationProvider(IntegrationProvider):

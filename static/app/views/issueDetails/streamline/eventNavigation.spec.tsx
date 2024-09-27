@@ -5,7 +5,10 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {browserHistory} from 'sentry/utils/browserHistory';
 import * as useMedia from 'sentry/utils/useMedia';
+import {SectionKey, useEventDetails} from 'sentry/views/issueDetails/streamline/context';
 import {EventNavigation} from 'sentry/views/issueDetails/streamline/eventNavigation';
+
+jest.mock('sentry/views/issueDetails/streamline/context');
 
 describe('EventNavigation', () => {
   const testEvent = EventFixture({
@@ -21,13 +24,22 @@ describe('EventNavigation', () => {
     previousEventID: 'prev-event-id',
     nextEventID: 'next-event-id',
   });
-
   const defaultProps = {
     event: testEvent,
     group: GroupFixture({id: 'group-id'}),
+    onViewAllEvents: jest.fn(),
   };
 
   beforeEach(() => {
+    jest.resetAllMocks();
+    jest.mocked(useEventDetails).mockReturnValue({
+      sectionData: {
+        highlights: {key: SectionKey.HIGHLIGHTS},
+        tags: {key: SectionKey.TAGS},
+        replay: {key: SectionKey.REPLAY},
+      },
+      dispatch: jest.fn(),
+    });
     Object.assign(navigator, {
       clipboard: {writeText: jest.fn().mockResolvedValue('')},
     });
@@ -48,7 +60,7 @@ describe('EventNavigation', () => {
 
       render(<EventNavigation {...defaultProps} />);
 
-      await userEvent.click(screen.getByRole('tab', {name: 'First Event'}));
+      await userEvent.click(screen.getByRole('tab', {name: 'First'}));
 
       expect(browserHistory.push).toHaveBeenCalledWith({
         pathname: '/organizations/org-slug/issues/group-id/events/oldest/',
@@ -61,7 +73,7 @@ describe('EventNavigation', () => {
 
       render(<EventNavigation {...defaultProps} />);
 
-      await userEvent.click(screen.getByRole('tab', {name: 'Last Event'}));
+      await userEvent.click(screen.getByRole('tab', {name: 'Last'}));
 
       expect(browserHistory.push).toHaveBeenCalledWith({
         pathname: '/organizations/org-slug/issues/group-id/events/latest/',
@@ -78,13 +90,22 @@ describe('EventNavigation', () => {
         },
       });
 
-      await userEvent.click(screen.getByRole('tab', {name: 'Recommended Event'}));
+      await userEvent.click(screen.getByRole('tab', {name: 'Recommended'}));
 
       expect(browserHistory.push).toHaveBeenCalledWith({
         pathname: '/organizations/org-slug/issues/group-id/events/recommended/',
         query: {referrer: 'recommended-event'},
       });
     });
+  });
+
+  it('can runs callback on view all events click', async () => {
+    render(<EventNavigation {...defaultProps} />);
+    expect(defaultProps.onViewAllEvents).not.toHaveBeenCalled();
+    const viewAllButton = screen.getByRole('button', {name: 'View All Events'});
+    expect(viewAllButton).toBeInTheDocument();
+    await userEvent.click(viewAllButton);
+    expect(defaultProps.onViewAllEvents).toHaveBeenCalled();
   });
 
   it('can navigate next/previous events', () => {
@@ -100,12 +121,24 @@ describe('EventNavigation', () => {
     );
   });
 
-  it('shows jump to sections', async () => {
+  it('does not show jump to sections by default', () => {
+    jest.mocked(useEventDetails).mockReturnValue({
+      sectionData: {},
+      dispatch: jest.fn(),
+    });
     render(<EventNavigation {...defaultProps} />);
+    expect(screen.queryByText('Jump To:')).not.toBeInTheDocument();
+    expect(screen.queryByText('Replay')).not.toBeInTheDocument();
+    expect(screen.queryByText('Tags')).not.toBeInTheDocument();
+    expect(screen.queryByText('Event Highlights')).not.toBeInTheDocument();
+  });
 
-    expect(await screen.findByText('Replay')).toBeInTheDocument();
-    expect(await screen.findByText('Tags')).toBeInTheDocument();
-    expect(await screen.findByText('Event Highlights')).toBeInTheDocument();
+  it('does show jump to sections when the sections render', () => {
+    render(<EventNavigation {...defaultProps} />);
+    expect(screen.getByText('Jump to:')).toBeInTheDocument();
+    expect(screen.getByText('Event Highlights')).toBeInTheDocument();
+    expect(screen.getByText('Replay')).toBeInTheDocument();
+    expect(screen.getByText('Tags')).toBeInTheDocument();
   });
 
   it('can copy event ID', async () => {

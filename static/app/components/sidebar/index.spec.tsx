@@ -7,6 +7,7 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {logout} from 'sentry/actionCreators/account';
 import {OnboardingContextProvider} from 'sentry/components/onboarding/onboardingContext';
 import SidebarContainer from 'sentry/components/sidebar';
 import ConfigStore from 'sentry/stores/configStore';
@@ -16,6 +17,7 @@ import localStorage from 'sentry/utils/localStorage';
 import {useLocation} from 'sentry/utils/useLocation';
 import * as incidentsHook from 'sentry/utils/useServiceIncidents';
 
+jest.mock('sentry/actionCreators/account');
 jest.mock('sentry/utils/useServiceIncidents');
 jest.mock('sentry/utils/useLocation');
 
@@ -107,14 +109,21 @@ describe('Sidebar', function () {
     await userEvent.click(screen.getByTestId('sidebar-dropdown'));
   });
 
-  it('has can logout', async function () {
-    const mock = MockApiClient.addMockResponse({
-      url: '/auth/',
-      method: 'DELETE',
-      status: 204,
+  it('does not render collapse with navigation-sidebar-v2 flag', async function () {
+    renderSidebar({
+      organization: {...organization, features: ['navigation-sidebar-v2']},
     });
-    jest.spyOn(window.location, 'assign').mockImplementation(() => {});
 
+    // await for the page to be rendered
+    expect(await screen.findByText('Issues')).toBeInTheDocument();
+    // Check that the user name is no longer visible
+    expect(screen.queryByText(user.name)).not.toBeInTheDocument();
+    // Check that the organization name is no longer visible
+    expect(screen.queryByText(organization.name)).not.toBeInTheDocument();
+    expect(screen.queryByTestId('sidebar-collapse')).not.toBeInTheDocument();
+  });
+
+  it('has can logout', async function () {
     renderSidebar({
       organization: OrganizationFixture({access: ['member:read']}),
     });
@@ -122,9 +131,7 @@ describe('Sidebar', function () {
     await userEvent.click(await screen.findByTestId('sidebar-dropdown'));
     await userEvent.click(screen.getByTestId('sidebar-signout'));
 
-    await waitFor(() => expect(mock).toHaveBeenCalled());
-
-    expect(window.location.assign).toHaveBeenCalledWith('/auth/login/');
+    await waitFor(() => expect(logout).toHaveBeenCalled());
   });
 
   it('can toggle help menu', async function () {

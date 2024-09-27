@@ -19,7 +19,8 @@ interface StateLayerProps extends React.HTMLAttributes<HTMLSpanElement> {
 
 const InteractionStateLayer = styled(
   (props: StateLayerProps) => {
-    const {children, as: Element = 'span', ...rest} = props;
+    // Prevent type checking of `rest` as it has hundreds of properties and is slow
+    const {children, as: Element = 'span', ...rest} = props as any;
 
     // Here, using `as` directly doesn't work because it loses the `role` prop. Instead, manually propagating the props does the right thing.
     return (

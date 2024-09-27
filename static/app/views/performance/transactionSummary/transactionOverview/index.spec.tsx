@@ -1,10 +1,8 @@
-import type {InjectedRouter} from 'react-router';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {TeamFixture} from 'sentry-fixture/team';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {
   render,
   renderGlobalModal,
@@ -16,6 +14,7 @@ import {
 import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
+import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Project} from 'sentry/types/project';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -24,7 +23,6 @@ import {
   MEPSetting,
   MEPState,
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {QueryClientProvider} from 'sentry/utils/queryClient';
 import TransactionSummary from 'sentry/views/performance/transactionSummary/transactionOverview';
 
 const teams = [
@@ -53,6 +51,7 @@ function initializeData({
     projects: projects ? projects : [project],
     router: {
       location: {
+        pathname: '/',
         query: {
           transaction: '/performance',
           project: project.id,
@@ -79,14 +78,12 @@ function TestComponent({
   }
 
   return (
-    <QueryClientProvider client={makeTestQueryClient()}>
-      <MetricsCardinalityProvider
-        organization={props.organization}
-        location={props.location}
-      >
-        <TransactionSummary {...props} />
-      </MetricsCardinalityProvider>
-    </QueryClientProvider>
+    <MetricsCardinalityProvider
+      organization={props.organization}
+      location={props.location}
+    >
+      <TransactionSummary {...props} />
+    </MetricsCardinalityProvider>
   );
 }
 
@@ -763,7 +760,7 @@ describe('Performance > TransactionSummary', function () {
       // Check the navigation.
       expect(browserHistory.push).toHaveBeenCalledTimes(1);
       expect(browserHistory.push).toHaveBeenCalledWith({
-        pathname: undefined,
+        pathname: '/',
         query: {
           transaction: '/performance',
           project: '2',
@@ -835,7 +832,7 @@ describe('Performance > TransactionSummary', function () {
 
       // Check the navigation.
       expect(browserHistory.push).toHaveBeenCalledWith({
-        pathname: undefined,
+        pathname: '/',
         query: {
           transaction: '/performance',
           project: '2',
@@ -869,7 +866,7 @@ describe('Performance > TransactionSummary', function () {
 
       // Check the navigation.
       expect(browserHistory.push).toHaveBeenCalledWith({
-        pathname: undefined,
+        pathname: '/',
         query: {
           transaction: '/performance',
           project: '2',
@@ -1007,11 +1004,18 @@ describe('Performance > TransactionSummary', function () {
 
       await screen.findByText('Tag Summary');
 
+      // Expand environment tag
+      await userEvent.click(await screen.findByText('environment'));
+      // Select dev
       await userEvent.click(
         await screen.findByLabelText(
           'environment, dev, 100% of all events. View events with this tag value.'
         )
       );
+
+      // Expand foo tag
+      await userEvent.click(await screen.findByText('foo'));
+      // Select bar
       await userEvent.click(
         await screen.findByLabelText(
           'foo, bar, 100% of all events. View events with this tag value.'
@@ -1021,6 +1025,7 @@ describe('Performance > TransactionSummary', function () {
       expect(router.push).toHaveBeenCalledTimes(2);
 
       expect(router.push).toHaveBeenNthCalledWith(1, {
+        pathname: '/',
         query: {
           project: '2',
           query: 'tags[environment]:dev',
@@ -1030,6 +1035,7 @@ describe('Performance > TransactionSummary', function () {
       });
 
       expect(router.push).toHaveBeenNthCalledWith(2, {
+        pathname: '/',
         query: {
           project: '2',
           query: 'foo:bar',

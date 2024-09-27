@@ -18,7 +18,7 @@ from arroyo.types import Topic
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 
 
-def make_counter_payload(use_case, org_id, rand_str):
+def make_counter_payload(use_case, org_id, rand_str, sampling_weight=None):
     return {
         "name": f"c:{use_case}/{use_case}@none",
         "tags": {
@@ -32,11 +32,11 @@ def make_counter_payload(use_case, org_id, rand_str):
         "org_id": org_id,
         "retention_days": 90,
         "project_id": 3,
-        "sampling_weight": random.uniform(1.0, 24),
+        **({"sampling_weight": sampling_weight} if sampling_weight else {}),
     }
 
 
-def make_dist_payload(use_case, org_id, rand_str, value_len, b64_encode):
+def make_dist_payload(use_case, org_id, rand_str, value_len, b64_encode, sampling_weight=None):
     nums = [random.random() for _ in range(value_len)]
     return {
         "name": f"d:{use_case}/duration@second",
@@ -63,11 +63,11 @@ def make_dist_payload(use_case, org_id, rand_str, value_len, b64_encode):
         "org_id": org_id,
         "retention_days": 90,
         "project_id": 3,
-        "sampling_weight": random.uniform(1.0, 24),
+        **({"sampling_weight": sampling_weight} if sampling_weight else {}),
     }
 
 
-def make_set_payload(use_case, org_id, rand_str, value_len, b64_encode):
+def make_set_payload(use_case, org_id, rand_str, value_len, b64_encode, sampling_weight=None):
     INT_WIDTH = 4
     nums = [random.randint(0, 2048) for _ in range(value_len)]
     return {
@@ -97,11 +97,11 @@ def make_set_payload(use_case, org_id, rand_str, value_len, b64_encode):
         "org_id": org_id,
         "retention_days": 90,
         "project_id": 3,
-        "sampling_weight": random.uniform(1.0, 24),
+        **({"sampling_weight": sampling_weight} if sampling_weight else {}),
     }
 
 
-def make_gauge_payload(use_case, org_id, rand_str):
+def make_gauge_payload(use_case, org_id, rand_str, sampling_weight):
     return {
         "name": f"s:{use_case}/error@none",
         "tags": {
@@ -121,26 +121,26 @@ def make_gauge_payload(use_case, org_id, rand_str):
         "org_id": org_id,
         "retention_days": 90,
         "project_id": 3,
-        "sampling_weight": random.uniform(1.0, 24),
+        **({"sampling_weight": sampling_weight} if sampling_weight else {}),
     }
 
 
-make_psql = (
-    lambda rand_str, is_generic: f"""
-    SELECT string,
-       organization_id,
-       {"use_case_id," if is_generic else ""}
-       date_added,
-       last_seen
-    FROM {"sentry_perfstringindexer" if is_generic else "sentry_stringindexer"}
-    WHERE string ~ 'metric_e2e_.*{rand_str}';
-"""
-)
+def make_psql(rand_str, is_generic):
+    return f"""
+        SELECT string,
+        organization_id,
+        {"use_case_id," if is_generic else ""}
+        date_added,
+        last_seen
+        FROM {"sentry_perfstringindexer" if is_generic else "sentry_stringindexer"}
+        WHERE string ~ 'metric_e2e_.*{rand_str}';
+    """
 
 
-make_csql = lambda rand_str, is_generic: "UNION ALL".join(
-    [
-        f"""
+def make_csql(rand_str, is_generic):
+    return "UNION ALL".join(
+        [
+            f"""
     SELECT use_case_id,
         org_id,
         project_id,
@@ -151,22 +151,22 @@ make_csql = lambda rand_str, is_generic: "UNION ALL".join(
     FROM {table_name}
     WHERE arrayExists(v -> match(v, 'metric_e2e_.*{rand_str}'), tags.raw_value)
     """
-        for table_name in (
-            [
-                "generic_metric_counters_raw_local",
-                "generic_metric_distributions_raw_local",
-                "generic_metric_sets_raw_local",
-                "generic_metric_gauges_raw_local",
-            ]
-            if is_generic
-            else [
-                "metrics_counters_v2_local",
-                "metrics_distributions_v2_local",
-                "metrics_sets_v2_local",
-            ]
-        )
-    ]
-)
+            for table_name in (
+                [
+                    "generic_metric_counters_raw_local",
+                    "generic_metric_distributions_raw_local",
+                    "generic_metric_sets_raw_local",
+                    "generic_metric_gauges_raw_local",
+                ]
+                if is_generic
+                else [
+                    "metrics_counters_v2_local",
+                    "metrics_distributions_v2_local",
+                    "metrics_sets_v2_local",
+                ]
+            )
+        ]
+    )
 
 
 def produce_msgs(messages, is_generic, host, dryrun, quiet):
@@ -251,6 +251,13 @@ def produce_msgs(messages, is_generic, host, dryrun, quiet):
     show_default=True,
     help="Encode sets and distribution metrics values in base64",
 )
+@click.option(
+    "--sampling-weight",
+    type=int,
+    default=None,
+    show_default=True,
+    help="Sampling weight for the metrics",
+)
 def main(
     metric_types,
     use_cases,
@@ -263,6 +270,7 @@ def main(
     num_bad_msg,
     value_len,
     b64_encode,
+    sampling_weight,
 ):
     if UseCaseID.SESSIONS.value in use_cases and len(use_cases) > 1:
         click.secho(
@@ -276,14 +284,26 @@ def main(
     metric_types = "".join(set(metric_types))
     rand_str = rand_str or "".join(random.choices(string.ascii_uppercase + string.digits, k=8))
     payload_generators = {
-        "c": functools.partial(make_counter_payload, rand_str=rand_str),
+        "c": functools.partial(
+            make_counter_payload, rand_str=rand_str, sampling_weight=sampling_weight
+        ),
         "d": functools.partial(
-            make_dist_payload, rand_str=rand_str, value_len=value_len, b64_encode=b64_encode
+            make_dist_payload,
+            rand_str=rand_str,
+            value_len=value_len,
+            b64_encode=b64_encode,
+            sampling_weight=sampling_weight,
         ),
         "s": functools.partial(
-            make_set_payload, rand_str=rand_str, value_len=value_len, b64_encode=b64_encode
+            make_set_payload,
+            rand_str=rand_str,
+            value_len=value_len,
+            b64_encode=b64_encode,
+            sampling_weight=sampling_weight,
         ),
-        "g": functools.partial(make_gauge_payload, rand_str=rand_str),
+        "g": functools.partial(
+            make_gauge_payload, rand_str=rand_str, sampling_weight=sampling_weight
+        ),
     }
 
     messages = list(

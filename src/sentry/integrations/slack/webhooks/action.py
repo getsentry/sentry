@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Mapping, MutableMapping, Sequence
 from typing import Any
 
@@ -33,8 +34,7 @@ from sentry.integrations.slack.metrics import (
 from sentry.integrations.slack.requests.action import SlackActionRequest
 from sentry.integrations.slack.requests.base import SlackRequestError
 from sentry.integrations.slack.sdk_client import SlackSdkClient
-from sentry.integrations.slack.views.link_identity import build_linking_url
-from sentry.integrations.slack.views.unlink_identity import build_unlinking_url
+from sentry.integrations.slack.utils.errors import MODAL_NOT_FOUND, unpack_slack_api_error
 from sentry.integrations.types import ExternalProviderEnum
 from sentry.integrations.utils.scope import bind_org_context_from_integration
 from sentry.models.activity import ActivityIntegration
@@ -47,7 +47,7 @@ from sentry.shared_integrations.exceptions import ApiError
 from sentry.users.services.user import RpcUser
 from sentry.utils import metrics
 
-from ..utils import logger
+_logger = logging.getLogger(__name__)
 
 UNFURL_ACTION_OPTIONS = ["link", "ignore"]
 NOTIFICATION_SETTINGS_ACTION_OPTIONS = ["all_slack"]
@@ -146,7 +146,7 @@ def get_group(slack_request: SlackActionRequest) -> Group | None:
             group = None
 
     if not group:
-        logger.info(
+        _logger.info(
             "slack.action.invalid-issue",
             extra={
                 **slack_request.logging_data,
@@ -187,7 +187,9 @@ class SlackActionEndpoint(Endpoint):
         error: ApiClient.ApiError,
         action_type: str,
     ) -> Response:
-        logger.info(
+        from sentry.integrations.slack.views.unlink_identity import build_unlinking_url
+
+        _logger.info(
             "slack.action.api-error",
             extra={
                 **slack_request.get_logging_data(group),
@@ -206,21 +208,39 @@ class SlackActionEndpoint(Endpoint):
                 channel_id = data.get("channel_id")
                 response_url = data.get("orig_response_url")
 
-        if error.status_code == 403:
+        user_id = slack_request.user_id
+        channel = channel_id or slack_request.channel_id
+        resp_url = response_url or slack_request.response_url
+
+        if user_id is None or channel is None or resp_url is None:
+            text = DEFAULT_ERROR_MESSAGE
+        # keeping this separate from above since its a different condition
+        elif error.status_code != 403:
+            text = DEFAULT_ERROR_MESSAGE
+        else:
             text = UNLINK_IDENTITY_MESSAGE.format(
                 associate_url=build_unlinking_url(
                     slack_request.integration.id,
-                    slack_request.user_id,
-                    channel_id or slack_request.channel_id,
-                    response_url or slack_request.response_url,
+                    slack_id=user_id,
+                    channel_id=channel,
+                    response_url=resp_url,
                 ),
                 user_email=user.email,
                 org_name=group.organization.name,
             )
-        else:
-            text = DEFAULT_ERROR_MESSAGE
 
         return self.respond_ephemeral(text)
+
+    @staticmethod
+    def _unpack_error_text(validation_error: serializers.ValidationError) -> str:
+        detail = validation_error.detail
+        while True:
+            if isinstance(detail, dict):
+                detail = list(detail.values())
+            element = detail[0]
+            if isinstance(element, str):
+                return element
+            detail = element
 
     def validation_error(
         self,
@@ -229,7 +249,7 @@ class SlackActionEndpoint(Endpoint):
         error: serializers.ValidationError,
         action_type: str,
     ) -> Response:
-        logger.info(
+        _logger.info(
             "slack.action.validation-error",
             extra={
                 **slack_request.get_logging_data(group),
@@ -238,11 +258,15 @@ class SlackActionEndpoint(Endpoint):
             },
         )
 
-        text: str = list(*error.detail.values())[0]
+        text: str = self._unpack_error_text(error)
         return self.respond_ephemeral(text)
 
     def on_assign(
-        self, request: Request, user: RpcUser, group: Group, action: MessageAction
+        self,
+        request: Request,
+        user: RpcUser,
+        group: Group,
+        action: MessageAction | BlockKitMessageAction,
     ) -> None:
         if not (action.selected_options and len(action.selected_options)):
             # Short-circuit if action is invalid
@@ -267,7 +291,7 @@ class SlackActionEndpoint(Endpoint):
         request: Request,
         user: RpcUser,
         group: Group,
-        action: MessageAction,
+        action: MessageAction | BlockKitMessageAction,
     ) -> None:
         status_data = (action.value or "").split(":", 2)
         if not len(status_data):
@@ -375,6 +399,50 @@ class SlackActionEndpoint(Endpoint):
             metadata=metadata,
         )
 
+    def _update_modal(
+        self,
+        slack_client: SlackSdkClient,
+        external_id: str,
+        modal_payload: View,
+        slack_request: SlackActionRequest,
+    ) -> None:
+        try:
+            slack_client.views_update(
+                external_id=external_id,
+                view=modal_payload,
+            )
+        except SlackApiError as e:
+            # If the external_id is not found, Slack we send `not_found` error
+            # https://api.slack.com/methods/views.update
+            if unpack_slack_api_error(e) == MODAL_NOT_FOUND:
+                metrics.incr(
+                    SLACK_WEBHOOK_GROUP_ACTIONS_FAILURE_DATADOG_METRIC,
+                    sample_rate=1.0,
+                    tags={"type": "update_modal"},
+                )
+                logging_data = slack_request.get_logging_data()
+                _logger.exception(
+                    "slack.action.update-modal-not-found",
+                    extra={
+                        **logging_data,
+                        "trigger_id": slack_request.data["trigger_id"],
+                        "dialog": "resolve",
+                    },
+                )
+                # The modal was not found, so we need to open a new one
+                self._open_modal(slack_client, modal_payload, slack_request)
+            else:
+                raise
+
+    def _open_modal(
+        self, slack_client: SlackSdkClient, modal_payload: View, slack_request: SlackActionRequest
+    ) -> None:
+        # Error handling is done in the calling function
+        slack_client.views_open(
+            trigger_id=slack_request.data["trigger_id"],
+            view=modal_payload,
+        )
+
     def open_resolve_dialog(self, slack_request: SlackActionRequest, group: Group) -> None:
         # XXX(epurkhiser): In order to update the original message we have to
         # keep track of the response_url in the callback_id. Definitely hacky,
@@ -401,10 +469,16 @@ class SlackActionEndpoint(Endpoint):
         modal_payload = self.build_resolve_modal_payload(callback_id, metadata=metadata)
         slack_client = SlackSdkClient(integration_id=slack_request.integration.id)
         try:
-            slack_client.views_open(
-                trigger_id=slack_request.data["trigger_id"],
-                view=modal_payload,
-            )
+            # We need to use the action_ts as the external_id to update the modal
+            # We passed this in control when we sent the loading modal to beat the 3 second timeout
+            external_id = slack_request.get_action_ts()
+
+            if not external_id:
+                # If we don't have an external_id or option is disabled we need to open a new modal
+                self._open_modal(slack_client, modal_payload, slack_request)
+            else:
+                self._update_modal(slack_client, external_id, modal_payload, slack_request)
+
             metrics.incr(
                 SLACK_WEBHOOK_GROUP_ACTIONS_SUCCESS_DATADOG_METRIC,
                 sample_rate=1.0,
@@ -416,7 +490,7 @@ class SlackActionEndpoint(Endpoint):
                 sample_rate=1.0,
                 tags={"type": "resolve_modal_open"},
             )
-            logger.exception(
+            _logger.exception(
                 "slack.action.response-error",
                 extra={
                     "organization_id": org.id,
@@ -448,10 +522,16 @@ class SlackActionEndpoint(Endpoint):
         modal_payload = self.build_archive_modal_payload(callback_id, metadata=metadata)
         slack_client = SlackSdkClient(integration_id=slack_request.integration.id)
         try:
-            slack_client.views_open(
-                trigger_id=slack_request.data["trigger_id"],
-                view=modal_payload,
-            )
+            # We need to use the action_ts as the external_id to update the modal
+            # We passed this in control when we sent the loading modal to beat the 3 second timeout
+            external_id = slack_request.get_action_ts()
+
+            if not external_id:
+                # If we don't have an external_id or option is disabled we need to open a new modal
+                self._open_modal(slack_client, modal_payload, slack_request)
+            else:
+                self._update_modal(slack_client, external_id, modal_payload, slack_request)
+
             metrics.incr(
                 SLACK_WEBHOOK_GROUP_ACTIONS_SUCCESS_DATADOG_METRIC,
                 sample_rate=1.0,
@@ -463,7 +543,7 @@ class SlackActionEndpoint(Endpoint):
                 sample_rate=1.0,
                 tags={"type": "archive_modal_open"},
             )
-            logger.exception(
+            _logger.exception(
                 "slack.action.response-error",
                 extra={
                     "organization_id": org.id,
@@ -493,8 +573,10 @@ class SlackActionEndpoint(Endpoint):
         self,
         slack_request: SlackActionRequest,
         request: Request,
-        action_list: Sequence[MessageAction],
+        action_list: Sequence[BlockKitMessageAction],
     ) -> Response:
+        from sentry.integrations.slack.views.link_identity import build_linking_url
+
         group = get_group(slack_request)
         if not group:
             return self.respond(status=403)
@@ -506,6 +588,10 @@ class SlackActionEndpoint(Endpoint):
         identity_user = slack_request.get_identity_user()
 
         if not identity or not identity_user:
+            # if we don't have user_id or channel_id, we can't link the identity
+            if not slack_request.user_id or not slack_request.channel_id:
+                return self.respond_ephemeral(NO_IDENTITY_MESSAGE)
+
             associate_url = build_linking_url(
                 integration=slack_request.integration,
                 slack_id=slack_request.user_id,
@@ -536,10 +622,10 @@ class SlackActionEndpoint(Endpoint):
             if not selection:
                 return self.respond()
 
-            action = MessageAction(name="status", value=selection)
+            status_action = MessageAction(name="status", value=selection)
 
             try:
-                self.on_status(request, identity_user, group, action)
+                self.on_status(request, identity_user, group, status_action)
             except client.ApiError as error:
                 return self.api_error(slack_request, group, identity_user, error, "status_dialog")
 
@@ -550,7 +636,7 @@ class SlackActionEndpoint(Endpoint):
             blocks = SlackIssuesMessageBuilder(
                 group,
                 identity=identity,
-                actions=[action],
+                actions=[status_action],
                 tags=original_tags_from_request,
                 rules=[rule] if rule else None,
                 issue_details=True,
@@ -558,11 +644,10 @@ class SlackActionEndpoint(Endpoint):
             ).build()
 
             # use the original response_url to update the link attachment
-            json_blocks = orjson.dumps(blocks.get("blocks")).decode()
             try:
                 webhook_client = WebhookClient(private_metadata["orig_response_url"])
                 webhook_client.send(
-                    blocks=json_blocks, delete_original=False, replace_original=True
+                    blocks=blocks.get("blocks"), delete_original=False, replace_original=True
                 )
                 metrics.incr(
                     SLACK_WEBHOOK_GROUP_ACTIONS_SUCCESS_DATADOG_METRIC,
@@ -575,7 +660,7 @@ class SlackActionEndpoint(Endpoint):
                     sample_rate=1.0,
                     tags={"type": "submit_modal"},
                 )
-                logger.error(
+                _logger.exception(
                     "slack.webhook.view_submission.response-error",
                     extra={
                         "error": str(e),
@@ -642,31 +727,33 @@ class SlackActionEndpoint(Endpoint):
             return self.respond()
 
         response_url = slack_request.data["response_url"]
-        json_blocks = orjson.dumps(response.get("blocks")).decode()
         webhook_client = WebhookClient(response_url)
         try:
             webhook_client.send(
-                blocks=json_blocks,
+                blocks=response.get("blocks"),
                 text=response.get("text"),
                 delete_original=False,
                 replace_original=True,
             )
-            logger.info(
+            _logger.info(
                 "slack.webhook.update_status.success",
-                extra={"integration_id": slack_request.integration.id, "blocks": json_blocks},
+                extra={
+                    "integration_id": slack_request.integration.id,
+                    "blocks": response.get("blocks"),
+                },
             )
             metrics.incr(
                 SLACK_WEBHOOK_GROUP_ACTIONS_SUCCESS_DATADOG_METRIC,
                 sample_rate=1.0,
                 tags={"type": "update_message"},
             )
-        except SlackApiError as e:
+        except SlackApiError:
             metrics.incr(
                 SLACK_WEBHOOK_GROUP_ACTIONS_FAILURE_DATADOG_METRIC,
                 sample_rate=1.0,
                 tags={"type": "update_message"},
             )
-            logger.error("slack.webhook.update_status.response-error", extra={"error": str(e)})
+            _logger.exception("slack.webhook.update_status.response-error")
 
         return self.respond(response)
 
@@ -683,8 +770,8 @@ class SlackActionEndpoint(Endpoint):
         payload = {"delete_original": "true"}
         try:
             requests_.post(slack_request.response_url, json=payload)
-        except ApiError as e:
-            logger.error("slack.action.response-error", extra={"error": str(e)})
+        except ApiError:
+            _logger.exception("slack.action.response-error")
             return self.respond(status=403)
 
         return self.respond()
@@ -700,56 +787,54 @@ class SlackActionEndpoint(Endpoint):
         return action_option
 
     @classmethod
-    def get_action_list(cls, slack_request: SlackActionRequest) -> list[MessageAction]:
+    def get_action_list(cls, slack_request: SlackActionRequest) -> list[BlockKitMessageAction]:
         action_data = slack_request.data.get("actions")
-        if action_data:
-            # XXX(CEO): this is here for backwards compatibility - if a user performs an action with an "older"
-            # style issue alert but the block kit flag is enabled, we don't want to fall into this code path
-            if action_data[0].get("action_id"):
-                action_list = []
-                for action_data in action_data:
-                    if action_data.get("type") in ("static_select", "external_select"):
-                        action = BlockKitMessageAction(
-                            name=action_data["action_id"],
-                            label=action_data["selected_option"]["text"]["text"],
-                            type=action_data["type"],
-                            value=action_data["selected_option"]["value"],
-                            action_id=action_data["action_id"],
-                            block_id=action_data["block_id"],
-                            selected_options=[
-                                {"value": action_data.get("selected_option", {}).get("value")}
-                            ],
-                        )
-                        # TODO: selected_options is kinda ridiculous, I think this is built to handle multi-select?
-                    else:
-                        action = BlockKitMessageAction(
-                            name=action_data["action_id"],
-                            label=action_data["text"]["text"],
-                            type=action_data["type"],
-                            value=action_data["value"],
-                            action_id=action_data["action_id"],
-                            block_id=action_data["block_id"],
-                        )
-                    action_list.append(action)
+        if (
+            not action_data
+            or not isinstance(action_data, list)
+            or not action_data[0].get("action_id")
+        ):
+            return []
 
-                return action_list
-        return [
-            MessageAction(**action_data)
-            for action_data in action_data or []
-            if "name" in action_data
-        ]
+        action_list = []
+        for action_data in action_data:
+            if action_data.get("type") in ("static_select", "external_select"):
+                action = BlockKitMessageAction(
+                    name=action_data["action_id"],
+                    label=action_data["selected_option"]["text"]["text"],
+                    type=action_data["type"],
+                    value=action_data["selected_option"]["value"],
+                    action_id=action_data["action_id"],
+                    block_id=action_data["block_id"],
+                    selected_options=[
+                        {"value": action_data.get("selected_option", {}).get("value")}
+                    ],
+                )
+                # TODO: selected_options is kinda ridiculous, I think this is built to handle multi-select?
+            else:
+                action = BlockKitMessageAction(
+                    name=action_data["action_id"],
+                    label=action_data["text"]["text"],
+                    type=action_data["type"],
+                    value=action_data["value"],
+                    action_id=action_data["action_id"],
+                    block_id=action_data["block_id"],
+                )
+            action_list.append(action)
+
+        return action_list
 
     def post(self, request: Request) -> Response:
         try:
             slack_request = self.slack_request_class(request)
             slack_request.validate()
         except SlackRequestError as e:
-            logger.info(
+            _logger.info(
                 "slack.action.request-error", extra={"error": str(e), "status_code": e.status}
             )
             return self.respond(status=e.status)
 
-        logger.info(
+        _logger.info(
             "slack.action.request",
             extra={
                 "trigger_id": slack_request.data.get("trigger_id"),
@@ -842,10 +927,10 @@ class SlackActionEndpoint(Endpoint):
                 member.approve_member_invitation(identity_user, referrer="slack")
             else:
                 member.reject_member_invitation(identity_user)
-        except Exception as err:
+        except Exception:
             # shouldn't error but if it does, respond to the user
-            logger.error(
-                err,
+            _logger.exception(
+                "slack.action.member-invitation-error",
                 extra={
                     "organization_id": organization.id,
                     "member_id": member.id,

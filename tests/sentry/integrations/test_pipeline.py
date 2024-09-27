@@ -6,7 +6,6 @@ from sentry.integrations.example import AliasedIntegrationProvider, ExampleInteg
 from sentry.integrations.gitlab.integration import GitlabIntegrationProvider
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
-from sentry.models.identity import Identity
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.repository import Repository
 from sentry.organizations.absolute_url import generate_organization_url
@@ -18,6 +17,7 @@ from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import IntegrationTestCase
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
+from sentry.users.models.identity import Identity
 
 
 class ExamplePlugin(IssuePlugin2):
@@ -438,7 +438,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
 
 @control_silo_test
 @patch(
-    "sentry.integrations.gitlab.GitlabIntegrationProvider.build_integration",
+    "sentry.integrations.gitlab.integration.GitlabIntegrationProvider.build_integration",
     side_effect=naive_build_integration,
 )
 class GitlabFinishPipelineTest(IntegrationTestCase):

@@ -1,7 +1,9 @@
-import {createMemoryHistory, Route, Router, RouterContext} from 'react-router';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import type {RouteContextInterface} from 'sentry/types/legacyReactRouter';
 import {useParams} from 'sentry/utils/useParams';
 import {useRouteContext} from 'sentry/utils/useRouteContext';
 import {RouteContext} from 'sentry/views/routeContext';
@@ -33,22 +35,17 @@ describe('useParams', () => {
         return null;
       }
 
-      const memoryHistory = createMemoryHistory();
-      memoryHistory.push('/?hello');
+      const routeContext: RouteContextInterface = {
+        location: LocationFixture(),
+        params: {},
+        router: RouterFixture(),
+        routes: [],
+      };
 
       render(
-        <Router
-          history={memoryHistory}
-          render={props => {
-            return (
-              <RouteContext.Provider value={props}>
-                <RouterContext {...props} />
-              </RouteContext.Provider>
-            );
-          }}
-        >
-          <Route path="/" component={HomePage} />
-        </Router>
+        <RouteContext.Provider value={routeContext}>
+          <HomePage />
+        </RouteContext.Provider>
       );
 
       expect(params).toEqual({});
@@ -63,22 +60,17 @@ describe('useParams', () => {
         return null;
       }
 
-      const memoryHistory = createMemoryHistory();
-      memoryHistory.push('/sentry');
+      const routeContext: RouteContextInterface = {
+        location: LocationFixture(),
+        params: {slug: 'sentry'},
+        router: RouterFixture(),
+        routes: [],
+      };
 
       render(
-        <Router
-          history={memoryHistory}
-          render={props => {
-            return (
-              <RouteContext.Provider value={props}>
-                <RouterContext {...props} />
-              </RouteContext.Provider>
-            );
-          }}
-        >
-          <Route path="/:slug" component={HomePage} />
-        </Router>
+        <RouteContext.Provider value={routeContext}>
+          <HomePage />
+        </RouteContext.Provider>
       );
       expect(params).toEqual({slug: 'sentry'});
     });
@@ -105,22 +97,17 @@ describe('useParams', () => {
         );
       }
 
-      const memoryHistory = createMemoryHistory();
-      memoryHistory.push('/issues/?hello');
+      const routeContext: RouteContextInterface = {
+        location: LocationFixture(),
+        params: {},
+        router: RouterFixture(),
+        routes: [],
+      };
 
       render(
-        <Router
-          history={memoryHistory}
-          render={props => {
-            return (
-              <RouteContext.Provider value={props}>
-                <RouterContext {...props} />
-              </RouteContext.Provider>
-            );
-          }}
-        >
-          <Route path="/issues/" component={Component} />
-        </Router>
+        <RouteContext.Provider value={routeContext}>
+          <Component />
+        </RouteContext.Provider>
       );
 
       expect(
@@ -148,22 +135,17 @@ describe('useParams', () => {
         );
       }
 
-      const memoryHistory = createMemoryHistory();
-      memoryHistory.push('/issues/?hello');
+      const routeContext: RouteContextInterface = {
+        location: LocationFixture(),
+        params: {},
+        router: RouterFixture(),
+        routes: [],
+      };
 
       render(
-        <Router
-          history={memoryHistory}
-          render={props => {
-            return (
-              <RouteContext.Provider value={props}>
-                <RouterContext {...props} />
-              </RouteContext.Provider>
-            );
-          }}
-        >
-          <Route path="/issues/" component={Component} />
-        </Router>
+        <RouteContext.Provider value={routeContext}>
+          <Component />
+        </RouteContext.Provider>
       );
 
       expect(

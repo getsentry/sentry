@@ -12,7 +12,7 @@ import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import useOrganization from 'sentry/utils/useOrganization';
-import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 interface Props {
@@ -37,7 +37,7 @@ export function ReplayDiffSection({event, group, replayId}: Props) {
           LazyComponent={ReplayDiffContent}
           loadingFallback={
             <InterimSection
-              type={FoldSectionKey.HYDRATION_DIFF}
+              type={SectionKey.HYDRATION_DIFF}
               title={t('Hydration Error Diff')}
             >
               <StyledNegativeSpaceContainer data-test-id="replay-diff-loading-placeholder">

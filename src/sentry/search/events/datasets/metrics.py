@@ -86,6 +86,12 @@ class MetricsDatasetConfig(DatasetConfig):
         return value_id
 
     @property
+    def should_skip_interval_calculation(self):
+        return self.builder.builder_config.skip_time_conditions and (
+            not self.builder.params.start or not self.builder.params.end
+        )
+
+    @property
     def function_converter(self) -> Mapping[str, fields.MetricsFunction]:
         """While the final functions in clickhouse must have their -Merge combinators in order to function, we don't
         need to add them here since snuba has a FunctionMapper that will add it for us. Basically it turns expressions
@@ -120,20 +126,8 @@ class MetricsDatasetConfig(DatasetConfig):
                         )
                     ],
                     calculated_args=[resolve_metric_id],
-                    snql_distribution=lambda args, alias: Function(
-                        "avgIf",
-                        [
-                            Column("value"),
-                            Function(
-                                "equals",
-                                [
-                                    Column("metric_id"),
-                                    args["metric_id"],
-                                ],
-                            ),
-                        ],
-                        alias,
-                    ),
+                    snql_distribution=self._resolve_avg,
+                    snql_gauge=self._resolve_avg,
                     result_type_fn=self.reflective_result_type(),
                     default_result_type="integer",
                 ),
@@ -460,14 +454,8 @@ class MetricsDatasetConfig(DatasetConfig):
                         fields.MetricArg("column"),
                     ],
                     calculated_args=[resolve_metric_id],
-                    snql_distribution=lambda args, alias: Function(
-                        "maxIf",
-                        [
-                            Column("value"),
-                            Function("equals", [Column("metric_id"), args["metric_id"]]),
-                        ],
-                        alias,
-                    ),
+                    snql_distribution=self._resolve_max,
+                    snql_gauge=self._resolve_max,
                     result_type_fn=self.reflective_result_type(),
                 ),
                 fields.MetricsFunction(
@@ -476,14 +464,8 @@ class MetricsDatasetConfig(DatasetConfig):
                         fields.MetricArg("column"),
                     ],
                     calculated_args=[resolve_metric_id],
-                    snql_distribution=lambda args, alias: Function(
-                        "minIf",
-                        [
-                            Column("value"),
-                            Function("equals", [Column("metric_id"), args["metric_id"]]),
-                        ],
-                        alias,
-                    ),
+                    snql_distribution=self._resolve_min,
+                    snql_gauge=self._resolve_min,
                     result_type_fn=self.reflective_result_type(),
                 ),
                 fields.MetricsFunction(
@@ -492,14 +474,8 @@ class MetricsDatasetConfig(DatasetConfig):
                         fields.MetricArg("column"),
                     ],
                     calculated_args=[resolve_metric_id],
-                    snql_distribution=lambda args, alias: Function(
-                        "sumIf",
-                        [
-                            Column("value"),
-                            Function("equals", [Column("metric_id"), args["metric_id"]]),
-                        ],
-                        alias,
-                    ),
+                    snql_distribution=self._resolve_sum,
+                    snql_gauge=self._resolve_sum,
                     result_type_fn=self.reflective_result_type(),
                 ),
                 fields.MetricsFunction(
@@ -791,7 +767,11 @@ class MetricsDatasetConfig(DatasetConfig):
                 fields.MetricsFunction(
                     "spm",
                     snql_distribution=self._resolve_spm,
-                    optional_args=[fields.IntervalDefault("interval", 1, None)],
+                    optional_args=[
+                        fields.NullColumn("interval")
+                        if self.should_skip_interval_calculation
+                        else fields.IntervalDefault("interval", 1, None)
+                    ],
                     default_result_type="rate",
                 ),
                 fields.MetricsFunction(
@@ -1153,6 +1133,68 @@ class MetricsDatasetConfig(DatasetConfig):
                         condition,
                     ],
                 ),
+            ],
+            alias,
+        )
+
+    def _resolve_avg(
+        self,
+        args: Mapping[str, str | Column | SelectType | int | float],
+        alias: str | None = None,
+    ) -> SelectType:
+        return Function(
+            "avgIf",
+            [
+                Column("value"),
+                Function(
+                    "equals",
+                    [
+                        Column("metric_id"),
+                        args["metric_id"],
+                    ],
+                ),
+            ],
+            alias,
+        )
+
+    def _resolve_sum(
+        self,
+        args: Mapping[str, str | Column | SelectType | int | float],
+        alias: str | None = None,
+    ) -> SelectType:
+        return Function(
+            "sumIf",
+            [
+                Column("value"),
+                Function("equals", [Column("metric_id"), args["metric_id"]]),
+            ],
+            alias,
+        )
+
+    def _resolve_min(
+        self,
+        args: Mapping[str, str | Column | SelectType | int | float],
+        alias: str | None = None,
+    ) -> SelectType:
+        return Function(
+            "minIf",
+            [
+                Column("value"),
+                Function("equals", [Column("metric_id"), args["metric_id"]]),
+            ],
+            alias,
+        )
+
+    def _resolve_max(
+        self,
+        args: Mapping[str, str | Column | SelectType | int | float],
+        alias: str | None = None,
+    ) -> SelectType:
+        return Function(
+            "maxIf",
+            [
+                Column("value"),
+                Function("equals", [Column("metric_id"), args["metric_id"]]),
             ],
             alias,
         )
@@ -2064,6 +2106,12 @@ class MetricsDatasetConfig(DatasetConfig):
         else:
             condition = base_condition
 
+        query_time_range_interval = (
+            self.builder.resolve_time_range_window()
+            if self.should_skip_interval_calculation
+            else args["interval"]
+        )
+
         return Function(
             "divide",
             [
@@ -2075,9 +2123,9 @@ class MetricsDatasetConfig(DatasetConfig):
                     ],
                 ),
                 (
-                    args["interval"]
+                    query_time_range_interval
                     if interval is None
-                    else Function("divide", [args["interval"], interval])
+                    else Function("divide", [query_time_range_interval, interval])
                 ),
             ],
             alias,

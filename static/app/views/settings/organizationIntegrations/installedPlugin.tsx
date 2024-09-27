@@ -9,7 +9,7 @@ import {
 import type {Client} from 'sentry/api';
 import Access from 'sentry/components/acl/access';
 import {Alert} from 'sentry/components/alert';
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Switch from 'sentry/components/switchButton';
@@ -125,7 +125,7 @@ export class InstalledPlugin extends Component<Props> {
                 <ProjectBadge project={this.projectForBadge} />
               </IntegrationItemBox>
               <div>
-                <StyledButton
+                <StyledLinkButton
                   borderless
                   icon={<IconSettings />}
                   disabled={!hasAccess}
@@ -133,7 +133,7 @@ export class InstalledPlugin extends Component<Props> {
                   data-test-id="integration-configure-button"
                 >
                   {t('Configure')}
-                </StyledButton>
+                </StyledLinkButton>
               </div>
               <div>
                 <Confirm
@@ -183,6 +183,10 @@ const Container = styled('div')`
 `;
 
 const StyledButton = styled(Button)`
+  color: ${p => p.theme.gray300};
+`;
+
+const StyledLinkButton = styled(LinkButton)`
   color: ${p => p.theme.gray300};
 `;
 

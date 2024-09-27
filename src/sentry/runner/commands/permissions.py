@@ -38,7 +38,7 @@ def add(user: str, permission: str) -> None:
     "Add a permission to a user."
     from django.db import IntegrityError, transaction
 
-    from sentry.models.userpermission import UserPermission
+    from sentry.users.models.userpermission import UserPermission
 
     user_inst = user_param_to_user(user)
 
@@ -57,7 +57,7 @@ def add(user: str, permission: str) -> None:
 @configuration
 def remove(user: str, permission: str) -> None:
     "Remove a permission from a user."
-    from sentry.models.userpermission import UserPermission
+    from sentry.users.models.userpermission import UserPermission
 
     user_inst = user_param_to_user(user)
 
@@ -75,7 +75,7 @@ def remove(user: str, permission: str) -> None:
 @configuration
 def list(user: str) -> None:
     "List permissions for a user."
-    from sentry.models.userpermission import UserPermission
+    from sentry.users.models.userpermission import UserPermission
 
     user_inst = user_param_to_user(user)
     up_list = UserPermission.objects.filter(user=user_inst).order_by("permission")

@@ -224,23 +224,21 @@ function GlobalModal({onClose}: Props) {
         style={{pointerEvents: visible ? 'auto' : 'none'}}
         onClick={backdrop ? clickClose : undefined}
       >
-        <AnimatePresence>
-          {visible && (
-            <Modal role="dialog" aria-modal css={options.modalCss}>
-              <Content role="document">
-                <TooltipContext.Provider
-                  value={{
-                    // To ensure tooltips within the modal remain interactive (e.g., clickable or selectable),
-                    // they need to be rendered inside the modal's DOM node.
-                    container: portal,
-                  }}
-                >
-                  {renderedChild}
-                </TooltipContext.Provider>
-              </Content>
-            </Modal>
-          )}
-        </AnimatePresence>
+        <TooltipContext.Provider
+          value={{
+            // To ensure tooltips within the modal remain interactive (e.g., clickable or selectable),
+            // they need to be rendered inside the modal's DOM node.
+            container: portal,
+          }}
+        >
+          <AnimatePresence>
+            {visible && (
+              <Modal role="dialog" aria-modal css={options.modalCss}>
+                <Content role="document">{renderedChild}</Content>
+              </Modal>
+            )}
+          </AnimatePresence>
+        </TooltipContext.Provider>
       </Container>
     </Fragment>,
     portal

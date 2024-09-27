@@ -3,12 +3,14 @@ from datetime import timedelta
 from functools import cached_property
 from unittest.mock import patch
 
+import orjson
 import pytest
 import responses
 from django.db import router, transaction
 from django.test.utils import override_settings
 from httpx import HTTPError
 from rest_framework import status
+from rest_framework.exceptions import ErrorDetail
 from urllib3.exceptions import MaxRetryError, TimeoutError
 from urllib3.response import HTTPResponse
 
@@ -17,6 +19,7 @@ from sentry.api.helpers.constants import ALERT_RULES_COUNT_HEADER, MAX_QUERY_SUB
 from sentry.api.serializers import serialize
 from sentry.conf.server import SEER_ANOMALY_DETECTION_STORE_DATA_URL
 from sentry.hybridcloud.models.outbox import outbox_context
+from sentry.incidents.logic import INVALID_TIME_WINDOW
 from sentry.incidents.models.alert_rule import (
     AlertRule,
     AlertRuleDetectionType,
@@ -35,6 +38,7 @@ from sentry.integrations.slack.utils.channel import SlackChannelIdData
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.organizationmember import OrganizationMember
 from sentry.seer.anomaly_detection.store_data import seer_anomaly_detection_connection_pool
+from sentry.seer.anomaly_detection.types import StoreDataResponse
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.silo.base import SiloMode
@@ -269,6 +273,31 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         assert resp.data == serialize(alert_rule, self.user)
         assert alert_rule.description == resp.data.get("description")
 
+    @with_feature("organizations:incidents")
+    def test_invalid_threshold_type(self):
+        """
+        Test that a comparison alert (percent based) can't use the above and below threshold type
+        """
+        data = {
+            **self.alert_rule_dict,
+            "comparisonDelta": 10080.0,
+            "thresholdType": AlertRuleThresholdType.ABOVE_AND_BELOW.value,
+        }
+
+        with outbox_runner():
+            resp = self.get_error_response(
+                self.organization.slug,
+                status_code=400,
+                **data,
+            )
+        assert not AlertRule.objects.filter(
+            threshold_type=AlertRuleThresholdType.ABOVE_AND_BELOW.value
+        ).exists()
+        assert (
+            "Invalid threshold type: Allowed types for comparison alerts are above OR below"
+            in resp.data["nonFieldErrors"][0]
+        )
+
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:incidents")
     @patch(
@@ -276,7 +305,8 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
     )
     def test_anomaly_detection_alert(self, mock_seer_request):
         data = self.dynamic_alert_rule_dict
-        mock_seer_request.return_value = HTTPResponse(status=200)
+        seer_return_value: StoreDataResponse = {"success": True}
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
         two_weeks_ago = before_now(days=14).replace(hour=10, minute=0, second=0, microsecond=0)
         with self.options({"issues.group_attributes.send_kafka": True}):
             self.store_event(
@@ -287,7 +317,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
                     "fingerprint": ["group1"],
                     "tags": {"sentry:user": self.user.email},
                 },
-                event_type=EventType.ERROR,
+                default_event_type=EventType.ERROR,
                 project_id=self.project.id,
             )
             self.store_event(
@@ -298,7 +328,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
                     "fingerprint": ["group2"],
                     "tags": {"sentry:user": self.user.email},
                 },
-                event_type=EventType.ERROR,
+                default_event_type=EventType.ERROR,
                 project_id=self.project.id,
             )
 
@@ -371,7 +401,10 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
                 **data,
             )
         assert not AlertRule.objects.filter(detection_type=AlertRuleDetectionType.DYNAMIC).exists()
-        assert resp.data["detail"]["message"] == "Invalid request"
+        assert resp.data[0] == ErrorDetail(
+            string="Failed to send data to Seer - cannot create alert rule.", code="invalid"
+        )
+
         assert mock_seer_request.call_count == 1
 
     @with_feature("organizations:anomaly-detection-alerts")
@@ -386,10 +419,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
                 **data,
             )
         assert not AlertRule.objects.filter(detection_type=AlertRuleDetectionType.DYNAMIC).exists()
-        assert (
-            resp.data[0]
-            == "Invalid time window for dynamic alert (valid windows are 60, 30, 15 minutes)"
-        )
+        assert resp.data[0] == INVALID_TIME_WINDOW
 
     def test_monitor_type_with_condition(self):
         data = {
@@ -456,6 +486,120 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         assert resp.data == serialize(alert_rule, self.user)
         assert alert_rule.snuba_query is not None
         assert alert_rule.snuba_query.query == "is:unresolved"
+
+    def test_spm_function(self):
+        with (
+            outbox_runner(),
+            self.feature(
+                [
+                    "organizations:incidents",
+                    "organizations:performance-view",
+                    "organizations:mep-rollout-flag",
+                    "organizations:dynamic-sampling",
+                ]
+            ),
+        ):
+            data = {
+                "dataset": "generic_metrics",
+                "eventTypes": ["transaction"],
+                "aggregate": "spm()",
+                "query": "span.module:db has:span.description",
+                "timeWindow": 60,
+                "thresholdPeriod": 1,
+                "triggers": [
+                    {
+                        "label": "critical",
+                        "alertThreshold": 7000000,
+                        "actions": [
+                            {
+                                "type": "email",
+                                "targetType": "team",
+                                "targetIdentifier": self.team.id,
+                            }
+                        ],
+                    }
+                ],
+                "projects": [self.project.slug],
+                "environment": None,
+                "resolveThreshold": None,
+                "thresholdType": 1,
+                "owner": self.user.id,
+                "name": "Insights Queries SPM Alert",
+                "projectId": "1",
+                "alertType": "insights_metrics",
+                "monitorType": 0,
+                "activationCondition": 0,
+                "comparisonDelta": None,
+                "queryType": 1,
+            }
+            resp = self.get_success_response(
+                self.organization.slug,
+                status_code=201,
+                **data,
+            )
+        assert "id" in resp.data
+        alert_rule = AlertRule.objects.get(id=resp.data["id"])
+        assert resp.data == serialize(alert_rule, self.user)
+        assert alert_rule.snuba_query is not None
+        assert alert_rule.snuba_query.query == "span.module:db has:span.description"
+        assert alert_rule.snuba_query.aggregate == "spm()"
+
+    def test_performance_score_function(self):
+        with (
+            outbox_runner(),
+            self.feature(
+                [
+                    "organizations:incidents",
+                    "organizations:performance-view",
+                    "organizations:mep-rollout-flag",
+                    "organizations:dynamic-sampling",
+                ]
+            ),
+        ):
+            data = {
+                "dataset": "generic_metrics",
+                "eventTypes": ["transaction"],
+                "aggregate": "performance_score(measurements.score.fcp)",
+                "query": "transaction.op:pageload",
+                "timeWindow": 60,
+                "thresholdPeriod": 1,
+                "triggers": [
+                    {
+                        "label": "critical",
+                        "alertThreshold": 7000000,
+                        "actions": [
+                            {
+                                "type": "email",
+                                "targetType": "team",
+                                "targetIdentifier": self.team.id,
+                            }
+                        ],
+                    }
+                ],
+                "projects": [self.project.slug],
+                "environment": None,
+                "resolveThreshold": None,
+                "thresholdType": 1,
+                "owner": self.user.id,
+                "name": "Insights Queries SPM Alert",
+                "projectId": "1",
+                "alertType": "insights_metrics",
+                "monitorType": 0,
+                "activationCondition": 0,
+                "comparisonDelta": None,
+                "queryType": 1,
+            }
+            resp = self.get_success_response(
+                self.organization.slug,
+                status_code=201,
+                **data,
+            )
+        assert "id" in resp.data
+        alert_rule = AlertRule.objects.get(id=resp.data["id"])
+        assert resp.data == serialize(alert_rule, self.user)
+        assert alert_rule.snuba_query is not None
+        assert alert_rule.snuba_query.query == "transaction.op:pageload"
+        assert alert_rule.snuba_query.aggregate == "performance_score(measurements.score.fcp)"
 
     @override_settings(MAX_QUERY_SUBSCRIPTIONS_PER_ORG=1)
     def test_enforce_max_subscriptions(self):

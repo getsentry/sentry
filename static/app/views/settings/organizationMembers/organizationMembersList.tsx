@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import type {RouteComponentProps} from 'react-router';
 import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -18,6 +17,7 @@ import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import type {OrganizationAuthProvider} from 'sentry/types/auth';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {
   BaseRole,
   Member,

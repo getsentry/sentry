@@ -36,7 +36,6 @@ sentry_sdk.init(
 )`;
 
 const getSdkSetupSnippet = (params: Params) => `
-# mysettings.py
 import sentry_sdk
 
 ${getInitCallSnippet(params)}`;
@@ -46,20 +45,18 @@ rq worker \
 -c mysettings \  # module name of mysettings.py
 --sentry-dsn="..."  # only necessary for RQ < 1.0`;
 
-const getJobDefinitionSnippet = () => `# jobs.py
+const getJobDefinitionSnippet = () => `
 def hello(name):
     1/0  # raises an error
     return "Hello %s!" % name`;
 
 const getWorkerSetupSnippet = (params: Params) => `
-# mysettings.py
 import sentry_sdk
 
 # Sentry configuration for RQ worker processes
 ${getInitCallSnippet(params)}`;
 
 const getMainPythonScriptSetupSnippet = (params: Params) => `
-# main.py
 from redis import Redis
 from rq import Queue
 
@@ -83,13 +80,9 @@ const onboarding: OnboardingConfig = {
   install: () => [
     {
       type: StepType.INSTALL,
-      description: tct(
-        'Install [code:sentry-sdk] from PyPI with the [sentryRQCode:rq] extra:',
-        {
-          code: <code />,
-          sentryRQCode: <code />,
-        }
-      ),
+      description: tct('Install [code:sentry-sdk] from PyPI with the [code:rq] extra:', {
+        code: <code />,
+      }),
       configurations: [
         {
           language: 'bash',
@@ -123,8 +116,14 @@ const onboarding: OnboardingConfig = {
       ),
       configurations: [
         {
-          language: 'python',
-          code: getSdkSetupSnippet(params),
+          code: [
+            {
+              label: 'mysettings.py',
+              value: 'mysettings.py',
+              language: 'python',
+              code: getSdkSetupSnippet(params),
+            },
+          ],
         },
         {
           description: t('Start your worker with:'),
@@ -150,37 +149,53 @@ const onboarding: OnboardingConfig = {
       configurations: [
         {
           description: <h5>{t('Job definition')}</h5>,
-          language: 'python',
-          code: getJobDefinitionSnippet(),
+          code: [
+            {
+              language: 'python',
+              label: 'jobs.py',
+              value: 'jobs.py',
+              code: getJobDefinitionSnippet(),
+            },
+          ],
         },
         {
           description: <h5>{t('Settings for worker')}</h5>,
-          language: 'python',
-          code: getWorkerSetupSnippet(params),
+          code: [
+            {
+              label: 'mysettings.py',
+              value: 'mysettings.py',
+              language: 'python',
+              code: getWorkerSetupSnippet(params),
+            },
+          ],
         },
         {
           description: <h5>{t('Main Python Script')}</h5>,
-          language: 'python',
-          code: getMainPythonScriptSetupSnippet(params),
+          code: [
+            {
+              label: 'main.py',
+              value: 'main.py',
+              language: 'python',
+              code: getMainPythonScriptSetupSnippet(params),
+            },
+          ],
         },
       ],
       additionalInfo: (
         <div>
           <p>
             {tct(
-              'When you run [codeMain:python main.py] a transaction named [codeTrxName:testing_sentry] in the Performance section of Sentry will be created.',
+              'When you run [code:python main.py] a transaction named [code:testing_sentry] in the Performance section of Sentry will be created.',
               {
-                codeMain: <code />,
-                codeTrxName: <code />,
+                code: <code />,
               }
             )}
           </p>
           <p>
             {tct(
-              'If you run the RQ worker with [codeWorker:rq worker -c mysettings] a transaction for the execution of [codeFunction:hello()] will be created. Additionally, an error event will be sent to Sentry and will be connected to the transaction.',
+              'If you run the RQ worker with [code:rq worker -c mysettings] a transaction for the execution of [code:hello()] will be created. Additionally, an error event will be sent to Sentry and will be connected to the transaction.',
               {
-                codeWorker: <code />,
-                codeFunction: <code />,
+                code: <code />,
               }
             )}
           </p>

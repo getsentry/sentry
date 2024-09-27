@@ -4,9 +4,9 @@ import responses
 from django.urls import reverse
 
 from sentry.integrations.models.organization_integration import OrganizationIntegration
-from sentry.models.identity import Identity
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
+from sentry.users.models.identity import Identity
 
 
 @control_silo_test

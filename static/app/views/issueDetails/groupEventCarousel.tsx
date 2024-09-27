@@ -5,7 +5,7 @@ import omit from 'lodash/omit';
 import moment from 'moment-timezone';
 
 import type {ButtonProps} from 'sentry/components/button';
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {DateTime} from 'sentry/components/dateTime';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
@@ -476,7 +476,7 @@ const ActionsWrapper = styled('div')`
   gap: ${space(0.5)};
 `;
 
-const StyledNavButton = styled(Button)`
+const StyledNavButton = styled(LinkButton)`
   border-radius: 0;
 `;
 

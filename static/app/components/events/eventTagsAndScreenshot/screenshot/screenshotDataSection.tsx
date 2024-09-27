@@ -19,7 +19,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {SCREENSHOT_TYPE} from 'sentry/views/issueDetails/groupEventAttachments/groupEventAttachmentsFilter';
-import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
@@ -123,7 +123,7 @@ export function ScreenshotDataSection({
       showPermalink={false}
       help={t('This image was captured around the time that the event occurred.')}
       data-test-id="screenshot-data-section"
-      type={FoldSectionKey.SCREENSHOT}
+      type={SectionKey.SCREENSHOT}
       actions={
         hasStreamlinedUI ? (
           <LinkButton to={linkPath} size="xs">

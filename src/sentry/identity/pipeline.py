@@ -5,8 +5,11 @@ from django.http import HttpResponseRedirect
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
-from sentry.models.identity import Identity, IdentityProvider
-from sentry.pipeline import Pipeline
+from sentry import features, options
+from sentry.models.organization import Organization
+from sentry.organizations.services.organization.model import RpcOrganization
+from sentry.pipeline import Pipeline, PipelineProvider
+from sentry.users.models.identity import Identity, IdentityProvider
 from sentry.utils import metrics
 
 from . import default_manager
@@ -34,6 +37,20 @@ class IdentityProviderPipeline(Pipeline):
 
         # Use configured redirect_url if specified for the pipeline if available
         return self.config.get("redirect_url", associate_url)
+
+    # TODO(iamrajjoshi): Delete this after Azure DevOps migration is complete
+    def get_provider(self, provider_key: str, **kwargs) -> PipelineProvider:
+        if kwargs.get("organization"):
+            organization: Organization | RpcOrganization = kwargs["organization"]
+        if provider_key == "vsts" and features.has(
+            "organizations:migrate-azure-devops-integration", organization
+        ):
+            provider_key = "vsts_new"
+        # TODO(iamrajjoshi): Delete this after Azure DevOps migration is complete
+        if provider_key == "vsts_login" and options.get("vsts.social-auth-migration"):
+            provider_key = "vsts_login_new"
+
+        return super().get_provider(provider_key)
 
     def finish_pipeline(self):
         # NOTE: only reached in the case of linking a new identity

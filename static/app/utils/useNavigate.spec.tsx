@@ -1,9 +1,11 @@
 import {useEffect} from 'react';
-import {createMemoryHistory, Route, Router, RouterContext} from 'react-router';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {render} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
+import type {RouteContextInterface} from 'sentry/types/legacyReactRouter';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {RouteContext} from 'sentry/views/routeContext';
 
@@ -22,22 +24,17 @@ describe('useNavigate', () => {
       return null;
     }
 
-    const memoryHistory = createMemoryHistory();
-    memoryHistory.push('/');
+    const routeContext: RouteContextInterface = {
+      location: LocationFixture(),
+      params: {},
+      router: RouterFixture(),
+      routes: [],
+    };
 
     render(
-      <Router
-        history={memoryHistory}
-        render={props => {
-          return (
-            <RouteContext.Provider value={props}>
-              <RouterContext {...props} />
-            </RouteContext.Provider>
-          );
-        }}
-      >
-        <Route path="/" component={HomePage} />
-      </Router>
+      <RouteContext.Provider value={routeContext}>
+        <HomePage />
+      </RouteContext.Provider>
     );
 
     expect(typeof navigate).toBe('function');
@@ -59,29 +56,22 @@ describe('useNavigate', () => {
       return null;
     }
 
-    const memoryHistory = createMemoryHistory();
-    memoryHistory.push('/');
+    const routeContext: RouteContextInterface = {
+      location: LocationFixture(),
+      params: {},
+      router: RouterFixture(),
+      routes: [],
+    };
 
     render(
-      <Router
-        history={memoryHistory}
-        render={props => {
-          return (
-            <RouteContext.Provider value={props}>
-              <RouterContext {...props} />
-            </RouteContext.Provider>
-          );
-        }}
-      >
-        <Route path="/" component={HomePage} />
-        <Route
-          path="/issues"
-          component={() => {
-            return null;
-          }}
-        />
-      </Router>
+      <RouteContext.Provider value={routeContext}>
+        <HomePage />
+      </RouteContext.Provider>
     );
-    expect(memoryHistory.getCurrentLocation().pathname).toBe('/issues/');
+
+    expect(routeContext.router.push).toHaveBeenCalledWith({
+      pathname: '/issues/',
+      state: undefined,
+    });
   });
 });

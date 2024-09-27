@@ -2,7 +2,6 @@ import logging
 import math
 import time
 from datetime import timedelta
-from random import randint
 from uuid import uuid4
 
 import orjson
@@ -14,7 +13,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.serializers import ListField
 
-from sentry import audit_log, features, options
+from sentry import audit_log, features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
@@ -31,6 +30,7 @@ from sentry.apidocs.examples.project_examples import ProjectExamples
 from sentry.apidocs.parameters import GlobalParams
 from sentry.constants import RESERVED_PROJECT_SLUGS, ObjectStatus
 from sentry.datascrubbing import validate_pii_config_update, validate_pii_selectors
+from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.dynamic_sampling import get_supported_biases_ids, get_user_biases
 from sentry.grouping.enhancer import Enhancements
 from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
@@ -48,7 +48,6 @@ from sentry.models.group import Group, GroupStatus
 from sentry.models.project import PROJECT_SLUG_MAX_LENGTH, Project
 from sentry.models.projectbookmark import ProjectBookmark
 from sentry.models.projectredirect import ProjectRedirect
-from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.notifications.utils import has_alert_integration
 from sentry.tasks.delete_seer_grouping_records import call_seer_delete_project_grouping_records
 
@@ -125,7 +124,6 @@ class ProjectMemberSerializer(serializers.Serializer):
         "performanceIssueSendToPlatform",
         "highlightContext",
         "highlightTags",
-        "extrapolateMetrics",
         "uptimeAutodetection",
     ]
 )
@@ -168,7 +166,15 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
         allow_null=True,
         help_text="Automatically resolve an issue if it hasn't been seen for this many hours. Set to `0` to disable auto-resolve.",
     )
-
+    highlightContext = HighlightContextField(
+        required=False,
+        help_text="A JSON mapping of context types to lists of strings for their keys. E.g. {'user': ['id', 'email']}",
+    )
+    highlightTags = ListField(
+        child=serializers.CharField(),
+        required=False,
+        help_text="A list of strings with tag keys to highlight on this project's issues. E.g. ['release', 'environment']",
+    )
     # TODO: Add help_text to all the fields for public documentation
     team = serializers.RegexField(r"^[a-z0-9_\-]+$", max_length=50)
     digestsMinDelay = serializers.IntegerField(min_value=60, max_value=3600)
@@ -186,8 +192,6 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
     dataScrubberDefaults = serializers.BooleanField(required=False)
     sensitiveFields = ListField(child=serializers.CharField(), required=False)
     safeFields = ListField(child=serializers.CharField(), required=False)
-    highlightContext = HighlightContextField(required=False)
-    highlightTags = ListField(child=serializers.CharField(), required=False)
     storeCrashReports = serializers.IntegerField(
         min_value=-1, max_value=STORE_CRASH_REPORTS_MAX, required=False, allow_null=True
     )
@@ -211,7 +215,6 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
     performanceIssueCreationRate = serializers.FloatField(required=False, min_value=0, max_value=1)
     performanceIssueCreationThroughPlatform = serializers.BooleanField(required=False)
     performanceIssueSendToPlatform = serializers.BooleanField(required=False)
-    extrapolateMetrics = serializers.BooleanField(required=False)
     uptimeAutodetection = serializers.BooleanField(required=False)
 
     # DO NOT ADD MORE TO OPTIONS
@@ -239,22 +242,6 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
             )
 
         return data
-
-    def validate_extrapolateMetrics(self, value):
-        organization = self.context["project"].organization
-        request = self.context["request"]
-
-        # Metrics extrapolation can only be toggled when the metrics-extrapolation flag is enabled.
-        has_metrics_extrapolation = features.has(
-            "organizations:metrics-extrapolation", organization, actor=request.user
-        )
-
-        if not has_metrics_extrapolation:
-            raise serializers.ValidationError(
-                "Organization does not have the metrics extrapolation feature enabled"
-            )
-        else:
-            return value
 
     def validate_allowedDomains(self, value):
         value = list(filter(bool, value))
@@ -346,12 +333,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
         # * negative cache entries (eg auth errors) are retried immediately.
         # * positive caches are re-fetches as well, making it less effective.
         for source in added_or_modified_sources:
-            # This should only apply to sources which are being fed to symbolicator.
-            # App Store Connect in particular is managed in a completely different
-            # way, and needs its `id` to stay valid for a longer time.
-            # TODO(@anonrig): Remove this when all AppStore connect data is removed.
-            if source["type"] != "appStoreConnect":
-                source["id"] = str(uuid4())
+            source["id"] = str(uuid4())
 
         sources_json = orjson.dumps(sources).decode() if sources else ""
 
@@ -752,10 +734,6 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     "dynamicSamplingBiases"
                 ]
 
-        if "extrapolateMetrics" in result:
-            if project.update_option("sentry:extrapolate_metrics", result["extrapolateMetrics"]):
-                changed_proj_settings["sentry:extrapolate_metrics"] = result["extrapolateMetrics"]
-
         if result.get("uptimeAutodetection") is not None:
             if project.update_option("sentry:uptime_autodetection", result["uptimeAutodetection"]):
                 changed_proj_settings["sentry:uptime_autodetection"] = result["uptimeAutodetection"]
@@ -851,6 +829,11 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     "sentry:feedback_ai_spam_detection",
                     bool(options["sentry:feedback_ai_spam_detection"]),
                 )
+            if "sentry:toolbar_allowed_origins" in options:
+                project.update_option(
+                    "sentry:toolbar_allowed_origins",
+                    clean_newline_inputs(options["sentry:toolbar_allowed_origins"]),
+                )
             if "filters:react-hydration-errors" in options:
                 project.update_option(
                     "filters:react-hydration-errors",
@@ -900,10 +883,6 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     data = serialize(project, request.user, DetailedProjectSerializer())
                     return Response(data)
 
-            if "sentry:extrapolate_metrics" in options:
-                project.update_option(
-                    "sentry:extrapolate_metrics", bool(options["sentry:extrapolate_metrics"])
-                )
             if "sentry:uptime_autodetection" in options:
                 project.update_option(
                     "sentry:uptime_autodetection", bool(options["sentry:uptime_autodetection"])
@@ -980,10 +959,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             project.rename_on_pending_deletion()
 
             # Tell seer to delete all the project's grouping records
-            if features.has("projects:similarity-embeddings-grouping", project) or (
-                project.get_option("sentry:similarity_backfill_completed")
-                and randint(1, 100) <= options.get("similarity.delete_task_EA_rollout_percentage")
-            ):
+            if project.get_option("sentry:similarity_backfill_completed"):
                 call_seer_delete_project_grouping_records.apply_async(args=[project.id])
 
         return Response(status=204)

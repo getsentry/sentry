@@ -1,5 +1,5 @@
 import {Fragment, useEffect} from 'react';
-import type {RouteComponentProps} from 'react-router';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
@@ -15,6 +15,7 @@ import useSentryAppComponentsData from 'sentry/stores/useSentryAppComponentsData
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group, GroupActivityReprocess, GroupReprocessing} from 'sentry/types/group';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
@@ -23,9 +24,11 @@ import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import usePrevious from 'sentry/utils/usePrevious';
+import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import GroupEventDetailsContent from 'sentry/views/issueDetails/groupEventDetails/groupEventDetailsContent';
 import GroupEventHeader from 'sentry/views/issueDetails/groupEventHeader';
 import GroupSidebar from 'sentry/views/issueDetails/groupSidebar';
+import StreamlinedSidebar from 'sentry/views/issueDetails/streamline/sidebar';
 
 import ReprocessingProgress from '../reprocessingProgress';
 import {
@@ -70,6 +73,8 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
   const prevEnvironment = usePrevious(environments);
   const prevEvent = usePrevious(event);
   const hasStreamlinedUI = useHasStreamlinedUI();
+
+  const [sidebarOpen, _] = useSyncedLocalStorageState('issue-details-sidebar-open', true);
 
   // load the data
   useSentryAppComponentsData({projectId});
@@ -168,7 +173,11 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
         hasData={!loadingEvent && !eventError && defined(eventWithMeta)}
         isLoading={loadingEvent}
       >
-        <StyledLayoutBody data-test-id="group-event-details">
+        <StyledLayoutBody
+          data-test-id="group-event-details"
+          hasStreamlinedUi={hasStreamlinedUI}
+          sidebarOpen={sidebarOpen}
+        >
           {groupReprocessingStatus === ReprocessingStatus.REPROCESSING ? (
             <ReprocessingProgress
               totalEvents={
@@ -193,15 +202,23 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
                 )}
                 {renderContent()}
               </MainLayoutComponent>
-              <StyledLayoutSide>
-                <GroupSidebar
-                  organization={organization}
-                  project={project}
-                  group={group}
-                  event={eventWithMeta}
-                  environments={environments}
-                />
-              </StyledLayoutSide>
+              {hasStreamlinedUI ? (
+                sidebarOpen ? (
+                  <StyledLayoutSide hasStreamlinedUi={hasStreamlinedUI}>
+                    <StreamlinedSidebar group={group} event={event} project={project} />
+                  </StyledLayoutSide>
+                ) : null
+              ) : (
+                <StyledLayoutSide hasStreamlinedUi={hasStreamlinedUI}>
+                  <GroupSidebar
+                    organization={organization}
+                    project={project}
+                    group={group}
+                    event={eventWithMeta}
+                    environments={environments}
+                  />
+                </StyledLayoutSide>
+              )}
             </Fragment>
           )}
         </StyledLayoutBody>
@@ -210,12 +227,24 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
   );
 }
 
-const StyledLayoutBody = styled(Layout.Body)`
+const StyledLayoutBody = styled(Layout.Body)<{
+  hasStreamlinedUi: boolean;
+  sidebarOpen: boolean;
+}>`
   /* Makes the borders align correctly */
   padding: 0 !important;
   @media (min-width: ${p => p.theme.breakpoints.large}) {
     align-content: stretch;
   }
+
+  ${p =>
+    p.hasStreamlinedUi &&
+    css`
+      @media (min-width: ${p.theme.breakpoints.large}) {
+        gap: ${space(1.5)};
+        display: ${p.sidebarOpen ? 'grid' : 'block'};
+      }
+    `}
 `;
 
 const GroupStatusBannerWrapper = styled('div')`
@@ -239,15 +268,26 @@ const GroupContent = styled(Layout.Main)`
   background: ${p => p.theme.backgroundSecondary};
   display: flex;
   flex-direction: column;
-  gap: ${space(1.5)};
   padding: ${space(1.5)};
+  gap: ${space(1.5)};
+  box-shadow: 0 0 0 1px ${p => p.theme.translucentInnerBorder};
 `;
 
-const StyledLayoutSide = styled(Layout.Side)`
-  padding: ${space(3)} ${space(2)} ${space(3)};
+const StyledLayoutSide = styled(Layout.Side)<{hasStreamlinedUi: boolean}>`
+  ${p =>
+    p.hasStreamlinedUi
+      ? css`
+          padding: ${space(1.5)} ${space(2)} ${space(3)};
+        `
+      : css`
+          padding: ${space(3)} ${space(2)} ${space(3)};
+
+          @media (min-width: ${p.theme.breakpoints.large}) {
+            padding-right: ${space(4)};
+          }
+        `}
 
   @media (min-width: ${p => p.theme.breakpoints.large}) {
-    padding-right: ${space(4)};
     padding-left: 0;
   }
 `;

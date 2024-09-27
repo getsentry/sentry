@@ -1,19 +1,19 @@
 from sentry.constants import ObjectStatus
+from sentry.deletions.models.scheduleddeletion import ScheduledDeletion
+from sentry.deletions.tasks.scheduled import run_scheduled_deletions_control
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
-from sentry.models.identity import Identity
 from sentry.models.project import Project
 from sentry.models.projectcodeowners import ProjectCodeOwners
 from sentry.models.repository import Repository
-from sentry.models.scheduledeletion import ScheduledDeletion
 from sentry.silo.base import SiloMode
-from sentry.tasks.deletion.scheduled import run_scheduled_deletions_control
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
+from sentry.users.models.identity import Identity
 
 
 @control_silo_test

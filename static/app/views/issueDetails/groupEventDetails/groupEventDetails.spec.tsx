@@ -1,4 +1,3 @@
-import type {InjectedRouter} from 'react-router';
 import type {Location} from 'history';
 import {CommitFixture} from 'sentry-fixture/commit';
 import {CommitAuthorFixture} from 'sentry-fixture/commitAuthor';
@@ -18,6 +17,7 @@ import type {Event} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {IssueCategory, IssueType} from 'sentry/types/group';
+import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {browserHistory} from 'sentry/utils/browserHistory';
@@ -28,6 +28,8 @@ import {ReprocessingStatus} from 'sentry/views/issueDetails/utils';
 import {RouteContext} from 'sentry/views/routeContext';
 
 const TRACE_ID = '797cda4e24844bdc90e0efe741616047';
+
+jest.mock('screenfull', () => ({}));
 
 const makeDefaultMockData = (
   organization?: Organization,
@@ -198,11 +200,17 @@ const mockGroupApis = (
   project: Project,
   group: Group,
   event: Event,
+  replayId?: string,
   trace?: QuickTraceEvent
 ) => {
   MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/issues/${group.id}/`,
     body: group,
+  });
+
+  MockApiClient.addMockResponse({
+    url: `/organizations/${organization.slug}/replays/${replayId}/`,
+    body: {},
   });
 
   MockApiClient.addMockResponse({
@@ -343,6 +351,22 @@ const mockGroupApis = (
   MockApiClient.addMockResponse({
     url: `/projects/${organization.slug}/${project.slug}/`,
     body: project,
+  });
+
+  MockApiClient.addMockResponse({
+    url: `/issues/${group.id}/autofix/setup/`,
+    method: 'GET',
+    body: {
+      integration: {
+        ok: true,
+      },
+      genAIConsent: {
+        ok: true,
+      },
+      githubWriteIntegration: {
+        ok: true,
+      },
+    },
   });
 };
 
@@ -642,6 +666,7 @@ describe('Platform Integrations', () => {
         props.project,
         props.group,
         props.event,
+        undefined,
         mockedTrace(props.project)
       );
 
@@ -660,10 +685,17 @@ describe('Platform Integrations', () => {
     it('does not render root issues section if related perf issues do not exist', async () => {
       const props = makeDefaultMockData();
       const trace = mockedTrace(props.project);
-      mockGroupApis(props.organization, props.project, props.group, props.event, {
-        ...trace,
-        performance_issues: [],
-      });
+      mockGroupApis(
+        props.organization,
+        props.project,
+        props.group,
+        props.event,
+        undefined,
+        {
+          ...trace,
+          performance_issues: [],
+        }
+      );
 
       render(<TestComponent group={props.group} event={props.event} />, {
         organization: props.organization,

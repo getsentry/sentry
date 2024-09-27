@@ -1,5 +1,5 @@
 ---
-created: '2024-08-06T16:58:28.527320+00:00'
+created: '2024-09-26T02:26:48.750717+00:00'
 creator: sentry
 source: tests/sentry/backup/test_sanitize.py
 ---
@@ -209,6 +209,63 @@ source: tests/sentry/backup/test_sanitize.py
   - name
 - model_name: sentry.userroleuser
   ordinal: 1
+  sanitized_fields:
+  - date_added
+  - date_updated
+- model_name: workflow_engine.dataconditiongroup
+  ordinal: 1
+  sanitized_fields:
+  - date_added
+  - date_updated
+- model_name: workflow_engine.dataconditiongroup
+  ordinal: 2
+  sanitized_fields:
+  - date_added
+  - date_updated
+- model_name: workflow_engine.datasource
+  ordinal: 1
+  sanitized_fields:
+  - date_added
+  - date_updated
+- model_name: workflow_engine.detector
+  ordinal: 1
+  sanitized_fields:
+  - date_added
+  - date_updated
+  - name
+- model_name: workflow_engine.workflow
+  ordinal: 1
+  sanitized_fields:
+  - date_added
+  - date_updated
+  - name
+- model_name: workflow_engine.workflowaction
+  ordinal: 1
+  sanitized_fields:
+  - date_added
+  - date_updated
+- model_name: workflow_engine.workflowdataconditiongroup
+  ordinal: 1
+  sanitized_fields:
+  - date_added
+  - date_updated
+- model_name: workflow_engine.detectorworkflow
+  ordinal: 1
+  sanitized_fields:
+  - date_added
+  - date_updated
+- model_name: workflow_engine.datasourcedetector
+  ordinal: 1
+  sanitized_fields:
+  - date_added
+  - date_updated
+- model_name: workflow_engine.datacondition
+  ordinal: 1
+  sanitized_fields:
+  - date_added
+  - date_updated
+- model_name: workflow_engine.datacondition
+  ordinal: 2
   sanitized_fields:
   - date_added
   - date_updated
@@ -509,16 +566,6 @@ source: tests/sentry/backup/test_sanitize.py
   - date_hash_added
   - email
   - validation_hash
-- model_name: sentry.spanattributeextractionruleconfig
-  ordinal: 1
-  sanitized_fields:
-  - date_added
-  - date_updated
-- model_name: sentry.spanattributeextractionrulecondition
-  ordinal: 1
-  sanitized_fields:
-  - date_added
-  - date_updated
 - model_name: sentry.snubaquery
   ordinal: 1
   sanitized_fields:

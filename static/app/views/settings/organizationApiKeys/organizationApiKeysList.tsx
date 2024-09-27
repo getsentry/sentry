@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import type {PlainRoute, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import AlertLink from 'sentry/components/alertLink';
@@ -11,6 +10,7 @@ import {PanelTable} from 'sentry/components/panels/panelTable';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import type {PlainRoute, RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';

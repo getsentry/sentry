@@ -30,12 +30,12 @@ export default function EditMonitor() {
   });
 
   const {
-    isLoading,
+    isPending,
     isError,
     data: monitor,
     refetch,
   } = useApiQuery<Monitor>(queryKey, {
-    cacheTime: 0,
+    gcTime: 0,
     staleTime: 0,
   });
 
@@ -59,7 +59,7 @@ export default function EditMonitor() {
     return `Crons - ${organization.slug}`;
   }
 
-  if (isLoading) {
+  if (isPending) {
     return <LoadingIndicator />;
   }
 

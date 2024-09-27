@@ -5,7 +5,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {Generic} from 'sentry/components/events/interfaces/generic';
-import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 
 describe('Generic entry', function () {
   it('display redacted data', async function () {
@@ -14,7 +14,7 @@ describe('Generic entry', function () {
         hpkp: {'': {rem: [['organization:1', 'x']]}},
       },
     });
-    render(<Generic type={FoldSectionKey.HPKP} data={null} meta={event._meta?.hpkp} />, {
+    render(<Generic type={SectionKey.HPKP} data={null} meta={event._meta?.hpkp} />, {
       organization: {
         relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfigFixture()),
       },

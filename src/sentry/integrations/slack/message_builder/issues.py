@@ -10,17 +10,16 @@ from django.core.exceptions import ObjectDoesNotExist
 from sentry_relay.processing import parse_release
 
 from sentry import tagstore
-from sentry.api.endpoints.group_details import get_group_global_count
 from sentry.constants import LOG_LEVELS
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.identity.services.identity import RpcIdentity, identity_service
-from sentry.integrations.message_builder import (
+from sentry.integrations.messaging.message_builder import (
     build_attachment_replay_link,
     build_attachment_text,
     build_attachment_title,
     build_footer,
-    format_actor_option,
-    format_actor_options,
+    format_actor_option_slack,
+    format_actor_options_slack,
     get_title_link,
 )
 from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
@@ -36,6 +35,7 @@ from sentry.integrations.slack.message_builder.types import (
 from sentry.integrations.slack.utils.escape import escape_slack_markdown_text, escape_slack_text
 from sentry.integrations.time_utils import get_approx_start_time, time_since
 from sentry.integrations.types import ExternalProviders
+from sentry.issues.endpoints.group_details import get_group_global_count
 from sentry.issues.grouptype import (
     GroupCategory,
     PerformanceP95EndpointRegressionGroupType,
@@ -51,7 +51,7 @@ from sentry.models.repository import Repository
 from sentry.models.rule import Rule
 from sentry.models.team import Team
 from sentry.notifications.notifications.base import ProjectNotification
-from sentry.notifications.utils.actions import MessageAction
+from sentry.notifications.utils.actions import BlockKitMessageAction, MessageAction
 from sentry.notifications.utils.participants import (
     dedupe_suggested_assignees,
     get_suspect_commit_users,
@@ -101,7 +101,7 @@ logger = logging.getLogger(__name__)
 
 
 def get_group_users_count(group: Group) -> int:
-    metrics.incr("slack.get_group_users_count", tags={"group": group.id}, sample_rate=1.0)
+    metrics.incr("slack.get_group_users_count", tags={"group_id": group.id}, sample_rate=1.0)
     return group.count_users_seen(
         referrer=Referrer.TAGSTORE_GET_GROUPS_USER_COUNTS_SLACK_ISSUE_NOTIFICATION.value
     )
@@ -135,7 +135,9 @@ def build_assigned_text(identity: RpcIdentity, assignee: str) -> str | None:
     return f"*Issue assigned to {assignee_text} by <@{identity.external_id}>*"
 
 
-def build_action_text(identity: RpcIdentity, action: MessageAction) -> str | None:
+def build_action_text(
+    identity: RpcIdentity, action: MessageAction | BlockKitMessageAction
+) -> str | None:
     if action.name == "assign":
         selected_options = action.selected_options or []
         if not len(selected_options):
@@ -243,14 +245,14 @@ def get_option_groups(group: Group) -> Sequence[OptionGroup]:
     if teams:
         team_option_group: OptionGroup = {
             "label": {"type": "plain_text", "text": "Teams"},
-            "options": format_actor_options(teams, True),
+            "options": format_actor_options_slack(teams),
         }
         option_groups.append(team_option_group)
 
     if members:
         member_option_group: OptionGroup = {
             "label": {"type": "plain_text", "text": "People"},
-            "options": format_actor_options(members, True),
+            "options": format_actor_options_slack(members),
         }
         option_groups.append(member_option_group)
     return option_groups
@@ -356,7 +358,7 @@ def build_actions(
     group: Group,
     project: Project,
     text: str,
-    actions: Sequence[MessageAction] | None = None,
+    actions: Sequence[MessageAction | BlockKitMessageAction] | None = None,
     identity: RpcIdentity | None = None,
 ) -> tuple[Sequence[MessageAction], str, bool]:
     """Having actions means a button will be shown on the Slack message e.g. ignore, resolve, assign."""
@@ -394,7 +396,7 @@ def build_actions(
             name="assign",
             label="Select Assignee...",
             type="select",
-            selected_options=format_actor_options([assignee], True) if assignee else [],
+            selected_options=format_actor_options_slack([assignee]) if assignee else [],
             option_groups=get_option_groups(group),
         )
         return assign_button
@@ -421,7 +423,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         event: Event | GroupEvent | None = None,
         tags: set[str] | None = None,
         identity: RpcIdentity | None = None,
-        actions: Sequence[MessageAction] | None = None,
+        actions: Sequence[MessageAction | BlockKitMessageAction] | None = None,
         rules: list[Rule] | None = None,
         link_to_event: bool = False,
         issue_details: bool = False,
@@ -628,7 +630,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             elif action.name == "assign":
                 actions.append(
                     self.get_external_select_action(
-                        action, format_actor_option(assignee, True) if assignee else None
+                        action, format_actor_option_slack(assignee) if assignee else None
                     )
                 )
 

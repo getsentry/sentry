@@ -1,5 +1,4 @@
 import {useEffect} from 'react';
-import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -11,6 +10,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import formGroups from 'sentry/data/forms/userFeedback';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -60,7 +60,7 @@ function ProjectUserFeedback({organization, project, params: {projectId}}: Props
         title={t('User Feedback')}
         action={
           <ButtonList>
-            <LinkButton href="https://docs.sentry.io/product/user-feedback/">
+            <LinkButton href="https://docs.sentry.io/product/user-feedback/" external>
               {t('Read the Docs')}
             </LinkButton>
             <Button priority="primary" onClick={handleClick}>

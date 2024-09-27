@@ -74,7 +74,7 @@ function TeamIssuesBreakdown({
 }: TeamIssuesBreakdownProps) {
   const {
     data: issuesBreakdown = {},
-    isLoading,
+    isPending,
     isError,
     refetch,
   } = useApiQuery<IssuesBreakdown>(
@@ -153,8 +153,8 @@ function TeamIssuesBreakdown({
   return (
     <Fragment>
       <IssuesChartWrapper>
-        {isLoading && <Placeholder height="200px" />}
-        {!isLoading && (
+        {isPending && <Placeholder height="200px" />}
+        {!isPending && (
           <BarChart
             style={{height: 200}}
             stacked
@@ -181,7 +181,7 @@ function TeamIssuesBreakdown({
                   {t('total')} <IconArrow direction="down" size="xs" color="gray300" />
                 </AlignRight>,
               ]}
-              isLoading={isLoading}
+              isLoading={isPending}
             >
               {sortedProjectIds.map(({projectId}, idx) => {
                 const project = projects.find(p => p.id === projectId);
@@ -205,7 +205,7 @@ function TeamIssuesBreakdown({
                 );
               })}
             </StyledPanelTable>
-            {!isLoading && showMoreButton}
+            {!isPending && showMoreButton}
           </Fragment>
         )}
       </CollapsePanel>
