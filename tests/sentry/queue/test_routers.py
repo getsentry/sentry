@@ -191,7 +191,6 @@ def test_task_rollout(
 CELERY_NO_SPLIT_QUEUE_TASK_ROUTES: Mapping[str, SplitQueueTaskRoute] = {
     "sentry.tasks.store.save_event_transaction": {
         "default_queue": "events.save_event_transaction",
-        "queues_config": None,
     }
 }
 

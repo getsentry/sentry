@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TypedDict
+from typing import NotRequired, TypedDict
 
 
 class SplitQueueSize(TypedDict):
@@ -41,4 +41,4 @@ class SplitQueueTaskRoute(TypedDict):
     # must go through the router in all cases. Thus the router has
     # to provide a default queue even if we do not want a split in an
     # environment.
-    queues_config: SplitQueueSize | None
+    queues_config: NotRequired[SplitQueueSize]

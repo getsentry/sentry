@@ -89,7 +89,7 @@ class SplitQueueTaskRouter:
             assert (
                 default_destination in known_queues
             ), f"Queue {default_destination} in split queue config is not declared."
-            if dest_config["queues_config"] is not None:
+            if "queues_config" in dest_config:
                 destinations = build_queue_names(
                     default_destination, dest_config["queues_config"]["in_use"]
                 )
