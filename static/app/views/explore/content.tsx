@@ -114,11 +114,6 @@ const Body = styled(Layout.Body)`
   flex-direction: column;
   gap: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    display: grid;
-    grid-template-columns: 250px minmax(100px, auto);
-  }
-
   @media (min-width: ${p => p.theme.breakpoints.large}) {
     grid-template-columns: 300px minmax(100px, auto);
   }
