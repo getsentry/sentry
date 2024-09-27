@@ -5,7 +5,7 @@ from collections.abc import Sequence
 from functools import wraps
 from typing import Any
 
-from django.http import Http404, HttpRequest
+from django.http import Http404
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
@@ -49,9 +49,7 @@ def catch_raised_errors(func):
     return wrapped
 
 
-def ensure_scoped_permission(
-    request: Request | HttpRequest, allowed_scopes: Sequence[str] | None
-) -> bool:
+def ensure_scoped_permission(request: Request, allowed_scopes: Sequence[str] | None) -> bool:
     """
     Verifies the User making the request has at least one required scope for
     the endpoint being requested.
@@ -210,9 +208,7 @@ class SentryAppPermission(SentryPermission):
     def scope_map(self):
         return self.published_scope_map
 
-    def has_object_permission(
-        self, request: Request | HttpRequest, view, sentry_app: RpcSentryApp | SentryApp
-    ):
+    def has_object_permission(self, request: Request, view, sentry_app: RpcSentryApp | SentryApp):
         if not hasattr(request, "user") or not request.user:
             return False
 
@@ -375,8 +371,8 @@ class SentryAppInstallationPermission(SentryPermission):
             return True
         return super().has_permission(request, *args, **kwargs)
 
-    def has_object_permission(self, request: Request | HttpRequest, view, installation):
-        if not hasattr(request, "user") or not request.user:
+    def has_object_permission(self, request: Request, view, installation):
+        if not hasattr(request, "user") or not request.user or not request.user.is_authenticated:
             return False
 
         self.determine_access(request, installation.organization_id)
@@ -384,9 +380,6 @@ class SentryAppInstallationPermission(SentryPermission):
         if superuser_has_permission(request):
             return True
 
-        assert (
-            request.user.is_authenticated
-        ), "user must be authenticated to check if they're a sentry app"
         # if user is an app, make sure it's for that same app
         if request.user.is_sentry_app:
             return request.user.id == installation.sentry_app.proxy_user_id

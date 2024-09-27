@@ -3,7 +3,6 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any
 
-from django.http import HttpRequest
 from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 
@@ -153,7 +152,7 @@ class ScopedPermission(BasePermission):
         "DELETE": (),
     }
 
-    def has_permission(self, request: Request | HttpRequest, view: object) -> bool:
+    def has_permission(self, request: Request, view: object) -> bool:
         # session-based auth has all scopes for a logged in user
         if not getattr(request, "auth", None):
             return request.user.is_authenticated
@@ -196,7 +195,7 @@ class SentryPermission(ScopedPermission):
     # organization in this method to stay compatible with all 3 paths.
     def determine_access(
         self,
-        request: Request | HttpRequest,
+        request: Request,
         organization: RpcUserOrganizationContext | Organization | RpcOrganization,
     ) -> None:
         from sentry.api.base import logger
