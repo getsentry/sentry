@@ -49,7 +49,7 @@ export const FRONTEND_COLUMN_TITLES = [
   'users',
 ];
 
-function FrontendLandingPage() {
+function FrontendOverviewPage() {
   const organization = useOrganization();
   const location = useLocation();
   const {setPageError} = usePageAlert();
@@ -75,14 +75,6 @@ function FrontendLandingPage() {
     {field: 'p75(transaction.duration)'},
     {field: 'p95(transaction.duration)'},
   ].map(field => ({...field, width: COL_WIDTH_UNDEFINED}));
-
-  const tableEventView = eventView.clone();
-  // TODO - verify this list, we might want to include non navigation/pageload transactions such as function, but then we should rename the column from route
-  const transactionOpSearch = new MutableSearch('')
-    .addDisjunctionFilterValues('transaction.op', ['navigation', 'pageload'])
-    .formatString();
-
-  tableEventView.query = transactionOpSearch;
 
   const showOnboarding = onboardingProject !== undefined;
 
@@ -138,7 +130,6 @@ function FrontendLandingPage() {
 
   const derivedQuery = getTransactionSearchQuery(location, eventView.query);
 
-function FrontendOverviewPage() {
   return (
     <Feature
       features="insights-domain-view"
@@ -183,7 +174,6 @@ function FrontendOverviewPage() {
                     columnTitles={FRONTEND_COLUMN_TITLES}
                     setError={setPageError}
                     {...sharedProps}
-                    eventView={tableEventView}
                   />
                 </PerformanceDisplayProvider>
               )}
