@@ -30,7 +30,7 @@ class DeploySerializer(serializers.Serializer):
     dateStarted = serializers.DateTimeField(required=False, allow_null=True)
     dateFinished = serializers.DateTimeField(required=False, allow_null=True)
     projects = serializers.ListField(
-        child=ProjectField(scope="project:releases", id_allowed=True),
+        child=ProjectField(scope=("project:read", "project:releases"), id_allowed=True),
         required=False,
         allow_empty=False,
     )
