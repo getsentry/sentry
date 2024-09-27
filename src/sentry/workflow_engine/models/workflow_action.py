@@ -18,7 +18,7 @@ class WorkflowAction(DefaultFieldsModel):
         NOTIFICATION = "SendNotificationAction"
 
     required = models.BooleanField(default=False)
-    workflow = FlexibleForeignKey("workflow_engine.Workflow")
+    workflow = FlexibleForeignKey("workflow_engine.Workflow", db_constraint=False)
     type = models.TextField(choices=Type.choices)
     data = models.JSONField(default=dict)
 
