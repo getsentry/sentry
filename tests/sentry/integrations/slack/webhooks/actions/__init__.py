@@ -49,7 +49,23 @@ class BaseEventTest(APITestCase):
                 headers={},
                 status_code=200,
             ),
-        ) as self.mock_view:
+        ) as self._mock_view_open:
+            yield
+
+    @pytest.fixture(autouse=True)
+    def mock_view_update(self):
+        with patch(
+            "slack_sdk.web.client.WebClient.views_update",
+            return_value=SlackResponse(
+                client=None,
+                http_verb="POST",
+                api_url="https://api.slack.com/methods/views.update",
+                req_args={},
+                data={"ok": True},
+                headers={},
+                status_code=200,
+            ),
+        ) as self._mock_view_update:
             yield
 
     @patch(
