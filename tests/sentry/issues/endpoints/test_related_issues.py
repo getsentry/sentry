@@ -32,18 +32,19 @@ class RelatedIssuesTest(APITestCase, SnubaTestCase, TraceTestCase):
             self._data("ApiError", error_value),
             self._data(error_type, "Unreacheable host: api.github.com"),
             self._data(error_type, ""),
-            # Only this group will be related
-            self._data(error_type, error_value),
         ]
         # XXX: See if we can get this code to be closer to how save_event generates groups
         for datum in groups_data:
             self.create_group(data=datum)
 
+        # Only this group will be related
+        related = self.create_group(data=self._data(error_type, error_value))
+
         response = self.get_success_response(qs_params={"type": "same_root_cause"})
         # The UI will then make normal calls to get issues-stats
         # For instance, this URL
         # https://us.sentry.io/api/0/organizations/sentry/issues-stats/?groups=4741828952&groups=4489703641&statsPeriod=24h
-        assert response.json() == {"type": "same_root_cause", "data": [5], "meta": {}}
+        assert response.json() == {"type": "same_root_cause", "data": [related.id], "meta": {}}
 
     def test_trace_connected_errors(self) -> None:
         error_event, _, another_proj_event = self.load_errors(self.project)

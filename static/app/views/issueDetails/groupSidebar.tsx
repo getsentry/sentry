@@ -21,7 +21,6 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {backend, frontend} from 'sentry/data/platformCategories';
 import {t, tn} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
 import IssueListCacheStore from 'sentry/stores/IssueListCacheStore';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
@@ -39,6 +38,7 @@ import {isMobilePlatform} from 'sentry/utils/platform';
 import {getAnalyicsDataForProject} from 'sentry/utils/projects';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useUser} from 'sentry/utils/useUser';
 import {ParticipantList} from 'sentry/views/issueDetails/participantList';
 import {makeFetchGroupQueryKey} from 'sentry/views/issueDetails/useGroup';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
@@ -82,6 +82,7 @@ export default function GroupSidebar({
   organization,
   environments,
 }: Props) {
+  const activeUser = useUser();
   const {data: allEnvironmentsGroupData} = useFetchAllEnvsGroupData(organization, group);
   const {data: currentRelease} = useFetchCurrentRelease(organization, group);
   const hasStreamlinedUI = useHasStreamlinedUI();
@@ -209,7 +210,6 @@ export default function GroupSidebar({
 
   const renderSeenByList = () => {
     const {seenBy} = group;
-    const activeUser = ConfigStore.get('user');
     const displayUsers = seenBy.filter(user => activeUser.id !== user.id);
 
     if (!displayUsers.length) {

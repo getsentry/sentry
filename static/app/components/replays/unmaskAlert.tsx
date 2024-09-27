@@ -1,25 +1,37 @@
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
+import ExternalLink from 'sentry/components/links/externalLink';
+import useUserViewedReplays from 'sentry/components/replays/useUserViewedReplays';
 import {IconClose, IconInfo} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
 
-const LOCAL_STORAGE_KEY = 'replay-player-dom-alert-dismissed';
+const LOCAL_STORAGE_KEY = 'replay-unmask-alert-dismissed';
 
-function PlayerDOMAlert() {
+function UnmaskAlert() {
   const {dismiss, isDismissed} = useDismissAlert({key: LOCAL_STORAGE_KEY});
+  const {data, isError, isPending} = useUserViewedReplays();
 
-  if (isDismissed) {
+  if (isDismissed || isError || isPending || (data && data.data.length > 3)) {
     return null;
   }
 
   return (
-    <DOMAlertContainer data-test-id="player-dom-alert">
-      <DOMAlert>
+    <UnmaskAlertContainer data-test-id="unmask-alert">
+      <Alert>
         <StyledIconInfo size="xs" />
-        <div>{t('Right click & inspect your app’s DOM with your browser')}</div>
+        <div>
+          {tct(
+            'Unmask non-sensitive text (****) and media (img, svg, video). [link:Learn more].',
+            {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/session-replay/privacy/#privacy-configuration" />
+              ),
+            }
+          )}
+        </div>
         <DismissButton
           priority="link"
           size="sm"
@@ -27,14 +39,14 @@ function PlayerDOMAlert() {
           aria-label={t('Close Alert')}
           onClick={dismiss}
         />
-      </DOMAlert>
-    </DOMAlertContainer>
+      </Alert>
+    </UnmaskAlertContainer>
   );
 }
 
-export default PlayerDOMAlert;
+export default UnmaskAlert;
 
-const DOMAlertContainer = styled('div')`
+const UnmaskAlertContainer = styled('div')`
   position: absolute;
   bottom: ${space(1)};
   left: 0;
@@ -44,7 +56,7 @@ const DOMAlertContainer = styled('div')`
   pointer-events: none;
 `;
 
-const DOMAlert = styled('div')`
+const Alert = styled('div')`
   display: inline-flex;
   align-items: flex-start;
   justify-items: center;
@@ -55,6 +67,15 @@ const DOMAlert = styled('div')`
   border-radius: ${p => p.theme.borderRadius};
   gap: 0 ${space(1)};
   line-height: 1em;
+  a {
+    color: ${p => p.theme.white};
+    pointer-events: all;
+    text-decoration: underline;
+  }
+  a:hover {
+    color: ${p => p.theme.white};
+    opacity: 0.5;
+  }
 `;
 
 const StyledIconInfo = styled(IconInfo)`

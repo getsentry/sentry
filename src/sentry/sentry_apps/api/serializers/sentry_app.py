@@ -1,4 +1,4 @@
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from datetime import timedelta
 from typing import Any
 
@@ -14,6 +14,9 @@ from sentry.integrations.models.integration_feature import IntegrationFeature, I
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.avatars.sentry_app_avatar import SentryAppAvatar
 from sentry.organizations.services.organization import organization_service
+from sentry.sentry_apps.api.serializers.sentry_app_avatar import (
+    SentryAppAvatarSerializer as ResponseSentryAppAvatarSerializer,
+)
 from sentry.sentry_apps.models.sentry_app import MASKED_VALUE, SentryApp
 from sentry.users.models.user import User
 from sentry.users.services.user.service import user_service
@@ -21,7 +24,7 @@ from sentry.users.services.user.service import user_service
 
 @register(SentryApp)
 class SentryAppSerializer(Serializer):
-    def get_attrs(self, item_list: list[SentryApp], user: User, **kwargs: Any):
+    def get_attrs(self, item_list: Sequence[SentryApp], user: User, **kwargs: Any):
         # Get associated IntegrationFeatures
         app_feature_attrs = IntegrationFeature.objects.get_by_targets_as_dict(
             targets=item_list, target_type=IntegrationTypes.SENTRY_APP
@@ -54,7 +57,7 @@ class SentryAppSerializer(Serializer):
             for item in item_list
         }
 
-    def serialize(self, obj, attrs, user, access):
+    def serialize(self, obj: SentryApp, attrs: Mapping[str, Any], user: User, **kwargs: Any):
         from sentry.sentry_apps.logic import consolidate_events
 
         application = attrs["application"]
@@ -62,7 +65,11 @@ class SentryAppSerializer(Serializer):
         data = {
             "allowedOrigins": application.get_allowed_origins(),
             "author": obj.author,
-            "avatars": serialize(attrs.get("avatars"), user),
+            "avatars": serialize(
+                objects=attrs.get("avatars"),
+                user=user,
+                serializer=ResponseSentryAppAvatarSerializer(),
+            ),
             "events": consolidate_events(obj.events),
             "featureData": [],
             "isAlertable": obj.is_alertable,
@@ -81,7 +88,7 @@ class SentryAppSerializer(Serializer):
         }
 
         if obj.status != SentryAppStatus.INTERNAL:
-            data["featureData"] = [serialize(x, user) for x in attrs.get("features")]
+            data["featureData"] = [serialize(x, user) for x in attrs.get("features", [])]
 
         if obj.status == SentryAppStatus.PUBLISHED and obj.date_published:
             data.update({"datePublished": obj.date_published})
@@ -101,9 +108,12 @@ class SentryAppSerializer(Serializer):
                     id=owner.id, user_id=user.id
                 )
 
+                assert obj.application, "Sentry App must have an associated ApiApplication"
+
                 client_secret = MASKED_VALUE
                 if elevated_user or (
                     owner_context
+                    and owner_context.member
                     and "org:write" in owner_context.member.scopes
                     and obj.show_auth_info(owner_context.member)
                 ):
