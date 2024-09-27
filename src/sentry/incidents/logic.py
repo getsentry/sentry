@@ -653,7 +653,7 @@ def create_alert_rule(
                     "Your organization does not have access to this feature."
                 )
             # NOTE: if adding a new metric alert type, take care to check that it's handled here
-            send_new_rule_data(alert_rule, projects[0])
+            send_new_rule_data(alert_rule, projects[0], snuba_query)
 
         if user:
             create_audit_entry_from_user(
@@ -915,7 +915,7 @@ def update_alert_rule(
                 )
             # NOTE: if adding a new metric alert type, take care to check that it's handled here
             project = projects[0] if projects else alert_rule.projects.get()
-            update_rule_data(alert_rule, project, updated_fields, updated_query_fields)
+            update_rule_data(alert_rule, project, snuba_query, updated_fields, updated_query_fields)
         else:
             # if this was a dynamic rule, delete the data in Seer
             if alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC:
