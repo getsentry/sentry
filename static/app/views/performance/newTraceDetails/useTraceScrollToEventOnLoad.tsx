@@ -1,5 +1,5 @@
 import {useLayoutEffect, useRef} from 'react';
-import Sentry from '@sentry/react';
+import * as Sentry from '@sentry/react';
 
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
