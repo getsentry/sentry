@@ -643,7 +643,10 @@ function buildRoutes() {
         name={t('Loader Script')}
         component={make(() => import('sentry/views/settings/project/loaderScript'))}
       />
-      <Redirect from="csp/" to="security-headers/" />
+      <Redirect
+        from="csp/"
+        to="/settings/:orgId/projects/:projectId/security-headers/csp/"
+      />
       <Route path="security-headers/" name={t('Security Headers')}>
         <IndexRoute
           component={make(() => import('sentry/views/settings/projectSecurityHeaders'))}
