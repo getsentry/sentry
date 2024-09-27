@@ -76,7 +76,6 @@ describe('useResultMode', function () {
       'span.description',
       'span.duration',
       'timestamp',
-      'release',
     ]);
   });
 });
