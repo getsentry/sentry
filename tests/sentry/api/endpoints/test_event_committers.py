@@ -28,7 +28,7 @@ class EventCommittersTest(APITestCase):
                 "release": release.version,
             },
             project_id=project.id,
-            event_type=EventType.DEFAULT,
+            default_event_type=EventType.DEFAULT,
         )
 
         url = reverse(
