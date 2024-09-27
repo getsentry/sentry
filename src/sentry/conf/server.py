@@ -20,7 +20,7 @@ import sentry
 from sentry.conf.api_pagination_allowlist_do_not_modify import (
     SENTRY_API_PAGINATION_ALLOWLIST_DO_NOT_MODIFY,
 )
-from sentry.conf.types.celery import SplitQueueSize, SplitQueueTaskRoute
+from sentry.conf.types.celery import SplitQueueTaskRoute
 from sentry.conf.types.kafka_definition import ConsumerDefinition
 from sentry.conf.types.logging_config import LoggingConfig
 from sentry.conf.types.role_dict import RoleDict
@@ -824,11 +824,6 @@ CELERY_IMPORTS = (
 # tmp(michal): Default configuration for post_process* queueus split
 SENTRY_POST_PROCESS_QUEUE_SPLIT_ROUTER: dict[str, Callable[[], str]] = {}
 
-
-# Mapping from queue name to split queues to be used by SplitQueueRouter.
-# This is meant to be used in those case where we have to specify the
-# queue name when issuing a task. Example: post process.
-CELERY_SPLIT_QUEUE_ROUTES: Mapping[str, SplitQueueSize] = {}
 # Mapping from task names to split queues. This can be used when the
 # task does not have to specify the queue and can rely on Celery to
 # do the routing.

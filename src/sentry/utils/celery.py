@@ -5,7 +5,7 @@ from typing import Any
 from celery.schedules import crontab
 from kombu import Queue
 
-from sentry.conf.types.celery import SplitQueueSize, SplitQueueTaskRoute
+from sentry.conf.types.celery import SplitQueueTaskRoute
 
 
 def crontab_with_minute_jitter(*args: Any, **kwargs: Any) -> crontab:
@@ -25,18 +25,6 @@ def _build_queues(base: str, quantity: int) -> Sequence[Queue]:
     return [Queue(name=name, routing_key=name) for name in build_queue_names(base, quantity)]
 
 
-def make_split_queues(config: Mapping[str, SplitQueueSize]) -> Sequence[Queue]:
-    """
-    Generates the split queue definitions from the mapping between
-    base queue and split queue config.
-    """
-    ret: MutableSequence[Queue] = []
-    for base_name, conf in config.items():
-        ret.extend(_build_queues(base_name, conf["total"]))
-
-    return ret
-
-
 def make_split_task_queues(config: Mapping[str, SplitQueueTaskRoute]) -> Sequence[Queue]:
     """
     Generates the split queues definitions from the mapping between
@@ -44,7 +32,8 @@ def make_split_task_queues(config: Mapping[str, SplitQueueTaskRoute]) -> Sequenc
     """
     ret: MutableSequence[Queue] = []
     for conf in config.values():
-        ret.extend(_build_queues(conf["default_queue"], conf["queues_config"]["total"]))
+        if "queues_config" in conf:
+            ret.extend(_build_queues(conf["default_queue"], conf["queues_config"]["total"]))
 
     return ret
 
