@@ -353,12 +353,13 @@ class SubscriptionProcessor:
         """
         row = subscription_update["values"]["data"][0]
         total_session_count = row.get("count", 0)
+        crash_count = row.get("crashed", 0)
+
         if total_session_count == 0:
             self.reset_trigger_counts()
             metrics.incr("incidents.alert_rules.ignore_update_no_session_data")
             return None
 
-        crash_count = row.get("crashed", 0)
         if CRASH_RATE_ALERT_MINIMUM_THRESHOLD is not None:
             min_threshold = int(CRASH_RATE_ALERT_MINIMUM_THRESHOLD)
             if total_session_count < min_threshold:
