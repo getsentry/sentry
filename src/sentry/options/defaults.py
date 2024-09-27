@@ -1848,7 +1848,7 @@ register(
 )
 # Used for the z-score when calculating the margin of error in performance
 register(
-    "performance.confidence.z-score",
+    "performance.extrapolation.confidence.z-score",
     type=Float,
     default=1.96,
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,

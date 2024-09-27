@@ -791,7 +791,8 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
 
     @cached_property
     def _zscore(self):
-        return options.get("performance.confidence.z-score")
+        """Defaults to 1.96, based on a z score for a confidence level of 95%"""
+        return options.get("performance.extrapolation.confidence.z-score")
 
     def _resolve_margin_of_error(
         self,
@@ -799,14 +800,15 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
         alias: str | None = None,
     ) -> SelectType:
         """Calculates the Margin of error for a given value, but unfortunately basis the total count based on
-        extrapolated data"""
+        extrapolated data
+        Z * Margin Of Error * Finite Population Correction
+        """
         # both of these need to be aggregated without a query
         total_samples, population_size = self._query_total_counts()
         sampled_group = Function("count", [])
         return Function(
             "multiply",
             [
-                # Based on a z score for a confidence level of 95%
                 self._zscore,
                 Function(
                     "multiply",
@@ -826,6 +828,7 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
     def _resolve_unadjusted_margin(
         self, sampled_group: SelectType, total_samples: SelectType
     ) -> SelectType:
+        """sqrt((p(1 - p)) / (total_samples))"""
         # Naming this p to match the formula
         p = Function("divide", [sampled_group, total_samples])
         return Function(
@@ -843,6 +846,7 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
         total_samples: SelectType,
         population_size: int | float,
     ) -> SelectType:
+        """sqrt((population_size - total_samples) / (population_size - 1))"""
         return (
             Function(
                 "sqrt",
@@ -856,6 +860,7 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
                     )
                 ],
             )
+            # if the arg is anything but `fpc` just return 1 so we're not correcting for a finite population
             if args["fpc"] == "fpc"
             else 1
         )
@@ -865,14 +870,15 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
         args: Mapping[str, str | Column | SelectType | int | float],
         alias: str,
     ) -> SelectType:
-        _, total_proportion = self._query_total_counts()
+        """round(max(0, proportion_by_sample - margin_of_error) * total_population)"""
+        _, total_population = self._query_total_counts()
         sampled_group = Function("count", [])
         proportion_by_sample = Function(
             "divide",
             [
                 sampled_group,
                 Function(
-                    "multiply", [total_proportion, Function("avg", [Column("sampling_factor")])]
+                    "multiply", [total_population, Function("avg", [Column("sampling_factor")])]
                 ),
             ],
             "proportion_by_sample",
@@ -898,7 +904,7 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
                                 ]
                             ],
                         ),
-                        total_proportion,
+                        total_population,
                     ],
                 )
             ],
@@ -910,14 +916,15 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
         args: Mapping[str, str | Column | SelectType | int | float],
         alias: str,
     ) -> SelectType:
-        _, total_proportion = self._query_total_counts()
+        """round(max(0, proportion_by_sample + margin_of_error) * total_population)"""
+        _, total_population = self._query_total_counts()
         sampled_group = Function("count", [])
         proportion_by_sample = Function(
             "divide",
             [
                 sampled_group,
                 Function(
-                    "multiply", [total_proportion, Function("avg", [Column("sampling_factor")])]
+                    "multiply", [total_population, Function("avg", [Column("sampling_factor")])]
                 ),
             ],
             "proportion_by_sample",
@@ -935,7 +942,7 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
                                 self._resolve_margin_of_error(args, "margin_of_error"),
                             ],
                         ),
-                        total_proportion,
+                        total_population,
                     ],
                 )
             ],
