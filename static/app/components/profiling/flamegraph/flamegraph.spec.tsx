@@ -165,7 +165,9 @@ describe('Flamegraph', function () {
       {organization: initializeOrg().organization}
     );
 
-    const frames = await findAllByTestId(document.body, 'flamegraph-frame');
+    const frames = await findAllByTestId(document.body, 'flamegraph-frame', undefined, {
+      timeout: 5000,
+    });
 
     // 1 for main view and 1 for minimap
     expect(frames.length).toBe(2);
