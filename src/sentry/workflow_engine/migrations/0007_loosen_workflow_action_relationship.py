@@ -36,4 +36,8 @@ class Migration(CheckedMigration):
                 to="workflow_engine.workflow",
             ),
         ),
+        migrations.SeparateDatabaseAndState(
+            state_operations=[migrations.DeleteModel(name="WorkflowAction")],
+            database_operations=[],
+        ),
     ]
