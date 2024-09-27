@@ -32,7 +32,7 @@ export function WidgetFrame(props: Props) {
             <QuestionTooltip size="sm" title={description} />
           )}
 
-          {actions && (
+          {actions && actions.length > 0 && (
             <TitleActions>
               {actions.length === 1 ? (
                 <Button size="xs" onClick={actions[0].onAction}>
