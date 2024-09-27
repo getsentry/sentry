@@ -7,12 +7,9 @@ from django.core.exceptions import ValidationError
 from parsimonious.exceptions import ParseError
 from urllib3.exceptions import MaxRetryError, TimeoutError
 
-from sentry import features
 from sentry.api.bases.organization_events import get_query_columns
-from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.conf.server import SEER_ANOMALY_DETECTION_STORE_DATA_URL
 from sentry.incidents.models.alert_rule import AlertRule, AlertRuleDetectionType, AlertRuleStatus
-from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.net.http import connection_from_url
 from sentry.seer.anomaly_detection.types import (
@@ -78,10 +75,7 @@ def handle_send_historical_data_to_seer(alert_rule: AlertRule, project: Project,
         raise ValidationError(f"Failed to send data to Seer - cannot {method} alert rule.")
 
 
-def send_new_rule_data(organization: Organization, alert_rule: AlertRule, project: Project) -> None:
-    if not features.has("organizations:anomaly-detection-alerts", organization):
-        alert_rule.delete()
-        raise ResourceDoesNotExist("Your organization does not have access to this feature.")
+def send_new_rule_data(alert_rule: AlertRule, project: Project) -> None:
     try:
         handle_send_historical_data_to_seer(alert_rule, project, "create")
     except (TimeoutError, MaxRetryError, ParseError, ValidationError):
@@ -92,14 +86,11 @@ def send_new_rule_data(organization: Organization, alert_rule: AlertRule, projec
 
 
 def update_rule_data(
-    organization: Organization,
     alert_rule: AlertRule,
     project: Project,
     updated_fields: dict[str, Any],
     updated_query_fields: dict[str, Any],
 ) -> None:
-    if not features.has("organizations:anomaly-detection-alerts", organization):
-        raise ResourceDoesNotExist("Your organization does not have access to this feature.")
     # if the rule previously wasn't a dynamic type but it is now, we need to send Seer data for the first time
     # OR it's dynamic but the query or aggregate is changing so we need to update the data Seer has
     if updated_fields.get("detection_type") == AlertRuleDetectionType.DYNAMIC and (

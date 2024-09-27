@@ -17,7 +17,8 @@ from django.forms import ValidationError
 from django.utils import timezone as django_timezone
 from snuba_sdk import Column, Condition, Limit, Op
 
-from sentry import analytics, audit_log, quotas
+from sentry import analytics, audit_log, features, quotas
+from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.auth.access import SystemAccess
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS, ObjectStatus
 from sentry.db.models import Model
@@ -646,8 +647,13 @@ def create_alert_rule(
             AlertRuleExcludedProjects.objects.bulk_create(exclusions)
 
         if alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC.value:
+            if not features.has("organizations:anomaly-detection-alerts", organization):
+                alert_rule.delete()
+                raise ResourceDoesNotExist(
+                    "Your organization does not have access to this feature."
+                )
             # NOTE: if adding a new metric alert type, take care to check that it's handled here
-            send_new_rule_data(organization, alert_rule, projects[0])
+            send_new_rule_data(alert_rule, projects[0])
 
         if user:
             create_audit_entry_from_user(
@@ -903,11 +909,13 @@ def update_alert_rule(
             updated_fields["team_id"] = alert_rule.team_id
 
         if detection_type == AlertRuleDetectionType.DYNAMIC:
+            if not features.has("organizations:anomaly-detection-alerts", organization):
+                raise ResourceDoesNotExist(
+                    "Your organization does not have access to this feature."
+                )
             # NOTE: if adding a new metric alert type, take care to check that it's handled here
             project = projects[0] if projects else alert_rule.projects.get()
-            update_rule_data(
-                organization, alert_rule, project, updated_fields, updated_query_fields
-            )
+            update_rule_data(alert_rule, project, updated_fields, updated_query_fields)
         else:
             # if this was a dynamic rule, delete the data in Seer
             if alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC:
