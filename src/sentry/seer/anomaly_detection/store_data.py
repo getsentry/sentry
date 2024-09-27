@@ -61,7 +61,7 @@ def _get_start_and_end_indices(data: list[TimeSeriesPoint]) -> tuple[int, int]:
     return start, end
 
 
-def handle_send_historical_data_to_seer(alert_rule, project):
+def handle_send_historical_data_to_seer(alert_rule: AlertRule, project: Project, method: str):
     try:
         rule_status = send_historical_data_to_seer(
             alert_rule=alert_rule,
@@ -71,11 +71,11 @@ def handle_send_historical_data_to_seer(alert_rule, project):
             # if we don't have at least seven days worth of data, then the dynamic alert won't fire
             alert_rule.update(status=AlertRuleStatus.NOT_ENOUGH_DATA.value)
     except (TimeoutError, MaxRetryError):
-        raise TimeoutError("Failed to send data to Seer - cannot create alert rule.")
+        raise TimeoutError(f"Failed to send data to Seer - cannot {method} alert rule.")
     except ParseError:
         raise ParseError("Failed to parse Seer store data response")
     except (ValidationError, Exception):
-        raise ValidationError("Failed to get data from Snuba")
+        raise ValidationError(f"Failed to send data to Seer - cannot {method} alert rule.")
 
 
 def send_new_rule_data(organization: Organization, alert_rule: AlertRule, project: Project) -> None:
@@ -83,7 +83,7 @@ def send_new_rule_data(organization: Organization, alert_rule: AlertRule, projec
         alert_rule.delete()
         raise ResourceDoesNotExist("Your organization does not have access to this feature.")
     try:
-        handle_send_historical_data_to_seer(alert_rule, project)
+        handle_send_historical_data_to_seer(alert_rule, project, "create")
     except (TimeoutError, MaxRetryError, ParseError, ValidationError):
         alert_rule.delete()
         raise
@@ -112,7 +112,7 @@ def update_rule_data(
         for k, v in updated_fields.items():
             setattr(alert_rule, k, v)
 
-        handle_send_historical_data_to_seer(alert_rule, project)
+        handle_send_historical_data_to_seer(alert_rule, project, "update")
 
 
 def send_historical_data_to_seer(alert_rule: AlertRule, project: Project) -> AlertRuleStatus:
