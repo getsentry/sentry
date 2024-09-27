@@ -444,6 +444,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             [
                 "organizations:incidents",
                 "organizations:performance-view",
+                "organizations:uptime-rule-api",
             ]
         ):
             request_data = {"project": [self.project.id]}
@@ -466,6 +467,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             [
                 "organizations:incidents",
                 "organizations:performance-view",
+                "organizations:uptime-rule-api",
             ]
         ):
             request_data = {"project": [self.project2.id]}
@@ -638,6 +640,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             [
                 "organizations:incidents",
                 "organizations:performance-view",
+                "organizations:uptime-rule-api",
             ]
         ):
             request_data = {
@@ -657,6 +660,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             [
                 "organizations:incidents",
                 "organizations:performance-view",
+                "organizations:uptime-rule-api",
             ]
         ):
             request_data = {
@@ -780,6 +784,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             [
                 "organizations:incidents",
                 "organizations:performance-view",
+                "organizations:uptime-rule-api",
             ]
         ):
             request_data = {
@@ -801,6 +806,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             [
                 "organizations:incidents",
                 "organizations:performance-view",
+                "organizations:uptime-rule-api",
             ]
         ):
             request_data = {
@@ -819,6 +825,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             [
                 "organizations:incidents",
                 "organizations:performance-view",
+                "organizations:uptime-rule-api",
             ]
         ):
             request_data = {
@@ -837,6 +844,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             [
                 "organizations:incidents",
                 "organizations:performance-view",
+                "organizations:uptime-rule-api",
             ]
         ):
             request_data = {
@@ -855,6 +863,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             [
                 "organizations:incidents",
                 "organizations:performance-view",
+                "organizations:uptime-rule-api",
             ]
         ):
             request_data = {
@@ -873,6 +882,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             [
                 "organizations:incidents",
                 "organizations:performance-view",
+                "organizations:uptime-rule-api",
             ]
         ):
             request_data = {
@@ -953,6 +963,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             [
                 "organizations:incidents",
                 "organizations:performance-view",
+                "organizations:uptime-rule-api",
             ]
         ):
             request_data = {
@@ -984,6 +995,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             [
                 "organizations:incidents",
                 "organizations:performance-view",
+                "organizations:uptime-rule-api",
             ]
         ):
             request_data = {
@@ -1010,6 +1022,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             [
                 "organizations:incidents",
                 "organizations:performance-view",
+                "organizations:uptime-rule-api",
             ]
         ):
             request_data = {
@@ -1035,6 +1048,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             name="Other Uptime Monitor",
             uptime_subscription=self.create_uptime_subscription(url="https://santry.io"),
         )
+        # This should NOT be included in the results
         self.create_project_uptime_subscription(
             name="Onboarding Uptime monitor",
             mode=ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING,
@@ -1045,6 +1059,14 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         response = self.client.get(
             path=self.combined_rules_url, data=request_data, content_type="application/json"
         )
+        assert response.status_code == 200, response.content
+        assert [r["id"] for r in json.loads(response.content)] == []
+
+        with self.feature("organizations:uptime-rule-api"):
+            request_data = {"name": "Uptime", "project": [self.project.id]}
+            response = self.client.get(
+                path=self.combined_rules_url, data=request_data, content_type="application/json"
+            )
         assert response.status_code == 200, response.content
         result = json.loads(response.content)
         assert [r["id"] for r in result] == [
@@ -1065,10 +1087,11 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             uptime_subscription=self.create_uptime_subscription(url="https://santry-iz-kool.io"),
         )
 
-        request_data = {"project": [self.project.id], "sort": "name"}
-        response = self.client.get(
-            path=self.combined_rules_url, data=request_data, content_type="application/json"
-        )
+        with self.feature("organizations:uptime-rule-api"):
+            request_data = {"project": [self.project.id], "sort": "name"}
+            response = self.client.get(
+                path=self.combined_rules_url, data=request_data, content_type="application/json"
+            )
         assert response.status_code == 200, response.content
         result = json.loads(response.content)
         assert [r["name"] for r in result] == [
