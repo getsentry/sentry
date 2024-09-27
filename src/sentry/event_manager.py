@@ -879,26 +879,6 @@ def _materialize_metadata_many(jobs: Sequence[Job]) -> None:
         job["culprit"] = data["culprit"]
 
 
-# TODO: This is only called in `_save_aggregate`, so when that goes, so can this (it's been
-# supplanted by `_get_group_processing_kwargs` below)
-def _get_group_creation_kwargs(job: Job | PerformanceJob) -> dict[str, Any]:
-    kwargs = {
-        "platform": job["platform"],
-        "message": job["event"].search_message,
-        "logger": job["logger_name"],
-        "level": LOG_LEVELS_MAP.get(job["level"]),
-        "last_seen": job["event"].datetime,
-        "first_seen": job["event"].datetime,
-        "active_at": job["event"].datetime,
-        "culprit": job["culprit"],
-    }
-
-    if job["release"]:
-        kwargs["first_release"] = job["release"]
-
-    return kwargs
-
-
 def _get_group_processing_kwargs(job: Job) -> dict[str, Any]:
     """
     Pull together all the metadata used when creating a group or updating a group's metadata based
