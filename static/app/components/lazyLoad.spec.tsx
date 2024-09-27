@@ -51,21 +51,14 @@ describe('LazyLoad', function () {
   it('renders with error message when promise is rejected', async function () {
     // eslint-disable-next-line no-console
     jest.spyOn(console, 'error').mockImplementation(jest.fn());
-    const getComponent = jest.fn(
-      () =>
-        new Promise<ResolvedComponent>((_resolve, reject) =>
-          reject(new Error('Could not load component'))
-        )
-    );
+    const getComponent = () => Promise.reject(new Error('Could not load component'));
 
-    try {
-      render(<LazyLoad LazyComponent={lazy(getComponent)} />);
-    } catch (err) {
-      // ignore
-    }
+    render(<LazyLoad LazyComponent={lazy(getComponent)} />);
 
     expect(
-      await screen.findByText('There was an error loading a component.')
+      await screen.findByText('There was an error loading a component.', undefined, {
+        timeout: 5000,
+      })
     ).toBeInTheDocument();
 
     // eslint-disable-next-line no-console

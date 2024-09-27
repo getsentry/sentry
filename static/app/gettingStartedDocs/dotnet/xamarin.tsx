@@ -131,11 +131,9 @@ const onboarding: OnboardingConfig = {
     {
       type: StepType.CONFIGURE,
       description: tct(
-        'Initialize the SDK as early as possible, like in the constructor of the [appCode:App], and Add [sentryXamarinFormsIntegrationCode:SentryXamarinFormsIntegration] as a new Integration to [sentryXamarinOptionsCode:SentryXamarinOptions] if you are going to run your app with Xamarin Forms:',
+        'Initialize the SDK as early as possible, like in the constructor of the [code:App], and Add [code:SentryXamarinFormsIntegration] as a new Integration to [code:SentryXamarinOptions] if you are going to run your app with Xamarin Forms:',
         {
-          appCode: <code />,
-          sentryXamarinFormsIntegrationCode: <code />,
-          sentryXamarinOptionsCode: <code />,
+          code: <code />,
         }
       ),
       configurations: [

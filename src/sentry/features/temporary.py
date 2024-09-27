@@ -4,6 +4,7 @@ from .base import (
     ProjectFeature,
     ProjectPluginFeature,
     SystemFeature,
+    UserFeature,
 )
 from .manager import FeatureManager
 
@@ -222,6 +223,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:on-demand-metrics-query-spec-version-two", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Display metrics components with a new design
     manager.add("organizations:metrics-new-inputs", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Display new Source map uploads view in settings
+    manager.add('organizations:new-source-map-uploads-view', OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Display on demand metrics related UI elements
     manager.add("organizations:on-demand-metrics-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Display on demand metrics related UI elements, for dashboards and widgets. The other flag is for alerts.
@@ -315,8 +318,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:performance-use-metrics", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=True)
     # Enable showing INP web vital in default views
     manager.add("organizations:performance-vitals-inp", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-    # Enable the GA features for priority alerts
-    manager.add("organizations:priority-ga-features", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=True, api_expose=True)
     # Enable profiling
     manager.add("organizations:profiling", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=True)
     # Enabled for those orgs who participated in the profiling Beta program
@@ -571,3 +572,9 @@ def register_temporary_features(manager: FeatureManager):
 
     manager.add("projects:profiling-ingest-unsampled-profiles", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # fmt: on
+
+    # User scoped features #
+    ###########################
+    manager.add(
+        "users:new-setup-wizard-ui", UserFeature, FeatureHandlerStrategy.INTERNAL, api_expose=True
+    )

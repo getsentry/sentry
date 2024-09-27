@@ -7,7 +7,6 @@ from sentry.api.endpoints.group_ai_summary import GroupAiSummaryEndpoint
 from sentry.api.endpoints.group_autofix_setup_check import GroupAutofixSetupCheck
 from sentry.api.endpoints.group_integration_details import GroupIntegrationDetailsEndpoint
 from sentry.api.endpoints.group_integrations import GroupIntegrationsEndpoint
-from sentry.api.endpoints.issues.related_issues import RelatedIssuesEndpoint
 from sentry.api.endpoints.org_auth_token_details import OrgAuthTokenDetailsEndpoint
 from sentry.api.endpoints.org_auth_tokens import OrgAuthTokensEndpoint
 from sentry.api.endpoints.organization_events_anomalies import OrganizationEventsAnomaliesEndpoint
@@ -182,6 +181,8 @@ from sentry.issues.endpoints import (
     GroupParticipantsEndpoint,
     GroupSimilarIssuesEmbeddingsEndpoint,
     GroupSimilarIssuesEndpoint,
+    GroupTombstoneDetailsEndpoint,
+    GroupTombstoneEndpoint,
     OrganizationGroupIndexEndpoint,
     OrganizationGroupIndexStatsEndpoint,
     OrganizationGroupSearchViewsEndpoint,
@@ -192,6 +193,7 @@ from sentry.issues.endpoints import (
     ProjectGroupIndexEndpoint,
     ProjectGroupStatsEndpoint,
     ProjectStacktraceLinkEndpoint,
+    RelatedIssuesEndpoint,
     SharedGroupDetailsEndpoint,
     ShortIdLookupEndpoint,
     SourceMapDebugEndpoint,
@@ -309,7 +311,15 @@ from sentry.sentry_apps.api.endpoints.sentry_app_publish_request import (
 )
 from sentry.sentry_apps.api.endpoints.sentry_app_requests import SentryAppRequestsEndpoint
 from sentry.sentry_apps.api.endpoints.sentry_app_rotate_secret import SentryAppRotateSecretEndpoint
+from sentry.sentry_apps.api.endpoints.sentry_app_stats_details import SentryAppStatsEndpoint
 from sentry.sentry_apps.api.endpoints.sentry_apps import SentryAppsEndpoint
+from sentry.sentry_apps.api.endpoints.sentry_apps_stats import SentryAppsStatsEndpoint
+from sentry.sentry_apps.api.endpoints.sentry_internal_app_token_details import (
+    SentryInternalAppTokenDetailsEndpoint,
+)
+from sentry.sentry_apps.api.endpoints.sentry_internal_app_tokens import (
+    SentryInternalAppTokensEndpoint,
+)
 from sentry.uptime.endpoints.project_uptime_alert_details import ProjectUptimeAlertDetailsEndpoint
 from sentry.uptime.endpoints.project_uptime_alert_index import ProjectUptimeAlertIndexEndpoint
 from sentry.users.api.endpoints.authenticator_index import AuthenticatorIndexEndpoint
@@ -393,17 +403,9 @@ from .endpoints.group_stats import GroupStatsEndpoint
 from .endpoints.group_tagkey_details import GroupTagKeyDetailsEndpoint
 from .endpoints.group_tagkey_values import GroupTagKeyValuesEndpoint
 from .endpoints.group_tags import GroupTagsEndpoint
-from .endpoints.group_tombstone import GroupTombstoneEndpoint
-from .endpoints.group_tombstone_details import GroupTombstoneDetailsEndpoint
 from .endpoints.group_user_reports import GroupUserReportsEndpoint
 from .endpoints.grouping_configs import GroupingConfigsEndpoint
 from .endpoints.index import IndexEndpoint
-from .endpoints.integrations.sentry_apps import (
-    SentryAppsStatsEndpoint,
-    SentryAppStatsEndpoint,
-    SentryInternalAppTokenDetailsEndpoint,
-    SentryInternalAppTokensEndpoint,
-)
 from .endpoints.internal import (
     InternalBeaconEndpoint,
     InternalEnvironmentEndpoint,
