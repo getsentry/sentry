@@ -2,7 +2,7 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
 
-import bannerImage from 'sentry-images/spot/ai-suggestion-banner.svg';
+import bannerImage from 'sentry-images/insights/module-upsells/insights-module-upsell.svg';
 
 import {Button} from 'sentry/components/button';
 import {
@@ -23,7 +23,7 @@ import {
 } from 'sentry/components/events/breadcrumbs/utils';
 import StructuredEventData from 'sentry/components/structuredEventData';
 import Timeline from 'sentry/components/timeline';
-import {IconArrow, IconChevron, IconCode, IconFire} from 'sentry/icons';
+import {IconArrow, IconChevron, IconCode, IconFire, IconUser} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
 import {singleLineRenderer} from 'sentry/utils/marked';
@@ -113,6 +113,8 @@ function AutofixInsightCard({
   hasCardAbove,
   repos,
 }: AutofixInsightCardProps) {
+  const isUserMessage = insight.justification === 'USER';
+
   return (
     <ContentWrapper>
       <AnimatePresence initial>
@@ -122,97 +124,114 @@ function AutofixInsightCard({
               <IconArrow direction={'down'} />
             </IconContainer>
           )}
-          <InsightContainer>
-            <MiniHeader
-              dangerouslySetInnerHTML={{
-                __html: singleLineRenderer(insight.insight),
-              }}
-            />
-            <ExpandableInsightContext title={'Context'}>
-              <p
+          {!isUserMessage && (
+            <InsightContainer>
+              <MiniHeader
                 dangerouslySetInnerHTML={{
-                  __html: singleLineRenderer(
-                    replaceHeadersWithBold(insight.justification)
-                  ),
+                  __html: singleLineRenderer(insight.insight),
                 }}
               />
-              {insight.error_message_context &&
-                insight.error_message_context.length > 0 && (
+              <ExpandableInsightContext title={'Context'}>
+                <p
+                  dangerouslySetInnerHTML={{
+                    __html: singleLineRenderer(
+                      replaceHeadersWithBold(insight.justification)
+                    ),
+                  }}
+                />
+                {insight.error_message_context &&
+                  insight.error_message_context.length > 0 && (
+                    <div>
+                      {insight.error_message_context
+                        .map((message, i) => {
+                          return (
+                            <BackgroundPanel key={i}>
+                              <ErrorMessage>
+                                <ErrorMessageIcon>
+                                  <IconFire color="red400" size="md" />
+                                </ErrorMessageIcon>
+                                <p
+                                  dangerouslySetInnerHTML={{
+                                    __html: singleLineRenderer('`' + message + '`'),
+                                  }}
+                                />
+                              </ErrorMessage>
+                            </BackgroundPanel>
+                          );
+                        })
+                        .reverse()}
+                    </div>
+                  )}
+                {insight.stacktrace_context && insight.stacktrace_context.length > 0 && (
                   <div>
-                    {insight.error_message_context
-                      .map((message, i) => {
+                    {insight.stacktrace_context
+                      .map((stacktrace, i) => {
+                        let vars = {};
+                        try {
+                          vars = JSON.parse(stacktrace.vars_as_json);
+                        } catch {
+                          vars = {vars: stacktrace.vars_as_json};
+                        }
                         return (
-                          <BackgroundPanel key={i}>
-                            <ErrorMessage>
-                              <ErrorMessageIcon>
-                                <IconFire color="red400" size="md" />
-                              </ErrorMessageIcon>
-                              <p
-                                dangerouslySetInnerHTML={{
-                                  __html: singleLineRenderer('`' + message + '`'),
-                                }}
-                              />
-                            </ErrorMessage>
-                          </BackgroundPanel>
+                          <div key={i}>
+                            <SuggestedFixSnippet
+                              snippet={{
+                                snippet: stacktrace.code_snippet,
+                                repo_name: stacktrace.repo_name,
+                                file_path: stacktrace.file_name,
+                              }}
+                              linesToHighlight={[]}
+                              repos={repos}
+                              icon={<IconFire color="red400" />}
+                            />
+                            <StyledStructuredEventData data={vars} maxDefaultDepth={1} />
+                          </div>
                         );
                       })
                       .reverse()}
                   </div>
                 )}
-              {insight.stacktrace_context && insight.stacktrace_context.length > 0 && (
-                <div>
-                  {insight.stacktrace_context
-                    .map((stacktrace, i) => {
-                      return (
-                        <div key={i}>
+                {insight.breadcrumb_context && insight.breadcrumb_context.length > 0 && (
+                  <div>
+                    {insight.breadcrumb_context
+                      .map((breadcrumb, i) => {
+                        return (
+                          <AutofixBreadcrumbSnippet key={i} breadcrumb={breadcrumb} />
+                        );
+                      })
+                      .reverse()}
+                  </div>
+                )}
+                {insight.codebase_context && insight.codebase_context.length > 0 && (
+                  <div>
+                    {insight.codebase_context
+                      .map((code, i) => {
+                        return (
                           <SuggestedFixSnippet
-                            snippet={{
-                              snippet: stacktrace.code_snippet,
-                              repo_name: stacktrace.repo_name,
-                              file_path: stacktrace.file_name,
-                            }}
+                            key={i}
+                            snippet={code}
                             linesToHighlight={[]}
                             repos={repos}
-                            icon={<IconFire color="red400" />}
+                            icon={<IconCode color="purple400" />}
                           />
-                          <StyledStructuredEventData
-                            data={JSON.parse(stacktrace.vars_as_json)}
-                            maxDefaultDepth={1}
-                          />
-                        </div>
-                      );
-                    })
-                    .reverse()}
-                </div>
-              )}
-              {insight.breadcrumb_context && insight.breadcrumb_context.length > 0 && (
-                <div>
-                  {insight.breadcrumb_context
-                    .map((breadcrumb, i) => {
-                      return <AutofixBreadcrumbSnippet key={i} breadcrumb={breadcrumb} />;
-                    })
-                    .reverse()}
-                </div>
-              )}
-              {insight.codebase_context && insight.codebase_context.length > 0 && (
-                <div>
-                  {insight.codebase_context
-                    .map((code, i) => {
-                      return (
-                        <SuggestedFixSnippet
-                          key={i}
-                          snippet={code}
-                          linesToHighlight={[]}
-                          repos={repos}
-                          icon={<IconCode color="purple400" />}
-                        />
-                      );
-                    })
-                    .reverse()}
-                </div>
-              )}
-            </ExpandableInsightContext>
-          </InsightContainer>
+                        );
+                      })
+                      .reverse()}
+                  </div>
+                )}
+              </ExpandableInsightContext>
+            </InsightContainer>
+          )}
+          {isUserMessage && (
+            <UserMessageContainer>
+              <IconUser />
+              <UserMessage
+                dangerouslySetInnerHTML={{
+                  __html: singleLineRenderer(insight.insight),
+                }}
+              />
+            </UserMessageContainer>
+          )}
           {hasCardBelow && (
             <IconContainer>
               <IconArrow direction={'down'} />
@@ -274,6 +293,17 @@ function AutofixInsightCards({
   );
 }
 
+const UserMessageContainer = styled('div')`
+  color: ${p => p.theme.subText};
+  display: flex;
+  padding: ${space(1)};
+`;
+
+const UserMessage = styled('div')`
+  margin-left: ${space(2)};
+  flex-shrink: 100;
+`;
+
 const IllustrationContainer = styled('div')`
   padding-top: ${space(4)};
 `;
@@ -312,6 +342,7 @@ const IconContainer = styled('div')`
   padding: ${space(1)};
   display: flex;
   justify-content: center;
+  color: ${p => p.theme.subText};
 `;
 
 const BreadcrumbItem = styled(Timeline.Item)`

@@ -1,7 +1,7 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
-import bannerImage from 'sentry-images/spot/ai-suggestion-banner.svg';
+import bannerImage from 'sentry-images/insights/module-upsells/insights-module-upsell.svg';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import {Breadcrumbs as NavigationBreadcrumbs} from 'sentry/components/breadcrumbs';
@@ -34,26 +34,27 @@ function AutofixStartBox({onSend}: AutofixStartBoxProps) {
 
   return (
     <StartBox>
-      <Header>Autofix is ready to start</Header>
+      <IllustrationContainer>
+        <Illustration src={bannerImage} />
+      </IllustrationContainer>
+      <Header>Ready to start</Header>
       <br />
       <p>
         We'll begin by trying to figure out the root cause, analyzing the issue details
         and the codebase. If you have any other helpful context on the issue before we
         begin, you can share that below.
       </p>
-      <Input
-        type="text"
-        value={message}
-        onChange={e => setMessage(e.target.value)}
-        placeholder={'Provide any extra context here...'}
-      />
-      <br />
-      <Button priority="primary" onClick={send}>
-        Start
-      </Button>
-      <IllustrationContainer>
-        <Illustration src={bannerImage} />
-      </IllustrationContainer>
+      <Row>
+        <Input
+          type="text"
+          value={message}
+          onChange={e => setMessage(e.target.value)}
+          placeholder={'Provide any extra context here...'}
+        />
+        <Button priority="primary" onClick={send}>
+          Start
+        </Button>
+      </Row>
     </StartBox>
   );
 }
@@ -125,8 +126,13 @@ export function AutofixDrawer({group, project, event}: AutofixDrawerProps) {
   );
 }
 
+const Row = styled('div')`
+  display: flex;
+  gap: ${space(1)};
+`;
+
 const IllustrationContainer = styled('div')`
-  padding-top: ${space(4)};
+  padding: ${space(4)} 0 ${space(4)} 0;
 `;
 
 const Illustration = styled('img')`
@@ -137,7 +143,6 @@ const StartBox = styled('div')`
   padding: ${space(2)};
   display: flex;
   flex-direction: column;
-  justify-content: center;
   height: 100%;
   width: 100%;
 `;

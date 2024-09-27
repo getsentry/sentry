@@ -3,7 +3,7 @@ import {css, keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import Alert from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import ClippedBox from 'sentry/components/clippedBox';
@@ -119,6 +119,7 @@ export function useSelectCause({groupId, runId}: {groupId: string; runId: string
           };
         }
       );
+      addSuccessMessage("Great, let's move forward with this root cause.");
     },
     onError: () => {
       addErrorMessage(t('Something went wrong when selecting the root cause.'));
