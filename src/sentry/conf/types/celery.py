@@ -34,4 +34,11 @@ class SplitQueueTaskRoute(TypedDict):
     default_queue: str
 
     # Configures the number of queues to create and to use.
-    queues_config: SplitQueueSize
+    #
+    # This can be None if we do not want to set up multiple queue in
+    # an environment. In order to use the SplitQueue router, the queue
+    # name has to be removed from the task definition, which means we
+    # must go through the router in all cases. Thus the router has
+    # to provide a default queue even if we do not want a split in an
+    # environment.
+    queues_config: SplitQueueSize | None

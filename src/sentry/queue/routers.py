@@ -89,10 +89,14 @@ class SplitQueueTaskRouter:
             assert (
                 default_destination in known_queues
             ), f"Queue {default_destination} in split queue config is not declared."
-            destinations = build_queue_names(
-                default_destination, dest_config["queues_config"]["in_use"]
-            )
-            _validate_destinations(destinations)
+            if dest_config["queues_config"] is not None:
+                destinations = build_queue_names(
+                    default_destination, dest_config["queues_config"]["in_use"]
+                )
+                _validate_destinations(destinations)
+            else:
+                destinations = [dest_config["default_queue"]]
+
             self.__task_routers[task] = TaskRoute(default_destination, cycle(destinations))
 
     def route_for_task(self, task: str, *args: Any, **kwargs: Any) -> Mapping[str, str] | None:

@@ -186,3 +186,37 @@ def test_task_rollout(
             assert router.route_for_task(task_test) == expected[2]
         finally:
             options.set("celery_split_queue_task_rollout", current_rollout)
+
+
+CELERY_NO_SPLIT_QUEUE_TASK_ROUTES: Mapping[str, SplitQueueTaskRoute] = {
+    "sentry.tasks.store.save_event_transaction": {
+        "default_queue": "events.save_event_transaction",
+        "queues_config": None,
+    }
+}
+
+
+@django_db_all
+def test_task_no_split() -> None:
+    with override_settings(
+        CELERY_SPLIT_QUEUE_TASK_ROUTES=CELERY_NO_SPLIT_QUEUE_TASK_ROUTES,
+        CELERY_QUEUES=[
+            *settings.CELERY_QUEUES,
+            *make_split_task_queues(CELERY_SPLIT_QUEUE_TASK_ROUTES),
+        ],
+    ):
+        current_rollout = options.get("celery_split_queue_task_rollout")
+        options.set(
+            "celery_split_queue_task_rollout",
+            {"sentry.tasks.store.save_event_transaction": 1.0},
+        )
+        try:
+            router = SplitQueueTaskRouter()
+            assert router.route_for_task("sentry.tasks.store.save_event_transaction") == {
+                "queue": "events.save_event_transaction"
+            }
+            assert router.route_for_task("sentry.tasks.store.save_event_transaction") == {
+                "queue": "events.save_event_transaction"
+            }
+        finally:
+            options.set("celery_split_queue_task_rollout", current_rollout)
