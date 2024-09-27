@@ -14,7 +14,7 @@ import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import PlayerDOMAlert from './playerDOMAlert';
+import UnmaskAlert from './unmaskAlert';
 
 type Dimensions = ReturnType<typeof useReplayContext>['dimensions'];
 
@@ -94,7 +94,16 @@ function BasePlayerRoot({
     isFetching,
     isFinished,
     isVideoReplay,
+    replay,
   } = useReplayContext();
+
+  const sdkOptions = replay?.getSDKOptions();
+
+  const hasDefaultMaskSettings = sdkOptions
+    ? Boolean(
+        sdkOptions.maskAllInputs && sdkOptions.maskAllText && sdkOptions.blockAllMedia
+      )
+    : true;
 
   const windowEl = useRef<HTMLDivElement>(null);
   const viewEl = useRef<HTMLDivElement>(null);
@@ -176,7 +185,9 @@ function BasePlayerRoot({
         <div ref={viewEl} className={className} data-inspectable={inspectable} />
         {fastForwardSpeed ? <PositionedFastForward speed={fastForwardSpeed} /> : null}
         {isBuffering || isVideoBuffering ? <PositionedBuffering /> : null}
-        {isPreview || isVideoReplay || isFetching ? null : <PlayerDOMAlert />}
+        {isPreview || isVideoReplay || isFetching || !hasDefaultMaskSettings ? null : (
+          <UnmaskAlert />
+        )}
         {isFetching ? <PositionedLoadingIndicator /> : null}
       </StyledNegativeSpaceContainer>
     </Fragment>
