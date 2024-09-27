@@ -41,7 +41,6 @@ type Props = {
   organization: Organization;
   router: InjectedRouter;
   selection: PageFilters;
-  title: string;
   widget: Widget;
   widgetLimitReached: boolean;
   description?: string;
@@ -55,6 +54,7 @@ type Props = {
   seriesResultsType?: Record<string, AggregationOutputType>;
   showContextMenu?: boolean;
   tableData?: TableDataWithTitle[];
+  title?: string;
   totalIssuesCount?: string;
 };
 
@@ -281,25 +281,27 @@ function WidgetCardContextMenu({
                     {t('Indexed')}
                   </SampledTag>
                 )}
-              <Tooltip
-                title={
-                  <span>
-                    <WidgetTooltipTitle>{title}</WidgetTooltipTitle>
-                    {description && (
-                      <WidgetTooltipDescription>{description}</WidgetTooltipDescription>
-                    )}
-                  </span>
-                }
-                containerDisplayMode="grid"
-                isHoverable
-              >
-                <WidgetTooltipButton
-                  aria-label={t('Widget description')}
-                  borderless
-                  size="xs"
-                  icon={<IconInfo />}
-                />
-              </Tooltip>
+              {title && (
+                <Tooltip
+                  title={
+                    <span>
+                      <WidgetTooltipTitle>{title}</WidgetTooltipTitle>
+                      {description && (
+                        <WidgetTooltipDescription>{description}</WidgetTooltipDescription>
+                      )}
+                    </span>
+                  }
+                  containerDisplayMode="grid"
+                  isHoverable
+                >
+                  <WidgetTooltipButton
+                    aria-label={t('Widget description')}
+                    borderless
+                    size="xs"
+                    icon={<IconInfo />}
+                  />
+                </Tooltip>
+              )}
               <StyledDropdownMenuControl
                 items={menuOptions}
                 triggerProps={{
