@@ -6,6 +6,7 @@ from django.conf import settings
 from django.test import override_settings
 
 from sentry import options
+from sentry.conf.types.celery import SplitQueueSize, SplitQueueTaskRoute
 from sentry.queue.routers import SplitQueueRouter, SplitQueueTaskRouter
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils.celery import make_split_queues, make_split_task_queues
@@ -66,7 +67,7 @@ def test_router_not_rolled_out() -> None:
             options.set("celery_split_queue_rollout", rollout)
 
 
-CELERY_SPLIT_QUEUE_ROUTES = {
+CELERY_SPLIT_QUEUE_ROUTES: Mapping[str, SplitQueueSize] = {
     "post_process_transactions": {"total": 5, "in_use": 3},
     "post_process_errors": {"total": 5, "in_use": 1},
 }
@@ -114,7 +115,7 @@ def test_router_rolled_out() -> None:
             options.set("celery_split_queue_rollout", rollout)
 
 
-CELERY_SPLIT_QUEUE_TASK_ROUTES = {
+CELERY_SPLIT_QUEUE_TASK_ROUTES: Mapping[str, SplitQueueTaskRoute] = {
     "sentry.tasks.store.save_event_transaction": {
         "default_queue": "events.save_event_transaction",
         "queues_config": {
