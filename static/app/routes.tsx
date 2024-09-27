@@ -15,10 +15,10 @@ import withDomainRequired from 'sentry/utils/withDomainRequired';
 import App from 'sentry/views/app';
 import AuthLayout from 'sentry/views/auth/layout';
 import {MODULE_BASE_URLS} from 'sentry/views/insights/common/utils/useModuleURL';
-import {AI_LANDING_SUB_PATH} from 'sentry/views/insights/pages/aiLandingPage';
-import {BACKEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/backendLandingPage';
+import {AI_LANDING_SUB_PATH} from 'sentry/views/insights/pages/ai/settings';
+import {BACKEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/backend/settings';
 import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/settings';
-import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobileLandingPage';
+import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settings';
 import {INSIGHTS_BASE_URL} from 'sentry/views/insights/settings';
 import {ModuleName} from 'sentry/views/insights/types';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
@@ -1644,7 +1644,7 @@ function buildRoutes() {
       <Route path={`${FRONTEND_LANDING_SUB_PATH}/`}>
         <IndexRoute
           component={make(
-            () => import('sentry/views/insights/pages/frontend/frontendLandingPage')
+            () => import('sentry/views/insights/pages/frontend/frontendOverviewPage')
           )}
         />
         <Route path={`${MODULE_BASE_URLS[ModuleName.HTTP]}/`}>
@@ -1696,18 +1696,104 @@ function buildRoutes() {
           />
         </Route>
       </Route>
-      <Route
-        path={`${BACKEND_LANDING_SUB_PATH}/`}
-        component={make(() => import('sentry/views/insights/pages/backendLandingPage'))}
-      />
-      <Route
-        path={`${MOBILE_LANDING_SUB_PATH}/`}
-        component={make(() => import('sentry/views/insights/pages/mobileLandingPage'))}
-      />
-      <Route
-        path={`${AI_LANDING_SUB_PATH}/`}
-        component={make(() => import('sentry/views/insights/pages/aiLandingPage'))}
-      />
+      <Route path={`${BACKEND_LANDING_SUB_PATH}/`}>
+        <IndexRoute
+          component={make(
+            () => import('sentry/views/insights/pages/backend/backendOverviewPage')
+          )}
+        />
+        <Route path={`${MODULE_BASE_URLS[ModuleName.DB]}/`}>
+          <IndexRoute
+            component={make(
+              () => import('sentry/views/insights/database/views/databaseLandingPage')
+            )}
+          />
+          <Route
+            path="spans/span/:groupId/"
+            component={make(
+              () => import('sentry/views/insights/database/views/databaseSpanSummaryPage')
+            )}
+          />
+        </Route>
+        <Route path={`${MODULE_BASE_URLS[ModuleName.HTTP]}/`}>
+          <IndexRoute
+            component={make(
+              () => import('sentry/views/insights/http/views/httpLandingPage')
+            )}
+          />
+          <Route
+            path="domains/"
+            component={make(
+              () => import('sentry/views/insights/http/views/httpDomainSummaryPage')
+            )}
+          />
+        </Route>
+        <Route path={`${MODULE_BASE_URLS[ModuleName.CACHE]}/`}>
+          <IndexRoute
+            component={make(
+              () => import('sentry/views/insights/cache/views/cacheLandingPage')
+            )}
+          />
+        </Route>
+        <Route path={`${MODULE_BASE_URLS[ModuleName.QUEUE]}/`}>
+          <IndexRoute
+            component={make(
+              () => import('sentry/views/insights/queues/views/queuesLandingPage')
+            )}
+          />
+          <Route
+            path="destination/"
+            component={make(
+              () => import('sentry/views/insights/queues/views/destinationSummaryPage')
+            )}
+          />
+        </Route>
+      </Route>
+      <Route path={`${MOBILE_LANDING_SUB_PATH}/`}>
+        <IndexRoute
+          component={make(
+            () => import('sentry/views/insights/pages/mobile/mobileOverviewPage')
+          )}
+        />
+        <Route path={`${MODULE_BASE_URLS[ModuleName.MOBILE_SCREENS]}/`}>
+          <IndexRoute
+            component={make(
+              () =>
+                import('sentry/views/insights/mobile/screens/views/screensLandingPage')
+            )}
+          />
+          <Route
+            path="details/"
+            component={make(
+              () => import('sentry/views/insights/mobile/screens/views/screenDetailsPage')
+            )}
+          />
+        </Route>
+      </Route>
+      <Route path={`${AI_LANDING_SUB_PATH}/`}>
+        <IndexRoute
+          component={make(() => import('sentry/views/insights/pages/ai/aiOverviewPage'))}
+        />
+        <Route path={`${MODULE_BASE_URLS[ModuleName.AI]}/`}>
+          <IndexRoute
+            component={make(
+              () =>
+                import(
+                  'sentry/views/insights/llmMonitoring/views/llmMonitoringLandingPage'
+                )
+            )}
+          />
+          <Route
+            path="pipeline-type/:groupId/"
+            component={make(
+              () =>
+                import(
+                  'sentry/views/insights/llmMonitoring/views/llmMonitoringDetailsPage'
+                )
+            )}
+          />
+        </Route>
+      </Route>
       <Route path="summary/">
         <IndexRoute
           component={make(

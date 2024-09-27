@@ -42,6 +42,8 @@ import {ThroughputChart} from 'sentry/views/insights/database/components/charts/
 import {isAValidSort} from 'sentry/views/insights/database/components/tables/queriesTable';
 import {QueryTransactionsTable} from 'sentry/views/insights/database/components/tables/queryTransactionsTable';
 import {DEFAULT_DURATION_AGGREGATE} from 'sentry/views/insights/database/settings';
+import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import type {SpanMetricsQueryFilters} from 'sentry/views/insights/types';
 import {
   ModuleName,
@@ -61,6 +63,7 @@ type Query = {
 type Props = RouteComponentProps<Query, {groupId: string}>;
 
 export function DatabaseSpanSummaryPage({params}: Props) {
+  const {isInDomainView} = useDomainViewFilters();
   const location = useLocation<Query>();
 
   const selectedAggregate = DEFAULT_DURATION_AGGREGATE;
@@ -183,24 +186,32 @@ export function DatabaseSpanSummaryPage({params}: Props) {
 
   return (
     <Fragment>
-      <Layout.Header>
-        <Layout.HeaderContent>
-          <Breadcrumbs
-            crumbs={[
-              ...crumbs,
-              {
-                label: 'Query Summary',
-              },
-            ]}
-          />
-          <Layout.Title>{t('Query Summary')}</Layout.Title>
-        </Layout.HeaderContent>
-        <Layout.HeaderActions>
-          <ButtonBar gap={1}>
-            <FeedbackWidgetButton />
-          </ButtonBar>
-        </Layout.HeaderActions>
-      </Layout.Header>
+      {!isInDomainView && (
+        <Layout.Header>
+          <Layout.HeaderContent>
+            <Breadcrumbs
+              crumbs={[
+                ...crumbs,
+                {
+                  label: 'Query Summary',
+                },
+              ]}
+            />
+            <Layout.Title>{t('Query Summary')}</Layout.Title>
+          </Layout.HeaderContent>
+          <Layout.HeaderActions>
+            <ButtonBar gap={1}>
+              <FeedbackWidgetButton />
+            </ButtonBar>
+          </Layout.HeaderActions>
+        </Layout.Header>
+      )}
+
+      {isInDomainView && (
+        <Layout.Header>
+          <BackendHeader module={ModuleName.DB} />
+        </Layout.Header>
+      )}
 
       <Layout.Body>
         <Layout.Main fullWidth>

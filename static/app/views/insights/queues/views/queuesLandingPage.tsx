@@ -22,6 +22,8 @@ import {ModulePageProviders} from 'sentry/views/insights/common/components/modul
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
 import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
+import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {LatencyChart} from 'sentry/views/insights/queues/charts/latencyChart';
 import {ThroughputChart} from 'sentry/views/insights/queues/charts/throughputChart';
 import {
@@ -34,14 +36,15 @@ import {
   MODULE_DOC_LINK,
   MODULE_TITLE,
 } from 'sentry/views/insights/queues/settings';
-import {type InsightLandingProps, ModuleName} from 'sentry/views/insights/types';
+import {ModuleName} from 'sentry/views/insights/types';
 
 const DEFAULT_SORT = {
   field: 'time_spent_percentage(app,span.duration)' as const,
   kind: 'desc' as const,
 };
 
-function QueuesLandingPage({disableHeader}: InsightLandingProps) {
+function QueuesLandingPage() {
+  const {isInDomainView} = useDomainViewFilters();
   const location = useLocation();
   const organization = useOrganization();
 
@@ -83,7 +86,7 @@ function QueuesLandingPage({disableHeader}: InsightLandingProps) {
 
   return (
     <Fragment>
-      {!disableHeader && (
+      {!isInDomainView && (
         <Layout.Header>
           <Layout.HeaderContent>
             <Breadcrumbs crumbs={crumbs} />
@@ -101,6 +104,12 @@ function QueuesLandingPage({disableHeader}: InsightLandingProps) {
               <FeedbackWidgetButton />
             </ButtonBar>
           </Layout.HeaderActions>
+        </Layout.Header>
+      )}
+
+      {isInDomainView && (
+        <Layout.Header>
+          <BackendHeader module={ModuleName.QUEUE} />
         </Layout.Header>
       )}
 
@@ -135,14 +144,14 @@ function QueuesLandingPage({disableHeader}: InsightLandingProps) {
   );
 }
 
-function PageWithProviders(props: InsightLandingProps) {
+function PageWithProviders() {
   return (
     <ModulePageProviders
       moduleName="queue"
       features="insights-addon-modules"
       analyticEventName="insight.page_loads.queue"
     >
-      <QueuesLandingPage {...props} />
+      <QueuesLandingPage />
     </ModulePageProviders>
   );
 }
