@@ -37,7 +37,14 @@ export const groupByOrganization = (
  * Returns a link to docs on explaining how to manage quotas for that event type
  */
 export function getDocsLinkForEventType(
-  event: 'error' | 'transaction' | 'attachment' | 'replay' | 'monitorSeat' | 'span'
+  event:
+    | 'error'
+    | 'transaction'
+    | 'attachment'
+    | 'replay'
+    | 'monitorSeat'
+    | 'span'
+    | 'continuousProfiling'
 ) {
   switch (event) {
     case 'transaction':
@@ -52,6 +59,9 @@ export function getDocsLinkForEventType(
       return 'https://docs.sentry.io/product/session-replay/';
     case 'monitorSeat':
       return 'https://docs.sentry.io/product/crons/';
+    case 'continuousProfiling':
+      // TODO: Update this link when documentation for continuous profiles are released
+      return 'https://docs.sentry.io/product/continuous-profiles/';
     default:
       return 'https://docs.sentry.io/product/accounts/quotas/manage-event-stream-guide/#common-workflows-for-managing-your-event-stream';
   }
