@@ -40,7 +40,7 @@ export function TracesSearchBar({
 
   // Since trace explorer permits cross project searches,
   // autocompletion should also be cross projects.
-  const supportedTags = useSpanFieldSupportedTags();
+  const {data: supportedTags} = useSpanFieldSupportedTags();
 
   return (
     <TraceSearchBarsContainer>

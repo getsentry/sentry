@@ -66,7 +66,7 @@ export function CacheSamplePanel() {
   const location = useLocation();
   const organization = useOrganization();
   const {selection} = usePageFilters();
-  const supportedTags = useSpanFieldSupportedTags({
+  const {data: supportedTags} = useSpanFieldSupportedTags({
     excludedTags: [SpanIndexedField.CACHE_HIT],
   });
 

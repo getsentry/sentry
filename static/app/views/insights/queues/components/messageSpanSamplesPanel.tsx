@@ -70,7 +70,7 @@ export function MessageSpanSamplesPanel() {
   });
   const {projects} = useProjects();
   const {selection} = usePageFilters();
-  const supportedTags = useSpanFieldSupportedTags({
+  const {data: supportedTags} = useSpanFieldSupportedTags({
     excludedTags: [
       SpanIndexedField.TRACE_STATUS,
       SpanIndexedField.MESSAGING_MESSAGE_RETRY_COUNT,

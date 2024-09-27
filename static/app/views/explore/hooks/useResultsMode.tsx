@@ -27,7 +27,7 @@ function useResultModeImpl({
   navigate,
 }: Options): [ResultMode, (newMode: ResultMode) => void] {
   const [sampleFields] = useSampleFields();
-  const [groupBys] = useGroupBys();
+  const {groupBys} = useGroupBys();
 
   const resultMode: ResultMode = useMemo(() => {
     const rawMode = decodeScalar(location.query.mode);

@@ -85,7 +85,7 @@ export function SampleList({
   const {projects} = useProjects();
 
   const spanSearchQuery = decodeScalar(location.query.spanSearchQuery);
-  const supportedTags = useSpanFieldSupportedTags();
+  const {data: supportedTags} = useSpanFieldSupportedTags();
 
   const project = useMemo(
     () => projects.find(p => p.id === String(location.query.project)),

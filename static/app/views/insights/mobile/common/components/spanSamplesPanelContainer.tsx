@@ -70,7 +70,7 @@ export function SpanSamplesContainer({
 
   const organization = useOrganization();
   const {selection} = usePageFilters();
-  const supportedTags = useSpanFieldSupportedTags();
+  const {data: supportedTags} = useSpanFieldSupportedTags();
 
   const searchQuery =
     searchQueryKey !== undefined
