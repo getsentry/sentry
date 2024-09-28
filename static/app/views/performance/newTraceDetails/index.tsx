@@ -79,6 +79,7 @@ import {
   useTraceStateDispatch,
   useTraceStateEmitter,
 } from './traceState/traceStateProvider';
+import {TraceTypeWarnings} from './traceTypeWarnings/traceTypeWarnings';
 import {Trace} from './trace';
 import {traceAnalytics} from './traceAnalytics';
 import {isTraceNode} from './traceGuards';
@@ -89,7 +90,6 @@ import {
   traceNodeAdjacentAnalyticsProperties,
   traceNodeAnalyticsName,
 } from './traceTreeAnalytics';
-import TraceTypeWarnings from './traceTypeWarnings';
 import {useTraceQueryParamStateSync} from './useTraceQueryParamStateSync';
 import {useTraceScrollToEventOnLoad} from './useTraceScrollToEventOnLoad';
 import {useTraceScrollToPath} from './useTraceScrollToPath';

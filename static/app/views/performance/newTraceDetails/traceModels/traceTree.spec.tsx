@@ -2162,7 +2162,7 @@ describe('TraceTree', () => {
       expect(root.children.length).toBe(1);
       const autogroupedNode = root.children[0];
       assertSiblingAutogroupedNode(autogroupedNode);
-      expect(autogroupedNode.has_errors).toBe(true);
+      expect(autogroupedNode.hasErrors).toBe(true);
       expect(autogroupedNode.errors.size).toBe(5);
       expect(autogroupedNode.performance_issues.size).toBe(5);
     });
@@ -2323,7 +2323,7 @@ describe('TraceTree', () => {
       expect(root.children.length).toBe(1);
 
       assertAutogroupedNode(root.children[0]);
-      expect(root.children[0].has_errors).toBe(true);
+      expect(root.children[0].hasErrors).toBe(true);
       expect(root.children[0].errors.size).toBe(3);
       expect(root.children[0].performance_issues.size).toBe(3);
     });

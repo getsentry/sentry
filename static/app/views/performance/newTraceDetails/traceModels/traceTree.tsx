@@ -124,7 +124,6 @@ import {cloneTraceTreeNode} from './traceTreeNodeHelpers';
  * - there is an annoying thing wrt span and transaction nodes where we either store data on _children or _spanChildren
  *   this is because we want to be able to store both transaction and span nodes in the same tree, but it makes for an
  *   annoying API. A better design would have been to create an invisible meta node that just points to the correct children
- * - instead of storing span children separately, we should have meta tree nodes that handle pointing to the correct children
  */
 
 type ArgumentTypes<F> = F extends (...args: infer A) => any ? A : never;
@@ -220,10 +219,6 @@ export type ViewManagerScrollToOptions = {
   organization: Organization;
 };
 
-function cacheKey(organization: Organization, project_slug: string, event_id: string) {
-  return organization.slug + ':' + project_slug + ':' + event_id;
-}
-
 function fetchTransactionSpans(
   api: Client,
   organization: Organization,
@@ -270,7 +265,7 @@ function childParentSwap({
 
   // We need to remove the portion of the tree that was previously a child, else we will have a circular reference
   parent.parent = child;
-  child.children.push(parent.filter(parent, n => n !== child));
+  child.children.push(TraceTreeNode.Filter(parent, n => n !== child));
 
   child.reparent_reason = reason;
   parent.reparent_reason = reason;
@@ -462,6 +457,10 @@ export class TraceTree {
 
   private _spanPromises: Map<string, Promise<Event>> = new Map();
   private _list: TraceTreeNode<TraceTree.NodeValue>[] = [];
+
+  get list(): ReadonlyArray<TraceTreeNode<TraceTree.NodeValue>> {
+    return this._list;
+  }
 
   static Empty() {
     const tree = new TraceTree().build();
@@ -1260,7 +1259,7 @@ export class TraceTree {
               start_timestamp = child.value.start_timestamp;
             }
 
-            if (child.has_errors) {
+            if (child.hasErrors) {
               for (const error of child.errors) {
                 autoGroupedNode.errors.add(error);
               }
@@ -1537,13 +1536,14 @@ export class TraceTree {
       return Promise.resolve(null);
     }
 
-    const key = cacheKey(
-      options.organization,
+    const cacheKey = [
+      options.organization.slug,
       node.metadata.project_slug!,
-      node.metadata.event_id!
-    );
+      node.metadata.event_id!,
+    ].join(':');
+
     const promise =
-      this._spanPromises.get(key) ??
+      this._spanPromises.get(cacheKey) ??
       fetchTransactionSpans(
         options.api,
         options.organization,
@@ -1631,7 +1631,7 @@ export class TraceTree {
         node.fetchStatus = 'error';
       });
 
-    this._spanPromises.set(key, promise);
+    this._spanPromises.set(cacheKey, promise);
     return promise;
   }
 
@@ -1655,10 +1655,6 @@ export class TraceTree {
     }
 
     return list;
-  }
-
-  get list(): ReadonlyArray<TraceTreeNode<TraceTree.NodeValue>> {
-    return this._list;
   }
 
   listeners: TraceTree.EventStore = {

@@ -30,10 +30,8 @@ export class ParentAutogroupNode extends TraceTreeNode<TraceTree.ChildrenAutogro
     return this.tail.children;
   }
 
-  get has_errors(): boolean {
-    return this.errors.size > 0 || this.performance_issues.size > 0;
-  }
-
+  // For parent autogroup nodes, in order to compute the bar segments, we need
+  // to look at all of the children from head to tail.
   get autogroupedSegments(): [number, number][] {
     if (this._autogroupedSegments) {
       return this._autogroupedSegments;

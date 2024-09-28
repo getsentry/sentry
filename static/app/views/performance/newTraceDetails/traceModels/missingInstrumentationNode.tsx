@@ -3,6 +3,8 @@ import {isSpanNode} from '../traceGuards';
 import type {TraceTree} from './traceTree';
 import {TraceTreeNode} from './traceTreeNode';
 
+// A missing instrumentation node is just a node that is inserted between spans
+// to indicate that there is a gap between spans.
 export class MissingInstrumentationNode extends TraceTreeNode<TraceTree.MissingInstrumentationSpan> {
   next: TraceTreeNode<TraceTree.Span>;
   previous: TraceTreeNode<TraceTree.Span>;

@@ -27,15 +27,15 @@ function partialTransaction(
   };
 }
 
+function randomBetween(min: number, max: number) {
+  return Math.floor(Math.random() * (max - min + 1) + min);
+}
+
 export function makeExampleTrace(metadata: TraceTree.Metadata): TraceTree {
   const trace: TraceTree.Trace = {
     transactions: [],
     orphan_errors: [],
   };
-
-  function randomBetween(min: number, max: number) {
-    return Math.floor(Math.random() * (max - min + 1) + min);
-  }
 
   let start = new Date().getTime();
 
@@ -49,6 +49,7 @@ export function makeExampleTrace(metadata: TraceTree.Metadata): TraceTree {
 
   trace.transactions.push(root);
 
+  // Create 50 transactions with random durations and 33% chance of a nested transaction
   for (let i = 0; i < 50; i++) {
     const end = start + randomBetween(100, 200);
     const nest = i > 0 && Math.random() > 0.33;
@@ -81,7 +82,5 @@ export function makeExampleTrace(metadata: TraceTree.Metadata): TraceTree {
     start = end;
   }
 
-  const tree = TraceTree.FromTrace(trace, null, null);
-
-  return tree;
+  return TraceTree.FromTrace(trace, null, null);
 }

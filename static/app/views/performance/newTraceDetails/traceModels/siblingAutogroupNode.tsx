@@ -16,15 +16,10 @@ export class SiblingAutogroupNode extends TraceTreeNode<TraceTree.SiblingAutogro
     this.expanded = false;
   }
 
-  get has_errors(): boolean {
-    return this.errors.size > 0 || this.performance_issues.size > 0;
-  }
-
   get autogroupedSegments(): [number, number][] {
     if (this._autogroupedSegments) {
       return this._autogroupedSegments;
     }
-
     this._autogroupedSegments = computeAutogroupedBarSegments(this.children);
     return this._autogroupedSegments;
   }

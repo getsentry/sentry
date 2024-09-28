@@ -22,7 +22,7 @@ export function TraceSpanRow(props: TraceRowProps<TraceTreeNode<TraceTree.Span>>
           : null
       }
       tabIndex={props.tabIndex}
-      className={`TraceRow ${props.rowSearchClassName} ${props.node.has_errors ? props.node.max_severity : ''}`}
+      className={`TraceRow ${props.rowSearchClassName} ${props.node.hasErrors ? props.node.maxErrorSeverity : ''}`}
       onClick={props.onRowClick}
       onKeyDown={props.onRowKeyDown}
       style={props.style}

@@ -24,7 +24,7 @@ export function TraceTransactionRow(
           : null
       }
       tabIndex={props.tabIndex}
-      className={`TraceRow ${props.rowSearchClassName} ${props.node.has_errors ? props.node.max_severity : ''}`}
+      className={`TraceRow ${props.rowSearchClassName} ${props.node.hasErrors ? props.node.maxErrorSeverity : ''}`}
       onKeyDown={props.onRowKeyDown}
       onClick={props.onRowClick}
       style={props.style}

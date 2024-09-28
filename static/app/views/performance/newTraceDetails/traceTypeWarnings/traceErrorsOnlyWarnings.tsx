@@ -16,17 +16,17 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
 
 import {traceAnalytics} from '../traceAnalytics';
+import {usePerformanceUsageStats} from '../traceApi/usePerformanceUsageStats';
 import type {TraceTree} from '../traceModels/traceTree';
 import {TraceShape} from '../traceModels/traceTree';
 
-import {TraceWarningComponents} from './styles';
-import {usePerformanceUsageStats} from './usePerformanceUsageStats';
+import {TraceBanner} from './traceBanner';
 
-type ErrorOnlyWarningsProps = {
+interface TraceErrorOnlyWarningsProps {
   organization: Organization;
   traceSlug: string | undefined;
   tree: TraceTree;
-};
+}
 
 function filterProjects(projects: Project[], tree: TraceTree) {
   const projectsWithNoPerformance: Project[] = [];
@@ -46,10 +46,10 @@ function filterProjects(projects: Project[], tree: TraceTree) {
   return {projectsWithNoPerformance, projectsWithOnboardingChecklist};
 }
 
-type PerformanceSetupBannerProps = {
+interface PerformanceSetupBannerProps extends TraceErrorOnlyWarningsProps {
   projectsWithNoPerformance: Project[];
   projectsWithOnboardingChecklist: Project[];
-} & ErrorOnlyWarningsProps;
+}
 
 function PerformanceSetupBanner({
   traceSlug,
@@ -95,7 +95,7 @@ function PerformanceSetupBanner({
   }
 
   return (
-    <TraceWarningComponents.Banner
+    <TraceBanner
       title={t('Your setup is incomplete')}
       description={t(
         'Want to know why this string of errors happened? Configure tracing for your SDKs to see correlated events accross your services.'
@@ -144,7 +144,7 @@ type Subscription = {
   };
 };
 
-function PerformanceQuotaExceededWarning(props: ErrorOnlyWarningsProps) {
+function PerformanceQuotaExceededWarning(props: TraceErrorOnlyWarningsProps) {
   const {data: performanceUsageStats} = usePerformanceUsageStats({
     organization: props.organization,
     tree: props.tree,
@@ -200,7 +200,7 @@ function PerformanceQuotaExceededWarning(props: ErrorOnlyWarningsProps) {
     : t('Increase Volumes');
 
   return (
-    <TraceWarningComponents.Banner
+    <TraceBanner
       localStorageKey={`${props.traceSlug}:transaction-usage-warning-banner-hide`}
       organization={props.organization}
       image={emptyTraceImg}
@@ -235,11 +235,11 @@ function PerformanceQuotaExceededWarning(props: ErrorOnlyWarningsProps) {
   );
 }
 
-export function ErrorsOnlyWarnings({
+export function TraceErrorsOnlyWarnings({
   traceSlug,
   tree,
   organization,
-}: ErrorOnlyWarningsProps) {
+}: TraceErrorOnlyWarningsProps) {
   const {projects} = useProjects();
 
   const {projectsWithNoPerformance, projectsWithOnboardingChecklist} = useMemo(() => {

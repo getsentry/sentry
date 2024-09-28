@@ -28,7 +28,7 @@ export function useTraceScrollToPath(
     {eventId?: string; path?: TraceTree.NodePath[]} | null | undefined
   >(undefined);
 
-  // If we havent decoded anything yet, then decode the path
+  // If we havent decoded anything yet, then decode the path.
   if (scrollQueueRef.current === undefined) {
     let scrollToNode: UseTraceScrollToPath = path;
 

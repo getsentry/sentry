@@ -36,7 +36,7 @@ export function TraceErrorRow(props: TraceRowProps<TraceTreeNode<TraceTree.Trace
           : null
       }
       tabIndex={props.tabIndex}
-      className={`TraceRow ${props.rowSearchClassName} ${props.node.max_severity}`}
+      className={`TraceRow ${props.rowSearchClassName} ${props.node.maxErrorSeverity}`}
       onClick={props.onRowClick}
       onKeyDown={props.onRowKeyDown}
       style={props.style}

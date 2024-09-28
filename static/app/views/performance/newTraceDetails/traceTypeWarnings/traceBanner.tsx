@@ -20,7 +20,7 @@ type BannerProps = {
   title: React.ReactNode;
 };
 
-function Banner(props: BannerProps) {
+export function TraceBanner(props: BannerProps) {
   const {dismiss: snooze, isDismissed: isSnoozed} = useDismissAlert({
     key: props.localStorageKey,
     expirationDays: 7,
@@ -156,10 +156,3 @@ const ActionButton = styled('div')`
   display: flex;
   gap: ${space(1)};
 `;
-
-const TraceWarningComponents = {
-  Banner,
-  BannerBackground,
-};
-
-export {TraceWarningComponents};
