@@ -10,6 +10,7 @@ from django.db import router, transaction
 from django.test.utils import override_settings
 from httpx import HTTPError
 from rest_framework import status
+from rest_framework.exceptions import ErrorDetail
 from urllib3.exceptions import MaxRetryError, TimeoutError
 from urllib3.response import HTTPResponse
 
@@ -316,7 +317,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
                     "fingerprint": ["group1"],
                     "tags": {"sentry:user": self.user.email},
                 },
-                event_type=EventType.ERROR,
+                default_event_type=EventType.ERROR,
                 project_id=self.project.id,
             )
             self.store_event(
@@ -327,7 +328,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
                     "fingerprint": ["group2"],
                     "tags": {"sentry:user": self.user.email},
                 },
-                event_type=EventType.ERROR,
+                default_event_type=EventType.ERROR,
                 project_id=self.project.id,
             )
 
@@ -400,7 +401,10 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
                 **data,
             )
         assert not AlertRule.objects.filter(detection_type=AlertRuleDetectionType.DYNAMIC).exists()
-        assert resp.data["detail"]["message"] == "Invalid request"
+        assert resp.data[0] == ErrorDetail(
+            string="Failed to send data to Seer - cannot create alert rule.", code="invalid"
+        )
+
         assert mock_seer_request.call_count == 1
 
     @with_feature("organizations:anomaly-detection-alerts")

@@ -144,6 +144,7 @@ function CustomViewsIssueListHeaderTabsContent({
         label: name,
         query: viewQuery,
         querySort: viewQuerySort,
+        isCommitted: true,
       };
     }
   );
@@ -177,6 +178,7 @@ function CustomViewsIssueListHeaderTabsContent({
           label: t('Unsaved'),
           query: query,
           querySort: sort ?? IssueSortOptions.DATE,
+          isCommitted: true,
         }
       : undefined
   );
@@ -189,14 +191,18 @@ function CustomViewsIssueListHeaderTabsContent({
         if (newTabs) {
           updateViews({
             orgSlug: organization.slug,
-            groupSearchViews: newTabs.map(tab => ({
-              // Do not send over an ID if it's a temporary or default tab so that
-              // the backend will save these and generate permanent Ids for them
-              ...(tab.id[0] !== '_' && !tab.id.startsWith('default') ? {id: tab.id} : {}),
-              name: tab.label,
-              query: tab.query,
-              querySort: tab.querySort,
-            })),
+            groupSearchViews: newTabs
+              .filter(tab => tab.isCommitted)
+              .map(tab => ({
+                // Do not send over an ID if it's a temporary or default tab so that
+                // the backend will save these and generate permanent Ids for them
+                ...(tab.id[0] !== '_' && !tab.id.startsWith('default')
+                  ? {id: tab.id}
+                  : {}),
+                name: tab.label,
+                query: tab.query,
+                querySort: tab.querySort,
+              })),
           });
         }
       }, 500),
@@ -329,7 +335,7 @@ function CustomViewsIssueListHeaderTabsContent({
 
   useEffect(() => {
     if (viewId?.startsWith('_')) {
-      if (draggableTabs.find(tab => tab.id === viewId)?.label.endsWith('(Copy)')) {
+      if (draggableTabs.find(tab => tab.id === viewId)?.isCommitted) {
         return;
       }
       // If the user types in query manually while the new view flow is showing,
@@ -342,6 +348,7 @@ function CustomViewsIssueListHeaderTabsContent({
             ? {
                 ...tab,
                 unsavedChanges: [query, sort ?? IssueSortOptions.DATE],
+                isCommitted: true,
               }
             : tab
         );

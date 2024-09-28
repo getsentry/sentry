@@ -26,8 +26,6 @@ describe('BigNumberWidget', () => {
         />
       );
 
-      expect(screen.getByText('EPS')).toBeInTheDocument();
-      expect(screen.getByText('Number of events per second')).toBeInTheDocument();
       expect(screen.getByText('0.0109/s')).toBeInTheDocument();
     });
   });

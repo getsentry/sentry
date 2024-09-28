@@ -45,9 +45,8 @@ export function AggregatesTable({}: AggregatesTableProps) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const topEvents = useTopEvents();
-
   const [dataset] = useDataset();
-  const [groupBys] = useGroupBys();
+  const {groupBys, isLoadingGroupBys} = useGroupBys();
   const [visualizes] = useVisualizes();
   const fields = useMemo(() => {
     return [...groupBys, ...visualizes.flatMap(visualize => visualize.yAxes)].filter(
@@ -75,6 +74,7 @@ export function AggregatesTable({}: AggregatesTableProps) {
     eventView,
     initialData: [],
     referrer: 'api.explore.spans-aggregates-table',
+    enabled: !isLoadingGroupBys,
   });
 
   const {tableStyles} = useTableStyles({
