@@ -241,7 +241,7 @@ yarn.lock                                                @getsentry/owners-js-de
 
 /tests/snuba/search/test_backend.py                                         @getsentry/visibility
 
-/src/sentry/search/events/                                                  @getsentry/visibility @getsentry/issues
+/src/sentry/search/events/                                                  @getsentry/visibility
 
 /src/sentry/utils/performance_issues/                                       @getsentry/performance
 
@@ -519,6 +519,8 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 /src/sentry/grouping/                                       @getsentry/issues
 /src/sentry/mediators/                                      @getsentry/issues
 /src/sentry/ratelimits/                                     @getsentry/issues
+/src/sentry/search/events/builder/issue_platform.py         @getsentry/issues
+/src/sentry/search/events/builder/errors.py                 @getsentry/issues
 /src/sentry/search/snuba/                                   @getsentry/issues
 /src/sentry/seer/similarity/                                @getsentry/issues
 /src/sentry/tasks/auto_ongoing_issues.py                    @getsentry/issues
