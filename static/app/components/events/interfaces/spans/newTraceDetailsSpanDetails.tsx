@@ -41,10 +41,8 @@ import {FrameContainer} from 'sentry/views/insights/database/components/stackTra
 import {ModuleName} from 'sentry/views/insights/types';
 import {IssueList} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/issues/issues';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
-import type {
-  TraceTree,
-  TraceTreeNode,
-} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 import {getTraceTabTitle} from 'sentry/views/performance/newTraceDetails/traceState/traceTabs';
 import {GeneralSpanDetailsValue} from 'sentry/views/performance/traceDetails/newTraceDetailsValueRenderer';
 import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';

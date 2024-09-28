@@ -14,14 +14,12 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
-import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
-import type {
-  TraceTree,
-  TraceTreeNode,
-} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
 import {ProfileContext, ProfilesProvider} from 'sentry/views/profiling/profilesProvider';
 
+import type {TraceTreeNodeDetailsProps} from '../../../traceDrawer/tabs/traceTreeNodeDetails';
+import type {TraceTree} from '../../../traceModels/traceTree';
+import type {TraceTreeNode} from '../../../traceModels/traceTreeNode';
 import {TraceDrawerComponents} from '.././styles';
 import {IssueList} from '../issues/issues';
 

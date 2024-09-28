@@ -44,31 +44,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
-import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
-import {
-  TraceEventPriority,
-  type TraceEvents,
-  TraceScheduler,
-} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceScheduler';
-import {TraceView as TraceViewModel} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceView';
-import {
-  type ViewManagerScrollAnchor,
-  VirtualizedViewManager,
-} from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
-import {
-  searchInTraceTreeText,
-  searchInTraceTreeTokens,
-} from 'sentry/views/performance/newTraceDetails/traceSearch/traceSearchEvaluator';
-import {parseTraceSearch} from 'sentry/views/performance/newTraceDetails/traceSearch/traceTokenConverter';
-import {TraceShortcuts} from 'sentry/views/performance/newTraceDetails/traceShortcutsModal';
-import {
-  TraceStateProvider,
-  useTraceState,
-  useTraceStateDispatch,
-  useTraceStateEmitter,
-} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
-import {useTraceScrollToEventOnLoad} from 'sentry/views/performance/newTraceDetails/useTraceScrollToEventOnLoad';
-import {useTraceScrollToPath} from 'sentry/views/performance/newTraceDetails/useTraceScrollToPath';
 import type {ReplayTrace} from 'sentry/views/replays/detail/trace/useReplayTraces';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
@@ -76,24 +51,48 @@ import {useTrace} from './traceApi/useTrace';
 import {type TraceMetaQueryResults, useTraceMeta} from './traceApi/useTraceMeta';
 import {useTraceRootEvent} from './traceApi/useTraceRootEvent';
 import {TraceDrawer} from './traceDrawer/traceDrawer';
+import {TraceShape, TraceTree} from './traceModels/traceTree';
+import type {TraceTreeNode} from './traceModels/traceTreeNode';
 import {
-  traceNodeAdjacentAnalyticsProperties,
-  traceNodeAnalyticsName,
-  TraceTree,
-  type TraceTreeNode,
-} from './traceModels/traceTree';
+  TraceEventPriority,
+  type TraceEvents,
+  TraceScheduler,
+} from './traceRenderers/traceScheduler';
+import {TraceView as TraceViewModel} from './traceRenderers/traceView';
+import {
+  type ViewManagerScrollAnchor,
+  VirtualizedViewManager,
+} from './traceRenderers/virtualizedViewManager';
+import {
+  searchInTraceTreeText,
+  searchInTraceTreeTokens,
+} from './traceSearch/traceSearchEvaluator';
 import {TraceSearchInput} from './traceSearch/traceSearchInput';
+import {parseTraceSearch} from './traceSearch/traceTokenConverter';
 import {
   DEFAULT_TRACE_VIEW_PREFERENCES,
   loadTraceViewPreferences,
 } from './traceState/tracePreferences';
-import {isTraceNode} from './guards';
+import {
+  TraceStateProvider,
+  useTraceState,
+  useTraceStateDispatch,
+  useTraceStateEmitter,
+} from './traceState/traceStateProvider';
 import {Trace} from './trace';
+import {traceAnalytics} from './traceAnalytics';
+import {isTraceNode} from './traceGuards';
 import {TraceMetadataHeader} from './traceMetadataHeader';
+import {TraceShortcuts} from './traceShortcutsModal';
 import type {TraceReducer, TraceReducerState} from './traceState';
-import {TraceType} from './traceType';
+import {
+  traceNodeAdjacentAnalyticsProperties,
+  traceNodeAnalyticsName,
+} from './traceTreeAnalytics';
 import TraceTypeWarnings from './traceTypeWarnings';
 import {useTraceQueryParamStateSync} from './useTraceQueryParamStateSync';
+import {useTraceScrollToEventOnLoad} from './useTraceScrollToEventOnLoad';
+import {useTraceScrollToPath} from './useTraceScrollToPath';
 
 function logTraceMetadata(
   tree: TraceTree,
@@ -101,13 +100,13 @@ function logTraceMetadata(
   organization: Organization
 ) {
   switch (tree.shape) {
-    case TraceType.BROKEN_SUBTRACES:
-    case TraceType.EMPTY_TRACE:
-    case TraceType.MULTIPLE_ROOTS:
-    case TraceType.ONE_ROOT:
-    case TraceType.NO_ROOT:
-    case TraceType.ONLY_ERRORS:
-    case TraceType.BROWSER_MULTIPLE_ROOTS:
+    case TraceShape.BROKEN_SUBTRACES:
+    case TraceShape.EMPTY_TRACE:
+    case TraceShape.MULTIPLE_ROOTS:
+    case TraceShape.ONE_ROOT:
+    case TraceShape.NO_ROOT:
+    case TraceShape.ONLY_ERRORS:
+    case TraceShape.BROWSER_MULTIPLE_ROOTS:
       traceAnalytics.trackTraceMetadata(tree, projects, organization);
       break;
     default: {
@@ -348,7 +347,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
 
       // Root frame + 2 nodes
       const promises: Promise<void>[] = [];
-      if (trace.list.length < 4) {
+      if (trace.list.length <= 3) {
         for (const c of trace.list) {
           if (c.canFetch) {
             promises.push(trace.zoomIn(c, true, {api, organization}).then(rerender));

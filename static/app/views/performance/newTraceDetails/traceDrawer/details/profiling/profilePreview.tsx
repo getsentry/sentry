@@ -26,13 +26,12 @@ import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/ro
 import {Rect} from 'sentry/utils/profiling/speedscope';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import type {
-  MissingInstrumentationNode,
-  TraceTree,
-  TraceTreeNode,
-} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
 import {useProfiles} from 'sentry/views/profiling/profilesProvider';
+
+import type {MissingInstrumentationNode} from '../../../traceModels/missingInstrumentationNode';
+import type {TraceTree} from '../../../traceModels/traceTree';
+import type {TraceTreeNode} from '../../../traceModels/traceTreeNode';
 
 interface SpanProfileProps {
   event: Readonly<EventTransaction>;

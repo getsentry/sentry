@@ -6,12 +6,10 @@ import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {resolveSpanModule} from 'sentry/views/insights/common/utils/resolveSpanModule';
 import {ModuleName} from 'sentry/views/insights/types';
-import type {
-  TraceTree,
-  TraceTreeNode,
-} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
 
+import type {TraceTree} from '../../../../traceModels/traceTree';
+import type {TraceTreeNode} from '../../../../traceModels/traceTreeNode';
 import {type SectionCardKeyValueList, TraceDrawerComponents} from '../../styles';
 
 import {getSpanAncestryAndGroupingItems} from './ancestry';

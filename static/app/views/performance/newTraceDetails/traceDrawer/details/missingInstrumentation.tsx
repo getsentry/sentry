@@ -5,16 +5,14 @@ import {t} from 'sentry/locale';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
 import useProjects from 'sentry/utils/useProjects';
-import {ProfilePreview} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/profiling/profilePreview';
-import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
-import {getTraceTabTitle} from 'sentry/views/performance/newTraceDetails/traceState/traceTabs';
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
 import {ProfileContext, ProfilesProvider} from 'sentry/views/profiling/profilesProvider';
 
-import {
-  makeTraceNodeBarColor,
-  type MissingInstrumentationNode,
-} from '../../traceModels/traceTree';
+import {ProfilePreview} from '../../traceDrawer/details/profiling/profilePreview';
+import type {TraceTreeNodeDetailsProps} from '../../traceDrawer/tabs/traceTreeNodeDetails';
+import type {MissingInstrumentationNode} from '../../traceModels/missingInstrumentationNode';
+import {makeTraceNodeBarColor} from '../../traceModels/traceTree';
+import {getTraceTabTitle} from '../../traceState/traceTabs';
 
 import {type SectionCardKeyValueList, TraceDrawerComponents} from './styles';
 

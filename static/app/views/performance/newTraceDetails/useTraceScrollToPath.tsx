@@ -1,10 +1,8 @@
 import {useRef} from 'react';
 import * as qs from 'query-string';
 
-import type {
-  TraceTree,
-  TraceTreeNode,
-} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {TraceTree} from './traceModels/traceTree';
+import type {TraceTreeNode} from './traceModels/traceTreeNode';
 
 function decodeScrollQueue(maybePath: unknown): TraceTree.NodePath[] | null {
   if (Array.isArray(maybePath)) {

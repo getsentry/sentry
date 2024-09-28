@@ -17,9 +17,10 @@ import type RequestError from 'sentry/utils/requestError/requestError';
 import {useParams} from 'sentry/utils/useParams';
 import {SpanTimeRenderer} from 'sentry/views/traces/fieldRenderers';
 
-import {isTraceNode} from '../../../guards';
 import type {TraceMetaQueryResults} from '../../../traceApi/useTraceMeta';
-import type {TraceTree, TraceTreeNode} from '../../../traceModels/traceTree';
+import {isTraceNode} from '../../../traceGuards';
+import type {TraceTree} from '../../../traceModels/traceTree';
+import type {TraceTreeNode} from '../../../traceModels/traceTreeNode';
 import {type SectionCardKeyValueList, TraceDrawerComponents} from '../../details/styles';
 
 type GeneralInfoProps = {

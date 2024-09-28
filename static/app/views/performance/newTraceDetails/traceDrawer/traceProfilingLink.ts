@@ -2,14 +2,10 @@ import type {Location, LocationDescriptor} from 'history';
 
 import {getDateFromTimestamp} from 'sentry/utils/dates';
 import {generateContinuousProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
-import {
-  isSpanNode,
-  isTransactionNode,
-} from 'sentry/views/performance/newTraceDetails/guards';
-import type {
-  TraceTree,
-  TraceTreeNode,
-} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+
+import {isSpanNode, isTransactionNode} from '../traceGuards';
+import type {TraceTree} from '../traceModels/traceTree';
+import type {TraceTreeNode} from '../traceModels/traceTreeNode';
 
 function getNodeId(node: TraceTreeNode<TraceTree.NodeValue>): string | undefined {
   if (isTransactionNode(node)) {

@@ -1,21 +1,19 @@
 import {Fragment} from 'react';
 
 import {t} from 'sentry/locale';
-import {isTraceNode} from 'sentry/views/performance/newTraceDetails/guards';
-import {TraceIcons} from 'sentry/views/performance/newTraceDetails/icons';
-import {
-  makeTraceNodeBarColor,
-  type TraceTree,
-  type TraceTreeNode,
-} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import {TraceBar} from 'sentry/views/performance/newTraceDetails/traceRow/traceBar';
+
+import {isTraceNode} from '../traceGuards';
+import {TraceIcons} from '../traceIcons';
+import {makeTraceNodeBarColor, type TraceTree} from '../traceModels/traceTree';
+import type {TraceTreeNode} from '../traceModels/traceTreeNode';
+import {TraceBar} from '../traceRow/traceBar';
 import {
   maybeFocusTraceRow,
   TRACE_COUNT_FORMATTER,
   TraceChildrenButton,
   TraceRowConnectors,
   type TraceRowProps,
-} from 'sentry/views/performance/newTraceDetails/traceRow/traceRow';
+} from '../traceRow/traceRow';
 
 const NO_ERRORS = new Set<TraceTree.TraceError>();
 const NO_PERFORMANCE_ISSUES = new Set<TraceTree.TracePerformanceIssue>();

@@ -12,15 +12,12 @@ import {generateIssueEventTarget} from 'sentry/components/quickTrace/utils';
 import {t} from 'sentry/locale';
 import type {EventError} from 'sentry/types/event';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import {TraceIcons} from 'sentry/views/performance/newTraceDetails/icons';
-import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
-import {getTraceTabTitle} from 'sentry/views/performance/newTraceDetails/traceState/traceTabs';
 
-import {
-  makeTraceNodeBarColor,
-  type TraceTree,
-  type TraceTreeNode,
-} from '../../traceModels/traceTree';
+import type {TraceTreeNodeDetailsProps} from '../../traceDrawer/tabs/traceTreeNodeDetails';
+import {TraceIcons} from '../../traceIcons';
+import {makeTraceNodeBarColor, type TraceTree} from '../../traceModels/traceTree';
+import type {TraceTreeNode} from '../../traceModels/traceTreeNode';
+import {getTraceTabTitle} from '../../traceState/traceTabs';
 
 import {IssueList} from './issues/issues';
 import {type SectionCardKeyValueList, TraceDrawerComponents} from './styles';

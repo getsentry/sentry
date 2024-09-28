@@ -1,12 +1,10 @@
 import {Fragment, useMemo} from 'react';
 import clamp from 'lodash/clamp';
 
-import {TraceIcons} from 'sentry/views/performance/newTraceDetails/icons';
-import type {
-  TraceTree,
-  TraceTreeNode,
-} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
+import {TraceIcons} from '../traceIcons';
+import type {TraceTree} from '../traceModels/traceTree';
+import type {TraceTreeNode} from '../traceModels/traceTreeNode';
+import type {VirtualizedViewManager} from '../traceRenderers/virtualizedViewManager';
 
 interface ErrorIconsProps {
   errors: TraceTreeNode<TraceTree.Transaction>['errors'];

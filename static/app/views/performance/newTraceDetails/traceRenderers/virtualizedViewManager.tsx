@@ -8,15 +8,13 @@ import {
   cancelAnimationTimeout,
   requestAnimationTimeout,
 } from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
-import type {
-  TraceTree,
-  TraceTreeNode,
-} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import {TraceRowWidthMeasurer} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceRowWidthMeasurer';
-import {TraceTextMeasurer} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceTextMeasurer';
-import type {TraceView} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceView';
 
-import {isMissingInstrumentationNode} from '../guards';
+import {isMissingInstrumentationNode} from '../traceGuards';
+import type {TraceTree} from '../traceModels/traceTree';
+import type {TraceTreeNode} from '../traceModels/traceTreeNode';
+import {TraceRowWidthMeasurer} from '../traceRenderers/traceRowWidthMeasurer';
+import {TraceTextMeasurer} from '../traceRenderers/traceTextMeasurer';
+import type {TraceView} from '../traceRenderers/traceView';
 
 import type {TraceScheduler} from './traceScheduler';
 

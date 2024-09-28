@@ -17,15 +17,12 @@ import {
   isSpanNode,
   isTraceErrorNode,
   isTransactionNode,
-} from '../guards';
-import {TraceType} from '../traceType';
+} from '../traceGuards';
+import {TraceShape, TraceTree} from '../traceModels/traceTree';
 
-import {
-  ParentAutogroupNode,
-  SiblingAutogroupNode,
-  TraceTree,
-  TraceTreeNode,
-} from './traceTree';
+import {ParentAutogroupNode} from './parentAutogroupNode';
+import {SiblingAutogroupNode} from './siblingAutogroupNode';
+import {TraceTreeNode} from './traceTreeNode';
 
 const EVENT_REQUEST_URL =
   '/organizations/org-slug/events/project:event_id/?averageColumn=span.self_time&averageColumn=span.duration';
@@ -917,7 +914,7 @@ describe('TraceTree', () => {
       null
     );
 
-    expect(tree.shape).toBe(TraceType.EMPTY_TRACE);
+    expect(tree.shape).toBe(TraceShape.EMPTY_TRACE);
 
     tree = TraceTree.FromTrace(
       makeTrace({
@@ -935,7 +932,7 @@ describe('TraceTree', () => {
       null
     );
 
-    expect(tree.shape).toBe(TraceType.NO_ROOT);
+    expect(tree.shape).toBe(TraceShape.NO_ROOT);
 
     tree = TraceTree.FromTrace(
       makeTrace({
@@ -951,7 +948,7 @@ describe('TraceTree', () => {
       null
     );
 
-    expect(tree.shape).toBe(TraceType.ONE_ROOT);
+    expect(tree.shape).toBe(TraceShape.ONE_ROOT);
 
     tree = TraceTree.FromTrace(
       makeTrace({
@@ -970,7 +967,7 @@ describe('TraceTree', () => {
       null
     );
 
-    expect(tree.shape).toBe(TraceType.BROKEN_SUBTRACES);
+    expect(tree.shape).toBe(TraceShape.BROKEN_SUBTRACES);
 
     tree = TraceTree.FromTrace(
       makeTrace({
@@ -990,7 +987,7 @@ describe('TraceTree', () => {
       null
     );
 
-    expect(tree.shape).toBe(TraceType.MULTIPLE_ROOTS);
+    expect(tree.shape).toBe(TraceShape.MULTIPLE_ROOTS);
 
     tree = TraceTree.FromTrace(
       makeTrace({
@@ -1001,7 +998,7 @@ describe('TraceTree', () => {
       null
     );
 
-    expect(tree.shape).toBe(TraceType.ONLY_ERRORS);
+    expect(tree.shape).toBe(TraceShape.ONLY_ERRORS);
   });
 
   it('browser multiple roots shape', () => {
@@ -1017,7 +1014,7 @@ describe('TraceTree', () => {
       null
     );
 
-    expect(tree.shape).toBe(TraceType.BROWSER_MULTIPLE_ROOTS);
+    expect(tree.shape).toBe(TraceShape.BROWSER_MULTIPLE_ROOTS);
   });
 
   it('builds from spans when root is a transaction node', () => {

@@ -12,14 +12,12 @@ import {t} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import {useTraceAverageTransactionDuration} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceAverageTransactionDuration';
-import type {
-  TraceTree,
-  TraceTreeNode,
-} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import {getTraceTabTitle} from 'sentry/views/performance/newTraceDetails/traceState/traceTabs';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
+import {useTraceAverageTransactionDuration} from '../../../../traceApi/useTraceAverageTransactionDuration';
+import type {TraceTree} from '../../../../traceModels/traceTree';
+import type {TraceTreeNode} from '../../../../traceModels/traceTreeNode';
+import {getTraceTabTitle} from '../../../../traceState/traceTabs';
 import {type SectionCardKeyValueList, TraceDrawerComponents} from '../../styles';
 
 import {OpsBreakdown} from './opsBreakDown';

@@ -10,14 +10,10 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import {
-  isSpanNode,
-  isTransactionNode,
-} from 'sentry/views/performance/newTraceDetails/guards';
-import type {
-  TraceTree,
-  TraceTreeNode,
-} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+
+import {isSpanNode, isTransactionNode} from '../../traceGuards';
+import type {TraceTree} from '../../traceModels/traceTree';
+import type {TraceTreeNode} from '../../traceModels/traceTreeNode';
 
 export function TraceProfiles({
   tree,

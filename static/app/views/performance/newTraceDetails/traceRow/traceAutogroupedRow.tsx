@@ -1,18 +1,17 @@
 import {t} from 'sentry/locale';
-import {TraceIcons} from 'sentry/views/performance/newTraceDetails/icons';
-import {
-  makeTraceNodeBarColor,
-  type ParentAutogroupNode,
-  type SiblingAutogroupNode,
-} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import {AutogroupedTraceBar} from 'sentry/views/performance/newTraceDetails/traceRow/traceBar';
+
+import {TraceIcons} from '../traceIcons';
+import type {ParentAutogroupNode} from '../traceModels/parentAutogroupNode';
+import type {SiblingAutogroupNode} from '../traceModels/siblingAutogroupNode';
+import {makeTraceNodeBarColor} from '../traceModels/traceTree';
+import {AutogroupedTraceBar} from '../traceRow/traceBar';
 import {
   maybeFocusTraceRow,
   TRACE_COUNT_FORMATTER,
   TraceChildrenButton,
   TraceRowConnectors,
   type TraceRowProps,
-} from 'sentry/views/performance/newTraceDetails/traceRow/traceRow';
+} from '../traceRow/traceRow';
 
 export function TraceAutogroupedRow(
   props: TraceRowProps<ParentAutogroupNode | SiblingAutogroupNode>

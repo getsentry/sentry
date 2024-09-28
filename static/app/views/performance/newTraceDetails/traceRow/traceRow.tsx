@@ -3,14 +3,12 @@ import type {Theme} from '@emotion/react';
 
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import type {PlatformKey} from 'sentry/types/project';
-import {isParentAutogroupedNode} from 'sentry/views/performance/newTraceDetails/guards';
-import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
 
-import {
-  ParentAutogroupNode,
-  type TraceTree,
-  type TraceTreeNode,
-} from '../traceModels/traceTree';
+import {isParentAutogroupedNode} from '../traceGuards';
+import {ParentAutogroupNode} from '../traceModels/parentAutogroupNode';
+import type {TraceTree} from '../traceModels/traceTree';
+import type {TraceTreeNode} from '../traceModels/traceTreeNode';
+import type {VirtualizedViewManager} from '../traceRenderers/virtualizedViewManager';
 
 export const TRACE_COUNT_FORMATTER = Intl.NumberFormat(undefined, {notation: 'compact'});
 

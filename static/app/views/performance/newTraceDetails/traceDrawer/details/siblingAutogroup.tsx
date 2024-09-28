@@ -3,13 +3,11 @@ import {useTheme} from '@emotion/react';
 
 import {IconGroup} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
-import {getTraceTabTitle} from 'sentry/views/performance/newTraceDetails/traceState/traceTabs';
 
-import {
-  makeTraceNodeBarColor,
-  type SiblingAutogroupNode,
-} from '../../traceModels/traceTree';
+import type {TraceTreeNodeDetailsProps} from '../../traceDrawer/tabs/traceTreeNodeDetails';
+import type {SiblingAutogroupNode} from '../../traceModels/siblingAutogroupNode';
+import {makeTraceNodeBarColor} from '../../traceModels/traceTree';
+import {getTraceTabTitle} from '../../traceState/traceTabs';
 
 import {IssueList} from './issues/issues';
 import {type SectionCardKeyValueList, TraceDrawerComponents} from './styles';

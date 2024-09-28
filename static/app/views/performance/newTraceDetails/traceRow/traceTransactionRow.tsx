@@ -1,19 +1,16 @@
 import {PlatformIcon} from 'platformicons';
 
-import {TraceIcons} from 'sentry/views/performance/newTraceDetails/icons';
-import {
-  makeTraceNodeBarColor,
-  type TraceTree,
-  type TraceTreeNode,
-} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import {TraceBar} from 'sentry/views/performance/newTraceDetails/traceRow/traceBar';
+import {TraceIcons} from '../traceIcons';
+import {makeTraceNodeBarColor, type TraceTree} from '../traceModels/traceTree';
+import type {TraceTreeNode} from '../traceModels/traceTreeNode';
+import {TraceBar} from '../traceRow/traceBar';
 import {
   maybeFocusTraceRow,
   TRACE_COUNT_FORMATTER,
   TraceChildrenButton,
   TraceRowConnectors,
   type TraceRowProps,
-} from 'sentry/views/performance/newTraceDetails/traceRow/traceRow';
+} from '../traceRow/traceRow';
 
 export function TraceTransactionRow(
   props: TraceRowProps<TraceTreeNode<TraceTree.Transaction>>

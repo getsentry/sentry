@@ -24,13 +24,11 @@ import EventView from 'sentry/utils/discover/eventView';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
-import type {
-  TraceTree,
-  TraceTreeNode,
-} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import {getTraceTabTitle} from 'sentry/views/performance/newTraceDetails/traceState/traceTabs';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
+import type {TraceTree} from '../../../../traceModels/traceTree';
+import type {TraceTreeNode} from '../../../../traceModels/traceTreeNode';
+import {getTraceTabTitle} from '../../../../traceState/traceTabs';
 import {type SectionCardKeyValueList, TraceDrawerComponents} from '../../styles';
 
 type TransactionResult = {

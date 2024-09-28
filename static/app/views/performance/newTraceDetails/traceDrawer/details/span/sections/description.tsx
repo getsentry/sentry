@@ -16,12 +16,10 @@ import {
   StackTraceMiniFrame,
 } from 'sentry/views/insights/database/components/stackTraceMiniFrame';
 import {ModuleName} from 'sentry/views/insights/types';
-import type {
-  TraceTree,
-  TraceTreeNode,
-} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
 
+import type {TraceTree} from '../../../../traceModels/traceTree';
+import type {TraceTreeNode} from '../../../../traceModels/traceTreeNode';
 import {TraceDrawerComponents} from '../../styles';
 
 const formatter = new SQLishFormatter();

@@ -1,16 +1,12 @@
 import {Fragment, useCallback} from 'react';
 
 import {formatTraceDuration} from 'sentry/utils/duration/formatTraceDuration';
-import type {
-  TraceTree,
-  TraceTreeNode,
-} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
-import {TraceBackgroundPatterns} from 'sentry/views/performance/newTraceDetails/traceRow/traceBackgroundPatterns';
-import {
-  TraceErrorIcons,
-  TracePerformanceIssueIcons,
-} from 'sentry/views/performance/newTraceDetails/traceRow/traceIcons';
+
+import type {TraceTree} from '../traceModels/traceTree';
+import type {TraceTreeNode} from '../traceModels/traceTreeNode';
+import type {VirtualizedViewManager} from '../traceRenderers/virtualizedViewManager';
+import {TraceBackgroundPatterns} from '../traceRow/traceBackgroundPatterns';
+import {TraceErrorIcons, TracePerformanceIssueIcons} from '../traceRow/traceIcons';
 
 interface InvisibleTraceBarProps {
   children: React.ReactNode;
@@ -18,7 +14,6 @@ interface InvisibleTraceBarProps {
   node_space: [number, number] | null;
   virtualizedIndex: number;
 }
-
 export function InvisibleTraceBar(props: InvisibleTraceBarProps) {
   const registerInvisibleBarRef = useCallback(
     (ref: HTMLDivElement | null) => {

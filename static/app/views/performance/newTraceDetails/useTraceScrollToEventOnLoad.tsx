@@ -3,17 +3,13 @@ import * as Sentry from '@sentry/react';
 
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-import {
-  isAutogroupedNode,
-  isTransactionNode,
-} from 'sentry/views/performance/newTraceDetails/guards';
-import {
-  TraceTree,
-  type TraceTreeNode,
-} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceScheduler} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceScheduler';
-import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
-import type {useTraceScrollToPath} from 'sentry/views/performance/newTraceDetails/useTraceScrollToPath';
+
+import {TraceTree} from './traceModels/traceTree';
+import type {TraceTreeNode} from './traceModels/traceTreeNode';
+import type {TraceScheduler} from './traceRenderers/traceScheduler';
+import type {VirtualizedViewManager} from './traceRenderers/virtualizedViewManager';
+import {isAutogroupedNode, isTransactionNode} from './traceGuards';
+import type {useTraceScrollToPath} from './useTraceScrollToPath';
 
 type UseTraceScrollToEventOnLoadProps = {
   manager: VirtualizedViewManager;
