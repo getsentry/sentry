@@ -13,7 +13,6 @@ from google.protobuf.timestamp_pb2 import Timestamp
 from sentry_protos.sentry.v1alpha.taskworker_pb2 import RetryState, TaskActivation
 
 from sentry.conf.types.kafka_definition import Topic
-from sentry.taskworker.models import InflightActivationModel
 from sentry.taskworker.retry import FALLBACK_RETRY, Retry
 from sentry.taskworker.task import Task
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
@@ -51,6 +50,9 @@ class TaskNamespace:
             raise KeyError(f"No task registered with the name {name}. Check your imports")
         return self.__registered_tasks[name]
 
+    def contains(self, name: str) -> bool:
+        return name in self.__registered_tasks
+
     def register(
         self,
         name: str,
@@ -76,11 +78,10 @@ class TaskNamespace:
 
         return wrapped
 
-    def retry_task(self, taskdata: InflightActivationModel) -> None:
-        message = taskdata.to_proto()
+    def retry_task(self, taskdata: TaskActivation) -> None:
         self.producer.produce(
             ArroyoTopic(name=self.topic),
-            KafkaPayload(key=None, value=message.activation.SerializeToString(), headers=[]),
+            KafkaPayload(key=None, value=taskdata.SerializeToString(), headers=[]),
         )
 
     def send_task(self, task: Task, args, kwargs) -> None:

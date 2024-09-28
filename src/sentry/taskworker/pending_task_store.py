@@ -74,8 +74,8 @@ class PendingTaskStore:
             status=InflightActivationModel.Status.RETRY
         )
         for item in retry_qs:
-            task_ns = taskregistry.get(item.task_namespace)
-            task_ns.retry_task(item)
+            task_ns = taskregistry.get(item.namespace)
+            task_ns.retry_task(item.to_proto().activation)
         # With retries scheduled, the tasks are complete now.
         retry_qs.update(status=InflightActivationModel.Status.COMPLETE)
 

@@ -62,10 +62,11 @@ class ConsumerGrpc:
         inflight_activation: InflightActivation,
     ) -> WorkerServiceStub:
         try:
-            timeout_in_sec = inflight_activation.processing_deadline.seconds - time.time()
             dispatch_task_response = stub.Dispatch(
-                DispatchRequest(task_activation=inflight_activation.activation),
-                timeout=timeout_in_sec,
+                DispatchRequest(
+                    activation=inflight_activation.activation,
+                    processing_deadline=inflight_activation.processing_deadline,
+                ),
             )
             self.pending_task_store.set_task_status(
                 task_id=inflight_activation.activation.id,
