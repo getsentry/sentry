@@ -452,10 +452,10 @@ function NodeActions(props: {
     };
 
     const eventId =
-      props.node.metadata.event_id ?? props.node.parent_transaction?.metadata.event_id;
+      props.node.metadata.event_id ?? props.node.parentTransaction?.metadata.event_id;
     const projectSlug =
       props.node.metadata.project_slug ??
-      props.node.parent_transaction?.metadata.project_slug;
+      props.node.parentTransaction?.metadata.project_slug;
 
     const eventSize = props.eventSize;
     const jsonDetails: MenuItemProps = {

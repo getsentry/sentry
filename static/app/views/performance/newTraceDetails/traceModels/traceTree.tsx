@@ -514,12 +514,11 @@ export class TraceTree {
           value && 'project_slug' in value
             ? value.project_slug
             : parent.metadata.project_slug ??
-              parent.parent_transaction?.metadata.project_slug,
+              parent.parentTransaction?.metadata.project_slug,
         event_id:
           value && 'event_id' in value
             ? value.event_id
-            : parent.metadata.event_id ??
-              parent.parent_transaction?.metadata.project_slug,
+            : parent.metadata.event_id ?? parent.parentTransaction?.metadata.project_slug,
       });
 
       // We check for at least 2 spans because the first span is the transaction itself.

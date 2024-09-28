@@ -56,7 +56,7 @@ function GeneralInfo({
   const {start: startTimeWithLeadingZero, end: endTimeWithLeadingZero} =
     getFormattedTimeRangeWithLeadingAndTrailingZero(startTimestamp, endTimestamp);
 
-  const parentTransaction = node.parent_transaction;
+  const parentTransaction = node.parentTransaction;
 
   const items: SectionCardKeyValueList = [
     {

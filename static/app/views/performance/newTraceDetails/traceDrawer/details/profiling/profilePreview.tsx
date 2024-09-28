@@ -59,7 +59,7 @@ export function ProfilePreview({event, node}: SpanProfileProps) {
   }, [profileGroup.profiles, profileGroup.activeProfileIndex]);
 
   const transactionHasProfile = useMemo(() => {
-    return (node.parent_transaction?.profiles?.length ?? 0) > 0;
+    return (node.parentTransaction?.profiles?.length ?? 0) > 0;
   }, [node]);
 
   const flamegraph = useMemo(() => {

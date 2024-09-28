@@ -23,7 +23,7 @@ export function SiblingAutogroupNodeDetails({
     return [...node.errors, ...node.performance_issues];
   }, [node.errors, node.performance_issues]);
 
-  const parentTransaction = node.parent_transaction;
+  const parentTransaction = node.parentTransaction;
 
   const items: SectionCardKeyValueList = [
     {

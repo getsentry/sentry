@@ -168,7 +168,7 @@ export function getSpanAncestryAndGroupingItems({
   onParentClick: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
   organization: Organization;
 }): SectionCardKeyValueList {
-  const parentTransaction = node.parent_transaction;
+  const parentTransaction = node.parentTransaction;
   const span = node.value;
   const items: SectionCardKeyValueList = [];
 

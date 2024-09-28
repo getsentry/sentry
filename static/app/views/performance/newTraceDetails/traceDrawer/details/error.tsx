@@ -50,7 +50,7 @@ export function ErrorNodeDetails({
   }, [data]);
 
   const theme = useTheme();
-  const parentTransaction = node.parent_transaction;
+  const parentTransaction = node.parentTransaction;
 
   const items: SectionCardKeyValueList = [
     {

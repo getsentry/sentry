@@ -25,7 +25,7 @@ export function MissingInstrumentationNodeDetails({
   const theme = useTheme();
   const {projects} = useProjects();
 
-  const parentTransaction = node.parent_transaction;
+  const parentTransaction = node.parentTransaction;
   const event = node.previous.value.event || node.next.value.event || null;
   const project = projects.find(proj => proj.slug === event?.projectSlug);
   const profileId = event?.contexts?.profile?.profile_id ?? null;
