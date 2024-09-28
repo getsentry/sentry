@@ -3,7 +3,6 @@ from sentry.sentry_apps.api.bases.sentryapps import (
     SentryAppBaseEndpoint,
     SentryAppInstallationBaseEndpoint,
     SentryAppInstallationsBaseEndpoint,
-    is_active_superuser,
 )
 
 __all__ = (
@@ -11,5 +10,4 @@ __all__ = (
     "RegionSentryAppBaseEndpoint",
     "SentryAppInstallationBaseEndpoint",
     "SentryAppInstallationsBaseEndpoint",
-    "is_active_superuser",
 )
