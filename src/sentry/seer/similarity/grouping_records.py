@@ -24,6 +24,7 @@ class CreateGroupingRecordData(TypedDict):
     group_id: int
     hash: str
     project_id: int
+    message: str
     exception_type: str | None
 
 
