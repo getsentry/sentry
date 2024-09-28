@@ -182,7 +182,7 @@ const appConfig: rspack.Configuration = {
   },
   context: staticPrefix,
   experiments: {
-    rspackFuture: {},
+    futureDefaults: true,
     css: true,
   },
   module: {
