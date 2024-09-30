@@ -122,7 +122,16 @@ interface UseHoverOverlayProps {
 }
 
 function isOverflown(el: Element): boolean {
-  return el.scrollWidth > el.clientWidth || Array.from(el.children).some(isOverflown);
+  // Safari seems to calculate scrollWidth incorrectly, causing isOverflown to always return true in some cases.
+  // Adding a 2 pixel tolerance seems to account for this discrepancy.
+  const tolerance =
+    navigator.userAgent.includes('Safari') && !navigator.userAgent.includes('Chrome')
+      ? 2
+      : 0;
+  return (
+    el.scrollWidth - el.clientWidth > tolerance ||
+    Array.from(el.children).some(isOverflown)
+  );
 }
 
 function maybeClearRefTimeout(ref: React.MutableRefObject<number | undefined>) {
