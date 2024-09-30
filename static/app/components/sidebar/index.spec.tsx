@@ -246,13 +246,15 @@ describe('Sidebar', function () {
       // Should mark as seen after a delay
       act(() => jest.advanceTimersByTime(2000));
 
-      expect(apiMocks.broadcastsMarkAsSeen).toHaveBeenCalledWith(
-        '/broadcasts/',
-        expect.objectContaining({
-          data: {hasSeen: '1'},
-          query: {id: ['8']},
-        })
-      );
+      await waitFor(() => {
+        expect(apiMocks.broadcastsMarkAsSeen).toHaveBeenCalledWith(
+          '/broadcasts/',
+          expect.objectContaining({
+            data: {hasSeen: '1'},
+            query: {id: ['8']},
+          })
+        );
+      });
       jest.useRealTimers();
 
       // Close the sidebar
