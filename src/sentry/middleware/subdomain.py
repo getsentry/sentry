@@ -30,6 +30,7 @@ class SubdomainMiddleware:
         self.get_response = get_response
 
     def __call__(self, request: HttpRequest) -> HttpResponseBase:
+        print("MIDDLEWARE!!")
         request.subdomain = None
 
         if not self.base_hostname:

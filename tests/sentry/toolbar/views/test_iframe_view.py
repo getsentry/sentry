@@ -1,11 +1,13 @@
 from typing import Any
 from unittest.mock import Mock, patch
 
+from csp.middleware import CSPMiddleware
 from django.test import override_settings
 from django.urls import reverse
 
+from sentry.middleware.placeholder import placeholder_get_response
 from sentry.testutils.cases import APITestCase
-from sentry.toolbar.views.iframe_view import INVALID_TEMPLATE, SUCCESS_TEMPLATE
+from sentry.toolbar.views.iframe_view import INVALID_TEMPLATE, SUCCESS_TEMPLATE, IframeView
 
 
 class IframeViewTest(APITestCase):
@@ -15,6 +17,7 @@ class IframeViewTest(APITestCase):
         super().setUp()
         self.login_as(user=self.user)
         self.url = reverse(self.view_name, args=(self.organization.slug, self.project.slug))
+        self.csp_middleware = CSPMiddleware(placeholder_get_response)
 
     def test_missing_project(self):
         url = reverse(self.view_name, args=(self.organization.slug, "abc123xyz"))
@@ -65,18 +68,24 @@ class IframeViewTest(APITestCase):
         res = self.client.get(self.url, HTTP_REFERER="https://sentry.io")
         assert res.headers.get("X-Frame-Options") == "ALLOWALL"
 
+    @override_settings(CSP_REPORT_ONLY=False)
     def test_csp_frame_ancestors(self):
-        # TODO:
         # Pass res through middleware
         # Check CSP frame-ancestors directive
-        pass
+        referrer = "https://testsite.io"
+        self.project.update_option("sentry:toolbar_allowed_origins", [referrer])
+        res = self.client.get(self.url, HTTP_REFERER=referrer)
+        csp = res.headers.get("Content-Security-Policy", "")
+        # TODO: assert referrer in csp frame-ancestors
 
-    @override_settings(CSP_INCLUDE_NONCE_IN=["script-src"])
+    @override_settings(CSP_REPORT_ONLY=False, CSP_INCLUDE_NONCE_IN=["script-src"])
     def test_csp_script_src_nonce(self):
-        # TODO:
-        # Pass req and res through middleware
-        # Check res template content contains same nonce as req
-        pass
+        referrer = "https://testsite.io"
+        self.project.update_option("sentry:toolbar_allowed_origins", [referrer])
+        nonce = ""  # TODO:
+        # TODO: mock CSPMiddleware.process_request to add mock nonce
+        res = self.client.get(self.url, HTTP_REFERER=referrer)
+        # TODO: assert response template has nonce
 
 
 def _has_expected_response(

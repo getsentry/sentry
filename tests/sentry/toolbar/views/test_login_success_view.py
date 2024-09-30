@@ -28,9 +28,9 @@ class LoginSuccessViewTest(APITestCase):
         assert res.status_code == 200
         self.assertTemplateUsed(res, SUCCESS_TEMPLATE)
 
-    @override_settings(CSP_INCLUDE_NONCE_IN=["script-src"])
+    @override_settings(CSP_REPORT_ONLY=False, CSP_INCLUDE_NONCE_IN=["script-src"])
     def test_csp_script_src_nonce(self):
-        # TODO:
-        # Pass req and res through middleware
-        # Check res template content contains same nonce as req
-        pass
+        nonce = ""  # TODO:
+        # TODO: mock CSPMiddleware.process_request to add mock nonce
+        res = self.client.get(self.url)
+        # TODO: assert response template has nonce

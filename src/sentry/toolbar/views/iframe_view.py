@@ -16,10 +16,10 @@ INVALID_TEMPLATE = "sentry/toolbar/iframe-invalid.html"
 class IframeView(OrganizationView):
     def respond(self, template: str, context: dict[str, Any] | None = None, status: int = 200):
         response = super().respond(template, context=context, status=status)
-        # These HTTP headers allows response to be embedded in an iframe.
+        # These HTTP headers allow response to be embedded in an iframe.
         response["X-Frame-Options"] = "ALLOWALL"
         response._csp_replace = {  # type: ignore[attr-defined]
-            # This is an alternative to @csp_replace - we need this pattern to access the referrer.
+            # This is an alternative to @csp_replace - we need to use this pattern to access the referrer.
             "frame-ancestors": [self.request.META.get(REFERRER_HEADER, "'none'")]
         }
         return response
@@ -50,6 +50,7 @@ class IframeView(OrganizationView):
     def get(
         self, request: HttpRequest, organization: Organization, project: Project, *args, **kwargs
     ):
+        print("GET METHOD!!")
         referrer = request.META.get(REFERRER_HEADER)
         if not project:
             return self.respond(
