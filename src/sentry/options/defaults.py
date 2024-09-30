@@ -2395,12 +2395,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-register(
-    "grouping.config_transition.killswitch_enabled",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # Sample rate for double writing to experimental dsn
 register(

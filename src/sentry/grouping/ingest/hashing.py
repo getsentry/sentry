@@ -22,7 +22,6 @@ from sentry.grouping.api import (
     load_grouping_config,
 )
 from sentry.grouping.ingest.config import is_in_transition
-from sentry.grouping.ingest.metrics import record_hash_calculation_metrics
 from sentry.models.grouphash import GroupHash
 from sentry.models.grouphashmetadata import GroupHashMetadata
 from sentry.models.project import Project
@@ -210,32 +209,6 @@ def find_existing_grouphash(
             )
 
     return None
-
-
-def get_hash_values(
-    project: Project,
-    job: Job,
-    metric_tags: MutableTags,
-) -> tuple[list[str], list[str]]:
-    # Background grouping is a way for us to get performance metrics for a new
-    # config without having it actually affect on how events are grouped. It runs
-    # either before or after the main grouping logic, depending on the option value.
-    maybe_run_background_grouping(project, job)
-
-    secondary_grouping_config, secondary_hashes = maybe_run_secondary_grouping(
-        project, job, metric_tags
-    )
-
-    primary_grouping_config, primary_hashes = run_primary_grouping(project, job, metric_tags)
-
-    record_hash_calculation_metrics(
-        primary_grouping_config,
-        primary_hashes,
-        secondary_grouping_config,
-        secondary_hashes,
-    )
-
-    return (primary_hashes, secondary_hashes)
 
 
 def get_or_create_grouphashes(project: Project, hashes: Sequence[str]) -> list[GroupHash]:
