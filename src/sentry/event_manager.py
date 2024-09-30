@@ -61,11 +61,7 @@ from sentry.grouping.ingest.hashing import (
     maybe_run_secondary_grouping,
     run_primary_grouping,
 )
-from sentry.grouping.ingest.metrics import (
-    record_calculation_metric_with_result,
-    record_hash_calculation_metrics,
-    record_new_group_metrics,
-)
+from sentry.grouping.ingest.metrics import record_hash_calculation_metrics, record_new_group_metrics
 from sentry.grouping.ingest.seer import maybe_check_seer_for_matching_grouphash
 from sentry.grouping.ingest.utils import (
     add_group_id_to_grouphashes,
@@ -1352,14 +1348,7 @@ def _save_aggregate_new(
     maybe_run_background_grouping(project, job)
 
     record_hash_calculation_metrics(
-        primary.config, primary.hashes, secondary.config, secondary.hashes
-    )
-    # TODO: Once the legacy `_save_aggregate` goes away, the logic inside of
-    # `record_calculation_metric_with_result` can be pulled into `record_hash_calculation_metrics`
-    record_calculation_metric_with_result(
-        project=project,
-        has_secondary_hashes=len(secondary.hashes) > 0,
-        result=result,
+        project, primary.config, primary.hashes, secondary.config, secondary.hashes, result
     )
 
     # Now that we've used the current and possibly secondary grouping config(s) to calculate the
