@@ -1,5 +1,4 @@
 import {cloneElement, Component, Fragment, isValidElement} from 'react';
-import type {Location} from 'react-router-dom';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 import isEqualWith from 'lodash/isEqualWith';
@@ -38,7 +37,6 @@ import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metr
 import {MetricsResultsMetaProvider} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {OnDemandControlProvider} from 'sentry/utils/performance/contexts/onDemandControl';
-import {OnRouteLeave} from 'sentry/utils/reactRouter6Compat/onRouteLeave';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -336,27 +334,6 @@ class DashboardDetail extends Component<Props, State> {
       dashboardState: DashboardState.EDIT,
       modifiedDashboard: cloneDashboard(dashboard),
     });
-  };
-
-  onLegacyRouteLeave = () => {
-    if (
-      ![
-        DashboardState.VIEW,
-        DashboardState.PENDING_DELETE,
-        DashboardState.PREVIEW,
-      ].includes(this.state.dashboardState) &&
-      !isEqual(this.state.modifiedDashboard, this.props.dashboard)
-    ) {
-      return UNSAVED_MESSAGE;
-    }
-    return undefined;
-  };
-
-  onRouteLeave = (state: {currentLocation: Location; nextLocation: Location}) => {
-    return (
-      state.currentLocation.pathname !== state.nextLocation.pathname &&
-      !!this.onLegacyRouteLeave()
-    );
   };
 
   onDelete = (dashboard: State['modifiedDashboard']) => () => {
@@ -706,13 +683,6 @@ class DashboardDetail extends Component<Props, State> {
 
     return (
       <Fragment>
-        <OnRouteLeave
-          router={this.props.router}
-          route={this.props.route}
-          message={UNSAVED_MESSAGE}
-          legacyWhen={this.onLegacyRouteLeave}
-          when={this.onRouteLeave}
-        />
         {isValidElement(children)
           ? cloneElement<any>(children, {
               dashboard: modifiedDashboard ?? dashboard,
@@ -755,13 +725,6 @@ class DashboardDetail extends Component<Props, State> {
           },
         }}
       >
-        <OnRouteLeave
-          router={this.props.router}
-          route={this.props.route}
-          message={UNSAVED_MESSAGE}
-          legacyWhen={this.onLegacyRouteLeave}
-          when={this.onRouteLeave}
-        />
         <Layout.Page withPadding>
           <OnDemandControlProvider location={location}>
             <MetricsResultsMetaProvider>
@@ -889,13 +852,6 @@ class DashboardDetail extends Component<Props, State> {
             },
           }}
         >
-          <OnRouteLeave
-            router={this.props.router}
-            route={this.props.route}
-            message={UNSAVED_MESSAGE}
-            legacyWhen={this.onLegacyRouteLeave}
-            when={this.onRouteLeave}
-          />
           <Layout.Page>
             <OnDemandControlProvider location={location}>
               <MetricsResultsMetaProvider>
