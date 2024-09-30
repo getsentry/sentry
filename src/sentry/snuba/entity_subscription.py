@@ -19,12 +19,10 @@ from sentry.search.events.builder.metrics import AlertMetricsQueryBuilder
 from sentry.search.events.types import ParamsType, QueryBuilderConfig
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import (
-    MetricIndexNotFound,
     resolve,
     resolve_tag_key,
     resolve_tag_value,
     resolve_tag_values,
-    reverse_resolve_tag_value,
 )
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics.extraction import MetricSpecType
@@ -373,29 +371,6 @@ class BaseCrashRateMetricsEntitySubscription(BaseMetricsEntitySubscription):
         else:
             granularity = 24 * 3600
         return granularity
-
-    @staticmethod
-    def translate_sessions_tag_keys_and_values(
-        data: list[dict[str, Any]], org_id: int, alias: str | None = None
-    ) -> tuple[int, int]:
-        value_col_name = alias if alias else "value"
-        try:
-            translated_data: dict[str, Any] = {}
-            session_status = resolve_tag_key(UseCaseID.SESSIONS, org_id, "session.status")
-            for row in data:
-                tag_value = reverse_resolve_tag_value(
-                    UseCaseID.SESSIONS, org_id, row[session_status]
-                )
-                if tag_value is None:
-                    raise MetricIndexNotFound()
-                translated_data[tag_value] = row[value_col_name]
-
-            total_session_count = translated_data.get("init", 0)
-            crash_count = translated_data.get("crashed", 0)
-        except MetricIndexNotFound:
-            metrics.incr("incidents.entity_subscription.metric_index_not_found")
-            total_session_count = crash_count = 0
-        return total_session_count, crash_count
 
     def aggregate_query_results(
         self, data: list[dict[str, Any]], alias: str | None = None
