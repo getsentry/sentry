@@ -89,6 +89,9 @@ export const DuplicateMetricFields: string[] = [
   'name',
   'projectId',
   'comparisonDelta',
+  'seasonality',
+  'sensitivity',
+  'detectionType',
 ];
 
 export const DuplicateTriggerFields: string[] = ['alertThreshold', 'label'];

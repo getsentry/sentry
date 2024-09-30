@@ -78,7 +78,7 @@ export function TagDetailsDrawerContent({
   const {
     data: tag,
     isError: tagIsError,
-    isLoading: tagIsLoading,
+    isPending: tagIsLoading,
   } = useFetchIssueTag({
     orgSlug: organization.slug,
     groupId,
