@@ -41,14 +41,13 @@ class SentryAppPermissionTest(TestCase):
         self.permission = SentryAppPermission()
 
         self.sentry_app = self.create_sentry_app(name="foo", organization=self.organization)
-        self.request: Request = make_drf_request(
+        self.request = make_drf_request(
             request=self.make_request(user=self.user, method="GET"), endpoint=self.endpoint
         )
 
         self.superuser = self.create_user(is_superuser=True)
 
     def test_request_user_is_app_owner_succeeds(self):
-
         assert self.permission.has_object_permission(self.request, None, self.sentry_app)
 
     def test_request_user_is_not_app_owner_fails(self):
@@ -75,45 +74,45 @@ class SentryAppPermissionTest(TestCase):
         assert self.permission.has_permission(self.request, None)
 
     def test_superuser_has_permission(self):
-        self.request = make_drf_request(
+        request = make_drf_request(
             self.make_request(user=self.superuser, method="GET", is_superuser=True),
             endpoint=self.endpoint,
         )
 
-        assert self.permission.has_object_permission(self.request, None, self.sentry_app)
+        assert self.permission.has_object_permission(request, None, self.sentry_app)
 
-        self.request._request.method = "POST"
-        assert self.permission.has_object_permission(self.request, None, self.sentry_app)
+        request._request.method = "POST"
+        assert self.permission.has_object_permission(request, None, self.sentry_app)
 
     @override_options({"superuser.read-write.ga-rollout": True})
     @override_settings(SENTRY_SELF_HOSTED=False)
     def test_superuser_has_permission_read_only(self):
-        self.request = make_drf_request(
+        request = make_drf_request(
             self.make_request(user=self.superuser, method="GET", is_superuser=True),
             endpoint=self.endpoint,
         )
 
-        assert self.permission.has_object_permission(self.request, None, self.sentry_app)
+        assert self.permission.has_object_permission(request, None, self.sentry_app)
 
         self.request._request.method = "POST"
 
         with pytest.raises(Http404):
-            self.permission.has_object_permission(self.request, None, self.sentry_app)
+            self.permission.has_object_permission(request, None, self.sentry_app)
 
     @override_options({"superuser.read-write.ga-rollout": True})
     @override_settings(SENTRY_SELF_HOSTED=False)
     def test_superuser_has_permission_write(self):
         self.add_user_permission(self.superuser, "superuser.write")
-        self.request = make_drf_request(
+        request = make_drf_request(
             self.make_request(user=self.superuser, method="GET", is_superuser=True),
             endpoint=self.endpoint,
         )
 
-        assert self.permission.has_object_permission(self.request, None, self.sentry_app)
+        assert self.permission.has_object_permission(request, None, self.sentry_app)
 
         self.request._request.method = "POST"
 
-        self.permission.has_object_permission(self.request, None, self.sentry_app)
+        self.permission.has_object_permission(request, None, self.sentry_app)
 
 
 @control_silo_test
@@ -191,51 +190,51 @@ class SentryAppInstallationPermissionTest(TestCase):
 
     def test_request_user_not_in_organization(self):
         user = self.create_user()
-        self.request = make_drf_request(
+        request = make_drf_request(
             self.make_request(user=user, method="GET"), endpoint=self.endpoint
         )
 
         with pytest.raises(Http404):
-            self.permission.has_object_permission(self.request, None, self.installation)
+            self.permission.has_object_permission(request, None, self.installation)
 
     def test_superuser_has_permission(self):
-        self.request = make_drf_request(
+        request = make_drf_request(
             self.make_request(user=self.superuser, method="GET", is_superuser=True),
             endpoint=self.endpoint,
         )
 
-        assert self.permission.has_object_permission(self.request, None, self.installation)
+        assert self.permission.has_object_permission(request, None, self.installation)
 
-        self.request._request.method = "POST"
-        assert self.permission.has_object_permission(self.request, None, self.installation)
+        request._request.method = "POST"
+        assert self.permission.has_object_permission(request, None, self.installation)
 
     @override_options({"superuser.read-write.ga-rollout": True})
     @override_settings(SENTRY_SELF_HOSTED=False)
     def test_superuser_has_permission_read_only(self):
-        self.request = make_drf_request(
+        request = make_drf_request(
             self.make_request(user=self.superuser, method="GET", is_superuser=True),
             endpoint=self.endpoint,
         )
 
-        assert self.permission.has_object_permission(self.request, None, self.installation)
+        assert self.permission.has_object_permission(request, None, self.installation)
 
-        self.request._request.method = "POST"
+        request._request.method = "POST"
         with pytest.raises(Http404):
-            self.permission.has_object_permission(self.request, None, self.installation)
+            self.permission.has_object_permission(request, None, self.installation)
 
     @override_options({"superuser.read-write.ga-rollout": True})
     @override_settings(SENTRY_SELF_HOSTED=False)
     def test_superuser_has_permission_write(self):
         self.add_user_permission(self.superuser, "superuser.write")
-        self.request = make_drf_request(
+        request = make_drf_request(
             self.make_request(user=self.superuser, method="GET", is_superuser=True),
             endpoint=self.endpoint,
         )
 
-        assert self.permission.has_object_permission(self.request, None, self.installation)
+        assert self.permission.has_object_permission(request, None, self.installation)
 
-        self.request._request.method = "POST"
-        self.permission.has_object_permission(self.request, None, self.installation)
+        request._request.method = "POST"
+        self.permission.has_object_permission(request, None, self.installation)
 
 
 @control_silo_test
