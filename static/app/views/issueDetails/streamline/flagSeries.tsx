@@ -17,14 +17,14 @@ export const MOCK_RAW_FLAG_LOG = {
       modified_by_type: 'id',
     },
     {
-      action: 'modified',
+      action: 'updated',
       flag: 'sentry-pride-logo-footer',
       modified_at: '2024-09-25T05:12:33',
       modified_by: '1234',
       modified_by_type: 'id',
     },
     {
-      action: 'modified',
+      action: 'deleted',
       flag: 'spam-ingest',
       modified_at: '2024-09-26T05:12:33',
       modified_by: '1234',
