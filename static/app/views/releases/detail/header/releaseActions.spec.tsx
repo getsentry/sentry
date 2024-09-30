@@ -41,7 +41,7 @@ describe('ReleaseActions', function () {
 
   const location: Location = {
     ...LocationFixture(),
-    pathname: `/organizations/sentry/releases/${release.version}/`,
+    pathname: `/organizations/${organization.slug}/releases/${release.version}/`,
     query: {
       project: '1',
       statsPeriod: '24h',
@@ -167,19 +167,19 @@ describe('ReleaseActions', function () {
 
     expect(screen.getByLabelText('Oldest')).toHaveAttribute(
       'href',
-      '/organizations/sentry/releases/0/?project=1&statsPeriod=24h&yAxis=events'
+      `/organizations/${organization.slug}/releases/0/?project=1&statsPeriod=24h&yAxis=events`
     );
     expect(screen.getByLabelText('Older')).toHaveAttribute(
       'href',
-      '/organizations/sentry/releases/123/?project=1&statsPeriod=24h&yAxis=events'
+      `/organizations/${organization.slug}/releases/123/?project=1&statsPeriod=24h&yAxis=events`
     );
     expect(screen.getByLabelText('Newer')).toHaveAttribute(
       'href',
-      '/organizations/sentry/releases/456/?project=1&statsPeriod=24h&yAxis=events'
+      `/organizations/${organization.slug}/releases/456/?project=1&statsPeriod=24h&yAxis=events`
     );
     expect(screen.getByLabelText('Newest')).toHaveAttribute(
       'href',
-      '/organizations/sentry/releases/999/?project=1&statsPeriod=24h&yAxis=events'
+      `/organizations/${organization.slug}/releases/999/?project=1&statsPeriod=24h&yAxis=events`
     );
 
     rerender(
@@ -191,14 +191,14 @@ describe('ReleaseActions', function () {
         releaseMeta={{...ReleaseMetaFixture(), projects: release.projects}}
         location={{
           ...location,
-          pathname: `/organizations/sentry/releases/${release.version}/files-changed/`,
+          pathname: `/organizations/${organization.slug}/releases/${release.version}/files-changed/`,
         }}
       />
     );
 
     expect(screen.getByLabelText('Newer')).toHaveAttribute(
       'href',
-      '/organizations/sentry/releases/456/files-changed/?project=1&statsPeriod=24h&yAxis=events'
+      `/organizations/${organization.slug}/releases/456/files-changed/?project=1&statsPeriod=24h&yAxis=events`
     );
   });
 });
