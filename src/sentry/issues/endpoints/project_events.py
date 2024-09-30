@@ -54,7 +54,7 @@ class ProjectEventsEndpoint(ProjectEndpoint):
             ),
             OpenApiParameter(
                 name="sample",
-                description="Return events in pseudo-random order. This is deterministic, same query will return the same events in the same order.",
+                description="Return events in pseudo-random order. This is deterministic so an identical query will always return the same events in the same order.",
                 required=False,
                 type=bool,
                 location="query",
