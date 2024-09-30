@@ -1,9 +1,9 @@
-import {Fragment, useContext} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import ButtonBar from 'sentry/components/buttonBar';
 import InviteButton from 'sentry/components/modals/inviteMembersModal/inviteButton';
-import {InviteMembersContext} from 'sentry/components/modals/inviteMembersModal/inviteMembersContext';
+import {useInviteMembersContext} from 'sentry/components/modals/inviteMembersModal/inviteMembersContext';
 import InviteStatusMessage from 'sentry/components/modals/inviteMembersModal/inviteStatusMessage';
 import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -23,7 +23,7 @@ export default function InviteMembersFooter({canSend}: Props) {
     sendInvites,
     sendingInvites,
     willInvite,
-  } = useContext(InviteMembersContext);
+  } = useInviteMembersContext();
   const isValidInvites = invites.length > 0;
 
   const removeSentInvites = () => {

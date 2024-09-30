@@ -26,6 +26,7 @@ describe('InviteRowControlNew', function () {
   });
 
   it('enables send button when there are emails', async function () {
+    const mockSetInviteStatus = jest.fn();
     const mockSendInvites = jest.fn();
     renderComponent({
       invites: [
@@ -35,12 +36,14 @@ describe('InviteRowControlNew', function () {
           teams: new Set<string>(['moo-deng']),
         },
       ],
+      setInviteStatus: mockSetInviteStatus,
       sendInvites: mockSendInvites,
     });
 
     const sendButton = screen.getByLabelText(/send invite/i);
     expect(sendButton).toBeEnabled();
     await userEvent.click(sendButton);
+    expect(mockSetInviteStatus).toHaveBeenCalled();
     expect(mockSendInvites).toHaveBeenCalled();
   });
 

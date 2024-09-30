@@ -1,13 +1,12 @@
-import {useContext} from 'react';
 import styled from '@emotion/styled';
 
 import Alert from 'sentry/components/alert';
-import {InviteMembersContext} from 'sentry/components/modals/inviteMembersModal/inviteMembersContext';
+import {useInviteMembersContext} from 'sentry/components/modals/inviteMembersModal/inviteMembersContext';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
 export function ErrorAlert() {
-  const {error} = useContext(InviteMembersContext);
+  const {error} = useInviteMembersContext();
   return error ? (
     <Alert type="error" showIcon>
       {error}
@@ -16,7 +15,7 @@ export function ErrorAlert() {
 }
 
 export function InviteMessage() {
-  const {willInvite} = useContext(InviteMembersContext);
+  const {willInvite} = useInviteMembersContext();
   return willInvite ? (
     <Subtext>{t('Invite unlimited new members to join your organization.')}</Subtext>
   ) : (
