@@ -588,7 +588,6 @@ from .endpoints.project_commits import ProjectCommitsEndpoint
 from .endpoints.project_create_sample import ProjectCreateSampleEndpoint
 from .endpoints.project_create_sample_transaction import ProjectCreateSampleTransactionEndpoint
 from .endpoints.project_details import ProjectDetailsEndpoint
-from .endpoints.project_docs_platform import ProjectDocsPlatformEndpoint
 from .endpoints.project_environment_details import ProjectEnvironmentDetailsEndpoint
 from .endpoints.project_environments import ProjectEnvironmentsEndpoint
 from .endpoints.project_filter_details import ProjectFilterDetailsEndpoint
@@ -2250,11 +2249,6 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/create-sample-transaction/$",
         ProjectCreateSampleTransactionEndpoint.as_view(),
         name="sentry-api-0-project-create-sample-transaction",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/docs/(?P<platform>[\w-]+)/$",
-        ProjectDocsPlatformEndpoint.as_view(),
-        name="sentry-api-0-project-docs-platform",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/environments/$",
