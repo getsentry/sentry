@@ -137,7 +137,7 @@ class FlagPoleItemSerializer(serializers.Serializer):
 
 
 class FlagPoleSerializer(serializers.Serializer):
-    data = serializers.ListSerializer(child=FlagPoleItemSerializer(), required=True)
+    data = FlagPoleItemSerializer(many=True, required=True)  # type: ignore[assignment]
 
 
 def handle_flag_pole_event(
