@@ -128,18 +128,10 @@ describe('ProjectPageFilter', function () {
     // Activating the link triggers a route change
     await userEvent.keyboard('{Enter}');
 
-    // TODO(__SENTRY_USING_REACT_ROUTER_SIX): This first variant can be removed
-    // once react-router 3 has been removed.
-    try {
-      expect(router.push).toHaveBeenCalledWith(
-        `/organizations/${organization.slug}/projects/project-1/?project=1`
-      );
-    } catch {
-      expect(router.push).toHaveBeenCalledWith({
-        pathname: '/organizations/org-slug/projects/project-1/',
-        query: {project: '1'},
-      });
-    }
+    expect(router.push).toHaveBeenCalledWith({
+      pathname: '/organizations/org-slug/projects/project-1/',
+      query: {project: '1'},
+    });
 
     // Move focus to "Project Settings" link
     await userEvent.keyboard('{ArrowRight}');
