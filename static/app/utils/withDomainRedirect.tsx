@@ -1,5 +1,3 @@
-// biome-ignore lint/nursery/noRestrictedImports: Will be removed with react router 6
-import {formatPattern} from 'react-router';
 import trimEnd from 'lodash/trimEnd';
 import trimStart from 'lodash/trimStart';
 
@@ -7,9 +5,9 @@ import Redirect from 'sentry/components/redirect';
 import ConfigStore from 'sentry/stores/configStore';
 import type {RouteComponent, RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import recreateRoute from 'sentry/utils/recreateRoute';
+import replaceRouterParams from 'sentry/utils/replaceRouterParams';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-
-import useOrganization from './useOrganization';
+import useOrganization from 'sentry/utils/useOrganization';
 
 /**
  * withDomainRedirect is a higher-order component (HOC) meant to be used with <Route /> components within
@@ -70,7 +68,7 @@ function withDomainRedirect<P extends RouteComponentProps<{}, {}>>(
         return <WrappedComponent {...props} />;
       }
 
-      const orglessRedirectPath = formatPattern(orglessSlugRoute, params);
+      const orglessRedirectPath = replaceRouterParams(orglessSlugRoute, params);
       const redirectOrgURL = `/${trimStart(orglessRedirectPath, '/')}${
         window.location.search
       }${window.location.hash}`;
