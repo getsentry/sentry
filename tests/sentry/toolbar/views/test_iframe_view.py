@@ -1,6 +1,7 @@
 from typing import Any
 from unittest.mock import Mock, patch
 
+from django.test import override_settings
 from django.urls import reverse
 
 from sentry.testutils.cases import APITestCase
@@ -63,6 +64,26 @@ class IframeViewTest(APITestCase):
         self.project.update_option("sentry:toolbar_allowed_origins", ["https://sentry.io"])
         res = self.client.get(self.url, HTTP_REFERER="https://sentry.io")
         assert res.headers.get("X-Frame-Options") == "ALLOWALL"
+
+    def test_csp_frame_ancestors(self):
+        # TODO:
+        # Pass res through middleware
+        # Check CSP frame-ancestors directive
+        pass
+
+    @override_settings(CSP_INCLUDE_NONCE_IN=[])
+    def test_csp_script_src_unsafe_inline(self):
+        # TODO:
+        # Pass res through middleware
+        # Check
+        pass
+
+    @override_settings(CSP_INCLUDE_NONCE_IN=["script-src"])
+    def test_csp_script_src_nonce(self):
+        # TODO:
+        # Pass req and res through middleware
+        # Check res template content contains same nonce as req
+        pass
 
 
 def _has_expected_response(
