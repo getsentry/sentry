@@ -1,6 +1,4 @@
 import {Fragment, lazy} from 'react';
-// biome-ignore lint/nursery/noRestrictedImports: warning
-import {IndexRedirect, Redirect} from 'react-router';
 import memoize from 'lodash/memoize';
 
 import LazyLoad from 'sentry/components/lazyLoad';
@@ -32,7 +30,7 @@ import redirectDeprecatedProjectRoute from 'sentry/views/projects/redirectDeprec
 import RouteNotFound from 'sentry/views/routeNotFound';
 import SettingsWrapper from 'sentry/views/settings/components/settingsWrapper';
 
-import {IndexRoute, Route} from './components/route';
+import {IndexRedirect, IndexRoute, Redirect, Route} from './components/route';
 
 const hook = (name: HookName) => HookStore.get(name).map(cb => cb());
 

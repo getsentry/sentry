@@ -130,3 +130,12 @@ export interface RouteContextInterface<P = Record<string, string>, Q = any> {
 }
 
 export type Route = React.ComponentClass<RouteProps>;
+
+export interface IndexRedirectProps {
+  to: RoutePattern;
+  query?: Query | undefined;
+}
+
+export interface RedirectProps extends IndexRedirectProps {
+  from: RoutePattern;
+}
