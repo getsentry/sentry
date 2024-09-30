@@ -1,10 +1,21 @@
 __all__ = ("User",)
 
 
+from typing import Any, NotRequired, TypedDict
+
 from sentry.interfaces.base import Interface
 from sentry.interfaces.geo import Geo
 from sentry.utils.json import prune_empty_keys
 from sentry.web.helpers import render_to_string
+
+
+class EventUserApiContext(TypedDict):
+    id: NotRequired[str]
+    email: NotRequired[str]
+    username: NotRequired[str]
+    ip_address: NotRequired[str]
+    name: NotRequired[str]
+    data: dict[str, Any] | None
 
 
 class User(Interface):
@@ -51,7 +62,7 @@ class User(Interface):
             }
         )
 
-    def get_api_context(self, is_public=False, platform=None):
+    def get_api_context(self, is_public=False, platform=None) -> EventUserApiContext:
         return {
             "id": self.id,
             "email": self.email,
