@@ -317,7 +317,10 @@ class IssueListOverview extends Component<Props, State> {
     savedSearch,
     location,
   }: Pick<Props, 'savedSearch' | 'location'>): string {
-    if (savedSearch) {
+    if (
+      !this.props.organization.features.includes('issue-stream-custom-views') &&
+      savedSearch
+    ) {
       return savedSearch.query;
     }
 
