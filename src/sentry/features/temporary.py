@@ -4,6 +4,7 @@ from .base import (
     ProjectFeature,
     ProjectPluginFeature,
     SystemFeature,
+    UserFeature,
 )
 from .manager import FeatureManager
 
@@ -91,6 +92,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:custom-metrics-experimental", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable daily summary
     manager.add("organizations:daily-summary", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
+    # Enable events analytics platform data in dashboards
+    manager.add("organizations:dashboards-eap", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enables import/export functionality for dashboards
     manager.add("organizations:dashboards-import", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable metrics enhanced performance in dashboards
@@ -129,8 +132,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:feature-flag-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable disabling gitlab integrations when broken is detected
     manager.add("organizations:gitlab-disable-on-broken", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-    # Enable only calculating a secondary hash when needed
-    manager.add("organizations:grouping-suppress-unnecessary-secondary-hash", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Allow creating `GroupHashMetadata` records
     manager.add("organizations:grouphash-metadata-creation", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Allows an org to have a larger set of project ownership rules per project
@@ -222,6 +223,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:on-demand-metrics-query-spec-version-two", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Display metrics components with a new design
     manager.add("organizations:metrics-new-inputs", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Display new Source map uploads view in settings
+    manager.add('organizations:new-source-map-uploads-view', OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Display on demand metrics related UI elements
     manager.add("organizations:on-demand-metrics-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Display on demand metrics related UI elements, for dashboards and widgets. The other flag is for alerts.
@@ -569,3 +572,9 @@ def register_temporary_features(manager: FeatureManager):
 
     manager.add("projects:profiling-ingest-unsampled-profiles", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # fmt: on
+
+    # User scoped features #
+    ###########################
+    manager.add(
+        "users:new-setup-wizard-ui", UserFeature, FeatureHandlerStrategy.INTERNAL, api_expose=True
+    )

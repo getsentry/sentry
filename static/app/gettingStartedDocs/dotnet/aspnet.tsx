@@ -123,10 +123,9 @@ const onboarding: OnboardingConfig = {
     {
       type: StepType.CONFIGURE,
       description: tct(
-        'You should [initCode:init] the Sentry SDK as soon as possible during your application load by adding Sentry to [globalCode:Global.asax.cs]:',
+        'You should [code:init] the Sentry SDK as soon as possible during your application load by adding Sentry to [code:Global.asax.cs]:',
         {
-          initCode: <code />,
-          globalCode: <code />,
+          code: <code />,
         }
       ),
       configurations: [

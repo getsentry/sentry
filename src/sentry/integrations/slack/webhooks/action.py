@@ -16,7 +16,7 @@ from slack_sdk.errors import SlackApiError
 from slack_sdk.models.views import View
 from slack_sdk.webhook import WebhookClient
 
-from sentry import analytics, options
+from sentry import analytics
 from sentry.api import client
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -865,7 +865,7 @@ class _ModalDialog(ABC):
             # We passed this in control when we sent the loading modal to beat the 3 second timeout
             external_id = slack_request.get_action_ts()
 
-            if not external_id or not options.get("send-slack-response-from-control-silo"):
+            if not external_id:
                 # If we don't have an external_id or option is disabled we need to open a new modal
                 self._open_modal(slack_client, modal_payload, slack_request)
             else:
