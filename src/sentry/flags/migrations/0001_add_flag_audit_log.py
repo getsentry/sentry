@@ -38,10 +38,10 @@ class Migration(CheckedMigration):
                     ),
                 ),
                 ("action", models.PositiveSmallIntegerField()),
+                ("created_at", models.DateTimeField(default=django.utils.timezone.now)),
+                ("created_by", models.CharField(max_length=100)),
+                ("created_by_type", models.PositiveSmallIntegerField()),
                 ("flag", models.CharField(max_length=100)),
-                ("modified_at", models.DateTimeField(default=django.utils.timezone.now)),
-                ("modified_by", models.CharField(max_length=100)),
-                ("modified_by_type", models.PositiveSmallIntegerField()),
                 (
                     "organization_id",
                     sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(

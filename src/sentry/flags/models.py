@@ -21,16 +21,16 @@ ACTION_MAP = {
 }
 
 
-class ModifiedByTypeEnum(Enum):
+class CreatedByTypeEnum(Enum):
     EMAIL = 0
     ID = 1
     NAME = 2
 
 
-MODIFIED_BY_TYPE_MAP = {
-    "email": ModifiedByTypeEnum.EMAIL.value,
-    "id": ModifiedByTypeEnum.ID.value,
-    "name": ModifiedByTypeEnum.NAME.value,
+CREATED_BY_TYPE_MAP = {
+    "email": CreatedByTypeEnum.EMAIL.value,
+    "id": CreatedByTypeEnum.ID.value,
+    "name": CreatedByTypeEnum.NAME.value,
 }
 
 
@@ -43,17 +43,17 @@ class FlagAuditLogModel(Model):
         (ActionEnum.UPDATED, "updated"),
         (ActionEnum.DELETED, "deleted"),
     )
-    MODIFIED_BY_TYPE_TYPES = (
-        (ModifiedByTypeEnum.EMAIL, "email"),
-        (ModifiedByTypeEnum.NAME, "name"),
-        (ModifiedByTypeEnum.ID, "id"),
+    CREATED_BY_TYPE_TYPES = (
+        (CreatedByTypeEnum.EMAIL, "email"),
+        (CreatedByTypeEnum.NAME, "name"),
+        (CreatedByTypeEnum.ID, "id"),
     )
 
     action = models.PositiveSmallIntegerField(choices=ACTION_TYPES)
+    created_at = models.DateTimeField(default=timezone.now)
+    created_by = models.CharField(max_length=100)
+    created_by_type = models.PositiveSmallIntegerField(choices=CREATED_BY_TYPE_TYPES)
     flag = models.CharField(max_length=100)
-    modified_at = models.DateTimeField(default=timezone.now)
-    modified_by = models.CharField(max_length=100)
-    modified_by_type = models.PositiveSmallIntegerField(choices=MODIFIED_BY_TYPE_TYPES)
     organization_id = HybridCloudForeignKey("sentry.Organization", null=False, on_delete="CASCADE")
     tags = models.JSONField()
 

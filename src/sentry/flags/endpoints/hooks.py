@@ -11,7 +11,7 @@ from sentry.api.authentication import OrgAuthTokenAuthentication
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.flags.models import ACTION_MAP, MODIFIED_BY_TYPE_MAP, FlagAuditLogModel
+from sentry.flags.models import ACTION_MAP, CREATED_BY_TYPE_MAP, FlagAuditLogModel
 from sentry.models.organization import Organization
 from sentry.utils.sdk import bind_organization_context
 
@@ -89,10 +89,10 @@ class FlagAuditLogRow(TypedDict):
     """A complete flag audit log row instance."""
 
     action: int
+    created_at: datetime.datetime
+    created_by: str
+    created_by_type: int
     flag: str
-    modified_at: datetime.datetime
-    modified_by: str
-    modified_by_type: int
     organization_id: int
     tags: dict[str, Any]
 
@@ -130,9 +130,9 @@ limited to what we can extract from the git repository on merge.
 
 class FlagPoleItemSerializer(serializers.Serializer):
     action = serializers.ChoiceField(choices=("created", "updated"), required=True)
+    created_at = serializers.DateTimeField(required=True)
+    created_by = serializers.CharField(required=True)
     flag = serializers.CharField(max_length=100, required=True)
-    modified_at = serializers.DateTimeField(required=True)
-    modified_by = serializers.CharField(required=True)
     tags = serializers.DictField(required=True)
 
 
@@ -150,10 +150,10 @@ def handle_flag_pole_event(
     return [
         dict(
             action=ACTION_MAP[validated_item["action"]],
+            created_at=validated_item["created_at"],
+            created_by=validated_item["created_by"],
+            created_by_type=CREATED_BY_TYPE_MAP["email"],
             flag=validated_item["flag"],
-            modified_at=validated_item["modified_at"],
-            modified_by=validated_item["modified_by"],
-            modified_by_type=MODIFIED_BY_TYPE_MAP["email"],
             organization_id=organization_id,
             tags=validated_item["tags"],
         )
