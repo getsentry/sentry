@@ -232,7 +232,9 @@ def get_seer_similar_issues(
     return (similar_issues_metadata, parent_grouphash)
 
 
-def maybe_check_seer_for_matching_grouphash(event: Event) -> GroupHash | None:
+def maybe_check_seer_for_matching_grouphash(
+    event: Event, all_grouphashes: list[GroupHash]
+) -> GroupHash | None:
     seer_matched_grouphash = None
 
     if should_call_seer_for_grouping(event):
@@ -245,12 +247,46 @@ def maybe_check_seer_for_matching_grouphash(event: Event) -> GroupHash | None:
             # If no matching group is found in Seer, we'll still get back result
             # metadata, but `seer_matched_grouphash` will be None
             seer_response_data, seer_matched_grouphash = get_seer_similar_issues(event)
-            event.data["seer_similarity"] = seer_response_data
 
         # Insurance - in theory we shouldn't ever land here
         except Exception as e:
             sentry_sdk.capture_exception(
                 e, tags={"event": event.event_id, "project": event.project.id}
+            )
+            return None
+
+        # Find the GroupHash corresponding to the hash value sent to Seer
+        #
+        # TODO: There shouldn't actually be more than one hash in `all_grouphashes`, but
+        #   a) there's a bug in our precedence logic which leads both in-app and system stacktrace
+        #      hashes being marked as contributing and making it through to this point, and
+        #   b) because of how we used to compute secondary and primary hashes, we keep secondary
+        #      hashes even when we don't need them.
+        # Once those two problems are fixed, there will only be one hash passed to this function
+        # and we won't have to do this search to find the right one to update.
+        primary_hash = event.get_primary_hash()
+        grouphash_sent = list(
+            filter(lambda grouphash: grouphash.hash == primary_hash, all_grouphashes)
+        )[0]
+
+        # Update the relevant GroupHash with Seer results
+        gh_metadata = grouphash_sent.metadata
+        if gh_metadata:
+            gh_metadata.update(
+                # Technically the time of the metadata record creation and the time of the Seer
+                # request will be some milliseconds apart, but a) the difference isn't meaningful
+                # for us, and b) forcing them to be the same (rather than just close) lets us use
+                # their equality as a signal that the Seer call happened during ingest rather than
+                # during a backfill, without having to store that information separately.
+                seer_date_sent=gh_metadata.date_added,
+                seer_event_sent=event.event_id,
+                seer_model=seer_response_data["similarity_model_version"],
+                seer_matched_grouphash=seer_matched_grouphash,
+                seer_match_distance=(
+                    seer_response_data["results"][0]["stacktrace_distance"]
+                    if seer_matched_grouphash
+                    else None
+                ),
             )
 
     return seer_matched_grouphash
