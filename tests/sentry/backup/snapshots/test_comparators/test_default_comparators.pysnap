@@ -1,5 +1,5 @@
 ---
-created: '2024-09-27T18:19:32.802545+00:00'
+created: '2024-09-27T21:32:53.399200+00:00'
 creator: sentry
 source: tests/sentry/backup/test_comparators.py
 ---
@@ -582,6 +582,7 @@ source: tests/sentry/backup/test_comparators.py
   - class: ForeignKeyComparator
     fields:
     - grouphash
+    - seer_matched_grouphash
   model_name: sentry.grouphashmetadata
 - comparators:
   - class: ForeignKeyComparator
