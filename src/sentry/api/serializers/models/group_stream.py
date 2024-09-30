@@ -30,10 +30,10 @@ from sentry.models.group import Group
 from sentry.models.groupinbox import get_inbox_details
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupowner import get_owner_details
-from sentry.models.platformexternalissue import PlatformExternalIssue
 from sentry.sentry_apps.api.serializers.platform_external_issue import (
     PlatformExternalIssueSerializer,
 )
+from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
 from sentry.snuba.dataset import Dataset
 from sentry.tsdb.base import TSDBModel
 from sentry.utils import metrics

@@ -73,6 +73,7 @@ from sentry.discover.endpoints.discover_saved_query_detail import (
     DiscoverSavedQueryDetailEndpoint,
     DiscoverSavedQueryVisitEndpoint,
 )
+from sentry.flags.endpoints.hooks import OrganizationFlagsHooksEndpoint
 from sentry.incidents.endpoints.organization_alert_rule_activations import (
     OrganizationAlertRuleActivationsEndpoint,
 )
@@ -588,7 +589,6 @@ from .endpoints.project_commits import ProjectCommitsEndpoint
 from .endpoints.project_create_sample import ProjectCreateSampleEndpoint
 from .endpoints.project_create_sample_transaction import ProjectCreateSampleTransactionEndpoint
 from .endpoints.project_details import ProjectDetailsEndpoint
-from .endpoints.project_docs_platform import ProjectDocsPlatformEndpoint
 from .endpoints.project_environment_details import ProjectEnvironmentDetailsEndpoint
 from .endpoints.project_environments import ProjectEnvironmentsEndpoint
 from .endpoints.project_filter_details import ProjectFilterDetailsEndpoint
@@ -2034,6 +2034,11 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-relay-usage",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/flags/hooks/provider/(?P<provider>[\w-]+)/$",
+        OrganizationFlagsHooksEndpoint.as_view(),
+        name="sentry-api-0-organization-flag-hooks",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/replays/$",
         OrganizationReplayIndexEndpoint.as_view(),
         name="sentry-api-0-organization-replay-index",
@@ -2250,11 +2255,6 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/create-sample-transaction/$",
         ProjectCreateSampleTransactionEndpoint.as_view(),
         name="sentry-api-0-project-create-sample-transaction",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/docs/(?P<platform>[\w-]+)/$",
-        ProjectDocsPlatformEndpoint.as_view(),
-        name="sentry-api-0-project-docs-platform",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/environments/$",
