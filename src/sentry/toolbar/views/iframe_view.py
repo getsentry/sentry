@@ -19,7 +19,8 @@ class IframeView(OrganizationView):
         response = super().respond(template, context=context, status=status)
         # These HTTP headers allows response to be embedded in an iframe.
         response["X-Frame-Options"] = "ALLOWALL"
-        response._csp_replace = {  # This is an alternative to @csp_replace decorator.
+        response._csp_replace = {  # type: ignore[attr-defined]
+            # This is an alternative to @csp_replace - we need this pattern to access the referrer.
             "frame-ancestors": [self.request.META.get(REFERRER_HEADER, "'none'")]
         }
         return response
