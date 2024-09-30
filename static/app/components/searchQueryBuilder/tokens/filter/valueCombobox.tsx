@@ -1,5 +1,6 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {isMac} from '@react-aria/utils';
 import {Item, Section} from '@react-stately/collections';
 import type {KeyboardEvent} from '@react-types/shared';
 
@@ -11,14 +12,16 @@ import {
   type CustomComboboxMenu,
   SearchQueryBuilderCombobox,
 } from 'sentry/components/searchQueryBuilder/tokens/combobox';
+import {parseMultiSelectFilterValue} from 'sentry/components/searchQueryBuilder/tokens/filter/parsers/string/parser';
+import {replaceCommaSeparatedValue} from 'sentry/components/searchQueryBuilder/tokens/filter/replaceCommaSeparatedValue';
 import SpecificDatePicker from 'sentry/components/searchQueryBuilder/tokens/filter/specificDatePicker';
 import {
   escapeTagValue,
   formatFilterValue,
   getFilterValueType,
-  replaceCommaSeparatedValue,
   unescapeTagValue,
 } from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
+import {ValueListBox} from 'sentry/components/searchQueryBuilder/tokens/filter/valueListBox';
 import {getDefaultAbsoluteDateValue} from 'sentry/components/searchQueryBuilder/tokens/filter/valueSuggestions/date';
 import type {
   SuggestionItem,
@@ -53,8 +56,9 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {uniq} from 'sentry/utils/array/uniq';
 import {type FieldDefinition, FieldValueType} from 'sentry/utils/fields';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
-import {type QueryKey, useQuery} from 'sentry/utils/queryClient';
+import {keepPreviousData, type QueryKey, useQuery} from 'sentry/utils/queryClient';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
+import useKeyPress from 'sentry/utils/useKeyPress';
 import useOrganization from 'sentry/utils/useOrganization';
 
 type SearchQueryValueBuilderProps = {
@@ -71,15 +75,19 @@ function isStringFilterValues(
 }
 
 function getMultiSelectInputValue(token: TokenResult<Token.FILTER>) {
+  // Even if this is a multi-select filter, it won't be parsed as such if only a single value is provided
   if (
     token.value.type !== Token.VALUE_TEXT_LIST &&
     token.value.type !== Token.VALUE_NUMBER_LIST
   ) {
-    const value = token.value.value;
-    return value ? value + ',' : '';
+    if (!token.value.value) {
+      return '';
+    }
+
+    return token.value.text + ',';
   }
 
-  const items = token.value.items.map(item => item.value.value);
+  const items = token.value.items.map(item => item.value?.text ?? '');
 
   if (items.length === 0) {
     return '';
@@ -89,21 +97,45 @@ function getMultiSelectInputValue(token: TokenResult<Token.FILTER>) {
 }
 
 function prepareInputValueForSaving(valueType: FieldValueType, inputValue: string) {
-  const values = uniq(
-    inputValue
-      .split(',')
-      .map(v => cleanFilterValue(valueType, v.trim()))
-      .filter(v => v && v.length > 0)
-  );
+  const parsed = parseMultiSelectFilterValue(inputValue);
 
-  return values.length > 1 ? `[${values.join(',')}]` : values[0] ?? '""';
+  if (!parsed) {
+    return '""';
+  }
+
+  const values =
+    parsed.items
+      .map(item =>
+        item.value?.quoted
+          ? item.value?.text ?? ''
+          : cleanFilterValue({valueType, value: item.value?.text ?? ''})
+      )
+      .filter(text => text?.length) ?? [];
+
+  const uniqueValues = uniq(values);
+
+  return uniqueValues.length > 1
+    ? `[${uniqueValues.join(',')}]`
+    : uniqueValues[0] ?? '""';
 }
 
-function getSelectedValuesFromText(text: string) {
-  return text
-    .split(',')
-    .map(v => unescapeTagValue(v.trim()))
-    .filter(v => v.length > 0);
+function getSelectedValuesFromText(
+  text: string,
+  {escaped = true}: {escaped?: boolean} = {}
+) {
+  const parsed = parseMultiSelectFilterValue(text);
+
+  if (!parsed) {
+    return [];
+  }
+
+  return parsed.items
+    .filter(item => item.value?.value)
+    .map(item => {
+      return (
+        (escaped ? item.value?.text : unescapeTagValue(item.value?.value ?? '')) ?? ''
+      );
+    });
 }
 
 function getValueAtCursorPosition(text: string, cursorPosition: number | null) {
@@ -221,6 +253,14 @@ function tokenSupportsMultipleValues(
   }
 }
 
+// Filters support wildcards if they are string filters and it is not explicity disallowed
+function keySupportsWildcard(fieldDefinition: FieldDefinition | null) {
+  const isStringFilter =
+    !fieldDefinition || fieldDefinition?.valueType === FieldValueType.STRING;
+
+  return isStringFilter && fieldDefinition?.allowWildcard !== false;
+}
+
 function useSelectionIndex({
   inputRef,
   inputValue,
@@ -258,7 +298,9 @@ function useFilterSuggestions({
   token,
   filterValue,
   selectedValues,
+  ctrlKeyPressed,
 }: {
+  ctrlKeyPressed: boolean;
   filterValue: string;
   selectedValues: string[];
   token: TokenResult<Token.FILTER>;
@@ -295,7 +337,7 @@ function useFilterSuggestions({
   const {data, isFetching} = useQuery<string[]>({
     queryKey: debouncedQueryKey,
     queryFn: () => getTagValues(key ? key : {key: keyName, name: keyName}, filterValue),
-    keepPreviousData: true,
+    placeholderData: keepPreviousData,
     enabled: shouldFetchValues,
   });
 
@@ -320,12 +362,13 @@ function useFilterSuggestions({
               token={token}
               disabled={disabled}
               value={suggestion.value}
+              ctrlKeyPressed={ctrlKeyPressed}
             />
           );
         },
       };
     },
-    [canSelectMultipleValues, token]
+    [canSelectMultipleValues, token, ctrlKeyPressed]
   );
 
   const suggestionGroups: SuggestionSection[] = useMemo(() => {
@@ -379,7 +422,9 @@ function ItemCheckbox({
   selected,
   disabled,
   value,
+  ctrlKeyPressed,
 }: {
+  ctrlKeyPressed: boolean;
   disabled: boolean;
   isFocused: boolean;
   selected: boolean;
@@ -394,7 +439,7 @@ function ItemCheckbox({
       onMouseUp={e => e.stopPropagation()}
       onClick={e => e.stopPropagation()}
     >
-      <CheckWrap visible={isFocused || selected} role="presentation">
+      <CheckWrap visible={isFocused || selected || ctrlKeyPressed} role="presentation">
         <Checkbox
           size="sm"
           checked={selected}
@@ -436,8 +481,15 @@ export function SearchQueryBuilderValueCombobox({
   const ref = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const organization = useOrganization();
-  const {getFieldDefinition, filterKeys, dispatch, searchSource, recentSearches} =
-    useSearchQueryBuilder();
+  const {
+    getFieldDefinition,
+    filterKeys,
+    dispatch,
+    searchSource,
+    recentSearches,
+    disallowWildcard,
+    wrapperRef: topLevelWrapperRef,
+  } = useSearchQueryBuilder();
   const keyName = getKeyName(token.key);
   const fieldDefinition = getFieldDefinition(keyName);
   const canSelectMultipleValues = tokenSupportsMultipleValues(
@@ -445,6 +497,7 @@ export function SearchQueryBuilderValueCombobox({
     filterKeys,
     fieldDefinition
   );
+  const canUseWildard = disallowWildcard ? false : keySupportsWildcard(fieldDefinition);
   const [inputValue, setInputValue] = useState(() =>
     getInitialInputValue(token, canSelectMultipleValues)
   );
@@ -465,9 +518,17 @@ export function SearchQueryBuilderValueCombobox({
     ? getValueAtCursorPosition(inputValue, selectionIndex)
     : inputValue;
 
-  const selectedValues = useMemo(
-    () => (canSelectMultipleValues ? getSelectedValuesFromText(inputValue) : []),
+  const selectedValuesUnescaped = useMemo(
+    () =>
+      canSelectMultipleValues
+        ? getSelectedValuesFromText(inputValue, {escaped: false})
+        : [],
     [canSelectMultipleValues, inputValue]
+  );
+
+  const ctrlKeyPressed = useKeyPress(
+    isMac() ? 'Meta' : 'Control',
+    topLevelWrapperRef.current
   );
 
   useEffect(() => {
@@ -488,7 +549,8 @@ export function SearchQueryBuilderValueCombobox({
   const {items, suggestionSectionItems, isFetching} = useFilterSuggestions({
     token,
     filterValue,
-    selectedValues,
+    selectedValues: selectedValuesUnescaped,
+    ctrlKeyPressed,
   });
 
   const analyticsData = useMemo(
@@ -506,10 +568,11 @@ export function SearchQueryBuilderValueCombobox({
 
   const updateFilterValue = useCallback(
     (value: string) => {
-      const cleanedValue = cleanFilterValue(
-        getFilterValueType(token, fieldDefinition),
-        value
-      );
+      const cleanedValue = cleanFilterValue({
+        valueType: getFilterValueType(token, fieldDefinition),
+        value,
+        token,
+      });
 
       // TODO(malwilley): Add visual feedback for invalid values
       if (cleanedValue === null) {
@@ -522,18 +585,22 @@ export function SearchQueryBuilderValueCombobox({
       }
 
       if (canSelectMultipleValues) {
-        if (selectedValues.includes(value)) {
+        if (selectedValuesUnescaped.includes(value)) {
           const newValue = prepareInputValueForSaving(
             getFilterValueType(token, fieldDefinition),
-            selectedValues.filter(v => v !== value).join(',')
+            selectedValuesUnescaped
+              .filter(v => v !== value)
+              .map(escapeTagValue)
+              .join(',')
           );
+
           dispatch({
             type: 'UPDATE_TOKEN_VALUE',
             token: token,
             value: newValue,
           });
 
-          if (newValue && newValue !== '""') {
+          if (newValue && newValue !== '""' && !ctrlKeyPressed) {
             onCommit();
           }
 
@@ -545,10 +612,13 @@ export function SearchQueryBuilderValueCombobox({
           token: token,
           value: prepareInputValueForSaving(
             getFilterValueType(token, fieldDefinition),
-            replaceCommaSeparatedValue(inputValue, selectionIndex, value)
+            replaceCommaSeparatedValue(inputValue, selectionIndex, escapeTagValue(value))
           ),
         });
-        onCommit();
+
+        if (!ctrlKeyPressed) {
+          onCommit();
+        }
       } else {
         dispatch({
           type: 'UPDATE_TOKEN_VALUE',
@@ -561,15 +631,16 @@ export function SearchQueryBuilderValueCombobox({
       return true;
     },
     [
-      analyticsData,
-      canSelectMultipleValues,
-      dispatch,
-      fieldDefinition,
-      inputValue,
-      onCommit,
-      selectedValues,
-      selectionIndex,
       token,
+      fieldDefinition,
+      canSelectMultipleValues,
+      analyticsData,
+      selectedValuesUnescaped,
+      dispatch,
+      inputValue,
+      selectionIndex,
+      ctrlKeyPressed,
+      onCommit,
     ]
   );
 
@@ -690,7 +761,19 @@ export function SearchQueryBuilderValueCombobox({
 
   const customMenu: CustomComboboxMenu<SelectOptionWithKey<string>> | undefined =
     useMemo(() => {
-      if (!showDatePicker) return undefined;
+      if (!showDatePicker) {
+        return function (props) {
+          return (
+            <ValueListBox
+              {...props}
+              isMultiSelect={canSelectMultipleValues}
+              items={items}
+              isLoading={isFetching}
+              canUseWildcard={canUseWildard}
+            />
+          );
+        };
+      }
 
       return function (props) {
         return (
@@ -722,7 +805,18 @@ export function SearchQueryBuilderValueCombobox({
           />
         );
       };
-    }, [analyticsData, dispatch, inputValue, onCommit, showDatePicker, token]);
+    }, [
+      showDatePicker,
+      canSelectMultipleValues,
+      items,
+      isFetching,
+      canUseWildard,
+      inputValue,
+      token,
+      analyticsData,
+      dispatch,
+      onCommit,
+    ]);
 
   return (
     <ValueEditing ref={ref} data-test-id="filter-value-editing">
@@ -745,7 +839,6 @@ export function SearchQueryBuilderValueCombobox({
         autoFocus
         maxOptions={50}
         openOnFocus
-        isLoading={isFetching}
         customMenu={customMenu}
         shouldCloseOnInteractOutside={shouldCloseOnInteractOutside}
       >

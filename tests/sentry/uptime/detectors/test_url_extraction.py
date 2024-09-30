@@ -1,8 +1,8 @@
-from sentry.testutils.cases import TestCase
+from sentry.testutils.cases import UptimeTestCase
 from sentry.uptime.detectors.url_extraction import extract_base_url
 
 
-class ExtractBaseUrlTest(TestCase):
+class ExtractBaseUrlTest(UptimeTestCase):
     def run_test(self, url: str, expected_url: str | None):
         assert extract_base_url(url) == expected_url
 

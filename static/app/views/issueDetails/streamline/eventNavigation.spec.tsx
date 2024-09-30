@@ -27,6 +27,7 @@ describe('EventNavigation', () => {
   const defaultProps = {
     event: testEvent,
     group: GroupFixture({id: 'group-id'}),
+    onViewAllEvents: jest.fn(),
   };
 
   beforeEach(() => {
@@ -59,7 +60,7 @@ describe('EventNavigation', () => {
 
       render(<EventNavigation {...defaultProps} />);
 
-      await userEvent.click(screen.getByRole('tab', {name: 'First Event'}));
+      await userEvent.click(screen.getByRole('tab', {name: 'First'}));
 
       expect(browserHistory.push).toHaveBeenCalledWith({
         pathname: '/organizations/org-slug/issues/group-id/events/oldest/',
@@ -72,7 +73,7 @@ describe('EventNavigation', () => {
 
       render(<EventNavigation {...defaultProps} />);
 
-      await userEvent.click(screen.getByRole('tab', {name: 'Last Event'}));
+      await userEvent.click(screen.getByRole('tab', {name: 'Last'}));
 
       expect(browserHistory.push).toHaveBeenCalledWith({
         pathname: '/organizations/org-slug/issues/group-id/events/latest/',
@@ -89,13 +90,22 @@ describe('EventNavigation', () => {
         },
       });
 
-      await userEvent.click(screen.getByRole('tab', {name: 'Recommended Event'}));
+      await userEvent.click(screen.getByRole('tab', {name: 'Recommended'}));
 
       expect(browserHistory.push).toHaveBeenCalledWith({
         pathname: '/organizations/org-slug/issues/group-id/events/recommended/',
         query: {referrer: 'recommended-event'},
       });
     });
+  });
+
+  it('can runs callback on view all events click', async () => {
+    render(<EventNavigation {...defaultProps} />);
+    expect(defaultProps.onViewAllEvents).not.toHaveBeenCalled();
+    const viewAllButton = screen.getByRole('button', {name: 'View All Events'});
+    expect(viewAllButton).toBeInTheDocument();
+    await userEvent.click(viewAllButton);
+    expect(defaultProps.onViewAllEvents).toHaveBeenCalled();
   });
 
   it('can navigate next/previous events', () => {

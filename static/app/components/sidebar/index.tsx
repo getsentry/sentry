@@ -53,12 +53,28 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {useModuleURLBuilder} from 'sentry/views/insights/common/utils/useModuleURL';
 import {MODULE_SIDEBAR_TITLE as HTTP_MODULE_SIDEBAR_TITLE} from 'sentry/views/insights/http/settings';
+import {
+  AI_LANDING_SUB_PATH,
+  AI_LANDING_TITLE,
+} from 'sentry/views/insights/pages/ai/settings';
+import {
+  BACKEND_LANDING_SUB_PATH,
+  BACKEND_LANDING_TITLE,
+} from 'sentry/views/insights/pages/backend/settings';
+import {
+  FRONTEND_LANDING_SUB_PATH,
+  FRONTEND_LANDING_TITLE,
+} from 'sentry/views/insights/pages/frontend/settings';
+import {
+  MOBILE_LANDING_SUB_PATH,
+  MOBILE_LANDING_TITLE,
+} from 'sentry/views/insights/pages/mobile/settings';
 import {MODULE_TITLES} from 'sentry/views/insights/settings';
 import MetricsOnboardingSidebar from 'sentry/views/metrics/ddmOnboarding/sidebar';
 
 import {ProfilingOnboardingSidebar} from '../profiling/profilingOnboardingSidebar';
 
-import Broadcasts from './broadcasts';
+import {Broadcasts} from './broadcasts';
 import SidebarHelp from './help';
 import OnboardingStatus from './onboardingStatus';
 import ServiceIncidents from './serviceIncidents';
@@ -248,7 +264,7 @@ function Sidebar() {
     </Feature>
   );
 
-  const moduleURLBuilder = useModuleURLBuilder(true);
+  const moduleURLBuilder = useModuleURLBuilder(true, false);
 
   const queries = hasOrganization && (
     <Feature key="db" features="insights-entry-points" organization={organization}>
@@ -525,6 +541,9 @@ function Sidebar() {
       to={metricsPath}
       search={location?.pathname === normalizeUrl(metricsPath) ? location.search : ''}
       id="metrics"
+      badgeTitle={t(
+        'The Metrics beta will end and we will retire the current solution on October 7th, 2024'
+      )}
       isBeta
     />
   );
@@ -583,6 +602,48 @@ function Sidebar() {
       to={`/settings/${organization.slug}/`}
       id="settings"
     />
+  );
+
+  const performanceDomains = hasOrganization && (
+    <Feature features="insights-domain-view" organization={organization}>
+      <SidebarAccordion
+        {...sidebarItemProps}
+        icon={<IconGraph />}
+        label={t('Performance')}
+        id="performance-domains"
+        initiallyExpanded={false}
+        exact={!shouldAccordionFloat}
+      >
+        <SidebarItem
+          {...sidebarItemProps}
+          label={FRONTEND_LANDING_TITLE}
+          to={`/organizations/${organization.slug}/performance/${FRONTEND_LANDING_SUB_PATH}/`}
+          id="performance-domains-web"
+          icon={<SubitemDot collapsed />}
+        />
+        <SidebarItem
+          {...sidebarItemProps}
+          label={BACKEND_LANDING_TITLE}
+          to={`/organizations/${organization.slug}/performance/${BACKEND_LANDING_SUB_PATH}/`}
+          id="performance-domains-platform"
+          icon={<SubitemDot collapsed />}
+        />
+        <SidebarItem
+          {...sidebarItemProps}
+          label={MOBILE_LANDING_TITLE}
+          to={`/organizations/${organization.slug}/performance/${MOBILE_LANDING_SUB_PATH}/`}
+          id="performance-domains-mobile"
+          icon={<SubitemDot collapsed />}
+        />
+        <SidebarItem
+          {...sidebarItemProps}
+          label={AI_LANDING_TITLE}
+          to={`/organizations/${organization.slug}/performance/${AI_LANDING_SUB_PATH}/`}
+          id="performance-domains-ai"
+          icon={<SubitemDot collapsed />}
+        />
+      </SidebarAccordion>
+    </Feature>
   );
 
   const insights = hasOrganization && (
@@ -663,6 +724,7 @@ function Sidebar() {
                     <SidebarSection hasNewNav={hasNewNav}>
                       {explore}
                       {insights}
+                      {performanceDomains}
                     </SidebarSection>
 
                     <SidebarSection hasNewNav={hasNewNav}>
@@ -760,7 +822,6 @@ function Sidebar() {
                 currentPanel={activePanel}
                 onShowPanel={() => togglePanel(SidebarPanelKey.BROADCASTS)}
                 hidePanel={hidePanel}
-                organization={organization}
               />
               <ServiceIncidents
                 orientation={orientation}
@@ -865,6 +926,11 @@ const PrimaryItems = styled('div')`
   flex-direction: column;
   gap: 1px;
   -ms-overflow-style: -ms-autohiding-scrollbar;
+
+  scrollbar-color: ${p => p.theme.sidebar.scrollbarThumbColor}
+    ${p => p.theme.sidebar.scrollbarColorTrack};
+  scrollbar-width: ${p => p.theme.sidebar.scrollbarWidth};
+
   @media (max-height: 675px) and (min-width: ${p => p.theme.breakpoints.medium}) {
     border-bottom: 1px solid ${p => p.theme.sidebarBorder};
     padding-bottom: ${space(1)};

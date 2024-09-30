@@ -136,7 +136,7 @@ export const useProjectWebVitalsScoresTimeseriesQuery = ({
         data[webVital].push({
           value:
             result?.data?.[`weighted_performance_score(measurements.score.${webVital})`]
-              ?.data[index][1][0].count * 100 ?? 0,
+              ?.data[index][1][0].count * 100,
           name: interval[0] * 1000,
         });
       });
@@ -148,12 +148,12 @@ export const useProjectWebVitalsScoresTimeseriesQuery = ({
           value:
             result?.data?.[`performance_score(measurements.score.${webVital})`]?.data[
               index
-            ][1][0].count * 100 ?? 0,
+            ][1][0].count * 100,
           name: interval[0] * 1000,
         });
       });
     }
   );
 
-  return {data, isLoading: result.isLoading};
+  return {data, isLoading: result.isPending};
 };

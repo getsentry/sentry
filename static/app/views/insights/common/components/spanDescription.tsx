@@ -12,6 +12,11 @@ import {
   MissingFrame,
   StackTraceMiniFrame,
 } from 'sentry/views/insights/database/components/stackTraceMiniFrame';
+import {SupportedDatabaseSystem} from 'sentry/views/insights/database/utils/constants';
+import {
+  isValidJson,
+  prettyPrintJsonString,
+} from 'sentry/views/insights/database/utils/jsonUtils';
 import type {SpanIndexedFieldTypes} from 'sentry/views/insights/types';
 import {SpanIndexedField} from 'sentry/views/insights/types';
 
@@ -58,22 +63,48 @@ export function DatabaseSpanDescription({
     Boolean(indexedSpan)
   );
 
-  const rawDescription =
-    rawSpan?.description || indexedSpan?.['span.description'] || preliminaryDescription;
+  const system = rawSpan?.data?.['db.system'];
 
-  const formatterDescription = useMemo(() => {
+  const formattedDescription = useMemo(() => {
+    const rawDescription =
+      rawSpan?.description || indexedSpan?.['span.description'] || preliminaryDescription;
+
+    if (system === SupportedDatabaseSystem.MONGODB) {
+      let bestDescription = '';
+
+      if (
+        rawSpan?.sentry_tags?.description &&
+        isValidJson(rawSpan.sentry_tags.description)
+      ) {
+        bestDescription = rawSpan.sentry_tags.description;
+      } else if (preliminaryDescription && isValidJson(preliminaryDescription)) {
+        bestDescription = preliminaryDescription;
+      } else if (
+        indexedSpan?.['span.description'] &&
+        isValidJson(indexedSpan?.['span.description'])
+      ) {
+        bestDescription = indexedSpan?.['span.description'];
+      } else if (rawSpan?.description && isValidJson(rawSpan.description)) {
+        bestDescription = rawSpan?.description;
+      } else {
+        return rawDescription ?? 'N/A';
+      }
+
+      return prettyPrintJsonString(bestDescription).prettifiedQuery;
+    }
+
     return formatter.toString(rawDescription ?? '');
-  }, [rawDescription]);
+  }, [preliminaryDescription, rawSpan, indexedSpan, system]);
 
   return (
     <Frame>
-      {areIndexedSpansLoading ? (
+      {areIndexedSpansLoading || isRawSpanLoading ? (
         <WithPadding>
           <LoadingIndicator mini />
         </WithPadding>
       ) : (
-        <CodeSnippet language="sql" isRounded={false}>
-          {formatterDescription}
+        <CodeSnippet language={system === 'mongodb' ? 'json' : 'sql'} isRounded={false}>
+          {formattedDescription ?? ''}
         </CodeSnippet>
       )}
 
@@ -90,7 +121,7 @@ export function DatabaseSpanDescription({
               }}
             />
           ) : (
-            <MissingFrame />
+            <MissingFrame system={system} />
           )}
         </Fragment>
       )}

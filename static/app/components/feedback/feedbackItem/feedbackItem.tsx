@@ -11,6 +11,7 @@ import Section from 'sentry/components/feedback/feedbackItem/feedbackItemSection
 import FeedbackReplay from 'sentry/components/feedback/feedbackItem/feedbackReplay';
 import MessageSection from 'sentry/components/feedback/feedbackItem/messageSection';
 import TagsSection from 'sentry/components/feedback/feedbackItem/tagsSection';
+import TraceDataSection from 'sentry/components/feedback/feedbackItem/traceDataSection';
 import PanelItem from 'sentry/components/panels/panelItem';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import TextCopyInput from 'sentry/components/textCopyInput';
@@ -94,6 +95,14 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
           feedbackItem={feedbackItem}
           organization={organization}
         />
+
+        {eventData ? (
+          <TraceDataSection
+            eventData={eventData}
+            crashReportId={crashReportId}
+            hasProject={!!feedbackItem.project}
+          />
+        ) : null}
 
         <Section icon={<IconTag size="xs" />} title={t('Tags')}>
           <TagsSection tags={tags} />

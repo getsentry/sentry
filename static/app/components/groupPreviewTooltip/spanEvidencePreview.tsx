@@ -33,22 +33,22 @@ function SpanEvidencePreviewBody({
   onUnmount,
   query,
 }: SpanEvidencePreviewBodyProps) {
-  const {data, isLoading, isError} = usePreviewEvent<EventTransaction>({
+  const {data, isPending, isError} = usePreviewEvent<EventTransaction>({
     groupId,
     query,
   });
 
   useEffect(() => {
-    if (isLoading) {
+    if (isPending) {
       onRequestBegin();
     } else {
       onRequestEnd();
     }
 
     return onUnmount;
-  }, [isLoading, onRequestBegin, onRequestEnd, onUnmount]);
+  }, [isPending, onRequestBegin, onRequestEnd, onUnmount]);
 
-  if (isLoading) {
+  if (isPending) {
     return (
       <EmptyWrapper>
         <LoadingIndicator hideMessage size={32} />

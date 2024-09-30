@@ -5,6 +5,7 @@ import debounce from 'lodash/debounce';
 import SearchBar from 'sentry/components/events/searchBar';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
+import {SpanSearchQueryBuilder} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -69,7 +70,7 @@ export function SpanSamplesContainer({
 
   const organization = useOrganization();
   const {selection} = usePageFilters();
-  const supportedTags = useSpanFieldSupportedTags();
+  const {data: supportedTags} = useSpanFieldSupportedTags();
 
   const searchQuery =
     searchQueryKey !== undefined
@@ -112,7 +113,7 @@ export function SpanSamplesContainer({
     filters['span.op'] = spanOp;
   }
 
-  const {data, isLoading} = useSpanMetrics(
+  const {data, isPending} = useSpanMetrics(
     {
       search: MutableSearch.fromQueryObject({...filters, ...additionalFilters}),
       fields: [`avg(${SPAN_SELF_TIME})`, 'count()', SPAN_OP],
@@ -160,13 +161,13 @@ export function SpanSamplesContainer({
           title={DataTitles.avg}
           value={spanMetrics?.[`avg(${SPAN_SELF_TIME})`]}
           unit={DurationUnit.MILLISECOND}
-          isLoading={isLoading}
+          isLoading={isPending}
         />
         <MetricReadout
           title={DataTitles.count}
           value={spanMetrics?.['count()'] ?? 0}
           unit="count"
-          isLoading={isLoading}
+          isLoading={isPending}
         />
       </StyledReadoutRibbon>
 
@@ -197,16 +198,28 @@ export function SpanSamplesContainer({
         platform={isProjectCrossPlatform ? selectedPlatform : undefined}
       />
 
-      <StyledSearchBar
-        searchSource={`${moduleName}-sample-panel`}
-        query={searchQuery}
-        onSearch={handleSearch}
-        placeholder={t('Search for span attributes')}
-        organization={organization}
-        supportedTags={supportedTags}
-        dataset={DiscoverDatasets.SPANS_INDEXED}
-        projectIds={selection.projects}
-      />
+      <StyledSearchBar>
+        {organization.features.includes('search-query-builder-performance') ? (
+          <SpanSearchQueryBuilder
+            searchSource={`${moduleName}-sample-panel`}
+            initialQuery={searchQuery ?? ''}
+            onSearch={handleSearch}
+            placeholder={t('Search for span attributes')}
+            projects={selection.projects}
+          />
+        ) : (
+          <SearchBar
+            searchSource={`${moduleName}-sample-panel`}
+            query={searchQuery}
+            onSearch={handleSearch}
+            placeholder={t('Search for span attributes')}
+            organization={organization}
+            supportedTags={supportedTags}
+            dataset={DiscoverDatasets.SPANS_INDEXED}
+            projectIds={selection.projects}
+          />
+        )}
+      </StyledSearchBar>
 
       <SampleTable
         referrer={TraceViewSources.APP_STARTS_MODULE}
@@ -254,6 +267,6 @@ const PaddedTitle = styled('div')`
   margin-bottom: ${space(1)};
 `;
 
-const StyledSearchBar = styled(SearchBar)`
-  margin-top: ${space(2)};
+const StyledSearchBar = styled('div')`
+  margin: ${space(2)} 0;
 `;

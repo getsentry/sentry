@@ -5,7 +5,6 @@ import Badge from 'sentry/components/badge/badge';
 import type {DropdownButtonProps} from 'sentry/components/dropdownButton';
 import DropdownButton from 'sentry/components/dropdownButton';
 import PlatformList from 'sentry/components/platformList';
-import {IconProject} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
@@ -81,19 +80,19 @@ function BaseProjectPageFilterTrigger(
       ref={forwardedRef}
       data-test-id="page-filter-project-selector"
       icon={
-        <TriggerIconWrap>
-          {!ready || isAllProjectsSelected || isMyProjectsSelected ? (
-            <IconProject />
-          ) : (
-            <PlatformList
-              platforms={projectsToShow.map(p => p.platform ?? 'other').reverse()}
-            />
-          )}
-          {desynced && <DesyncedFilterIndicator role="presentation" />}
-        </TriggerIconWrap>
+        ready &&
+        !isAllProjectsSelected &&
+        !isMyProjectsSelected && (
+          <PlatformList
+            platforms={projectsToShow.map(p => p.platform ?? 'other').reverse()}
+          />
+        )
       }
     >
-      <TriggerLabel>{ready ? label : t('Loading\u2026')}</TriggerLabel>
+      <TriggerLabelWrap>
+        <TriggerLabel>{ready ? label : t('Loading\u2026')}</TriggerLabel>
+        {desynced && <DesyncedFilterIndicator role="presentation" />}
+      </TriggerLabelWrap>
       {remainingCount > 0 && <StyledBadge text={`+${remainingCount}`} />}
     </DropdownButton>
   );
@@ -101,16 +100,15 @@ function BaseProjectPageFilterTrigger(
 
 export const ProjectPageFilterTrigger = forwardRef(BaseProjectPageFilterTrigger);
 
+const TriggerLabelWrap = styled('span')`
+  position: relative;
+  min-width: 0;
+`;
+
 const TriggerLabel = styled('span')`
   ${p => p.theme.overflowEllipsis};
   position: relative;
   width: auto;
-`;
-
-const TriggerIconWrap = styled('div')`
-  position: relative;
-  display: flex;
-  align-items: center;
 `;
 
 const StyledBadge = styled(Badge)`

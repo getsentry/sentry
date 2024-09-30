@@ -13,10 +13,10 @@ import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {
-  AGGREGATIONS,
   type Column,
   ERROR_FIELDS,
   ERRORS_AGGREGATION_FUNCTIONS,
+  getAggregations,
   TRANSACTION_FIELDS,
 } from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -70,14 +70,15 @@ function ColumnEditModal(props: Props) {
   let fieldOptions: ReturnType<typeof generateFieldOptions>;
 
   if (dataset === DiscoverDatasets.ERRORS) {
+    const aggregations = getAggregations(DiscoverDatasets.ERRORS);
     fieldOptions = generateFieldOptions({
       organization,
       tagKeys,
       fieldKeys: ERROR_FIELDS,
-      aggregations: Object.keys(AGGREGATIONS)
+      aggregations: Object.keys(aggregations)
         .filter(key => ERRORS_AGGREGATION_FUNCTIONS.includes(key as AggregationKey))
         .reduce((obj, key) => {
-          obj[key] = AGGREGATIONS[key];
+          obj[key] = aggregations[key];
           return obj;
         }, {}),
     });

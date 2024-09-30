@@ -128,5 +128,5 @@ export const useProjectRawWebVitalsValuesTimeseriesQuery = ({
     });
   });
 
-  return {data, isLoading: result.isLoading};
+  return {data, isLoading: result.isPending};
 };

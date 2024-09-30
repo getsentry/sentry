@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from typing import Any
 from urllib.parse import urlparse
 
 from django import forms
@@ -32,7 +33,7 @@ from sentry.utils.http import absolute_uri
 from sentry.web.helpers import render_to_response
 
 from .client import GitLabApiClient, GitLabSetupApiClient
-from .issues import GitlabIssueBasic
+from .issues import GitlabIssuesSpec
 from .repository import GitlabRepositoryProvider
 
 DESCRIPTION = """
@@ -92,7 +93,7 @@ metadata = IntegrationMetadata(
 )
 
 
-class GitlabIntegration(RepositoryIntegration, CommitContextIntegration, GitlabIssueBasic):
+class GitlabIntegration(RepositoryIntegration, GitlabIssuesSpec, CommitContextIntegration):
     codeowners_locations = ["CODEOWNERS", ".gitlab/CODEOWNERS", "docs/CODEOWNERS"]
 
     def __init__(self, *args, **kwargs):
@@ -172,9 +173,13 @@ class GitlabIntegration(RepositoryIntegration, CommitContextIntegration, GitlabI
         return client.search_projects(group_id, query)
 
     # TODO(cathy): define in issue ABC
-    def search_issues(self, project_id, query, iids):
+    def search_issues(self, query: str | None, **kwargs) -> list[dict[str, Any]]:
         client = self.get_client()
-        return client.search_project_issues(project_id, query, iids)
+        project_id = kwargs["project_id"]
+        iids = kwargs["iids"]
+        resp = client.search_project_issues(project_id, query, iids)
+        assert isinstance(resp, list)
+        return resp
 
 
 class InstallationForm(forms.Form):

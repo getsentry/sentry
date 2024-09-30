@@ -60,6 +60,7 @@ export default function FeedbackPanel() {
   return (
     <PanelLayout
       showProjectBadge
+      link={{url: '/feedback/'}}
       title="User Feedback"
       titleRight={
         buttonRef ? (

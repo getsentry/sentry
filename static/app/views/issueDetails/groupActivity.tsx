@@ -1,5 +1,4 @@
 import {Fragment, useCallback, useMemo} from 'react';
-import type {RouteComponentProps} from 'react-router';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {
@@ -20,6 +19,7 @@ import type {
   GroupActivityNote,
   GroupActivityReprocess,
 } from 'sentry/types/group';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {User} from 'sentry/types/user';
 import type {MutateOptions} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -34,6 +34,8 @@ type Props = {
   group: Group;
 } & RouteComponentProps<{}, {}>;
 
+export type MutateActivityOptions = MutateOptions<TData, TError, TVariables, TContext>;
+
 function GroupActivity({group}: Props) {
   const organization = useOrganization();
   const {activity: activities, count, id: groupId} = group;
@@ -45,44 +47,41 @@ function GroupActivity({group}: Props) {
     group,
   });
 
-  const deleteOptions: MutateOptions<TData, TError, TVariables, TContext> =
-    useMemo(() => {
-      return {
-        onError: () => {
-          addErrorMessage(t('Failed to delete comment'));
-        },
-        onSuccess: () => {
-          addSuccessMessage(t('Comment removed'));
-        },
-      };
-    }, []);
+  const deleteOptions: MutateActivityOptions = useMemo(() => {
+    return {
+      onError: () => {
+        addErrorMessage(t('Failed to delete comment'));
+      },
+      onSuccess: () => {
+        addSuccessMessage(t('Comment removed'));
+      },
+    };
+  }, []);
 
-  const createOptions: MutateOptions<TData, TError, TVariables, TContext> =
-    useMemo(() => {
-      return {
-        onError: () => {
-          addErrorMessage(t('Unable to post comment'));
-        },
-        onSuccess: data => {
-          GroupStore.addActivity(group.id, data);
-          addSuccessMessage(t('Comment posted'));
-        },
-      };
-    }, [group.id]);
+  const createOptions: MutateActivityOptions = useMemo(() => {
+    return {
+      onError: () => {
+        addErrorMessage(t('Unable to post comment'));
+      },
+      onSuccess: data => {
+        GroupStore.addActivity(group.id, data);
+        addSuccessMessage(t('Comment posted'));
+      },
+    };
+  }, [group.id]);
 
-  const updateOptions: MutateOptions<TData, TError, TVariables, TContext> =
-    useMemo(() => {
-      return {
-        onError: () => {
-          addErrorMessage(t('Unable to update comment'));
-        },
-        onSuccess: data => {
-          const d = data as GroupActivityNote;
-          GroupStore.updateActivity(group.id, data.id, {text: d.data.text});
-          addSuccessMessage(t('Comment updated'));
-        },
-      };
-    }, [group.id]);
+  const updateOptions: MutateActivityOptions = useMemo(() => {
+    return {
+      onError: () => {
+        addErrorMessage(t('Unable to update comment'));
+      },
+      onSuccess: data => {
+        const d = data as GroupActivityNote;
+        GroupStore.updateActivity(group.id, data.id, {text: d.data.text});
+        addSuccessMessage(t('Comment updated'));
+      },
+    };
+  }, [group.id]);
 
   const handleDelete = useCallback(
     (item: GroupActivityType) => {

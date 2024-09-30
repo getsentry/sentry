@@ -1,4 +1,3 @@
-import type {InjectedRouter} from 'react-router';
 import type {Location} from 'history';
 
 import type {Client} from 'sentry/api';
@@ -10,6 +9,7 @@ import {
 } from 'sentry/components/organizations/pageFilters/parse';
 import {getPageFilterStorage} from 'sentry/components/organizations/pageFilters/persistence';
 import type {PageFilters} from 'sentry/types/core';
+import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization, SavedQuery} from 'sentry/types/organization';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';

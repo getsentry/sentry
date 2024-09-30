@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -12,6 +11,7 @@ import NarrowLayout from 'sentry/components/narrowLayout';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -38,10 +38,10 @@ type BodyProps = {
 
 function OrganizationRestoreBody({orgSlug}: BodyProps) {
   const endpoint = `/organizations/${orgSlug}/`;
-  const {isLoading, isError, data} = useApiQuery<Organization>([endpoint], {
+  const {isPending, isError, data} = useApiQuery<Organization>([endpoint], {
     staleTime: 0,
   });
-  if (isLoading) {
+  if (isPending) {
     return <LoadingIndicator />;
   }
   if (isError) {

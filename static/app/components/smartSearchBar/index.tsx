@@ -1,6 +1,5 @@
 import type {VFC} from 'react';
 import {Component, createRef} from 'react';
-import type {WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import debounce from 'lodash/debounce';
@@ -42,6 +41,7 @@ import MemberListStore from 'sentry/stores/memberListStore';
 import {space} from 'sentry/styles/space';
 import type {Tag, TagCollection} from 'sentry/types/group';
 import {SavedSearchType} from 'sentry/types/group';
+import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {defined} from 'sentry/utils';
@@ -110,7 +110,9 @@ function isMultiProject(projectIds: number[] | Readonly<number[] | undefined>) {
    * - [-1] (All Projects)
    * - [a, b, ...] (two or more projects)
    */
-  if (projectIds === undefined) return false;
+  if (projectIds === undefined) {
+    return false;
+  }
   return (
     projectIds.length === 0 ||
     (projectIds.length === 1 && projectIds[0] === -1) ||

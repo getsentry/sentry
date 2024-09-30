@@ -2,11 +2,16 @@ from django.db import models
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import ArrayField, DefaultFieldsModel, FlexibleForeignKey, region_silo_model
+from sentry.db.models import (
+    ArrayField,
+    DefaultFieldsModelExisting,
+    FlexibleForeignKey,
+    region_silo_model,
+)
 
 
 @region_silo_model
-class DataSecrecyWaiver(DefaultFieldsModel):
+class DataSecrecyWaiver(DefaultFieldsModelExisting):
     __relocation_scope__ = RelocationScope.Organization
 
     organization = FlexibleForeignKey("sentry.Organization", unique=True)

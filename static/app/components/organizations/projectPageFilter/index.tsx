@@ -7,7 +7,7 @@ import sortBy from 'lodash/sortBy';
 import {updateProjects} from 'sentry/actionCreators/pageFilters';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import type {SelectOption, SelectOptionOrSection} from 'sentry/components/compactSelect';
 import {Hovercard} from 'sentry/components/hovercard';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -17,7 +17,6 @@ import BookmarkStar from 'sentry/components/projects/bookmarkStar';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {IconOpen, IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
@@ -26,6 +25,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {useRoutes} from 'sentry/utils/useRoutes';
+import {useUser} from 'sentry/utils/useUser';
 
 import {DesyncedFilterMessage} from '../pageFilters/desyncedFilter';
 
@@ -93,6 +93,7 @@ export function ProjectPageFilter({
   footerMessage,
   ...selectProps
 }: ProjectPageFilterProps) {
+  const user = useUser();
   const router = useRouter();
   const routes = useRoutes();
   const organization = useOrganization();
@@ -106,13 +107,12 @@ export function ProjectPageFilter({
   );
 
   const showNonMemberProjects = useMemo(() => {
-    const {isSuperuser} = ConfigStore.get('user');
     const isOrgAdminOrManager =
       organization.orgRole === 'owner' || organization.orgRole === 'manager';
     const isOpenMembership = organization.features.includes('open-membership');
 
-    return isSuperuser || isOrgAdminOrManager || isOpenMembership;
-  }, [organization.orgRole, organization.features]);
+    return user.isSuperuser || isOrgAdminOrManager || isOpenMembership;
+  }, [user, organization.orgRole, organization.features]);
 
   const nonMemberProjects = useMemo(
     () => (showNonMemberProjects ? otherProjects : []),
@@ -459,7 +459,7 @@ function checkboxWrapper(
   );
 }
 
-const TrailingButton = styled(Button)<{visible: boolean}>`
+const TrailingButton = styled(LinkButton)<{visible: boolean}>`
   color: ${p => p.theme.subText};
   display: ${p => (p.visible ? 'block' : 'none')};
 `;

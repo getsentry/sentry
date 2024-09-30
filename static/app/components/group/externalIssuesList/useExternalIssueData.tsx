@@ -21,7 +21,7 @@ export default function useExternalIssueData({group, event, project}: Props) {
   const organization = useOrganization();
   const {
     data: integrations,
-    isLoading: isLoadingIntegrations,
+    isPending: isLoadingIntegrations,
     refetch: refetchIntegrations,
   } = useFetchIntegrations({group, organization});
   const {data: externalIssues, isLoading: isLoadingExternalIssues} = useExternalIssues({

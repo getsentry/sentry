@@ -1,0 +1,65 @@
+#!/usr/bin/env python
+# isort: skip_file
+
+"""
+This script benchmarks the performance of issue owner assignment in Sentry.
+Usage: python benchmark_codeowners/benchmark <path_to_code_mapping_file> <path_to_event_data_file>
+"""
+from sentry.runner import configure
+
+configure()
+import sys
+import random
+import string
+import time
+from sentry.models.organization import Organization
+from sentry.models.projectownership import ProjectOwnership
+from sentry.models.project import Project
+from sentry.utils import json
+
+
+def main(code_mapping_file, event_data_file):
+    def get_code_mapping():
+        with open(code_mapping_file) as f:
+            return json.loads(f.read())
+
+    def get_event_data():
+        with open(event_data_file) as f:
+            return json.loads(f.read())
+
+    code_mapping = get_code_mapping()
+    # create an organization
+    org_id = random.randint(1, 1000000)
+    org_name = "".join(random.choices(string.ascii_letters + string.digits, k=10))
+    org_slug = "".join(random.choices(string.ascii_lowercase + string.digits, k=10))
+    org, _ = Organization.objects.get_or_create(name=org_name, slug=org_slug, id=org_id)
+
+    # create a project
+    project_id = random.randint(1, 1000000)
+    project_name = "".join(random.choices(string.ascii_letters + string.digits, k=10))
+    project_slug = "".join(random.choices(string.ascii_lowercase + string.digits, k=10))
+    project, _ = Project.objects.get_or_create(
+        name=project_name, slug=project_slug, id=project_id, organization_id=org.id
+    )
+
+    # create a projectownership
+    ProjectOwnership.objects.get_or_create(
+        project_id=project.id,
+        schema=code_mapping,
+    )
+
+    event_data = get_event_data()
+
+    start = time.time()
+    ProjectOwnership.get_issue_owners(project.id, event_data)
+    elapsed_time = time.time() - start
+    print(f"Time taken: {elapsed_time:.6f} seconds")  # noqa
+
+
+if __name__ == "__main__":
+    if len(sys.argv) != 3:
+        print(  # noqa
+            "Usage: python benchmark_codeowners/benchmark <path_to_code_mapping_file> <path_to_event_data_file>"
+        )
+        sys.exit(1)
+    main(sys.argv[1], sys.argv[2])

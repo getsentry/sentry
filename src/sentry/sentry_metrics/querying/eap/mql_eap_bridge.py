@@ -1,19 +1,18 @@
 from collections.abc import Iterable, Sequence
 from datetime import datetime, timedelta
 
-import requests
 import snuba_sdk.mql.mql
-from django.conf import settings
 from google.protobuf.timestamp_pb2 import Timestamp as ProtobufTimestamp
 from sentry_protos.snuba.v1alpha.endpoint_aggregate_bucket_pb2 import (
     AggregateBucketRequest,
     AggregateBucketResponse,
 )
 from sentry_protos.snuba.v1alpha.request_common_pb2 import RequestMeta
+from sentry_protos.snuba.v1alpha.trace_item_attribute_pb2 import AttributeKey, AttributeValue
 from sentry_protos.snuba.v1alpha.trace_item_filter_pb2 import (
     AndFilter,
+    ComparisonFilter,
     OrFilter,
-    StringFilter,
     TraceItemFilter,
 )
 from snuba_sdk import Timeseries
@@ -25,6 +24,7 @@ from snuba_sdk.conditions import Or as MQLOr
 
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.utils import snuba
 
 
 def parse_mql_filters(group: ConditionGroup) -> Iterable[TraceItemFilter]:
@@ -39,7 +39,12 @@ def parse_mql_filters(group: ConditionGroup) -> Iterable[TraceItemFilter]:
             )
         elif isinstance(cond, MQLCondition):
             if cond.op == MQLOp.EQ:
-                yield TraceItemFilter(string_filter=StringFilter(key=cond.lhs.name, value=cond.rhs))
+                yield TraceItemFilter(
+                    comparison_filter=ComparisonFilter(
+                        key=AttributeKey(name=cond.lhs.name, type=AttributeKey.Type.TYPE_STRING),
+                        value=AttributeValue(val_str=cond.rhs),
+                    )
+                )
         # TODO: maybe we want to implement other stuff
 
 
@@ -61,7 +66,7 @@ def make_eap_request(
 
     aggregate_map = {
         "sum": AggregateBucketRequest.FUNCTION_SUM,
-        "avg": AggregateBucketRequest.FUNCTION_AVG,
+        "avg": AggregateBucketRequest.FUNCTION_AVERAGE,
         "p50": AggregateBucketRequest.FUNCTION_P50,
         "p95": AggregateBucketRequest.FUNCTION_P95,
         "P99": AggregateBucketRequest.FUNCTION_P99,
@@ -69,34 +74,35 @@ def make_eap_request(
     }
 
     rpc_filters = None
-    if ts.filters is not None:
+    if ts.filters is not None and len(ts.filters) > 0:
         rpc_filters = TraceItemFilter(
             and_filter=AndFilter(filters=list(parse_mql_filters(ts.filters)))
         )
-    req = AggregateBucketRequest(
+    aggregate_req = AggregateBucketRequest(
         meta=RequestMeta(
             organization_id=organization.id,
-            cogs_category="eap",
+            cogs_category="events_analytics_platform",
             referrer=referrer,
             project_ids=[project.id for project in projects],
+            start_timestamp=start_time_proto,
+            end_timestamp=end_time_proto,
         ),
-        start_timestamp=start_time_proto,
-        end_timestamp=end_time_proto,
         aggregate=aggregate_map[ts.aggregate],
         filter=rpc_filters,
+        granularity_secs=interval,
+        key=AttributeKey(
+            name=ts.metric.mri.split("/")[1].split("@")[0], type=AttributeKey.TYPE_FLOAT
+        ),
     )
-    http_resp = requests.post(f"{settings.SENTRY_SNUBA}/timeseries", data=req.SerializeToString())
-    http_resp.raise_for_status()
+    aggregate_resp = snuba.rpc(aggregate_req, AggregateBucketResponse)
 
-    resp = AggregateBucketResponse()
-    resp.ParseFromString(http_resp.content)
-
-    series_data = list(resp.result)
+    series_data = list(aggregate_resp.result)
     duration = end - start
-    bucket_size_secs = duration.total_seconds() / len(series_data)
     intervals = []
-    for i in range(len(series_data)):
-        intervals.append((start + timedelta(seconds=bucket_size_secs * i)).isoformat())
+    if len(series_data) > 0:
+        bucket_size_secs = duration.total_seconds() / len(series_data)
+        for i in range(len(series_data)):
+            intervals.append((start + timedelta(seconds=bucket_size_secs * i)).isoformat())
     intervals.append(end.isoformat())
 
     return {

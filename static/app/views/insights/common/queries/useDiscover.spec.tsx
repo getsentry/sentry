@@ -13,7 +13,11 @@ import {
   useSpanMetrics,
   useSpansIndexed,
 } from 'sentry/views/insights/common/queries/useDiscover';
-import {SpanIndexedField, type SpanMetricsProperty} from 'sentry/views/insights/types';
+import {
+  SpanIndexedField,
+  type SpanIndexedProperty,
+  type SpanMetricsProperty,
+} from 'sentry/views/insights/types';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 jest.mock('sentry/utils/useLocation');
@@ -123,7 +127,7 @@ describe('useDiscover', () => {
         }
       );
 
-      expect(result.current.isLoading).toEqual(true);
+      expect(result.current.isPending).toEqual(true);
 
       expect(eventsRequest).toHaveBeenCalledWith(
         '/organizations/org-slug/events/',
@@ -143,7 +147,7 @@ describe('useDiscover', () => {
         })
       );
 
-      await waitFor(() => expect(result.current.isLoading).toEqual(false));
+      await waitFor(() => expect(result.current.isPending).toEqual(false));
       expect(result.current.data).toEqual([
         {
           'span.op': 'db',
@@ -196,7 +200,7 @@ describe('useDiscover', () => {
         {
           wrapper: Wrapper,
           initialProps: {
-            fields: [SpanIndexedField.SPAN_DESCRIPTION],
+            fields: [SpanIndexedField.SPAN_DESCRIPTION] as SpanIndexedProperty[],
             enabled: false,
           },
         }
@@ -253,7 +257,7 @@ describe('useDiscover', () => {
               SpanIndexedField.SPAN_OP,
               SpanIndexedField.SPAN_GROUP,
               SpanIndexedField.SPAN_DESCRIPTION,
-            ],
+            ] as SpanIndexedProperty[],
             sorts: [{field: 'span.group', kind: 'desc' as const}],
             limit: 10,
             referrer: 'api-spec',
@@ -262,7 +266,7 @@ describe('useDiscover', () => {
         }
       );
 
-      expect(result.current.isLoading).toEqual(true);
+      expect(result.current.isPending).toEqual(true);
 
       expect(eventsRequest).toHaveBeenCalledWith(
         '/organizations/org-slug/events/',
@@ -282,7 +286,7 @@ describe('useDiscover', () => {
         })
       );
 
-      await waitFor(() => expect(result.current.isLoading).toEqual(false));
+      await waitFor(() => expect(result.current.isPending).toEqual(false));
       expect(result.current.data).toEqual([
         {
           'span.group': '221aa7ebd216',

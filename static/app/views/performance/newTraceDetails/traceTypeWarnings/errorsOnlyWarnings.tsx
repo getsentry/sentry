@@ -1,9 +1,6 @@
 import {useEffect, useMemo} from 'react';
-import {browserHistory} from 'react-router';
-import styled from '@emotion/styled';
 
-import connectDotsImg from 'sentry-images/spot/performance-connect-dots.svg';
-import waitingForSpansImg from 'sentry-images/spot/performance-waiting-for-span.svg';
+import emptyTraceImg from 'sentry-images/spot/performance-empty-trace.svg';
 
 import {Alert} from 'sentry/components/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -13,6 +10,7 @@ import {t, tct} from 'sentry/locale';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
@@ -83,7 +81,7 @@ function PerformanceSetupBanner({
     return (
       <Alert type="info" showIcon>
         {tct(
-          "Some of the projects associated with this trace aren't set up for tracing so you're only getting a partial trace view. To learn how to enable tracing for all your projects, visit our [documentation].",
+          "Some of the projects associated with this trace aren't sending spans, so you're only getting a partial trace view. To learn how to enable tracing for all your projects, visit our [documentationLink].",
           {
             documentationLink: (
               <ExternalLink href="https://docs.sentry.io/product/performance/getting-started/">
@@ -102,7 +100,7 @@ function PerformanceSetupBanner({
       description={t(
         'Want to know why this string of errors happened? Configure tracing for your SDKs to see correlated events accross your services.'
       )}
-      image={connectDotsImg}
+      image={emptyTraceImg}
       onPrimaryButtonClick={() => {
         traceAnalytics.trackPerformanceSetupChecklistTriggered(organization);
         browserHistory.replace({
@@ -121,7 +119,7 @@ function PerformanceSetupBanner({
       localStorageKey={LOCAL_STORAGE_KEY}
       docsRoute="https://docs.sentry.io/product/performance/"
       organization={organization}
-      primaryButtonText={t('Start Checklist')}
+      primaryButtonText={t('Set Up Tracing')}
     />
   );
 }
@@ -191,8 +189,7 @@ function PerformanceQuotaExceededWarning(props: ErrorOnlyWarningsProps) {
     return null;
   }
 
-  const title = tct("You've exceeded your [billingInterval] [billingType]", {
-    billingInterval: subscription?.planDetails.billingInterval ?? 'monthly',
+  const title = tct("You've exceeded your [billingType]", {
     billingType: subscription?.onDemandBudgets?.enabled
       ? t('pay-as-you-go budget')
       : t('quota'),
@@ -203,54 +200,40 @@ function PerformanceQuotaExceededWarning(props: ErrorOnlyWarningsProps) {
     : t('Increase Volumes');
 
   return (
-    <Wrapper>
-      <TraceWarningComponents.Banner
-        localStorageKey={`${props.traceSlug}:transaction-usage-warning-banner-hide`}
-        organization={props.organization}
-        image={waitingForSpansImg}
-        title={title}
-        description={tct(
-          'Spans are being dropped and monitoring is impacted. To start seeing traces with spans, increase your [billingType].',
-          {
-            billingType: subscription?.onDemandBudgets?.enabled
-              ? t('budget')
-              : t('quota'),
-          }
-        )}
-        onSecondaryButtonClick={() => {
-          traceAnalytics.trackQuotaExceededLearnMoreClicked(
-            props.organization,
-            props.tree.shape
-          );
-        }}
-        onPrimaryButtonClick={() => {
-          traceAnalytics.trackQuotaExceededIncreaseBudgetClicked(
-            props.organization,
-            props.tree.shape
-          );
-          browserHistory.push({
-            pathname: `/settings/billing/checkout/`,
-            query: {
-              skipBundles: true,
-            },
-          });
-        }}
-        docsRoute="https://docs.sentry.io/pricing/quotas/"
-        primaryButtonText={ctaText}
-      />
-    </Wrapper>
+    <TraceWarningComponents.Banner
+      localStorageKey={`${props.traceSlug}:transaction-usage-warning-banner-hide`}
+      organization={props.organization}
+      image={emptyTraceImg}
+      title={title}
+      description={tct(
+        'Spans are being dropped. To start seeing traces with spans, increase your [billingType].',
+        {
+          billingType: subscription?.onDemandBudgets?.enabled ? t('budget') : t('quota'),
+        }
+      )}
+      onSecondaryButtonClick={() => {
+        traceAnalytics.trackQuotaExceededLearnMoreClicked(
+          props.organization,
+          props.tree.shape
+        );
+      }}
+      onPrimaryButtonClick={() => {
+        traceAnalytics.trackQuotaExceededIncreaseBudgetClicked(
+          props.organization,
+          props.tree.shape
+        );
+        browserHistory.push({
+          pathname: `/settings/billing/checkout/`,
+          query: {
+            skipBundles: true,
+          },
+        });
+      }}
+      docsRoute="https://docs.sentry.io/pricing/quotas/"
+      primaryButtonText={ctaText}
+    />
   );
 }
-
-const Wrapper = styled('div')`
-  ${TraceWarningComponents.BannerBackground} {
-    top: 4px;
-    right: 40px;
-    height: 98%;
-    width: 100%;
-    max-width: 270px;
-  }
-`;
 
 export function ErrorsOnlyWarnings({
   traceSlug,

@@ -25,7 +25,7 @@ const LazyReplayer = lazy(() => import('./rrwebReplayer'));
 function EventRRWebIntegrationContent({orgId, projectSlug, event}: Props) {
   const {
     data: attachmentList,
-    isLoading,
+    isPending,
     isError,
     refetch,
   } = useApiQuery<IssueAttachment[]>(
@@ -50,7 +50,7 @@ function EventRRWebIntegrationContent({orgId, projectSlug, event}: Props) {
     return <LoadingError onRetry={refetch} />;
   }
 
-  if (isLoading) {
+  if (isPending) {
     // hide loading indicator
     return null;
   }

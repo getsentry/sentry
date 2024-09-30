@@ -24,7 +24,7 @@ import {
 import {decodeScalar} from 'sentry/utils/queryString';
 import {DisplayType} from 'sentry/views/dashboards/types';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
-import {DATASET_PARAM} from 'sentry/views/discover/savedQuery/datasetSelector';
+import {DATASET_PARAM} from 'sentry/views/discover/savedQuery/datasetSelectorTabs';
 
 export function handleCreateQuery(
   api: Client,

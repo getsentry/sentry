@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {type ComponentProps, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import FeatureBadge from 'sentry/components/badge/featureBadge';
@@ -7,6 +7,7 @@ import {
   type SelectOption,
   type SelectProps,
 } from 'sentry/components/compactSelect';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -18,14 +19,18 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import {SpanMetricsField, subregionCodeToName} from 'sentry/views/insights/types';
 
-export default function SubregionSelector() {
+type Props = {
+  size?: ComponentProps<typeof CompactSelect>['size'];
+};
+
+export default function SubregionSelector({size}: Props) {
   const organization = useOrganization();
   const location = useLocation();
   const navigate = useNavigate();
   const hasGeoSelectorFeature = organization.features.includes('insights-region-filter');
 
   const value = decodeList(location.query[SpanMetricsField.USER_GEO_SUBREGION]);
-  const {data, isLoading} = useSpanMetrics(
+  const {data, isPending} = useSpanMetrics(
     {
       fields: [SpanMetricsField.USER_GEO_SUBREGION, 'count()'],
       search: new MutableSearch('has:user.geo.subregion'),
@@ -52,23 +57,31 @@ export default function SubregionSelector() {
     return <Fragment />;
   }
 
+  const tooltip = t('These correspond to the subregions of the UN M49 standard.');
+
   return (
     <CompactSelect
+      size={size}
       searchable
       triggerProps={{
         prefix: (
           <Fragment>
-            <StyledFeatureBadge type="experimental" />
+            <StyledFeatureBadge type="beta" />
             {t('Geo region')}
           </Fragment>
         ),
       }}
       multiple
-      loading={isLoading}
+      loading={isPending}
       clearable
       value={value}
       triggerLabel={value.length === 0 ? t('All') : undefined}
-      menuTitle={t('Filter region')}
+      menuTitle={
+        <MenuTitleContainer>
+          {t('Filter region')}
+          <QuestionTooltip title={tooltip} size="xs" />
+        </MenuTitleContainer>
+      }
       options={options}
       onChange={(selectedOptions: SelectOption<string>[]) => {
         trackAnalytics('insight.vital.select_browser_value', {
@@ -92,4 +105,10 @@ export default function SubregionSelector() {
 
 const StyledFeatureBadge = styled(FeatureBadge)`
   margin-right: ${space(1)};
+`;
+
+const MenuTitleContainer = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
 `;

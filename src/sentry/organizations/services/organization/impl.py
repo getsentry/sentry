@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, cast
 
+from django.contrib.postgres.aggregates import BitOr
 from django.db import models, router, transaction
 from django.db.models.expressions import CombinedExpression, F
 from django.dispatch import Signal
@@ -11,6 +12,7 @@ from sentry import roles
 from sentry.api.serializers import serialize
 from sentry.backup.dependencies import merge_users_for_model_in_org
 from sentry.db.postgres.transactions import enforce_constraints
+from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.hybridcloud.models.outbox import ControlOutbox, outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.hybridcloud.rpc import OptionValue, logger
@@ -30,12 +32,12 @@ from sentry.models.organizationaccessrequest import OrganizationAccessRequest
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.project import Project
 from sentry.models.projectbookmark import ProjectBookmark
 from sentry.models.recentsearch import RecentSearch
 from sentry.models.rule import Rule, RuleActivity
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.models.savedsearch import SavedSearch
-from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.models.team import Team, TeamStatus
 from sentry.monitors.models import Monitor
 from sentry.organizations.services.organization import (
@@ -72,11 +74,8 @@ from sentry.organizations.services.organization.serial import (
 from sentry.organizations.services.organization_actions.impl import (
     mark_organization_as_pending_deletion_with_outbox_message,
 )
+from sentry.projects.services.project import RpcProjectFlags
 from sentry.sentry_apps.services.app import app_service
-from sentry.sentry_metrics.models import (
-    SpanAttributeExtractionRuleCondition,
-    SpanAttributeExtractionRuleConfig,
-)
 from sentry.silo.safety import unguarded_write
 from sentry.tasks.auth import email_unlink_notifications
 from sentry.types.region import find_regions_for_orgs
@@ -353,6 +352,30 @@ class DatabaseBackedOrganizationService(OrganizationService):
             Organization.objects.filter(id=organization_id).update(flags=updates)
             Organization(id=organization_id).outbox_for_update().save()
 
+    def get_aggregate_project_flags(self, *, organization_id: int) -> RpcProjectFlags:
+        """We need to do some bitfield magic here to convert the aggregate flag into the correct format, because the
+        original class does not let us instantiate without being tied to the database/django:
+        1. Convert the integer into a binary representation
+        2. Pad the string with the number of leading zeros so the length of the binary representation lines up with the
+           number of bits of MAX_BIGINT / the BitField
+        3. Reverse the binary representation to correctly assign flags based on the order
+        4. Serialize as an RpcProjectFlags object
+        """
+        flag_keys = cast(list[str], Project.flags)
+
+        projects = Project.objects.filter(organization_id=organization_id)
+        if projects.count() > 0:
+            aggregate_flag = projects.aggregate(bitor_result=BitOr(F("flags")))
+            binary_repr = str(bin(aggregate_flag["bitor_result"]))[2:]
+            padded_binary_repr = "0" * (64 - len(binary_repr)) + binary_repr
+            flag_values = list(padded_binary_repr)[::-1]
+
+        else:
+            flag_values = ["0"] * len(list(flag_keys))
+
+        flag_dict = dict(zip(flag_keys, flag_values))
+        return RpcProjectFlags(**flag_dict)
+
     @staticmethod
     def _deserialize_member_flags(flags: RpcOrganizationMemberFlags) -> int:
         return flags_to_bits(
@@ -582,8 +605,6 @@ class DatabaseBackedOrganizationService(OrganizationService):
                 RuleActivity,
                 RuleSnooze,
                 SavedSearch,
-                SpanAttributeExtractionRuleCondition,
-                SpanAttributeExtractionRuleConfig,
             ]
             for model in model_list:
                 merge_users_for_model_in_org(

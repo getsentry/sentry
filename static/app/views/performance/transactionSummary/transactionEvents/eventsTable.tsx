@@ -1,5 +1,5 @@
-import {Component, Fragment} from 'react';
-import type {RouteContextInterface} from 'react-router';
+import type React from 'react';
+import {Component, Fragment, type ReactNode} from 'react';
 import styled from '@emotion/styled';
 import type {Location, LocationDescriptor, LocationDescriptorObject} from 'history';
 import groupBy from 'lodash/groupBy';
@@ -16,6 +16,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconProfiling} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {IssueAttachment} from 'sentry/types/group';
+import type {RouteContextInterface} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
@@ -93,11 +94,18 @@ type Props = {
   columnTitles?: string[];
   customColumns?: ('attachments' | 'minidump')[];
   excludedTags?: string[];
+  hidePagination?: boolean;
   isEventLoading?: boolean;
   isRegressionIssue?: boolean;
   issueId?: string;
   projectSlug?: string;
   referrer?: string;
+  renderTableHeader?: (props: {
+    isPending: boolean;
+    pageEventsCount: number;
+    pageLinks: string | null;
+    totalEventsCount: ReactNode;
+  }) => ReactNode;
 };
 
 type State = {
@@ -536,6 +544,14 @@ class EventsTable extends Component<Props, State> {
                         id="TransactionEvents-EventsTable"
                         hasData={!!tableData?.data?.length}
                       >
+                        {this.props.renderTableHeader
+                          ? this.props.renderTableHeader({
+                              isPending: isDiscoverQueryLoading,
+                              pageLinks,
+                              pageEventsCount,
+                              totalEventsCount,
+                            })
+                          : null}
                         <GridEditable
                           isLoading={
                             isTotalEventsLoading ||
@@ -555,11 +571,13 @@ class EventsTable extends Component<Props, State> {
                           }}
                         />
                       </VisuallyCompleteWithData>
-                      <Pagination
-                        disabled={isDiscoverQueryLoading}
-                        caption={paginationCaption}
-                        pageLinks={pageLinks}
-                      />
+                      {this.props.hidePagination ? null : (
+                        <Pagination
+                          disabled={isDiscoverQueryLoading}
+                          caption={paginationCaption}
+                          pageLinks={pageLinks}
+                        />
+                      )}
                     </Fragment>
                   );
                 }}

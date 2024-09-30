@@ -498,49 +498,57 @@ class OrganizationMemberListTest(OrganizationMemberListTestBase, HybridCloudTest
 class OrganizationMemberPermissionRoleTest(OrganizationMemberListTestBase, HybridCloudTestMixin):
     method = "post"
 
+    @with_feature("organizations:members-invite-teammates")
+    def invite_all_helper(self, role):
+        invite_roles = ["owner", "manager", "member"]
+
+        user = self.create_user("user@localhost")
+        member = self.create_member(user=user, organization=self.organization, role=role)
+        self.login_as(user=user)
+
+        self.organization.flags.disable_member_invite = True
+        self.organization.save()
+
+        allowed_roles = member.get_allowed_org_roles_to_invite()
+
+        for invite_role in invite_roles:
+            data = {
+                "email": f"{invite_role}_1@localhost",
+                "role": invite_role,
+                "teams": [self.team.slug],
+            }
+            if role == "member" or role == "admin":
+                self.get_error_response(self.organization.slug, **data, status_code=403)
+            elif any(invite_role == allowed_role.id for allowed_role in allowed_roles):
+                self.get_success_response(self.organization.slug, **data, status_code=201)
+            else:
+                self.get_error_response(self.organization.slug, **data, status_code=400)
+
+        self.organization.flags.disable_member_invite = False
+        self.organization.save()
+
+        for invite_role in invite_roles:
+            data = {
+                "email": f"{invite_role}_2@localhost",
+                "role": invite_role,
+                "teams": [self.team.slug],
+            }
+            if any(invite_role == allowed_role.id for allowed_role in allowed_roles):
+                self.get_success_response(self.organization.slug, **data, status_code=201)
+            else:
+                self.get_error_response(self.organization.slug, **data, status_code=400)
+
+    def test_owner_invites(self):
+        self.invite_all_helper("owner")
+
     def test_manager_invites(self):
-        manager_user = self.create_user("manager@localhost")
-        self.manager = self.create_member(
-            user=manager_user, organization=self.organization, role="manager"
-        )
-        self.login_as(user=manager_user)
-
-        data = {"email": "eric1@localhost", "role": "owner", "teams": [self.team.slug]}
-        self.get_error_response(self.organization.slug, **data, status_code=400)
-
-        data = {"email": "eric2@localhost", "role": "manager", "teams": [self.team.slug]}
-        self.get_success_response(self.organization.slug, **data, status_code=201)
-
-        data = {"email": "eric3@localhost", "role": "member", "teams": [self.team.slug]}
-        self.get_success_response(self.organization.slug, **data, status_code=201)
+        self.invite_all_helper("manager")
 
     def test_admin_invites(self):
-        admin_user = self.create_user("admin22@localhost")
-        self.create_member(user=admin_user, organization=self.organization, role="admin")
-        self.login_as(user=admin_user)
-
-        data = {"email": "eric1@localhost", "role": "owner", "teams": [self.team.slug]}
-        self.get_error_response(self.organization.slug, **data, status_code=403)
-
-        data = {"email": "eric2@localhost", "role": "manager", "teams": [self.team.slug]}
-        self.get_error_response(self.organization.slug, **data, status_code=403)
-
-        data = {"email": "eric3@localhost", "role": "member", "teams": [self.team.slug]}
-        self.get_error_response(self.organization.slug, **data, status_code=403)
+        self.invite_all_helper("admin")
 
     def test_member_invites(self):
-        member_user = self.create_user("member@localhost")
-        self.create_member(user=member_user, organization=self.organization, role="member")
-        self.login_as(user=member_user)
-
-        data = {"email": "eric1@localhost", "role": "owner", "teams": [self.team.slug]}
-        self.get_error_response(self.organization.slug, **data, status_code=403)
-
-        data = {"email": "eric2@localhost", "role": "manager", "teams": [self.team.slug]}
-        self.get_error_response(self.organization.slug, **data, status_code=403)
-
-        data = {"email": "eric3@localhost", "role": "member", "teams": [self.team.slug]}
-        self.get_error_response(self.organization.slug, **data, status_code=403)
+        self.invite_all_helper("member")
 
     def test_respects_feature_flag(self):
         user = self.create_user("baz@example.com")

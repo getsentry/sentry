@@ -56,7 +56,7 @@ function MonitorStats({monitor, monitorEnvs, orgSlug}: Props) {
     },
   ] as const;
 
-  const {data: stats, isLoading} = useApiQuery<MonitorStat[]>(queryKey, {staleTime: 0});
+  const {data: stats, isPending} = useApiQuery<MonitorStat[]>(queryKey, {staleTime: 0});
 
   let emptyStats = true;
   const success: BarChartSeries = {
@@ -105,7 +105,7 @@ function MonitorStats({monitor, monitorEnvs, orgSlug}: Props) {
     },
   });
 
-  if (!isLoading && emptyStats) {
+  if (!isPending && emptyStats) {
     return (
       <Panel>
         <PanelBody withPadding>
@@ -122,7 +122,7 @@ function MonitorStats({monitor, monitorEnvs, orgSlug}: Props) {
       <Panel>
         <PanelBody withPadding>
           <StyledHeaderTitle>{t('Status')}</StyledHeaderTitle>
-          {isLoading ? (
+          {isPending ? (
             <Placeholder height={`${height}px`} />
           ) : (
             <BarChart
@@ -151,7 +151,7 @@ function MonitorStats({monitor, monitorEnvs, orgSlug}: Props) {
       <Panel>
         <PanelBody withPadding>
           <StyledHeaderTitle>{t('Average Duration')}</StyledHeaderTitle>
-          {isLoading ? (
+          {isPending ? (
             <Placeholder height={`${height}px`} />
           ) : (
             <AreaChart

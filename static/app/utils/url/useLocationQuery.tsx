@@ -1,7 +1,12 @@
 import {useMemo} from 'react';
 
-import type {decodeList, decodeSorts} from 'sentry/utils/queryString';
-import {decodeInteger, decodeScalar} from 'sentry/utils/queryString';
+import {
+  decodeBoolean,
+  decodeInteger,
+  type decodeList,
+  decodeScalar,
+  type decodeSorts,
+} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 
 type Scalar = string | boolean | number | undefined;
@@ -9,7 +14,8 @@ type Decoder =
   | typeof decodeInteger
   | typeof decodeList
   | typeof decodeScalar
-  | typeof decodeSorts;
+  | typeof decodeSorts
+  | typeof decodeBoolean;
 
 /**
  * Select and memoize query params from location.
@@ -43,6 +49,8 @@ export default function useLocationQuery<
     if (typeof decoderOrValue === 'function') {
       if (decoderOrValue === decodeScalar) {
         locationFields[field] = decoderOrValue(location.query[field], '');
+      } else if (decoderOrValue === decodeBoolean) {
+        locationFields[field] = decoderOrValue(location.query[field], false);
       } else if (decoderOrValue === decodeInteger) {
         locationFields[field] = decoderOrValue(location.query[field], 0);
       } else {

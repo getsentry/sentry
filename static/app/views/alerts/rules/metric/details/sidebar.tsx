@@ -20,6 +20,7 @@ import {capitalize} from 'sentry/utils/string/capitalize';
 import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constants';
 import type {Action, MetricRule} from 'sentry/views/alerts/rules/metric/types';
 import {
+  AlertRuleComparisonType,
   AlertRuleThresholdType,
   AlertRuleTriggerType,
 } from 'sentry/views/alerts/rules/metric/types';
@@ -90,11 +91,13 @@ function TriggerDescription({
           ).label,
         }
       )
-    : tct('[metric] is [condition] in [timeWindow]', {
-        metric: metricName,
-        condition: `${thresholdTypeText} ${threshold}`,
-        timeWindow,
-      });
+    : rule.detectionType === AlertRuleComparisonType.DYNAMIC
+      ? 'Dynamic threshold is reached'
+      : tct('[metric] is [condition] in [timeWindow]', {
+          metric: metricName,
+          condition: `${thresholdTypeText} ${threshold}`,
+          timeWindow,
+        });
 
   return (
     <TriggerContainer>
@@ -260,6 +263,30 @@ export function MetricDetailsSidebar({
               teamActor ? <ActorAvatar actor={teamActor} size={24} /> : t('Unassigned')
             }
           />
+          {rule.detectionType === AlertRuleComparisonType.DYNAMIC && (
+            <KeyValueTableRow
+              keyName={t('Sensitivity')}
+              value={
+                rule.sensitivity
+                  ? rule.sensitivity.charAt(0).toUpperCase() + rule.sensitivity.slice(1)
+                  : ''
+              } // NOTE: if the rule is dynamic, then there must be a sensitivity
+            />
+          )}
+          {rule.detectionType === AlertRuleComparisonType.DYNAMIC && (
+            <KeyValueTableRow
+              keyName={t('Direction')}
+              value={
+                <OverflowTableValue>
+                  {rule.thresholdType === AlertRuleThresholdType.ABOVE
+                    ? 'Above threshold'
+                    : rule.thresholdType === AlertRuleThresholdType.ABOVE_AND_BELOW
+                      ? 'Above and below threshold'
+                      : 'Below threshold'}
+                </OverflowTableValue>
+              }
+            />
+          )}
         </KeyValueTable>
       </SidebarGroup>
     </Fragment>

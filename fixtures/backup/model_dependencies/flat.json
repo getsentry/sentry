@@ -86,10 +86,12 @@
   ],
   "sentry.apiauthorization": [
     "sentry.apiapplication",
+    "sentry.organization",
     "sentry.user"
   ],
   "sentry.apigrant": [
     "sentry.apiapplication",
+    "sentry.organization",
     "sentry.user"
   ],
   "sentry.apikey": [
@@ -97,6 +99,7 @@
   ],
   "sentry.apitoken": [
     "sentry.apiapplication",
+    "sentry.organization",
     "sentry.user"
   ],
   "sentry.artifactbundle": [
@@ -138,7 +141,9 @@
     "sentry.authprovider",
     "sentry.organization"
   ],
-  "sentry.broadcast": [],
+  "sentry.broadcast": [
+    "sentry.user"
+  ],
   "sentry.broadcastseen": [
     "sentry.broadcast",
     "sentry.user"
@@ -797,14 +802,6 @@
   "sentry.snubaqueryeventtype": [
     "sentry.snubaquery"
   ],
-  "sentry.spanattributeextractionrulecondition": [
-    "sentry.spanattributeextractionruleconfig",
-    "sentry.user"
-  ],
-  "sentry.spanattributeextractionruleconfig": [
-    "sentry.project",
-    "sentry.user"
-  ],
   "sentry.stringindexer": [
     "sentry.organization"
   ],
@@ -853,10 +850,47 @@
     "sentry.user"
   ],
   "uptime.projectuptimesubscription": [
+    "sentry.environment",
     "sentry.project",
     "sentry.team",
     "sentry.user",
     "uptime.uptimesubscription"
   ],
-  "uptime.uptimesubscription": []
+  "uptime.uptimesubscription": [],
+  "workflow_engine.action": [],
+  "workflow_engine.datacondition": [
+    "workflow_engine.dataconditiongroup"
+  ],
+  "workflow_engine.dataconditiongroup": [
+    "sentry.organization"
+  ],
+  "workflow_engine.dataconditiongroupaction": [
+    "workflow_engine.action",
+    "workflow_engine.dataconditiongroup"
+  ],
+  "workflow_engine.datasource": [
+    "sentry.organization"
+  ],
+  "workflow_engine.datasourcedetector": [
+    "workflow_engine.datasource",
+    "workflow_engine.detector"
+  ],
+  "workflow_engine.detector": [
+    "sentry.organization",
+    "sentry.team",
+    "sentry.user",
+    "workflow_engine.dataconditiongroup"
+  ],
+  "workflow_engine.detectorworkflow": [
+    "workflow_engine.detector",
+    "workflow_engine.workflow"
+  ],
+  "workflow_engine.workflow": [
+    "sentry.organization",
+    "workflow_engine.dataconditiongroup"
+  ],
+  "workflow_engine.workflowdataconditiongroup": [
+    "workflow_engine.dataconditiongroup",
+    "workflow_engine.workflow"
+  ]
 }

@@ -38,6 +38,12 @@ class SiloMode(Enum):
     def __str__(self) -> str:
         return str(self.value)
 
+    def __lt__(self, other: object) -> bool:
+        if not isinstance(other, SiloMode):
+            return NotImplemented
+        else:
+            return self.value < other.value
+
     @classmethod
     def get_current_mode(cls) -> SiloMode:
         from django.conf import settings

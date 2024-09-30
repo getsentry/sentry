@@ -27,7 +27,6 @@ import {
   getMetricsInterval,
   isVirtualMetric,
 } from 'sentry/utils/metrics';
-import {hasCustomMetricsExtractionRules} from 'sentry/utils/metrics/features';
 import {formatMetricUsingUnit} from 'sentry/utils/metrics/formatters';
 import {
   formatMRI,
@@ -37,10 +36,7 @@ import {
 } from 'sentry/utils/metrics/mri';
 import type {MetricsQuery} from 'sentry/utils/metrics/types';
 import {useMetricsQuery} from 'sentry/utils/metrics/useMetricsQuery';
-import {
-  useVirtualMetricsContext,
-  VirtualMetricsContextProvider,
-} from 'sentry/utils/metrics/virtualMetricsContext';
+import {useVirtualMetricsContext} from 'sentry/utils/metrics/virtualMetricsContext';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
@@ -193,7 +189,7 @@ export function CreateAlertModal({
     ? `${metricsQuery.aggregation}(${formatMRI(metricsQuery.mri)})`
     : formatMRIField(aggregate);
 
-  const {data, isLoading, refetch, isError} = useMetricsQuery(
+  const {data, isPending, refetch, isError} = useMetricsQuery(
     [alertChartQuery],
     {
       projects: formState.project ? [parseInt(formState.project, 10)] : [],
@@ -351,7 +347,7 @@ export function CreateAlertModal({
             )}
           </div>
 
-          <ChartPanel isLoading={isLoading}>
+          <ChartPanel isLoading={isPending}>
             <PanelBody withPadding>
               <ChartHeader>
                 <HeaderTitleLegend>
@@ -383,7 +379,7 @@ export function CreateAlertModal({
                 </Tooltip>
               </ChartFilters>
             </PanelBody>
-            {isLoading && <StyledLoadingIndicator />}
+            {isPending && <StyledLoadingIndicator />}
             {isError && <LoadingError onRetry={refetch} />}
             {chartSeries && <AreaChart series={chartSeries} {...chartOptions} />}
           </ChartPanel>
@@ -447,12 +443,6 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
 
 export function openCreateAlertModal(props: Props) {
   openModal(deps => {
-    return hasCustomMetricsExtractionRules(props.organization) ? (
-      <VirtualMetricsContextProvider>
-        <CreateAlertModal {...props} {...deps} />
-      </VirtualMetricsContextProvider>
-    ) : (
-      <CreateAlertModal {...props} {...deps} />
-    );
+    return <CreateAlertModal {...props} {...deps} />;
   });
 }

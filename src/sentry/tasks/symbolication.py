@@ -66,7 +66,9 @@ def should_demote_symbolication(
 
     if always_lowpri:
         return True
-    elif settings.SENTRY_ENABLE_AUTO_LOW_PRIORITY_QUEUE:
+    elif settings.SENTRY_ENABLE_AUTO_LOW_PRIORITY_QUEUE and in_random_rollout(
+        "store.symbolicate-event-lpq-rate"
+    ):
         try:
             return realtime_metrics.is_lpq_project(platform, project_id)
         # realtime_metrics is empty in getsentry

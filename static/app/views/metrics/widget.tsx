@@ -348,7 +348,7 @@ const MetricWidgetBody = memo(
     const enableRefetch = !focusAreaProps.selection;
     const {
       data: timeseriesData,
-      isLoading,
+      isPending,
       isError,
       error,
     } = useMetricsQuery(orderedQueries, filters, {interval}, enableRefetch);
@@ -511,7 +511,7 @@ const MetricWidgetBody = memo(
     if (!chartSeries || !timeseriesData || isError) {
       return (
         <StyledMetricWidgetBody>
-          {isLoading && <LoadingIndicator />}
+          {isPending && <LoadingIndicator />}
           {isError && (
             <Alert type="error">
               {(error?.responseJSON?.detail as string) ||
@@ -544,7 +544,7 @@ const MetricWidgetBody = memo(
             )}
           </LimitAlert>
         )}
-        <TransparentLoadingMask visible={isLoading} />
+        <TransparentLoadingMask visible={isPending} />
         <GuideAnchor target="metrics_chart" disabled={widgetIndex !== 0}>
           <MetricChart
             ref={chartRef}

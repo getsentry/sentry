@@ -1,5 +1,4 @@
 import {useEffect} from 'react';
-import type {RouteComponentProps} from 'react-router';
 import type {Theme} from '@emotion/react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -20,8 +19,10 @@ import {IconDocs, IconLock, IconStack, IconSupport} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import useApi from 'sentry/utils/useApi';
+import {useUser} from 'sentry/utils/useUser';
 import withLatestContext from 'sentry/utils/withLatestContext';
 import SettingsLayout from 'sentry/views/settings/components/settingsLayout';
 
@@ -59,7 +60,7 @@ function SettingsIndex({organization, ...props}: SettingsIndexProps) {
     }
   }, [api, organization]);
 
-  const user = ConfigStore.get('user');
+  const user = useUser();
   const isSelfHosted = ConfigStore.get('isSelfHosted');
 
   const organizationSettingsUrl =

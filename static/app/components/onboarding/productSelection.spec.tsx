@@ -2,7 +2,6 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
-import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {
   platformProductAvailability,
@@ -38,14 +37,6 @@ describe('Onboarding Product Selection', function () {
     render(<ProductSelection organization={organization} platform="javascript-react" />, {
       router,
     });
-
-    // Introduction
-    expect(
-      screen.getByText(
-        textWithMarkupMatcher(/In this quick guide you’ll use npm or yarn/)
-      )
-    ).toBeInTheDocument();
-    expect(screen.queryByText('Prefer to set up Sentry using')).not.toBeInTheDocument();
 
     // Error monitoring shall be checked and disabled by default
     expect(screen.getByRole('checkbox', {name: 'Error Monitoring'})).toBeChecked();
@@ -97,52 +88,6 @@ describe('Onboarding Product Selection', function () {
     expect(
       await screen.findByText(/Video-like reproductions of user sessions/)
     ).toBeInTheDocument();
-  });
-
-  it('renders for Loader Script', async function () {
-    const {router} = initializeOrg({
-      router: {
-        location: {
-          query: {
-            product: [
-              ProductSolution.PERFORMANCE_MONITORING,
-              ProductSolution.SESSION_REPLAY,
-            ],
-          },
-        },
-        params: {},
-      },
-    });
-
-    const skipLazyLoader = jest.fn();
-
-    render(
-      <ProductSelection
-        organization={organization}
-        lazyLoader
-        skipLazyLoader={skipLazyLoader}
-        platform="javascript-react"
-      />,
-      {
-        router,
-      }
-    );
-
-    // Introduction
-    expect(
-      screen.getByText(
-        textWithMarkupMatcher(/In this quick guide you’ll use our Loader Script/)
-      )
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        textWithMarkupMatcher(/Prefer to set up Sentry using npm or yarn\?/)
-      )
-    ).toBeInTheDocument();
-
-    await userEvent.click(screen.getByText('View npm instructions'));
-
-    expect(skipLazyLoader).toHaveBeenCalledTimes(1);
   });
 
   it('renders disabled product', async function () {
@@ -213,10 +158,13 @@ describe('Onboarding Product Selection', function () {
 
     // router.replace is called to remove session-replay from query
     await waitFor(() =>
-      expect(router.replace).toHaveBeenCalledWith({
-        pathname: undefined,
-        query: {product: [ProductSolution.PERFORMANCE_MONITORING]},
-      })
+      expect(router.replace).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({
+            product: [ProductSolution.PERFORMANCE_MONITORING],
+          }),
+        })
+      )
     );
   });
 
@@ -238,12 +186,13 @@ describe('Onboarding Product Selection', function () {
 
     // router.replace is called to add profiling from query
     await waitFor(() =>
-      expect(router.replace).toHaveBeenCalledWith({
-        pathname: undefined,
-        query: {
-          product: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
-        },
-      })
+      expect(router.replace).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({
+            product: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+          }),
+        })
+      )
     );
   });
 
@@ -275,7 +224,7 @@ describe('Onboarding Product Selection', function () {
     expect(screen.getByRole('checkbox', {name: 'Session Replay'})).toBeDisabled();
   });
 
-  it('renders npm & yarn info text', function () {
+  it('triggers onChange callback', async function () {
     const {router} = initializeOrg({
       router: {
         location: {
@@ -285,29 +234,20 @@ describe('Onboarding Product Selection', function () {
       },
     });
 
-    render(<ProductSelection organization={organization} platform="javascript-react" />, {
-      router,
-    });
+    const handleChange = jest.fn();
 
-    expect(screen.queryByText('npm')).toBeInTheDocument();
-    expect(screen.queryByText('yarn')).toBeInTheDocument();
-  });
+    render(
+      <ProductSelection
+        organization={organization}
+        platform="python-django"
+        onChange={handleChange}
+      />,
+      {
+        router,
+      }
+    );
 
-  it('does not render npm & yarn info text', function () {
-    const {router} = initializeOrg({
-      router: {
-        location: {
-          query: {product: [ProductSolution.PERFORMANCE_MONITORING]},
-        },
-        params: {},
-      },
-    });
-
-    render(<ProductSelection organization={organization} platform="python-django" />, {
-      router,
-    });
-
-    expect(screen.queryByText('npm')).not.toBeInTheDocument();
-    expect(screen.queryByText('yarn')).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Profiling'}));
+    expect(handleChange).toHaveBeenCalledWith(['performance-monitoring', 'profiling']);
   });
 });

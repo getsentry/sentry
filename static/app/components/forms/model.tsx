@@ -21,6 +21,7 @@ export type FieldValue =
   | Set<string>
   | number
   | boolean
+  | object
   | Choice
   | undefined; // is undefined valid here?
 
@@ -241,7 +242,7 @@ class FormModel {
    * Set form options
    */
   setFormOptions(options: FormOptions) {
-    this.options = {...this.options, ...options} || {};
+    this.options = {...this.options, ...options};
   }
 
   /**
@@ -380,6 +381,10 @@ class FormModel {
 
     if (Array.isArray(value)) {
       return value.length > 0;
+    }
+
+    if (typeof value === 'boolean') {
+      return value === true;
     }
 
     return value !== '' && defined(value);

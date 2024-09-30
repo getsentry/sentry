@@ -1,29 +1,52 @@
-import {useEffect, useRef, useState} from 'react';
+import {useContext, useEffect, useMemo, useRef, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {motion} from 'framer-motion';
 
 import {GrowingInput} from 'sentry/components/growingInput';
+import {TabsContext} from 'sentry/components/tabs';
+import {Tooltip} from 'sentry/components/tooltip';
+
+interface EditableTabTitleProps {
+  isEditing: boolean;
+  label: string;
+  onChange: (newLabel: string) => void;
+  setIsEditing: (isEditing: boolean) => void;
+  tabKey: string;
+}
 
 function EditableTabTitle({
   label,
   onChange,
   isEditing,
+  tabKey,
   setIsEditing,
-}: {
-  isEditing: boolean;
-  label: string;
-  onChange: (newLabel: string) => void;
-  setIsEditing: (isEditing: boolean) => void;
-}) {
+}: EditableTabTitleProps) {
   const [inputValue, setInputValue] = useState(label);
+  const {tabListState} = useContext(TabsContext);
 
+  useEffect(() => {
+    setInputValue(label);
+  }, [label]);
+
+  const theme = useTheme();
   const inputRef = useRef<HTMLInputElement>(null);
   const isEmpty = !inputValue.trim();
 
-  const handleOnBlur = () => {
+  const isSelected = tabListState?.selectedKey === tabKey;
+
+  const memoizedStyles = useMemo(() => {
+    return {fontWeight: isSelected ? theme.fontWeightBold : theme.fontWeightNormal};
+  }, [isSelected, theme.fontWeightBold, theme.fontWeightNormal]);
+
+  const handleOnBlur = (e: React.FocusEvent<HTMLInputElement, Element>) => {
+    e.stopPropagation();
+    e.preventDefault();
     const trimmedInputValue = inputValue.trim();
     if (!isEditing) {
       return;
     }
+
     if (isEmpty) {
       setInputValue(label);
       setIsEditing(false);
@@ -38,7 +61,7 @@ function EditableTabTitle({
 
   const handleOnKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
-      handleOnBlur();
+      inputRef.current?.blur();
     }
     if (e.key === 'Escape') {
       setInputValue(label.trim());
@@ -51,9 +74,12 @@ function EditableTabTitle({
 
   useEffect(() => {
     if (isEditing) {
-      setTimeout(() => {
-        inputRef?.current?.focus();
-      }, 0);
+      requestAnimationFrame(() => {
+        inputRef.current?.focus();
+        inputRef.current?.select();
+      });
+    } else {
+      inputRef.current?.blur();
     }
   }, [isEditing, inputRef]);
 
@@ -61,29 +87,66 @@ function EditableTabTitle({
     setInputValue(e.target.value);
   };
 
-  return isEditing ? (
-    <StyledGrowingInput
-      value={inputValue}
-      onChange={handleOnChange}
-      onKeyDown={handleOnKeyDown}
-      onBlur={handleOnBlur}
-      ref={inputRef}
-    />
-  ) : (
-    <div style={{height: '20px'}}> {label}</div>
+  return (
+    <Tooltip title={label} disabled={isEditing} showOnlyOnOverflow skipWrapper>
+      <motion.div layout="position" transition={{duration: 0.25}}>
+        {isSelected ? (
+          <StyledGrowingInput
+            value={inputValue}
+            onChange={handleOnChange}
+            onKeyDown={handleOnKeyDown}
+            onDoubleClick={() => setIsEditing(true)}
+            onBlur={handleOnBlur}
+            ref={inputRef}
+            style={memoizedStyles}
+            isEditing={isEditing}
+            onPointerDown={e => {
+              e.stopPropagation();
+              if (!isEditing) {
+                e.preventDefault();
+              }
+            }}
+            onMouseDown={e => {
+              e.stopPropagation();
+              if (!isEditing) {
+                e.preventDefault();
+              }
+            }}
+            maxLength={128}
+          />
+        ) : (
+          <UnselectedTabTitle>{label}</UnselectedTabTitle>
+        )}
+      </motion.div>
+    </Tooltip>
   );
 }
 
 export default EditableTabTitle;
 
-const StyledGrowingInput = styled(GrowingInput)`
+const UnselectedTabTitle = styled('div')`
+  height: 20px;
+  /* The max width is slightly smaller than the GrowingInput since the text in the growing input is bolded */
+  max-width: 310px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
+
+const StyledGrowingInput = styled(GrowingInput)<{
+  isEditing: boolean;
+}>`
+  position: relative;
   border: none;
   padding: 0;
   background: transparent;
   min-height: 0px;
   height: 20px;
-  cursor: pointer;
   border-radius: 0px;
+  text-overflow: ellipsis;
+  cursor: ${p => (p.isEditing ? 'text' : 'pointer')};
+
+  ${p => !p.isEditing && `max-width: 325px;`}
 
   &,
   &:focus,

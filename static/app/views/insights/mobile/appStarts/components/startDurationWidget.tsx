@@ -87,7 +87,7 @@ function StartDurationWidget({additionalFilters, chartHeight}: Props) {
 
   const {
     data: series,
-    isLoading: isSeriesLoading,
+    isPending: isSeriesLoading,
     error: seriesError,
   } = useEventsStatsQuery({
     eventView: EventView.fromNewQueryWithPageFilters(

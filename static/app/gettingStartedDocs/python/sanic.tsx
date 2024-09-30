@@ -31,10 +31,9 @@ const onboarding: OnboardingConfig = {
     {
       type: StepType.INSTALL,
       description: tct(
-        'Install [sentrySdkCode:sentry-sdk] from PyPI with the [sentrySanicCode:sanic] extra:',
+        'Install [code:sentry-sdk] from PyPI with the [code:sanic] extra:',
         {
-          sentrySdkCode: <code />,
-          sentrySanicCode: <code />,
+          code: <code />,
         }
       ),
       configurations: [
@@ -46,7 +45,7 @@ const onboarding: OnboardingConfig = {
           description: (
             <p>
               {tct(
-                "f you're on Python 3.6, you also need the [code:aiocontextvars] package:",
+                "If you're on Python 3.6, you also need the [code:aiocontextvars] package:",
                 {
                   code: <code />,
                 }

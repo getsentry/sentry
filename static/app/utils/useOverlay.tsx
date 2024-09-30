@@ -115,6 +115,11 @@ export interface UseOverlayProps
    * Options to pass to the `preventOverflow` modifier.
    */
   preventOverflowOptions?: PreventOverflowModifier['options'];
+  /**
+   * By default, the overlay's min-width will match the trigger's width.
+   * If this is not desired, set to `false`.
+   */
+  shouldApplyMinWidth?: boolean;
 }
 
 function useOverlay({
@@ -128,6 +133,7 @@ function useOverlay({
   arrowOptions = {},
   flipOptions = {},
   preventOverflowOptions = {},
+  shouldApplyMinWidth = true,
   isDismissable = true,
   shouldCloseOnBlur = false,
   isKeyboardDismissDisabled,
@@ -213,14 +219,22 @@ function useOverlay({
       },
       {
         ...applyMinWidth,
-        enabled: openState.isOpen,
+        enabled: openState.isOpen && shouldApplyMinWidth,
       },
       {
         ...applyMaxSize,
         enabled: openState.isOpen,
       },
     ],
-    [arrowElement, offset, arrowOptions, flipOptions, preventOverflowOptions, openState]
+    [
+      arrowElement,
+      arrowOptions,
+      flipOptions,
+      offset,
+      preventOverflowOptions,
+      openState.isOpen,
+      shouldApplyMinWidth,
+    ]
   );
   const {
     styles: popperStyles,

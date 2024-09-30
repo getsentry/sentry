@@ -15,7 +15,7 @@ import {fetchTotalCount} from 'sentry/actionCreators/events';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/alert';
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import Option from 'sentry/components/forms/controls/selectOption';
@@ -130,7 +130,13 @@ const shouldWidgetCardChartMemo = (prevProps, props) => {
   );
   const isNotTopNWidget =
     props.widget.displayType !== DisplayType.TOP_N && !defined(props.widget.limit);
-  return selectionMatches && chartZoomOptionsMatches && (sortMatches || isNotTopNWidget);
+  const legendMatches = isEqual(props.legendOptions, prevProps.legendOptions);
+  return (
+    selectionMatches &&
+    chartZoomOptionsMatches &&
+    (sortMatches || isNotTopNWidget) &&
+    legendMatches
+  );
 };
 
 // WidgetCardChartContainer and WidgetCardChart rerenders if selection was changed.
@@ -1118,7 +1124,7 @@ function OpenButton({
       )}
       disabled={!buttonDisabled}
     >
-      <Button
+      <LinkButton
         to={path}
         priority="primary"
         disabled={buttonDisabled}
@@ -1131,7 +1137,7 @@ function OpenButton({
         }}
       >
         {openLabel}
-      </Button>
+      </LinkButton>
     </Tooltip>
   );
 }

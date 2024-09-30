@@ -243,7 +243,7 @@ class UserOption(Model):
     ) -> tuple[int, ImportKind] | None:
         # TODO(getsentry/team-ospo#190): This circular import is a bit gross. See if we can't find a
         # better place for this logic to live.
-        from sentry.api.endpoints.user_details import UserOptionsSerializer
+        from sentry.users.api.endpoints.user_details import UserOptionsSerializer
 
         serializer_options = UserOptionsSerializer(data={self.key: self.value}, partial=True)
         serializer_options.is_valid(raise_exception=True)

@@ -69,7 +69,6 @@ class OrganizationEventsVitalsEndpoint(OrganizationEventsV2EndpointBase):
             events_results = dataset.query(
                 selected_columns=selected_columns,
                 query=request.GET.get("query"),
-                params={},
                 snuba_params=snuba_params,
                 # Results should only ever have 1 result
                 limit=1,

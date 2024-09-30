@@ -99,7 +99,7 @@ export function EventSamples({
   const eventView = EventView.fromNewQueryWithLocation(newQuery, location);
   eventView.sorts = [sort];
 
-  const {data, isLoading, pageLinks} = useTableQuery({
+  const {data, isPending, pageLinks} = useTableQuery({
     eventView,
     enabled: defined(release),
     limit: 4,
@@ -113,7 +113,7 @@ export function EventSamples({
       cursorName={cursorName}
       eventIdKey="transaction.id"
       eventView={eventView}
-      isLoading={defined(release) && isLoading}
+      isLoading={defined(release) && isPending}
       profileIdKey="profile_id"
       sortKey={sortKey}
       data={data}

@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import {browserHistory} from 'react-router';
 import type {Location} from 'history';
 
 import type {GridColumnHeader} from 'sentry/components/gridEditable';
@@ -9,6 +8,7 @@ import Pagination, {type CursorHandler} from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {ColumnType} from 'sentry/utils/discover/fields';
 import {Container as TableCellContainer} from 'sentry/utils/discover/styles';
@@ -120,7 +120,7 @@ export default function SpanMetricsTable(props: Props) {
   const mutableSearch = MutableSearch.fromQueryObject(filters);
   mutableSearch.addStringMultiFilter(search);
 
-  const {data, isLoading, pageLinks} = useSpanMetrics(
+  const {data, isPending, pageLinks} = useSpanMetrics(
     {
       search: mutableSearch,
       fields: [
@@ -143,10 +143,10 @@ export default function SpanMetricsTable(props: Props) {
       <VisuallyCompleteWithData
         id="TransactionSpans-SpanMetricsTable"
         hasData={!!data?.length}
-        isLoading={isLoading}
+        isLoading={isPending}
       >
         <GridEditable
-          isLoading={isLoading}
+          isLoading={isPending}
           data={data}
           columnOrder={COLUMN_ORDER}
           columnSortBy={[

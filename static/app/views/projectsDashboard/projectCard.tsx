@@ -4,7 +4,7 @@ import round from 'lodash/round';
 
 import {loadStatsForProject} from 'sentry/actionCreators/projects';
 import type {Client} from 'sentry/api';
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import IdBadge from 'sentry/components/idBadge';
 import Link from 'sentry/components/links/link';
 import Panel from 'sentry/components/panels/panel';
@@ -308,7 +308,7 @@ const CardHeader = styled('div')`
   height: 32px;
 `;
 
-const SettingsButton = styled(Button)`
+const SettingsButton = styled(LinkButton)`
   margin-left: auto;
   margin-top: -${space(0.5)};
   padding: 3px;

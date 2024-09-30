@@ -34,7 +34,7 @@ export default function FeedbackItemLoader() {
   // or resolved to unresolved, if something happened in another tab (or from
   // other user) to update the feedback.
 
-  return issueResult.isLoading && issueResult.isFetching ? (
+  return issueResult.isPending && issueResult.isFetching ? (
     <Placeholder height="100%" />
   ) : issueResult.isError ? (
     <FeedbackErrorDetails error={t('Unable to load feedback')} />

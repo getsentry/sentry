@@ -8,7 +8,10 @@ import {Step, StepType} from 'sentry/components/onboarding/gettingStartedDoc/ste
 import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useUrlPlatformOptions} from 'sentry/components/onboarding/platformOptionsControl';
+import ConfigStore from 'sentry/stores/configStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
+import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
 export function FeedbackOnboardingLayout({
@@ -18,21 +21,26 @@ export function FeedbackOnboardingLayout({
   projectId,
   projectSlug,
   newOrg,
+  projectKeyId,
   configType = 'onboarding',
 }: OnboardingLayoutProps) {
+  const api = useApi();
   const organization = useOrganization();
 
   const [email, setEmail] = useState(false);
   const [name, setName] = useState(false);
   const [screenshot, setScreenshot] = useState(true);
 
-  const {isLoading: isLoadingRegistry, data: registryData} =
+  const {isPending: isLoadingRegistry, data: registryData} =
     useSourcePackageRegistries(organization);
   const selectedOptions = useUrlPlatformOptions(docsConfig.platformOptions);
+  const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
   const {introduction, steps} = useMemo(() => {
     const doc = docsConfig[configType] ?? docsConfig.onboarding;
 
     const docParams: DocsParams<any> = {
+      api,
+      projectKeyId,
       dsn,
       organization,
       platformKey,
@@ -53,6 +61,8 @@ export function FeedbackOnboardingLayout({
         name,
         screenshot,
       },
+      isSelfHosted,
+      urlPrefix,
     };
 
     return {
@@ -74,6 +84,10 @@ export function FeedbackOnboardingLayout({
     email,
     name,
     screenshot,
+    isSelfHosted,
+    urlPrefix,
+    api,
+    projectKeyId,
   ]);
 
   return (

@@ -1,5 +1,7 @@
 import {css} from '@emotion/react';
+import type {UrlObject} from 'query-string';
 
+import SentryAppLink from 'sentry/components/devtoolbar/components/sentryAppLink';
 import useConfiguration from 'sentry/components/devtoolbar/hooks/useConfiguration';
 import {buttonCss} from 'sentry/components/devtoolbar/styles/typography';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -10,6 +12,8 @@ import {resetDialogCss, resetFlexColumnCss, resetFlexRowCss} from '../styles/res
 
 interface Props {
   children?: React.ReactNode;
+  link?: UrlObject;
+  noBorder?: boolean;
   showProjectBadge?: boolean;
   title?: string;
   titleRight?: React.ReactNode;
@@ -20,14 +24,33 @@ export default function PanelLayout({
   title,
   titleRight,
   showProjectBadge,
+  noBorder,
+  link,
 }: Props) {
   const {projectId, projectSlug, projectPlatform} = useConfiguration();
   return (
-    <dialog open css={[resetDialogCss, resetFlexColumnCss, panelCss]}>
+    <dialog
+      open
+      css={[
+        resetDialogCss,
+        resetFlexColumnCss,
+        panelCss,
+        noBorder
+          ? css`
+              border-color: white;
+            `
+          : undefined,
+      ]}
+    >
       <span
         css={[
-          {display: 'flex', alignItems: 'center', gap: 'var(--space100)'},
           panelHeadingCss,
+          {display: 'flex', alignItems: 'center', gap: 'var(--space100)'},
+          noBorder
+            ? css`
+                border-color: white;
+              `
+            : undefined,
         ]}
       >
         {showProjectBadge && (
@@ -51,7 +74,13 @@ export default function PanelLayout({
               {alignItems: 'center', marginRight: 'var(--space100)'},
             ]}
           >
-            <h1 css={[buttonCss]}>{title}</h1>
+            {link ? (
+              <SentryAppLink to={link}>
+                <h1 css={[buttonCss]}>{title}</h1>
+              </SentryAppLink>
+            ) : (
+              <h1 css={[buttonCss]}>{title}</h1>
+            )}
             {titleRight}
           </header>
         ) : null}

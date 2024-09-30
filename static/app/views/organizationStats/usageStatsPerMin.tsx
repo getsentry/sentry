@@ -34,7 +34,7 @@ function UsageStatsPerMin({
 }: Props) {
   const {
     data: orgStats,
-    isLoading,
+    isPending,
     isError,
   } = useApiQuery<UsageSeries>(
     [
@@ -54,7 +54,7 @@ function UsageStatsPerMin({
     }
   );
 
-  if (isLoading || isError || !orgStats || orgStats.intervals.length === 0) {
+  if (isPending || isError || !orgStats || orgStats.intervals.length === 0) {
     return null;
   }
 

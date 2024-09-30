@@ -11,8 +11,18 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import type {TeamParticipant, UserParticipant} from 'sentry/types/group';
 import {IssueCategory} from 'sentry/types/group';
+import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import StreamlinedGroupHeader from 'sentry/views/issueDetails/streamline/header';
 import {ReprocessingStatus} from 'sentry/views/issueDetails/utils';
+
+jest.mock('screenfull', () => ({
+  enabled: true,
+  isFullscreen: false,
+  request: jest.fn(),
+  exit: jest.fn(),
+  on: jest.fn(),
+  off: jest.fn(),
+}));
 
 describe('UpdatedGroupHeader', () => {
   const baseUrl = 'BASE_URL/';
@@ -52,6 +62,10 @@ describe('UpdatedGroupHeader', () => {
       MockApiClient.addMockResponse({
         url: `/organizations/org-slug/releases/${encodeURIComponent(firstRelease.version)}/deploys/`,
         body: {},
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues/${group.id}/attachments/`,
+        body: [],
       });
     });
 
@@ -102,6 +116,16 @@ describe('UpdatedGroupHeader', () => {
       expect(screen.getByText('RequestError')).toBeInTheDocument();
       expect(screen.getByText('Warning')).toBeInTheDocument();
       expect(screen.getByText('Unhandled')).toBeInTheDocument();
+      expect(await screen.findByTestId('all-event-count')).toHaveTextContent(
+        'All Events'
+      );
+      expect(
+        await screen.findByRole('link', {name: formatAbbreviatedNumber(group.count)})
+      ).toBeInTheDocument();
+      expect(await screen.findByText('All Users')).toBeInTheDocument();
+      expect(
+        await screen.findByRole('link', {name: formatAbbreviatedNumber(group.userCount)})
+      ).toBeInTheDocument();
 
       expect(
         await screen.findByText(textWithMarkupMatcher('Releases'))

@@ -22,13 +22,13 @@ class DataSecrecyTest(APITestCase):
         self.path = reverse(self.endpoint, args=[self.org.slug])
 
         self.body_params = {
-            "access_start": datetime.now(tz=timezone.utc).isoformat(),
-            "access_end": (datetime.now(tz=timezone.utc) + timedelta(days=1)).isoformat(),
+            "accessStart": datetime.now(tz=timezone.utc).isoformat(),
+            "accessEnd": (datetime.now(tz=timezone.utc) + timedelta(days=1)).isoformat(),
         }
 
     def assert_response(self, response, ds: DataSecrecyWaiver, status_code=200):
-        assert response.data["access_start"] == ds.access_start.isoformat()
-        assert response.data["access_end"] == ds.access_end.isoformat()
+        assert response.data["accessStart"] == ds.access_start.isoformat()
+        assert response.data["accessEnd"] == ds.access_end.isoformat()
 
     @freeze_time(datetime(2024, 7, 18, 0, 0, 0, tzinfo=timezone.utc))
     def test_get_simple(self):
@@ -70,10 +70,10 @@ class DataSecrecyTest(APITestCase):
             access_end=datetime.now(tz=timezone.utc) + timedelta(days=1),
         )
 
-        self.body_params["access_start"] = (
+        self.body_params["accessStart"] = (
             datetime.now(tz=timezone.utc) + timedelta(days=1)
         ).isoformat()
-        self.body_params["access_end"] = (
+        self.body_params["accessEnd"] = (
             datetime.now(tz=timezone.utc) + timedelta(days=2)
         ).isoformat()
 
@@ -91,25 +91,25 @@ class DataSecrecyTest(APITestCase):
 
     @freeze_time(datetime(2024, 7, 18, 0, 0, 0, tzinfo=timezone.utc))
     def test_put_invalid_dates(self):
-        self.body_params["access_end"] = self.body_params["access_start"]
+        self.body_params["accessEnd"] = self.body_params["accessStart"]
 
         response = self.get_error_response(self.org.slug, method="put", **self.body_params)
-        assert "Invalid timestamp" in response.data["non_field_errors"][0]
+        assert "Invalid timestamp" in response.data["nonFieldErrors"][0]
 
     @freeze_time(datetime(2024, 7, 18, 0, 0, 0, tzinfo=timezone.utc))
     def test_put_past_end_date(self):
-        self.body_params["access_end"], self.body_params["access_start"] = (
-            self.body_params["access_start"],
-            self.body_params["access_end"],
+        self.body_params["accessEnd"], self.body_params["accessStart"] = (
+            self.body_params["accessStart"],
+            self.body_params["accessEnd"],
         )
         response = self.get_error_response(self.org.slug, method="put", **self.body_params)
-        assert "Invalid timestamp" in response.data["non_field_errors"][0]
+        assert "Invalid timestamp" in response.data["nonFieldErrors"][0]
 
     @freeze_time(datetime(2024, 7, 18, 0, 0, 0, tzinfo=timezone.utc))
     def test_put_missing_required_fields(self):
-        self.body_params.pop("access_end")
+        self.body_params.pop("accessEnd")
         response = self.get_error_response(self.org.slug, method="put", **self.body_params)
-        assert "access_end" in response.data
+        assert "accessEnd" in response.data
 
     @freeze_time(datetime(2024, 7, 18, 0, 0, 0, tzinfo=timezone.utc))
     def test_delete_existing_waiver(self):

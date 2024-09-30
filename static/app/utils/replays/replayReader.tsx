@@ -7,7 +7,7 @@ import {defined} from 'sentry/utils';
 import domId from 'sentry/utils/domId';
 import localStorageWrapper from 'sentry/utils/localStorage';
 import clamp from 'sentry/utils/number/clamp';
-import extractHtml from 'sentry/utils/replays/extractHtml';
+import extractHtmlandSelector from 'sentry/utils/replays/extractHtml';
 import hydrateBreadcrumbs, {
   replayInitBreadcrumb,
 } from 'sentry/utils/replays/hydrateBreadcrumbs';
@@ -34,12 +34,14 @@ import type {
   SlowClickFrame,
   SpanFrame,
   VideoEvent,
+  WebVitalFrame,
 } from 'sentry/utils/replays/types';
 import {
   BreadcrumbCategories,
   EventType,
-  getNodeId,
+  getNodeIds,
   IncrementalSource,
+  isCLSFrame,
   isDeadClick,
   isDeadRageClick,
   isPaintFrame,
@@ -144,16 +146,17 @@ function removeDuplicateNavCrumbs(
 
 const extractDomNodes = {
   shouldVisitFrame: frame => {
-    const nodeId = getNodeId(frame);
-    return nodeId !== undefined && nodeId !== -1;
+    const nodeIds = getNodeIds(frame);
+    return nodeIds.filter(nodeId => nodeId !== -1).length > 0;
   },
   onVisitFrame: (frame, collection, replayer) => {
     const mirror = replayer.getMirror();
-    const nodeId = getNodeId(frame);
-    const html = extractHtml(nodeId as number, mirror);
+    const nodeIds = getNodeIds(frame);
+    const {html, selectors} = extractHtmlandSelector((nodeIds ?? []) as number[], mirror);
     collection.set(frame as ReplayFrame, {
       frame,
       html,
+      selectors,
       timestamp: frame.timestampMs,
     });
   },
@@ -535,10 +538,7 @@ export default class ReplayReader {
   getErrorFrames = () => this._errors;
 
   getConsoleFrames = memoize(() =>
-    this._sortedBreadcrumbFrames.filter(
-      frame =>
-        frame.category === 'console' || !BreadcrumbCategories.includes(frame.category)
-    )
+    this._sortedBreadcrumbFrames.filter(frame => frame.category === 'console')
   );
 
   getNavigationFrames = memoize(() =>
@@ -576,7 +576,9 @@ export default class ReplayReader {
               )
           )
       ),
-      ...this._sortedSpanFrames.filter(frame => 'nodeId' in (frame.data ?? {})),
+      ...this._sortedSpanFrames.filter(
+        frame => 'nodeId' in (frame.data ?? {}) || 'nodeIds' in (frame.data ?? {})
+      ),
     ].sort(sortFrames)
   );
 
@@ -584,11 +586,18 @@ export default class ReplayReader {
     this._sortedSpanFrames.filter((frame): frame is MemoryFrame => frame.op === 'memory')
   );
 
+  getCustomFrames = memoize(() =>
+    this._sortedBreadcrumbFrames.filter(
+      frame => !BreadcrumbCategories.includes(frame.category)
+    )
+  );
+
   getChapterFrames = memoize(() =>
     this._trimFramesToClipWindow(
       [
         ...this.getPerfFrames(),
         ...this.getWebVitalFrames(),
+        ...this.getCustomFrames(),
         ...this._sortedBreadcrumbFrames.filter(frame =>
           [
             'replay.hydrate-error',
@@ -628,7 +637,26 @@ export default class ReplayReader {
 
   getWebVitalFrames = memoize(() => {
     if (this._featureFlags?.includes('session-replay-web-vitals')) {
-      return this._sortedSpanFrames.filter(isWebVitalFrame);
+      // sort by largest timestamp first to easily find the last CLS in a burst
+      const allWebVitals = this._sortedSpanFrames.filter(isWebVitalFrame).reverse();
+      let lastTimestamp = 0;
+      const groupedCls: WebVitalFrame[] = [];
+
+      for (const frame of allWebVitals) {
+        if (isCLSFrame(frame)) {
+          if (lastTimestamp === frame.timestampMs) {
+            groupedCls.push(frame);
+          } else {
+            lastTimestamp = frame.timestampMs;
+          }
+        }
+      }
+      return allWebVitals
+        .filter(
+          frame =>
+            !groupedCls.includes(frame) && frame.description !== 'first-input-delay'
+        )
+        .reverse();
     }
     return [];
   });

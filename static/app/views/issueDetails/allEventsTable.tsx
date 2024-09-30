@@ -40,7 +40,7 @@ function AllEventsTable(props: Props) {
   const config = getConfigForIssueType(props.group, group.project);
   const [error, setError] = useState<string>('');
   const routes = useRoutes();
-  const {fields, columnTitles} = getColumns(group, organization);
+  const {fields, columnTitles} = useEventColumns(group, organization);
   const now = useMemo(() => Date.now(), []);
 
   const endpointUrl = makeGroupPreviewRequestUrl({
@@ -48,7 +48,7 @@ function AllEventsTable(props: Props) {
   });
 
   const queryEnabled = group.issueCategory === IssueCategory.PERFORMANCE;
-  const {data, isLoading, isLoadingError} = useApiQuery<EventTransaction>([endpointUrl], {
+  const {data, isPending, isLoadingError} = useApiQuery<EventTransaction>([endpointUrl], {
     staleTime: 60000,
     enabled: queryEnabled,
   });
@@ -128,64 +128,66 @@ function AllEventsTable(props: Props) {
       transactionName=""
       columnTitles={columnTitles.slice()}
       referrer="api.issues.issue_events"
-      isEventLoading={queryEnabled ? isLoading : false}
+      isEventLoading={queryEnabled ? isPending : false}
     />
   );
 }
 
 type ColumnInfo = {columnTitles: string[]; fields: string[]};
 
-const getColumns = (group: Group, organization: Organization): ColumnInfo => {
-  const isPerfIssue = group.issueCategory === IssueCategory.PERFORMANCE;
-  const isReplayEnabled =
-    organization.features.includes('session-replay') &&
-    projectCanLinkToReplay(organization, group.project);
+export const useEventColumns = (group: Group, organization: Organization): ColumnInfo => {
+  return useMemo(() => {
+    const isPerfIssue = group.issueCategory === IssueCategory.PERFORMANCE;
+    const isReplayEnabled =
+      organization.features.includes('session-replay') &&
+      projectCanLinkToReplay(organization, group.project);
 
-  // profiles only exist on transactions, so this only works with
-  // performance issues, and not errors
-  const isProfilingEnabled = isPerfIssue && organization.features.includes('profiling');
+    // profiles only exist on transactions, so this only works with
+    // performance issues, and not errors
+    const isProfilingEnabled = isPerfIssue && organization.features.includes('profiling');
 
-  const {fields: platformSpecificFields, columnTitles: platformSpecificColumnTitles} =
-    getPlatformColumns(group.project.platform ?? group.platform, {
-      isProfilingEnabled,
-      isReplayEnabled,
-    });
+    const {fields: platformSpecificFields, columnTitles: platformSpecificColumnTitles} =
+      getPlatformColumns(group.project.platform ?? group.platform, {
+        isProfilingEnabled,
+        isReplayEnabled,
+      });
 
-  const fields: string[] = [
-    'id',
-    'transaction',
-    'title',
-    'trace',
-    'timestamp',
-    'release',
-    'environment',
-    'user.display',
-    'device',
-    'os',
-    ...platformSpecificFields,
-    ...(isPerfIssue ? ['transaction.duration'] : []),
-  ];
+    const fields: string[] = [
+      'id',
+      'transaction',
+      'title',
+      'trace',
+      'timestamp',
+      'release',
+      'environment',
+      'user.display',
+      'device',
+      'os',
+      ...platformSpecificFields,
+      ...(isPerfIssue ? ['transaction.duration'] : []),
+    ];
 
-  const columnTitles: string[] = [
-    t('event id'),
-    t('transaction'),
-    t('title'),
-    t('trace'),
-    t('timestamp'),
-    t('release'),
-    t('environment'),
-    t('user'),
-    t('device'),
-    t('os'),
-    ...platformSpecificColumnTitles,
-    ...(isPerfIssue ? [t('total duration')] : []),
-    t('minidump'),
-  ];
+    const columnTitles: string[] = [
+      t('event id'),
+      t('transaction'),
+      t('title'),
+      t('trace'),
+      t('timestamp'),
+      t('release'),
+      t('environment'),
+      t('user'),
+      t('device'),
+      t('os'),
+      ...platformSpecificColumnTitles,
+      ...(isPerfIssue ? [t('total duration')] : []),
+      t('minidump'),
+    ];
 
-  return {
-    fields,
-    columnTitles,
-  };
+    return {
+      fields,
+      columnTitles,
+    };
+  }, [group, organization]);
 };
 
 const getPlatformColumns = (

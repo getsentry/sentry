@@ -1,4 +1,5 @@
 import {EventFixture} from 'sentry-fixture/event';
+import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
@@ -11,11 +12,13 @@ import {
   TEST_EVENT_CONTEXTS,
   TEST_EVENT_TAGS,
 } from 'sentry/components/events/highlights/util.spec';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import * as analytics from 'sentry/utils/analytics';
 
 describe('HighlightsDataSection', function () {
   const organization = OrganizationFixture();
   const project = ProjectFixture();
+  const group = GroupFixture();
   const event = EventFixture({
     contexts: TEST_EVENT_CONTEXTS,
     tags: TEST_EVENT_TAGS,
@@ -35,6 +38,7 @@ describe('HighlightsDataSection', function () {
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
+    ProjectsStore.loadInitialData([project]);
     jest.clearAllMocks();
   });
 
@@ -43,11 +47,17 @@ describe('HighlightsDataSection', function () {
       url: `/projects/${organization.slug}/${project.slug}/`,
       body: {...project, highlightTags: [], highlightContext: {}},
     });
+    const replayId = undefined;
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/replays/${replayId}/`,
+      body: {},
+    });
     render(
       <HighlightsDataSection
         event={event}
         project={project}
         viewAllRef={{current: null}}
+        groupId={group.id}
       />,
       {organization}
     );
@@ -76,7 +86,13 @@ describe('HighlightsDataSection', function () {
       body: {...project, highlightTags, highlightContext},
     });
 
-    render(<HighlightsDataSection event={event} project={project} />, {
+    const replayId = undefined;
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/replays/${replayId}/`,
+      body: {},
+    });
+
+    render(<HighlightsDataSection event={event} project={project} groupId={group.id} />, {
       organization,
     });
     expect(screen.getByText('Event Highlights')).toBeInTheDocument();

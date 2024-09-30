@@ -16,7 +16,7 @@ from sentry.utils.http import absolute_uri
 from sentry.utils.security import get_secure_token
 
 if TYPE_CHECKING:
-    from sentry.models.user import User
+    from sentry.users.models.user import User
     from sentry.users.services.lost_password_hash import RpcLostPasswordHash
 
 

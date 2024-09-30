@@ -18,7 +18,7 @@ from sentry.integrations.base import (
     IntegrationMetadata,
 )
 from sentry.integrations.github.integration import GitHubIntegrationProvider, build_repository_query
-from sentry.integrations.github.issues import GitHubIssueBasic
+from sentry.integrations.github.issues import GitHubIssuesSpec
 from sentry.integrations.github.utils import get_jwt
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.repository.model import RpcRepository
@@ -132,7 +132,7 @@ API_ERRORS = {
 
 
 class GitHubEnterpriseIntegration(
-    RepositoryIntegration, GitHubIssueBasic, CommitContextIntegration
+    RepositoryIntegration, GitHubIssuesSpec, CommitContextIntegration
 ):
     codeowners_locations = ["CODEOWNERS", ".github/CODEOWNERS", "docs/CODEOWNERS"]
 
@@ -203,7 +203,7 @@ class GitHubEnterpriseIntegration(
     def extract_source_path_from_source_url(self, repo: Repository, url: str) -> str:
         raise IntegrationFeatureNotImplementedError
 
-    def search_issues(self, query):
+    def search_issues(self, query: str | None, **kwargs):
         return self.get_client().search_issues(query)
 
     def has_repo_access(self, repo: RpcRepository) -> bool:

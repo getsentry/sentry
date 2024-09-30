@@ -135,13 +135,13 @@ function useCreateInvestigationRuleMutation() {
     onSuccess: (_data, variables) => {
       addSuccessMessage(t('Successfully created investigation rule'));
       // invalidate the rule-exists query
-      queryClient.invalidateQueries(
-        makeRuleExistsQueryKey(
+      queryClient.invalidateQueries({
+        queryKey: makeRuleExistsQueryKey(
           variables.query,
           variables.projects,
           variables.organization
-        )
-      );
+        ),
+      });
       trackAnalytics('dynamic_sampling.custom_rule_add', {
         organization: variables.organization,
         projects: variables.projects,

@@ -55,7 +55,7 @@ export default function ProjectCspReports() {
 
   const {
     data: keyList,
-    isLoading: isLoadingKeyList,
+    isPending: isLoadingKeyList,
     isError: isKeyListError,
     refetch: refetchKeyList,
   } = useApiQuery<ProjectKey[]>([`/projects/${organization.slug}/${projectId}/keys/`], {
@@ -63,7 +63,7 @@ export default function ProjectCspReports() {
   });
   const {
     data: project,
-    isLoading: isLoadingProject,
+    isPending: isLoadingProject,
     isError: isProjectError,
     refetch: refetchProject,
   } = useApiQuery<Project>([`/projects/${organization.slug}/${projectId}/`], {
@@ -102,7 +102,7 @@ export default function ProjectCspReports() {
         initialData={project.options}
         apiEndpoint={`/projects/${organization.slug}/${projectId}/`}
       >
-        <Access access={['project:write']}>
+        <Access access={['project:write']} project={project}>
           {({hasAccess}) => <JsonForm disabled={!hasAccess} forms={formGroups} />}
         </Access>
       </Form>

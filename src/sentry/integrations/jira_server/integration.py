@@ -21,13 +21,13 @@ from sentry import features
 from sentry.integrations.base import (
     FeatureDescription,
     IntegrationFeatures,
-    IntegrationInstallation,
     IntegrationMetadata,
     IntegrationProvider,
 )
 from sentry.integrations.jira.tasks import migrate_issues
 from sentry.integrations.jira_server.utils.choice import build_user_choice
-from sentry.integrations.mixins import IssueSyncMixin, ResolveSyncAction
+from sentry.integrations.mixins import ResolveSyncAction
+from sentry.integrations.mixins.issues import IssueSyncIntegration
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration_external_project import IntegrationExternalProject
 from sentry.integrations.services.integration import integration_service
@@ -268,7 +268,7 @@ JIRA_CUSTOM_FIELD_TYPES = {
 }
 
 
-class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
+class JiraServerIntegration(IssueSyncIntegration):
     """
     IntegrationInstallation implementation for Jira-Server
     """
@@ -544,7 +544,7 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
 
     def get_issue(self, issue_id, **kwargs):
         """
-        Jira installation's implementation of IssueSyncMixin's `get_issue`.
+        Jira installation's implementation of IssueSyncIntegration's `get_issue`.
         """
         client = self.get_client()
         issue = client.get_issue(issue_id)
@@ -572,9 +572,11 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
             issue_id, group_note.data["external_id"], quoted_comment
         )
 
-    def search_issues(self, query):
+    def search_issues(self, query: str | None, **kwargs) -> dict[str, Any]:
         try:
-            return self.get_client().search_issues(query)
+            resp = self.get_client().search_issues(query)
+            assert isinstance(resp, dict)
+            return resp
         except ApiError as e:
             self.raise_error(e)
 

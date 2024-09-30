@@ -405,12 +405,12 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
 
   const {
     data: filterListData,
-    isLoading,
+    isPending,
     isError,
     refetch,
   } = useApiQuery<Filter[]>([`/projects/${organization.slug}/${projectSlug}/filters/`], {
     staleTime: 0,
-    cacheTime: 0,
+    gcTime: 0,
   });
 
   const filterList = filterListData ?? [];
@@ -433,7 +433,7 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
     []
   );
 
-  if (isLoading) {
+  if (isPending) {
     return <LoadingIndicator />;
   }
 
@@ -538,22 +538,16 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
                       type: 'boolean',
                       name: 'filters:react-hydration-errors',
                       label: t('Filter out hydration errors'),
-                      help: organization.features.includes(
-                        'session-replay-hydration-error-issue-creation'
-                      )
-                        ? tct(
-                            'React falls back to do a full re-render on a page. [replaySettings: Hydration Errors created from captured replays] are excluded from this setting.',
-                            {
-                              replaySettings: (
-                                <Link
-                                  to={`/settings/projects/${project.slug}/replays/#sentry-replay_hydration_error_issues_help`}
-                                />
-                              ),
-                            }
-                          )
-                        : t(
-                            'React falls back to do a full re-render on a page and these errors are often not actionable.'
+                      help: tct(
+                        'React falls back to do a full re-render on a page. [replaySettings: Hydration Errors created from captured replays] are excluded from this setting.',
+                        {
+                          replaySettings: (
+                            <Link
+                              to={`/settings/projects/${project.slug}/replays/#sentry-replay_hydration_error_issues_help`}
+                            />
                           ),
+                        }
+                      ),
                       disabled: !hasAccess,
                     }}
                   />

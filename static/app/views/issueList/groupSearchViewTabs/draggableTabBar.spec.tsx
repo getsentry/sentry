@@ -30,18 +30,18 @@ describe.skip('DraggableTabBar', () => {
       id: '1',
       key: '1',
       label: 'Prioritized',
-      queryCount: 20,
       query: 'priority:high',
       querySort: IssueSortOptions.DATE,
       unsavedChanges: ['priority:low', IssueSortOptions.DATE],
+      isCommitted: true,
     },
     {
       id: '2',
       key: '2',
       label: 'For Review',
-      queryCount: 1001,
       query: 'is:unassigned',
       querySort: IssueSortOptions.DATE,
+      isCommitted: true,
     },
     {
       id: '3',
@@ -49,6 +49,7 @@ describe.skip('DraggableTabBar', () => {
       label: 'Regressed',
       query: 'is:regressed',
       querySort: IssueSortOptions.DATE,
+      isCommitted: true,
     },
   ];
 
@@ -56,8 +57,7 @@ describe.skip('DraggableTabBar', () => {
     it('should render tabs from props', () => {
       render(
         <DraggableTabBar
-          selectedTabKey="1"
-          setSelectedTabKey={jest.fn()}
+          initialTabKey="1"
           setTempTab={jest.fn()}
           tabs={tabs}
           setTabs={jest.fn()}
@@ -79,8 +79,7 @@ describe.skip('DraggableTabBar', () => {
     it('should render the correct set of actions for changed tabs', async () => {
       render(
         <DraggableTabBar
-          selectedTabKey="1"
-          setSelectedTabKey={jest.fn()}
+          initialTabKey="1"
           setTempTab={jest.fn()}
           tabs={tabs}
           setTabs={jest.fn()}
@@ -114,8 +113,7 @@ describe.skip('DraggableTabBar', () => {
     it('should render the correct set of actions for unchanged tabs', async () => {
       render(
         <DraggableTabBar
-          selectedTabKey="1"
-          setSelectedTabKey={jest.fn()}
+          initialTabKey="1"
           setTempTab={jest.fn()}
           tabs={tabs}
           setTabs={jest.fn()}
@@ -152,8 +150,7 @@ describe.skip('DraggableTabBar', () => {
     it('should render the correct set of actions for a single tab', async () => {
       render(
         <DraggableTabBar
-          selectedTabKey="1"
-          setSelectedTabKey={jest.fn()}
+          initialTabKey="1"
           setTempTab={jest.fn()}
           tabs={[tabs[1]]}
           setTabs={jest.fn()}
@@ -180,8 +177,7 @@ describe.skip('DraggableTabBar', () => {
     it('should render the correct set of actions for temporary tabs', async () => {
       render(
         <DraggableTabBar
-          selectedTabKey="1"
-          setSelectedTabKey={jest.fn()}
+          initialTabKey="1"
           setTempTab={jest.fn()}
           tabs={tabs}
           setTabs={jest.fn()}
@@ -210,8 +206,7 @@ describe.skip('DraggableTabBar', () => {
     it('should allow renaming a tab', async () => {
       render(
         <DraggableTabBar
-          selectedTabKey="1"
-          setSelectedTabKey={jest.fn()}
+          initialTabKey="1"
           setTempTab={jest.fn()}
           tabs={tabs}
           setTabs={jest.fn()}
@@ -238,8 +233,7 @@ describe.skip('DraggableTabBar', () => {
     it('should not allow renaming a tab to empty string', async () => {
       render(
         <DraggableTabBar
-          selectedTabKey="1"
-          setSelectedTabKey={jest.fn()}
+          initialTabKey="1"
           setTempTab={jest.fn()}
           tabs={tabs}
           setTabs={jest.fn()}
@@ -266,8 +260,7 @@ describe.skip('DraggableTabBar', () => {
     it('should discard changes if esc is pressed while renaming', async () => {
       render(
         <DraggableTabBar
-          selectedTabKey="1"
-          setSelectedTabKey={jest.fn()}
+          initialTabKey="1"
           setTempTab={jest.fn()}
           tabs={tabs}
           setTabs={jest.fn()}
@@ -292,8 +285,7 @@ describe.skip('DraggableTabBar', () => {
     it('should fire the onSave callback when save changes is pressed', async () => {
       render(
         <DraggableTabBar
-          selectedTabKey="1"
-          setSelectedTabKey={jest.fn()}
+          initialTabKey="1"
           setTempTab={jest.fn()}
           tabs={tabs}
           setTabs={jest.fn()}
@@ -316,8 +308,7 @@ describe.skip('DraggableTabBar', () => {
     it('should fire the onDiscard callback when discard is pressed', async () => {
       render(
         <DraggableTabBar
-          selectedTabKey="1"
-          setSelectedTabKey={jest.fn()}
+          initialTabKey="1"
           setTempTab={jest.fn()}
           tabs={tabs}
           setTabs={jest.fn()}
@@ -340,8 +331,7 @@ describe.skip('DraggableTabBar', () => {
     it('should fire the onDelete callback when delete is pressed', async () => {
       render(
         <DraggableTabBar
-          selectedTabKey="1"
-          setSelectedTabKey={jest.fn()}
+          initialTabKey="1"
           setTempTab={jest.fn()}
           tabs={tabs}
           setTabs={jest.fn()}
@@ -362,8 +352,7 @@ describe.skip('DraggableTabBar', () => {
     it('should fire the onDuplicate callback when duplicate is pressed', async () => {
       render(
         <DraggableTabBar
-          selectedTabKey="1"
-          setSelectedTabKey={jest.fn()}
+          initialTabKey="1"
           setTempTab={jest.fn()}
           tabs={tabs}
           setTabs={jest.fn()}
@@ -386,8 +375,7 @@ describe.skip('DraggableTabBar', () => {
     it('should fire the onDiscardTempView callback when the discard button is pressed for a temp view', async () => {
       render(
         <DraggableTabBar
-          selectedTabKey="1"
-          setSelectedTabKey={jest.fn()}
+          initialTabKey="1"
           setTempTab={jest.fn()}
           tabs={tabs}
           setTabs={jest.fn()}
@@ -408,8 +396,7 @@ describe.skip('DraggableTabBar', () => {
     it('should fire the onSaveTempView callback when the discard button is pressed for a temp view', async () => {
       render(
         <DraggableTabBar
-          selectedTabKey="1"
-          setSelectedTabKey={jest.fn()}
+          initialTabKey="1"
           setTempTab={jest.fn()}
           tabs={tabs}
           setTabs={jest.fn()}
@@ -432,8 +419,7 @@ describe.skip('DraggableTabBar', () => {
     it('should fire the onAddView callback when the add view button is pressed', async () => {
       render(
         <DraggableTabBar
-          selectedTabKey="1"
-          setSelectedTabKey={jest.fn()}
+          initialTabKey="1"
           setTempTab={jest.fn()}
           tabs={tabs}
           setTabs={jest.fn()}

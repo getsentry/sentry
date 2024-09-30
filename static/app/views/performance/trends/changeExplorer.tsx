@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import moment from 'moment-timezone';
 
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import {getArbitraryRelativePeriod} from 'sentry/components/timeRangeSelector/utils';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {IconFire, IconOpen} from 'sentry/icons';
@@ -322,7 +322,7 @@ const TransactionNameWrapper = styled('div')`
   max-width: fit-content;
 `;
 
-const ViewTransactionButton = styled(Button)`
+const ViewTransactionButton = styled(LinkButton)`
   padding: 0;
   height: min-content;
   min-height: 0px;

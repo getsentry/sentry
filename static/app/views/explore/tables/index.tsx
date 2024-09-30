@@ -6,13 +6,16 @@ import {Button} from 'sentry/components/button';
 import {TabList, Tabs} from 'sentry/components/tabs';
 import {IconTable} from 'sentry/icons/iconTable';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {useResultMode} from 'sentry/views/explore/hooks/useResultsMode';
 import {useSampleFields} from 'sentry/views/explore/hooks/useSampleFields';
-import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
 
+import {useSpanTags} from '../contexts/spanTagsContext';
+
+import {TracesTable} from './tracesTable/index';
+import {AggregatesTable} from './aggregatesTable';
 import {ColumnEditorModal} from './columnEditorModal';
 import {SpansTable} from './spansTable';
-import {TracesTable} from './tracesTable';
 
 enum Tab {
   SPAN = 'span',
@@ -26,22 +29,20 @@ export function ExploreTables({}: ExploreTablesProps) {
 
   return (
     <Fragment>
-      {resultMode === 'aggregate' && <ExploreAggregateTable />}
+      {resultMode === 'aggregate' && <ExploreAggregatesTable />}
       {resultMode === 'samples' && <ExploreSamplesTable />}
     </Fragment>
   );
 }
 
-function ExploreAggregateTable() {
-  return <div>TODO: aggregate table</div>;
+function ExploreAggregatesTable() {
+  return <AggregatesTable />;
 }
 
 function ExploreSamplesTable() {
   const [tab, setTab] = useState(Tab.SPAN);
-
   const [fields, setFields] = useSampleFields();
-  // TODO: This should be loaded from context to avoid loading tags twice.
-  const tags = useSpanFieldSupportedTags();
+  const {data: tags} = useSpanTags();
 
   const openColumnEditor = useCallback(() => {
     openModal(
@@ -67,12 +68,11 @@ function ExploreSamplesTable() {
           </TabList>
         </Tabs>
         <Button
-          size="sm"
           disabled={tab !== Tab.SPAN}
           onClick={openColumnEditor}
           icon={<IconTable />}
         >
-          {t('Columns')}
+          {t('Edit Table')}
         </Button>
       </SamplesTableHeader>
       {tab === Tab.SPAN && <SpansTable />}
@@ -85,4 +85,5 @@ const SamplesTableHeader = styled('div')`
   display: flex;
   flex-direction: row;
   justify-content: space-between;
+  margin-bottom: ${space(2)};
 `;

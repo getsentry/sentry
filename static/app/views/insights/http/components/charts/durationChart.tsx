@@ -1,16 +1,20 @@
 import type {ComponentProps} from 'react';
 
 import type {EChartHighlightHandler, Series} from 'sentry/types/echarts';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {AVG_COLOR} from 'sentry/views/insights/colors';
 import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
 import ChartPanel from 'sentry/views/insights/common/components/chartPanel';
 import {getDurationChartTitle} from 'sentry/views/insights/common/views/spans/types';
+import {ALERTS} from 'sentry/views/insights/http/alerts';
 import {CHART_HEIGHT} from 'sentry/views/insights/http/settings';
+import type {SpanMetricsQueryFilters} from 'sentry/views/insights/types';
 
 interface Props {
   isLoading: boolean;
   series: Series[];
   error?: Error | null;
+  filters?: SpanMetricsQueryFilters;
   onHighlight?: (highlights: Highlight[], event: Event) => void; // TODO: Correctly type this
   scatterPlot?: ComponentProps<typeof Chart>['scatterPlot'];
 }
@@ -26,11 +30,14 @@ export function DurationChart({
   isLoading,
   error,
   onHighlight,
+  filters,
 }: Props) {
   // TODO: This is duplicated from `DurationChart` in `SampleList`. Resolve the duplication
   const handleChartHighlight: EChartHighlightHandler = function (event) {
     // ignore mouse hovering over the chart legend
-    if (!event.batch) return;
+    if (!event.batch) {
+      return;
+    }
 
     // TODO: Gross hack. Even though `scatterPlot` is a separate prop, it's just an array of `Series` that gets appended to the main series. To find the point that was hovered, we re-construct the correct series order. It would have been cleaner to just pass the scatter plot as its own, single series
     const allSeries = [...series, ...(scatterPlot ?? [])];
@@ -50,8 +57,14 @@ export function DurationChart({
     onHighlight?.(highlightedDataPoints, event);
   };
 
+  const filterString = filters && MutableSearch.fromQueryObject(filters).formatString();
+  const alertConfig = {
+    ...ALERTS.duration,
+    query: filterString ?? ALERTS.duration.query,
+  };
+
   return (
-    <ChartPanel title={getDurationChartTitle('http')}>
+    <ChartPanel title={getDurationChartTitle('http')} alertConfigs={[alertConfig]}>
       <Chart
         height={CHART_HEIGHT}
         grid={{

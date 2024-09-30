@@ -1,5 +1,5 @@
 import {useEffect, useMemo, useRef, useState} from 'react';
-import type {RouteComponentProps} from 'react-router';
+import type {Location} from 'react-router-dom';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 import omit from 'lodash/omit';
@@ -22,6 +22,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {DateString, PageFilters} from 'sentry/types/core';
 import type {TagCollection} from 'sentry/types/group';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -44,6 +45,7 @@ import {
   isOnDemandMetricWidget,
   OnDemandControlProvider,
 } from 'sentry/utils/performance/contexts/onDemandControl';
+import {OnRouteLeave} from 'sentry/utils/reactRouter6Compat/onRouteLeave';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
 import withPageFilters from 'sentry/utils/withPageFilters';
@@ -99,6 +101,9 @@ import {
 } from './utils';
 import {WidgetLibrary} from './widgetLibrary';
 
+const UNSAVED_CHANGES_MESSAGE = t(
+  'You have unsaved changes, are you sure you want to leave?'
+);
 const WIDGET_TYPE_TO_DATA_SET = {
   [WidgetType.DISCOVER]: DataSet.EVENTS,
   [WidgetType.ISSUE]: DataSet.ISSUES,
@@ -322,6 +327,7 @@ function WidgetBuilder({
           displayType: newDisplayType,
           queries: widgetFromDashboard.queries,
           widgetType: widgetFromDashboard.widgetType ?? defaultWidgetType,
+          organization: organization,
         }).map(query => ({
           ...query,
           // Use the last aggregate because that's where the y-axis is stored
@@ -334,6 +340,7 @@ function WidgetBuilder({
           displayType: newDisplayType,
           queries: widgetFromDashboard.queries,
           widgetType: widgetFromDashboard.widgetType ?? defaultWidgetType,
+          organization: organization,
         });
       }
 
@@ -366,17 +373,21 @@ function WidgetBuilder({
     fetchOrgMembers(api, organization.slug, selection.projects?.map(String));
   }, [selection.projects, api, organization.slug]);
 
-  useEffect(() => {
-    const onUnload = () => {
-      if (!isSubmittingRef.current && state.userHasModified) {
-        return t('You have unsaved changes, are you sure you want to leave?');
-      }
-      return undefined;
-    };
+  function onLegacyRouteLeave(): string | undefined {
+    return !isSubmittingRef.current && state.userHasModified
+      ? UNSAVED_CHANGES_MESSAGE
+      : undefined;
+  }
 
-    router.setRouteLeaveHook(route, onUnload);
-  }, [state.userHasModified, route, router]);
-
+  function onRouteLeave(locationChange: {
+    currentLocation: Location;
+    nextLocation: Location;
+  }): boolean {
+    return (
+      locationChange.currentLocation.pathname !== locationChange.nextLocation.pathname &&
+      !!onLegacyRouteLeave()
+    );
+  }
   const widgetType = DATA_SET_TO_WIDGET_TYPE[state.dataSet];
 
   const currentWidget = {
@@ -428,6 +439,7 @@ function WidgetBuilder({
             displayType: newDisplayType,
             queries: [{...getDatasetConfig(defaultWidgetType).defaultWidgetQuery}],
             widgetType: defaultWidgetType,
+            organization: organization,
           })
         );
         set(newState, 'dataSet', defaultDataset);
@@ -439,6 +451,7 @@ function WidgetBuilder({
         displayType: newDisplayType,
         queries: prevState.queries,
         widgetType: DATA_SET_TO_WIDGET_TYPE[prevState.dataSet],
+        organization: organization,
       });
 
       if (newDisplayType === DisplayType.TOP_N) {
@@ -666,7 +679,10 @@ function WidgetBuilder({
     return handleColumnFieldChange;
   }
 
-  function handleYAxisChange(newFields: QueryFieldValue[]) {
+  function handleYAxisChange(
+    newFields: QueryFieldValue[],
+    newSelectedAggregate?: number
+  ) {
     const fieldStrings = newFields.map(generateFieldAsString);
     const newState = cloneDeep(state);
 
@@ -694,6 +710,13 @@ function WidgetBuilder({
 
       return newQuery;
     });
+
+    if (
+      organization.features.includes('dashboards-bignumber-equations') &&
+      defined(newSelectedAggregate)
+    ) {
+      newQueries[0].selectedAggregate = newSelectedAggregate;
+    }
 
     set(newState, 'queries', newQueries);
     set(newState, 'userHasModified', true);
@@ -920,6 +943,7 @@ function WidgetBuilder({
       displayType: widgetData.displayType,
       interval: widgetData.interval,
       title: widgetData.title,
+      widgetType: widgetData.widgetType,
       ...queryData,
       // Propagate page filters
       project: pageFilters.projects,
@@ -1103,6 +1127,13 @@ function WidgetBuilder({
           datetime: {start: null, end: null, utc: null, period: DEFAULT_STATS_PERIOD},
         }}
       >
+        <OnRouteLeave
+          message={UNSAVED_CHANGES_MESSAGE}
+          when={onRouteLeave}
+          legacyWhen={onLegacyRouteLeave}
+          route={route}
+          router={router}
+        />
         <CustomMeasurementsProvider organization={organization} selection={selection}>
           <OnDemandControlProvider location={location}>
             <MetricsResultsMetaProvider>
@@ -1225,10 +1256,13 @@ function WidgetBuilder({
                                       displayType={state.displayType}
                                       widgetType={widgetType}
                                       queryErrors={state.errors?.queries}
-                                      onYAxisChange={newFields => {
-                                        handleYAxisChange(newFields);
+                                      onYAxisChange={(newFields, newSelectedField) => {
+                                        handleYAxisChange(newFields, newSelectedField);
                                       }}
                                       aggregates={explodedAggregates}
+                                      selectedAggregate={
+                                        state.queries[0].selectedAggregate
+                                      }
                                       tags={tags}
                                       organization={organization}
                                     />

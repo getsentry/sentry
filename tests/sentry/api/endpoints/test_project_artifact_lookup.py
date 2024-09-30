@@ -650,7 +650,7 @@ class ArtifactLookupTest(APITestCase):
 
         # legacy `File`-based download does not work
         response = self.client.get(f"{url}?download={file_a.id}")
-        assert response.status_code == 404
+        assert response.status_code == 400
 
         # with another user on a different org
         other_user = self.create_user()
@@ -670,3 +670,18 @@ class ArtifactLookupTest(APITestCase):
         assert response.status_code == 404
         response = self.client.get(f"{url}?download=artifact_bundle/{artifact_bundle.id}")
         assert response.status_code == 404
+
+    def test_download_invalid_id(self):
+        self.login_as(user=self.user)
+
+        url = reverse(
+            "sentry-api-0-project-artifact-lookup",
+            kwargs={
+                "organization_id_or_slug": self.project.organization.slug,
+                "project_id_or_slug": self.project.slug,
+            },
+        )
+
+        # Try to download a file with a non-integer ID
+        response = self.client.get(f"{url}?download=release_file/abcde")
+        assert response.status_code == 400

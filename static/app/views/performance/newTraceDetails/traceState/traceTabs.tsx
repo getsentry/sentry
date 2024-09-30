@@ -10,7 +10,6 @@ import {traceReducerExhaustiveActionCheck} from 'sentry/views/performance/newTra
 import {
   isAutogroupedNode,
   isMissingInstrumentationNode,
-  isNoDataNode,
   isSpanNode,
   isTraceErrorNode,
   isTraceNode,
@@ -43,10 +42,6 @@ export function getTraceTabTitle(node: TraceTreeNode<TraceTree.NodeValue>) {
 
   if (isTraceNode(node)) {
     return t('Trace');
-  }
-
-  if (isNoDataNode(node)) {
-    return t('Empty');
   }
 
   Sentry.captureMessage('Unknown node type in trace drawer');

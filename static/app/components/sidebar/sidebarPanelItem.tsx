@@ -63,9 +63,12 @@ function SidebarPanelItem({
         <Text>
           <ExternalLink
             href={link}
-            onClick={() =>
-              trackAnalytics('whats_new.link_clicked', {organization, title})
-            }
+            onClick={() => {
+              if (!title) {
+                return;
+              }
+              trackAnalytics('whats_new.link_clicked', {organization, title});
+            }}
           >
             {cta || t('Read More')}
           </ExternalLink>
@@ -98,7 +101,7 @@ const Title = styled('div')<Pick<Props, 'hasSeen'>>`
   font-size: ${p => p.theme.fontSizeLarge};
   margin-bottom: ${space(1)};
   color: ${p => p.theme.textColor};
-  ${p => !p.hasSeen && 'font-weight: ${p => p.theme.fontWeightBold};'};
+  ${p => !p.hasSeen && `font-weight: ${p.theme.fontWeightBold};`}
 
   .culprit {
     font-weight: ${p => p.theme.fontWeightNormal};

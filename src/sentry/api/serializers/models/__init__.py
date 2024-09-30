@@ -4,10 +4,8 @@ from .apiapplication import *  # noqa: F401,F403
 from .apiauthorization import *  # noqa: F401,F403
 from .apikey import *  # noqa: F401,F403
 from .apitoken import *  # noqa: F401,F403
-from .app_platform_event import *  # noqa: F401,F403
 from .auditlogentry import *  # noqa: F401,F403
 from .auth_provider import *  # noqa: F401,F403
-from .authenticator import *  # noqa: F401,F403
 from .broadcast import *  # noqa: F401,F403
 from .commit import *  # noqa: F401,F403
 from .dashboard import *  # noqa: F401,F403
@@ -24,8 +22,6 @@ from .group_stream import *  # noqa: F401,F403
 from .grouprelease import GroupReleaseSerializer, GroupReleaseWithStatsSerializer  # noqa: F401,F403
 from .groupseen import *  # noqa: F401,F403
 from .grouptombstone import *  # noqa: F401,F403
-from .identity import *  # noqa: F401,F403
-from .identityprovider import *  # noqa: F401,F403
 from .incidentactivity import *  # noqa: F401,F403
 from .incidentseen import *  # noqa: F401,F403
 from .notification_action import *  # noqa: F401,F403
@@ -40,7 +36,6 @@ from .organization_member.scim import *  # noqa: F401,F403
 from .organization_member.utils import *  # noqa: F401,F403
 from .organization_plugin import *  # noqa: F401,F403
 from .orgauthtoken import *  # noqa: F401,F403
-from .platformexternalissue import *  # noqa: F401,F403
 from .plugin import *  # noqa: F401,F403
 from .project import *  # noqa: F401,F403
 from .project_key import *  # noqa: F401,F403
@@ -60,17 +55,7 @@ from .repository import *  # noqa: F401,F403
 from .role import *  # noqa: F401,F403
 from .rule import *  # noqa: F401,F403
 from .savedsearch import *  # noqa: F401,F403
-from .sentry_app import *  # noqa: F401,F403
-from .sentry_app_avatar import *  # noqa: F401,F403
-from .sentry_app_component import *  # noqa: F401,F403
-from .sentry_app_installation import *  # noqa: F401,F403
-from .servicehook import *  # noqa: F401,F403
 from .tagvalue import *  # noqa: F401,F403
 from .team import *  # noqa: F401,F403
-from .user import *  # noqa: F401,F403
-from .user_identity_config import *  # noqa: F401,F403
 from .user_social_auth import *  # noqa: F401,F403
-from .useremail import *  # noqa: F401,F403
-from .userip import *  # noqa: F401,F403
 from .userreport import *  # noqa: F401,F403
-from .userrole import *  # noqa: F401,F403

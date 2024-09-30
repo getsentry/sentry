@@ -13,6 +13,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.group import GroupEndpoint
 from sentry.models.group import Group
+from sentry.seer.signed_seer_api import get_seer_salted_url, sign_with_seer_secret
 
 logger = logging.getLogger(__name__)
 
@@ -42,20 +43,30 @@ class GroupAutofixUpdateEndpoint(GroupEndpoint):
             )
 
         path = "/v1/automation/autofix/update"
+
+        body = orjson.dumps(
+            {
+                **request.data,
+                "invoking_user": (
+                    {
+                        "id": user.id,
+                        "display_name": user.get_display_name(),
+                    }
+                ),
+            }
+        )
+
+        url, salt = get_seer_salted_url(f"{settings.SEER_AUTOFIX_URL}{path}")
         response = requests.post(
-            f"{settings.SEER_AUTOFIX_URL}{path}",
-            data=orjson.dumps(
-                {
-                    **request.data,
-                    "invoking_user": (
-                        {
-                            "id": user.id,
-                            "display_name": user.get_display_name(),
-                        }
-                    ),
-                }
-            ),
-            headers={"content-type": "application/json;charset=utf-8"},
+            url,
+            data=body,
+            headers={
+                "content-type": "application/json;charset=utf-8",
+                **sign_with_seer_secret(
+                    salt,
+                    body=body,
+                ),
+            },
         )
 
         response.raise_for_status()

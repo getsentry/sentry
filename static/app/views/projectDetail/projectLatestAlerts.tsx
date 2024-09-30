@@ -84,7 +84,7 @@ function ProjectLatestAlerts({
   };
   const {
     data: unresolvedAlerts = [],
-    isLoading: unresolvedAlertsIsLoading,
+    isPending: unresolvedAlertsIsLoading,
     isError: unresolvedAlertsIsError,
   } = useApiQuery<Incident[]>(
     [
@@ -95,7 +95,7 @@ function ProjectLatestAlerts({
   );
   const {
     data: resolvedAlerts = [],
-    isLoading: resolvedAlertsIsLoading,
+    isPending: resolvedAlertsIsLoading,
     isError: resolvedAlertsIsError,
   } = useApiQuery<Incident[]>(
     [
@@ -111,7 +111,7 @@ function ProjectLatestAlerts({
     !unresolvedAlertsIsLoading &&
     !resolvedAlertsIsLoading;
   // This is only used to determine if we should show the "Create Alert" button
-  const {data: alertRules = [], isLoading: alertRulesLoading} = useApiQuery<any[]>(
+  const {data: alertRules = [], isPending: alertRulesLoading} = useApiQuery<any[]>(
     [
       `/organizations/${organization.slug}/alert-rules/`,
       {

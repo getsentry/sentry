@@ -48,7 +48,14 @@ from sentry.incidents.tasks import handle_trigger_action
 from sentry.incidents.utils.types import QuerySubscriptionUpdate
 from sentry.models.project import Project
 from sentry.net.http import connection_from_url
-from sentry.seer.anomaly_detection.types import AnomalyType
+from sentry.seer.anomaly_detection.types import (
+    AlertInSeer,
+    AnomalyDetectionConfig,
+    AnomalyType,
+    DetectAnomaliesRequest,
+    DetectAnomaliesResponse,
+    TimeSeriesPoint,
+)
 from sentry.seer.anomaly_detection.utils import translate_direction
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.snuba.dataset import Dataset
@@ -510,6 +517,18 @@ class SubscriptionProcessor:
             )
 
         aggregation_value = self.get_aggregation_value(subscription_update)
+        if features.has(
+            "organizations:failure-rate-metric-alert-logging",
+            self.subscription.project.organization,
+        ):
+            logger.info(
+                "Update value in subscription processor",
+                extra={
+                    "result": subscription_update,
+                    "aggregation_value": aggregation_value,
+                    "rule_id": self.alert_rule.id,
+                },
+            )
 
         self.has_anomaly_detection = features.has(
             "organizations:anomaly-detection-alerts", self.subscription.project.organization
@@ -518,7 +537,11 @@ class SubscriptionProcessor:
             "organizations:fake-anomaly-detection", self.subscription.project.organization
         )
 
-        if self.has_anomaly_detection:
+        potential_anomalies = None
+        if (
+            self.has_anomaly_detection
+            and self.alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC
+        ):
             potential_anomalies = self.get_anomaly_data_from_seer(aggregation_value)
             if potential_anomalies is None:
                 return []
@@ -538,15 +561,17 @@ class SubscriptionProcessor:
             return
 
         # OVER/UNDER value trigger
-        alert_operator, resolve_operator = self.THRESHOLD_TYPE_OPERATORS[
-            AlertRuleThresholdType(self.alert_rule.threshold_type)
-        ]
+        alert_operator = None
+        resolve_operator = None
+        if not potential_anomalies:
+            alert_operator, resolve_operator = self.THRESHOLD_TYPE_OPERATORS[
+                AlertRuleThresholdType(self.alert_rule.threshold_type)
+            ]
         fired_incident_triggers = []
         with transaction.atomic(router.db_for_write(AlertRule)):
             # Triggers is the threshold - NOT an instance of a trigger
             for trigger in self.triggers:
-                detection_type = trigger.alert_rule.detection_type
-                if self.has_anomaly_detection and detection_type == AlertRuleDetectionType.DYNAMIC:
+                if potential_anomalies:
                     # NOTE: There should only be one anomaly in the list
                     for potential_anomaly in potential_anomalies:
                         # check to see if we have enough data for the dynamic alert rule now
@@ -565,7 +590,7 @@ class SubscriptionProcessor:
                         ) and not self.check_trigger_matches_status(trigger, TriggerStatus.ACTIVE):
                             metrics.incr(
                                 "incidents.alert_rules.threshold.alert",
-                                tags={"detection_type": detection_type},
+                                tags={"detection_type": self.alert_rule.detection_type},
                             )
                             incident_trigger = self.trigger_alert_threshold(
                                 trigger, aggregation_value
@@ -584,7 +609,7 @@ class SubscriptionProcessor:
                         ):
                             metrics.incr(
                                 "incidents.alert_rules.threshold.resolve",
-                                tags={"detection_type": detection_type},
+                                tags={"detection_type": self.alert_rule.detection_type},
                             )
                             incident_trigger = self.trigger_resolve_threshold(
                                 trigger, aggregation_value
@@ -602,7 +627,7 @@ class SubscriptionProcessor:
                         # And the trigger is not yet active
                         metrics.incr(
                             "incidents.alert_rules.threshold.alert",
-                            tags={"detection_type": detection_type},
+                            tags={"detection_type": self.alert_rule.detection_type},
                         )
                         # triggering a threshold will create an incident and set the status to active
                         incident_trigger = self.trigger_alert_threshold(trigger, aggregation_value)
@@ -620,7 +645,7 @@ class SubscriptionProcessor:
                     ):
                         metrics.incr(
                             "incidents.alert_rules.threshold.resolve",
-                            tags={"detection_type": detection_type},
+                            tags={"detection_type": self.alert_rule.detection_type},
                         )
                         incident_trigger = self.trigger_resolve_threshold(
                             trigger, aggregation_value
@@ -645,7 +670,7 @@ class SubscriptionProcessor:
         # before the next one then we might alert twice.
         self.update_alert_rule_stats()
 
-    def has_anomaly(self, anomaly, label: str, has_fake_anomalies: bool) -> bool:
+    def has_anomaly(self, anomaly: TimeSeriesPoint, label: str, has_fake_anomalies: bool) -> bool:
         """
         Helper function to determine whether we care about an anomaly based on the
         anomaly type and trigger type.
@@ -661,7 +686,7 @@ class SubscriptionProcessor:
             return True
         return False
 
-    def anomaly_has_confidence(self, anomaly) -> bool:
+    def anomaly_has_confidence(self, anomaly: TimeSeriesPoint) -> bool:
         """
         Helper function to determine whether we have the 7+ days of data necessary
         to detect anomalies/send alerts for dynamic alert rules.
@@ -669,83 +694,105 @@ class SubscriptionProcessor:
         anomaly_type = anomaly.get("anomaly", {}).get("anomaly_type")
         return anomaly_type != AnomalyType.NO_DATA.value
 
-    def get_anomaly_data_from_seer(self, aggregation_value: float | None):
+    def get_anomaly_data_from_seer(
+        self, aggregation_value: float | None
+    ) -> list[TimeSeriesPoint] | None:
+        anomaly_detection_config = AnomalyDetectionConfig(
+            time_period=int(self.alert_rule.snuba_query.time_window / 60),
+            sensitivity=self.alert_rule.sensitivity,
+            direction=translate_direction(self.alert_rule.threshold_type),
+            expected_seasonality=self.alert_rule.seasonality,
+        )
+        context = AlertInSeer(
+            id=self.alert_rule.id,
+            cur_window=TimeSeriesPoint(
+                timestamp=self.last_update.timestamp(), value=aggregation_value
+            ),
+        )
+        detect_anomalies_request = DetectAnomaliesRequest(
+            organization_id=self.subscription.project.organization.id,
+            project_id=self.subscription.project_id,
+            config=anomaly_detection_config,
+            context=context,
+        )
+        extra_data = {
+            "subscription_id": self.subscription.id,
+            "dataset": self.subscription.snuba_query.dataset,
+            "organization_id": self.subscription.project.organization.id,
+            "project_id": self.subscription.project_id,
+            "alert_rule_id": self.alert_rule.id,
+        }
         try:
-            anomaly_detection_config = {
-                "time_period": self.alert_rule.snuba_query.time_window / 60,
-                "sensitivity": self.alert_rule.sensitivity,
-                "seasonality": self.alert_rule.seasonality,
-                "direction": translate_direction(self.alert_rule.threshold_type),
-            }
-
-            context = {
-                "id": self.alert_rule.id,
-                "cur_window": {
-                    "timestamp": self.last_update,
-                    "value": aggregation_value,
-                },
-            }
             response = make_signed_seer_api_request(
                 self.seer_anomaly_detection_connection_pool,
                 SEER_ANOMALY_DETECTION_ENDPOINT_URL,
-                json.dumps(
-                    {
-                        "organization_id": self.subscription.project.organization.id,
-                        "project_id": self.subscription.project_id,
-                        "config": anomaly_detection_config,
-                        "context": context,
-                    }
-                ).encode("utf-8"),
+                json.dumps(detect_anomalies_request).encode("utf-8"),
             )
         except (TimeoutError, MaxRetryError):
             logger.warning(
-                "Timeout error when hitting anomaly detection endpoint",
+                "Timeout error when hitting anomaly detection endpoint", extra=extra_data
+            )
+            return None
+
+        if response.status > 400:
+            logger.error(
+                "Error when hitting Seer detect anomalies endpoint",
                 extra={
-                    "subscription_id": self.subscription.id,
-                    "dataset": self.subscription.snuba_query.dataset,
-                    "organization_id": self.subscription.project.organization.id,
-                    "project_id": self.subscription.project_id,
-                    "alert_rule_id": self.alert_rule.id,
+                    "response_data": response.data,
+                    **extra_data,
                 },
             )
             return None
-
-        if response.status != 200:
-            logger.error(
-                f"Received {response.status} when calling Seer endpoint {SEER_ANOMALY_DETECTION_ENDPOINT_URL}.",  # noqa
-                extra={"response_data": response.data},
-            )
-            return None
-
         try:
-            results = json.loads(response.data.decode("utf-8")).get("anomalies")
-            if not results:
-                logger.warning(
-                    "Seer anomaly detection response returned no potential anomalies",
-                    extra={
-                        "ad_config": anomaly_detection_config,
-                        "context": context,
-                        "response_data": response.data,
-                        "reponse_code": response.status,
-                    },
-                )
-                return None
-            return results
-        except (
-            AttributeError,
-            UnicodeError,
-            JSONDecodeError,
-        ):
+            decoded_data = response.data.decode("utf-8")
+        except AttributeError:
             logger.exception(
                 "Failed to parse Seer anomaly detection response",
                 extra={
                     "ad_config": anomaly_detection_config,
                     "context": context,
                     "response_data": response.data,
-                    "reponse_code": response.status,
+                    "response_code": response.status,
                 },
             )
             return None
+
+        try:
+            results: DetectAnomaliesResponse = json.loads(decoded_data)
+        except JSONDecodeError:
+            logger.exception(
+                "Failed to parse Seer anomaly detection response",
+                extra={
+                    "ad_config": anomaly_detection_config,
+                    "context": context,
+                    "response_data": decoded_data,
+                    "response_code": response.status,
+                },
+            )
+            return None
+
+        if not results.get("success"):
+            logger.error(
+                "Error when hitting Seer detect anomalies endpoint",
+                extra={
+                    "error_message": results.get("message", ""),
+                    **extra_data,
+                },
+            )
+            return None
+
+        ts = results.get("timeseries")
+        if not ts:
+            logger.warning(
+                "Seer anomaly detection response returned no potential anomalies",
+                extra={
+                    "ad_config": anomaly_detection_config,
+                    "context": context,
+                    "response_data": results.get("message"),
+                },
+            )
+            return None
+        return ts
 
     def calculate_event_date_from_update_date(self, update_date: datetime) -> datetime:
         """
@@ -830,7 +877,7 @@ class SubscriptionProcessor:
 
                 self.active_incident = create_incident(
                     organization=self.alert_rule.organization,
-                    type_=IncidentType.ALERT_TRIGGERED,
+                    incident_type=IncidentType.ALERT_TRIGGERED,
                     # TODO: Include more info in name?
                     title=self.alert_rule.name,
                     alert_rule=self.alert_rule,

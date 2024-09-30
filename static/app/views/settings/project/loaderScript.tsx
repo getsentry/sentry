@@ -26,7 +26,7 @@ export function ProjectLoaderScript({project}: {project: Project}) {
 
   const {
     data: projectKeys,
-    isLoading,
+    isPending,
     error,
     refetch: refetchProjectKeys,
   } = useApiQuery<ProjectKey[]>([apiEndpoint], {
@@ -70,14 +70,14 @@ export function ProjectLoaderScript({project}: {project: Project}) {
         )}
       </TextBlock>
 
-      {isLoading && <LoadingIndicator />}
+      {isPending && <LoadingIndicator />}
       {!!error && (
         <LoadingError
           message={t('Failed to load project keys.')}
           onRetry={refetchProjectKeys}
         />
       )}
-      {!isLoading && !error && !projectKeys?.length && (
+      {!isPending && !error && !projectKeys?.length && (
         <EmptyMessage title={t('There are no keys active for this project.')} />
       )}
 

@@ -140,6 +140,8 @@ class GroupType:
     # If True this group type should be released everywhere. If False, fall back to features to
     # decide if this is released.
     released: bool = False
+    # If False this group is excluded from default searches, when there are no filters on issue.category or issue.type.
+    in_default_search: bool = True
 
     # Allow automatic resolution of an issue type, using the project-level option.
     enable_auto_resolve: bool = True
@@ -580,6 +582,7 @@ class FeedbackGroup(GroupType):
     creation_quota = Quota(3600, 60, 1000)  # 1000 per hour, sliding window of 60 seconds
     default_priority = PriorityLevel.MEDIUM
     notification_config = NotificationConfig(context=[])
+    in_default_search = False  # hide from issues stream
 
 
 @dataclass(frozen=True)

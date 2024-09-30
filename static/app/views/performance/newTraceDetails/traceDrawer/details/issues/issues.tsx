@@ -66,9 +66,10 @@ function sortIssuesByLevel(a: TraceError, b: TraceError): number {
 
 function Issue(props: IssueProps) {
   const {
-    isLoading,
+    isPending,
     data: fetchedIssue,
     isError,
+    error,
   } = useApiQuery<Group>(
     [
       `/issues/${props.issue.issue_id}/`,
@@ -84,7 +85,7 @@ function Issue(props: IssueProps) {
     }
   );
 
-  return isLoading ? (
+  return isPending ? (
     <StyledLoadingIndicatorWrapper>
       <LoadingIndicator size={24} mini />
     </StyledLoadingIndicatorWrapper>
@@ -135,7 +136,11 @@ function Issue(props: IssueProps) {
       </AssineeWrapper>
     </StyledPanelItem>
   ) : isError ? (
-    <LoadingError message={t('Failed to fetch issue')} />
+    <LoadingError
+      message={
+        error.status === 404 ? t('This issue was deleted') : t('Failed to fetch issue')
+      }
+    />
   ) : null;
 }
 

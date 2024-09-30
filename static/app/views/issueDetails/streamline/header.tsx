@@ -1,7 +1,10 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
+import Color from 'color';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
+import {Button} from 'sentry/components/button';
+import Count from 'sentry/components/count';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import EventMessage from 'sentry/components/events/eventMessage';
 import {
@@ -9,10 +12,11 @@ import {
   useHandleAssigneeChange,
 } from 'sentry/components/group/assigneeSelector';
 import ParticipantList from 'sentry/components/group/streamlinedParticipantList';
+import Link from 'sentry/components/links/link';
 import Version from 'sentry/components/version';
 import VersionHoverCard from 'sentry/components/versionHoverCard';
+import {IconChevron, IconPanel} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group, TeamParticipant, UserParticipant} from 'sentry/types/group';
@@ -21,10 +25,14 @@ import type {Release} from 'sentry/types/release';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
+import {useUser} from 'sentry/utils/useUser';
 import GroupActions from 'sentry/views/issueDetails/actions/index';
 import {Divider} from 'sentry/views/issueDetails/divider';
 import GroupPriority from 'sentry/views/issueDetails/groupPriority';
-import {GroupHeaderTabs} from 'sentry/views/issueDetails/header';
+import {AttachmentsBadge} from 'sentry/views/issueDetails/streamline/attachmentsBadge';
+import {ReplayBadge} from 'sentry/views/issueDetails/streamline/replayBadge';
+import {UserFeedbackBadge} from 'sentry/views/issueDetails/streamline/userFeedbackBadge';
 import {useIssueDetailsHeader} from 'sentry/views/issueDetails/useIssueDetailsHeader';
 import type {ReprocessingStatus} from 'sentry/views/issueDetails/utils';
 
@@ -48,6 +56,7 @@ export default function StreamlinedGroupHeader({
   groupReprocessingStatus,
   event,
 }: GroupHeaderProps) {
+  const activeUser = useUser();
   const location = useLocation();
   const organization = useOrganization();
   const {sort: _sort, ...query} = location.query;
@@ -56,10 +65,11 @@ export default function StreamlinedGroupHeader({
     [`/organizations/${organization.slug}/issues/${group.id}/first-last-release/`],
     {
       staleTime: 30000,
-      cacheTime: 30000,
+      gcTime: 30000,
     }
   );
 
+  const {count: eventCount, userCount} = group;
   const {firstRelease, lastRelease} = groupReleaseData || {};
 
   const {handleAssigneeChange, assigneeLoading} = useHandleAssigneeChange({
@@ -67,15 +77,17 @@ export default function StreamlinedGroupHeader({
     group,
   });
 
-  const {disabledTabs, message, eventRoute, disableActions, shortIdBreadcrumb} =
-    useIssueDetailsHeader({
-      group,
-      groupReprocessingStatus,
-      baseUrl,
-      project,
-    });
+  const [sidebarOpen, setSidebarOpen] = useSyncedLocalStorageState(
+    'issue-details-sidebar-open',
+    true
+  );
 
-  const activeUser = ConfigStore.get('user');
+  const {message, eventRoute, disableActions, shortIdBreadcrumb} = useIssueDetailsHeader({
+    group,
+    groupReprocessingStatus,
+    baseUrl,
+    project,
+  });
 
   const {userParticipants, teamParticipants, displayUsers} = useMemo(() => {
     return {
@@ -103,50 +115,76 @@ export default function StreamlinedGroupHeader({
           {label: shortIdBreadcrumb},
         ]}
       />
-      <TitleHeading>
-        <TitleWrapper>
-          <StyledEventOrGroupTitle data={group} />
-        </TitleWrapper>
-      </TitleHeading>
-      <MessageWrapper>
-        <EventMessage
-          message={message}
-          type={group.type}
-          level={group.level}
-          showUnhandled={group.isUnhandled}
-        />
-        {firstRelease && lastRelease && (
-          <Fragment>
-            <Divider />
-            <ReleaseWrapper>
-              {firstRelease.id === lastRelease.id ? t('Release') : t('Releases')}
-              <VersionHoverCard
-                organization={organization}
-                projectSlug={project.slug}
-                releaseVersion={firstRelease.version}
-              >
-                <Version version={firstRelease.version} projectId={project.id} truncate />
-              </VersionHoverCard>
-              {firstRelease.id === lastRelease.id ? null : (
-                <Fragment>
-                  -
+      <HeadingGrid>
+        <Heading>
+          <TitleHeading>
+            <TitleWrapper>
+              <StyledEventOrGroupTitle data={group} />
+            </TitleWrapper>
+          </TitleHeading>
+          <MessageWrapper>
+            <EventMessage
+              message={message}
+              type={group.type}
+              level={group.level}
+              showUnhandled={group.isUnhandled}
+            />
+            {firstRelease && lastRelease && (
+              <Fragment>
+                <Divider />
+                <ReleaseWrapper>
+                  {firstRelease.id === lastRelease.id ? t('Release') : t('Releases')}
                   <VersionHoverCard
                     organization={organization}
                     projectSlug={project.slug}
-                    releaseVersion={lastRelease.version}
+                    releaseVersion={firstRelease.version}
                   >
                     <Version
-                      version={lastRelease.version}
+                      version={firstRelease.version}
                       projectId={project.id}
                       truncate
                     />
                   </VersionHoverCard>
-                </Fragment>
-              )}
-            </ReleaseWrapper>
-          </Fragment>
-        )}
-      </MessageWrapper>
+                  {firstRelease.id === lastRelease.id ? null : (
+                    <Fragment>
+                      -
+                      <VersionHoverCard
+                        organization={organization}
+                        projectSlug={project.slug}
+                        releaseVersion={lastRelease.version}
+                      >
+                        <Version
+                          version={lastRelease.version}
+                          projectId={project.id}
+                          truncate
+                        />
+                      </VersionHoverCard>
+                    </Fragment>
+                  )}
+                </ReleaseWrapper>
+              </Fragment>
+            )}
+            <AttachmentsBadge group={group} project={project} />
+            <UserFeedbackBadge group={group} project={project} />
+            <ReplayBadge group={group} project={project} />
+          </MessageWrapper>
+        </Heading>
+        <AllStats>
+          <Stat>
+            <Label data-test-id="all-event-count">{t('All Events')}</Label>
+            <Link disabled={disableActions} to={eventRoute}>
+              <StatCount value={eventCount} />
+            </Link>
+          </Stat>
+          <Stat>
+            <Label>{t('All Users')}</Label>
+            <Link disabled={disableActions} to={`${baseUrl}tags/user/${location.search}`}>
+              <StatCount value={userCount} />
+            </Link>
+          </Stat>
+        </AllStats>
+      </HeadingGrid>
+
       <StyledBreak />
       <InfoWrapper
         isResolvedOrIgnored={group.status === 'resolved' || group.status === 'ignored'}
@@ -158,42 +196,86 @@ export default function StreamlinedGroupHeader({
           event={event}
           query={location.query}
         />
-        <PriorityWorkflowWrapper>
-          <Wrapper>
-            {t('Priority')}
-            <GroupPriority group={group} />
-          </Wrapper>
-          <Wrapper>
-            {t('Assignee')}
-            <AssigneeSelector
-              group={group}
-              assigneeLoading={assigneeLoading}
-              handleAssigneeChange={handleAssigneeChange}
-            />
-          </Wrapper>
-          {group.participants.length > 0 && (
+        <SidebarWorkflowWrapper>
+          <WorkflowWrapper>
             <Wrapper>
-              {t('Participants')}
-              <ParticipantList users={userParticipants} teams={teamParticipants} />
+              {t('Priority')}
+              <GroupPriority group={group} />
             </Wrapper>
-          )}
-          {displayUsers.length > 0 && (
             <Wrapper>
-              {t('Viewers')}
-              <ParticipantList users={displayUsers} />
+              {t('Assignee')}
+              <AssigneeSelector
+                group={group}
+                assigneeLoading={assigneeLoading}
+                handleAssigneeChange={handleAssigneeChange}
+              />
             </Wrapper>
-          )}
-        </PriorityWorkflowWrapper>
+            {group.participants.length > 0 && (
+              <Wrapper>
+                {t('Participants')}
+                <ParticipantList users={userParticipants} teams={teamParticipants} />
+              </Wrapper>
+            )}
+            {displayUsers.length > 0 && (
+              <Wrapper>
+                {t('Viewers')}
+                <ParticipantList users={displayUsers} />
+              </Wrapper>
+            )}
+          </WorkflowWrapper>
+          <Divider />
+          <Button
+            icon={
+              sidebarOpen ? (
+                <IconChevron direction="right" />
+              ) : (
+                <IconPanel direction="right" />
+              )
+            }
+            title={sidebarOpen ? t('Close Sidebar') : t('Open Sidebar')}
+            aria-label={sidebarOpen ? t('Close Sidebar') : t('Open Sidebar')}
+            size="sm"
+            borderless
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+          />
+        </SidebarWorkflowWrapper>
       </InfoWrapper>
-      <div>
-        <GroupHeaderTabs {...{baseUrl, disabledTabs, eventRoute, group, project}} />
-      </div>
     </Header>
   );
 }
 
 const StyledEventOrGroupTitle = styled(EventOrGroupTitle)`
   font-size: inherit;
+`;
+
+const HeadingGrid = styled('div')`
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: ${space(2)};
+  align-items: center;
+`;
+
+const Heading = styled('div')``;
+
+const AllStats = styled('div')`
+  display: flex;
+  gap: ${space(4)};
+`;
+
+const Stat = styled('div')`
+  display: inline-block;
+  font-size: ${p => p.theme.fontSizeSmall};
+`;
+
+const Label = styled('div')`
+  font-size: ${p => p.theme.fontSizeSmall};
+  font-weight: ${p => p.theme.fontWeightBold};
+  color: ${p => p.theme.subText};
+`;
+
+const StatCount = styled(Count)`
+  font-size: ${p => p.theme.headerFontSize};
+  display: block;
 `;
 
 const TitleWrapper = styled('h3')`
@@ -237,7 +319,7 @@ const InfoWrapper = styled('div')<{isResolvedOrIgnored: boolean}>`
   gap: ${space(1)};
   background: ${p =>
     p.isResolvedOrIgnored
-      ? 'linear-gradient(to right, rgba(235, 250, 246, 0.2) , rgb(235, 250, 246))'
+      ? `linear-gradient(to right, ${p.theme.background}, ${Color(p.theme.success).lighten(0.5).alpha(0.15).string()})`
       : p.theme.background};
   color: ${p => p.theme.gray300};
   padding: ${space(1)} 24px;
@@ -246,7 +328,13 @@ const InfoWrapper = styled('div')<{isResolvedOrIgnored: boolean}>`
   flex-wrap: wrap;
 `;
 
-const PriorityWorkflowWrapper = styled('div')`
+const SidebarWorkflowWrapper = styled('div')`
+  display: flex;
+  gap: ${space(0.5)};
+  align-items: center;
+`;
+
+const WorkflowWrapper = styled('div')`
   display: flex;
   column-gap: ${space(2)};
   flex-wrap: wrap;

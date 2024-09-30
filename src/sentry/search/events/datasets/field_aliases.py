@@ -93,11 +93,11 @@ def resolve_span_module(builder: BaseQueryBuilder, alias: str) -> SelectType:
     return Function(
         "if",
         [
-            Function("in", [builder.column("span.op"), list(OP_MAPPING.keys())]),
+            Function("in", [builder.resolve_field("span.op"), list(OP_MAPPING.keys())]),
             Function(
                 "transform",
                 [
-                    builder.column("span.op"),
+                    builder.resolve_field("span.op"),
                     list(OP_MAPPING.keys()),
                     list(OP_MAPPING.values()),
                     "other",
@@ -106,21 +106,9 @@ def resolve_span_module(builder: BaseQueryBuilder, alias: str) -> SelectType:
             Function(
                 "transform",
                 [
-                    builder.column("span.category"),
-                    [
-                        "cache",
-                        "db",
-                        "http",
-                        "queue",
-                        "resource",
-                    ],
-                    [
-                        "cache",
-                        "db",
-                        "http",
-                        "queue",
-                        "resource",
-                    ],
+                    builder.resolve_field("span.category"),
+                    constants.SPAN_MODULE_CATEGORY_VALUES,
+                    constants.SPAN_MODULE_CATEGORY_VALUES,
                     "other",
                 ],
             ),

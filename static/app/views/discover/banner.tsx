@@ -110,7 +110,7 @@ function DiscoverBanner({
       dismissKey="discover"
     >
       {showBuildNewQueryButton && (
-        <Button
+        <LinkButton
           size={isSmallBanner ? 'xs' : undefined}
           translucentBorder
           to={resultsUrl}
@@ -119,7 +119,7 @@ function DiscoverBanner({
           }}
         >
           {t('Build a new query')}
-        </Button>
+        </LinkButton>
       )}
       <FeatureTourModal
         steps={TOUR_STEPS}

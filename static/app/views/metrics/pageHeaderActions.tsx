@@ -19,10 +19,7 @@ import {
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isCustomMeasurement} from 'sentry/utils/metrics';
-import {
-  hasCustomMetricsExtractionRules,
-  hasMetricsNewInputs,
-} from 'sentry/utils/metrics/features';
+import {hasMetricsNewInputs} from 'sentry/utils/metrics/features';
 import {formatMRI} from 'sentry/utils/metrics/mri';
 import {MetricExpressionType, type MetricsQueryWidget} from 'sentry/utils/metrics/types';
 import {middleEllipsis} from 'sentry/utils/string/middleEllipsis';
@@ -32,7 +29,6 @@ import {useMetricsContext} from 'sentry/views/metrics/context';
 import {getCreateAlert} from 'sentry/views/metrics/metricQueryContextMenu';
 import {useCreateDashboard} from 'sentry/views/metrics/useCreateDashboard';
 import {useFormulaDependencies} from 'sentry/views/metrics/utils/useFormulaDependencies';
-import {openExtractionRuleCreateModal} from 'sentry/views/settings/projectMetrics/metricsExtractionRuleCreateModal';
 
 interface Props {
   addCustomMetric: () => void;
@@ -143,25 +139,11 @@ export function PageHeaderActions({showAddMetricButton, addCustomMetric}: Props)
 
   return (
     <ButtonBar gap={1}>
-      {showAddMetricButton &&
-        (hasCustomMetricsExtractionRules(organization) ? (
-          <Button
-            priority="primary"
-            onClick={() =>
-              openExtractionRuleCreateModal({
-                organization,
-                source: 'ddm.header.create-metric',
-              })
-            }
-            size="sm"
-          >
-            {t('Create Metric')}
-          </Button>
-        ) : (
-          <Button priority="primary" onClick={() => addCustomMetric()} size="sm">
-            {t('Add Custom Metrics')}
-          </Button>
-        ))}
+      {showAddMetricButton && (
+        <Button priority="primary" onClick={() => addCustomMetric()} size="sm">
+          {t('Add Custom Metrics')}
+        </Button>
+      )}
       <Button
         size="sm"
         icon={<IconBookmark isSolid={isDefaultQuery} />}

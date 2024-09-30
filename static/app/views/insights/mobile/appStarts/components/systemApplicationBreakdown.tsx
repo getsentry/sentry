@@ -85,7 +85,7 @@ function SystemApplicationBreakdown({additionalFilters}) {
 
   const queryString = appendReleaseFilters(query, primaryRelease, secondaryRelease);
 
-  const {data, isLoading} = useTableQuery({
+  const {data, isPending} = useTableQuery({
     eventView: EventView.fromNewQueryWithPageFilters(
       {
         name: '',
@@ -106,7 +106,7 @@ function SystemApplicationBreakdown({additionalFilters}) {
     initialData: {data: []},
   });
 
-  if (isLoading) {
+  if (isPending) {
     return <LoadingContainer isLoading />;
   }
 

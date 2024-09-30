@@ -19,6 +19,6 @@ iso_8601_date_format
     }
 
 rel_date_format
-  = sign:[+-] value:[0-9]+ unit:[wdhm] {
+  = sign:[+-]? value:[0-9]+ unit:[wdhm] {
       return tc.tokenValueRelativeDate(value.join(''), sign, unit);
     }

@@ -1,7 +1,7 @@
 import type {CSSProperties} from 'react';
 import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
-import {orderBy} from 'lodash';
+import orderBy from 'lodash/orderBy';
 
 import {fetchTagValues, useFetchOrganizationTags} from 'sentry/actionCreators/tags';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
@@ -228,6 +228,7 @@ export default function FeedbackSearch({className, style}: Props) {
         onSearch={onSearch}
         searchSource={'feedback-list'}
         placeholder={t('Search Feedback')}
+        showUnsubmittedIndicator
       />
     );
   }

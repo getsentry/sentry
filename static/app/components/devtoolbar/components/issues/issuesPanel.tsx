@@ -22,7 +22,7 @@ export default function IssuesPanel() {
   const placeholderHeight = `${estimateSize - 8}px`; // The real height of the items, minus the padding-block value
 
   return (
-    <PanelLayout title="Issues" showProjectBadge>
+    <PanelLayout title="Issues" showProjectBadge link={{url: '/issues/'}}>
       <div css={[smallCss, panelSectionCss, panelDescCss]}>
         <span>Unresolved issues related to this page</span>
       </div>

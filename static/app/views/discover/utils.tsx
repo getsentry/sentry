@@ -1,4 +1,3 @@
-import type {InjectedRouter} from 'react-router';
 import {urlEncode} from '@sentry/utils';
 import type {Location, Query} from 'history';
 import * as Papa from 'papaparse';
@@ -9,6 +8,7 @@ import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
 import type {Event} from 'sentry/types/event';
+import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {
   NewQuery,
   Organization,
@@ -144,20 +144,24 @@ export function pushEventViewToLocation(props: {
 export function generateTitle({
   eventView,
   event,
-  organization,
+  isHomepage,
 }: {
   eventView: EventView;
   event?: Event;
-  organization?: Organization;
+  isHomepage?: boolean;
 }) {
   const titles = [t('Discover')];
+
+  if (isHomepage) {
+    return t('Discover');
+  }
 
   const eventViewName = eventView.name;
   if (typeof eventViewName === 'string' && String(eventViewName).trim().length > 0) {
     titles.push(String(eventViewName).trim());
   }
 
-  const eventTitle = event ? getTitle(event, organization?.features).title : undefined;
+  const eventTitle = event ? getTitle(event).title : undefined;
 
   if (eventTitle) {
     titles.push(eventTitle);

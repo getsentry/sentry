@@ -13,7 +13,7 @@ import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import ArchiveActions, {getArchiveActions} from 'sentry/components/actions/archive';
 import ResolveActions from 'sentry/components/actions/resolve';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import {
@@ -526,7 +526,7 @@ export function Actions(props: Props) {
               features="discover-basic"
               organization={organization}
             >
-              <Button
+              <LinkButton
                 className="hidden-xs"
                 disabled={disabled}
                 to={disabled ? '' : getDiscoverUrl()}
@@ -536,7 +536,7 @@ export function Actions(props: Props) {
                 <GuideAnchor target="open_in_discover">
                   {t('Open in Discover')}
                 </GuideAnchor>
-              </Button>
+              </LinkButton>
             </Feature>
           )}
           {isResolved || isIgnored ? (

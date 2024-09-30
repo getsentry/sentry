@@ -148,6 +148,11 @@ register(
 )
 
 register(
+    key="sentry:toolbar_allowed_origins",
+    default=[],
+)
+
+register(
     key="sentry:feedback_user_report_notifications",
     epoch_defaults={12: True},
 )
@@ -162,11 +167,6 @@ register(
 # Contains a mapping from rule to last seen timestamp,
 # for example `{"/organizations/*/**": 1334318402}`
 register(key="sentry:transaction_name_cluster_rules", default={})
-
-# Replacement rules for span descriptions discovered by the clusterer.
-# Contains a mapping from rule to last seen timestamp. Example:
-# `{"**/organizations/*/**": 1334318402}`
-register(key="sentry:span_description_cluster_rules", default={})
 
 # The JavaScript loader dynamic SDK options that are the project defaults.
 register(

@@ -78,7 +78,7 @@ function DurationChart({
   }
 
   const {
-    isLoading,
+    isPending,
     data: spanMetricsSeriesData,
     error: spanMetricsSeriesError,
   } = useSpanMetricsSeries(
@@ -107,7 +107,7 @@ function DurationChart({
 
   const {
     data: spans,
-    isLoading: areSpanSamplesLoading,
+    isPending: areSpanSamplesLoading,
     isRefetching: areSpanSamplesRefetching,
   } = useSpanSamples({
     groupId,
@@ -183,7 +183,7 @@ function DurationChart({
           onHighlight={handleChartHighlight}
           aggregateOutputFormat="duration"
           data={[spanMetricsSeriesData?.[`avg(${SPAN_SELF_TIME})`], baselineAvgSeries]}
-          loading={isLoading}
+          loading={isPending}
           scatterPlot={
             areSpanSamplesLoading || areSpanSamplesRefetching
               ? undefined

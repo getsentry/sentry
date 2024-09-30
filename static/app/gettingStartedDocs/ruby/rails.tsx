@@ -75,20 +75,19 @@ const onboarding: OnboardingConfig = {
       ),
       configurations: [
         {
-          description: params.isProfilingSelected
+          language: 'ruby',
+          code: getInstallSnippet(params),
+          additionalInfo: params.isProfilingSelected
             ? tct(
-                'Ruby Profiling beta is available since SDK version 5.9.0. We use the [stackprofLink:stackprof gem] to collect profiles for Ruby. Make sure [stackprofCode:stackprof] is loaded before [sentryRubyCode:sentry-ruby].',
+                'Ruby Profiling beta is available since SDK version 5.9.0. We use the [stackprofLink:stackprof gem] to collect profiles for Ruby. Make sure [code:stackprof] is loaded before [code:sentry-ruby].',
                 {
                   stackprofLink: (
                     <ExternalLink href="https://github.com/tmm1/stackprof" />
                   ),
-                  stackprofCode: <code />,
-                  sentryRubyCode: <code />,
+                  code: <code />,
                 }
               )
             : undefined,
-          language: 'ruby',
-          code: getInstallSnippet(params),
         },
         {
           description: t('After adding the gems, run the following to install the SDK:'),

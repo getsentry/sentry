@@ -92,7 +92,7 @@ class GetChannelIdTest(TestCase):
 
     def run_valid_test(self, channel, expected_prefix, expected_id, timed_out):
         assert SlackChannelIdData(expected_prefix, expected_id, timed_out) == get_channel_id(
-            self.organization, self.integration, channel
+            self.integration, channel
         )
 
     @patch("sentry.integrations.slack.sdk_client.metrics")
@@ -167,17 +167,12 @@ class GetChannelIdTest(TestCase):
         with self.patch_msg_response("channel_not_found"):
             with self.patch_mock_list("users", response_list, "members"):
                 with pytest.raises(DuplicateDisplayNameError):
-                    get_channel_id(self.organization, self.integration, "@Morty")
+                    get_channel_id(self.integration, "@Morty")
 
     def test_invalid_channel_selected_sdk_client(self):
         with self.patch_msg_response("channel_not_found"):
-            assert (
-                get_channel_id(self.organization, self.integration, "#fake-channel").channel_id
-                is None
-            )
-            assert (
-                get_channel_id(self.organization, self.integration, "@fake-user").channel_id is None
-            )
+            assert get_channel_id(self.integration, "#fake-channel").channel_id is None
+            assert get_channel_id(self.integration, "@fake-user").channel_id is None
 
     @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
     def test_rate_limiting_sdk_client(self, mock_api_call):
@@ -191,7 +186,7 @@ class GetChannelIdTest(TestCase):
 
         with self.patch_msg_response("channel_not_found"):
             with pytest.raises(ApiRateLimitedError):
-                get_channel_id(self.organization, self.integration, "@user")
+                get_channel_id(self.integration, "@user")
 
     @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
     def test_user_list_pagination_sdk_client(self, mock_api_call):
@@ -249,6 +244,6 @@ class GetChannelIdTest(TestCase):
             },
         ]
 
-        assert get_channel_id(
-            self.organization, self.integration, "@red-john"
-        ) == SlackChannelIdData(prefix="", channel_id=None, timed_out=False)
+        assert get_channel_id(self.integration, "@red-john") == SlackChannelIdData(
+            prefix="", channel_id=None, timed_out=False
+        )

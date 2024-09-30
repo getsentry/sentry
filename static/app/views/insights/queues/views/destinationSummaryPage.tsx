@@ -23,6 +23,8 @@ import {ReadoutRibbon, ToolRibbon} from 'sentry/views/insights/common/components
 import {getTimeSpentExplanation} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
+import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {LatencyChart} from 'sentry/views/insights/queues/charts/latencyChart';
 import {ThroughputChart} from 'sentry/views/insights/queues/charts/throughputChart';
 import {MessageSpanSamplesPanel} from 'sentry/views/insights/queues/components/messageSpanSamplesPanel';
@@ -30,16 +32,18 @@ import {TransactionsTable} from 'sentry/views/insights/queues/components/tables/
 import {useQueuesMetricsQuery} from 'sentry/views/insights/queues/queries/useQueuesMetricsQuery';
 import {Referrer} from 'sentry/views/insights/queues/referrers';
 import {DESTINATION_TITLE} from 'sentry/views/insights/queues/settings';
+import {ModuleName} from 'sentry/views/insights/types';
 import Onboarding from 'sentry/views/performance/onboarding';
 
 function DestinationSummaryPage() {
+  const {isInDomainView} = useDomainViewFilters();
   const organization = useOrganization();
   const onboardingProject = useOnboardingProject();
 
   const {query} = useLocation();
   const destination = decodeScalar(query.destination);
 
-  const {data, isLoading} = useQueuesMetricsQuery({
+  const {data, isPending} = useQueuesMetricsQuery({
     destination,
     referrer: Referrer.QUEUES_SUMMARY,
   });
@@ -49,25 +53,33 @@ function DestinationSummaryPage() {
 
   return (
     <Fragment>
-      <Layout.Header>
-        <Layout.HeaderContent>
-          <Breadcrumbs
-            crumbs={[
-              ...crumbs,
-              {
-                label: DESTINATION_TITLE,
-              },
-            ]}
-          />
+      {!isInDomainView && (
+        <Layout.Header>
+          <Layout.HeaderContent>
+            <Breadcrumbs
+              crumbs={[
+                ...crumbs,
+                {
+                  label: DESTINATION_TITLE,
+                },
+              ]}
+            />
 
-          <Layout.Title>{destination}</Layout.Title>
-        </Layout.HeaderContent>
-        <Layout.HeaderActions>
-          <ButtonBar gap={1}>
-            <FeedbackWidgetButton />
-          </ButtonBar>
-        </Layout.HeaderActions>
-      </Layout.Header>
+            <Layout.Title>{destination}</Layout.Title>
+          </Layout.HeaderContent>
+          <Layout.HeaderActions>
+            <ButtonBar gap={1}>
+              <FeedbackWidgetButton />
+            </ButtonBar>
+          </Layout.HeaderActions>
+        </Layout.Header>
+      )}
+
+      {isInDomainView && (
+        <Layout.Header>
+          <BackendHeader module={ModuleName.QUEUE} />
+        </Layout.Header>
+      )}
 
       <Layout.Body>
         <Layout.Main fullWidth>
@@ -88,31 +100,31 @@ function DestinationSummaryPage() {
                       title={t('Avg Time In Queue')}
                       value={data[0]?.['avg(messaging.message.receive.latency)']}
                       unit={DurationUnit.MILLISECOND}
-                      isLoading={isLoading}
+                      isLoading={isPending}
                     />
                     <MetricReadout
                       title={t('Avg Processing Time')}
                       value={data[0]?.['avg_if(span.duration,span.op,queue.process)']}
                       unit={DurationUnit.MILLISECOND}
-                      isLoading={isLoading}
+                      isLoading={isPending}
                     />
                     <MetricReadout
                       title={t('Error Rate')}
                       value={errorRate}
                       unit={'percentage'}
-                      isLoading={isLoading}
+                      isLoading={isPending}
                     />
                     <MetricReadout
                       title={t('Published')}
                       value={data[0]?.['count_op(queue.publish)']}
                       unit={'count'}
-                      isLoading={isLoading}
+                      isLoading={isPending}
                     />
                     <MetricReadout
                       title={t('Processed')}
                       value={data[0]?.['count_op(queue.process)']}
                       unit={'count'}
-                      isLoading={isLoading}
+                      isLoading={isPending}
                     />
                     <MetricReadout
                       title={t('Time Spent')}
@@ -121,7 +133,7 @@ function DestinationSummaryPage() {
                       tooltip={getTimeSpentExplanation(
                         data[0]?.['time_spent_percentage(app,span.duration)']
                       )}
-                      isLoading={isLoading}
+                      isLoading={isPending}
                     />
                   </ReadoutRibbon>
                 )}

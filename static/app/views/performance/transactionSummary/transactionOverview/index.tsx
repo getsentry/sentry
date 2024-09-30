@@ -147,10 +147,10 @@ function OverviewContentWrapper(props: ChildProps) {
     mepContext.setIsMetricsData(isMetricsData);
   }, [mepContext, queryData.data]);
 
-  const {data: tableData, isLoading, error} = queryData;
+  const {data: tableData, isPending, error} = queryData;
   const {
     data: totalCountTableData,
-    isLoading: isTotalCountQueryLoading,
+    isPending: isTotalCountQueryLoading,
     error: totalCountQueryError,
   } = totalCountQueryData;
 
@@ -195,7 +195,7 @@ function OverviewContentWrapper(props: ChildProps) {
       eventView={eventView}
       projectId={projectId}
       transactionName={transactionName}
-      isLoading={isLoading || isTotalCountQueryLoading}
+      isLoading={isPending || isTotalCountQueryLoading}
       error={error || totalCountQueryError}
       totalValues={totals}
       onChangeFilter={onChangeFilter}

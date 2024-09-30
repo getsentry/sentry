@@ -21,6 +21,7 @@ import {metricTagsExplanation} from 'sentry/components/onboarding/gettingStarted
 import {
   getReplayConfigureDescription,
   getReplaySDKSetupSnippet,
+  getReplayVerifyStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import {t, tct} from 'sentry/locale';
 
@@ -76,12 +77,10 @@ const onboarding: OnboardingConfig = {
     {
       type: StepType.CONFIGURE,
       description: tct(
-        `You need to call [codeInit:Sentry.init] in the [codeMain:main] process and in every [codeRenderer:renderer] process you spawn.
+        `You need to call [code:Sentry.init] in the [code:main] process and in every [code:renderer] process you spawn.
            For more details about configuring the Electron SDK [docsLink:click here].`,
         {
-          codeInit: <code />,
-          codeMain: <code />,
-          codeRenderer: <code />,
+          code: <code />,
           docsLink: (
             <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/electron/" />
           ),
@@ -168,7 +167,7 @@ const replayOnboarding: OnboardingConfig = {
       ],
     },
   ],
-  verify: () => [],
+  verify: getReplayVerifyStep(),
   nextSteps: () => [],
 };
 
@@ -177,10 +176,9 @@ const customMetricsOnboarding: OnboardingConfig = {
     {
       type: StepType.INSTALL,
       description: tct(
-        'You need a minimum version [codeVersion:4.17.0] of [codePackage:@sentry/electron].',
+        'You need a minimum version [code:4.17.0] of [code:@sentry/electron].',
         {
-          codeVersion: <code />,
-          codePackage: <code />,
+          code: <code />,
         }
       ),
       configurations: getInstallConfig(),
@@ -204,13 +202,9 @@ const customMetricsOnboarding: OnboardingConfig = {
     {
       type: StepType.VERIFY,
       description: tct(
-        "Then you'll be able to add metrics as [codeCounters:counters], [codeSets:sets], [codeDistribution:distributions], and [codeGauge:gauges]. These are available under the [codeNamespace:Sentry.metrics] namespace. This API is available in both renderer and main processes.",
+        "Then you'll be able to add metrics as [code:counters], [code:sets], [code:distributions], and [code:gauges]. These are available under the [code:Sentry.metrics] namespace. This API is available in both renderer and main processes.",
         {
-          codeCounters: <code />,
-          codeSets: <code />,
-          codeDistribution: <code />,
-          codeGauge: <code />,
-          codeNamespace: <code />,
+          code: <code />,
         }
       ),
       configurations: [
@@ -363,7 +357,7 @@ init({
 const docs: Docs = {
   onboarding,
   feedbackOnboardingNpm: feedbackOnboarding,
-  replayOnboardingNpm: replayOnboarding,
+  replayOnboarding,
   customMetricsOnboarding,
   crashReportOnboarding,
 };

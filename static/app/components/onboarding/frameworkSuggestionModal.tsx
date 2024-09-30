@@ -39,7 +39,6 @@ const topGoFrameworks: PlatformKey[] = [
   'go-gin',
   'go-http',
   'go-iris',
-  'go-martini',
   'go-negroni',
 ];
 
@@ -49,6 +48,7 @@ export const topJavascriptFrameworks: PlatformKey[] = [
   'javascript-vue',
   'javascript-angular',
   'javascript-solid',
+  'javascript-solidstart',
   'javascript-remix',
   'javascript-svelte',
   'javascript-sveltekit',
@@ -209,15 +209,7 @@ export function FrameworkSuggestionModal({
     );
 
     onConfigure(selectedFramework);
-    closeModal();
-  }, [
-    selectedPlatform,
-    selectedFramework,
-    organization,
-    onConfigure,
-    closeModal,
-    newOrg,
-  ]);
+  }, [selectedPlatform, selectedFramework, organization, onConfigure, newOrg]);
 
   const handleSkip = useCallback(() => {
     trackAnalytics(
@@ -230,8 +222,7 @@ export function FrameworkSuggestionModal({
       }
     );
     onSkip();
-    closeModal();
-  }, [selectedPlatform, organization, closeModal, onSkip, newOrg]);
+  }, [selectedPlatform, organization, onSkip, newOrg]);
 
   const listEntries = [...topFrameworksOrdered, ...otherFrameworksSortedAlphabetically];
 

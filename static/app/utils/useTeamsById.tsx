@@ -85,7 +85,7 @@ export function useTeamsById(options: UseTeamOptions = {}): UseTeamsResult {
   const queryKey = buildTeamsQueryKey(organization?.slug ?? '', query);
   const {
     data: additionalTeams = [],
-    isLoading,
+    isPending,
     isError,
   } = useApiQuery<Team[]>(queryKey, {
     staleTime: 0,
@@ -107,7 +107,7 @@ export function useTeamsById(options: UseTeamOptions = {}): UseTeamsResult {
 
   return {
     teams,
-    isLoading: queryEnabled ? isLoading : storeState.loading,
+    isLoading: queryEnabled ? isPending : storeState.loading,
     isError: queryEnabled ? isError : null,
   };
 }

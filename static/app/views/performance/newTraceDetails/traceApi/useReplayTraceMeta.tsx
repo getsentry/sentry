@@ -1,11 +1,12 @@
 import {useMemo} from 'react';
 import type {Location} from 'history';
 
-import {getUtcDateString} from 'sentry/utils/dates';
+import {getTimeStampFromTableDateField, getUtcDateString} from 'sentry/utils/dates';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
+import type {ReplayTrace} from 'sentry/views/replays/detail/trace/useReplayTraces';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
 import {type TraceMetaQueryResults, useTraceMeta} from './useTraceMeta';
@@ -42,7 +43,7 @@ export function useReplayTraceMeta(
   const start = getUtcDateString(replayRecord?.started_at.getTime());
   const end = getUtcDateString(replayRecord?.finished_at.getTime());
 
-  const {data: eventsData, isLoading: eventsIsLoading} = useApiQuery<{
+  const {data: eventsData, isPending: eventsIsLoading} = useApiQuery<{
     data: TableDataRow[];
   }>(
     [
@@ -66,17 +67,29 @@ export function useReplayTraceMeta(
     }
   );
 
-  const traceIds = useMemo(() => {
-    return (eventsData?.data ?? []).map(({trace}) => String(trace)).filter(Boolean);
+  const replayTraces = useMemo(() => {
+    const traces: ReplayTrace[] = [];
+
+    for (const row of eventsData?.data ?? []) {
+      if (row.trace) {
+        traces.push({
+          traceSlug: String(row.trace),
+          timestamp: getTimeStampFromTableDateField(row['min(timestamp)']),
+        });
+      }
+    }
+
+    return traces;
   }, [eventsData]);
 
-  const meta = useTraceMeta(traceIds);
+  const meta = useTraceMeta(replayTraces);
 
   const metaResults = useMemo(() => {
     return {
       data: meta.data,
       isLoading: eventsIsLoading || meta.isLoading,
       errors: meta.errors,
+      status: meta.status,
     };
   }, [meta, eventsIsLoading]);
 

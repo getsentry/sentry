@@ -16,6 +16,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationPermission
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers import Serializer, serialize
+from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.data_secrecy.models import DataSecrecyWaiver
 from sentry.models.organization import Organization
 
@@ -28,7 +29,7 @@ class WaiveDataSecrecyPermission(OrganizationPermission):
     }
 
 
-class DataSecrecyWaiverSerializer(serializers.Serializer, Serializer):
+class DataSecrecyWaiverSerializer(CamelSnakeSerializer, serializers.Serializer, Serializer):
     access_start = serializers.DateTimeField()
     access_end = serializers.DateTimeField()
 
@@ -51,9 +52,9 @@ class DataSecrecyWaiverSerializer(serializers.Serializer, Serializer):
         self, obj: Any, attrs: Mapping[Any, Any], user: Any, **kwargs: Any
     ) -> Mapping[str, Any]:
         return {
-            "access_start": obj.access_start.isoformat(),
-            "access_end": obj.access_end.isoformat(),
-            "zendesk_tickets": list(obj.zendesk_tickets),
+            "accessStart": obj.access_start.isoformat(),
+            "accessEnd": obj.access_end.isoformat(),
+            "zendeskTickets": list(obj.zendesk_tickets),
         }
 
 

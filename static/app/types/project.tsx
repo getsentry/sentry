@@ -23,7 +23,6 @@ export type Project = {
   eventProcessing: {
     symbolicationDegraded: boolean;
   };
-  extrapolateMetrics: boolean;
   features: string[];
   firstEvent: string | null;
   firstTransactionEvent: boolean;
@@ -221,6 +220,7 @@ export type PlatformKey =
   | 'javascript-react'
   | 'javascript-remix'
   | 'javascript-solid'
+  | 'javascript-solidstart'
   | 'javascript-svelte'
   | 'javascript-sveltekit'
   | 'javascript-vue'

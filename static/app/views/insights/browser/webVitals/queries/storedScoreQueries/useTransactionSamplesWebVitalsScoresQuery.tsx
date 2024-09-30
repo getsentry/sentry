@@ -104,7 +104,12 @@ export const useTransactionSamplesWebVitalsScoresQuery = ({
 
   eventView.sorts = [sort];
 
-  const {data, isLoading, ...rest} = useDiscoverQuery({
+  const {
+    data,
+    isPending,
+    isLoading: _,
+    ...rest
+  } = useDiscoverQuery({
     eventView,
     limit: limit ?? 50,
     location,
@@ -118,7 +123,7 @@ export const useTransactionSamplesWebVitalsScoresQuery = ({
 
   const toNumber = (item: ReactText) => (item ? parseFloat(item.toString()) : undefined);
   const tableData: TransactionSampleRowWithScore[] =
-    !isLoading && data?.data.length
+    !isPending && data?.data.length
       ? (data.data.map(
           row => ({
             id: row.id?.toString(),
@@ -157,7 +162,7 @@ export const useTransactionSamplesWebVitalsScoresQuery = ({
 
   return {
     data: tableData,
-    isLoading,
+    isLoading: isPending,
     ...rest,
   };
 };

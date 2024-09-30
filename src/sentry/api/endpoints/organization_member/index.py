@@ -205,7 +205,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
         """
         List all organization members.
 
-        Response includes pending invites that are approved by organization admins but waiting to be accepted by the invitee.
+        Response includes pending invites that are approved by organization owners or managers but waiting to be accepted by the invitee.
         """
         queryset = OrganizationMember.objects.filter(
             Q(user_is_active=True, user_id__isnull=False) | Q(user_id__isnull=True),
@@ -319,7 +319,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
                 {"organization": "Your organization is not allowed to invite members"}, status=403
             )
 
-        allowed_roles = get_allowed_org_roles(request, organization)
+        allowed_roles = get_allowed_org_roles(request, organization, creating_org_invite=True)
         assigned_org_role = request.data.get("orgRole") or request.data.get("role")
 
         # We allow requests from integration tokens to invite new members as the member role only

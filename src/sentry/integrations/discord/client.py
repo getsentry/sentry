@@ -13,6 +13,7 @@ from sentry import options
 from sentry.integrations.client import ApiClient
 from sentry.integrations.discord.message_builder.base.base import DiscordMessageBuilder
 from sentry.integrations.discord.utils.consts import DISCORD_ERROR_CODES, DISCORD_USER_ERRORS
+from sentry.shared_integrations.exceptions import ApiError
 
 # to avoid a circular import
 from sentry.utils import metrics
@@ -101,6 +102,22 @@ class DiscordClient(ApiClient):
         )
         user_id = response["id"]  # type: ignore[index]
         return user_id
+
+    def check_user_bot_installation_permission(self, access_token: str, guild_id: str) -> bool:
+        headers = {"Authorization": f"Bearer {access_token}"}
+
+        # We only want information about guild_id and check the user's permission in the guild, but we can't currently do that
+        # https://github.com/discord/discord-api-docs/discussions/6846
+        # TODO(iamrajjoshi): Eventually, we should use `/users/@me/guilds/{guild.id}/member`
+        # Instead, we check if the user in a member of the guild
+
+        try:
+            self.get(f"/users/@me/guilds/{guild_id}/member", headers=headers)
+        except ApiError as e:
+            if e.code == 404:
+                return False
+
+        return True
 
     def leave_guild(self, guild_id: str) -> None:
         """

@@ -15,6 +15,12 @@ describe('OrganizationSecurityAndPrivacy', function () {
       method: 'GET',
       body: {},
     });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/data-secrecy/`,
+      method: 'GET',
+      body: null,
+    });
   });
 
   it('shows require2fa switch', async function () {

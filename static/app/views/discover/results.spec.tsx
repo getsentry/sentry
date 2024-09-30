@@ -623,7 +623,7 @@ describe('Results', function () {
       const {router} = initializeOrg({
         organization,
         router: {
-          location: {query: {id: '1', statsPeriod: '24h'}},
+          location: {pathname: '/', query: {id: '1', statsPeriod: '24h'}},
         },
       });
 
@@ -649,12 +649,12 @@ describe('Results', function () {
 
       expect(screen.getByRole('link', {name: 'timestamp'})).toHaveAttribute(
         'href',
-        'undefined?field=title&field=event.type&field=project&field=user.display&field=timestamp&id=1&name=new&query=&sort=-timestamp&statsPeriod=24h&topEvents=5'
+        '/?field=title&field=event.type&field=project&field=user.display&field=timestamp&id=1&name=new&query=&sort=-timestamp&statsPeriod=24h&topEvents=5'
       );
 
       expect(screen.getByRole('link', {name: 'project'})).toHaveAttribute(
         'href',
-        'undefined?field=title&field=event.type&field=project&field=user.display&field=timestamp&id=1&name=new&query=&sort=-project&statsPeriod=24h&topEvents=5'
+        '/?field=title&field=event.type&field=project&field=user.display&field=timestamp&id=1&name=new&query=&sort=-project&statsPeriod=24h&topEvents=5'
       );
 
       // NOTE: This uses a legacy redirect for project event to the issue group event link
@@ -665,12 +665,12 @@ describe('Results', function () {
 
       expect(screen.getByRole('link', {name: 'user.display'})).toHaveAttribute(
         'href',
-        'undefined?field=title&field=event.type&field=project&field=user.display&field=timestamp&id=1&name=new&query=&sort=user.display&statsPeriod=24h&topEvents=5'
+        '/?field=title&field=event.type&field=project&field=user.display&field=timestamp&id=1&name=new&query=&sort=user.display&statsPeriod=24h&topEvents=5'
       );
 
       expect(screen.getByRole('link', {name: 'title'})).toHaveAttribute(
         'href',
-        'undefined?field=title&field=event.type&field=project&field=user.display&field=timestamp&id=1&name=new&query=&sort=-title&statsPeriod=24h&topEvents=5'
+        '/?field=title&field=event.type&field=project&field=user.display&field=timestamp&id=1&name=new&query=&sort=-title&statsPeriod=24h&topEvents=5'
       );
     });
 
@@ -683,6 +683,7 @@ describe('Results', function () {
         organization,
         router: {
           location: {
+            pathname: '/',
             query: {
               id: '1',
               statsPeriod: '7d',
@@ -715,7 +716,7 @@ describe('Results', function () {
 
       expect(screen.getByRole('link', {name: 'timestamp'})).toHaveAttribute(
         'href',
-        'undefined?environment=production&field=title&field=event.type&field=project&field=user.display&field=timestamp&id=1&name=new&project=2&query=&sort=-timestamp&statsPeriod=7d&topEvents=5'
+        '/?environment=production&field=title&field=event.type&field=project&field=user.display&field=timestamp&id=1&name=new&project=2&query=&sort=-timestamp&statsPeriod=7d&topEvents=5'
       );
     });
 
@@ -1544,9 +1545,10 @@ describe('Results', function () {
       });
       expect(mockRequests.eventsResultsMock).toHaveBeenCalledTimes(1);
       await waitFor(() => {
-        expect(
-          screen.getByRole('button', {name: 'Dataset Transactions'})
-        ).toBeInTheDocument();
+        expect(screen.getByRole('tab', {name: 'Transactions'})).toHaveAttribute(
+          'aria-selected',
+          'true'
+        );
       });
 
       expect(
@@ -1621,7 +1623,10 @@ describe('Results', function () {
       });
       expect(mockRequests.eventsResultsMock).toHaveBeenCalledTimes(1);
 
-      expect(screen.getByRole('button', {name: 'Dataset Errors'})).toBeInTheDocument();
+      expect(screen.getByRole('tab', {name: 'Errors'})).toHaveAttribute(
+        'aria-selected',
+        'true'
+      );
 
       expect(mockRequests.eventsStatsMock).toHaveBeenCalledWith(
         '/organizations/org-slug/events-stats/',

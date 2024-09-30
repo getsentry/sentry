@@ -1,4 +1,3 @@
-import type {InjectedRouter} from 'react-router';
 import type {Theme} from '@emotion/react';
 import type {Query} from 'history';
 
@@ -12,6 +11,7 @@ import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingM
 import Placeholder from 'sentry/components/placeholder';
 import {IconWarning} from 'sentry/icons';
 import type {Series} from 'sentry/types/echarts';
+import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import {
   axisLabelFormatter,
   getDurationUnit,

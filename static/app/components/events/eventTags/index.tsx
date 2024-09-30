@@ -95,9 +95,18 @@ export function EventTags({
 
   const hasCustomTagsBanner = tagFilter === TagFilter.CUSTOM && tags.length === 0;
 
+  // filter out replayId since we no longer want to display this on
+  // trace or issue details
+  const filtered = tags.filter(t => t.key !== 'replayId');
+
   return (
     <Fragment>
-      <EventTagsTree event={event} meta={meta} projectSlug={projectSlug} tags={tags} />
+      <EventTagsTree
+        event={event}
+        meta={meta}
+        projectSlug={projectSlug}
+        tags={filtered}
+      />
       {hasCustomTagsBanner && <EventTagCustomBanner />}
     </Fragment>
   );

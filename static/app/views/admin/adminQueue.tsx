@@ -34,7 +34,7 @@ export default function AdminQueue() {
 
   const {
     data: taskList,
-    isLoading,
+    isPending,
     isError,
   } = useApiQuery<string[]>(['/internal/queue/tasks/'], {
     staleTime: 0,
@@ -44,7 +44,7 @@ export default function AdminQueue() {
     return <LoadingError />;
   }
 
-  if (isLoading) {
+  if (isPending) {
     return <LoadingIndicator />;
   }
 

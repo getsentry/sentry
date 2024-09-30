@@ -20,7 +20,7 @@ function OrganizationRepositoriesContainer() {
 
   const {
     data: itemList,
-    isLoading,
+    isPending,
     isError,
     getResponseHeader,
   } = useApiQuery<Repository[]>(
@@ -29,7 +29,7 @@ function OrganizationRepositoriesContainer() {
   );
   const itemListPageLinks = getResponseHeader?.('Link');
 
-  if (isLoading) {
+  if (isPending) {
     return <LoadingIndicator />;
   }
 

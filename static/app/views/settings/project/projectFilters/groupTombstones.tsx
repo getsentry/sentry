@@ -87,7 +87,7 @@ function GroupTombstones({project}: GroupTombstonesProps) {
   const organization = useOrganization();
   const {
     data: tombstones,
-    isLoading,
+    isPending,
     isError,
     refetch,
     getResponseHeader,
@@ -119,7 +119,7 @@ function GroupTombstones({project}: GroupTombstonesProps) {
       });
   };
 
-  if (isLoading) {
+  if (isPending) {
     return (
       <Panel>
         <LoadingIndicator />

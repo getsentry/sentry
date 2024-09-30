@@ -99,7 +99,7 @@ class SlackIntegrationLinkIdentityTest(SlackIntegrationLinkIdentityTestBase):
 
         assert len(identity) == 1
         assert mock_logger.exception.call_count == 1
-        assert mock_logger.exception.call_args.args[0] == "%serror"
+        assert mock_logger.exception.call_args.args == ("slack.link-identity.error",)
 
     def test_basic_flow_with_web_client(self):
         """No response URL is provided, so we use WebClient."""
@@ -139,28 +139,7 @@ class SlackIntegrationLinkIdentityTest(SlackIntegrationLinkIdentityTestBase):
 
         assert len(identity) == 1
         assert mock_logger.exception.call_count == 1
-        assert mock_logger.exception.call_args.args[0] == "%serror"
-
-    @patch("sentry.integrations.slack.utils.notifications._logger")
-    def test_basic_flow_with_web_client_expired_url(self, mock_logger):
-        self.mock_post.side_effect = SlackApiError(
-            "", response={"ok": False, "error": "Expired url"}
-        )
-
-        linking_url = build_linking_url(self.integration, self.external_id, self.channel_id, "")
-
-        # Load page.
-        response = self.client.get(linking_url)
-        assert response.status_code == 200
-        self.assertTemplateUsed(response, "sentry/auth-link-identity.html")
-
-        # Link identity of user
-        self.client.post(linking_url)
-
-        identity = Identity.objects.filter(external_id="new-slack-id", user=self.user)
-
-        assert len(identity) == 1
-        assert mock_logger.exception.call_count == 0
+        assert mock_logger.exception.call_args.args == ("slack.link-identity.error",)
 
     def test_overwrites_existing_identities_with_sdk(self):
         external_id_2 = "slack-id2"

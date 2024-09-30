@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
-import qs from 'qs';
+import * as qs from 'query-string';
 
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
@@ -117,7 +117,7 @@ export function TransactionsTable() {
       .filter(isAValidSort)
       .at(0) ?? DEFAULT_SORT;
 
-  const {data, isLoading, meta, pageLinks, error} = useQueuesByTransactionQuery({
+  const {data, isPending, meta, pageLinks, error} = useQueuesByTransactionQuery({
     destination: locationQuery.destination,
     sort,
     referrer: Referrer.QUEUES_SUMMARY_TRANSACTIONS_TABLE,
@@ -134,7 +134,7 @@ export function TransactionsTable() {
     <Fragment>
       <GridEditable
         aria-label={t('Transactions')}
-        isLoading={isLoading}
+        isLoading={isPending}
         error={error}
         data={data}
         columnOrder={COLUMN_ORDER}

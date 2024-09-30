@@ -126,7 +126,7 @@ function AccountIdentities() {
   const queryClient = useQueryClient();
   const {
     data: identities = EMPTY_ARRAY,
-    isLoading,
+    isPending,
     isError,
     refetch,
   } = useApiQuery<UserIdentityConfig[]>([IDENTITIES_ENDPOINT], {
@@ -164,7 +164,7 @@ function AccountIdentities() {
     [queryClient]
   );
 
-  if (isLoading) {
+  if (isPending) {
     return <LoadingIndicator />;
   }
 
@@ -254,6 +254,7 @@ const TagWrapper = styled('div')`
   justify-content: flex-start;
   flex-grow: 1;
   margin-right: ${space(1)};
+  gap: ${space(0.75)};
 `;
 
 export default AccountIdentities;

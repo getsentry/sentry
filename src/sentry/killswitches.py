@@ -217,7 +217,7 @@ ALL_KILLSWITCH_OPTIONS = {
         """,
         fields={"organization_id": "An organization ID to disable check-ins for."},
     ),
-    "embeddings-grouping.use-embeddings": KillswitchInfo(
+    "seer.similarity.grouping_killswitch_projects": KillswitchInfo(
         description="""
         Prevent project from using LLM embeddings for grouping new hashes.
         In case project has too many new events, spike of events from that
@@ -227,7 +227,7 @@ ALL_KILLSWITCH_OPTIONS = {
             "project_id": "A project ID to filter events by.",
         },
     ),
-    "issues.skip-seer-requests": KillswitchInfo(
+    "issues.severity.skip-seer-requests": KillswitchInfo(
         description="""
         Do not make requests to Seer.
 

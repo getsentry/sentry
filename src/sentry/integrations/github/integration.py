@@ -42,7 +42,7 @@ from sentry.utils.http import absolute_uri
 from sentry.web.helpers import render_to_response
 
 from .client import GitHubApiClient, GitHubBaseClient
-from .issues import GitHubIssueBasic
+from .issues import GitHubIssuesSpec
 from .repository import GitHubRepositoryProvider
 
 logger = logging.getLogger("sentry.integrations.github")
@@ -131,6 +131,11 @@ def error(
     error_short="Invalid installation request.",
     error_long=ERR_INTEGRATION_INVALID_INSTALLATION_REQUEST,
 ):
+    logger.error(
+        "github.installation_error",
+        extra={"org_id": org.organization.id, "error_short": error_short},
+    )
+
     return render_to_response(
         "sentry/integrations/github-integration-failed.html",
         context={
@@ -156,7 +161,7 @@ def get_document_origin(org) -> str:
 # https://docs.github.com/en/rest/overview/endpoints-available-for-github-apps
 
 
-class GitHubIntegration(RepositoryIntegration, CommitContextIntegration, GitHubIssueBasic):  # type: ignore[misc]
+class GitHubIntegration(RepositoryIntegration, GitHubIssuesSpec, CommitContextIntegration):
     codeowners_locations = ["CODEOWNERS", ".github/CODEOWNERS", "docs/CODEOWNERS"]
 
     @property
@@ -291,9 +296,10 @@ class GitHubIntegration(RepositoryIntegration, CommitContextIntegration, GitHubI
 
         return trees
 
-    # TODO(cathy): define in issue ABC
-    def search_issues(self, query: str) -> Mapping[str, Sequence[Mapping[str, Any]]]:
-        return self.get_client().search_issues(query)
+    def search_issues(self, query: str | None, **kwargs) -> dict[str, Any]:
+        resp = self.get_client().search_issues(query)
+        assert isinstance(resp, dict)
+        return resp
 
 
 class GitHubIntegrationProvider(IntegrationProvider):
@@ -417,7 +423,7 @@ class OAuthLoginView(PipelineView):
 
         # At this point, we are past the GitHub "authorize" step
         if request.GET.get("state") != pipeline.signature:
-            return error(request, self.active_organization)
+            return error(request, self.active_organization, error_short="Invalid state")
 
         # similar to OAuth2CallbackView.get_token_params
         data = {
@@ -436,11 +442,11 @@ class OAuthLoginView(PipelineView):
             payload = {}
 
         if "access_token" not in payload:
-            return error(request, self.active_organization)
+            return error(request, self.active_organization, error_short="Missing access token")
 
         authenticated_user_info = get_user_info(payload["access_token"])
         if "login" not in authenticated_user_info:
-            return error(request, self.active_organization)
+            return error(request, self.active_organization, error_short="Missing login info")
 
         pipeline.bind_state("github_authenticated_user", authenticated_user_info["login"])
         return pipeline.next_step()
@@ -509,6 +515,10 @@ class GitHubInstallation(PipelineView):
             pipeline.fetch_state("github_authenticated_user")
             != integration.metadata["sender"]["login"]
         ):
-            return error(request, self.active_organization)
+            return error(
+                request,
+                self.active_organization,
+                error_short="Authenticated user is not the same as who installed the app",
+            )
 
         return pipeline.next_step()

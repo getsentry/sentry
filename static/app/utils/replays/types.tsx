@@ -17,6 +17,11 @@ import invariant from 'invariant';
 
 import type {HydratedA11yFrame} from 'sentry/utils/replays/hydrateA11yFrame';
 
+export type Dimensions = {
+  height: number;
+  width: number;
+};
+
 // Extracting WebVitalFrame types from TRawSpanFrame so we can document/support
 // the deprecated `nodeId` data field Moving forward, `nodeIds` is the accepted
 // field.
@@ -117,6 +122,12 @@ export type RawSpanFrame =
   | CompatibleReplayWebVitalFrame;
 export type SpanFrameEvent = TSpanFrameEvent;
 
+export type CustomEvent<T = RecordingFrame> = T extends RecordingFrame & {
+  type: EventType.Custom;
+}
+  ? T
+  : never;
+
 export function isRecordingFrame(
   attachment: Record<string, any>
 ): attachment is RecordingFrame {
@@ -171,10 +182,12 @@ export function getFrameOpOrCategory(frame: ReplayFrame) {
   return val;
 }
 
-export function getNodeId(frame: ReplayFrame) {
+export function getNodeIds(frame: ReplayFrame) {
   return 'data' in frame && frame.data && 'nodeId' in frame.data
-    ? frame.data.nodeId
-    : undefined;
+    ? [frame.data.nodeId]
+    : 'data' in frame && frame.data && 'nodeIds' in frame.data
+      ? frame.data.nodeIds
+      : undefined;
 }
 
 export function isConsoleFrame(frame: BreadcrumbFrame): frame is ConsoleFrame {
@@ -187,6 +200,10 @@ export function isConsoleFrame(frame: BreadcrumbFrame): frame is ConsoleFrame {
 
 export function isWebVitalFrame(frame: SpanFrame): frame is WebVitalFrame {
   return frame.op === 'web-vital';
+}
+
+export function isCLSFrame(frame: WebVitalFrame): frame is WebVitalFrame {
+  return frame.description === 'cumulative-layout-shift';
 }
 
 export function isPaintFrame(frame: SpanFrame): frame is PaintFrame {
@@ -333,6 +350,7 @@ export const BreadcrumbCategories = [
   'device.battery',
   'device.connectivity',
   'device.orientation',
+  'feedback',
   'navigation',
   'replay.init',
   'replay.mutations',

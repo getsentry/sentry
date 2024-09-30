@@ -1,4 +1,3 @@
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
   renderGlobalModal,
@@ -9,9 +8,7 @@ import {
 import ApiApplicationDetails from 'sentry/views/settings/account/apiApplications/details';
 
 describe('ApiApplications', function () {
-  it('renders basic details for newly created App', function () {
-    const {router} = initializeOrg();
-
+  it('renders basic details for newly created App', async function () {
     MockApiClient.addMockResponse({
       url: '/api-applications/abcd/',
       body: {
@@ -27,18 +24,17 @@ describe('ApiApplications', function () {
       },
     });
 
-    render(
-      <ApiApplicationDetails
-        router={router}
-        location={router.location}
-        routes={router.routes}
-        route={{}}
-        routeParams={{}}
-        params={{
+    render(<ApiApplicationDetails />, {
+      router: {
+        params: {
           appId: 'abcd',
-        }}
-      />
-    );
+        },
+      },
+    });
+
+    expect(
+      await screen.findByRole('heading', {name: 'Application Details'})
+    ).toBeInTheDocument();
     expect(screen.getByDisplayValue('http://example.com')).toBeInTheDocument();
     expect(screen.getByDisplayValue('http://example.com/redirect')).toBeInTheDocument();
     expect(screen.getByDisplayValue('http://example.com/privacy')).toBeInTheDocument();
@@ -60,8 +56,6 @@ describe('ApiApplications', function () {
   });
 
   it('handles client secret rotation', async function () {
-    const {router} = initializeOrg();
-
     MockApiClient.addMockResponse({
       url: '/api-applications/abcd/',
       body: {
@@ -84,21 +78,16 @@ describe('ApiApplications', function () {
       },
     });
 
-    render(
-      <ApiApplicationDetails
-        router={router}
-        location={router.location}
-        routes={router.routes}
-        route={{}}
-        routeParams={{}}
-        params={{
+    render(<ApiApplicationDetails />, {
+      router: {
+        params: {
           appId: 'abcd',
-        }}
-      />
-    );
+        },
+      },
+    });
     renderGlobalModal();
 
-    expect(screen.getByText('hidden')).toBeInTheDocument();
+    expect(await screen.findByText('hidden')).toBeInTheDocument();
     expect(
       screen.getByRole('button', {name: 'Rotate client secret'})
     ).toBeInTheDocument();

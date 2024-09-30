@@ -24,9 +24,10 @@ class DogStatsdMetricsBackend(MetricsBackend):
     def __init__(self, prefix: str | None = None, **kwargs: Any) -> None:
         # TODO(dcramer): it'd be nice if the initialize call wasn't a global
         self.tags = kwargs.pop("tags", None)
+        kwargs["statsd_disable_buffering"] = False
+
         initialize(**kwargs)
         statsd.disable_telemetry()
-        statsd.disable_buffering = False
 
         # When enabled, a background thread will be used to send metric payloads to the Agent.
         statsd.enable_background_sender(

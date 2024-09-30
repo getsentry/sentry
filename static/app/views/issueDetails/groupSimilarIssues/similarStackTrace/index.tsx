@@ -1,5 +1,4 @@
 import {Fragment, useCallback, useEffect, useState} from 'react';
-import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import * as qs from 'query-string';
@@ -14,6 +13,7 @@ import {t} from 'sentry/locale';
 import type {SimilarItem} from 'sentry/stores/groupingStore';
 import GroupingStore from 'sentry/stores/groupingStore';
 import {space} from 'sentry/styles/space';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Project} from 'sentry/types/project';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import usePrevious from 'sentry/utils/usePrevious';
@@ -25,7 +25,7 @@ type RouteParams = {
   orgId: string;
 };
 
-type Props = RouteComponentProps<RouteParams, {}> & {
+type Props = Pick<RouteComponentProps<RouteParams, {}>, 'params' | 'location'> & {
   location: Location;
   project: Project;
 };
@@ -246,6 +246,7 @@ function SimilarStackTrace({params, location, project}: Props) {
 export default SimilarStackTrace;
 
 const Title = styled('h4')`
+  font-size: ${p => p.theme.fontSizeLarge};
   margin-bottom: ${space(0.75)};
 `;
 

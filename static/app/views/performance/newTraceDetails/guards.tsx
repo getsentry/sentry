@@ -1,6 +1,5 @@
 import {
   MissingInstrumentationNode,
-  NoDataNode,
   ParentAutogroupNode,
   SiblingAutogroupNode,
   type TraceTree,
@@ -55,7 +54,7 @@ export function isTraceErrorNode(
 export function isRootNode(
   node: TraceTreeNode<TraceTree.NodeValue>
 ): node is TraceTreeNode<null> {
-  return node.value === null && !(node instanceof NoDataNode);
+  return node.value === null;
 }
 
 export function isTraceNode(
@@ -67,15 +66,13 @@ export function isTraceNode(
   );
 }
 
-export function isNoDataNode(
-  node: TraceTreeNode<TraceTree.NodeValue>
-): node is NoDataNode {
-  return node instanceof NoDataNode;
-}
-
 export function shouldAddMissingInstrumentationSpan(sdk: string | undefined): boolean {
-  if (!sdk) return true;
-  if (sdk.length < 'sentry.javascript.'.length) return true;
+  if (!sdk) {
+    return true;
+  }
+  if (sdk.length < 'sentry.javascript.'.length) {
+    return true;
+  }
 
   switch (sdk.toLowerCase()) {
     case 'sentry.javascript.browser':
@@ -90,6 +87,7 @@ export function shouldAddMissingInstrumentationSpan(sdk: string | undefined): bo
     case 'sentry.javascript.remix':
     case 'sentry.javascript.svelte':
     case 'sentry.javascript.sveltekit':
+    case 'sentry.javascript.react-native':
     case 'sentry.javascript.astro':
       return false;
     case undefined:

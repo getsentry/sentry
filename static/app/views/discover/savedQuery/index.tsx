@@ -1,5 +1,4 @@
 import {Fragment, PureComponent} from 'react';
-import type {InjectedRouter} from 'react-router';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {FocusScope} from '@react-aria/focus';
@@ -12,7 +11,7 @@ import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Banner from 'sentry/components/banner';
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
@@ -23,6 +22,7 @@ import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {IconBookmark, IconDelete, IconEllipsis, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization, SavedQuery} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
@@ -316,7 +316,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
   renderButtonViewSaved(disabled: boolean) {
     const {organization} = this.props;
     return (
-      <Button
+      <LinkButton
         onClick={() => {
           trackAnalytics('discover_v2.view_saved_queries', {organization});
         }}
@@ -327,7 +327,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
         to={getDiscoverQueriesUrl(organization)}
       >
         {t('Saved Queries')}
-      </Button>
+      </LinkButton>
     );
   }
 

@@ -85,7 +85,7 @@ function Context({
     [projects, event]
   );
 
-  const {data: coverage, isLoading: isLoadingCoverage} = useStacktraceCoverage(
+  const {data: coverage, isPending: isLoadingCoverage} = useStacktraceCoverage(
     {
       event,
       frame,

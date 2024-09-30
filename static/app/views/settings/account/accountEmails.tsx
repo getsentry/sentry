@@ -33,7 +33,7 @@ function AccountEmails() {
   const queryClient = useQueryClient();
 
   const handleSubmitSuccess: FormProps['onSubmitSuccess'] = (_change, model, id) => {
-    queryClient.invalidateQueries(makeEmailsEndpointKey());
+    queryClient.invalidateQueries({queryKey: makeEmailsEndpointKey()});
 
     if (id === undefined) {
       return;
@@ -74,12 +74,12 @@ export function EmailAddresses() {
   const [isUpdating, setIsUpdating] = useState(false);
   const {
     data: emails = [],
-    isLoading,
+    isPending,
     isError,
     refetch,
-  } = useApiQuery<UserEmail[]>(makeEmailsEndpointKey(), {staleTime: 0, cacheTime: 0});
+  } = useApiQuery<UserEmail[]>(makeEmailsEndpointKey(), {staleTime: 0, gcTime: 0});
 
-  if (isLoading || isUpdating) {
+  if (isPending || isUpdating) {
     return (
       <Panel>
         <PanelHeader>{t('Email Addresses')}</PanelHeader>

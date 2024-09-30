@@ -5895,6 +5895,23 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         model = DiscoverSavedQuery.objects.get(id=model.id)
         assert model.dataset == DiscoverSavedQueryTypes.TRANSACTION_LIKE
 
+    def test_issues_with_transaction_dataset(self):
+        self.store_event(self.transaction_data, project_id=self.project.id)
+
+        features = {"organizations:discover-basic": True, "organizations:global-views": True}
+        query = {
+            "field": ["issue", "count()"],
+            "query": "",
+            "statsPeriod": "14d",
+            "dataset": "transactions",
+        }
+        response = self.do_request(query, features=features)
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["issue"] == "unknown"
+        assert response.data["data"][0]["count()"] == 1
+
 
 class OrganizationEventsProfilesDatasetEndpointTest(OrganizationEventsEndpointTestBase):
     @mock.patch("sentry.search.events.builder.base.raw_snql_query")

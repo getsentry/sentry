@@ -4,7 +4,6 @@ import type {ReplayRecord} from 'sentry/views/replays/types';
 
 import {
   isMissingInstrumentationNode,
-  isNoDataNode,
   isParentAutogroupedNode,
   isSiblingAutogroupedNode,
   isSpanNode,
@@ -14,7 +13,6 @@ import {
 import type {TraceTree, TraceTreeNode} from '../../traceModels/traceTree';
 import {ErrorNodeDetails} from '../details/error';
 import {MissingInstrumentationNodeDetails} from '../details/missingInstrumentation';
-import {NoDataDetails} from '../details/noData';
 import {ParentAutogroupNodeDetails} from '../details/parentAutogroup';
 import {SiblingAutogroupNodeDetails} from '../details/siblingAutogroup';
 import {SpanNodeDetails} from '../details/span/index';
@@ -52,10 +50,6 @@ export function TraceTreeNodeDetails(props: TraceTreeNodeDetailsProps<any>) {
 
   if (isMissingInstrumentationNode(props.node)) {
     return <MissingInstrumentationNodeDetails {...props} />;
-  }
-
-  if (isNoDataNode(props.node)) {
-    return <NoDataDetails {...props} />;
   }
 
   throw new Error('Unknown clicked node type');

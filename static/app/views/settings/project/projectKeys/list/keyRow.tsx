@@ -1,7 +1,6 @@
-import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import ClippedBox from 'sentry/components/clippedBox';
 import Confirm from 'sentry/components/confirm';
 import Link from 'sentry/components/links/link';
@@ -11,6 +10,7 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Project, ProjectKey} from 'sentry/types/project';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import {LoaderScript} from 'sentry/views/settings/project/projectKeys/list/loaderScript';
@@ -57,9 +57,9 @@ function KeyRow({
           )}
         </Title>
         <Controls>
-          <Button to={editUrl} size="xs">
+          <LinkButton to={editUrl} size="xs">
             {t('Configure')}
-          </Button>
+          </LinkButton>
           <Confirm
             disabled={!hasWriteAccess}
             onConfirm={data.isActive ? handleDisable : handleEnable}

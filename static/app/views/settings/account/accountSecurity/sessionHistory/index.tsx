@@ -1,4 +1,3 @@
-import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import ListLink from 'sentry/components/links/listLink';
@@ -10,6 +9,7 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {InternetProtocol} from 'sentry/types/user';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import recreateRoute from 'sentry/utils/recreateRoute';
@@ -25,7 +25,7 @@ type IpListType = Array<InternetProtocol> | null;
 function SessionHistory({routes, params, location}: Props) {
   const {
     data: ipList,
-    isLoading,
+    isPending,
     isError,
   } = useApiQuery<IpListType>(['/users/me/ips/'], {staleTime: 0});
 
@@ -33,7 +33,7 @@ function SessionHistory({routes, params, location}: Props) {
     return <LoadingError />;
   }
 
-  if (isLoading) {
+  if (isPending) {
     return <LoadingIndicator />;
   }
 

@@ -22,8 +22,6 @@ interface EventOrGroupHeaderProps {
   data: Event | Group | GroupTombstoneHelper;
   organization: Organization;
   eventId?: string;
-  /* is issue breakdown? */
-  grouping?: boolean;
   hideIcons?: boolean;
   hideLevel?: boolean;
   index?: number;
@@ -44,7 +42,6 @@ function EventOrGroupHeader({
   onClick,
   hideIcons,
   eventId,
-  grouping = false,
   source,
 }: EventOrGroupHeaderProps) {
   const location = useLocation();
@@ -61,11 +58,9 @@ function EventOrGroupHeader({
         <ErrorBoundary customComponent={<EventTitleError />} mini>
           <StyledEventOrGroupTitle
             data={data}
-            organization={organization}
             // hasSeen is undefined for GroupTombstone
             hasSeen={hasSeen === undefined ? true : hasSeen}
             withStackTracePreview
-            grouping={grouping}
             query={query}
           />
         </ErrorBoundary>

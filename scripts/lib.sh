@@ -57,11 +57,11 @@ EOF
     else
         minor=$(echo "${python_version}" | sed 's/[0-9]*\.\([0-9]*\)\.\([0-9]*\)/\1/')
         patch=$(echo "${python_version}" | sed 's/[0-9]*\.\([0-9]*\)\.\([0-9]*\)/\2/')
-        if [ "$minor" -ne 11 ] || [ "$patch" -lt 6 ]; then
+        if [ "$minor" -ne 12 ] || [ "$patch" -lt 1 ]; then
             cat <<EOF
     ${red}${bold}
     ERROR: You're running a virtualenv with Python ${python_version}.
-    We only support >= 3.11.6, < 3.12.
+    We only support >= 3.12.1, < 3.13.
     Either run "rm -rf ${venv_name} && direnv allow" to
     OR set SENTRY_PYTHON_VERSION=${python_version} to an .env file to bypass this check."
 EOF
@@ -76,17 +76,6 @@ sudo-askpass() {
     else
         sudo "$@"
     fi
-}
-
-node-version-check() {
-    # Checks to see if node's version matches the one specified in package.json for Volta.
-    node -pe "process.exit(Number(!(process.version == 'v' + require('./.volta.json').volta.node )))" ||
-        (
-            echo 'Unexpected node version. Recommended to use https://github.com/volta-cli/volta'
-            echo 'Run `volta install node` and `volta install yarn` to update your toolchain.'
-            echo 'If you do not have volta installed run `curl https://get.volta.sh | bash` or visit https://volta.sh'
-            exit 1
-        )
 }
 
 init-config() {

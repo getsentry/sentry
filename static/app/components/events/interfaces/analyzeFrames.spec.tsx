@@ -88,12 +88,7 @@ const makeEventWithFrames = (frames: Frame[]): Event => {
     packages: {},
     type: EventOrGroupType.ERROR,
     metadata: {
-      display_title_with_tree_label: false,
       filename: 'sentry/controllers/welcome_controller.rb',
-      finest_tree_label: [
-        {filebase: 'welcome_controller.rb', function: '/'},
-        {filebase: 'welcome_controller.rb', function: 'index'},
-      ],
       function: '/',
       type: 'ZeroDivisionError',
       value: 'divided by 0',
@@ -108,7 +103,7 @@ const makeEventWithFrames = (frames: Frame[]): Event => {
     fingerprints: ['58f1f47bea5239ea25397888dc9253d1'],
     groupingConfig: {
       enhancements: 'eJybzDRxY25-UmZOqpWRgZGhroGJroHRBABbUQb_',
-      id: 'mobile:2021-02-12',
+      id: 'newstyle:2023-01-11',
     },
     release: null,
     userReport: null,

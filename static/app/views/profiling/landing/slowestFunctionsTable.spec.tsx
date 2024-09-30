@@ -79,15 +79,7 @@ describe('SlowestFunctionsTable', () => {
     });
 
     render(<SlowestFunctionsTable />);
-    for (const value of [
-      'slow-function',
-      'slow-package',
-      '5k',
-      '1.50s',
-      '2.00s',
-      '3.00s',
-      '1.00min',
-    ]) {
+    for (const value of ['slow-function', 'slow-package', '1.50s', '2.00s', '3.00s']) {
       expect(await screen.findByText(value)).toBeInTheDocument();
     }
   });
@@ -173,13 +165,13 @@ describe('SlowestFunctionsTable', () => {
     render(<SlowestFunctionsTable />);
     expect(await screen.findAllByText('slow-package')).toHaveLength(5);
 
-    userEvent.click(screen.getByLabelText('Next'));
+    await userEvent.click(screen.getByLabelText('Next'));
     for (let i = 6; i < 10; i++) {
       expect(await screen.findByText('slow-function-' + i)).toBeInTheDocument();
     }
     expect(screen.getByLabelText('Next')).toBeDisabled();
 
-    userEvent.click(screen.getByLabelText('Previous'));
+    await userEvent.click(screen.getByLabelText('Previous'));
     for (let i = 0; i < 5; i++) {
       expect(await screen.findByText('slow-function-' + i)).toBeInTheDocument();
     }

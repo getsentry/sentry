@@ -2,10 +2,8 @@ import {Fragment, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import Link from 'sentry/components/links/link';
 import PerformanceDuration from 'sentry/components/performanceDuration';
-import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
@@ -21,6 +19,8 @@ import {useProfileFunctions} from 'sentry/utils/profiling/hooks/useProfileFuncti
 import {useRelativeDateTime} from 'sentry/utils/profiling/hooks/useRelativeDateTime';
 import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
 import useOrganization from 'sentry/utils/useOrganization';
+import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 interface EventFunctionComparisonListProps {
   event: Event;
@@ -184,28 +184,35 @@ function EventComparisonListInner({
   const durationUnit = profilesQuery.data?.meta?.units?.['transaction.duration'] ?? '';
 
   return (
-    <Wrapper>
-      <EventDataSection type="profiles-before" title={t('Example Profiles Before')}>
-        <EventList
-          frameName={frameName}
-          framePackage={framePackage}
-          organization={organization}
-          profiles={beforeProfiles}
-          project={project}
-          unit={durationUnit}
-        />
-      </EventDataSection>
-      <EventDataSection type="profiles-after" title={t('Example Profiles After')}>
-        <EventList
-          frameName={frameName}
-          framePackage={framePackage}
-          organization={organization}
-          profiles={afterProfiles}
-          project={project}
-          unit={durationUnit}
-        />
-      </EventDataSection>
-    </Wrapper>
+    <InterimSection
+      type={SectionKey.REGRESSION_PROFILE_COMPARISON}
+      title={t('Profile Comparison')}
+    >
+      <Wrapper>
+        <div>
+          <Header>{t('Example Profiles Before')}</Header>
+          <EventList
+            frameName={frameName}
+            framePackage={framePackage}
+            organization={organization}
+            profiles={beforeProfiles}
+            project={project}
+            unit={durationUnit}
+          />
+        </div>
+        <div>
+          <Header>{t('Example Profiles After')}</Header>
+          <EventList
+            frameName={frameName}
+            framePackage={framePackage}
+            organization={organization}
+            profiles={afterProfiles}
+            project={project}
+            unit={durationUnit}
+          />
+        </div>
+      </Wrapper>
+    </InterimSection>
   );
 }
 
@@ -243,7 +250,6 @@ function EventList({
       </Container>
       <NumberContainer>
         <strong>{t('Duration')} </strong>
-        <QuestionTooltip size="xs" position="top" title={t('The profile duration')} />
       </NumberContainer>
       {profiles.map(item => {
         const target = generateProfileFlamechartRouteWithQuery({
@@ -292,9 +298,15 @@ function EventList({
   );
 }
 
+const Header = styled('h6')`
+  font-size: ${p => p.theme.fontSizeMedium};
+  margin-bottom: ${space(1)};
+`;
+
 const Wrapper = styled('div')`
   display: grid;
   grid-template-columns: 1fr;
+  gap: ${space(1)};
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
     grid-template-columns: 1fr 1fr;

@@ -7,7 +7,7 @@ from sentry.search.events.builder.profiles import (
     ProfilesTimeseriesQueryBuilder,
 )
 from sentry.search.events.fields import get_json_meta_type
-from sentry.search.events.types import ParamsType, QueryBuilderConfig, SnubaParams
+from sentry.search.events.types import QueryBuilderConfig, SnubaParams
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.discover import transform_tips, zerofill
 from sentry.snuba.metrics.extraction import MetricSpecType
@@ -18,8 +18,7 @@ from sentry.utils.snuba import SnubaTSResult
 def query(
     selected_columns: list[str],
     query: str | None,
-    params: ParamsType,
-    snuba_params: SnubaParams | None = None,
+    snuba_params: SnubaParams,
     equations: list[str] | None = None,
     orderby: list[str] | None = None,
     offset: int = 0,
@@ -43,7 +42,7 @@ def query(
 
     builder = ProfilesQueryBuilder(
         dataset=Dataset.Profiles,
-        params=params,
+        params={},
         query=query,
         snuba_params=snuba_params,
         selected_columns=selected_columns,
@@ -66,10 +65,9 @@ def query(
 def timeseries_query(
     selected_columns: list[str],
     query: str | None,
-    params: ParamsType,
+    snuba_params: SnubaParams,
     rollup: int,
     referrer: str = "",
-    snuba_params: SnubaParams | None = None,
     zerofill_results: bool = True,
     comparison_delta: datetime | None = None,
     functions_acl: list[str] | None = None,
@@ -80,13 +78,9 @@ def timeseries_query(
     on_demand_metrics_type: MetricSpecType | None = None,
     query_source: QuerySource | None = None,
 ) -> Any:
-
-    if len(params) == 0 and snuba_params is not None:
-        params = snuba_params.filter_params
-
     builder = ProfilesTimeseriesQueryBuilder(
         dataset=Dataset.Profiles,
-        params=params,
+        params={},
         snuba_params=snuba_params,
         query=query,
         interval=rollup,
@@ -102,8 +96,8 @@ def timeseries_query(
             "data": (
                 zerofill(
                     results["data"],
-                    params["start"],
-                    params["end"],
+                    snuba_params.start_date,
+                    snuba_params.end_date,
                     rollup,
                     ["time"],
                 )
@@ -117,7 +111,7 @@ def timeseries_query(
                 }
             },
         },
-        params["start"],
-        params["end"],
+        snuba_params.start_date,
+        snuba_params.end_date,
         rollup,
     )

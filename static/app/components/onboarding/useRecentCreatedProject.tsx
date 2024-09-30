@@ -20,16 +20,16 @@ export function useRecentCreatedProject({
   orgSlug,
   projectSlug,
 }: Props): undefined | OnboardingRecentCreatedProject {
-  const {isLoading: isProjectLoading, data: project} = useApiQuery<Project>(
+  const {isPending: isProjectLoading, data: project} = useApiQuery<Project>(
     [`/projects/${orgSlug}/${projectSlug}/`],
     {
       staleTime: 0,
       enabled: !!projectSlug,
-      refetchInterval: data => {
-        if (!data) {
+      refetchInterval: query => {
+        if (!query.state.data) {
           return false;
         }
-        const [projectData] = data;
+        const [projectData] = query.state.data;
         return projectData?.firstEvent ? false : DEFAULT_POLL_INTERVAL_MS;
       },
     }

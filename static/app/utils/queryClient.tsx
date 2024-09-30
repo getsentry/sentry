@@ -4,6 +4,7 @@ import type {
   QueryFunctionContext,
   SetDataOptions,
   Updater,
+  UseInfiniteQueryResult as _UseInfiniteQueryResult,
   UseQueryOptions,
   UseQueryResult,
 } from '@tanstack/react-query';
@@ -125,7 +126,11 @@ export function useApiQuery<TResponseData, TError = RequestError>(
   const api = useApi({persistInFlight: PERSIST_IN_FLIGHT});
   const queryFn = fetchDataQuery(api);
 
-  const {data, ...rest} = useQuery(queryKey, queryFn, options);
+  const {data, ...rest} = useQuery({
+    queryKey,
+    queryFn,
+    ...options,
+  });
 
   const queryResult = {
     data: data?.[0],
@@ -281,12 +286,15 @@ function parsePageParam(dir: 'previous' | 'next') {
  */
 export function useInfiniteApiQuery<TResponseData>({queryKey}: {queryKey: ApiQueryKey}) {
   const api = useApi({persistInFlight: PERSIST_IN_FLIGHT});
-  return useInfiniteQuery({
+  const query = useInfiniteQuery({
     queryKey,
     queryFn: fetchInfiniteQuery<TResponseData>(api),
     getPreviousPageParam: parsePageParam('previous'),
     getNextPageParam: parsePageParam('next'),
+    initialPageParam: undefined,
   });
+
+  return query;
 }
 
 type ApiMutationVariables<

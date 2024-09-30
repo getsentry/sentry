@@ -509,6 +509,7 @@ describe('WidgetBuilder', function () {
             utc: null,
             project: [],
             environment: [],
+            widgetType: 'discover',
           },
         })
       );
@@ -552,6 +553,7 @@ describe('WidgetBuilder', function () {
             utc: null,
             project: [],
             environment: [],
+            widgetType: 'discover',
           },
         })
       );
@@ -597,6 +599,39 @@ describe('WidgetBuilder', function () {
     });
 
     expect(handleSave).toHaveBeenCalledTimes(1);
+  });
+
+  it('can add additional fields and equation for Big Number with selection', async function () {
+    renderTestComponent({
+      query: {
+        displayType: DisplayType.BIG_NUMBER,
+      },
+      orgFeatures: [...defaultOrgFeatures, 'dashboards-bignumber-equations'],
+    });
+
+    // Add new field
+    await userEvent.click(screen.getByLabelText('Add Field'));
+    expect(screen.getByText('(Required)')).toBeInTheDocument();
+    await selectEvent.select(screen.getByText('(Required)'), ['count_unique(…)']);
+    expect(screen.getByRole('radio', {name: 'field1'})).toBeChecked();
+
+    // Add another new field
+    await userEvent.click(screen.getByLabelText('Add Field'));
+    expect(screen.getByText('(Required)')).toBeInTheDocument();
+    await selectEvent.select(screen.getByText('(Required)'), ['eps()']);
+    expect(screen.getByRole('radio', {name: 'field2'})).toBeChecked();
+
+    // Add an equation
+    await userEvent.click(screen.getByLabelText('Add an Equation'));
+    expect(screen.getByPlaceholderText('Equation')).toBeInTheDocument();
+    expect(screen.getByRole('radio', {name: 'field3'})).toBeChecked();
+    await userEvent.click(screen.getByPlaceholderText('Equation'));
+    await userEvent.paste('eps() + 100');
+
+    // Check if right value is displayed from equation
+    await userEvent.click(screen.getByPlaceholderText('Equation'));
+    await userEvent.paste('2 * 100');
+    expect(screen.getByText('200')).toBeInTheDocument();
   });
 
   it('can add equation fields', async function () {
@@ -956,7 +991,9 @@ describe('WidgetBuilder', function () {
     expect(await screen.findByText('tag:value')).toBeInTheDocument();
 
     // Table display, column, and sort field
-    expect(screen.getAllByText('count()')).toHaveLength(3);
+    await waitFor(() => {
+      expect(screen.getAllByText('count()')).toHaveLength(3);
+    });
     // Table display and column
     expect(screen.getAllByText('failure_count()')).toHaveLength(2);
     // Table display
@@ -1336,10 +1373,14 @@ describe('WidgetBuilder', function () {
     const {router} = renderTestComponent();
 
     const alertMock = jest.fn();
-    const setRouteLeaveHookMock = jest.spyOn(router, 'setRouteLeaveHook');
-    setRouteLeaveHookMock.mockImplementationOnce((_route, _callback) => {
-      return alertMock();
-    });
+    if (window.__SENTRY_USING_REACT_ROUTER_SIX) {
+      window.confirm = alertMock;
+    } else {
+      const setRouteLeaveHookMock = jest.spyOn(router, 'setRouteLeaveHook');
+      setRouteLeaveHookMock.mockImplementationOnce((_route, _callback) => {
+        return alertMock();
+      });
+    }
 
     const customWidgetLabels = await screen.findByText('Custom Widget');
     // EditableText and chart title
@@ -1362,10 +1403,14 @@ describe('WidgetBuilder', function () {
     const {router} = renderTestComponent();
 
     const alertMock = jest.fn();
-    const setRouteLeaveHookMock = jest.spyOn(router, 'setRouteLeaveHook');
-    setRouteLeaveHookMock.mockImplementationOnce((_route, _callback) => {
-      return alertMock();
-    });
+    if (window.__SENTRY_USING_REACT_ROUTER_SIX) {
+      window.confirm = alertMock;
+    } else {
+      const setRouteLeaveHookMock = jest.spyOn(router, 'setRouteLeaveHook');
+      setRouteLeaveHookMock.mockImplementationOnce((_route, _callback) => {
+        return alertMock();
+      });
+    }
 
     const descriptionTextArea = await screen.findByRole('textbox', {
       name: 'Widget Description',
@@ -1390,18 +1435,12 @@ describe('WidgetBuilder', function () {
   });
 
   it('does not trigger alert dialog if no changes', async function () {
-    const {router} = renderTestComponent();
+    renderTestComponent();
+    const alertMock = window.__SENTRY_USING_REACT_ROUTER_SIX
+      ? jest.spyOn(window, 'confirm')
+      : jest.spyOn(window, 'alert');
 
-    const alertMock = jest.fn();
-    const setRouteLeaveHookMock = jest.spyOn(router, 'setRouteLeaveHook');
-    setRouteLeaveHookMock.mockImplementationOnce((_route, _callback) => {
-      return alertMock();
-    });
-
-    // Click Cancel
     await userEvent.click(await screen.findByText('Cancel'));
-
-    // Assert an alert was triggered
     expect(alertMock).not.toHaveBeenCalled();
   });
 
@@ -1431,6 +1470,7 @@ describe('WidgetBuilder', function () {
               utc: null,
               project: [],
               environment: [],
+              widgetType: 'discover',
             },
           })
         );
@@ -1463,6 +1503,7 @@ describe('WidgetBuilder', function () {
               utc: null,
               project: [],
               environment: [],
+              widgetType: 'discover',
             },
           })
         );
@@ -1831,6 +1872,80 @@ describe('WidgetBuilder', function () {
         expect(screen.getByText('transaction.duration')).toBeInTheDocument();
         expect(screen.getByText('testFilter:value')).toBeInTheDocument();
       });
+
+      it('sets the correct default count_if parameters for the errors dataset', async function () {
+        dashboard = mockDashboard({
+          widgets: [
+            WidgetFixture({
+              displayType: DisplayType.TABLE,
+              widgetType: WidgetType.ERRORS,
+              queries: [
+                {
+                  name: 'Test Widget',
+                  fields: ['count()'],
+                  columns: [],
+                  aggregates: ['count()'],
+                  conditions: '',
+                  orderby: '',
+                },
+              ],
+            }),
+          ],
+        });
+
+        renderTestComponent({
+          orgFeatures: [...defaultOrgFeatures, 'performance-discover-dataset-selector'],
+          dashboard,
+          params: {
+            widgetIndex: '0',
+          },
+        });
+
+        await userEvent.click(await screen.findByTestId('label'));
+        await userEvent.click(screen.getByText(/count_if/));
+
+        const fieldLabels = screen.getAllByTestId('label');
+        expect(fieldLabels[0]).toHaveTextContent(/count_if/);
+        expect(fieldLabels[1]).toHaveTextContent('event.type');
+        expect(screen.getByDisplayValue('error')).toBeInTheDocument();
+      });
+
+      it('sets the correct default count_if parameters for the transactions dataset', async function () {
+        dashboard = mockDashboard({
+          widgets: [
+            WidgetFixture({
+              displayType: DisplayType.TABLE,
+              widgetType: WidgetType.TRANSACTIONS,
+              queries: [
+                {
+                  name: 'Test Widget',
+                  fields: ['count()'],
+                  columns: [],
+                  aggregates: ['count()'],
+                  conditions: '',
+                  orderby: '',
+                },
+              ],
+            }),
+          ],
+        });
+
+        renderTestComponent({
+          orgFeatures: [...defaultOrgFeatures, 'performance-discover-dataset-selector'],
+          dashboard,
+          params: {
+            widgetIndex: '0',
+          },
+        });
+
+        await userEvent.click(await screen.findByTestId('label'));
+        await userEvent.click(screen.getByText(/count_if/));
+
+        const fieldLabels = screen.getAllByTestId('label');
+        expect(fieldLabels[0]).toHaveTextContent(/count_if/);
+        expect(fieldLabels[1]).toHaveTextContent('transaction.duration');
+        expect(screen.getByDisplayValue('300')).toBeInTheDocument();
+      });
     });
 
     describe('events-stats', function () {
@@ -1969,6 +2084,80 @@ describe('WidgetBuilder', function () {
         expect(await screen.findByText(/p99\(…\)/i)).toBeInTheDocument();
         expect(screen.getByText('transaction.duration')).toBeInTheDocument();
         expect(screen.getByText('testFilter:value')).toBeInTheDocument();
+      });
+
+      it('sets the correct default count_if parameters for the errors dataset', async function () {
+        dashboard = mockDashboard({
+          widgets: [
+            WidgetFixture({
+              displayType: DisplayType.LINE,
+              widgetType: WidgetType.ERRORS,
+              queries: [
+                {
+                  name: 'Test Widget',
+                  fields: ['count()'],
+                  columns: [],
+                  aggregates: ['count()'],
+                  conditions: '',
+                  orderby: '',
+                },
+              ],
+            }),
+          ],
+        });
+
+        renderTestComponent({
+          orgFeatures: [...defaultOrgFeatures, 'performance-discover-dataset-selector'],
+          dashboard,
+          params: {
+            widgetIndex: '0',
+          },
+        });
+
+        await userEvent.click(await screen.findByTestId('label'));
+        await userEvent.click(screen.getByText(/count_if/));
+
+        const fieldLabels = screen.getAllByTestId('label');
+        expect(fieldLabels[0]).toHaveTextContent(/count_if/);
+        expect(fieldLabels[1]).toHaveTextContent('event.type');
+        expect(screen.getByDisplayValue('error')).toBeInTheDocument();
+      });
+
+      it('sets the correct default count_if parameters for the transactions dataset', async function () {
+        dashboard = mockDashboard({
+          widgets: [
+            WidgetFixture({
+              displayType: DisplayType.LINE,
+              widgetType: WidgetType.TRANSACTIONS,
+              queries: [
+                {
+                  name: 'Test Widget',
+                  fields: ['count()'],
+                  columns: [],
+                  aggregates: ['count()'],
+                  conditions: '',
+                  orderby: '',
+                },
+              ],
+            }),
+          ],
+        });
+
+        renderTestComponent({
+          orgFeatures: [...defaultOrgFeatures, 'performance-discover-dataset-selector'],
+          dashboard,
+          params: {
+            widgetIndex: '0',
+          },
+        });
+
+        await userEvent.click(await screen.findByTestId('label'));
+        await userEvent.click(screen.getByText(/count_if/));
+
+        const fieldLabels = screen.getAllByTestId('label');
+        expect(fieldLabels[0]).toHaveTextContent(/count_if/);
+        expect(fieldLabels[1]).toHaveTextContent('transaction.duration');
+        expect(screen.getByDisplayValue('300')).toBeInTheDocument();
       });
     });
 

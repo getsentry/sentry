@@ -13,7 +13,7 @@ export default function useFetchApiData<
 ) {
   const {fetchFn} = useApiEndpoint();
 
-  const infiniteQueryResult = useQuery<ApiEndpointQueryKey, Error, SelectFnData, any>({
+  const infiniteQueryResult = useQuery({
     queryFn: fetchFn<QueryFnData>,
     ...props,
   });

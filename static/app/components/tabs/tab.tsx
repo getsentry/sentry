@@ -100,8 +100,10 @@ export const BaseTab = forwardRef(
           borderStyle={borderStyle}
           ref={ref}
         >
-          <VariantStyledInteractionStateLayer hasSelectedBackground={false} />
-          <VariantFocusLayer />
+          {!isSelected && (
+            <VariantStyledInteractionStateLayer hasSelectedBackground={false} />
+          )}
+          <FilledFocusLayer />
           {props.children}
         </FilledTabWrap>
       );
@@ -226,12 +228,11 @@ const FilledTabWrap = styled('li', {shouldForwardProp: tabsShouldForwardProp})<{
     `}
   }
 
-  border-radius: 6px 6px 1px 1px;
-
   &[aria-selected='false'] {
     border-top: 1px solid transparent;
   }
 
+  border-radius: 6px 6px 1px 1px;
   padding: ${space(0.75)} ${space(1.5)};
 
   transform: translateY(1px);
@@ -363,6 +364,26 @@ const FocusLayer = styled('div')<{orientation: Orientation}>`
     box-shadow:
       ${p => p.theme.focusBorder} 0 0 0 1px,
       inset ${p => p.theme.focusBorder} 0 0 0 1px;
+  }
+`;
+
+const FilledFocusLayer = styled('div')`
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+
+  pointer-events: none;
+  border-radius: inherit;
+  z-index: 0;
+  transition: border 0.1s ease-out;
+  transition: border 0.1s ease-in;
+
+  li:focus-visible & {
+    border-top: 2px solid ${p => p.theme.focusBorder};
+    border-left: 2px solid ${p => p.theme.focusBorder};
+    border-right: 2px solid ${p => p.theme.focusBorder};
   }
 `;
 

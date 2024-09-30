@@ -9,9 +9,9 @@ from sentry.api.serializers.rest_framework.project import ProjectField
 from sentry.constants import SentryAppInstallationStatus
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.slack.utils.channel import get_channel_id, validate_channel_id
-from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.models.notificationaction import ActionService, ActionTarget, NotificationAction
 from sentry.models.project import Project
+from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.utils.strings import oxfordize_list
 
 
@@ -226,11 +226,7 @@ Required if **service_type** is `slack` or `opsgenie`.
         # If we've only received a channel name, ask slack for its id
         generic_error_message = f"Could not fetch channel id from Slack for '{channel_name}'. Try providing the channel id, or try again later."
         try:
-            channel_data = get_channel_id(
-                organization=self.context["organization"],
-                integration=self.integration,
-                channel_name=channel_name,
-            )
+            channel_data = get_channel_id(integration=self.integration, channel_name=channel_name)
         except Exception:
             raise serializers.ValidationError({"target_display": generic_error_message})
 

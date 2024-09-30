@@ -182,17 +182,6 @@ describe('EventTagsTree', function () {
       },
     },
     {
-      tag: {key: 'replayId', value: 'ghi789'},
-      labelText: 'View this replay',
-      validateLink: () => {
-        const linkElement = screen.getByRole('link', {name: 'ghi789'});
-        expect(linkElement).toHaveAttribute(
-          'href',
-          `/organizations/${organization.slug}/replays/ghi789/?referrer=${referrer}`
-        );
-      },
-    },
-    {
       tag: {key: 'external-link', value: 'https://example.com'},
       labelText: 'Visit this external link',
       validateLink: async () => {

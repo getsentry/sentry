@@ -17,7 +17,6 @@ export default function getFeedbackItemQueryKey({feedbackId, organization}: Prop
           {
             query: {
               collapse: ['release', 'tags'],
-              expand: ['inbox', 'owners'],
             },
           },
         ]

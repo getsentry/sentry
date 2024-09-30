@@ -709,7 +709,6 @@ METRIC_ALERTS_THREAD_DEFAULT = True
 METRICS_ACTIVATE_PERCENTILES_DEFAULT = True
 METRICS_ACTIVATE_LAST_FOR_GAUGES_DEFAULT = False
 DATA_CONSENT_DEFAULT = False
-EXTRAPOLATE_METRICS_DEFAULT = False
 UPTIME_AUTODETECTION = True
 
 # `sentry:events_member_admin` - controls whether the 'member' role gets the event:admin scope

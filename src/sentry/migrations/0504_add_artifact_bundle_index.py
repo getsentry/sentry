@@ -59,9 +59,6 @@ class Migration(CheckedMigration):
             ],
             options={
                 "db_table": "sentry_artifactbundleindex",
-                "index_together": {
-                    ("organization_id", "release_name", "dist_name", "url", "artifact_bundle")
-                },
             },
         ),
     ]
