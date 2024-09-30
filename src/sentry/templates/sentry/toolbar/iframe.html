@@ -12,6 +12,7 @@ Required context variables:
     <link rel="icon" type="image/png" href="{% absolute_asset_url "sentry" "images/favicon.png" %}">
   </head>
   <body>
+    {% script %}
     <script>
       const referrer = "{{ referrer|escapejs }}";
 
@@ -63,5 +64,6 @@ Required context variables:
       }, referrer, [port2]);
       log('Sent', {message: 'port-connect', referrer})
     </script>
+    {% endscript %}
   </body>
 </html>

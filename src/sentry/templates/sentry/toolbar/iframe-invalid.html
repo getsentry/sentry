@@ -13,6 +13,7 @@ Required context variables:
     <link rel="icon" type="image/png" href="{% absolute_asset_url "sentry" "images/favicon.png" %}" style="color:red">
   </head>
   <body>
+    {% script %}
     <script>
       const referrer = "{{ referrer|escapejs }}";
 
@@ -33,5 +34,6 @@ Required context variables:
 
       {% endif %}
     </script>
+    {% endscript %}
   </body>
 </html>
