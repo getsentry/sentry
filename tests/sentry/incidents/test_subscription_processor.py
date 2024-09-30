@@ -725,23 +725,12 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         label = self.trigger.label
 
         processor = SubscriptionProcessor(self.sub)
-        assert processor.has_anomaly(anomaly1, label, False)
-        assert processor.has_anomaly(anomaly1, warning_label, False)
-        assert not processor.has_anomaly(anomaly2, label, False)
-        assert processor.has_anomaly(anomaly2, warning_label, False)
-        assert not processor.has_anomaly(not_anomaly, label, False)
-        assert not processor.has_anomaly(not_anomaly, warning_label, False)
-
-    def test_fake_anomaly(self):
-        anomaly: TimeSeriesPoint = {
-            "anomaly": {"anomaly_score": 0.2, "anomaly_type": AnomalyType.NONE.value},
-            "timestamp": 1,
-            "value": 10,
-        }
-        label = self.trigger.label
-        processor = SubscriptionProcessor(self.sub)
-
-        assert processor.has_anomaly(anomaly, label, True)
+        assert processor.has_anomaly(anomaly1, label)
+        assert processor.has_anomaly(anomaly1, warning_label)
+        assert not processor.has_anomaly(anomaly2, label)
+        assert processor.has_anomaly(anomaly2, warning_label)
+        assert not processor.has_anomaly(not_anomaly, label)
+        assert not processor.has_anomaly(not_anomaly, warning_label)
 
     @with_feature("organizations:anomaly-detection-alerts")
     @mock.patch(
