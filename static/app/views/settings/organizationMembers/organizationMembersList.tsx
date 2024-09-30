@@ -69,9 +69,6 @@ const getInviteRequestsQueryKey = ({organization}): ApiQueryKey => [
   `/organizations/${organization.slug}/invite-requests/`,
 ];
 
-/**
- * Rewriting the class OrganizationMembersList to a function component
- */
 function OrganizationMembersList() {
   const queryClient = useQueryClient();
   const api = useApi({persistInFlight: true});
