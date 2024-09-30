@@ -17,6 +17,7 @@ This document is structured by resource with each resource having actions that c
   - start (optional, string) - ISO 8601 format (`YYYY-MM-DDTHH:mm:ss.sssZ`)
   - end (optional, string) - ISO 8601 format. Required if `start` is set.
   - statsPeriod (optional, string) - A positive integer suffixed with a unit type.
+  - cursor (optional, string)
   - per_page (optional, number)
     Default: 10
   - offset (optional, number)
