@@ -23,6 +23,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.examples.team_examples import TeamExamples
 from sentry.apidocs.parameters import GlobalParams, TeamParams
+from sentry.db.models.fields.slug import DEFAULT_SLUG_MAX_LENGTH
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.models.team import Team, TeamStatus
 
@@ -30,7 +31,7 @@ from sentry.models.team import Team, TeamStatus
 @extend_schema_serializer(exclude_fields=["name"])
 class TeamDetailsSerializer(CamelSnakeModelSerializer):
     slug = SentrySerializerSlugField(
-        max_length=50,
+        max_length=DEFAULT_SLUG_MAX_LENGTH,
         help_text="Uniquely identifies a team. This is must be available.",
     )
 
