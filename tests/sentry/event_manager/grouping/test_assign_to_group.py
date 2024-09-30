@@ -14,7 +14,7 @@ from sentry.grouping.ingest.hashing import (
     _calculate_secondary_hashes,
     find_existing_grouphash,
 )
-from sentry.grouping.ingest.metrics import record_calculation_metric_with_result
+from sentry.grouping.ingest.metrics import record_hash_calculation_metrics
 from sentry.models.grouphash import GroupHash
 from sentry.models.project import Project
 from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG, LEGACY_GROUPING_CONFIG
@@ -52,17 +52,17 @@ def patch_grouping_helpers(return_values: dict[str, Any]):
             wraps=_create_group,
         ) as create_group_spy,
         mock.patch(
-            "sentry.event_manager.record_calculation_metric_with_result",
+            "sentry.event_manager.record_hash_calculation_metrics",
             # No return-value-wrapping necessary here either, since it doesn't return anything
-            wraps=record_calculation_metric_with_result,
-        ) as record_calculation_metric_spy,
+            wraps=record_hash_calculation_metrics,
+        ) as record_calculation_metrics_spy,
     ):
         yield {
             "find_existing_grouphash": find_existing_grouphash_spy,
             "_calculate_primary_hashes": calculate_primary_hashes_spy,
             "_calculate_secondary_hashes": calculate_secondary_hashes_spy,
             "_create_group": create_group_spy,
-            "record_calculation_metric": record_calculation_metric_spy,
+            "record_calculation_metrics": record_calculation_metrics_spy,
         }
 
 
@@ -146,7 +146,7 @@ def get_results_from_saving_event(
         calculate_secondary_hash_spy = spies["_calculate_secondary_hashes"]
         create_group_spy = spies["_create_group"]
         calculate_primary_hash_spy = spies["_calculate_primary_hashes"]
-        record_calculation_metric_spy = spies["record_calculation_metric"]
+        record_calculation_metrics_spy = spies["record_calculation_metrics"]
 
         set_grouping_configs(
             project=project,
@@ -217,7 +217,7 @@ def get_results_from_saving_event(
                     existing_group_id
                 ), "Secondary grouphash already exists. Either something's wrong or you forgot to pass an existing group id"
 
-        result_tag_value_for_metrics = record_calculation_metric_spy.call_args.kwargs["result"]
+        result_tag_value_for_metrics = record_calculation_metrics_spy.call_args.args[5]
 
         return {
             "primary_hash_calculated": primary_hash_calculated,
