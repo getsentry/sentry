@@ -67,6 +67,7 @@ function Issue(props: IssueProps) {
     isPending,
     data: fetchedIssue,
     isError,
+    error,
   } = useApiQuery<Group>(
     [
       `/issues/${props.issue.issue_id}/`,
@@ -133,7 +134,11 @@ function Issue(props: IssueProps) {
       </AssineeWrapper>
     </StyledPanelItem>
   ) : isError ? (
-    <LoadingError message={t('Failed to fetch issue')} />
+    <LoadingError
+      message={
+        error.status === 404 ? t('This issue was deleted') : t('Failed to fetch issue')
+      }
+    />
   ) : null;
 }
 
