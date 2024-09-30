@@ -1,17 +1,5 @@
 import type {Theme} from '@emotion/react';
 
-import {
-  isAutogroupedNode,
-  isMissingInstrumentationNode,
-  isParentAutogroupedNode,
-  isRootNode,
-  isSiblingAutogroupedNode,
-  isSpanNode,
-  isTraceErrorNode,
-  isTraceNode,
-  isTransactionNode,
-} from '../traceGuards';
-
 import type {TraceTree} from './traceTree';
 
 export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> {
@@ -92,26 +80,6 @@ export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> 
     if (isTraceErrorNode(this)) {
       this.errors = new Set([this.value]);
     }
-  }
-
-  filter(
-    node: TraceTreeNode<TraceTree.NodeValue>,
-    predicate: (node: TraceTreeNode) => boolean
-  ): TraceTreeNode<TraceTree.NodeValue> {
-    const queue = [node];
-
-    while (queue.length) {
-      const next = queue.pop()!;
-      for (let i = 0; i < next.children.length; i++) {
-        if (!predicate(next.children[i])) {
-          next.children.splice(i, 1);
-        } else {
-          queue.push(next.children[i]);
-        }
-      }
-    }
-
-    return node;
   }
 
   get isOrphaned() {
@@ -213,6 +181,13 @@ export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> 
     return this._connectors;
   }
 
+  set connectors(connectors: number[] | undefined) {
+    this._connectors = connectors;
+  }
+  set depth(depth: number | undefined) {
+    this._depth = depth;
+  }
+
   /**
    * Returns the children that the node currently points to.
    * The logic here is a consequence of the tree design, where we want to be able to store
@@ -258,200 +233,6 @@ export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> 
     }
 
     return 'default';
-  }
-
-  /**
-   * Invalidate the visual data used to render the tree, forcing it
-   * to be recalculated on the next render. This is useful when for example
-   * the tree is expanded or collapsed, or when the tree is mutated and
-   * the visual data is no longer valid as the indentation changes
-   */
-  invalidate(root?: TraceTreeNode<TraceTree.NodeValue>) {
-    this._connectors = undefined;
-    this._depth = undefined;
-
-    if (root) {
-      const queue = [...this.children];
-
-      if (isParentAutogroupedNode(this)) {
-        queue.push(this.head);
-      }
-
-      while (queue.length > 0) {
-        const next = queue.pop()!;
-        next.invalidate();
-
-        if (isParentAutogroupedNode(next)) {
-          queue.push(next.head);
-        }
-
-        for (let i = 0; i < next.children.length; i++) {
-          queue.push(next.children[i]);
-        }
-      }
-    }
-  }
-
-  getVisibleChildrenCount(): number {
-    const stack: TraceTreeNode<TraceTree.NodeValue>[] = [];
-    let count = 0;
-
-    if (isParentAutogroupedNode(this)) {
-      if (this.expanded) {
-        return this.head.getVisibleChildrenCount();
-      }
-      return this.tail.getVisibleChildrenCount();
-    }
-
-    if (this.expanded || isMissingInstrumentationNode(this)) {
-      for (let i = this.children.length - 1; i >= 0; i--) {
-        stack.push(this.children[i]);
-      }
-    }
-
-    while (stack.length > 0) {
-      const node = stack.pop()!;
-      count++;
-      // Since we're using a stack and it's LIFO, reverse the children before pushing them
-      // to ensure they are processed in the original left-to-right order.
-      if (node.expanded || isParentAutogroupedNode(node)) {
-        for (let i = node.children.length - 1; i >= 0; i--) {
-          stack.push(node.children[i]);
-        }
-      }
-    }
-
-    return count;
-  }
-
-  getVisibleChildren(): TraceTreeNode<TraceTree.NodeValue>[] {
-    const stack: TraceTreeNode<TraceTree.NodeValue>[] = [];
-    const children: TraceTreeNode<TraceTree.NodeValue>[] = [];
-
-    if (
-      this.expanded ||
-      isParentAutogroupedNode(this) ||
-      isMissingInstrumentationNode(this)
-    ) {
-      for (let i = this.children.length - 1; i >= 0; i--) {
-        stack.push(this.children[i]);
-      }
-    }
-
-    while (stack.length > 0) {
-      const node = stack.pop()!;
-      children.push(node);
-      // Since we're using a stack and it's LIFO, reverse the children before pushing them
-      // to ensure they are processed in the original left-to-right order.
-      if (node.expanded || isParentAutogroupedNode(node)) {
-        for (let i = node.children.length - 1; i >= 0; i--) {
-          stack.push(node.children[i]);
-        }
-      }
-    }
-
-    return children;
-  }
-
-  // Returns the min path required to reach the node from the root.
-  // @TODO: skip nodes that do not require fetching
-  get path(): TraceTree.NodePath[] {
-    const nodes: TraceTreeNode<TraceTree.NodeValue>[] = [this];
-    let current: TraceTreeNode<TraceTree.NodeValue> | null = this.parent;
-
-    if (isSpanNode(this) || isAutogroupedNode(this)) {
-      while (
-        current &&
-        (isSpanNode(current) || (isAutogroupedNode(current) && !current.expanded))
-      ) {
-        current = current.parent;
-      }
-    }
-
-    while (current) {
-      if (isTransactionNode(current)) {
-        nodes.push(current);
-      }
-      if (isSpanNode(current)) {
-        nodes.push(current);
-
-        while (current.parent) {
-          if (isTransactionNode(current.parent)) {
-            break;
-          }
-          if (isAutogroupedNode(current.parent) && current.parent.expanded) {
-            break;
-          }
-          current = current.parent;
-        }
-      }
-      if (isAutogroupedNode(current)) {
-        nodes.push(current);
-      }
-
-      current = current.parent;
-    }
-
-    return nodes.map(nodeToId);
-  }
-
-  print() {
-    // root nodes are -1 indexed, so we add 1 to the depth so .repeat doesnt throw
-    const offset = this.depth === -1 ? 1 : 0;
-    const nodes = [this, ...this.getVisibleChildren()];
-    const print = nodes
-      .map(t => printTraceTreeNode(t, offset))
-      .filter(Boolean)
-      .join('\n');
-
-    // eslint-disable-next-line no-console
-    console.log(print);
-  }
-
-  static Find(
-    root: TraceTreeNode<TraceTree.NodeValue>,
-    predicate: (node: TraceTreeNode<TraceTree.NodeValue>) => boolean
-  ): TraceTreeNode<TraceTree.NodeValue> | null {
-    const queue = [root];
-
-    while (queue.length > 0) {
-      const next = queue.pop()!;
-
-      if (predicate(next)) {
-        return next;
-      }
-
-      if (isParentAutogroupedNode(next)) {
-        queue.push(next.head);
-      } else {
-        for (const child of next.children) {
-          queue.push(child);
-        }
-      }
-    }
-
-    return null;
-  }
-
-  static ForEachChild(
-    root: TraceTreeNode<TraceTree.NodeValue>,
-    cb: (node: TraceTreeNode<TraceTree.NodeValue>) => void
-  ): void {
-    const queue = [root];
-
-    while (queue.length > 0) {
-      const next = queue.pop()!;
-      cb(next);
-
-      if (isParentAutogroupedNode(next)) {
-        queue.push(next.head);
-      } else {
-        const children = next.spanChildren ? next.spanChildren : next.children;
-        for (const child of children) {
-          queue.push(child);
-        }
-      }
-    }
   }
 
   static Root() {

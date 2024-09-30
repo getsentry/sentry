@@ -81,7 +81,5 @@ export function makeExampleTrace(metadata: TraceTree.Metadata): TraceTree {
     start = end;
   }
 
-  const tree = TraceTree.FromTrace(trace, null, null);
-
-  return tree;
+  return TraceTree.FromTrace(trace, null, null);
 }

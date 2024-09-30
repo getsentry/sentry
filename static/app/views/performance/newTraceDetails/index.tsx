@@ -690,7 +690,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
 
       // We call expandToNode because we want to ensure that the node is
       // visible and may not have been collapsed/hidden by the user
-      TraceTree.ExpandToPath(tree, node.path, forceRerender, {
+      TraceTree.ExpandToPath(tree, TraceTree.PathToNode(node.path), forceRerender, {
         api,
         organization: props.organization,
       }).then(maybeNode => {
@@ -744,7 +744,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
   // focused node, but rather scrolls the node into view and sets the roving index to the node.
   const onScrollToNode = useCallback(
     (node: TraceTreeNode<TraceTree.NodeValue>) => {
-      TraceTree.ExpandToPath(tree, node.path, forceRerender, {
+      TraceTree.ExpandToPath(tree, node, forceRerender, {
         api,
         organization: props.organization,
       }).then(maybeNode => {

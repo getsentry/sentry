@@ -567,7 +567,7 @@ export class TraceTree {
       }
 
       if (value && 'measurements' in value) {
-        tree.collectMeasurements(
+        collectMeasurements(
           node,
           traceStart,
           value.measurements as Record<string, Measurement>,
@@ -585,8 +585,8 @@ export class TraceTree {
         // The swap can occur at a later point when new transactions are fetched,
         // which means we need to invalidate the tree and re-render the UI.
         childParentSwap({parent, child: node, reason: 'pageload server handler'});
-        parent.invalidate(parent);
-        node.invalidate(node);
+        TraceTree.invalidate(parent);
+        TraceTree.invalidate(node);
       }
 
       if (value && 'children' in value) {
@@ -766,7 +766,7 @@ export class TraceTree {
         'start_timestamp' in node.value &&
         'measurements' in node.value
       ) {
-        this.collectMeasurements(
+        collectMeasurements(
           node,
           baseTraceNode.space[0],
           node.value.measurements as Record<string, Measurement>,
@@ -780,10 +780,42 @@ export class TraceTree {
     // We need to invalidate the data in the last node of the tree
     // so that the connectors are updated and pointing to the sibling nodes
     const last = this.root.children[this.root.children.length - 1];
-    last.invalidate(last);
+    TraceTree.invalidate(last);
 
     for (const child of tree.root.children) {
-      this._list = this._list.concat(child.getVisibleChildren());
+      this._list = this._list.concat(TraceTree.VisibleChildren(child));
+    }
+  }
+
+  /**
+   * Invalidate the visual data used to render the tree, forcing it
+   * to be recalculated on the next render. This is useful when for example
+   * the tree is expanded or collapsed, or when the tree is mutated and
+   * the visual data is no longer valid as the indentation changes
+   */
+  static invalidate(root: TraceTreeNode<TraceTree.NodeValue>) {
+    root.connectors = undefined;
+    root.depth = undefined;
+
+    if (root) {
+      const queue = [...root.children];
+
+      if (isParentAutogroupedNode(root)) {
+        queue.push(root.head);
+      }
+
+      while (queue.length > 0) {
+        const next = queue.pop()!;
+        TraceTree.invalidate(root);
+
+        if (isParentAutogroupedNode(next)) {
+          queue.push(next.head);
+        }
+
+        for (let i = 0; i < next.children.length; i++) {
+          queue.push(next.children[i]);
+        }
+      }
     }
   }
 
@@ -791,7 +823,7 @@ export class TraceTree {
     start: TraceTreeNode<TraceTree.NodeValue>,
     eventId: string
   ): TraceTreeNode<TraceTree.NodeValue> | null {
-    return TraceTreeNode.Find(start, node => {
+    return TraceTree.Find(start, node => {
       if (isTransactionNode(node)) {
         return node.value.event_id === eventId;
       }
@@ -894,7 +926,7 @@ export class TraceTree {
     spans: TraceTree.RawSpan[],
     options: {sdk: string | undefined} | undefined
   ): [TraceTreeNode<TraceTree.NodeValue>, [number, number] | null] {
-    parent.invalidate(parent);
+    TraceTree.invalidate(parent);
     const platformHasMissingSpans = shouldAddMissingInstrumentationSpan(options?.sdk);
 
     let min_span_start = Number.POSITIVE_INFINITY;
@@ -1291,55 +1323,77 @@ export class TraceTree {
     }
   }
 
-  collectMeasurements(
-    node: TraceTreeNode<TraceTree.NodeValue>,
-    start_timestamp: number,
-    measurements: Record<string, Measurement>,
-    vitals: Map<TraceTreeNode<TraceTree.NodeValue>, TraceTree.CollectedVital[]>,
-    vital_types: Set<'web' | 'mobile'>,
-    indicators: TraceTree.Indicator[]
-  ): void {
-    for (const measurement of COLLECTABLE_MEASUREMENTS) {
-      const value = measurements[measurement];
+  static VisibleChildren(
+    root: TraceTreeNode<TraceTree.NodeValue>
+  ): TraceTreeNode<TraceTree.NodeValue>[] {
+    const stack: TraceTreeNode<TraceTree.NodeValue>[] = [];
+    const children: TraceTreeNode<TraceTree.NodeValue>[] = [];
 
-      if (!value || typeof value.value !== 'number') {
-        continue;
+    if (
+      root.expanded ||
+      isParentAutogroupedNode(root) ||
+      isMissingInstrumentationNode(root)
+    ) {
+      for (let i = root.children.length - 1; i >= 0; i--) {
+        stack.push(root.children[i]);
       }
-
-      if (!vitals.has(node)) {
-        vitals.set(node, []);
-      }
-
-      WEB_VITALS_LOOKUP.has(measurement) && vital_types.add('web');
-      MOBILE_VITALS_LOOKUP.has(measurement) && vital_types.add('mobile');
-
-      const vital = vitals.get(node)!;
-      vital.push({
-        key: measurement,
-        measurement: value,
-      });
-
-      if (!RENDERABLE_MEASUREMENTS[measurement]) {
-        continue;
-      }
-
-      const timestamp = measurementToTimestamp(
-        start_timestamp,
-        value.value,
-        value.unit ?? 'millisecond'
-      );
-
-      indicators.push({
-        start: timestamp,
-        duration: 0,
-        measurement: value,
-        poor: MEASUREMENT_THRESHOLDS[measurement]
-          ? value.value > MEASUREMENT_THRESHOLDS[measurement]
-          : false,
-        type: measurement as TraceTree.Indicator['type'],
-        label: (MEASUREMENT_ACRONYM_MAPPING[measurement] ?? measurement).toUpperCase(),
-      });
     }
+
+    while (stack.length > 0) {
+      const node = stack.pop()!;
+      children.push(node);
+      // Since we're using a stack and it's LIFO, reverse the children before pushing them
+      // to ensure they are processed in the original left-to-right order.
+      if (node.expanded || isParentAutogroupedNode(node)) {
+        for (let i = node.children.length - 1; i >= 0; i--) {
+          stack.push(node.children[i]);
+        }
+      }
+    }
+
+    return children;
+  }
+
+  // Returns the min path required to reach the node from the root.
+  // @TODO: skip nodes that do not require fetching
+  static PathToNode(node: TraceTreeNode<TraceTree.NodeValue>): TraceTree.NodePath[] {
+    const nodes: TraceTreeNode<TraceTree.NodeValue>[] = [node];
+    let current: TraceTreeNode<TraceTree.NodeValue> | null = node.parent;
+
+    if (isSpanNode(node) || isAutogroupedNode(node)) {
+      while (
+        current &&
+        (isSpanNode(current) || (isAutogroupedNode(current) && !current.expanded))
+      ) {
+        current = current.parent;
+      }
+    }
+
+    while (current) {
+      if (isTransactionNode(current)) {
+        nodes.push(current);
+      }
+      if (isSpanNode(current)) {
+        nodes.push(current);
+
+        while (current.parent) {
+          if (isTransactionNode(current.parent)) {
+            break;
+          }
+          if (isAutogroupedNode(current.parent) && current.parent.expanded) {
+            break;
+          }
+          current = current.parent;
+        }
+      }
+      if (isAutogroupedNode(current)) {
+        nodes.push(current);
+      }
+
+      current = current.parent;
+    }
+
+    return nodes.map(nodeToId);
   }
 
   // Returns boolean to indicate if node was updated
@@ -1359,10 +1413,10 @@ export class TraceTree {
       if (node.expanded) {
         const index = this._list.indexOf(node);
 
-        const autogroupedChildren = node.getVisibleChildren();
+        const autogroupedChildren = TraceTree.VisibleChildren(node);
         this._list.splice(index + 1, autogroupedChildren.length);
 
-        const newChildren = node.tail.getVisibleChildren();
+        const newChildren = TraceTree.VisibleChildren(node.tail);
 
         for (const c of node.tail.children) {
           c.parent = node;
@@ -1372,12 +1426,12 @@ export class TraceTree {
       } else {
         node.head.parent = node;
         const index = this._list.indexOf(node);
-        const childrenCount = node.getVisibleChildrenCount();
+        const childrenCount = TraceTree.VisibleChildren(node).length;
 
         this._list.splice(index + 1, childrenCount);
 
         const newChildren = [node.head].concat(
-          node.head.getVisibleChildren() as TraceTreeNode<TraceTree.Span>[]
+          TraceTree.VisibleChildren(node.head) as TraceTreeNode<TraceTree.Span>[]
         );
 
         for (const c of node.children) {
@@ -1387,21 +1441,21 @@ export class TraceTree {
         this._list.splice(index + 1, 0, ...newChildren);
       }
 
-      node.invalidate(node);
+      TraceTree.invalidate(node);
       node.expanded = expanded;
       return true;
     }
 
     if (node.expanded) {
       const index = this._list.indexOf(node);
-      this._list.splice(index + 1, node.getVisibleChildrenCount());
+      this._list.splice(index + 1, TraceTree.VisibleChildren(node).length);
       // Flip expanded after collecting visible children
       node.expanded = expanded;
     } else {
       const index = this._list.indexOf(node);
       // Flip expanded so that we can collect visible children
       node.expanded = expanded;
-      this._list.splice(index + 1, 0, ...node.getVisibleChildren());
+      this._list.splice(index + 1, 0, ...TraceTree.VisibleChildren(node));
     }
     node.expanded = expanded;
     return true;
@@ -1419,7 +1473,7 @@ export class TraceTree {
       return Promise.resolve(null);
     }
 
-    return TraceTree.ExpandToPath(tree, node.path, rerender, options);
+    return TraceTree.ExpandToPath(tree, TraceTree.PathToNode(node), rerender, options);
   }
 
   static ExpandToPath(
@@ -1505,6 +1559,72 @@ export class TraceTree {
     return recurseToRow();
   }
 
+  static Filter(
+    node: TraceTreeNode<TraceTree.NodeValue>,
+    predicate: (node: TraceTreeNode) => boolean
+  ): TraceTreeNode<TraceTree.NodeValue> {
+    const queue = [node];
+
+    while (queue.length) {
+      const next = queue.pop()!;
+      for (let i = 0; i < next.children.length; i++) {
+        if (!predicate(next.children[i])) {
+          next.children.splice(i, 1);
+        } else {
+          queue.push(next.children[i]);
+        }
+      }
+    }
+
+    return node;
+  }
+
+  static Find(
+    root: TraceTreeNode<TraceTree.NodeValue>,
+    predicate: (node: TraceTreeNode<TraceTree.NodeValue>) => boolean
+  ): TraceTreeNode<TraceTree.NodeValue> | null {
+    const queue = [root];
+
+    while (queue.length > 0) {
+      const next = queue.pop()!;
+
+      if (predicate(next)) {
+        return next;
+      }
+
+      if (isParentAutogroupedNode(next)) {
+        queue.push(next.head);
+      } else {
+        for (const child of next.children) {
+          queue.push(child);
+        }
+      }
+    }
+
+    return null;
+  }
+
+  static ForEachChild(
+    root: TraceTreeNode<TraceTree.NodeValue>,
+    cb: (node: TraceTreeNode<TraceTree.NodeValue>) => void
+  ): void {
+    const queue = [root];
+
+    while (queue.length > 0) {
+      const next = queue.pop()!;
+      cb(next);
+
+      if (isParentAutogroupedNode(next)) {
+        queue.push(next.head);
+      } else {
+        const children = next.spanChildren ? next.spanChildren : next.children;
+        for (const child of children) {
+          queue.push(child);
+        }
+      }
+    }
+  }
+
   zoomIn(
     node: TraceTreeNode<TraceTree.NodeValue>,
     zoomedIn: boolean,
@@ -1524,14 +1644,13 @@ export class TraceTree {
         return Promise.resolve(null);
       }
 
-      const childrenCount = node.getVisibleChildrenCount();
-      this._list.splice(index + 1, childrenCount);
+      this._list.splice(index + 1, TraceTree.VisibleChildren(node).length);
 
       node.zoomedIn = zoomedIn;
-      node.invalidate(node);
+      TraceTree.invalidate(node);
 
       if (node.expanded) {
-        this._list.splice(index + 1, 0, ...node.getVisibleChildren());
+        this._list.splice(index + 1, 0, ...TraceTree.VisibleChildren(node));
       }
 
       return Promise.resolve(null);
@@ -1582,7 +1701,7 @@ export class TraceTree {
         const spans = data.entries.find(s => s.type === 'spans') ?? {data: []};
 
         if (node.expanded) {
-          const childrenCount = node.getVisibleChildrenCount();
+          const childrenCount = TraceTree.VisibleChildren(node).length;
           if (childrenCount > 0) {
             this._list.splice(index + 1, childrenCount);
           }
@@ -1623,7 +1742,7 @@ export class TraceTree {
           }
         }
 
-        const spanChildren = node.getVisibleChildren();
+        const spanChildren = TraceTree.VisibleChildren(node);
         this._list.splice(index + 1, 0, ...spanChildren);
         return data;
       })
@@ -1869,7 +1988,7 @@ function findInTreeFromSegment(
     throw new TypeError('Node path must be in the format of `type-id`');
   }
 
-  return TraceTreeNode.Find(start, node => {
+  return TraceTree.Find(start, node => {
     if (type === 'txn' && isTransactionNode(node)) {
       return node.value.event_id === id;
     }
@@ -1899,4 +2018,55 @@ function findInTreeFromSegment(
 
     return false;
   });
+}
+
+function collectMeasurements(
+  node: TraceTreeNode<TraceTree.NodeValue>,
+  start_timestamp: number,
+  measurements: Record<string, Measurement>,
+  vitals: Map<TraceTreeNode<TraceTree.NodeValue>, TraceTree.CollectedVital[]>,
+  vital_types: Set<'web' | 'mobile'>,
+  indicators: TraceTree.Indicator[]
+): void {
+  for (const measurement of COLLECTABLE_MEASUREMENTS) {
+    const value = measurements[measurement];
+
+    if (!value || typeof value.value !== 'number') {
+      continue;
+    }
+
+    if (!vitals.has(node)) {
+      vitals.set(node, []);
+    }
+
+    WEB_VITALS_LOOKUP.has(measurement) && vital_types.add('web');
+    MOBILE_VITALS_LOOKUP.has(measurement) && vital_types.add('mobile');
+
+    const vital = vitals.get(node)!;
+    vital.push({
+      key: measurement,
+      measurement: value,
+    });
+
+    if (!RENDERABLE_MEASUREMENTS[measurement]) {
+      continue;
+    }
+
+    const timestamp = measurementToTimestamp(
+      start_timestamp,
+      value.value,
+      value.unit ?? 'millisecond'
+    );
+
+    indicators.push({
+      start: timestamp,
+      duration: 0,
+      measurement: value,
+      poor: MEASUREMENT_THRESHOLDS[measurement]
+        ? value.value > MEASUREMENT_THRESHOLDS[measurement]
+        : false,
+      type: measurement as TraceTree.Indicator['type'],
+      label: (MEASUREMENT_ACRONYM_MAPPING[measurement] ?? measurement).toUpperCase(),
+    });
+  }
 }
