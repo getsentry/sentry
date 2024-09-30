@@ -15,6 +15,7 @@ export const MOCK_RAW_FLAG_LOG: RawFlagData = {
       created_at: '2024-09-24T05:12:33',
       created_by: '1234',
       created_by_type: 'id',
+      tags: {},
     },
     {
       action: 'updated',
@@ -22,6 +23,7 @@ export const MOCK_RAW_FLAG_LOG: RawFlagData = {
       created_at: '2024-09-25T05:12:33',
       created_by: '1234',
       created_by_type: 'id',
+      tags: {},
     },
     {
       action: 'deleted',
@@ -29,6 +31,7 @@ export const MOCK_RAW_FLAG_LOG: RawFlagData = {
       created_at: '2024-09-26T05:12:33',
       created_by: '1234',
       created_by_type: 'id',
+      tags: {},
     },
   ],
 };
@@ -39,7 +42,7 @@ type RawFlag = {
   created_by: string;
   created_by_type: string;
   flag: string;
-  tags?: Record<string, string>;
+  tags: Record<string, string>;
 };
 
 export type RawFlagData = {data: RawFlag[]};
