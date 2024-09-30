@@ -1179,7 +1179,7 @@ def process_resource_change_bounds(job: PostProcessJob) -> None:
     if job["is_reprocessed"]:
         return
 
-    from sentry.tasks.sentry_apps import process_resource_change_bound
+    from sentry.sentry_apps.tasks.sentry_apps import process_resource_change_bound
 
     event, is_new = job["event"], job["group_state"]["is_new"]
 
