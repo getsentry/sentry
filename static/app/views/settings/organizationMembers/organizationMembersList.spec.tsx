@@ -1,3 +1,4 @@
+import {browserHistory} from 'react-router';
 import {AuthProviderFixture} from 'sentry-fixture/authProvider';
 import {MemberFixture} from 'sentry-fixture/member';
 import {MembersFixture} from 'sentry-fixture/members';
@@ -222,10 +223,8 @@ describe('OrganizationMembersList', function () {
     await waitFor(() => expect(addSuccessMessage).toHaveBeenCalled());
 
     expect(deleteMock).toHaveBeenCalled();
-    expect(router.push).toHaveBeenCalledTimes(1);
-    expect(router.push).toHaveBeenCalledWith(
-      expect.objectContaining({pathname: '/organizations/new/'})
-    );
+    expect(browserHistory.push).toHaveBeenCalledTimes(1);
+    expect(browserHistory.push).toHaveBeenCalledWith('/organizations/new/');
   });
 
   it('can redirect to remaining org after leaving', async function () {
@@ -251,10 +250,8 @@ describe('OrganizationMembersList', function () {
     await waitFor(() => expect(addSuccessMessage).toHaveBeenCalled());
 
     expect(deleteMock).toHaveBeenCalled();
-    expect(router.push).toHaveBeenCalledTimes(1);
-    expect(router.push).toHaveBeenCalledWith(
-      expect.objectContaining({pathname: `/organizations/${secondOrg.slug}/issues/`})
-    );
+    expect(browserHistory.push).toHaveBeenCalledTimes(1);
+    expect(browserHistory.push).toHaveBeenCalledWith('/organizations/org-two/issues/');
     expect(OrganizationsStore.getAll()).toEqual([secondOrg]);
   });
 
