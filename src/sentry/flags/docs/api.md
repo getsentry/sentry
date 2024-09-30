@@ -16,6 +16,7 @@ This document is structured by resource with each resource having actions that c
   - query (optional, string) - Search query with space-separated field/value pairs. ie: `?query=environment:prod AND project:3`.
   - start (optional, string) - ISO 8601 format (`YYYY-MM-DDTHH:mm:ss.sssZ`)
   - end (optional, string) - ISO 8601 format. Required if `start` is set.
+  - statsPeriod (optional, string) - A positive integer suffixed with a unit type.
   - per_page (optional, number)
     Default: 10
   - offset (optional, number)
@@ -34,7 +35,7 @@ Retrieve a collection of flag logs.
 | modified_at      | string | ISO-8601 timestamp of when the flag was changed.     |
 | modified_by      | string | The user responsible for the change.                 |
 | modified_by_type | string | Enum of `email`, `id`, or `name`.                    |
-| tags             | string | A collection of provider-specified scoping metadata. |
+| tags             | object | A collection of provider-specified scoping metadata. |
 
 - Response 200
 
@@ -92,14 +93,17 @@ Flag pole is Sentry owned. It matches our audit-log resource because it is desig
 
   ```json
   {
-    "data": {
-      "action": "modified",
-      "flag": "flag-name",
-      "modified_at": "2024-11-19T19:12:55",
-      "modified_by": "colton.allen@sentry.io",
-      "modified_by_type": "email",
-      "tags": {}
-    }
+    "data": [
+      {
+        "action": "modified",
+        "flag": "flag-name",
+        "modified_at": "2024-11-19T19:12:55",
+        "modified_by": "colton.allen@sentry.io",
+        "tags": {
+          "commit_sha": "1f33a107d7cd060ab9c98e11c9e5a62dc1347861"
+        }
+      }
+    ]
   }
   ```
 
