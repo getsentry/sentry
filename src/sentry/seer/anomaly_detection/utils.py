@@ -173,7 +173,7 @@ def get_dataset_from_label(dataset_label: str):
         dataset_label = "errors"
     elif dataset_label in ["generic_metrics", "transactions"]:
         # XXX: performance alerts dataset differs locally vs in prod
-        dataset_label = "discover"
+        dataset_label = "metricsEnhanced"
     dataset = get_dataset(dataset_label)
     if dataset is None:
         raise ParseError(detail=f"dataset must be one of: {', '.join(DATASET_OPTIONS.keys())}")
