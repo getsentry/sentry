@@ -2352,6 +2352,11 @@
         "kind": "DefaultOneToOneField",
         "model": "sentry.grouphash",
         "nullable": false
+      },
+      "seer_matched_grouphash": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.grouphash",
+        "nullable": true
       }
     },
     "model": "sentry.grouphashmetadata",
@@ -6184,6 +6189,11 @@
   "uptime.projectuptimesubscription": {
     "dangling": false,
     "foreign_keys": {
+      "environment": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.environment",
+        "nullable": true
+      },
       "owner_team": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.team",
