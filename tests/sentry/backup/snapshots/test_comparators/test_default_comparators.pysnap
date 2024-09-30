@@ -13,6 +13,11 @@ source: tests/sentry/backup/test_comparators.py
 - comparators:
   - class: ForeignKeyComparator
     fields:
+    - organization_id
+  model_name: flags.flagauditlogmodel
+- comparators:
+  - class: ForeignKeyComparator
+    fields:
     - apikey_id
     - organization
   model_name: hybridcloud.apikeyreplica
