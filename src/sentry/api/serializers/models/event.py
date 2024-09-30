@@ -4,7 +4,7 @@ import re
 from collections import defaultdict
 from collections.abc import Sequence
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, NotRequired, TypedDict
 
 import sentry_sdk
 import sqlparse
@@ -12,7 +12,8 @@ from sentry_relay.processing import meta_with_chunks
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.release import GroupEventReleaseSerializer
-from sentry.eventstore.models import Event, GroupEvent
+from sentry.eventstore.models import BaseEvent, Event, GroupEvent
+from sentry.interfaces.user import EventUserApiContext, User
 from sentry.models.eventattachment import EventAttachment
 from sentry.models.eventerror import EventError
 from sentry.models.release import Release
@@ -20,7 +21,6 @@ from sentry.models.userreport import UserReport
 from sentry.sdk_updates import SdkSetupState, get_suggested_updates
 from sentry.search.utils import convert_user_tag_to_query, map_device_class_level
 from sentry.stacktraces.processing import find_stacktraces_in_data
-from sentry.users.models.user import User
 from sentry.utils.json import prune_empty_keys
 from sentry.utils.safe import get_path
 
@@ -483,6 +483,33 @@ class SharedEventSerializer(EventSerializer):
         return result
 
 
+class SimpleEventTag(TypedDict):
+    key: str
+    value: str
+    query: NotRequired[str]
+
+
+SimpleEventSerializerResponse = TypedDict(
+    "SimpleEventSerializerResponse",
+    {
+        "id": str,
+        "event.type": str,
+        "groupID": str | None,
+        "eventID": str,
+        "projectID": str,
+        "message": str,
+        "title": str,
+        "location": str,
+        "culprit": str,
+        "user": EventUserApiContext | None,
+        "tags": list[SimpleEventTag],
+        "platform": str,
+        "dateCreated": datetime,
+        "crashFile": str | None,
+    },
+)
+
+
 class SimpleEventSerializer(EventSerializer):
     """
     Simple event serializer that renders a basic outline of an event without
@@ -505,17 +532,19 @@ class SimpleEventSerializer(EventSerializer):
         }
         return {event: {"crash_file": serialized_files.get(event.event_id)} for event in item_list}
 
-    def serialize(self, obj, attrs, user, **kwargs):
-        tags = [{"key": key.split("sentry:", 1)[-1], "value": value} for key, value in obj.tags]
+    def serialize(self, obj: BaseEvent, attrs, user, **kwargs) -> SimpleEventSerializerResponse:
+        tags: list[SimpleEventTag] = [
+            {"key": key.split("sentry:", 1)[-1], "value": value} for key, value in obj.tags
+        ]
         for tag in tags:
             query = convert_user_tag_to_query(tag["key"], tag["value"])
             if query:
                 tag["query"] = query
         map_device_class_tags(tags)
 
-        user = obj.get_minimal_user()
+        event_user = obj.get_minimal_user()
 
-        return {
+        response: SimpleEventSerializerResponse = {
             "id": str(obj.event_id),
             "event.type": str(obj.get_event_type()),
             "groupID": str(obj.group_id) if obj.group_id else None,
@@ -527,13 +556,15 @@ class SimpleEventSerializer(EventSerializer):
             "title": obj.title,
             "location": obj.location,
             "culprit": obj.culprit,
-            "user": user and user.get_api_context(),
+            "user": event_user and event_user.get_api_context(),
             "tags": tags,
             "platform": obj.platform,
             "dateCreated": obj.datetime,
             # Needed to generate minidump links in UI
             "crashFile": attrs["crash_file"],
         }
+
+        return response
 
 
 class ExternalEventSerializer(EventSerializer):
