@@ -5,6 +5,7 @@ import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {GroupTagsDrawer} from 'sentry/views/issueDetails/groupTags/groupTagsDrawer';
+import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
 export function useGroupTagsDrawer({
   groupId,
@@ -16,6 +17,7 @@ export function useGroupTagsDrawer({
   const location = useLocation();
   const navigate = useNavigate();
   const drawer = useDrawer();
+  const {baseUrl} = useGroupDetailsRoute();
 
   const openTagsDrawer = useCallback(() => {
     drawer.openDrawer(
@@ -25,8 +27,7 @@ export function useGroupTagsDrawer({
         onClose: () => {
           navigate(
             {
-              // Either /issue/:groupId/ or /group/:groupId/events/:eventId/
-              pathname: location.pathname.split('/tags/')[0],
+              pathname: baseUrl,
               query: {
                 ...location.query,
                 tagDrawerSort: undefined,
@@ -40,7 +41,7 @@ export function useGroupTagsDrawer({
         },
       }
     );
-  }, [location, navigate, drawer, projectSlug, groupId]);
+  }, [location, navigate, drawer, projectSlug, groupId, baseUrl]);
 
   return {openTagsDrawer};
 }
