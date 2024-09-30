@@ -1335,7 +1335,7 @@ def _save_aggregate_new(
             result = "found_secondary"
         # If we still haven't found a group, ask Seer for a match (if enabled for the project)
         else:
-            seer_matched_grouphash = maybe_check_seer_for_matching_grouphash(event)
+            seer_matched_grouphash = maybe_check_seer_for_matching_grouphash(event, all_grouphashes)
 
             if seer_matched_grouphash:
                 group_info = handle_existing_grouphash(job, seer_matched_grouphash, all_grouphashes)
@@ -1527,16 +1527,6 @@ def _create_group(
     first_release: Release | None = None,
     **group_creation_kwargs: Any,
 ) -> Group:
-    # Temporary log to debug events seeming to disappear after being sent to Seer
-    if event.data.get("seer_similarity"):
-        logger.info(
-            "seer.similarity.pre_create_group",
-            extra={
-                "event_id": event.event_id,
-                "hash": event.get_primary_hash(),
-                "project": project.id,
-            },
-        )
 
     short_id = _get_next_short_id(project)
 
@@ -1611,18 +1601,6 @@ def _create_group(
             # Maybe the stuck counter was hiding some other error
             logger.exception("Error after unsticking project counter")
             raise
-
-    # Temporary log to debug events seeming to disappear after being sent to Seer
-    if event.data.get("seer_similarity"):
-        logger.info(
-            "seer.similarity.post_create_group",
-            extra={
-                "event_id": event.event_id,
-                "hash": event.get_primary_hash(),
-                "project": project.id,
-                "group_id": group.id,
-            },
-        )
 
     return group
 
