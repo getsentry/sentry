@@ -143,9 +143,8 @@ function OrganizationMembersList() {
     }
 
     redirectToRemainingOrganization({
-      orgSlug: organization.slug,
+      orgId: organization.slug,
       removeOrg: true,
-      navigate,
     });
     addSuccessMessage(tct('You left [orgName]', {orgName: organization.slug}));
   };
