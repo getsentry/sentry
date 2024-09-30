@@ -1,4 +1,4 @@
-from csp.decorators import csp_update
+from csp.decorators import csp_update  # type: ignore[import-untyped]
 from django.http import HttpRequest
 
 from sentry.web.frontend.base import OrganizationView, region_silo_view

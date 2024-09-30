@@ -1,6 +1,6 @@
 from typing import Any
 
-from csp.decorators import csp_update
+from csp.decorators import csp_update  # type: ignore[import-untyped]
 from django.http import HttpRequest, HttpResponse
 
 from sentry.models.organization import Organization
