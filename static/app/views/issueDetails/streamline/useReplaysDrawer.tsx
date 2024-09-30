@@ -20,14 +20,17 @@ export function useReplaysDrawer({group, project}: {group: Group; project: Proje
       ariaLabel: t('Replays'),
       onClose: () => {
         // Remove drawer state from URL
-        navigate({
-          pathname: baseUrl,
-          query: {
-            ...location.query,
-            selected_replay_index: undefined,
-            cursor: undefined,
+        navigate(
+          {
+            pathname: baseUrl,
+            query: {
+              ...location.query,
+              selected_replay_index: undefined,
+              cursor: undefined,
+            },
           },
-        });
+          {replace: true}
+        );
       },
     });
   }, [openDrawer, group, project, baseUrl, navigate, location.query]);

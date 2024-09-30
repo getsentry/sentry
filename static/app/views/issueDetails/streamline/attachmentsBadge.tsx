@@ -45,6 +45,7 @@ export function AttachmentsBadge({group}: {group: Group}) {
         to={{
           pathname: `${baseUrl}${TabPaths[Tab.TAGS]}`,
           query: location.query,
+          replace: true,
         }}
       >
         {hasManyAttachments

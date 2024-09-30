@@ -50,7 +50,7 @@ export interface DrawerOptions {
   /**
    * If true (default), closes the drawer when the location changes
    */
-  shouldCloseOnLocationChange?: boolean;
+  shouldCloseOnLocationChange?: (newPathname: Location['pathname']) => boolean;
   //
   // Custom framer motion transition for the drawer
   //
@@ -109,14 +109,13 @@ export function GlobalDrawer({children}) {
 
   // Close the drawer when the browser history changes.
   useLayoutEffect(() => {
-    if (currentDrawerConfig?.options.shouldCloseOnLocationChange ?? true) {
+    if (
+      currentDrawerConfig?.options.shouldCloseOnLocationChange?.(location.pathname) ??
+      true
+    ) {
       closeDrawer();
     }
-  }, [
-    location?.pathname,
-    closeDrawer,
-    currentDrawerConfig?.options.shouldCloseOnLocationChange,
-  ]);
+  }, [location?.pathname, closeDrawer, currentDrawerConfig?.options]);
 
   // Close the drawer when clicking outside the panel and options allow it.
   const panelRef = useRef<HTMLDivElement>(null);

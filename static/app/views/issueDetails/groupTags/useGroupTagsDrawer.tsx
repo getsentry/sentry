@@ -23,16 +23,21 @@ export function useGroupTagsDrawer({
       {
         ariaLabel: t('Tags Drawer'),
         onClose: () => {
-          navigate({
-            // Either /issue/:groupId/ or /group/:groupId/events/:eventId/
-            pathname: location.pathname.split('/tags/')[0],
-            query: {
-              ...location.query,
-              tagDrawerSort: undefined,
+          navigate(
+            {
+              // Either /issue/:groupId/ or /group/:groupId/events/:eventId/
+              pathname: location.pathname.split('/tags/')[0],
+              query: {
+                ...location.query,
+                tagDrawerSort: undefined,
+              },
             },
-          });
+            {replace: true}
+          );
         },
-        shouldCloseOnLocationChange: false,
+        shouldCloseOnLocationChange: newPathname => {
+          return !newPathname.includes('/tags/');
+        },
       }
     );
   }, [location, navigate, drawer, projectSlug, groupId]);

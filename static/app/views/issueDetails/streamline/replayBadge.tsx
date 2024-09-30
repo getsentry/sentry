@@ -37,6 +37,7 @@ export function ReplayBadge({group, project}: {group: Group; project: Project}) 
         to={{
           pathname: `${baseUrl}${TabPaths[Tab.REPLAYS]}`,
           query: location.query,
+          replace: true,
         }}
       >
         {tn('%s Replay', '%s Replays', replaysCount)}

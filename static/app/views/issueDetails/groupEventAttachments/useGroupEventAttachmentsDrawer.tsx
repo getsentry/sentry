@@ -27,14 +27,17 @@ export function useGroupEventAttachmentsDrawer({
         ariaLabel: 'attachments drawer',
         onClose: () => {
           // Remove drawer state from URL
-          navigate({
-            pathname: baseUrl,
-            query: {
-              ...location.query,
-              attachmentFilter: undefined,
-              cursor: undefined,
+          navigate(
+            {
+              pathname: baseUrl,
+              query: {
+                ...location.query,
+                attachmentFilter: undefined,
+                cursor: undefined,
+              },
             },
-          });
+            {replace: true}
+          );
         },
         shouldCloseOnInteractOutside: element => {
           // Prevent closing the drawer when deleting an attachment
@@ -44,7 +47,6 @@ export function useGroupEventAttachmentsDrawer({
 
           return true;
         },
-        shouldCloseOnLocationChange: false,
       }
     );
   }, [location, navigate, drawer, project, group, baseUrl]);

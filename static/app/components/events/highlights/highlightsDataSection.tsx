@@ -268,6 +268,7 @@ export default function HighlightsDataSection({
       to={{
         pathname: `${baseUrl}${TabPaths[Tab.TAGS]}`,
         query: location.query,
+        replace: true,
       }}
       size="xs"
     >

@@ -62,6 +62,7 @@ export const EventTagsDataSection = forwardRef<HTMLElement, Props>(
             to={{
               pathname: `${location.pathname}${TabPaths[Tab.TAGS]}`,
               query: location.query,
+              replace: true,
             }}
             size="xs"
           >

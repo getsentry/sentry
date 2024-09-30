@@ -26,13 +26,16 @@ export function useUserFeedbackDrawer({
       ariaLabel: t('User Feedback'),
       onClose: () => {
         // Remove drawer state from URL
-        navigate({
-          pathname: baseUrl,
-          query: {
-            ...location.query,
-            cursor: undefined,
+        navigate(
+          {
+            pathname: baseUrl,
+            query: {
+              ...location.query,
+              cursor: undefined,
+            },
           },
-        });
+          {replace: true}
+        );
       },
     });
   }, [openDrawer, group, project, baseUrl, navigate, location.query]);

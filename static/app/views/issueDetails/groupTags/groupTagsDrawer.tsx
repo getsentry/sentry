@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import Alert from 'sentry/components/alert';
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
-import {Button, LinkButton} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Count from 'sentry/components/count';
 import DataExport, {ExportQueryType} from 'sentry/components/dataExport';
@@ -31,7 +31,6 @@ import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {percent} from 'sentry/utils';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
@@ -46,7 +45,6 @@ type GroupTagsDrawerProps = {
 export function GroupTagsDrawer({projectSlug, groupId}: GroupTagsDrawerProps) {
   const location = useLocation();
   const organization = useOrganization();
-  const navigate = useNavigate();
   const {tagKey} = useParams<{tagKey: string}>();
   const drawerRef = useRef<HTMLDivElement>(null);
   const {projects} = useProjects();
@@ -150,18 +148,17 @@ export function GroupTagsDrawer({projectSlug, groupId}: GroupTagsDrawerProps) {
                   <StyledPanel>
                     <PanelBody withPadding>
                       <TagHeading>
-                        <Button
+                        <LinkButton
                           priority="link"
                           size="zero"
-                          onClick={() => {
-                            navigate({
-                              pathname: `${location.pathname}${tag.key}/`,
-                              query: location.query,
-                            });
+                          to={{
+                            pathname: `${location.pathname}${tag.key}/`,
+                            query: location.query,
+                            replace: true,
                           }}
                         >
                           <span data-test-id="tag-title">{tag.key}</span>
-                        </Button>
+                        </LinkButton>
                       </TagHeading>
                       <UnstyledUnorderedList>
                         {tag.topValues.map((tagValue, tagValueIdx) => (
