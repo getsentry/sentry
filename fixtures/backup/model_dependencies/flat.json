@@ -850,6 +850,7 @@
     "sentry.user"
   ],
   "uptime.projectuptimesubscription": [
+    "sentry.environment",
     "sentry.project",
     "sentry.team",
     "sentry.user",

@@ -1,5 +1,5 @@
 ---
-created: '2024-09-27T21:32:53.399200+00:00'
+created: '2024-09-30T17:27:03.064802+00:00'
 creator: sentry
 source: tests/sentry/backup/test_comparators.py
 ---
@@ -1603,6 +1603,7 @@ source: tests/sentry/backup/test_comparators.py
 - comparators:
   - class: ForeignKeyComparator
     fields:
+    - environment
     - owner_team
     - owner_user_id
     - project
