@@ -17,6 +17,7 @@ export default function InviteMembersFooter({canSend}: Props) {
   const {
     complete,
     inviteStatus,
+    setInviteStatus,
     invites,
     pendingInvites,
     sendInvites,
@@ -26,12 +27,14 @@ export default function InviteMembersFooter({canSend}: Props) {
   const isValidInvites = invites.length > 0;
 
   const removeSentInvites = () => {
-    const statuses = Object.keys(inviteStatus);
-    statuses.forEach(status => {
-      if (!pendingInvites.emails.has(status)) {
-        delete inviteStatus[status];
+    const emails = Object.keys(inviteStatus);
+    let newInviteStatus = {};
+    emails.forEach(email => {
+      if (pendingInvites.emails.has(email)) {
+        newInviteStatus = {...newInviteStatus, [email]: inviteStatus[email]};
       }
     });
+    setInviteStatus(newInviteStatus);
   };
 
   return (

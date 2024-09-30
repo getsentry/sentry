@@ -15,6 +15,7 @@ export type InviteMembersContextProps = {
   sendInvites: () => void;
   sendingInvites: boolean;
   setEmails: (emails: string[], index: number) => void;
+  setInviteStatus: (inviteStatus: InviteStatus) => void;
   setRole: (role: string, index: number) => void;
   setTeams: (teams: string[], index: number) => void;
   willInvite: boolean;
@@ -36,6 +37,7 @@ export const defaultInviteProps = {
   setEmails: () => {},
   setRole: () => {},
   setTeams: () => {},
+  setInviteStatus: () => {},
   willInvite: false,
 };
 

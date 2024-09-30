@@ -2,6 +2,7 @@ import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 
 import type {
   InviteRow,
+  InviteStatus,
   NormalizedInvite,
 } from 'sentry/components/modals/inviteMembersModal/types';
 import {t} from 'sentry/locale';
@@ -231,6 +232,12 @@ export default function useInviteModal({organization, initialData, source}: Prop
     });
   }, []);
 
+  const setInviteStatus = useCallback((inviteStatus: InviteStatus) => {
+    setState(prev => {
+      return {...prev, inviteStatus};
+    });
+  }, []);
+
   const removeInviteRow = useCallback((index: number) => {
     setState(prev => {
       const pendingInvites = [...prev.pendingInvites];
@@ -250,6 +257,7 @@ export default function useInviteModal({organization, initialData, source}: Prop
     setEmails,
     setRole,
     setTeams,
+    setInviteStatus,
     willInvite,
     complete: state.complete,
     inviteStatus: state.inviteStatus,
