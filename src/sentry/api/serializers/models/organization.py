@@ -51,6 +51,7 @@ from sentry.constants import (
     UPTIME_AUTODETECTION,
     ObjectStatus,
 )
+from sentry.db.models.fields.slug import DEFAULT_SLUG_MAX_LENGTH
 from sentry.dynamic_sampling.tasks.common import get_organization_volume
 from sentry.dynamic_sampling.tasks.helpers.sliding_window import get_sliding_window_org_sample_rate
 from sentry.killswitches import killswitch_matches_context
@@ -101,7 +102,7 @@ class BaseOrganizationSerializer(serializers.Serializer):
     # 3. cannot end with a dash
     slug = SentrySerializerSlugField(
         org_slug=True,
-        max_length=50,
+        max_length=DEFAULT_SLUG_MAX_LENGTH,
     )
 
     def validate_slug(self, value: str) -> str:

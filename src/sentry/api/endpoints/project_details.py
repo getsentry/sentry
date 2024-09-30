@@ -45,7 +45,7 @@ from sentry.lang.native.sources import (
 )
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_MAX, convert_crashreport_count
 from sentry.models.group import Group, GroupStatus
-from sentry.models.project import Project
+from sentry.models.project import PROJECT_SLUG_MAX_LENGTH, Project
 from sentry.models.projectbookmark import ProjectBookmark
 from sentry.models.projectredirect import ProjectRedirect
 from sentry.notifications.utils import has_alert_integration
@@ -135,7 +135,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
     )
     slug = SentrySerializerSlugField(
         help_text="Uniquely identifies a project and is used for the interface.",
-        max_length=50,
+        max_length=PROJECT_SLUG_MAX_LENGTH,
         required=False,
     )
     platform = serializers.CharField(

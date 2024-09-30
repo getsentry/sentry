@@ -16,7 +16,8 @@ from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.api.serializers.rest_framework.project import ProjectField
 from sentry.constants import ObjectStatus
 from sentry.db.models import BoundedPositiveIntegerField
-from sentry.monitors.constants import MAX_SLUG_LENGTH, MAX_THRESHOLD, MAX_TIMEOUT
+from sentry.db.models.fields.slug import DEFAULT_SLUG_MAX_LENGTH
+from sentry.monitors.constants import MAX_THRESHOLD, MAX_TIMEOUT
 from sentry.monitors.models import CheckInStatus, Monitor, MonitorType, ScheduleType
 from sentry.monitors.schedule import get_next_schedule, get_prev_schedule
 from sentry.monitors.types import CrontabSchedule
@@ -246,7 +247,7 @@ class MonitorValidator(CamelSnakeSerializer):
         help_text="Name of the monitor. Used for notifications.",
     )
     slug = SentrySerializerSlugField(
-        max_length=MAX_SLUG_LENGTH,
+        max_length=DEFAULT_SLUG_MAX_LENGTH,
         required=False,
         help_text="Uniquely identifies your monitor within your organization. Changing this slug will require updates to any instrumented check-in calls.",
     )
