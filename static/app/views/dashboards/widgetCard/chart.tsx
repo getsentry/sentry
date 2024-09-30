@@ -209,13 +209,17 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
       const fields = Object.keys(tableMeta);
 
       let field = fields[0];
+      let selectedField = field;
 
       if (
         organization.features.includes('dashboards-bignumber-equations') &&
         defined(widget.queries[0].selectedAggregate)
       ) {
         const index = widget.queries[0].selectedAggregate;
-        field = widget.queries[0].aggregates[index];
+        selectedField = widget.queries[0].aggregates[index];
+        if (fields.includes(selectedField)) {
+          field = selectedField;
+        }
       }
 
       // Change tableMeta for the field from integer to string since we will be rendering with toLocaleString
@@ -224,7 +228,12 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
         tableMeta[field] = 'string';
       }
 
-      if (!field || !result.data?.length) {
+      if (
+        !field ||
+        !result.data?.length ||
+        selectedField === 'equation|' ||
+        selectedField === ''
+      ) {
         return <BigNumber key={`big_number:${result.title}`}>{'\u2014'}</BigNumber>;
       }
 
