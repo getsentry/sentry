@@ -46,7 +46,7 @@ class ProjectEventsEndpoint(ProjectEndpoint):
             CursorQueryParam,
             OpenApiParameter(
                 name="full",
-                description="If this is set to true then the event payload will include the full event body, including the stacktrace. Set to 1 to enable.",
+                description="If this is set to true, the event payload will include the full event body, including the stacktrace. Set to 1 to enable.",
                 required=False,
                 type=bool,
                 location="query",
