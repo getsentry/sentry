@@ -74,7 +74,7 @@ import MetricsOnboardingSidebar from 'sentry/views/metrics/ddmOnboarding/sidebar
 
 import {ProfilingOnboardingSidebar} from '../profiling/profilingOnboardingSidebar';
 
-import Broadcasts from './broadcasts';
+import {Broadcasts} from './broadcasts';
 import SidebarHelp from './help';
 import OnboardingStatus from './onboardingStatus';
 import ServiceIncidents from './serviceIncidents';
@@ -822,7 +822,6 @@ function Sidebar() {
                 currentPanel={activePanel}
                 onShowPanel={() => togglePanel(SidebarPanelKey.BROADCASTS)}
                 hidePanel={hidePanel}
-                organization={organization}
               />
               <ServiceIncidents
                 orientation={orientation}
