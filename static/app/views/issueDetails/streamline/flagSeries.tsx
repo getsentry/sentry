@@ -7,38 +7,38 @@ import {getFormattedDate} from 'sentry/utils/dates';
 import {useApiQuery} from 'sentry/utils/queryClient';
 // import useOrganization from 'sentry/utils/useOrganization';
 
-export const MOCK_RAW_FLAG_LOG = {
+export const MOCK_RAW_FLAG_LOG: RawFlagData = {
   data: [
     {
       action: 'created',
       flag: 'replay-mobile-ui',
-      modified_at: '2024-09-24T05:12:33',
-      modified_by: '1234',
-      modified_by_type: 'id',
+      created_at: '2024-09-24T05:12:33',
+      created_by: '1234',
+      created_by_type: 'id',
     },
     {
       action: 'updated',
       flag: 'sentry-pride-logo-footer',
-      modified_at: '2024-09-25T05:12:33',
-      modified_by: '1234',
-      modified_by_type: 'id',
+      created_at: '2024-09-25T05:12:33',
+      created_by: '1234',
+      created_by_type: 'id',
     },
     {
       action: 'deleted',
       flag: 'spam-ingest',
-      modified_at: '2024-09-26T05:12:33',
-      modified_by: '1234',
-      modified_by_type: 'id',
+      created_at: '2024-09-26T05:12:33',
+      created_by: '1234',
+      created_by_type: 'id',
     },
   ],
 };
 
 type RawFlag = {
   action: string;
+  created_at: string;
+  created_by: string;
+  created_by_type: string;
   flag: string;
-  modified_at: string;
-  modified_by: string;
-  modified_by_type: string;
   tags?: Record<string, string>;
 };
 
@@ -77,7 +77,7 @@ function hydrateFlagData({
   // each data point needs to be type FlagSeriesDatapoint
   const flagData = rawFlagData.data.map(f => {
     return {
-      xAxis: Date.parse(f.modified_at),
+      xAxis: Date.parse(f.created_at),
       name: `${f.flag} ${f.action}`,
     };
   });
