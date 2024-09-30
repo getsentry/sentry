@@ -17,6 +17,7 @@ import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -298,38 +299,58 @@ function CustomViewsIssueListHeaderTabsContent({
   }, [navigate, organization.slug, query, sort, viewId, tabListState]);
 
   // Update local tabs when new views are received from mutation request
-  useEffect(() => {
-    const currentViewId = viewId;
-    setDraggableTabs(
-      draggableTabs.map(tab => {
+  useEffectAfterFirstRender(() => {
+    const newlyCreatedViews = views.filter(
+      view => !draggableTabs.find(tab => tab.id === view.id)
+    );
+    const currentView = draggableTabs.find(tab => tab.id === viewId);
+
+    setDraggableTabs(oldDraggableTabs => {
+      const assignedIds = new Set();
+      return oldDraggableTabs.map(tab => {
+        // Temp viewIds are prefixed with '_'
         if (tab.id && tab.id[0] === '_') {
-          // Temp viewIds are prefixed with '_'
-          views.forEach(view => {
-            if (
+          const matchingView = newlyCreatedViews.find(
+            view =>
               view.id &&
+              !assignedIds.has(view.id) &&
               tab.query === view.query &&
               tab.querySort === view.querySort &&
               tab.label === view.name
-            ) {
-              if (tab.id === currentViewId) {
-                navigate(
-                  normalizeUrl({
-                    ...location,
-                    query: {
-                      ...queryParamsWithPageFilters,
-                      viewId: view.id,
-                    },
-                  }),
-                  {replace: true}
-                );
-              }
-              tab.id = view.id;
-            }
-          });
+          );
+          if (matchingView?.id) {
+            assignedIds.add(matchingView.id);
+            return {
+              ...tab,
+              id: matchingView.id,
+            };
+          }
         }
         return tab;
-      })
-    );
+      });
+    });
+
+    if (viewId.startsWith('_') && currentView) {
+      const matchingView = newlyCreatedViews.find(
+        view =>
+          view.id &&
+          currentView.query === view.query &&
+          currentView.querySort === view.querySort &&
+          currentView.label === view.name
+      );
+      if (matchingView?.id) {
+        navigate(
+          normalizeUrl({
+            ...location,
+            query: {
+              ...queryParamsWithPageFilters,
+              viewId: matchingView.id,
+            },
+          }),
+          {replace: true}
+        );
+      }
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [views]);
 
