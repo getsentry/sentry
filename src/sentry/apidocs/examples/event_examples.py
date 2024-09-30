@@ -26,6 +26,10 @@ class EventExamples:
                     "platform": "python",
                     "event.type": "error",
                     "groupID": "1889724436",
+                    "crashFile": None,
+                    "location": "example.py:123",
+                    "culprit": "/books/new/",
+                    "projectID": "49271",
                 }
             ],
             response_only=True,
