@@ -41,7 +41,7 @@ seer_anomaly_detection_connection_pool = connection_from_url(
 MIN_DAYS = 7
 
 
-class MethodString(StrEnum):
+class SeerMethod(StrEnum):
     CREATE = "create"
     UPDATE = "update"
 
@@ -97,7 +97,7 @@ def handle_send_historical_data_to_seer(
 
 def send_new_rule_data(alert_rule: AlertRule, project: Project, snuba_query: SnubaQuery) -> None:
     try:
-        handle_send_historical_data_to_seer(alert_rule, snuba_query, project, MethodString.CREATE)
+        handle_send_historical_data_to_seer(alert_rule, snuba_query, project, SeerMethod.CREATE)
     except (TimeoutError, MaxRetryError, ParseError, ValidationError):
         alert_rule.delete()
         raise
@@ -143,7 +143,7 @@ def update_rule_data(
             alert_rule,
             alert_rule.snuba_query,
             project,
-            MethodString.UPDATE,
+            SeerMethod.UPDATE,
             updated_query_fields.get("event_types"),
         )
 
