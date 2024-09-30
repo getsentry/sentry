@@ -29,7 +29,7 @@ This endpoint allows writes if any write-level "org" permission was provided.
 
 class OrganizationFlagHookPermission(OrganizationPermission):
     scope_map = {
-        "POST": ["org:write", "org:admin"],
+        "POST": ["org:ci"],
     }
 
 

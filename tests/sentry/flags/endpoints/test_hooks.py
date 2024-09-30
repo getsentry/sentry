@@ -84,7 +84,7 @@ class OrganizationFlagsHooksEndpointTestCase(APITestCase):
             token_hashed=hash_token(token),
             organization_id=self.organization.id,
             token_last_characters="xyz",
-            scope_list=["org:read", "org:write", "org:admin"],
+            scope_list=["org:ci"],
             date_last_used=None,
         )
 
