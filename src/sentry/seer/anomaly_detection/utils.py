@@ -42,15 +42,21 @@ def translate_direction(direction: int) -> str:
     return direction_map[AlertRuleThresholdType(direction)]
 
 
+def get_event_types(
+    snuba_query: SnubaQuery, event_types: list[SnubaQueryEventType.EventType] | None = None
+) -> list[SnubaQueryEventType.EventType]:
+    if not event_types:
+        event_types = snuba_query.event_types or []
+    return event_types
+
+
 def get_snuba_query_string(
     snuba_query: SnubaQuery, event_types: list[SnubaQueryEventType.EventType] | None = None
 ) -> str:
     """
     Generate a query string that matches what the OrganizationEventsStatsEndpoint does
     """
-    if not event_types:
-        event_types = snuba_query.event_types or []
-
+    event_types = get_event_types(snuba_query, event_types)
     if len(snuba_query.event_types) > 1:
         # e.g. '(is:unresolved) AND (event.type:[error, default])'
         event_types_list = [
@@ -234,8 +240,7 @@ def fetch_historical_data(
             start, end, project, alert_rule.organization, granularity
         )
     else:
-        if not event_types:
-            event_types = snuba_query.event_types
+        event_types = get_event_types(snuba_query, event_types)
         snuba_query_string = get_snuba_query_string(snuba_query, event_types)
         historical_data = dataset.timeseries_query(
             selected_columns=query_columns,
