@@ -132,9 +132,6 @@
     "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/events/{event_id}/": {
       "$ref": "paths/events/project-event-details.json"
     },
-    "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/events/": {
-      "$ref": "paths/events/project-events.json"
-    },
     "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/issues/": {
       "$ref": "paths/events/project-issues.json"
     },
