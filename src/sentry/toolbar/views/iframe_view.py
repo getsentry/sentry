@@ -1,5 +1,6 @@
 from typing import Any
 
+from csp.decorators import csp_update
 from django.http import HttpRequest, HttpResponse
 
 from sentry.models.organization import Organization
@@ -16,7 +17,11 @@ INVALID_TEMPLATE = "sentry/toolbar/iframe-invalid.html"
 class IframeView(OrganizationView):
     def respond(self, template: str, context: dict[str, Any] | None = None, status: int = 200):
         response = super().respond(template, context=context, status=status)
-        response["X-Frame-Options"] = "ALLOWALL"  # allows response to be embedded in an iframe.
+        # These HTTP headers allows response to be embedded in an iframe.
+        response["X-Frame-Options"] = "ALLOWALL"
+        response._csp_replace = {  # This is an alternative to @csp_replace decorator.
+            "frame-ancestors": [self.request.META.get(REFERRER_HEADER, "'none'")]
+        }
         return response
 
     def handle_auth_required(self, request: HttpRequest, *args, **kwargs):
@@ -42,6 +47,7 @@ class IframeView(OrganizationView):
         kwargs["project"] = active_project
         return args, kwargs
 
+    @csp_update(SCRIPT_SRC=["'unsafe-inline'"])
     def get(
         self, request: HttpRequest, organization: Organization, project: Project, *args, **kwargs
     ):
