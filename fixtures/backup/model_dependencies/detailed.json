@@ -6171,6 +6171,11 @@
   "uptime.projectuptimesubscription": {
     "dangling": false,
     "foreign_keys": {
+      "environment": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.environment",
+        "nullable": true
+      },
       "owner_team": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.team",

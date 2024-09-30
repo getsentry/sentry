@@ -12,5 +12,5 @@ remote_subscriptions: 0003_drop_remote_subscription
 replays: 0004_index_together
 sentry: 0769_add_seer_fields_to_grouphash_metadata
 social_auth: 0002_default_auto_field
-uptime: 0013_uptime_subscription_new_unique
+uptime: 0014_add_uptime_enviromnet
 workflow_engine: 0007_loosen_workflow_action_relationship
