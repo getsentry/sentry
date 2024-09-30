@@ -108,14 +108,24 @@ export function GlobalDrawer({children}) {
   }, [currentDrawerConfig, closeDrawer]);
 
   // Close the drawer when the browser history changes.
-  useLayoutEffect(() => {
-    if (
-      currentDrawerConfig?.options.shouldCloseOnLocationChange?.(location.pathname) ??
-      true
-    ) {
-      closeDrawer();
-    }
-  }, [location?.pathname, closeDrawer, currentDrawerConfig?.options]);
+  useLayoutEffect(
+    () => {
+      // Defaults to closing the drawer when the location changes
+      if (
+        currentDrawerConfig?.options.shouldCloseOnLocationChange?.(location.pathname) ??
+        true
+      ) {
+        closeDrawer();
+      }
+    },
+    // Ignoring changes to currentDrawerConfig?.options
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [
+      location?.pathname,
+      closeDrawer,
+      currentDrawerConfig?.options.shouldCloseOnLocationChange,
+    ]
+  );
 
   // Close the drawer when clicking outside the panel and options allow it.
   const panelRef = useRef<HTMLDivElement>(null);
