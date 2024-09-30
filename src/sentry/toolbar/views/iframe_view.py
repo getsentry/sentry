@@ -1,6 +1,5 @@
 from typing import Any
 
-from csp.decorators import csp_update  # type: ignore[import-untyped]
 from django.http import HttpRequest, HttpResponse
 
 from sentry.models.organization import Organization
@@ -48,7 +47,6 @@ class IframeView(OrganizationView):
         kwargs["project"] = active_project
         return args, kwargs
 
-    @csp_update(SCRIPT_SRC=["'unsafe-inline'"])
     def get(
         self, request: HttpRequest, organization: Organization, project: Project, *args, **kwargs
     ):

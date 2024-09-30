@@ -28,13 +28,6 @@ class LoginSuccessViewTest(APITestCase):
         assert res.status_code == 200
         self.assertTemplateUsed(res, SUCCESS_TEMPLATE)
 
-    @override_settings(CSP_INCLUDE_NONCE_IN=[])
-    def test_csp_script_src_unsafe_inline(self):
-        # TODO:
-        # Pass res through middleware
-        # Check
-        pass
-
     @override_settings(CSP_INCLUDE_NONCE_IN=["script-src"])
     def test_csp_script_src_nonce(self):
         # TODO:
