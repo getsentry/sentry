@@ -1,5 +1,3 @@
-// biome-ignore lint/nursery/noRestrictedImports: Will be removed with react router 6
-import {Link as RouterLink} from 'react-router';
 import {NavLink} from 'react-router-dom';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
@@ -8,7 +6,6 @@ import type {LocationDescriptor} from 'history';
 import {locationDescriptorToTo} from 'sentry/utils/reactRouter6Compat/location';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
-import useRouter from 'sentry/utils/useRouter';
 
 interface ListLinkProps
   extends Omit<
@@ -36,31 +33,20 @@ function ListLink({
   disabled = false,
   ...props
 }: ListLinkProps) {
-  const router = useRouter();
   const location = useLocation();
   const target = normalizeUrl(to);
 
   const active =
     isActive?.(target, index) ??
-    // XXX(epurkhiser): our shim for router.isActive will throw an error in
-    // react-router 6. Fallback to manually checking if the path is active
-    (window.__SENTRY_USING_REACT_ROUTER_SIX
-      ? location.pathname === (typeof target === 'string' ? target : target.pathname)
-      : router.isActive(target, index));
-
-  const link = window.__SENTRY_USING_REACT_ROUTER_SIX ? (
-    <NavLink {...props} to={disabled ? '' : locationDescriptorToTo(target)}>
-      {children}
-    </NavLink>
-  ) : (
-    <RouterLink {...props} onlyActiveOnIndex={index} to={disabled ? '' : target}>
-      {children}
-    </RouterLink>
-  );
+    // XXX(epurkhiser): This is carry over from the react-router 3 days.
+    // There's probably a a better way to detect active
+    location.pathname === (typeof target === 'string' ? target : target.pathname);
 
   return (
     <StyledLi className={classNames({active}, className)} disabled={disabled}>
-      {link}
+      <NavLink {...props} to={disabled ? '' : locationDescriptorToTo(target)}>
+        {children}
+      </NavLink>
     </StyledLi>
   );
 }

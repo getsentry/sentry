@@ -1,7 +1,5 @@
 import {forwardRef} from 'react';
-// biome-ignore lint/nursery/noRestrictedImports: Will be removed with react router 6
-import {Link as RouterLink} from 'react-router';
-import {Link as Router6Link} from 'react-router-dom';
+import {Link as RouterLink} from 'react-router-dom';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
@@ -49,17 +47,9 @@ function BaseLink({disabled, to, forwardedRef, ...props}: LinkProps): React.Reac
   to = normalizeUrl(to, location);
 
   if (!disabled && location) {
-    if (window.__SENTRY_USING_REACT_ROUTER_SIX) {
-      return (
-        <Router6Link
-          to={locationDescriptorToTo(to)}
-          ref={forwardedRef as any}
-          {...props}
-        />
-      );
-    }
-
-    return <RouterLink to={to} ref={forwardedRef as any} {...props} />;
+    return (
+      <RouterLink to={locationDescriptorToTo(to)} ref={forwardedRef as any} {...props} />
+    );
   }
 
   return <a href={typeof to === 'string' ? to : ''} ref={forwardedRef} {...props} />;
