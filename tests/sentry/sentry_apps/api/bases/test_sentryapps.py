@@ -94,7 +94,7 @@ class SentryAppPermissionTest(TestCase):
 
         assert self.permission.has_object_permission(request, None, self.sentry_app)
 
-        self.request._request.method = "POST"
+        request._request.method = "POST"
 
         with pytest.raises(Http404):
             self.permission.has_object_permission(request, None, self.sentry_app)
