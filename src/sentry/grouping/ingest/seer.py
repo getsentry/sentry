@@ -232,7 +232,9 @@ def get_seer_similar_issues(
     return (similar_issues_metadata, parent_grouphash)
 
 
-def maybe_check_seer_for_matching_grouphash(event: Event) -> GroupHash | None:
+def maybe_check_seer_for_matching_grouphash(
+    event: Event, all_grouphashes: list[GroupHash]
+) -> GroupHash | None:
     seer_matched_grouphash = None
 
     if should_call_seer_for_grouping(event):
