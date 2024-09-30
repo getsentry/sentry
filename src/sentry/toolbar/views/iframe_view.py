@@ -50,7 +50,6 @@ class IframeView(OrganizationView):
     def get(
         self, request: HttpRequest, organization: Organization, project: Project, *args, **kwargs
     ):
-        print("GET METHOD!!")
         referrer = request.META.get(REFERRER_HEADER)
         if not project:
             return self.respond(

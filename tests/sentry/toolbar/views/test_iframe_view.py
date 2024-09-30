@@ -7,7 +7,8 @@ from django.urls import reverse
 
 from sentry.middleware.placeholder import placeholder_get_response
 from sentry.testutils.cases import APITestCase
-from sentry.toolbar.views.iframe_view import INVALID_TEMPLATE, SUCCESS_TEMPLATE, IframeView
+from sentry.toolbar.utils.testutils import csp_has_directive
+from sentry.toolbar.views.iframe_view import INVALID_TEMPLATE, SUCCESS_TEMPLATE
 
 
 class IframeViewTest(APITestCase):
@@ -76,16 +77,31 @@ class IframeViewTest(APITestCase):
         self.project.update_option("sentry:toolbar_allowed_origins", [referrer])
         res = self.client.get(self.url, HTTP_REFERER=referrer)
         csp = res.headers.get("Content-Security-Policy", "")
-        # TODO: assert referrer in csp frame-ancestors
+        assert csp_has_directive(csp, "frame-ancestors", [referrer], ["'none'"])
 
     @override_settings(CSP_REPORT_ONLY=False, CSP_INCLUDE_NONCE_IN=["script-src"])
     def test_csp_script_src_nonce(self):
         referrer = "https://testsite.io"
         self.project.update_option("sentry:toolbar_allowed_origins", [referrer])
-        nonce = ""  # TODO:
-        # TODO: mock CSPMiddleware.process_request to add mock nonce
-        res = self.client.get(self.url, HTTP_REFERER=referrer)
-        # TODO: assert response template has nonce
+        mock_nonce = f"{'a'*22}=="
+
+        def mock_process_request(request):
+            request._csp_nonce = mock_nonce
+            request.csp_nonce = mock_nonce
+            return None
+
+        with patch(
+            "csp.middleware.CSPMiddleware.process_request", Mock(side_effect=mock_process_request)
+        ):
+            res = self.client.get(self.url, HTTP_REFERER=referrer)
+
+        # Header
+        csp = res.headers.get("Content-Security-Policy", "")
+        assert csp_has_directive(csp, "script-src", [f"'nonce-{mock_nonce}'"], [])
+
+        # Content
+        script_tag = f'<script nonce="{mock_nonce}">'
+        assert script_tag in res.content.decode("utf-8")
 
 
 def _has_expected_response(
