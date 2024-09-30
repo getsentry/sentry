@@ -1,4 +1,3 @@
-import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import type {Client} from 'sentry/api';
@@ -39,23 +38,24 @@ interface Props extends React.ComponentProps<typeof Hovercard> {
   repositoriesLoading?: boolean;
 }
 
-type State = {
-  visible: boolean;
-};
-
-class VersionHoverCard extends Component<Props, State> {
-  state: State = {
-    visible: false,
-  };
-
-  toggleHovercard() {
-    this.setState({
-      visible: true,
-    });
-  }
-
-  getRepoLink() {
-    const {organization} = this.props;
+function VersionHoverCard({
+  api: _api,
+  projectSlug: _projectSlug,
+  deploysLoading,
+  deploysError,
+  release,
+  releaseLoading,
+  releaseError,
+  repositories,
+  repositoriesLoading,
+  repositoriesError,
+  organization,
+  deploys,
+  releaseVersion,
+  children,
+  ...hovercardProps
+}: Props) {
+  function getRepoLink() {
     const orgSlug = organization.slug;
     return {
       header: null,
@@ -75,8 +75,7 @@ class VersionHoverCard extends Component<Props, State> {
     };
   }
 
-  getBody() {
-    const {releaseVersion, release, deploys} = this.props;
+  function getBody() {
     if (release === undefined || !defined(deploys)) {
       return {header: null, body: null};
     }
@@ -142,68 +141,52 @@ class VersionHoverCard extends Component<Props, State> {
     };
   }
 
-  render() {
-    const {
-      deploysLoading,
-      deploysError,
-      release,
-      releaseLoading,
-      releaseError,
-      repositories,
-      repositoriesLoading,
-      repositoriesError,
-    } = this.props;
-    let header: React.ReactNode = null;
-    let body: React.ReactNode = null;
+  let header: React.ReactNode = null;
+  let body: React.ReactNode = null;
 
-    const loading = !!(deploysLoading || releaseLoading || repositoriesLoading);
-    const error = deploysError ?? releaseError ?? repositoriesError;
-    const hasRepos = repositories && repositories.length > 0;
+  const loading = !!(deploysLoading || releaseLoading || repositoriesLoading);
+  const error = deploysError ?? releaseError ?? repositoriesError;
+  const hasRepos = repositories && repositories.length > 0;
 
-    if (loading) {
-      body = <LoadingIndicator mini />;
-    } else if (error) {
-      body = <LoadingError />;
-    } else {
-      const renderObj: {[key: string]: React.ReactNode} =
-        hasRepos && release ? this.getBody() : this.getRepoLink();
-      header = renderObj.header;
-      body = renderObj.body;
-    }
-
-    return (
-      <Hovercard {...this.props} header={header} body={body}>
-        {this.props.children}
-      </Hovercard>
-    );
+  if (loading) {
+    body = <LoadingIndicator mini />;
+  } else if (error) {
+    body = <LoadingError />;
+  } else {
+    const renderObj: {[key: string]: React.ReactNode} =
+      hasRepos && release ? getBody() : getRepoLink();
+    header = renderObj.header;
+    body = renderObj.body;
   }
+
+  return (
+    <Hovercard {...hovercardProps} header={header} body={body}>
+      {children}
+    </Hovercard>
+  );
 }
 
 interface VersionHoverHeaderProps {
   releaseVersion: string;
 }
 
-export class VersionHoverHeader extends Component<VersionHoverHeaderProps> {
-  render() {
-    return (
-      <HeaderWrapper>
-        {t('Release')}
-        <VersionWrapper>
-          <StyledVersion version={this.props.releaseVersion} truncate anchor={false} />
-
-          <CopyToClipboardButton
-            borderless
-            iconSize="xs"
-            size="zero"
-            text={this.props.releaseVersion}
-          />
-        </VersionWrapper>
-      </HeaderWrapper>
-    );
-  }
+function VersionHoverHeader({releaseVersion}: VersionHoverHeaderProps) {
+  return (
+    <HeaderWrapper>
+      {t('Release')}
+      <VersionWrapper>
+        <StyledVersion version={releaseVersion} truncate anchor={false} />
+        <CopyToClipboardButton
+          borderless
+          iconSize="xs"
+          size="zero"
+          text={releaseVersion}
+        />
+      </VersionWrapper>
+    </HeaderWrapper>
+  );
 }
 
-export {VersionHoverCard};
 export default withApi(withRelease(withRepositories(VersionHoverCard)));
 
 const ConnectRepo = styled('div')`
