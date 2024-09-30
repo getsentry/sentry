@@ -2334,6 +2334,11 @@
         "kind": "DefaultOneToOneField",
         "model": "sentry.grouphash",
         "nullable": false
+      },
+      "seer_matched_grouphash": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.grouphash",
+        "nullable": true
       }
     },
     "model": "sentry.grouphashmetadata",
