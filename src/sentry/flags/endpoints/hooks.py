@@ -65,8 +65,8 @@ class OrganizationFlagsHooksEndpoint(Endpoint):
 
     def post(self, request: Request, organization: Organization, provider: str) -> Response:
         try:
-            row_data = handle_provider_event(provider, request.data, organization.id)
-            FlagAuditLogModel.objects.create(**row_data)
+            rows_data = handle_provider_event(provider, request.data, organization.id)
+            FlagAuditLogModel.objects.bulk_create(FlagAuditLogModel(**row) for row in rows_data)
             return Response(status=200)
         except InvalidProvider:
             raise ResourceDoesNotExist
@@ -114,7 +114,7 @@ def handle_provider_event(
     provider: str,
     request_data: dict[str, Any],
     organization_id: int,
-) -> FlagAuditLogRow:
+) -> list[FlagAuditLogRow]:
     if provider == "flag-pole":
         return handle_flag_pole_event(request_data, organization_id)
     else:
@@ -128,26 +128,34 @@ limited to what we can extract from the git repository on merge.
 """
 
 
-class FlagPoleSerializer(serializers.Serializer):
+class FlagPoleItemSerializer(serializers.Serializer):
     action = serializers.ChoiceField(choices=("created", "updated"), required=True)
     flag = serializers.CharField(max_length=100, required=True)
     modified_at = serializers.DateTimeField(required=True)
     modified_by = serializers.CharField(required=True)
+    tags = serializers.DictField(required=True)
 
 
-def handle_flag_pole_event(request_data: dict[str, Any], organization_id: int) -> FlagAuditLogRow:
+class FlagPoleSerializer(serializers.Serializer):
+    data = serializers.ListSerializer(child=FlagPoleItemSerializer(), required=True)
+
+
+def handle_flag_pole_event(
+    request_data: dict[str, Any], organization_id: int
+) -> list[FlagAuditLogRow]:
     serializer = FlagPoleSerializer(data=request_data)
     if not serializer.is_valid():
         raise DeserializationError(serializer.errors)
 
-    validated_data = serializer.validated_data
-
-    return dict(
-        action=ACTION_MAP[validated_data["action"]],
-        flag=validated_data["flag"],
-        modified_at=validated_data["modified_at"],
-        modified_by=validated_data["modified_by"],
-        modified_by_type=MODIFIED_BY_TYPE_MAP["email"],
-        organization_id=organization_id,
-        tags={},
-    )
+    return [
+        dict(
+            action=ACTION_MAP[validated_item["action"]],
+            flag=validated_item["flag"],
+            modified_at=validated_item["modified_at"],
+            modified_by=validated_item["modified_by"],
+            modified_by_type=MODIFIED_BY_TYPE_MAP["email"],
+            organization_id=organization_id,
+            tags=validated_item["tags"],
+        )
+        for validated_item in serializer.validated_data["data"]
+    ]
