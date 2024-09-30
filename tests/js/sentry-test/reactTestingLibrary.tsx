@@ -130,11 +130,7 @@ function makeAllTheProviders(providers: ProviderOptions) {
         <CacheProvider value={{...cache, compat: true}}>
           <ThemeProvider theme={lightTheme}>
             <QueryClientProvider client={makeTestQueryClient()}>
-              {window.__SENTRY_USING_REACT_ROUTER_SIX ? (
-                <RouterProvider router={memoryRouter} />
-              ) : (
-                content
-              )}
+              <RouterProvider router={memoryRouter} />
             </QueryClientProvider>
           </ThemeProvider>
         </CacheProvider>
