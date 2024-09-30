@@ -4,6 +4,9 @@
     "sentry.organization",
     "sentry.project"
   ],
+  "flags.flagauditlogmodel": [
+    "sentry.organization"
+  ],
   "hybridcloud.apikeyreplica": [
     "sentry.apikey",
     "sentry.organization"
