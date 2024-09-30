@@ -1370,17 +1370,8 @@ describe('WidgetBuilder', function () {
   });
 
   it('alerts the user if there are unsaved title changes', async function () {
-    const {router} = renderTestComponent();
-
-    const alertMock = jest.fn();
-    if (window.__SENTRY_USING_REACT_ROUTER_SIX) {
-      window.confirm = alertMock;
-    } else {
-      const setRouteLeaveHookMock = jest.spyOn(router, 'setRouteLeaveHook');
-      setRouteLeaveHookMock.mockImplementationOnce((_route, _callback) => {
-        return alertMock();
-      });
-    }
+    renderTestComponent();
+    window.confirm = jest.fn();
 
     const customWidgetLabels = await screen.findByText('Custom Widget');
     // EditableText and chart title
@@ -1396,21 +1387,12 @@ describe('WidgetBuilder', function () {
     await userEvent.click(screen.getByText('Cancel'));
 
     // Assert an alert was triggered
-    expect(alertMock).toHaveBeenCalled();
+    expect(window.confirm).toHaveBeenCalled();
   });
 
   it('alerts the user if there are unsaved description changes', async function () {
-    const {router} = renderTestComponent();
-
-    const alertMock = jest.fn();
-    if (window.__SENTRY_USING_REACT_ROUTER_SIX) {
-      window.confirm = alertMock;
-    } else {
-      const setRouteLeaveHookMock = jest.spyOn(router, 'setRouteLeaveHook');
-      setRouteLeaveHookMock.mockImplementationOnce((_route, _callback) => {
-        return alertMock();
-      });
-    }
+    renderTestComponent();
+    window.confirm = jest.fn();
 
     const descriptionTextArea = await screen.findByRole('textbox', {
       name: 'Widget Description',
@@ -1431,14 +1413,12 @@ describe('WidgetBuilder', function () {
     await userEvent.click(screen.getByText('Cancel'));
 
     // Assert an alert was triggered
-    expect(alertMock).toHaveBeenCalled();
+    expect(window.confirm).toHaveBeenCalled();
   });
 
   it('does not trigger alert dialog if no changes', async function () {
     renderTestComponent();
-    const alertMock = window.__SENTRY_USING_REACT_ROUTER_SIX
-      ? jest.spyOn(window, 'confirm')
-      : jest.spyOn(window, 'alert');
+    const alertMock = jest.spyOn(window, 'confirm');
 
     await userEvent.click(await screen.findByText('Cancel'));
     expect(alertMock).not.toHaveBeenCalled();
