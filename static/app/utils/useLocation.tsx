@@ -14,7 +14,7 @@ type DefaultQuery<T = string> = {
 export function useLocation<Q extends Query = DefaultQuery>(): Location<Q> {
   // When running in test mode we still read from the legacy route context to
   // keep test compatability while we fully migrate to react router 6
-  const useReactRouter6 = window.__SENTRY_USING_REACT_ROUTER_SIX && NODE_ENV !== 'test';
+  const useReactRouter6 = NODE_ENV !== 'test';
 
   if (!useReactRouter6) {
     // biome-ignore lint/correctness/useHookAtTopLevel: react-router 6 migration
