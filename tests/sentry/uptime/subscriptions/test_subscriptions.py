@@ -133,6 +133,7 @@ class CreateProjectUptimeSubscriptionTest(UptimeTestCase):
     def test(self):
         created = get_or_create_project_uptime_subscription(
             self.project,
+            self.environment,
             url="https://sentry.io",
             interval_seconds=3600,
             timeout_ms=1000,
@@ -150,6 +151,7 @@ class CreateProjectUptimeSubscriptionTest(UptimeTestCase):
     def test_already_exists(self):
         assert get_or_create_project_uptime_subscription(
             self.project,
+            self.environment,
             url="https://sentry.io",
             interval_seconds=3600,
             timeout_ms=1000,
@@ -157,6 +159,7 @@ class CreateProjectUptimeSubscriptionTest(UptimeTestCase):
         )[1]
         assert not get_or_create_project_uptime_subscription(
             self.project,
+            self.environment,
             url="https://sentry.io",
             interval_seconds=3600,
             timeout_ms=1000,
@@ -177,6 +180,7 @@ class CreateProjectUptimeSubscriptionTest(UptimeTestCase):
     def test_different_modes(self):
         assert get_or_create_project_uptime_subscription(
             self.project,
+            self.environment,
             url="https://sentry.io",
             interval_seconds=3600,
             timeout_ms=1000,
@@ -184,6 +188,7 @@ class CreateProjectUptimeSubscriptionTest(UptimeTestCase):
         )[1]
         assert get_or_create_project_uptime_subscription(
             self.project,
+            self.environment,
             url="https://sentry.io",
             interval_seconds=3600,
             timeout_ms=1000,
@@ -206,6 +211,7 @@ class CreateProjectUptimeSubscriptionTest(UptimeTestCase):
         ):
             assert get_or_create_project_uptime_subscription(
                 self.project,
+                self.environment,
                 url="https://sentry.io",
                 interval_seconds=3600,
                 timeout_ms=1000,
@@ -214,6 +220,7 @@ class CreateProjectUptimeSubscriptionTest(UptimeTestCase):
             with pytest.raises(MaxManualUptimeSubscriptionsReached):
                 assert get_or_create_project_uptime_subscription(
                     self.project,
+                    self.environment,
                     url="https://santry.io",
                     interval_seconds=3600,
                     timeout_ms=1000,
@@ -226,6 +233,7 @@ class UpdateProjectUptimeSubscriptionTest(UptimeTestCase):
         with self.tasks():
             proj_sub = get_or_create_project_uptime_subscription(
                 self.project,
+                self.environment,
                 url="https://sentry.io",
                 interval_seconds=3600,
                 timeout_ms=1000,
@@ -234,6 +242,7 @@ class UpdateProjectUptimeSubscriptionTest(UptimeTestCase):
             prev_uptime_subscription = proj_sub.uptime_subscription
             update_project_uptime_subscription(
                 proj_sub,
+                environment=self.environment,
                 url="https://santry.io",
                 interval_seconds=60,
                 method="POST",
@@ -265,6 +274,7 @@ class UpdateProjectUptimeSubscriptionTest(UptimeTestCase):
         with self.tasks():
             proj_sub = get_or_create_project_uptime_subscription(
                 self.project,
+                self.environment,
                 url="https://sentry.io",
                 interval_seconds=3600,
                 timeout_ms=1000,
@@ -273,6 +283,7 @@ class UpdateProjectUptimeSubscriptionTest(UptimeTestCase):
             prev_uptime_subscription = proj_sub.uptime_subscription
             update_project_uptime_subscription(
                 proj_sub,
+                environment=self.environment,
                 url="https://santry.io",
                 interval_seconds=proj_sub.uptime_subscription.interval_seconds,
                 method=proj_sub.uptime_subscription.method,
@@ -298,6 +309,7 @@ class UpdateProjectUptimeSubscriptionTest(UptimeTestCase):
         with self.tasks():
             proj_sub = get_or_create_project_uptime_subscription(
                 self.project,
+                self.environment,
                 url="https://sentry.io",
                 interval_seconds=3600,
                 timeout_ms=1000,
@@ -305,6 +317,7 @@ class UpdateProjectUptimeSubscriptionTest(UptimeTestCase):
             )[0]
             other_proj_sub = get_or_create_project_uptime_subscription(
                 self.project,
+                self.environment,
                 url="https://santry.io",
                 interval_seconds=3600,
                 timeout_ms=1000,
@@ -313,6 +326,7 @@ class UpdateProjectUptimeSubscriptionTest(UptimeTestCase):
 
             update_project_uptime_subscription(
                 proj_sub,
+                environment=self.environment,
                 url=proj_sub.uptime_subscription.url,
                 interval_seconds=other_proj_sub.uptime_subscription.interval_seconds,
                 method=other_proj_sub.uptime_subscription.method,
@@ -339,6 +353,7 @@ class DeleteUptimeSubscriptionsForProjectTest(UptimeTestCase):
         other_project = self.create_project()
         proj_sub = get_or_create_project_uptime_subscription(
             self.project,
+            self.environment,
             url="https://sentry.io",
             interval_seconds=3600,
             timeout_ms=1000,
@@ -346,6 +361,7 @@ class DeleteUptimeSubscriptionsForProjectTest(UptimeTestCase):
         )[0]
         get_or_create_project_uptime_subscription(
             other_project,
+            self.environment,
             url="https://sentry.io",
             interval_seconds=3600,
             timeout_ms=1000,
@@ -367,6 +383,7 @@ class DeleteUptimeSubscriptionsForProjectTest(UptimeTestCase):
     def test_single_subscriptions(self):
         proj_sub = get_or_create_project_uptime_subscription(
             self.project,
+            self.environment,
             url="https://sentry.io",
             interval_seconds=3600,
             timeout_ms=1000,
@@ -400,6 +417,7 @@ class DeleteUptimeSubscriptionsForProjectTest(UptimeTestCase):
         other_project = self.create_project()
         other_proj_sub = get_or_create_project_uptime_subscription(
             other_project,
+            self.environment,
             url="https://sentry.io",
             interval_seconds=3600,
             timeout_ms=1000,
@@ -418,6 +436,7 @@ class DeleteUptimeSubscriptionsForProjectTest(UptimeTestCase):
     def test_delete_other_modes(self):
         proj_active_sub = get_or_create_project_uptime_subscription(
             self.project,
+            self.environment,
             url="https://sentry.io",
             interval_seconds=3600,
             timeout_ms=1000,
@@ -425,6 +444,7 @@ class DeleteUptimeSubscriptionsForProjectTest(UptimeTestCase):
         )[0]
         proj_manual_sub = get_or_create_project_uptime_subscription(
             self.project,
+            self.environment,
             url="https://sentry.io",
             interval_seconds=3600,
             timeout_ms=1000,
@@ -463,6 +483,7 @@ class DeleteProjectUptimeSubscriptionTest(UptimeTestCase):
         other_project = self.create_project()
         proj_sub = get_or_create_project_uptime_subscription(
             self.project,
+            self.environment,
             url="https://sentry.io",
             interval_seconds=3600,
             timeout_ms=1000,
@@ -471,6 +492,7 @@ class DeleteProjectUptimeSubscriptionTest(UptimeTestCase):
 
         other_sub = get_or_create_project_uptime_subscription(
             other_project,
+            self.environment,
             url="https://sentry.io",
             interval_seconds=3600,
             timeout_ms=1000,
@@ -490,6 +512,7 @@ class DeleteProjectUptimeSubscriptionTest(UptimeTestCase):
     def test_single_subscriptions(self):
         proj_sub = get_or_create_project_uptime_subscription(
             self.project,
+            self.environment,
             url="https://sentry.io",
             interval_seconds=3600,
             timeout_ms=1000,
@@ -517,6 +540,7 @@ class RemoveUptimeSubscriptionIfUnusedTest(UptimeTestCase):
     def test_keep(self):
         proj_sub = get_or_create_project_uptime_subscription(
             self.project,
+            self.environment,
             url="https://sentry.io",
             interval_seconds=3600,
             timeout_ms=1000,

@@ -2,6 +2,7 @@ from unittest import mock
 
 from rest_framework.exceptions import ErrorDetail
 
+from sentry.models.environment import Environment
 from sentry.testutils.helpers import with_feature
 from sentry.uptime.endpoints.validators import MAX_REQUEST_SIZE_BYTES
 from sentry.uptime.models import ProjectUptimeSubscription, ProjectUptimeSubscriptionMode
@@ -33,6 +34,7 @@ class ProjectUptimeAlertIndexPostEndpointTest(ProjectUptimeAlertIndexBaseEndpoin
             self.organization.slug,
             self.project.slug,
             name="test",
+            environment="uptime-prod",
             owner=f"user:{self.user.id}",
             url="http://sentry.io",
             interval_seconds=60,
@@ -41,6 +43,32 @@ class ProjectUptimeAlertIndexPostEndpointTest(ProjectUptimeAlertIndexBaseEndpoin
         uptime_monitor = ProjectUptimeSubscription.objects.get(id=resp.data["id"])
         uptime_subscription = uptime_monitor.uptime_subscription
         assert uptime_monitor.name == "test"
+        assert uptime_monitor.environment == Environment.get_or_create(
+            project=self.project, name="uptime-prod"
+        )
+        assert uptime_monitor.owner_user_id == self.user.id
+        assert uptime_monitor.owner_team_id is None
+        assert uptime_monitor.mode == ProjectUptimeSubscriptionMode.MANUAL
+        assert uptime_subscription.url == "http://sentry.io"
+        assert uptime_subscription.interval_seconds == 60
+        assert uptime_subscription.timeout_ms == DEFAULT_SUBSCRIPTION_TIMEOUT_MS
+        assert uptime_subscription.body is None
+
+    @with_feature("organizations:uptime-api-create-update")
+    def test_no_environment(self):
+        resp = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            name="test",
+            owner=f"user:{self.user.id}",
+            url="http://sentry.io",
+            interval_seconds=60,
+            body=None,
+        )
+        uptime_monitor = ProjectUptimeSubscription.objects.get(id=resp.data["id"])
+        uptime_subscription = uptime_monitor.uptime_subscription
+        assert uptime_monitor.name == "test"
+        assert uptime_monitor.environment is None
         assert uptime_monitor.owner_user_id == self.user.id
         assert uptime_monitor.owner_team_id is None
         assert uptime_monitor.mode == ProjectUptimeSubscriptionMode.MANUAL
@@ -54,6 +82,7 @@ class ProjectUptimeAlertIndexPostEndpointTest(ProjectUptimeAlertIndexBaseEndpoin
         resp = self.get_success_response(
             self.organization.slug,
             self.project.slug,
+            environment=self.environment.name,
             name="test",
             url="http://sentry.io",
             owner=None,
@@ -74,6 +103,7 @@ class ProjectUptimeAlertIndexPostEndpointTest(ProjectUptimeAlertIndexBaseEndpoin
         resp = self.get_error_response(
             self.organization.slug,
             self.project.slug,
+            environment=self.environment.name,
             name="test",
             owner=f"user:{self.user.id}",
             url="http://sentry.io",
@@ -91,6 +121,7 @@ class ProjectUptimeAlertIndexPostEndpointTest(ProjectUptimeAlertIndexBaseEndpoin
         resp = self.get_success_response(
             self.organization.slug,
             self.project.slug,
+            environment=self.environment.name,
             name="test",
             owner=f"user:{self.user.id}",
             url="http://sentry.io",
@@ -112,6 +143,7 @@ class ProjectUptimeAlertIndexPostEndpointTest(ProjectUptimeAlertIndexBaseEndpoin
         resp = self.get_success_response(
             self.organization.slug,
             self.project.slug,
+            environment=self.environment.name,
             name="test",
             owner=f"user:{self.user.id}",
             url="http://sentry.io",
@@ -137,6 +169,7 @@ class ProjectUptimeAlertIndexPostEndpointTest(ProjectUptimeAlertIndexBaseEndpoin
         resp = self.get_success_response(
             self.organization.slug,
             self.project.slug,
+            environment=self.environment.name,
             name="test",
             owner=f"user:{self.user.id}",
             url="http://sentry.io",
@@ -150,6 +183,7 @@ class ProjectUptimeAlertIndexPostEndpointTest(ProjectUptimeAlertIndexBaseEndpoin
         resp = self.get_success_response(
             self.organization.slug,
             new_proj.slug,
+            environment=self.environment.name,
             name="test",
             owner=f"user:{self.user.id}",
             url="http://sentry.io",
@@ -164,6 +198,7 @@ class ProjectUptimeAlertIndexPostEndpointTest(ProjectUptimeAlertIndexBaseEndpoin
         resp = self.get_success_response(
             self.organization.slug,
             new_proj.slug,
+            environment=self.environment.name,
             name="test",
             owner=f"user:{self.user.id}",
             url="http://sentry.io",
@@ -182,6 +217,7 @@ class ProjectUptimeAlertIndexPostEndpointTest(ProjectUptimeAlertIndexBaseEndpoin
         resp = self.get_error_response(
             self.organization.slug,
             self.project.slug,
+            environment=self.environment.name,
             name="test",
             owner=f"user:{self.user.id}",
             url="http://sentry.io",
@@ -200,6 +236,7 @@ class ProjectUptimeAlertIndexPostEndpointTest(ProjectUptimeAlertIndexBaseEndpoin
         resp = self.get_error_response(
             self.organization.slug,
             self.project.slug,
+            environment=self.environment.name,
             name="test",
             owner=f"user:{self.user.id}",
             url="http://sentry.io",
@@ -225,6 +262,7 @@ class ProjectUptimeAlertIndexPostEndpointTest(ProjectUptimeAlertIndexBaseEndpoin
             self.get_success_response(
                 self.organization.slug,
                 self.project.slug,
+                environment=self.environment.name,
                 name="test",
                 url="http://sentry.io",
                 interval_seconds=60,
@@ -233,6 +271,7 @@ class ProjectUptimeAlertIndexPostEndpointTest(ProjectUptimeAlertIndexBaseEndpoin
             self.get_error_response(
                 self.organization.slug,
                 self.project.slug,
+                environment=self.environment.name,
                 name="test",
                 url="http://santry.io",
                 interval_seconds=60,

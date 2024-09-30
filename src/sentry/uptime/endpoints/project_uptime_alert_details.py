@@ -92,6 +92,7 @@ class ProjectUptimeAlertDetailsEndpoint(ProjectUptimeAlertEndpoint):
             instance=uptime_subscription,
             context={
                 "organization": project.organization,
+                "project": project,
                 "access": request.access,
                 "request": request,
             },

@@ -7,6 +7,7 @@ from django.db.models import TextField
 from django.db.models.expressions import Value
 from django.db.models.functions import MD5, Coalesce
 
+from sentry.models.environment import Environment
 from sentry.models.project import Project
 from sentry.types.actor import Actor
 from sentry.uptime.detectors.url_extraction import extract_domain_parts
@@ -142,6 +143,7 @@ def delete_uptime_subscription(uptime_subscription: UptimeSubscription):
 
 def get_or_create_project_uptime_subscription(
     project: Project,
+    environment: Environment | None,
     url: str,
     interval_seconds: int,
     timeout_ms: int = DEFAULT_SUBSCRIPTION_TIMEOUT_MS,
@@ -174,6 +176,7 @@ def get_or_create_project_uptime_subscription(
             owner_team_id = owner.id
     return ProjectUptimeSubscription.objects.get_or_create(
         project=project,
+        environment=environment,
         uptime_subscription=uptime_subscription,
         mode=mode.value,
         name=name,
@@ -184,6 +187,7 @@ def get_or_create_project_uptime_subscription(
 
 def update_project_uptime_subscription(
     uptime_monitor: ProjectUptimeSubscription,
+    environment: Environment | None,
     url: str,
     interval_seconds: int,
     method: str,
@@ -217,6 +221,7 @@ def update_project_uptime_subscription(
             owner_user_id = None
 
     uptime_monitor.update(
+        environment=environment,
         uptime_subscription=new_uptime_subscription,
         name=name,
         mode=mode,
