@@ -68,13 +68,12 @@ function SharedGroupDetails({params}: Props) {
     return <LoadingError onRetry={refetch} />;
   }
 
-  const title = group?.title ?? 'Sentry';
   // project.organization is not a real organization, it's just the slug and name
   // Add the features array to avoid errors when using OrganizationContext
   const org = {...group.project.organization, features: []};
 
   return (
-    <SentryDocumentTitle noSuffix title={title}>
+    <SentryDocumentTitle noSuffix title={group?.title ?? 'Sentry'}>
       <OrganizationContext.Provider value={org}>
         <div className="app">
           <div className="pattern-bg" />
