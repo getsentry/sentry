@@ -1,4 +1,3 @@
-import {Component} from 'react';
 import {type RouteObject, RouterProvider, useRouteError} from 'react-router-dom';
 import {cache} from '@emotion/css'; // eslint-disable-line @emotion/no-vanilla
 import {CacheProvider, ThemeProvider} from '@emotion/react';
@@ -11,7 +10,6 @@ import {makeTestQueryClient} from 'sentry-test/queryClient';
 
 import {GlobalDrawer} from 'sentry/components/globalDrawer';
 import GlobalModal from 'sentry/components/globalModal';
-import {SentryPropTypeValidators} from 'sentry/sentryPropTypeValidators';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {QueryClientProvider} from 'sentry/utils/queryClient';
@@ -41,20 +39,6 @@ function makeAllTheProviders(providers: ProviderOptions) {
     organization: providers.organization === null ? undefined : providers.organization,
     router: providers.router,
   });
-
-  class LegacyRouterProvider extends Component<{children?: React.ReactNode}> {
-    static childContextTypes = {
-      router: SentryPropTypeValidators.isObject,
-    };
-
-    getChildContext() {
-      return {router};
-    }
-
-    render() {
-      return this.props.children;
-    }
-  }
 
   // In some cases we may want to not provide an organization at all
   const optionalOrganization = providers.organization === null ? null : organization;
@@ -126,15 +110,13 @@ function makeAllTheProviders(providers: ProviderOptions) {
     }).initialize();
 
     return (
-      <LegacyRouterProvider>
-        <CacheProvider value={{...cache, compat: true}}>
-          <ThemeProvider theme={lightTheme}>
-            <QueryClientProvider client={makeTestQueryClient()}>
-              <RouterProvider router={memoryRouter} />
-            </QueryClientProvider>
-          </ThemeProvider>
-        </CacheProvider>
-      </LegacyRouterProvider>
+      <CacheProvider value={{...cache, compat: true}}>
+        <ThemeProvider theme={lightTheme}>
+          <QueryClientProvider client={makeTestQueryClient()}>
+            <RouterProvider router={memoryRouter} />
+          </QueryClientProvider>
+        </ThemeProvider>
+      </CacheProvider>
     );
   };
 }
