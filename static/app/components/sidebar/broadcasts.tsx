@@ -1,5 +1,6 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 
+import {markBroadcastsAsSeen} from 'sentry/actionCreators/broadcasts';
 import DemoModeGate from 'sentry/components/acl/demoModeGate';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {BroadcastPanelItem} from 'sentry/components/sidebar/broadcastPanelItem';
@@ -9,7 +10,7 @@ import SidebarPanelEmpty from 'sentry/components/sidebar/sidebarPanelEmpty';
 import {IconBroadcast} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Broadcast} from 'sentry/types/system';
-import {useApiQuery, useMutation} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
@@ -43,37 +44,30 @@ export function Broadcasts({
     }
   );
 
-  const {mutate: markBroadcastsAsSeen} = useMutation({
-    mutationFn: (unseenPostIds: string[]) => {
-      return api.requestPromise('/broadcasts/', {
-        method: 'PUT',
-        query: {id: unseenPostIds},
-        data: {hasSeen: '1'},
-      });
-    },
-  });
-
   const unseenPostIds = useMemo(
     () => broadcasts.filter(item => !item.hasSeen).map(item => item.id),
     [broadcasts]
   );
 
-  const handleShowPanel = useCallback(() => {
+  const markSeen = useCallback(async () => {
     if (unseenPostIds.length === 0) {
-      onShowPanel();
       return;
     }
 
+    await markBroadcastsAsSeen(api, unseenPostIds);
+  }, [api, unseenPostIds]);
+
+  const handleShowPanel = useCallback(() => {
     if (markSeenTimeoutRef.current) {
       window.clearTimeout(markSeenTimeoutRef.current);
     }
 
     markSeenTimeoutRef.current = window.setTimeout(() => {
-      markBroadcastsAsSeen(unseenPostIds);
+      markSeen();
     }, MARK_SEEN_DELAY);
 
     onShowPanel();
-  }, [onShowPanel, unseenPostIds, markBroadcastsAsSeen]);
+  }, [onShowPanel, markSeen]);
 
   useEffect(() => {
     if (
