@@ -211,7 +211,9 @@ def find_existing_grouphash(
     return None
 
 
-def get_or_create_grouphashes(project: Project, hashes: Sequence[str]) -> list[GroupHash]:
+def get_or_create_grouphashes(
+    project: Project, hashes: Sequence[str], grouping_config: str
+) -> list[GroupHash]:
     grouphashes = []
 
     for hash_value in hashes:
