@@ -110,7 +110,7 @@ describe('ProjectFilters', function () {
 
     expect(
       await screen.findByRole('checkbox', {
-        name: 'Internet Explorer Verison 11 and lower',
+        name: 'Internet Explorer Version 11 and lower',
       })
     ).toBeChecked();
 
