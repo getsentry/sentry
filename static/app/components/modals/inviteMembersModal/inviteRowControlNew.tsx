@@ -1,4 +1,4 @@
-import {useCallback, useContext, useState} from 'react';
+import {useCallback, useState} from 'react';
 import type {MultiValueProps} from 'react-select';
 import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
@@ -6,7 +6,7 @@ import styled from '@emotion/styled';
 
 import type {StylesConfig} from 'sentry/components/forms/controls/selectControl';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
-import {InviteMembersContext} from 'sentry/components/modals/inviteMembersModal/inviteMembersContext';
+import {useInviteMembersContext} from 'sentry/components/modals/inviteMembersModal/inviteMembersContext';
 import RoleSelectControl from 'sentry/components/roleSelectControl';
 import TeamSelector from 'sentry/components/teamSelector';
 import {t} from 'sentry/locale';
@@ -37,7 +37,7 @@ function mapToOptions(values: string[]): SelectOption[] {
 
 function InviteRowControl({roleDisabledUnallowed, roleOptions}: Props) {
   const {inviteStatus, pendingInvites, setEmails, setRole, setTeams, reset} =
-    useContext(InviteMembersContext);
+    useInviteMembersContext();
   const emails = [...(pendingInvites.emails ?? [])];
   const role = pendingInvites.role ?? '';
   const teams = [...(pendingInvites.teams ?? [])];

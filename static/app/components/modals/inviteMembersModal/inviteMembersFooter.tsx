@@ -1,20 +1,41 @@
-import {Fragment, useContext} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import ButtonBar from 'sentry/components/buttonBar';
 import InviteButton from 'sentry/components/modals/inviteMembersModal/inviteButton';
-import {InviteMembersContext} from 'sentry/components/modals/inviteMembersModal/inviteMembersContext';
+import {useInviteMembersContext} from 'sentry/components/modals/inviteMembersModal/inviteMembersContext';
 import InviteStatusMessage from 'sentry/components/modals/inviteMembersModal/inviteStatusMessage';
 import {space} from 'sentry/styles/space';
+import useOrganization from 'sentry/utils/useOrganization';
 
 interface Props {
   canSend: boolean;
 }
 
 export default function InviteMembersFooter({canSend}: Props) {
-  const {complete, inviteStatus, invites, sendInvites, sendingInvites, willInvite} =
-    useContext(InviteMembersContext);
+  const organization = useOrganization();
+  const {
+    complete,
+    inviteStatus,
+    setInviteStatus,
+    invites,
+    pendingInvites,
+    sendInvites,
+    sendingInvites,
+    willInvite,
+  } = useInviteMembersContext();
   const isValidInvites = invites.length > 0;
+
+  const removeSentInvites = () => {
+    const emails = Object.keys(inviteStatus);
+    let newInviteStatus = {};
+    emails.forEach(email => {
+      if (pendingInvites.emails.has(email)) {
+        newInviteStatus = {...newInviteStatus, [email]: inviteStatus[email]};
+      }
+    });
+    setInviteStatus(newInviteStatus);
+  };
 
   return (
     <FooterContent>
@@ -38,7 +59,11 @@ export default function InviteMembersFooter({canSend}: Props) {
             data-test-id="send-invites"
             priority="primary"
             disabled={!canSend || !isValidInvites}
-            onClick={sendInvites}
+            onClick={() => {
+              organization.features.includes('invite-members-new-modal') &&
+                removeSentInvites();
+              sendInvites();
+            }}
           />
         </Fragment>
       </ButtonBar>

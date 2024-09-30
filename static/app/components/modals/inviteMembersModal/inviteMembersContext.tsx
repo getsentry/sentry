@@ -1,4 +1,4 @@
-import {createContext} from 'react';
+import {createContext, useContext} from 'react';
 
 import type {
   InviteRow,
@@ -6,7 +6,7 @@ import type {
   NormalizedInvite,
 } from 'sentry/components/modals/inviteMembersModal/types';
 
-export type InviteMembersContextProps = {
+export type InviteMembersContextValue = {
   complete: boolean;
   inviteStatus: InviteStatus;
   invites: NormalizedInvite[];
@@ -15,6 +15,7 @@ export type InviteMembersContextProps = {
   sendInvites: () => void;
   sendingInvites: boolean;
   setEmails: (emails: string[], index: number) => void;
+  setInviteStatus: (inviteStatus: InviteStatus) => void;
   setRole: (role: string, index: number) => void;
   setTeams: (teams: string[], index: number) => void;
   willInvite: boolean;
@@ -36,8 +37,20 @@ export const defaultInviteProps = {
   setEmails: () => {},
   setRole: () => {},
   setTeams: () => {},
+  setInviteStatus: () => {},
   willInvite: false,
 };
 
-export const InviteMembersContext =
-  createContext<InviteMembersContextProps>(defaultInviteProps);
+export const InviteMembersContext = createContext<InviteMembersContextValue | null>(null);
+
+export function useInviteMembersContext(): InviteMembersContextValue {
+  const context = useContext(InviteMembersContext);
+
+  if (!context) {
+    throw new Error(
+      'useInviteMembersContext must be used within a InviteMembersContext.Provider'
+    );
+  }
+
+  return context;
+}
