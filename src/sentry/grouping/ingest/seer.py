@@ -245,7 +245,6 @@ def maybe_check_seer_for_matching_grouphash(event: Event) -> GroupHash | None:
             # If no matching group is found in Seer, we'll still get back result
             # metadata, but `seer_matched_grouphash` will be None
             seer_response_data, seer_matched_grouphash = get_seer_similar_issues(event)
-            event.data["seer_similarity"] = seer_response_data
 
         # Insurance - in theory we shouldn't ever land here
         except Exception as e:
