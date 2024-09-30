@@ -4,7 +4,7 @@ import re
 from collections import defaultdict
 from collections.abc import Sequence
 from datetime import datetime, timezone
-from typing import Any, NotRequired, TypedDict
+from typing import Any, TypedDict
 
 import sentry_sdk
 import sqlparse
@@ -483,10 +483,13 @@ class SharedEventSerializer(EventSerializer):
         return result
 
 
-class SimpleEventTag(TypedDict):
+class SimpleEventTagOptional(TypedDict, total=False):
+    query: str
+
+
+class SimpleEventTag(SimpleEventTagOptional):
     key: str
     value: str
-    query: NotRequired[str]
 
 
 SimpleEventSerializerResponse = TypedDict(
