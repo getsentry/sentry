@@ -1984,6 +1984,7 @@ class Factories:
     @staticmethod
     def create_project_uptime_subscription(
         project: Project,
+        env: Environment | None,
         uptime_subscription: UptimeSubscription,
         mode: ProjectUptimeSubscriptionMode,
         name: str,
@@ -2001,6 +2002,7 @@ class Factories:
         return ProjectUptimeSubscription.objects.create(
             uptime_subscription=uptime_subscription,
             project=project,
+            environment=env,
             mode=mode,
             name=name,
             owner_team_id=owner_team_id,

@@ -244,6 +244,9 @@ def monitor_url_for_project(project: Project, url: str):
         )
     get_or_create_project_uptime_subscription(
         project,
+        # TODO(epurkhiser): This is where we would put the environment object
+        # from autodetection if we decide to do that.
+        environment=None,
         url=url,
         interval_seconds=ONBOARDING_SUBSCRIPTION_INTERVAL_SECONDS,
         mode=ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING,

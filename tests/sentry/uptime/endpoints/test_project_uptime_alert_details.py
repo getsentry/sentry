@@ -4,6 +4,7 @@ import pytest
 from rest_framework.exceptions import ErrorDetail
 
 from sentry.api.serializers import serialize
+from sentry.models.environment import Environment
 from sentry.uptime.models import ProjectUptimeSubscription
 from tests.sentry.uptime.endpoints import UptimeAlertBaseEndpointTest
 
@@ -35,6 +36,7 @@ class ProjectUptimeAlertDetailsPutEndpointTest(ProjectUptimeAlertDetailsBaseEndp
             self.organization.slug,
             proj_sub.project.slug,
             proj_sub.id,
+            environment="uptime-prod",
             name="test",
             owner=f"user:{self.user.id}",
             url="https://santry.io",
@@ -44,6 +46,9 @@ class ProjectUptimeAlertDetailsPutEndpointTest(ProjectUptimeAlertDetailsBaseEndp
         )
         proj_sub.refresh_from_db()
         assert resp.data == serialize(proj_sub, self.user)
+        assert proj_sub.environment == Environment.get_or_create(
+            project=self.project, name="uptime-prod"
+        )
         assert proj_sub.name == "test"
         assert proj_sub.owner_user_id == self.user.id
         assert proj_sub.owner_team_id is None
@@ -76,6 +81,23 @@ class ProjectUptimeAlertDetailsPutEndpointTest(ProjectUptimeAlertDetailsBaseEndp
         assert uptime_sub.interval_seconds == 300
         assert uptime_sub.headers == [["hello", "world"]]
         assert uptime_sub.body is None
+
+    def test_enviroment(self):
+        uptime_subscription = self.create_project_uptime_subscription()
+
+        resp = self.get_success_response(
+            self.organization.slug,
+            uptime_subscription.project.slug,
+            uptime_subscription.id,
+            name="test",
+            environment="uptime-prod",
+        )
+        uptime_subscription.refresh_from_db()
+        assert resp.data == serialize(uptime_subscription, self.user)
+        assert uptime_subscription.name == "test"
+        assert uptime_subscription.environment == Environment.get_or_create(
+            project=self.project, name="uptime-prod"
+        )
 
     def test_user(self):
         uptime_subscription = self.create_project_uptime_subscription()
