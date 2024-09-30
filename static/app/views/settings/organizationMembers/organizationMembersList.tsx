@@ -289,7 +289,13 @@ function OrganizationMembersList() {
         });
       }}
     >
-      {renderInviteMembersButton}
+      {({disabled, isSsoRequired, onTriggerModal}) => (
+        <InviteMembersButton
+          disabled={disabled}
+          isSsoRequired={isSsoRequired}
+          onTriggerModal={onTriggerModal}
+        />
+      )}
     </InviteMembersButtonHook>
   );
 
@@ -306,7 +312,7 @@ function OrganizationMembersList() {
         }}
         allowedRoles={currentMember ? currentMember.roles : ORG_ROLES}
       />
-      {inviteRequests && inviteRequests.length > 0 && (
+      {inviteRequests.length > 0 && (
         <Panel>
           <PanelHeader>
             <StyledPanelItem>
@@ -401,9 +407,7 @@ const StyledPanelItem = styled('div')`
 
 export default OrganizationMembersList;
 
-// TODO: This function is actually a component
-// Difficult to refactor because of getsentry hooks
-function renderInviteMembersButton({
+function InviteMembersButton({
   disabled,
   isSsoRequired,
   onTriggerModal,
