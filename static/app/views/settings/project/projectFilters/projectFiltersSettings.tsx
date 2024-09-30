@@ -130,7 +130,7 @@ const LEGACY_BROWSER_SUBFILTERS = {
   ie: {
     icon: iconIe,
     title: 'Internet Explorer',
-    helpText: 'Verison 11 and lower',
+    helpText: 'Version 11 and lower',
     legacy: false,
   },
   ie_pre_9: {
