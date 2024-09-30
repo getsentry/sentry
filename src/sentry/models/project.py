@@ -54,6 +54,7 @@ if TYPE_CHECKING:
     from sentry.users.models.user import User
 
 SENTRY_USE_SNOWFLAKE = getattr(settings, "SENTRY_USE_SNOWFLAKE", False)
+PROJECT_SLUG_MAX_LENGTH = 100
 
 # NOTE:
 # - When you modify this list, ensure that the platform IDs listed in "sentry/static/app/data/platforms.tsx" match.
@@ -232,7 +233,7 @@ class Project(Model, PendingDeletionMixin):
 
     __relocation_scope__ = RelocationScope.Organization
 
-    slug = SentrySlugField(null=True)
+    slug = SentrySlugField(null=True, max_length=PROJECT_SLUG_MAX_LENGTH)
     # DEPRECATED do not use, prefer slug
     name = models.CharField(max_length=200)
     forced_color = models.CharField(max_length=6, null=True, blank=True)
