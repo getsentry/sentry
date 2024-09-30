@@ -300,13 +300,14 @@ function CustomViewsIssueListHeaderTabsContent({
 
   // Update local tabs when new views are received from mutation request
   useEffectAfterFirstRender(() => {
-    const assignedIds = new Set();
     const newlyCreatedViews = views.filter(
       view => !draggableTabs.find(tab => tab.id === view.id)
     );
     const currentView = draggableTabs.find(tab => tab.id === viewId);
-    setDraggableTabs(
-      draggableTabs.map(tab => {
+
+    setDraggableTabs(oldDraggableTabs => {
+      const assignedIds = new Set();
+      return oldDraggableTabs.map(tab => {
         // Temp viewIds are prefixed with '_'
         if (tab.id && tab.id[0] === '_') {
           const matchingView = newlyCreatedViews.find(
@@ -326,8 +327,8 @@ function CustomViewsIssueListHeaderTabsContent({
           }
         }
         return tab;
-      })
-    );
+      });
+    });
 
     if (viewId.startsWith('_') && currentView) {
       const matchingView = newlyCreatedViews.find(
