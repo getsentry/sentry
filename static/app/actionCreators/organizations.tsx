@@ -10,16 +10,15 @@ import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
 import type {Organization} from 'sentry/types/organization';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import type {useNavigate} from 'sentry/utils/useNavigate';
 
 type RedirectRemainingOrganizationParams = {
-  navigate: ReturnType<typeof useNavigate>;
-
   /**
    * The organization slug
    */
-  orgSlug: string;
+  orgId: string;
+
   /**
    * Should remove org?
    */
@@ -33,16 +32,15 @@ type RedirectRemainingOrganizationParams = {
  * Can optionally remove organization from organizations store.
  */
 export function redirectToRemainingOrganization({
-  orgSlug,
+  orgId,
   removeOrg,
-  navigate,
 }: RedirectRemainingOrganizationParams) {
   // Remove queued, should redirect
   const allOrgs = OrganizationsStore.getAll().filter(
-    org => org.status.id === 'active' && org.slug !== orgSlug
+    org => org.status.id === 'active' && org.slug !== orgId
   );
   if (!allOrgs.length) {
-    navigate('/organizations/new/');
+    browserHistory.push('/organizations/new/');
     return;
   }
 
@@ -56,11 +54,11 @@ export function redirectToRemainingOrganization({
     return;
   }
 
-  navigate(route);
+  browserHistory.push(route);
 
   // Remove org from SidebarDropdown
   if (removeOrg) {
-    OrganizationsStore.remove(orgSlug);
+    OrganizationsStore.remove(orgId);
   }
 }
 
@@ -68,7 +66,7 @@ type RemoveParams = {
   /**
    * The organization slug
    */
-  orgSlug: string;
+  orgId: string;
 
   /**
    * An optional error message to be used in a toast, if remove fails
@@ -81,17 +79,14 @@ type RemoveParams = {
   successMessage?: string;
 };
 
-export function remove(
-  api: Client,
-  {successMessage, errorMessage, orgSlug}: RemoveParams
-) {
-  const endpoint = `/organizations/${orgSlug}/`;
+export function remove(api: Client, {successMessage, errorMessage, orgId}: RemoveParams) {
+  const endpoint = `/organizations/${orgId}/`;
   return api
     .requestPromise(endpoint, {
       method: 'DELETE',
     })
     .then(() => {
-      OrganizationsStore.onRemoveSuccess(orgSlug);
+      OrganizationsStore.onRemoveSuccess(orgId);
 
       if (successMessage) {
         addSuccessMessage(successMessage);
