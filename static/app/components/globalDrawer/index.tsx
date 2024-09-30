@@ -118,7 +118,7 @@ export function GlobalDrawer({children}) {
         closeDrawer();
       }
     },
-    // Ignoring changes to currentDrawerConfig?.options
+    // Ignoring changes to currentDrawerConfig?.options to prevent closing the drawer when it opens
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [
       location?.pathname,
