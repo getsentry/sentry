@@ -1,11 +1,9 @@
 from typing import Any
 from unittest.mock import Mock, patch
 
-from csp.middleware import CSPMiddleware
 from django.test import override_settings
 from django.urls import reverse
 
-from sentry.middleware.placeholder import placeholder_get_response
 from sentry.testutils.cases import APITestCase
 from sentry.toolbar.utils.testutils import csp_has_directive
 from sentry.toolbar.views.iframe_view import INVALID_TEMPLATE, SUCCESS_TEMPLATE
@@ -18,7 +16,6 @@ class IframeViewTest(APITestCase):
         super().setUp()
         self.login_as(user=self.user)
         self.url = reverse(self.view_name, args=(self.organization.slug, self.project.slug))
-        self.csp_middleware = CSPMiddleware(placeholder_get_response)
 
     def test_missing_project(self):
         url = reverse(self.view_name, args=(self.organization.slug, "abc123xyz"))
