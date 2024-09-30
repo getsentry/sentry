@@ -1,5 +1,6 @@
 import logging
 from datetime import datetime, timedelta
+from enum import StrEnum
 from typing import Any
 
 from django.conf import settings
@@ -39,6 +40,11 @@ seer_anomaly_detection_connection_pool = connection_from_url(
 MIN_DAYS = 7
 
 
+class MethodString(StrEnum):
+    CREATE = "create"
+    UPDATE = "update"
+
+
 def _get_start_and_end_indices(data: list[TimeSeriesPoint]) -> tuple[int, int]:
     """
     Helper to return the first and last data points that have event counts.
@@ -65,12 +71,13 @@ def handle_send_historical_data_to_seer(
     method: str,
     event_types: list[SnubaQueryEventType.EventType] | None = None,
 ):
+    event_types_param = event_types or snuba_query.event_types
     try:
         rule_status = send_historical_data_to_seer(
             alert_rule=alert_rule,
             project=project,
             snuba_query=snuba_query,
-            event_types=event_types or snuba_query.event_types,
+            event_types=event_types_param,
         )
         if rule_status == AlertRuleStatus.NOT_ENOUGH_DATA:
             # if we don't have at least seven days worth of data, then the dynamic alert won't fire
@@ -89,7 +96,7 @@ def handle_send_historical_data_to_seer(
 
 def send_new_rule_data(alert_rule: AlertRule, project: Project, snuba_query: SnubaQuery) -> None:
     try:
-        handle_send_historical_data_to_seer(alert_rule, snuba_query, project, "create")
+        handle_send_historical_data_to_seer(alert_rule, snuba_query, project, MethodString.CREATE)
     except (TimeoutError, MaxRetryError, ParseError, ValidationError):
         alert_rule.delete()
         raise
@@ -135,7 +142,7 @@ def update_rule_data(
             alert_rule,
             alert_rule.snuba_query,
             project,
-            "update",
+            MethodString.UPDATE,
             updated_query_fields.get("event_types"),
         )
 

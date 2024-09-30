@@ -1000,6 +1000,21 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
     def alert_rule(self):
         return self.create_alert_rule(name="hello")
 
+    def create_error_event(self, **kwargs):
+        two_weeks_ago = before_now(days=14).replace(hour=10, minute=0, second=0, microsecond=0)
+        data = {
+            "event_id": "a" * 32,
+            "message": "super bad",
+            "timestamp": iso_format(two_weeks_ago + timedelta(minutes=1)),
+            "tags": {"sentry:user": self.user.email},
+            "exception": [{"value": "BadError"}],
+        }
+        data.update(**kwargs)
+        self.store_event(
+            data=data,
+            project_id=self.project.id,
+        )
+
     def test(self):
         name = "uh oh"
         query = "level:warning"
@@ -1786,26 +1801,11 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
 
         two_weeks_ago = before_now(days=14).replace(hour=10, minute=0, second=0, microsecond=0)
         with self.options({"issues.group_attributes.send_kafka": True}):
-            self.store_event(
-                data={
-                    "event_id": "a" * 32,
-                    "message": "super bad",
-                    "timestamp": iso_format(two_weeks_ago + timedelta(minutes=1)),
-                    "tags": {"sentry:user": self.user.email},
-                    "exception": [{"value": "BadError"}],
-                },
-                project_id=self.project.id,
-            )
-            self.store_event(
-                data={
-                    "event_id": "a" * 32,
-                    "message": "super bad",
-                    "timestamp": iso_format(two_weeks_ago + timedelta(days=10)),  # 4 days ago
-                    "tags": {"sentry:user": self.user.email},
-                    "exception": [{"value": "BadError"}],
-                },
-                project_id=self.project.id,
-            )
+            self.create_error_event(timestamp=iso_format(two_weeks_ago + timedelta(minutes=1)))
+            self.create_error_event(
+                timestamp=iso_format(two_weeks_ago + timedelta(days=10))
+            )  # 4 days ago
+
         # update aggregate
         update_alert_rule(
             dynamic_rule,
@@ -1829,28 +1829,10 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
 
         two_weeks_ago = before_now(days=14).replace(hour=10, minute=0, second=0, microsecond=0)
         with self.options({"issues.group_attributes.send_kafka": True}):
-            self.store_event(
-                data={
-                    "event_id": "b" * 32,
-                    "message": "super bad",
-                    "timestamp": iso_format(two_weeks_ago + timedelta(minutes=1)),
-                    "fingerprint": ["group2"],
-                    "tags": {"sentry:user": self.user.email},
-                    "exception": [{"value": "BadError"}],
-                },
-                project_id=self.project.id,
-            )
-            self.store_event(
-                data={
-                    "event_id": "b" * 32,
-                    "message": "super bad",
-                    "timestamp": iso_format(two_weeks_ago + timedelta(days=10)),  # 4 days ago
-                    "fingerprint": ["group2"],
-                    "tags": {"sentry:user": self.user.email},
-                    "exception": [{"value": "BadError"}],
-                },
-                project_id=self.project.id,
-            )
+            self.create_error_event(timestamp=iso_format(two_weeks_ago + timedelta(minutes=1)))
+            self.create_error_event(
+                timestamp=iso_format(two_weeks_ago + timedelta(days=10))
+            )  # 4 days ago
 
         dynamic_rule = self.create_alert_rule(
             sensitivity=AlertRuleSensitivity.HIGH,
@@ -1870,7 +1852,6 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             dataset=Dataset.Transactions,
             event_types=[SnubaQueryEventType.EventType.TRANSACTION],
             query="",
-            # time_window=60,
             detection_type=AlertRuleDetectionType.DYNAMIC,
         )
         assert mock_seer_request.call_count == 1
