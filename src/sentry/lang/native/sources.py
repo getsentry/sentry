@@ -17,7 +17,7 @@ from rediscluster import RedisCluster
 from sentry import features, options
 from sentry.auth.system import get_system_token
 from sentry.models.project import Project
-from sentry.utils import metrics, redis, safe
+from sentry.utils import redis, safe
 from sentry.utils.http import get_origins
 
 logger = logging.getLogger(__name__)
@@ -684,7 +684,7 @@ def sources_for_symbolication(project):
         just have their IDs.
         """
         try:
-            capture_apple_symbol_stats(json)
+            collect_apple_symbol_stats(json)
         except Exception as e:
             sentry_sdk.capture_exception(e)
         for module in json.get("modules") or ():
@@ -705,7 +705,7 @@ def sources_for_symbolication(project):
     return (sources, _process_response)
 
 
-def capture_apple_symbol_stats(json):
+def collect_apple_symbol_stats(json):
     eligible_symbols = 0
     neither_has_symbol = 0
     both_have_symbol = 0
@@ -748,33 +748,11 @@ def capture_apple_symbol_stats(json):
             # now, we are only interested in rough numbers.
 
     if eligible_symbols:
-        metrics.incr(
-            "apple_symbol_availability_v2",
-            amount=neither_has_symbol,
-            tags={"availability": "neither"},
-            sample_rate=1.0,
-        )
+        apple_symbol_stats = {
+            "both": both_have_symbol,
+            "neither": neither_has_symbol,
+            "symx": symx_has_symbol,
+            "old": old_has_symbol,
+        }
 
-        # We want mutual exclusion here, since we don't want to double count. E.g., an event has both symbols, so we
-        # count it both in `both` and `old` or `symx` which makes it impossible for us to know the percentage of events
-        # that matched both.
-        if both_have_symbol:
-            metrics.incr(
-                "apple_symbol_availability_v2",
-                amount=both_have_symbol,
-                tags={"availability": "both"},
-                sample_rate=1.0,
-            )
-        else:
-            metrics.incr(
-                "apple_symbol_availability_v2",
-                amount=old_has_symbol,
-                tags={"availability": "old"},
-                sample_rate=1.0,
-            )
-            metrics.incr(
-                "apple_symbol_availability_v2",
-                amount=symx_has_symbol,
-                tags={"availability": "symx"},
-                sample_rate=1.0,
-            )
+        json["apple_symbol_stats"] = apple_symbol_stats
