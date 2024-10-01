@@ -103,10 +103,8 @@ def transform_fields(
     for field in jira_fields:
         field_data = data.get(field.key)
 
-        # We don't have a mapping for this field, so it's probably extraneous.
-        # TODO(Gabe): Explore raising a sentry issue for unmapped fields in
-        #  order for us to properly filter them out.
-        if field_data is None:
+        # Skip any empty data, as we have some templated
+        if field_data is None or field_data == "":
             continue
 
         field_transformer = get_transformer_for_field(
@@ -137,7 +135,7 @@ def transform_fields(
         except JiraSchemaParseError as e:
             raise IntegrationFormError(field_errors={field.name: str(e)}) from e
 
-        if transformed_value:
+        if transformed_value is not None:
             transformed_data[field.key] = transformed_value
 
     return transformed_data
