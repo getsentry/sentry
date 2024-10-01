@@ -49,7 +49,7 @@ export const BACKEND_COLUMN_TITLES = [
   'users',
 ];
 
-function FrontendOverviewPage() {
+function BackendOverviewPage() {
   const organization = useOrganization();
   const location = useLocation();
   const {setPageError} = usePageAlert();
@@ -117,7 +117,7 @@ function FrontendOverviewPage() {
   };
 
   function handleSearch(searchQuery: string) {
-    trackAnalytics('performance.domains.frontend.search', {organization});
+    trackAnalytics('performance.domains.backend.search', {organization});
 
     navigate({
       pathname: location.pathname,
@@ -191,13 +191,13 @@ function FrontendOverviewPage() {
   );
 }
 
-function FrontendOverviewPageWithProviders() {
+function BackendOverviewPageWithProviders() {
   const organization = useOrganization();
 
   return (
     <PageFiltersContainer>
       <SentryDocumentTitle title={OVERVIEW_PAGE_TITLE} orgSlug={organization.slug}>
-        <FrontendOverviewPage />
+        <BackendOverviewPage />
       </SentryDocumentTitle>
     </PageFiltersContainer>
   );
@@ -207,4 +207,4 @@ const StyledTransactionNameSearchBar = styled(TransactionNameSearchBar)`
   flex: 2;
 `;
 
-export default FrontendOverviewPageWithProviders;
+export default BackendOverviewPageWithProviders;
