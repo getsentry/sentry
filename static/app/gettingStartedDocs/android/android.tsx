@@ -160,10 +160,9 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
                       </ListItem>
                       <ListItem>
                         {tct(
-                          'Create [sentryProperties: sentry.properties] with an auth token to upload proguard mappings (this file is automatically added to [gitignore: .gitignore])',
+                          'Create [code: sentry.properties] with an auth token to upload proguard mappings (this file is automatically added to [code: .gitignore])',
                           {
-                            sentryProperties: <code />,
-                            gitignore: <code />,
+                            code: <code />,
                           }
                         )}
                       </ListItem>
@@ -218,10 +217,9 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
               <Fragment>
                 <p>
                   {tct(
-                    'Configuration is done via the application [manifest: AndroidManifest.xml]. Under the hood Sentry uses a [provider:ContentProvider] to initialize the SDK based on the values provided below. This way the SDK can capture important crashes and metrics right from the app start.',
+                    'Configuration is done via the application [code: AndroidManifest.xml]. Under the hood Sentry uses a [code:ContentProvider] to initialize the SDK based on the values provided below. This way the SDK can capture important crashes and metrics right from the app start.',
                     {
-                      manifest: <code />,
-                      provider: <code />,
+                      code: <code />,
                     }
                   )}
                 </p>

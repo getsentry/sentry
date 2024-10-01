@@ -16,10 +16,17 @@ interface Props
 
 export function BigNumberWidget(props: Props) {
   return (
-    <WidgetFrame title={props.title} description={props.description}>
+    <WidgetFrame
+      title={props.title}
+      description={props.description}
+      showDescriptionInTooltip={props.showDescriptionInTooltip}
+      actions={props.actions}
+    >
       <BigNumberResizeWrapper>
         <BigNumberWidgetVisualization
           data={props.data}
+          previousPeriodData={props.previousPeriodData}
+          preferredPolarity={props.preferredPolarity}
           meta={props.meta}
           isLoading={props.isLoading}
           error={props.error}
@@ -30,8 +37,7 @@ export function BigNumberWidget(props: Props) {
 }
 
 const BigNumberResizeWrapper = styled('div')`
-  flex-grow: 1;
-  overflow: hidden;
   position: relative;
-  margin: ${space(1)} ${space(3)} ${space(3)} ${space(3)};
+  flex-grow: 1;
+  margin-top: ${space(1)};
 `;

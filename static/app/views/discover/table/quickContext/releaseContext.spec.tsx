@@ -1,3 +1,4 @@
+import {ConfigFixture} from 'sentry-fixture/config';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ReleaseFixture} from 'sentry-fixture/release';
 
@@ -83,7 +84,7 @@ describe('Quick Context Content Release Column', function () {
   });
 
   it('Renders Commit Count and Author when user is in list of authors', async () => {
-    jest.spyOn(ConfigStore, 'get').mockImplementation(() => mockedUser1);
+    ConfigStore.loadInitialData(ConfigFixture({user: mockedUser1}));
     renderReleaseContext();
 
     expect(await screen.findByText(/4/i)).toBeInTheDocument();

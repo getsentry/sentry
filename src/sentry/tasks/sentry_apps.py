@@ -10,7 +10,7 @@ from django.urls import reverse
 from requests.exceptions import RequestException
 
 from sentry import analytics
-from sentry.api.serializers import AppPlatformEvent, serialize
+from sentry.api.serializers import serialize
 from sentry.constants import SentryAppInstallationStatus
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.hybridcloud.rpc.caching import region_caching_service
@@ -19,6 +19,7 @@ from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.project import Project
+from sentry.sentry_apps.api.serializers.app_platform_event import AppPlatformEvent
 from sentry.sentry_apps.models.sentry_app import VALID_EVENTS, SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.models.servicehook import ServiceHook, ServiceHookProject

@@ -68,10 +68,8 @@ export function Step({
   hasStepAbove,
   hasErroredStepBefore,
 }: StepProps) {
-  const isActive = step.status !== 'PENDING' && step.status !== 'CANCELLED';
-
   return (
-    <StepCard active={isActive}>
+    <StepCard>
       <ContentWrapper>
         <AnimatePresence initial={false}>
           <AnimationWrapper key="content" {...animationProps}>
@@ -217,7 +215,7 @@ export function AutofixSteps({data, groupId, runId, onRetry}: AutofixStepsProps)
             ? 'Say something...'
             : 'Or propose your own root cause instead...'
         }
-        responseRequired={false}
+        responseRequired={lastStep.status === 'WAITING_FOR_USER_RESPONSE'}
         onSend={!isRootCauseSelectionStep ? null : selectRootCause}
         actionText={!isRootCauseSelectionStep ? 'Send' : 'Find a Fix'}
         allowEmptyMessage={!isRootCauseSelectionStep ? false : true}
@@ -255,8 +253,7 @@ const StepsContainer = styled('div')`
   margin-bottom: 13em;
 `;
 
-const StepCard = styled('div')<{active?: boolean}>`
-  opacity: ${p => (p.active ? 1 : 0.6)};
+const StepCard = styled('div')`
   overflow: hidden;
 
   :last-child {

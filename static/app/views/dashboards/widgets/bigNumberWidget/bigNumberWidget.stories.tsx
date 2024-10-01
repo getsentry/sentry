@@ -40,6 +40,11 @@ export default storyBook(BigNumberWidget, story => {
                   'eps()': 0.01087819860850493,
                 },
               ]}
+              previousPeriodData={[
+                {
+                  'eps()': 0.01087819860850493,
+                },
+              ]}
               meta={{
                 fields: {
                   'eps()': 'rate',
@@ -114,9 +119,94 @@ export default storyBook(BigNumberWidget, story => {
       </Fragment>
     );
   });
+
+  story('Previous Period Data', () => {
+    return (
+      <Fragment>
+        <p>
+          <JSXNode name="BigNumberWidget" /> shows the difference of the current data and
+          the previous period data as the difference between the two values, in small text
+          next to the main value.
+        </p>
+
+        <SideBySide>
+          <NormalWidget>
+            <BigNumberWidget
+              title="eps()"
+              data={[
+                {
+                  'eps()': 17.1087819860850493,
+                },
+              ]}
+              previousPeriodData={[
+                {
+                  'eps()': 15.0088607819850493,
+                },
+              ]}
+              meta={{
+                fields: {
+                  'eps()': 'rate',
+                },
+                units: {
+                  'eps()': '1/second',
+                },
+              }}
+            />
+          </NormalWidget>
+
+          <NormalWidget>
+            <BigNumberWidget
+              title="http_rate(500)"
+              data={[
+                {
+                  'http_rate(500)': 0.14227123,
+                },
+              ]}
+              previousPeriodData={[
+                {
+                  'http_rate(500)': 0.1728139,
+                },
+              ]}
+              preferredPolarity="-"
+              meta={{
+                fields: {
+                  'http_rate(500)': 'percentage',
+                },
+              }}
+            />
+          </NormalWidget>
+          <NormalWidget>
+            <BigNumberWidget
+              title="http_rate(200)"
+              data={[
+                {
+                  'http_rate(200)': 0.14227123,
+                },
+              ]}
+              previousPeriodData={[
+                {
+                  'http_rate(200)': 0.1728139,
+                },
+              ]}
+              preferredPolarity="+"
+              meta={{
+                fields: {
+                  'http_rate(200)': 'percentage',
+                },
+              }}
+            />
+          </NormalWidget>
+        </SideBySide>
+      </Fragment>
+    );
+  });
 });
 
 const SmallSizingWindow = styled(SizingWindow)`
   width: auto;
   height: 200px;
+`;
+
+const NormalWidget = styled('div')`
+  width: 250px;
 `;
