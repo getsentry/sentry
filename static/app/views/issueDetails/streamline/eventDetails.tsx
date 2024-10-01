@@ -37,11 +37,8 @@ import {
   useIssueDetailsDiscoverQuery,
   useIssueDetailsEventView,
 } from 'sentry/views/issueDetails/streamline/useIssueDetailsDiscoverQuery';
-
-const enum EventPageContent {
-  EVENT = 'event',
-  LIST = 'list',
-}
+import {Tab} from 'sentry/views/issueDetails/types';
+import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
 export function EventDetails({
   group,
@@ -59,10 +56,7 @@ export function EventDetails({
 
   const searchQuery = useEventQuery({group});
   const eventView = useIssueDetailsEventView({group});
-
-  const [pageContent, setPageContent] = useState<EventPageContent>(
-    EventPageContent.EVENT
-  );
+  const {currentTab} = useGroupDetailsRoute();
 
   const {
     data: groupStats,
@@ -137,18 +131,15 @@ export function EventDetails({
           )}
         </PageErrorBoundary>
       )}
-      {pageContent === EventPageContent.LIST && (
+      {/* TODO(issues): We should use the router for this */}
+      {currentTab === Tab.EVENTS && (
         <PageErrorBoundary mini message={t('There was an error loading the event list')}>
           <GroupContent>
-            <EventList
-              group={group}
-              project={project}
-              onClose={() => setPageContent(EventPageContent.EVENT)}
-            />
+            <EventList group={group} project={project} />
           </GroupContent>
         </PageErrorBoundary>
       )}
-      {pageContent === EventPageContent.EVENT && (
+      {currentTab !== Tab.EVENTS && (
         <PageErrorBoundary
           mini
           message={t('There was an error loading the event content')}
@@ -159,7 +150,6 @@ export function EventDetails({
               group={group}
               ref={setNav}
               query={searchQuery}
-              onViewAllEvents={() => setPageContent(EventPageContent.LIST)}
             />
             <ContentPadding>
               <EventDetailsContent group={group} event={event} project={project} />
