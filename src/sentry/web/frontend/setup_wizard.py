@@ -143,12 +143,7 @@ class SetupWizardView(BaseView):
         if organization_id is None or project_id is None or wizard_hash is None:
             return HttpResponseBadRequest()
 
-        try:
-            mapping: OrganizationMapping | None = OrganizationMapping.objects.get(
-                organization_id=organization_id
-            )
-        except OrganizationMapping.DoesNotExist:
-            raise Http404("Organization not found")
+        mapping = get_object_or_404(OrganizationMapping, organization_id=organization_id)
 
         project = project_service.get_by_id(organization_id=mapping.organization_id, id=project_id)
         if project is None:
