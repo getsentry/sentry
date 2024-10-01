@@ -6,9 +6,10 @@ from typing import Any
 from urllib.parse import parse_qsl, urlparse, urlunparse
 
 from django.conf import settings
-from django.http import HttpRequest, HttpResponse
+from django.http import Http404, HttpRequest, HttpResponse, HttpResponseBadRequest
 from django.http.response import HttpResponseBase
 
+from sentry import features
 from sentry.api.endpoints.setup_wizard import SETUP_WIZARD_CACHE_KEY, SETUP_WIZARD_CACHE_TIMEOUT
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.project import STATUS_LABELS
@@ -19,8 +20,9 @@ from sentry.models.organization import OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.models.orgauthtoken import OrgAuthToken
+from sentry.projects.services.project.model import RpcProject
 from sentry.projects.services.project.service import project_service
-from sentry.projects.services.project_key.model import ProjectKeyRole
+from sentry.projects.services.project_key.model import ProjectKeyRole, RpcProjectKey
 from sentry.projects.services.project_key.service import project_key_service
 from sentry.types.token import AuthTokenType
 from sentry.users.models.user import User
@@ -62,6 +64,8 @@ class SetupWizardView(BaseView):
         context = {"hash": wizard_hash}
         key = f"{SETUP_WIZARD_CACHE_KEY}{wizard_hash}"
 
+        features.has("s", user=request.user, actor=request.user)
+
         wizard_data = default_cache.get(key)
         if wizard_data is None:
             return self.redirect_to_org(request)
@@ -84,14 +88,7 @@ class SetupWizardView(BaseView):
         org_mappings_map = {}
         for mapping in org_mappings:
             region_data_map[mapping.region_name]["org_ids"].append(mapping.organization_id)
-            status = OrganizationStatus(mapping.status)
-            serialized_mapping = {
-                "id": mapping.organization_id,
-                "name": mapping.name,
-                "slug": mapping.slug,
-                "region": mapping.region_name,
-                "status": {"id": status.name.lower(), "name": status.label},
-            }
+            serialized_mapping = serialize_org_mapping(mapping)
             org_mappings_map[mapping.organization_id] = serialized_mapping
 
         for region_name, region_data in region_data_map.items():
@@ -111,25 +108,18 @@ class SetupWizardView(BaseView):
             )
             region_data["keys"] = keys
             for key in region_data["keys"]:
-                serialized_key = {
-                    "dsn": {"public": key.dsn_public},
-                    "isActive": key.is_active,
-                }
+                serialized_key = serialize_project_key(key)
                 keys_map[key.project_id].append(serialized_key)
 
         filled_projects = []
         for region_name, region_data in region_data_map.items():
             for project in region_data["projects"]:
-                enriched_project = {
-                    "slug": project.slug,
-                    "id": project.id,
-                    "name": project.name,
-                    "platform": project.platform,
-                    "status": STATUS_LABELS.get(project.status, "unknown"),
-                }
-                # The wizard only reads the a few fields so serializing the mapping should work fine
-                enriched_project["organization"] = org_mappings_map[project.organization_id]
-                enriched_project["keys"] = keys_map[project.id]
+                enriched_project = serialize_project(
+                    project=project,
+                    # The wizard only reads the a few fields so serializing the mapping should work fine
+                    organization=org_mappings_map[project.organization_id],
+                    keys=keys_map[project.id],
+                )
                 filled_projects.append(enriched_project)
 
         # Fetching or creating a token
@@ -142,6 +132,80 @@ class SetupWizardView(BaseView):
 
         context["organizations"] = list(org_mappings_map.values())
         return render_to_response("sentry/setup-wizard.html", context, request)
+
+    def post(self, request: HttpRequest, wizard_hash=None) -> HttpResponse:
+        """
+        This updates the cache content for a specific hash
+        """
+        organization_id = request.POST.get("organizationId", None)
+        project_id = request.POST.get("projectId", None)
+
+        if organization_id is None or project_id is None or wizard_hash is None:
+            return HttpResponseBadRequest()
+
+        try:
+            mapping: OrganizationMapping | None = OrganizationMapping.objects.get(
+                organization_id=organization_id
+            )
+        except OrganizationMapping.DoesNotExist:
+            raise Http404("Organization not found")
+
+        project = project_service.get_by_id(organization_id=mapping.organization_id, id=project_id)
+        if project is None:
+            raise Http404("Project not found")
+
+        project_key = project_key_service.get_project_key(
+            organization_id=mapping.organization_id,
+            project_id=project.id,
+            role=ProjectKeyRole.store,
+        )
+        if project_key is None:
+            raise Http404("Project key not found")
+
+        serialized_token = get_org_token(mapping, request.user)
+
+        enriched_project = serialize_project(
+            project=project,
+            # The wizard only reads the a few fields so serializing the mapping should work fine
+            organization=serialize_org_mapping(mapping),
+            keys=[serialize_project_key(project_key)],
+        )
+
+        cache_data = {"apiKeys": serialized_token, "projects": [enriched_project]}
+
+        key = f"{SETUP_WIZARD_CACHE_KEY}{wizard_hash}"
+        default_cache.set(key, cache_data, SETUP_WIZARD_CACHE_TIMEOUT)
+        return HttpResponse(status=200)
+
+
+def serialize_org_mapping(mapping: OrganizationMapping):
+    status = OrganizationStatus(mapping.status)
+    return {
+        "id": mapping.organization_id,
+        "name": mapping.name,
+        "slug": mapping.slug,
+        "region": mapping.region_name,
+        "status": {"id": status.name.lower(), "name": status.label},
+    }
+
+
+def serialize_project_key(project_key: RpcProjectKey):
+    return {
+        "dsn": {"public": project_key.dsn_public},
+        "isActive": project_key.is_active,
+    }
+
+
+def serialize_project(project: RpcProject, organization: dict, keys: list[dict]):
+    return {
+        "slug": project.slug,
+        "id": project.id,
+        "name": project.name,
+        "platform": project.platform,
+        "status": STATUS_LABELS.get(project.status, "unknown"),
+        "organization": organization,
+        "keys": keys,
+    }
 
 
 def get_token(mappings: list[OrganizationMapping], user: RpcUser):
