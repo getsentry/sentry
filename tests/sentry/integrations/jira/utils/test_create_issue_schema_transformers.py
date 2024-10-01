@@ -158,3 +158,39 @@ class TestDataTransformer(TestCase):
         )
 
         assert transformed_data == {"sprint": 2}
+
+    def test_version_custom_field(self):
+        version_field = JiraField(
+            schema=JiraSchema(
+                schema_type=JiraSchemaTypes.version,
+            ),
+            name="fixVersion",
+            key="fixVersion",
+            required=False,
+            has_default_value=False,
+            operations=[],
+        )
+
+        transformed_data = transform_fields(
+            self.client.user_id_field(),
+            jira_fields=[version_field],
+            **{"fixVersion": 2},
+        )
+
+        assert transformed_data == {"fixVersion": {"id": 2}}
+
+        transformed_data = transform_fields(
+            self.client.user_id_field(),
+            jira_fields=[version_field],
+            **{"fixVersion": ""},
+        )
+
+        assert transformed_data == {}
+
+        transformed_data = transform_fields(
+            self.client.user_id_field(),
+            jira_fields=[version_field],
+            **{"fixVersion": 0},
+        )
+
+        assert transformed_data == {"fixVersion": {"id": 0}}
