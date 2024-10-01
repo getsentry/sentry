@@ -1256,7 +1256,7 @@ def rpc(req: SnubaRPCRequest, resp_type: type[RPCResponseType]) -> RPCResponseTy
     aggregate_resp = snuba.rpc(aggregate_req, AggregateBucketResponse)
     """
     referrer = req.meta.referrer
-    with sentry_sdk.start_span(op="snuba_rpc.run", description=req.__class__.__name__) as span:
+    with sentry_sdk.start_span(op="snuba_rpc.run", name=req.__class__.__name__) as span:
         span.set_tag("snuba.referrer", referrer)
         http_resp = _snuba_pool.urlopen(
             "POST",
@@ -1338,11 +1338,11 @@ def _raw_delete_query(
     # Enter hub such that http spans are properly nested
     with timer("delete_query"):
         referrer = headers.get("referer", "unknown")
-        with sentry_sdk.start_span(op="snuba_delete.validation", description=referrer) as span:
+        with sentry_sdk.start_span(op="snuba_delete.validation", name=referrer) as span:
             span.set_tag("snuba.referrer", referrer)
             body = request.serialize()
 
-        with sentry_sdk.start_span(op="snuba_delete.run", description=body) as span:
+        with sentry_sdk.start_span(op="snuba_delete.run", name=body) as span:
             span.set_tag("snuba.referrer", referrer)
             return _snuba_pool.urlopen(
                 "DELETE", f"/{query.storage_name}", body=body, headers=headers
@@ -1356,11 +1356,11 @@ def _raw_mql_query(request: Request, headers: Mapping[str, str]) -> urllib3.resp
 
         # TODO: This can be changed back to just `serialize` after we remove SnQL support for MetricsQuery
         serialized_req = request.serialize()
-        with sentry_sdk.start_span(op="snuba_mql.validation", description=referrer) as span:
+        with sentry_sdk.start_span(op="snuba_mql.validation", name=referrer) as span:
             span.set_tag("snuba.referrer", referrer)
             body = serialized_req
 
-        with sentry_sdk.start_span(op="snuba_mql.run", description=serialized_req) as span:
+        with sentry_sdk.start_span(op="snuba_mql.run", name=serialized_req) as span:
             span.set_tag("snuba.referrer", referrer)
             return _snuba_pool.urlopen(
                 "POST", f"/{request.dataset}/mql", body=body, headers=headers
@@ -1373,11 +1373,11 @@ def _raw_snql_query(request: Request, headers: Mapping[str, str]) -> urllib3.res
         referrer = headers.get("referer", "<unknown>")
 
         serialized_req = request.serialize()
-        with sentry_sdk.start_span(op="snuba_snql.validation", description=referrer) as span:
+        with sentry_sdk.start_span(op="snuba_snql.validation", name=referrer) as span:
             span.set_tag("snuba.referrer", referrer)
             body = serialized_req
 
-        with sentry_sdk.start_span(op="snuba_snql.run", description=serialized_req) as span:
+        with sentry_sdk.start_span(op="snuba_snql.run", name=serialized_req) as span:
             span.set_tag("snuba.referrer", referrer)
             return _snuba_pool.urlopen(
                 "POST", f"/{request.dataset}/snql", body=body, headers=headers

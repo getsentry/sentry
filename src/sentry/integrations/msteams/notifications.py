@@ -82,9 +82,7 @@ def send_notification_as_msteams(
         )
         return
 
-    with sentry_sdk.start_span(
-        op="notification.send_msteams", description="gen_channel_integration_map"
-    ):
+    with sentry_sdk.start_span(op="notification.send_msteams", name="gen_channel_integration_map"):
         data = get_integrations_by_channel_by_recipient(
             organization=notification.organization,
             recipients=recipients,
@@ -92,13 +90,11 @@ def send_notification_as_msteams(
         )
 
         for recipient, integrations_by_channel in data.items():
-            with sentry_sdk.start_span(op="notification.send_msteams", description="send_one"):
+            with sentry_sdk.start_span(op="notification.send_msteams", name="send_one"):
                 extra_context = (extra_context_by_actor or {}).get(recipient, {})
                 context = get_context(notification, recipient, shared_context, extra_context)
 
-                with sentry_sdk.start_span(
-                    op="notification.send_msteams", description="gen_attachments"
-                ):
+                with sentry_sdk.start_span(op="notification.send_msteams", name="gen_attachments"):
                     card = get_notification_card(notification, context, recipient)
 
                 for channel, integration in integrations_by_channel.items():
@@ -107,7 +103,7 @@ def send_notification_as_msteams(
                     client = MsTeamsClient(integration)
                     try:
                         with sentry_sdk.start_span(
-                            op="notification.send_msteams", description="notify_recipient"
+                            op="notification.send_msteams", name="notify_recipient"
                         ):
                             client.send_card(conversation_id, card)
 

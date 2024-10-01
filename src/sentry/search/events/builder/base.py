@@ -321,20 +321,20 @@ class BaseQueryBuilder:
         equations: list[str] | None = None,
         orderby: list[str] | str | None = None,
     ) -> None:
-        with sentry_sdk.start_span(op="QueryBuilder", description="resolve_query"):
-            with sentry_sdk.start_span(op="QueryBuilder", description="resolve_time_conditions"):
+        with sentry_sdk.start_span(op="QueryBuilder", name="resolve_query"):
+            with sentry_sdk.start_span(op="QueryBuilder", name="resolve_time_conditions"):
                 # Has to be done early, since other conditions depend on start and end
                 self.resolve_time_conditions()
-            with sentry_sdk.start_span(op="QueryBuilder", description="resolve_conditions"):
+            with sentry_sdk.start_span(op="QueryBuilder", name="resolve_conditions"):
                 self.where, self.having = self.resolve_conditions(query)
-            with sentry_sdk.start_span(op="QueryBuilder", description="resolve_params"):
+            with sentry_sdk.start_span(op="QueryBuilder", name="resolve_params"):
                 # params depends on parse_query, and conditions being resolved first since there may be projects in conditions
                 self.where += self.resolve_params()
-            with sentry_sdk.start_span(op="QueryBuilder", description="resolve_columns"):
+            with sentry_sdk.start_span(op="QueryBuilder", name="resolve_columns"):
                 self.columns = self.resolve_select(selected_columns, equations)
-            with sentry_sdk.start_span(op="QueryBuilder", description="resolve_orderby"):
+            with sentry_sdk.start_span(op="QueryBuilder", name="resolve_orderby"):
                 self.orderby = self.resolve_orderby(orderby)
-            with sentry_sdk.start_span(op="QueryBuilder", description="resolve_groupby"):
+            with sentry_sdk.start_span(op="QueryBuilder", name="resolve_groupby"):
                 self.groupby = self.resolve_groupby(groupby_columns)
 
     def parse_config(self) -> None:
@@ -1535,7 +1535,7 @@ class BaseQueryBuilder:
         return raw_snql_query(self.get_snql_query(), referrer, use_cache, query_source)
 
     def process_results(self, results: Any) -> EventsResponse:
-        with sentry_sdk.start_span(op="QueryBuilder", description="process_results") as span:
+        with sentry_sdk.start_span(op="QueryBuilder", name="process_results") as span:
             span.set_data("result_count", len(results.get("data", [])))
             translated_columns = self.alias_to_typed_tag_map
             if self.builder_config.transform_alias_to_input_format:
