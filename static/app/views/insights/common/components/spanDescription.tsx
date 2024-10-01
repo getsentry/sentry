@@ -1,11 +1,14 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import ClippedBox from 'sentry/components/clippedBox';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {space} from 'sentry/styles/space';
 import {SQLishFormatter} from 'sentry/utils/sqlish/SQLishFormatter';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useSpansIndexed} from 'sentry/views/insights/common/queries/useDiscover';
 import {useFullSpanFromTrace} from 'sentry/views/insights/common/queries/useFullSpanFromTrace';
 import {
@@ -42,6 +45,9 @@ export function DatabaseSpanDescription({
   groupId,
   preliminaryDescription,
 }: Omit<Props, 'op'>) {
+  const navigate = useNavigate();
+  const location = useLocation();
+
   const {data: indexedSpans, isFetching: areIndexedSpansLoading} = useSpansIndexed(
     {
       search: MutableSearch.fromQueryObject({'span.group': groupId}),
@@ -62,6 +68,20 @@ export function DatabaseSpanDescription({
     [INDEXED_SPAN_SORT],
     Boolean(indexedSpan)
   );
+
+  // isExpanded is a query param that is meant to be accessed only when clicking on the
+  // "View full query" button from the hover tooltip. It is removed from the query params
+  // on the initial load so the value is not persisted through the link
+  const [isExpanded] = useState<boolean>(() => Boolean(location.query.isExpanded));
+  useEffect(() => {
+    navigate(
+      {...location, query: {...location.query, isExpanded: undefined}},
+      {replace: true}
+    );
+    // Skip the `location` dependency because it will cause this effect to trigger infinitely, since
+    // `navigate` will update the location within this effect
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [navigate]);
 
   const system = rawSpan?.data?.['db.system'];
 
@@ -103,9 +123,11 @@ export function DatabaseSpanDescription({
           <LoadingIndicator mini />
         </WithPadding>
       ) : (
-        <CodeSnippet language={system === 'mongodb' ? 'json' : 'sql'} isRounded={false}>
-          {formattedDescription ?? ''}
-        </CodeSnippet>
+        <QueryClippedBox clipHeight={500} isExpanded={isExpanded}>
+          <CodeSnippet language={system === 'mongodb' ? 'json' : 'sql'} isRounded={false}>
+            {formattedDescription ?? ''}
+          </CodeSnippet>
+        </QueryClippedBox>
       )}
 
       {!areIndexedSpansLoading && !isRawSpanLoading && (
@@ -129,6 +151,16 @@ export function DatabaseSpanDescription({
   );
 }
 
+function QueryClippedBox(props) {
+  const {isExpanded, children} = props;
+
+  if (isExpanded) {
+    return children;
+  }
+
+  return <StyledClippedBox {...props} />;
+}
+
 const INDEXED_SPAN_SORT = {
   field: 'span.self_time',
   kind: 'desc' as const,
@@ -147,4 +179,12 @@ const WithPadding = styled('div')`
 
 const WordBreak = styled('div')`
   word-break: break-word;
+`;
+
+const StyledClippedBox = styled(ClippedBox)`
+  padding: 0;
+
+  > div > div {
+    z-index: 1;
+  }
 `;
