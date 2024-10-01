@@ -540,6 +540,9 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     const {timeWindow} = this.state;
 
     if (name === 'alertType') {
+      if (value === 'crash_free_sessions' || value === 'crash_free_users') {
+        this.setState({comparisonType: AlertRuleComparisonType.COUNT});
+      }
       this.setState(({dataset}) => ({
         alertType: value as MetricAlertType,
         dataset: this.checkOnDemandMetricsDataset(dataset, this.state.query),

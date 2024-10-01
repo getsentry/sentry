@@ -3,6 +3,7 @@ import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {ReleaseFixture} from 'sentry-fixture/release';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {TeamFixture} from 'sentry-fixture/team';
 import {UserFixture} from 'sentry-fixture/user';
 
@@ -15,6 +16,15 @@ import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import StreamlinedGroupHeader from 'sentry/views/issueDetails/streamline/header';
 import {ReprocessingStatus} from 'sentry/views/issueDetails/utils';
 
+jest.mock('screenfull', () => ({
+  enabled: true,
+  isFullscreen: false,
+  request: jest.fn(),
+  exit: jest.fn(),
+  on: jest.fn(),
+  off: jest.fn(),
+}));
+
 describe('UpdatedGroupHeader', () => {
   const baseUrl = 'BASE_URL/';
   const organization = OrganizationFixture();
@@ -23,7 +33,9 @@ describe('UpdatedGroupHeader', () => {
     teams: [TeamFixture()],
   });
   const group = GroupFixture({issueCategory: IssueCategory.ERROR, isUnhandled: true});
-  const location = LocationFixture({query: {streamline: '1'}});
+  const router = RouterFixture({
+    location: LocationFixture({query: {streamline: '1'}}),
+  });
 
   describe('JS Project Error Issue', () => {
     const defaultProps = {
@@ -100,7 +112,7 @@ describe('UpdatedGroupHeader', () => {
         />,
         {
           organization,
-          router: {location},
+          router,
         }
       );
 
@@ -150,7 +162,7 @@ describe('UpdatedGroupHeader', () => {
         <StreamlinedGroupHeader {...defaultProps} group={group} project={project} />,
         {
           organization,
-          router: {location},
+          router,
         }
       );
       expect(
@@ -171,7 +183,7 @@ describe('UpdatedGroupHeader', () => {
         <StreamlinedGroupHeader {...defaultProps} group={group} project={project} />,
         {
           organization: flaggedOrganization,
-          router: {location},
+          router,
         }
       );
       expect(

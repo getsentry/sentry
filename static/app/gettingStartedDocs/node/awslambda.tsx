@@ -46,6 +46,10 @@ Sentry.init({
 });`;
 
 const onboarding: OnboardingConfig<PlatformOptions> = {
+  introduction: () =>
+    tct('In this quick guide you’ll use [strong:npm] or [strong:yarn] to set up:', {
+      strong: <strong />,
+    }),
   install: params => [
     {
       type: StepType.INSTALL,
@@ -59,10 +63,8 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
     {
       type: StepType.CONFIGURE,
       description: tct(
-        "Ensure that Sentry is imported and initialized at the beginning of your file, prior to any other [require:require] or [import:import] statements. Then, wrap your lambda handler with Sentry's [code:wraphandler] function:",
+        "Ensure that Sentry is imported and initialized at the beginning of your file, prior to any other [code:require] or [code:import] statements. Then, wrap your lambda handler with Sentry's [code:wraphandler] function:",
         {
-          import: <code />,
-          require: <code />,
           code: <code />,
         }
       ),
@@ -112,10 +114,9 @@ const customMetricsOnboarding: OnboardingConfig<PlatformOptions> = {
     {
       type: StepType.INSTALL,
       description: tct(
-        'You need a minimum version [codeVersion:8.0.0] of [codePackage:@sentry/aws-serverless]:',
+        'You need a minimum version [code:8.0.0] of [code:@sentry/aws-serverless]:',
         {
-          codeVersion: <code />,
-          codePackage: <code />,
+          code: <code />,
         }
       ),
       configurations: getInstallConfig(params, {

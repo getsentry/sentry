@@ -76,11 +76,11 @@ export function SpanSearchQueryBuilder({
     return placeholder ?? t('Search for spans, users, tags, and more');
   }, [placeholder]);
 
-  const customTags = useSpanFieldCustomTags({
+  const {data: customTags} = useSpanFieldCustomTags({
     projects: projects ?? selection.projects,
   });
 
-  const supportedTags = useSpanFieldSupportedTags({
+  const {data: supportedTags} = useSpanFieldSupportedTags({
     projects: projects ?? selection.projects,
   });
 
@@ -140,7 +140,6 @@ export function SpanSearchQueryBuilder({
       searchSource={searchSource}
       filterKeySections={filterKeySections}
       getTagValues={getSpanFilterTagValues}
-      disallowFreeText
       disallowUnsupportedFilters
       recentSearches={SavedSearchType.SPAN}
       showUnsubmittedIndicator
