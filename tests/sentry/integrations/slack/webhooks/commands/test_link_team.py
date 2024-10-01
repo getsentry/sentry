@@ -41,7 +41,7 @@ class SlackCommandsLinkTeamTestBase(SlackCommandsTest):
 
 
 class SlackCommandsLinkTeamTest(SlackCommandsLinkTeamTestBase):
-    @patch("sentry.integrations.messaging.metrics.MessagingInteractionEvent.record_start")
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @responses.activate
     def test_link_another_team_to_channel(self, mock_record):
         """

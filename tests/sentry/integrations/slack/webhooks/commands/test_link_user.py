@@ -104,7 +104,7 @@ class SlackUnlinkIdentityViewTest(SlackCommandsTest):
 class SlackCommandsUnlinkUserTest(SlackCommandsTest):
     """Slash commands results are generated on Region Silo"""
 
-    @patch("sentry.integrations.messaging.metrics.MessagingInteractionEvent.record_start")
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_unlink_command(self, mock_record):
         self.link_user()
         data = self.send_slack_message("unlink")

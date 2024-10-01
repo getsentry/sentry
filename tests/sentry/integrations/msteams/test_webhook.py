@@ -396,7 +396,7 @@ class MsTeamsWebhookTest(APITestCase):
         assert "Bearer my_token" in responses.calls[3].request.headers["Authorization"]
 
     @responses.activate
-    @mock.patch("sentry.integrations.messaging.metrics.MessagingInteractionEvent.record_start")
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @mock.patch("sentry.utils.jwt.decode")
     @mock.patch("time.time")
     def test_help_command(self, mock_time, mock_decode, mock_record):

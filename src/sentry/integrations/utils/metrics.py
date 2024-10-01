@@ -30,7 +30,7 @@ class EventLifecycle:
         self._has_started = False
         self._has_halted = False
 
-    def _record_event(
+    def record_event(
         self, outcome: str, sample_rate: float = settings.SENTRY_METRICS_SAMPLE_RATE
     ) -> None:
         metrics.incr(self.payload.get_key(outcome), sample_rate=sample_rate)
@@ -40,7 +40,7 @@ class EventLifecycle:
             raise EventLifecycleStateError("The lifecycle has already been entered")
         self._has_started = True
 
-        self._record_event("start")
+        self.record_event("start")
 
     def record_success(self) -> None:
         if not self._has_started:
@@ -49,7 +49,7 @@ class EventLifecycle:
             raise EventLifecycleStateError("The lifecycle has already been exited")
         self._has_halted = True
 
-        self._record_event("success")
+        self.record_event("success")
 
     def record_failure(self, exc: BaseException | None = None) -> None:
         if not self._has_started:
@@ -58,7 +58,7 @@ class EventLifecycle:
             raise EventLifecycleStateError("The lifecycle has already been exited")
         self._has_halted = True
 
-        self._record_event("failure", sample_rate=1.0)
+        self.record_event("failure", sample_rate=1.0)
 
     def __enter__(self) -> None:
         self.record_start()

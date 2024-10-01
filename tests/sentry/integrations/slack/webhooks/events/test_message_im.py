@@ -92,7 +92,7 @@ class MessageIMEventTest(BaseEventTest, IntegratedApiTestCase):
             == "Here are the commands you can use. Commands not working? Re-install the app!"
         )
 
-    @patch("sentry.integrations.messaging.metrics.MessagingInteractionEvent.record_start")
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_user_message_link(self, mock_record):
         """
         Test that when a user types in "link" to the DM we reply with the correct response.

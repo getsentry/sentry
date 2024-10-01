@@ -163,7 +163,7 @@ class DiscordMessageComponentInteractionTest(APITestCase):
         assert response.status_code == 200
         assert self.get_message_content(response) == INVALID_GROUP_ID
 
-    @patch("sentry.integrations.messaging.metrics.MessagingInteractionEvent.record_start")
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_assign(self, mock_record):
         response = self.send_interaction(
             {

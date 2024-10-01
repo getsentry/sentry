@@ -227,7 +227,7 @@ class StatusActionTest(APITestCase):
         }
 
     @responses.activate
-    @patch("sentry.integrations.messaging.metrics.MessagingInteractionEvent.record_start")
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.integrations.msteams.webhook.verify_signature", return_value=True)
     def test_assign_to_me(self, verify, mock_record):
         resp = self.post_webhook(action_type=ACTION_TYPE.ASSIGN, assign_input="ME")
