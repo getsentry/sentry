@@ -1,6 +1,5 @@
 import {ActorFixture} from 'sentry-fixture/actor';
 import {MemberFixture} from 'sentry-fixture/member';
-import {OrganizationFixture} from 'sentry-fixture/organization';
 import {TeamFixture} from 'sentry-fixture/team';
 import {UptimeRuleFixture} from 'sentry-fixture/uptimeRule';
 
@@ -28,20 +27,12 @@ describe('Uptime Alert Form', function () {
   }
 
   it('can create a new rule', async function () {
-    const {organization, project} = initializeOrg({
-      organization: OrganizationFixture({features: ['uptime-api-create-update']}),
-    });
+    const {organization, project} = initializeOrg();
     OrganizationStore.onUpdate(organization);
 
-    render(
-      <UptimeAlertForm
-        apiMethod="POST"
-        apiUrl={'/update-rule'}
-        project={project}
-        onSubmitSuccess={() => {}}
-      />,
-      {organization}
-    );
+    render(<UptimeAlertForm organization={organization} project={project} />, {
+      organization,
+    });
     await screen.findByText('Configure Request');
 
     await userEvent.clear(input('URL'));
@@ -63,7 +54,7 @@ describe('Uptime Alert Form', function () {
     await selectEvent.select(screen.getByRole('textbox', {name: 'Owner'}), 'Foo Bar');
 
     const updateMock = MockApiClient.addMockResponse({
-      url: '/update-rule',
+      url: `/projects/${organization.slug}/${project.slug}/uptime/`,
       method: 'POST',
     });
 
@@ -86,9 +77,7 @@ describe('Uptime Alert Form', function () {
   });
 
   it('renders existing rule', async function () {
-    const {organization, project} = initializeOrg({
-      organization: OrganizationFixture({features: ['uptime-api-create-update']}),
-    });
+    const {organization, project} = initializeOrg();
     OrganizationStore.onUpdate(organization);
 
     const rule = UptimeRuleFixture({
@@ -104,13 +93,7 @@ describe('Uptime Alert Form', function () {
       owner: ActorFixture(),
     });
     render(
-      <UptimeAlertForm
-        apiMethod="PUT"
-        apiUrl={''}
-        project={project}
-        onSubmitSuccess={() => {}}
-        rule={rule}
-      />,
+      <UptimeAlertForm organization={organization} project={project} rule={rule} />,
       {organization}
     );
     await screen.findByText('Configure Request');
@@ -126,10 +109,14 @@ describe('Uptime Alert Form', function () {
     expect(screen.getByRole('menuitemradio', {name: 'POST'})).toBeChecked();
   });
 
-  it('can edit an existing rule', async function () {
-    const {organization, project} = initializeOrg({
-      organization: OrganizationFixture({features: ['uptime-api-create-update']}),
-    });
+  it('handles simple edits', async function () {
+    // XXX(epurkhiser): This test covers the case where the formModel waws not
+    // triggering the observer that updates the apiEndpoint url based on the
+    // selected project for existing rules. The other tests all pass as the
+    // triggered error state from clearing the fields causes the observer to be
+    // called for the first time and correctly set the apiEndpoint.
+
+    const {organization, project} = initializeOrg();
     OrganizationStore.onUpdate(organization);
 
     const rule = UptimeRuleFixture({
@@ -139,13 +126,42 @@ describe('Uptime Alert Form', function () {
       owner: ActorFixture(),
     });
     render(
-      <UptimeAlertForm
-        apiMethod="PUT"
-        apiUrl={'/update-rule'}
-        project={project}
-        onSubmitSuccess={() => {}}
-        rule={rule}
-      />,
+      <UptimeAlertForm organization={organization} project={project} rule={rule} />,
+      {organization}
+    );
+    await screen.findByText('Configure Request');
+
+    await userEvent.type(input('URL'), '/test');
+
+    const updateMock = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/uptime/${rule.id}/`,
+      method: 'PUT',
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Save Rule'}));
+
+    expect(updateMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        data: expect.objectContaining({
+          url: 'https://existing-url.com/test',
+        }),
+      })
+    );
+  });
+
+  it('can edit an existing rule', async function () {
+    const {organization, project} = initializeOrg();
+    OrganizationStore.onUpdate(organization);
+
+    const rule = UptimeRuleFixture({
+      name: 'Existing Rule',
+      projectSlug: project.slug,
+      url: 'https://existing-url.com',
+      owner: ActorFixture(),
+    });
+    render(
+      <UptimeAlertForm organization={organization} project={project} rule={rule} />,
       {organization}
     );
     await screen.findByText('Configure Request');
@@ -172,7 +188,7 @@ describe('Uptime Alert Form', function () {
     await selectEvent.select(screen.getByRole('textbox', {name: 'Owner'}), 'Foo Bar');
 
     const updateMock = MockApiClient.addMockResponse({
-      url: '/update-rule',
+      url: `/projects/${organization.slug}/${project.slug}/uptime/${rule.id}/`,
       method: 'PUT',
     });
 
@@ -198,9 +214,7 @@ describe('Uptime Alert Form', function () {
   });
 
   it('does not show body for GET and HEAD', async function () {
-    const {organization, project} = initializeOrg({
-      organization: OrganizationFixture({features: ['uptime-api-create-update']}),
-    });
+    const {organization, project} = initializeOrg();
     OrganizationStore.onUpdate(organization);
 
     const rule = UptimeRuleFixture({
@@ -208,13 +222,7 @@ describe('Uptime Alert Form', function () {
       owner: ActorFixture(),
     });
     render(
-      <UptimeAlertForm
-        apiMethod="PUT"
-        apiUrl={'/update-rule'}
-        project={project}
-        onSubmitSuccess={() => {}}
-        rule={rule}
-      />,
+      <UptimeAlertForm organization={organization} project={project} rule={rule} />,
       {organization}
     );
     await screen.findByText('Configure Request');

@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Access from 'sentry/components/acl/access';
-import {Role} from 'sentry/components/acl/role';
+import {useRole} from 'sentry/components/acl/useRole';
 import Tag from 'sentry/components/badge/tag';
 import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -21,7 +21,6 @@ import {getFeatureTooltip, getPrettyFileType} from './utils';
 
 type Props = {
   debugFile: DebugFile;
-  downloadRole: string;
   downloadUrl: string;
   onDelete: (id: string) => void;
   orgSlug: string;
@@ -33,11 +32,11 @@ function DebugFileRow({
   debugFile,
   showDetails,
   downloadUrl,
-  downloadRole,
   onDelete,
   orgSlug,
   project,
 }: Props) {
+  const {hasRole, roleRequired: downloadRole} = useRole({role: 'debugFilesRole'});
   const {id, data, debugId, uuid, size, dateCreated, objectName, symbolType, codeId} =
     debugFile;
   const {features} = data || {};
@@ -88,31 +87,27 @@ function DebugFileRow({
       </Column>
       <RightColumn>
         <ButtonBar gap={0.5}>
-          <Role role={downloadRole}>
-            {({hasRole}) => (
-              <Tooltip
-                disabled={hasRole}
-                title={tct(
-                  'Debug files can only be downloaded by users with organization [downloadRole] role[orHigher]. This can be changed in [settingsLink:Debug Files Access] settings.',
-                  {
-                    downloadRole,
-                    orHigher: downloadRole !== 'owner' ? ` ${t('or higher')}` : '',
-                    settingsLink: <Link to={`/settings/${orgSlug}/#debugFilesRole`} />,
-                  }
-                )}
-                isHoverable
-              >
-                <LinkButton
-                  size="xs"
-                  icon={<IconDownload />}
-                  href={downloadUrl}
-                  disabled={!hasRole}
-                >
-                  {t('Download')}
-                </LinkButton>
-              </Tooltip>
+          <Tooltip
+            disabled={hasRole}
+            title={tct(
+              'Debug files can only be downloaded by users with organization [downloadRole] role[orHigher]. This can be changed in [settingsLink:Debug Files Access] settings.',
+              {
+                downloadRole,
+                orHigher: downloadRole !== 'owner' ? ` ${t('or higher')}` : '',
+                settingsLink: <Link to={`/settings/${orgSlug}/#debugFilesRole`} />,
+              }
             )}
-          </Role>
+            isHoverable
+          >
+            <LinkButton
+              size="xs"
+              icon={<IconDownload />}
+              href={downloadUrl}
+              disabled={!hasRole}
+            >
+              {t('Download')}
+            </LinkButton>
+          </Tooltip>
           <Access access={['project:write']} project={project}>
             {({hasAccess}) => (
               <Tooltip

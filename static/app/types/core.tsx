@@ -108,6 +108,7 @@ export interface DataCategoryInfo {
   displayName: string;
   name: DataCategoryExact;
   plural: string;
+  productName: string;
   titleName: string;
   uid: number;
 }

@@ -381,12 +381,7 @@ export function EventDetailsContent({
           <Request event={event} data={eventEntries[EntryType.REQUEST].data} />
         </EntryErrorBoundary>
       )}
-      <HighlightsDataSection
-        groupId={group.id}
-        event={event}
-        project={project}
-        viewAllRef={tagsRef}
-      />
+      <HighlightsDataSection event={event} project={project} viewAllRef={tagsRef} />
       {hasStreamlinedUI ? (
         <EventTagsDataSection event={event} projectSlug={project.slug} ref={tagsRef} />
       ) : (

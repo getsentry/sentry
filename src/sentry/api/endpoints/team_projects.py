@@ -22,7 +22,7 @@ from sentry.apidocs.examples.team_examples import TeamExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import RESERVED_PROJECT_SLUGS, ObjectStatus
-from sentry.models.project import Project
+from sentry.models.project import PROJECT_SLUG_MAX_LENGTH, Project
 from sentry.models.team import Team
 from sentry.seer.similarity.utils import project_is_seer_eligible
 from sentry.signals import project_created
@@ -38,7 +38,7 @@ class ProjectPostSerializer(serializers.Serializer):
     slug = SentrySerializerSlugField(
         help_text="""Uniquely identifies a project and is used for the interface.
         If not provided, it is automatically generated from the name.""",
-        max_length=50,
+        max_length=PROJECT_SLUG_MAX_LENGTH,
         required=False,
         allow_null=True,
     )

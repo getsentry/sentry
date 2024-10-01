@@ -41,7 +41,6 @@ import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 interface HighlightsDataSectionProps {
   event: Event;
-  groupId: string;
   project: Project;
   viewAllRef?: React.RefObject<HTMLElement>;
 }
@@ -258,7 +257,6 @@ export default function HighlightsDataSection({
 }: HighlightsDataSectionProps) {
   const organization = useOrganization();
   const hasStreamlinedUI = useHasStreamlinedUI();
-
   const viewAllButton = hasStreamlinedUI ? null : viewAllRef ? (
     <Button
       onClick={() => {
