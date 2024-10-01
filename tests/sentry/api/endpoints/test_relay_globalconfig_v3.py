@@ -64,6 +64,11 @@ def test_global_config():
     config = get_global_config()
 
     normalized = normalize_global_config(config)
+
+    # It is not allowed to specify `None` as default for an option.
+    if not config["options"]["relay.span-normalization.allowed_hosts"]:
+        del config["options"]["relay.span-normalization.allowed_hosts"]
+
     assert normalized == config
 
 
