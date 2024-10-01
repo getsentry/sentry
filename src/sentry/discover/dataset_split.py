@@ -47,6 +47,22 @@ SPLIT_DATASET_TO_DISCOVER_DATASET_MAP = {
     SplitDataset.Transactions: DiscoverSavedQueryTypes.TRANSACTION_LIKE,
 }
 
+TRANSACTION_ONLY_AGGREGATES = [
+    "failure_rate",
+    "failure_count",
+    "apdex",
+    "count_miserable",
+    "user_misery",
+    "count_web_vitals",
+    "percentile",
+    "p50",
+    "p75",
+    "p90",
+    "p95",
+    "p99",
+    "p100",
+]
+
 TRANSACTION_ONLY_FIELDS = [
     "duration",
     "transaction_op",
@@ -76,6 +92,8 @@ TRANSACTION_ONLY_FIELDS = [
     "span_op_breakdowns[ops.resource]",
     "span_op_breakdowns[ops.ui]",
 ]
+
+ERROR_ONLY_AGGREGATES = ["last_seen"]
 
 ERROR_ONLY_FIELDS = [
     "location",
@@ -132,6 +150,21 @@ def _check_function_parameter_matches_dataset(
 
     for parameter in function.parameters:
         if isinstance(parameter, Column) and parameter.name in fields:
+            return True
+
+    return False
+
+
+def _check_function_alias_matches_dataset(
+    function: Function | CurriedFunction,
+    dataset: Dataset,
+) -> bool:
+    aggregate_aliases = (
+        TRANSACTION_ONLY_AGGREGATES if dataset == Dataset.Transactions else ERROR_ONLY_AGGREGATES
+    )
+
+    for alias in aggregate_aliases:
+        if function.alias.startswith(alias):
             return True
 
     return False
@@ -216,7 +249,10 @@ def _check_selected_columns_match_dataset(
                 return True
 
         elif isinstance(select_col, Function) or isinstance(select_col, CurriedFunction):
+            # The parameter check is a stronger check if applicable, so we should keep that first
             if _check_function_parameter_matches_dataset(select_col, dataset):
+                return True
+            if _check_function_alias_matches_dataset(select_col, dataset):
                 return True
 
     return False
