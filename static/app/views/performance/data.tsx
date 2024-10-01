@@ -669,7 +669,7 @@ function generateFrontendPageloadPerformanceEventView(
   return eventView;
 }
 
-function generateFrontendOtherPerformanceEventView(
+export function generateFrontendOtherPerformanceEventView(
   location: Location,
   withStaticFilters: boolean,
   organization: Organization
