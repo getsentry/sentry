@@ -53,6 +53,7 @@
   "workflow_engine.dataconditiongroupaction",
   "workflow_engine.datasource",
   "workflow_engine.detector",
+  "workflow_engine.detectorstate",
   "workflow_engine.workflow",
   "workflow_engine.workflowdataconditiongroup",
   "workflow_engine.detectorworkflow",

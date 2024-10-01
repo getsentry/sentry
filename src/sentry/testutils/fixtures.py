@@ -650,6 +650,9 @@ class Fixtures:
     def create_detector(self, *args, **kwargs) -> Detector:
         return Factories.create_detector(*args, **kwargs)
 
+    def create_detector_state(self, *args, **kwargs) -> Detector:
+        return Factories.create_detector_state(*args, **kwargs)
+
     def create_data_source_detector(self, *args, **kwargs):
         return Factories.create_data_source_detector(*args, **kwargs)
 
