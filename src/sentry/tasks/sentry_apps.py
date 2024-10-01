@@ -5,7 +5,7 @@ from collections import defaultdict
 from collections.abc import Mapping
 from typing import Any
 
-from celery import current_task
+from celery import Task, current_task
 from django.urls import reverse
 from requests.exceptions import RequestException
 
@@ -172,8 +172,9 @@ def _process_resource_change(
     action: str,
     sender: str,
     instance_id: int,
+    /,
     retryer: Any | None = None,
-    *args: Any,
+    *args,
     **kwargs: Any,
 ) -> None:
     # The class is serialized as a string when enqueueing the class.
@@ -247,9 +248,9 @@ def _process_resource_change(
 @instrumented_task("sentry.tasks.process_resource_change_bound", bind=True, **TASK_OPTIONS)
 @retry_decorator
 def process_resource_change_bound(
-    self, action: str, sender: str, instance_id: int, *args: Any, **kwargs: Any
+    self: Task, action: str, sender: str, instance_id: int, *args: Any, **kwargs: Any
 ) -> None:
-    _process_resource_change(action, sender, instance_id, self, *args, **kwargs)
+    _process_resource_change(action, sender, instance_id, retryer=self, *args, **kwargs)
 
 
 @instrumented_task(name="sentry.tasks.sentry_apps.installation_webhook", **CONTROL_TASK_OPTIONS)
