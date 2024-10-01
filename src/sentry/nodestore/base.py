@@ -120,7 +120,6 @@ class NodeStorage(local, Service):
         except StopIteration:
             return None
 
-    @sentry_sdk.tracing.trace
     def get_bytes(self, id: str) -> bytes | None:
         """
         >>> nodestore._get_bytes('key1')
