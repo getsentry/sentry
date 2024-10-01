@@ -44,7 +44,15 @@ export default function ListContent() {
   });
 
   if (hasSentReplays.fetching || rageClicksSdkVersion.isFetching) {
-    return <LoadingIndicator />;
+    return (
+      <Fragment>
+        <FiltersContainer>
+          <ReplaysFilters />
+          <ReplaysSearch />
+        </FiltersContainer>
+        <LoadingIndicator />
+      </Fragment>
+    );
   }
 
   if (!hasSessionReplay || !hasSentReplays.hasSentOneReplay) {
