@@ -111,7 +111,7 @@ function ProjectApdexScoreCard(props: Props) {
 
   const apdex = Number(data?.data?.[0]?.['apdex()']) || undefined;
 
-  const previousApdex = Number(previousData?.data?.[0]['apdex()']) || undefined;
+  const previousApdex = Number(previousData?.data?.[0]?.['apdex()']) || undefined;
 
   const trend =
     defined(apdex) && defined(previousApdex)
