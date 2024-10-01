@@ -173,7 +173,7 @@ def _process_resource_change(
     sender: str,
     instance_id: int,
     *,
-    retryer: Any | None = None,
+    retryer: Task | None = None,
     **kwargs: Any,
 ) -> None:
     # The class is serialized as a string when enqueueing the class.
