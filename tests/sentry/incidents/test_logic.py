@@ -839,6 +839,7 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
         )
 
     @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
@@ -888,6 +889,7 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert alert_rule.threshold_period == self.dynamic_metric_alert_settings["threshold_period"]
 
     @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
@@ -910,6 +912,7 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert alert_rule.status == AlertRuleStatus.NOT_ENOUGH_DATA.value
 
     @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
@@ -929,6 +932,7 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert alert_rule.status == AlertRuleStatus.NOT_ENOUGH_DATA.value
 
     @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
@@ -1485,6 +1489,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         )
 
     @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
@@ -1601,6 +1606,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert updated_rule.detection_type == AlertRuleDetectionType.DYNAMIC
 
     @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
@@ -1660,6 +1666,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert updated_rule.detection_type == AlertRuleDetectionType.STATIC
 
     @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
@@ -1714,6 +1721,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert snuba_query.aggregate == "count_unique(user)"
 
     @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
@@ -1732,6 +1740,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert mock_seer_request.call_count == 1
 
     @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
@@ -1751,6 +1760,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert mock_seer_request.call_count == 1
 
     @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
@@ -1779,6 +1789,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert alert_rule.status == AlertRuleStatus.PENDING.value
 
     @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
@@ -1817,6 +1828,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert dynamic_rule.status == AlertRuleStatus.PENDING.value
 
     @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
@@ -1858,6 +1870,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert dynamic_rule.status == AlertRuleStatus.NOT_ENOUGH_DATA.value
 
     @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
@@ -1886,6 +1899,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert alert_rule.status == AlertRuleStatus.NOT_ENOUGH_DATA.value
 
     @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
@@ -1922,6 +1936,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert alert_rule.status == AlertRuleStatus.PENDING.value
 
     @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
@@ -1977,6 +1992,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert mock_seer_request.call_count == 1
 
     @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
@@ -2000,6 +2016,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert static_rule.detection_type == AlertRuleDetectionType.STATIC
 
     @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
     @patch(
         "sentry.seer.anomaly_detection.delete_rule.seer_anomaly_detection_connection_pool.urlopen"
     )
@@ -2043,6 +2060,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert static_rule.detection_type == AlertRuleDetectionType.STATIC
 
     @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
@@ -2143,6 +2161,7 @@ class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):
         mocked_schedule_update_project_config.assert_called_with(alert_rule, [self.project])
 
     @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
     @patch(
         "sentry.seer.anomaly_detection.delete_rule.seer_anomaly_detection_connection_pool.urlopen"
     )
@@ -2167,6 +2186,7 @@ class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):
         assert mock_seer_request.call_count == 1
 
     @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
     @patch(
         "sentry.seer.anomaly_detection.delete_rule.seer_anomaly_detection_connection_pool.urlopen"
     )
@@ -2200,6 +2220,7 @@ class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):
         assert mock_seer_request.call_count == 1
 
     @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
     @patch(
         "sentry.seer.anomaly_detection.delete_rule.seer_anomaly_detection_connection_pool.urlopen"
     )
@@ -2233,6 +2254,7 @@ class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):
         assert mock_seer_request.call_count == 1
 
     @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
     @patch(
         "sentry.seer.anomaly_detection.delete_rule.seer_anomaly_detection_connection_pool.urlopen"
     )
@@ -2266,6 +2288,7 @@ class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):
         assert mock_seer_request.call_count == 1
 
     @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
     @patch(
         "sentry.seer.anomaly_detection.delete_rule.seer_anomaly_detection_connection_pool.urlopen"
     )
@@ -2388,6 +2411,7 @@ class CreateAlertRuleTriggerTest(TestCase):
             create_alert_rule_trigger(self.alert_rule, name, 100)
 
     @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
@@ -2460,6 +2484,7 @@ class UpdateAlertRuleTriggerTest(TestCase):
             update_alert_rule_trigger(trigger, excluded_projects=[other_project])
 
     @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
