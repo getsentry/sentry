@@ -4,12 +4,12 @@ import unittest
 from typing import Any
 
 from fixtures.schema_validation import invalid_schema
-from sentry.api.validators.sentry_apps.schema import validate_component
+from sentry.sentry_apps.api.parsers.schema import validate_component
 
 
-class TestTextareaSchemaValidation(unittest.TestCase):
+class TestTextSchemaValidation(unittest.TestCase):
     def setUp(self):
-        self.schema: dict[str, Any] = {"type": "textarea", "name": "title", "label": "Title"}
+        self.schema: dict[str, Any] = {"type": "text", "name": "title", "label": "Title"}
 
     def test_valid_schema(self):
         validate_component(self.schema)

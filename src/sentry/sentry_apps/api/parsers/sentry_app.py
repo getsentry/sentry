@@ -3,9 +3,9 @@ from rest_framework import serializers
 from rest_framework.serializers import Serializer, ValidationError
 
 from sentry.api.serializers.rest_framework.base import camel_to_snake_case
-from sentry.api.validators.sentry_apps.schema import validate_ui_element_schema
 from sentry.integrations.models.integration_feature import Feature
 from sentry.models.apiscopes import ApiScopes
+from sentry.sentry_apps.api.parsers.schema import validate_ui_element_schema
 from sentry.sentry_apps.models.sentry_app import (
     REQUIRED_EVENT_PERMISSIONS,
     UUID_CHARS_IN_SLUG,
