@@ -164,7 +164,7 @@ class SetupWizard(PermissionTestCase):
         self.org = self.create_organization(owner=self.user)
         self.team = self.create_team(organization=self.org, name="Mariachi Band")
         self.project = self.create_project(organization=self.org, teams=[self.team], name="Bengal")
-        # create another prohject to make sure only the submitted project is in the cache
+        # create another project to make sure only the submitted project is in the cache
         self.create_project(organization=self.org, teams=[self.team], name="Bengal2")
         self.login_as(self.user)
 
