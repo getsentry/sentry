@@ -255,7 +255,7 @@ const Configuration = styled('div')`
   margin-top: ${space(1)};
   margin-bottom: ${space(4)};
   margin-left: ${space(4)};
-`
+`;
 
 const ConfigurationPanel = styled(Panel)`
   display: grid;
