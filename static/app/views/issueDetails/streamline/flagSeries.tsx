@@ -16,6 +16,7 @@ export const MOCK_RAW_FLAG_LOG: RawFlagData = {
       created_by: '1234',
       created_by_type: 'id',
       tags: {},
+      id: 1,
     },
     {
       action: 'updated',
@@ -24,6 +25,7 @@ export const MOCK_RAW_FLAG_LOG: RawFlagData = {
       created_by: '1234',
       created_by_type: 'id',
       tags: {},
+      id: 2,
     },
     {
       action: 'deleted',
@@ -32,6 +34,7 @@ export const MOCK_RAW_FLAG_LOG: RawFlagData = {
       created_by: '1234',
       created_by_type: 'id',
       tags: {},
+      id: 3,
     },
   ],
 };
@@ -42,7 +45,8 @@ type RawFlag = {
   created_by: string;
   created_by_type: string;
   flag: string;
-  tags: Record<string, string>;
+  id: number;
+  tags: Record<string, any>;
 };
 
 export type RawFlagData = {data: RawFlag[]};
@@ -62,7 +66,7 @@ function _useOrganizationFlagLog({
   query: Record<string, any>;
 }) {
   const {data, isError, isPending} = useApiQuery<RawFlagData>(
-    [`/organizations/${organization.slug}/flag-log/`, {query}],
+    [`/organizations/${organization.slug}/flags/logs`, {query}],
     {
       staleTime: 0,
       // enabled: organization.features?.includes('feature-flag-ui'),

@@ -84,7 +84,6 @@ export function EventGraph({group, groupStats, searchQuery}: EventGraphProps) {
       start: eventView.start,
       end: eventView.end,
       statsPeriod: eventView.statsPeriod,
-      query: eventView.query,
     },
   });
 
