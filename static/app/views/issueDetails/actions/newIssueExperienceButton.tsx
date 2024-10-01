@@ -44,15 +44,15 @@ export function NewIssueExperienceButton() {
   ) : null;
 
   const label = hasStreamlinedUI
-    ? t('Switch to the old issue experience')
-    : t('Switch to the new issue experience');
+    ? t('Switch to the old issue view')
+    : t('Switch to the new issue view');
 
   return (
     <ButtonBar merged>
       <StyledButton
         enabled={hasStreamlinedUI}
         size="sm"
-        icon={<IconLab isSolid={hasStreamlinedUI} />}
+        icon={<IconLab isSolid={!hasStreamlinedUI} />}
         title={label}
         aria-label={label}
         onClick={() => {
@@ -66,15 +66,17 @@ export function NewIssueExperienceButton() {
             query: {...location.query, streamline: hasStreamlinedUI ? '0' : '1'},
           });
         }}
-      />
+      >
+        {hasStreamlinedUI ? t('Back to basics') : t('Try something new')}
+      </StyledButton>
       {hasStreamlinedUI && feedbackButton}
     </ButtonBar>
   );
 }
 
 const StyledButton = styled(Button)<{enabled: boolean}>`
-  color: ${p => (p.enabled ? p.theme.button.primary.background : 'inherit')};
+  color: ${p => (p.enabled ? 'inherit' : p.theme.button.primary.background)};
   :hover {
-    color: ${p => (p.enabled ? p.theme.button.primary.background : 'inherit')};
+    color: ${p => (p.enabled ? 'inherit' : p.theme.button.primary.background)};
   }
 `;

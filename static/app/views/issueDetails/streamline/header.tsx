@@ -1,38 +1,23 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import Color from 'color';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import {Button} from 'sentry/components/button';
 import Count from 'sentry/components/count';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import EventMessage from 'sentry/components/events/eventMessage';
-import {
-  AssigneeSelector,
-  useHandleAssigneeChange,
-} from 'sentry/components/group/assigneeSelector';
-import ParticipantList from 'sentry/components/group/streamlinedParticipantList';
 import Link from 'sentry/components/links/link';
 import Version from 'sentry/components/version';
 import VersionHoverCard from 'sentry/components/versionHoverCard';
-import {IconChevron, IconPanel} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
-import type {Group, TeamParticipant, UserParticipant} from 'sentry/types/group';
+import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import type {Release} from 'sentry/types/release';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
-import {useUser} from 'sentry/utils/useUser';
-import GroupActions from 'sentry/views/issueDetails/actions/index';
 import {Divider} from 'sentry/views/issueDetails/divider';
-import GroupPriority from 'sentry/views/issueDetails/groupPriority';
-import {AttachmentsBadge} from 'sentry/views/issueDetails/streamline/attachmentsBadge';
-import {ReplayBadge} from 'sentry/views/issueDetails/streamline/replayBadge';
-import {UserFeedbackBadge} from 'sentry/views/issueDetails/streamline/userFeedbackBadge';
 import {useIssueDetailsHeader} from 'sentry/views/issueDetails/useIssueDetailsHeader';
 import type {ReprocessingStatus} from 'sentry/views/issueDetails/utils';
 
@@ -54,9 +39,7 @@ export default function StreamlinedGroupHeader({
   project,
   baseUrl,
   groupReprocessingStatus,
-  event,
 }: GroupHeaderProps) {
-  const activeUser = useUser();
   const location = useLocation();
   const organization = useOrganization();
   const {sort: _sort, ...query} = location.query;
@@ -72,34 +55,12 @@ export default function StreamlinedGroupHeader({
   const {count: eventCount, userCount} = group;
   const {firstRelease, lastRelease} = groupReleaseData || {};
 
-  const {handleAssigneeChange, assigneeLoading} = useHandleAssigneeChange({
-    organization,
-    group,
-  });
-
-  const [sidebarOpen, setSidebarOpen] = useSyncedLocalStorageState(
-    'issue-details-sidebar-open',
-    true
-  );
-
   const {message, eventRoute, disableActions, shortIdBreadcrumb} = useIssueDetailsHeader({
     group,
     groupReprocessingStatus,
     baseUrl,
     project,
   });
-
-  const {userParticipants, teamParticipants, displayUsers} = useMemo(() => {
-    return {
-      userParticipants: group.participants.filter(
-        (p): p is UserParticipant => p.type === 'user'
-      ),
-      teamParticipants: group.participants.filter(
-        (p): p is TeamParticipant => p.type === 'team'
-      ),
-      displayUsers: group.seenBy.filter(user => activeUser.id !== user.id),
-    };
-  }, [group, activeUser.id]);
 
   return (
     <Header>
@@ -164,9 +125,6 @@ export default function StreamlinedGroupHeader({
                 </ReleaseWrapper>
               </Fragment>
             )}
-            <AttachmentsBadge group={group} />
-            <UserFeedbackBadge group={group} project={project} />
-            <ReplayBadge group={group} project={project} />
           </MessageWrapper>
         </Heading>
         <AllStats>
@@ -184,62 +142,6 @@ export default function StreamlinedGroupHeader({
           </Stat>
         </AllStats>
       </HeadingGrid>
-
-      <StyledBreak />
-      <InfoWrapper
-        isResolvedOrIgnored={group.status === 'resolved' || group.status === 'ignored'}
-      >
-        <GroupActions
-          group={group}
-          project={project}
-          disabled={disableActions}
-          event={event}
-          query={location.query}
-        />
-        <SidebarWorkflowWrapper>
-          <WorkflowWrapper>
-            <Wrapper>
-              {t('Priority')}
-              <GroupPriority group={group} />
-            </Wrapper>
-            <Wrapper>
-              {t('Assignee')}
-              <AssigneeSelector
-                group={group}
-                assigneeLoading={assigneeLoading}
-                handleAssigneeChange={handleAssigneeChange}
-              />
-            </Wrapper>
-            {group.participants.length > 0 && (
-              <Wrapper>
-                {t('Participants')}
-                <ParticipantList users={userParticipants} teams={teamParticipants} />
-              </Wrapper>
-            )}
-            {displayUsers.length > 0 && (
-              <Wrapper>
-                {t('Viewers')}
-                <ParticipantList users={displayUsers} />
-              </Wrapper>
-            )}
-          </WorkflowWrapper>
-          <Divider />
-          <Button
-            icon={
-              sidebarOpen ? (
-                <IconChevron direction="right" />
-              ) : (
-                <IconPanel direction="right" />
-              )
-            }
-            title={sidebarOpen ? t('Close Sidebar') : t('Open Sidebar')}
-            aria-label={sidebarOpen ? t('Close Sidebar') : t('Open Sidebar')}
-            size="sm"
-            borderless
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-          />
-        </SidebarWorkflowWrapper>
-      </InfoWrapper>
     </Header>
   );
 }
@@ -253,6 +155,7 @@ const HeadingGrid = styled('div')`
   grid-template-columns: minmax(0, 1fr) auto;
   gap: ${space(2)};
   align-items: center;
+  margin-bottom: ${space(3)};
 `;
 
 const Heading = styled('div')``;
@@ -300,50 +203,10 @@ const TitleHeading = styled('div')`
   padding-top: ${space(1)};
 `;
 
-const StyledBreak = styled('hr')`
-  margin-top: ${space(2)};
-  margin-bottom: 0;
-  margin-right: 0;
-  border-color: ${p => p.theme.border};
-`;
-
 const MessageWrapper = styled('div')`
   display: flex;
   color: ${p => p.theme.gray300};
   gap: ${space(1)};
-`;
-
-const InfoWrapper = styled('div')<{isResolvedOrIgnored: boolean}>`
-  display: flex;
-  justify-content: space-between;
-  gap: ${space(1)};
-  background: ${p =>
-    p.isResolvedOrIgnored
-      ? `linear-gradient(to right, ${p.theme.background}, ${Color(p.theme.success).lighten(0.5).alpha(0.15).string()})`
-      : p.theme.background};
-  color: ${p => p.theme.gray300};
-  padding: ${space(1)} 24px;
-  margin-right: 0;
-  margin-left: 0;
-  flex-wrap: wrap;
-`;
-
-const SidebarWorkflowWrapper = styled('div')`
-  display: flex;
-  gap: ${space(0.5)};
-  align-items: center;
-`;
-
-const WorkflowWrapper = styled('div')`
-  display: flex;
-  column-gap: ${space(2)};
-  flex-wrap: wrap;
-`;
-
-const Wrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.5)};
 `;
 
 const ReleaseWrapper = styled('div')`
@@ -362,7 +225,7 @@ const Header = styled('div')`
   background-color: ${p => p.theme.background};
   display: flex;
   flex-direction: column;
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.translucentBorder};
 
   > * {
     margin-right: 24px;

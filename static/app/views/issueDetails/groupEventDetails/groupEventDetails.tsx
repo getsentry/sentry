@@ -1,5 +1,4 @@
-import {Fragment, useEffect} from 'react';
-import {css} from '@emotion/react';
+import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
@@ -11,6 +10,8 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {TransactionProfileIdProvider} from 'sentry/components/profiling/transactionProfileIdProvider';
 import ResolutionBox from 'sentry/components/resolutionBox';
+import {TabList, Tabs} from 'sentry/components/tabs';
+import {t} from 'sentry/locale';
 import useSentryAppComponentsData from 'sentry/stores/useSentryAppComponentsData';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
@@ -28,6 +29,7 @@ import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageStat
 import GroupEventDetailsContent from 'sentry/views/issueDetails/groupEventDetails/groupEventDetailsContent';
 import GroupEventHeader from 'sentry/views/issueDetails/groupEventHeader';
 import GroupSidebar from 'sentry/views/issueDetails/groupSidebar';
+import {EventPageContent} from 'sentry/views/issueDetails/streamline/eventDetails';
 import StreamlinedSidebar from 'sentry/views/issueDetails/streamline/sidebar';
 
 import ReprocessingProgress from '../reprocessingProgress';
@@ -74,8 +76,10 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
   const prevEvent = usePrevious(event);
   const hasStreamlinedUI = useHasStreamlinedUI();
 
-  const [sidebarOpen, _] = useSyncedLocalStorageState('issue-details-sidebar-open', true);
-
+  const [pageContent, setPageContent] = useSyncedLocalStorageState<EventPageContent>(
+    'issue-details-tab-i-guess',
+    EventPageContent.EVENT
+  );
   // load the data
   useSentryAppComponentsData({projectId});
 
@@ -160,7 +164,9 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
 
   const eventWithMeta = withMeta(event);
   const issueTypeConfig = getConfigForIssueType(group, project);
+  const PageLayoutComponent = hasStreamlinedUI ? PageLayout : StyledLayoutBody;
   const MainLayoutComponent = hasStreamlinedUI ? GroupContent : StyledLayoutMain;
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   return (
     <TransactionProfileIdProvider
@@ -173,10 +179,10 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
         hasData={!loadingEvent && !eventError && defined(eventWithMeta)}
         isLoading={loadingEvent}
       >
-        <StyledLayoutBody
+        <PageLayoutComponent
           data-test-id="group-event-details"
           hasStreamlinedUi={hasStreamlinedUI}
-          sidebarOpen={sidebarOpen}
+          isSidebarOpen={isSidebarOpen}
         >
           {groupReprocessingStatus === ReprocessingStatus.REPROCESSING ? (
             <ReprocessingProgress
@@ -191,6 +197,24 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
           ) : (
             <Fragment>
               <MainLayoutComponent>
+                {hasStreamlinedUI && (
+                  <IssueDetailsTabs
+                    value={pageContent}
+                    onChange={key => setPageContent(key as EventPageContent)}
+                  >
+                    <IssueDetailsTabList hideBorder variant="floating">
+                      <TabList.Item key={EventPageContent.EVENT}>
+                        {t('Event')}
+                      </TabList.Item>
+                      <TabList.Item key={EventPageContent.ISSUE}>
+                        {t('Issue')}
+                      </TabList.Item>
+                      <TabList.Item key={EventPageContent.EXPLORE}>
+                        {t('Explore')}
+                      </TabList.Item>
+                    </IssueDetailsTabList>
+                  </IssueDetailsTabs>
+                )}
                 {!hasStreamlinedUI && renderGroupStatusBanner()}
                 <EscalatingIssuesFeedback organization={organization} group={group} />
                 {eventWithMeta && issueTypeConfig.stats.enabled && !hasStreamlinedUI && (
@@ -203,13 +227,18 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
                 {renderContent()}
               </MainLayoutComponent>
               {hasStreamlinedUI ? (
-                sidebarOpen ? (
-                  <StyledLayoutSide hasStreamlinedUi={hasStreamlinedUI}>
-                    <StreamlinedSidebar group={group} event={event} project={project} />
-                  </StyledLayoutSide>
-                ) : null
+                <StreamlinedSide>
+                  <StreamlinedSidebar
+                    group={group}
+                    event={event}
+                    project={project}
+                    groupReprocessingStatus={groupReprocessingStatus}
+                    isSidebarOpen={isSidebarOpen}
+                    onToggleSidebar={() => setIsSidebarOpen(v => !v)}
+                  />
+                </StreamlinedSide>
               ) : (
-                <StyledLayoutSide hasStreamlinedUi={hasStreamlinedUI}>
+                <StyledLayoutSide>
                   <GroupSidebar
                     organization={organization}
                     project={project}
@@ -221,30 +250,34 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
               )}
             </Fragment>
           )}
-        </StyledLayoutBody>
+        </PageLayoutComponent>
       </VisuallyCompleteWithData>
     </TransactionProfileIdProvider>
   );
 }
 
+const IssueDetailsTabs = styled(Tabs)`
+  gap: ${space(1.5)};
+  background: ${p => p.theme.background};
+  padding: ${space(0.5)} ${space(1.5)} ${space(0.75)};
+  border-bottom: 1px solid ${p => p.theme.translucentBorder};
+  margin: -${space(1.5)} -${space(1.5)} 0;
+`;
+
+const IssueDetailsTabList = styled(TabList)`
+  gap: ${space(0.5)};
+  font-size: ${p => p.theme.fontSizeSmall};
+  line-height: 1;
+`;
+
 const StyledLayoutBody = styled(Layout.Body)<{
   hasStreamlinedUi: boolean;
-  sidebarOpen: boolean;
 }>`
   /* Makes the borders align correctly */
   padding: 0 !important;
   @media (min-width: ${p => p.theme.breakpoints.large}) {
     align-content: stretch;
   }
-
-  ${p =>
-    p.hasStreamlinedUi &&
-    css`
-      @media (min-width: ${p.theme.breakpoints.large}) {
-        gap: ${space(1.5)};
-        display: ${p.sidebarOpen ? 'grid' : 'block'};
-      }
-    `}
 `;
 
 const GroupStatusBannerWrapper = styled('div')`
@@ -270,26 +303,32 @@ const GroupContent = styled(Layout.Main)`
   flex-direction: column;
   padding: ${space(1.5)};
   gap: ${space(1.5)};
-  box-shadow: 0 0 0 1px ${p => p.theme.translucentInnerBorder};
 `;
 
-const StyledLayoutSide = styled(Layout.Side)<{hasStreamlinedUi: boolean}>`
-  ${p =>
-    p.hasStreamlinedUi
-      ? css`
-          padding: ${space(1.5)} ${space(2)} ${space(3)};
-        `
-      : css`
-          padding: ${space(3)} ${space(2)} ${space(3)};
+const PageLayout = styled(Layout.Body)<{isSidebarOpen: boolean}>`
+  padding: 0 !important;
+  gap: 0 !important;
+  background: ${p => p.theme.backgroundSecondary};
+  grid-template-columns: ${p =>
+    p.isSidebarOpen
+      ? 'minmax(100px, auto) 325px'
+      : 'minmax(100px, auto) 40px'} !important;
+`;
 
-          @media (min-width: ${p.theme.breakpoints.large}) {
-            padding-right: ${space(4)};
-          }
-        `}
+const StyledLayoutSide = styled(Layout.Side)`
+  padding: ${space(3)} ${space(2)} ${space(3)};
+
+  @media (min-width: ${p => p.theme.breakpoints.large}) {
+    padding-right: ${space(4)};
+  }
 
   @media (min-width: ${p => p.theme.breakpoints.large}) {
     padding-left: 0;
   }
+`;
+
+const StreamlinedSide = styled('div')`
+  grid-area: 1 / 2 / 3 / 3;
 `;
 
 export default GroupEventDetails;

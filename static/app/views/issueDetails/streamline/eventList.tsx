@@ -2,7 +2,7 @@ import {useState} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button, LinkButton} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {
   GridBodyCell,
@@ -29,10 +29,9 @@ import EventsTable from 'sentry/views/performance/transactionSummary/transaction
 interface EventListProps {
   group: Group;
   project: Project;
-  onClose?: (e: React.MouseEvent) => void;
 }
 
-export function EventList({group, onClose}: EventListProps) {
+export function EventList({group}: EventListProps) {
   const referrer = 'issue_details.streamline_list';
   const theme = useTheme();
   const location = useLocation();
@@ -126,13 +125,6 @@ export function EventList({group, onClose}: EventListProps) {
                   />
                 </ButtonBar>
               </EventListHeaderItem>
-              {onClose && (
-                <EventListHeaderItem>
-                  <Button borderless size="xs" css={grayText} onClick={onClose}>
-                    {t('Close')}
-                  </Button>
-                </EventListHeaderItem>
-              )}
             </EventListHeader>
           );
         }}
@@ -143,7 +135,7 @@ export function EventList({group, onClose}: EventListProps) {
 
 const EventListHeader = styled('div')`
   display: grid;
-  grid-template-columns: 1fr auto auto auto;
+  grid-template-columns: 1fr auto auto;
   gap: ${space(1.5)};
   align-items: center;
   padding: ${space(0.75)} ${space(2)};

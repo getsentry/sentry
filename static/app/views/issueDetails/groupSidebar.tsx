@@ -39,6 +39,7 @@ import {getAnalyicsDataForProject} from 'sentry/utils/projects';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useUser} from 'sentry/utils/useUser';
+import {NewIssueExperienceButton} from 'sentry/views/issueDetails/actions/newIssueExperienceButton';
 import {ParticipantList} from 'sentry/views/issueDetails/participantList';
 import {makeFetchGroupQueryKey} from 'sentry/views/issueDetails/useGroup';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
@@ -255,6 +256,7 @@ export default function GroupSidebar({
 
   return (
     <Container>
+      <NewIssueExperienceButton />
       {hasStreamlinedUI && event && (
         <ErrorBoundary mini>
           <StreamlinedExternalIssueList group={group} event={event} project={project} />

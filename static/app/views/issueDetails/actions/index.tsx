@@ -45,7 +45,6 @@ import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
-import {NewIssueExperienceButton} from 'sentry/views/issueDetails/actions/newIssueExperienceButton';
 import {Divider} from 'sentry/views/issueDetails/divider';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
@@ -68,12 +67,24 @@ type Props = {
   group: Group;
   organization: Organization;
   project: Project;
+  className?: string;
   event?: Event;
+  isPrototype?: boolean;
   query?: Query;
 };
 
 export function Actions(props: Props) {
-  const {api, group, project, organization, disabled, event, query = {}} = props;
+  const {
+    api,
+    group,
+    project,
+    organization,
+    disabled,
+    event,
+    query = {},
+    isPrototype,
+    className,
+  } = props;
   const {status, isBookmarked} = group;
 
   const bookmarkKey = isBookmarked ? 'unbookmark' : 'bookmark';
@@ -363,7 +374,7 @@ export function Actions(props: Props) {
     onUpdate,
   });
   return (
-    <ActionWrapper>
+    <ActionWrapper className={className}>
       {hasStreamlinedUI &&
         (isResolved || isIgnored ? (
           <ResolvedActionWapper>
@@ -414,18 +425,19 @@ export function Actions(props: Props) {
             {!hasStreamlinedUI && (
               <EnvironmentPageFilter position="bottom-end" size="sm" />
             )}
-            <SubscribeAction
-              className="hidden-xs"
-              disabled={disabled}
-              disablePriority
-              group={group}
-              onClick={handleClick(onToggleSubscribe)}
-              icon={group.isSubscribed ? <IconSubscribed /> : <IconUnsubscribed />}
-              size="sm"
-            />
+            {!isPrototype && (
+              <SubscribeAction
+                className="hidden-xs"
+                disabled={disabled}
+                disablePriority
+                group={group}
+                onClick={handleClick(onToggleSubscribe)}
+                icon={group.isSubscribed ? <IconSubscribed /> : <IconUnsubscribed />}
+                size="sm"
+              />
+            )}
           </Fragment>
         ))}
-      {hasStreamlinedUI && <NewIssueExperienceButton />}
       <DropdownMenu
         triggerProps={{
           'aria-label': t('More Actions'),
@@ -455,9 +467,9 @@ export function Actions(props: Props) {
           },
           {
             key: group.isSubscribed ? 'unsubscribe' : 'subscribe',
-            className: 'hidden-sm hidden-md hidden-lg',
             label: group.isSubscribed ? t('Unsubscribe') : t('Subscribe'),
             disabled: disabled || group.subscriptionDetails?.disabled,
+            details: group.subscriptionDetails?.reason,
             onAction: onToggleSubscribe,
           },
           {
@@ -507,7 +519,6 @@ export function Actions(props: Props) {
       />
       {!hasStreamlinedUI && (
         <Fragment>
-          <NewIssueExperienceButton />
           <SubscribeAction
             className="hidden-xs"
             disabled={disabled}

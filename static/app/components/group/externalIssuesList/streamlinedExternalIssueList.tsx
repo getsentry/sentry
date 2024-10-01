@@ -37,7 +37,6 @@ export function StreamlinedExternalIssueList({
   if (isLoading) {
     return (
       <div data-test-id="linked-issues">
-        <StyledSectionTitle>{t('Issue Tracking')}</StyledSectionTitle>
         <SidebarSection.Content>
           <Placeholder height="25px" />
         </SidebarSection.Content>
@@ -47,7 +46,6 @@ export function StreamlinedExternalIssueList({
 
   return (
     <div data-test-id="linked-issues">
-      <StyledSectionTitle>{t('Issue Tracking')}</StyledSectionTitle>
       <SidebarSection.Content>
         {integrations.length || linkedIssues.length ? (
           <IssueActionWrapper>
