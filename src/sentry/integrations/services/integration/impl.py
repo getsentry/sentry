@@ -9,7 +9,6 @@ from django.utils import timezone
 
 from sentry import analytics
 from sentry.api.paginator import OffsetPaginator
-from sentry.api.serializers import AppPlatformEvent
 from sentry.constants import SentryAppInstallationStatus
 from sentry.hybridcloud.rpc.pagination import RpcPaginationArgs, RpcPaginationResult
 from sentry.incidents.models.incident import INCIDENT_STATUS, IncidentStatus
@@ -17,7 +16,7 @@ from sentry.integrations.mixins import NotifyBasicMixin
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.integration_external_project import IntegrationExternalProject
 from sentry.integrations.models.organization_integration import OrganizationIntegration
-from sentry.integrations.msteams.client import MsTeamsClient
+from sentry.integrations.msteams import MsTeamsClient
 from sentry.integrations.services.integration import (
     IntegrationService,
     RpcIntegration,
@@ -35,6 +34,7 @@ from sentry.integrations.services.integration.serial import (
     serialize_organization_integration,
 )
 from sentry.rules.actions.notify_event_service import find_alert_rule_action_ui_component
+from sentry.sentry_apps.api.serializers.app_platform_event import AppPlatformEvent
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.shared_integrations.exceptions import ApiError

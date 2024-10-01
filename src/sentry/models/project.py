@@ -54,6 +54,7 @@ if TYPE_CHECKING:
     from sentry.users.models.user import User
 
 SENTRY_USE_SNOWFLAKE = getattr(settings, "SENTRY_USE_SNOWFLAKE", False)
+PROJECT_SLUG_MAX_LENGTH = 100
 
 # NOTE:
 # - When you modify this list, ensure that the platform IDs listed in "sentry/static/app/data/platforms.tsx" match.
@@ -65,6 +66,8 @@ GETTING_STARTED_DOCS_PLATFORMS = [
     "apple-macos",
     "bun",
     "capacitor",
+    "cloudflare-pages",
+    "cloudflare-workers",
     "cordova",
     "dart",
     "deno",
@@ -99,7 +102,6 @@ GETTING_STARTED_DOCS_PLATFORMS = [
     "javascript",
     "javascript-angular",
     "javascript-astro",
-    "javascript-cloudflare",
     "javascript-ember",
     "javascript-gatsby",
     "javascript-nextjs",
@@ -231,7 +233,7 @@ class Project(Model, PendingDeletionMixin):
 
     __relocation_scope__ = RelocationScope.Organization
 
-    slug = SentrySlugField(null=True)
+    slug = SentrySlugField(null=True, max_length=PROJECT_SLUG_MAX_LENGTH)
     # DEPRECATED do not use, prefer slug
     name = models.CharField(max_length=200)
     forced_color = models.CharField(max_length=6, null=True, blank=True)
@@ -468,6 +470,7 @@ class Project(Model, PendingDeletionMixin):
         return self.slug
 
     def transfer_to(self, organization):
+        from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
         from sentry.incidents.models.alert_rule import AlertRule
         from sentry.integrations.models.external_issue import ExternalIssue
         from sentry.models.environment import Environment, EnvironmentProject
@@ -475,7 +478,6 @@ class Project(Model, PendingDeletionMixin):
         from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
         from sentry.models.releases.release_project import ReleaseProject
         from sentry.models.rule import Rule
-        from sentry.models.scheduledeletion import RegionScheduledDeletion
         from sentry.monitors.models import Monitor
 
         old_org_id = self.organization_id

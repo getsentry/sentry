@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {type FormEvent, Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -8,6 +8,7 @@ import Input from 'sentry/components/input';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {
   IconCheckmark,
+  IconChevron,
   IconClose,
   IconCode,
   IconFatal,
@@ -37,7 +38,7 @@ function useSendMessage({groupId, runId}: {groupId: string; runId: string}) {
       });
     },
     onSuccess: _ => {
-      addSuccessMessage("Thanks for the input! I'll get to it right after this.");
+      addSuccessMessage("Thanks for the input. I'll get to it soon.");
     },
     onError: () => {
       addErrorMessage(t('Something went wrong when sending Autofix your message.'));
@@ -56,7 +57,10 @@ interface AutofixMessageBoxProps {
   responseRequired: boolean;
   runId: string;
   step: AutofixStep | null;
-  children?: React.ReactNode;
+  emptyInfoText?: string;
+  notEmptyInfoText?: string;
+  primaryAction?: boolean;
+  scrollIntoView?: (() => void) | null;
 }
 
 function StepIcon({step}: {step: AutofixStep}) {
@@ -76,6 +80,8 @@ function StepIcon({step}: {step: AutofixStep}) {
   }
 
   switch (step.status) {
+    case 'WAITING_FOR_USER_RESPONSE':
+      return <IconQuestion size="sm" color="gray300" />;
     case 'PROCESSING':
       return <ProcessingStatusIndicator size={14} mini hideMessage />;
     case 'CANCELLED':
@@ -93,6 +99,7 @@ function AutofixMessageBox({
   displayText = '',
   step = null,
   inputPlaceholder = 'Say something...',
+  primaryAction = false,
   responseRequired = false,
   onSend,
   actionText = 'Send',
@@ -100,12 +107,15 @@ function AutofixMessageBox({
   isDisabled = false,
   groupId,
   runId,
-  children,
+  emptyInfoText = '',
+  notEmptyInfoText = '',
+  scrollIntoView = null,
 }: AutofixMessageBoxProps) {
   const [message, setMessage] = useState('');
   const {mutate: send} = useSendMessage({groupId, runId});
 
-  const handleSend = () => {
+  const handleSend = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
     if (message.trim() !== '' || allowEmptyMessage) {
       if (onSend != null) {
         onSend(message);
@@ -131,6 +141,14 @@ function AutofixMessageBox({
                 __html: singleLineRenderer(step.title),
               }}
             />
+            {scrollIntoView !== null && (
+              <Button
+                onClick={scrollIntoView}
+                priority="link"
+                icon={<IconChevron isCircled direction="down" />}
+                aria-label={t('Jump to content')}
+              />
+            )}
           </StepHeader>
         )}
         <Message
@@ -138,37 +156,45 @@ function AutofixMessageBox({
             __html: marked(displayText),
           }}
         />
-        <ActionBar>{children}</ActionBar>
+        <ActionBar>
+          <p>{message.length > 0 ? notEmptyInfoText : emptyInfoText}</p>
+        </ActionBar>
       </DisplayArea>
-      <InputArea>
-        {!responseRequired ? (
-          <Fragment>
-            <NormalInput
-              type="text"
-              value={message}
-              onChange={e => setMessage(e.target.value)}
-              placeholder={inputPlaceholder}
-              disabled={isDisabled}
-            />
-            <Button onClick={handleSend} disabled={isDisabled}>
-              {actionText}
-            </Button>
-          </Fragment>
-        ) : (
-          <Fragment>
-            <RequiredInput
-              type="text"
-              value={message}
-              onChange={e => setMessage(e.target.value)}
-              placeholder={'Please answer to continue...'}
-              disabled={isDisabled}
-            />
-            <Button onClick={handleSend} disabled={isDisabled}>
-              {actionText}
-            </Button>
-          </Fragment>
-        )}
-      </InputArea>
+      <form onSubmit={handleSend}>
+        <InputArea>
+          {!responseRequired ? (
+            <Fragment>
+              <NormalInput
+                type="text"
+                value={message}
+                onChange={e => setMessage(e.target.value)}
+                placeholder={inputPlaceholder}
+                disabled={isDisabled}
+              />
+              <Button
+                type="submit"
+                priority={primaryAction ? 'primary' : 'default'}
+                disabled={isDisabled}
+              >
+                {actionText}
+              </Button>
+            </Fragment>
+          ) : (
+            <Fragment>
+              <RequiredInput
+                type="text"
+                value={message}
+                disabled={isDisabled}
+                onChange={e => setMessage(e.target.value)}
+                placeholder={'Please answer to continue...'}
+              />
+              <Button type="submit" priority={'primary'} disabled={isDisabled}>
+                {actionText}
+              </Button>
+            </Fragment>
+          )}
+        </InputArea>
+      </form>
     </Container>
   );
 }
@@ -186,7 +212,7 @@ const Container = styled('div')`
 `;
 
 const DisplayArea = styled('div')`
-  height: 10em;
+  height: 8em;
   overflow-y: hidden;
   padding: 8px;
   border-radius: 4px;
@@ -255,7 +281,8 @@ const ProcessingStatusIndicator = styled(LoadingIndicator)`
 
 const ActionBar = styled('div')`
   position: absolute;
-  bottom: 4em;
+  bottom: 3em;
+  color: ${p => p.theme.subText};
 `;
 
 export default AutofixMessageBox;

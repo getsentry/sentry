@@ -80,7 +80,13 @@ interface BaseStep {
   id: string;
   index: number;
   progress: AutofixProgressItem[];
-  status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'ERROR' | 'CANCELLED';
+  status:
+    | 'PENDING'
+    | 'PROCESSING'
+    | 'COMPLETED'
+    | 'ERROR'
+    | 'CANCELLED'
+    | 'WAITING_FOR_USER_RESPONSE';
   title: string;
   type: AutofixStepType;
   completedMessage?: string;

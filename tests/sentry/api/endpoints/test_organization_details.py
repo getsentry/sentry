@@ -20,8 +20,10 @@ from sentry import options as sentry_options
 from sentry.api.endpoints.organization_details import ERR_NO_2FA, ERR_SSO_ENABLED
 from sentry.api.serializers.models.organization import TrustedRelaySerializer
 from sentry.api.utils import generate_region_url
+from sentry.auth.authenticators.recovery_code import RecoveryCodeInterface
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.constants import RESERVED_ORGANIZATION_SLUGS, ObjectStatus
+from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.authprovider import AuthProvider
 from sentry.models.avatars.organization_avatar import OrganizationAvatar
@@ -31,7 +33,6 @@ from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationslugreservation import OrganizationSlugReservation
-from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.signals import project_created
 from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import APITestCase, TwoFactorAPITestCase
@@ -1114,6 +1115,12 @@ class OrganizationSettings2FATest(TwoFactorAPITestCase):
 
     def test_cannot_enforce_2fa_without_2fa_enabled(self):
         with assume_test_silo_mode_of(Authenticator):
+            assert not self.owner.has_2fa()
+        self.assert_cannot_enable_org_2fa(self.organization, self.owner, 400, ERR_NO_2FA)
+
+        # having recovery codes only (backup method) should not allow to enforce org 2FA
+        with assume_test_silo_mode_of(Authenticator):
+            RecoveryCodeInterface().enroll(self.owner)
             assert not self.owner.has_2fa()
         self.assert_cannot_enable_org_2fa(self.organization, self.owner, 400, ERR_NO_2FA)
 

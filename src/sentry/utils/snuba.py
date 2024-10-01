@@ -188,6 +188,9 @@ SPAN_EAP_COLUMN_MAP = {
     # message also maps to span description but gets special handling
     # to support wild card searching by default
     "message": "name",
+    # These sample columns are for debugging only and shouldn't be used
+    "sampling_weight": "sampling_weight",
+    "sampling_factor": "sampling_factor",
     "span.domain": "attr_str[domain]",
     "span.group": "attr_str[group]",
     "span.op": "attr_str[op]",
@@ -198,13 +201,19 @@ SPAN_EAP_COLUMN_MAP = {
     "trace": "trace_id",
     "transaction": "segment_name",
     "transaction.id": "segment_id",
+    "transaction.method": "attr_str[transaction.method]",
     "is_transaction": "is_segment",
     "segment.id": "segment_id",
     # We should be able to delete origin.transaction and just use transaction
     "origin.transaction": "segment_name",
+    # Copy paste, unsure if this is truth in production
+    "messaging.destination.name": "attr_str[messaging.destination.name]",
+    "messaging.message.id": "attr_str[messaging.message.id]",
     "span.status_code": "attr_str[status_code]",
     "replay.id": "attr_str[replay_id]",
     "span.ai.pipeline.group": "attr_str[ai_pipeline_group]",
+    "trace.status": "attr_str[trace.status]",
+    "browser.name": "attr_str[browser.name]",
     "ai.total_tokens.used": "attr_num[ai_total_tokens_used]",
     "ai.total_cost": "attr_num[ai_total_cost]",
 }
@@ -1461,7 +1470,11 @@ def resolve_column(dataset) -> Callable:
             return col
         if isinstance(col, int) or isinstance(col, float):
             return col
-        if isinstance(col, str) and (col.startswith("tags[") or QUOTED_LITERAL_RE.match(col)):
+        if (
+            dataset != Dataset.SpansEAP
+            and isinstance(col, str)
+            and (col.startswith("tags[") or QUOTED_LITERAL_RE.match(col))
+        ):
             return col
 
         # Some dataset specific logic:
@@ -1473,6 +1486,9 @@ def resolve_column(dataset) -> Callable:
             if isinstance(col, str) and col.startswith("sentry_tags["):
                 # Replace the first instance of sentry tags with attr str instead
                 return col.replace("sentry_tags", "attr_str", 1)
+            if isinstance(col, str) and col.startswith("tags["):
+                # Replace the first instance of sentry tags with attr str instead
+                return col.replace("tags", "attr_str", 1)
             measurement_name = get_measurement_name(col)
             if measurement_name:
                 return f"attr_num[{measurement_name}]"

@@ -1,6 +1,6 @@
 from uuid import uuid4
 
-from sentry.integrations.msteams.webhook import MsTeamsEvents
+from sentry.integrations.msteams import MsTeamsEvents
 
 
 class TestGetFromValue:

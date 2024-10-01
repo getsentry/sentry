@@ -1,4 +1,4 @@
-from sentry.models.servicehook import ServiceHook
+from sentry.sentry_apps.models.servicehook import ServiceHook
 from sentry.testutils.cases import APITestCase
 
 

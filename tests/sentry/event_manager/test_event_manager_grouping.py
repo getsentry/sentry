@@ -435,7 +435,6 @@ class EventManagerGroupingMetricsTest(TestCase):
             assert total_calculations_calls[0].kwargs["amount"] == expected_total_calcs
             assert set(total_calculations_calls[0].kwargs["tags"].keys()) == {
                 "in_transition",
-                "using_transition_optimization",
                 "result",
             }
 
@@ -445,7 +444,6 @@ class EventManagerGroupingMetricsTest(TestCase):
             assert len(event_hashes_calculated_calls) == 1
             assert set(event_hashes_calculated_calls[0].kwargs["tags"].keys()) == {
                 "in_transition",
-                "using_transition_optimization",
                 "result",
             }
 
@@ -464,10 +462,6 @@ class EventManagerGroupingMetricsTest(TestCase):
                 "True",
             ],  # In transition
         ]
-        optimized_logic_cases = [
-            [True, "True"],
-            [False, "False"],
-        ]
 
         for (
             primary_config,
@@ -475,37 +469,24 @@ class EventManagerGroupingMetricsTest(TestCase):
             transition_expiry,
             expected_in_transition,
         ) in in_transition_cases:
-            for using_optimization, expected_using_optimization in optimized_logic_cases:
-                with (
-                    mock.patch(
-                        "sentry.event_manager.project_uses_optimized_grouping",
-                        return_value=using_optimization,
-                    ),
-                    mock.patch(
-                        "sentry.grouping.ingest.metrics.project_uses_optimized_grouping",
-                        return_value=using_optimization,
-                    ),
-                ):
-                    mock_metrics_incr.reset_mock()
 
-                    project.update_option("sentry:grouping_config", primary_config)
-                    project.update_option("sentry:secondary_grouping_config", secondary_config)
-                    project.update_option("sentry:secondary_grouping_expiry", transition_expiry)
+            mock_metrics_incr.reset_mock()
 
-                    save_new_event({"message": "Dogs are great!"}, self.project)
+            project.update_option("sentry:grouping_config", primary_config)
+            project.update_option("sentry:secondary_grouping_config", secondary_config)
+            project.update_option("sentry:secondary_grouping_expiry", transition_expiry)
 
-                    # Both metrics get the same tags, so we can check either one
-                    total_calculations_calls = get_relevant_metrics_calls(
-                        mock_metrics_incr, "grouping.total_calculations"
-                    )
-                    metric_tags = total_calculations_calls[0].kwargs["tags"]
+            save_new_event({"message": "Dogs are great!"}, self.project)
 
-                    assert len(total_calculations_calls) == 1
-                    # The `result` tag is tested in `test_assign_to_group.py`
-                    assert metric_tags["in_transition"] == expected_in_transition
-                    assert (
-                        metric_tags["using_transition_optimization"] == expected_using_optimization
-                    )
+            # Both metrics get the same tags, so we can check either one
+            total_calculations_calls = get_relevant_metrics_calls(
+                mock_metrics_incr, "grouping.total_calculations"
+            )
+            metric_tags = total_calculations_calls[0].kwargs["tags"]
+
+            assert len(total_calculations_calls) == 1
+            # The `result` tag is tested in `test_assign_to_group.py`
+            assert metric_tags["in_transition"] == expected_in_transition
 
 
 @django_db_all

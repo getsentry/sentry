@@ -392,12 +392,14 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry",
     "sentry.analytics",
     "sentry.incidents.apps.Config",
+    "sentry.deletions",
     "sentry.discover",
     "sentry.analytics.events",
     "sentry.nodestore",
     "sentry.users",
     "sentry.sentry_apps",
     "sentry.integrations",
+    "sentry.flags",
     "sentry.monitors",
     "sentry.uptime",
     "sentry.replays",
@@ -739,7 +741,6 @@ CELERY_RESULT_SERIALIZER = "pickle"
 CELERY_ACCEPT_CONTENT = {"pickle"}
 CELERY_IMPORTS = (
     "sentry.data_export.tasks",
-    "sentry.discover.tasks",
     "sentry.deletions.tasks.groups",
     "sentry.deletions.tasks.scheduled",
     "sentry.deletions.tasks.hybrid_cloud",
@@ -1731,7 +1732,7 @@ SENTRY_METRICS_DISALLOW_BAD_TAGS = IS_DEV
 SENTRY_METRICS_INDEXER = "sentry.sentry_metrics.indexer.postgres.postgres_v2.PostgresIndexer"
 SENTRY_METRICS_INDEXER_OPTIONS: dict[str, Any] = {}
 SENTRY_METRICS_INDEXER_CACHE_TTL = 3600 * 2
-SENTRY_METRICS_INDEXER_TRANSACTIONS_SAMPLE_RATE = 0.1
+SENTRY_METRICS_INDEXER_TRANSACTIONS_SAMPLE_RATE = 0.1  # relative to SENTRY_BACKEND_APM_SAMPLING
 
 SENTRY_METRICS_INDEXER_SPANNER_OPTIONS: dict[str, Any] = {}
 
@@ -2184,10 +2185,6 @@ SENTRY_USE_ISSUE_OCCURRENCE = False
 # This flag activates consuming GroupAttribute messages in the development environment
 SENTRY_USE_GROUP_ATTRIBUTES = True
 
-# This flag activates code paths that are specific for customer domains
-# Deprecated: This setting will be replaced with feature checks for system:multi-region
-SENTRY_USE_CUSTOMER_DOMAINS = False
-
 # This flag activates replay analyzer service in the development environment
 SENTRY_USE_REPLAY_ANALYZER_SERVICE = False
 
@@ -2312,7 +2309,7 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
     "clickhouse": lambda settings, options: (
         {
             "image": (
-                "ghcr.io/getsentry/image-mirror-altinity-clickhouse-server:23.3.19.33.altinitystable"
+                "ghcr.io/getsentry/image-mirror-altinity-clickhouse-server:23.8.11.29.altinitystable"
             ),
             "ports": {"9000/tcp": 9000, "9009/tcp": 9009, "8123/tcp": 8123},
             "ulimits": [{"name": "nofile", "soft": 262144, "hard": 262144}],
@@ -2481,7 +2478,7 @@ SENTRY_USE_X_FORWARDED_FOR = True
 SENTRY_DEFAULT_INTEGRATIONS = (
     "sentry.integrations.bitbucket.integration.BitbucketIntegrationProvider",
     "sentry.integrations.bitbucket_server.integration.BitbucketServerIntegrationProvider",
-    "sentry.integrations.slack.integration.SlackIntegrationProvider",
+    "sentry.integrations.slack.SlackIntegrationProvider",
     "sentry.integrations.github.integration.GitHubIntegrationProvider",
     "sentry.integrations.github_enterprise.integration.GitHubEnterpriseIntegrationProvider",
     "sentry.integrations.gitlab.integration.GitlabIntegrationProvider",
@@ -2491,9 +2488,9 @@ SENTRY_DEFAULT_INTEGRATIONS = (
     "sentry.integrations.vsts_extension.VstsExtensionIntegrationProvider",
     "sentry.integrations.pagerduty.integration.PagerDutyIntegrationProvider",
     "sentry.integrations.vercel.VercelIntegrationProvider",
-    "sentry.integrations.msteams.integration.MsTeamsIntegrationProvider",
+    "sentry.integrations.msteams.MsTeamsIntegrationProvider",
     "sentry.integrations.aws_lambda.AwsLambdaIntegrationProvider",
-    "sentry.integrations.discord.integration.DiscordIntegrationProvider",
+    "sentry.integrations.discord.DiscordIntegrationProvider",
     "sentry.integrations.opsgenie.OpsgenieIntegrationProvider",
 )
 
@@ -2971,6 +2968,7 @@ SENTRY_REQUEST_METRIC_ALLOWED_PATHS = (
     "sentry.issues.endpoints",
     "sentry.integrations.api.endpoints",
     "sentry.users.api.endpoints",
+    "sentry.sentry_apps.api.endpoints",
 )
 SENTRY_MAIL_ADAPTER_BACKEND = "sentry.mail.adapter.MailAdapter"
 
@@ -3191,7 +3189,7 @@ LOG_API_ACCESS = not IS_DEV or os.environ.get("SENTRY_LOG_API_ACCESS")
 
 # We should not run access logging middleware on some endpoints as
 # it is very noisy, and these views are hit by internal services.
-ACCESS_LOGS_EXCLUDE_PATHS = ("/api/0/internal/", "/api/0/relays/")
+ACCESS_LOGS_EXCLUDE_PATHS = ("/api/0/internal/", "/api/0/relays/", "/_warmup/")
 
 VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON = True
 DISABLE_SU_FORM_U2F_CHECK_FOR_LOCAL = False

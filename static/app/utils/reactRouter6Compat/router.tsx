@@ -1,6 +1,5 @@
 import {Children, isValidElement} from 'react';
 import {
-  generatePath,
   Navigate,
   type NavigateProps,
   Outlet,
@@ -9,6 +8,7 @@ import {
 } from 'react-router-dom';
 
 import {USING_CUSTOMER_DOMAIN} from 'sentry/constants';
+import replaceRouterParams from 'sentry/utils/replaceRouterParams';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
 import useRouter from 'sentry/utils/useRouter';
@@ -76,7 +76,7 @@ interface RedirectProps extends Omit<NavigateProps, 'to'> {
 function Redirect({to, ...rest}: RedirectProps) {
   const params = useParams();
 
-  return <Navigate to={generatePath(to, params)} {...rest} />;
+  return <Navigate to={replaceRouterParams(to, params)} {...rest} />;
 }
 Redirect.displayName = 'Redirect';
 

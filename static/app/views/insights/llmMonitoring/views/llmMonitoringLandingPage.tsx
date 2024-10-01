@@ -13,27 +13,37 @@ import {ModulePageProviders} from 'sentry/views/insights/common/components/modul
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
 import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import {
+  EAPNumberOfPipelinesChart,
+  EAPPipelineDurationChart,
+  EAPTotalTokensUsedChart,
   NumberOfPipelinesChart,
   PipelineDurationChart,
   TotalTokensUsedChart,
 } from 'sentry/views/insights/llmMonitoring/components/charts/llmMonitoringCharts';
-import {PipelinesTable} from 'sentry/views/insights/llmMonitoring/components/tables/pipelinesTable';
+import {
+  EAPPipelinesTable,
+  PipelinesTable,
+} from 'sentry/views/insights/llmMonitoring/components/tables/pipelinesTable';
 import {
   MODULE_DOC_LINK,
   MODULE_TITLE,
   RELEASE_LEVEL,
 } from 'sentry/views/insights/llmMonitoring/settings';
-import {type InsightLandingProps, ModuleName} from 'sentry/views/insights/types';
+import {AiHeader} from 'sentry/views/insights/pages/ai/aiPageHeader';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
+import {ModuleName} from 'sentry/views/insights/types';
 
-export function LLMMonitoringPage({disableHeader}: InsightLandingProps) {
+export function LLMMonitoringPage() {
+  const {isInDomainView} = useDomainViewFilters();
   const organization = useOrganization();
 
   const crumbs = useModuleBreadcrumbs('ai');
+  const useEAP = organization?.features?.includes('insights-use-eap');
 
   return (
     <Layout.Page>
       <NoProjectMessage organization={organization}>
-        {!disableHeader && (
+        {!isInDomainView && (
           <Layout.Header>
             <Layout.HeaderContent>
               <Breadcrumbs crumbs={crumbs} />
@@ -53,6 +63,11 @@ export function LLMMonitoringPage({disableHeader}: InsightLandingProps) {
             </Layout.HeaderActions>
           </Layout.Header>
         )}
+        {isInDomainView && (
+          <Layout.Header>
+            <AiHeader module={ModuleName.AI} />
+          </Layout.Header>
+        )}
         <Layout.Body>
           <Layout.Main fullWidth>
             <ModuleLayout.Layout>
@@ -61,16 +76,16 @@ export function LLMMonitoringPage({disableHeader}: InsightLandingProps) {
               </ModuleLayout.Full>
               <ModulesOnboarding moduleName={ModuleName.AI}>
                 <ModuleLayout.Third>
-                  <TotalTokensUsedChart />
+                  {useEAP ? <EAPTotalTokensUsedChart /> : <TotalTokensUsedChart />}
                 </ModuleLayout.Third>
                 <ModuleLayout.Third>
-                  <NumberOfPipelinesChart />
+                  {useEAP ? <EAPNumberOfPipelinesChart /> : <NumberOfPipelinesChart />}
                 </ModuleLayout.Third>
                 <ModuleLayout.Third>
-                  <PipelineDurationChart />
+                  {useEAP ? <EAPPipelineDurationChart /> : <PipelineDurationChart />}
                 </ModuleLayout.Third>
                 <ModuleLayout.Full>
-                  <PipelinesTable />
+                  {useEAP ? <EAPPipelinesTable /> : <PipelinesTable />}
                 </ModuleLayout.Full>
               </ModulesOnboarding>
             </ModuleLayout.Layout>
@@ -81,14 +96,14 @@ export function LLMMonitoringPage({disableHeader}: InsightLandingProps) {
   );
 }
 
-function PageWithProviders(props: InsightLandingProps) {
+function PageWithProviders() {
   return (
     <ModulePageProviders
       moduleName="ai"
       features="insights-addon-modules"
       analyticEventName="insight.page_loads.ai"
     >
-      <LLMMonitoringPage {...props} />
+      <LLMMonitoringPage />
     </ModulePageProviders>
   );
 }
