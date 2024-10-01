@@ -101,7 +101,7 @@ from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.testutils.cases import BaseIncidentsTest, BaseMetricsTestCase, TestCase
-from sentry.testutils.helpers.datetime import before_now, freeze_time
+from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of
@@ -1000,6 +1000,21 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
     def alert_rule(self):
         return self.create_alert_rule(name="hello")
 
+    def create_error_event(self, **kwargs):
+        two_weeks_ago = before_now(days=14).replace(hour=10, minute=0, second=0, microsecond=0)
+        data = {
+            "event_id": "a" * 32,
+            "message": "super bad",
+            "timestamp": iso_format(two_weeks_ago + timedelta(minutes=1)),
+            "tags": {"sentry:user": self.user.email},
+            "exception": [{"value": "BadError"}],
+        }
+        data.update(**kwargs)
+        self.store_event(
+            data=data,
+            project_id=self.project.id,
+        )
+
     def test(self):
         name = "uh oh"
         query = "level:warning"
@@ -1762,6 +1777,85 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         )
         assert mock_seer_request.call_count == 1
         assert alert_rule.status == AlertRuleStatus.PENDING.value
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @patch(
+        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    def test_update_dynamic_alert_not_enough_to_pending(self, mock_seer_request):
+        """
+        Update a dynamic rule's aggregate so the rule's status changes from not enough data to enough/pending
+        """
+        seer_return_value: StoreDataResponse = {"success": True}
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
+
+        dynamic_rule = self.create_alert_rule(
+            sensitivity=AlertRuleSensitivity.HIGH,
+            seasonality=AlertRuleSeasonality.AUTO,
+            time_window=60,
+            detection_type=AlertRuleDetectionType.DYNAMIC,
+        )
+        assert mock_seer_request.call_count == 1
+        assert dynamic_rule.status == AlertRuleStatus.NOT_ENOUGH_DATA.value
+        mock_seer_request.reset_mock()
+
+        two_weeks_ago = before_now(days=14).replace(hour=10, minute=0, second=0, microsecond=0)
+        with self.options({"issues.group_attributes.send_kafka": True}):
+            self.create_error_event(timestamp=iso_format(two_weeks_ago + timedelta(minutes=1)))
+            self.create_error_event(
+                timestamp=iso_format(two_weeks_ago + timedelta(days=10))
+            )  # 4 days ago
+
+        # update aggregate
+        update_alert_rule(
+            dynamic_rule,
+            aggregate="count_unique(user)",
+            time_window=60,
+            detection_type=AlertRuleDetectionType.DYNAMIC,
+        )
+        assert mock_seer_request.call_count == 1
+        assert dynamic_rule.status == AlertRuleStatus.PENDING.value
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @patch(
+        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    def test_update_dynamic_alert_pending_to_not_enough(self, mock_seer_request):
+        """
+        Update a dynamic rule's aggregate so the rule's status changes from enough/pending to not enough data
+        """
+        seer_return_value: StoreDataResponse = {"success": True}
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
+
+        two_weeks_ago = before_now(days=14).replace(hour=10, minute=0, second=0, microsecond=0)
+        with self.options({"issues.group_attributes.send_kafka": True}):
+            self.create_error_event(timestamp=iso_format(two_weeks_ago + timedelta(minutes=1)))
+            self.create_error_event(
+                timestamp=iso_format(two_weeks_ago + timedelta(days=10))
+            )  # 4 days ago
+
+        dynamic_rule = self.create_alert_rule(
+            sensitivity=AlertRuleSensitivity.HIGH,
+            seasonality=AlertRuleSeasonality.AUTO,
+            time_window=60,
+            detection_type=AlertRuleDetectionType.DYNAMIC,
+        )
+        assert mock_seer_request.call_count == 1
+        assert dynamic_rule.status == AlertRuleStatus.PENDING.value
+
+        mock_seer_request.reset_mock()
+
+        # update aggregate
+        update_alert_rule(
+            dynamic_rule,
+            aggregate="p95(measurements.fid)",  # first input delay data we don't have stored
+            dataset=Dataset.Transactions,
+            event_types=[SnubaQueryEventType.EventType.TRANSACTION],
+            query="",
+            detection_type=AlertRuleDetectionType.DYNAMIC,
+        )
+        assert mock_seer_request.call_count == 1
+        assert dynamic_rule.status == AlertRuleStatus.NOT_ENOUGH_DATA.value
 
     @with_feature("organizations:anomaly-detection-alerts")
     @patch(
