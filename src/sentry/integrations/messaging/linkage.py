@@ -14,6 +14,7 @@ from rest_framework.request import Request
 
 from sentry import analytics, features
 from sentry.api.helpers.teams import is_team_admin
+from sentry.constants import ObjectStatus
 from sentry.identity.services.identity import identity_service
 from sentry.integrations.messaging.spec import MessagingIntegrationSpec
 from sentry.integrations.models.external_actor import ExternalActor
@@ -360,7 +361,9 @@ class TeamLinkageView(LinkageView, ABC):
         slack_id: str = params["slack_id"]
         organization_id: str | None = params.get("organization_id")
 
-        integration = integration_service.get_integration(integration_id=integration_id)
+        integration = integration_service.get_integration(
+            integration_id=integration_id, status=ObjectStatus.ACTIVE
+        )
         if integration is None:
             logger.info(
                 "integration.not_found",

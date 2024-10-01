@@ -6,6 +6,7 @@ from django.db.models.signals import post_delete, post_save
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
+from sentry.constants import ObjectStatus
 from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, region_silo_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.hybridcloud.outbox.base import ReplicatedRegionModel
@@ -68,7 +69,9 @@ class ExternalActor(ReplicatedRegionModel):
 
         # TODO: Extract this out of the delete method into the endpoint / controller instead.
         if self.team is not None:
-            integration = integration_service.get_integration(integration_id=self.integration_id)
+            integration = integration_service.get_integration(
+                integration_id=self.integration_id, status=ObjectStatus.ACTIVE
+            )
             if integration:
                 install = integration.get_installation(organization_id=self.organization.id)
                 team = self.team
