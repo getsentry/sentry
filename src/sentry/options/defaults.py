@@ -2740,3 +2740,11 @@ register(
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# Secret Scanning. Allows to temporarily disable signature verification.
+register(
+    "secret-scanning.github.enable-signature-verification",
+    type=Bool,
+    default=True,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
