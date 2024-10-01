@@ -132,4 +132,47 @@ describe('AutofixRootCause', function () {
       screen.queryByText('This is the reproduction of a root cause.')
     ).not.toBeInTheDocument();
   });
+
+  it('shows unit test when available', async function () {
+    render(
+      <AutofixRootCause
+        {...{
+          ...defaultProps,
+          causes: [
+            AutofixRootCauseData({
+              unit_test: {
+                snippet: 'Test case for root cause',
+                description: 'This is the description of a unit test.',
+                file_path: 'src/file.py',
+              },
+            }),
+          ],
+        }}
+      />
+    );
+
+    expect(screen.getByText('Unit test')).toBeInTheDocument();
+    await userEvent.click(
+      screen.getByRole('button', {
+        name: 'Unit test',
+      })
+    );
+    expect(
+      screen.getByText('This is the description of a unit test.')
+    ).toBeInTheDocument();
+    expect(screen.getByText('Test case for root cause')).toBeInTheDocument();
+  });
+
+  it('does not show unit test when not available', function () {
+    render(
+      <AutofixRootCause
+        {...{
+          ...defaultProps,
+          causes: [AutofixRootCauseData({unit_test: undefined})],
+        }}
+      />
+    );
+
+    expect(screen.queryByText('Unit Test')).not.toBeInTheDocument();
+  });
 });
