@@ -135,6 +135,7 @@ class ErrorEventsDeletionTask(EventsBaseDeletionTask):
             # As long as it returns True the task will keep iterating
             return True
         else:
+            # Now that all events have been deleted from the eventstore, we can delete the events from snuba
             self.delete_events_from_snuba()
             return False
 
@@ -175,12 +176,13 @@ class IssuePlatformEventsDeletionTask(EventsBaseDeletionTask):
         events = self.get_unfetched_events()
         if events:
             self.delete_events_from_nodestore(events)
-            self.delete_events_from_snuba(events)
             # This value will be used in the next call to chunk
             self.last_event = events[-1]
             # As long as it returns True the task will keep iterating
             return True
         else:
+            # Now that all events have been deleted from the eventstore, we can delete the events from snuba
+            self.delete_events_from_snuba()
             return False
 
     def delete_events_from_nodestore(self, events: Sequence[Event]) -> None:
@@ -191,26 +193,21 @@ class IssuePlatformEventsDeletionTask(EventsBaseDeletionTask):
         ]
         nodestore.backend.delete_multi(node_ids)
 
-    def delete_events_from_snuba(self, events: Sequence[Event]) -> None:
-        if not events:
-            return
-        assert events[0].group_id is not None  # Handle typing issue
-        query = DeleteQuery(
-            self.dataset.value,
-            column_conditions={
-                "project_id": [events[0].project_id],
-                # XXX: I thought we need to start using group_id
-                # "group_id": [events[0].group_id],
-                "occurrence_id": [events[0]._snuba_data["occurrence_id"]],
-            },
-        )
-        request = Request(
-            dataset=self.dataset.value,
-            app_id=self.referrer,
-            query=query,
-            tenant_ids=self.tenant_ids,
-        )
-        bulk_snuba_queries([request])[0]["data"]
+    def delete_events_from_snuba(self) -> None:
+        requests = []
+        for group in self.groups:
+            query = DeleteQuery(
+                self.dataset.value,
+                column_conditions={"project_id": [group.project_id], "group_id": [group.id]},
+            )
+            request = Request(
+                dataset=self.dataset.value,
+                app_id=self.referrer,
+                query=query,
+                tenant_ids=self.tenant_ids,
+            )
+            requests.append(request)
+        bulk_snuba_queries(requests)
 
 
 class GroupDeletionTask(ModelDeletionTask[Group]):
