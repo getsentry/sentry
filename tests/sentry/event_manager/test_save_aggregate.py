@@ -1,24 +1,19 @@
 import contextlib
 import time
-from collections.abc import Callable
 from threading import Thread
+from typing import Any
 from unittest.mock import patch
 
 import pytest
 from django.db import router, transaction
 
-from sentry.event_manager import GroupInfo, _save_aggregate, _save_aggregate_new
+from sentry.event_manager import _save_aggregate_new
 from sentry.eventstore.models import Event
 from sentry.models.grouphash import GroupHash
 from sentry.testutils.pytest.fixtures import django_db_all
 
 
 @django_db_all(transaction=True)
-@pytest.mark.parametrize(
-    "use_save_aggregate_new",
-    (True, False),
-    ids=(" use_save_aggregate_new: True ", " use_save_aggregate_new: False "),
-)
 @pytest.mark.parametrize(
     "is_race_free",
     [
@@ -37,9 +32,7 @@ from sentry.testutils.pytest.fixtures import django_db_all
     ],
     ids=(" is_race_free: True ", " is_race_free: False "),
 )
-def test_group_creation_race_new(
-    monkeypatch, default_project, is_race_free, use_save_aggregate_new
-):
+def test_group_creation_race_new(monkeypatch, default_project, is_race_free):
     CONCURRENCY = 2
 
     if not is_race_free:
@@ -66,28 +59,12 @@ def test_group_creation_race_new(
     )
     hashes = ["pound sign", "octothorpe"]
 
-    # Mypy has a bug and can't handle the combo of a `...` input type and a ternary for the value
-    # See https://github.com/python/mypy/issues/14661
-    save_aggregate_fn: Callable[..., GroupInfo | None] = (
-        _save_aggregate_new if use_save_aggregate_new else _save_aggregate  # type: ignore[assignment]
-    )
-    group_kwargs_fn_name = (
-        "_get_group_processing_kwargs" if use_save_aggregate_new else "_get_group_creation_kwargs"
-    )
-
     group_processing_kwargs = {"level": 10, "culprit": "", "data": {}}
-    save_aggregate_kwargs = {
+    save_aggregate_kwargs: Any = {
         "event": event,
         "job": {"event_metadata": {}, "release": "dogpark", "event": event, "data": {}},
         "metric_tags": {},
     }
-    if not use_save_aggregate_new:
-        save_aggregate_kwargs.update(
-            {
-                "release": None,
-                "received_timestamp": 0,
-            }
-        )
 
     def save_event():
         try:
@@ -96,11 +73,11 @@ def test_group_creation_race_new(
                 return_value=hashes,
             ):
                 with patch(
-                    f"sentry.event_manager.{group_kwargs_fn_name}",
+                    "sentry.event_manager._get_group_processing_kwargs",
                     return_value=group_processing_kwargs,
                 ):
                     with patch("sentry.event_manager._materialize_metadata_many"):
-                        group_info = save_aggregate_fn(**save_aggregate_kwargs)
+                        group_info = _save_aggregate_new(**save_aggregate_kwargs)
 
                         assert group_info is not None
                         return_values.append(group_info)

@@ -24,7 +24,7 @@ class GitlabIssuesTest(GitLabTestCase):
                 "timestamp": min_ago,
             },
             project_id=self.project.id,
-            event_type=EventType.ERROR,
+            default_event_type=EventType.DEFAULT,
         )
         self.group = event.group
 

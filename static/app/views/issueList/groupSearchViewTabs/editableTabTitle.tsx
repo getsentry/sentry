@@ -88,7 +88,7 @@ function EditableTabTitle({
   };
 
   return (
-    <Tooltip title={label} showOnlyOnOverflow skipWrapper>
+    <Tooltip title={label} disabled={isEditing} showOnlyOnOverflow skipWrapper>
       <motion.div layout="position" transition={{duration: 0.25}}>
         {isSelected ? (
           <StyledGrowingInput

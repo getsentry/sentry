@@ -142,7 +142,8 @@ def format_snuba_ts_data(
             count_data = data[1]
             count = 0
             if len(count_data):
-                count = count_data[0].get("count", 0)
+                # there are sometimes None values from snuba
+                count = count_data[0].get("count", 0) or 0
             ts_point = TimeSeriesPoint(timestamp=data[0], value=count)
             formatted_data.append(ts_point)
     return formatted_data
@@ -189,7 +190,7 @@ def fetch_historical_data(
         dataset_label = "errors"
     elif dataset_label in ["generic_metrics", "transactions"]:
         # XXX: performance alerts dataset differs locally vs in prod
-        dataset_label = "discover"
+        dataset_label = "metricsEnhanced"
     dataset = get_dataset(dataset_label)
 
     if not project or not dataset or not alert_rule.organization:
