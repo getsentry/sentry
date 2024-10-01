@@ -1,3 +1,4 @@
+import logging
 import random
 from collections.abc import Sequence
 from itertools import cycle
@@ -7,6 +8,8 @@ from django.conf import settings
 from sentry import options
 from sentry.celery import app
 from sentry.utils.celery import build_queue_names
+
+logger = logging.getLogger(__name__)
 
 
 def _get_known_queues() -> set[str]:
@@ -34,9 +37,16 @@ class SplitQueueRouter:
         self.__queue_routers = {}
         for source, dest_config in settings.CELERY_SPLIT_QUEUE_ROUTES.items():
             assert source in known_queues, f"Queue {source} in split queue config is not declared."
-            destinations = build_queue_names(source, dest_config["in_use"])
-            _validate_destinations(destinations)
-            self.__queue_routers[source] = cycle(destinations)
+            if dest_config["in_use"] >= 2:
+                destinations = build_queue_names(source, dest_config["in_use"])
+                _validate_destinations(destinations)
+                self.__queue_routers[source] = cycle(destinations)
+            else:
+                logger.error(
+                    "Invalid configuration for queue %s. In use is not greater than 1: %d. Fall back to source",
+                    source,
+                    dest_config["in_use"],
+                )
 
     def route_for_queue(self, queue: str) -> str:
         rollout_rate = options.get("celery_split_queue_rollout").get(queue, 0.0)

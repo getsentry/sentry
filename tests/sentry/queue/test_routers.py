@@ -104,7 +104,8 @@ def test_router_rolled_out() -> None:
             assert (
                 router.route_for_queue("post_process_transactions") == "post_process_transactions_1"
             )
-            assert router.route_for_queue("post_process_errors") == "post_process_errors_1"
+            # Here the queue is disabled because the config contained in_use = 1
+            assert router.route_for_queue("post_process_errors") == "post_process_errors"
             assert (
                 router.route_for_queue("post_process_issue_platform")
                 == "post_process_issue_platform"
