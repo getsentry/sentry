@@ -8,6 +8,7 @@ from urllib.parse import parse_qsl, urlparse, urlunparse
 from django.conf import settings
 from django.http import Http404, HttpRequest, HttpResponse, HttpResponseBadRequest
 from django.http.response import HttpResponseBase
+from django.shortcuts import get_object_or_404
 
 from sentry import features
 from sentry.api.endpoints.setup_wizard import SETUP_WIZARD_CACHE_KEY, SETUP_WIZARD_CACHE_TIMEOUT
