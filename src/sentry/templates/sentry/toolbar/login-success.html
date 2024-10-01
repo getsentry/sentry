@@ -20,18 +20,16 @@
         window.close();
       });
 
-      if (!window.opener) {
-        return;
+      if (window.opener) {
+        window.opener.postMessage({
+          source: 'sentry-toolbar',
+          message: 'did-login',
+        }, '*');
+
+        setTimeout(() => {
+          window.close();
+        }, 3_000);
       }
-
-      window.opener.postMessage({
-        source: 'sentry-toolbar',
-        message: 'did-login',
-      }, '*');
-
-      setTimeout(() => {
-        window.close();
-      }, 3_000);
     </script>
     {% endscript %}
   </body>
