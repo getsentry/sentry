@@ -230,9 +230,7 @@ function OrganizationMemberDetail() {
     return '';
   };
 
-  function memberDeactivated() {
-    return isMemberDisabledFromLimit(member);
-  }
+  const memberDeactivated = isMemberDisabledFromLimit(member);
 
   function hasFormChanged() {
     if (!member) {
@@ -259,7 +257,7 @@ function OrganizationMemberDetail() {
   }
 
   function renderMemberStatus() {
-    if (memberDeactivated()) {
+    if (memberDeactivated) {
       return (
         <em>
           <DisabledMemberTooltip>{t('Deactivated')}</DisabledMemberTooltip>
@@ -276,7 +274,7 @@ function OrganizationMemberDetail() {
   }
 
   const {access, orgRoleList} = organization;
-  const canEdit = access.includes('org:write') && !memberDeactivated();
+  const canEdit = access.includes('org:write') && !memberDeactivated;
   const isPartnershipUser = member.flags['partnership:restricted'] === true;
 
   const {email, expired, pending} = member;
