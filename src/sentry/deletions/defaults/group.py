@@ -196,10 +196,10 @@ class IssuePlatformEventsDeletionTask(EventsBaseDeletionTask):
 
     def delete_events_from_snuba(self) -> None:
         requests = []
-        for group in self.groups:
+        for project_id, group_ids in self.project_groups.items():
             query = DeleteQuery(
                 self.dataset.value,
-                column_conditions={"project_id": [group.project_id], "group_id": [group.id]},
+                column_conditions={"project_id": [project_id], "group_id": group_ids},
             )
             request = Request(
                 dataset=self.dataset.value,
