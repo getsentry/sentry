@@ -32,7 +32,11 @@ import {
 } from 'sentry/views/dashboards/metrics/utils';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {DisplayType} from 'sentry/views/dashboards/types';
-import {WidgetCardPanel, WidgetTitleRow} from 'sentry/views/dashboards/widgetCard';
+import {
+  WidgetCardContextMenuContainer,
+  WidgetCardPanel,
+  WidgetTitleRow,
+} from 'sentry/views/dashboards/widgetCard';
 import {DashboardsMEPContext} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
 import {Toolbar} from 'sentry/views/dashboards/widgetCard/toolbar';
 import WidgetCardContextMenu from 'sentry/views/dashboards/widgetCard/widgetCardContextMenu';
@@ -196,26 +200,28 @@ export function MetricWidgetCard({
 
           <ContextMenuWrapper>
             {showContextMenu && !isEditingDashboard && (
-              <WidgetCardContextMenu
-                organization={organization}
-                widget={widget}
-                selection={selection}
-                showContextMenu
-                isPreview={false}
-                widgetLimitReached={false}
-                onEdit={() => {
-                  router.push({
-                    pathname: `${location.pathname}${
-                      location.pathname.endsWith('/') ? '' : '/'
-                    }widget/${widget.id}/`,
-                    query: location.query,
-                  });
-                }}
-                router={router}
-                location={location}
-                onDelete={onDelete}
-                onDuplicate={onDuplicate}
-              />
+              <WidgetCardContextMenuContainer>
+                <WidgetCardContextMenu
+                  organization={organization}
+                  widget={widget}
+                  selection={selection}
+                  showContextMenu
+                  isPreview={false}
+                  widgetLimitReached={false}
+                  onEdit={() => {
+                    router.push({
+                      pathname: `${location.pathname}${
+                        location.pathname.endsWith('/') ? '' : '/'
+                      }widget/${widget.id}/`,
+                      query: location.query,
+                    });
+                  }}
+                  router={router}
+                  location={location}
+                  onDelete={onDelete}
+                  onDuplicate={onDuplicate}
+                />
+              </WidgetCardContextMenuContainer>
             )}
           </ContextMenuWrapper>
         </WidgetHeaderWrapper>
