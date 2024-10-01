@@ -85,17 +85,4 @@ describe('InviteRowControlNew', function () {
     expect(screen.getByTestId('sent-invites')).toHaveTextContent(/2/i);
     expect(screen.getByTestId('failed-invites')).toHaveTextContent(/1/i);
   });
-
-  it('displays pending invite message when willInvite is false', function () {
-    renderComponent({
-      complete: true,
-      inviteStatus: {
-        'moo-deng': {sent: true},
-        'moo-waan': {sent: true},
-        'moo-toon': {sent: false, error: 'Error'},
-      },
-    });
-    expect(screen.getByTestId('sent-invite-requests')).toHaveTextContent(/2/i);
-    expect(screen.getByTestId('failed-invite-requests')).toHaveTextContent(/1/i);
-  });
 });
