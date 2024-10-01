@@ -65,7 +65,7 @@ function TagPanel() {
     (name: string, value: ReactNode): LocationDescriptor => ({
       pathname: normalizeUrl(`/organizations/${organization.slug}/replays/`),
       query: {
-        query: `${name}:"${value}"`, // The replay index endpoint treats unknown filters as tags, by default.
+        query: `${name}:"${value}"`, // The replay index endpoint treats unknown filters as tags, by default. Therefore we don't need the tags[] syntax.
       },
     }),
     [organization.slug]
