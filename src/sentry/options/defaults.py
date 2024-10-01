@@ -502,9 +502,6 @@ register("slack.verification-token", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DIS
 register("slack.signing-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 
 
-# Slack Middleware Parser
-register("send-slack-response-from-control-silo", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
-
 # Codecov Integration
 register("codecov.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 
@@ -2398,12 +2395,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-register(
-    "grouping.config_transition.killswitch_enabled",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # Sample rate for double writing to experimental dsn
 register(

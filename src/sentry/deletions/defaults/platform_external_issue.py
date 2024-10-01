@@ -1,7 +1,7 @@
 from collections.abc import Sequence
 
 from sentry.deletions.base import ModelDeletionTask
-from sentry.models.platformexternalissue import PlatformExternalIssue
+from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
 
 
 class PlatformExternalIssueDeletionTask(ModelDeletionTask[PlatformExternalIssue]):

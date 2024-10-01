@@ -114,7 +114,6 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.organizationslugreservation import OrganizationSlugReservation
 from sentry.models.orgauthtoken import OrgAuthToken
-from sentry.models.platformexternalissue import PlatformExternalIssue
 from sentry.models.project import Project
 from sentry.models.projectbookmark import ProjectBookmark
 from sentry.models.projectcodeowners import ProjectCodeOwners
@@ -136,6 +135,7 @@ from sentry.sentry_apps.installations import (
     SentryAppInstallationTokenCreator,
 )
 from sentry.sentry_apps.logic import SentryAppCreator
+from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.models.sentry_app_installation_for_provider import (
@@ -178,9 +178,9 @@ from sentry.workflow_engine.models import (
     DataSource,
     DataSourceDetector,
     Detector,
+    DetectorState,
     DetectorWorkflow,
     Workflow,
-    WorkflowAction,
     WorkflowDataConditionGroup,
 )
 from social_auth.models import UserSocialAuth
@@ -952,15 +952,21 @@ class Factories:
         data,
         project_id: int,
         assert_no_errors: bool = True,
-        event_type: EventType = EventType.DEFAULT,
+        default_event_type: EventType | None = None,
         sent_at: datetime | None = None,
     ) -> Event:
         """
         Like `create_event`, but closer to how events are actually
         ingested. Prefer to use this method over `create_event`
         """
-        if event_type == EventType.ERROR:
+
+        # this creates a basic message event
+        if default_event_type == EventType.DEFAULT:
             data.update({"stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"])})
+
+        # this creates an error event
+        elif default_event_type == EventType.ERROR:
+            data.update({"exception": [{"value": "BadError"}]})
 
         manager = EventManager(data, sent_at=sent_at)
         manager.normalize()
@@ -1979,6 +1985,7 @@ class Factories:
     @staticmethod
     def create_project_uptime_subscription(
         project: Project,
+        env: Environment | None,
         uptime_subscription: UptimeSubscription,
         mode: ProjectUptimeSubscriptionMode,
         name: str,
@@ -1996,6 +2003,7 @@ class Factories:
         return ProjectUptimeSubscription.objects.create(
             uptime_subscription=uptime_subscription,
             project=project,
+            environment=env,
             mode=mode,
             name=name,
             owner_team_id=owner_team_id,
@@ -2071,13 +2079,6 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
-    def create_workflow_action(
-        **kwargs,
-    ) -> WorkflowAction:
-        return WorkflowAction.objects.create(**kwargs)
-
-    @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
     def create_data_condition_group(
         **kwargs,
     ) -> DataConditionGroup:
@@ -2139,6 +2140,17 @@ class Factories:
         return Detector.objects.create(
             organization=organization, name=name, owner_user_id=owner_user_id, owner_team=owner_team
         )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_detector_state(
+        detector: Detector | None = None,
+        **kwargs,
+    ) -> DetectorState:
+        if detector is None:
+            detector = Factories.create_detector()
+
+        return DetectorState.objects.create(detector=detector, **kwargs)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
