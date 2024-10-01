@@ -15,11 +15,11 @@ import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {getAnalyticsDataForEvent, getAnalyticsDataForGroup} from 'sentry/utils/events';
 import useReplayCountForIssues from 'sentry/utils/replayCount/useReplayCountForIssues';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOrganization from 'sentry/utils/useOrganization';
-import useRouter from 'sentry/utils/useRouter';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
+import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 interface Props {
@@ -38,43 +38,31 @@ const ReplayClipPreview = lazy(() => import('./replayClipPreview'));
 export function ReplayClipSection({event, group, replayId}: Props) {
   const organization = useOrganization();
   const hasStreamlinedUI = useHasStreamlinedUI();
-  const router = useRouter();
   const {getReplayCountForIssue} = useReplayCountForIssues();
+  const {baseUrl} = useGroupDetailsRoute();
 
   const startTimestampMS =
     'startTimestamp' in event ? event.startTimestamp * 1000 : undefined;
   const timeOfEvent = event.dateCreated ?? startTimestampMS ?? event.dateReceived;
   const eventTimestampMs = timeOfEvent ? Math.floor(new Date(timeOfEvent).getTime()) : 0;
 
-  // don't try to construct the url if we don't have a group
-  const eventIdFromRouter = router.params.eventId;
-  const baseUrl = group
-    ? eventIdFromRouter
-      ? normalizeUrl(
-          `/organizations/${organization.slug}/issues/${group.id}/events/${eventIdFromRouter}/`
-        )
-      : normalizeUrl(`/organizations/${organization.slug}/issues/${group.id}/`)
-    : '';
-  const replayUrl = baseUrl
-    ? location.search.length
-      ? `${baseUrl}replays/${location.search}/`
-      : `${baseUrl}replays/`
-    : '';
-
-  const seeAllReplaysButton = replayUrl ? (
+  const allReplaysButton = (
     <LinkButton
       size="xs"
-      to={replayUrl}
+      to={{
+        pathname: `${baseUrl}${TabPaths[Tab.REPLAYS]}`,
+        replace: true,
+      }}
       analyticsEventKey="issue_details.replay_player.clicked_see_all_replays"
       analyticsEventName="Issue Details: Replay Player Clicked See All Replays"
     >
       {t('See All Replays')}
     </LinkButton>
-  ) : undefined;
+  );
 
   const replayCount = group ? getReplayCountForIssue(group.id, group.issueCategory) : -1;
   const overlayContent =
-    seeAllReplaysButton && replayCount && replayCount > 1 ? (
+    replayCount && replayCount > 1 ? (
       <Fragment>
         <div>
           {t(
@@ -82,7 +70,7 @@ export function ReplayClipSection({event, group, replayId}: Props) {
             tn('%s replay', '%s replays', replayCount ?? 0)
           )}
         </div>
-        {seeAllReplaysButton}
+        {allReplaysButton}
       </Fragment>
     ) : undefined;
 
@@ -115,7 +103,7 @@ export function ReplayClipSection({event, group, replayId}: Props) {
   return (
     <ReplaySectionMinHeight
       title={t('Session Replay')}
-      actions={seeAllReplaysButton}
+      actions={allReplaysButton}
       type={SectionKey.REPLAY}
     >
       <ErrorBoundary mini>

@@ -3,6 +3,7 @@ import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {ReleaseFixture} from 'sentry-fixture/release';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {TeamFixture} from 'sentry-fixture/team';
 import {UserFixture} from 'sentry-fixture/user';
 
@@ -32,7 +33,9 @@ describe('UpdatedGroupHeader', () => {
     teams: [TeamFixture()],
   });
   const group = GroupFixture({issueCategory: IssueCategory.ERROR, isUnhandled: true});
-  const location = LocationFixture({query: {streamline: '1'}});
+  const router = RouterFixture({
+    location: LocationFixture({query: {streamline: '1'}}),
+  });
 
   describe('JS Project Error Issue', () => {
     const defaultProps = {
@@ -109,7 +112,7 @@ describe('UpdatedGroupHeader', () => {
         />,
         {
           organization,
-          router: {location},
+          router,
         }
       );
 
@@ -159,7 +162,7 @@ describe('UpdatedGroupHeader', () => {
         <StreamlinedGroupHeader {...defaultProps} group={group} project={project} />,
         {
           organization,
-          router: {location},
+          router,
         }
       );
       expect(
@@ -180,7 +183,7 @@ describe('UpdatedGroupHeader', () => {
         <StreamlinedGroupHeader {...defaultProps} group={group} project={project} />,
         {
           organization: flaggedOrganization,
-          router: {location},
+          router,
         }
       );
       expect(
