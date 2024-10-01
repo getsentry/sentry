@@ -133,7 +133,7 @@ describe('AutofixRootCause', function () {
     ).not.toBeInTheDocument();
   });
 
-  it('shows unit test when available', async function () {
+  it('shows unit test inside reproduction card when available', async function () {
     render(
       <AutofixRootCause
         {...{
@@ -151,10 +151,10 @@ describe('AutofixRootCause', function () {
       />
     );
 
-    expect(screen.getByText('Unit test')).toBeInTheDocument();
+    expect(screen.getByText('How to reproduce')).toBeInTheDocument();
     await userEvent.click(
       screen.getByRole('button', {
-        name: 'Unit test',
+        name: 'How to reproduce',
       })
     );
     expect(
@@ -163,16 +163,16 @@ describe('AutofixRootCause', function () {
     expect(screen.getByText('Test case for root cause')).toBeInTheDocument();
   });
 
-  it('does not show unit test when not available', function () {
+  it('does not show reproduction or unit test when not available', function () {
     render(
       <AutofixRootCause
         {...{
           ...defaultProps,
-          causes: [AutofixRootCauseData({unit_test: undefined})],
+          causes: [AutofixRootCauseData({unit_test: undefined, reproduction: undefined})],
         }}
       />
     );
 
-    expect(screen.queryByText('Unit Test')).not.toBeInTheDocument();
+    expect(screen.queryByText('How to reproduce')).not.toBeInTheDocument();
   });
 });

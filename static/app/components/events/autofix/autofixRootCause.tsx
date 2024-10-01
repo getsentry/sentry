@@ -25,7 +25,7 @@ import {
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconCode, IconLab, IconLaptop} from 'sentry/icons';
+import {IconCode, IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {getFileExtension} from 'sentry/utils/fileExtension';
@@ -190,41 +190,36 @@ function RootCauseContext({
 
   return (
     <RootCauseContextContainer>
-      {cause.reproduction && (
-        <Fragment>
-          <ExpandableInsightContext
-            icon={<IconLaptop size="sm" color="subText" />}
-            title={'How to reproduce'}
-            rounded
-          >
+      {(cause.reproduction || cause.unit_test) && (
+        <ExpandableInsightContext
+          icon={<IconInfo size="sm" color="subText" />}
+          title={'How to reproduce'}
+          rounded
+        >
+          {cause.reproduction && (
             <CauseDescription
               dangerouslySetInnerHTML={{
                 __html: marked(replaceHeadersWithBold(cause.reproduction)),
               }}
             />
-          </ExpandableInsightContext>
-        </Fragment>
-      )}
-      {cause.unit_test && (
-        <Fragment>
-          <ExpandableInsightContext
-            icon={<IconLab size="sm" color="subText" />}
-            title={'Unit test'}
-            rounded
-          >
-            <CauseDescription
-              dangerouslySetInnerHTML={{
-                __html: marked(replaceHeadersWithBold(cause.unit_test.description)),
-              }}
-            />
-            <StyledCodeSnippet
-              filename={cause.unit_test.file_path}
-              language={unitTestLanguage}
-            >
-              {cause.unit_test.snippet}
-            </StyledCodeSnippet>
-          </ExpandableInsightContext>
-        </Fragment>
+          )}
+          {cause.unit_test && (
+            <Fragment>
+              <strong>{t('Unit test that reproduces this root cause:')}</strong>
+              <CauseDescription
+                dangerouslySetInnerHTML={{
+                  __html: marked(replaceHeadersWithBold(cause.unit_test.description)),
+                }}
+              />
+              <StyledCodeSnippet
+                filename={cause.unit_test.file_path}
+                language={unitTestLanguage}
+              >
+                {cause.unit_test.snippet}
+              </StyledCodeSnippet>
+            </Fragment>
+          )}
+        </ExpandableInsightContext>
       )}
       <ExpandableInsightContext
         icon={<IconCode size="sm" color="subText" />}
