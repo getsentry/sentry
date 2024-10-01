@@ -10,9 +10,11 @@ const timestampOptions: ('relative' | 'absolute')[] = ['relative', 'absolute'];
 export default function ReplayPreferenceDropdown({
   speedOptions,
   hideFastForward = false,
+  isLoading,
 }: {
   speedOptions: number[];
   hideFastForward?: boolean;
+  isLoading?: boolean;
 }) {
   const [prefs, setPrefs] = useReplayPrefs();
 
@@ -20,6 +22,7 @@ export default function ReplayPreferenceDropdown({
 
   return (
     <CompositeSelect
+      disabled={isLoading}
       trigger={triggerProps => (
         <Button
           {...triggerProps}
