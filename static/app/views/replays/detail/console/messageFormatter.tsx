@@ -70,7 +70,18 @@ export default function MessageFormatter({frame, expandPaths, onExpand}: Props) 
       // Some browsers won't allow you to write to error properties
     }
 
-    return <Format expandPaths={expandPaths} onExpand={onExpand} args={[fakeError]} />;
+    return (
+      <Format
+        expandPaths={expandPaths}
+        onExpand={onExpand}
+        args={[
+          fakeError.stack ?? {
+            ...fakeError,
+            message: fakeError.message,
+          },
+        ]}
+      />
+    );
   }
 
   return (
