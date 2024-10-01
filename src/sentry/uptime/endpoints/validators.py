@@ -10,6 +10,7 @@ from sentry import audit_log
 from sentry.api.fields import ActorField
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.auth.superuser import is_active_superuser
+from sentry.models.environment import Environment
 from sentry.uptime.detectors.url_extraction import extract_domain_parts
 from sentry.uptime.models import ProjectUptimeSubscription, ProjectUptimeSubscriptionMode
 from sentry.uptime.subscriptions.subscriptions import (
@@ -82,6 +83,12 @@ class UptimeMonitorValidator(CamelSnakeSerializer):
         allow_null=True,
         help_text="The ID of the team or user that owns the uptime monitor. (eg. user:51 or team:6)",
     )
+    environment = serializers.CharField(
+        max_length=64,
+        required=False,
+        allow_null=True,
+        help_text="Name of the environment",
+    )
     url = URLField(required=True, max_length=255)
     interval_seconds = serializers.ChoiceField(
         required=True, choices=[int(i.total_seconds()) for i in VALID_INTERVALS]
@@ -148,12 +155,21 @@ class UptimeMonitorValidator(CamelSnakeSerializer):
             )
 
     def create(self, validated_data):
+        if validated_data.get("environment") is not None:
+            environment = Environment.get_or_create(
+                project=self.context["project"],
+                name=validated_data["environment"],
+            )
+        else:
+            environment = None
+
         method_headers_body = {
             k: v for k, v in validated_data.items() if k in {"method", "headers", "body"}
         }
         try:
             uptime_monitor, created = get_or_create_project_uptime_subscription(
                 project=self.context["project"],
+                environment=environment,
                 url=validated_data["url"],
                 interval_seconds=validated_data["interval_seconds"],
                 name=validated_data["name"],
@@ -191,11 +207,20 @@ class UptimeMonitorValidator(CamelSnakeSerializer):
         name = data["name"] if "name" in data else instance.name
         owner = data["owner"] if "owner" in data else instance.owner
 
+        if "environment" in data:
+            environment = Environment.get_or_create(
+                project=self.context["project"],
+                name=data["environment"],
+            )
+        else:
+            environment = instance.environment
+
         if "mode" in data:
             raise serializers.ValidationError("Mode can only be specified on creation (for now)")
 
         update_project_uptime_subscription(
             uptime_monitor=instance,
+            environment=environment,
             url=url,
             interval_seconds=interval_seconds,
             method=method,
