@@ -1,5 +1,9 @@
 ---
+<<<<<<< HEAD
 created: '2024-09-30T17:27:03.064802+00:00'
+=======
+created: '2024-09-28T00:12:56.122846+00:00'
+>>>>>>> 2a2d464df9a (GENERATED - Snapshots)
 creator: sentry
 source: tests/sentry/backup/test_comparators.py
 ---
@@ -1685,6 +1689,15 @@ source: tests/sentry/backup/test_comparators.py
     - owner_user_id
     - workflow_condition_group
   model_name: workflow_engine.detector
+- comparators:
+  - class: DateUpdatedComparator
+    fields:
+    - date_added
+    - date_updated
+  - class: ForeignKeyComparator
+    fields:
+    - detector
+  model_name: workflow_engine.detectorstate
 - comparators:
   - class: DateUpdatedComparator
     fields:

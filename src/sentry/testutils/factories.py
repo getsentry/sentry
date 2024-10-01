@@ -178,6 +178,7 @@ from sentry.workflow_engine.models import (
     DataSource,
     DataSourceDetector,
     Detector,
+    DetectorState,
     DetectorWorkflow,
     Workflow,
     WorkflowDataConditionGroup,
@@ -2139,6 +2140,17 @@ class Factories:
         return Detector.objects.create(
             organization=organization, name=name, owner_user_id=owner_user_id, owner_team=owner_team
         )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_detector_state(
+        detector: Detector | None = None,
+        **kwargs,
+    ) -> DetectorState:
+        if detector is None:
+            detector = Factories.create_detector()
+
+        return DetectorState.objects.create(detector=detector, **kwargs)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
