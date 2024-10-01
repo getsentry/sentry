@@ -346,18 +346,18 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
       );
 
       // Root frame + 2 nodes
-      const promises: Promise<void>[] = [];
-      if (trace.list.length <= 3) {
-        for (const c of trace.list) {
-          if (c.canFetch) {
-            promises.push(trace.zoomIn(c, true, {api, organization}).then(rerender));
-          }
-        }
-      }
+      // const promises: Promise<void>[] = [];
+      // if (trace.list.length <= 3) {
+      //   for (const c of trace.list) {
+      //     if (c.canFetch) {
+      //       promises.push(trace.zoomIn(c, true, {api, organization}).then(rerender));
+      //     }
+      //   }
+      // }
 
-      Promise.allSettled(promises).finally(() => {
-        setTree(trace);
-      });
+      // Promise.allSettled(promises).finally(() => {
+      setTree(trace);
+      // });
     }
   }, [
     props.traceSlug,
@@ -579,7 +579,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
         }
         queryStringAnimationTimeoutRef.current = requestAnimationTimeout(() => {
           const currentQueryStringPath = qs.parse(location.search).node;
-          const nextNodePath = node.path;
+          const nextNodePath = TraceTree.PathToNode(node);
           // Updating the query string with the same path is problematic because it causes
           // the entire sentry app to rerender, which is enough to cause jank and drop frames
           if (JSON.stringify(currentQueryStringPath) === JSON.stringify(nextNodePath)) {
@@ -690,7 +690,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
 
       // We call expandToNode because we want to ensure that the node is
       // visible and may not have been collapsed/hidden by the user
-      TraceTree.ExpandToPath(tree, TraceTree.PathToNode(node.path), forceRerender, {
+      TraceTree.ExpandToPath(tree, TraceTree.PathToNode(node), forceRerender, {
         api,
         organization: props.organization,
       }).then(maybeNode => {
@@ -744,7 +744,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
   // focused node, but rather scrolls the node into view and sets the roving index to the node.
   const onScrollToNode = useCallback(
     (node: TraceTreeNode<TraceTree.NodeValue>) => {
-      TraceTree.ExpandToPath(tree, node, forceRerender, {
+      TraceTree.ExpandToPath(tree, TraceTree.PathToNode(node), forceRerender, {
         api,
         organization: props.organization,
       }).then(maybeNode => {

@@ -15,7 +15,7 @@ import getDynamicText from 'sentry/utils/getDynamicText';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 import {useTraceAverageTransactionDuration} from '../../../../traceApi/useTraceAverageTransactionDuration';
-import type {TraceTree} from '../../../../traceModels/traceTree';
+import {TraceTree} from '../../../../traceModels/traceTree';
 import type {TraceTreeNode} from '../../../../traceModels/traceTreeNode';
 import {getTraceTabTitle} from '../../../../traceState/traceTabs';
 import {type SectionCardKeyValueList, TraceDrawerComponents} from '../../styles';
@@ -56,7 +56,7 @@ function GeneralInfo({
   const {start: startTimeWithLeadingZero, end: endTimeWithLeadingZero} =
     getFormattedTimeRangeWithLeadingAndTrailingZero(startTimestamp, endTimestamp);
 
-  const parentTransaction = node.parent_transaction;
+  const parentTransaction = TraceTree.ParentTransaction(node);
 
   const items: SectionCardKeyValueList = [
     {

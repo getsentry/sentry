@@ -6,7 +6,7 @@ import {t, tct} from 'sentry/locale';
 
 import type {TraceTreeNodeDetailsProps} from '../../traceDrawer/tabs/traceTreeNodeDetails';
 import type {SiblingAutogroupNode} from '../../traceModels/siblingAutogroupNode';
-import {makeTraceNodeBarColor} from '../../traceModels/traceTree';
+import {makeTraceNodeBarColor, TraceTree} from '../../traceModels/traceTree';
 import {getTraceTabTitle} from '../../traceState/traceTabs';
 
 import {IssueList} from './issues/issues';
@@ -23,7 +23,7 @@ export function SiblingAutogroupNodeDetails({
     return [...node.errors, ...node.performance_issues];
   }, [node.errors, node.performance_issues]);
 
-  const parentTransaction = node.parent_transaction;
+  const parentTransaction = TraceTree.ParentTransaction(node);
 
   const items: SectionCardKeyValueList = [
     {

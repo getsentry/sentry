@@ -49,7 +49,7 @@ import {
 import type {MissingInstrumentationNode} from '../../traceModels/missingInstrumentationNode';
 import type {ParentAutogroupNode} from '../../traceModels/parentAutogroupNode';
 import type {SiblingAutogroupNode} from '../../traceModels/siblingAutogroupNode';
-import type {TraceTree} from '../../traceModels/traceTree';
+import {TraceTree} from '../../traceModels/traceTree';
 import type {TraceTreeNode} from '../../traceModels/traceTreeNode';
 
 const DetailContainer = styled('div')`
@@ -452,10 +452,11 @@ function NodeActions(props: {
     };
 
     const eventId =
-      props.node.metadata.event_id ?? props.node.parent_transaction?.metadata.event_id;
+      props.node.metadata.event_id ??
+      TraceTree.ParentTransaction(props.node)?.metadata.event_id;
     const projectSlug =
       props.node.metadata.project_slug ??
-      props.node.parent_transaction?.metadata.project_slug;
+      TraceTree.ParentTransaction(props.node)?.metadata.project_slug;
 
     const eventSize = props.eventSize;
     const jsonDetails: MenuItemProps = {

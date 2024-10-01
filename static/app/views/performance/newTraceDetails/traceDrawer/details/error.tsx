@@ -15,7 +15,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 
 import type {TraceTreeNodeDetailsProps} from '../../traceDrawer/tabs/traceTreeNodeDetails';
 import {TraceIcons} from '../../traceIcons';
-import {makeTraceNodeBarColor, type TraceTree} from '../../traceModels/traceTree';
+import {makeTraceNodeBarColor, TraceTree} from '../../traceModels/traceTree';
 import type {TraceTreeNode} from '../../traceModels/traceTreeNode';
 import {getTraceTabTitle} from '../../traceState/traceTabs';
 
@@ -50,7 +50,7 @@ export function ErrorNodeDetails({
   }, [data]);
 
   const theme = useTheme();
-  const parentTransaction = node.parent_transaction;
+  const parentTransaction = TraceTree.ParentTransaction(node);
 
   const items: SectionCardKeyValueList = [
     {

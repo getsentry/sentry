@@ -30,7 +30,7 @@ import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
 import {useProfiles} from 'sentry/views/profiling/profilesProvider';
 
 import type {MissingInstrumentationNode} from '../../../traceModels/missingInstrumentationNode';
-import type {TraceTree} from '../../../traceModels/traceTree';
+import {TraceTree} from '../../../traceModels/traceTree';
 import type {TraceTreeNode} from '../../../traceModels/traceTreeNode';
 
 interface SpanProfileProps {
@@ -59,7 +59,7 @@ export function ProfilePreview({event, node}: SpanProfileProps) {
   }, [profileGroup.profiles, profileGroup.activeProfileIndex]);
 
   const transactionHasProfile = useMemo(() => {
-    return (node.parent_transaction?.profiles?.length ?? 0) > 0;
+    return (TraceTree.ParentTransaction(node)?.profiles?.length ?? 0) > 0;
   }, [node]);
 
   const flamegraph = useMemo(() => {

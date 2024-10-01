@@ -23,8 +23,8 @@ import {
   TraceDrawerComponents,
 } from '../../../../traceDrawer/details/styles';
 import {isSpanNode} from '../../../../traceGuards';
-import type {TraceTree} from '../../../../traceModels/traceTree';
-import {TraceTreeNode} from '../../../../traceModels/traceTreeNode';
+import {TraceTree} from '../../../../traceModels/traceTree';
+import type {TraceTreeNode} from '../../../../traceModels/traceTreeNode';
 
 const SIZE_DATA_KEYS = [
   'Encoded Body Size',
@@ -72,7 +72,7 @@ function getSpanAggregateMeasurements(node: TraceTreeNode<TraceTree.Span>) {
   }
 
   let sum = 0;
-  TraceTreeNode.ForEachChild(node, n => {
+  TraceTree.ForEachChild(node, n => {
     if (
       isSpanNode(n) &&
       typeof n?.value?.measurements?.ai_total_tokens_used?.value === 'number'

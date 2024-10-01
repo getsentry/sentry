@@ -2,6 +2,37 @@ import type {Theme} from '@emotion/react';
 
 import type {TraceTree} from './traceTree';
 
+function isTraceTransaction(value: TraceTree.NodeValue): value is TraceTree.Transaction {
+  return !!(value && 'transaction' in value);
+}
+
+function isTraceError(value: TraceTree.NodeValue): value is TraceTree.TraceError {
+  return !!(value && 'level' in value);
+}
+
+function isTraceSpan(value: TraceTree.NodeValue): value is TraceTree.Span {
+  return !!(
+    value &&
+    'span_id' in value &&
+    !isTraceAutogroup(value) &&
+    !isTraceTransaction(value)
+  );
+}
+
+function isTraceAutogroup(
+  value: TraceTree.NodeValue
+): value is TraceTree.ChildrenAutogroup | TraceTree.SiblingAutogroup {
+  return !!(value && 'autogrouped_by' in value);
+}
+
+function isTrace(value: TraceTree.NodeValue): value is TraceTree.Trace {
+  return !!value && ('orphan_errors' in value || 'transactions' in value);
+}
+
+function isRoot(value: TraceTree.NodeValue): value is null {
+  return value === null;
+}
+
 export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> {
   cloneReference: TraceTreeNode<TraceTree.NodeValue> | null = null;
   canFetch: boolean = false;
@@ -52,18 +83,27 @@ export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> 
     }
 
     if (
-      isTraceErrorNode(this) &&
+      isTraceError(this.value) &&
       'timestamp' in this.value &&
       typeof this.value.timestamp === 'number'
     ) {
       this.space = [this.value.timestamp * this.multiplier, 0];
     }
 
+    // For error nodes, its value is the only associated issue.
+    if (isTraceError(this.value)) {
+      this.errors = new Set([this.value]);
+    }
+
     if (value && 'profile_id' in value && typeof value.profile_id === 'string') {
       this.profiles.push({profile_id: value.profile_id, space: this.space ?? [0, 0]});
     }
 
-    if (isTransactionNode(this) || isTraceNode(this) || isSpanNode(this)) {
+    if (
+      isTraceTransaction(this.value) ||
+      isTrace(this.value) ||
+      isTraceSpan(this.value)
+    ) {
       this.expanded = true;
     }
 
@@ -71,14 +111,9 @@ export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> 
       this.expanded = false;
     }
 
-    if (isTransactionNode(this)) {
+    if (isTraceTransaction(this.value)) {
       this.errors = new Set(this.value.errors);
       this.performance_issues = new Set(this.value.performance_issues);
-    }
-
-    // For error nodes, its value is the only associated issue.
-    if (isTraceErrorNode(this)) {
-      this.errors = new Set([this.value]);
     }
   }
 
@@ -123,19 +158,6 @@ export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> 
     return this.errors.size > 0 || this.performance_issues.size > 0;
   }
 
-  get parent_transaction(): TraceTreeNode<TraceTree.Transaction> | null {
-    let node: TraceTreeNode<TraceTree.NodeValue> | null = this.parent;
-
-    while (node) {
-      if (isTransactionNode(node)) {
-        return node;
-      }
-      node = node.parent;
-    }
-
-    return null;
-  }
-
   /**
    * Returns the depth levels at which the row should draw vertical connectors
    * negative values mean connector points to an orphaned node
@@ -154,7 +176,7 @@ export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> 
     if (this.parent?.connectors !== undefined) {
       this._connectors = [...this.parent.connectors];
 
-      if (this.isLastChild || this.value === null) {
+      if (this.isLastChild || isRoot(this.value)) {
         return this._connectors;
       }
 
@@ -196,15 +218,15 @@ export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> 
    * would have been to create an invisible meta node that always points to the correct children.
    */
   get children(): TraceTreeNode[] {
-    if (isAutogroupedNode(this)) {
+    if (this.value && 'autogrouped_by' in this.value) {
       return this._children;
     }
 
-    if (isSpanNode(this)) {
+    if (isTraceSpan(this.value)) {
       return this.canFetch && !this.zoomedIn ? [] : this.spanChildren;
     }
 
-    if (isTransactionNode(this)) {
+    if (isTraceTransaction(this.value)) {
       return this.zoomedIn ? this._spanChildren : this._children;
     }
 
@@ -244,7 +266,7 @@ export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> 
 }
 
 function shouldCollapseNodeByDefault(node: TraceTreeNode<TraceTree.NodeValue>) {
-  if (isSpanNode(node)) {
+  if (isTraceSpan(node.value)) {
     // Android creates TCP connection spans which are noisy and not useful in most cases.
     // Unless the span has a child txn which would indicate a continuaton of the trace, we collapse it.
     if (
@@ -257,89 +279,4 @@ function shouldCollapseNodeByDefault(node: TraceTreeNode<TraceTree.NodeValue>) {
   }
 
   return false;
-}
-
-// Generates a ID of the tree node based on its type
-function nodeToId(n: TraceTreeNode<TraceTree.NodeValue>): TraceTree.NodePath {
-  if (isAutogroupedNode(n)) {
-    if (isParentAutogroupedNode(n)) {
-      return `ag-${n.head.value.span_id}`;
-    }
-    if (isSiblingAutogroupedNode(n)) {
-      const child = n.children[0];
-      if (isSpanNode(child)) {
-        return `ag-${child.value.span_id}`;
-      }
-    }
-  }
-  if (isTransactionNode(n)) {
-    return `txn-${n.value.event_id}`;
-  }
-  if (isSpanNode(n)) {
-    return `span-${n.value.span_id}`;
-  }
-  if (isTraceNode(n)) {
-    return `trace-root`;
-  }
-
-  if (isTraceErrorNode(n)) {
-    return `error-${n.value.event_id}`;
-  }
-
-  if (isRootNode(n)) {
-    throw new Error('A path to root node does not exist as the node is virtual');
-  }
-
-  if (isMissingInstrumentationNode(n)) {
-    if (n.previous) {
-      return `ms-${n.previous.value.span_id}`;
-    }
-    if (n.next) {
-      return `ms-${n.next.value.span_id}`;
-    }
-
-    throw new Error('Missing instrumentation node must have a previous or next node');
-  }
-
-  throw new Error('Not implemented');
-}
-
-export function printTraceTreeNode(
-  t: TraceTreeNode<TraceTree.NodeValue>,
-  offset: number
-): string {
-  // +1 because we may be printing from the root which is -1 indexed
-  const padding = '  '.repeat(t.depth + offset);
-
-  if (isAutogroupedNode(t)) {
-    if (isParentAutogroupedNode(t)) {
-      return padding + `parent autogroup (${t.groupCount})`;
-    }
-    if (isSiblingAutogroupedNode(t)) {
-      return padding + `sibling autogroup (${t.groupCount})`;
-    }
-
-    return padding + 'autogroup';
-  }
-  if (isSpanNode(t)) {
-    return padding + (t.value.op || t.value.span_id || 'unknown span');
-  }
-  if (isTransactionNode(t)) {
-    return padding + (t.value.transaction || 'unknown transaction');
-  }
-  if (isMissingInstrumentationNode(t)) {
-    return padding + 'missing_instrumentation';
-  }
-  if (isRootNode(t)) {
-    return padding + 'Root';
-  }
-  if (isTraceNode(t)) {
-    return padding + 'Trace';
-  }
-
-  if (isTraceErrorNode(t)) {
-    return padding + (t.value.event_id || t.value.level) || 'unknown trace error';
-  }
-
-  return 'unknown node';
 }

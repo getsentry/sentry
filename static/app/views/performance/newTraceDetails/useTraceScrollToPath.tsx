@@ -2,7 +2,6 @@ import {useRef} from 'react';
 import * as qs from 'query-string';
 
 import type {TraceTree} from './traceModels/traceTree';
-import type {TraceTreeNode} from './traceModels/traceTreeNode';
 
 function decodeScrollQueue(maybePath: unknown): TraceTree.NodePath[] | null {
   if (Array.isArray(maybePath)) {
@@ -37,9 +36,7 @@ export function useTraceScrollToPath(
 
       scrollToNode = {
         eventId: queryParams.eventId as string | undefined,
-        path: decodeScrollQueue(
-          queryParams.node
-        ) as TraceTreeNode<TraceTree.NodeValue>['path'],
+        path: decodeScrollQueue(queryParams.node) as TraceTree.NodePath[] | undefined,
       };
     }
 

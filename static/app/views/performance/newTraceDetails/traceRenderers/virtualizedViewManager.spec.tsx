@@ -329,10 +329,15 @@ describe('VirtualizedViewManger', () => {
       );
 
       manager.list = makeList();
-      const result = await TraceTree.ExpandToPath(tree, tree.list[0].path, () => void 0, {
-        api: api,
-        organization,
-      });
+      const result = await TraceTree.ExpandToPath(
+        tree,
+        TraceTree.PathToNode(tree.list[0]),
+        () => void 0,
+        {
+          api: api,
+          organization,
+        }
+      );
 
       expect(result).toBe(tree.list[0]);
     });
@@ -387,8 +392,7 @@ describe('VirtualizedViewManger', () => {
       );
 
       manager.list = makeList();
-
-      expect(tree.list[tree.list.length - 1].path).toEqual([
+      expect(TraceTree.PathToNode(tree.list[tree.list.length - 1])).toEqual([
         'txn-event_id',
         'txn-child',
         'txn-root',

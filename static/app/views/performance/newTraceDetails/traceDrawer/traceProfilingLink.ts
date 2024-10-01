@@ -4,7 +4,7 @@ import {getDateFromTimestamp} from 'sentry/utils/dates';
 import {generateContinuousProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
 
 import {isSpanNode, isTransactionNode} from '../traceGuards';
-import type {TraceTree} from '../traceModels/traceTree';
+import {TraceTree} from '../traceModels/traceTree';
 import type {TraceTreeNode} from '../traceModels/traceTreeNode';
 
 function getNodeId(node: TraceTreeNode<TraceTree.NodeValue>): string | undefined {
@@ -22,7 +22,7 @@ function getEventId(node: TraceTreeNode<TraceTree.NodeValue>): string | undefine
   if (isTransactionNode(node)) {
     return node.value.event_id;
   }
-  return node.parent_transaction?.value?.event_id;
+  return TraceTree.ParentTransaction(node)?.value?.event_id;
 }
 
 /**
@@ -45,7 +45,7 @@ export function makeTraceContinuousProfilingLink(
 
   // We compute a time offset based on the duration of the span so that
   // users can see some context of things that occurred before and after the span.
-  const transaction = isTransactionNode(node) ? node : node.parent_transaction;
+  const transaction = isTransactionNode(node) ? node : TraceTree.ParentTransaction(node);
   if (!transaction) {
     return null;
   }

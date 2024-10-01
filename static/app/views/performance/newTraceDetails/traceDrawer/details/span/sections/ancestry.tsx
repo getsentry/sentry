@@ -26,7 +26,7 @@ import {generateEventSlug} from 'sentry/utils/discover/urls';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
-import type {TraceTree} from '../../../../traceModels/traceTree';
+import {TraceTree} from '../../../../traceModels/traceTree';
 import type {TraceTreeNode} from '../../../../traceModels/traceTreeNode';
 import {getTraceTabTitle} from '../../../../traceState/traceTabs';
 import {type SectionCardKeyValueList, TraceDrawerComponents} from '../../styles';
@@ -168,7 +168,7 @@ export function getSpanAncestryAndGroupingItems({
   onParentClick: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
   organization: Organization;
 }): SectionCardKeyValueList {
-  const parentTransaction = node.parent_transaction;
+  const parentTransaction = TraceTree.ParentTransaction(node);
   const span = node.value;
   const items: SectionCardKeyValueList = [];
 
