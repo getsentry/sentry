@@ -2,6 +2,7 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import ReplayRageClickSdkVersionBanner from 'sentry/components/replays/replayRageClickSdkVersionBanner';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -43,7 +44,15 @@ export default function ListContent() {
   });
 
   if (hasSentReplays.fetching || rageClicksSdkVersion.isFetching) {
-    return null;
+    return (
+      <Fragment>
+        <FiltersContainer>
+          <ReplaysFilters />
+          <ReplaysSearch />
+        </FiltersContainer>
+        <LoadingIndicator />
+      </Fragment>
+    );
   }
 
   if (!hasSessionReplay || !hasSentReplays.hasSentOneReplay) {
