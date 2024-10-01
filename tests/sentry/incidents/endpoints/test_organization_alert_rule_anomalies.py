@@ -30,6 +30,7 @@ class AlertRuleAnomalyEndpointTest(AlertRuleBase, SnubaTestCase):
     method = "get"
 
     @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
     @with_feature("organizations:incidents")
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
@@ -115,6 +116,7 @@ class AlertRuleAnomalyEndpointTest(AlertRuleBase, SnubaTestCase):
         assert resp.data == seer_return_value["timeseries"]
 
     @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
     @with_feature("organizations:incidents")
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
@@ -149,6 +151,7 @@ class AlertRuleAnomalyEndpointTest(AlertRuleBase, SnubaTestCase):
         assert resp.data == []
 
     @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
     @with_feature("organizations:incidents")
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
@@ -221,6 +224,7 @@ class AlertRuleAnomalyEndpointTest(AlertRuleBase, SnubaTestCase):
         assert resp.data == "Unable to get historical anomaly data"
 
     @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
     @with_feature("organizations:incidents")
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"

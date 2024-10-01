@@ -459,6 +459,8 @@ class SubscriptionProcessor:
 
         self.has_anomaly_detection = features.has(
             "organizations:anomaly-detection-alerts", self.subscription.project.organization
+        ) and features.has(
+            "organizations:anomaly-detection-rollout", self.subscription.project.organization
         )
 
         potential_anomalies = None

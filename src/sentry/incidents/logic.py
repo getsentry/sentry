@@ -647,7 +647,9 @@ def create_alert_rule(
             AlertRuleExcludedProjects.objects.bulk_create(exclusions)
 
         if alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC.value:
-            if not features.has("organizations:anomaly-detection-alerts", organization):
+            if not features.has(
+                "organizations:anomaly-detection-alerts", organization
+            ) and not features.has("organizations:anomaly-detection-rollout", organization):
                 alert_rule.delete()
                 raise ResourceDoesNotExist(
                     "Your organization does not have access to this feature."
@@ -909,7 +911,9 @@ def update_alert_rule(
             updated_fields["team_id"] = alert_rule.team_id
 
         if detection_type == AlertRuleDetectionType.DYNAMIC:
-            if not features.has("organizations:anomaly-detection-alerts", organization):
+            if not features.has(
+                "organizations:anomaly-detection-alerts", organization
+            ) and not features.has("organizations:anomaly-detection-rollout", organization):
                 raise ResourceDoesNotExist(
                     "Your organization does not have access to this feature."
                 )

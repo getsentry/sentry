@@ -115,7 +115,9 @@ def incident_attachment_info(
         metric_value = get_metric_count_from_incident(incident)
 
     text = get_incident_status_text(alert_rule, metric_value)
-    if features.has("organizations:anomaly-detection-alerts", incident.organization):
+    if features.has(
+        "organizations:anomaly-detection-alerts", incident.organization
+    ) and features.has("organizations:anomaly-detection-rollout", incident.organization):
         text += f"\nThreshold: {alert_rule.detection_type.title()}"
 
     title = f"{status}: {alert_rule.name}"
@@ -211,7 +213,9 @@ def metric_alert_attachment_info(
     if metric_value is not None and status != INCIDENT_STATUS[IncidentStatus.CLOSED]:
         text = get_incident_status_text(alert_rule, metric_value)
 
-    if features.has("organizations:anomaly-detection-alerts", alert_rule.organization):
+    if features.has(
+        "organizations:anomaly-detection-alerts", alert_rule.organization
+    ) and features.has("organizations:anomaly-detection-rollout", alert_rule.organization):
         text += f"\nThreshold: {alert_rule.detection_type.title()}"
 
     date_started = None

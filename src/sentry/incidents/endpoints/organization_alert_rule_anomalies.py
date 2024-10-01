@@ -52,7 +52,9 @@ class OrganizationAlertRuleAnomaliesEndpoint(OrganizationAlertRuleEndpoint):
         """
         Return a list of anomalies for a metric alert rule.
         """
-        if not features.has("organizations:anomaly-detection-alerts", organization):
+        if not features.has(
+            "organizations:anomaly-detection-alerts", organization
+        ) and not features.has("organizations:anomaly-detection-rollout", organization):
             raise ResourceDoesNotExist("Your organization does not have access to this feature.")
 
         # NOTE: this will break if we ever do more than one project per alert rule
