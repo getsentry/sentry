@@ -105,6 +105,12 @@ class AlertRuleIndexMixin(Endpoint):
         if project:
             data["projects"] = [project.slug]
 
+        for trigger in data["triggers"]:
+            if not trigger.get("actions", []):
+                raise ValidationError(
+                    "Each trigger must have an associated action for this alert to fire."
+                )
+
         serializer = DrfAlertRuleSerializer(
             context={
                 "organization": organization,
