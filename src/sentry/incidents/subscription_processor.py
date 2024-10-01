@@ -460,9 +460,6 @@ class SubscriptionProcessor:
         self.has_anomaly_detection = features.has(
             "organizations:anomaly-detection-alerts", self.subscription.project.organization
         )
-        has_fake_anomalies = features.has(
-            "organizations:fake-anomaly-detection", self.subscription.project.organization
-        )
 
         potential_anomalies = None
         if (
@@ -513,7 +510,7 @@ class SubscriptionProcessor:
                                 continue
 
                         if self.has_anomaly(
-                            potential_anomaly, trigger.label, has_fake_anomalies
+                            potential_anomaly, trigger.label
                         ) and not self.check_trigger_matches_status(trigger, TriggerStatus.ACTIVE):
                             metrics.incr(
                                 "incidents.alert_rules.threshold.alert",
@@ -528,9 +525,7 @@ class SubscriptionProcessor:
                             self.trigger_alert_counts[trigger.id] = 0
 
                         if (
-                            not self.has_anomaly(
-                                potential_anomaly, trigger.label, has_fake_anomalies
-                            )
+                            not self.has_anomaly(potential_anomaly, trigger.label)
                             and self.active_incident
                             and self.check_trigger_matches_status(trigger, TriggerStatus.ACTIVE)
                         ):
@@ -597,14 +592,11 @@ class SubscriptionProcessor:
         # before the next one then we might alert twice.
         self.update_alert_rule_stats()
 
-    def has_anomaly(self, anomaly: TimeSeriesPoint, label: str, has_fake_anomalies: bool) -> bool:
+    def has_anomaly(self, anomaly: TimeSeriesPoint, label: str) -> bool:
         """
         Helper function to determine whether we care about an anomaly based on the
         anomaly type and trigger type.
         """
-        if has_fake_anomalies:
-            return True
-
         anomaly_type = anomaly.get("anomaly", {}).get("anomaly_type")
 
         if anomaly_type == AnomalyType.HIGH_CONFIDENCE.value or (
