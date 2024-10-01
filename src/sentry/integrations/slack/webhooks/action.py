@@ -444,10 +444,10 @@ class SlackActionEndpoint(Endpoint):
                 ):  # TODO: remove this as it is replaced by the options-load endpoint
                     self.on_assign(request, identity_user, group, action)
                 elif action.name == "resolve_dialog":
-                    self.open_resolve_dialog(slack_request, group)
+                    _ResolveDialog().open_dialog(slack_request, group)
                     defer_attachment_update = True
                 elif action.name == "archive_dialog":
-                    self.open_archive_dialog(slack_request, group)
+                    _ArchiveDialog().open_dialog(slack_request, group)
                     defer_attachment_update = True
             except client.ApiError as error:
                 return self.api_error(slack_request, group, identity_user, error, action.name)
