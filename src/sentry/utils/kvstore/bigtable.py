@@ -6,6 +6,7 @@ from datetime import timedelta
 from threading import Lock
 from typing import Any
 
+import sentry_sdk
 from django.utils import timezone
 from google.api_core import exceptions, retry
 from google.cloud import bigtable
@@ -114,11 +115,12 @@ class BigtableKVStorage(KVStorage[str, bytes]):
             return table
 
     def get(self, key: str) -> bytes | None:
-        row = self._get_table().read_row(key)
-        if row is None:
-            return None
+        with sentry_sdk.start_span(op="bigtable.get"):
+            row = self._get_table().read_row(key)
+            if row is None:
+                return None
 
-        return self.__decode_row(row)
+            return self.__decode_row(row)
 
     def get_many(self, keys: Sequence[str]) -> Iterator[tuple[str, bytes]]:
         rows = RowSet()
