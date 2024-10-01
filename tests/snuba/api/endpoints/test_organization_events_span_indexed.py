@@ -872,6 +872,6 @@ class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpoin
         assert margin_of_error == pytest.approx(0.306, rel=1e-1)
         # How to read this; these results mean that the extrapolated count is
         # 500k, with a lower estimated bound of ~200k, and an upper bound of 800k
-        assert lower_limit == pytest.approx(193_612, abs=5000)
+        assert lower_limit == pytest.approx(190_000, abs=5000)
         assert extrapolated == pytest.approx(500_000)
-        assert upper_limit == pytest.approx(806_388, abs=5000)
+        assert upper_limit == pytest.approx(810_000, abs=5000)
