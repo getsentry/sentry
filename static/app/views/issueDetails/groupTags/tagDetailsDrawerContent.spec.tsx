@@ -138,7 +138,7 @@ describe('TagDetailsDrawerContent', () => {
     );
 
     expect(router.push).toHaveBeenCalledWith({
-      pathname: '/organizations/org-slug/issues/',
+      pathname: '/organizations/org-slug/issues/1/',
       query: {query: 'user.username:david'},
     });
   });

@@ -36,6 +36,8 @@ import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
 import {TagDetailsDrawerContent} from 'sentry/views/issueDetails/groupTags/tagDetailsDrawerContent';
 import {useGroupTags} from 'sentry/views/issueDetails/groupTags/useGroupTags';
+import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
+import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
 type GroupTagsDrawerProps = {
   groupId: string;
@@ -49,6 +51,7 @@ export function GroupTagsDrawer({projectSlug, groupId}: GroupTagsDrawerProps) {
   const drawerRef = useRef<HTMLDivElement>(null);
   const {projects} = useProjects();
   const project = projects.find(p => p.slug === projectSlug)!;
+  const {baseUrl} = useGroupDetailsRoute();
 
   const {
     data = [],
@@ -92,7 +95,7 @@ export function GroupTagsDrawer({projectSlug, groupId}: GroupTagsDrawerProps) {
               label: t('All Tags'),
               to: tagKey
                 ? {
-                    pathname: `/organizations/${organization.slug}/issues/${groupId}/tags/`,
+                    pathname: `${baseUrl}${TabPaths[Tab.TAGS]}`,
                     query: location.query,
                   }
                 : undefined,
@@ -166,8 +169,9 @@ export function GroupTagsDrawer({projectSlug, groupId}: GroupTagsDrawerProps) {
                             <TagProgressBarLink
                               // All events with the tag as the query
                               to={{
-                                pathname: `${location.pathname}events/`,
+                                pathname: `${baseUrl}${TabPaths[Tab.EVENTS]}`,
                                 query: {
+                                  ...location.query,
                                   query:
                                     tagValue.query || `${tag.key}:"${tagValue.value}"`,
                                 },
