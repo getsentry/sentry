@@ -1,6 +1,6 @@
 import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
-import {observe} from 'mobx';
+import {autorun} from 'mobx';
 import {Observer} from 'mobx-react';
 
 import {Button} from 'sentry/components/button';
@@ -68,26 +68,25 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
   // components `apiEndpoint` prop, so instead we setup a mobx observer on
   // value of the project slug and use that to update the endpoint of the form
   // model
-  useEffect(() => {
-    function updateFormConfig() {
-      const projectSlug = formModel.getValue('projectSlug');
-      const apiEndpoint = rule
-        ? `/projects/${organization.slug}/${projectSlug}/uptime/${rule.id}/`
-        : `/projects/${organization.slug}/${projectSlug}/uptime/`;
+  useEffect(
+    () =>
+      autorun(() => {
+        const projectSlug = formModel.getValue('projectSlug');
+        const apiEndpoint = rule
+          ? `/projects/${organization.slug}/${projectSlug}/uptime/${rule.id}/`
+          : `/projects/${organization.slug}/${projectSlug}/uptime/`;
 
-      function onSubmitSuccess(response: any) {
-        navigate(
-          normalizeUrl(
-            `/organizations/${organization.slug}/alerts/rules/uptime/${projectSlug}/${response.id}/details/`
-          )
-        );
-      }
-      formModel.setFormOptions({apiEndpoint, onSubmitSuccess});
-    }
-
-    updateFormConfig();
-    return observe(formModel, updateFormConfig);
-  }, [formModel, navigate, organization.slug, rule]);
+        function onSubmitSuccess(response: any) {
+          navigate(
+            normalizeUrl(
+              `/organizations/${organization.slug}/alerts/rules/uptime/${projectSlug}/${response.id}/details/`
+            )
+          );
+        }
+        formModel.setFormOptions({apiEndpoint, onSubmitSuccess});
+      }),
+    [formModel, navigate, organization.slug, rule]
+  );
 
   return (
     <Form
