@@ -1,4 +1,4 @@
-import {useCallback, useState} from 'react';
+import {type ComponentProps, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 import {isString} from '@sentry/utils';
 import type {Location} from 'history';
@@ -251,6 +251,12 @@ function PageLayout(props: Props) {
 
   const project = projects.find(p => p.id === projectId);
 
+  let hasWebVitals: ComponentProps<typeof TransactionHeader>['hasWebVitals'] =
+    tab === Tab.WEB_VITALS ? 'yes' : 'maybe';
+  if (organization.features.includes('insights-domain-view')) {
+    hasWebVitals = 'no';
+  }
+
   return (
     <SentryDocumentTitle
       title={getDocumentTitle(transactionName)}
@@ -278,7 +284,7 @@ function PageLayout(props: Props) {
                   projectId={projectId}
                   transactionName={transactionName}
                   currentTab={tab}
-                  hasWebVitals={tab === Tab.WEB_VITALS ? 'yes' : 'maybe'}
+                  hasWebVitals={hasWebVitals}
                   onChangeThreshold={(threshold, metric) => {
                     setTransactionThreshold(threshold);
                     setTransactionThresholdMetric(metric);
