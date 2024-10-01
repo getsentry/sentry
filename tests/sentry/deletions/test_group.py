@@ -257,7 +257,7 @@ class DeleteIssuePlatformTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         ]
         assert self.select_issue_platform_events(self.project.id) == expected
 
-        # Without the feature flag it will not delete the group or the event
+        # This will delete the group and the events from the node store
         with self.tasks():
             delete_groups(object_ids=[issue_platform_group.id])
 
@@ -267,7 +267,7 @@ class DeleteIssuePlatformTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         assert nodestore.backend.get(occurrence_node_id)
         assert self.select_issue_platform_events(self.project.id) == expected
 
-        # With the feature flag it will delete the group and the event
+        # With the feature flag it will also delete the occurrence from Snuba
         with self.tasks(), self.feature({"organizations:issue-platform-deletion": True}):
             delete_groups(object_ids=[issue_platform_group.id])
 

@@ -7,11 +7,10 @@ from typing import Any
 
 from snuba_sdk import DeleteQuery, Request
 
-from sentry import eventstore, eventstream, features, models, nodestore
+from sentry import eventstore, eventstream, models, nodestore
 from sentry.eventstore.models import Event
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.group import Group, GroupStatus
-from sentry.models.organization import Organization
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.snuba.dataset import Dataset
 from sentry.tasks.delete_seer_grouping_records import call_delete_seer_grouping_records_by_hash
@@ -246,9 +245,6 @@ class GroupDeletionTask(ModelDeletionTask[Group]):
         child_relations: list[BaseRelation] = []
         for model in _GROUP_RELATED_MODELS:
             child_relations.append(ModelRelation(model, {"group_id__in": group_ids}))
-
-        org = Organization.objects.get(id=instance_list[0].project.organization_id)
-        issue_platform_deletion_allowed = features.has("organizations:issue-platform-deletion", org)
         error_groups, issue_platform_groups = separate_by_group_category(instance_list)
 
         # If this isn't a retention cleanup also remove event data.
@@ -257,7 +253,7 @@ class GroupDeletionTask(ModelDeletionTask[Group]):
                 params = {"groups": error_groups}
                 child_relations.append(BaseRelation(params=params, task=ErrorEventsDeletionTask))
 
-            if issue_platform_deletion_allowed and issue_platform_groups:
+            if issue_platform_groups:
                 params = {"groups": issue_platform_groups}
                 child_relations.append(
                     BaseRelation(params=params, task=IssuePlatformEventsDeletionTask)
