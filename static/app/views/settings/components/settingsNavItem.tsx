@@ -1,8 +1,6 @@
 import type {ReactElement} from 'react';
 import {Fragment} from 'react';
-// biome-ignore lint/nursery/noRestrictedImports: Will be removed with react router 6
-import {Link as RouterLink} from 'react-router';
-import {NavLink as Router6NavLink} from 'react-router-dom';
+import {NavLink as RouterNavLink} from 'react-router-dom';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
@@ -47,70 +45,15 @@ function SettingsNavItem({badge, label, index, id, to, ...props}: Props) {
     renderedBadge = badge;
   }
 
-  if (window.__SENTRY_USING_REACT_ROUTER_SIX) {
-    return (
-      <StyledNavItem6 end={index} to={locationDescriptorToTo(to)} {...props}>
-        <LabelHook id={id}>{label}</LabelHook>
-        {badge ? renderedBadge : null}
-      </StyledNavItem6>
-    );
-  }
-
   return (
-    <StyledNavItem to={to} onlyActiveOnIndex={index} activeClassName="active" {...props}>
+    <StyledNavItem end={index} to={locationDescriptorToTo(to)} {...props}>
       <LabelHook id={id}>{label}</LabelHook>
       {badge ? renderedBadge : null}
     </StyledNavItem>
   );
 }
 
-const StyledNavItem6 = styled(Router6NavLink)`
-  display: block;
-  color: ${p => p.theme.gray300};
-  font-size: 14px;
-  line-height: 30px;
-  position: relative;
-
-  &.active {
-    color: ${p => p.theme.textColor};
-
-    &:before {
-      background: ${p => p.theme.active};
-    }
-  }
-
-  &:hover,
-  &:focus,
-  &:active {
-    color: ${p => p.theme.textColor};
-    outline: none;
-  }
-
-  &:focus-visible {
-    outline: none;
-    background: ${p => p.theme.backgroundSecondary};
-    padding-left: 15px;
-    margin-left: -15px;
-    border-radius: 3px;
-
-    &:before {
-      left: -15px;
-    }
-  }
-
-  &:before {
-    position: absolute;
-    content: '';
-    display: block;
-    top: 4px;
-    left: -30px;
-    height: 20px;
-    width: 4px;
-    background: transparent;
-    border-radius: 0 2px 2px 0;
-  }
-`;
-const StyledNavItem = styled(RouterLink)`
+const StyledNavItem = styled(RouterNavLink)`
   display: block;
   color: ${p => p.theme.gray300};
   font-size: 14px;

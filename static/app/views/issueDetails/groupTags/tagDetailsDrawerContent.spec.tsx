@@ -24,10 +24,10 @@ function init(tagKey: string) {
   return initializeOrg({
     router: {
       location: {
-        query: {tagDrawerKey: tagKey},
         pathname: '/organizations/:orgId/issues/:groupId/',
+        query: {},
       },
-      params: {orgId: 'org-slug', groupId: group.id},
+      params: {orgId: 'org-slug', groupId: group.id, tagKey},
     },
   });
 }
@@ -138,7 +138,7 @@ describe('TagDetailsDrawerContent', () => {
     );
 
     expect(router.push).toHaveBeenCalledWith({
-      pathname: '/organizations/org-slug/issues/',
+      pathname: '/organizations/org-slug/issues/1/',
       query: {query: 'user.username:david'},
     });
   });

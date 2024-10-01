@@ -1309,7 +1309,7 @@ class BaseQueryBuilder:
         if search_filter.operator in ("=", "!=") and search_filter.value.value == "":
             if is_tag or is_attr or is_context or name in self.config.non_nullable_keys:
                 return Condition(lhs, Op(search_filter.operator), value)
-            else:
+            elif isinstance(lhs, Column):
                 # If not a tag, we can just check that the column is null.
                 return Condition(Function("isNull", [lhs]), Op(search_filter.operator), 1)
 
