@@ -10,7 +10,7 @@ Required context variables:
 <html lang="en">
   <head>
     <title>Invalid Request - Sentry DevToolbar iFrame</title>
-    <link rel="icon" type="image/png" href="{% absolute_asset_url "sentry" "images/favicon.png" %}" style="color:red">
+    <link rel="icon" type="image/png" href="{% absolute_asset_url "sentry" "images/favicon.png" %}">
   </head>
   <body>
     {% script %}
@@ -18,7 +18,6 @@ Required context variables:
       const referrer = "{{ referrer|escapejs }}";
 
       {% if not has_project %}
-      // TODO: use logger and/or analytics
       console.log('Project does not exist.');
       window.parent.postMessage({
         source: 'sentry-toolbar',
@@ -35,5 +34,8 @@ Required context variables:
       {% endif %}
     </script>
     {% endscript %}
-  </body>
-</html>
+
+{% comment %}
+No need to close `body`. If we do then middleware will inject some extra markup
+we don't need. Browsers can figure out when it missing and deal with it.
+{% endcomment %}
