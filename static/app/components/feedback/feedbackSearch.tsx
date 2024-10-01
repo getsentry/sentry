@@ -1,12 +1,9 @@
-import type {CSSProperties} from 'react';
 import {useCallback, useMemo} from 'react';
-import styled from '@emotion/styled';
 import orderBy from 'lodash/orderBy';
 
 import {fetchTagValues, useFetchOrganizationTags} from 'sentry/actionCreators/tags';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
-import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {t} from 'sentry/locale';
 import type {Tag, TagCollection, TagValue} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
@@ -121,12 +118,7 @@ const getFilterKeySections = (
   ];
 };
 
-interface Props {
-  className?: string;
-  style?: CSSProperties;
-}
-
-export default function FeedbackSearch({className, style}: Props) {
+export default function FeedbackSearch() {
   const {selection: pageFilters} = usePageFilters();
   const projectIds = pageFilters.projects;
   const {pathname, query: locationQuery} = useLocation();
@@ -218,42 +210,16 @@ export default function FeedbackSearch({className, style}: Props) {
     [navigate, pathname, locationQuery]
   );
 
-  if (organization.features.includes('search-query-builder-user-feedback')) {
-    return (
-      <SearchQueryBuilder
-        initialQuery={decodeScalar(locationQuery.query, '')}
-        filterKeys={filterKeys}
-        filterKeySections={filterKeySections}
-        getTagValues={getTagValues}
-        onSearch={onSearch}
-        searchSource={'feedback-list'}
-        placeholder={t('Search Feedback')}
-        showUnsubmittedIndicator
-      />
-    );
-  }
-
   return (
-    <SearchContainer className={className} style={style}>
-      <SmartSearchBar
-        hasRecentSearches
-        projectIds={projectIds}
-        placeholder={t('Search Feedback')}
-        organization={organization}
-        onGetTagValues={getTagValues}
-        supportedTags={filterKeys}
-        excludedTags={EXCLUDED_TAGS}
-        fieldDefinitionGetter={getFeedbackFieldDefinition}
-        maxMenuHeight={500}
-        defaultQuery=""
-        query={decodeScalar(locationQuery.query, '')}
-        onSearch={onSearch}
-      />
-    </SearchContainer>
+    <SearchQueryBuilder
+      initialQuery={decodeScalar(locationQuery.query, '')}
+      filterKeys={filterKeys}
+      filterKeySections={filterKeySections}
+      getTagValues={getTagValues}
+      onSearch={onSearch}
+      searchSource={'feedback-list'}
+      placeholder={t('Search Feedback')}
+      showUnsubmittedIndicator
+    />
   );
 }
-
-const SearchContainer = styled('div')`
-  display: grid;
-  width: 100%;
-`;
