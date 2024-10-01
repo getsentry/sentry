@@ -44,15 +44,15 @@ export function NewIssueExperienceButton() {
   ) : null;
 
   const label = hasStreamlinedUI
-    ? t('Switch to the old issue experience')
-    : t('Switch to the new issue experience');
+    ? t('Switch to the old issue view')
+    : t('Switch to the new issue view');
 
   return (
     <ButtonBar merged>
       <StyledButton
         enabled={hasStreamlinedUI}
         size="sm"
-        icon={<IconLab isSolid={hasStreamlinedUI} />}
+        icon={<IconLab isSolid={!hasStreamlinedUI} />}
         title={label}
         aria-label={label}
         onClick={() => {
@@ -67,7 +67,7 @@ export function NewIssueExperienceButton() {
           });
         }}
       >
-        {hasStreamlinedUI ? t('Back to Basics') : t('Want to see the future?')}
+        {hasStreamlinedUI ? t('Back to basics') : t('Try something new')}
       </StyledButton>
       {hasStreamlinedUI && feedbackButton}
     </ButtonBar>

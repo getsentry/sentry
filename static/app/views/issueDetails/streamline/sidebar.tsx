@@ -218,13 +218,14 @@ const SidebarIcon = styled(IconPanel)`
 
 const CollapseButton = styled(Button)`
   border-radius: 0;
-  border-bottom: 1px solid ${p => p.theme.translucentBorder};
   position: sticky;
   top: 0;
   z-index: 100;
   background: ${p => p.theme.background};
   color: ${p => p.theme.subText};
   margin: -${space(1.5)} -${space(1.5)} ${space(1.5)};
+  border-width: 0;
+  border-bottom: 1px solid ${p => p.theme.translucentBorder} !important;
 `;
 
 const WorkflowActions = styled(GroupActions)`

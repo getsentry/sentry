@@ -114,18 +114,6 @@ export function EventDetails({
           mini
           message={t('There was an error loading the issue content')}
         >
-          <Feature features={['organizations:ai-summary']}>
-            <GroupSummary groupId={group.id} groupCategory={group.issueCategory} />
-          </Feature>
-          <ExtraContent>
-            <ContentPadding>
-              <IssueContent group={group} project={project} />
-            </ContentPadding>
-          </ExtraContent>
-        </PageErrorBoundary>
-      )}
-      {pageContent === EventPageContent.EXPLORE && (
-        <Fragment>
           <PageErrorBoundary
             mini
             message={t('There was an error loading the issue callouts')}
@@ -136,6 +124,23 @@ export function EventDetails({
               </ContentPadding>
             </ExtraContent>
           </PageErrorBoundary>
+          <PageErrorBoundary
+            mini
+            message={t('There was an error loading the AI issue summary')}
+          >
+            <Feature features={['organizations:ai-summary']}>
+              <GroupSummary groupId={group.id} groupCategory={group.issueCategory} />
+            </Feature>
+          </PageErrorBoundary>
+          <ExtraContent>
+            <ContentPadding>
+              <IssueContent group={group} project={project} />
+            </ContentPadding>
+          </ExtraContent>
+        </PageErrorBoundary>
+      )}
+      {pageContent === EventPageContent.EXPLORE && (
+        <Fragment>
           <PageErrorBoundary
             mini
             message={t('There was an error loading the suspect commits')}

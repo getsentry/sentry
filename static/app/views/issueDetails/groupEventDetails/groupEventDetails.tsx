@@ -182,6 +182,7 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
         <PageLayoutComponent
           data-test-id="group-event-details"
           hasStreamlinedUi={hasStreamlinedUI}
+          isSidebarOpen={isSidebarOpen}
         >
           {groupReprocessingStatus === ReprocessingStatus.REPROCESSING ? (
             <ReprocessingProgress
@@ -201,7 +202,7 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
                     value={pageContent}
                     onChange={key => setPageContent(key as EventPageContent)}
                   >
-                    <TabList hideBorder variant="floating">
+                    <IssueDetailsTabList hideBorder variant="floating">
                       <TabList.Item key={EventPageContent.EVENT}>
                         {t('Event')}
                       </TabList.Item>
@@ -211,7 +212,7 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
                       <TabList.Item key={EventPageContent.EXPLORE}>
                         {t('Explore')}
                       </TabList.Item>
-                    </TabList>
+                    </IssueDetailsTabList>
                   </IssueDetailsTabs>
                 )}
                 {!hasStreamlinedUI && renderGroupStatusBanner()}
@@ -258,9 +259,15 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
 const IssueDetailsTabs = styled(Tabs)`
   gap: ${space(1.5)};
   background: ${p => p.theme.background};
-  padding: ${space(1)} ${space(1.5)} 10px;
+  padding: ${space(0.5)} ${space(1.5)} ${space(0.75)};
   border-bottom: 1px solid ${p => p.theme.translucentBorder};
   margin: -${space(1.5)} -${space(1.5)} 0;
+`;
+
+const IssueDetailsTabList = styled(TabList)`
+  gap: ${space(0.5)};
+  font-size: ${p => p.theme.fontSizeSmall};
+  line-height: 1;
 `;
 
 const StyledLayoutBody = styled(Layout.Body)<{
@@ -296,13 +303,16 @@ const GroupContent = styled(Layout.Main)`
   flex-direction: column;
   padding: ${space(1.5)};
   gap: ${space(1.5)};
-  box-shadow: 0 0 0 1px ${p => p.theme.translucentInnerBorder};
 `;
 
-const PageLayout = styled(Layout.Body)`
+const PageLayout = styled(Layout.Body)<{isSidebarOpen: boolean}>`
   padding: 0 !important;
   gap: 0 !important;
   background: ${p => p.theme.backgroundSecondary};
+  grid-template-columns: ${p =>
+    p.isSidebarOpen
+      ? 'minmax(100px, auto) 325px'
+      : 'minmax(100px, auto) 40px'} !important;
 `;
 
 const StyledLayoutSide = styled(Layout.Side)`
@@ -318,7 +328,7 @@ const StyledLayoutSide = styled(Layout.Side)`
 `;
 
 const StreamlinedSide = styled('div')`
-  grid-area: 1 / 2/ 3/ 3;
+  grid-area: 1 / 2 / 3 / 3;
 `;
 
 export default GroupEventDetails;
