@@ -177,10 +177,11 @@ def _process_resource_change(
     **kwargs: Any,
 ) -> None:
     # The class is serialized as a string when enqueueing the class.
-    model: Event | Group | Activity = TYPES[sender]
+    model: type[Event] | type[Group] | type[Activity] = TYPES[sender]
+    instance: Event | Group | Activity | None = None
     # The Event model has different hooks for the different event types. The sender
     # determines which type eg. Error and therefore the 'name' eg. error
-    if isinstance(model, Event):
+    if issubclass(model, Event):
         if not kwargs.get("instance"):
             extra = {"sender": sender, "action": action, "event_id": instance_id}
             logger.info("process_resource_change.event_missing_event", extra=extra)
@@ -197,7 +198,7 @@ def _process_resource_change(
 
     # We may run into a race condition where this task executes before the
     # transaction that creates the Group has committed.
-    if isinstance(model, Event):
+    if issubclass(model, Event):
         # XXX:(Meredith): Passing through the entire event was an intentional choice
         # to avoid having to query NodeStore again for data we had previously in
         # post_process. While this is not ideal, changing this will most likely involve
@@ -231,7 +232,7 @@ def _process_resource_change(
 
         for installation in installations:
             data = {}
-            if isinstance(instance, Event) or isinstance(instance, GroupEvent):
+            if isinstance(instance, (Event, GroupEvent)):
                 assert instance.group_id, "group id is required to create webhook event data"
                 data[name] = _webhook_event_data(instance, instance.group_id, instance.project_id)
             else:
