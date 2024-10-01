@@ -603,7 +603,7 @@ class DetectorControlledIssueType(GroupType):
     type_id = 8001
     slug = "detector_based_issue"
     description = "issue created from detectors"
-    category = GroupCategory.DETECTOR
+    category = GroupCategory.DETECTOR.value
 
     enable_auto_resolve = False
     enable_escalation_detection = False
