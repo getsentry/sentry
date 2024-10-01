@@ -10,7 +10,6 @@ from django.http import Http404, HttpRequest, HttpResponse, HttpResponseBadReque
 from django.http.response import HttpResponseBase
 from django.shortcuts import get_object_or_404
 
-from sentry import features
 from sentry.api.endpoints.setup_wizard import SETUP_WIZARD_CACHE_KEY, SETUP_WIZARD_CACHE_TIMEOUT
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.project import STATUS_LABELS
@@ -64,8 +63,6 @@ class SetupWizardView(BaseView):
         """
         context = {"hash": wizard_hash}
         key = f"{SETUP_WIZARD_CACHE_KEY}{wizard_hash}"
-
-        features.has("s", user=request.user, actor=request.user)
 
         wizard_data = default_cache.get(key)
         if wizard_data is None:
