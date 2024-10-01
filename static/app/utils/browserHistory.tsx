@@ -84,3 +84,7 @@ export function DANGEROUS_SET_REACT_ROUTER_6_HISTORY(router: Router) {
 
   browserHistory = compat6BrowserHistory;
 }
+
+export function DANGEROUS_SET_TEST_HISTORY(router: any) {
+  browserHistory = router as any;
+}
