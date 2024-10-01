@@ -54,6 +54,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:alert-filters", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Enables the migration of alerts (checked in a migration script).
     manager.add("organizations:alerts-migration-enabled", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Enable anomaly detection feature for rollout
+    manager.add("organizations:anomaly-detection-rollout", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable anomaly detection charts
     manager.add("organizations:anomaly-detection-alerts-charts", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable anr frame analysis
