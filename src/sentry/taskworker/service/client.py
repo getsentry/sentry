@@ -4,8 +4,8 @@ import grpc
 from sentry_protos.sentry.v1alpha.taskworker_pb2 import (
     TASK_ACTIVATION_STATUS_COMPLETE,
     GetTaskRequest,
+    GetTaskResponse,
     SetTaskStatusRequest,
-    TaskActivation,
     TaskActivationStatus,
 )
 from sentry_protos.sentry.v1alpha.taskworker_pb2_grpc import ConsumerServiceStub
@@ -33,12 +33,12 @@ class TaskClient:
 
     def get_task(
         self, partition: int | None = None, topic: str | None = None
-    ) -> TaskActivation | None:
+    ) -> GetTaskResponse | None:
         logger.info("getting_latest_tasks", extra={"partition": partition, "topic": topic})
         request = GetTaskRequest()
         response = self.stub.GetTask(request)
-        if response.HasField("task"):
-            return response.task
+        if response.HasField("task") and response.HasField("processing_deadline"):
+            return response
         return None
 
     def set_task_status(self, task_id: str, task_status: TaskActivationStatus.ValueType):

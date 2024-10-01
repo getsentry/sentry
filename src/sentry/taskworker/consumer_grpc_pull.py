@@ -33,7 +33,9 @@ class ConsumerServicer(BaseConsumerServicer):
         inflight = self.pending_task_store.get_pending_task()
         if not inflight:
             return GetTaskResponse()
-        return GetTaskResponse(task=inflight.activation)
+        return GetTaskResponse(
+            task=inflight.activation, processing_deadline=inflight.processing_deadline
+        )
 
     def SetTaskStatus(self, request: SetTaskStatusRequest, context) -> SetTaskStatusResponse:
         logger.info("update status", extra={"id": request.id})

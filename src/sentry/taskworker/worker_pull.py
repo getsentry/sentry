@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import logging
 import time
+from datetime import datetime
+from multiprocessing.pool import Pool
 
 import grpc
 import orjson
@@ -10,8 +12,10 @@ from sentry_protos.sentry.v1alpha.taskworker_pb2 import (
     TASK_ACTIVATION_STATUS_COMPLETE,
     TASK_ACTIVATION_STATUS_FAILURE,
     TASK_ACTIVATION_STATUS_RETRY,
+    GetTaskResponse,
 )
 
+from sentry.taskworker import worker_process
 from sentry.taskworker.config import TaskNamespace, taskregistry
 
 logger = logging.getLogger("sentry.taskworker")
@@ -52,20 +56,21 @@ class Worker:
         from sentry.taskworker.service.client import task_client
 
         try:
-            activation = task_client.get_task(topic=namespace.topic)
+            response: GetTaskResponse | None = task_client.get_task(topic=namespace.topic)
         except grpc.RpcError:
             logger.info("get_task failed. Retrying in 1 second")
             time.sleep(1)
             return
 
-        if not activation:
+        if not response:
             logger.info("No tasks")
             time.sleep(1)
             return
 
-        try:
-            task_meta = self.namespace.get(activation.taskname)
-        except KeyError:
+        activation = response.task
+        processing_deadline = response.processing_deadline
+
+        if not self.namespace.contains(activation.taskname):
             logger.exception("Could not resolve task with name %s", activation.taskname)
             return
 
@@ -75,12 +80,24 @@ class Worker:
         next_state = TASK_ACTIVATION_STATUS_FAILURE
         try:
             task_data_parameters = orjson.loads(activation.parameters)
-            task_meta(*task_data_parameters["args"], **task_data_parameters["kwargs"])
+            with Pool(processes=1) as pool:
+                result = pool.apply_async(
+                    worker_process._process_activation,
+                    (
+                        self.options["namespace"],
+                        activation.taskname,
+                        task_data_parameters["args"],
+                        task_data_parameters["kwargs"],
+                    ),
+                )
+                result.get(
+                    timeout=(processing_deadline.ToDatetime() - datetime.now()).total_seconds()
+                )
             next_state = TASK_ACTIVATION_STATUS_COMPLETE
         except Exception as err:
             logger.info("taskworker.task_errored", extra={"error": str(err)})
             # TODO check retry policy
-            if task_meta.should_retry(activation.retry_state, err):
+            if self.namespace.get(activation.taskname).should_retry(activation.retry_state, err):
                 logger.info("taskworker.task.retry", extra={"task": activation.taskname})
                 next_state = TASK_ACTIVATION_STATUS_RETRY
         task_latency = execution_time - task_added_time

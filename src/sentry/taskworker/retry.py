@@ -38,6 +38,9 @@ class Retry:
         # In the retry allow list
         if self.__on and isinstance(exc, self.__on):
             return True
+        # If we use multiprocessing pool to handle processing deadline, it will throw a TimeoutError when deadline is elapsed
+        if isinstance(exc, TimeoutError):
+            return True
         # TODO add logging/assertion for no funny business
         return False
 
