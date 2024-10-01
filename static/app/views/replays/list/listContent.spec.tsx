@@ -64,6 +64,12 @@ describe('ReplayList', () => {
       url: `/organizations/org-slug/replays/`,
       body: {},
     });
+    // Request made by SearchQueryBuilder:
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/recent-searches/',
+      method: 'GET',
+      body: [],
+    });
   });
 
   it('should render the onboarding panel when the org is on AM1', async () => {
