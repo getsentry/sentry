@@ -30,7 +30,7 @@ class GroupCategory(Enum):
     REPLAY = 5
     FEEDBACK = 6
     UPTIME = 7
-    METRIC = 8
+    DETECTOR = 8
 
 
 GROUP_CATEGORIES_CUSTOM_EMAIL = (
@@ -596,6 +596,18 @@ class UptimeDomainCheckFailure(GroupType):
     default_priority = PriorityLevel.HIGH
     enable_auto_resolve = False
     enable_escalation_detection = False
+
+
+@dataclass(frozen=True)
+class DetectorControlledIssueType(GroupType):
+    type_id = 8001
+    slug = "detector_based_issue"
+    description = "issue created from detectors"
+    category = GroupCategory.DETECTOR
+
+    enable_auto_resolve = False
+    enable_escalation_detection = False
+    released = False
 
 
 def should_create_group(
