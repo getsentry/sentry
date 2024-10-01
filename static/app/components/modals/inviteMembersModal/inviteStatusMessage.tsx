@@ -8,7 +8,59 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 import type {InviteStatus} from './types';
 
-interface Props {
+interface InviteCountProps {
+  count: number;
+  label: string;
+  isRequest?: boolean;
+}
+
+function InviteCount({count, label, isRequest}: InviteCountProps) {
+  return (
+    <BoldCount data-test-id={label}>
+      {isRequest
+        ? tn('%s invite request', '%s invite requests', count)
+        : tn('%s invite', '%s invites', count)}
+    </BoldCount>
+  );
+}
+
+interface CountMessageProps {
+  errorCount: number;
+  sentCount: number;
+  isRequest?: boolean;
+}
+
+function CountMessage({sentCount, errorCount, isRequest}: CountMessageProps) {
+  const invites = (
+    <InviteCount count={sentCount} label="sent-invites" isRequest={isRequest} />
+  );
+  const failedInvites = (
+    <InviteCount count={errorCount} label="failed-invites" isRequest={isRequest} />
+  );
+  const tctComponents = {
+    invites,
+    failed: errorCount,
+    failedInvites,
+  };
+  return (
+    <div>
+      {sentCount > 0 && (
+        <StatusMessage status="success" isNewInviteModal>
+          <IconCheckmark size="sm" />
+          <span>{tct('[invites] sent.', tctComponents)}</span>
+        </StatusMessage>
+      )}
+      {errorCount > 0 && (
+        <StatusMessage status="error" isNewInviteModal>
+          <IconWarning size="sm" />
+          <span>{tct('[failedInvites] failed to send.', tctComponents)}</span>
+        </StatusMessage>
+      )}
+    </div>
+  );
+}
+
+interface InviteStatusMessageProps {
   complete: boolean;
   hasDuplicateEmails: boolean;
   inviteStatus: InviteStatus;
@@ -22,7 +74,7 @@ export default function InviteStatusMessage({
   inviteStatus,
   sendingInvites,
   willInvite,
-}: Props) {
+}: InviteStatusMessageProps) {
   const organization = useOrganization();
   const isNewInviteModal = organization.features.includes('invite-members-new-modal');
 
@@ -42,45 +94,26 @@ export default function InviteStatusMessage({
     const sentCount = statuses.filter(i => i.sent).length;
     const errorCount = statuses.filter(i => i.error).length;
 
+    if (isNewInviteModal) {
+      return (
+        <CountMessage
+          sentCount={sentCount}
+          errorCount={errorCount}
+          isRequest={!willInvite}
+        />
+      );
+    }
+
     if (willInvite) {
       const invites = (
         <strong data-test-id="sent-invites">
           {tn('%s invite', '%s invites', sentCount)}
         </strong>
       );
-      const failedInvites = (
-        <strong data-test-id="failed-invites">
-          {tn('%s invite', '%s invites', errorCount)}
-        </strong>
-      );
       const tctComponents = {
         invites,
         failed: errorCount,
-        failedInvites,
       };
-
-      if (isNewInviteModal) {
-        return (
-          <div>
-            {sentCount > 0 && (
-              <StatusMessage status="success">
-                <IconCheckmark size="sm" />
-                <span>{tct('[invites] sent.', tctComponents)}</span>
-              </StatusMessage>
-            )}
-            {errorCount > 0 && (
-              <StatusMessage status="error" isNewInviteModal>
-                <IconWarning size="sm" />
-                <span>
-                  {sentCount === 0
-                    ? tct('Sent [invites], [failed] failed to send.', tctComponents)
-                    : tct('[failedInvites] failed to send.', tctComponents)}
-                </span>
-              </StatusMessage>
-            )}
-          </div>
-        );
-      }
 
       return (
         <StatusMessage status="success">
@@ -98,41 +131,11 @@ export default function InviteStatusMessage({
         {tn('%s invite request', '%s invite requests', sentCount)}
       </strong>
     );
-    const failedInviteRequests = (
-      <strong data-test-id="failed-invite-requests">
-        {tn('%s invite request', '%s invite requests', errorCount)}
-      </strong>
-    );
     const tctComponents = {
       inviteRequests,
       failed: errorCount,
-      failedInviteRequests,
     };
-    if (isNewInviteModal) {
-      return (
-        <div>
-          {sentCount > 0 && (
-            <StatusMessage status="success">
-              <IconCheckmark size="sm" />
-              <span>{tct('[inviteRequests] pending approval.', tctComponents)}</span>
-            </StatusMessage>
-          )}
-          {errorCount > 0 && (
-            <StatusMessage status="error" isNewInviteModal>
-              <IconWarning size="sm" />
-              <span>
-                {sentCount === 0
-                  ? tct(
-                      '[inviteRequests] pending approval, [failed] failed to send.',
-                      tctComponents
-                    )
-                  : tct('[failedInviteRequests] failed to send.', tctComponents)}
-              </span>
-            </StatusMessage>
-          )}
-        </div>
-      );
-    }
+
     return (
       <StatusMessage status="success">
         <IconCheckmark size="sm" />
@@ -176,4 +179,9 @@ export const StatusMessage = styled('div')<{
         ? `color: ${p.theme.successText}`
         : p.status === 'error' && p.isNewInviteModal && `color: ${p.theme.errorText}`};
   }
+`;
+
+export const BoldCount = styled('div')`
+  display: inline;
+  font-weight: bold;
 `;
