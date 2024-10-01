@@ -33,13 +33,8 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 
 type Params = DocsParams;
 
-const getInstallSnippet = ({
-  isSelfHosted,
-  urlPrefix,
-  organization,
-  projectSlug,
-}: Params) => {
-  const urlParam = !isSelfHosted && urlPrefix ? `--url ${urlPrefix}` : '';
+const getInstallSnippet = ({isSelfHosted, organization, projectSlug}: Params) => {
+  const urlParam = isSelfHosted ? '' : '--saas';
   return `npx @sentry/wizard@latest -i nextjs ${urlParam} --org ${organization.slug} --project ${projectSlug}`;
 };
 
@@ -87,9 +82,11 @@ const onboarding: OnboardingConfig = {
       configurations: getInstallConfig(params),
       additionalInfo: (
         <Fragment>
-          {t(
-            'The Sentry wizard will automatically patch your application to configure the Sentry SDK:'
-          )}
+          <p>
+            {t(
+              'The Sentry wizard will automatically patch your application to configure the Sentry SDK:'
+            )}
+          </p>
           <List symbol="bullet">
             <ListItem>
               {tct(

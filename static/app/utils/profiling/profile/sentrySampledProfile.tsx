@@ -1,7 +1,6 @@
 import moment from 'moment-timezone';
 
 import {defined} from 'sentry/utils';
-import {lastOfArray} from 'sentry/utils/array/lastOfArray';
 import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
 
 import type {Frame} from './../frame';
@@ -189,7 +188,7 @@ export class SentrySampledProfile extends Profile {
     // frames are ordered outermost -> innermost so we have to iterate backward
     for (let i = stack.length - 1; i >= 0; i--) {
       const frame = stack[i];
-      const last = lastOfArray(node.children);
+      const last = node.children[node.children.length - 1];
       // Find common frame between two stacks
       if (last && !last.isLocked() && last.frame === frame) {
         node = last;
@@ -236,7 +235,7 @@ export class SentrySampledProfile extends Profile {
     }
 
     // If node is the same as the previous sample, add the weight to the previous sample
-    if (node === lastOfArray(this.samples)) {
+    if (node === this.samples[this.samples.length - 1]) {
       this.weights[this.weights.length - 1] += weight;
     } else {
       this.samples.push(node);

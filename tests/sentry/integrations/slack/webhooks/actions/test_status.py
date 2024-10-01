@@ -156,10 +156,10 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         # Opening dialog should *not* cause the current message to be updated
         assert resp.content == b""
 
-        trigger_id = self.mock_view.call_args.kwargs["trigger_id"]
-        view: View = self.mock_view.call_args.kwargs["view"]
+        trigger_id = self._mock_view_update.call_args.kwargs["external_id"]
+        view: View = self._mock_view_update.call_args.kwargs["view"]
 
-        assert trigger_id == self.trigger_id
+        assert trigger_id == status_action["action_ts"]
 
         assert view.private_metadata is not None
         private_metadata = orjson.loads(view.private_metadata)
@@ -204,10 +204,10 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         # Opening dialog should *not* cause the current message to be updated
         assert resp.content == b""
 
-        trigger_id = self.mock_view.call_args.kwargs["trigger_id"]
-        view: View = self.mock_view.call_args.kwargs["view"]
+        trigger_id = self._mock_view_update.call_args.kwargs["external_id"]
+        view: View = self._mock_view_update.call_args.kwargs["view"]
 
-        assert trigger_id == self.trigger_id
+        assert trigger_id == status_action["action_ts"]
         assert view.private_metadata is not None
         private_metadata = orjson.loads(view.private_metadata)
         assert int(private_metadata["issue"]) == self.group.id
@@ -243,7 +243,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert self.group.get_status() == GroupStatus.IGNORED
         assert self.group.substatus == GroupSubStatus.UNTIL_ESCALATING
 
-        blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
+        blocks = self.mock_post.call_args.kwargs["blocks"]
 
         assert mock_tags.call_args.kwargs["tags"] == self.tags
 
@@ -263,7 +263,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert self.group.get_status() == GroupStatus.IGNORED
         assert self.group.substatus == GroupSubStatus.UNTIL_ESCALATING
 
-        blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
+        blocks = self.mock_post.call_args.kwargs["blocks"]
         assert mock_tags.call_args.kwargs["tags"] == self.tags
 
         expect_status = f"*Issue archived by <@{self.external_id}>*"
@@ -281,7 +281,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         group_snooze = GroupSnooze.objects.get(group=self.group)
         assert group_snooze.count == 10
 
-        blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
+        blocks = self.mock_post.call_args.kwargs["blocks"]
         assert mock_tags.call_args.kwargs["tags"] == self.tags
 
         expect_status = f"*Issue archived by <@{self.external_id}>*"
@@ -302,7 +302,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         group_snooze = GroupSnooze.objects.get(group=self.group)
         assert group_snooze.count == 100
 
-        blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
+        blocks = self.mock_post.call_args.kwargs["blocks"]
         assert mock_tags.call_args.kwargs["tags"] == self.tags
 
         expect_status = f"*Issue archived by <@{self.external_id}>*"
@@ -318,7 +318,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert self.group.get_status() == GroupStatus.IGNORED
         assert self.group.substatus == GroupSubStatus.FOREVER
 
-        blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
+        blocks = self.mock_post.call_args.kwargs["blocks"]
         assert mock_tags.call_args.kwargs["tags"] == self.tags
 
         expect_status = f"*Issue archived by <@{self.external_id}>*"
@@ -349,7 +349,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert self.group.get_status() == GroupStatus.IGNORED
         assert self.group.substatus == GroupSubStatus.FOREVER
 
-        blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
+        blocks = self.mock_post.call_args.kwargs["blocks"]
         assert mock_tags.call_args.kwargs["tags"] == self.tags
 
         expect_status = f"*Issue archived by <@{self.external_id}>*"
@@ -373,7 +373,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert self.group.get_status() == GroupStatus.IGNORED
         assert self.group.substatus == GroupSubStatus.FOREVER
 
-        blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
+        blocks = self.mock_post.call_args.kwargs["blocks"]
 
         expect_status = f"*Issue archived by <@{self.external_id}>*"
         assert self.notification_text in blocks[1]["text"]["text"]
@@ -396,7 +396,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert self.group.get_status() == GroupStatus.IGNORED
         assert self.group.substatus == GroupSubStatus.FOREVER
 
-        blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
+        blocks = self.mock_post.call_args.kwargs["blocks"]
 
         expect_status = f"*Issue archived by <@{self.external_id}>*"
         assert self.notification_text in blocks[1]["text"]["text"]
@@ -420,7 +420,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert self.group.get_status() == GroupStatus.UNRESOLVED
         assert self.group.substatus == GroupSubStatus.NEW  # the issue is less than 7 days old
 
-        blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
+        blocks = self.mock_post.call_args.kwargs["blocks"]
         assert mock_tags.call_args.kwargs["tags"] == self.tags
 
         expect_status = f"*Issue re-opened by <@{self.external_id}>*"
@@ -446,7 +446,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert self.group.get_status() == GroupStatus.UNRESOLVED
         assert self.group.substatus == GroupSubStatus.NEW  # the issue is less than 7 days old
 
-        blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
+        blocks = self.mock_post.call_args.kwargs["blocks"]
         assert mock_tags.call_args.kwargs["tags"] == self.tags
 
         expect_status = f"*Issue re-opened by <@{self.external_id}>*"
@@ -464,7 +464,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert GroupAssignee.objects.filter(group=self.group, user_id=user2.id).exists()
         assert mock_tags.call_args.kwargs["tags"] == self.tags
 
-        blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
+        blocks = self.mock_post.call_args.kwargs["blocks"]
         text = self.mock_post.call_args.kwargs["text"]
         expect_status = f"*Issue assigned to {user2.get_display_name()} by <@{self.external_id}>*"
         assert self.notification_text in blocks[1]["text"]["text"]
@@ -476,7 +476,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert GroupAssignee.objects.filter(group=self.group, team=self.team).exists()
         assert mock_tags.call_args.kwargs["tags"] == self.tags
 
-        blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
+        blocks = self.mock_post.call_args.kwargs["blocks"]
         text = self.mock_post.call_args.kwargs["text"]
         expect_status = f"*Issue assigned to #{self.team.slug} by <@{self.external_id}>*"
         assert self.notification_text in blocks[1]["text"]["text"]
@@ -546,7 +546,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         # Assign to user
         self.assign_issue(original_message, user2, payload_data)
         assert GroupAssignee.objects.filter(group=self.group, user_id=user2.id).exists()
-        blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
+        blocks = self.mock_post.call_args.kwargs["blocks"]
         text = self.mock_post.call_args.kwargs["text"]
         expect_status = f"*Issue assigned to {user2.get_display_name()} by <@{self.external_id}>*"
         assert self.notification_text in blocks[1]["text"]["text"]
@@ -555,7 +555,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         # Assign to team
         self.assign_issue(original_message, self.team, payload_data)
         assert GroupAssignee.objects.filter(group=self.group, team=self.team).exists()
-        blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
+        blocks = self.mock_post.call_args.kwargs["blocks"]
         text = self.mock_post.call_args.kwargs["text"]
         expect_status = f"*Issue assigned to #{self.team.slug} by <@{self.external_id}>*"
         assert self.notification_text in blocks[1]["text"]["text"]
@@ -615,7 +615,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         self.assign_issue(original_message, user2)
         assert GroupAssignee.objects.filter(group=self.group, user_id=user2.id).exists()
 
-        blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
+        blocks = self.mock_post.call_args.kwargs["blocks"]
         text = self.mock_post.call_args.kwargs["text"]
 
         expect_status = (
@@ -638,7 +638,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         self.assign_issue(original_message, user2, payload_data)
         assert GroupAssignee.objects.filter(group=self.group, user_id=user2.id).exists()
 
-        blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
+        blocks = self.mock_post.call_args.kwargs["blocks"]
         text = self.mock_post.call_args.kwargs["text"]
         expect_status = (
             f"*Issue assigned to <@{user2_identity.external_id}> by <@{self.external_id}>*"
@@ -664,7 +664,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         self.assign_issue(original_message, self.user)
         assert GroupAssignee.objects.filter(group=self.group, user_id=self.user.id).exists()
 
-        blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
+        blocks = self.mock_post.call_args.kwargs["blocks"]
         text = self.mock_post.call_args.kwargs["text"]
         expect_status = "*Issue assigned to <@{assignee}> by <@{assignee}>*".format(
             assignee=self.external_id
@@ -691,7 +691,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         self.assign_issue(original_message, self.user, payload_data)
         assert GroupAssignee.objects.filter(group=self.group, user_id=self.user.id).exists()
 
-        blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
+        blocks = self.mock_post.call_args.kwargs["blocks"]
         text = self.mock_post.call_args.kwargs["text"]
         expect_status = "*Issue assigned to <@{assignee}> by <@{assignee}>*".format(
             assignee=self.external_id
@@ -708,7 +708,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert self.group.get_status() == GroupStatus.RESOLVED
         assert not GroupResolution.objects.filter(group=self.group)
 
-        blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
+        blocks = self.mock_post.call_args.kwargs["blocks"]
         assert mock_tags.call_args.kwargs["tags"] == self.tags
 
         expect_status = f"*Issue resolved by <@{self.external_id}>*"
@@ -738,7 +738,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert self.group.get_status() == GroupStatus.RESOLVED
         assert not GroupResolution.objects.filter(group=self.group)
 
-        blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
+        blocks = self.mock_post.call_args.kwargs["blocks"]
         assert mock_tags.call_args.kwargs["tags"] == self.tags
 
         expect_status = f"*Issue resolved by <@{self.external_id}>*"
@@ -759,7 +759,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert self.group.get_status() == GroupStatus.RESOLVED
         assert not GroupResolution.objects.filter(group=self.group)
 
-        blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
+        blocks = self.mock_post.call_args.kwargs["blocks"]
         assert mock_tags.call_args.kwargs["tags"] == self.tags
 
         expect_status = f"*Issue resolved by <@{self.external_id}>*"
@@ -783,7 +783,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert resolution.type == GroupResolution.Type.in_release
         assert resolution.release == release
 
-        blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
+        blocks = self.mock_post.call_args.kwargs["blocks"]
         assert mock_tags.call_args.kwargs["tags"] == self.tags
 
         expect_status = f"*Issue resolved by <@{self.external_id}>*"
@@ -808,7 +808,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert resolution.type == GroupResolution.Type.in_release
         assert resolution.release == release
 
-        blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
+        blocks = self.mock_post.call_args.kwargs["blocks"]
         assert mock_tags.call_args.kwargs["tags"] == self.tags
 
         expect_status = f"*Issue resolved by <@{self.external_id}>*"
@@ -831,7 +831,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert resolution.type == GroupResolution.Type.in_next_release
         assert resolution.release == release
 
-        blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
+        blocks = self.mock_post.call_args.kwargs["blocks"]
         assert mock_tags.call_args.kwargs["tags"] == self.tags
 
         expect_status = f"*Issue resolved by <@{self.external_id}>*"
@@ -855,7 +855,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert resolution.type == GroupResolution.Type.in_next_release
         assert resolution.release == release
 
-        blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
+        blocks = self.mock_post.call_args.kwargs["blocks"]
         assert mock_tags.call_args.kwargs["tags"] == self.tags
 
         expect_status = f"*Issue resolved by <@{self.external_id}>*"
@@ -863,18 +863,18 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert blocks[2]["text"]["text"].endswith(expect_status)
 
     @patch(
-        "slack_sdk.web.WebClient.views_open",
+        "slack_sdk.web.WebClient.views_update",
         return_value=SlackResponse(
             client=None,
             http_verb="POST",
-            api_url="https://slack.com/api/views.open",
+            api_url="https://slack.com/api/views.update",
             req_args={},
             data={"ok": True},
             headers={},
             status_code=200,
         ),
     )
-    def test_response_differs_on_bot_message(self, mock_views_open):
+    def test_response_differs_on_bot_message(self, _mock_view_updates_open):
         status_action = self.get_archive_status_action()
         original_message = self.get_original_message(self.group.id)
 
@@ -887,10 +887,10 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         # Opening dialog should *not* cause the current message to be updated
         assert resp.content == b""
 
-        trigger_id = mock_views_open.call_args.kwargs["trigger_id"]
-        view: View = mock_views_open.call_args.kwargs["view"]
+        trigger_id = _mock_view_updates_open.call_args.kwargs["external_id"]
+        view: View = _mock_view_updates_open.call_args.kwargs["view"]
 
-        assert trigger_id == self.trigger_id
+        assert trigger_id == status_action["action_ts"]
         assert view.private_metadata is not None
         private_metadata = orjson.loads(view.private_metadata)
         assert int(private_metadata["issue"]) == self.group.id
@@ -907,25 +907,25 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert self.group.get_status() == GroupStatus.IGNORED
         assert self.group.substatus == GroupSubStatus.FOREVER
 
-        blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
+        blocks = self.mock_post.call_args.kwargs["blocks"]
 
         expect_status = f"*Issue archived by <@{self.external_id}>*"
         assert self.notification_text in blocks[1]["text"]["text"]
         assert blocks[2]["text"]["text"].endswith(expect_status)
 
     @patch(
-        "slack_sdk.web.WebClient.views_open",
+        "slack_sdk.web.WebClient.views_update",
         return_value=SlackResponse(
             client=None,
             http_verb="POST",
-            api_url="https://slack.com/api/views.open",
+            api_url="https://slack.com/api/views.update",
             req_args={},
             data={"ok": True},
             headers={},
             status_code=200,
         ),
     )
-    def test_permission_denied(self, mock_views_open):
+    def test_permission_denied(self, _mock_view_update):
         user2 = self.create_user(is_superuser=False)
         user2_identity = self.create_identity(
             external_id="slack_id2",
@@ -947,10 +947,10 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         # Opening dialog should *not* cause the current message to be updated
         assert resp.content == b""
 
-        trigger_id = mock_views_open.call_args.kwargs["trigger_id"]
-        view: View = mock_views_open.call_args.kwargs["view"]
+        trigger_id = _mock_view_update.call_args.kwargs["external_id"]
+        view: View = _mock_view_update.call_args.kwargs["view"]
 
-        assert trigger_id == self.trigger_id
+        assert trigger_id == status_action["action_ts"]
         assert view.private_metadata is not None
         private_metadata = orjson.loads(view.private_metadata)
         assert int(private_metadata["issue"]) == self.group.id
@@ -978,18 +978,18 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         )
 
     @patch(
-        "slack_sdk.web.WebClient.views_open",
+        "slack_sdk.web.WebClient.views_update",
         return_value=SlackResponse(
             client=None,
             http_verb="POST",
-            api_url="https://slack.com/api/views.open",
+            api_url="https://slack.com/api/views.update",
             req_args={},
             data={"ok": True},
             headers={},
             status_code=200,
         ),
     )
-    def test_permission_denied_through_unfurl(self, mock_views_open):
+    def test_permission_denied_through_unfurl(self, _mock_view_updates_open):
         user2 = self.create_user(is_superuser=False)
         user2_identity = self.create_identity(
             external_id="slack_id2",
@@ -1010,10 +1010,10 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         # Opening dialog should *not* cause the current message to be updated
         assert resp.content == b""
 
-        trigger_id = mock_views_open.call_args.kwargs["trigger_id"]
-        view: View = mock_views_open.call_args.kwargs["view"]
+        trigger_id = _mock_view_updates_open.call_args.kwargs["external_id"]
+        view: View = _mock_view_updates_open.call_args.kwargs["view"]
 
-        assert trigger_id == self.trigger_id
+        assert trigger_id == status_action["action_ts"]
         assert view.private_metadata is not None
         private_metadata = orjson.loads(view.private_metadata)
         assert int(private_metadata["issue"]) == self.group.id
@@ -1040,11 +1040,11 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
 
     @freeze_time("2021-01-14T12:27:28.303Z")
     @patch(
-        "slack_sdk.web.WebClient.views_open",
+        "slack_sdk.web.WebClient.views_update",
         return_value=SlackResponse(
             client=None,
             http_verb="POST",
-            api_url="https://slack.com/api/views.open",
+            api_url="https://slack.com/api/views.update",
             req_args={},
             data={"ok": False},
             headers={},
@@ -1063,10 +1063,10 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         # Opening dialog should *not* cause the current message to be updated
         assert resp.content == b""
 
-        trigger_id = mock_open_view.call_args.kwargs["trigger_id"]
+        trigger_id = mock_open_view.call_args.kwargs["external_id"]
         view: View = mock_open_view.call_args.kwargs["view"]
 
-        assert trigger_id == self.trigger_id
+        assert trigger_id == status_action["action_ts"]
         assert view.private_metadata is not None
         private_metadata = orjson.loads(view.private_metadata)
         assert int(private_metadata["issue"]) == self.group.id
@@ -1098,11 +1098,11 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
 
     @freeze_time("2021-01-14T12:27:28.303Z")
     @patch(
-        "slack_sdk.web.WebClient.views_open",
+        "slack_sdk.web.WebClient.views_update",
         return_value=SlackResponse(
             client=None,
             http_verb="POST",
-            api_url="https://slack.com/api/views.open",
+            api_url="https://slack.com/api/views.update",
             req_args={},
             data={"ok": False},
             headers={},
@@ -1120,10 +1120,10 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         # Opening dialog should *not* cause the current message to be updated
         assert resp.content == b""
 
-        trigger_id = mock_open_view.call_args.kwargs["trigger_id"]
+        trigger_id = mock_open_view.call_args.kwargs["external_id"]
         view: View = mock_open_view.call_args.kwargs["view"]
 
-        assert trigger_id == self.trigger_id
+        assert trigger_id == status_action["action_ts"]
         assert view.private_metadata is not None
         private_metadata = orjson.loads(view.private_metadata)
         assert int(private_metadata["issue"]) == self.group.id

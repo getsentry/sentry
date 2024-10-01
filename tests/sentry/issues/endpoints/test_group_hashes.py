@@ -4,7 +4,6 @@ from urllib.parse import urlencode
 from sentry.eventstream.snuba import SnubaEventStream
 from sentry.models.grouphash import GroupHash
 from sentry.testutils.cases import APITestCase, SnubaTestCase
-from sentry.testutils.factories import EventType
 from sentry.testutils.helpers.datetime import before_now, iso_format
 
 
@@ -24,7 +23,6 @@ class GroupHashesTest(APITestCase, SnubaTestCase):
                 "fingerprint": ["group-1"],
             },
             project_id=self.project.id,
-            event_type=EventType.ERROR,
         )
 
         new_event = self.store_event(
@@ -35,7 +33,6 @@ class GroupHashesTest(APITestCase, SnubaTestCase):
                 "fingerprint": ["group-1"],
             },
             project_id=self.project.id,
-            event_type=EventType.ERROR,
         )
 
         assert new_event.group_id == old_event.group_id
@@ -61,7 +58,6 @@ class GroupHashesTest(APITestCase, SnubaTestCase):
                 "fingerprint": ["group-1"],
             },
             project_id=self.project.id,
-            event_type=EventType.ERROR,
         )
 
         event2 = self.store_event(

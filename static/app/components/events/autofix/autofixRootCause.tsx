@@ -3,7 +3,7 @@ import {css, keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import Alert from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import ClippedBox from 'sentry/components/clippedBox';
@@ -43,7 +43,7 @@ type AutofixRootCauseProps = {
   runId: string;
 };
 
-const animationProps: AnimationProps = {
+const contentAnimationProps: AnimationProps = {
   exit: {opacity: 0},
   initial: {opacity: 0},
   animate: {opacity: 1},
@@ -119,6 +119,7 @@ export function useSelectCause({groupId, runId}: {groupId: string; runId: string
           };
         }
       );
+      addSuccessMessage("Great, let's move forward with this root cause.");
     },
     onError: () => {
       addErrorMessage(t('Something went wrong when selecting the root cause.'));
@@ -196,7 +197,7 @@ function RootCauseContent({
     <ContentWrapper selected={selected}>
       <AnimatePresence initial={false}>
         {selected && (
-          <AnimationWrapper key="content" {...animationProps}>
+          <AnimationWrapper key="content" {...contentAnimationProps}>
             {children}
           </AnimationWrapper>
         )}
@@ -217,11 +218,15 @@ export function SuggestedFixSnippet({
   icon?: React.ReactNode;
 }) {
   function getSourceLink() {
-    if (!repos) return undefined;
+    if (!repos) {
+      return undefined;
+    }
     const repo = repos.find(
       r => r.name === snippet.repo_name && r.provider === 'integrations:github'
     );
-    if (!repo) return undefined;
+    if (!repo) {
+      return undefined;
+    }
     return `${repo.url}/blob/${repo.default_branch}/${snippet.file_path}`;
   }
   const extension = getFileExtension(snippet.file_path);
@@ -271,7 +276,7 @@ function CauseOption({
       <RootCauseOptionHeader>
         <Title
           dangerouslySetInnerHTML={{
-            __html: singleLineRenderer(cause.title),
+            __html: singleLineRenderer(`Potential Root Cause: ${cause.title}`),
           }}
         />
       </RootCauseOptionHeader>
@@ -393,7 +398,6 @@ function AutofixRootCauseDisplay({
     <PotentialCausesContainer>
       <ClippedBox clipHeight={408}>
         <OptionsPadding>
-          <HeaderText>{t('Potential Root Cause')}</HeaderText>
           {causes.map(cause => (
             <CauseOption
               key={cause.id}
@@ -411,6 +415,13 @@ function AutofixRootCauseDisplay({
   );
 }
 
+const cardAnimationProps: AnimationProps = {
+  exit: {opacity: 0},
+  initial: {opacity: 0, y: 20},
+  animate: {opacity: 1, y: 0},
+  transition: testableTransition({duration: 0.3}),
+};
+
 export function AutofixRootCause(props: AutofixRootCauseProps) {
   if (props.causes.length === 0) {
     return (
@@ -422,7 +433,13 @@ export function AutofixRootCause(props: AutofixRootCauseProps) {
     );
   }
 
-  return <AutofixRootCauseDisplay {...props} />;
+  return (
+    <AnimatePresence initial>
+      <AnimationWrapper key="card" {...cardAnimationProps}>
+        <AutofixRootCauseDisplay {...props} />
+      </AnimationWrapper>
+    </AnimatePresence>
+  );
 }
 
 export function AutofixRootCauseCodeContexts({
@@ -473,13 +490,17 @@ const PotentialCausesContainer = styled(CausesContainer)`
 `;
 
 const OptionsPadding = styled('div')`
-  padding: ${space(2)};
+  padding-left: ${space(1)};
+  padding-right: ${space(1)};
+  padding-top: ${space(1)};
 `;
 
 const RootCauseOption = styled('div')<{selected: boolean}>`
-  position: relative;
   background: ${p => (p.selected ? p.theme.background : p.theme.backgroundElevated)};
   cursor: ${p => (p.selected ? 'default' : 'pointer')};
+  padding-top: ${space(1)};
+  padding-left: ${space(2)};
+  padding-right: ${space(2)};
 `;
 
 const RootCauseOptionHeader = styled('div')`
@@ -491,6 +512,7 @@ const RootCauseOptionHeader = styled('div')`
 
 const Title = styled('div')`
   font-weight: ${p => p.theme.fontWeightBold};
+  font-size: ${p => p.theme.fontSizeLarge};
 `;
 
 const CauseDescription = styled('div')`

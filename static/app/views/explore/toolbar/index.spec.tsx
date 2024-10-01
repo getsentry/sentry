@@ -1,5 +1,6 @@
 // biome-ignore lint/nursery/noRestrictedImports: Will be removed with react router 6
 import {createMemoryHistory, Route, Router, RouterContext} from 'react-router';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
@@ -12,29 +13,41 @@ import {ExploreToolbar} from 'sentry/views/explore/toolbar';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {RouteContext} from 'sentry/views/routeContext';
 
+import {SpanTagsProvider} from '../contexts/spanTagsContext';
+
 function renderWithRouter(component) {
   const memoryHistory = createMemoryHistory();
 
   render(
-    <Router
-      history={memoryHistory}
-      render={props => {
-        return (
-          <RouteContext.Provider value={props}>
-            <RouterContext {...props} />
-          </RouteContext.Provider>
-        );
-      }}
-    >
-      <Route path="/" component={component} />
-    </Router>
+    <SpanTagsProvider>
+      <Router
+        history={memoryHistory}
+        render={props => {
+          return (
+            <RouteContext.Provider value={props}>
+              <RouterContext {...props} />
+            </RouteContext.Provider>
+          );
+        }}
+      >
+        <Route path="/" component={component} />
+      </Router>
+    </SpanTagsProvider>
   );
 }
 
 describe('ExploreToolbar', function () {
+  const organization = OrganizationFixture();
+
   beforeEach(function () {
     // without this the `CompactSelect` component errors with a bunch of async updates
     jest.spyOn(console, 'error').mockImplementation();
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/spans/fields/`,
+      method: 'GET',
+      body: [],
+    });
   });
 
   it('allows changing results mode', async function () {
@@ -43,7 +56,7 @@ describe('ExploreToolbar', function () {
     function Component() {
       [resultMode] = useResultMode();
       [sampleFields] = useSampleFields();
-      [groupBys] = useGroupBys();
+      ({groupBys} = useGroupBys());
       return <ExploreToolbar />;
     }
 
@@ -51,7 +64,7 @@ describe('ExploreToolbar', function () {
 
     const section = screen.getByTestId('section-result-mode');
     const samples = within(section).getByRole('radio', {name: 'Samples'});
-    const aggregates = within(section).getByRole('radio', {name: 'Aggregate'});
+    const aggregates = within(section).getByRole('radio', {name: 'Aggregates'});
 
     expect(samples).toBeChecked();
     expect(aggregates).not.toBeChecked();
@@ -76,7 +89,7 @@ describe('ExploreToolbar', function () {
     await userEvent.click(within(groupBy).getByRole('button', {name: 'None'}));
     await userEvent.click(within(groupBy).getByRole('option', {name: 'release'}));
     expect(groupBys).toEqual(['release']);
-    await userEvent.click(within(groupBy).getByRole('button', {name: '+Add Group By'}));
+    await userEvent.click(within(groupBy).getByRole('button', {name: 'Add Group'}));
     expect(groupBys).toEqual(['release', '']);
 
     await userEvent.click(samples);
@@ -126,7 +139,7 @@ describe('ExploreToolbar', function () {
     ]);
 
     // try adding an overlay
-    await userEvent.click(within(section).getByRole('button', {name: '+Add Overlay'}));
+    await userEvent.click(within(section).getByRole('button', {name: 'Add Overlay'}));
     await userEvent.click(within(section).getByRole('button', {name: 'span.duration'}));
     await userEvent.click(within(section).getByRole('option', {name: 'span.self_time'}));
     expect(visualizes).toEqual([
@@ -137,7 +150,7 @@ describe('ExploreToolbar', function () {
     ]);
 
     // try adding a new chart
-    await userEvent.click(within(section).getByRole('button', {name: '+Add Chart'}));
+    await userEvent.click(within(section).getByRole('button', {name: 'Add Chart'}));
     expect(visualizes).toEqual([
       {
         yAxes: ['avg(span.self_time)', 'count(span.self_time)'],
@@ -147,20 +160,20 @@ describe('ExploreToolbar', function () {
     ]);
 
     // delete first overlay
-    await userEvent.click(within(section).getAllByLabelText('Remove')[0]);
+    await userEvent.click(within(section).getAllByLabelText('Remove Overlay')[0]);
     expect(visualizes).toEqual([
       {yAxes: ['count(span.self_time)'], chartType: ChartType.LINE},
       {yAxes: ['count(span.duration)'], chartType: ChartType.LINE},
     ]);
 
     // delete second chart
-    await userEvent.click(within(section).getAllByLabelText('Remove')[1]);
+    await userEvent.click(within(section).getAllByLabelText('Remove Overlay')[1]);
     expect(visualizes).toEqual([
       {yAxes: ['count(span.self_time)'], chartType: ChartType.LINE},
     ]);
 
     // only one left so cant be deleted
-    expect(within(section).getByLabelText('Remove')).toBeDisabled();
+    expect(within(section).getByLabelText('Remove Overlay')).toBeDisabled();
   });
 
   it('allows changing sort by', async function () {
@@ -220,7 +233,7 @@ describe('ExploreToolbar', function () {
     let groupBys;
 
     function Component() {
-      [groupBys] = useGroupBys();
+      ({groupBys} = useGroupBys());
       return <ExploreToolbar />;
     }
     renderWithRouter(Component);
@@ -236,7 +249,7 @@ describe('ExploreToolbar', function () {
     // click the aggregates mode to enable
     await userEvent.click(
       within(screen.getByTestId('section-result-mode')).getByRole('radio', {
-        name: 'Aggregate',
+        name: 'Aggregates',
       })
     );
 
@@ -248,7 +261,7 @@ describe('ExploreToolbar', function () {
     expect(within(section).getByRole('button', {name: 'span.op'})).toBeInTheDocument();
     expect(groupBys).toEqual(['span.op']);
 
-    await userEvent.click(within(section).getByRole('button', {name: '+Add Group By'}));
+    await userEvent.click(within(section).getByRole('button', {name: 'Add Group'}));
     expect(groupBys).toEqual(['span.op', '']);
 
     await userEvent.click(within(section).getByRole('button', {name: 'None'}));
@@ -263,16 +276,16 @@ describe('ExploreToolbar', function () {
     ).toBeInTheDocument();
     expect(groupBys).toEqual(['span.op', 'span.description']);
 
-    await userEvent.click(within(section).getAllByLabelText('Remove')[0]);
+    await userEvent.click(within(section).getAllByLabelText('Remove Group')[0]);
     expect(groupBys).toEqual(['span.description']);
 
     // only 1 left but it's not empty
-    expect(within(section).getByLabelText('Remove')).toBeEnabled();
+    expect(within(section).getByLabelText('Remove Group')).toBeEnabled();
 
-    await userEvent.click(within(section).getByLabelText('Remove'));
+    await userEvent.click(within(section).getByLabelText('Remove Group'));
     expect(groupBys).toEqual(['']);
 
     // last one and it's empty
-    expect(within(section).getByLabelText('Remove')).toBeDisabled();
+    expect(within(section).getByLabelText('Remove Group')).toBeDisabled();
   });
 });

@@ -26,7 +26,6 @@ jest.mock('sentry/actionCreators/members', () => ({
     return {};
   }),
 }));
-jest.mock('react-router');
 jest.mock('sentry/utils/analytics', () => ({
   metric: {
     startSpan: jest.fn(() => ({
@@ -197,7 +196,7 @@ describe('ProjectAlertsCreate', function () {
         body: ProjectAlertRuleFixture(),
       });
       // delete node
-      await userEvent.click(screen.getByLabelText('Delete Node'));
+      await userEvent.click(screen.getAllByLabelText('Delete Node')[0]);
 
       // Change name of alert rule
       await userEvent.type(screen.getByPlaceholderText('Enter Alert Name'), 'myname');
@@ -561,7 +560,7 @@ describe('ProjectAlertsCreate', function () {
         statusCode: 400,
       });
       createWrapper();
-      // delete existion condition
+      // delete existion conditions
       await userEvent.click(screen.getAllByLabelText('Delete Node')[0]);
 
       await waitFor(() => {
@@ -605,6 +604,12 @@ describe('ProjectAlertsCreate', function () {
 
     it('shows error for incompatible conditions', async () => {
       createWrapper();
+      await userEvent.click(screen.getAllByLabelText('Delete Node')[0]);
+
+      await selectEvent.select(screen.getByText('Add optional trigger...'), [
+        'A new issue is created',
+      ]);
+
       const anyDropdown = screen.getByText('any');
       expect(anyDropdown).toBeInTheDocument();
       await selectEvent.select(anyDropdown, ['all']);
@@ -625,6 +630,12 @@ describe('ProjectAlertsCreate', function () {
 
     it('test any filterMatch', async () => {
       createWrapper();
+      await userEvent.click(screen.getAllByLabelText('Delete Node')[0]);
+
+      await selectEvent.select(screen.getByText('Add optional trigger...'), [
+        'A new issue is created',
+      ]);
+
       const allDropdown = screen.getByText('all');
       await selectEvent.select(allDropdown, ['any']);
       await selectEvent.select(screen.getByText('Add optional filter...'), [
