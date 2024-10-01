@@ -1,12 +1,36 @@
 // biome-ignore lint/nursery/noRestrictedImports: Will be removed with react router 6
 import {browserHistory as react3BrowserHistory} from 'react-router';
 import type {Router} from '@remix-run/router/dist/router';
+import * as Sentry from '@sentry/react';
 import type {History} from 'history';
 
 import {
   location6ToLocation3,
   locationDescriptorToTo,
 } from './reactRouter6Compat/location';
+
+/**
+ * Configures a proxy object for the default value of browserHistory. This
+ * should NOT be called before the DANGEROUS_SET_REACT_ROUTER_6_HISTORY
+ * fucntion is called. But let's be sure it isn't by adding some logging.
+ *
+ * It likely does nothing right now since the react-router 3 browserHistory
+ * doesn't actally do anything in react router 6 land (I think).
+ */
+const proxyLegacyBrowserHistory: ProxyHandler<History> = {
+  get(target, prop, _receiver) {
+    if (prop in target) {
+      // eslint-disable-next-line no-console
+      console.error(`legacy browserHistory called (${prop.toString()})!`);
+      Sentry.captureException(new Error('legacy browserHistory called!'), {
+        level: 'info',
+        extra: {prop},
+      });
+      return target[prop];
+    }
+    return undefined;
+  },
+};
 
 /**
  * @deprecated Prefer using useNavigate
@@ -22,7 +46,7 @@ import {
  * browserHistory.push({...location, query: {someKey: 1}})
  * navigate({...location, query: {someKey: 1}})
  */
-export let browserHistory = react3BrowserHistory;
+export let browserHistory = new Proxy(react3BrowserHistory, proxyLegacyBrowserHistory);
 
 /**
  * This shim sets the global `browserHistory` to a shim object that matches
