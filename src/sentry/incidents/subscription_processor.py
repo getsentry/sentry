@@ -61,7 +61,6 @@ from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.entity_subscription import (
     ENTITY_TIME_COLUMNS,
-    BaseCrashRateMetricsEntitySubscription,
     get_entity_key_from_query_builder,
     get_entity_subscription_from_snuba_query,
 )
@@ -338,78 +337,6 @@ class SubscriptionProcessor:
         self, subscription_update: QuerySubscriptionUpdate
     ) -> float | None:
         """
-        Handle both update formats.
-        Once all subscriptions have been updated to v2,
-        we can remove v1 and replace this function with current v2.
-        """
-        rows = subscription_update["values"]["data"]
-        if BaseCrashRateMetricsEntitySubscription.is_crash_rate_format_v2(rows):
-            version = "v2"
-            result = self._get_crash_rate_alert_metrics_aggregation_value_v2(subscription_update)
-        else:
-            version = "v1"
-            result = self._get_crash_rate_alert_metrics_aggregation_value_v1(subscription_update)
-
-        metrics.incr(
-            "incidents.alert_rules.get_crash_rate_alert_metrics_aggregation_value",
-            tags={"format": version},
-            sample_rate=1.0,
-        )
-        return result
-
-    def _get_crash_rate_alert_metrics_aggregation_value_v1(
-        self, subscription_update: QuerySubscriptionUpdate
-    ) -> float | None:
-        """
-        Handles validation and extraction of Crash Rate Alerts subscription updates values over
-        metrics dataset.
-        The subscription update looks like
-        [
-            {'project_id': 8, 'tags[5]': 6, 'value': 2.0},
-            {'project_id': 8, 'tags[5]': 13,'value': 1.0}
-        ]
-        where each entry represents a session status and the count of that specific session status.
-        As an example, `tags[5]` represents string `session.status`, while `tags[5]: 6` could
-        mean something like there are 2 sessions of status `crashed`. Likewise the other entry
-        represents the number of sessions started. In this method, we need to reverse match these
-        strings to end up with something that looks like
-        {"init": 2, "crashed": 4}
-        - `init` represents sessions or users sessions that were started, hence to get the crash
-        free percentage, we would need to divide number of crashed sessions by that number,
-        and subtract that value from 1. This is also used when CRASH_RATE_ALERT_MINIMUM_THRESHOLD is
-        set in the sense that if the minimum threshold is greater than the session count,
-        then the update is dropped. If the minimum threshold is not set then the total sessions
-        count is just ignored
-        - `crashed` represents the total sessions or user counts that crashed.
-        """
-        (
-            total_session_count,
-            crash_count,
-        ) = BaseCrashRateMetricsEntitySubscription.translate_sessions_tag_keys_and_values(
-            data=subscription_update["values"]["data"],
-            org_id=self.subscription.project.organization.id,
-        )
-
-        if total_session_count == 0:
-            self.reset_trigger_counts()
-            metrics.incr("incidents.alert_rules.ignore_update_no_session_data")
-            return None
-
-        if CRASH_RATE_ALERT_MINIMUM_THRESHOLD is not None:
-            min_threshold = int(CRASH_RATE_ALERT_MINIMUM_THRESHOLD)
-            if total_session_count < min_threshold:
-                self.reset_trigger_counts()
-                metrics.incr("incidents.alert_rules.ignore_update_count_lower_than_min_threshold")
-                return None
-
-        aggregation_value = round((1 - crash_count / total_session_count) * 100, 3)
-
-        return aggregation_value
-
-    def _get_crash_rate_alert_metrics_aggregation_value_v2(
-        self, subscription_update: QuerySubscriptionUpdate
-    ) -> float | None:
-        """
         Handles validation and extraction of Crash Rate Alerts subscription updates values over
         metrics dataset.
         The subscription update looks like
@@ -425,8 +352,8 @@ class SubscriptionProcessor:
         - `crashed` represents the total sessions or user counts that crashed.
         """
         row = subscription_update["values"]["data"][0]
-        total_session_count = row["count"]
-        crash_count = row["crashed"]
+        total_session_count = row.get("count", 0)
+        crash_count = row.get("crashed", 0)
 
         if total_session_count == 0:
             self.reset_trigger_counts()

@@ -19,12 +19,10 @@ from sentry.search.events.builder.metrics import AlertMetricsQueryBuilder
 from sentry.search.events.types import ParamsType, QueryBuilderConfig
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import (
-    MetricIndexNotFound,
     resolve,
     resolve_tag_key,
     resolve_tag_value,
     resolve_tag_values,
-    reverse_resolve_tag_value,
 )
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics.extraction import MetricSpecType
@@ -374,76 +372,7 @@ class BaseCrashRateMetricsEntitySubscription(BaseMetricsEntitySubscription):
             granularity = 24 * 3600
         return granularity
 
-    @staticmethod
-    def translate_sessions_tag_keys_and_values(
-        data: list[dict[str, Any]], org_id: int, alias: str | None = None
-    ) -> tuple[int, int]:
-        value_col_name = alias if alias else "value"
-        try:
-            translated_data: dict[str, Any] = {}
-            session_status = resolve_tag_key(UseCaseID.SESSIONS, org_id, "session.status")
-            for row in data:
-                tag_value = reverse_resolve_tag_value(
-                    UseCaseID.SESSIONS, org_id, row[session_status]
-                )
-                if tag_value is None:
-                    raise MetricIndexNotFound()
-                translated_data[tag_value] = row[value_col_name]
-
-            total_session_count = translated_data.get("init", 0)
-            crash_count = translated_data.get("crashed", 0)
-        except MetricIndexNotFound:
-            metrics.incr("incidents.entity_subscription.metric_index_not_found")
-            total_session_count = crash_count = 0
-        return total_session_count, crash_count
-
-    @staticmethod
-    def is_crash_rate_format_v2(data: list[dict[str, Any]]) -> bool:
-        """Check if this is the new update format.
-        This function can be removed once all subscriptions have been updated.
-        """
-        return bool(data) and "crashed" in data[0]
-
     def aggregate_query_results(
-        self, data: list[dict[str, Any]], alias: str | None = None
-    ) -> list[dict[str, Any]]:
-        """Handle both update formats. Once all subscriptions have been updated
-        to v2, we can remove v1 and replace this function with current v2.
-        """
-        if self.is_crash_rate_format_v2(data):
-            version = "v2"
-            result = self._aggregate_query_results_v2(data, alias)
-        else:
-            version = "v1"
-            result = self._aggregate_query_results_v1(data, alias)
-
-        metrics.incr(
-            "incidents.entity_subscription.aggregate_query_results",
-            tags={"format": version},
-            sample_rate=1.0,
-        )
-        return result
-
-    def _aggregate_query_results_v1(
-        self, data: list[dict[str, Any]], alias: str | None = None
-    ) -> list[dict[str, Any]]:
-        aggregated_results: list[dict[str, Any]]
-        total_session_count, crash_count = self.translate_sessions_tag_keys_and_values(
-            org_id=self.org_id, data=data, alias=alias
-        )
-        if total_session_count == 0:
-            metrics.incr(
-                "incidents.entity_subscription.metrics.aggregate_query_results.no_session_data"
-            )
-            crash_free_rate = None
-        else:
-            crash_free_rate = round((1 - crash_count / total_session_count) * 100, 3)
-
-        col_name = alias if alias else CRASH_RATE_ALERT_AGGREGATE_ALIAS
-        aggregated_results = [{col_name: crash_free_rate}]
-        return aggregated_results
-
-    def _aggregate_query_results_v2(
         self, data: list[dict[str, Any]], alias: str | None = None
     ) -> list[dict[str, Any]]:
         aggregated_results: list[dict[str, Any]]

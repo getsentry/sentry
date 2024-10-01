@@ -29,8 +29,6 @@ from sentry.incidents.tasks import (
     send_subscriber_notifications,
 )
 from sentry.incidents.utils.constants import SUBSCRIPTION_METRICS_LOGGER
-from sentry.sentry_metrics.configuration import UseCaseKey
-from sentry.sentry_metrics.utils import resolve_tag_key, resolve_tag_value
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
@@ -282,39 +280,3 @@ class TestHandleSubscriptionMetricsLogger(TestCase):
                     },
                 )
             ]
-
-
-class TestHandleSubscriptionMetricsLoggerV1(TestHandleSubscriptionMetricsLogger):
-    """Repeat TestHandleSubscriptionMetricsLogger with old (v1) subscription updates.
-
-    This entire test class can be removed once all subscriptions have been migrated to v2
-    """
-
-    def build_subscription_update(self):
-        timestamp = timezone.now().replace(microsecond=0)
-        values = {
-            "data": [
-                {
-                    resolve_tag_key(
-                        UseCaseKey.RELEASE_HEALTH, self.organization.id, "session.status"
-                    ): resolve_tag_value(UseCaseKey.RELEASE_HEALTH, self.organization.id, "init"),
-                    "value": 100.0,
-                },
-                {
-                    resolve_tag_key(
-                        UseCaseKey.RELEASE_HEALTH, self.organization.id, "session.status"
-                    ): resolve_tag_value(
-                        UseCaseKey.RELEASE_HEALTH, self.organization.id, "crashed"
-                    ),
-                    "value": 2.0,
-                },
-            ]
-        }
-        return {
-            "subscription_id": self.subscription.subscription_id,
-            "values": values,
-            "timestamp": timestamp,
-            "interval": 1,
-            "partition": 1,
-            "offset": 1,
-        }
