@@ -359,7 +359,7 @@ def passes_comparison(
             condition_group_results[unique_query][group_id] for unique_query in unique_queries
         ]
     except KeyError:
-        metrics.incr("delayed_processing.key_error")
+        metrics.incr("delayed_processing.missing_query_result")
         return False
 
     calculated_value = query_values[0]
