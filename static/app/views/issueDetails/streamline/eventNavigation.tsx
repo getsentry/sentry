@@ -44,7 +44,6 @@ export const MIN_NAV_HEIGHT = 44;
 type EventNavigationProps = {
   event: Event;
   group: Group;
-  onViewAllEvents: (e: React.MouseEvent) => void;
   className?: string;
   query?: string;
   style?: CSSProperties;
@@ -83,7 +82,7 @@ const sectionLabels = {
 };
 
 export const EventNavigation = forwardRef<HTMLDivElement, EventNavigationProps>(
-  function EventNavigation({event, group, query, onViewAllEvents, ...props}, ref) {
+  function EventNavigation({event, group, query, ...props}, ref) {
     const location = useLocation();
     const organization = useOrganization();
     const theme = useTheme();

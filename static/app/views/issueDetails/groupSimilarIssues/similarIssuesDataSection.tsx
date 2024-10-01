@@ -20,11 +20,7 @@ export function SimilarIssuesDataSection({
   const location = useLocation();
 
   return (
-    <FoldSection
-      sectionKey={SectionKey.SIMILAR_ISSUES}
-      title={t('Similar Issues')}
-      initialCollapse
-    >
+    <FoldSection sectionKey={SectionKey.SIMILAR_ISSUES} title={t('Similar Issues')}>
       <GroupSimilarIssues
         location={location}
         params={{

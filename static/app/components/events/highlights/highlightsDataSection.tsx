@@ -35,7 +35,6 @@ import theme from 'sentry/utils/theme';
 import {useDetailedProject} from 'sentry/utils/useDetailedProject';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useGroupTagsDrawer} from 'sentry/views/issueDetails/groupTags/useGroupTagsDrawer';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
@@ -255,24 +254,12 @@ function HighlightsData({
 export default function HighlightsDataSection({
   viewAllRef,
   event,
-  groupId,
   project,
 }: HighlightsDataSectionProps) {
   const organization = useOrganization();
   const hasStreamlinedUI = useHasStreamlinedUI();
-  const openButtonRef = useRef<HTMLButtonElement>(null);
-  const {openTagsDrawer} = useGroupTagsDrawer({
-    groupId,
-    openButtonRef,
-    projectSlug: project.slug,
-  });
 
-  const viewAllButton = hasStreamlinedUI ? (
-    // Streamline details ui has "Jump to" feature, instead we'll show the drawer button
-    <Button ref={openButtonRef} size="xs" onClick={openTagsDrawer}>
-      {t('View All Issue Tags')}
-    </Button>
-  ) : viewAllRef ? (
+  const viewAllButton = hasStreamlinedUI ? null : viewAllRef ? (
     <Button
       onClick={() => {
         trackAnalytics('highlights.issue_details.view_all_clicked', {organization});

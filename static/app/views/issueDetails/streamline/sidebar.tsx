@@ -1,40 +1,40 @@
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {StreamlinedExternalIssueList} from 'sentry/components/group/externalIssuesList/streamlinedExternalIssueList';
-import {space} from 'sentry/styles/space';
-import type {Event} from 'sentry/types/event';
-import type {Group, TeamParticipant, UserParticipant} from 'sentry/types/group';
-import type {Project} from 'sentry/types/project';
-import StreamlinedActivitySection from 'sentry/views/issueDetails/streamline/activitySection';
-import GroupActions from 'sentry/views/issueDetails/actions/index';
-import {useIssueDetailsHeader} from 'sentry/views/issueDetails/useIssueDetailsHeader';
-import {useLocation} from 'sentry/utils/useLocation';
-import type {ReprocessingStatus} from 'sentry/views/issueDetails/utils';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import useOrganization from 'sentry/utils/useOrganization';
-import ParticipantList from 'sentry/components/group/streamlinedParticipantList';
+import {Button} from 'sentry/components/button';
 import {
   AssigneeSelector,
   useHandleAssigneeChange,
 } from 'sentry/components/group/assigneeSelector';
-import GroupPriority from 'sentry/views/issueDetails/groupPriority';
-import {useMemo} from 'react';
-import ConfigStore from 'sentry/stores/configStore';
-import {t} from 'sentry/locale';
-import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
-import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {Button} from 'sentry/components/button';
-import {IconChevron, IconPanel} from 'sentry/icons';
+import {StreamlinedExternalIssueList} from 'sentry/components/group/externalIssuesList/streamlinedExternalIssueList';
+import ParticipantList from 'sentry/components/group/streamlinedParticipantList';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
+import {IconChevron, IconPanel} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
+import {space} from 'sentry/styles/space';
+import type {Event} from 'sentry/types/event';
+import type {Group, TeamParticipant, UserParticipant} from 'sentry/types/group';
+import type {Project} from 'sentry/types/project';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
+import GroupActions from 'sentry/views/issueDetails/actions/index';
 import {NewIssueExperienceButton} from 'sentry/views/issueDetails/actions/newIssueExperienceButton';
+import GroupPriority from 'sentry/views/issueDetails/groupPriority';
+import StreamlinedActivitySection from 'sentry/views/issueDetails/streamline/activitySection';
+import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
+import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
+import {useIssueDetailsHeader} from 'sentry/views/issueDetails/useIssueDetailsHeader';
+import type {ReprocessingStatus} from 'sentry/views/issueDetails/utils';
 
 type Props = {
   group: Group;
+  groupReprocessingStatus: ReprocessingStatus;
+  isSidebarOpen: boolean;
+  onToggleSidebar: (e: React.MouseEvent) => void;
   project: Project;
   event?: Event;
-  groupReprocessingStatus: ReprocessingStatus;
-  onToggleSidebar: (e: React.MouseEvent) => void;
-  isSidebarOpen: boolean;
 };
 
 export default function StreamlinedSidebar({
@@ -104,14 +104,13 @@ export default function StreamlinedSidebar({
         borderless
         onClick={onToggleSidebar}
       />
-
       <NewIssueExperienceButton />
-      <FoldSection
+      <WorkflowSection
         sectionKey={SectionKey.ISSUE_WORKFLOW}
         title={'Workflow'}
         preventCollapse
       >
-        <GroupActions
+        <WorkflowActions
           group={group}
           project={project}
           disabled={disableActions}
@@ -119,47 +118,42 @@ export default function StreamlinedSidebar({
           query={location.query}
           isPrototype
         />
-        <WorkflowActions>
-          <Wrapper>
+        <WorkflowList>
+          <WorkflowItem>
             {t('Priority')}
             <GroupPriority group={group} />
-          </Wrapper>
-          <Wrapper>
+          </WorkflowItem>
+          <WorkflowItem>
             {t('Assignee')}
             <AssigneeSelector
               group={group}
               assigneeLoading={assigneeLoading}
               handleAssigneeChange={handleAssigneeChange}
             />
-          </Wrapper>
+          </WorkflowItem>
           {group.participants.length > 0 && (
-            <Wrapper>
+            <WorkflowItem>
               {t('Participants')}
               <ParticipantList users={userParticipants} teams={teamParticipants} />
-            </Wrapper>
+            </WorkflowItem>
           )}
           {displayUsers.length > 0 && (
-            <Wrapper>
+            <WorkflowItem>
               {t('Viewers')}
               <ParticipantList users={displayUsers} />
-            </Wrapper>
+            </WorkflowItem>
           )}
-        </WorkflowActions>
-      </FoldSection>
+        </WorkflowList>
+      </WorkflowSection>
       {event && (
         <FoldSection
           sectionKey={SectionKey.ISSUE_TRACKING}
           title={t('External Tracking')}
-          preventCollapse
         >
           <StreamlinedExternalIssueList group={group} event={event} project={project} />
         </FoldSection>
       )}
-      <FoldSection
-        sectionKey={SectionKey.ISSUE_ACTIVITY}
-        title={t('Activity')}
-        preventCollapse
-      >
+      <FoldSection sectionKey={SectionKey.ISSUE_ACTIVITY} title={t('Activity')}>
         <StreamlinedActivitySection group={group} />
       </FoldSection>
     </Sidebar>
@@ -176,16 +170,22 @@ const Sidebar = styled('div')<{isSidebarOpen?: boolean}>`
   padding: ${p => (p.isSidebarOpen ? space(1.5) : 0)};
 `;
 
-const WorkflowActions = styled('div')``;
+const WorkflowSection = styled(FoldSection)`
+  margin-top: ${space(3)};
+`;
 
-const Wrapper = styled('div')`
+const WorkflowList = styled('div')`
+  margin-top: ${space(1)};
+`;
+const WorkflowItem = styled('div')`
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  gap: ${space(1)};
+  justify-content: space-between;
+  line-height: 1;
   font-weight: ${p => p.theme.fontWeightBold};
+  gap: ${space(1)};
   color: ${p => p.theme.subText};
-  padding: ${space(1)} ${space(2)};
+  padding: ${space(0.5)} ${space(1.5)};
   border-radius: ${p => p.theme.borderRadius};
   &:nth-child(even) {
     background: ${p => p.theme.backgroundSecondary};
@@ -221,8 +221,12 @@ const CollapseButton = styled(Button)`
   border-bottom: 1px solid ${p => p.theme.translucentBorder};
   position: sticky;
   top: 0;
-  z-index: 1;
+  z-index: 100;
   background: ${p => p.theme.background};
   color: ${p => p.theme.subText};
   margin: -${space(1.5)} -${space(1.5)} ${space(1.5)};
+`;
+
+const WorkflowActions = styled(GroupActions)`
+  justify-content: space-between;
 `;

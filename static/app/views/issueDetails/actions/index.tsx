@@ -67,8 +67,9 @@ type Props = {
   group: Group;
   organization: Organization;
   project: Project;
-  isPrototype?: boolean;
+  className?: string;
   event?: Event;
+  isPrototype?: boolean;
   query?: Query;
 };
 
@@ -82,6 +83,7 @@ export function Actions(props: Props) {
     event,
     query = {},
     isPrototype,
+    className,
   } = props;
   const {status, isBookmarked} = group;
 
@@ -372,7 +374,7 @@ export function Actions(props: Props) {
     onUpdate,
   });
   return (
-    <ActionWrapper>
+    <ActionWrapper className={className}>
       {hasStreamlinedUI &&
         (isResolved || isIgnored ? (
           <ResolvedActionWapper>
