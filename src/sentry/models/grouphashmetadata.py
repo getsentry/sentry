@@ -5,6 +5,7 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models import Model, region_silo_model
 from sentry.db.models.base import sane_repr
 from sentry.db.models.fields.foreignkey import FlexibleForeignKey
+from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG
 
 
 @region_silo_model
@@ -21,8 +22,7 @@ class GroupHashMetadata(Model):
     # HASHING
 
     # Most recent config to produce this hash
-    # TODO: Backfill the current config for grouphashes with metadata and then make this non-nullable
-    latest_grouping_config = models.CharField(null=True)
+    latest_grouping_config = models.CharField(default=DEFAULT_GROUPING_CONFIG)
 
     # SEER
 
