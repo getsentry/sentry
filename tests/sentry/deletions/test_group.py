@@ -40,8 +40,7 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
 
         # Group 2 event
         self.keep_event = self.store_event(data=group2_data, project_id=self.project.id)
-        self.event_id3 = self.keep_event.event_id
-        self.node_id3 = Event.generate_node_id(self.project.id, self.event_id3)
+        self.keep_node_id = Event.generate_node_id(self.project.id, self.keep_event.event_id)
 
         UserReport.objects.create(
             group_id=group.id, project_id=self.event.project_id, name="With group id"
@@ -67,7 +66,7 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
         group = self.event.group
         assert nodestore.backend.get(self.node_id)
         assert nodestore.backend.get(self.node_id2)
-        assert nodestore.backend.get(self.node_id3)
+        assert nodestore.backend.get(self.keep_node_id)
 
         with self.tasks():
             delete_groups(object_ids=[group.id])
@@ -81,20 +80,15 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
         assert not Group.objects.filter(id=group.id).exists()
         assert not nodestore.backend.get(self.node_id)
         assert not nodestore.backend.get(self.node_id2)
-        assert nodestore.backend.get(self.node_id3), "Does not remove from second group"
+        assert nodestore.backend.get(self.keep_node_id), "Does not remove from second group"
         assert Group.objects.filter(id=self.keep_event.group_id).exists()
 
     def test_simple_multiple_groups(self):
         other_event = self.store_event(
-            data={
-                "event_id": "d" * 32,
-                "timestamp": iso_format(before_now(minutes=1)),
-                "fingerprint": ["group3"],
-            },
+            data={"timestamp": iso_format(before_now(minutes=1)), "fingerprint": ["group3"]},
             project_id=self.project.id,
         )
         other_node_id = Event.generate_node_id(self.project.id, other_event.event_id)
-        keep_node_id = Event.generate_node_id(self.project.id, self.keep_event.event_id)
 
         group = self.event.group
         with self.tasks():
@@ -106,15 +100,11 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
         assert not nodestore.backend.get(other_node_id)
 
         assert Group.objects.filter(id=self.keep_event.group_id).exists()
-        assert nodestore.backend.get(keep_node_id)
+        assert nodestore.backend.get(self.keep_node_id)
 
     def test_grouphistory_relation(self):
         other_event = self.store_event(
-            data={
-                "event_id": "d" * 32,
-                "timestamp": iso_format(before_now(minutes=1)),
-                "fingerprint": ["group3"],
-            },
+            data={"timestamp": iso_format(before_now(minutes=1)), "fingerprint": ["group3"]},
             project_id=self.project.id,
         )
         other_group = other_event.group
@@ -161,14 +151,12 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
         self.project.update_option("sentry:similarity_backfill_completed", int(time()))
         other_event = self.store_event(
             data={
-                "event_id": "d" * 32,
                 "timestamp": iso_format(before_now(minutes=1)),
                 "fingerprint": ["group3"],
             },
             project_id=self.project.id,
         )
         other_node_id = Event.generate_node_id(self.project.id, other_event.event_id)
-        keep_node_id = Event.generate_node_id(self.project.id, self.keep_event.event_id)
 
         hashes = [
             grouphash.hash
@@ -186,7 +174,7 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
         assert not nodestore.backend.get(other_node_id)
 
         assert Group.objects.filter(id=self.keep_event.group_id).exists()
-        assert nodestore.backend.get(keep_node_id)
+        assert nodestore.backend.get(self.keep_node_id)
 
         assert mock_delete_seer_grouping_records_by_hash_apply_async.call_args[1] == {
             "args": [group.project.id, hashes, 0]

@@ -31,6 +31,7 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription
 from sentry.snuba.query_subscriptions.consumer import register_subscriber
 from sentry.tasks.base import instrumented_task
+from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
@@ -84,7 +85,7 @@ def send_subscriber_notifications(activity_id: int) -> None:
 
 
 def generate_incident_activity_email(
-    activity: IncidentActivity, user: RpcUser, activity_user: RpcUser | None = None
+    activity: IncidentActivity, user: RpcUser | User, activity_user: RpcUser | User | None = None
 ) -> MessageBuilder:
     incident = activity.incident
     return MessageBuilder(
