@@ -80,6 +80,9 @@ export function Step({
                   repos={repos}
                   hasStepBelow={hasStepBelow}
                   hasStepAbove={hasStepAbove}
+                  stepIndex={step.index}
+                  groupId={groupId}
+                  runId={runId}
                 />
               )}
               {step.type === AutofixStepType.ROOT_CAUSE_ANALYSIS && (
