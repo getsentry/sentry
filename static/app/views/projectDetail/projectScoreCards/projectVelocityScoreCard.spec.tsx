@@ -21,7 +21,6 @@ describe('ProjectDetail > ProjectVelocity', function () {
     },
   };
 
-
   afterEach(function () {
     MockApiClient.clearMockResponses();
   });
