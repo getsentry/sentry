@@ -2,7 +2,7 @@ import type {ReactEventHandler} from 'react';
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Role} from 'sentry/components/acl/role';
+import {useRole} from 'sentry/components/acl/useRole';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {openConfirmModal} from 'sentry/components/confirm';
@@ -52,6 +52,7 @@ function Screenshot({
 }: Props) {
   const orgSlug = organization.slug;
   const [loadingImage, setLoadingImage] = useState(true);
+  const {hasRole} = useRole({role: 'attachmentsRole'});
 
   function handleDelete(screenshotAttachmentId: string) {
     trackAnalytics('issue_details.issue_tab.screenshot_dropdown_deleted', {
@@ -164,17 +165,11 @@ function Screenshot({
     );
   }
 
-  return (
-    <Role organization={organization} role={organization.attachmentsRole}>
-      {({hasRole}) => {
-        if (!hasRole) {
-          return null;
-        }
+  if (!hasRole) {
+    return null;
+  }
 
-        return <StyledPanel>{renderContent(screenshot)}</StyledPanel>;
-      }}
-    </Role>
-  );
+  return <StyledPanel>{renderContent(screenshot)}</StyledPanel>;
 }
 
 export default Screenshot;
