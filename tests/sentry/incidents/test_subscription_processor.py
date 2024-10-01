@@ -478,6 +478,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
     )
     @with_feature("organizations:incidents")
     @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
     def test_seer_call(self, mock_seer_request: MagicMock):
         # trigger a warning
         rule = self.dynamic_rule
@@ -611,6 +612,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
     )
     @with_feature("organizations:incidents")
     @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
     @with_feature("organizations:performance-view")
     def test_seer_call_performance_rule(self, mock_seer_request: MagicMock):
         throughput_rule = self.dynamic_rule
@@ -733,6 +735,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         assert not processor.has_anomaly(not_anomaly, warning_label)
 
     @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
     @mock.patch(
         "sentry.incidents.subscription_processor.SubscriptionProcessor.seer_anomaly_detection_connection_pool.urlopen"
     )
@@ -759,6 +762,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         assert result is None
 
     @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
     @mock.patch(
         "sentry.incidents.subscription_processor.SubscriptionProcessor.seer_anomaly_detection_connection_pool.urlopen"
     )
@@ -792,6 +796,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.assert_trigger_counts(processor, self.trigger, 0, 0)
 
     @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
     @mock.patch(
         "sentry.incidents.subscription_processor.SubscriptionProcessor.seer_anomaly_detection_connection_pool.urlopen"
     )
@@ -826,6 +831,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.assert_trigger_counts(processor, self.trigger, 0, 0)
 
     @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
     @mock.patch(
         "sentry.incidents.subscription_processor.SubscriptionProcessor.seer_anomaly_detection_connection_pool.urlopen"
     )
@@ -867,6 +873,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         )
 
     @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
     @mock.patch(
         "sentry.incidents.subscription_processor.SubscriptionProcessor.seer_anomaly_detection_connection_pool.urlopen"
     )
@@ -882,6 +889,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         assert result is None
 
     @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
     @mock.patch(
         "sentry.incidents.subscription_processor.SubscriptionProcessor.seer_anomaly_detection_connection_pool.urlopen"
     )
@@ -904,6 +912,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         assert result is None
 
     @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
     @mock.patch(
         "sentry.incidents.subscription_processor.SubscriptionProcessor.seer_anomaly_detection_connection_pool.urlopen"
     )
@@ -2991,6 +3000,7 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
         )
 
     @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
     @mock.patch(
         "sentry.incidents.subscription_processor.SubscriptionProcessor.seer_anomaly_detection_connection_pool.urlopen"
     )

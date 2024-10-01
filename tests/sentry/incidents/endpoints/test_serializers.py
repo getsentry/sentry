@@ -472,6 +472,7 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         )
 
     @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
@@ -718,7 +719,9 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         assert alert_rule.team_id is None
 
     def test_invalid_detection_type(self):
-        with self.feature("organizations:anomaly-detection-alerts"):
+        with self.feature("organizations:anomaly-detection-alerts"), self.feature(
+            "organizations:anomaly-detection-rollout"
+        ):
             params = self.valid_params.copy()
             params["detection_type"] = AlertRuleDetectionType.PERCENT  # requires comparison delta
             serializer = AlertRuleSerializer(context=self.context, data=params, partial=True)
