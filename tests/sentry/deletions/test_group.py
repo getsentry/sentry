@@ -257,8 +257,18 @@ class DeleteIssuePlatformTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         ]
         assert self.select_issue_platform_events(self.project.id) == expected
 
-        # This will delete the group and the events from the node store
+        # Without the feature flag it will not delete the group or the event
         with self.tasks():
+            delete_groups(object_ids=[issue_platform_group.id])
+
+        # The group and event still exist
+        assert Group.objects.filter(id=issue_platform_group.id).exists()
+        occurrence_node_id = Event.generate_node_id(occurrence.project_id, occurrence.id)
+        assert nodestore.backend.get(occurrence_node_id)
+        assert self.select_issue_platform_events(self.project.id) == expected
+
+        # With the feature flag it will delete the group and the event
+        with self.tasks(), self.feature({"organizations:issue-platform-deletion": True}):
             delete_groups(object_ids=[issue_platform_group.id])
 
         # The original event and group still exist
@@ -270,5 +280,5 @@ class DeleteIssuePlatformTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         assert not Group.objects.filter(id=issue_platform_group.id).exists()
         occurrence_node_id = Event.generate_node_id(occurrence.project_id, occurrence.id)
         assert not nodestore.backend.get(occurrence_node_id)
-        # We don't yet delete the occurrence from Snuba but it will expire with the TTL
-        assert self.select_issue_platform_events(self.project.id) == expected
+        # Assert that occurrence is gone
+        assert self.select_issue_platform_events(self.project.id) == []
