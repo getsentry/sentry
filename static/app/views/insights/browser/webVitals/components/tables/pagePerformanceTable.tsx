@@ -31,6 +31,7 @@ import type {RowWithScoreAndOpportunity} from 'sentry/views/insights/browser/web
 import {SORTABLE_FIELDS} from 'sentry/views/insights/browser/webVitals/types';
 import decodeBrowserTypes from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {useWebVitalsSort} from 'sentry/views/insights/browser/webVitals/utils/useWebVitalsSort';
+import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {
   ModuleName,
   SpanIndexedField,
@@ -66,6 +67,7 @@ const DEFAULT_SORT: Sort = {
 export function PagePerformanceTable() {
   const location = useLocation();
   const organization = useOrganization();
+  const moduleUrl = useModuleURL(ModuleName.VITAL);
 
   const columnOrder = COLUMN_ORDER;
 
@@ -210,7 +212,7 @@ export function PagePerformanceTable() {
           <Link
             to={{
               ...location,
-              pathname: `${location.pathname}overview/`,
+              pathname: `${moduleUrl}/overview/`,
               query: {
                 ...location.query,
                 transaction: row.transaction,

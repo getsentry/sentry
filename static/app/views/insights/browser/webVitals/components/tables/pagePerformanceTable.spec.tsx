@@ -147,7 +147,7 @@ describe('PagePerformanceTable', function () {
     expect(screen.getByRole('cell', {name: '/insights/browser/'})).toBeInTheDocument();
     expect(screen.getByRole('link', {name: '/insights/browser/'})).toHaveAttribute(
       'href',
-      '/mock-pathname/overview/?project=11276&transaction=%2Finsights%2Fbrowser%2F'
+      '/organizations/org-slug/insights/browser/pageloads/overview/?project=11276&transaction=%2Finsights%2Fbrowser%2F'
     );
 
     expect(screen.getByRole('cell', {name: 'frontend'})).toBeInTheDocument();
