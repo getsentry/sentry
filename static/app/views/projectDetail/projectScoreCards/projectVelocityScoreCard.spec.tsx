@@ -21,9 +21,6 @@ describe('ProjectDetail > ProjectVelocity', function () {
     },
   };
 
-  beforeEach(() => {
-    jest.resetAllMocks();
-  });
 
   afterEach(function () {
     MockApiClient.clearMockResponses();
