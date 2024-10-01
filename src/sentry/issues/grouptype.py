@@ -30,6 +30,7 @@ class GroupCategory(Enum):
     REPLAY = 5
     FEEDBACK = 6
     UPTIME = 7
+    METRIC = 8
 
 
 GROUP_CATEGORIES_CUSTOM_EMAIL = (
