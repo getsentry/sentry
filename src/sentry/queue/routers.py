@@ -37,6 +37,8 @@ class SplitQueueRouter:
         self.__queue_routers = {}
         for source, dest_config in settings.CELERY_SPLIT_QUEUE_ROUTES.items():
             assert source in known_queues, f"Queue {source} in split queue config is not declared."
+            assert dest_config["in_use"] <= dest_config["total"]
+
             if dest_config["in_use"] >= 2:
                 destinations = build_queue_names(source, dest_config["in_use"])
                 _validate_destinations(destinations)
