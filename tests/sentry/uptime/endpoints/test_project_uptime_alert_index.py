@@ -98,6 +98,19 @@ class ProjectUptimeAlertIndexPostEndpointTest(ProjectUptimeAlertIndexBaseEndpoin
         assert uptime_subscription.interval_seconds == 60
         assert uptime_subscription.timeout_ms == DEFAULT_SUBSCRIPTION_TIMEOUT_MS
 
+        # Test without passing the owner
+        resp = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            environment=self.environment.name,
+            name="test",
+            url="http://getsentry.com",
+            interval_seconds=60,
+        )
+        uptime_monitor = ProjectUptimeSubscription.objects.get(id=resp.data["id"])
+        assert uptime_monitor.owner_user_id is None
+        assert uptime_monitor.owner_team_id is None
+
     @with_feature("organizations:uptime-api-create-update")
     def test_mode_no_superadmin(self):
         resp = self.get_error_response(

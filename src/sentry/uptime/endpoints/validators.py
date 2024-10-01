@@ -174,7 +174,7 @@ class UptimeMonitorValidator(CamelSnakeSerializer):
                 interval_seconds=validated_data["interval_seconds"],
                 name=validated_data["name"],
                 mode=validated_data.get("mode", ProjectUptimeSubscriptionMode.MANUAL),
-                owner=validated_data["owner"],
+                owner=validated_data.get("owner"),
                 **method_headers_body,
             )
         except MaxManualUptimeSubscriptionsReached:
