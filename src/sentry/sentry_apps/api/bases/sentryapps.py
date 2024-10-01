@@ -440,10 +440,7 @@ class SentryAppAuthorizationsPermission(SentryPermission):
         assert installation_org_context, "organization for installation was not found"
         self.determine_access(request, installation_org_context)
 
-        assert (
-            request.user.is_authenticated
-        ), "user must be authenticated to check if they're a sentry app"
-        if not request.user.is_sentry_app:
+        if not request.user.is_authenticated or not request.user.is_sentry_app:
             return False
 
         # Request must be made as the app's Proxy User, using their Client ID
