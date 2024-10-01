@@ -27,7 +27,7 @@ function renderEmailValue<Option extends OptionTypeBase>(
           {children}
           {!status.sent && !status.error && <SendingIndicator />}
           {status.error && <IconWarning legacySize="10px" />}
-          {status.sent && organization.features.includes['invite-members-new-modal'] && (
+          {status.sent && !organization.features.includes('invite-members-new-modal') && (
             <IconCheckmark legacySize="10px" color="success" />
           )}
         </EmailLabel>
