@@ -117,10 +117,10 @@ class BigtableKVStorage(KVStorage[str, bytes]):
     def get(self, key: str) -> bytes | None:
         with sentry_sdk.start_span(op="bigtable.get"):
             row = self._get_table().read_row(key)
-            if row is None:
-                return None
+        if row is None:
+            return None
 
-            return self.__decode_row(row)
+        return self.__decode_row(row)
 
     def get_many(self, keys: Sequence[str]) -> Iterator[tuple[str, bytes]]:
         rows = RowSet()
