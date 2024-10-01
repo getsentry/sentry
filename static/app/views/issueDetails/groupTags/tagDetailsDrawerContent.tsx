@@ -6,6 +6,7 @@ import {DeviceName} from 'sentry/components/deviceName';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import UserBadge from 'sentry/components/idBadge/userBadge';
+import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
@@ -24,10 +25,10 @@ import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {isUrl} from 'sentry/utils/string/isUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
 import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
-import {StyledExternalLink} from 'sentry/views/settings/organizationMembers/inviteBanner';
 
 type GroupTagsDrawerProps = {
   groupId: Group['id'];
@@ -53,7 +54,7 @@ export function TagDetailsDrawerContent({
 }: GroupTagsDrawerTagDetailsProps) {
   const location = useLocation();
   const organization = useOrganization();
-  const tagKey = location.query.tagDrawerKey as string;
+  const {tagKey} = useParams<{tagKey: string}>();
   const environments = useEnvironmentsFromUrl();
 
   const title = tagKey === 'user' ? t('Affected Users') : tagKey;
@@ -294,4 +295,8 @@ const RightAlignColumn = styled(Column)`
 
 const StyledPagination = styled(Pagination)`
   margin: 0;
+`;
+
+const StyledExternalLink = styled(ExternalLink)`
+  margin-left: ${space(0.5)};
 `;

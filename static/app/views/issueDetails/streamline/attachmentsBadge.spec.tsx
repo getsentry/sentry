@@ -1,7 +1,6 @@
 import {EventAttachmentFixture} from 'sentry-fixture/eventAttachment';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {ProjectFixture} from 'sentry-fixture/project';
 
 import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -10,7 +9,6 @@ import {AttachmentsBadge} from './attachmentsBadge';
 describe('AttachmentsBadge', () => {
   const organization = OrganizationFixture();
   const group = GroupFixture();
-  const project = ProjectFixture();
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
@@ -22,7 +20,7 @@ describe('AttachmentsBadge', () => {
       body: [],
     });
 
-    const {container} = render(<AttachmentsBadge group={group} project={project} />);
+    const {container} = render(<AttachmentsBadge group={group} />);
 
     // Wait for requests to finish
     await act(tick);
@@ -35,7 +33,7 @@ describe('AttachmentsBadge', () => {
       body: [EventAttachmentFixture()],
     });
 
-    render(<AttachmentsBadge group={group} project={project} />);
+    render(<AttachmentsBadge group={group} />);
 
     expect(await screen.findByRole('button', {name: '1 Attachment'})).toBeInTheDocument();
   });
@@ -50,7 +48,7 @@ describe('AttachmentsBadge', () => {
       },
     });
 
-    render(<AttachmentsBadge group={group} project={project} />);
+    render(<AttachmentsBadge group={group} />);
 
     expect(
       await screen.findByRole('button', {name: '50+ Attachments'})

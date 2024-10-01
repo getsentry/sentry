@@ -1,11 +1,11 @@
-import {Fragment, useRef, useState} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {
   useDeleteEventAttachmentOptimistic,
   useFetchEventAttachments,
 } from 'sentry/actionCreators/events';
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import EventAttachmentActions from 'sentry/components/events/eventAttachmentActions';
 import FileSize from 'sentry/components/fileSize';
 import LoadingError from 'sentry/components/loadingError';
@@ -14,11 +14,13 @@ import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group, IssueAttachment} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {InlineEventAttachment} from 'sentry/views/issueDetails/groupEventAttachments/inlineEventAttachment';
-import {useGroupEventAttachmentsDrawer} from 'sentry/views/issueDetails/groupEventAttachments/useGroupEventAttachmentsDrawer';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
+import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 import EventAttachmentsCrashReportsNotice from './eventAttachmentsCrashReportsNotice';
@@ -41,24 +43,20 @@ const attachmentPreviewIsOpen = (
   return attachmentPreviews[attachment.id] === true;
 };
 
-function ViewAllGroupAttachmentsButton({
-  group,
-  project,
-}: {
-  group: Group;
-  project: Project;
-}) {
-  const openButtonRef = useRef<HTMLButtonElement>(null);
-  const {openAttachmentDrawer} = useGroupEventAttachmentsDrawer({
-    project,
-    group,
-    openButtonRef,
-  });
+function ViewAllGroupAttachmentsButton() {
+  const {baseUrl} = useGroupDetailsRoute();
+  const location = useLocation();
 
   return (
-    <Button ref={openButtonRef} onClick={openAttachmentDrawer} size="xs">
+    <LinkButton
+      size="xs"
+      to={{
+        pathname: `${baseUrl}${TabPaths[Tab.ATTACHMENTS]}`,
+        query: location.query,
+      }}
+    >
       {t('View All Attachments')}
-    </Button>
+    </LinkButton>
   );
 }
 
@@ -113,9 +111,7 @@ function EventAttachmentsContent({event, project, group}: EventAttachmentsProps)
       type={SectionKey.ATTACHMENTS}
       title={title}
       actions={
-        hasStreamlinedUI && project && group ? (
-          <ViewAllGroupAttachmentsButton group={group} project={project} />
-        ) : null
+        hasStreamlinedUI && project && group ? <ViewAllGroupAttachmentsButton /> : null
       }
     >
       {crashFileStripped && (

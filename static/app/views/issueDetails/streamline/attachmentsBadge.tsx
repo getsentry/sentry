@@ -1,28 +1,25 @@
-import {Fragment, useRef} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import {IconAttachment} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
-import type {Project} from 'sentry/types/project';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {keepPreviousData} from 'sentry/utils/queryClient';
+import {useLocation} from 'sentry/utils/useLocation';
 import {Divider} from 'sentry/views/issueDetails/divider';
 import {useGroupEventAttachments} from 'sentry/views/issueDetails/groupEventAttachments/useGroupEventAttachments';
-import {useGroupEventAttachmentsDrawer} from 'sentry/views/issueDetails/groupEventAttachments/useGroupEventAttachmentsDrawer';
+import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
+import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
-export function AttachmentsBadge({group, project}: {group: Group; project: Project}) {
+export function AttachmentsBadge({group}: {group: Group}) {
+  const location = useLocation();
+  const {baseUrl} = useGroupDetailsRoute();
   const attachments = useGroupEventAttachments({
     groupId: group.id,
     activeAttachmentsTab: 'all',
     options: {placeholderData: keepPreviousData},
-  });
-  const openButtonRef = useRef<HTMLButtonElement>(null);
-  const {openAttachmentDrawer} = useGroupEventAttachmentsDrawer({
-    project,
-    group,
-    openButtonRef,
   });
 
   const attachmentPagination = parseLinkHeader(
@@ -41,13 +38,14 @@ export function AttachmentsBadge({group, project}: {group: Group; project: Proje
     <Fragment>
       <Divider />
       <AttachmentButton
-        ref={openButtonRef}
         type="button"
         priority="link"
         size="zero"
         icon={<IconAttachment size="xs" />}
-        onClick={() => {
-          openAttachmentDrawer();
+        to={{
+          pathname: `${baseUrl}${TabPaths[Tab.TAGS]}`,
+          query: location.query,
+          replace: true,
         }}
       >
         {hasManyAttachments
@@ -58,7 +56,7 @@ export function AttachmentsBadge({group, project}: {group: Group; project: Proje
   );
 }
 
-const AttachmentButton = styled(Button)`
+const AttachmentButton = styled(LinkButton)`
   color: ${p => p.theme.gray300};
   text-decoration: underline;
   text-decoration-style: dotted;
