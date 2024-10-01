@@ -60,13 +60,11 @@ export function isNavItemActive(
    * Issue submenu is special cased because it is matched based on query params
    * rather than the pathname.
    */
-  if (
-    location.pathname.includes('/issues/') &&
-    to.includes('/issues/') &&
-    to.includes('query=')
-  ) {
+  if (location.pathname.includes('/issues/') && to.includes('/issues/')) {
     if (location.search) {
-      return hasMatchingQueryParam({to, label: item.label}, location);
+      return (
+        hasMatchingQueryParam({to, label: item.label}, location) || item.label === 'All'
+      );
     }
     return item.label === 'All';
   }
