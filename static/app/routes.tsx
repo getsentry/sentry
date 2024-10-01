@@ -1894,14 +1894,6 @@ function buildRoutes() {
     </Route>
   );
 
-  const userFeedbackRoutes = (
-    <Route
-      path="/user-feedback/"
-      component={make(() => import('sentry/views/userFeedback'))}
-      withOrgPath
-    />
-  );
-
   const feedbackv2Routes = (
     <Route
       path="/feedback/"
@@ -2286,7 +2278,6 @@ function buildRoutes() {
       {settingsRoutes}
       {projectsRoutes}
       {dashboardRoutes}
-      {userFeedbackRoutes}
       {feedbackv2Routes}
       {issueListRoutes}
       {issueDetailsRoutes}
