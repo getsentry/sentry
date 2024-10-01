@@ -7,6 +7,7 @@ from django.db.models import QuerySet
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
+from sentry.constants import ObjectStatus
 from sentry.db.models import FlexibleForeignKey, JSONField, Model, region_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base import BaseManager
@@ -89,7 +90,9 @@ class ExternalIssue(Model):
     def get_installation(self) -> Any:
         from sentry.integrations.services.integration import integration_service
 
-        integration = integration_service.get_integration(integration_id=self.integration_id)
+        integration = integration_service.get_integration(
+            integration_id=self.integration_id, status=ObjectStatus.ACTIVE
+        )
 
         assert integration, "Integration is required to get an installation"
         return integration.get_installation(organization_id=self.organization_id)

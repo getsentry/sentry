@@ -1613,7 +1613,9 @@ def _get_alert_rule_trigger_action_slack_channel_id(
         except StopIteration:
             integration = None
     else:
-        integration = integration_service.get_integration(integration_id=integration_id)
+        integration = integration_service.get_integration(
+            integration_id=integration_id, status=ObjectStatus.ACTIVE
+        )
     if integration is None:
         raise InvalidTriggerActionError("Slack workspace is a required field.")
 
@@ -1644,7 +1646,9 @@ def _get_alert_rule_trigger_action_slack_channel_id(
 def _get_alert_rule_trigger_action_discord_channel_id(name: str, integration_id: int) -> str | None:
     from sentry.integrations.discord.utils.channel import validate_channel_id
 
-    integration = integration_service.get_integration(integration_id=integration_id)
+    integration = integration_service.get_integration(
+        integration_id=integration_id, status=ObjectStatus.ACTIVE
+    )
     if integration is None:
         raise InvalidTriggerActionError("Discord integration not found.")
     try:

@@ -9,6 +9,7 @@ from rest_framework import status
 from rest_framework.request import Request
 
 from sentry import options
+from sentry.constants import ObjectStatus
 from sentry.identity.services.identity import RpcIdentityProvider
 from sentry.identity.services.identity.model import RpcIdentity
 from sentry.identity.services.identity.service import identity_service
@@ -224,7 +225,7 @@ class DiscordRequest:
     def validate_integration(self) -> None:
         if not self._integration:
             self._integration = integration_service.get_integration(
-                provider="discord", external_id=self.guild_id
+                provider="discord", external_id=self.guild_id, status=ObjectStatus.ACTIVE
             )
         self._info("discord.validate.integration")
 
