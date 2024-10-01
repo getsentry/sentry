@@ -12,7 +12,7 @@ from sentry.eventstore.models import Event
 from sentry.grouping.ingest.hashing import (
     _calculate_primary_hashes,
     _calculate_secondary_hashes,
-    find_existing_grouphash,
+    find_grouphash_with_group,
 )
 from sentry.grouping.ingest.metrics import record_hash_calculation_metrics
 from sentry.models.grouphash import GroupHash
@@ -28,15 +28,15 @@ pytestmark = [requires_snuba]
 
 @contextmanager
 def patch_grouping_helpers(return_values: dict[str, Any]):
-    wrapped_find_existing_grouphash = capture_results(find_existing_grouphash, return_values)
+    wrapped_find_grouphash_with_group = capture_results(find_grouphash_with_group, return_values)
     wrapped_calculate_primary_hashes = capture_results(_calculate_primary_hashes, return_values)
     wrapped_calculate_secondary_hashes = capture_results(_calculate_secondary_hashes, return_values)
 
     with (
         mock.patch(
-            "sentry.event_manager.find_existing_grouphash",
-            wraps=wrapped_find_existing_grouphash,
-        ) as find_existing_grouphash_spy,
+            "sentry.event_manager.find_grouphash_with_group",
+            wraps=wrapped_find_grouphash_with_group,
+        ) as find_grouphash_with_group_spy,
         mock.patch(
             "sentry.grouping.ingest.hashing._calculate_primary_hashes",
             wraps=wrapped_calculate_primary_hashes,
@@ -58,7 +58,7 @@ def patch_grouping_helpers(return_values: dict[str, Any]):
         ) as record_calculation_metrics_spy,
     ):
         yield {
-            "find_existing_grouphash": find_existing_grouphash_spy,
+            "find_grouphash_with_group": find_grouphash_with_group_spy,
             "_calculate_primary_hashes": calculate_primary_hashes_spy,
             "_calculate_secondary_hashes": calculate_secondary_hashes_spy,
             "_create_group": create_group_spy,
@@ -160,7 +160,7 @@ def get_results_from_saving_event(
             gh.hash: gh.group_id for gh in GroupHash.objects.filter(project_id=project.id)
         }
 
-        hash_search_results = return_values["find_existing_grouphash"]
+        hash_search_results = return_values["find_grouphash_with_group"]
         # Filter out all the Nones to see if we actually found anything
         filtered_results = list(filter(lambda result: bool(result), hash_search_results))
         hash_search_result = filtered_results[0] if filtered_results else None
