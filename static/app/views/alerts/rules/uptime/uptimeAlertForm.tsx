@@ -17,6 +17,7 @@ import FormModel from 'sentry/components/forms/model';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import Panel from 'sentry/components/panels/panel';
+import Text from 'sentry/components/text';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
@@ -113,7 +114,12 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
       }
     >
       <List symbol="colored-numeric">
-        <AlertListItem>{t('Select a project')}</AlertListItem>
+        <AlertListItem>{t('Select a project and environment')}</AlertListItem>
+        <ListItemSubText>
+          {t(
+            'The selected project and environment is where Uptime Issues will be created.'
+          )}
+        </ListItemSubText>
         <FormRow>
           <SentryProjectSelectorField
             disabled={rule !== undefined}
@@ -131,54 +137,64 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
           />
         </FormRow>
         <AlertListItem>{t('Configure Request')}</AlertListItem>
-        <ConfigurationPanel>
-          <TextField
-            name="url"
-            label={t('URL')}
-            placeholder={t('The URL to monitor')}
-            flexibleControlStateSize
-            monospace
-            required
-          />
-          <SelectField
-            name="method"
-            label={t('Method')}
-            placeholder={'GET'}
-            options={HTTP_METHOD_OPTIONS.map(option => ({
-              value: option,
-              label: option,
-            }))}
-            flexibleControlStateSize
-            required
-          />
-          <UptimeHeadersField
-            name="headers"
-            label={t('Headers')}
-            flexibleControlStateSize
-          />
-          <TextareaField
-            name="body"
-            label={t('Body')}
-            visible={({model}) => !['GET', 'HEAD'].includes(model.getValue('method'))}
-            rows={4}
-            maxRows={15}
-            autosize
-            monospace
-            placeholder='{"key": "value"}'
-            flexibleControlStateSize
-          />
-        </ConfigurationPanel>
-        <Observer>
-          {() => (
-            <HTTPSnippet
-              url={formModel.getValue('url')}
-              method={formModel.getValue('method')}
-              headers={formModel.getValue('headers')}
-              body={formModel.getValue('body')}
+        <ListItemSubText>
+          {t('Configure the HTTP request made for uptime checks.')}
+        </ListItemSubText>
+        <Configuration>
+          <ConfigurationPanel>
+            <TextField
+              name="url"
+              label={t('URL')}
+              placeholder={t('The URL to monitor')}
+              flexibleControlStateSize
+              monospace
+              required
             />
-          )}
-        </Observer>
+            <SelectField
+              name="method"
+              label={t('Method')}
+              placeholder={'GET'}
+              options={HTTP_METHOD_OPTIONS.map(option => ({
+                value: option,
+                label: option,
+              }))}
+              flexibleControlStateSize
+              required
+            />
+            <UptimeHeadersField
+              name="headers"
+              label={t('Headers')}
+              flexibleControlStateSize
+            />
+            <TextareaField
+              name="body"
+              label={t('Body')}
+              visible={({model}) => !['GET', 'HEAD'].includes(model.getValue('method'))}
+              rows={4}
+              maxRows={15}
+              autosize
+              monospace
+              placeholder='{"key": "value"}'
+              flexibleControlStateSize
+            />
+          </ConfigurationPanel>
+          <Observer>
+            {() => (
+              <HTTPSnippet
+                url={formModel.getValue('url')}
+                method={formModel.getValue('method')}
+                headers={formModel.getValue('headers')}
+                body={formModel.getValue('body')}
+              />
+            )}
+          </Observer>
+        </Configuration>
         <AlertListItem>{t('Establish ownership')}</AlertListItem>
+        <ListItemSubText>
+          {t(
+            'Choose a team or member as the rule owner. Issues created will be automatically assigned to the owner.'
+          )}
+        </ListItemSubText>
         <FormRow>
           <TextField
             name="name"
@@ -211,8 +227,14 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
 }
 
 const AlertListItem = styled(ListItem)`
-  margin: ${space(2)} 0 ${space(1)} 0;
   font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-weight: ${p => p.theme.fontWeightBold};
+  line-height: 1.3;
+`;
+
+const ListItemSubText = styled(Text)`
+  padding-left: ${space(4)};
+  color: ${p => p.theme.subText};
 `;
 
 const FormRow = styled('div')`
@@ -220,10 +242,19 @@ const FormRow = styled('div')`
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   align-items: center;
   gap: ${space(2)};
+  margin-top: ${space(1)};
+  margin-bottom: ${space(4)};
+  margin-left: ${space(4)};
 
   ${FieldWrapper} {
     padding: 0;
   }
+`;
+
+const Configuration = styled('div')`
+  margin-top: ${space(1)};
+  margin-bottom: ${space(4)};
+  margin-left: ${space(4)};
 `;
 
 const ConfigurationPanel = styled(Panel)`
