@@ -1,6 +1,8 @@
 from collections.abc import Mapping
 from typing import Any
 
+from celery import Task
+
 from sentry.eventstore.models import Event
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.sentry_apps import CONTROL_TASK_OPTIONS, TASK_OPTIONS
@@ -43,9 +45,11 @@ def send_alert_event(
     "sentry.sentry_apps.tasks.sentry_apps.process_resource_change_bound", bind=True, **TASK_OPTIONS
 )
 @retry_decorator
-def process_resource_change_bound(self, action, sender, instance_id, *args, **kwargs):
+def process_resource_change_bound(
+    self: Task, action: str, sender: str, instance_id: int, **kwargs: Any
+) -> None:
     old_process_resource_change_bound(
-        self=self, action=action, sender=sender, instance_id=instance_id, *args, **kwargs
+        self=self, action=action, sender=sender, instance_id=instance_id, **kwargs
     )
 
 

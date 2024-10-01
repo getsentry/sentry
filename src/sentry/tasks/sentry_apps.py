@@ -172,9 +172,8 @@ def _process_resource_change(
     action: str,
     sender: str,
     instance_id: int,
-    /,
+    *,
     retryer: Any | None = None,
-    *args,
     **kwargs: Any,
 ) -> None:
     # The class is serialized as a string when enqueueing the class.
@@ -248,9 +247,9 @@ def _process_resource_change(
 @instrumented_task("sentry.tasks.process_resource_change_bound", bind=True, **TASK_OPTIONS)
 @retry_decorator
 def process_resource_change_bound(
-    self: Task, action: str, sender: str, instance_id: int, *args: Any, **kwargs: Any
+    self: Task, action: str, sender: str, instance_id: int, **kwargs: Any
 ) -> None:
-    _process_resource_change(action, sender, instance_id, retryer=self, *args, **kwargs)
+    _process_resource_change(action, sender, instance_id, retryer=self, **kwargs)
 
 
 @instrumented_task(name="sentry.tasks.sentry_apps.installation_webhook", **CONTROL_TASK_OPTIONS)
