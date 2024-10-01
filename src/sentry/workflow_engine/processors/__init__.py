@@ -1,5 +1,5 @@
 __all__ = [
-    "process_data_source",
+    "process_data_sources",
 ]
 
-from .data_source import process_data_source
+from .data_source import process_data_sources
