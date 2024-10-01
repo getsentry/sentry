@@ -1,4 +1,5 @@
 import base64
+import binascii
 from typing import Any
 
 from cryptography.exceptions import InvalidSignature
@@ -30,11 +31,15 @@ def verify_signature(payload: str, signature: str, key_id: str, subpath: str) ->
         raise ValueError("No public key found matching key identifier")
 
     key = serialization.load_pem_public_key(public_key["key"].encode())
+
+    if not isinstance(key, ec.EllipticCurvePublicKey):
+        raise ValueError("Invalid public key type")
+
     try:
         # Decode the base64 signature to bytes
         signature_bytes = base64.b64decode(signature)
         key.verify(signature_bytes, payload.encode(), ec.ECDSA(hashes.SHA256()))
     except InvalidSignature:
         raise ValueError("Signature does not match payload")
-    except base64.binascii.Error:
+    except binascii.Error:
         raise ValueError("Invalid signature encoding")

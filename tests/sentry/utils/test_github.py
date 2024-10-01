@@ -44,7 +44,7 @@ class TestGitHub(TestCase):
         self._verify()
 
     def test_verify_signature_missing_key(self):
-        self.key_id = None
+        self.key_id = ""
         with pytest.raises(ValueError) as excinfo:
             self._verify()
         assert "Invalid payload, signature, or key_id" in str(excinfo.value)

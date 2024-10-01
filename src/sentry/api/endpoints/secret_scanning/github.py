@@ -14,7 +14,6 @@ from sentry.models.apitoken import ApiToken
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.organizations.absolute_url import generate_organization_url
 from sentry.organizations.services.organization import organization_service
-from sentry.silo.base import SiloMode
 from sentry.types.token import AuthTokenType
 from sentry.users.models.user import User
 from sentry.utils import json, metrics
@@ -80,23 +79,24 @@ class SecretScanningGitHubEndpoint(View):
             alerted_token_str = secret_alert["token"]
             hashed_alerted_token = hashlib.sha256(alerted_token_str.encode()).hexdigest()
 
+            # no prefix tokens could indicate old user auth tokens with no prefixes
             token_type = AuthTokenType.USER
             if alerted_token_str.startswith(AuthTokenType.ORG):
                 token_type = AuthTokenType.ORG
-            # TODO: add support for other token types
+            elif alerted_token_str.startswith((AuthTokenType.USER_APP, AuthTokenType.INTEGRATION)):
+                # TODO: add support for other token types
+                return HttpResponse(
+                    json.dumps({"details": "auth token type is not implemented"}), status=501
+                )
 
             try:
+                token: ApiToken | OrgAuthToken
+
                 if token_type == AuthTokenType.USER:
-                    token_cls = ApiToken
-                    if SiloMode.get_current_mode() == SiloMode.REGION:
-                        token_cls = ApiTokenReplica
-                    token = token_cls.objects.get(hashed_token=hashed_alerted_token)
+                    token = ApiToken.objects.get(hashed_token=hashed_alerted_token)
 
                 if token_type == AuthTokenType.ORG:
-                    token_cls = OrgAuthToken
-                    if SiloMode.get_current_mode() == SiloMode.REGION:
-                        token_cls = OrgAuthTokenReplica
-                    token = token_cls.objects.get(
+                    token = OrgAuthToken.objects.get(
                         token_hashed=hashed_alerted_token, date_deactivated=None
                     )
 
@@ -118,19 +118,22 @@ class SecretScanningGitHubEndpoint(View):
 
                 # Send an email
                 url_prefix = options.get("system.url-prefix")
-                if token_type == AuthTokenType.USER:
+                if isinstance(token, ApiToken):
                     # for user token, send an alert to the token owner
-                    users = [User.objects.get(id=token.user_id)]
-                elif token_type == AuthTokenType.ORG:
+                    users = User.objects.filter(id=token.user_id)
+                elif isinstance(token, OrgAuthToken):
                     # for org token, send an alert to all organization owners
+                    organization = organization_service.get(id=token.organization_id)
+                    if organization is None:
+                        continue
+
                     owner_members = organization_service.get_organization_owner_members(
-                        organization_id=token.organization_id
+                        organization_id=organization.id
                     )
                     user_ids = [om.user_id for om in owner_members]
                     users = User.objects.filter(id__in=user_ids)
 
-                    org_slug = organization_service.get(id=token.organization_id).slug
-                    url_prefix = generate_organization_url(org_slug)
+                    url_prefix = generate_organization_url(organization.slug)
 
                 token_type_human_readable = TOKEN_TYPE_HUMAN_READABLE.get(token_type, "Auth Token")
 
