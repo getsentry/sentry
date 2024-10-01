@@ -61,9 +61,38 @@ class EventDataDeletionTask(BaseDeletionTask[Group]):
     ) -> None:
         self.groups = groups
         self.last_event: Event | None = None
+        self.set_group_and_project_ids()
         super().__init__(manager, **kwargs)
 
+    def set_group_and_project_ids(self) -> None:
+        group_ids = []
+        self.project_groups = defaultdict(list)
+        for group in self.groups:
+            self.project_groups[group.project_id].append(group.id)
+            group_ids.append(group.id)
+        self.group_ids = group_ids
+        self.project_ids = list(self.project_groups.keys())
+
     def chunk(self) -> bool:
+        """It deletes DEFAULT_CHUNK_SIZE number of events and related models.
+        It returns a boolean to say if the deletion has completed."""
+        events = self.get_unfetched_events()
+        if events:
+            self.delete_events_from_nodestore(events)
+            self.delete_dangling_attachments_and_user_reports(events)
+            # This value will be used in the next call to chunk
+            self.last_event = events[-1]
+            # As long as it returns True the task will keep iterating
+            return True
+        else:
+            # Remove all group events now that their node data has been removed.
+            for project_id, group_ids in self.project_groups.items():
+                # A message is sent to Snuba that will handle deleting the events for the given groups in the project
+                eventstream_state = eventstream.backend.start_delete_groups(project_id, group_ids)
+                eventstream.backend.end_delete_groups(eventstream_state)
+            return False
+
+    def get_unfetched_events(self) -> list[Event]:
         conditions = []
         if self.last_event is not None:
             conditions.extend(
@@ -76,16 +105,9 @@ class EventDataDeletionTask(BaseDeletionTask[Group]):
                 ]
             )
 
-        group_ids = []
-        project_groups = defaultdict(list)
-        for group in self.groups:
-            project_groups[group.project_id].append(group.id)
-            group_ids.append(group.id)
-        project_ids = list(project_groups.keys())
-
         events = eventstore.backend.get_unfetched_events(
             filter=eventstore.Filter(
-                conditions=conditions, project_ids=project_ids, group_ids=group_ids
+                conditions=conditions, project_ids=self.project_ids, group_ids=self.group_ids
             ),
             limit=self.DEFAULT_CHUNK_SIZE,
             referrer="deletions.group",
@@ -94,31 +116,24 @@ class EventDataDeletionTask(BaseDeletionTask[Group]):
                 {"organization_id": self.groups[0].project.organization_id} if self.groups else None
             ),
         )
-        if not events:
-            # Remove all group events now that their node data has been removed.
-            for project_id, group_ids in project_groups.items():
-                eventstream_state = eventstream.backend.start_delete_groups(project_id, group_ids)
-                eventstream.backend.end_delete_groups(eventstream_state)
-            return False
+        return events
 
-        self.last_event = events[-1]
-
+    def delete_events_from_nodestore(self, events: Sequence[Event]) -> None:
         # Remove from nodestore
         node_ids = [Event.generate_node_id(event.project_id, event.event_id) for event in events]
         nodestore.backend.delete_multi(node_ids)
 
+    def delete_dangling_attachments_and_user_reports(self, events: Sequence[Event]) -> None:
         # Remove EventAttachment and UserReport *again* as those may not have a
         # group ID, therefore there may be dangling ones after "regular" model
         # deletion.
         event_ids = [event.event_id for event in events]
         models.EventAttachment.objects.filter(
-            event_id__in=event_ids, project_id__in=project_ids
+            event_id__in=event_ids, project_id__in=self.project_ids
         ).delete()
         models.UserReport.objects.filter(
-            event_id__in=event_ids, project_id__in=project_ids
+            event_id__in=event_ids, project_id__in=self.project_ids
         ).delete()
-
-        return True
 
 
 class GroupDeletionTask(ModelDeletionTask[Group]):

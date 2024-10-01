@@ -178,7 +178,7 @@ class BaseDeletionTask(Generic[ModelT]):
 
 
 class ModelDeletionTask(BaseDeletionTask[ModelT]):
-    DEFAULT_QUERY_LIMIT = None
+    DEFAULT_QUERY_LIMIT: int | None = None
     manager_name = "objects"
 
     def __init__(
