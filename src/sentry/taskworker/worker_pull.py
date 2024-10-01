@@ -86,7 +86,9 @@ class Worker:
         task_latency = execution_time - task_added_time
 
         # Dump results to a log file that is CSV shaped
-        result_logger.info(f"task.complete,{task_added_time},{execution_time},{task_latency}")
+        result_logger.info(
+            "task.complete, %s, %s, %s", task_added_time, execution_time, task_latency
+        )
 
         if next_state == TASK_ACTIVATION_STATUS_COMPLETE:
             logger.info(

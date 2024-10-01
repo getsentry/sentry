@@ -1,7 +1,8 @@
 import logging
 from collections.abc import Sequence
-from datetime import timedelta
+from datetime import datetime, timedelta
 
+from django.conf import settings
 from django.db.models import Max
 from django.utils import timezone
 from sentry_protos.sentry.v1alpha.taskworker_pb2 import InflightActivation, TaskActivationStatus
@@ -10,6 +11,13 @@ logger = logging.getLogger("sentry.taskworker.consumer")
 
 
 class PendingTaskStore:
+    def __init__(self):
+        self.do_imports()
+
+    def do_imports(self) -> None:
+        for module in settings.TASKWORKER_IMPORTS:
+            __import__(module)
+
     def store(self, batch: Sequence[InflightActivation]):
         # Takes in a batch of pending tasks and stores them in some datastore
         from sentry.taskworker.models import InflightActivationModel
@@ -33,7 +41,7 @@ class PendingTaskStore:
                 return None
 
             # TODO this duration should be a tasknamespace setting, or with an option
-            deadline = task.added_at + timedelta(minutes=3)
+            deadline = datetime.now() + timedelta(minutes=3)
 
             task.update(
                 status=InflightActivationModel.Status.PROCESSING, processing_deadline=deadline
@@ -55,6 +63,25 @@ class PendingTaskStore:
             if task_status == InflightActivationModel.Status.RETRY:
                 task.update(retry_attempts=task.retry_attempts + 1)
 
+    def set_task_deadline(self, task_id: str, task_deadline: datetime | None):
+        from django.db import router, transaction
+
+        from sentry.taskworker.models import InflightActivationModel
+
+        with transaction.atomic(using=router.db_for_write(InflightActivationModel)):
+            # Pull a select for update here to lock the row while we mutate the retry count
+            task = InflightActivationModel.objects.select_for_update().filter(id=task_id).get()
+            task.update(deadline=task_deadline)
+
+    def delete_task(self, task_id: str):
+        from django.db import router, transaction
+
+        from sentry.taskworker.models import InflightActivationModel
+
+        with transaction.atomic(using=router.db_for_write(InflightActivationModel)):
+            task = InflightActivationModel.objects.select_for_update().filter(id=task_id).get()
+            task.delete()
+
     def handle_retry_state_tasks(self) -> None:
         from sentry.taskworker.config import taskregistry
         from sentry.taskworker.models import InflightActivationModel
@@ -63,8 +90,9 @@ class PendingTaskStore:
             status=InflightActivationModel.Status.RETRY
         )
         for item in retry_qs:
-            task_ns = taskregistry.get(item.task_namespace)
-            task_ns.retry_task(item)
+            task_ns = taskregistry.get(item.namespace)
+            self.delete_task(item.id)
+            task_ns.retry_task(item.to_proto().activation)
         # With retries scheduled, the tasks are complete now.
         retry_qs.update(status=InflightActivationModel.Status.COMPLETE)
 

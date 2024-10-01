@@ -256,10 +256,39 @@ def worker(ignore_unknown_queues: bool, **options: Any) -> None:
 )
 @click.option("--autoreload", is_flag=True, default=False, help="Enable autoreloading.")
 @click.option("--max-tasks-per-child", default=10000)
+@click.option("--port", "-P", help=("The port number the sever runs on"), default=50051)
 @log_options()
 @configuration
-def taskworker(**options: Any) -> None:
-    from sentry.taskworker.worker import Worker
+def taskworker_push(port: int, **options: Any) -> None:
+    from sentry.taskworker.worker_push import serve
+
+    with managed_bgtasks(role="taskworker"):
+        serve(port, **options)
+
+
+@run.command()
+@click.option(
+    "--hostname",
+    "-n",
+    help=(
+        "Set custom hostname, e.g. 'w1.%h'. Expands: %h" "(hostname), %n (name) and %d, (domain)."
+    ),
+)
+@click.option(
+    "--namespace",
+    "-N",
+    help=(
+        "The task namespace, or namespaces to consume from. "
+        "Can be a comma separated list, or * "
+        "Example: -N video,image"
+    ),
+)
+@click.option("--autoreload", is_flag=True, default=False, help="Enable autoreloading.")
+@click.option("--max-tasks-per-child", default=10000)
+@log_options()
+@configuration
+def taskworker_pull(**options: Any) -> None:
+    from sentry.taskworker.worker_pull import Worker
 
     with managed_bgtasks(role="taskworker"):
         worker = Worker(
@@ -270,10 +299,29 @@ def taskworker(**options: Any) -> None:
 
 
 @run.command()
+@click.option(
+    "--worker-addrs",
+    "-W",
+    help=(
+        "The address of the workers, in the form of <IP>:<PORT>. "
+        "Can be a comma separated list"
+        "Example: -W 127.0.0.1:50051,127.0.0.1:50052"
+    ),
+)
 @log_options()
 @configuration
-def kafka_task_grpc_server(**options: Any) -> None:
-    from sentry.taskworker.grpc_server import serve
+def kafka_task_grpc_push(worker_addrs: str) -> None:
+    from sentry.taskworker.consumer_grpc_push import start
+
+    with managed_bgtasks(role="taskworker"):
+        start(worker_addrs.split(","))
+
+
+@run.command()
+@log_options()
+@configuration
+def kafka_task_grpc_pull(**options: Any) -> None:
+    from sentry.taskworker.consumer_grpc_pull import serve
 
     with managed_bgtasks(role="taskworker"):
         serve()

@@ -17,7 +17,8 @@ demotasks = taskregistry.create_namespace(
 
 @demotasks.register(name="demos.say_hello")
 def say_hello(name):
-    logger.info("hello %s", name)
+    # logger.info("hello %s", name) need to fix logging now that we are running this in another process
+    print(f"hello {name}")  # noqa
 
 
 @demotasks.register(name="demos.broken", retry=Retry(times=5, on=(KeyError,)))
