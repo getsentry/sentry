@@ -18,10 +18,6 @@ export function hasMetricsNewInputs(organization: Organization) {
   return organization.features.includes('metrics-new-inputs');
 }
 
-export function hasMetricsNewSearchQueryBuilder(organization: Organization) {
-  return organization.features.includes('search-query-builder-metrics');
-}
-
 /**
  * Returns the forceMetricsLayer query param for the alert
  * wrapped in an object so it can be spread into existing query params

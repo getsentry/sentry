@@ -1,6 +1,5 @@
 import {useCallback, useMemo} from 'react';
 import {css, type SerializedStyles} from '@emotion/react';
-import {useId} from '@react-aria/utils';
 
 import {QueryFieldGroup} from 'sentry/components/metrics/queryFieldGroup';
 import {
@@ -8,14 +7,10 @@ import {
   type SearchQueryBuilderProps,
 } from 'sentry/components/searchQueryBuilder';
 import type {SmartSearchBarProps} from 'sentry/components/smartSearchBar';
-import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {t} from 'sentry/locale';
 import {SavedSearchType, type TagCollection} from 'sentry/types/group';
 import type {MRI} from 'sentry/types/metrics';
-import {
-  hasMetricsNewInputs,
-  hasMetricsNewSearchQueryBuilder,
-} from 'sentry/utils/metrics/features';
+import {hasMetricsNewInputs} from 'sentry/utils/metrics/features';
 import {getUseCaseFromMRI} from 'sentry/utils/metrics/mri';
 import type {MetricTag} from 'sentry/utils/metrics/types';
 import {useMetricsTags} from 'sentry/utils/metrics/useMetricsTags';
@@ -64,14 +59,12 @@ export function MetricSearchBar({
   onChange,
   query,
   projectIds,
-  id: idProp,
   ...props
 }: MetricSearchBarProps) {
   const organization = useOrganization();
   const api = useApi();
   const {selection} = usePageFilters();
   const selectedProjects = useSelectedProjects();
-  const id = useId(idProp);
   const projectIdNumbers = useMemo(
     () => projectIds?.map(projectId => parseInt(projectId, 10)),
     [projectIds]
@@ -172,37 +165,11 @@ export function MetricSearchBar({
     css: wideSearchBarCss(disabled),
   };
 
-  const smartSearchProps: Partial<SmartSearchBarProps> & {css: SerializedStyles} = {
-    id,
-    disabled,
-    maxMenuHeight: 220,
-    organization,
-    onGetTagValues: getTagValues,
-    // don't highlight tags while loading as we don't know yet if they are supported
-    highlightUnsupportedTags: !isPending,
-    onClose: handleChange,
-    onSearch: handleChange,
-    placeholder: t('Filter by tags'),
-    query,
-    savedSearchType: SavedSearchType.METRIC,
-    css: wideSearchBarCss(disabled),
-    ...props,
-    ...searchConfig,
-  };
-
   if (hasMetricsNewInputs(organization)) {
-    if (hasMetricsNewSearchQueryBuilder(organization)) {
-      return <QueryFieldGroup.SearchQueryBuilder {...searchQueryBuilderProps} />;
-    }
-
-    return <QueryFieldGroup.SmartSearchBar {...smartSearchProps} />;
+    return <QueryFieldGroup.SearchQueryBuilder {...searchQueryBuilderProps} />;
   }
 
-  if (hasMetricsNewSearchQueryBuilder(organization)) {
-    return <SearchQueryBuilder {...searchQueryBuilderProps} />;
-  }
-
-  return <SmartSearchBar {...smartSearchProps} />;
+  return <SearchQueryBuilder {...searchQueryBuilderProps} />;
 }
 
 function wideSearchBarCss(disabled?: boolean) {
