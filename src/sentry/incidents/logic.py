@@ -653,7 +653,7 @@ def create_alert_rule(
                     "Your organization does not have access to this feature."
                 )
             # NOTE: if adding a new metric alert type, take care to check that it's handled here
-            send_new_rule_data(alert_rule, projects[0])
+            send_new_rule_data(alert_rule, projects[0], snuba_query)
 
         if user:
             create_audit_entry_from_user(
@@ -915,7 +915,7 @@ def update_alert_rule(
                 )
             # NOTE: if adding a new metric alert type, take care to check that it's handled here
             project = projects[0] if projects else alert_rule.projects.get()
-            update_rule_data(alert_rule, project, updated_fields, updated_query_fields)
+            update_rule_data(alert_rule, project, snuba_query, updated_fields, updated_query_fields)
         else:
             # if this was a dynamic rule, delete the data in Seer
             if alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC:
@@ -949,7 +949,15 @@ def update_alert_rule(
                 "time_window", timedelta(seconds=snuba_query.time_window)
             )
             updated_query_fields.setdefault("event_types", None)
-            updated_query_fields.setdefault("resolution", timedelta(seconds=snuba_query.resolution))
+            if (
+                detection_type == AlertRuleDetectionType.DYNAMIC
+                and alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC
+            ):
+                updated_query_fields.setdefault("resolution", snuba_query.resolution)
+            else:
+                updated_query_fields.setdefault(
+                    "resolution", timedelta(seconds=snuba_query.resolution)
+                )
             update_snuba_query(snuba_query, environment=environment, **updated_query_fields)
 
         existing_subs: Iterable[QuerySubscription] = ()
