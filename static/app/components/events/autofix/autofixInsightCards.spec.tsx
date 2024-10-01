@@ -68,6 +68,9 @@ describe('AutofixInsightCards', () => {
         repos={sampleRepos}
         hasStepAbove={false}
         hasStepBelow={false}
+        groupId="1"
+        runId="1"
+        stepIndex={0}
         {...props}
       />
     );
