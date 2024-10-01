@@ -71,6 +71,10 @@ export interface Organization extends OrganizationSummary {
   isDynamicallySampled: boolean;
   onboardingTasks: OnboardingTaskStatus[];
   openMembership: boolean;
+  /**
+   * A list of roles that are available to the organization.
+   * eg: billing, admin, member, manager, owner
+   */
   orgRoleList: OrgRole[];
   pendingAccessRequests: number;
   quota: {
@@ -132,7 +136,10 @@ export interface BaseRole {
 export interface OrgRole extends BaseRole {
   minimumTeamRole: string;
   isGlobal?: boolean;
-  is_global?: boolean; // Deprecated: use isGlobal
+  /**
+   * @deprecated use isGlobal
+   */
+  is_global?: boolean;
 }
 export interface TeamRole extends BaseRole {
   isMinimumRoleFor: string;
