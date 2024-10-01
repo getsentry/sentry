@@ -1,5 +1,6 @@
 import logging
 from datetime import datetime, timedelta
+from typing import Any
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -8,7 +9,7 @@ from urllib3.exceptions import MaxRetryError, TimeoutError
 
 from sentry.api.bases.organization_events import get_query_columns
 from sentry.conf.server import SEER_ANOMALY_DETECTION_STORE_DATA_URL
-from sentry.incidents.models.alert_rule import AlertRule, AlertRuleStatus
+from sentry.incidents.models.alert_rule import AlertRule, AlertRuleDetectionType, AlertRuleStatus
 from sentry.models.project import Project
 from sentry.net.http import connection_from_url
 from sentry.seer.anomaly_detection.types import (
@@ -26,7 +27,7 @@ from sentry.seer.anomaly_detection.utils import (
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.snuba.models import SnubaQuery
 from sentry.snuba.utils import get_dataset
-from sentry.utils import json
+from sentry.utils import json, metrics
 from sentry.utils.json import JSONDecodeError
 
 logger = logging.getLogger(__name__)
@@ -55,6 +56,54 @@ def _get_start_and_end_indices(data: list[TimeSeriesPoint]) -> tuple[int, int]:
     end = indices_with_results[-1]
     assert start <= end
     return start, end
+
+
+def handle_send_historical_data_to_seer(alert_rule: AlertRule, project: Project, method: str):
+    try:
+        rule_status = send_historical_data_to_seer(
+            alert_rule=alert_rule,
+            project=project,
+        )
+        if rule_status == AlertRuleStatus.NOT_ENOUGH_DATA:
+            # if we don't have at least seven days worth of data, then the dynamic alert won't fire
+            alert_rule.update(status=AlertRuleStatus.NOT_ENOUGH_DATA.value)
+    except (TimeoutError, MaxRetryError):
+        raise TimeoutError(f"Failed to send data to Seer - cannot {method} alert rule.")
+    except ParseError:
+        raise ParseError("Failed to parse Seer store data response")
+    except (ValidationError, Exception):
+        raise ValidationError(f"Failed to send data to Seer - cannot {method} alert rule.")
+
+
+def send_new_rule_data(alert_rule: AlertRule, project: Project) -> None:
+    try:
+        handle_send_historical_data_to_seer(alert_rule, project, "create")
+    except (TimeoutError, MaxRetryError, ParseError, ValidationError):
+        alert_rule.delete()
+        raise
+    else:
+        metrics.incr("anomaly_detection_alert.created")
+
+
+def update_rule_data(
+    alert_rule: AlertRule,
+    project: Project,
+    updated_fields: dict[str, Any],
+    updated_query_fields: dict[str, Any],
+) -> None:
+    # if the rule previously wasn't a dynamic type but it is now, we need to send Seer data for the first time
+    # OR it's dynamic but the query or aggregate is changing so we need to update the data Seer has
+    if updated_fields.get("detection_type") == AlertRuleDetectionType.DYNAMIC and (
+        alert_rule.detection_type != AlertRuleDetectionType.DYNAMIC
+        or updated_query_fields.get("query")
+        or updated_query_fields.get("aggregate")
+    ):
+        # use setattr to avoid saving the rule until the Seer call has successfully finished,
+        # otherwise the rule would be in a bad state
+        for k, v in updated_fields.items():
+            setattr(alert_rule, k, v)
+
+        handle_send_historical_data_to_seer(alert_rule, project, "update")
 
 
 def send_historical_data_to_seer(alert_rule: AlertRule, project: Project) -> AlertRuleStatus:

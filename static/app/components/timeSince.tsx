@@ -5,10 +5,10 @@ import moment from 'moment-timezone';
 import type {TooltipProps} from 'sentry/components/tooltip';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
 import getDuration from 'sentry/utils/duration/getDuration';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import type {ColorOrAlias} from 'sentry/utils/theme';
+import {useUser} from 'sentry/utils/useUser';
 
 function getDateObj(date: RelaxedDateType): Date {
   return typeof date === 'string' || isNumber(date) ? new Date(date) : date;
@@ -120,6 +120,7 @@ function TimeSince({
   liveUpdateInterval = 'minute',
   ...props
 }: Props) {
+  const user = useUser();
   const tickerRef = useRef<number | undefined>();
 
   const computeRelativeDate = useCallback(
@@ -150,7 +151,6 @@ function TimeSince({
   }, [liveUpdateInterval, computeRelativeDate]);
 
   const dateObj = getDateObj(date);
-  const user = ConfigStore.get('user');
   const options = user ? user.options : null;
 
   // Use short months when showing seconds, because "September" causes the

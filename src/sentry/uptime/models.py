@@ -100,6 +100,9 @@ class ProjectUptimeSubscription(DefaultFieldsModelExisting):
     __relocation_scope__ = RelocationScope.Excluded
 
     project = FlexibleForeignKey("sentry.Project")
+    environment = FlexibleForeignKey(
+        "sentry.Environment", db_index=True, db_constraint=False, null=True
+    )
     uptime_subscription = FlexibleForeignKey("uptime.UptimeSubscription", on_delete=models.PROTECT)
     mode = models.SmallIntegerField(default=ProjectUptimeSubscriptionMode.MANUAL.value)
     uptime_status = models.PositiveSmallIntegerField(default=UptimeStatus.OK.value)

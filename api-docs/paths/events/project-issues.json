@@ -1,7 +1,7 @@
 {
   "get": {
     "tags": ["Events"],
-    "description": "Return a list of issues (groups) bound to a project.  All parameters are supplied as query string parameters. \n\n A default query of ``is:unresolved`` is applied. To return results with other statuses send an new query value (i.e. ``?query=`` for all results).\n\nThe ``statsPeriod`` parameter can be used to select the timeline stats which should be present. Possible values are: ``\"\"`` (disable),``\"24h\"`` (default), ``\"14d\"``",
+    "description": "Return a list of issues (groups) bound to a project.  All parameters are supplied as query string parameters. \n\n A default query of ``is:unresolved`` is applied. To return results with other statuses send an new query value (i.e. ``?query=`` for all results).\n\nThe ``statsPeriod`` parameter can be used to select the timeline stats which should be present. Possible values are: ``\"\"`` (disable),``\"24h\"`` (default), ``\"14d\"``\n\nUser feedback items from the [User Feedback Widget](https://docs.sentry.io/product/user-feedback/#user-feedback-widget) are built off the issue platform, so to return a list of user feedback items for a specific project, filter for `issue.category:feedback`.",
     "operationId": "List a Project's Issues",
     "parameters": [
       {
