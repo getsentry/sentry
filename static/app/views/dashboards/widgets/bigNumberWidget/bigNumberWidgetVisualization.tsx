@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
-import isNumber from 'lodash/isNumber';
 
 import type {Polarity} from 'sentry/components/percentChange';
 import {Tooltip} from 'sentry/components/tooltip';
+import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import type {MetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
@@ -69,21 +69,19 @@ export function BigNumberWidgetVisualization(props: Props) {
     );
   }
 
-  if (!isNumber(value)) {
-    return (
-      <Wrapper>
-        <Deemphasize>{value.toString()}</Deemphasize>
-      </Wrapper>
-    );
+  if (!Number.isFinite(value) || error) {
+    return <ErrorPanel error={t('Value is not a finite number.')} />;
   }
+
+  const parsedValue = Number(value);
 
   // TODO: meta as MetaType is a white lie. `MetaType` doesn't know that types can be null, but they can!
   const fieldRenderer = meta
     ? getFieldRenderer(field, meta as MetaType, false)
     : renderableValue => renderableValue.toString();
 
-  const doesValueHitMaximum = maximumValue ? value >= maximumValue : false;
-  const clampedValue = Math.min(value, maximumValue ?? Infinity);
+  const doesValueHitMaximum = maximumValue ? parsedValue >= maximumValue : false;
+  const clampedValue = Math.min(parsedValue, maximumValue ?? Infinity);
 
   const datum = {
     [field]: clampedValue,
@@ -104,7 +102,7 @@ export function BigNumberWidgetVisualization(props: Props) {
       <NumberAndDifferenceContainer>
         <NumberContainerOverride>
           <Tooltip
-            title={value}
+            title={parsedValue}
             isHoverable
             delay={0}
             disabled={doesValueHitMaximum}

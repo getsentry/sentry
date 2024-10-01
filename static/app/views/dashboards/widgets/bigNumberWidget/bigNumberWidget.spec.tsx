@@ -46,6 +46,25 @@ describe('BigNumberWidget', () => {
       expect(screen.getByText('No Data')).toBeInTheDocument();
     });
 
+    it('Explains non-numeric data', () => {
+      render(
+        <BigNumberWidget
+          data={[
+            {
+              'count()': Infinity,
+            },
+          ]}
+          meta={{
+            fields: {
+              'count()': 'number',
+            },
+          }}
+        />
+      );
+
+      expect(screen.getByText('Value is not a finite number.')).toBeInTheDocument();
+    });
+
     it('Formats duration data', () => {
       render(
         <BigNumberWidget
