@@ -25,31 +25,51 @@ function isTraceAutogroup(
   return !!(value && 'autogrouped_by' in value);
 }
 
-function isTrace(value: TraceTree.NodeValue): value is TraceTree.Trace {
-  return !!value && ('orphan_errors' in value || 'transactions' in value);
-}
-
 function isRoot(value: TraceTree.NodeValue): value is null {
   return value === null;
 }
 
+function isTraceRoot(value: TraceTree.NodeValue): value is TraceTree.Trace {
+  return !!(value && ('orphan_errors' in value || 'transactions' in value));
+}
+
+function shouldCollapseNodeByDefault(node: TraceTreeNode<TraceTree.NodeValue>) {
+  if (isTraceSpan(node.value)) {
+    // Android creates TCP connection spans which are noisy and not useful in most cases.
+    // Unless the span has a child txn which would indicate a continuaton of the trace, we collapse it.
+    if (
+      node.value.op === 'http.client' &&
+      node.value.origin === 'auto.http.okhttp' &&
+      !node.value.childTransactions.length
+    ) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> {
-  cloneReference: TraceTreeNode<TraceTree.NodeValue> | null = null;
-  canFetch: boolean = false;
-  fetchStatus: 'resolved' | 'error' | 'idle' | 'loading' = 'idle';
   parent: TraceTreeNode | null = null;
+
+  cloneReference: TraceTreeNode<TraceTree.NodeValue> | null = null;
   reparent_reason: 'pageload server handler' | null = null;
+
+  fetchStatus: 'resolved' | 'error' | 'idle' | 'loading' = 'idle';
+
   value: T;
-  expanded: boolean = false;
+
+  canFetch: boolean = false;
+  expanded: boolean = true;
   zoomedIn: boolean = false;
   metadata: TraceTree.Metadata = {
     project_slug: undefined,
     event_id: undefined,
   };
 
-  errors: Set<TraceTree.TraceError> = new Set<TraceTree.TraceError>();
-  performance_issues: Set<TraceTree.TracePerformanceIssue> =
-    new Set<TraceTree.TracePerformanceIssue>();
+  // Events associated with the node, these are inferred from the node value.
+  errors = new Set<TraceTree.TraceError>();
+  performance_issues = new Set<TraceTree.TracePerformanceIssue>();
   profiles: TraceTree.Profile[] = [];
 
   multiplier: number;
@@ -67,6 +87,8 @@ export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> 
     this.metadata = metadata;
     this.multiplier = this.unit === 'milliseconds' ? 1e3 : 1;
 
+    // If a node has both a start and end timestamp, then we can infer a duration,
+    // otherwise we can only infer a timestamp.
     if (
       value &&
       'timestamp' in value &&
@@ -82,43 +104,32 @@ export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> 
       this.space = [value.timestamp * this.multiplier, 0];
     }
 
+    if (value && 'errors' in value && Array.isArray(value.errors)) {
+      value.errors.forEach(error => this.errors.add(error));
+    }
+
     if (
-      isTraceError(this.value) &&
-      'timestamp' in this.value &&
-      typeof this.value.timestamp === 'number'
+      value &&
+      'performance_issues' in value &&
+      Array.isArray(value.performance_issues)
     ) {
-      this.space = [this.value.timestamp * this.multiplier, 0];
+      value.performance_issues.forEach(issue => this.performance_issues.add(issue));
+    }
+
+    if (value && 'profile_id' in value && typeof value.profile_id === 'string') {
+      this.profiles.push({profile_id: value.profile_id});
     }
 
     // For error nodes, its value is the only associated issue.
     if (isTraceError(this.value)) {
-      this.errors = new Set([this.value]);
+      this.errors.add(this.value);
     }
 
-    if (value && 'profile_id' in value && typeof value.profile_id === 'string') {
-      this.profiles.push({profile_id: value.profile_id, space: this.space ?? [0, 0]});
-    }
-
-    if (
-      isTraceTransaction(this.value) ||
-      isTrace(this.value) ||
-      isTraceSpan(this.value)
-    ) {
-      this.expanded = true;
-    }
-
+    // Android http spans generate sub spans for things like dns resolution in http requests,
+    // which creates a lot of noise and is not useful to display.
     if (shouldCollapseNodeByDefault(this)) {
       this.expanded = false;
     }
-
-    if (isTraceTransaction(this.value)) {
-      this.errors = new Set(this.value.errors);
-      this.performance_issues = new Set(this.value.performance_issues);
-    }
-  }
-
-  get isOrphaned() {
-    return this.parent?.value && 'orphan_errors' in this.parent.value;
   }
 
   get isLastChild() {
@@ -154,7 +165,7 @@ export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> 
     return this._depth;
   }
 
-  get has_errors(): boolean {
+  get hasErrors(): boolean {
     return this.errors.size > 0 || this.performance_issues.size > 0;
   }
 
@@ -180,7 +191,7 @@ export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> 
         return this._connectors;
       }
 
-      this.connectors.push(this.isOrphaned ? -this.depth : this.depth);
+      this.connectors.push(isTraceRoot(this.value) ? -this.depth : this.depth);
       return this._connectors;
     }
 
@@ -196,18 +207,11 @@ export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> 
         continue;
       }
 
-      this._connectors.push(node.isOrphaned ? -node.depth : node.depth);
+      this._connectors.push(this.value ? -node.depth : node.depth);
       node = node.parent;
     }
 
     return this._connectors;
-  }
-
-  set connectors(connectors: number[] | undefined) {
-    this._connectors = connectors;
-  }
-  set depth(depth: number | undefined) {
-    this._depth = depth;
   }
 
   /**
@@ -227,7 +231,7 @@ export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> 
     }
 
     if (isTraceTransaction(this.value)) {
-      return this.zoomedIn ? this._spanChildren : this._children;
+      return this.zoomedIn ? this.spanChildren : this._children;
     }
 
     return this._children;
@@ -242,7 +246,7 @@ export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> 
   }
 
   private _max_severity: keyof Theme['level'] | undefined;
-  get max_severity(): keyof Theme['level'] {
+  get maxIssueSeverity(): keyof Theme['level'] {
     if (this._max_severity) {
       return this._max_severity;
     }
@@ -250,11 +254,16 @@ export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> 
     for (const error of this.errors) {
       if (error.level === 'error' || error.level === 'fatal') {
         this._max_severity = error.level;
-        return this.max_severity;
+        return this.maxIssueSeverity;
       }
     }
 
     return 'default';
+  }
+
+  invalidate() {
+    this._connectors = undefined;
+    this._depth = undefined;
   }
 
   static Root() {
@@ -263,20 +272,4 @@ export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> 
       project_slug: undefined,
     });
   }
-}
-
-function shouldCollapseNodeByDefault(node: TraceTreeNode<TraceTree.NodeValue>) {
-  if (isTraceSpan(node.value)) {
-    // Android creates TCP connection spans which are noisy and not useful in most cases.
-    // Unless the span has a child txn which would indicate a continuaton of the trace, we collapse it.
-    if (
-      node.value.op === 'http.client' &&
-      node.value.origin === 'auto.http.okhttp' &&
-      !node.value.childTransactions.length
-    ) {
-      return true;
-    }
-  }
-
-  return false;
 }

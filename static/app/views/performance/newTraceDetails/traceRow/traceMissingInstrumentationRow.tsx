@@ -1,8 +1,9 @@
 import {t} from 'sentry/locale';
 
 import {TraceIcons} from '../traceIcons';
-import {makeTraceNodeBarColor, type TraceTree} from '../traceModels/traceTree';
+import type {TraceTree} from '../traceModels/traceTree';
 import type {TraceTreeNode} from '../traceModels/traceTreeNode';
+import {makeTraceNodeBarColor} from '../traceModels/traceTreeNodeUtils';
 import {MissingInstrumentationTraceBar} from '../traceRow/traceBar';
 import {
   maybeFocusTraceRow,

@@ -3,169 +3,30 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {waitFor} from 'sentry-test/reactTestingLibrary';
 
-import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
-import {EntryType, type Event, type EventTransaction} from 'sentry/types/event';
-import type {
-  TracePerformanceIssue,
-  TraceSplitResults,
-} from 'sentry/utils/performance/quickTrace/types';
 import * as useOrganization from 'sentry/utils/useOrganization';
 
-import {
-  isAutogroupedNode,
-  isMissingInstrumentationNode,
-  isSpanNode,
-  isTraceErrorNode,
-  isTransactionNode,
-} from '../traceGuards';
 import {TraceShape, TraceTree} from '../traceModels/traceTree';
 
-import {ParentAutogroupNode} from './parentAutogroupNode';
-import {SiblingAutogroupNode} from './siblingAutogroupNode';
 import {TraceTreeNode} from './traceTreeNode';
 
 const EVENT_REQUEST_URL =
   '/organizations/org-slug/events/project:event_id/?averageColumn=span.self_time&averageColumn=span.duration';
 
-function makeTrace(
-  overrides: Partial<TraceSplitResults<TraceTree.Transaction>>
-): TraceSplitResults<TraceTree.Transaction> {
-  return {
-    transactions: [],
-    orphan_errors: [],
-    ...overrides,
-  } as TraceSplitResults<TraceTree.Transaction>;
-}
-
-function makeTransaction(
-  overrides: Partial<TraceTree.Transaction> = {}
-): TraceTree.Transaction {
-  return {
-    children: [],
-    sdk_name: '',
-    start_timestamp: 0,
-    timestamp: 1,
-    transaction: 'transaction',
-    'transaction.op': '',
-    'transaction.status': '',
-    performance_issues: [],
-    errors: [],
-    ...overrides,
-  } as TraceTree.Transaction;
-}
-
-function makeSpan(overrides: Partial<RawSpanType> = {}): TraceTree.Span {
-  return {
-    span_id: '',
-    op: '',
-    description: '',
-    start_timestamp: 0,
-    timestamp: 10,
-    data: {},
-    trace_id: '',
-    childTransactions: [],
-    event: makeEvent() as EventTransaction,
-    ...overrides,
-  };
-}
-
-function makeTraceError(
-  overrides: Partial<TraceTree.TraceError> = {}
-): TraceTree.TraceError {
-  return {
-    title: 'MaybeEncodingError: Error sending result',
-    level: 'error',
-    event_type: 'error',
-    data: {},
-    ...overrides,
-  } as TraceTree.TraceError;
-}
-
-function makeTracePerformanceIssue(
-  overrides: Partial<TracePerformanceIssue> = {}
-): TracePerformanceIssue {
-  return {
-    culprit: 'code',
-    end: new Date().toISOString(),
-    span: [],
-    start: new Date().toISOString(),
-    suspect_spans: ['sus span'],
-    type: 0,
-    issue_short_id: 'issue short id',
-    ...overrides,
-  } as TracePerformanceIssue;
-}
-
-function makeEvent(overrides: Partial<Event> = {}, spans: RawSpanType[] = []): Event {
-  return {
-    entries: [{type: EntryType.SPANS, data: spans}],
-    ...overrides,
-  } as Event;
-}
-
-function assertSpanNode(
-  node: TraceTreeNode<TraceTree.NodeValue>
-): asserts node is TraceTreeNode<TraceTree.Span> {
-  if (!isSpanNode(node)) {
-    throw new Error('node is not a span');
-  }
-}
-
-// function assertTraceNode(
-//   node: TraceTreeNode<TraceTree.NodeValue>
-// ): asserts node is TraceTreeNode<TraceTree.Trace> {
-//   if (!isTraceNode(node)) {
-//     throw new Error('node is not a trace');
-//   }
-// }
-
-function assertTransactionNode(
-  node: TraceTreeNode<TraceTree.NodeValue> | null
-): asserts node is TraceTreeNode<TraceTree.Transaction> {
-  if (!node || !isTransactionNode(node)) {
-    throw new Error('node is not a transaction');
-  }
-}
-
-function assertMissingInstrumentationNode(
-  node: TraceTreeNode<TraceTree.NodeValue>
-): asserts node is TraceTreeNode<TraceTree.MissingInstrumentationSpan> {
-  if (!isMissingInstrumentationNode(node)) {
-    throw new Error('node is not a missing instrumentation node');
-  }
-}
-
-function assertTraceErrorNode(
-  node: TraceTreeNode<TraceTree.NodeValue>
-): asserts node is TraceTreeNode<TraceTree.TraceError> {
-  if (!isTraceErrorNode(node)) {
-    throw new Error('node is not a trace error node');
-  }
-}
-
-function assertAutogroupedNode(
-  node: TraceTreeNode<TraceTree.NodeValue>
-): asserts node is ParentAutogroupNode | SiblingAutogroupNode {
-  if (!isAutogroupedNode(node)) {
-    throw new Error('node is not a autogrouped node');
-  }
-}
-
-function assertParentAutogroupedNode(
-  node: TraceTreeNode<TraceTree.NodeValue>
-): asserts node is ParentAutogroupNode {
-  if (!(node instanceof ParentAutogroupNode)) {
-    throw new Error('node is not a parent autogrouped node');
-  }
-}
-
-function assertSiblingAutogroupedNode(
-  node: TraceTreeNode<TraceTree.NodeValue>
-): asserts node is ParentAutogroupNode {
-  if (!(node instanceof SiblingAutogroupNode)) {
-    throw new Error('node is not a parent node');
-  }
-}
+import {
+  assertAutogroupedNode,
+  assertMissingInstrumentationNode,
+  assertParentAutogroupedNode,
+  assertSiblingAutogroupedNode,
+  assertSpanNode,
+  assertTraceErrorNode,
+  assertTransactionNode,
+  makeEvent,
+  makeSpan,
+  makeTrace,
+  makeTraceError,
+  makeTracePerformanceIssue,
+  makeTransaction,
+} from './traceTreeTestUtils';
 
 describe('TreeNode', () => {
   it('expands transaction nodes by default', () => {
@@ -218,24 +79,6 @@ describe('TreeNode', () => {
 
     root.expanded = false;
     expect(TraceTree.VisibleChildren(root)).toHaveLength(0);
-  });
-
-  it('getVisibleChildrenCount', () => {
-    const root = new TraceTreeNode(null, makeTransaction(), {
-      project_slug: '',
-      event_id: '',
-    });
-
-    const child = new TraceTreeNode(root, makeTransaction(), {
-      project_slug: '',
-      event_id: '',
-    });
-
-    root.children.push(child);
-    expect(TraceTree.VisibleChildren(root).length).toBe(1);
-
-    root.expanded = false;
-    expect(TraceTree.VisibleChildren(root).length).toBe(0);
   });
 
   describe('indicators', () => {
@@ -1045,9 +888,7 @@ describe('TraceTree', () => {
       {sdk: undefined}
     );
 
-    if (!isSpanNode(node.children[0])) {
-      throw new Error('Child needs to be a span');
-    }
+    assertSpanNode(node.children[0]);
     expect(node.children[0].value.span_id).toBe('1');
     expect(node.children[0].value.start_timestamp).toBe(0);
     expect(node.children.length).toBe(1);
@@ -2171,7 +2012,7 @@ describe('TraceTree', () => {
       expect(root.children.length).toBe(1);
       const autogroupedNode = root.children[0];
       assertSiblingAutogroupedNode(autogroupedNode);
-      expect(autogroupedNode.has_errors).toBe(true);
+      expect(autogroupedNode.hasErrors).toBe(true);
       expect(autogroupedNode.errors.size).toBe(5);
       expect(autogroupedNode.performance_issues.size).toBe(5);
     });
@@ -2278,7 +2119,7 @@ describe('TraceTree', () => {
       expect(root.children[0].children.length).toBe(0);
 
       root.children[0].expanded = true;
-      expect((root.children[0].children[0].value as RawSpanType).description).toBe(
+      expect((root.children[0].children[0].value as TraceTree.RawSpan).description).toBe(
         'span0'
       );
     });
@@ -2332,7 +2173,7 @@ describe('TraceTree', () => {
       expect(root.children.length).toBe(1);
 
       assertAutogroupedNode(root.children[0]);
-      expect(root.children[0].has_errors).toBe(true);
+      expect(root.children[0].hasErrors).toBe(true);
       expect(root.children[0].errors.size).toBe(3);
       expect(root.children[0].performance_issues.size).toBe(3);
     });
@@ -2377,11 +2218,11 @@ describe('TraceTree', () => {
       assertAutogroupedNode(autoGroupedNode);
 
       expect(autoGroupedNode.children.length).toBe(1);
-      expect((autoGroupedNode.children[0].value as RawSpanType).op).toBe('db');
+      expect((autoGroupedNode.children[0].value as TraceTree.RawSpan).op).toBe('db');
 
       autoGroupedNode.expanded = true;
       expect(autoGroupedNode.children.length).toBe(1);
-      expect((autoGroupedNode.children[0].value as RawSpanType).op).toBe('http');
+      expect((autoGroupedNode.children[0].value as TraceTree.RawSpan).op).toBe('http');
     });
 
     it('nested direct autogrouping', () => {

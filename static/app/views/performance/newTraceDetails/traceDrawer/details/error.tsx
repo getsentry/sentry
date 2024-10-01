@@ -15,8 +15,9 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 
 import type {TraceTreeNodeDetailsProps} from '../../traceDrawer/tabs/traceTreeNodeDetails';
 import {TraceIcons} from '../../traceIcons';
-import {makeTraceNodeBarColor, TraceTree} from '../../traceModels/traceTree';
+import {TraceTree} from '../../traceModels/traceTree';
 import type {TraceTreeNode} from '../../traceModels/traceTreeNode';
+import {makeTraceNodeBarColor} from '../../traceModels/traceTreeNodeUtils';
 import {getTraceTabTitle} from '../../traceState/traceTabs';
 
 import {IssueList} from './issues/issues';

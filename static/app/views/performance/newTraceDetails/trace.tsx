@@ -570,7 +570,7 @@ function RenderTraceRow(props: {
       ? TRACE_RIGHT_COLUMN_ODD_CLASSNAME
       : TRACE_RIGHT_COLUMN_EVEN_CLASSNAME;
 
-  const listColumnClassName = node.isOrphaned
+  const listColumnClassName = isTraceNode(node)
     ? TRACE_CHILDREN_COUNT_WRAPPER_ORPHANED_CLASSNAME
     : TRACE_CHILDREN_COUNT_WRAPPER_CLASSNAME;
 

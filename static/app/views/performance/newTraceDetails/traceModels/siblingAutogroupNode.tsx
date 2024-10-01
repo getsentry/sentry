@@ -1,5 +1,6 @@
-import {computeAutogroupedBarSegments, type TraceTree} from './traceTree';
+import type {TraceTree} from './traceTree';
 import {TraceTreeNode} from './traceTreeNode';
+import {computeAutogroupedBarSegments} from './traceTreeNodeUtils';
 
 export class SiblingAutogroupNode extends TraceTreeNode<TraceTree.SiblingAutogroup> {
   groupCount: number = 0;
@@ -14,10 +15,6 @@ export class SiblingAutogroupNode extends TraceTreeNode<TraceTree.SiblingAutogro
   ) {
     super(parent, node, metadata);
     this.expanded = false;
-  }
-
-  get has_errors(): boolean {
-    return this.errors.size > 0 || this.performance_issues.size > 0;
   }
 
   get autogroupedSegments(): [number, number][] {
