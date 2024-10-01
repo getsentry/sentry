@@ -49,6 +49,7 @@ from sentry.models.rule import Rule
 from sentry.notifications.services import notifications_service
 from sentry.notifications.utils.actions import BlockKitMessageAction, MessageAction
 from sentry.shared_integrations.exceptions import ApiError
+from sentry.users.models import User
 from sentry.users.services.user import RpcUser
 from sentry.utils import metrics
 
@@ -683,11 +684,12 @@ class SlackActionEndpoint(Endpoint):
         defer_attachment_update = False
 
         def record_event(interaction_type: MessagingInteractionType) -> MessagingInteractionEvent:
+            user = request.user
             return MessagingInteractionEvent(
                 interaction_type,
                 PROVIDER,
-                user=request.user,
-                organization=group.project.organization,
+                user=(user if isinstance(user, User) else None),
+                organization=(group.project.organization if group else None),
             )
 
         # Handle interaction actions
