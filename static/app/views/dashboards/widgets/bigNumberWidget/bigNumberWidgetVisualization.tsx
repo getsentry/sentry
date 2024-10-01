@@ -34,7 +34,7 @@ export function BigNumberWidgetVisualization(props: Props) {
   const {
     data,
     previousPeriodData,
-    maximumValue,
+    maximumValue = Number.MAX_VALUE,
     preferredPolarity,
     meta,
     isLoading,
@@ -81,7 +81,7 @@ export function BigNumberWidgetVisualization(props: Props) {
     : renderableValue => renderableValue.toString();
 
   const doesValueHitMaximum = maximumValue ? parsedValue >= maximumValue : false;
-  const clampedValue = Math.min(parsedValue, maximumValue ?? Infinity);
+  const clampedValue = Math.min(parsedValue, maximumValue);
 
   const datum = {
     [field]: clampedValue,
