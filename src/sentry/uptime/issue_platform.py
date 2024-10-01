@@ -89,8 +89,13 @@ def build_event_data_for_occurrence(
     project_subscription: ProjectUptimeSubscription,
     occurrence: IssueOccurrence,
 ):
+    # Default environment when it hasn't been configured
+    env = "prod"
+    if project_subscription.environment:
+        env = project_subscription.environment.name
+
     return {
-        "environment": "prod",  # TODO: Include the environment here when we have it
+        "environment": env,
         "event_id": occurrence.event_id,
         "fingerprint": occurrence.fingerprint,
         "platform": "other",
