@@ -109,6 +109,47 @@ describe('Uptime Alert Form', function () {
     expect(screen.getByRole('menuitemradio', {name: 'POST'})).toBeChecked();
   });
 
+  it('handles simple edits', async function () {
+    // XXX(epurkhiser): This test covers the case where the formModel waws not
+    // triggering the observer that updates the apiEndpoint url based on the
+    // selected project for existing rules. The other tests all pass as the
+    // triggered error state from clearing the fields causes the observer to be
+    // called for the first time and correctly set the apiEndpoint.
+
+    const {organization, project} = initializeOrg();
+    OrganizationStore.onUpdate(organization);
+
+    const rule = UptimeRuleFixture({
+      name: 'Existing Rule',
+      projectSlug: project.slug,
+      url: 'https://existing-url.com',
+      owner: ActorFixture(),
+    });
+    render(
+      <UptimeAlertForm organization={organization} project={project} rule={rule} />,
+      {organization}
+    );
+    await screen.findByText('Configure Request');
+
+    await userEvent.type(input('URL'), '/test');
+
+    const updateMock = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/uptime/${rule.id}/`,
+      method: 'PUT',
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Save Rule'}));
+
+    expect(updateMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        data: expect.objectContaining({
+          url: 'https://existing-url.com/test',
+        }),
+      })
+    );
+  });
+
   it('can edit an existing rule', async function () {
     const {organization, project} = initializeOrg();
     OrganizationStore.onUpdate(organization);
