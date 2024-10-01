@@ -103,7 +103,9 @@ def transform_fields(
     for field in jira_fields:
         field_data = data.get(field.key)
 
-        # Skip any empty data, as we have some templated
+        # Skip any values that indicate no value should be provided.
+        # We have some older alert templates with "" values, which will raise
+        # if we don't skip them.
         if field_data is None or field_data == "":
             continue
 
