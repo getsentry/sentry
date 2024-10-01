@@ -5,9 +5,6 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import ProjectVelocityScoreCard from './projectVelocityScoreCard';
 
 describe('ProjectDetail > ProjectVelocity', function () {
-  let allTimeDataEndpointMock: jest.Mock;
-  let currentDataEndpointMock: jest.Mock;
-  let previousDataEndpointMock: jest.Mock;
   const organization = OrganizationFixture();
 
   const selection = {
@@ -26,7 +23,7 @@ describe('ProjectDetail > ProjectVelocity', function () {
   });
 
   it('renders release count', async function () {
-    previousDataEndpointMock = MockApiClient.addMockResponse({
+    const previousDataEndpointMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/releases/stats/`,
       body: Array.from({length: 98}).map((_item, index) => ({
         version: `0.0.${index + 100}`,
@@ -34,7 +31,7 @@ describe('ProjectDetail > ProjectVelocity', function () {
       status: 200,
     });
 
-    currentDataEndpointMock = MockApiClient.addMockResponse({
+    const currentDataEndpointMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/releases/stats/`,
       body: Array.from({length: 202}).map((_item, index) => ({
         version: `0.0.${index + 100}`,
@@ -55,6 +52,7 @@ describe('ProjectDetail > ProjectVelocity', function () {
     expect(await screen.findByText('202')).toBeInTheDocument();
     expect(await screen.findByText('104')).toBeInTheDocument();
 
+    expect(currentDataEndpointMock).toHaveBeenCalledTimes(1);
     expect(currentDataEndpointMock).toHaveBeenNthCalledWith(
       1,
       `/organizations/${organization.slug}/releases/stats/`,
@@ -67,6 +65,7 @@ describe('ProjectDetail > ProjectVelocity', function () {
       })
     );
 
+    expect(previousDataEndpointMock).toHaveBeenCalledTimes(1);
     expect(previousDataEndpointMock).toHaveBeenNthCalledWith(
       1,
       `/organizations/${organization.slug}/releases/stats/`,
@@ -82,7 +81,7 @@ describe('ProjectDetail > ProjectVelocity', function () {
   });
 
   it('renders without releases', async function () {
-    allTimeDataEndpointMock = MockApiClient.addMockResponse({
+    const dataEndpointMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/releases/stats/`,
       body: [],
       status: 200,
@@ -99,6 +98,6 @@ describe('ProjectDetail > ProjectVelocity', function () {
     expect(await screen.findByRole('button', {name: 'Start Setup'})).toBeInTheDocument();
     expect(await screen.findByRole('button', {name: 'Get Tour'})).toBeInTheDocument();
 
-    expect(allTimeDataEndpointMock).toHaveBeenCalled();
+    expect(dataEndpointMock).toHaveBeenCalledTimes(3);
   });
 });
