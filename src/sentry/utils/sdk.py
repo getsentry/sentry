@@ -48,13 +48,13 @@ UNSAFE_FILES = (
     "outcomes_consumer.py",
 )
 
-# Tasks not included here are not sampled
-# If a parent task schedules other tasks you should add it in here or the child
-# tasks will not be sampled
+# Tasks not included here are sampled with `SENTRY_BACKEND_APM_SAMPLING`.
+# If a parent task schedules other tasks, rates propagate to the children.
 SAMPLED_TASKS = {
     "sentry.tasks.send_ping": settings.SAMPLED_DEFAULT_RATE,
     "sentry.tasks.store.process_event": settings.SENTRY_PROCESS_EVENT_APM_SAMPLING,
     "sentry.tasks.store.process_event_from_reprocessing": settings.SENTRY_PROCESS_EVENT_APM_SAMPLING,
+    "sentry.tasks.store.save_event": settings.SENTRY_PROCESS_EVENT_APM_SAMPLING,
     "sentry.tasks.store.save_event_transaction": settings.SENTRY_PROCESS_EVENT_APM_SAMPLING,
     "sentry.tasks.process_suspect_commits": settings.SENTRY_SUSPECT_COMMITS_APM_SAMPLING,
     "sentry.tasks.process_commit_context": settings.SENTRY_SUSPECT_COMMITS_APM_SAMPLING,
