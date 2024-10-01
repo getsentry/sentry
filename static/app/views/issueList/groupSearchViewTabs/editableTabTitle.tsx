@@ -76,6 +76,7 @@ function EditableTabTitle({
     if (isEditing) {
       requestAnimationFrame(() => {
         inputRef.current?.focus();
+        inputRef.current?.select();
       });
     } else {
       inputRef.current?.blur();
@@ -87,24 +88,29 @@ function EditableTabTitle({
   };
 
   return (
-    <Tooltip title={label} showOnlyOnOverflow skipWrapper>
+    <Tooltip title={label} disabled={isEditing} showOnlyOnOverflow skipWrapper>
       <motion.div layout="position" transition={{duration: 0.25}}>
         {isSelected ? (
           <StyledGrowingInput
             value={inputValue}
             onChange={handleOnChange}
             onKeyDown={handleOnKeyDown}
-            onDoubleClick={() => isSelected && setIsEditing(true)}
+            onDoubleClick={() => setIsEditing(true)}
             onBlur={handleOnBlur}
             ref={inputRef}
             style={memoizedStyles}
             isEditing={isEditing}
-            onFocus={e => e.target.select()}
             onPointerDown={e => {
               e.stopPropagation();
+              if (!isEditing) {
+                e.preventDefault();
+              }
             }}
             onMouseDown={e => {
               e.stopPropagation();
+              if (!isEditing) {
+                e.preventDefault();
+              }
             }}
             maxLength={128}
           />

@@ -10,6 +10,7 @@ from sentry import audit_log
 from sentry.api.fields import ActorField
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.auth.superuser import is_active_superuser
+from sentry.models.environment import Environment
 from sentry.uptime.detectors.url_extraction import extract_domain_parts
 from sentry.uptime.models import ProjectUptimeSubscription, ProjectUptimeSubscriptionMode
 from sentry.uptime.subscriptions.subscriptions import (
@@ -34,6 +35,16 @@ public suffix list (PSL). See `extract_domain_parts` fo more details
 """
 SUPPORTED_HTTP_METHODS = ["GET", "POST", "HEAD", "PUT", "DELETE", "PATCH", "OPTIONS"]
 MAX_REQUEST_SIZE_BYTES = 1000
+
+# This matches the jsonschema for the check config
+VALID_INTERVALS = [
+    timedelta(minutes=1),
+    timedelta(minutes=5),
+    timedelta(minutes=10),
+    timedelta(minutes=20),
+    timedelta(minutes=30),
+    timedelta(minutes=60),
+]
 
 HEADERS_LIST_SCHEMA = {
     "type": "array",
@@ -68,13 +79,19 @@ class UptimeMonitorValidator(CamelSnakeSerializer):
         help_text="Name of the uptime monitor",
     )
     owner = ActorField(
-        required=True,
+        required=False,
         allow_null=True,
         help_text="The ID of the team or user that owns the uptime monitor. (eg. user:51 or team:6)",
     )
+    environment = serializers.CharField(
+        max_length=64,
+        required=False,
+        allow_null=True,
+        help_text="Name of the environment",
+    )
     url = URLField(required=True, max_length=255)
-    interval_seconds = serializers.IntegerField(
-        required=True, min_value=60, max_value=int(timedelta(hours=1).total_seconds())
+    interval_seconds = serializers.ChoiceField(
+        required=True, choices=[int(i.total_seconds()) for i in VALID_INTERVALS]
     )
     mode = serializers.IntegerField(required=False)
     method = serializers.ChoiceField(
@@ -138,12 +155,21 @@ class UptimeMonitorValidator(CamelSnakeSerializer):
             )
 
     def create(self, validated_data):
+        if validated_data.get("environment") is not None:
+            environment = Environment.get_or_create(
+                project=self.context["project"],
+                name=validated_data["environment"],
+            )
+        else:
+            environment = None
+
         method_headers_body = {
             k: v for k, v in validated_data.items() if k in {"method", "headers", "body"}
         }
         try:
             uptime_monitor, created = get_or_create_project_uptime_subscription(
                 project=self.context["project"],
+                environment=environment,
                 url=validated_data["url"],
                 interval_seconds=validated_data["interval_seconds"],
                 name=validated_data["name"],
@@ -181,11 +207,20 @@ class UptimeMonitorValidator(CamelSnakeSerializer):
         name = data["name"] if "name" in data else instance.name
         owner = data["owner"] if "owner" in data else instance.owner
 
+        if "environment" in data:
+            environment = Environment.get_or_create(
+                project=self.context["project"],
+                name=data["environment"],
+            )
+        else:
+            environment = instance.environment
+
         if "mode" in data:
             raise serializers.ValidationError("Mode can only be specified on creation (for now)")
 
         update_project_uptime_subscription(
             uptime_monitor=instance,
+            environment=environment,
             url=url,
             interval_seconds=interval_seconds,
             method=method,

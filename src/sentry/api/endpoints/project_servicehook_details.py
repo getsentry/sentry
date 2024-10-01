@@ -12,6 +12,7 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.validators import ServiceHookValidator
 from sentry.constants import ObjectStatus
+from sentry.sentry_apps.api.serializers.servicehook import ServiceHookSerializer
 from sentry.sentry_apps.models.servicehook import ServiceHook
 
 
@@ -42,7 +43,7 @@ class ProjectServiceHookDetailsEndpoint(ProjectEndpoint):
             hook = ServiceHook.objects.get(project_id=project.id, guid=hook_id)
         except ServiceHook.DoesNotExist:
             raise ResourceDoesNotExist
-        return self.respond(serialize(hook, request.user))
+        return self.respond(serialize(hook, request.user, ServiceHookSerializer()))
 
     def put(self, request: Request, project, hook_id) -> Response:
         """
@@ -95,7 +96,7 @@ class ProjectServiceHookDetailsEndpoint(ProjectEndpoint):
                 data=hook.get_audit_log_data(),
             )
 
-        return self.respond(serialize(hook, request.user))
+        return self.respond(serialize(hook, request.user, ServiceHookSerializer()))
 
     def delete(self, request: Request, project, hook_id) -> Response:
         """

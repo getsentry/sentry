@@ -3,7 +3,7 @@ import responses
 
 from sentry.coreapi import APIUnauthorized
 from sentry.mediators.external_issues.issue_link_creator import IssueLinkCreator
-from sentry.models.platformexternalissue import PlatformExternalIssue
+from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
 from sentry.sentry_apps.services.app import app_service
 from sentry.testutils.cases import TestCase
 from sentry.users.services.user.serial import serialize_rpc_user
