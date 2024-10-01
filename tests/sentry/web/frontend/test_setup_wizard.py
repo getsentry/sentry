@@ -225,6 +225,21 @@ class SetupWizard(PermissionTestCase):
 
         assert resp.status_code == 404
 
+    def test_organization_without_membership(self):
+        self.org = self.create_organization()
+        self.project = self.create_project(organization=self.org)
+        self.login_as(self.user)
+
+        key = f"{SETUP_WIZARD_CACHE_KEY}abc"
+        default_cache.set(key, "test", 600)
+
+        url = reverse("sentry-project-wizard-fetch", kwargs={"wizard_hash": "abc"})
+        resp = self.client.post(
+            path=url, data={"organizationId": self.org.id, "projectId": self.project.id}
+        )
+
+        assert resp.status_code == 404
+
     def test_post_project_not_in_org(self):
         self.org = self.create_organization(owner=self.user)
         self.project = self.create_project()

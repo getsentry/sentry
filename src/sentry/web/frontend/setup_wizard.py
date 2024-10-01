@@ -144,11 +144,18 @@ class SetupWizardView(BaseView):
         if organization_id is None or project_id is None or wizard_hash is None:
             return HttpResponseBadRequest()
 
-        mapping = get_object_or_404(OrganizationMapping, organization_id=organization_id)
+        member_org_ids = OrganizationMemberMapping.objects.filter(
+            user_id=request.user.id
+        ).values_list("organization_id", flat=True)
+        mapping = get_object_or_404(
+            OrganizationMapping,
+            organization_id=organization_id,
+            organization_id__in=member_org_ids,
+        )
 
         project = project_service.get_by_id(organization_id=mapping.organization_id, id=project_id)
         if project is None:
-            raise Http404("Project not found")
+            raise Http404()
 
         project_key = project_key_service.get_project_key(
             organization_id=mapping.organization_id,
@@ -156,7 +163,7 @@ class SetupWizardView(BaseView):
             role=ProjectKeyRole.store,
         )
         if project_key is None:
-            raise Http404("Project key not found")
+            raise Http404()
 
         serialized_token = get_org_token(mapping, request.user)
 
