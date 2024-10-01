@@ -38,6 +38,7 @@ const browser: Set<PlatformKey> = new Set([
   'javascript-ember',
   'javascript-gatsby',
   'javascript-nextjs',
+  'javascript-nuxt',
   'javascript-react',
   'javascript-remix',
   'javascript-solid',

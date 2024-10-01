@@ -306,6 +306,13 @@ export const platforms: PlatformIntegration[] = [
     link: 'https://docs.sentry.io/platforms/javascript/guides/nextjs/',
   },
   {
+    id: 'javascript-nuxt',
+    name: 'Nuxt',
+    type: 'framework',
+    language: 'javascript',
+    link: 'https://docs.sentry.io/platforms/javascript/guides/nuxt/',
+  },
+  {
     id: 'javascript-react',
     name: 'React',
     type: 'framework',
