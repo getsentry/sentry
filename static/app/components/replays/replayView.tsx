@@ -69,6 +69,7 @@ function ReplayView({toggleFullscreen, isLoading}: Props) {
       </PlayerBreadcrumbContainer>
       {isFullscreen ? (
         <ReplayController
+          isLoading={isLoading}
           toggleFullscreen={toggleFullscreen}
           hideFastForward={isVideoReplay}
         />

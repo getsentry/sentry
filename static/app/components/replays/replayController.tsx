@@ -21,10 +21,11 @@ const COMPACT_WIDTH_BREAKPOINT = 500;
 interface Props {
   toggleFullscreen: () => void;
   hideFastForward?: boolean;
+  isLoading?: boolean;
   speedOptions?: number[];
 }
 
-function ReplayPlayPauseBar() {
+function ReplayPlayPauseBar({isLoading}: {isLoading?: boolean}) {
   const {currentTime, replay, setCurrentTime} = useReplayContext();
 
   return (
@@ -35,9 +36,11 @@ function ReplayPlayPauseBar() {
         icon={<IconRewind10 size="sm" />}
         onClick={() => setCurrentTime(currentTime - 10 * SECOND)}
         aria-label={t('Rewind 10 seconds')}
+        disabled={isLoading}
       />
-      <ReplayPlayPauseButton />
+      <ReplayPlayPauseButton isLoading={isLoading} />
       <Button
+        disabled={isLoading}
         size="sm"
         title={t('Next breadcrumb')}
         icon={<IconNext size="sm" />}
@@ -64,6 +67,7 @@ export default function ReplayController({
   toggleFullscreen,
   hideFastForward = false,
   speedOptions = [0.1, 0.25, 0.5, 1, 2, 4, 8, 16],
+  isLoading,
 }: Props) {
   const barRef = useRef<HTMLDivElement>(null);
   const [isCompact, setIsCompact] = useState(false);
@@ -83,12 +87,13 @@ export default function ReplayController({
 
   return (
     <ButtonGrid ref={barRef} isCompact={isCompact}>
-      <ReplayPlayPauseBar />
+      <ReplayPlayPauseBar isLoading={isLoading} />
       <Container>
-        <TimeAndScrubberGrid isCompact={isCompact} showZoom />
+        <TimeAndScrubberGrid isCompact={isCompact} showZoom isLoading={isLoading} />
       </Container>
       <ButtonBar gap={1}>
         <ReplayPreferenceDropdown
+          isLoading={isLoading}
           speedOptions={speedOptions}
           hideFastForward={hideFastForward}
         />
