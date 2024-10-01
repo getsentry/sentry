@@ -30,7 +30,7 @@ type Props = RouteComponentProps<
 };
 
 const hasSourceMapUploadsView = (org: Organization) =>
-  org.features.includes('new-source-map-uploads-view') || true;
+  org.features.includes('new-source-map-uploads-view');
 
 export function ToggleSourceMapUploadsView({router}: {router: InjectedRouter}) {
   const sourceMapUploads = router.location.query.sourceMapUploads === 'true';
