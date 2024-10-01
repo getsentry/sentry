@@ -1,6 +1,6 @@
 export type StatsEventParameters = {
   'stats.docs_clicked': {
-    projects: string;
+    dataCategory: string;
     source:
       | 'card-accepted'
       | 'card-filtered'
