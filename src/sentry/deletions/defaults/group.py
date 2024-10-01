@@ -5,6 +5,8 @@ from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from typing import Any
 
+from snuba_sdk import DeleteQuery, Request
+
 from sentry import eventstore, eventstream, models, nodestore
 from sentry.eventstore.models import Event
 from sentry.issues.grouptype import GroupCategory
@@ -12,6 +14,7 @@ from sentry.models.group import Group, GroupStatus
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.snuba.dataset import Dataset
 from sentry.tasks.delete_seer_grouping_records import call_delete_seer_grouping_records_by_hash
+from sentry.utils.snuba import bulk_snuba_queries
 
 from ..base import BaseDeletionTask, BaseRelation, ModelDeletionTask, ModelRelation
 from ..manager import DeletionTaskManager
@@ -159,40 +162,55 @@ class ErrorEventsDeletionTask(EventsBaseDeletionTask):
             eventstream.backend.end_delete_groups(eventstream_state)
 
 
-class EventIssuePlatformDeletionTask(EventsBaseDeletionTask):
+class IssuePlatformEventsDeletionTask(EventsBaseDeletionTask):
     """
     This class helps delete Issue Platform events which use the new Clickhouse light deletes.
     """
 
     dataset = Dataset.IssuePlatform
 
+    def chunk(self) -> bool:
+        """This method is called to delete chunks of data. It returns a boolean to say
+        if the deletion has completed and if it needs to be called again."""
+        events = self.get_unfetched_events()
+        if events:
+            self.delete_events_from_nodestore(events)
+            self.delete_events_from_snuba(events)
+            # This value will be used in the next call to chunk
+            self.last_event = events[-1]
+            # As long as it returns True the task will keep iterating
+            return True
+        else:
+            return False
+
     def delete_events_from_nodestore(self, events: Sequence[Event]) -> None:
-        # Remove from nodestore
+        # We delete by the occurrence_id instead of the event_id
         node_ids = [
             Event.generate_node_id(event.project_id, event._snuba_data["occurrence_id"])
             for event in events
         ]
         nodestore.backend.delete_multi(node_ids)
 
-    def delete_events_from_snuba(self, project_groups: Mapping[int, Sequence[int]]) -> None:
-        pass
-
-    # def delete_issue_platform_events(self, issue_platform_events: Sequence[Event]) -> None:
-    #     pass
-    # print(issue_platform_events)
-    # XXX: For now, we will only delete one group. We will change this in the future
-    # group_id = issue_platform_group_ids[0]
-    # query = DeleteQuery(
-    #     EntityKey.IssuePlatform.value,
-    #     {"project_id": [self.project.id], "occurrence_id": [occurrence_id]},
-    # )
-    # request = Request(
-    #     dataset=Dataset.IssuePlatform.value,
-    #     app_id=self.referrer,
-    #     query=query,
-    #     tenant_ids=self.tenant_ids,
-    # )
-    # results = bulk_snuba_queries([request])[0]["data"]
+    def delete_events_from_snuba(self, events: Sequence[Event]) -> None:
+        if not events:
+            return
+        assert events[0].group_id is not None  # Handle typing issue
+        query = DeleteQuery(
+            self.dataset.value,
+            column_conditions={
+                "project_id": [events[0].project_id],
+                # XXX: I thought we need to start using group_id
+                # "group_id": [events[0].group_id],
+                "occurrence_id": [events[0]._snuba_data["occurrence_id"]],
+            },
+        )
+        request = Request(
+            dataset=self.dataset.value,
+            app_id=self.referrer,
+            query=query,
+            tenant_ids=self.tenant_ids,
+        )
+        bulk_snuba_queries([request])[0]["data"]
 
 
 class GroupDeletionTask(ModelDeletionTask[Group]):
@@ -241,7 +259,7 @@ class GroupDeletionTask(ModelDeletionTask[Group]):
             if issue_platform_groups:
                 params = {"groups": issue_platform_groups}
                 child_relations.append(
-                    BaseRelation(params=params, task=EventIssuePlatformDeletionTask)
+                    BaseRelation(params=params, task=IssuePlatformEventsDeletionTask)
                 )
 
         self.delete_children(child_relations)

@@ -265,7 +265,6 @@ class DeleteIssuePlatformTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         assert Group.objects.filter(id=event.group_id).exists()
         event_node_id = Event.generate_node_id(event.project_id, event.event_id)
         assert nodestore.backend.get(event_node_id)
-
         # The Issue Platform group and occurrence are deleted
         assert issue_platform_group.issue_type == FeedbackGroup
         assert not Group.objects.filter(id=issue_platform_group.id).exists()
