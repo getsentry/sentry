@@ -25,12 +25,13 @@
             source: 'sentry-toolbar',
             message: 'did-login',
           }, '*');
+
+          setTimeout(() => {
+            window.close();
+          }, 3_000);
         }
 
         notifyOpener();
-        setTimeout(() => {
-          window.close();
-        }, 3_000);
 
         // If the popup doesn't close, we can let people try to close it manually.
         document.getElementById('close-popup').addEventListener('click', () => {
