@@ -200,13 +200,6 @@ def get_manager() -> DeletionTaskManager:
     return _default_manager
 
 
-def __getattr__(name: str) -> Any:
-    # Shim for getsentry
-    if name == "default_manager":
-        return get_manager()
-    raise AttributeError(f"module {__name__} has no attribute {name}")
-
-
 def get(
     task: type[BaseDeletionTask[Any]] | None = None,
     **kwargs: Any,
