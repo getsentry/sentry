@@ -99,7 +99,7 @@ def build_comment_webhook(installation_id, issue_id, type, user_id, *args, **kwa
 
 
 @instrumented_task(
-    "sentry.sentry_apps.tasks.sentry_apps.send_process_resource_change_webhook", **TASK_OPTIONS
+    "sentry.sentry_apps.tasks.sentry_apps.send_resource_change_webhook", **TASK_OPTIONS
 )
 @retry_decorator
 def send_resource_change_webhook(installation_id, event, data, *args, **kwargs):
