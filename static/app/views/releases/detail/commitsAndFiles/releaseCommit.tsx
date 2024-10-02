@@ -162,6 +162,7 @@ const CommitContent = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(0.25)};
+  ${p => p.theme.overflowEllipsis};
 `;
 
 const MetaWrapper = styled('div')`
