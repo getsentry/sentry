@@ -1,4 +1,5 @@
 from sentry import analytics, features
+from sentry.constants import ObjectStatus
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import integration_service
@@ -32,7 +33,9 @@ def sync_assignee_outbound(external_issue_id: int, user_id: int | None, assign: 
     has_issue_sync = features.has("organizations:integrations-issue-sync", organization)
     if not has_issue_sync:
         return
-    integration = integration_service.get_integration(integration_id=external_issue.integration_id)
+    integration = integration_service.get_integration(
+        integration_id=external_issue.integration_id, status=ObjectStatus.ACTIVE
+    )
     if not integration:
         return
 
