@@ -10,8 +10,8 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
-from sentry.api.validators import ServiceHookValidator
 from sentry.constants import ObjectStatus
+from sentry.sentry_apps.api.parsers.servicehook import ServiceHookValidator
 from sentry.sentry_apps.api.serializers.servicehook import ServiceHookSerializer
 from sentry.sentry_apps.models.servicehook import ServiceHook
 from sentry.sentry_apps.services.hook import hook_service

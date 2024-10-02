@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
 import Feature from 'sentry/components/acl/feature';
-import OrganizationAvatar from 'sentry/components/avatar/organizationAvatar';
 import Link from 'sentry/components/links/link';
 import {useNavContext} from 'sentry/components/nav/context';
 import Submenu from 'sentry/components/nav/submenu';
@@ -16,19 +15,17 @@ import {
   type NavSidebarItem,
   resolveNavItemTo,
 } from 'sentry/components/nav/utils';
+import SidebarDropdown from 'sentry/components/sidebar/sidebarDropdown';
 import {space} from 'sentry/styles/space';
 import theme from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
 
 function Sidebar() {
-  const organization = useOrganization();
-
   return (
     <Fragment>
       <SidebarWrapper role="navigation" aria-label="Primary Navigation">
         <SidebarHeader>
-          <OrganizationAvatar organization={organization} size={32} />
+          <SidebarDropdown orientation="left" collapsed />
         </SidebarHeader>
         <SidebarItems />
       </SidebarWrapper>
