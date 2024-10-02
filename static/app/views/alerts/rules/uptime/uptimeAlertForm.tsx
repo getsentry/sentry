@@ -153,7 +153,7 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
             <SelectField
               name="method"
               label={t('Method')}
-              placeholder={'GET'}
+              defaultValue="GET"
               options={HTTP_METHOD_OPTIONS.map(option => ({
                 value: option,
                 label: option,
