@@ -20,7 +20,7 @@ import {buildReactRouter6Routes} from './utils/reactRouter6Compat/router';
 
 const queryClient = new QueryClient(DEFAULT_QUERY_CLIENT_CONFIG);
 
-function createReactRouter6Routes() {
+function buildRouter() {
   const sentryCreateBrowserRouter = wrapCreateBrowserRouter(createBrowserRouter);
   const router = sentryCreateBrowserRouter(buildReactRouter6Routes(routes()));
   DANGEROUS_SET_REACT_ROUTER_6_HISTORY(router);
@@ -29,7 +29,7 @@ function createReactRouter6Routes() {
 }
 
 function Main() {
-  const [router] = useState(createReactRouter6Routes);
+  const [router] = useState(buildRouter);
 
   return (
     <ThemeAndStyleProvider>
