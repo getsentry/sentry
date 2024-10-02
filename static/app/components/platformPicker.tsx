@@ -107,13 +107,17 @@ class PlatformPicker extends Component<PlatformPickerProps, State> {
     const filtered = tempSelectablePlatforms
       .filter(this.state.filter ? subsetMatch : categoryMatch)
       .sort((a, b) => {
-        if (startsWithPunctuation(a.name) && !startsWithPunctuation(b.name)) {
+        // Treat Nuxt as 'Vue' to sort it alongside Nuxt
+        const nameA = a.id === 'javascript-nuxt' ? 'Vue' : a.name;
+        const nameB = b.id === 'javascript-nuxt' ? 'Vue' : b.name;
+
+        if (startsWithPunctuation(nameA) && !startsWithPunctuation(nameB)) {
           return 1;
         }
-        if (!startsWithPunctuation(a.name) && startsWithPunctuation(b.name)) {
+        if (!startsWithPunctuation(nameA) && startsWithPunctuation(nameB)) {
           return -1;
         }
-        return a.name.localeCompare(b.name);
+        return nameA.localeCompare(nameB);
       });
 
     if (this.props.showOther && this.state.filter.toLocaleLowerCase() === 'other') {
