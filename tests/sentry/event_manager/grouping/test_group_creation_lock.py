@@ -38,10 +38,8 @@ def save_event(project_id: int, return_values: list[GroupInfo]) -> None:
 
 @django_db_all(transaction=True)
 @pytest.mark.parametrize(
-    "is_race_free",
+    "lock_disabled",
     [
-        # regular group creation code, which is supposed to not have races
-        True,
         # group creation code with removed transaction isolation, which is then
         # supposed to create multiple groups. This variant exists such that we can
         # ensure the test would find race conditions in principle, and does not
@@ -51,12 +49,14 @@ def save_event(project_id: int, return_values: list[GroupInfo]) -> None:
         # If this variant fails, CONCURRENCY needs to be increased or e.g. thread
         # barriers need to be used to ensure data races. This does not seem to be
         # necessary so far.
+        True,
+        # regular group creation code, which is supposed to not have races
         False,
     ],
-    ids=(" is_race_free: True ", " is_race_free: False "),
+    ids=(" lock_disabled: True ", " lock_disabled: False "),
 )
-def test_group_creation_race(monkeypatch, default_project, is_race_free):
-    if not is_race_free:
+def test_group_creation_race(monkeypatch, default_project, lock_disabled):
+    if lock_disabled:
         # Disable transaction isolation just within event manager, but not in
         # GroupHash.objects.create_or_update
         monkeypatch.setattr("sentry.event_manager.transaction", FakeTransactionModule)
@@ -86,7 +86,7 @@ def test_group_creation_race(monkeypatch, default_project, is_race_free):
         for thread in threads:
             thread.join()
 
-    if is_race_free:
+    if not lock_disabled:
         # assert only one new group was created
         assert len({group_info.group.id for group_info in return_values}) == 1
         assert sum(group_info.is_new for group_info in return_values) == 1
