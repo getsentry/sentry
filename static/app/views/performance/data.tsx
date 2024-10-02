@@ -499,7 +499,7 @@ export function generateGenericPerformanceEventView(
   return eventView;
 }
 
-function generateBackendPerformanceEventView(
+export function generateBackendPerformanceEventView(
   location: Location,
   withStaticFilters: boolean,
   organization: Organization
