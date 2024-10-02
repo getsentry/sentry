@@ -31,7 +31,7 @@ class OrganizationFlagLogIndexEndpointTestCase(APITestCase):
         model.save()
 
         with self.feature(self.features):
-            response = self.client.get(self.url + "?statsPeriod=14d")
+            response = self.client.get(self.url)
             assert response.status_code == 200
 
             result = response.json()
@@ -55,6 +55,45 @@ class OrganizationFlagLogIndexEndpointTestCase(APITestCase):
     def test_get_feature_disabled(self):
         response = self.client.get(self.url)
         assert response.status_code == 404
+
+    def test_get_stats_period(self):
+        model = FlagAuditLogModel(
+            action=0,
+            created_at=datetime.now(timezone.utc),
+            created_by="a@b.com",
+            created_by_type=0,
+            flag="hello",
+            organization_id=self.organization.id,
+            tags={"commit_sha": "123"},
+        )
+        model.save()
+
+        with self.feature(self.features):
+            response = self.client.get(self.url + "?statsPeriod=14d")
+            assert response.status_code == 200
+            assert len(response.json()["data"]) == 1
+
+    def test_get_start_end(self):
+        model = FlagAuditLogModel(
+            action=0,
+            created_at=datetime(2024, 1, 5, tzinfo=timezone.utc),
+            created_by="a@b.com",
+            created_by_type=0,
+            flag="hello",
+            organization_id=self.organization.id,
+            tags={"commit_sha": "123"},
+        )
+        model.save()
+
+        start = datetime(2024, 1, 4, tzinfo=timezone.utc)
+        end = datetime(2024, 1, 6, tzinfo=timezone.utc)
+
+        with self.feature(self.features):
+            response = self.client.get(
+                self.url + f"?start={start.timestamp()}&end={end.timestamp()}"
+            )
+            assert response.status_code == 200
+            assert len(response.json()["data"]) == 1
 
 
 class OrganizationFlagLogDetailsEndpointTestCase(APITestCase):
@@ -86,7 +125,7 @@ class OrganizationFlagLogDetailsEndpointTestCase(APITestCase):
             assert response.status_code == 200
 
             result = response.json()
-            assert result["data"]["id"] == 2
+            assert result["data"]["id"] == 4
             assert result["data"]["action"] == "created"
             assert "created_at" in result["data"]
             assert result["data"]["created_by"] == "a@b.com"
