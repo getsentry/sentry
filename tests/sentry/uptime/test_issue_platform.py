@@ -94,7 +94,7 @@ class BuildEventDataForOccurrenceTest(UptimeTestCase):
             level="error",
             culprit="",
         )
-        project_subscription = self.create_project_uptime_subscription(env=self.environment)
+        project_subscription = self.create_project_uptime_subscription()
         event_data = build_event_data_for_occurrence(result, project_subscription, occurrence)
         assert event_data == {
             "environment": "development",
