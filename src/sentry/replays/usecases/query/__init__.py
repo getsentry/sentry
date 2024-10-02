@@ -209,87 +209,96 @@ def query_using_optimized_search(
     request_user_id: int | None = None,
     preferred_source: PREFERRED_SOURCE = "scalar",
 ):
-    tenant_id = _make_tenant_id(organization)
+    referrer: str | None = (
+        None  # snuba query referrer, ex "replays.query.browse_scalar_conditions_subquery"
+    )
+    try:
+        tenant_id = _make_tenant_id(organization)
 
-    # Environments is provided to us outside of the ?query= url parameter. It's stil filtered like
-    # the values in that parameter so let's shove it inside and process it like any other filter.
-    if environments:
-        search_filters = [
-            *search_filters,
-            SearchFilter(SearchKey("environment"), "IN", SearchValue(environments)),
-        ]
+        # Environments is provided to us outside of the ?query= url parameter. It's stil filtered like
+        # the values in that parameter so let's shove it inside and process it like any other filter.
+        if environments:
+            search_filters = [
+                *search_filters,
+                SearchFilter(SearchKey("environment"), "IN", SearchValue(environments)),
+            ]
 
-    # Translate "viewed_by_me" filters, which are aliases for "viewed_by_id"
-    search_filters = handle_viewed_by_me_filters(search_filters, request_user_id)
+        # Translate "viewed_by_me" filters, which are aliases for "viewed_by_id"
+        search_filters = handle_viewed_by_me_filters(search_filters, request_user_id)
 
-    if preferred_source == "materialized-view":
-        query, referrer, source = _query_using_materialized_view_strategy(
-            search_filters,
-            sort,
-            project_ids,
-            period_start,
-            period_stop,
-        )
-    elif preferred_source == "aggregated":
-        query, referrer, source = _query_using_aggregated_strategy(
-            search_filters,
-            sort,
-            project_ids,
-            period_start,
-            period_stop,
-        )
-    else:
-        query, referrer, source = _query_using_scalar_strategy(
-            search_filters,
-            sort,
-            project_ids,
-            period_start,
-            period_stop,
-        )
+        if preferred_source == "materialized-view":
+            query, referrer, source = _query_using_materialized_view_strategy(
+                search_filters,
+                sort,
+                project_ids,
+                period_start,
+                period_stop,
+            )
+        elif preferred_source == "aggregated":
+            query, referrer, source = _query_using_aggregated_strategy(
+                search_filters,
+                sort,
+                project_ids,
+                period_start,
+                period_stop,
+            )
+        else:
+            query, referrer, source = _query_using_scalar_strategy(
+                search_filters,
+                sort,
+                project_ids,
+                period_start,
+                period_stop,
+            )
 
-    query = query.set_limit(pagination.limit)
-    query = query.set_offset(pagination.offset)
+        query = query.set_limit(pagination.limit)
+        query = query.set_offset(pagination.offset)
 
-    subquery_response = execute_query(query, tenant_id, referrer)
+        subquery_response = execute_query(query, tenant_id, referrer)
 
-    # The query "has more rows" if the number of rows found matches the limit (which is
-    # the requested limit + 1).
-    has_more = len(subquery_response.get("data", [])) == pagination.limit
-    if has_more:
-        subquery_response["data"].pop()
+        # The query "has more rows" if the number of rows found matches the limit (which is
+        # the requested limit + 1).
+        has_more = len(subquery_response.get("data", [])) == pagination.limit
+        if has_more:
+            subquery_response["data"].pop()
 
-    # These replay_ids are ordered by the OrderBy expression in the query above.
-    replay_ids = [row["replay_id"] for row in subquery_response.get("data", [])]
-    if not replay_ids:
+        # These replay_ids are ordered by the OrderBy expression in the query above.
+        replay_ids = [row["replay_id"] for row in subquery_response.get("data", [])]
+        if not replay_ids:
+            return QueryResponse(
+                response=[],
+                has_more=has_more,
+                source=source,
+            )
+
+        # The final aggregation step.  Here we pass the replay_ids as the only filter.  In this step
+        # we select everything and use as much memory as we need to complete the operation.
+        #
+        # If this step runs out of memory your pagination size is about 1,000,000 rows too large.
+        # That's a joke.  This will complete very quickly at normal pagination sizes.
+        results = execute_query(
+            make_full_aggregation_query(
+                fields=fields,
+                replay_ids=replay_ids,
+                project_ids=project_ids,
+                period_start=period_start,
+                period_end=period_stop,
+                request_user_id=request_user_id,
+            ),
+            tenant_id,
+            referrer="replays.query.browse_query",
+        )["data"]
+
         return QueryResponse(
-            response=[],
+            response=_make_ordered(replay_ids, results),
             has_more=has_more,
             source=source,
         )
-
-    # The final aggregation step.  Here we pass the replay_ids as the only filter.  In this step
-    # we select everything and use as much memory as we need to complete the operation.
-    #
-    # If this step runs out of memory your pagination size is about 1,000,000 rows too large.
-    # That's a joke.  This will complete very quickly at normal pagination sizes.
-    results = execute_query(
-        make_full_aggregation_query(
-            fields=fields,
-            replay_ids=replay_ids,
-            project_ids=project_ids,
-            period_start=period_start,
-            period_end=period_stop,
-            request_user_id=request_user_id,
-        ),
-        tenant_id,
-        referrer="replays.query.browse_query",
-    )["data"]
-
-    return QueryResponse(
-        response=_make_ordered(replay_ids, results),
-        has_more=has_more,
-        source=source,
-    )
+    except (ParseError, ValueError) as exc:
+        sentry_sdk.set_tag("org_id", organization.id)
+        sentry_sdk.set_extra("referrer", referrer or "")
+        sentry_sdk.capture_exception(exc)
+        raise
 
 
 def _query_using_materialized_view_strategy(
