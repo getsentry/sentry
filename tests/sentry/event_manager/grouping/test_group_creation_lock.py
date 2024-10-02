@@ -1,7 +1,6 @@
 import contextlib
 import time
 from threading import Thread
-from typing import Any
 from unittest.mock import patch
 
 import pytest
@@ -50,22 +49,18 @@ def test_group_creation_race_new(monkeypatch, default_project, is_race_free):
 
     return_values = []
 
-    event = Event(
-        default_project.id,
-        "11212012123120120415201309082013",
-        data={"timestamp": time.time()},
-    )
-    hashes = ["pound sign", "octothorpe"]
-
-    group_processing_kwargs = {"level": 10, "culprit": "", "data": {}}
-    save_aggregate_kwargs: Any = {
-        "event": event,
-        "job": {"event_metadata": {}, "release": "dogpark", "event": event, "data": {}},
-        "metric_tags": {},
-    }
-
     def save_event():
-        group_info = _save_aggregate_new(**save_aggregate_kwargs)
+        event = Event(
+            default_project.id,
+            "11212012123120120415201309082013",
+            data={"timestamp": time.time()},
+        )
+
+        group_info = _save_aggregate_new(
+            event=event,
+            job={"event_metadata": {}, "release": "dogpark", "event": event, "data": {}},
+            metric_tags={},
+        )
 
         assert group_info is not None
         return_values.append(group_info)
@@ -73,11 +68,11 @@ def test_group_creation_race_new(monkeypatch, default_project, is_race_free):
     with (
         patch(
             "sentry.grouping.ingest.hashing._calculate_event_grouping",
-            return_value=hashes,
+            return_value=["pound sign", "octothorpe"],
         ),
         patch(
             "sentry.event_manager._get_group_processing_kwargs",
-            return_value=group_processing_kwargs,
+            return_value={"level": 10, "culprit": "", "data": {}},
         ),
         patch("sentry.event_manager._materialize_metadata_many"),
     ):
