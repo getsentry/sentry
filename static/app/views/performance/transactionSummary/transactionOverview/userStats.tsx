@@ -93,6 +93,8 @@ function UserStats({
     };
   }
 
+  const showLink = !hasDomainViewFlag || (hasDomainViewFlag && hasWebVitalsFlag);
+
   const mepSetting = useMEPSettingContext();
   const mepCardinalityContext = useMetricsCardinalityContext();
   const queryExtras = getTransactionMEPParamsIfApplicable(
@@ -116,9 +118,11 @@ function UserStats({
                 size="sm"
               />
             </SectionHeading>
-            <Link to={webVitalsTarget}>
-              <IconOpen />
-            </Link>
+            {showLink && (
+              <Link to={webVitalsTarget}>
+                <IconOpen />
+              </Link>
+            )}
           </VitalsHeading>
           <VitalInfo
             location={location}
