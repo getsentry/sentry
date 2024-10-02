@@ -29,9 +29,9 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useDimensionsMultiple} from 'sentry/utils/useDimensionsMultiple';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import type {DraggableTabListItemProps} from './item';
@@ -267,6 +267,7 @@ function BaseDraggableTabList({
 }: BaseDraggableTabListProps) {
   const [hoveringKey, setHoveringKey] = useState<Key | null>(null);
   const {rootProps, setTabListState} = useContext(TabsContext);
+  const navigate = useNavigate();
   const organization = useOrganization();
   const {
     value,
@@ -295,7 +296,7 @@ function BaseDraggableTabList({
         organization,
       });
 
-      browserHistory.push(linkTo);
+      navigate(linkTo);
     },
     isDisabled: disabled,
     keyboardActivation,
