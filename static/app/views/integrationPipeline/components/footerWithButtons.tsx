@@ -23,7 +23,6 @@ export default function FooterWithButtons({
 }: FooterWithButtonsProps) {
   const buttonProps = {
     priority: 'primary',
-    size: 'xs',
     disabled,
     onClick,
     children: buttonText,
