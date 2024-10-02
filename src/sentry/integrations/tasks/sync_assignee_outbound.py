@@ -1,3 +1,5 @@
+from typing import Any
+
 from sentry import analytics, features
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration import Integration
@@ -29,7 +31,7 @@ def sync_assignee_outbound(
     external_issue_id: int,
     user_id: int | None,
     assign: bool,
-    assignment_source_json: str | None = None,
+    assignment_source_dict: dict[str, Any] = None,
 ) -> None:
     # Sync Sentry assignee to an external issue.
     external_issue = ExternalIssue.objects.get(id=external_issue_id)
@@ -49,7 +51,7 @@ def sync_assignee_outbound(
         return
 
     parsed_assignment_source = (
-        AssignmentSource.from_json(assignment_source_json) if assignment_source_json else None
+        AssignmentSource.from_dict(assignment_source_dict) if assignment_source_dict else None
     )
     if installation.should_sync("outbound_assignee", parsed_assignment_source):
         # Assume unassign if None.

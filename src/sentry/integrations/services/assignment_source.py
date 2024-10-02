@@ -2,11 +2,9 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass
 from datetime import datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from django.utils import timezone
-
-from sentry.utils import json
 
 if TYPE_CHECKING:
     from sentry.integrations.models import Integration
@@ -26,12 +24,12 @@ class AssignmentSource:
             integration_id=integration.id,
         )
 
-    def json(self) -> str:
-        return json.dumps(asdict(self))
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
 
     @classmethod
-    def from_json(cls, json_data: str) -> AssignmentSource | None:
+    def from_dict(cls, input_dict: dict[str, Any]) -> AssignmentSource | None:
         try:
-            return cls(**json.loads(json_data))
-        except ValueError:
+            return cls(**input_dict)
+        except (ValueError, TypeError):
             return None

@@ -138,6 +138,8 @@ def sync_group_assignee_outbound(
                 "external_issue_id": external_issue_id,
                 "user_id": user_id,
                 "assign": assign,
-                "assignment_source_json": assignment_source.json() if assignment_source else None,
+                "assignment_source_dict": assignment_source.to_dict()
+                if assignment_source
+                else None,
             }
         )
