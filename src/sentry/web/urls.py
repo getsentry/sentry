@@ -14,6 +14,7 @@ from sentry.auth.providers.saml2.provider import SAML2AcceptACSView, SAML2Metada
 from sentry.charts.endpoints import serve_chartcuterie_config
 from sentry.integrations.web.doc_integration_avatar import DocIntegrationAvatarPhotoView
 from sentry.integrations.web.organization_integration_setup import OrganizationIntegrationSetupView
+from sentry.sentry_apps.web.sentryapp_avatar import SentryAppAvatarPhotoView
 from sentry.toolbar.views.iframe_view import IframeView
 from sentry.toolbar.views.login_success_view import LoginSuccessView
 from sentry.users.web import accounts
@@ -47,7 +48,6 @@ from sentry.web.frontend.project_event import ProjectEventRedirect
 from sentry.web.frontend.react_page import GenericReactPageView, ReactPageView
 from sentry.web.frontend.reactivate_account import ReactivateAccountView
 from sentry.web.frontend.release_webhook import ReleaseWebhookView
-from sentry.web.frontend.sentryapp_avatar import SentryAppAvatarPhotoView
 from sentry.web.frontend.setup_wizard import SetupWizardView
 from sentry.web.frontend.shared_group_details import SharedGroupDetailsView
 from sentry.web.frontend.sudo import SudoView
