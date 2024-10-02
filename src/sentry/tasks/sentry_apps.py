@@ -170,16 +170,16 @@ def send_alert_event(
 
 
 def _process_resource_change(
+    *,
     action: str,
     sender: str,
     instance_id: int,
-    *,
     retryer: Task | None = None,
     **kwargs: Any,
 ) -> None:
     # The class is serialized as a string when enqueueing the class.
     model: type[Event] | type[Model] = TYPES[sender]
-    instance: Event | Group | Activity | None = None
+    instance: Event | Model | None = None
     # The Event model has different hooks for the different event types. The sender
     # determines which type eg. Error and therefore the 'name' eg. error
     if issubclass(model, Event):
@@ -250,7 +250,9 @@ def _process_resource_change(
 def process_resource_change_bound(
     self: Task, action: str, sender: str, instance_id: int, **kwargs: Any
 ) -> None:
-    _process_resource_change(action, sender, instance_id, retryer=self, **kwargs)
+    _process_resource_change(
+        action=action, sender=sender, instance_id=instance_id, retryer=self, **kwargs
+    )
 
 
 @instrumented_task(name="sentry.tasks.sentry_apps.installation_webhook", **CONTROL_TASK_OPTIONS)
