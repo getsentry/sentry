@@ -235,6 +235,17 @@ def get_results_from_saving_event(
         }
 
 
+# The overall idea of these tests is to prove that
+#
+#   a) We only run the secondary calculation when the project is in transtiion
+#   b) In transition, we only run the secondary calculation if the primary calculation
+#      doesn't find an existing group
+#   c) If the primary (or secondary, if it's calculated) hash finds a group, the event is
+#      assigned there
+#   d) If neither finds a group, a new group is created and both the primary (and secondary,
+#      if it's calculated) hashes are stored
+
+
 @django_db_all
 @pytest.mark.parametrize(
     "in_transition", (True, False), ids=(" in_transition: True ", " in_transition: False ")
