@@ -1,9 +1,12 @@
+import pytest
+
 from sentry.models.group import Group, GroupStatus
 from sentry.models.organization import Organization
 from sentry.testutils.cases import TestMigrations
 from sentry.types.group import GroupSubStatus
 
 
+@pytest.mark.skip("Migration is no longer runnable. Retain until migration is removed.")
 class FixPendingMergeSubstatusTest(TestMigrations):
     migrate_from = "0765_add_org_to_api_auth"
     migrate_to = "0766_fix_substatus_for_pending_merge"

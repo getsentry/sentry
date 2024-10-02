@@ -1,11 +1,14 @@
 from uuid import uuid4
 
+import pytest
+
 from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.testutils.cases import TestMigrations
 from sentry.testutils.silo import control_silo_test
 
 
 @control_silo_test
+@pytest.mark.skip("Migration is no longer runnable. Retain until migration is removed.")
 class BackfillBrokenMonitorNotificationSettingOptionTest(TestMigrations):
     migrate_from = "0742_backfill_alertrule_detection_type"
     migrate_to = "0743_backfill_broken_monitor_notification_setting_option"

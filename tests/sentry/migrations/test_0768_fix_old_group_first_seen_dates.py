@@ -1,10 +1,13 @@
 from datetime import datetime, timezone
 
+import pytest
+
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.testutils.cases import TestMigrations
 
 
+@pytest.mark.skip("Migration is no longer runnable. Retain until migration is removed.")
 class FixOldGroupFirstSeenDates(TestMigrations):
     migrate_from = "0767_add_selected_aggregate_to_dashboards_widget_query"
     migrate_to = "0768_fix_old_group_first_seen_dates"

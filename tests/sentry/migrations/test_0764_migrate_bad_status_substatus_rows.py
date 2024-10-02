@@ -1,5 +1,6 @@
 from datetime import timedelta
 
+import pytest
 from django.utils import timezone
 
 from sentry.models.activity import Activity
@@ -12,6 +13,7 @@ from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
 
 
+@pytest.mark.skip("Migration is no longer runnable. Retain until migration is removed.")
 class BackfillMissingUnresolvedSubstatusTest(TestMigrations):
     migrate_from = "0763_add_created_by_to_broadcasts"
     migrate_to = "0764_migrate_bad_status_substatus_rows"
