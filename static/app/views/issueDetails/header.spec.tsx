@@ -3,16 +3,17 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {TeamFixture} from 'sentry-fixture/team';
 
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {IssueCategory, PriorityLevel} from 'sentry/types/group';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import GroupHeader from 'sentry/views/issueDetails/header';
 import {ReprocessingStatus} from 'sentry/views/issueDetails/utils';
 
 describe('GroupHeader', () => {
   const baseUrl = 'BASE_URL/';
   const organization = OrganizationFixture();
+  const {router} = initializeOrg();
   const project = ProjectFixture({
     teams: [TeamFixture()],
   });
@@ -51,50 +52,52 @@ describe('GroupHeader', () => {
           organization={orgWithFeatures}
           project={jsProjectWithSimilarityView}
         />,
-        {organization: orgWithFeatures}
+        {organization: orgWithFeatures, router}
       );
 
       await userEvent.click(screen.getByRole('tab', {name: /details/i}));
-      expect(browserHistory.push).toHaveBeenLastCalledWith('BASE_URL/');
+      expect(router.push).toHaveBeenLastCalledWith(
+        expect.objectContaining({pathname: 'BASE_URL/'})
+      );
 
       await userEvent.click(screen.getByRole('tab', {name: /activity/i}));
-      expect(browserHistory.push).toHaveBeenCalledWith({
+      expect(router.push).toHaveBeenCalledWith({
         pathname: 'BASE_URL/activity/',
         query: {},
       });
 
       await userEvent.click(screen.getByRole('tab', {name: /user feedback/i}));
-      expect(browserHistory.push).toHaveBeenCalledWith({
+      expect(router.push).toHaveBeenCalledWith({
         pathname: 'BASE_URL/feedback/',
         query: {},
       });
 
       await userEvent.click(screen.getByRole('tab', {name: /attachments/i}));
-      expect(browserHistory.push).toHaveBeenCalledWith({
+      expect(router.push).toHaveBeenCalledWith({
         pathname: 'BASE_URL/attachments/',
         query: {},
       });
 
       await userEvent.click(screen.getByRole('tab', {name: /tags/i}));
-      expect(browserHistory.push).toHaveBeenCalledWith({
+      expect(router.push).toHaveBeenCalledWith({
         pathname: 'BASE_URL/tags/',
         query: {},
       });
 
       await userEvent.click(screen.getByRole('tab', {name: /all events/i}));
-      expect(browserHistory.push).toHaveBeenCalledWith({
+      expect(router.push).toHaveBeenCalledWith({
         pathname: 'BASE_URL/events/',
         query: {},
       });
 
       await userEvent.click(screen.getByRole('tab', {name: /merged issues/i}));
-      expect(browserHistory.push).toHaveBeenCalledWith({
+      expect(router.push).toHaveBeenCalledWith({
         pathname: 'BASE_URL/merged/',
         query: {},
       });
 
       await userEvent.click(screen.getByRole('tab', {name: /replays/i}));
-      expect(browserHistory.push).toHaveBeenCalledWith({
+      expect(router.push).toHaveBeenCalledWith({
         pathname: 'BASE_URL/replays/',
         query: {},
       });
@@ -137,11 +140,11 @@ describe('GroupHeader', () => {
           organization={orgWithFeatures}
           project={mobileProjectWithSimilarityView}
         />,
-        {organization: orgWithFeatures}
+        {organization: orgWithFeatures, router}
       );
 
       await userEvent.click(screen.getByRole('tab', {name: /similar issues/i}));
-      expect(browserHistory.push).toHaveBeenCalledWith({
+      expect(router.push).toHaveBeenCalledWith({
         pathname: 'BASE_URL/similar/',
         query: {},
       });
@@ -184,20 +187,22 @@ describe('GroupHeader', () => {
           organization={orgWithFeatures}
           project={projectWithSimilarityView}
         />,
-        {organization: orgWithFeatures}
+        {organization: orgWithFeatures, router}
       );
 
       await userEvent.click(screen.getByRole('tab', {name: /details/i}));
-      expect(browserHistory.push).toHaveBeenLastCalledWith('BASE_URL/');
+      expect(router.push).toHaveBeenLastCalledWith(
+        expect.objectContaining({pathname: 'BASE_URL/'})
+      );
 
       await userEvent.click(screen.getByRole('tab', {name: /tags/i}));
-      expect(browserHistory.push).toHaveBeenCalledWith({
+      expect(router.push).toHaveBeenCalledWith({
         pathname: 'BASE_URL/tags/',
         query: {},
       });
 
       await userEvent.click(screen.getByRole('tab', {name: /sampled events/i}));
-      expect(browserHistory.push).toHaveBeenCalledWith({
+      expect(router.push).toHaveBeenCalledWith({
         pathname: 'BASE_URL/events/',
         query: {},
       });
