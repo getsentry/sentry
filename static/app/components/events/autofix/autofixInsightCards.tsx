@@ -70,9 +70,13 @@ function AutofixBreadcrumbSnippet({breadcrumb}: AutofixBreadcrumbSnippetProps) {
 export function ExpandableInsightContext({
   children,
   title,
+  icon,
+  rounded,
 }: {
   children: React.ReactNode;
   title: string;
+  icon?: React.ReactNode;
+  rounded?: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
 
@@ -81,10 +85,18 @@ export function ExpandableInsightContext({
   };
 
   return (
-    <ExpandableContext>
-      <ContextHeader onClick={toggleExpand} name={title}>
+    <ExpandableContext isRounded={rounded}>
+      <ContextHeader
+        onClick={toggleExpand}
+        name={title}
+        isRounded={rounded}
+        isExpanded={expanded}
+      >
         <ContextHeaderWrapper>
-          <ContextHeaderText>{title}</ContextHeaderText>
+          <ContextHeaderLeftAlign>
+            {icon}
+            <ContextHeaderText>{title}</ContextHeaderText>
+          </ContextHeaderLeftAlign>
           <IconChevron size="xs" direction={expanded ? 'down' : 'right'} />
         </ContextHeaderWrapper>
       </ContextHeader>
@@ -384,19 +396,34 @@ const MiniHeader = styled('p')`
   padding-left: ${space(2)};
 `;
 
-const ExpandableContext = styled('div')`
+const ExpandableContext = styled('div')<{isRounded?: boolean}>`
   width: 100%;
   background: ${p => p.theme.alert.info.backgroundLight};
+  border-radius: ${p => (p.isRounded ? p.theme.borderRadius : 0)};
 `;
 
-const ContextHeader = styled(Button)`
+const ContextHeader = styled(Button)<{isExpanded?: boolean; isRounded?: boolean}>`
   width: 100%;
   box-shadow: none;
   margin: 0;
   border: none;
   font-weight: normal;
   background: ${p => p.theme.backgroundSecondary};
-  border-radius: 0px;
+  border-radius: ${p => {
+    if (!p.isRounded) {
+      return 0;
+    }
+    if (p.isExpanded) {
+      return `${p.theme.borderRadius} ${p.theme.borderRadius} 0 0`;
+    }
+    return p.theme.borderRadius;
+  }};
+`;
+
+const ContextHeaderLeftAlign = styled('div')`
+  display: flex;
+  gap: ${space(1)};
+  align-items: center;
 `;
 
 const ContextHeaderWrapper = styled('div')`
