@@ -10,6 +10,7 @@ from django.http import Http404, HttpRequest, HttpResponse, HttpResponseBadReque
 from django.http.response import HttpResponseBase
 from django.shortcuts import get_object_or_404
 
+from sentry import features
 from sentry.api.endpoints.setup_wizard import SETUP_WIZARD_CACHE_KEY, SETUP_WIZARD_CACHE_TIMEOUT
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.project import STATUS_LABELS
@@ -27,6 +28,7 @@ from sentry.projects.services.project_key.service import project_key_service
 from sentry.types.token import AuthTokenType
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
+from sentry.utils import json
 from sentry.utils.http import absolute_uri
 from sentry.utils.security.orgauthtoken_token import (
     SystemUrlPrefixMissingException,
@@ -120,6 +122,12 @@ class SetupWizardView(BaseView):
                 )
                 filled_projects.append(enriched_project)
 
+        if features.has("users:new-setup-wizard-ui", user=request.user, actor=request.user):
+            context["allowSelection"] = True
+            context["projects"] = filled_projects
+            context["organizations"] = list(org_mappings_map.values())
+            return render_to_response("sentry/setup-wizard.html", context, request)
+
         # Fetching or creating a token
         serialized_token = get_token(org_mappings, request.user)
 
@@ -128,6 +136,7 @@ class SetupWizardView(BaseView):
         key = f"{SETUP_WIZARD_CACHE_KEY}{wizard_hash}"
         default_cache.set(key, result, SETUP_WIZARD_CACHE_TIMEOUT)
 
+        context["projects"] = []
         context["organizations"] = list(org_mappings_map.values())
         return render_to_response("sentry/setup-wizard.html", context, request)
 
@@ -135,8 +144,9 @@ class SetupWizardView(BaseView):
         """
         This updates the cache content for a specific hash
         """
-        organization_id = request.POST.get("organizationId", None)
-        project_id = request.POST.get("projectId", None)
+        json_data = json.loads(request.body)
+        organization_id = json_data.get("organizationId", None)
+        project_id = json_data.get("projectId", None)
 
         if organization_id is None or project_id is None or wizard_hash is None:
             return HttpResponseBadRequest()

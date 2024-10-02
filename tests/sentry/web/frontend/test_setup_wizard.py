@@ -173,7 +173,9 @@ class SetupWizard(PermissionTestCase):
 
         url = reverse("sentry-project-wizard-fetch", kwargs={"wizard_hash": "abc"})
         resp = self.client.post(
-            path=url, data={"organizationId": self.org.id, "projectId": self.project.id}
+            path=url,
+            data={"organizationId": self.org.id, "projectId": self.project.id},
+            content_type="application/json",
         )
 
         assert resp.status_code == 200
@@ -194,12 +196,20 @@ class SetupWizard(PermissionTestCase):
 
         # missing organizationId
         url = reverse("sentry-project-wizard-fetch", kwargs={"wizard_hash": "abc"})
-        resp = self.client.post(path=url, data={"projectId": "project_id"})
+        resp = self.client.post(
+            path=url,
+            data={"projectId": 123},
+            content_type="application/json",
+        )
         assert resp.status_code == 400
 
         # missing projectId
         url = reverse("sentry-project-wizard-fetch", kwargs={"wizard_hash": "abc"})
-        resp = self.client.post(path=url, data={"organizationId": "org_id"})
+        resp = self.client.post(
+            path=url,
+            data={"organizationId": 123},
+            content_type="application/json",
+        )
         assert resp.status_code == 400
 
     def test_post_project_not_found(self):
@@ -210,7 +220,11 @@ class SetupWizard(PermissionTestCase):
         default_cache.set(key, "test", 600)
 
         url = reverse("sentry-project-wizard-fetch", kwargs={"wizard_hash": "abc"})
-        resp = self.client.post(path=url, data={"organizationId": self.org.id, "projectId": 1234})
+        resp = self.client.post(
+            path=url,
+            data={"organizationId": self.org.id, "projectId": 1234},
+            content_type="application/json",
+        )
 
         assert resp.status_code == 404
 
@@ -221,7 +235,11 @@ class SetupWizard(PermissionTestCase):
         default_cache.set(key, "test", 600)
 
         url = reverse("sentry-project-wizard-fetch", kwargs={"wizard_hash": "abc"})
-        resp = self.client.post(path=url, data={"organizationId": 1234, "projectId": 1234})
+        resp = self.client.post(
+            path=url,
+            data={"organizationId": 1234, "projectId": 1234},
+            content_type="application/json",
+        )
 
         assert resp.status_code == 404
 
@@ -235,7 +253,9 @@ class SetupWizard(PermissionTestCase):
 
         url = reverse("sentry-project-wizard-fetch", kwargs={"wizard_hash": "abc"})
         resp = self.client.post(
-            path=url, data={"organizationId": self.org.id, "projectId": self.project.id}
+            path=url,
+            data={"organizationId": self.org.id, "projectId": self.project.id},
+            content_type="application/json",
         )
 
         assert resp.status_code == 404
@@ -250,7 +270,9 @@ class SetupWizard(PermissionTestCase):
 
         url = reverse("sentry-project-wizard-fetch", kwargs={"wizard_hash": "abc"})
         resp = self.client.post(
-            path=url, data={"organizationId": self.org.id, "projectId": self.project.id}
+            path=url,
+            data={"organizationId": self.org.id, "projectId": self.project.id},
+            content_type="application/json",
         )
 
         assert resp.status_code == 404
