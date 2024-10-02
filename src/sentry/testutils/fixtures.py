@@ -691,7 +691,7 @@ class Fixtures:
         if date_updated is None:
             date_updated = timezone.now()
         if headers is None:
-            headers = {}
+            headers = []
 
         return Factories.create_uptime_subscription(
             type=type,
