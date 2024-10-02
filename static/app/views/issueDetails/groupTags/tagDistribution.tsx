@@ -114,7 +114,7 @@ const TagValue = styled(Link)`
   white-space: nowrap;
   margin-right: ${space(1)};
   justify-self: end;
-  max-width: 100%;
+  max-width: calc(100% - ${space(2)});
 `;
 
 const TagBar = styled('div')<{displayPercentage: string; widthPercent: number}>`

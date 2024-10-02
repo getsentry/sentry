@@ -1,8 +1,9 @@
-import {useRef, useState} from 'react';
+import {useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import {Button} from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
 import {ExportQueryType, useDataExport} from 'sentry/components/dataExport';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {
@@ -13,14 +14,17 @@ import {
   EventNavigator,
   Header,
   NavigationCrumbs,
+  SearchInput,
   ShortId,
 } from 'sentry/components/events/eventDrawer';
+import {InputGroup} from 'sentry/components/inputGroup';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {IconDownload} from 'sentry/icons';
+import {IconDownload, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -50,6 +54,7 @@ export function GroupTagsDrawer({group}: {group: Group}) {
       },
     },
   });
+  const [search, setSearch] = useState('');
 
   const {
     data = [],
@@ -60,6 +65,26 @@ export function GroupTagsDrawer({group}: {group: Group}) {
     groupId: group.id,
     environment: location.query.environment as string[] | string | undefined,
   });
+
+  const tagValues = useMemo(
+    () =>
+      data.reduce((valueMap, tag) => {
+        valueMap[tag.key] = tag.topValues.map(tv => tv.value).join(' ');
+        return valueMap;
+      }, {}),
+    [data]
+  );
+
+  const displayTags = useMemo(() => {
+    const sortedTags = data.sort((a, b) => a.key.localeCompare(b.key));
+    const searchedTags = sortedTags.filter(
+      tag =>
+        tag.key.includes(search) ||
+        tag.name.includes(search) ||
+        tagValues[tag.key].includes(search)
+    );
+    return searchedTags;
+  }, [data, search, tagValues]);
 
   if (isPending) {
     return <LoadingIndicator />;
@@ -74,7 +99,56 @@ export function GroupTagsDrawer({group}: {group: Group}) {
     );
   }
 
-  const alphabeticalTags = data.sort((a, b) => a.key.localeCompare(b.key));
+  const headerActions = tagKey ? (
+    <DropdownMenu
+      size="xs"
+      trigger={triggerProps => (
+        <Button
+          {...triggerProps}
+          borderless
+          size="xs"
+          aria-label={t('Export options')}
+          icon={<IconDownload />}
+        />
+      )}
+      items={[
+        {
+          key: 'export-page',
+          label: t('Export Page to CSV'),
+          to: `${organization.slug}/${project.slug}/issues/${group.id}/tags/${tagKey}/export/`,
+        },
+        {
+          key: 'export-all',
+          label: isExportDisabled ? t('Export in progress...') : t('Export All to CSV'),
+          onAction: () => {
+            handleDataExport();
+            setIsExportDisabled(true);
+          },
+          disabled: isExportDisabled,
+        },
+      ]}
+    />
+  ) : (
+    <ButtonBar gap={1}>
+      <InputGroup>
+        <SearchInput
+          size="xs"
+          value={search}
+          onChange={e => {
+            setSearch(e.target.value);
+            trackAnalytics('tags.drawer.action', {
+              control: 'search',
+              organization,
+            });
+          }}
+          aria-label={t('Search All Tags')}
+        />
+        <InputGroup.TrailingItems disablePointerEvents>
+          <IconSearch size="xs" />
+        </InputGroup.TrailingItems>
+      </InputGroup>
+    </ButtonBar>
+  );
 
   return (
     <EventDrawerContainer ref={drawerRef}>
@@ -103,39 +177,8 @@ export function GroupTagsDrawer({group}: {group: Group}) {
         />
       </EventDrawerHeader>
       <EventNavigator>
-        <Header>{tagKey ? t('Tag Details') : t('Tags')}</Header>
-        {tagKey && (
-          <DropdownMenu
-            size="xs"
-            trigger={triggerProps => (
-              <Button
-                {...triggerProps}
-                borderless
-                size="xs"
-                aria-label={t('Export options')}
-                icon={<IconDownload />}
-              />
-            )}
-            items={[
-              {
-                key: 'export-page',
-                label: t('Export Page to CSV'),
-                to: `${organization.slug}/${project.slug}/issues/${group.id}/tags/${tagKey}/export/`,
-              },
-              {
-                key: 'export-all',
-                label: isExportDisabled
-                  ? t('Export in progress...')
-                  : t('Export All to CSV'),
-                onAction: () => {
-                  handleDataExport();
-                  setIsExportDisabled(true);
-                },
-                disabled: isExportDisabled,
-              },
-            ]}
-          />
-        )}
+        <Header>{tagKey ? t('Tag Details') : t('All Tags')}</Header>
+        {headerActions}
       </EventNavigator>
       <EventDrawerBody>
         {tagKey ? (
@@ -147,7 +190,7 @@ export function GroupTagsDrawer({group}: {group: Group}) {
         ) : (
           <Wrapper>
             <Container>
-              {alphabeticalTags.map((tag, tagIdx) => (
+              {displayTags.map((tag, tagIdx) => (
                 <TagDistribution tag={tag} key={tagIdx} />
               ))}
             </Container>
