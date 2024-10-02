@@ -13,7 +13,7 @@ from sentry.workflow_engine.models.data_source_detector import DataSourceDetecto
 
 
 class DataPacket(Protocol):
-    id: int
+    query_id: int
 
 
 @region_silo_model

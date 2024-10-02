@@ -30,6 +30,13 @@ class TestProcessDataSources(TestCase):
         )
         self.ds2.detectors.set([self.detector_two])
 
+        self.packet = self.query
+        self.packet_two = self.query_two
+
+        # turn a query into a data packet, "simulating" the result from the snuba query
+        self.packet.query_id = self.query.id
+        self.packet_two.query_id = self.query_two.id
+
         self.data_packets = [self.query, self.query_two]
 
     def test_single_data_packet(self):
