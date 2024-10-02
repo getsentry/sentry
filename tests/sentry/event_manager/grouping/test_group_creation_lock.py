@@ -9,6 +9,32 @@ from sentry.event_manager import GroupInfo, _save_aggregate_new
 from sentry.eventstore.models import Event
 from sentry.testutils.pytest.fixtures import django_db_all
 
+CONCURRENCY = 2
+
+
+class FakeTransactionModule:
+    @staticmethod
+    @contextlib.contextmanager
+    def atomic(*args, **kwds):
+        yield
+
+
+def save_event(project_id: int, return_values: list[GroupInfo]) -> None:
+    event = Event(
+        project_id,
+        "11212012123120120415201309082013",
+        data={"timestamp": time.time()},
+    )
+
+    group_info = _save_aggregate_new(
+        event=event,
+        job={"event_metadata": {}, "release": "dogpark", "event": event, "data": {}},
+        metric_tags={},
+    )
+
+    assert group_info is not None
+    return_values.append(group_info)
+
 
 @django_db_all(transaction=True)
 @pytest.mark.parametrize(
@@ -30,38 +56,13 @@ from sentry.testutils.pytest.fixtures import django_db_all
     ids=(" is_race_free: True ", " is_race_free: False "),
 )
 def test_group_creation_race_new(monkeypatch, default_project, is_race_free):
-    CONCURRENCY = 2
-
     if not is_race_free:
-
-        class FakeTransactionModule:
-            @staticmethod
-            @contextlib.contextmanager
-            def atomic(*args, **kwds):
-                yield
-
         # Disable transaction isolation just within event manager, but not in
         # GroupHash.objects.create_or_update
         monkeypatch.setattr("sentry.event_manager.transaction", FakeTransactionModule)
 
         # select_for_update cannot be used outside of transactions
         monkeypatch.setattr("django.db.models.QuerySet.select_for_update", lambda self: self)
-
-    def save_event(project_id: int, return_values: list[GroupInfo]) -> None:
-        event = Event(
-            project_id,
-            "11212012123120120415201309082013",
-            data={"timestamp": time.time()},
-        )
-
-        group_info = _save_aggregate_new(
-            event=event,
-            job={"event_metadata": {}, "release": "dogpark", "event": event, "data": {}},
-            metric_tags={},
-        )
-
-        assert group_info is not None
-        return_values.append(group_info)
 
     with (
         patch(
