@@ -40,7 +40,16 @@ interface Props {
 
 const HTTP_METHOD_OPTIONS = ['GET', 'POST', 'HEAD', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'];
 
-const VALID_INTERVALS_SEC = [60 * 1, 60 * 5, 60 * 10, 60 * 20, 60 * 30, 60 * 60];
+const MINUTE = 60;
+
+const VALID_INTERVALS_SEC = [
+  MINUTE * 1,
+  MINUTE * 5,
+  MINUTE * 10,
+  MINUTE * 20,
+  MINUTE * 30,
+  MINUTE * 60,
+];
 
 function getFormDataFromRule(rule: UptimeRule) {
   return {
