@@ -378,7 +378,10 @@ def handle_query_errors() -> Generator[None]:
                 QueryExecutionTimeMaximum,
                 QueryTooManySimultaneous,
             ),
-        ) or isinstance(
+        ):
+            sentry_sdk.set_tag("query.error_reason", type(error).__name__)
+            raise ParseError(detail=TIMEOUT_ERROR_MESSAGE)
+        elif isinstance(
             arg,
             ReadTimeoutError,
         ):
