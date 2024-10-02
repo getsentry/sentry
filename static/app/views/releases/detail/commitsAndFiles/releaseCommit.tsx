@@ -143,7 +143,6 @@ const Message = styled(TextOverflow)`
 `;
 
 const Meta = styled(TextOverflow)`
-  font-size: ${p => p.theme.fontSizeMedium};
   line-height: 1.5;
   margin: 0;
   color: ${p => p.theme.subText};
