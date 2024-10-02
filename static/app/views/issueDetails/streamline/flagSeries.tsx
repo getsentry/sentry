@@ -71,6 +71,7 @@ export default function useFlagSeries({query = {}}: {query?: Record<string, any>
   if (!rawFlagData || isError || isPending) {
     return {
       seriesName: t('Feature Flags'),
+      markLine: {},
       data: [],
     };
   }
@@ -102,7 +103,6 @@ export default function useFlagSeries({query = {}}: {query?: Record<string, any>
           '</div>',
           '<div class="tooltip-footer">',
           time,
-          '</div>',
           '</div>',
           '<div class="tooltip-arrow"></div>',
         ].join('');
