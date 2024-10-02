@@ -705,9 +705,9 @@ describe('Incident Rules Form', () => {
         'Slack Alert Rule',
         {delay: null}
       );
-      await userEvent.click(screen.getByLabelText('Save Rule'), {delay: null});
+      await userEvent.click(await screen.findByLabelText('Save Rule'), {delay: null});
 
-      expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
+      expect(await screen.findByTestId('loading-indicator')).toBeInTheDocument();
 
       act(jest.runAllTimers);
       await waitFor(
@@ -779,7 +779,7 @@ describe('Incident Rules Form', () => {
         'Slack Alert Rule',
         {delay: null}
       );
-      await userEvent.click(screen.getByLabelText('Save Rule'), {delay: null});
+      await userEvent.click(await screen.findByLabelText('Save Rule'), {delay: null});
 
       act(jest.runAllTimers);
       await waitFor(
