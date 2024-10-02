@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import logging
 import time
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Iterable, Mapping
+from dataclasses import dataclass
 from enum import Enum
 from typing import Any, cast
 
@@ -20,6 +21,13 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, all_silo_endpoint
 from sentry.identity.services.identity import identity_service
 from sentry.identity.services.identity.model import RpcIdentity
+from sentry.integrations.messaging import commands
+from sentry.integrations.messaging.commands import (
+    CommandInput,
+    CommandNotMatchedError,
+    MessagingIntegrationCommand,
+    MessagingIntegrationCommandDispatcher,
+)
 from sentry.integrations.msteams import parsing
 from sentry.integrations.msteams.spec import PROVIDER
 from sentry.integrations.services.integration import integration_service
@@ -602,27 +610,50 @@ class MsTeamsWebhookEndpoint(Endpoint):
     def _handle_personal_message(self, request: Request) -> Response:
         data = request.data
         command_text = data.get("text", "").strip()
-        lowercase_command = command_text.lower()
-        conversation_id = data["conversation"]["id"]
-        teams_user_id = data["from"]["id"]
 
-        # only supporting unlink for now
-        if "unlink" in lowercase_command:
-            unlink_url = build_unlinking_url(conversation_id, data["serviceUrl"], teams_user_id)
-            card = build_unlink_identity_card(unlink_url)
-        elif "help" in lowercase_command:
-            card = build_help_command_card()
-        elif "link" == lowercase_command:  # don't to match other types of link commands
-            has_linked_identity = (
-                identity_service.get_identity(filter={"identity_ext_id": teams_user_id}) is not None
-            )
-            if has_linked_identity:
-                card = build_already_linked_identity_command_card()
-            else:
-                card = build_link_identity_command_card()
-        else:
+        dispatcher = MsTeamsCommandDispatcher(data)
+        try:
+            card = dispatcher.dispatch(CommandInput(command_text))
+        except CommandNotMatchedError:
             card = build_unrecognized_command_card(command_text)
 
         client = get_preinstall_client(data["serviceUrl"])
-        client.send_card(conversation_id, card)
+        client.send_card(dispatcher.conversation_id, card)
         return self.respond(status=204)
+
+
+@dataclass(frozen=True)
+class MsTeamsCommandDispatcher(MessagingIntegrationCommandDispatcher[AdaptiveCard]):
+    data: dict[str, Any]
+
+    @property
+    def conversation_id(self) -> str:
+        return self.data["conversation"]["id"]
+
+    @property
+    def teams_user_id(self) -> str:
+        return self.data["from"]["id"]
+
+    @property
+    def command_handlers(
+        self,
+    ) -> Iterable[tuple[MessagingIntegrationCommand, Callable[[CommandInput], AdaptiveCard]]]:
+        yield commands.HELP, (lambda _: build_help_command_card())
+        yield commands.LINK_IDENTITY, self.link_identity
+        yield commands.UNLINK_IDENTITY, self.unlink_identity
+
+    def link_identity(self, _: CommandInput) -> AdaptiveCard:
+        linked_identity = identity_service.get_identity(
+            filter={"identity_ext_id": self.teams_user_id}
+        )
+        has_linked_identity = linked_identity is not None
+        if has_linked_identity:
+            return build_already_linked_identity_command_card()
+        else:
+            return build_link_identity_command_card()
+
+    def unlink_identity(self, _: CommandInput) -> AdaptiveCard:
+        unlink_url = build_unlinking_url(
+            self.conversation_id, self.data["serviceUrl"], self.teams_user_id
+        )
+        return build_unlink_identity_card(unlink_url)
