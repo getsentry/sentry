@@ -13,6 +13,7 @@ class ApiOwner(Enum):
     ECOSYSTEM = "ecosystem"
     ENTERPRISE = "enterprise"
     FEEDBACK = "feedback-backend"
+    FLAG = "replay-backend"
     HYBRID_CLOUD = "hybrid-cloud"
     INTEGRATIONS = "product-owners-settings-integrations"
     ISSUES = "issues"
