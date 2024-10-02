@@ -55,7 +55,7 @@ from sentry.grouping.api import (
 )
 from sentry.grouping.ingest.config import is_in_transition, update_grouping_config_if_needed
 from sentry.grouping.ingest.hashing import (
-    find_existing_grouphash,
+    find_grouphash_with_group,
     get_or_create_grouphashes,
     maybe_run_background_grouping,
     maybe_run_secondary_grouping,
@@ -1384,7 +1384,7 @@ def get_hashes_and_grouphashes(
     if hashes:
         grouphashes = get_or_create_grouphashes(project, hashes)
 
-        existing_grouphash = find_existing_grouphash(grouphashes)
+        existing_grouphash = find_grouphash_with_group(grouphashes)
 
         return GroupHashInfo(grouping_config, hashes, grouphashes, existing_grouphash)
     else:
@@ -1487,7 +1487,7 @@ def create_group_with_grouphashes(job: Job, grouphashes: list[GroupHash]) -> Gro
         # condition scenario above, we'll have been blocked long enough for the other event to
         # have created the group and updated our grouphashes with a group id, which means this
         # time, we'll find something.
-        existing_grouphash = find_existing_grouphash(grouphashes)
+        existing_grouphash = find_grouphash_with_group(grouphashes)
 
         # If we still haven't found a matching grouphash, we're now safe to go ahead and create
         # the group.

@@ -191,7 +191,7 @@ def _calculate_primary_hashes(
     return _calculate_event_grouping(project, job["event"], grouping_config)
 
 
-def find_existing_grouphash(
+def find_grouphash_with_group(
     grouphashes: Sequence[GroupHash],
 ) -> GroupHash | None:
     for group_hash in grouphashes:
