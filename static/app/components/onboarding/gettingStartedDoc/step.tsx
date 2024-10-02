@@ -253,7 +253,8 @@ export function Step({
 
   return collapsible ? (
     <div>
-      <OptionalConfigWrapper>
+      <OptionalConfigWrapper expanded={showOptionalConfig}>
+        <h4 style={{marginBottom: 0}}>{title ?? StepTitle[type]}</h4>
         <ToggleButton
           priority="link"
           borderless
@@ -264,9 +265,7 @@ export function Step({
             onOptionalToggleClick?.(!showOptionalConfig);
             setShowOptionalConfig(!showOptionalConfig);
           }}
-        >
-          <h4 style={{marginBottom: 0}}>{title ?? StepTitle[type]}</h4>
-        </ToggleButton>
+        />
       </OptionalConfigWrapper>
       {showOptionalConfig ? config : null}
     </div>
@@ -307,8 +306,10 @@ const GeneralAdditionalInfo = styled(Description)`
   margin-top: ${space(2)};
 `;
 
-const OptionalConfigWrapper = styled('div')`
+const OptionalConfigWrapper = styled('div')<{expanded: boolean}>`
   display: flex;
+  gap: ${space(1)};
+  margin-bottom: ${p => (p.expanded ? space(2) : 0)};
   cursor: pointer;
 `;
 
