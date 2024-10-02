@@ -11,8 +11,6 @@ from arroyo.processing.strategies import (
     ProcessingStrategyFactory,
     Reduce,
     RunTask,
-    RunTaskInThreads,
-    RunTaskWithMultiprocessing,
 )
 from arroyo.processing.strategies.run_task_with_multiprocessing import MultiprocessingPool
 from arroyo.types import BaseValue, Commit, Message, Partition
@@ -105,20 +103,14 @@ class StrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             max_batch_time=2,
             accumulator=accumulator,
             initial_value=list,
-            next_step=RunTaskInThreads(
-                processing_function=flush_batch,
-                concurrency=2,
-                max_pending_futures=2,
+            next_step=RunTask(
+                function=flush_batch,
                 next_step=upkeep_step,
             ),
         )
-        return RunTaskWithMultiprocessing(
+        return RunTask(
             function=process_message,
             next_step=collect,
-            # TODO use CLI options
-            max_batch_size=2,
-            max_batch_time=2,
-            pool=self.pool,
         )
 
     def shutdown(self):
