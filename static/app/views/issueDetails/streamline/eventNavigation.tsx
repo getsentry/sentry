@@ -47,7 +47,7 @@ type EventNavigationProps = {
   onViewAllEvents: (e: React.MouseEvent) => void;
   className?: string;
   /**
-   * Data proptery to help style the component when it's sticky
+   * Data property to help style the component when it's sticky
    */
   'data-stuck'?: boolean;
   query?: string;
