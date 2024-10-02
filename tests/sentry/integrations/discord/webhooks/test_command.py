@@ -273,4 +273,4 @@ class DiscordCommandInteractionTest(APITestCase):
         assert len(mock_record.mock_calls) == 2
         start, halt = mock_record.mock_calls
         assert start.args == (EventLifecycleOutcome.STARTED,)
-        assert halt.args == (EventLifecycleOutcome.SUCCESS,)
+        assert halt.args == (EventLifecycleOutcome.HALTED,)
