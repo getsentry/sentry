@@ -12,6 +12,12 @@ pytestmark = [requires_snuba]
 
 
 class GroupHashMetadataTest(TestCase):
+    # Helper method to save us from having to assert the existence of `grouphash` and
+    # `grouphash.metadata` every time we want to check a value
+    def assert_metadata_value(self, grouphash, value_name, value):
+        assert grouphash and grouphash.metadata
+        assert getattr(grouphash.metadata, value_name) == value
+
     def test_creates_grouphash_metadata_when_appropriate(self):
         # The killswitch is obeyed
         with override_options({"grouping.grouphash_metadata.ingestion_writes_enabled": False}):
