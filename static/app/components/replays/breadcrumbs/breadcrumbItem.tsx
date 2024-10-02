@@ -44,6 +44,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
 import IconWrapper from 'sentry/views/replays/detail/iconWrapper';
 import TimestampButton from 'sentry/views/replays/detail/timestampButton';
+import type {OnExpandCallback} from 'sentry/views/replays/detail/useVirtualizedInspector';
 
 type MouseCallback = (frame: ReplayFrame, nodeId?: number) => void;
 
@@ -52,7 +53,7 @@ const FRAMES_WITH_BUTTONS = ['replay.hydrate-error'];
 interface Props {
   frame: ReplayFrame;
   onClick: null | MouseCallback;
-  onInspectorExpanded: (path: string, expandedState: Record<string, boolean>) => void;
+  onInspectorExpanded: OnExpandCallback;
   onMouseEnter: MouseCallback;
   onMouseLeave: MouseCallback;
   startTimestampMs: number;
@@ -236,7 +237,7 @@ function WebVitalData({
 }: {
   expandPaths: string[] | undefined;
   frame: WebVitalFrame;
-  onInspectorExpanded: (path: string, expandedState: Record<string, boolean>) => void;
+  onInspectorExpanded: OnExpandCallback;
   onMouseEnter: MouseCallback;
   onMouseLeave: MouseCallback;
   selectors: Map<number, string> | undefined;
