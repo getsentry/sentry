@@ -414,12 +414,12 @@ function ChainLink({
             onSubmit={e => {
               e.preventDefault();
               setShowOverlay(false);
+              setComment('');
               send({
                 message: comment,
                 step_index: stepIndex,
                 retain_insight_card_index: insightCardAboveIndex,
               });
-              setComment('');
             }}
             className="row-form"
           >
@@ -428,6 +428,7 @@ function ChainLink({
               placeholder="Say something..."
               value={comment}
               onChange={e => setComment(e.target.value)}
+              size="md"
               autoFocus
             />
             <Button
@@ -436,6 +437,7 @@ function ChainLink({
               title="Restart analysis from this point in the chain"
               aria-label="Restart analysis from this point in the chain"
               priority="primary"
+              size="md"
             />
           </form>
         </RethinkInput>
@@ -495,6 +497,7 @@ const ArrowContainer = styled('div')`
   color: ${p => p.theme.subText};
   align-items: center;
   position: relative;
+  z-index: 0;
 
   .arrow-icon {
     margin-top: ${space(1)};
@@ -525,9 +528,10 @@ const RethinkButton = styled(Button)`
 const RethinkInput = styled('div')`
   position: absolute;
   box-shadow: ${p => p.theme.dropShadowHeavy};
+  border: 1px solid ${p => p.theme.border};
   width: 95%;
   background: ${p => p.theme.backgroundElevated};
-  padding: ${space(1)};
+  padding: ${space(0.5)};
   border-radius: ${p => p.theme.borderRadius};
   margin: 0 ${space(2)} 0 ${space(2)};
 
