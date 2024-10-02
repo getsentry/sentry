@@ -438,7 +438,7 @@ export function prepareQueryForLandingPage(searchQuery, withStaticFilters) {
   return conditions.formatString();
 }
 
-function generateGenericPerformanceEventView(
+export function generateGenericPerformanceEventView(
   location: Location,
   withStaticFilters: boolean,
   organization: Organization
@@ -551,7 +551,7 @@ function generateBackendPerformanceEventView(
   return eventView;
 }
 
-function generateMobilePerformanceEventView(
+export function generateMobilePerformanceEventView(
   location: Location,
   projects: Project[],
   genericEventView: EventView,
