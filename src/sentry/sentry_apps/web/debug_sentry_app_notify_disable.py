@@ -6,8 +6,7 @@ from sentry.integrations.notify_disable import get_provider_type, get_url
 from sentry.models.organization import Organization
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
-
-from .mail import MailPreview
+from sentry.web.frontend.debug.mail import MailPreview
 
 
 class DebugSentryAppNotifyDisableView(View):

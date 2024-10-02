@@ -3,6 +3,7 @@ from django.views.generic import TemplateView
 
 import sentry.web.frontend.debug.mail
 from sentry.integrations.web.debug.debug_notify_disable import DebugNotifyDisableView
+from sentry.sentry_apps.web.debug_sentry_app_notify_disable import DebugSentryAppNotifyDisableView
 from sentry.web.frontend.debug import debug_auth_views
 from sentry.web.frontend.debug.debug_assigned_email import (
     DebugAssignedEmailView,
@@ -61,9 +62,6 @@ from sentry.web.frontend.debug.debug_resolved_email import DebugResolvedEmailVie
 from sentry.web.frontend.debug.debug_resolved_in_release_email import (
     DebugResolvedInReleaseEmailView,
     DebugResolvedInReleaseUpcomingEmailView,
-)
-from sentry.web.frontend.debug.debug_sentry_app_notify_disable import (
-    DebugSentryAppNotifyDisableView,
 )
 from sentry.web.frontend.debug.debug_setup_2fa_email import DebugSetup2faEmailView
 from sentry.web.frontend.debug.debug_sso_link_email import (

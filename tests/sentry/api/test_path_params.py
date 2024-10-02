@@ -37,6 +37,7 @@ class TestPathParams(TestCase):
         "sentry.web",
         "sentry.integrations.web",
         "sentry.users.web",
+        "sentry.sentry_apps.web",
         "sentry.auth",
         "sentry.toolbar",
     )
