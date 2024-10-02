@@ -14,6 +14,7 @@ from sentry.utils.snuba import RetrySkipTimeout
 PROTO_VERSION = "v1alpha"
 
 proto_lib = importlib.import_module(f"sentry_protos.snuba.{PROTO_VERSION}.request_common_pb2")
+RequestMeta = proto_lib.RequestMeta
 
 RPCResponseType = TypeVar("RPCResponseType", bound=ProtobufMessage)
 
@@ -38,7 +39,7 @@ class SnubaRPCRequest(Protocol):
         ...
 
     @property
-    def meta(self) -> proto_lib.RequestMeta:
+    def meta(self) -> RequestMeta:
         ...
 
 
