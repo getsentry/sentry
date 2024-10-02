@@ -1155,7 +1155,7 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-details",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<issues_or_groups>issues|groups)/",
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?:issues|groups)/",
         include(create_group_urls("sentry-api-0-organization-group")),
     ),
     # Alert Rules
@@ -3093,7 +3093,7 @@ urlpatterns = [
     ),
     # Groups / Issues
     re_path(
-        r"^(?P<issues_or_groups>issues|groups)/",
+        r"^(?:issues|groups)/",
         include(create_group_urls("sentry-api-0")),
     ),
     re_path(
