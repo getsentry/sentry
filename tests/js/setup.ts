@@ -14,6 +14,7 @@ import {resetMockDate} from 'sentry-test/utils';
 import type {Client} from 'sentry/__mocks__/api';
 import {DEFAULT_LOCALE_DATA, setLocale} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
+import {DANGEROUS_SET_TEST_HISTORY} from 'sentry/utils/browserHistory';
 import * as performanceForSentry from 'sentry/utils/performanceForSentry';
 
 window.__SENTRY_USING_REACT_ROUTER_SIX = true;
@@ -69,21 +70,16 @@ jest
   .spyOn(performanceForSentry, 'VisuallyCompleteWithData')
   .mockImplementation(props => props.children as ReactElement);
 jest.mock('scroll-to-element', () => jest.fn());
-jest.mock('react-router', function reactRouterMockFactory() {
-  const ReactRouter = jest.requireActual('react-router');
-  return {
-    ...ReactRouter,
-    browserHistory: {
-      goBack: jest.fn(),
-      push: jest.fn(),
-      replace: jest.fn(),
-      listen: jest.fn(() => {}),
-      listenBefore: jest.fn(),
-      getCurrentLocation: jest.fn(() => ({pathname: '', query: {}})),
-    },
-  };
-});
 jest.mock('sentry/utils/search/searchBoxTextArea');
+
+DANGEROUS_SET_TEST_HISTORY({
+  goBack: jest.fn(),
+  push: jest.fn(),
+  replace: jest.fn(),
+  listen: jest.fn(() => {}),
+  listenBefore: jest.fn(),
+  getCurrentLocation: jest.fn(() => ({pathname: '', query: {}})),
+});
 
 jest.mock('react-virtualized', function reactVirtualizedMockFactory() {
   const ActualReactVirtualized = jest.requireActual('react-virtualized');
@@ -135,7 +131,7 @@ jest.mock('@sentry/react', function sentryReact() {
       set: jest.fn(),
       distribution: jest.fn(),
     },
-    reactRouterV3BrowserTracingIntegration: jest.fn().mockReturnValue({}),
+    reactRouterV6BrowserTracingIntegration: jest.fn().mockReturnValue({}),
     browserTracingIntegration: jest.fn().mockReturnValue({}),
     browserProfilingIntegration: jest.fn().mockReturnValue({}),
     addEventProcessor: jest.fn(),

@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Role} from 'sentry/components/acl/role';
+import {useRole} from 'sentry/components/acl/useRole';
 import {Flex} from 'sentry/components/container/flex';
 import FeedbackItemUsername from 'sentry/components/feedback/feedbackItem/feedbackItemUsername';
 import FeedbackTimestampsTooltip from 'sentry/components/feedback/feedbackItem/feedbackTimestampsTooltip';
@@ -21,6 +21,7 @@ interface Props {
 
 export default function MessageSection({eventData, feedbackItem}: Props) {
   const organization = useOrganization();
+  const {hasRole} = useRole({role: 'attachmentsRole'});
   const project = feedbackItem.project;
   return (
     <Fragment>
@@ -40,18 +41,12 @@ export default function MessageSection({eventData, feedbackItem}: Props) {
       <Blockquote>
         <pre>{feedbackItem.metadata.message}</pre>
 
-        {eventData && project ? (
-          <Role organization={organization} role={organization.attachmentsRole}>
-            {({hasRole}) =>
-              hasRole ? (
-                <ScreenshotSection
-                  event={eventData}
-                  organization={organization}
-                  projectSlug={project.slug}
-                />
-              ) : null
-            }
-          </Role>
+        {eventData && project && hasRole ? (
+          <ScreenshotSection
+            event={eventData}
+            organization={organization}
+            projectSlug={project.slug}
+          />
         ) : null}
       </Blockquote>
       <Flex justify="flex-end">

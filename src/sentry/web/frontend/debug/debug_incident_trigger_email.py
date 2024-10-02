@@ -41,7 +41,7 @@ class DebugIncidentTriggerEmailView(MailPreviewView):
             organization=organization,
             title="Something broke",
             alert_rule=alert_rule,
-            status=IncidentStatus.CRITICAL,
+            status=IncidentStatus.CRITICAL.value,
         )
         trigger = AlertRuleTrigger(alert_rule=alert_rule)
 

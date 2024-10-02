@@ -14,6 +14,7 @@ from sentry.incidents.models.incident import IncidentActivityType
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.models.activity import Activity
+from sentry.models.environment import Environment
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
@@ -649,6 +650,9 @@ class Fixtures:
     def create_detector(self, *args, **kwargs) -> Detector:
         return Factories.create_detector(*args, **kwargs)
 
+    def create_detector_state(self, *args, **kwargs) -> Detector:
+        return Factories.create_detector_state(*args, **kwargs)
+
     def create_data_source_detector(self, *args, **kwargs):
         return Factories.create_data_source_detector(*args, **kwargs)
 
@@ -708,6 +712,7 @@ class Fixtures:
     def create_project_uptime_subscription(
         self,
         project: Project | None = None,
+        env: Environment | None = None,
         uptime_subscription: UptimeSubscription | None = None,
         mode=ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE,
         name="Test Name",
@@ -721,6 +726,7 @@ class Fixtures:
             uptime_subscription = self.create_uptime_subscription()
         return Factories.create_project_uptime_subscription(
             project,
+            env,
             uptime_subscription,
             mode,
             name,
