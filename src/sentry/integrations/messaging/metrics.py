@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any
 
-from sentry.integrations.utils.metrics import EventLifecycleMetric
+from sentry.integrations.utils.metrics import EventLifecycleMetric, EventLifecycleOutcome
 from sentry.models.organization import Organization
 from sentry.organizations.services.organization import RpcOrganization
 from sentry.users.models import User
@@ -33,6 +33,9 @@ class MessagingInteractionType(Enum):
     IGNORE = "IGNORE"
     MARK_ONGOING = "MARK_ONGOING"
 
+    def __str__(self) -> str:
+        return self.value.lower()
+
 
 @dataclass
 class MessagingInteractionEvent(EventLifecycleMetric):
@@ -45,13 +48,10 @@ class MessagingInteractionEvent(EventLifecycleMetric):
     user: User | RpcUser | None = None
     organization: Organization | RpcOrganization | None = None
 
-    def get_key(self, outcome: str) -> str:
-        tag_tokens = ["sentry", "integrations", "messaging", "slo"] + [
-            self.provider,
-            str(self.interaction_type).lower(),
-            outcome,
-        ]
-        return ".".join(tag_tokens)
+    def get_key(self, outcome: EventLifecycleOutcome) -> str:
+        tag_tokens = ["sentry", "integrations", "messaging", "slo"]
+        tag_tokens += [self.provider, self.interaction_type, outcome]
+        return ".".join(str(token) for token in tag_tokens)
 
     def get_extras(self) -> Mapping[str, Any]:
         return {
