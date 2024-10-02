@@ -74,12 +74,14 @@ const EventNavOrder = [
 const sectionLabels = {
   [SectionKey.HIGHLIGHTS]: t('Event Highlights'),
   [SectionKey.STACKTRACE]: t('Stack Trace'),
+  [SectionKey.TRACE_PREVIEW]: t('Trace'),
   [SectionKey.EXCEPTION]: t('Stack Trace'),
   [SectionKey.BREADCRUMBS]: t('Breadcrumbs'),
   [SectionKey.TAGS]: t('Tags'),
   [SectionKey.CONTEXTS]: t('Context'),
   [SectionKey.USER_FEEDBACK]: t('User Feedback'),
   [SectionKey.REPLAY]: t('Replay'),
+  [SectionKey.FEATURE_FLAGS]: t('Flags'),
 };
 
 export const EventNavigation = forwardRef<HTMLDivElement, EventNavigationProps>(
