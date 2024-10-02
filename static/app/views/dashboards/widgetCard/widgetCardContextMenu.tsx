@@ -1,3 +1,4 @@
+import type React from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -54,7 +55,7 @@ type Props = {
   seriesResultsType?: Record<string, AggregationOutputType>;
   showContextMenu?: boolean;
   tableData?: TableDataWithTitle[];
-  title?: string;
+  title?: string | React.ReactNode;
   totalIssuesCount?: string;
 };
 
@@ -117,6 +118,29 @@ function WidgetCardContextMenu({
                       {t('Indexed')}
                     </SampledTag>
                   )}
+                {title && (
+                  <Tooltip
+                    title={
+                      <span>
+                        <WidgetTooltipTitle>{title}</WidgetTooltipTitle>
+                        {description && (
+                          <WidgetTooltipDescription>
+                            {description}
+                          </WidgetTooltipDescription>
+                        )}
+                      </span>
+                    }
+                    containerDisplayMode="grid"
+                    isHoverable
+                  >
+                    <WidgetTooltipButton
+                      aria-label={t('Widget description')}
+                      borderless
+                      size="xs"
+                      icon={<IconInfo />}
+                    />
+                  </Tooltip>
+                )}
                 <StyledDropdownMenuControl
                   items={[
                     {
