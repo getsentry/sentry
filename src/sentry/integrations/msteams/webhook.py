@@ -479,14 +479,17 @@ class MsTeamsWebhookEndpoint(Endpoint):
             organization_id=group.project.organization.id,
         )
 
-        with MessagingInteractionEvent(interaction_type, PROVIDER).capture(assume_success=False):
-            return client.put(
+        with MessagingInteractionEvent(interaction_type, PROVIDER).capture() as lifecycle:
+            response = client.put(
                 path=f"/projects/{group.project.organization.slug}/{group.project.slug}/issues/",
                 params={"id": group.id},
                 data=action_data,
                 user=user_service.get_user(user_id=identity.user_id),
                 auth=event_write_key,
             )
+            if response.status_code >= 400:
+                lifecycle.record_failure()
+            return response
 
     def _handle_action_submitted(self, request: Request) -> Response:
         # pull out parameters

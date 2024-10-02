@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Mapping
 from enum import Enum
 from types import TracebackType
-from typing import Any
+from typing import Any, Self
 
 from django.conf import settings
 
@@ -111,11 +111,12 @@ class EventLifecycle:
 
         self._terminate(EventLifecycleOutcome.FAILURE)
 
-    def __enter__(self) -> None:
+    def __enter__(self) -> Self:
         if self._state is not None:
             raise EventLifecycleStateError("The lifecycle has already been entered")
         self._state = EventLifecycleOutcome.STARTED
         self.record_event(EventLifecycleOutcome.STARTED)
+        return self
 
     def __exit__(
         self,
