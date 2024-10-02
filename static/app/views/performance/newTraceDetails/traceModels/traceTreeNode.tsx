@@ -25,12 +25,8 @@ function isTraceAutogroup(
   return !!(value && 'autogrouped_by' in value);
 }
 
-function isRoot(value: TraceTree.NodeValue): value is null {
-  return value === null;
-}
-
-function isTraceRoot(value: TraceTree.NodeValue): value is TraceTree.Trace {
-  return !!(value && ('orphan_errors' in value || 'transactions' in value));
+function isTraceRoot(value: TraceTree.NodeValue | undefined): value is TraceTree.Trace {
+  return !!(value && 'orphan_errors' in value);
 }
 
 function shouldCollapseNodeByDefault(node: TraceTreeNode<TraceTree.NodeValue>) {
@@ -180,21 +176,6 @@ export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> 
 
     this._connectors = [];
 
-    if (!this.parent) {
-      return this._connectors;
-    }
-
-    if (this.parent?.connectors !== undefined) {
-      this._connectors = [...this.parent.connectors];
-
-      if (this.isLastChild || isRoot(this.value)) {
-        return this._connectors;
-      }
-
-      this.connectors.push(isTraceRoot(this.value) ? -this.depth : this.depth);
-      return this._connectors;
-    }
-
     let node: TraceTreeNode<T> | TraceTreeNode<TraceTree.NodeValue> | null = this.parent;
 
     while (node) {
@@ -207,7 +188,7 @@ export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> 
         continue;
       }
 
-      this._connectors.push(this.value ? -node.depth : node.depth);
+      this._connectors.push(isTraceRoot(node.parent?.value) ? -node.depth : node.depth);
       node = node.parent;
     }
 
