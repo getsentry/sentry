@@ -351,6 +351,7 @@ from sentry.users.api.endpoints.userroles_index import UserRolesEndpoint
 from .endpoints.accept_organization_invite import AcceptOrganizationInvite
 from .endpoints.accept_project_transfer import AcceptProjectTransferEndpoint
 from .endpoints.admin_project_configs import AdminRelayProjectConfigsEndpoint
+from .endpoints.ai_unit_test_generation import AIUnitTestGenerationEndpoint
 from .endpoints.api_application_details import ApiApplicationDetailsEndpoint
 from .endpoints.api_application_rotate_secret import ApiApplicationRotateSecretEndpoint
 from .endpoints.api_applications import ApiApplicationsEndpoint
@@ -3314,6 +3315,11 @@ urlpatterns = [
         r"^",
         CatchallEndpoint.as_view(),
         name="sentry-api-catchall",
+    ),
+    re_path(
+        r"^api/0/organizations/(?P<org_slug>[^/]+)/repo/(?P<repo_name>[^/]+)/pr/(?P<pull_request_number>\d+)/externalid/(?P<external_id>[^/]+)/generate-unit-tests/$",
+        AIUnitTestGenerationEndpoint.as_view(),
+        name="generate_unit_tests",
     ),
     # re_path(r'^api-auth/', include('rest_framework.urls', namespace='rest_framework'))
 ]
