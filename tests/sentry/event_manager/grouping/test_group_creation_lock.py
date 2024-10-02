@@ -5,7 +5,7 @@ from unittest.mock import patch
 
 import pytest
 
-from sentry.event_manager import _save_aggregate_new
+from sentry.event_manager import GroupInfo, _save_aggregate_new
 from sentry.eventstore.models import Event
 from sentry.testutils.pytest.fixtures import django_db_all
 
@@ -47,11 +47,9 @@ def test_group_creation_race_new(monkeypatch, default_project, is_race_free):
         # select_for_update cannot be used outside of transactions
         monkeypatch.setattr("django.db.models.QuerySet.select_for_update", lambda self: self)
 
-    return_values = []
-
-    def save_event():
+    def save_event(project_id: int, return_values: list[GroupInfo]) -> None:
         event = Event(
-            default_project.id,
+            project_id,
             "11212012123120120415201309082013",
             data={"timestamp": time.time()},
         )
@@ -76,9 +74,11 @@ def test_group_creation_race_new(monkeypatch, default_project, is_race_free):
         ),
         patch("sentry.event_manager._materialize_metadata_many"),
     ):
+        return_values: list[GroupInfo] = []
         threads = []
+
         for _ in range(CONCURRENCY):
-            thread = Thread(target=save_event)
+            thread = Thread(target=save_event, args=[default_project.id, return_values])
             thread.start()
             threads.append(thread)
 
