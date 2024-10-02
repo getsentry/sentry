@@ -613,7 +613,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
 
         dispatcher = MsTeamsCommandDispatcher(data)
         try:
-            card = dispatcher.dispatch(CommandInput(command_text.lower()))
+            card = dispatcher.dispatch(CommandInput(command_text))
         except CommandNotMatchedError:
             card = build_unrecognized_command_card(command_text)
 
