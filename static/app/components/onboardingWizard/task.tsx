@@ -30,7 +30,7 @@ const recordAnalytics = (
   organization: Organization,
   action: string
 ) =>
-  trackAnalytics('onboarding.wizard_clicked', {
+  trackAnalytics('quick_start.task_card_clicked', {
     organization,
     todo_id: task.task,
     todo_title: task.title,
