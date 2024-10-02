@@ -50,6 +50,13 @@ Future<void> main() async {
   // or define SENTRY_DSN via Dart environment variable (--dart-define)
 }`;
 
+const configureAdditionalInfo = tct(
+  'You can configure the [code: SENTRY_DSN], [code: SENTRY_RELEASE], [code: SENTRY_DIST], and [code: SENTRY_ENVIRONMENT] via the Dart environment variables passing the [code: --dart-define] flag to the compiler, as noted in the code sample.',
+  {
+    code: <code />,
+  }
+);
+
 const getVerifySnippet = () => `
 child: ElevatedButton(
   onPressed: () {
@@ -255,24 +262,17 @@ const onboarding: OnboardingConfig = {
               code: getConfigureSnippet(params),
             },
           ],
-          additionalInfo: (
+          additionalInfo: params.isPerformanceSelected ? (
             <Fragment>
-              <p>
-                {tct(
-                  'You can configure the [code: SENTRY_DSN], [code: SENTRY_RELEASE], [code: SENTRY_DIST], and [code: SENTRY_ENVIRONMENT] via the Dart environment variables passing the [code: --dart-define] flag to the compiler, as noted in the code sample.',
-                  {
-                    code: <code />,
-                  }
+              <p>{configureAdditionalInfo}</p>
+              <AlertWithoutMarginBottom type="info">
+                {t(
+                  'To monitor performance, you need to add extra instrumentation as described in the Tracing section below.'
                 )}
-              </p>
-              {params.isPerformanceSelected && (
-                <AlertWithoutMarginBottom type="info">
-                  {t(
-                    'To monitor performance, you need to add extra instrumentation as described in the Tracing section below.'
-                  )}
-                </AlertWithoutMarginBottom>
-              )}
+              </AlertWithoutMarginBottom>
             </Fragment>
+          ) : (
+            configureAdditionalInfo
           ),
         },
       ],
