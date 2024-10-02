@@ -370,7 +370,11 @@ describe('Incident Rules Form', () => {
     });
 
     it('creates an anomaly detection rule', async () => {
-      organization.features = [...organization.features, 'anomaly-detection-alerts'];
+      organization.features = [
+        ...organization.features,
+        'anomaly-detection-alerts',
+        'anomaly-detection-rollout',
+      ];
       const rule = MetricRuleFixture({
         sensitivity: AlertRuleSensitivity.MEDIUM,
         seasonality: AlertRuleSeasonality.AUTO,
@@ -569,7 +573,11 @@ describe('Incident Rules Form', () => {
     });
 
     it('switches to anomaly detection threshold', async () => {
-      organization.features = [...organization.features, 'anomaly-detection-alerts'];
+      organization.features = [
+        ...organization.features,
+        'anomaly-detection-alerts',
+        'anomaly-detection-rollout',
+      ];
       createWrapper({
         rule: {
           ...rule,
