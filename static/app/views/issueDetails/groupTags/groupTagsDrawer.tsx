@@ -1,10 +1,10 @@
-import {useRef} from 'react';
+import {useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
-import {LinkButton} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
-import DataExport, {ExportQueryType} from 'sentry/components/dataExport';
+import {Button} from 'sentry/components/button';
+import {ExportQueryType, useDataExport} from 'sentry/components/dataExport';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {
   CrumbContainer,
   EventDrawerBody,
@@ -17,9 +17,10 @@ import {
 } from 'sentry/components/events/eventDrawer';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {IconDownload} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Project} from 'sentry/types/project';
+import type {Group} from 'sentry/types/group';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -30,19 +31,25 @@ import {useGroupTags} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
-type GroupTagsDrawerProps = {
-  groupId: string;
-  projectSlug: Project['slug'];
-};
-
-export function GroupTagsDrawer({projectSlug, groupId}: GroupTagsDrawerProps) {
+export function GroupTagsDrawer({group}: {group: Group}) {
   const location = useLocation();
   const organization = useOrganization();
   const {tagKey} = useParams<{tagKey: string}>();
   const drawerRef = useRef<HTMLDivElement>(null);
   const {projects} = useProjects();
-  const project = projects.find(p => p.slug === projectSlug)!;
+  const project = projects.find(p => p.slug === group.project.slug)!;
+  const [isExportDisabled, setIsExportDisabled] = useState(false);
   const {baseUrl} = useGroupDetailsRoute();
+  const handleDataExport = useDataExport({
+    payload: {
+      queryType: ExportQueryType.ISSUES_BY_TAG,
+      queryInfo: {
+        project: project.id,
+        group: group.id,
+        key: tagKey,
+      },
+    },
+  });
 
   const {
     data = [],
@@ -50,7 +57,7 @@ export function GroupTagsDrawer({projectSlug, groupId}: GroupTagsDrawerProps) {
     isError,
     refetch,
   } = useGroupTags({
-    groupId,
+    groupId: group.id,
     environment: location.query.environment as string[] | string | undefined,
   });
 
@@ -78,7 +85,7 @@ export function GroupTagsDrawer({projectSlug, groupId}: GroupTagsDrawerProps) {
               label: (
                 <CrumbContainer>
                   <ProjectAvatar project={project} />
-                  <ShortId>{groupId}</ShortId>
+                  <ShortId>{group.shortId}</ShortId>
                 </CrumbContainer>
               ),
             },
@@ -98,32 +105,43 @@ export function GroupTagsDrawer({projectSlug, groupId}: GroupTagsDrawerProps) {
       <EventNavigator>
         <Header>{tagKey ? t('Tag Details') : t('Tags')}</Header>
         {tagKey && (
-          <ButtonBar gap={1}>
-            <LinkButton
-              size="sm"
-              priority="default"
-              href={`/${organization.slug}/${project.slug}/issues/${groupId}/tags/${tagKey}/export/`}
-            >
-              {t('Export Page to CSV')}
-            </LinkButton>
-            <DataExport
-              payload={{
-                queryType: ExportQueryType.ISSUES_BY_TAG,
-                queryInfo: {
-                  project: project.id,
-                  group: groupId,
-                  key: tagKey,
+          <DropdownMenu
+            size="xs"
+            trigger={triggerProps => (
+              <Button
+                {...triggerProps}
+                borderless
+                size="xs"
+                aria-label={t('Export options')}
+                icon={<IconDownload />}
+              />
+            )}
+            items={[
+              {
+                key: 'export-page',
+                label: t('Export Page to CSV'),
+                to: `${organization.slug}/${project.slug}/issues/${group.id}/tags/${tagKey}/export/`,
+              },
+              {
+                key: 'export-all',
+                label: isExportDisabled
+                  ? t('Export in progress...')
+                  : t('Export All to CSV'),
+                onAction: () => {
+                  handleDataExport();
+                  setIsExportDisabled(true);
                 },
-              }}
-            />
-          </ButtonBar>
+                disabled: isExportDisabled,
+              },
+            ]}
+          />
         )}
       </EventNavigator>
       <EventDrawerBody>
         {tagKey ? (
           <TagDetailsDrawerContent
             project={project}
-            groupId={groupId}
+            groupId={group.id}
             drawerRef={drawerRef}
           />
         ) : (
@@ -145,6 +163,7 @@ const Wrapper = styled('div')`
   flex-direction: column;
   gap: ${space(2)};
 `;
+
 const Container = styled('div')`
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
