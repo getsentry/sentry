@@ -5,39 +5,7 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {getFormattedDate} from 'sentry/utils/dates';
 import {useApiQuery} from 'sentry/utils/queryClient';
-// import useOrganization from 'sentry/utils/useOrganization';
-
-export const MOCK_RAW_FLAG_LOG: RawFlagData = {
-  data: [
-    {
-      action: 'created',
-      flag: 'replay-mobile-ui',
-      created_at: '2024-09-24T05:12:33',
-      created_by: '1234',
-      created_by_type: 'id',
-      tags: {},
-      id: 1,
-    },
-    {
-      action: 'updated',
-      flag: 'sentry-pride-logo-footer',
-      created_at: '2024-09-25T05:12:33',
-      created_by: '1234',
-      created_by_type: 'id',
-      tags: {},
-      id: 2,
-    },
-    {
-      action: 'deleted',
-      flag: 'spam-ingest',
-      created_at: '2024-09-26T05:12:33',
-      created_by: '1234',
-      created_by_type: 'id',
-      tags: {},
-      id: 3,
-    },
-  ],
-};
+import useOrganization from 'sentry/utils/useOrganization';
 
 type RawFlag = {
   action: string;
@@ -58,7 +26,7 @@ type FlagSeriesDatapoint = {
   xAxis: number;
 };
 
-function _useOrganizationFlagLog({
+function useOrganizationFlagLog({
   organization,
   query,
 }: {
@@ -66,10 +34,10 @@ function _useOrganizationFlagLog({
   query: Record<string, any>;
 }) {
   const {data, isError, isPending} = useApiQuery<RawFlagData>(
-    [`/organizations/${organization.slug}/flags/logs`, {query}],
+    [`/organizations/${organization.slug}/flags/logs/`, {query}],
     {
       staleTime: 0,
-      // enabled: organization.features?.includes('feature-flag-ui'),
+      enabled: organization.features?.includes('feature-flag-ui'),
     }
   );
   return {data, isError, isPending};
@@ -91,11 +59,22 @@ function hydrateFlagData({
   return flagData;
 }
 
-export default function useFlagSeries({_query}: {_query?: Record<string, any>}) {
+export default function useFlagSeries({query = {}}: {query?: Record<string, any>}) {
   const theme = useTheme();
-  // const organization = useOrganization();
-  // const {data, isError, isPending} = useOrganizationFlagLog({organization, query});
-  const rawFlagData: RawFlagData = MOCK_RAW_FLAG_LOG;
+  const organization = useOrganization();
+  const {
+    data: rawFlagData,
+    isError,
+    isPending,
+  } = useOrganizationFlagLog({organization, query});
+
+  if (!rawFlagData || isError || isPending) {
+    return {
+      seriesName: t('Feature Flags'),
+      data: [],
+    };
+  }
+
   const hydratedFlagData: FlagSeriesDatapoint[] = hydrateFlagData({rawFlagData});
 
   // create a markline series using hydrated flag data

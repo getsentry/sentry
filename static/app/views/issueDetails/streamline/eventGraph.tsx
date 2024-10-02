@@ -80,7 +80,7 @@ export function EventGraph({group, groupStats, searchQuery}: EventGraphProps) {
   });
 
   const flagSeries = useFlagSeries({
-    _query: {
+    query: {
       start: eventView.start,
       end: eventView.end,
       statsPeriod: eventView.statsPeriod,
@@ -113,7 +113,9 @@ export function EventGraph({group, groupStats, searchQuery}: EventGraphProps) {
       data: eventSeries,
     });
   }
-  series.push(flagSeries as BarChartSeries);
+  if (flagSeries.markLine) {
+    series.push(flagSeries as BarChartSeries);
+  }
 
   const legend = Legend({
     theme: theme,
