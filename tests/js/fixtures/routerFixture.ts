@@ -1,7 +1,6 @@
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import {stringify} from 'query-string';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
-import type {Location} from 'history';
 
 interface RouterFixtureProps {
   push?: any;
@@ -14,7 +13,7 @@ interface RouterFixtureProps {
   /**
    * `router.location` or useLocation
    */
-  location?: Partial<Location>;
+  location?: Parameters<typeof LocationFixture>[0];
 }
 
 export function RouterFixture(params: RouterFixtureProps = {}): InjectedRouter {
