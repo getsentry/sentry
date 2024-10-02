@@ -312,7 +312,7 @@ export function MetricDetailsSidebar({
           )}
         </KeyValueTable>
       </SidebarGroup>
-      {rule.detectionType === AlertRuleComparisonType.PERCENT && feedbackButton}
+      {rule.detectionType === AlertRuleComparisonType.DYNAMIC && feedbackButton}
     </Fragment>
   );
 }
