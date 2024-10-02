@@ -77,6 +77,7 @@ import {
   DEFAULT_CHANGE_COMP_DELTA,
   DEFAULT_CHANGE_TIME_WINDOW,
   DEFAULT_COUNT_TIME_WINDOW,
+  DEFAULT_DYNAMIC_TIME_WINDOW,
 } from './constants';
 import RuleConditionsForm from './ruleConditionsForm';
 import {
@@ -918,32 +919,39 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
   };
 
   handleComparisonTypeChange = (value: AlertRuleComparisonType) => {
-    const comparisonDelta =
-      value === AlertRuleComparisonType.CHANGE
-        ? this.state.comparisonDelta ?? DEFAULT_CHANGE_COMP_DELTA
-        : undefined;
-    const timeWindow =
-      value === AlertRuleComparisonType.COUNT
-        ? DEFAULT_COUNT_TIME_WINDOW
-        : DEFAULT_CHANGE_TIME_WINDOW;
-    const sensitivity =
-      value === AlertRuleComparisonType.DYNAMIC
-        ? this.state.sensitivity || AlertRuleSensitivity.MEDIUM
-        : undefined;
-    const seasonality =
-      value === AlertRuleComparisonType.DYNAMIC ? AlertRuleSeasonality.AUTO : undefined;
-    const thresholdType =
-      value === AlertRuleComparisonType.DYNAMIC
-        ? AlertRuleThresholdType.ABOVE_AND_BELOW
-        : AlertRuleThresholdType.ABOVE;
-    this.setState({
-      comparisonType: value,
-      comparisonDelta,
-      thresholdType,
-      timeWindow,
-      sensitivity,
-      seasonality,
-    });
+    this.setState({comparisonType: value});
+
+    switch (value) {
+      case AlertRuleComparisonType.DYNAMIC:
+        this.setState({
+          comparisonDelta: undefined,
+          thresholdType: AlertRuleThresholdType.ABOVE_AND_BELOW,
+          timeWindow: DEFAULT_DYNAMIC_TIME_WINDOW,
+          sensitivity: AlertRuleSensitivity.MEDIUM,
+          seasonality: AlertRuleSeasonality.AUTO,
+        });
+        break;
+      case AlertRuleComparisonType.CHANGE:
+        this.setState({
+          comparisonDelta: DEFAULT_CHANGE_COMP_DELTA,
+          thresholdType: AlertRuleThresholdType.ABOVE,
+          timeWindow: DEFAULT_CHANGE_TIME_WINDOW,
+          sensitivity: undefined,
+          seasonality: undefined,
+        });
+        break;
+      case AlertRuleComparisonType.COUNT:
+        this.setState({
+          comparisonDelta: undefined,
+          thresholdType: AlertRuleThresholdType.ABOVE,
+          timeWindow: DEFAULT_COUNT_TIME_WINDOW,
+          sensitivity: undefined,
+          seasonality: undefined,
+        });
+        break;
+      default:
+        break;
+    }
   };
 
   handleDeleteRule = async () => {
