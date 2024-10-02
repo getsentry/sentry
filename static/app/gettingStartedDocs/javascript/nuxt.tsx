@@ -145,12 +145,8 @@ const onboarding: OnboardingConfig = {
   install: () => [
     {
       type: StepType.INSTALL,
-      description: tct(
-        'Add the Sentry Nuxt SDK as a dependency using your preferred package manager:',
-        {
-          codeYarn: <code />,
-          codeNpm: <code />,
-        }
+      description: t(
+        'Add the Sentry Nuxt SDK as a dependency using your preferred package manager:'
       ),
       configurations: getInstallConfig(),
     },
@@ -257,22 +253,6 @@ const onboarding: OnboardingConfig = {
       description: t('Learn about our first class integration with the Nuxt framework.'),
       link: 'https://docs.sentry.io/platforms/javascript/guides/nuxt/features/',
     },
-    {
-      id: 'performance-monitoring',
-      name: t('Performance Monitoring'),
-      description: t(
-        'Track down transactions to connect the dots between 10-second page loads and poor-performing API calls or slow database queries.'
-      ),
-      link: 'https://docs.sentry.io/platforms/javascript/guides/nuxt/tracing/',
-    },
-    {
-      id: 'session-replay',
-      name: t('Session Replay'),
-      description: t(
-        'Get to the root cause of an error or latency issue faster by seeing all the technical details related to that issue in one visual replay on your web application.'
-      ),
-      link: 'https://docs.sentry.io/platforms/javascript/guides/nuxt/session-replay/',
-    },
   ],
 };
 
@@ -349,7 +329,7 @@ const feedbackOnboarding: OnboardingConfig = {
         },
       ],
       additionalInfo: crashReportCallout({
-        link: 'https://docs.sentry.io/platforms/javascript/guides/nuxt/user-feedback/#crash-report-modal',
+        link: 'https://docs.sentry.io/platforms/nuxt/guides/nuxt/user-feedback/#crash-report-modal',
       }),
     },
   ],
