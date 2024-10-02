@@ -13,7 +13,9 @@ import {getSeriesApiInterval} from 'sentry/components/charts/utils';
 import {Flex} from 'sentry/components/container/flex';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import ErrorBoundary from 'sentry/components/errorBoundary';
+import ExternalLink from 'sentry/components/links/externalLink';
 import NotAvailable from 'sentry/components/notAvailable';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import type {ScoreCardProps} from 'sentry/components/scoreCard';
 import ScoreCard from 'sentry/components/scoreCard';
 import SwitchButton from 'sentry/components/switchButton';
@@ -23,6 +25,7 @@ import {space} from 'sentry/styles/space';
 import type {DataCategoryInfo, IntervalPeriod} from 'sentry/types/core';
 import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 
 import {FORMAT_DATETIME_DAILY, FORMAT_DATETIME_HOURLY} from './usageChart/utils';
@@ -265,7 +268,26 @@ class UsageStatsOrganization<
       isLoading: loading,
       isError: hasError,
       errors: chartErrors,
-      title: ' ', // Force the title to be blank
+      title: (
+        <Fragment>
+          {t('Project(s) Stats')}
+          <QuestionTooltip
+            size="xs"
+            title={tct(
+              'You can find more information about each category in our [link:docs]',
+              {
+                link: (
+                  <ExternalLink
+                    href="https://docs.sentry.io/product/stats/#usage-stats"
+                    onClick={() => this.handleOnDocsClick('chart-title')}
+                  />
+                ),
+              }
+            )}
+            isHoverable
+          />
+        </Fragment>
+      ),
       footer: this.renderChartFooter(),
       dataCategory,
       dataTransform: chartTransform,
@@ -288,6 +310,22 @@ class UsageStatsOrganization<
 
     return chartProps;
   }
+
+  handleOnDocsClick = (
+    source:
+      | 'card-accepted'
+      | 'card-filtered'
+      | 'card-rate-limited'
+      | 'card-invalid'
+      | 'chart-title'
+  ) => {
+    const {organization, dataCategory} = this.props;
+    trackAnalytics('stats.docs_clicked', {
+      organization,
+      source,
+      dataCategory,
+    });
+  };
 
   get cardMetadata() {
     const {
@@ -315,9 +353,18 @@ class UsageStatsOrganization<
       },
       accepted: {
         title: tct('Accepted [dataCategory]', {dataCategory: dataCategoryName}),
-        help: tct('Accepted [dataCategory] were successfully processed by Sentry', {
-          dataCategory,
-        }),
+        help: tct(
+          'Accepted [dataCategory] were successfully processed by Sentry. For more information, read our [docsLink:docs].',
+          {
+            dataCategory,
+            docsLink: (
+              <ExternalLink
+                href="https://docs.sentry.io/product/stats/#accepted"
+                onClick={() => this.handleOnDocsClick('card-accepted')}
+              />
+            ),
+          }
+        ),
         score: accepted,
         trend: (
           <UsageStatsPerMin
@@ -331,11 +378,17 @@ class UsageStatsOrganization<
       filtered: {
         title: tct('Filtered [dataCategory]', {dataCategory: dataCategoryName}),
         help: tct(
-          'Filtered [dataCategory] were blocked due to your [filterSettings: inbound data filter] rules',
+          'Filtered [dataCategory] were blocked due to your [filterSettings: inbound data filter] rules. For more information, read our [docsLink:docs].',
           {
             dataCategory,
             filterSettings: (
               <a href="#" onClick={event => navigateToInboundFilterSettings(event)} />
+            ),
+            docsLink: (
+              <ExternalLink
+                href="https://docs.sentry.io/product/stats/#filtered"
+                onClick={() => this.handleOnDocsClick('card-filtered')}
+              />
             ),
           }
         ),
@@ -344,16 +397,32 @@ class UsageStatsOrganization<
       rateLimited: {
         title: tct('Rate Limited [dataCategory]', {dataCategory: dataCategoryName}),
         help: tct(
-          'Rate Limited [dataCategory] were discarded due to rate limits or quota',
-          {dataCategory}
+          'Rate Limited [dataCategory] were discarded due to rate limits or quota. For more information, read our [docsLink:docs].',
+          {
+            dataCategory,
+            docsLink: (
+              <ExternalLink
+                href="https://docs.sentry.io/product/stats/#rate-limited"
+                onClick={() => this.handleOnDocsClick('card-rate-limited')}
+              />
+            ),
+          }
         ),
         score: rateLimited,
       },
       invalid: {
         title: tct('Invalid [dataCategory]', {dataCategory: dataCategoryName}),
         help: tct(
-          'Invalid [dataCategory] were sent by the SDK and were discarded because the data did not meet the basic schema requirements',
-          {dataCategory}
+          'Invalid [dataCategory] were sent by the SDK and were discarded because the data did not meet the basic schema requirements. For more information, read our [docsLink:docs].',
+          {
+            dataCategory,
+            docsLink: (
+              <ExternalLink
+                href="https://docs.sentry.io/product/stats/#invalid"
+                onClick={() => this.handleOnDocsClick('card-invalid')}
+              />
+            ),
+          }
         ),
         score: invalid,
       },

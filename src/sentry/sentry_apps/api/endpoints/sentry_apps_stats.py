@@ -23,7 +23,7 @@ class SentryAppsStatsEndpoint(SentryAppsBaseEndpoint):
     def get(self, request: Request) -> Response:
         sentry_apps = (
             SentryApp.objects.filter(installations__date_deleted=None)
-            .annotate(Count("installations"))
+            .annotate(installations__count=Count("installations"))
             .order_by("-installations__count")
         )
 

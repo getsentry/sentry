@@ -23,10 +23,16 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {DraggableTabMenuButton} from 'sentry/views/issueList/groupSearchViewTabs/draggableTabMenuButton';
 import EditableTabTitle from 'sentry/views/issueList/groupSearchViewTabs/editableTabTitle';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
-import {NewTabContext} from 'sentry/views/issueList/utils/newTabContext';
+import {NewTabContext, type NewView} from 'sentry/views/issueList/utils/newTabContext';
 
 export interface Tab {
   id: string;
+  /**
+   * False for tabs that were added view the "Add View" button, but
+   * have not been edited in any way. Only tabs with isCommitted=true
+   * will be saved to the backend.
+   */
+  isCommitted: boolean;
   key: string;
   label: string;
   query: string;
@@ -119,10 +125,10 @@ export function DraggableTabBar({
   const {viewId} = queryParams;
 
   const {tabListState} = useContext(TabsContext);
-  const {setNewViewActive, setOnNewViewSaved} = useContext(NewTabContext);
+  const {setNewViewActive, setOnNewViewsSaved} = useContext(NewTabContext);
 
   const handleOnReorder = (newOrder: Node<DraggableTabListItemProps>[]) => {
-    const newTabs = newOrder
+    const newTabs: Tab[] = newOrder
       .map(node => {
         const foundTab = tabs.find(tab => tab.key === node.key);
         return foundTab?.key === node.key ? foundTab : null;
@@ -138,7 +144,7 @@ export function DraggableTabBar({
   const handleOnSaveChanges = () => {
     const originalTab = tabs.find(tab => tab.key === tabListState?.selectedKey);
     if (originalTab) {
-      const newTabs = tabs.map(tab => {
+      const newTabs: Tab[] = tabs.map(tab => {
         return tab.key === tabListState?.selectedKey && tab.unsavedChanges
           ? {
               ...tab,
@@ -186,7 +192,7 @@ export function DraggableTabBar({
     const renamedTab = tabs.find(tb => tb.key === tabKey);
     if (renamedTab && newLabel !== renamedTab.label) {
       const newTabs = tabs.map(tab =>
-        tab.key === renamedTab.key ? {...tab, label: newLabel} : tab
+        tab.key === renamedTab.key ? {...tab, label: newLabel, isCommitted: true} : tab
       );
       setTabs(newTabs);
       onTabRenamed?.(newTabs, newLabel);
@@ -201,13 +207,14 @@ export function DraggableTabBar({
     if (idx !== -1) {
       const tempId = generateTempViewId();
       const duplicatedTab = tabs[idx];
-      const newTabs = [
+      const newTabs: Tab[] = [
         ...tabs.slice(0, idx + 1),
         {
           ...duplicatedTab,
           id: tempId,
           key: tempId,
           label: `${duplicatedTab.label} (Copy)`,
+          isCommitted: true,
         },
         ...tabs.slice(idx + 1),
       ];
@@ -248,8 +255,21 @@ export function DraggableTabBar({
         label: 'New View',
         query: tempTab.query,
         querySort: tempTab.querySort,
+        isCommitted: true,
       };
       const newTabs = [...tabs, newTab];
+      navigate(
+        {
+          ...location,
+          query: {
+            ...queryParams,
+            query: tempTab.query,
+            querySort: tempTab.querySort,
+            viewId: tempId,
+          },
+        },
+        {replace: true}
+      );
       setTabs(newTabs);
       setTempTab(undefined);
       tabListState?.setSelectedKey(tempId);
@@ -275,7 +295,7 @@ export function DraggableTabBar({
     const tempId = generateTempViewId();
     const currentTab = tabs.find(tab => tab.key === tabListState?.selectedKey);
     if (currentTab) {
-      const newTabs = [
+      const newTabs: Tab[] = [
         ...tabs,
         {
           id: tempId,
@@ -283,6 +303,7 @@ export function DraggableTabBar({
           label: 'New View',
           query: '',
           querySort: IssueSortOptions.DATE,
+          isCommitted: false,
         },
       ];
       navigate({
@@ -301,10 +322,31 @@ export function DraggableTabBar({
     }
   };
 
-  const handleNewViewSaved: NewTabContext['onNewViewSaved'] = useCallback(
-    () => (label: string, query: string, saveQueryToView: boolean) => {
+  const handleNewViewsSaved: NewTabContext['onNewViewsSaved'] = useCallback<
+    NewTabContext['onNewViewsSaved']
+  >(
+    () => (newViews: NewView[]) => {
+      if (newViews.length === 0) {
+        return;
+      }
       setNewViewActive(false);
-      const updatedTabs: Tab[] = tabs.map(tab => {
+      const {label, query, saveQueryToView} = newViews[0];
+      const remainingNewViews: Tab[] = newViews.slice(1)?.map(view => {
+        const newId = generateTempViewId();
+        const viewToTab: Tab = {
+          id: newId,
+          key: newId,
+          label: view.label,
+          query: view.query,
+          querySort: IssueSortOptions.DATE,
+          unsavedChanges: view.saveQueryToView
+            ? undefined
+            : [view.query, IssueSortOptions.DATE],
+          isCommitted: true,
+        };
+        return viewToTab;
+      });
+      let updatedTabs: Tab[] = tabs.map(tab => {
         if (tab.key === viewId) {
           return {
             ...tab,
@@ -312,10 +354,16 @@ export function DraggableTabBar({
             query: saveQueryToView ? query : '',
             querySort: IssueSortOptions.DATE,
             unsavedChanges: saveQueryToView ? undefined : [query, IssueSortOptions.DATE],
+            isCommitted: true,
           };
         }
         return tab;
       });
+
+      if (remainingNewViews.length > 0) {
+        updatedTabs = [...updatedTabs, ...remainingNewViews];
+      }
+
       setTabs(updatedTabs);
       navigate(
         {
@@ -336,8 +384,8 @@ export function DraggableTabBar({
   );
 
   useEffect(() => {
-    setOnNewViewSaved(handleNewViewSaved);
-  }, [setOnNewViewSaved, handleNewViewSaved]);
+    setOnNewViewsSaved(handleNewViewsSaved);
+  }, [setOnNewViewsSaved, handleNewViewsSaved]);
 
   const makeMenuOptions = (tab: Tab): MenuItemProps[] => {
     if (tab.key === TEMPORARY_TAB_KEY) {
@@ -370,6 +418,7 @@ export function DraggableTabBar({
       defaultSelectedKey={initialTabKey}
       onAddView={handleCreateNewView}
       orientation="horizontal"
+      editingTabKey={editingTabKey ?? undefined}
       hideBorder
     >
       {allTabs.map(tab => (

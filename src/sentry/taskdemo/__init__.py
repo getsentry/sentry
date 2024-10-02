@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import time
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +26,13 @@ def say_hello(name):
 def say_hello_with_retries(name):
     # logger.info("hello %s", name) need to fix logging now that we are running this in another process
     print(f"hello {name}")  # noqa
+
+
+@demotasks.register(name="demos.variable_time")
+def variable_time(wait=None, taskno=None):
+    logger.info("running task %s with %s delay", taskno, wait)
+    if wait is not None:
+        time.sleep(wait)
 
 
 @demotasks.register(name="demos.broken", retry=Retry(times=5, on=(KeyError,)))
