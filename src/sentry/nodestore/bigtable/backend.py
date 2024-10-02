@@ -63,6 +63,7 @@ class BigtableNodeStorage(NodeStorage):
         self.automatic_expiry = automatic_expiry
         self.skip_deletes = automatic_expiry and "_SENTRY_CLEANUP" in os.environ
 
+    @sentry_sdk.tracing.trace
     def _get_bytes(self, id: str) -> bytes | None:
         return self.store.get(id)
 
