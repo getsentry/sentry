@@ -281,7 +281,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
                 "fingerprint": ["group-1"],
             },
             project_id=self.project.id,
-            event_type=EventType.ERROR,
+            default_event_type=EventType.DEFAULT,
         )
         event1.group.substatus = GroupSubStatus.ONGOING
         event1.group.save()
@@ -294,7 +294,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
                 "fingerprint": ["group-2"],
             },
             project_id=self.project.id,
-            event_type=EventType.ERROR,
+            default_event_type=EventType.DEFAULT,
         )
         event2.group.substatus = GroupSubStatus.NEW
         event2.group.save()
@@ -329,7 +329,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
                     "fingerprint": ["group-1"],
                 },
                 project_id=self.project.id,
-                event_type=EventType.ERROR,
+                default_event_type=EventType.DEFAULT,
             )
             event2 = self.store_event(
                 data={
@@ -339,7 +339,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
                     "fingerprint": ["group-2"],
                 },
                 project_id=self.project.id,
-                event_type=EventType.ERROR,
+                default_event_type=EventType.DEFAULT,
             )
             group2 = event2.group
             group2.status = GroupStatus.RESOLVED
@@ -367,7 +367,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
                     "fingerprint": ["group-1"],
                 },
                 project_id=self.project.id,
-                event_type=EventType.ERROR,
+                default_event_type=EventType.DEFAULT,
             )
 
             event2 = self.store_event(
@@ -378,7 +378,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
                     "fingerprint": ["group-2"],
                 },
                 project_id=self.project.id,
-                event_type=EventType.ERROR,
+                default_event_type=EventType.DEFAULT,
             )
             self.store_event_outcomes(
                 self.organization.id, self.project.id, self.three_days_ago, num_times=2
@@ -465,7 +465,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
                     "fingerprint": ["group-1"],
                 },
                 project_id=self.project.id,
-                event_type=EventType.ERROR,
+                default_event_type=EventType.DEFAULT,
             )
 
             self.store_event(
@@ -476,7 +476,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
                     "fingerprint": ["group-2"],
                 },
                 project_id=self.project.id,
-                event_type=EventType.ERROR,
+                default_event_type=EventType.DEFAULT,
             )
             self.store_event_outcomes(
                 self.organization.id, self.project.id, self.three_days_ago, num_times=2
@@ -544,7 +544,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
                     "level": "info",
                 },
                 project_id=self.project.id,
-                event_type=EventType.ERROR,
+                default_event_type=EventType.DEFAULT,
             )
 
             self.store_event(
@@ -556,7 +556,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
                     "level": "error",
                 },
                 project_id=self.project.id,
-                event_type=EventType.ERROR,
+                default_event_type=EventType.DEFAULT,
             )
             self.store_event_outcomes(
                 self.organization.id, self.project.id, self.three_days_ago, num_times=2
@@ -604,7 +604,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
                     "fingerprint": ["group-1"],
                 },
                 project_id=self.project.id,
-                event_type=EventType.ERROR,
+                default_event_type=EventType.DEFAULT,
             )
 
             event2 = self.store_event(
@@ -615,7 +615,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
                     "fingerprint": ["group-2"],
                 },
                 project_id=self.project.id,
-                event_type=EventType.ERROR,
+                default_event_type=EventType.DEFAULT,
             )
             self.store_event_outcomes(
                 self.organization.id, self.project.id, self.three_days_ago, num_times=2
@@ -714,7 +714,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
                 "fingerprint": ["group-1"],
             },
             project_id=self.project.id,
-            event_type=EventType.ERROR,
+            default_event_type=EventType.DEFAULT,
         )
         group1 = event1.group
         group1.substatus = GroupSubStatus.NEW
@@ -728,7 +728,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
                 "fingerprint": ["group-2"],
             },
             project_id=self.project.id,
-            event_type=EventType.ERROR,
+            default_event_type=EventType.DEFAULT,
         )
         group2 = event2.group
         group2.substatus = GroupSubStatus.ONGOING
@@ -781,7 +781,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
                 "fingerprint": ["group-1"],
             },
             project_id=self.project.id,
-            event_type=EventType.ERROR,
+            default_event_type=EventType.DEFAULT,
         )
 
         group1 = event1.group
@@ -828,7 +828,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
                 "fingerprint": ["group-1"],
             },
             project_id=self.project.id,
-            event_type=EventType.ERROR,
+            default_event_type=EventType.DEFAULT,
         )
 
         prepare_organization_report(

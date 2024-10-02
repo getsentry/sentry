@@ -1,18 +1,23 @@
-import pick from 'lodash/pick';
 import type {ModuleName} from 'webpack-cli';
 
 import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
-import type {AI_LANDING_SUB_PATH} from 'sentry/views/insights/pages/aiLandingPage';
-import type {BACKEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/backendLandingPage';
-import type {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/settings';
-import type {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobileLandingPage';
+import {AI_LANDING_SUB_PATH} from 'sentry/views/insights/pages/ai/settings';
+import {BACKEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/backend/settings';
+import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/settings';
+import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settings';
 
 export type DomainView =
   | typeof FRONTEND_LANDING_SUB_PATH
   | typeof BACKEND_LANDING_SUB_PATH
   | typeof AI_LANDING_SUB_PATH
   | typeof MOBILE_LANDING_SUB_PATH;
+
+const domainViews = [
+  FRONTEND_LANDING_SUB_PATH,
+  BACKEND_LANDING_SUB_PATH,
+  AI_LANDING_SUB_PATH,
+  MOBILE_LANDING_SUB_PATH,
+];
 
 export type DomainViewFilters = {
   isInDomainView?: boolean;
@@ -30,6 +35,9 @@ export const useDomainViewFilters = () => {
   const isInDomainView = indexOfPerformance !== -1;
 
   const view = pathSegments[indexOfPerformance + 1] as DomainViewFilters['view'];
+  if (!domainViews.includes(view || '')) {
+    return {isInDomainView: false};
+  }
 
   if (isInDomainView) {
     return {
@@ -38,25 +46,4 @@ export const useDomainViewFilters = () => {
     };
   }
   return {isInDomainView};
-};
-
-export const useFilters = () => {
-  const location = useLocation<Filters>();
-  const filters = pick(location.query, ['module']);
-  return filters;
-};
-
-export const useUpdateFilters = () => {
-  const location = useLocation<Filters>();
-  const navigate = useNavigate();
-
-  return (newFilters: Filters) => {
-    navigate({
-      pathname: location.pathname,
-      query: {
-        ...location.query,
-        ...newFilters,
-      },
-    });
-  };
 };

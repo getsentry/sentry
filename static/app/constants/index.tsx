@@ -254,6 +254,7 @@ export const DATA_CATEGORY_INFO = {
     plural: 'errors',
     displayName: 'error',
     titleName: t('Errors'),
+    productName: t('Error Monitoring'),
     uid: 1,
   },
   [DataCategoryExact.TRANSACTION]: {
@@ -262,6 +263,7 @@ export const DATA_CATEGORY_INFO = {
     plural: 'transactions',
     displayName: 'transaction',
     titleName: t('Transactions'),
+    productName: t('Performance Monitoring'),
     uid: 2,
   },
   [DataCategoryExact.ATTACHMENT]: {
@@ -270,6 +272,7 @@ export const DATA_CATEGORY_INFO = {
     plural: 'attachments',
     displayName: 'attachment',
     titleName: t('Attachments'),
+    productName: t('Attachments'),
     uid: 4,
   },
   [DataCategoryExact.PROFILE]: {
@@ -278,6 +281,7 @@ export const DATA_CATEGORY_INFO = {
     plural: 'profiles',
     displayName: 'profile',
     titleName: t('Profiles'),
+    productName: t('Continuous Profiling'),
     uid: 6,
   },
   [DataCategoryExact.REPLAY]: {
@@ -286,6 +290,7 @@ export const DATA_CATEGORY_INFO = {
     plural: 'replays',
     displayName: 'replay',
     titleName: t('Session Replays'),
+    productName: t('Session Replay'),
     uid: 7,
   },
   [DataCategoryExact.TRANSACTION_PROCESSED]: {
@@ -294,6 +299,7 @@ export const DATA_CATEGORY_INFO = {
     plural: 'transactions',
     displayName: 'transaction',
     titleName: t('Transactions'),
+    productName: t('Performance Monitoring'),
     uid: 8,
   },
   [DataCategoryExact.TRANSACTION_INDEXED]: {
@@ -302,6 +308,7 @@ export const DATA_CATEGORY_INFO = {
     plural: 'indexed transactions',
     displayName: 'indexed transaction',
     titleName: t('Indexed Transactions'),
+    productName: t('Performance Monitoring'),
     uid: 9,
   },
   [DataCategoryExact.MONITOR]: {
@@ -310,6 +317,7 @@ export const DATA_CATEGORY_INFO = {
     plural: 'monitor check-ins',
     displayName: 'monitor check-in',
     titleName: t('Monitor Check-Ins'),
+    productName: t('Cron Monitoring'),
     uid: 10,
   },
   [DataCategoryExact.SPAN]: {
@@ -318,6 +326,7 @@ export const DATA_CATEGORY_INFO = {
     plural: 'spans',
     displayName: 'spans',
     titleName: t('Spans'),
+    productName: t('Tracing'),
     uid: 12,
   },
   [DataCategoryExact.MONITOR_SEAT]: {
@@ -326,6 +335,7 @@ export const DATA_CATEGORY_INFO = {
     plural: 'monitorSeats',
     displayName: 'cron monitors',
     titleName: t('Cron Monitors'),
+    productName: t('Cron Monitoring'),
     uid: 13,
   },
   [DataCategoryExact.PROFILE_DURATION]: {
@@ -334,6 +344,7 @@ export const DATA_CATEGORY_INFO = {
     plural: 'profileDuration',
     displayName: 'profile hours',
     titleName: t('Profile Hours'),
+    productName: t('Continuous Profiling'),
     uid: 17,
   },
   [DataCategoryExact.METRIC_SECOND]: {
@@ -342,6 +353,7 @@ export const DATA_CATEGORY_INFO = {
     plural: 'metricSeconds',
     displayName: 'metric hours',
     titleName: t('Metrics Hours'),
+    productName: t('Metrics'),
     uid: 19,
   },
 } as const satisfies Record<DataCategoryExact, DataCategoryInfo>;

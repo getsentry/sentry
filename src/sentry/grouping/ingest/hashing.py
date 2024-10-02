@@ -22,7 +22,6 @@ from sentry.grouping.api import (
     load_grouping_config,
 )
 from sentry.grouping.ingest.config import is_in_transition
-from sentry.grouping.ingest.metrics import record_hash_calculation_metrics
 from sentry.models.grouphash import GroupHash
 from sentry.models.grouphashmetadata import GroupHashMetadata
 from sentry.models.project import Project
@@ -41,8 +40,8 @@ def _calculate_event_grouping(
     project: Project, event: Event, grouping_config: GroupingConfig
 ) -> list[str]:
     """
-    Main entrypoint for modifying/enhancing and grouping an event, writes
-    hashes back into event payload.
+    Calculate hashes for the event using the given grouping config, and add them into the event
+    data.
     """
     metric_tags: MutableTags = {
         "grouping_config": grouping_config["id"],
@@ -148,7 +147,7 @@ def _calculate_secondary_hashes(
             description="event_manager.save.secondary_calculate_event_grouping",
         ):
             # create a copy since `_calculate_event_grouping` modifies the event to add all sorts
-            # of grouping info and we don't want the backup grouping data in there
+            # of grouping info and we don't want the secondary grouping data in there
             event_copy = copy.deepcopy(job["event"])
             secondary_hashes = _calculate_event_grouping(
                 project, event_copy, secondary_grouping_config
@@ -192,9 +191,13 @@ def _calculate_primary_hashes(
     return _calculate_event_grouping(project, job["event"], grouping_config)
 
 
-def find_existing_grouphash(
+def find_grouphash_with_group(
     grouphashes: Sequence[GroupHash],
 ) -> GroupHash | None:
+    """
+    Search in the list of given `GroupHash` records for one which has a group assigned to it, and
+    return the first one found. (Assumes grouphashes have already been sorted in priority order.)
+    """
     for group_hash in grouphashes:
         if group_hash.group_id is not None:
             return group_hash
@@ -210,32 +213,6 @@ def find_existing_grouphash(
             )
 
     return None
-
-
-def get_hash_values(
-    project: Project,
-    job: Job,
-    metric_tags: MutableTags,
-) -> tuple[list[str], list[str]]:
-    # Background grouping is a way for us to get performance metrics for a new
-    # config without having it actually affect on how events are grouped. It runs
-    # either before or after the main grouping logic, depending on the option value.
-    maybe_run_background_grouping(project, job)
-
-    secondary_grouping_config, secondary_hashes = maybe_run_secondary_grouping(
-        project, job, metric_tags
-    )
-
-    primary_grouping_config, primary_hashes = run_primary_grouping(project, job, metric_tags)
-
-    record_hash_calculation_metrics(
-        primary_grouping_config,
-        primary_hashes,
-        secondary_grouping_config,
-        secondary_hashes,
-    )
-
-    return (primary_hashes, secondary_hashes)
 
 
 def get_or_create_grouphashes(project: Project, hashes: Sequence[str]) -> list[GroupHash]:

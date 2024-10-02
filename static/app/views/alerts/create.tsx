@@ -142,24 +142,11 @@ function Create(props: Props) {
           <LoadingIndicator />
         ) : (
           <Fragment>
-            {organization.features.includes('uptime-api-create-update') &&
-            alertType === AlertRuleType.UPTIME ? (
-              <UptimeAlertForm
-                apiMethod="POST"
-                apiUrl={`/projects/${organization.slug}/${project.slug}/uptime/`}
-                project={project}
-                onSubmitSuccess={response => {
-                  router.push(
-                    normalizeUrl(
-                      `/organizations/${organization.slug}/alerts/rules/uptime/${project.slug}/${response.id}/details`
-                    )
-                  );
-                }}
-              />
+            {alertType === AlertRuleType.UPTIME ? (
+              <UptimeAlertForm {...props} />
             ) : !hasMetricAlerts || alertType === AlertRuleType.ISSUE ? (
               <IssueRuleEditor
                 {...props}
-                project={project}
                 userTeamIds={teams.map(({id}) => id)}
                 members={members}
               />
@@ -172,7 +159,6 @@ function Create(props: Props) {
                   eventView={eventView}
                   wizardTemplate={wizardTemplate}
                   sessionId={sessionId.current}
-                  project={project}
                   userTeamIds={teams.map(({id}) => id)}
                 />
               ) : (
@@ -181,7 +167,6 @@ function Create(props: Props) {
                   eventView={eventView}
                   wizardTemplate={wizardTemplate}
                   sessionId={sessionId.current}
-                  project={project}
                   userTeamIds={teams.map(({id}) => id)}
                 />
               ))

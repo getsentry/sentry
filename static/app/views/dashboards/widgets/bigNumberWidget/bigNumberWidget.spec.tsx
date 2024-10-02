@@ -1,4 +1,5 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {BigNumberWidget} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidget';
 
@@ -25,13 +26,45 @@ describe('BigNumberWidget', () => {
         />
       );
 
-      expect(screen.getByText('EPS')).toBeInTheDocument();
-      expect(screen.getByText('Number of events per second')).toBeInTheDocument();
       expect(screen.getByText('0.0109/s')).toBeInTheDocument();
     });
   });
 
   describe('Visualization', () => {
+    it('Explains missing data', () => {
+      render(
+        <BigNumberWidget
+          data={[{}]}
+          meta={{
+            fields: {
+              'p95(span.duration)': 'number',
+            },
+          }}
+        />
+      );
+
+      expect(screen.getByText('No Data')).toBeInTheDocument();
+    });
+
+    it('Explains non-numeric data', () => {
+      render(
+        <BigNumberWidget
+          data={[
+            {
+              'count()': Infinity,
+            },
+          ]}
+          meta={{
+            fields: {
+              'count()': 'number',
+            },
+          }}
+        />
+      );
+
+      expect(screen.getByText('Value is not a finite number.')).toBeInTheDocument();
+    });
+
     it('Formats duration data', () => {
       render(
         <BigNumberWidget
@@ -77,6 +110,27 @@ describe('BigNumberWidget', () => {
 
       expect(screen.getByText('178451214')).toBeInTheDocument();
     });
+
+    it('Respect maximum value', () => {
+      render(
+        <BigNumberWidget
+          title="Count"
+          data={[
+            {
+              'count()': 178451214,
+            },
+          ]}
+          maximumValue={100000000}
+          meta={{
+            fields: {
+              'count()': 'integer',
+            },
+          }}
+        />
+      );
+
+      expect(screen.getByText(textWithMarkupMatcher('>100m'))).toBeInTheDocument();
+    });
   });
 
   describe('State', () => {
@@ -90,6 +144,37 @@ describe('BigNumberWidget', () => {
       render(<BigNumberWidget error={new Error('Uh oh')} />);
 
       expect(screen.getByText('Error: Uh oh')).toBeInTheDocument();
+    });
+  });
+
+  describe('Previous Period Data', () => {
+    it('Shows the difference between the current and previous data', () => {
+      render(
+        <BigNumberWidget
+          title="http_response_code_rate(500)"
+          data={[
+            {
+              'http_response_code_rate(500)': 0.14227123,
+            },
+          ]}
+          previousPeriodData={[
+            {
+              'http_response_code_rate(500)': 0.1728139,
+            },
+          ]}
+          meta={{
+            fields: {
+              'http_response_code_rate(500)': 'percentage',
+            },
+            units: {
+              'http_response_code_rate(500)': null,
+            },
+          }}
+        />
+      );
+
+      expect(screen.getByText('14.23%')).toBeInTheDocument();
+      expect(screen.getByText('3.05%')).toBeInTheDocument();
     });
   });
 });

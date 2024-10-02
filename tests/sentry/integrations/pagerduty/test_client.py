@@ -62,7 +62,7 @@ class PagerDutyClientTest(APITestCase):
                 "timestamp": self.min_ago,
             },
             project_id=self.project.id,
-            event_type=EventType.ERROR,
+            default_event_type=EventType.DEFAULT,
         )
 
         self.integration_key = self.service["integration_key"]
