@@ -18,7 +18,7 @@ from sentry.integrations.discord.message_builder.base.component.select_menu impo
 )
 from sentry.integrations.discord.message_builder.base.flags import DiscordMessageFlags
 from sentry.integrations.discord.requests.base import DiscordRequest
-from sentry.integrations.discord.spec import PROVIDER
+from sentry.integrations.discord.spec import DiscordMessagingSpec
 from sentry.integrations.discord.webhooks.handler import DiscordInteractionHandler
 from sentry.integrations.messaging.metrics import (
     MessagingInteractionEvent,
@@ -93,7 +93,7 @@ class DiscordMessageComponentHandler(DiscordInteractionHandler):
         def record_event(interaction_type: MessagingInteractionType) -> MessagingInteractionEvent:
             return MessagingInteractionEvent(
                 interaction_type,
-                PROVIDER,
+                DiscordMessagingSpec(),
                 user=self.user,
                 organization=(self.group.organization if self.group else None),
             )

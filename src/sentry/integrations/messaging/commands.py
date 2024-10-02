@@ -119,8 +119,7 @@ class MessagingIntegrationCommandDispatcher(Generic[R], ABC):
 
     def get_event(self, command: MessagingIntegrationCommand) -> MessagingInteractionEvent:
         return MessagingInteractionEvent(
-            interaction_type=command.interaction_type,
-            provider=self.integration_spec.provider_slug,
+            interaction_type=command.interaction_type, spec=self.integration_spec
         )
 
     def dispatch(self, cmd_input: CommandInput) -> R:

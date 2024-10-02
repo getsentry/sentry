@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any
 
+from sentry.integrations.messaging.spec import MessagingIntegrationSpec
 from sentry.integrations.utils.metrics import EventLifecycleMetric, EventLifecycleOutcome
 from sentry.models.organization import Organization
 from sentry.organizations.services.organization import RpcOrganization
@@ -42,7 +43,7 @@ class MessagingInteractionEvent(EventLifecycleMetric):
     """An instance to be recorded of a user interacting through a messaging app."""
 
     interaction_type: MessagingInteractionType
-    provider: str
+    spec: MessagingIntegrationSpec
 
     # We can cram various optional attributes here if we want to capture them in logs
     user: User | RpcUser | None = None
@@ -50,13 +51,13 @@ class MessagingInteractionEvent(EventLifecycleMetric):
 
     def get_key(self, outcome: EventLifecycleOutcome) -> str:
         tag_tokens = ["sentry", "integrations", "messaging", "slo"]
-        tag_tokens += [self.provider, self.interaction_type, outcome]
+        tag_tokens += [self.spec.provider_slug, self.interaction_type, outcome]
         return ".".join(str(token) for token in tag_tokens)
 
     def get_extras(self) -> Mapping[str, Any]:
         return {
             "interaction_type": self.interaction_type.value,
-            "provider": self.provider,
+            "provider": self.spec.provider_slug,
             "user_id": (self.user.id if self.user else None),
             "organization_id": (self.organization.id if self.organization else None),
         }

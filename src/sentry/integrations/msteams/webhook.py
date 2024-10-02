@@ -28,6 +28,11 @@ from sentry.integrations.messaging.commands import (
     MessagingIntegrationCommand,
     MessagingIntegrationCommandDispatcher,
 )
+from sentry.integrations.messaging.metrics import (
+    MessagingInteractionEvent,
+    MessagingInteractionType,
+)
+from sentry.integrations.messaging.spec import MessagingIntegrationSpec
 from sentry.integrations.msteams import parsing
 from sentry.integrations.msteams.spec import PROVIDER, MsTeamsMessagingSpec
 from sentry.integrations.services.integration import integration_service
@@ -41,8 +46,6 @@ from sentry.utils import jwt
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.signing import sign
 
-from ..messaging.metrics import MessagingInteractionEvent, MessagingInteractionType
-from ..messaging.spec import MessagingIntegrationSpec
 from .card_builder.block import AdaptiveCard
 from .card_builder.help import (
     build_help_command_card,
@@ -479,7 +482,9 @@ class MsTeamsWebhookEndpoint(Endpoint):
             organization_id=group.project.organization.id,
         )
 
-        with MessagingInteractionEvent(interaction_type, PROVIDER).capture() as lifecycle:
+        with MessagingInteractionEvent(
+            interaction_type, MsTeamsMessagingSpec()
+        ).capture() as lifecycle:
             response = client.put(
                 path=f"/projects/{group.project.organization.slug}/{group.project.slug}/issues/",
                 params={"id": group.id},
