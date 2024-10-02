@@ -8,10 +8,10 @@ from sentry import analytics, audit_log, deletions
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
-from sentry.api.bases import SentryAppInstallationBaseEndpoint
 from sentry.api.serializers import serialize
 from sentry.mediators.sentry_app_installations.installation_notifier import InstallationNotifier
 from sentry.mediators.sentry_app_installations.updater import Updater
+from sentry.sentry_apps.api.bases.sentryapps import SentryAppInstallationBaseEndpoint
 from sentry.sentry_apps.api.parsers.sentry_app_installation import SentryAppInstallationParser
 from sentry.sentry_apps.api.serializers.sentry_app_installation import (
     SentryAppInstallationSerializer,

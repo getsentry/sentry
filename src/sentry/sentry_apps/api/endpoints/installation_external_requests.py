@@ -4,9 +4,9 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases import SentryAppInstallationBaseEndpoint
 from sentry.mediators.external_requests.select_requester import SelectRequester
 from sentry.models.project import Project
+from sentry.sentry_apps.api.bases.sentryapps import SentryAppInstallationBaseEndpoint
 
 
 @region_silo_endpoint

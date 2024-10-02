@@ -5,13 +5,13 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases import (
-    SentryAppInstallationExternalIssueBaseEndpoint as ExternalIssueBaseEndpoint,
-)
 from sentry.api.serializers import serialize
 from sentry.mediators.external_issues.creator import Creator
 from sentry.models.group import Group
 from sentry.models.project import Project
+from sentry.sentry_apps.api.bases.sentryapps import (
+    SentryAppInstallationExternalIssueBaseEndpoint as ExternalIssueBaseEndpoint,
+)
 from sentry.sentry_apps.api.parsers.sentry_app import URLField
 from sentry.sentry_apps.api.serializers.platform_external_issue import (
     PlatformExternalIssueSerializer as ResponsePlatformExternalIssueSerializer,
