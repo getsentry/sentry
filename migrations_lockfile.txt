@@ -12,5 +12,5 @@ remote_subscriptions: 0003_drop_remote_subscription
 replays: 0004_index_together
 sentry: 0770_increase_project_slug_max_length
 social_auth: 0002_default_auto_field
-uptime: 0015_headers_deafult_empty_list
+uptime: 0016_translate_uptime_object_headers_to_lists
 workflow_engine: 0008_detector_state
