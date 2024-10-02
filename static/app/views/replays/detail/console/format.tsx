@@ -23,11 +23,12 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import StructuredEventData from 'sentry/components/structuredEventData';
+import type {OnExpandCallback} from 'sentry/views/replays/detail/useVirtualizedInspector';
 
 const formatRegExp = /%[csdj%]/g;
 interface FormatProps {
   args: any[];
-  onExpand: (path: string, expandedState: Record<string, boolean>) => void;
+  onExpand: OnExpandCallback;
   expandPaths?: string[];
 }
 
@@ -39,6 +40,9 @@ interface FormatProps {
  * %c is ignored for now
  */
 export default function Format({onExpand, expandPaths, args}: FormatProps) {
+  const onToggleExpand = (expandedPaths, path) => {
+    onExpand(path, Object.fromEntries(expandedPaths.map(item => [item, true])));
+  };
   const f = args[0];
 
   if (typeof f !== 'string') {
@@ -50,9 +54,7 @@ export default function Format({onExpand, expandPaths, args}: FormatProps) {
             key={i}
             data={args[i]}
             initialExpandedPaths={expandPaths ?? []}
-            onToggleExpand={(expandedPaths, path) => {
-              onExpand(path, Object.fromEntries(expandedPaths.map(item => [item, true])));
-            }}
+            onToggleExpand={onToggleExpand}
           />
         </Wrapper>
       );
@@ -144,9 +146,7 @@ export default function Format({onExpand, expandPaths, args}: FormatProps) {
             key={i}
             data={x}
             initialExpandedPaths={expandPaths ?? []}
-            onToggleExpand={(expandedPaths, path) => {
-              onExpand(path, Object.fromEntries(expandedPaths.map(item => [item, true])));
-            }}
+            onToggleExpand={onToggleExpand}
           />
         </Wrapper>
       );
