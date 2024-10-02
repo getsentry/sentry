@@ -55,7 +55,7 @@ def save_event(project_id: int, return_values: list[GroupInfo]) -> None:
     ],
     ids=(" is_race_free: True ", " is_race_free: False "),
 )
-def test_group_creation_race_new(monkeypatch, default_project, is_race_free):
+def test_group_creation_race(monkeypatch, default_project, is_race_free):
     if not is_race_free:
         # Disable transaction isolation just within event manager, but not in
         # GroupHash.objects.create_or_update
