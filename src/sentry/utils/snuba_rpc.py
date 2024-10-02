@@ -5,28 +5,11 @@ from typing import Protocol, TypeVar
 import sentry_protos.snuba.v1alpha.request_common_pb2
 import sentry_sdk
 import sentry_sdk.scope
-from django.conf import settings
 from google.protobuf.message import Message as ProtobufMessage
 
-from sentry.net.http import connection_from_url
-from sentry.utils.snuba import RetrySkipTimeout
+from sentry.utils.snuba import _snuba_pool
 
 RPCResponseType = TypeVar("RPCResponseType", bound=ProtobufMessage)
-
-
-_snuba_pool = connection_from_url(
-    settings.SENTRY_SNUBA,
-    retries=RetrySkipTimeout(
-        total=5,
-        # Our calls to snuba frequently fail due to network issues. We want to
-        # automatically retry most requests. Some of our POSTs and all of our DELETEs
-        # do cause mutations, but we have other things in place to handle duplicate
-        # mutations.
-        allowed_methods={"GET", "POST", "DELETE"},
-    ),
-    timeout=settings.SENTRY_SNUBA_TIMEOUT,
-    maxsize=10,
-)
 
 
 class SnubaRPCRequest(Protocol):
