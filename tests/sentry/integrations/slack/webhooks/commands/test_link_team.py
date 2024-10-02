@@ -11,6 +11,7 @@ from sentry.integrations.slack.webhooks.command import (
     LINK_USER_FIRST_MESSAGE,
     TEAM_NOT_LINKED_MESSAGE,
 )
+from sentry.integrations.utils.metrics import EventLifecycleOutcome
 from sentry.silo.base import SiloMode
 from sentry.testutils.helpers import get_response_text, link_user
 from sentry.testutils.silo import assume_test_silo_mode
@@ -62,7 +63,10 @@ class SlackCommandsLinkTeamTest(SlackCommandsLinkTeamTestBase):
         data = orjson.loads(response.content)
         assert CHANNEL_ALREADY_LINKED_MESSAGE in get_response_text(data)
 
-        mock_record.assert_called()
+        assert len(mock_record.mock_calls) == 2
+        start, halt = mock_record.mock_calls
+        assert start.args == (EventLifecycleOutcome.STARTED,)
+        assert halt.args == (EventLifecycleOutcome.HALTED,)
 
     @responses.activate
     def test_link_team_from_dm(self):

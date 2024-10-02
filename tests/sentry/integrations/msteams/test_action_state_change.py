@@ -11,6 +11,7 @@ from sentry.integrations.msteams.card_builder.identity import build_linking_card
 from sentry.integrations.msteams.constants import SALT
 from sentry.integrations.msteams.link_identity import build_linking_url
 from sentry.integrations.msteams.utils import ACTION_TYPE
+from sentry.integrations.utils.metrics import EventLifecycleOutcome
 from sentry.models.activity import Activity, ActivityIntegration
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
@@ -245,7 +246,10 @@ class StatusActionTest(APITestCase):
             "integration": ActivityIntegration.MSTEAMS.value,
         }
 
-        mock_record.assert_called()
+        assert len(mock_record.mock_calls) == 2
+        start, halt = mock_record.mock_calls
+        assert start.args == (EventLifecycleOutcome.STARTED,)
+        assert halt.args == (EventLifecycleOutcome.HALTED,)
 
     @responses.activate
     @patch("sentry.integrations.msteams.webhook.verify_signature", return_value=True)

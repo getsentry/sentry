@@ -7,6 +7,7 @@ from sentry.integrations.slack.views.unlink_identity import (
     build_unlinking_url,
 )
 from sentry.integrations.slack.webhooks.base import NOT_LINKED_MESSAGE
+from sentry.integrations.utils.metrics import EventLifecycleOutcome
 from sentry.testutils.helpers import get_response_text
 from sentry.testutils.silo import control_silo_test
 from sentry.users.models.identity import Identity
@@ -110,7 +111,10 @@ class SlackCommandsUnlinkUserTest(SlackCommandsTest):
         data = self.send_slack_message("unlink")
         assert "to unlink your identity" in get_response_text(data)
 
-        mock_record.assert_called()
+        assert len(mock_record.mock_calls) == 2
+        start, halt = mock_record.mock_calls
+        assert start.args == (EventLifecycleOutcome.STARTED,)
+        assert halt.args == (EventLifecycleOutcome.HALTED,)
 
     def test_unlink_command_already_unlinked(self):
         data = self.send_slack_message("unlink")

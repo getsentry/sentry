@@ -24,6 +24,7 @@ from sentry.integrations.discord.webhooks.message_component import (
     RESOLVED_IN_NEXT_RELEASE,
     UNRESOLVED,
 )
+from sentry.integrations.utils.metrics import EventLifecycleOutcome
 from sentry.models.release import Release
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
@@ -175,7 +176,10 @@ class DiscordMessageComponentInteractionTest(APITestCase):
         assert response.status_code == 200
         assert self.get_message_content(response) == ASSIGNEE_UPDATED
 
-        mock_record.assert_called()
+        assert len(mock_record.mock_calls) == 2
+        start, halt = mock_record.mock_calls
+        assert start.args == (EventLifecycleOutcome.STARTED,)
+        assert halt.args == (EventLifecycleOutcome.HALTED,)
 
     def test_resolve_dialog(self):
         response = self.send_interaction(
