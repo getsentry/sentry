@@ -922,18 +922,24 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       value === AlertRuleComparisonType.CHANGE
         ? this.state.comparisonDelta ?? DEFAULT_CHANGE_COMP_DELTA
         : undefined;
-    const timeWindow = this.state.comparisonDelta
-      ? DEFAULT_COUNT_TIME_WINDOW
-      : DEFAULT_CHANGE_TIME_WINDOW;
+    const timeWindow =
+      value === AlertRuleComparisonType.COUNT
+        ? DEFAULT_COUNT_TIME_WINDOW
+        : DEFAULT_CHANGE_TIME_WINDOW;
     const sensitivity =
       value === AlertRuleComparisonType.DYNAMIC
         ? this.state.sensitivity || AlertRuleSensitivity.MEDIUM
         : undefined;
     const seasonality =
       value === AlertRuleComparisonType.DYNAMIC ? AlertRuleSeasonality.AUTO : undefined;
+    const thresholdType =
+      value === AlertRuleComparisonType.DYNAMIC
+        ? AlertRuleThresholdType.ABOVE_AND_BELOW
+        : AlertRuleThresholdType.ABOVE;
     this.setState({
       comparisonType: value,
       comparisonDelta,
+      thresholdType,
       timeWindow,
       sensitivity,
       seasonality,
