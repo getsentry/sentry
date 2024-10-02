@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 from typing import Any
 
+from django.conf import settings
 from django.utils import timezone
 from django.utils.datastructures import MultiValueDict
 from rest_framework.exceptions import ParseError
@@ -11,8 +12,9 @@ from sentry.api.serializers.snuba import SnubaTSResultSerializer
 from sentry.incidents.models.alert_rule import AlertRule, AlertRuleThresholdType
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.net.http import connection_from_url
 from sentry.search.events.types import SnubaParams
-from sentry.seer.anomaly_detection.types import TimeSeriesPoint
+from sentry.seer.anomaly_detection.types import AnomalyType, TimeSeriesPoint
 from sentry.snuba import metrics_performance
 from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
@@ -23,11 +25,42 @@ from sentry.utils.snuba import SnubaTSResult
 
 NUM_DAYS = 28
 
+SEER_ANOMALY_DETECTION_CONNECTION_POOL = connection_from_url(
+    settings.SEER_ANOMALY_DETECTION_URL,
+    timeout=settings.SEER_ANOMALY_DETECTION_TIMEOUT,
+)
+
 SNUBA_QUERY_EVENT_TYPE_TO_STRING = {
     SnubaQueryEventType.EventType.ERROR: "error",
     SnubaQueryEventType.EventType.DEFAULT: "default",
     SnubaQueryEventType.EventType.TRANSACTION: "transaction",
 }
+
+
+def has_anomaly(anomaly: TimeSeriesPoint, label: str) -> bool:
+    """
+    Helper function to determine whether we care about an anomaly based on the
+    anomaly type and trigger type.
+
+    """
+    from sentry.incidents.logic import WARNING_TRIGGER_LABEL
+
+    anomaly_type = anomaly.get("anomaly", {}).get("anomaly_type")
+
+    if anomaly_type == AnomalyType.HIGH_CONFIDENCE.value or (
+        label == WARNING_TRIGGER_LABEL and anomaly_type == AnomalyType.LOW_CONFIDENCE.value
+    ):
+        return True
+    return False
+
+
+def anomaly_has_confidence(anomaly: TimeSeriesPoint) -> bool:
+    """
+    Helper function to determine whether we have the 7+ days of data necessary
+    to detect anomalies/send alerts for dynamic alert rules.
+    """
+    anomaly_type = anomaly.get("anomaly", {}).get("anomaly_type")
+    return anomaly_type != AnomalyType.NO_DATA.value
 
 
 def translate_direction(direction: int) -> str:
