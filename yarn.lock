@@ -3202,10 +3202,10 @@
     "@sentry/types" "8.28.0"
     "@sentry/utils" "8.28.0"
 
-"@sentry-internal/global-search@^1.0.0":
-  version "1.0.0"
-  resolved "https://registry.yarnpkg.com/@sentry-internal/global-search/-/global-search-1.0.0.tgz#06ca26cc37f6cafda913a358be63a5e2e0a221f6"
-  integrity sha512-u4UUwxinDhUJ0kA4xGGQTr3QGJAWh7GRdFls9ys8coV7WjPNYt91MHfOWVdFzgeU6f4aO7RKE8uxSb/fkZiagQ==
+"@sentry-internal/global-search@^1.1.0":
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/@sentry-internal/global-search/-/global-search-1.1.0.tgz#108f11149a2516ea96b8a544fb4f8a0c046288e2"
+  integrity sha512-PL2oGOxr0vdnfPwVczs7VuV8bKhypbi1yN13gAT42AxgaSk3joBWzlEzLo7SXK53zBTWVyM2SAyBDzHWXEerJg==
   dependencies:
     "@types/react" ">=16"
     "@types/react-dom" ">=16"
