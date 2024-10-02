@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Protocol, TypeVar
 
-import sentry_protos.snuba.v1alpha.request_common_pb2 as proto_lib
+import sentry_protos.snuba.v1alpha.request_common_pb2
 import sentry_sdk
 import sentry_sdk.scope
 from django.conf import settings
@@ -10,8 +10,6 @@ from google.protobuf.message import Message as ProtobufMessage
 
 from sentry.net.http import connection_from_url
 from sentry.utils.snuba import RetrySkipTimeout
-
-PROTO_VERSION = proto_lib.__name__.split(".")[-2]
 
 RPCResponseType = TypeVar("RPCResponseType", bound=ProtobufMessage)
 
@@ -36,7 +34,7 @@ class SnubaRPCRequest(Protocol):
         ...
 
     @property
-    def meta(self) -> proto_lib.RequestMeta:
+    def meta(self) -> sentry_protos.snuba.v1alpha.request_common_pb2.RequestMeta:
         ...
 
 
@@ -77,7 +75,7 @@ def rpc(req: SnubaRPCRequest, resp_type: type[RPCResponseType]) -> RPCResponseTy
         span.set_tag("snuba.referrer", referrer)
         http_resp = _snuba_pool.urlopen(
             "POST",
-            f"/rpc/{req.__class__.__name__}/{PROTO_VERSION}",
+            f"/rpc/{req.__class__.__name__}/v1alpha",
             body=req.SerializeToString(),
             headers={
                 "referer": referrer,

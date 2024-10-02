@@ -5,7 +5,7 @@ from collections.abc import Callable
 from functools import partial
 from socket import error as SocketError
 from socket import timeout as SocketTimeout
-from typing import Optional
+from typing import Any, Optional
 
 from requests import Session as _Session
 from requests.adapters import DEFAULT_POOLBLOCK, DEFAULT_RETRIES, HTTPAdapter, Retry
@@ -248,7 +248,7 @@ class UnixHTTPConnectionPool(HTTPConnectionPool):
         return f"{type(self).__name__}(host={self.host!r})"
 
 
-def connection_from_url(endpoint, **kw):
+def connection_from_url(endpoint: str, **kw: Any) -> HTTPConnectionPool:
     if endpoint[:1] == "/":
         return UnixHTTPConnectionPool(endpoint, **kw)
     return _connection_from_url(endpoint, **kw)
