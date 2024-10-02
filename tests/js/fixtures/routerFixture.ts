@@ -1,8 +1,23 @@
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import {stringify} from 'query-string';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
+import type {Location} from 'history';
 
-export function RouterFixture(params = {}): InjectedRouter {
+interface RouterFixtureProps {
+  push?: any;
+  replace?: any;
+  routes?: InjectedRouter['routes'];
+  /**
+   * Accessed via `router.params` or useParams
+   */
+  params?: Record<string, string | undefined>;
+  /**
+   * `router.location` or useLocation
+   */
+  location?: Partial<Location>;
+}
+
+export function RouterFixture(params: RouterFixtureProps = {}): InjectedRouter {
   return {
     push: jest.fn(),
     replace: jest.fn(),
@@ -26,10 +41,15 @@ export function RouterFixture(params = {}): InjectedRouter {
 
       return '';
     }),
-    location: LocationFixture(),
     createPath: jest.fn(),
     routes: [],
-    params: {},
     ...params,
+    // Filter out undefined values
+    params: Object.fromEntries(
+      Object.entries(params.params ?? {}).filter(
+        (pair): pair is [string, string] => pair[1] !== undefined
+      )
+    ),
+    location: LocationFixture(params.location),
   };
 }

@@ -65,16 +65,16 @@ describe('SharedGroupDetails', function () {
   });
 
   it('renders with org slug in path', async function () {
-    const params_with_slug = {shareId: 'a', orgId: 'test-org'};
-    const router_with_slug = RouterFixture({params_with_slug});
+    const paramsWithSlug = {shareId: 'a', orgId: 'test-org'};
+    const routerWithSlug = RouterFixture({params: paramsWithSlug});
     render(
       <SharedGroupDetails
         params={params}
         route={{}}
-        router={router_with_slug}
-        routes={router_with_slug.routes}
-        routeParams={router_with_slug.params}
-        location={router_with_slug.location}
+        router={routerWithSlug}
+        routes={routerWithSlug.routes}
+        routeParams={routerWithSlug.params}
+        location={routerWithSlug.location}
       />,
       {router}
     );

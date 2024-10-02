@@ -34,7 +34,7 @@ describe('AccountSecurityEnroll', function () {
     });
 
     const router = RouterFixture({
-      params: {authId: authenticator.authId},
+      params: {authId: authenticator.authId!},
     });
 
     let location;
@@ -160,7 +160,7 @@ describe('AccountSecurityEnroll', function () {
       const pushMock = jest.fn();
       const routerWithMock = RouterFixture({
         push: pushMock,
-        params: {authId: authenticator.authId},
+        params: {authId: authenticator.authId!},
       });
 
       render(<AccountSecurityEnroll />, {router: routerWithMock});
