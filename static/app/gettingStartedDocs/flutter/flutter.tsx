@@ -312,16 +312,16 @@ const onboarding: OnboardingConfig = {
                     value: 'dart',
                     language: 'dart',
                     code: getPerformanceSnippet(),
-                    additionalInfo: tct(
-                      'To learn more about the API and automatic instrumentations, check out the [perfDocs: tracing documentation].',
-                      {
-                        perfDocs: (
-                          <ExternalLink href="https://docs.sentry.io/platforms/flutter/tracing/instrumentation/" />
-                        ),
-                      }
-                    ),
                   },
                 ],
+                additionalInfo: tct(
+                  'To learn more about the API and automatic instrumentations, check out the [perfDocs: tracing documentation].',
+                  {
+                    perfDocs: (
+                      <ExternalLink href="https://docs.sentry.io/platforms/flutter/tracing/instrumentation/" />
+                    ),
+                  }
+                ),
               },
             ],
           },
