@@ -346,18 +346,18 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
       );
 
       // Root frame + 2 nodes
-      // const promises: Promise<void>[] = [];
-      // if (trace.list.length <= 3) {
-      //   for (const c of trace.list) {
-      //     if (c.canFetch) {
-      //       promises.push(trace.zoomIn(c, true, {api, organization}).then(rerender));
-      //     }
-      //   }
-      // }
+      const promises: Promise<void>[] = [];
+      if (trace.list.length <= 3) {
+        for (const c of trace.list) {
+          if (c.canFetch) {
+            promises.push(trace.zoomIn(c, true, {api, organization}).then(rerender));
+          }
+        }
+      }
 
-      // Promise.allSettled(promises).finally(() => {
-      setTree(trace);
-      // });
+      Promise.allSettled(promises).finally(() => {
+        setTree(trace);
+      });
     }
   }, [
     props.traceSlug,
