@@ -3,7 +3,10 @@ import styled from '@emotion/styled';
 
 import {getInterval} from 'sentry/components/charts/utils';
 import {CompactSelect} from 'sentry/components/compactSelect';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
+import {IconClock} from 'sentry/icons';
+import {IconGraphLine} from 'sentry/icons/iconGraphLine';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
@@ -135,15 +138,34 @@ export function ExploreCharts({query}: ExploreChartsProps) {
               <ChartHeader>
                 <ChartTitle>{dedupedYAxes.join(',')}</ChartTitle>
                 <ChartSettingsContainer>
+                  <DropdownMenu
+                    position="bottom-end"
+                    triggerProps={{
+                      icon: <IconGraphLine />,
+                      size: 'zero',
+                      showChevron: false,
+                      borderless: true,
+                      'aria-label': t('Chart Type'),
+                    }}
+                    items={[]}
+                  />
+                  <DropdownMenu
+                    position="bottom-end"
+                    triggerProps={{
+                      icon: <IconClock />,
+                      showChevron: false,
+                      borderless: true,
+                      'aria-label': t('Interval'),
+                    }}
+                    items={[]}
+                  />
                   <CompactSelect
-                    size="xs"
                     triggerProps={{prefix: t('Type')}}
                     value={chartType}
                     options={exploreChartTypeOptions}
                     onChange={option => handleChartTypeChange(option.value, index)}
                   />
                   <CompactSelect
-                    size="xs"
                     value={interval}
                     onChange={({value}) => setInterval(value)}
                     triggerProps={{
