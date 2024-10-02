@@ -1,3 +1,7 @@
+import {Fragment} from 'react';
+import styled from '@emotion/styled';
+
+import {Alert} from 'sentry/components/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
@@ -19,7 +23,6 @@ dependencies:
   sentry_flutter: ^${getPackageVersion(params, 'sentry.dart.flutter', '7.8.0')}`;
 
 const getConfigureSnippet = (params: Params) => `
-import 'package:flutter/widgets.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 
 Future<void> main() async {
@@ -41,23 +44,20 @@ Future<void> main() async {
           : ''
       }
     },
-    appRunner: () => runApp(MyApp()),
+    appRunner: () => runApp(const MyApp()),
   );
 
   // or define SENTRY_DSN via Dart environment variable (--dart-define)
 }`;
 
 const getVerifySnippet = () => `
-import 'package:sentry/sentry.dart';
-
-try {
-  aMethodThatMightFail();
-} catch (exception, stackTrace) {
-  await Sentry.captureException(
-    exception,
-    stackTrace: stackTrace,
-  );
-}`;
+child: ElevatedButton(
+  onPressed: () {
+    throw Exception('This is test exception');
+  },
+  child: const Text('Verify Sentry Setup'),
+)
+`;
 
 const getPerformanceSnippet = () => `
 import 'package:sentry/sentry.dart';
@@ -215,9 +215,16 @@ const onboarding: OnboardingConfig = {
       ),
       configurations: [
         {
-          language: 'yml',
-          partialLoading: params.sourcePackageRegistries?.isLoading,
-          code: getInstallSnippet(params),
+          code: [
+            {
+              label: 'YAML',
+              value: 'yaml',
+              language: 'yaml',
+              filename: 'pubspec.yaml',
+              partialLoading: params.sourcePackageRegistries?.isLoading,
+              code: getInstallSnippet(params),
+            },
+          ],
         },
       ],
     },
@@ -239,13 +246,33 @@ const onboarding: OnboardingConfig = {
             ]
           : []),
         {
-          language: 'dart',
-          code: getConfigureSnippet(params),
-          additionalInfo: tct(
-            'You can configure the [code: SENTRY_DSN], [code: SENTRY_RELEASE], [code: SENTRY_DIST], and [code: SENTRY_ENVIRONMENT] via the Dart environment variables passing the [code: --dart-define] flag to the compiler, as noted in the code sample.',
+          code: [
             {
-              code: <code />,
-            }
+              label: 'Dart',
+              value: 'dart',
+              language: 'dart',
+              filename: 'main.dart',
+              code: getConfigureSnippet(params),
+            },
+          ],
+          additionalInfo: (
+            <Fragment>
+              <p>
+                {tct(
+                  'You can configure the [code: SENTRY_DSN], [code: SENTRY_RELEASE], [code: SENTRY_DIST], and [code: SENTRY_ENVIRONMENT] via the Dart environment variables passing the [code: --dart-define] flag to the compiler, as noted in the code sample.',
+                  {
+                    code: <code />,
+                  }
+                )}
+              </p>
+              {params.isPerformanceSelected && (
+                <AlertWithoutMarginBottom type="info">
+                  {t(
+                    'To monitor performance, you need to add extra instrumentation as described in the Tracing section below.'
+                  )}
+                </AlertWithoutMarginBottom>
+              )}
+            </Fragment>
           ),
         },
       ],
@@ -255,18 +282,18 @@ const onboarding: OnboardingConfig = {
     {
       type: StepType.VERIFY,
       description: t(
-        'Create an intentional error, so you can test that everything is working:'
+        'Create an intentional error, so you can test that everything is working. In the example below, pressing the button will throw an exception:'
       ),
       configurations: [
         {
-          language: 'dart',
-          code: getVerifySnippet(),
-          additionalInfo: tct(
-            "If you're new to Sentry, use the email alert to access your account and complete a product tour.[break] If you're an existing user and have disabled alerts, you won't receive this email.",
+          code: [
             {
-              break: <br />,
-            }
-          ),
+              label: 'Dart',
+              value: 'dart',
+              language: 'dart',
+              code: getVerifySnippet(),
+            },
+          ],
         },
       ],
     },
@@ -279,16 +306,22 @@ const onboarding: OnboardingConfig = {
             ),
             configurations: [
               {
-                language: 'dart',
-                code: getPerformanceSnippet(),
-                additionalInfo: tct(
-                  'To learn more about the API and automatic instrumentations, check out the [perfDocs: performance documentation].',
+                code: [
                   {
-                    perfDocs: (
-                      <ExternalLink href="https://docs.sentry.io/platforms/flutter/tracing/instrumentation/" />
+                    label: 'Dart',
+                    value: 'dart',
+                    language: 'dart',
+                    code: getPerformanceSnippet(),
+                    additionalInfo: tct(
+                      'To learn more about the API and automatic instrumentations, check out the [perfDocs: tracing documentation].',
+                      {
+                        perfDocs: (
+                          <ExternalLink href="https://docs.sentry.io/platforms/flutter/tracing/instrumentation/" />
+                        ),
+                      }
                     ),
-                  }
-                ),
+                  },
+                ],
               },
             ],
           },
@@ -321,3 +354,7 @@ const docs: Docs = {
 };
 
 export default docs;
+
+const AlertWithoutMarginBottom = styled(Alert)`
+  margin-bottom: 0;
+`;
