@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import time
+from uuid import uuid4
 
 import grpc
 import orjson
@@ -18,12 +19,18 @@ logger = logging.getLogger("sentry.taskworker")
 result_logger = logging.getLogger("taskworker.results")
 
 
+class WorkerComplete(Exception):
+    ...
+
+
 class Worker:
     __namespace: TaskNamespace | None = None
 
     def __init__(self, **options):
         self.options = options
         self.exitcode = None
+        self.__execution_count = 0
+        self.__worker_id = uuid4().hex
 
     @property
     def namespace(self) -> TaskNamespace:
@@ -40,11 +47,19 @@ class Worker:
 
     def start(self) -> None:
         self.do_imports()
+        max_task_count = self.options.get("max_task_count", None)
         try:
             while True:
                 self.process_tasks(self.namespace)
+                if max_task_count is not None and max_task_count <= self.__execution_count:
+                    self.exitcode = 1
+                    raise WorkerComplete("Max task exeuction count reached")
+
         except KeyboardInterrupt:
             self.exitcode = 1
+        except WorkerComplete as err:
+            self.exitcode = 0
+            logger.warning(str(err))
         except Exception:
             logger.exception("Worker process crashed")
 
@@ -83,11 +98,17 @@ class Worker:
             if task_meta.should_retry(activation.retry_state, err):
                 logger.info("taskworker.task.retry", extra={"task": activation.taskname})
                 next_state = TASK_ACTIVATION_STATUS_RETRY
+
         task_latency = execution_time - task_added_time
+        self.__execution_count += 1
 
         # Dump results to a log file that is CSV shaped
         result_logger.info(
-            "task.complete, %s, %s, %s", task_added_time, execution_time, task_latency
+            "task.complete, %s, %s, %s, %s",
+            self.__worker_id,
+            task_added_time,
+            execution_time,
+            task_latency,
         )
 
         if next_state == TASK_ACTIVATION_STATUS_COMPLETE:

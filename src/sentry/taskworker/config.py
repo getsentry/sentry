@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import time
 from collections.abc import Mapping
 from datetime import timedelta
@@ -16,6 +17,8 @@ from sentry.conf.types.kafka_definition import Topic
 from sentry.taskworker.retry import FALLBACK_RETRY, Retry
 from sentry.taskworker.task import Task
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
+
+logger = logging.getLogger(__name__)
 
 
 class TaskNamespace:

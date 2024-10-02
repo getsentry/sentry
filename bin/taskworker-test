@@ -1,7 +1,11 @@
 #!/usr/bin/env python
+import csv
+import math
 import os
+import random
 import sys
 import time
+from collections import defaultdict
 from subprocess import list2cmdline
 
 import click
@@ -16,16 +20,21 @@ configure()
 @click.command("taskworker-test")
 @click.option("--number", "-n", help="Number of messages to append", default=10_000)
 @click.option("--verbose", "-v", help="Enable verbose output", default=False, is_flag=True)
-def main(number: int, verbose: bool):
-    from sentry.taskdemo import say_hello
+@click.option("--seed", "-s", help="pseudo random number generator seed", default=None)
+@click.option("--workers", help="Number of worker processes", default=1)
+def main(number: int, verbose: bool, workers: int, seed: float | None):
+    from sentry.taskdemo import variable_time
 
     if verbose:
         click.echo(f"Adding {number} task messages")
+    if not seed:
+        seed = random.random()
 
     # Fill the topic up with a number of tasks
     start = time.monotonic()
     for i in range(number):
-        say_hello.delay(i)
+        variable_time.delay(wait=random.random(), taskno=i)
+
     end = time.monotonic()
     click.echo(f"Appending {number} tasks took {(end-start)}s")
 
@@ -37,7 +46,7 @@ def main(number: int, verbose: bool):
     processes = [
         {
             "name": "grpc",
-            "cmd": ["sentry", "run", "kafka-task-grpc-server"],
+            "cmd": ["sentry", "run", "kafka-task-grpc-pull"],
         },
         {
             "name": "consumer",
@@ -47,22 +56,95 @@ def main(number: int, verbose: bool):
                 "consumer",
                 "taskworker",
                 "--consumer-group",
-                "taskworker",
+                "taskworker-pull",
                 "--log-level",
                 "warning",
             ],
         },
-        {
-            "name": "worker",
-            "cmd": ["sentry", "run", "taskworker", "--namespace", "demos"],
-        },
     ]
+    tasks_per_worker = math.ceil(number / workers)
+    for i in range(workers):
+        processes.append(
+            {
+                "name": f"worker-{i}",
+                "cmd": [
+                    "sentry",
+                    "run",
+                    "taskworker-pull",
+                    "--namespace",
+                    "demos",
+                    "--max-task-count",
+                    str(tasks_per_worker),
+                ],
+            },
+        )
+
     for process in processes:
         manager.add_process(process["name"], list2cmdline(process["cmd"]), cwd=cwd)
 
     # Lets go!
     manager.loop()
+
+    print_results("./taskworker.log", workers)
+
     sys.exit(manager.returncode)
+
+
+def print_results(log_file: str, worker_count: int) -> None:
+    click.echo("")
+    click.echo("== Test run complete ==")
+    click.echo("")
+
+    fieldnames = ["event", "worker_id", "task_add_time", "execution_time", "latency"]
+    latency_times = []
+    with open(log_file) as logs:
+        results = csv.DictReader(logs, fieldnames=fieldnames)
+        for row in results:
+            latency_times.append(float(row["latency"].strip()))
+
+    # We append tasks and then start applications. The first
+    # message always has long latency as application startup
+    # and kafka take some time to get going.
+    startup_latency = latency_times[0]
+
+    min_latency = min(latency_times)
+    max_latency = max(latency_times)
+    avg_latency = sum(latency_times) / len(latency_times)
+
+    # Remove the startup overhead to get relative latency.
+    adj_min_latency = min_latency - startup_latency
+    adj_max_latency = max_latency - startup_latency
+    adj_avg_latency = avg_latency - startup_latency
+
+    # Bucket latency into 50ms buckets and tally up buckets
+    bucket_count = 10
+    bucket_width = (adj_max_latency - adj_min_latency) / bucket_count
+    buckets = defaultdict(int)
+    for value in latency_times:
+        adjusted = value - startup_latency
+        bucket = int(adjusted % bucket_width)
+        buckets[bucket] += 1
+
+    click.echo("")
+    click.echo("## Task latency")
+    click.echo("")
+    click.echo(f"Startup Latency: {startup_latency}")
+    click.echo(f"Raw Min / Max / Avg latency: {min_latency} / {max_latency} / {avg_latency}")
+    click.echo(
+        f"Adjusted Min / Max / Avg latency: {adj_min_latency} / {adj_max_latency} / {adj_avg_latency}"
+    )
+
+    click.echo("")
+    click.echo("## Latency histogram")
+    click.echo("")
+    bars = []
+    for key, count in buckets.items():
+        bucket_upper = key * 0.05
+        bar = "█" * count
+        bars.append((bucket_upper, bar))
+
+    for (bucket_upper, bar) in sorted(bars, key=lambda x: x[0]):
+        click.echo(f"{bucket_upper:.4f} {bar}")
 
 
 if __name__ == "__main__":
