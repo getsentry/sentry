@@ -6,7 +6,6 @@ import {Observer} from 'mobx-react';
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import FieldWrapper from 'sentry/components/forms/fieldGroup/fieldWrapper';
-import HiddenField from 'sentry/components/forms/fields/hiddenField';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import SentryMemberTeamSelectorField from 'sentry/components/forms/fields/sentryMemberTeamSelectorField';
 import SentryProjectSelectorField from 'sentry/components/forms/fields/sentryProjectSelectorField';
@@ -22,6 +21,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import getDuration from 'sentry/utils/duration/getDuration';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -39,6 +39,8 @@ interface Props {
 }
 
 const HTTP_METHOD_OPTIONS = ['GET', 'POST', 'HEAD', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'];
+
+const VALID_INTERVALS_SEC = [60 * 1, 60 * 5, 60 * 10, 60 * 20, 60 * 30, 60 * 60];
 
 function getFormDataFromRule(rule: UptimeRule) {
   return {
@@ -142,6 +144,18 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
         </ListItemSubText>
         <Configuration>
           <ConfigurationPanel>
+            <SelectField
+              options={VALID_INTERVALS_SEC.map(value => ({
+                value,
+                label: t('Every %s', getDuration(value)),
+              }))}
+              name="intervalSeconds"
+              label={t('Interval')}
+              defaultValue={60}
+              flexibleControlStateSize
+              required
+            />
+
             <TextField
               name="url"
               label={t('URL')}
@@ -219,7 +233,6 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
               border: 'none',
             }}
           />
-          <HiddenField name="intervalSeconds" defaultValue={60} />
         </FormRow>
       </List>
     </Form>
