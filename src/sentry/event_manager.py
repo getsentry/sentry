@@ -1319,7 +1319,8 @@ def _save_aggregate_new(
     if primary.existing_grouphash:
         group_info = handle_existing_grouphash(job, primary.existing_grouphash, primary.grouphashes)
         result = "found_primary"
-    # If we haven't, try again using the secondary config
+    # If we haven't, try again using the secondary config. (If there is no secondary config, or
+    # we're out of the transition period, we'll get back the empty `NULL_GROUPHASH_INFO`.)
     else:
         secondary = get_hashes_and_grouphashes(job, maybe_run_secondary_grouping, metric_tags)
         all_grouphashes = primary.grouphashes + secondary.grouphashes
