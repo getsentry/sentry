@@ -33,6 +33,7 @@ from sentry.sentry_apps.services.app.service import (
 from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError, ClientError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
+from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
@@ -316,7 +317,9 @@ def clear_region_cache(sentry_app_id: int, region_name: str) -> None:
 
 @instrumented_task(name="sentry.tasks.sentry_apps.workflow_notification", **TASK_OPTIONS)
 @retry_decorator
-def workflow_notification(installation_id, issue_id, type, user_id, *args, **kwargs):
+def workflow_notification(
+    installation_id: int, issue_id: int, type: str, user_id: int, *args: Any, **kwargs: Any
+) -> None:
     webhook_data = get_webhook_data(installation_id, issue_id, user_id)
     if not webhook_data:
         return
@@ -334,10 +337,12 @@ def workflow_notification(installation_id, issue_id, type, user_id, *args, **kwa
 
 @instrumented_task(name="sentry.tasks.sentry_apps.build_comment_webhook", **TASK_OPTIONS)
 @retry_decorator
-def build_comment_webhook(installation_id, issue_id, type, user_id, *args, **kwargs):
+def build_comment_webhook(
+    installation_id: int, issue_id: int, type: str, user_id: int, *args: Any, **kwargs: Any
+) -> None:
     webhook_data = get_webhook_data(installation_id, issue_id, user_id)
     if not webhook_data:
-        return
+        return None
     install, _, user = webhook_data
     data = kwargs.get("data", {})
     project_slug = data.get("project_slug")
@@ -361,18 +366,20 @@ def build_comment_webhook(installation_id, issue_id, type, user_id, *args, **kwa
     )
 
 
-def get_webhook_data(installation_id, issue_id, user_id):
+def get_webhook_data(
+    installation_id: int, issue_id: int, user_id: int
+) -> tuple[RpcSentryAppInstallation, Group, RpcUser | None] | None:
     extra = {"installation_id": installation_id, "issue_id": issue_id}
     install = app_service.installation_by_id(id=installation_id)
     if not install:
         logger.info("workflow_notification.missing_installation", extra=extra)
-        return
+        return None
 
     try:
         issue = Group.objects.get(id=issue_id)
     except Group.DoesNotExist:
         logger.info("workflow_notification.missing_issue", extra=extra)
-        return
+        return None
 
     user = None
     if user_id:
@@ -401,7 +408,7 @@ def send_resource_change_webhook(
     metrics.incr("resource_change.processed", sample_rate=1.0, tags={"change_event": event})
 
 
-def notify_sentry_app(event, futures):
+def notify_sentry_app(event: Event, futures):
     for f in futures:
         if not f.kwargs.get("sentry_app"):
             continue
