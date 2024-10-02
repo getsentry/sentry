@@ -13,222 +13,252 @@ API_PUBLISH_STATUS_ALLOWLIST_DONT_MODIFY = {
     "/api/0/relays/publickeys/": {"POST"},
     "/api/0/relays/live/": {"GET"},
     "/api/0/relays/{relay_id}/": {"DELETE"},
-    "/api/0/{var}/{issue_id}/": {"DELETE", "GET", "PUT"},
-    "/api/0/{var}/{issue_id}/activities/": {"GET"},
-    "/api/0/{var}/{issue_id}/events/": {"GET"},
-    "/api/0/{var}/{issue_id}/events/{event_id}/": {"GET"},
-    "/api/0/{var}/{issue_id}/{var}/": {"GET", "POST"},
-    "/api/0/{var}/{issue_id}/{var}/{note_id}/": {"DELETE", "PUT"},
-    "/api/0/{var}/{issue_id}/hashes/": {"GET", "DELETE"},
-    "/api/0/{var}/{issue_id}/reprocessing/": {"POST"},
-    "/api/0/{var}/{issue_id}/stats/": {"GET"},
-    "/api/0/{var}/{issue_id}/tags/": {"GET"},
-    "/api/0/{var}/{issue_id}/tags/{key}/": {"GET"},
-    "/api/0/{var}/{issue_id}/tags/{key}/values/": {"GET"},
-    "/api/0/{var}/{issue_id}/attachments/": {"GET"},
-    "/api/0/{var}/{issue_id}/similar/": {"GET"},
-    "/api/0/{var}/{issue_id}/external-issues/": {"GET"},
-    "/api/0/{var}/{issue_id}/external-issues/{external_issue_id}/": {"DELETE"},
-    "/api/0/{var}/{issue_id}/integrations/": {"GET"},
-    "/api/0/{var}/{issue_id}/integrations/{integration_id}/": {"DELETE", "GET", "PUT", "POST"},
-    "/api/0/{var}/{issue_id}/current-release/": {"GET"},
-    "/api/0/{var}/{issue_id}/first-last-release/": {"GET"},
-    "/api/0/{var}/{issue_id}/plugins/asana/create/": {"GET", "POST"},
-    "/api/0/{var}/{issue_id}/plugins/asana/link/": {"GET", "POST"},
-    "/api/0/{var}/{issue_id}/plugins/asana/unlink/": {"GET", "POST"},
-    "/api/0/{var}/{issue_id}/plugins/asana/autocomplete": {"GET", "POST"},
-    "/api/0/{var}/{issue_id}/plugins/bitbucket/create/": {"GET", "POST"},
-    "/api/0/{var}/{issue_id}/plugins/bitbucket/link/": {"GET", "POST"},
-    "/api/0/{var}/{issue_id}/plugins/bitbucket/unlink/": {"GET", "POST"},
-    "/api/0/{var}/{issue_id}/plugins/bitbucket/autocomplete": {"GET", "POST"},
-    "/api/0/{var}/{issue_id}/plugins/github/create/": {"GET", "POST"},
-    "/api/0/{var}/{issue_id}/plugins/github/link/": {"GET", "POST"},
-    "/api/0/{var}/{issue_id}/plugins/github/unlink/": {"GET", "POST"},
-    "/api/0/{var}/{issue_id}/plugins/github/autocomplete": {"GET", "POST"},
-    "/api/0/{var}/{issue_id}/plugins/gitlab/create/": {"GET", "POST"},
-    "/api/0/{var}/{issue_id}/plugins/gitlab/link/": {"GET", "POST"},
-    "/api/0/{var}/{issue_id}/plugins/gitlab/unlink/": {"GET", "POST"},
-    "/api/0/{var}/{issue_id}/plugins/jira/create/": {"GET", "POST"},
-    "/api/0/{var}/{issue_id}/plugins/jira/link/": {"GET", "POST"},
-    "/api/0/{var}/{issue_id}/plugins/jira/unlink/": {"GET", "POST"},
-    "/api/0/{var}/{issue_id}/plugins/jira/autocomplete": {"GET", "POST"},
-    "/api/0/{var}/{issue_id}/plugins/phabricator/create/": {"GET", "POST"},
-    "/api/0/{var}/{issue_id}/plugins/phabricator/link/": {"GET", "POST"},
-    "/api/0/{var}/{issue_id}/plugins/phabricator/unlink/": {"GET", "POST"},
-    "/api/0/{var}/{issue_id}/plugins/phabricator/autocomplete": {"GET", "POST"},
-    "/api/0/{var}/{issue_id}/plugins/pivotal/create/": {"GET", "POST"},
-    "/api/0/{var}/{issue_id}/plugins/pivotal/link/": {"GET", "POST"},
-    "/api/0/{var}/{issue_id}/plugins/pivotal/unlink/": {"GET", "POST"},
-    "/api/0/{var}/{issue_id}/plugins/pivotal/autocomplete": {"GET", "POST"},
-    "/api/0/{var}/{issue_id}/plugins/trello/create/": {"GET", "POST"},
-    "/api/0/{var}/{issue_id}/plugins/trello/link/": {"GET", "POST"},
-    "/api/0/{var}/{issue_id}/plugins/trello/unlink/": {"GET", "POST"},
-    "/api/0/{var}/{issue_id}/plugins/trello/options": {"GET", "POST"},
-    "/api/0/{var}/{issue_id}/plugins/trello/autocomplete": {"GET", "POST"},
+    "/api/0/{issues_or_groups}/{issue_id}/": {"DELETE", "GET", "PUT"},
+    "/api/0/{issues_or_groups}/{issue_id}/activities/": {"GET"},
+    "/api/0/{issues_or_groups}/{issue_id}/events/": {"GET"},
+    "/api/0/{issues_or_groups}/{issue_id}/events/{event_id}/": {"GET"},
+    "/api/0/{issues_or_groups}/{issue_id}/{var}/": {"GET", "POST"},
+    "/api/0/{issues_or_groups}/{issue_id}/{var}/{note_id}/": {"DELETE", "PUT"},
+    "/api/0/{issues_or_groups}/{issue_id}/hashes/": {"GET", "DELETE"},
+    "/api/0/{issues_or_groups}/{issue_id}/reprocessing/": {"POST"},
+    "/api/0/{issues_or_groups}/{issue_id}/stats/": {"GET"},
+    "/api/0/{issues_or_groups}/{issue_id}/tags/": {"GET"},
+    "/api/0/{issues_or_groups}/{issue_id}/tags/{key}/": {"GET"},
+    "/api/0/{issues_or_groups}/{issue_id}/tags/{key}/values/": {"GET"},
+    "/api/0/{issues_or_groups}/{issue_id}/attachments/": {"GET"},
+    "/api/0/{issues_or_groups}/{issue_id}/similar/": {"GET"},
+    "/api/0/{issues_or_groups}/{issue_id}/external-issues/": {"GET"},
+    "/api/0/{issues_or_groups}/{issue_id}/external-issues/{external_issue_id}/": {"DELETE"},
+    "/api/0/{issues_or_groups}/{issue_id}/integrations/": {"GET"},
+    "/api/0/{issues_or_groups}/{issue_id}/integrations/{integration_id}/": {
+        "DELETE",
+        "GET",
+        "PUT",
+        "POST",
+    },
+    "/api/0/{issues_or_groups}/{issue_id}/current-release/": {"GET"},
+    "/api/0/{issues_or_groups}/{issue_id}/first-last-release/": {"GET"},
+    "/api/0/{issues_or_groups}/{issue_id}/plugins/asana/create/": {"GET", "POST"},
+    "/api/0/{issues_or_groups}/{issue_id}/plugins/asana/link/": {"GET", "POST"},
+    "/api/0/{issues_or_groups}/{issue_id}/plugins/asana/unlink/": {"GET", "POST"},
+    "/api/0/{issues_or_groups}/{issue_id}/plugins/asana/autocomplete": {"GET", "POST"},
+    "/api/0/{issues_or_groups}/{issue_id}/plugins/bitbucket/create/": {"GET", "POST"},
+    "/api/0/{issues_or_groups}/{issue_id}/plugins/bitbucket/link/": {"GET", "POST"},
+    "/api/0/{issues_or_groups}/{issue_id}/plugins/bitbucket/unlink/": {"GET", "POST"},
+    "/api/0/{issues_or_groups}/{issue_id}/plugins/bitbucket/autocomplete": {"GET", "POST"},
+    "/api/0/{issues_or_groups}/{issue_id}/plugins/github/create/": {"GET", "POST"},
+    "/api/0/{issues_or_groups}/{issue_id}/plugins/github/link/": {"GET", "POST"},
+    "/api/0/{issues_or_groups}/{issue_id}/plugins/github/unlink/": {"GET", "POST"},
+    "/api/0/{issues_or_groups}/{issue_id}/plugins/github/autocomplete": {"GET", "POST"},
+    "/api/0/{issues_or_groups}/{issue_id}/plugins/gitlab/create/": {"GET", "POST"},
+    "/api/0/{issues_or_groups}/{issue_id}/plugins/gitlab/link/": {"GET", "POST"},
+    "/api/0/{issues_or_groups}/{issue_id}/plugins/gitlab/unlink/": {"GET", "POST"},
+    "/api/0/{issues_or_groups}/{issue_id}/plugins/jira/create/": {"GET", "POST"},
+    "/api/0/{issues_or_groups}/{issue_id}/plugins/jira/link/": {"GET", "POST"},
+    "/api/0/{issues_or_groups}/{issue_id}/plugins/jira/unlink/": {"GET", "POST"},
+    "/api/0/{issues_or_groups}/{issue_id}/plugins/jira/autocomplete": {"GET", "POST"},
+    "/api/0/{issues_or_groups}/{issue_id}/plugins/phabricator/create/": {"GET", "POST"},
+    "/api/0/{issues_or_groups}/{issue_id}/plugins/phabricator/link/": {"GET", "POST"},
+    "/api/0/{issues_or_groups}/{issue_id}/plugins/phabricator/unlink/": {"GET", "POST"},
+    "/api/0/{issues_or_groups}/{issue_id}/plugins/phabricator/autocomplete": {"GET", "POST"},
+    "/api/0/{issues_or_groups}/{issue_id}/plugins/pivotal/create/": {"GET", "POST"},
+    "/api/0/{issues_or_groups}/{issue_id}/plugins/pivotal/link/": {"GET", "POST"},
+    "/api/0/{issues_or_groups}/{issue_id}/plugins/pivotal/unlink/": {"GET", "POST"},
+    "/api/0/{issues_or_groups}/{issue_id}/plugins/pivotal/autocomplete": {"GET", "POST"},
+    "/api/0/{issues_or_groups}/{issue_id}/plugins/trello/create/": {"GET", "POST"},
+    "/api/0/{issues_or_groups}/{issue_id}/plugins/trello/link/": {"GET", "POST"},
+    "/api/0/{issues_or_groups}/{issue_id}/plugins/trello/unlink/": {"GET", "POST"},
+    "/api/0/{issues_or_groups}/{issue_id}/plugins/trello/options": {"GET", "POST"},
+    "/api/0/{issues_or_groups}/{issue_id}/plugins/trello/autocomplete": {"GET", "POST"},
     "/api/0/organizations/": {"GET", "POST"},
     "/api/0/organizations/{organization_id_or_slug}/": {"DELETE", "GET", "PUT"},
-    "/api/0/organizations/{organization_id_or_slug}/{var}/{issue_id}/": {
+    "/api/0/organizations/{organization_id_or_slug}/{issues_or_groups}/{issue_id}/": {
         "DELETE",
         "GET",
         "PUT",
     },
-    "/api/0/organizations/{organization_id_or_slug}/{var}/{issue_id}/activities/": {"GET"},
-    "/api/0/organizations/{organization_id_or_slug}/{var}/{issue_id}/events/": {"GET"},
-    "/api/0/organizations/{organization_id_or_slug}/{var}/{issue_id}/events/{event_id}/": {"GET"},
-    "/api/0/organizations/{organization_id_or_slug}/{var}/{issue_id}/{var}/": {"GET", "POST"},
-    "/api/0/organizations/{organization_id_or_slug}/{var}/{issue_id}/{var}/{note_id}/": {
+    "/api/0/organizations/{organization_id_or_slug}/{issues_or_groups}/{issue_id}/activities/": {
+        "GET"
+    },
+    "/api/0/organizations/{organization_id_or_slug}/{issues_or_groups}/{issue_id}/events/": {"GET"},
+    "/api/0/organizations/{organization_id_or_slug}/{issues_or_groups}/{issue_id}/events/{event_id}/": {
+        "GET"
+    },
+    "/api/0/organizations/{organization_id_or_slug}/{issues_or_groups}/{issue_id}/{var}/": {
+        "GET",
+        "POST",
+    },
+    "/api/0/organizations/{organization_id_or_slug}/{issues_or_groups}/{issue_id}/{var}/{note_id}/": {
         "DELETE",
         "PUT",
     },
-    "/api/0/organizations/{organization_id_or_slug}/{var}/{issue_id}/hashes/": {
+    "/api/0/organizations/{organization_id_or_slug}/{issues_or_groups}/{issue_id}/hashes/": {
         "GET",
         "DELETE",
     },
-    "/api/0/organizations/{organization_id_or_slug}/{var}/{issue_id}/reprocessing/": {"POST"},
-    "/api/0/organizations/{organization_id_or_slug}/{var}/{issue_id}/stats/": {"GET"},
-    "/api/0/organizations/{organization_id_or_slug}/{var}/{issue_id}/tags/": {"GET"},
-    "/api/0/organizations/{organization_id_or_slug}/{var}/{issue_id}/tags/{key}/": {"GET"},
-    "/api/0/organizations/{organization_id_or_slug}/{var}/{issue_id}/tags/{key}/values/": {"GET"},
-    "/api/0/organizations/{organization_id_or_slug}/{var}/{issue_id}/attachments/": {"GET"},
-    "/api/0/organizations/{organization_id_or_slug}/{var}/{issue_id}/similar/": {"GET"},
-    "/api/0/organizations/{organization_id_or_slug}/{var}/{issue_id}/external-issues/": {"GET"},
-    "/api/0/organizations/{organization_id_or_slug}/{var}/{issue_id}/external-issues/{external_issue_id}/": {
+    "/api/0/organizations/{organization_id_or_slug}/{issues_or_groups}/{issue_id}/reprocessing/": {
+        "POST"
+    },
+    "/api/0/organizations/{organization_id_or_slug}/{issues_or_groups}/{issue_id}/stats/": {"GET"},
+    "/api/0/organizations/{organization_id_or_slug}/{issues_or_groups}/{issue_id}/tags/": {"GET"},
+    "/api/0/organizations/{organization_id_or_slug}/{issues_or_groups}/{issue_id}/tags/{key}/": {
+        "GET"
+    },
+    "/api/0/organizations/{organization_id_or_slug}/{issues_or_groups}/{issue_id}/tags/{key}/values/": {
+        "GET"
+    },
+    "/api/0/organizations/{organization_id_or_slug}/{issues_or_groups}/{issue_id}/attachments/": {
+        "GET"
+    },
+    "/api/0/organizations/{organization_id_or_slug}/{issues_or_groups}/{issue_id}/similar/": {
+        "GET"
+    },
+    "/api/0/organizations/{organization_id_or_slug}/{issues_or_groups}/{issue_id}/external-issues/": {
+        "GET"
+    },
+    "/api/0/organizations/{organization_id_or_slug}/{issues_or_groups}/{issue_id}/external-issues/{external_issue_id}/": {
         "DELETE"
     },
-    "/api/0/organizations/{organization_id_or_slug}/{var}/{issue_id}/integrations/": {"GET"},
-    "/api/0/organizations/{organization_id_or_slug}/{var}/{issue_id}/integrations/{integration_id}/": {
+    "/api/0/organizations/{organization_id_or_slug}/{issues_or_groups}/{issue_id}/integrations/": {
+        "GET"
+    },
+    "/api/0/organizations/{organization_id_or_slug}/{issues_or_groups}/{issue_id}/integrations/{integration_id}/": {
         "DELETE",
         "GET",
         "PUT",
         "POST",
     },
-    "/api/0/organizations/{organization_id_or_slug}/{var}/{issue_id}/current-release/": {"GET"},
-    "/api/0/organizations/{organization_id_or_slug}/{var}/{issue_id}/first-last-release/": {"GET"},
-    "/api/0/organizations/{organization_id_or_slug}/{var}/{issue_id}/plugins/asana/create/": {
+    "/api/0/organizations/{organization_id_or_slug}/{issues_or_groups}/{issue_id}/current-release/": {
+        "GET"
+    },
+    "/api/0/organizations/{organization_id_or_slug}/{issues_or_groups}/{issue_id}/first-last-release/": {
+        "GET"
+    },
+    "/api/0/organizations/{organization_id_or_slug}/{issues_or_groups}/{issue_id}/plugins/asana/create/": {
         "GET",
         "POST",
     },
-    "/api/0/organizations/{organization_id_or_slug}/{var}/{issue_id}/plugins/asana/link/": {
+    "/api/0/organizations/{organization_id_or_slug}/{issues_or_groups}/{issue_id}/plugins/asana/link/": {
         "GET",
         "POST",
     },
-    "/api/0/organizations/{organization_id_or_slug}/{var}/{issue_id}/plugins/asana/unlink/": {
+    "/api/0/organizations/{organization_id_or_slug}/{issues_or_groups}/{issue_id}/plugins/asana/unlink/": {
         "GET",
         "POST",
     },
-    "/api/0/organizations/{organization_id_or_slug}/{var}/{issue_id}/plugins/asana/autocomplete": {
+    "/api/0/organizations/{organization_id_or_slug}/{issues_or_groups}/{issue_id}/plugins/asana/autocomplete": {
         "GET",
         "POST",
     },
-    "/api/0/organizations/{organization_id_or_slug}/{var}/{issue_id}/plugins/bitbucket/create/": {
+    "/api/0/organizations/{organization_id_or_slug}/{issues_or_groups}/{issue_id}/plugins/bitbucket/create/": {
         "GET",
         "POST",
     },
-    "/api/0/organizations/{organization_id_or_slug}/{var}/{issue_id}/plugins/bitbucket/link/": {
+    "/api/0/organizations/{organization_id_or_slug}/{issues_or_groups}/{issue_id}/plugins/bitbucket/link/": {
         "GET",
         "POST",
     },
-    "/api/0/organizations/{organization_id_or_slug}/{var}/{issue_id}/plugins/bitbucket/unlink/": {
+    "/api/0/organizations/{organization_id_or_slug}/{issues_or_groups}/{issue_id}/plugins/bitbucket/unlink/": {
         "GET",
         "POST",
     },
-    "/api/0/organizations/{organization_id_or_slug}/{var}/{issue_id}/plugins/bitbucket/autocomplete": {
+    "/api/0/organizations/{organization_id_or_slug}/{issues_or_groups}/{issue_id}/plugins/bitbucket/autocomplete": {
         "GET",
         "POST",
     },
-    "/api/0/organizations/{organization_id_or_slug}/{var}/{issue_id}/plugins/github/create/": {
+    "/api/0/organizations/{organization_id_or_slug}/{issues_or_groups}/{issue_id}/plugins/github/create/": {
         "GET",
         "POST",
     },
-    "/api/0/organizations/{organization_id_or_slug}/{var}/{issue_id}/plugins/github/link/": {
+    "/api/0/organizations/{organization_id_or_slug}/{issues_or_groups}/{issue_id}/plugins/github/link/": {
         "GET",
         "POST",
     },
-    "/api/0/organizations/{organization_id_or_slug}/{var}/{issue_id}/plugins/github/unlink/": {
+    "/api/0/organizations/{organization_id_or_slug}/{issues_or_groups}/{issue_id}/plugins/github/unlink/": {
         "GET",
         "POST",
     },
-    "/api/0/organizations/{organization_id_or_slug}/{var}/{issue_id}/plugins/github/autocomplete": {
+    "/api/0/organizations/{organization_id_or_slug}/{issues_or_groups}/{issue_id}/plugins/github/autocomplete": {
         "GET",
         "POST",
     },
-    "/api/0/organizations/{organization_id_or_slug}/{var}/{issue_id}/plugins/gitlab/create/": {
+    "/api/0/organizations/{organization_id_or_slug}/{issues_or_groups}/{issue_id}/plugins/gitlab/create/": {
         "GET",
         "POST",
     },
-    "/api/0/organizations/{organization_id_or_slug}/{var}/{issue_id}/plugins/gitlab/link/": {
+    "/api/0/organizations/{organization_id_or_slug}/{issues_or_groups}/{issue_id}/plugins/gitlab/link/": {
         "GET",
         "POST",
     },
-    "/api/0/organizations/{organization_id_or_slug}/{var}/{issue_id}/plugins/gitlab/unlink/": {
+    "/api/0/organizations/{organization_id_or_slug}/{issues_or_groups}/{issue_id}/plugins/gitlab/unlink/": {
         "GET",
         "POST",
     },
-    "/api/0/organizations/{organization_id_or_slug}/{var}/{issue_id}/plugins/jira/create/": {
+    "/api/0/organizations/{organization_id_or_slug}/{issues_or_groups}/{issue_id}/plugins/jira/create/": {
         "GET",
         "POST",
     },
-    "/api/0/organizations/{organization_id_or_slug}/{var}/{issue_id}/plugins/jira/link/": {
+    "/api/0/organizations/{organization_id_or_slug}/{issues_or_groups}/{issue_id}/plugins/jira/link/": {
         "GET",
         "POST",
     },
-    "/api/0/organizations/{organization_id_or_slug}/{var}/{issue_id}/plugins/jira/unlink/": {
+    "/api/0/organizations/{organization_id_or_slug}/{issues_or_groups}/{issue_id}/plugins/jira/unlink/": {
         "GET",
         "POST",
     },
-    "/api/0/organizations/{organization_id_or_slug}/{var}/{issue_id}/plugins/jira/autocomplete": {
+    "/api/0/organizations/{organization_id_or_slug}/{issues_or_groups}/{issue_id}/plugins/jira/autocomplete": {
         "GET",
         "POST",
     },
-    "/api/0/organizations/{organization_id_or_slug}/{var}/{issue_id}/plugins/phabricator/create/": {
+    "/api/0/organizations/{organization_id_or_slug}/{issues_or_groups}/{issue_id}/plugins/phabricator/create/": {
         "GET",
         "POST",
     },
-    "/api/0/organizations/{organization_id_or_slug}/{var}/{issue_id}/plugins/phabricator/link/": {
+    "/api/0/organizations/{organization_id_or_slug}/{issues_or_groups}/{issue_id}/plugins/phabricator/link/": {
         "GET",
         "POST",
     },
-    "/api/0/organizations/{organization_id_or_slug}/{var}/{issue_id}/plugins/phabricator/unlink/": {
+    "/api/0/organizations/{organization_id_or_slug}/{issues_or_groups}/{issue_id}/plugins/phabricator/unlink/": {
         "GET",
         "POST",
     },
-    "/api/0/organizations/{organization_id_or_slug}/{var}/{issue_id}/plugins/phabricator/autocomplete": {
+    "/api/0/organizations/{organization_id_or_slug}/{issues_or_groups}/{issue_id}/plugins/phabricator/autocomplete": {
         "GET",
         "POST",
     },
-    "/api/0/organizations/{organization_id_or_slug}/{var}/{issue_id}/plugins/pivotal/create/": {
+    "/api/0/organizations/{organization_id_or_slug}/{issues_or_groups}/{issue_id}/plugins/pivotal/create/": {
         "GET",
         "POST",
     },
-    "/api/0/organizations/{organization_id_or_slug}/{var}/{issue_id}/plugins/pivotal/link/": {
+    "/api/0/organizations/{organization_id_or_slug}/{issues_or_groups}/{issue_id}/plugins/pivotal/link/": {
         "GET",
         "POST",
     },
-    "/api/0/organizations/{organization_id_or_slug}/{var}/{issue_id}/plugins/pivotal/unlink/": {
+    "/api/0/organizations/{organization_id_or_slug}/{issues_or_groups}/{issue_id}/plugins/pivotal/unlink/": {
         "GET",
         "POST",
     },
-    "/api/0/organizations/{organization_id_or_slug}/{var}/{issue_id}/plugins/pivotal/autocomplete": {
+    "/api/0/organizations/{organization_id_or_slug}/{issues_or_groups}/{issue_id}/plugins/pivotal/autocomplete": {
         "GET",
         "POST",
     },
-    "/api/0/organizations/{organization_id_or_slug}/{var}/{issue_id}/plugins/trello/create/": {
+    "/api/0/organizations/{organization_id_or_slug}/{issues_or_groups}/{issue_id}/plugins/trello/create/": {
         "GET",
         "POST",
     },
-    "/api/0/organizations/{organization_id_or_slug}/{var}/{issue_id}/plugins/trello/link/": {
+    "/api/0/organizations/{organization_id_or_slug}/{issues_or_groups}/{issue_id}/plugins/trello/link/": {
         "GET",
         "POST",
     },
-    "/api/0/organizations/{organization_id_or_slug}/{var}/{issue_id}/plugins/trello/unlink/": {
+    "/api/0/organizations/{organization_id_or_slug}/{issues_or_groups}/{issue_id}/plugins/trello/unlink/": {
         "GET",
         "POST",
     },
-    "/api/0/organizations/{organization_id_or_slug}/{var}/{issue_id}/plugins/trello/options": {
+    "/api/0/organizations/{organization_id_or_slug}/{issues_or_groups}/{issue_id}/plugins/trello/options": {
         "GET",
         "POST",
     },
-    "/api/0/organizations/{organization_id_or_slug}/{var}/{issue_id}/plugins/trello/autocomplete": {
+    "/api/0/organizations/{organization_id_or_slug}/{issues_or_groups}/{issue_id}/plugins/trello/autocomplete": {
         "GET",
         "POST",
     },
@@ -845,8 +875,10 @@ API_PUBLISH_STATUS_ALLOWLIST_DONT_MODIFY = {
     "/api/0/accept-invite/{organization_id_or_slug}/{member_id}/{token}/": {"GET", "POST"},
     "/api/0/accept-invite/{member_id}/{token}/": {"GET", "POST"},
     "/api/0/profiling/projects/{project_id}/profile/{profile_id}/": {"GET"},
-    "/api/0/organizations/{organization_id_or_slug}/{var}/{issue_id}/participants/": {"GET"},
-    "/api/0/{var}/{issue_id}/participants/": {"GET"},
+    "/api/0/organizations/{organization_id_or_slug}/{issues_or_groups}/{issue_id}/participants/": {
+        "GET"
+    },
+    "/api/0/{issues_or_groups}/{issue_id}/participants/": {"GET"},
     "/api/0/organizations/{organization_id_or_slug}/shared/{var}/{share_id}/": {"GET"},
     "/api/0/shared/{var}/{share_id}/": {"GET"},
     "/api/0/sentry-apps-stats/": {"GET"},
