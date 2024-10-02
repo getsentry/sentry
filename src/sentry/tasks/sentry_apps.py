@@ -13,7 +13,7 @@ from sentry import analytics
 from sentry.api.serializers import serialize
 from sentry.constants import SentryAppInstallationStatus
 from sentry.db.models.base import Model
-from sentry.eventstore.models import Event, GroupEvent
+from sentry.eventstore.models import BaseEvent, Event, GroupEvent
 from sentry.hybridcloud.rpc.caching import region_caching_service
 from sentry.models.activity import Activity
 from sentry.models.group import Group
@@ -408,7 +408,7 @@ def send_resource_change_webhook(
     metrics.incr("resource_change.processed", sample_rate=1.0, tags={"change_event": event})
 
 
-def notify_sentry_app(event: Event, futures):
+def notify_sentry_app(event: BaseEvent, futures):
     for f in futures:
         if not f.kwargs.get("sentry_app"):
             continue
