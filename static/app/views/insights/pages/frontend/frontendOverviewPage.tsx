@@ -136,9 +136,7 @@ function FrontendOverviewPage() {
       organization={organization}
       renderDisabled={NoAccess}
     >
-      <Layout.Header>
-        <FrontendHeader />
-      </Layout.Header>
+      <FrontendHeader />
       <Layout.Body>
         <Layout.Main fullWidth>
           <ModuleLayout.Layout>

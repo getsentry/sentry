@@ -1,5 +1,3 @@
-import {Fragment} from 'react';
-
 import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
 import ButtonBar from 'sentry/components/buttonBar';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
@@ -9,6 +7,7 @@ import {t} from 'sentry/locale';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {ViewTrendsButton} from 'sentry/views/insights/common/components/viewTrendsButton';
 import {
   type RoutableModuleNames,
   useModuleURLBuilder,
@@ -38,6 +37,8 @@ export function FrontendHeader({module}: Props) {
   const frontendBaseUrl = normalizeUrl(
     `/organizations/${slug}/${DOMAIN_VIEW_BASE_URL}/${FRONTEND_LANDING_SUB_PATH}/`
   );
+
+  const showViewTrends = !module; // Only for overview page
 
   const crumbs: Crumb[] = [
     {
@@ -72,8 +73,8 @@ export function FrontendHeader({module}: Props) {
   };
 
   return (
-    <Fragment>
-      <Tabs value={module ?? OVERVIEW_PAGE_TITLE} onChange={handleTabChange}>
+    <Tabs value={module ?? OVERVIEW_PAGE_TITLE} onChange={handleTabChange}>
+      <Layout.Header>
         <Layout.HeaderContent>
           <Breadcrumbs crumbs={crumbs} />
 
@@ -82,6 +83,7 @@ export function FrontendHeader({module}: Props) {
         <Layout.HeaderActions>
           <ButtonBar gap={1}>
             <FeedbackWidgetButton />
+            {showViewTrends && <ViewTrendsButton />}
           </ButtonBar>
         </Layout.HeaderActions>
         <TabList hideBorder>
@@ -96,7 +98,7 @@ export function FrontendHeader({module}: Props) {
             {MODULE_TITLES[ModuleName.RESOURCE]}
           </TabList.Item>
         </TabList>
-      </Tabs>
-    </Fragment>
+      </Layout.Header>
+    </Tabs>
   );
 }
