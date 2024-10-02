@@ -358,6 +358,7 @@ export const METRICS_FUNCTIONS = ['count'] as const;
 export enum MetricsFields {
   TRANSACTION_DURATION = 'transaction.duration',
   TRANSACTION = 'transaction',
+  PROJECT = 'project',
 }
 
 export type MetricsNumberFields = MetricsFields.TRANSACTION_DURATION;
