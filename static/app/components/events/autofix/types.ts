@@ -166,12 +166,19 @@ export type AutofixRootCauseCodeContext = {
   snippet?: CodeSnippetContext;
 };
 
+export type AutofixRootCauseUnitTest = {
+  description: string;
+  file_path: string;
+  snippet: string;
+};
+
 export type AutofixRootCauseData = {
   code_context: AutofixRootCauseCodeContext[];
   description: string;
   id: string;
   title: string;
   reproduction?: string;
+  unit_test?: AutofixRootCauseUnitTest;
 };
 
 export type EventMetadataWithAutofix = EventMetadata & {

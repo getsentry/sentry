@@ -1,5 +1,7 @@
 import uuid
 
+import pytest
+
 from sentry.incidents.logic import create_alert_rule
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType, AlertRuleThresholdType
 from sentry.models.organization import Organization
@@ -7,6 +9,7 @@ from sentry.models.project import Project
 from sentry.testutils.cases import TestMigrations
 
 
+@pytest.mark.skip("Migration is no longer runnable. Retain until migration is removed.")
 class TestBackfillDetectionType(TestMigrations):
     migrate_from = "0741_metric_alert_anomaly_detection"
     migrate_to = "0742_backfill_alertrule_detection_type"
