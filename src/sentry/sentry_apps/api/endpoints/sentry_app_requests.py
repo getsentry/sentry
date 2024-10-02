@@ -9,9 +9,12 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases import RegionSentryAppBaseEndpoint, SentryAppStatsPermission
 from sentry.api.serializers import serialize
 from sentry.models.organization import Organization
+from sentry.sentry_apps.api.bases.sentryapps import (
+    RegionSentryAppBaseEndpoint,
+    SentryAppStatsPermission,
+)
 from sentry.sentry_apps.api.serializers.request import RequestSerializer
 from sentry.utils.sentry_apps import EXTENDED_VALID_EVENTS, SentryAppWebhookRequestsBuffer
 

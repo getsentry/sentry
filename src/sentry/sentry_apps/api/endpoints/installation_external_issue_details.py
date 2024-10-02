@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from sentry import deletions
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases import (
+from sentry.sentry_apps.api.bases.sentryapps import (
     SentryAppInstallationExternalIssueBaseEndpoint as ExternalIssueBaseEndpoint,
 )
 from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
