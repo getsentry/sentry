@@ -1,4 +1,4 @@
-import {type ComponentProps, useCallback, useState} from 'react';
+import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 import {isString} from '@sentry/utils';
 import type {Location} from 'history';
@@ -38,7 +38,7 @@ import {replaysRouteWithQuery} from './transactionReplays/utils';
 import {spansRouteWithQuery} from './transactionSpans/utils';
 import {tagsRouteWithQuery} from './transactionTags/utils';
 import {vitalsRouteWithQuery} from './transactionVitals/utils';
-import TransactionHeader from './header';
+import TransactionHeader, {type Props as TransactionHeaderProps} from './header';
 import Tab from './tabs';
 import type {TransactionThresholdMetric} from './transactionThresholdModal';
 import {generateTransactionSummaryRoute, transactionSummaryRouteWithQuery} from './utils';
@@ -251,7 +251,7 @@ function PageLayout(props: Props) {
 
   const project = projects.find(p => p.id === projectId);
 
-  let hasWebVitals: ComponentProps<typeof TransactionHeader>['hasWebVitals'] =
+  let hasWebVitals: TransactionHeaderProps['hasWebVitals'] =
     tab === Tab.WEB_VITALS ? 'yes' : 'maybe';
   if (organization.features.includes('insights-domain-view')) {
     hasWebVitals = 'no';
