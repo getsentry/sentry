@@ -523,6 +523,14 @@ export const WidgetCardPanel = styled(Panel, {
       width: 1px;
     }
   }
+
+  :hover {
+    background-color: ${p => p.theme.surface200};
+    transition:
+      background-color 100ms linear,
+      box-shadow 100ms linear;
+    box-shadow: ${p => p.theme.dropShadowLight};
+  }
 `;
 
 const StoredDataAlert = styled(Alert)`
