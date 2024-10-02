@@ -24,7 +24,7 @@ from snuba_sdk.conditions import Or as MQLOr
 
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.utils import snuba
+from sentry.utils import snuba_rpc
 
 
 def parse_mql_filters(group: ConditionGroup) -> Iterable[TraceItemFilter]:
@@ -94,7 +94,7 @@ def make_eap_request(
             name=ts.metric.mri.split("/")[1].split("@")[0], type=AttributeKey.TYPE_FLOAT
         ),
     )
-    aggregate_resp = snuba.rpc(aggregate_req, AggregateBucketResponse)
+    aggregate_resp = snuba_rpc.rpc(aggregate_req, AggregateBucketResponse)
 
     series_data = list(aggregate_resp.result)
     duration = end - start
