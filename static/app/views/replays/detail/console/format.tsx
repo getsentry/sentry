@@ -20,38 +20,43 @@
 // OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
 // USE OR OTHER DEALINGS IN THE SOFTWARE.
 import {Fragment} from 'react';
+import styled from '@emotion/styled';
 
-import type {OnExpandCallback} from 'sentry/components/objectInspector';
-import ObjectInspector from 'sentry/components/objectInspector';
+import StructuredEventData from 'sentry/components/structuredEventData';
+import type {OnExpandCallback} from 'sentry/views/replays/detail/useVirtualizedInspector';
 
 const formatRegExp = /%[csdj%]/g;
-
 interface FormatProps {
   args: any[];
+  onExpand: OnExpandCallback;
   expandPaths?: string[];
-  onExpand?: OnExpandCallback;
 }
 
 /**
  * Based on node's `util.format()`, returns a formatted "string" using the
  * first argument as a printf-like format string which can contain zero or more
- * format specifiers. Uses `<ObjectInspector>` to print objects.
+ * format specifiers. Uses `<StructuredEventData>` to print objects.
  *
  * %c is ignored for now
  */
 export default function Format({onExpand, expandPaths, args}: FormatProps) {
+  const onToggleExpand = (expandedPaths, path) => {
+    onExpand(path, Object.fromEntries(expandedPaths.map(item => [item, true])));
+  };
   const f = args[0];
 
   if (typeof f !== 'string') {
     const objects: any[] = [];
     for (let i = 0; i < args.length; i++) {
       objects.push(
-        <ObjectInspector
-          key={i}
-          data={args[i]}
-          expandPaths={expandPaths}
-          onExpand={onExpand}
-        />
+        <Wrapper key={i}>
+          <StructuredEventData
+            key={i}
+            data={args[i]}
+            initialExpandedPaths={expandPaths ?? []}
+            onToggleExpand={onToggleExpand}
+          />
+        </Wrapper>
       );
     }
     return <Fragment>{objects}</Fragment>;
@@ -136,10 +141,25 @@ export default function Format({onExpand, expandPaths, args}: FormatProps) {
     } else {
       pieces.push(' ');
       pieces.push(
-        <ObjectInspector key={i} data={x} expandPaths={expandPaths} onExpand={onExpand} />
+        <Wrapper key={i}>
+          <StructuredEventData
+            key={i}
+            data={x}
+            initialExpandedPaths={expandPaths ?? []}
+            onToggleExpand={onToggleExpand}
+          />
+        </Wrapper>
       );
     }
   }
 
   return <Fragment>{pieces}</Fragment>;
 }
+
+const Wrapper = styled('div')`
+  pre {
+    margin: 0;
+    background: none;
+    font-size: inherit;
+  }
+`;
