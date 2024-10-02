@@ -5,6 +5,7 @@ import time
 from concurrent import futures
 from datetime import datetime
 from multiprocessing.pool import Pool
+from uuid import uuid4
 
 import grpc
 import orjson
@@ -35,6 +36,7 @@ class WorkerServicer(BaseWorkerServiceServicer):
         super().__init__()
         self.options = options
         self.do_imports()
+        self.__worker_id = uuid4().hex
 
     @property
     def namespace(self) -> TaskNamespace:
@@ -54,7 +56,7 @@ class WorkerServicer(BaseWorkerServiceServicer):
 
         if not self.namespace.contains(activation.taskname):
             logger.exception("Could not resolve task with name %s", activation.taskname)
-            return
+            return DispatchResponse(status=TASK_ACTIVATION_STATUS_FAILURE)
 
         # TODO: Check idempotency
         task_added_time = activation.received_at.seconds
@@ -89,7 +91,11 @@ class WorkerServicer(BaseWorkerServiceServicer):
 
         # Dump results to a log file that is CSV shaped
         result_logger.info(
-            "task.complete, %s, %s, %s", task_added_time, execution_time, task_latency
+            "task.complete, %s, %s, %s, %s",
+            self.__worker_id,
+            task_added_time,
+            execution_time,
+            task_latency,
         )
 
         return DispatchResponse(status=next_state)

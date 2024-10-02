@@ -22,7 +22,8 @@ configure()
 @click.option("--verbose", "-v", help="Enable verbose output", default=False, is_flag=True)
 @click.option("--seed", "-s", help="pseudo random number generator seed", default=None)
 @click.option("--workers", help="Number of worker processes", default=1)
-def main(number: int, verbose: bool, workers: int, seed: float | None):
+@click.option("--mode", help="The worker/consumer mode to use", default="pull")
+def main(number: int, verbose: bool, workers: int, seed: float | None, mode: str):
     from sentry.taskdemo import variable_time
 
     if verbose:
@@ -43,41 +44,95 @@ def main(number: int, verbose: bool, workers: int, seed: float | None):
     # Use honcho to control the worker and consumer proceses.
     honcho_printer = get_honcho_printer(prefix=True, pretty=False)
     manager = Manager(honcho_printer)
-    processes = [
-        {
-            "name": "grpc",
-            "cmd": ["sentry", "run", "kafka-task-grpc-pull"],
-        },
-        {
-            "name": "consumer",
-            "cmd": [
-                "sentry",
-                "run",
-                "consumer",
-                "taskworker",
-                "--consumer-group",
-                "taskworker-pull",
-                "--log-level",
-                "warning",
-            ],
-        },
-    ]
     tasks_per_worker = math.ceil(number / workers)
-    for i in range(workers):
+
+    processes = []
+    if mode == "pull":
         processes.append(
             {
-                "name": f"worker-{i}",
+                "name": "grpc",
+                "cmd": ["sentry", "run", "kafka-task-grpc-pull"],
+            },
+        )
+        processes.append(
+            {
+                "name": "consumer",
                 "cmd": [
                     "sentry",
                     "run",
+                    "consumer",
+                    "taskworker",
+                    "--consumer-group",
                     "taskworker-pull",
-                    "--namespace",
-                    "demos",
-                    "--max-task-count",
-                    str(tasks_per_worker),
+                    "--log-level",
+                    "warning",
+                ],
+            }
+        )
+        for i in range(workers):
+            processes.append(
+                {
+                    "name": f"worker-{i}",
+                    "cmd": [
+                        "sentry",
+                        "run",
+                        "taskworker-pull",
+                        "--namespace",
+                        "demos",
+                        "--max-task-count",
+                        str(tasks_per_worker),
+                    ],
+                },
+            )
+    elif mode == "push":
+        worker_ports = [50051 + i for i in range(workers)]
+        worker_addrs = ",".join([f"127.0.0.1:{port}" for port in worker_ports])
+
+        processes.append(
+            {
+                "name": "grpc",
+                "cmd": [
+                    "sentry",
+                    "run",
+                    "kafka-task-grpc-push",
+                    "--worker-addrs",
+                    worker_addrs,
                 ],
             },
         )
+        processes.append(
+            {
+                "name": "consumer",
+                "cmd": [
+                    "sentry",
+                    "run",
+                    "consumer",
+                    "taskworker",
+                    "--consumer-group",
+                    "taskworker-push",
+                    "--log-level",
+                    "warning",
+                ],
+            }
+        )
+        for port in worker_ports:
+            processes.append(
+                {
+                    "name": f"worker-{port}",
+                    "cmd": [
+                        "sentry",
+                        "run",
+                        "taskworker-push",
+                        "--namespace",
+                        "demos",
+                        "--port",
+                        str(port),
+                    ],
+                },
+            )
+
+    else:
+        raise RuntimeError(f"Unexpected mode of {mode}. Use `push` or `pull` instead.")
 
     for process in processes:
         manager.add_process(process["name"], list2cmdline(process["cmd"]), cwd=cwd)
