@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import time
+from multiprocessing.context import TimeoutError
 
 logger = logging.getLogger(__name__)
 
@@ -22,10 +23,11 @@ def say_hello(name):
     print(f"hello {name}")  # noqa
 
 
-@demotasks.register(name="demos.say_hello_with_retries", retry=Retry(times=3))
-def say_hello_with_retries(name):
+@demotasks.register(name="demos.raise_timeout", retry=Retry(times=3))
+def raise_timeout(name):
     # logger.info("hello %s", name) need to fix logging now that we are running this in another process
-    print(f"hello {name}")  # noqa
+    print(f"raising timeout: {name}")  # noqa
+    raise TimeoutError
 
 
 @demotasks.register(name="demos.variable_time")
