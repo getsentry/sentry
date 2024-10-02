@@ -75,6 +75,13 @@ class JsonForm extends Component<JsonFormProps, State> {
       return;
     }
 
+    const querySelector = sanitizeQuerySelector(decodeURIComponent(hash));
+    const element = document.querySelector(querySelector);
+    const componentName = element?.getAttribute('data-sentry-component');
+    if (componentName === 'Switch') {
+      return;
+    }
+
     // Push onto callback queue so it runs after the DOM is updated,
     // this is required when navigating from a different page so that
     // the element is rendered on the page before trying to getElementById.
