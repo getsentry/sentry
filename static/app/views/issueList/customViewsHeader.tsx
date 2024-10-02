@@ -136,23 +136,21 @@ function CustomViewsIssueListHeaderTabsContent({
     ...normalizeDateTimeParams(pageFilters.selection.datetime),
   };
 
-  const viewsToTabs = views.map(
-    ({id, name, query: viewQuery, querySort: viewQuerySort}, index): Tab => {
+  const [draggableTabs, setDraggableTabs] = useState<Tab[]>(
+    views.map(({id, name, query: viewQuery, querySort: viewQuerySort}, index): Tab => {
       const tabId = id ?? `default${index.toString()}`;
+
       return {
         id: tabId,
         key: tabId,
         label: name,
         query: viewQuery,
         querySort: viewQuerySort,
+        unsavedChanges: undefined,
         isCommitted: true,
       };
-    }
+    })
   );
-
-  const [draggableTabs, setDraggableTabs] = useState<Tab[]>(viewsToTabs);
-
-  const {tabListState} = useContext(TabsContext);
 
   const getInitialTabKey = () => {
     if (draggableTabs[0].key.startsWith('default')) {
@@ -172,6 +170,8 @@ function CustomViewsIssueListHeaderTabsContent({
     }
     return draggableTabs[0].key;
   };
+
+  const {tabListState} = useContext(TabsContext);
 
   // TODO: Try to remove this state if possible
   const [tempTab, setTempTab] = useState<Tab | undefined>(
@@ -235,7 +235,7 @@ function CustomViewsIssueListHeaderTabsContent({
     // if a viewId is present, check if it exists in the existing views.
     if (viewId) {
       const selectedTab = draggableTabs.find(tab => tab.id === viewId);
-      if (selectedTab && query !== undefined && sort) {
+      if (selectedTab) {
         const issueSortOption = Object.values(IssueSortOptions).includes(sort)
           ? sort
           : IssueSortOptions.DATE;
@@ -243,7 +243,7 @@ function CustomViewsIssueListHeaderTabsContent({
         const unsavedChanges: [string, IssueSortOptions] | undefined =
           query === selectedTab.query && sort === selectedTab.querySort
             ? undefined
-            : [query as string, issueSortOption];
+            : [query ?? selectedTab.query, issueSortOption];
 
         setDraggableTabs(
           draggableTabs.map(tab =>
@@ -256,25 +256,21 @@ function CustomViewsIssueListHeaderTabsContent({
           )
         );
 
-        tabListState?.setSelectedKey(selectedTab.key);
-        return;
-      }
-      if (selectedTab && query === undefined) {
         navigate(
           normalizeUrl({
             ...location,
             query: {
               ...queryParamsWithPageFilters,
-              query: selectedTab.query,
-              sort: selectedTab.querySort,
+              query: unsavedChanges ? unsavedChanges[0] : selectedTab.query,
+              sort: unsavedChanges ? unsavedChanges[1] : selectedTab.querySort,
               viewId: selectedTab.id,
             },
-          })
+          }),
+          {replace: true}
         );
+
         tabListState?.setSelectedKey(selectedTab.key);
-        return;
-      }
-      if (!selectedTab) {
+      } else {
         // if a viewId does not exist, remove it from the query
         tabListState?.setSelectedKey(TEMPORARY_TAB_KEY);
         navigate(
@@ -284,22 +280,55 @@ function CustomViewsIssueListHeaderTabsContent({
               ...queryParamsWithPageFilters,
               viewId: undefined,
             },
-          })
+          }),
+          {replace: true}
         );
         trackAnalytics('issue_views.shared_view_opened', {
           organization,
           query,
         });
-        return;
       }
       return;
     }
     if (query) {
       tabListState?.setSelectedKey(TEMPORARY_TAB_KEY);
+      navigate(
+        normalizeUrl({
+          ...location,
+          query: {
+            ...queryParamsWithPageFilters,
+            viewId: undefined,
+          },
+        }),
+        {replace: true}
+      );
       return;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [navigate, organization.slug, query, sort, viewId, tabListState]);
+  }, []);
+
+  useEffect(() => {
+    const currentTab = draggableTabs.find(tab => tab.key === viewId);
+    if (
+      currentTab &&
+      query !== undefined &&
+      sort &&
+      currentTab.unsavedChanges?.[0] !== query &&
+      currentTab.unsavedChanges?.[1] !== sort &&
+      (currentTab.query !== query || currentTab.querySort !== sort)
+    ) {
+      setDraggableTabs(
+        draggableTabs.map(tab =>
+          tab.key === currentTab.key
+            ? {
+                ...tab,
+                unsavedChanges: [query, sort],
+              }
+            : tab
+        )
+      );
+    }
+  }, [draggableTabs, query, sort, viewId]);
 
   // Update local tabs when new views are received from mutation request
   useEffectAfterFirstRender(() => {
