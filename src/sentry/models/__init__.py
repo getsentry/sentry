@@ -104,7 +104,6 @@ from .rule import *  # NOQA
 from .rulefirehistory import RuleFireHistory  # NOQA
 from .rulesnooze import RuleSnooze  # NOQA
 from .savedsearch import *  # NOQA
-from .scheduledeletion import *  # NOQA
 from .search_common import *  # NOQA
 from .sentryshot import *  # NOQA
 from .sourcemapprocessingissue import *  # NOQA
