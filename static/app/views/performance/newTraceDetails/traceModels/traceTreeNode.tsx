@@ -25,7 +25,7 @@ function isTraceAutogroup(
   return !!(value && 'autogrouped_by' in value);
 }
 
-function isTraceRoot(value: TraceTree.NodeValue | undefined): value is TraceTree.Trace {
+function isTrace(value: TraceTree.NodeValue | undefined): value is TraceTree.Trace {
   return !!(value && 'orphan_errors' in value);
 }
 
@@ -171,24 +171,27 @@ export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> 
    */
   get connectors(): number[] {
     if (this._connectors !== undefined) {
-      return this._connectors!;
+      return this._connectors;
     }
 
     this._connectors = [];
 
-    let node: TraceTreeNode<T> | TraceTreeNode<TraceTree.NodeValue> | null = this.parent;
+    let node: TraceTreeNode<T> | TraceTreeNode<TraceTree.NodeValue> | null = this;
 
     while (node) {
-      if (node.value === null) {
-        break;
+      if (!node.value) {
+        return this._connectors;
       }
-
       if (node.isLastChild) {
         node = node.parent;
         continue;
       }
 
-      this._connectors.push(isTraceRoot(node.parent?.value) ? -node.depth : node.depth);
+      if (isTrace(node.value)) {
+        this._connectors.push(-node.depth);
+        return this._connectors;
+      }
+      this._connectors.push(isTrace(node?.parent?.value) ? -node.depth : node.depth);
       node = node.parent;
     }
 

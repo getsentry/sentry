@@ -1307,8 +1307,8 @@ describe('TraceTree', () => {
       expect(tree.list[1].connectors.length).toBe(1);
       expect(tree.list[1].connectors[0]).toBe(-1);
 
-      expect(tree.list[2].connectors[0]).toBe(-1);
-      expect(tree.list[2].connectors[1]).toBe(2);
+      expect(tree.list[2].connectors[0]).toBe(2);
+      expect(tree.list[2].connectors[1]).toBe(-1);
       expect(tree.list[2].connectors.length).toBe(2);
 
       expect(tree.list[3].connectors[0]).toBe(-1);

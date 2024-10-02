@@ -4,8 +4,6 @@ import type {Theme} from '@emotion/react';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import type {PlatformKey} from 'sentry/types/project';
 
-import {isParentAutogroupedNode} from '../traceGuards';
-import {ParentAutogroupNode} from '../traceModels/parentAutogroupNode';
 import type {TraceTree} from '../traceModels/traceTree';
 import type {TraceTreeNode} from '../traceModels/traceTreeNode';
 import type {VirtualizedViewManager} from '../traceRenderers/virtualizedViewManager';
@@ -71,20 +69,7 @@ export function TraceRowConnectors(props: {
   manager: VirtualizedViewManager;
   node: TraceTreeNode<TraceTree.NodeValue>;
 }) {
-  const hasChildren =
-    (props.node.expanded || props.node.zoomedIn) && props.node.children.length > 0;
-  const showVerticalConnector =
-    hasChildren || (props.node.value && isParentAutogroupedNode(props.node));
-
-  // If the tail node of the collapsed node has no children,
-  // we don't want to render the vertical connector as no children
-  // are being rendered as the chain is entirely collapsed
-  const hideVerticalConnector =
-    showVerticalConnector &&
-    props.node.value &&
-    props.node instanceof ParentAutogroupNode &&
-    (!props.node.tail.children.length ||
-      (!props.node.tail.expanded && !props.node.expanded));
+  const hasChildren = props.node.children.length > 0;
 
   return (
     <Fragment>
@@ -97,18 +82,14 @@ export function TraceRowConnectors(props: {
                 Math.abs(Math.abs(c) - props.node.depth) * props.manager.row_depth_padding
               ),
             }}
-            className={`TraceVerticalConnector ${c < 0 ? 'Orphaned' : ''}`}
+            className={`TraceVerticalConnector ${c <= 0 ? 'Orphaned' : ''}`}
           />
         );
       })}
-      {showVerticalConnector && !hideVerticalConnector ? (
-        <span className="TraceExpandedVerticalConnector" />
-      ) : null}
+      {hasChildren ? <span className="TraceExpandedVerticalConnector" /> : null}
       {props.node.isLastChild ? (
         <span className="TraceVerticalLastChildConnector" />
-      ) : (
-        <span className="TraceVerticalConnector" />
-      )}
+      ) : null}
     </Fragment>
   );
 }
