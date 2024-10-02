@@ -1,14 +1,12 @@
 import unittest
-from typing import Any
 from unittest.mock import Mock, patch
 
 import pytest
 from django.contrib.auth.models import AnonymousUser
-from django.http import Http404, HttpRequest
+from django.http import Http404
 from django.test.utils import override_settings
 from rest_framework.request import Request
 
-from sentry.api.base import Endpoint
 from sentry.sentry_apps.api.bases.sentryapps import (
     SentryAppAndStaffPermission,
     SentryAppBaseEndpoint,
@@ -23,17 +21,6 @@ from sentry.testutils.silo import control_silo_test
 from sentry.users.models.user import User
 
 
-# Ideally choose the most relevant endpoint to the tested functionality
-def make_drf_request(
-    request: HttpRequest, endpoint: Endpoint | None = None, *args: Any, **kwargs: Any
-) -> Request:
-    if not endpoint:
-        endpoint = Endpoint()
-    drf_request: Request = endpoint.initialize_request(request, *args, **kwargs)
-
-    return drf_request
-
-
 @control_silo_test
 class SentryAppPermissionTest(TestCase):
     def setUp(self):
@@ -41,7 +28,7 @@ class SentryAppPermissionTest(TestCase):
         self.permission = SentryAppPermission()
 
         self.sentry_app = self.create_sentry_app(name="foo", organization=self.organization)
-        self.request = make_drf_request(
+        self.request = self.endpoint.initialize_request(
             request=self.make_request(user=self.user, method="GET"), endpoint=self.endpoint
         )
 
@@ -52,7 +39,7 @@ class SentryAppPermissionTest(TestCase):
 
     def test_request_user_is_not_app_owner_fails(self):
         non_owner: User = self.create_user()
-        self.request = make_drf_request(
+        self.request = self.endpoint.initialize_request(
             request=self.make_request(user=non_owner, method="GET"), endpoint=self.endpoint
         )
 
@@ -69,12 +56,12 @@ class SentryAppPermissionTest(TestCase):
 
         # Need to set token here, else UserAuthTokenAuthentication won't be able to find it & fail auth
         request.META["HTTP_AUTHORIZATION"] = f"Bearer {token.plaintext_token}"
-        self.request = make_drf_request(request=request, endpoint=self.endpoint)
+        self.request = self.endpoint.initialize_request(request=request, endpoint=self.endpoint)
 
         assert self.permission.has_permission(self.request, None)
 
     def test_superuser_has_permission(self):
-        request = make_drf_request(
+        request = self.endpoint.initialize_request(
             self.make_request(user=self.superuser, method="GET", is_superuser=True),
             endpoint=self.endpoint,
         )
@@ -87,7 +74,7 @@ class SentryAppPermissionTest(TestCase):
     @override_options({"superuser.read-write.ga-rollout": True})
     @override_settings(SENTRY_SELF_HOSTED=False)
     def test_superuser_has_permission_read_only(self):
-        request = make_drf_request(
+        request = self.endpoint.initialize_request(
             self.make_request(user=self.superuser, method="GET", is_superuser=True),
             endpoint=self.endpoint,
         )
@@ -103,7 +90,7 @@ class SentryAppPermissionTest(TestCase):
     @override_settings(SENTRY_SELF_HOSTED=False)
     def test_superuser_has_permission_write(self):
         self.add_user_permission(self.superuser, "superuser.write")
-        request = make_drf_request(
+        request = self.endpoint.initialize_request(
             self.make_request(user=self.superuser, method="GET", is_superuser=True),
             endpoint=self.endpoint,
         )
@@ -175,14 +162,14 @@ class SentryAppInstallationPermissionTest(TestCase):
         self.superuser = self.create_user(is_superuser=True)
 
     def test_missing_request_user(self):
-        self.request = make_drf_request(
+        self.request = self.endpoint.initialize_request(
             self.make_request(user=AnonymousUser(), method="GET"), endpoint=self.endpoint
         )
 
         assert not self.permission.has_object_permission(self.request, None, self.installation)
 
     def test_request_user_in_organization(self):
-        self.request = make_drf_request(
+        self.request = self.endpoint.initialize_request(
             self.make_request(user=self.user, method="GET"), endpoint=self.endpoint
         )
 
@@ -190,7 +177,7 @@ class SentryAppInstallationPermissionTest(TestCase):
 
     def test_request_user_not_in_organization(self):
         user = self.create_user()
-        request = make_drf_request(
+        request = self.endpoint.initialize_request(
             self.make_request(user=user, method="GET"), endpoint=self.endpoint
         )
 
@@ -198,7 +185,7 @@ class SentryAppInstallationPermissionTest(TestCase):
             self.permission.has_object_permission(request, None, self.installation)
 
     def test_superuser_has_permission(self):
-        request = make_drf_request(
+        request = self.endpoint.initialize_request(
             self.make_request(user=self.superuser, method="GET", is_superuser=True),
             endpoint=self.endpoint,
         )
@@ -211,7 +198,7 @@ class SentryAppInstallationPermissionTest(TestCase):
     @override_options({"superuser.read-write.ga-rollout": True})
     @override_settings(SENTRY_SELF_HOSTED=False)
     def test_superuser_has_permission_read_only(self):
-        request = make_drf_request(
+        request = self.endpoint.initialize_request(
             self.make_request(user=self.superuser, method="GET", is_superuser=True),
             endpoint=self.endpoint,
         )
@@ -226,7 +213,7 @@ class SentryAppInstallationPermissionTest(TestCase):
     @override_settings(SENTRY_SELF_HOSTED=False)
     def test_superuser_has_permission_write(self):
         self.add_user_permission(self.superuser, "superuser.write")
-        request = make_drf_request(
+        request = self.endpoint.initialize_request(
             self.make_request(user=self.superuser, method="GET", is_superuser=True),
             endpoint=self.endpoint,
         )
