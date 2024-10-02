@@ -16,7 +16,6 @@ from urllib3.exceptions import MaxRetryError, TimeoutError
 
 from sentry import features
 from sentry.conf.server import SEER_ANOMALY_DETECTION_ENDPOINT_URL
-from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS, CRASH_RATE_ALERT_SESSION_COUNT_ALIAS
 from sentry.incidents.logic import (
     CRITICAL_TRIGGER_LABEL,
     WARNING_TRIGGER_LABEL,
@@ -280,58 +279,6 @@ class SubscriptionProcessor:
 
         result: float = (aggregation_value / comparison_aggregate) * 100
         return result
-
-    def get_crash_rate_alert_aggregation_value(
-        self, subscription_update: QuerySubscriptionUpdate
-    ) -> float | None:
-        """
-        Handles validation and extraction of Crash Rate Alerts subscription updates values.
-        The subscription update looks like
-        {
-            '_crash_rate_alert_aggregate': 0.5,
-            '_total_count': 34
-        }
-        - `_crash_rate_alert_aggregate` represents sessions_crashed/sessions or
-        users_crashed/users, and so we need to subtract that number from 1 and then multiply by
-        100 to get the crash free percentage
-        - `_total_count` represents the total sessions or user counts. This is used when
-        CRASH_RATE_ALERT_MINIMUM_THRESHOLD is set in the sense that if the minimum threshold is
-        greater than the session count, then the update is dropped. If the minimum threshold is
-        not set then the total sessions count is just ignored
-        """
-        aggregation_value = subscription_update["values"]["data"][0][
-            CRASH_RATE_ALERT_AGGREGATE_ALIAS
-        ]
-        if aggregation_value is None:
-            self.reset_trigger_counts()
-            metrics.incr("incidents.alert_rules.ignore_update_no_session_data")
-            return None
-
-        try:
-            total_count = subscription_update["values"]["data"][0][
-                CRASH_RATE_ALERT_SESSION_COUNT_ALIAS
-            ]
-            if CRASH_RATE_ALERT_MINIMUM_THRESHOLD is not None:
-                min_threshold = int(CRASH_RATE_ALERT_MINIMUM_THRESHOLD)
-                if total_count < min_threshold:
-                    self.reset_trigger_counts()
-                    metrics.incr(
-                        "incidents.alert_rules.ignore_update_count_lower_than_min_threshold"
-                    )
-                    return None
-        except KeyError:
-            # If for whatever reason total session count was not sent in the update,
-            # ignore the minimum threshold comparison and continue along with processing the
-            # update. However, this should not happen.
-            logger.exception(
-                "Received an update for a crash rate alert subscription, but no total "
-                "sessions count was sent"
-            )
-        # The subscription aggregation for crash rate alerts uses the Discover percentage
-        # function, which would technically return a ratio of sessions_crashed/sessions and
-        # so we need to calculate the crash free percentage out of that returned value
-        aggregation_value_result: int = round((1 - aggregation_value) * 100, 3)
-        return aggregation_value_result
 
     def get_crash_rate_alert_metrics_aggregation_value(
         self, subscription_update: QuerySubscriptionUpdate
