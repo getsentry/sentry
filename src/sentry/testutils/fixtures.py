@@ -721,6 +721,8 @@ class Fixtures:
     ) -> ProjectUptimeSubscription:
         if project is None:
             project = self.project
+        if env is None:
+            env = self.environment
 
         if uptime_subscription is None:
             uptime_subscription = self.create_uptime_subscription()
