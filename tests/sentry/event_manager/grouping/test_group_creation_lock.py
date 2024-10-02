@@ -5,11 +5,9 @@ from typing import Any
 from unittest.mock import patch
 
 import pytest
-from django.db import router, transaction
 
 from sentry.event_manager import _save_aggregate_new
 from sentry.eventstore.models import Event
-from sentry.models.grouphash import GroupHash
 from sentry.testutils.pytest.fixtures import django_db_all
 
 
@@ -71,8 +69,6 @@ def test_group_creation_race_new(monkeypatch, default_project, is_race_free):
 
         assert group_info is not None
         return_values.append(group_info)
-
-        transaction.get_connection(router.db_for_write(GroupHash)).close()
 
     with (
         patch(
