@@ -28,7 +28,6 @@ import {
   getReplayConfigureDescription,
   getReplayVerifyStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
-import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import {t, tct} from 'sentry/locale';
 
 export enum VueVersion {

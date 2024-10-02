@@ -242,7 +242,7 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
       ],
     },
   ],
-  nextSteps: params => [
+  nextSteps: () => [
     {
       id: 'capacitor-android-setup',
       name: t('Capacitor 2 Setup'),
