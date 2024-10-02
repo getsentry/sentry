@@ -1,7 +1,6 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
-import scrollToElement from 'scroll-to-element';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import Tag from 'sentry/components/badge/tag';
@@ -30,6 +29,7 @@ import type {PlatformKey} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import withOrganization from 'sentry/utils/withOrganization';
 import withSentryAppComponents from 'sentry/utils/withSentryAppComponents';
+import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 
 import type DebugImage from '../debugMeta/debugImage';
 import {combineStatus} from '../debugMeta/utils';
@@ -204,12 +204,17 @@ export class DeprecatedLine extends Component<Props, State> {
         makeFilter(instructionAddr, addrMode, this.props.image)
       );
     }
-    scrollToElement('#images-loaded');
+
+    document
+      .getElementById(SectionKey.DEBUGMETA)
+      ?.scrollIntoView({block: 'start', behavior: 'smooth'});
   };
 
   scrollToSuspectRootCause = event => {
     event.stopPropagation(); // to prevent collapsing if collapsible
-    scrollToElement('#suspect-root-cause');
+    document
+      .getElementById(SectionKey.SUSPECT_ROOT_CAUSE)
+      ?.scrollIntoView({block: 'start', behavior: 'smooth'});
   };
 
   preventCollapse = evt => {

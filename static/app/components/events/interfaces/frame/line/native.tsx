@@ -1,12 +1,12 @@
 import {useContext} from 'react';
 import styled from '@emotion/styled';
-import scrollToElement from 'scroll-to-element';
 
 import {TraceEventDataSectionContext} from 'sentry/components/events/traceEventDataSection';
 import {t} from 'sentry/locale';
 import DebugMetaStore from 'sentry/stores/debugMetaStore';
 import {space} from 'sentry/styles/space';
 import type {Frame} from 'sentry/types/event';
+import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 
 import type DebugImage from '../../debugMeta/debugImage';
 import {combineStatus} from '../../debugMeta/utils';
@@ -92,7 +92,10 @@ export function Native({
     if (instructionAddr) {
       DebugMetaStore.updateFilter(makeFilter(instructionAddr));
     }
-    scrollToElement('#images-loaded');
+
+    document
+      .getElementById(SectionKey.DEBUGMETA)
+      ?.scrollIntoView({block: 'start', behavior: 'smooth'});
   }
 
   const shouldShowLinkToImage =
