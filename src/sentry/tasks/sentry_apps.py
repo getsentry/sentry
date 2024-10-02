@@ -12,6 +12,7 @@ from requests.exceptions import RequestException
 from sentry import analytics
 from sentry.api.serializers import serialize
 from sentry.constants import SentryAppInstallationStatus
+from sentry.db.models.base import Model
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.hybridcloud.rpc.caching import region_caching_service
 from sentry.models.activity import Activity
@@ -177,7 +178,7 @@ def _process_resource_change(
     **kwargs: Any,
 ) -> None:
     # The class is serialized as a string when enqueueing the class.
-    model: type[Event] | type[Group] | type[Activity] = TYPES[sender]
+    model: type[Event] | type[Model] = TYPES[sender]
     instance: Event | Group | Activity | None = None
     # The Event model has different hooks for the different event types. The sender
     # determines which type eg. Error and therefore the 'name' eg. error
