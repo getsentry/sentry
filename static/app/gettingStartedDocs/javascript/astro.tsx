@@ -234,7 +234,7 @@ const replayOnboarding: OnboardingConfig = {
   ],
   configure: (params: Params) => [
     {
-      type: StepType.CONFIGURE,
+      title: 'Configure Session Replay (Optional)',
       description: tct(
         'There are several privacy and sampling options available. Learn more about configuring Session Replay by reading the [link:configuration docs].',
         {
@@ -313,7 +313,7 @@ import * as Sentry from "@sentry/astro";`,
         },
       ],
       additionalInfo: <TracePropagationMessage />,
-      isOptional: true,
+      collapsible: true,
     },
   ],
   verify: getReplayVerifyStep(),

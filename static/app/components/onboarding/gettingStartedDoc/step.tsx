@@ -126,15 +126,18 @@ interface BaseStepProps {
    * Content that goes directly above the code snippet
    */
   codeHeader?: React.ReactNode;
+  /**
+   * Whether the step instructions are collapsible
+   */
+  collapsible?: boolean;
+  /**
+   * An array of configurations to be displayed
+   */
   configurations?: Configuration[];
   /**
    * A brief description of the step
    */
   description?: React.ReactNode | React.ReactNode[];
-  /**
-   * Whether the step is optional
-   */
-  isOptional?: boolean;
   /**
    * Fired when the optional toggle is clicked.
    * Useful for when we want to fire analytics events.
@@ -205,7 +208,7 @@ export function Step({
   additionalInfo,
   description,
   onOptionalToggleClick,
-  isOptional = false,
+  collapsible = false,
   codeHeader,
 }: StepProps) {
   const [showOptionalConfig, setShowOptionalConfig] = useState(false);
@@ -248,7 +251,7 @@ export function Step({
     </Fragment>
   );
 
-  return isOptional ? (
+  return collapsible ? (
     <div>
       <OptionalConfigWrapper>
         <ToggleButton
@@ -262,10 +265,7 @@ export function Step({
             setShowOptionalConfig(!showOptionalConfig);
           }}
         >
-          <h4 style={{marginBottom: 0}}>
-            {title ?? StepTitle[type]}
-            {t(' (Optional)')}
-          </h4>
+          <h4 style={{marginBottom: 0}}>{title ?? StepTitle[type]}</h4>
         </ToggleButton>
       </OptionalConfigWrapper>
       {showOptionalConfig ? config : null}

@@ -197,11 +197,11 @@ const loaderScriptOnboarding: OnboardingConfig<PlatformOptions> = {
   ],
   configure: params => [
     {
-      type: StepType.CONFIGURE,
+      title: t('Configure SDK (Optional)'),
       description: t(
         "Initialize Sentry as early as possible in your application's lifecycle."
       ),
-      isOptional: true,
+      collapsible: true,
       configurations: [
         {
           language: 'html',
