@@ -65,8 +65,8 @@ from sentry.grouping.ingest.metrics import record_hash_calculation_metrics, reco
 from sentry.grouping.ingest.seer import maybe_check_seer_for_matching_grouphash
 from sentry.grouping.ingest.utils import (
     add_group_id_to_grouphashes,
-    check_for_category_mismatch,
     check_for_group_creation_load_shed,
+    is_non_error_type_group,
 )
 from sentry.ingest.inbound_filters import FilterStatKeys
 from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
@@ -1422,7 +1422,7 @@ def handle_existing_grouphash(
     # well as GH-5085.
     group = Group.objects.get(id=existing_grouphash.group_id)
 
-    if check_for_category_mismatch(group):
+    if is_non_error_type_group(group):
         return None
 
     # There may still be hashes that we did not use to find an existing
