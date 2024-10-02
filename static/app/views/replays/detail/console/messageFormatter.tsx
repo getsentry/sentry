@@ -70,17 +70,13 @@ export default function MessageFormatter({frame, expandPaths, onExpand}: Props) 
       // Some browsers won't allow you to write to error properties
     }
 
+    // An Error object has non enumerable attributes that we want <StructuredEventData> to print
+    const fakeErrorObject = JSON.parse(
+      JSON.stringify(fakeError, Object.getOwnPropertyNames(fakeError))
+    );
+
     return (
-      <Format
-        expandPaths={expandPaths}
-        onExpand={onExpand}
-        args={[
-          fakeError.stack ?? {
-            ...fakeError,
-            message: fakeError.message,
-          },
-        ]}
-      />
+      <Format expandPaths={expandPaths} onExpand={onExpand} args={[fakeErrorObject]} />
     );
   }
 
