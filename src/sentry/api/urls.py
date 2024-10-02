@@ -3317,7 +3317,7 @@ urlpatterns = [
         name="sentry-api-catchall",
     ),
     re_path(
-        r"^api/0/organizations/(?P<org_slug>[^/]+)/repo/(?P<repo_name>[^/]+)/pr/(?P<pull_request_number>\d+)/externalid/(?P<external_id>[^/]+)/generate-unit-tests/$",
+        r"^api/0/organizations/(?P<organization_id_or_slug>[^/]+)/repo/(?P<repo_name>[^/]+)/pr/(?P<pull_request_number>\d+)/externalid/(?P<external_id>[^/]+)/generate-unit-tests/$",
         AIUnitTestGenerationEndpoint.as_view(),
         name="generate_unit_tests",
     ),
