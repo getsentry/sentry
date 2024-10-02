@@ -310,10 +310,10 @@ const GeneralAdditionalInfo = styled(Description)`
 const OptionalConfigWrapper = styled('div')`
   display: flex;
   cursor: pointer;
-  margin-bottom: 0.5em;
 `;
 
 const ToggleButton = styled(Button)`
+  padding: 0;
   &,
   :hover {
     color: ${p => p.theme.gray500};
