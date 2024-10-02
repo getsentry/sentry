@@ -16,6 +16,8 @@ def process_data_sources(
     # Build a lookup dict for query_id to detectors
     query_id_to_detectors = {ds.query_id: ds.detectors for ds in data_sources}
 
+    # TODO @saponifi3d: Add ability to lookup detector subclasses
+
     # Create the result tuples
     result = []
     for packet in data_packets:
