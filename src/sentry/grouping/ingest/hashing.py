@@ -194,6 +194,10 @@ def _calculate_primary_hashes(
 def find_grouphash_with_group(
     grouphashes: Sequence[GroupHash],
 ) -> GroupHash | None:
+    """
+    Search in the list of given `GroupHash` records for one which has a group assigned to it, and
+    return the first one found. (Assumes grouphashes have already been sorted in priority order.)
+    """
     for group_hash in grouphashes:
         if group_hash.group_id is not None:
             return group_hash
