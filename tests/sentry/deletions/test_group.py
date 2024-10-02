@@ -1,8 +1,6 @@
-from collections.abc import Callable, Sequence
+import random
 from datetime import datetime, timedelta
-from functools import partial
-from time import sleep, time
-from typing import Any
+from time import time
 from unittest import mock
 from uuid import uuid4
 
@@ -205,16 +203,22 @@ class DeleteIssuePlatformTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         )
         return occurrence, issue_platform_group
 
-    def select_issue_platform_events(self, columns: list[str], project_id: int) -> object:
+    def select_issue_platform_events(self, project_id: int) -> object:
+        columns = ["event_id", "group_id", "occurrence_id"]
         return self.select_rows(Entity(EntityKey.IssuePlatform.value), columns, project_id)
 
     def select_rows(self, entity: Entity, columns: list[str], project_id: int) -> object:
+        # Unfortunatelly, the cache is always used when we call bulk_snuba_queries even if we pass use_cache=False
+        # So we need to make sure that the query is not cached by adding a random time range
         now = datetime.now()
+        self.start_time = now - timedelta(days=1, microseconds=random.randint(0, 100000000))
+        self.end_time = now + timedelta(days=1, microseconds=random.randint(0, 100000000))
+
         select = [Column(column) for column in columns]
         where = [
             Condition(Column("project_id"), Op.IN, Function("tuple", [project_id])),
-            Condition(Column("timestamp"), Op.GTE, now - timedelta(days=1)),
-            Condition(Column("timestamp"), Op.LT, now + timedelta(days=1)),
+            Condition(Column("timestamp"), Op.GTE, self.start_time),
+            Condition(Column("timestamp"), Op.LT, self.end_time),
         ]
         query = Query(match=entity, select=select, where=where)
         request = Request(
@@ -226,32 +230,13 @@ class DeleteIssuePlatformTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         results = bulk_snuba_queries([request])[0]["data"]
         return results
 
-    def assert_query_n_times(
-        self, query_func: Callable[[], Any], expected_response: Sequence[object]
-    ) -> None:
-        """Query Snuba N times and assert that the response is equal to expected_response."""
-        max_retries = 10
-        retry_delay = 0.3  # seconds
-
-        for attempt in range(max_retries):
-            rows = query_func()
-            if rows == expected_response:
-                break
-            if attempt < max_retries - 1:
-                sleep(retry_delay)
-        else:
-            self.fail(
-                f"Expected rows not found in Snuba after {max_retries} attempts. Last result: {rows}"
-            )
-
     @property
     def tenant_ids(self) -> dict[str, str]:
         return {"referrer": self.referrer, "organization_id": self.organization.id}
 
     def test_issue_platform(self) -> None:
-        columns = ["event_id", "group_id", "occurrence_id"]
-        issue_platform_query = partial(self.select_issue_platform_events, columns, self.project.id)
-
+        # Adding this query here to make sure that the cache is not being used
+        assert self.select_issue_platform_events(self.project.id) == []
         # Create initial error event and occurrence related to it; two different groups will exist
         event = self.store_event(data={}, project_id=self.project.id)
         occurrence, group_info = self.create_occurrence(event, type_id=FeedbackGroup.type_id)
@@ -271,7 +256,7 @@ class DeleteIssuePlatformTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
                 "occurrence_id": occurrence.id,
             }
         ]
-        self.assert_query_n_times(issue_platform_query, expected)
+        assert self.select_issue_platform_events(self.project.id) == expected
 
         # This will delete the group and the events from the node store
         with self.tasks():
@@ -288,4 +273,4 @@ class DeleteIssuePlatformTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         occurrence_node_id = Event.generate_node_id(occurrence.project_id, occurrence.id)
         assert not nodestore.backend.get(occurrence_node_id)
         # We don't yet delete the occurrence from Snuba but it will expire with the TTL
-        self.assert_query_n_times(issue_platform_query, expected)
+        assert self.select_issue_platform_events(self.project.id) == expected
