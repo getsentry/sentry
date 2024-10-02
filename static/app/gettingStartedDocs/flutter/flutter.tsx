@@ -68,17 +68,18 @@ child: ElevatedButton(
 
 const getPerformanceSnippet = () => `
 import 'package:sentry/sentry.dart';
-import { getPackageVersion } from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 
-final transaction = Sentry.startTransaction('processOrderBatch()', 'task');
+void execute() async {
+  final transaction = Sentry.startTransaction('processOrderBatch()', 'task');
 
-try {
-  await processOrderBatch(transaction);
-} catch (exception) {
-  transaction.throwable = exception;
-  transaction.status = SpanStatus.internalError();
-} finally {
-  await transaction.finish();
+  try {
+    await processOrderBatch(transaction);
+  } catch (exception) {
+    transaction.throwable = exception;
+    transaction.status = const SpanStatus.internalError();
+  } finally {
+    await transaction.finish();
+  }
 }
 
 Future<void> processOrderBatch(ISentrySpan span) async {
@@ -89,7 +90,7 @@ Future<void> processOrderBatch(ISentrySpan span) async {
     // omitted code
   } catch (exception) {
     innerSpan.throwable = exception;
-    innerSpan.status = SpanStatus.notFound();
+    innerSpan.status = const SpanStatus.notFound();
   } finally {
     await innerSpan.finish();
   }
