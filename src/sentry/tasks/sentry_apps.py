@@ -473,11 +473,10 @@ def send_webhooks(installation: RpcSentryAppInstallation, event: str, **kwargs: 
         kwargs["install"] = installation
 
         request_data = AppPlatformEvent(**kwargs)
-        assert servicehook.sentry_app, "sentry app must exist to get webhook url"
         send_and_save_webhook_request(
             installation.sentry_app,
             request_data,
-            servicehook.sentry_app.webhook_url,
+            installation.sentry_app.webhook_url,
         )
 
 
