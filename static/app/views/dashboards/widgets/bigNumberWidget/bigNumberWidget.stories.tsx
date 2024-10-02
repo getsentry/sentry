@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import JSXNode from 'sentry/components/stories/jsxNode';
+import JSXProperty from 'sentry/components/stories/jsxProperty';
 import SideBySide from 'sentry/components/stories/sideBySide';
 import SizingWindow from 'sentry/components/stories/sizingWindow';
 import storyBook from 'sentry/stories/storyBook';
@@ -36,11 +37,6 @@ export default storyBook(BigNumberWidget, story => {
               title="EPS"
               description="Number of events per second"
               data={[
-                {
-                  'eps()': 0.01087819860850493,
-                },
-              ]}
-              previousPeriodData={[
                 {
                   'eps()': 0.01087819860850493,
                 },
@@ -93,6 +89,32 @@ export default storyBook(BigNumberWidget, story => {
             />
           </SmallSizingWindow>
         </SideBySide>
+        <p>
+          The <code>maximumValue</code> prop allows setting the maximum displayable value.
+          e.g., imagine a widget that displays a count. A count of more than a million is
+          too expensive for the API to compute, so the API returns a maximum of 1,000,000.
+          If the API returns exactly 1,000,000, that means the actual number is unknown,
+          something higher than the max. Setting{' '}
+          <JSXProperty name="maximumValue" value={1000000} /> will show &gt;1m.
+        </p>
+        <SideBySide>
+          <NormalWidget>
+            <BigNumberWidget
+              title="Count"
+              data={[
+                {
+                  'count()': 1000000,
+                },
+              ]}
+              maximumValue={1000000}
+              meta={{
+                fields: {
+                  'count()': 'integer',
+                },
+              }}
+            />
+          </NormalWidget>
+        </SideBySide>
       </Fragment>
     );
   });
@@ -106,15 +128,24 @@ export default storyBook(BigNumberWidget, story => {
         </p>
 
         <SideBySide>
-          <SmallSizingWindow>
-            <BigNumberWidget title="Count" isLoading />
-          </SmallSizingWindow>
-          <SmallSizingWindow>
+          <NormalWidget>
+            <BigNumberWidget title="Loading Count" isLoading />
+          </NormalWidget>
+          <NormalWidget>
             <BigNumberWidget
-              title="Bad Count"
+              title="Text"
+              data={[{'max(user.email)': 'bufo@example.com'}]}
+            />
+          </NormalWidget>
+          <NormalWidget>
+            <BigNumberWidget title="Missing Count" data={[{}]} />
+          </NormalWidget>
+          <NormalWidget>
+            <BigNumberWidget
+              title="Count Error"
               error={new Error('Something went wrong!')}
             />
-          </SmallSizingWindow>
+          </NormalWidget>
         </SideBySide>
       </Fragment>
     );
@@ -127,6 +158,14 @@ export default storyBook(BigNumberWidget, story => {
           <JSXNode name="BigNumberWidget" /> shows the difference of the current data and
           the previous period data as the difference between the two values, in small text
           next to the main value.
+        </p>
+
+        <p>
+          The <code>preferredPolarity</code> prop controls the color of the comparison
+          string. Setting <JSXProperty name="preferredPolarity" value={'+'} /> mean that a
+          higher number is <i>better</i> and will paint increases in the value green. Vice
+          versa with negative polarity. Omitting a preferred polarity will prevent
+          colorization.
         </p>
 
         <SideBySide>

@@ -11,7 +11,7 @@ import {IconArrow} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import {
   DEEMPHASIS_COLOR_NAME,
-  NO_DATA_PLACEHOLDER,
+  LOADING_PLACEHOLDER,
 } from 'sentry/views/dashboards/widgets/bigNumberWidget/settings';
 import type {TableData} from 'sentry/views/dashboards/widgets/common/types';
 
@@ -34,7 +34,7 @@ export function DifferenceToPreviousPeriodData({
   const previousValue = previousPeriodData[0][field];
 
   if (!isNumber(currentValue) || !isNumber(previousValue)) {
-    return <Deemphasize>{NO_DATA_PLACEHOLDER}</Deemphasize>;
+    return <Deemphasize>{LOADING_PLACEHOLDER}</Deemphasize>;
   }
 
   const difference = currentValue - previousValue;
