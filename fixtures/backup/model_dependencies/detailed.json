@@ -6404,6 +6404,24 @@
       ]
     ]
   },
+  "workflow_engine.detectorstate": {
+    "dangling": false,
+    "foreign_keys": {
+      "detector": {
+        "kind": "FlexibleForeignKey",
+        "model": "workflow_engine.detector",
+        "nullable": false
+      }
+    },
+    "model": "workflow_engine.detectorstate",
+    "relocation_dependencies": [],
+    "relocation_scope": "Organization",
+    "silos": [
+      "Region"
+    ],
+    "table_name": "workflow_engine_detectorstate",
+    "uniques": []
+  },
   "workflow_engine.detectorworkflow": {
     "dangling": false,
     "foreign_keys": {
