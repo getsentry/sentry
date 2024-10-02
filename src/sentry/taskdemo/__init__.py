@@ -21,6 +21,12 @@ def say_hello(name):
     print(f"hello {name}")  # noqa
 
 
+@demotasks.register(name="demos.say_hello_with_retries", retry=Retry(times=3))
+def say_hello_with_retries(name):
+    # logger.info("hello %s", name) need to fix logging now that we are running this in another process
+    print(f"hello {name}")  # noqa
+
+
 @demotasks.register(name="demos.broken", retry=Retry(times=5, on=(KeyError,)))
 def broken(runtime: str):
     """Do something or raise an error"""
