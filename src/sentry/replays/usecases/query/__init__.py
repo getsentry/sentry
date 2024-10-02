@@ -209,9 +209,8 @@ def query_using_optimized_search(
     request_user_id: int | None = None,
     preferred_source: PREFERRED_SOURCE = "scalar",
 ):
-    referrer: str | None = (
-        None  # snuba query referrer, ex "replays.query.browse_scalar_conditions_subquery"
-    )
+    # snuba query referrer, ex "replays.query.browse_scalar_conditions_subquery"
+    referrer: str | None = None
     try:
         tenant_id = _make_tenant_id(organization)
 
@@ -296,7 +295,7 @@ def query_using_optimized_search(
         )
     except (ParseError, ValueError) as exc:
         sentry_sdk.set_tag("org_id", organization.id)
-        sentry_sdk.set_extra("referrer", referrer or "")
+        sentry_sdk.set_extra("referrer", referrer)
         sentry_sdk.capture_exception(exc)
         raise
 
