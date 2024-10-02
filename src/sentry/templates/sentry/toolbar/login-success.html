@@ -15,28 +15,21 @@
 
     {% script %}
     <script>
-      (function() {
-        function notifyOpener() {
-          if (!window.opener) {
-            return;
-          }
+      // If the popup doesn't close, we can let people try to close it manually.
+      document.getElementById('close-popup').addEventListener('click', () => {
+        window.close();
+      });
 
-          window.opener.postMessage({
-            source: 'sentry-toolbar',
-            message: 'did-login',
-          }, '*');
-        }
+      if (window.opener) {
+        window.opener.postMessage({
+          source: 'sentry-toolbar',
+          message: 'did-login',
+        }, '*');
 
-        notifyOpener();
         setTimeout(() => {
           window.close();
         }, 3_000);
-
-        // If the popup doesn't close, we can let people try to close it manually.
-        document.getElementById('close-popup').addEventListener('click', () => {
-          window.close();
-        });
-      })();
+      }
     </script>
     {% endscript %}
   </body>
