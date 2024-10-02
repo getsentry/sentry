@@ -45,7 +45,7 @@ export default function Format({onExpand, expandPaths, args}: FormatProps) {
     const objects: any[] = [];
     for (let i = 0; i < args.length; i++) {
       objects.push(
-        <Wrapper>
+        <Wrapper key={i}>
           <StructuredEventData
             key={i}
             data={args[i]}
@@ -139,7 +139,7 @@ export default function Format({onExpand, expandPaths, args}: FormatProps) {
     } else {
       pieces.push(' ');
       pieces.push(
-        <Wrapper>
+        <Wrapper key={i}>
           <StructuredEventData
             key={i}
             data={x}
