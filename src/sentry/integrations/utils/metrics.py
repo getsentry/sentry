@@ -74,6 +74,10 @@ class EventLifecycle:
         sample_rate = (
             1.0 if outcome == EventLifecycleOutcome.FAILURE else settings.SENTRY_METRICS_SAMPLE_RATE
         )
+
+        # For now, assume that all cases want to increment metrics. Future cases may
+        # also want to write to a logger, which we may want to control from the
+        # EventLifecycleMetric object.
         metrics.incr(key, sample_rate=sample_rate)
 
     def _terminate(self, new_state: EventLifecycleOutcome) -> None:

@@ -50,7 +50,11 @@ class MessagingInteractionEvent(EventLifecycleMetric):
     organization: Organization | RpcOrganization | None = None
 
     def get_key(self, outcome: EventLifecycleOutcome) -> str:
-        tag_tokens = ["sentry", "integrations", "messaging", "slo"]
+        # For now, creating a new namespace (with an "slo" token) to avoid clashing
+        # with existing keys. When we settle on an approach we like, this could
+        # replace or combine with existing metrics keys.
+        tag_tokens = ["sentry", "integrations", "messaging", "slo"]  # TODO: Change these?
+
         tag_tokens += [self.spec.provider_slug, self.interaction_type, outcome]
         return ".".join(str(token) for token in tag_tokens)
 
