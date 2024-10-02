@@ -1297,6 +1297,9 @@ def assign_event_to_group(event: Event, job: Job, metric_tags: MutableTags) -> G
         metric_tags=metric_tags,
     )
 
+    # The only way there won't be group info is we matched to a performance, cron, replay, or
+    # other-non-error-type group because of a hash collision - exceedingly unlikely, and not
+    # something we've ever observed, but theoretically possible.
     if group_info:
         event.group = group_info.group
     job["groups"] = [group_info]
@@ -1422,6 +1425,10 @@ def handle_existing_grouphash(
     # well as GH-5085.
     group = Group.objects.get(id=existing_grouphash.group_id)
 
+    # As far as we know this has never happened, but in theory at least, the error event hashing
+    # algorithm and other event hashing algorithms could come up with the same hash value in the
+    # same project and our hash could have matched to a non-error group. Just to be safe, we make
+    # sure that's not the case before proceeding.
     if is_non_error_type_group(group):
         return None
 
