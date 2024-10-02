@@ -140,7 +140,9 @@ def print_results(log_file: str, worker_count: int) -> None:
     bars = []
     for key, count in buckets.items():
         bucket_upper = key * 0.05
-        bar = "█" * count
+        # Limit to 50 to prevent wrapping in output
+        bar = "█" * min(count, 50)
+        bar += f" {count} "
         bars.append((bucket_upper, bar))
 
     for (bucket_upper, bar) in sorted(bars, key=lambda x: x[0]):
