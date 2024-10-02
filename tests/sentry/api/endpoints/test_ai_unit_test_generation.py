@@ -4,7 +4,7 @@ from django.urls import reverse
 from rest_framework.test import APIClient
 
 from sentry.api.endpoints.ai_unit_test_generation import AIUnitTestGenerationEndpoint
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import no_silo_test
 
 
