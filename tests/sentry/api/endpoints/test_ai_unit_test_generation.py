@@ -46,7 +46,7 @@ class AIUnitTestGenerationEndpointTest(APITestCase):
                 owner=self.org.slug,
                 name=self.repo_name,
                 external_id=self.external_id,
-                pr_id=self.pull_request_number,
+                pr_id=int(self.pull_request_number),
             )
 
     def test_post_failure(self):
@@ -64,34 +64,26 @@ class AIUnitTestGenerationEndpointTest(APITestCase):
                 owner=self.org.slug,
                 name=self.repo_name,
                 external_id=self.external_id,
-                pr_id=self.pull_request_number,
+                pr_id=int(self.pull_request_number),
             )
 
-    def test_post_missing_parameters(self):
-        # Construct a URL missing the 'external_id' parameter
-        url = reverse(
+    def test_post_invalid_pull_request_number(self):
+        # Test with an invalid pull request number
+        invalid_url = reverse(
             "generate_unit_tests",
             kwargs={
                 "org_slug": self.org.slug,
                 "repo_name": self.repo_name,
-                "pull_request_number": self.pull_request_number,
-                # 'external_id' is omitted
+                "pull_request_number": "invalid-pr-number",  # invalid string
+                "external_id": self.external_id,
             },
         )
 
         with patch.object(
             AIUnitTestGenerationEndpoint, "_call_unit_test_generation"
         ) as mock_call_unit_test_generation:
-            response = self.client.post(url)
+            response = self.client.post(invalid_url)
 
-            response = self.client.post(self.url.replace(f"/{self.external_id}/", "//"))
-
-            assert response.status_code == 500
-            assert response.data == {"detail": "Test generation failed to start."}
-            mock_call_unit_test_generation.assert_called_once_with(
-                self.owner,
-                owner=self.org.slug,
-                name=self.repo_name,
-                external_id=None,
-                pr_id=self.pull_request_number,
-            )
+            assert response.status_code == 400
+            assert response.data == {"detail": "Invalid pull request number."}
+            mock_call_unit_test_generation.assert_not_called()

@@ -30,7 +30,6 @@ class AIUnitTestGenerationEndpoint(GroupEndpoint):
         "POST": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.ML_AI
-    # go away
     private = True
     enforce_rate_limit = True
     rate_limits = {
@@ -52,9 +51,9 @@ class AIUnitTestGenerationEndpoint(GroupEndpoint):
     def _call_unit_test_generation(
         self,
         user: User | AnonymousUser,
-        owner: str,
-        name: str,
-        external_id: str,
+        owner: str | None,
+        name: str | None,
+        external_id: str | None,
         pr_id: int,
     ):
         path = "/v1/automation/codegen/unit-tests"
@@ -79,7 +78,6 @@ class AIUnitTestGenerationEndpoint(GroupEndpoint):
             option=orjson.OPT_NON_STR_KEYS,
         )
 
-        # not sure if proper URL
         url, salt = get_seer_salted_url(f"{settings.SEER_AUTOFIX_URL}{path}")
         response = requests.post(
             url,
@@ -105,13 +103,21 @@ class AIUnitTestGenerationEndpoint(GroupEndpoint):
 
         created_at = datetime.now().isoformat()
 
+        if pull_request_number is None:
+            return self._respond_with_error("Missing pull request number.", 400)
+
+        try:
+            pr_id = int(pull_request_number)
+        except ValueError:
+            return self._respond_with_error("Invalid pull request number.", 400)
+
         try:
             self._call_unit_test_generation(
                 request.user,
                 owner=owner,
                 name=repo_name,
                 external_id=external_id,
-                pr_id=pull_request_number,
+                pr_id=pr_id,
             )
         except Exception as e:
             logger.exception(
