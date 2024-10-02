@@ -67,13 +67,12 @@ def test_group_creation_race_new(monkeypatch, default_project, is_race_free):
     }
 
     def save_event():
-        try:
-            group_info = _save_aggregate_new(**save_aggregate_kwargs)
+        group_info = _save_aggregate_new(**save_aggregate_kwargs)
 
-            assert group_info is not None
-            return_values.append(group_info)
-        finally:
-            transaction.get_connection(router.db_for_write(GroupHash)).close()
+        assert group_info is not None
+        return_values.append(group_info)
+
+        transaction.get_connection(router.db_for_write(GroupHash)).close()
 
     with (
         patch(
