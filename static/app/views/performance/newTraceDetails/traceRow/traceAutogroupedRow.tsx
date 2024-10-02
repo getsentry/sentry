@@ -3,7 +3,7 @@ import {t} from 'sentry/locale';
 import {TraceIcons} from '../traceIcons';
 import type {ParentAutogroupNode} from '../traceModels/parentAutogroupNode';
 import type {SiblingAutogroupNode} from '../traceModels/siblingAutogroupNode';
-import {makeTraceNodeBarColor} from '../traceModels/traceTree';
+import {makeTraceNodeBarColor} from '../traceModels/traceTreeNodeUtils';
 import {AutogroupedTraceBar} from '../traceRow/traceBar';
 import {
   maybeFocusTraceRow,
@@ -25,7 +25,7 @@ export function TraceAutogroupedRow(
           : null
       }
       tabIndex={props.tabIndex}
-      className={`Autogrouped TraceRow ${props.rowSearchClassName} ${props.node.has_errors ? props.node.max_severity : ''}`}
+      className={`Autogrouped TraceRow ${props.rowSearchClassName} ${props.node.hasErrors ? props.node.maxIssueSeverity : ''}`}
       onClick={props.onRowClick}
       onKeyDown={props.onRowKeyDown}
       style={props.style}

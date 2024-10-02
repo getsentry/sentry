@@ -21,33 +21,44 @@ export class MissingInstrumentationNode extends TraceTreeNode<TraceTree.MissingI
   }
 }
 
-export function maybeInsertMissingInstrumentationSpan(
-  parent: TraceTreeNode<TraceTree.NodeValue>,
-  node: TraceTreeNode<TraceTree.Span>
+const MISSING_INSTRUMENTATION_SPAN_THRESHOLD_SECONDS = 0.1;
+export function shouldInsertMissingInstrumentationSpan(
+  previous: TraceTreeNode<TraceTree.NodeValue>,
+  current: TraceTreeNode<TraceTree.NodeValue>
 ) {
-  const previousSpan = parent.spanChildren[parent.spanChildren.length - 1];
-  if (!previousSpan || !isSpanNode(previousSpan)) {
-    return;
+  if (!isSpanNode(previous) || !isSpanNode(current)) {
+    return false;
   }
 
-  if (node.value.start_timestamp - previousSpan.value.timestamp < 0.1) {
-    return;
+  return (
+    current.value.start_timestamp - previous.value.timestamp >
+    MISSING_INSTRUMENTATION_SPAN_THRESHOLD_SECONDS
+  );
+}
+
+export function insertMissingInstrumentationSpan(
+  parent: TraceTreeNode<TraceTree.NodeValue>,
+  previous: TraceTreeNode<TraceTree.NodeValue>,
+  current: TraceTreeNode<TraceTree.NodeValue>
+) {
+  if (!isSpanNode(previous) || !isSpanNode(current)) {
+    throw new Error('Cannot insert missing instrumentation between non-span nodes');
   }
 
-  const missingInstrumentationSpan = new MissingInstrumentationNode(
+  const node = new MissingInstrumentationNode(
     parent,
     {
       type: 'missing_instrumentation',
-      start_timestamp: previousSpan.value.timestamp,
-      timestamp: node.value.start_timestamp,
+      start_timestamp: previous.value.timestamp,
+      timestamp: current.value.start_timestamp,
     },
     {
       event_id: undefined,
       project_slug: undefined,
     },
-    previousSpan,
-    node
+    previous,
+    current
   );
 
-  parent.spanChildren.push(missingInstrumentationSpan);
+  parent.spanChildren.push(node);
 }

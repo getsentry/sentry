@@ -1,8 +1,9 @@
 import {PlatformIcon} from 'platformicons';
 
 import {TraceIcons} from '../traceIcons';
-import {makeTraceNodeBarColor, type TraceTree} from '../traceModels/traceTree';
+import type {TraceTree} from '../traceModels/traceTree';
 import type {TraceTreeNode} from '../traceModels/traceTreeNode';
+import {makeTraceNodeBarColor} from '../traceModels/traceTreeNodeUtils';
 import {TraceBar} from '../traceRow/traceBar';
 import {
   maybeFocusTraceRow,
@@ -24,7 +25,7 @@ export function TraceTransactionRow(
           : null
       }
       tabIndex={props.tabIndex}
-      className={`TraceRow ${props.rowSearchClassName} ${props.node.has_errors ? props.node.max_severity : ''}`}
+      className={`TraceRow ${props.rowSearchClassName} ${props.node.hasErrors ? props.node.maxIssueSeverity : ''}`}
       onKeyDown={props.onRowKeyDown}
       onClick={props.onRowClick}
       style={props.style}

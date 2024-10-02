@@ -11,7 +11,8 @@ import {ProfileContext, ProfilesProvider} from 'sentry/views/profiling/profilesP
 import {ProfilePreview} from '../../traceDrawer/details/profiling/profilePreview';
 import type {TraceTreeNodeDetailsProps} from '../../traceDrawer/tabs/traceTreeNodeDetails';
 import type {MissingInstrumentationNode} from '../../traceModels/missingInstrumentationNode';
-import {makeTraceNodeBarColor, TraceTree} from '../../traceModels/traceTree';
+import {TraceTree} from '../../traceModels/traceTree';
+import {makeTraceNodeBarColor} from '../../traceModels/traceTreeNodeUtils';
 import {getTraceTabTitle} from '../../traceState/traceTabs';
 
 import {type SectionCardKeyValueList, TraceDrawerComponents} from './styles';

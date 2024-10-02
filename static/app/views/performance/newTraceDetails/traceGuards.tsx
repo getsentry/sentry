@@ -120,3 +120,18 @@ export function isBrowserRequestSpan(value: TraceTree.Span): boolean {
     (value.op === 'browser' && value.description === 'request')
   );
 }
+
+export function getPageloadTransactionChildCount(
+  node: TraceTreeNode<TraceTree.NodeValue>
+): number {
+  if (!isTransactionNode(node)) {
+    return 0;
+  }
+  let count = 0;
+  for (const txn of node.value.children) {
+    if (txn && txn['transaction.op'] === 'pageload') {
+      count++;
+    }
+  }
+  return count;
+}
