@@ -40,17 +40,17 @@ def save_event(project_id: int, return_values: list[GroupInfo]) -> None:
 @pytest.mark.parametrize(
     "lock_disabled",
     [
-        # group creation code with removed transaction isolation, which is then
-        # supposed to create multiple groups. This variant exists such that we can
-        # ensure the test would find race conditions in principle, and does not
-        # just always pass because of low parallelism. In a sense this variant
-        # tests the efficacy of this test, not actual business logic.
+        # Group creation with transaction isolation (which is what powers the lock) disabled, to
+        # show that without it, multiple groups are created when there's a race condition while
+        # ingesting events with the same data. This variant exists so that we can ensure the test
+        # would detect a malfunctioning lock in principle, and does not just always pass because of
+        # low parallelism. In a sense this variant tests the efficacy of this test, not actual
+        # business logic.
         #
-        # If this variant fails, CONCURRENCY needs to be increased or e.g. thread
-        # barriers need to be used to ensure data races. This does not seem to be
-        # necessary so far.
+        # If this variant fails, CONCURRENCY needs to be increased or e.g. thread barriers need to
+        # be used to ensure data races. This does not seem to be necessary so far.
         True,
-        # regular group creation code, which is supposed to not have races
+        # Regular group creation, in which the lock should be working
         False,
     ],
     ids=(" lock_disabled: True ", " lock_disabled: False "),
@@ -61,7 +61,7 @@ def test_group_creation_race(monkeypatch, default_project, lock_disabled):
         # GroupHash.objects.create_or_update
         monkeypatch.setattr("sentry.event_manager.transaction", FakeTransactionModule)
 
-        # select_for_update cannot be used outside of transactions
+        # `select_for_update` cannot be used outside of transactions
         monkeypatch.setattr("django.db.models.QuerySet.select_for_update", lambda self: self)
 
     with (
@@ -78,6 +78,8 @@ def test_group_creation_race(monkeypatch, default_project, lock_disabled):
         return_values: list[GroupInfo] = []
         threads = []
 
+        # Save the same event data in multiple threads. If the lock is working, only one new group
+        # should be created
         for _ in range(CONCURRENCY):
             thread = Thread(target=save_event, args=[default_project.id, return_values])
             thread.start()
