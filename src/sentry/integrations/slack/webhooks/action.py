@@ -696,19 +696,27 @@ class SlackActionEndpoint(Endpoint):
         for action in action_list:
             try:
                 if action.name in ("status", "unresolved:ongoing"):
-                    with record_event(MessagingInteractionType.STATUS).capture():
+                    with record_event(MessagingInteractionType.STATUS).capture(
+                        assume_success=False
+                    ):
                         self.on_status(request, identity_user, group, action)
                 elif (
                     action.name == "assign"
                 ):  # TODO: remove this as it is replaced by the options-load endpoint
-                    with record_event(MessagingInteractionType.ASSIGN).capture():
+                    with record_event(MessagingInteractionType.ASSIGN).capture(
+                        assume_success=False
+                    ):
                         self.on_assign(request, identity_user, group, action)
                 elif action.name == "resolve_dialog":
-                    with record_event(MessagingInteractionType.RESOLVE_DIALOG).capture():
+                    with record_event(MessagingInteractionType.RESOLVE_DIALOG).capture(
+                        assume_success=False
+                    ):
                         self.open_resolve_dialog(slack_request, group)
                     defer_attachment_update = True
                 elif action.name == "archive_dialog":
-                    with record_event(MessagingInteractionType.ARCHIVE_DIALOG).capture():
+                    with record_event(MessagingInteractionType.ARCHIVE_DIALOG).capture(
+                        assume_success=False
+                    ):
                         self.open_archive_dialog(slack_request, group)
                     defer_attachment_update = True
             except client.ApiError as error:

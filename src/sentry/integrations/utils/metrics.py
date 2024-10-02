@@ -27,8 +27,8 @@ class EventLifecycleMetric(ABC):
     def get_extras(self) -> Mapping[str, Any]:
         return {}
 
-    def capture(self) -> "EventLifecycle":
-        return EventLifecycle(self)
+    def capture(self, assume_success: bool = True) -> "EventLifecycle":
+        return EventLifecycle(self, assume_success)
 
 
 class EventLifecycleStateError(Exception):
@@ -36,43 +36,37 @@ class EventLifecycleStateError(Exception):
 
 
 class EventLifecycle:
-    def __init__(self, payload: EventLifecycleMetric) -> None:
+    def __init__(self, payload: EventLifecycleMetric, assume_success: bool = True) -> None:
         self.payload = payload
-        self._has_started = False
-        self._has_halted = False
+        self.assume_success = assume_success
+        self._state: EventLifecycleOutcome | None = None
 
-    def record_event(
-        self,
-        outcome: EventLifecycleOutcome,
-        sample_rate: float = settings.SENTRY_METRICS_SAMPLE_RATE,
-    ) -> None:
+    def record_event(self, outcome: EventLifecycleOutcome) -> None:
         key = self.payload.get_key(outcome)
+        sample_rate = (
+            1.0 if outcome == EventLifecycleOutcome.FAILURE else settings.SENTRY_METRICS_SAMPLE_RATE
+        )
         metrics.incr(key, sample_rate=sample_rate)
 
     def record_start(self) -> None:
-        if self._has_started:
+        if self._state is not None:
             raise EventLifecycleStateError("The lifecycle has already been entered")
-        self._has_started = True
-
+        self._state = EventLifecycleOutcome.STARTED
         self.record_event(EventLifecycleOutcome.STARTED)
 
-    def record_success(self) -> None:
-        if not self._has_started:
+    def _terminate(self, new_state: EventLifecycleOutcome) -> None:
+        if self._state is None:
             raise EventLifecycleStateError("The lifecycle has not yet been entered")
-        if self._has_halted:
+        if self._state != EventLifecycleOutcome.STARTED:
             raise EventLifecycleStateError("The lifecycle has already been exited")
-        self._has_halted = True
+        self._state = new_state
+        self.record_event(new_state)
 
-        self.record_event(EventLifecycleOutcome.SUCCESS)
+    def record_success(self) -> None:
+        self._terminate(EventLifecycleOutcome.SUCCESS)
 
     def record_failure(self, exc: BaseException | None = None) -> None:
-        if not self._has_started:
-            raise EventLifecycleStateError("The lifecycle has not yet been entered")
-        if self._has_halted:
-            raise EventLifecycleStateError("The lifecycle has already been exited")
-        self._has_halted = True
-
-        self.record_event(EventLifecycleOutcome.FAILURE, sample_rate=1.0)
+        self._terminate(EventLifecycleOutcome.FAILURE)
 
     def __enter__(self) -> None:
         self.record_start()
@@ -84,6 +78,18 @@ class EventLifecycle:
         traceback: TracebackType,
     ) -> None:
         if exc_value is not None:
+            # We were forced to exit the context by a raised exception.
             self.record_failure(exc_value)
-        elif not self._has_halted:
-            self.record_success()
+        elif self._state == EventLifecycleOutcome.STARTED:
+            # We exited the context without record_success or record_failure being
+            # called. Assume success if we were told to do so. Else, log a halt
+            # indicating that there is no clear success or failure signal.
+            self._terminate(
+                EventLifecycleOutcome.SUCCESS
+                if self.assume_success
+                else EventLifecycleOutcome.HALTED
+            )
+        else:
+            # The context called record_success or record_failure being closing,
+            # so we can just exit quietly.
+            pass
