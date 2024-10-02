@@ -368,24 +368,18 @@ def test_existing_group_new_hash_exists(
         existing_event = save_event_with_grouping_config(
             event_data, project, DEFAULT_GROUPING_CONFIG, LEGACY_GROUPING_CONFIG, True
         )
-        assert existing_event.group_id is not None
-        assert (
-            GroupHash.objects.filter(
-                project_id=project.id, group_id=existing_event.group_id
-            ).count()
-            == 2
-        )
+        group_id = existing_event.group_id
+
+        assert group_id is not None
+        assert GroupHash.objects.filter(project_id=project.id, group_id=group_id).count() == 2
     else:
         existing_event = save_event_with_grouping_config(
             event_data, project, DEFAULT_GROUPING_CONFIG
         )
-        assert existing_event.group_id is not None
-        assert (
-            GroupHash.objects.filter(
-                project_id=project.id, group_id=existing_event.group_id
-            ).count()
-            == 1
-        )
+        group_id = existing_event.group_id
+
+        assert group_id is not None
+        assert GroupHash.objects.filter(project_id=project.id, group_id=group_id).count() == 1
 
     # Now save a new, identical, event
     results = get_results_from_saving_event(
@@ -394,7 +388,7 @@ def test_existing_group_new_hash_exists(
         primary_config=DEFAULT_GROUPING_CONFIG,
         secondary_config=LEGACY_GROUPING_CONFIG,
         in_transition=in_transition,
-        existing_group_id=existing_event.group_id,
+        existing_group_id=group_id,
     )
 
     assert results == {
