@@ -40,6 +40,11 @@ export default storyBook(BigNumberWidget, story => {
                   'eps()': 0.01087819860850493,
                 },
               ]}
+              previousPeriodData={[
+                {
+                  'eps()': 0.01087819860850493,
+                },
+              ]}
               meta={{
                 fields: {
                   'eps()': 'rate',
@@ -167,9 +172,6 @@ export default storyBook(BigNumberWidget, story => {
                 fields: {
                   'http_rate(500)': 'percentage',
                 },
-                units: {
-                  'http_rate(500)': null,
-                },
               }}
             />
           </NormalWidget>
@@ -191,9 +193,6 @@ export default storyBook(BigNumberWidget, story => {
                 fields: {
                   'http_rate(200)': 'percentage',
                 },
-                units: {
-                  'http_rate(200)': null,
-                },
               }}
             />
           </NormalWidget>
@@ -210,5 +209,4 @@ const SmallSizingWindow = styled(SizingWindow)`
 
 const NormalWidget = styled('div')`
   width: 250px;
-  height: 100px;
 `;

@@ -15,9 +15,8 @@ import ParticipantList from 'sentry/components/group/streamlinedParticipantList'
 import Link from 'sentry/components/links/link';
 import Version from 'sentry/components/version';
 import VersionHoverCard from 'sentry/components/versionHoverCard';
-import {IconDashboard} from 'sentry/icons';
+import {IconChevron, IconPanel} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group, TeamParticipant, UserParticipant} from 'sentry/types/group';
@@ -27,6 +26,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
+import {useUser} from 'sentry/utils/useUser';
 import GroupActions from 'sentry/views/issueDetails/actions/index';
 import {Divider} from 'sentry/views/issueDetails/divider';
 import GroupPriority from 'sentry/views/issueDetails/groupPriority';
@@ -56,6 +56,7 @@ export default function StreamlinedGroupHeader({
   groupReprocessingStatus,
   event,
 }: GroupHeaderProps) {
+  const activeUser = useUser();
   const location = useLocation();
   const organization = useOrganization();
   const {sort: _sort, ...query} = location.query;
@@ -87,8 +88,6 @@ export default function StreamlinedGroupHeader({
     baseUrl,
     project,
   });
-
-  const activeUser = ConfigStore.get('user');
 
   const {userParticipants, teamParticipants, displayUsers} = useMemo(() => {
     return {
@@ -165,7 +164,7 @@ export default function StreamlinedGroupHeader({
                 </ReleaseWrapper>
               </Fragment>
             )}
-            <AttachmentsBadge group={group} project={project} />
+            <AttachmentsBadge group={group} />
             <UserFeedbackBadge group={group} project={project} />
             <ReplayBadge group={group} project={project} />
           </MessageWrapper>
@@ -226,7 +225,13 @@ export default function StreamlinedGroupHeader({
           </WorkflowWrapper>
           <Divider />
           <Button
-            icon={<IconDashboard />}
+            icon={
+              sidebarOpen ? (
+                <IconChevron direction="right" />
+              ) : (
+                <IconPanel direction="right" />
+              )
+            }
             title={sidebarOpen ? t('Close Sidebar') : t('Open Sidebar')}
             aria-label={sidebarOpen ? t('Close Sidebar') : t('Open Sidebar')}
             size="sm"

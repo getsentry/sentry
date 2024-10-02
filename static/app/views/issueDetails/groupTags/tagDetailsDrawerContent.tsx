@@ -4,8 +4,8 @@ import styled from '@emotion/styled';
 import {useFetchIssueTag, useFetchIssueTagValues} from 'sentry/actionCreators/group';
 import {DeviceName} from 'sentry/components/deviceName';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import UserBadge from 'sentry/components/idBadge/userBadge';
+import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
@@ -24,10 +24,12 @@ import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {isUrl} from 'sentry/utils/string/isUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
+import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
+import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
-import {StyledExternalLink} from 'sentry/views/settings/organizationMembers/inviteBanner';
 
 type GroupTagsDrawerProps = {
   groupId: Group['id'];
@@ -53,8 +55,9 @@ export function TagDetailsDrawerContent({
 }: GroupTagsDrawerTagDetailsProps) {
   const location = useLocation();
   const organization = useOrganization();
-  const tagKey = location.query.tagDrawerKey as string;
+  const {tagKey} = useParams<{tagKey: string}>();
   const environments = useEnvironmentsFromUrl();
+  const {baseUrl} = useGroupDetailsRoute();
 
   const title = tagKey === 'user' ? t('Affected Users') : tagKey;
   const sort: TagSort =
@@ -77,7 +80,7 @@ export function TagDetailsDrawerContent({
   const {
     data: tag,
     isError: tagIsError,
-    isLoading: tagIsLoading,
+    isPending: tagIsLoading,
   } = useFetchIssueTag({
     orgSlug: organization.slug,
     groupId,
@@ -158,15 +161,17 @@ export function TagDetailsDrawerContent({
             version: 2 as SavedQueryVersions,
             range: '90d',
           });
-          const issuesPath = `/organizations/${organization.slug}/issues/`;
           return (
             <Fragment key={tagValueIdx}>
               <NameColumn>
                 <NameWrapper data-test-id="group-tag-value">
-                  <GlobalSelectionLink
+                  <Link
                     to={{
-                      pathname: `${location.pathname}events/`,
-                      query: {query: issuesQuery},
+                      pathname: `${baseUrl}${TabPaths[Tab.EVENTS]}`,
+                      query: {
+                        ...globalSelectionParams,
+                        query: issuesQuery,
+                      },
                     }}
                   >
                     {key === 'user' ? (
@@ -178,7 +183,7 @@ export function TagDetailsDrawerContent({
                     ) : (
                       <DeviceName value={tagValue.name} />
                     )}
-                  </GlobalSelectionLink>
+                  </Link>
                 </NameWrapper>
 
                 {tagValue.email && (
@@ -229,7 +234,7 @@ export function TagDetailsDrawerContent({
                       key: 'search-issues',
                       label: t('Search All Issues with Tag Value'),
                       to: {
-                        pathname: issuesPath,
+                        pathname: baseUrl,
                         query: {
                           ...globalSelectionParams, // preserve page filter selections
                           query: issuesQuery,
@@ -294,4 +299,8 @@ const RightAlignColumn = styled(Column)`
 
 const StyledPagination = styled(Pagination)`
   margin: 0;
+`;
+
+const StyledExternalLink = styled(ExternalLink)`
+  margin-left: ${space(0.5)};
 `;

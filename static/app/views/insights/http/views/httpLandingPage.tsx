@@ -39,14 +39,17 @@ import {
   MODULE_DOC_LINK,
   MODULE_TITLE,
 } from 'sentry/views/insights/http/settings';
+import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
+import {BACKEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/backend/settings';
 import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
+import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/settings';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
 
 export function HTTPLandingPage() {
   const organization = useOrganization();
   const location = useLocation();
-  const {isInDomainView} = useDomainViewFilters();
+  const {isInDomainView, view} = useDomainViewFilters();
 
   const sortField = decodeScalar(location.query?.[QueryParameterNames.DOMAINS_SORT]);
 
@@ -181,9 +184,15 @@ export function HTTPLandingPage() {
         </Layout.Header>
       )}
 
-      {isInDomainView && (
+      {isInDomainView && view === FRONTEND_LANDING_SUB_PATH && (
         <Layout.Header>
           <FrontendHeader module={ModuleName.HTTP} />
+        </Layout.Header>
+      )}
+
+      {isInDomainView && view === BACKEND_LANDING_SUB_PATH && (
+        <Layout.Header>
+          <BackendHeader module={ModuleName.HTTP} />
         </Layout.Header>
       )}
 
