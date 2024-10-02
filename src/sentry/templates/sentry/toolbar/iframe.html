@@ -17,7 +17,9 @@ Required context variables:
       const referrer = "{{ referrer|escapejs }}";
 
       function log(...args) {
-        console.log('iframe:', ...args);
+        if (localStorage && localStorage.getItem('sentry-toolbar-iframe-debug')) {
+          console.log('iframe:', ...args);
+        }
       }
 
       log('Init', {referrer});
@@ -65,5 +67,8 @@ Required context variables:
       log('Sent', {message: 'port-connect', referrer})
     </script>
     {% endscript %}
-  </body>
-</html>
+
+{% comment %}
+No need to close `body`. If we do then middleware will inject some extra markup
+we don't need. Browsers can figure out when it missing and deal with it.
+{% endcomment %}

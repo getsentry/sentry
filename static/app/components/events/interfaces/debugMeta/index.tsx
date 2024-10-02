@@ -379,6 +379,7 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
         'A list of dynamic libraries or shared objects loaded into process memory at the time of the crash. Images contribute application code that is referenced in stack traces.'
       )}
       actions={actions}
+      initialCollapse
     >
       {isOpen || hasStreamlinedUI ? (
         <Fragment>
