@@ -50,7 +50,9 @@ function ThresholdTypeForm({
     'insights_metrics',
   ]);
 
-  const hasAnomalyDetection = organization.features.includes('anomaly-detection-alerts');
+  const hasAnomalyDetection =
+    organization.features.includes('anomaly-detection-alerts') &&
+    organization.features.includes('anomaly-detection-rollout');
 
   const thresholdTypeChoices: RadioOption[] = [
     [AlertRuleComparisonType.COUNT, 'Static: above or below {x}'],
