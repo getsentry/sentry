@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from abc import ABC, abstractmethod
 from collections.abc import Mapping, MutableMapping, Sequence
 from typing import Any
 
@@ -26,7 +27,6 @@ from sentry.auth.access import from_member
 from sentry.exceptions import UnableToAcceptMemberInvitationException
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder
-from sentry.integrations.slack.message_builder.types import SlackBody
 from sentry.integrations.slack.metrics import (
     SLACK_WEBHOOK_GROUP_ACTIONS_FAILURE_DATADOG_METRIC,
     SLACK_WEBHOOK_GROUP_ACTIONS_SUCCESS_DATADOG_METRIC,
@@ -160,8 +160,7 @@ def get_group(slack_request: SlackActionRequest) -> Group | None:
 
 def _is_message(data: Mapping[str, Any]) -> bool:
     """
-    XXX(epurkhiser): Used in coordination with construct_reply.
-     Bot posted messages will not have the type at all.
+    Bot posted messages will not have the type at all.
     """
     return data.get("original_message", {}).get("type") == "message"
 
@@ -324,251 +323,6 @@ class SlackActionEndpoint(Endpoint):
             user_id=user.id,
         )
 
-    def build_format_options(self, options: dict[str, str]) -> list[dict[str, Any]]:
-        return [
-            {
-                "text": {
-                    "type": "plain_text",
-                    "text": text,
-                    "emoji": True,
-                },
-                "value": value,
-            }
-            for text, value in options.items()
-        ]
-
-    def build_modal_payload(
-        self,
-        title: str,
-        action_text: str,
-        options: dict[str, str],
-        initial_option_text: str,
-        initial_option_value: str,
-        callback_id: str,
-        metadata: str,
-    ) -> View:
-        formatted_options = self.build_format_options(options)
-
-        return View(
-            type="modal",
-            title={"type": "plain_text", "text": f"{title} Issue"},
-            blocks=[
-                {
-                    "type": "section",
-                    "text": {"type": "mrkdwn", "text": action_text},
-                    "accessory": {
-                        "type": "static_select",
-                        "initial_option": {
-                            "text": {
-                                "type": "plain_text",
-                                "text": initial_option_text,
-                                "emoji": True,
-                            },
-                            "value": initial_option_value,
-                        },
-                        "options": formatted_options,
-                        "action_id": "static_select-action",
-                    },
-                }
-            ],
-            close={"type": "plain_text", "text": "Cancel"},
-            submit={"type": "plain_text", "text": title},
-            private_metadata=metadata,
-            callback_id=callback_id,
-        )
-
-    def build_resolve_modal_payload(self, callback_id: str, metadata: str) -> View:
-        return self.build_modal_payload(
-            title="Resolve",
-            action_text="Resolve",
-            options=RESOLVE_OPTIONS,
-            initial_option_text="Immediately",
-            initial_option_value="resolved",
-            callback_id=callback_id,
-            metadata=metadata,
-        )
-
-    def build_archive_modal_payload(self, callback_id: str, metadata: str) -> View:
-        return self.build_modal_payload(
-            title="Archive",
-            action_text="Archive",
-            options=ARCHIVE_OPTIONS,
-            initial_option_text="Until escalating",
-            initial_option_value="ignored:archived_until_escalating",
-            callback_id=callback_id,
-            metadata=metadata,
-        )
-
-    def _update_modal(
-        self,
-        slack_client: SlackSdkClient,
-        external_id: str,
-        modal_payload: View,
-        slack_request: SlackActionRequest,
-    ) -> None:
-        try:
-            slack_client.views_update(
-                external_id=external_id,
-                view=modal_payload,
-            )
-        except SlackApiError as e:
-            # If the external_id is not found, Slack we send `not_found` error
-            # https://api.slack.com/methods/views.update
-            if unpack_slack_api_error(e) == MODAL_NOT_FOUND:
-                metrics.incr(
-                    SLACK_WEBHOOK_GROUP_ACTIONS_FAILURE_DATADOG_METRIC,
-                    sample_rate=1.0,
-                    tags={"type": "update_modal"},
-                )
-                logging_data = slack_request.get_logging_data()
-                _logger.exception(
-                    "slack.action.update-modal-not-found",
-                    extra={
-                        **logging_data,
-                        "trigger_id": slack_request.data["trigger_id"],
-                        "dialog": "resolve",
-                    },
-                )
-                # The modal was not found, so we need to open a new one
-                self._open_modal(slack_client, modal_payload, slack_request)
-            else:
-                raise
-
-    def _open_modal(
-        self, slack_client: SlackSdkClient, modal_payload: View, slack_request: SlackActionRequest
-    ) -> None:
-        # Error handling is done in the calling function
-        slack_client.views_open(
-            trigger_id=slack_request.data["trigger_id"],
-            view=modal_payload,
-        )
-
-    def open_resolve_dialog(self, slack_request: SlackActionRequest, group: Group) -> None:
-        # XXX(epurkhiser): In order to update the original message we have to
-        # keep track of the response_url in the callback_id. Definitely hacky,
-        # but seems like there's no other solutions [1]:
-        #
-        # [1]: https://stackoverflow.com/questions/46629852/update-a-bot-message-after-responding-to-a-slack-dialog#comment80795670_46629852
-        org = group.project.organization
-        callback_id_dict = {
-            "issue": group.id,
-            "orig_response_url": slack_request.data["response_url"],
-            "is_message": _is_message(slack_request.data),
-        }
-        if slack_request.data.get("channel"):
-            callback_id_dict["channel_id"] = slack_request.data["channel"]["id"]
-            callback_id_dict["rule"] = slack_request.callback_data.get("rule")
-        callback_id = orjson.dumps(callback_id_dict).decode()
-
-        # only add tags to metadata
-        metadata_dict = callback_id_dict.copy()
-        metadata_dict["tags"] = list(slack_request.get_tags())
-        metadata = orjson.dumps(metadata_dict).decode()
-
-        # XXX(CEO): the second you make a selection (without hitting Submit) it sends a slightly different request
-        modal_payload = self.build_resolve_modal_payload(callback_id, metadata=metadata)
-        slack_client = SlackSdkClient(integration_id=slack_request.integration.id)
-        try:
-            # We need to use the action_ts as the external_id to update the modal
-            # We passed this in control when we sent the loading modal to beat the 3 second timeout
-            external_id = slack_request.get_action_ts()
-
-            if not external_id:
-                # If we don't have an external_id or option is disabled we need to open a new modal
-                self._open_modal(slack_client, modal_payload, slack_request)
-            else:
-                self._update_modal(slack_client, external_id, modal_payload, slack_request)
-
-            metrics.incr(
-                SLACK_WEBHOOK_GROUP_ACTIONS_SUCCESS_DATADOG_METRIC,
-                sample_rate=1.0,
-                tags={"type": "resolve_modal_open"},
-            )
-        except SlackApiError:
-            metrics.incr(
-                SLACK_WEBHOOK_GROUP_ACTIONS_FAILURE_DATADOG_METRIC,
-                sample_rate=1.0,
-                tags={"type": "resolve_modal_open"},
-            )
-            _logger.exception(
-                "slack.action.response-error",
-                extra={
-                    "organization_id": org.id,
-                    "integration_id": slack_request.integration.id,
-                    "trigger_id": slack_request.data["trigger_id"],
-                    "dialog": "resolve",
-                },
-            )
-
-    def open_archive_dialog(self, slack_request: SlackActionRequest, group: Group) -> None:
-        org = group.project.organization
-
-        callback_id_dict = {
-            "issue": group.id,
-            "orig_response_url": slack_request.data["response_url"],
-            "is_message": _is_message(slack_request.data),
-            "rule": slack_request.callback_data.get("rule"),
-        }
-
-        if slack_request.data.get("channel"):
-            callback_id_dict["channel_id"] = slack_request.data["channel"]["id"]
-        callback_id = orjson.dumps(callback_id_dict).decode()
-
-        # only add tags to metadata
-        metadata_dict = callback_id_dict.copy()
-        metadata_dict["tags"] = list(slack_request.get_tags())
-        metadata = orjson.dumps(metadata_dict).decode()
-
-        modal_payload = self.build_archive_modal_payload(callback_id, metadata=metadata)
-        slack_client = SlackSdkClient(integration_id=slack_request.integration.id)
-        try:
-            # We need to use the action_ts as the external_id to update the modal
-            # We passed this in control when we sent the loading modal to beat the 3 second timeout
-            external_id = slack_request.get_action_ts()
-
-            if not external_id:
-                # If we don't have an external_id or option is disabled we need to open a new modal
-                self._open_modal(slack_client, modal_payload, slack_request)
-            else:
-                self._update_modal(slack_client, external_id, modal_payload, slack_request)
-
-            metrics.incr(
-                SLACK_WEBHOOK_GROUP_ACTIONS_SUCCESS_DATADOG_METRIC,
-                sample_rate=1.0,
-                tags={"type": "archive_modal_open"},
-            )
-        except SlackApiError:
-            metrics.incr(
-                SLACK_WEBHOOK_GROUP_ACTIONS_FAILURE_DATADOG_METRIC,
-                sample_rate=1.0,
-                tags={"type": "archive_modal_open"},
-            )
-            _logger.exception(
-                "slack.action.response-error",
-                extra={
-                    "organization_id": org.id,
-                    "integration_id": slack_request.integration.id,
-                    "trigger_id": slack_request.data["trigger_id"],
-                    "dialog": "archive",
-                },
-            )
-
-    def construct_reply(self, attachment: SlackBody, is_message: bool = False) -> SlackBody:
-        # XXX(epurkhiser): Slack is inconsistent about it's expected responses
-        # for interactive action requests.
-        #
-        #  * For _unfurled_ action responses, slack expects the entire
-        #    attachment body used to replace the unfurled attachment to be at
-        #    the top level of the json response body.
-        #
-        #  * For _bot posted message_ action responses, slack expects the
-        #    attachment body used to replace the attachment to be within an
-        #    `attachments` array.
-        if is_message:
-            attachment = {"attachments": [attachment]}
-
-        return attachment
-
     def _handle_group_actions(
         self,
         slack_request: SlackActionRequest,
@@ -690,10 +444,10 @@ class SlackActionEndpoint(Endpoint):
                 ):  # TODO: remove this as it is replaced by the options-load endpoint
                     self.on_assign(request, identity_user, group, action)
                 elif action.name == "resolve_dialog":
-                    self.open_resolve_dialog(slack_request, group)
+                    _ResolveDialog().open_dialog(slack_request, group)
                     defer_attachment_update = True
                 elif action.name == "archive_dialog":
-                    self.open_archive_dialog(slack_request, group)
+                    _ArchiveDialog().open_dialog(slack_request, group)
                     defer_attachment_update = True
             except client.ApiError as error:
                 return self.api_error(slack_request, group, identity_user, error, action.name)
@@ -970,3 +724,204 @@ class SlackActionEndpoint(Endpoint):
         )
 
         return self.respond({"text": message})
+
+
+class _ModalDialog(ABC):
+    @property
+    @abstractmethod
+    def dialog_type(self) -> str:
+        raise NotImplementedError
+
+    def _build_format_options(self, options: dict[str, str]) -> list[dict[str, Any]]:
+        return [
+            {
+                "text": {
+                    "type": "plain_text",
+                    "text": text,
+                    "emoji": True,
+                },
+                "value": value,
+            }
+            for text, value in options.items()
+        ]
+
+    def build_modal_payload(
+        self,
+        title: str,
+        action_text: str,
+        options: dict[str, str],
+        initial_option_text: str,
+        initial_option_value: str,
+        callback_id: str,
+        metadata: str,
+    ) -> View:
+        formatted_options = self._build_format_options(options)
+
+        return View(
+            type="modal",
+            title={"type": "plain_text", "text": f"{title} Issue"},
+            blocks=[
+                {
+                    "type": "section",
+                    "text": {"type": "mrkdwn", "text": action_text},
+                    "accessory": {
+                        "type": "static_select",
+                        "initial_option": {
+                            "text": {
+                                "type": "plain_text",
+                                "text": initial_option_text,
+                                "emoji": True,
+                            },
+                            "value": initial_option_value,
+                        },
+                        "options": formatted_options,
+                        "action_id": "static_select-action",
+                    },
+                }
+            ],
+            close={"type": "plain_text", "text": "Cancel"},
+            submit={"type": "plain_text", "text": title},
+            private_metadata=metadata,
+            callback_id=callback_id,
+        )
+
+    @abstractmethod
+    def get_modal_payload(self, callback_id: str, metadata: str) -> View:
+        raise NotImplementedError
+
+    def _update_modal(
+        self,
+        slack_client: SlackSdkClient,
+        external_id: str,
+        modal_payload: View,
+        slack_request: SlackActionRequest,
+    ) -> None:
+        try:
+            slack_client.views_update(
+                external_id=external_id,
+                view=modal_payload,
+            )
+        except SlackApiError as e:
+            # If the external_id is not found, Slack we send `not_found` error
+            # https://api.slack.com/methods/views.update
+            if unpack_slack_api_error(e) == MODAL_NOT_FOUND:
+                metrics.incr(
+                    SLACK_WEBHOOK_GROUP_ACTIONS_FAILURE_DATADOG_METRIC,
+                    sample_rate=1.0,
+                    tags={"type": "update_modal"},
+                )
+                logging_data = slack_request.get_logging_data()
+                _logger.exception(
+                    "slack.action.update-modal-not-found",
+                    extra={
+                        **logging_data,
+                        "trigger_id": slack_request.data["trigger_id"],
+                        "dialog": self.dialog_type,
+                    },
+                )
+                # The modal was not found, so we need to open a new one
+                self._open_modal(slack_client, modal_payload, slack_request)
+            else:
+                raise
+
+    def _open_modal(
+        self, slack_client: SlackSdkClient, modal_payload: View, slack_request: SlackActionRequest
+    ) -> None:
+        # Error handling is done in the calling function
+        slack_client.views_open(
+            trigger_id=slack_request.data["trigger_id"],
+            view=modal_payload,
+        )
+
+    def open_dialog(self, slack_request: SlackActionRequest, group: Group) -> None:
+        # XXX(epurkhiser): In order to update the original message we have to
+        # keep track of the response_url in the callback_id. Definitely hacky,
+        # but seems like there's no other solutions [1]:
+        #
+        # [1]: https://stackoverflow.com/questions/46629852/update-a-bot-message-after-responding-to-a-slack-dialog#comment80795670_46629852
+        org = group.project.organization
+
+        callback_id_dict = {
+            "issue": group.id,
+            "orig_response_url": slack_request.data["response_url"],
+            "is_message": _is_message(slack_request.data),
+            "rule": slack_request.callback_data.get("rule"),
+        }
+
+        if slack_request.data.get("channel"):
+            callback_id_dict["channel_id"] = slack_request.data["channel"]["id"]
+        callback_id = orjson.dumps(callback_id_dict).decode()
+
+        # only add tags to metadata
+        metadata_dict = callback_id_dict.copy()
+        metadata_dict["tags"] = list(slack_request.get_tags())
+        metadata = orjson.dumps(metadata_dict).decode()
+
+        # XXX(CEO): the second you make a selection (without hitting Submit) it sends a slightly different request
+        modal_payload = self.get_modal_payload(callback_id, metadata=metadata)
+        slack_client = SlackSdkClient(integration_id=slack_request.integration.id)
+        try:
+            # We need to use the action_ts as the external_id to update the modal
+            # We passed this in control when we sent the loading modal to beat the 3 second timeout
+            external_id = slack_request.get_action_ts()
+
+            if not external_id:
+                # If we don't have an external_id or option is disabled we need to open a new modal
+                self._open_modal(slack_client, modal_payload, slack_request)
+            else:
+                self._update_modal(slack_client, external_id, modal_payload, slack_request)
+
+            metrics.incr(
+                SLACK_WEBHOOK_GROUP_ACTIONS_SUCCESS_DATADOG_METRIC,
+                sample_rate=1.0,
+                tags={"type": f"{self.dialog_type}_modal_open"},
+            )
+        except SlackApiError:
+            metrics.incr(
+                SLACK_WEBHOOK_GROUP_ACTIONS_FAILURE_DATADOG_METRIC,
+                sample_rate=1.0,
+                tags={"type": f"{self.dialog_type}_modal_open"},
+            )
+            _logger.exception(
+                "slack.action.response-error",
+                extra={
+                    "organization_id": org.id,
+                    "integration_id": slack_request.integration.id,
+                    "trigger_id": slack_request.data["trigger_id"],
+                    "dialog": self.dialog_type,
+                },
+            )
+
+
+class _ResolveDialog(_ModalDialog):
+    @property
+    def dialog_type(self) -> str:
+        return "resolve"
+
+    def get_modal_payload(self, callback_id: str, metadata: str) -> View:
+        return self.build_modal_payload(
+            title="Resolve",
+            action_text="Resolve",
+            options=RESOLVE_OPTIONS,
+            initial_option_text="Immediately",
+            initial_option_value="resolved",
+            callback_id=callback_id,
+            metadata=metadata,
+        )
+
+
+class _ArchiveDialog(_ModalDialog):
+    @property
+    def dialog_type(self) -> str:
+        return "archive"
+
+    def get_modal_payload(self, callback_id: str, metadata: str) -> View:
+        return self.build_modal_payload(
+            title="Archive",
+            action_text="Archive",
+            options=ARCHIVE_OPTIONS,
+            initial_option_text="Until escalating",
+            initial_option_value="ignored:archived_until_escalating",
+            callback_id=callback_id,
+            metadata=metadata,
+        )
