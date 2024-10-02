@@ -108,6 +108,7 @@ class PlatformPicker extends Component<PlatformPickerProps, State> {
       .filter(this.state.filter ? subsetMatch : categoryMatch)
       .sort((a, b) => {
         // Treat Nuxt as 'Vue' to sort it alongside Nuxt
+        // Other related frameworks are sorted next to each other automatically (solid - solidstart, svelte - sveltekit, ...)
         const nameA = a.id === 'javascript-nuxt' ? 'Vue' : a.name;
         const nameB = b.id === 'javascript-nuxt' ? 'Vue' : b.name;
 
