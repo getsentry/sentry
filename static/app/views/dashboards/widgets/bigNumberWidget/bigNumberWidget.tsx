@@ -19,13 +19,13 @@ export function BigNumberWidget(props: Props) {
     <WidgetFrame
       title={props.title}
       description={props.description}
-      showDescriptionInTooltip={props.showDescriptionInTooltip}
       actions={props.actions}
     >
       <BigNumberResizeWrapper>
         <BigNumberWidgetVisualization
           data={props.data}
           previousPeriodData={props.previousPeriodData}
+          maximumValue={props.maximumValue}
           preferredPolarity={props.preferredPolarity}
           meta={props.meta}
           isLoading={props.isLoading}

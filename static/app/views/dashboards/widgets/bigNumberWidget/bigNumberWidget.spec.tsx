@@ -1,4 +1,5 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {BigNumberWidget} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidget';
 
@@ -9,7 +10,6 @@ describe('BigNumberWidget', () => {
         <BigNumberWidget
           title="EPS"
           description="Number of events per second"
-          showDescriptionInTooltip={false}
           data={[
             {
               'eps()': 0.01087819860850493,
@@ -31,6 +31,40 @@ describe('BigNumberWidget', () => {
   });
 
   describe('Visualization', () => {
+    it('Explains missing data', () => {
+      render(
+        <BigNumberWidget
+          data={[{}]}
+          meta={{
+            fields: {
+              'p95(span.duration)': 'number',
+            },
+          }}
+        />
+      );
+
+      expect(screen.getByText('No Data')).toBeInTheDocument();
+    });
+
+    it('Explains non-numeric data', () => {
+      render(
+        <BigNumberWidget
+          data={[
+            {
+              'count()': Infinity,
+            },
+          ]}
+          meta={{
+            fields: {
+              'count()': 'number',
+            },
+          }}
+        />
+      );
+
+      expect(screen.getByText('Value is not a finite number.')).toBeInTheDocument();
+    });
+
     it('Formats duration data', () => {
       render(
         <BigNumberWidget
@@ -75,6 +109,27 @@ describe('BigNumberWidget', () => {
       await userEvent.hover(screen.getByText('178m'));
 
       expect(screen.getByText('178451214')).toBeInTheDocument();
+    });
+
+    it('Respect maximum value', () => {
+      render(
+        <BigNumberWidget
+          title="Count"
+          data={[
+            {
+              'count()': 178451214,
+            },
+          ]}
+          maximumValue={100000000}
+          meta={{
+            fields: {
+              'count()': 'integer',
+            },
+          }}
+        />
+      );
+
+      expect(screen.getByText(textWithMarkupMatcher('>100m'))).toBeInTheDocument();
     });
   });
 

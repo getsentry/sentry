@@ -4,17 +4,13 @@ import {WidgetFrame} from 'sentry/views/dashboards/widgets/common/widgetFrame';
 
 describe('WidgetFrame', () => {
   describe('Layout', () => {
-    it('Renders the title and description', () => {
-      render(
-        <WidgetFrame
-          title="EPS"
-          description="Number of events per second"
-          showDescriptionInTooltip={false}
-        />
-      );
+    it('Renders the title and description', async () => {
+      render(<WidgetFrame title="EPS" description="Number of events per second" />);
 
       expect(screen.getByText('EPS')).toBeInTheDocument();
-      expect(screen.getByText('Number of events per second')).toBeInTheDocument();
+
+      await userEvent.hover(screen.getByTestId('more-information'));
+      expect(await screen.findByText('Number of events per second')).toBeInTheDocument();
     });
   });
 
@@ -26,7 +22,6 @@ describe('WidgetFrame', () => {
         <WidgetFrame
           title="EPS"
           description="Number of events per second"
-          showDescriptionInTooltip={false}
           actions={[
             {
               key: 'hello',
@@ -52,7 +47,6 @@ describe('WidgetFrame', () => {
         <WidgetFrame
           title="EPS"
           description="Number of events per second"
-          showDescriptionInTooltip={false}
           actions={[
             {
               key: 'one',
