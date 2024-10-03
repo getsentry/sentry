@@ -36,6 +36,10 @@ const DEFAULT_ISSUE_DETAILS_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
     },
     layoutOptions: [],
   },
+  autogroup: {
+    parent: true,
+    sibling: true,
+  },
   layout: 'drawer bottom',
   list: {
     width: 0.5,
@@ -96,7 +100,7 @@ function EventTraceViewInner({
   }
 
   return (
-    <InterimSection type={SectionKey.TRACE} title={t('Trace Preview')}>
+    <InterimSection type={SectionKey.TRACE_PREVIEW} title={t('Trace Preview')}>
       <SpanEvidenceKeyValueList event={rootEvent.data} projectSlug={projectSlug} />
       <TraceStateProvider
         initialPreferences={preferences}

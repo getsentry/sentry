@@ -500,7 +500,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             },
             project_id=self.project.id,
             assert_no_errors=False,
-            event_type=EventType.ERROR,
+            default_event_type=EventType.DEFAULT,
         )
         assert event.group
         group = event.group
@@ -565,7 +565,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             },
             project_id=self.project.id,
             assert_no_errors=False,
-            event_type=EventType.ERROR,
+            default_event_type=EventType.DEFAULT,
         )
         assert event.group
         group = event.group
@@ -1122,6 +1122,7 @@ class BuildIncidentAttachmentTest(TestCase):
         }
 
     @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
@@ -1335,6 +1336,7 @@ class BuildMetricAlertAttachmentTest(TestCase):
         }
 
     @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )

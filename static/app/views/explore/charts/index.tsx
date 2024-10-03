@@ -1,5 +1,6 @@
-import {Fragment, useCallback, useMemo} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import * as echarts from 'echarts/core';
 
 import {getInterval} from 'sentry/components/charts/utils';
 import {CompactSelect} from 'sentry/components/compactSelect';
@@ -16,8 +17,7 @@ import {useDataset} from 'sentry/views/explore/hooks/useDataset';
 import {useVisualizes} from 'sentry/views/explore/hooks/useVisualizes';
 import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
 import ChartPanel from 'sentry/views/insights/common/components/chartPanel';
-import {useSpanIndexedSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
-import {useSortedTopNSeries} from 'sentry/views/insights/common/queries/useSortedTopNSeries';
+import {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 import {CHART_HEIGHT} from 'sentry/views/insights/database/settings';
 
 import {useGroupBys} from '../hooks/useGroupBys';
@@ -45,6 +45,8 @@ const exploreChartTypeOptions = [
   },
 ];
 
+export const EXPLORE_CHART_GROUP = 'explore-charts_group';
+
 // TODO: Update to support aggregate mode and multiple queries / visualizations
 export function ExploreCharts({query}: ExploreChartsProps) {
   const pageFilters = usePageFilters();
@@ -52,7 +54,7 @@ export function ExploreCharts({query}: ExploreChartsProps) {
   const [dataset] = useDataset();
   const [visualizes, setVisualizes] = useVisualizes();
   const [interval, setInterval, intervalOptions] = useChartInterval();
-  const [groupBys] = useGroupBys();
+  const {groupBys, isLoadingGroupBys} = useGroupBys();
   const [resultMode] = useResultMode();
   const topEvents = useTopEvents();
 
@@ -81,23 +83,12 @@ export function ExploreCharts({query}: ExploreChartsProps) {
     return deduped;
   }, [visualizes]);
 
-  const singleSeriesResult = useSpanIndexedSeries(
+  const timeSeriesResult = useSortedTimeSeries(
     {
       search: new MutableSearch(query ?? ''),
       yAxis: yAxes,
       interval: interval ?? getInterval(pageFilters.selection.datetime, 'metrics'),
-      enabled: topEvents === undefined,
-    },
-    'api.explorer.stats',
-    dataset
-  );
-
-  const topNSeriesResult = useSortedTopNSeries(
-    {
-      search: new MutableSearch(query ?? ''),
-      yAxis: yAxes,
-      interval: interval ?? getInterval(pageFilters.selection.datetime, 'metrics'),
-      enabled: topEvents !== undefined,
+      enabled: !isLoadingGroupBys,
       fields,
       orderby,
       topEvents,
@@ -108,13 +99,12 @@ export function ExploreCharts({query}: ExploreChartsProps) {
 
   const getSeries = useCallback(
     (dedupedYAxes: string[]) => {
-      if (topEvents !== undefined) {
-        return topNSeriesResult.data;
-      }
-
-      return dedupedYAxes.map(yAxis => singleSeriesResult.data[yAxis]);
+      return dedupedYAxes.flatMap(yAxis => {
+        const series = timeSeriesResult.data[yAxis];
+        return series !== undefined ? series : [];
+      });
     },
-    [singleSeriesResult, topNSeriesResult, topEvents]
+    [timeSeriesResult]
   );
 
   const handleChartTypeChange = useCallback(
@@ -126,10 +116,14 @@ export function ExploreCharts({query}: ExploreChartsProps) {
     [visualizes, setVisualizes]
   );
 
-  const error =
-    topEvents === undefined ? singleSeriesResult.error : topNSeriesResult.error;
-  const loading =
-    topEvents === undefined ? singleSeriesResult.isPending : topNSeriesResult.isPending;
+  // Synchronize chart cursors
+  const [_, setRenderTrigger] = useState(0);
+  useEffect(() => {
+    if (!timeSeriesResult.isPending) {
+      echarts?.connect(EXPLORE_CHART_GROUP);
+      setRenderTrigger(prev => (prev + 1) % Number.MAX_SAFE_INTEGER);
+    }
+  }, [visualizes, timeSeriesResult.isPending]);
 
   return (
     <Fragment>
@@ -144,7 +138,7 @@ export function ExploreCharts({query}: ExploreChartsProps) {
                 <ChartSettingsContainer>
                   <CompactSelect
                     size="xs"
-                    triggerProps={{prefix: t('Display')}}
+                    triggerProps={{prefix: t('Type')}}
                     value={chartType}
                     options={exploreChartTypeOptions}
                     onChange={option => handleChartTypeChange(option.value, index)}
@@ -170,8 +164,9 @@ export function ExploreCharts({query}: ExploreChartsProps) {
                 }}
                 legendFormatter={value => formatVersion(value)}
                 data={getSeries(dedupedYAxes)}
-                error={error}
-                loading={loading}
+                error={timeSeriesResult.error}
+                loading={timeSeriesResult.isPending}
+                chartGroup={EXPLORE_CHART_GROUP}
                 // TODO Abdullah: Make chart colors dynamic, with changing topN events count and overlay count.
                 chartColors={CHART_PALETTE[TOP_EVENTS_LIMIT - 1]}
                 type={chartType}
@@ -191,7 +186,7 @@ const ChartContainer = styled('div')`
   display: grid;
   gap: 0;
   grid-template-columns: 1fr;
-  margin-bottom: ${space(3)};
+  margin-bottom: ${space(2)};
 `;
 
 const ChartHeader = styled('div')`

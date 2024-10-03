@@ -5,6 +5,7 @@ from collections.abc import Mapping
 
 from django.utils import timezone
 
+from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.slack.utils.users import SlackUserData, get_slack_data_by_user
 from sentry.integrations.utils import get_identities_by_user
@@ -28,13 +29,20 @@ def link_slack_user_identities(
     integration_id: int,
     organization_id: int,
 ) -> None:
-    integration = integration_service.get_integration(integration_id=integration_id)
+    integration = integration_service.get_integration(
+        integration_id=integration_id, status=ObjectStatus.ACTIVE
+    )
     organization_context = organization_service.get_organization_by_id(id=organization_id)
     organization = organization_context.organization if organization_context else None
     if organization is None or integration is None:
         logger.error(
             "slack.post_install.link_identities.invalid_params",
-            extra={"organization": organization_id, "integration": integration_id},
+            extra={
+                "organization_id": organization_id,
+                "integration_id": integration_id,
+                "integration": bool(integration),
+                "organization": bool(organization),
+            },
         )
         return None
 

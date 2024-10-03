@@ -29,9 +29,9 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useDimensionsMultiple} from 'sentry/utils/useDimensionsMultiple';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import type {DraggableTabListItemProps} from './item';
@@ -132,6 +132,7 @@ function Tabs({
   hoveringKey,
   setHoveringKey,
   tempTabActive,
+  editingTabKey,
 }: {
   ariaProps: AriaTabListOptions<DraggableTabListItemProps>;
   hoveringKey: Key | 'addView' | null;
@@ -145,6 +146,7 @@ function Tabs({
   tempTabActive: boolean;
   className?: string;
   disabled?: boolean;
+  editingTabKey?: string;
   onChange?: (key: string | number) => void;
   tabVariant?: BaseTabProps['variant'];
   value?: string | number;
@@ -230,6 +232,7 @@ function Tabs({
               dragTransition={{bounceStiffness: 400, bounceDamping: 40}} // Recovers spring behavior thats lost when using dragElastic=0
               transition={{delay: -0.1}} // Skips the first few frames of the animation that make the tab appear to shrink before growing
               layout
+              drag={item.key !== editingTabKey} // Disable dragging if the tab is being edited
               onDrag={() => setIsDragging(true)}
               onDragEnd={() => setIsDragging(false)}
               onHoverStart={() => setHoveringKey(item.key)}
@@ -262,6 +265,7 @@ function BaseDraggableTabList({
   tabVariant = 'filled',
   ...props
 }: BaseDraggableTabListProps) {
+  const navigate = useNavigate();
   const [hoveringKey, setHoveringKey] = useState<Key | null>(null);
   const {rootProps, setTabListState} = useContext(TabsContext);
   const organization = useOrganization();
@@ -292,7 +296,7 @@ function BaseDraggableTabList({
         organization,
       });
 
-      browserHistory.push(linkTo);
+      navigate(linkTo);
     },
     isDisabled: disabled,
     keyboardActivation,
@@ -331,6 +335,7 @@ function BaseDraggableTabList({
         hoveringKey={hoveringKey}
         setHoveringKey={setHoveringKey}
         tempTabActive={!!tempTab}
+        editingTabKey={props.editingTabKey}
       />
       <AddViewTempTabWrap ref={addViewTempTabRef}>
         <AddViewMotionWrapper
@@ -389,6 +394,7 @@ export interface DraggableTabListProps
     TabListStateOptions<DraggableTabListItemProps> {
   onReorder: (newOrder: Node<DraggableTabListItemProps>[]) => void;
   className?: string;
+  editingTabKey?: string;
   hideBorder?: boolean;
   onAddView?: React.MouseEventHandler;
   outerWrapStyles?: React.CSSProperties;

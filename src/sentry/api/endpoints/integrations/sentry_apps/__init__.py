@@ -1,11 +1,5 @@
-from .internal_app_token.details import SentryInternalAppTokenDetailsEndpoint
-from .internal_app_token.index import SentryInternalAppTokensEndpoint
-from .stats.details import SentryAppStatsEndpoint
-from .stats.index import SentryAppsStatsEndpoint
-
-__all__ = (
-    "SentryAppsStatsEndpoint",
-    "SentryAppStatsEndpoint",
-    "SentryInternalAppTokenDetailsEndpoint",
-    "SentryInternalAppTokensEndpoint",
+from sentry.sentry_apps.api.endpoints.sentry_internal_app_token_details import (
+    SentryInternalAppTokenDetailsEndpoint,
 )
+
+__all__ = ("SentryInternalAppTokenDetailsEndpoint",)

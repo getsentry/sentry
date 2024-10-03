@@ -35,22 +35,4 @@ describe('useRoutes', () => {
     expect(routes.length).toEqual(1);
     expect(routes[0]).toEqual({path: '/', component: HomePage});
   });
-
-  it('throws error when called outside of routes provider', function () {
-    // Error is expected, do not fail when calling console.error
-    jest.spyOn(console, 'error').mockImplementation();
-
-    function HomePage() {
-      useRoutes();
-      return null;
-    }
-
-    expect(() =>
-      render(
-        <RouteContext.Provider value={null}>
-          <HomePage />
-        </RouteContext.Provider>
-      )
-    ).toThrow(/useRouteContext called outside of routes provider/);
-  });
 });

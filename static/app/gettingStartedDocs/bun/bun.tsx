@@ -92,19 +92,7 @@ const onboarding: OnboardingConfig = {
       ],
     },
   ],
-  nextSteps: params =>
-    params.isPerformanceSelected
-      ? []
-      : [
-          {
-            id: 'performance-monitoring',
-            name: t('Tracing'),
-            description: t(
-              'Track down transactions to connect the dots between 10-second page loads and poor-performing API calls or slow database queries.'
-            ),
-            link: 'https://docs.sentry.io/platforms/javascript/guides/bun/tracing/',
-          },
-        ],
+  nextSteps: () => [],
 };
 
 const customMetricsOnboarding: OnboardingConfig = {
@@ -112,10 +100,9 @@ const customMetricsOnboarding: OnboardingConfig = {
     {
       type: StepType.INSTALL,
       description: tct(
-        'You need a minimum version [codeVersion:7.91.0] of [codePackage:@sentry/bun].',
+        'You need a minimum version [code:7.91.0] of [code:@sentry/bun].',
         {
-          codeVersion: <code />,
-          codePackage: <code />,
+          code: <code />,
         }
       ),
       configurations: getInstallConfig(),
@@ -139,13 +126,9 @@ const customMetricsOnboarding: OnboardingConfig = {
     {
       type: StepType.VERIFY,
       description: tct(
-        "Then you'll be able to add metrics as [codeCounters:counters], [codeSets:sets], [codeDistribution:distributions], and [codeGauge:gauges]. These are available under the [codeNamespace:Sentry.metrics] namespace. This API is available in both renderer and main processes.",
+        "Then you'll be able to add metrics as [code:counters], [code:sets], [code:distributions], and [code:gauges]. These are available under the [code:Sentry.metrics] namespace. This API is available in both renderer and main processes.",
         {
-          codeCounters: <code />,
-          codeSets: <code />,
-          codeDistribution: <code />,
-          codeGauge: <code />,
-          codeNamespace: <code />,
+          code: <code />,
         }
       ),
       configurations: [

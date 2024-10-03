@@ -139,7 +139,7 @@ try {
 const onboarding: OnboardingConfig<PlatformOptions> = {
   introduction: () =>
     tct(
-      "Sentry supports Kotlin for both JVM and Android. This wizard guides you through set up in the JVM scenario. If you're interested in [strong:Android], head over to the [gettingStartedWithAndroidLink:Getting Started] for that SDK instead. At its core, Sentry for Java provides a raw client for sending events to Sentry. If you use [strong2:Spring Boot, Spring, Logback, JUL, or Log4j2], head over to our [gettingStartedWithJavaLink:Getting Started for Sentry Java].",
+      "Sentry supports Kotlin for both JVM and Android. This wizard guides you through set up in the JVM scenario. If you're interested in [strong:Android], head over to the [gettingStartedWithAndroidLink:Getting Started] for that SDK instead. At its core, Sentry for Java provides a raw client for sending events to Sentry. If you use [strong:Spring Boot, Spring, Logback, JUL, or Log4j2], head over to our [gettingStartedWithJavaLink:Getting Started for Sentry Java].",
       {
         gettingStartedWithAndroidLink: (
           <ExternalLink href="https://docs.sentry.io/platforms/android/" />
@@ -148,7 +148,6 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
           <ExternalLink href="https://docs.sentry.io/platforms/java/" />
         ),
         strong: <strong />,
-        strong2: <strong />,
       }
     ),
   install: params => [
@@ -263,14 +262,6 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
       name: t('Examples'),
       description: t('Check out our sample applications.'),
       link: 'https://github.com/getsentry/sentry-java/tree/main/sentry-samples',
-    },
-    {
-      id: 'performance-monitoring',
-      name: t('Tracing'),
-      description: t(
-        'Stay ahead of latency issues and trace every slow transaction to a poor-performing API call or database query.'
-      ),
-      link: 'https://docs.sentry.io/platforms/java/tracing/',
     },
   ],
 };
