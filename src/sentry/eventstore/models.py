@@ -370,9 +370,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
 
         filtered_hashes = set()
         for _, variant in variants:
-            hash_ = variant.get_hash()
-
-            filtered_hashes.add(hash_)
+            filtered_hashes.add(variant.get_hash())
 
         # If any of the hashes came out as None, filter those out before returning
         return list(filtered_hashes - {None})
