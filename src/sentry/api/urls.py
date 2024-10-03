@@ -3231,7 +3231,7 @@ urlpatterns = [
         name="sentry-api-0-organization-shared-group-details",
     ),
     re_path(
-        r"organizations/(?P<organization_id_or_slug>[^\/]+)/repo/(?P<repo_name>[^\/]+)/pr/(?P<pull_request_number>[^\/]+)/externalid/(?P<external_id>[^\/]+)/generate-unit-tests/$",
+        r"organizations/(?P<organization_id_or_slug>[^\/]+)/repo/(?P<repo_name>[^\/]+)/pr/(?P<pull_request_number>[^\/]+)/external-id/(?P<external_id>[^\/]+)/github-org/(?P<github_org>[^\/]+)/generate-unit-tests/$",
         AIUnitTestGenerationEndpoint.as_view(),
         name="sentry-api-0-generate-unit-tests",
     ),

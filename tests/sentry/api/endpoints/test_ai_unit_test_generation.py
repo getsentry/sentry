@@ -15,6 +15,7 @@ class AIUnitTestGenerationEndpointTest(APITestCase):
         self.repo_name = "example-repo"
         self.pull_request_number = "123"
         self.external_id = "456"
+        self.github_org = "example-org"
         self.user = self.create_user(email="example@example.com")
         self.login_as(user=self.user)
 
@@ -28,6 +29,7 @@ class AIUnitTestGenerationEndpointTest(APITestCase):
                 "repo_name": self.repo_name,
                 "pull_request_number": self.pull_request_number,
                 "external_id": self.external_id,
+                "github_org": self.github_org,
             },
         )
 
@@ -42,7 +44,7 @@ class AIUnitTestGenerationEndpointTest(APITestCase):
         assert response.status_code == 202
         mock_call_unit_test_generation.assert_called_once_with(
             ANY,
-            owner=self.project.organization.slug,
+            owner=self.github_org,
             name=self.repo_name,
             external_id=self.external_id,
             pr_id=int(self.pull_request_number),
@@ -59,7 +61,7 @@ class AIUnitTestGenerationEndpointTest(APITestCase):
         assert response.status_code == 500
         mock_call_unit_test_generation.assert_called_once_with(
             ANY,
-            owner=self.project.organization.slug,
+            owner=self.github_org,
             name=self.repo_name,
             external_id=self.external_id,
             pr_id=int(self.pull_request_number),

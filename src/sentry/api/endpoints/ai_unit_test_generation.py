@@ -101,7 +101,7 @@ class AIUnitTestGenerationEndpoint(OrganizationEndpoint):
         *args,
         **kwargs,
     ) -> Response:
-        owner = kwargs.get("organization").slug
+        owner = kwargs.get("github_org")
         repo_name = kwargs.get("repo_name")
         pull_request_number = kwargs.get("pull_request_number")
         external_id = kwargs.get("external_id")
