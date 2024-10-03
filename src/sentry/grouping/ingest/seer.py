@@ -196,7 +196,6 @@ def get_seer_similar_issues(
         "hash": event_hash,
         "project_id": event.project.id,
         "stacktrace": stacktrace_string,
-        "message": filter_null_from_string(event.title),
         "exception_type": filter_null_from_string(exception_type) if exception_type else None,
         "k": num_neighbors,
         "referrer": "ingest",
