@@ -25,7 +25,6 @@ import {
   getReplayConfigureDescription,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 type Params = DocsParams;
 
@@ -49,7 +48,7 @@ Sentry.init({
   }${
     params.isPerformanceSelected
       ? `
-  // Performance Monitoring
+  // Tracing
   // We recommend adjusting this value in production, or using a tracesSampler for finer control.
   tracesSampleRate: 1.0, //  Capture 100% of the transactions
   // Set 'tracePropagationTargets' to control for which URLs distributed tracing should be enabled
@@ -83,21 +82,21 @@ Sentry.init({
   dsn: "${params.dsn.public}",${
     params.isPerformanceSelected
       ? `
-        // Performance Monitoring
-        // We recommend adjusting this value in production, or using a tracesSampler for finer control.
-        tracesSampleRate: 1.0, // Capture 100% of the transactions
-        // Set 'tracePropagationTargets' to control for which URLs distributed tracing should be enabled
-        tracePropagationTargets: ["localhost", /^https:\\/\\/yourserver\\.io\\/api/],`
+  // Tracing
+  // We recommend adjusting this value in production, or using a tracesSampler for finer control.
+  tracesSampleRate: 1.0, // Capture 100% of the transactions
+  // Set 'tracePropagationTargets' to control for which URLs distributed tracing should be enabled
+  tracePropagationTargets: ["localhost", /^https:\\/\\/yourserver\\.io\\/api/],`
       : ''
   }${
     params.isProfilingSelected
       ? `
-          // Set profilesSampleRate to 1.0 to profile every transaction.
-          // Since profilesSampleRate is relative to tracesSampleRate,
-          // the final profiling rate can be computed as tracesSampleRate * profilesSampleRate
-          // For example, a tracesSampleRate of 0.5 and profilesSampleRate of 0.5 would
-          // results in 25% of transactions being profiled (0.5*0.5=0.25)
-          profilesSampleRate: 1.0,`
+    // Set profilesSampleRate to 1.0 to profile every transaction.
+    // Since profilesSampleRate is relative to tracesSampleRate,
+    // the final profiling rate can be computed as tracesSampleRate * profilesSampleRate
+    // For example, a tracesSampleRate of 0.5 and profilesSampleRate of 0.5 would
+    // results in 25% of transactions being profiled (0.5*0.5=0.25)
+    profilesSampleRate: 1.0,`
       : ''
   }
 });
@@ -165,6 +164,7 @@ const onboarding: OnboardingConfig = {
               label: 'TypeScript',
               value: 'typescript',
               language: 'typescript',
+              filename: 'nuxt.config.ts',
               code: getNuxtModuleSnippet(),
             },
           ],
@@ -179,6 +179,7 @@ const onboarding: OnboardingConfig = {
               label: 'TypeScript',
               value: 'typescript',
               language: 'typescript',
+              filename: 'sentry.client.config.ts',
               code: getSdkClientSetupSnippet(params),
             },
           ],
@@ -186,10 +187,12 @@ const onboarding: OnboardingConfig = {
         {
           description: (
             <Fragment>
-              {tct(
-                'For the server, create a [codeFile:sentry.server.config.ts] file in your project root and initialize the Sentry SDK:',
-                {codeFile: <code />}
-              )}
+              <p>
+                {tct(
+                  'For the server, create a [codeFile:sentry.server.config.ts] file in your project root and initialize the Sentry SDK:',
+                  {codeFile: <code />}
+                )}
+              </p>
 
               <StyledAlert type="info" showIcon>
                 {tct(
@@ -208,6 +211,7 @@ const onboarding: OnboardingConfig = {
               label: 'TypeScript',
               value: 'typescript',
               language: 'typescript',
+              filename: 'sentry.server.config.ts',
               code: getSdkServerSetupSnippet(params),
             },
           ],
@@ -236,8 +240,8 @@ const onboarding: OnboardingConfig = {
         {
           code: [
             {
-              label: 'JavaScript',
-              value: 'javascript',
+              label: 'Vue',
+              value: 'vue',
               language: 'html',
               code: getVerifyNuxtSnippet(),
             },
@@ -364,7 +368,6 @@ const docs: Docs = {
 };
 
 const StyledAlert = styled(Alert)`
-  margin-top: ${space(2)};
   margin-bottom: 0;
 `;
 
