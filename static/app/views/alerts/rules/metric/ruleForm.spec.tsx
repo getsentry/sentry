@@ -3,7 +3,7 @@ import {IncidentTriggerFixture} from 'sentry-fixture/incidentTrigger';
 import {MetricRuleFixture} from 'sentry-fixture/metricRule';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import selectEvent from 'sentry-test/selectEvent';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -668,14 +668,6 @@ describe('Incident Rules Form', () => {
   describe('Slack async lookup', () => {
     const uuid = 'xxxx-xxxx-xxxx';
 
-    beforeEach(() => {
-      jest.useFakeTimers();
-    });
-
-    afterEach(() => {
-      jest.useRealTimers();
-    });
-
     it('success status updates the rule', async () => {
       const alertRule = MetricRuleFixture({name: 'Slack Alert Rule'});
       MockApiClient.addMockResponse({
@@ -699,7 +691,7 @@ describe('Incident Rules Form', () => {
         onSubmitSuccess,
       });
 
-      act(jest.runAllTimers);
+      await screen.findByTestId('loading-indicator');
       await userEvent.type(
         await screen.findByPlaceholderText('Enter Alert Name'),
         'Slack Alert Rule',
@@ -709,7 +701,6 @@ describe('Incident Rules Form', () => {
 
       expect(await screen.findByTestId('loading-indicator')).toBeInTheDocument();
 
-      act(jest.runAllTimers);
       await waitFor(
         () => {
           expect(onSubmitSuccess).toHaveBeenCalledWith(
@@ -746,7 +737,6 @@ describe('Incident Rules Form', () => {
         onSubmitSuccess,
       });
 
-      act(jest.runAllTimers);
       expect(await screen.findByTestId('loading-indicator')).toBeInTheDocument();
       expect(onSubmitSuccess).not.toHaveBeenCalled();
     });
@@ -773,7 +763,6 @@ describe('Incident Rules Form', () => {
         rule: alertRule,
         onSubmitSuccess,
       });
-      act(jest.runAllTimers);
       await userEvent.type(
         await screen.findByPlaceholderText('Enter Alert Name'),
         'Slack Alert Rule',
@@ -781,7 +770,6 @@ describe('Incident Rules Form', () => {
       );
       await userEvent.click(await screen.findByLabelText('Save Rule'), {delay: null});
 
-      act(jest.runAllTimers);
       await waitFor(
         () => {
           expect(addErrorMessage).toHaveBeenCalledWith('An error occurred');
