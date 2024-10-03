@@ -136,6 +136,7 @@ const patterns: RegExp[] = [
   new RegExp('^api/0/internal/integration-proxy/$'),
   new RegExp('^api/0/internal/rpc/[^/]+/[^/]+/$'),
   new RegExp('^api/0/internal/feature-flags/$'),
+  new RegExp('^api/0/secret-scanning/github/$'),
   new RegExp('^api/hooks/mailgun/inbound/'),
   new RegExp('^oauth/authorize/$'),
   new RegExp('^oauth/token/$'),

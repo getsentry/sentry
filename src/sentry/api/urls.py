@@ -55,6 +55,7 @@ from sentry.api.endpoints.relocations.public_key import RelocationPublicKeyEndpo
 from sentry.api.endpoints.relocations.recover import RelocationRecoverEndpoint
 from sentry.api.endpoints.relocations.retry import RelocationRetryEndpoint
 from sentry.api.endpoints.relocations.unpause import RelocationUnpauseEndpoint
+from sentry.api.endpoints.secret_scanning.github import SecretScanningGitHubEndpoint
 from sentry.api.endpoints.seer_rpc import SeerRpcServiceEndpoint
 from sentry.api.endpoints.source_map_debug_blue_thunder_edition import (
     SourceMapDebugBlueThunderEditionEndpoint,
@@ -3319,6 +3320,12 @@ urlpatterns = [
         r"^publickeys/relocations/$",
         RelocationPublicKeyEndpoint.as_view(),
         name="sentry-api-0-relocations-public-key",
+    ),
+    # Secret Scanning
+    re_path(
+        r"^secret-scanning/github/$",
+        SecretScanningGitHubEndpoint.as_view(),
+        name="sentry-api-0-secret-scanning-github",
     ),
     # Catch all
     re_path(
