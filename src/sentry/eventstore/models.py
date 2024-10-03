@@ -371,12 +371,11 @@ class BaseEvent(metaclass=abc.ABCMeta):
         filtered_hashes = set()
         for _, variant in variants:
             hash_ = variant.get_hash()
-            if hash_ is None:
-                continue
 
             filtered_hashes.add(hash_)
 
-        return list(filtered_hashes)
+        # If any of the hashes came out as None, filter those out before returning
+        return list(filtered_hashes - {None})
 
     def normalize_stacktraces_for_grouping(self, grouping_config: StrategyConfiguration) -> None:
         """Normalize stacktraces and clear memoized interfaces
