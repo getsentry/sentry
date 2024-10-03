@@ -20,6 +20,7 @@ import sentry
 from sentry.conf.api_pagination_allowlist_do_not_modify import (
     SENTRY_API_PAGINATION_ALLOWLIST_DO_NOT_MODIFY,
 )
+from sentry.conf.types.celery import SplitQueueSize
 from sentry.conf.types.kafka_definition import ConsumerDefinition
 from sentry.conf.types.logging_config import LoggingConfig
 from sentry.conf.types.role_dict import RoleDict
@@ -821,6 +822,15 @@ CELERY_IMPORTS = (
     "sentry.integrations.vsts.tasks.kickoff_subscription_check",
     "sentry.integrations.tasks",
 )
+
+# tmp(michal): Default configuration for post_process* queues split
+SENTRY_POST_PROCESS_QUEUE_SPLIT_ROUTER: dict[str, Callable[[], str]] = {}
+
+# Mapping from queue name to split queues to be used by SplitQueueRouter.
+# This is meant to be used in those case where we have to specify the
+# queue name when issuing a task. Example: post process.
+CELERY_SPLIT_QUEUE_ROUTES: Mapping[str, SplitQueueSize] = {}
+
 
 default_exchange = Exchange("default", type="direct")
 control_exchange = default_exchange
@@ -3517,7 +3527,3 @@ if SILO_DEVSERVER:
         SENTRY_WEB_PORT = int(bind[1])
 
     CELERYBEAT_SCHEDULE_FILENAME = f"celerybeat-schedule-{SILO_MODE}"
-
-
-# tmp(michal): Default configuration for post_process* queueus split
-SENTRY_POST_PROCESS_QUEUE_SPLIT_ROUTER: dict[str, Callable[[], str]] = {}

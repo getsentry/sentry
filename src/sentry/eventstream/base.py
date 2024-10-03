@@ -6,9 +6,8 @@ from datetime import datetime
 from enum import Enum
 from typing import TYPE_CHECKING, Any, Optional, TypedDict, cast
 
-from django.conf import settings
-
 from sentry.issues.issue_occurrence import IssueOccurrence
+from sentry.queue.routers import SplitQueueRouter
 from sentry.tasks.post_process import post_process_group
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.services import Service
@@ -65,6 +64,9 @@ class EventStream(Service):
         "_get_event_type",
     )
 
+    def __init__(self, **options: Any) -> None:
+        self.__celery_router = SplitQueueRouter()
+
     def _dispatch_post_process_group_task(
         self,
         event_id: str,
@@ -108,9 +110,7 @@ class EventStream(Service):
         else:
             default_queue = "post_process_errors"
 
-        return settings.SENTRY_POST_PROCESS_QUEUE_SPLIT_ROUTER.get(
-            default_queue, lambda: default_queue
-        )()
+        return self.__celery_router.route_for_queue(default_queue)
 
     def _get_occurrence_data(self, event: Event | GroupEvent) -> MutableMapping[str, Any]:
         occurrence = cast(Optional[IssueOccurrence], getattr(event, "occurrence", None))
