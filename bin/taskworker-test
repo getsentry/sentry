@@ -22,8 +22,14 @@ configure()
 @click.option("--seed", "-s", help="pseudo random number generator seed", default=None)
 @click.option("--workers", help="Number of worker processes", default=1)
 @click.option("--mode", help="The worker/consumer mode to use", default="pull")
-def main(number: int, verbose: bool, workers: int, seed: float | None, mode: str):
+@click.option("--report-only", help="Run report output only", is_flag=True, default=False)
+def main(
+    number: int, verbose: bool, workers: int, seed: float | None, mode: str, report_only: bool
+):
     from sentry.taskdemo import variable_time
+
+    if report_only:
+        return print_results("./taskworker.log", workers)
 
     if verbose:
         click.echo(f"Adding {number} task messages")
@@ -169,13 +175,14 @@ def print_results(log_file: str, worker_count: int) -> None:
     adj_max_latency = max_latency - startup_latency
     adj_avg_latency = avg_latency - startup_latency
 
-    # Bucket latency into 50ms buckets and tally up buckets
-    bucket_count = 10
-    bucket_width = (adj_max_latency - adj_min_latency) / bucket_count
+    # Bucket latency and count totals in each bucket
+    latency_spread = adj_max_latency - adj_min_latency
+    bucket_count = 20
+    bucket_width = latency_spread / bucket_count
     buckets = defaultdict(int)
     for value in latency_times:
-        adjusted = value - startup_latency
-        bucket = int(adjusted % bucket_width)
+        adjusted = max(value - startup_latency, 0)
+        bucket = int(adjusted / bucket_width)
         buckets[bucket] += 1
 
     click.echo("")
@@ -192,7 +199,7 @@ def print_results(log_file: str, worker_count: int) -> None:
     click.echo("")
     bars = []
     for key, count in buckets.items():
-        bucket_upper = key * 0.05
+        bucket_upper = key * bucket_width
         # Limit to 50 to prevent wrapping in output
         bar = "█" * min(count, 50)
         bar += f" {count} "
