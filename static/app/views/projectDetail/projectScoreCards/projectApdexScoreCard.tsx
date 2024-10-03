@@ -1,12 +1,9 @@
-import round from 'lodash/round';
-
 import {shouldFetchPreviousPeriod} from 'sentry/components/charts/utils';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {parseStatsPeriod} from 'sentry/components/timeRangeSelector/utils';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import {getPeriod} from 'sentry/utils/duration/getPeriod';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -110,18 +107,9 @@ function ProjectApdexScoreCard(props: Props) {
 
   const previousApdex = Number(previousData?.data?.[0]?.['apdex()']) || undefined;
 
-  const trend =
-    defined(apdex) && defined(previousApdex)
-      ? round(apdex - previousApdex, 3)
-      : undefined;
-
   const cardTitle = t('Apdex');
 
-  let cardHelp = getTermHelp(organization, PerformanceTerm.APDEX);
-
-  if (trend) {
-    cardHelp += t(' This shows how it has changed since the last period.');
-  }
+  const cardHelp = getTermHelp(organization, PerformanceTerm.APDEX);
 
   if (!hasTransactions || !organization.features.includes('performance-view')) {
     return (

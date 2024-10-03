@@ -4,7 +4,6 @@ import {parseStatsPeriod} from 'sentry/components/timeRangeSelector/utils';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
 import {getPeriod} from 'sentry/utils/duration/getPeriod';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {BigNumberWidget} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidget';
@@ -137,27 +136,13 @@ function ProjectVelocityScoreCard(props: Props) {
     refetch,
   } = useReleaseCount(props);
 
-  const trend =
-    defined(currentReleases) &&
-    defined(previousReleases) &&
-    currentReleases?.length !== API_LIMIT
-      ? currentReleases.length - previousReleases.length
-      : undefined;
-
-  const shouldRenderTrend =
-    !isLoading && defined(currentReleases) && defined(previousReleases) && defined(trend);
-
   const noReleaseEver =
     [...(allTimeReleases ?? []), ...(previousReleases ?? []), ...(allTimeReleases ?? [])]
       .length === 0;
 
   const cardTitle = t('Number of Releases');
 
-  const cardHelp = shouldRenderTrend
-    ? t(
-        'The number of releases for this project and how it has changed since the last period.'
-      )
-    : t('The number of releases for this project.');
+  const cardHelp = t('The number of releases for this project.');
 
   if (!isLoading && noReleaseEver) {
     return (
@@ -181,6 +166,7 @@ function ProjectVelocityScoreCard(props: Props) {
           'count()': previousReleases?.length,
         },
       ]}
+      maximumValue={API_LIMIT}
       meta={{
         fields: {
           'count()': 'number',
