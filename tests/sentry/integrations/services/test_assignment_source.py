@@ -1,10 +1,12 @@
+from typing import Any
+
 from sentry.integrations.services.assignment_source import AssignmentSource
 from sentry.testutils.cases import TestCase
 
 
 class TestAssignmentSource(TestCase):
     def test_from_dict_empty_array(self):
-        data = {}
+        data: dict[str, Any] = {}
         result = AssignmentSource.from_dict(data)
         assert result is None
 
