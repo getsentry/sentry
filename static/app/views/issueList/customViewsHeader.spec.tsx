@@ -1,3 +1,4 @@
+import preview from 'jest-preview';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
@@ -102,30 +103,6 @@ describe('CustomViewsHeader', () => {
             query: getRequestViews[0].query,
             viewId: getRequestViews[0].id,
             sort: getRequestViews[0].querySort,
-          }),
-        })
-      );
-    });
-
-    it('switches tabs when clicked, and updates the query params accordingly', async () => {
-      render(<CustomViewsIssueListHeader {...defaultProps} />, {router: defaultRouter});
-
-      await userEvent.click(await screen.findByRole('tab', {name: 'Medium Priority'}));
-      expect(await screen.getByRole('tab', {name: 'High Priority'})).toHaveAttribute(
-        'aria-selected',
-        'false'
-      );
-      expect(screen.getByRole('tab', {name: 'Medium Priority'})).toHaveAttribute(
-        'aria-selected',
-        'true'
-      );
-      // Note that this is a push call, not a replace call
-      expect(defaultRouter.push).toHaveBeenCalledWith(
-        expect.objectContaining({
-          query: expect.objectContaining({
-            query: getRequestViews[1].query,
-            viewId: getRequestViews[1].id,
-            sort: getRequestViews[1].querySort,
           }),
         })
       );
@@ -288,6 +265,62 @@ describe('CustomViewsHeader', () => {
           }),
         })
       );
+    });
+  });
+
+  describe('CustomViewsHeader query behavior', () => {
+    beforeEach(() => {
+      MockApiClient.clearMockResponses();
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/group-search-views/`,
+        method: 'GET',
+        body: getRequestViews,
+      });
+    });
+
+    it('switches tabs when clicked, and updates the query params accordingly', async () => {
+      render(<CustomViewsIssueListHeader {...defaultProps} />, {router: defaultRouter});
+
+      await userEvent.click(await screen.findByRole('tab', {name: 'Medium Priority'}));
+      expect(screen.getByRole('tab', {name: 'High Priority'})).toHaveAttribute(
+        'aria-selected',
+        'false'
+      );
+      expect(screen.getByRole('tab', {name: 'Medium Priority'})).toHaveAttribute(
+        'aria-selected',
+        'true'
+      );
+      // Note that this is a push call, not a replace call
+      expect(defaultRouter.push).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({
+            query: getRequestViews[1].query,
+            viewId: getRequestViews[1].id,
+            sort: getRequestViews[1].querySort,
+          }),
+        })
+      );
+    });
+
+    it('retains unsaved changes after switching tabs', async () => {
+      render(<CustomViewsIssueListHeader {...defaultProps} router={unsavedTabRouter} />, {
+        router: unsavedTabRouter,
+      });
+      expect(await screen.findByTestId('unsaved-changes-indicator')).toBeInTheDocument();
+
+      await userEvent.click(await screen.findByRole('tab', {name: 'Medium Priority'}));
+      expect(await screen.findByRole('tab', {name: 'Medium Priority'})).toHaveAttribute(
+        'aria-selected',
+        'true'
+      );
+      expect(screen.queryByTestId('unsaved-changes-indicator')).not.toBeInTheDocument();
+
+      await userEvent.click(await screen.findByRole('tab', {name: 'High Priority'}));
+      expect(await screen.findByRole('tab', {name: 'High Priority'})).toHaveAttribute(
+        'aria-selected',
+        'true'
+      );
+      expect(await screen.findByTestId('unsaved-changes-indicator')).toBeInTheDocument();
     });
 
     it('renders the unsaved changes indicator if a viewId and non-matching query are in the query params', async () => {
@@ -468,15 +501,167 @@ describe('CustomViewsHeader', () => {
         screen.queryByRole('menuitemradio', {name: 'Delete'})
       ).not.toBeInTheDocument();
     });
+
+    describe('Tab renaming', () => {});
+
+    describe('Tab duplication', () => {
+      it('should duplicate the tab and then select the new tab', async () => {
+        const mockPutRequest = MockApiClient.addMockResponse({
+          url: `/organizations/org-slug/group-search-views/`,
+          method: 'PUT',
+        });
+
+        render(<CustomViewsIssueListHeader {...defaultProps} />, {router: defaultRouter});
+        preview.debug();
+
+        userEvent.click(
+          await screen.findByRole('button', {name: 'High Priority Ellipsis Menu'})
+        );
+
+        await userEvent.click(
+          await screen.findByRole('menuitemradio', {name: 'Duplicate'})
+        );
+
+        // Make sure the put request is called, and the duplicated view is in the request
+        expect(mockPutRequest).toHaveBeenCalledTimes(1);
+        const putRequestViews = mockPutRequest.mock.calls[0][1].data.views;
+        expect(putRequestViews).toHaveLength(4);
+        expect(putRequestViews).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              name: 'High Priority',
+              query: getRequestViews[0].query,
+              querySort: getRequestViews[0].querySort,
+            }),
+            expect.objectContaining({
+              name: 'High Priority (Copy)',
+              query: getRequestViews[0].query,
+              querySort: getRequestViews[0].querySort,
+            }),
+          ])
+        );
+
+        // Make sure the new tab is selected with a temporary viewId
+        expect(defaultRouter.push).toHaveBeenCalledWith(
+          expect.objectContaining({
+            query: expect.objectContaining({
+              viewId: expect.stringContaining('_'),
+              query: getRequestViews[0].query,
+              sort: getRequestViews[0].querySort,
+            }),
+          })
+        );
+      });
+    });
+
+    describe('Tab deletion', () => {
+      it('should delete the tab and then select the new first tab', async () => {
+        const mockPutRequest = MockApiClient.addMockResponse({
+          url: `/organizations/org-slug/group-search-views/`,
+          method: 'PUT',
+        });
+
+        render(<CustomViewsIssueListHeader {...defaultProps} />, {router: defaultRouter});
+
+        userEvent.click(
+          await screen.findByRole('button', {name: 'High Priority Ellipsis Menu'})
+        );
+
+        await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Delete'}));
+
+        // Make sure the put request is called, and the deleted view not in the request
+        expect(mockPutRequest).toHaveBeenCalledTimes(1);
+        const putRequestViews = mockPutRequest.mock.calls[0][1].data.views;
+        expect(putRequestViews).toHaveLength(2);
+        expect(putRequestViews.every).not.toEqual(
+          expect.objectContaining({id: getRequestViews[0].id})
+        );
+
+        // Make sure the new first tab is selected
+        expect(defaultRouter.push).toHaveBeenCalledWith(
+          expect.objectContaining({
+            query: expect.objectContaining({
+              query: getRequestViews[1].query,
+              viewId: getRequestViews[1].id,
+              sort: getRequestViews[1].querySort,
+            }),
+          })
+        );
+      });
+    });
+
+    describe('Tab saving changes', () => {
+      it('should save the changes and then select the new tab', async () => {
+        const mockPutRequest = MockApiClient.addMockResponse({
+          url: `/organizations/org-slug/group-search-views/`,
+          method: 'PUT',
+        });
+
+        render(
+          <CustomViewsIssueListHeader {...defaultProps} router={unsavedTabRouter} />,
+          {router: unsavedTabRouter}
+        );
+
+        userEvent.click(
+          await screen.findByRole('button', {name: 'High Priority Ellipsis Menu'})
+        );
+
+        await userEvent.click(
+          await screen.findByRole('menuitemradio', {name: 'Save Changes'})
+        );
+
+        // Make sure the put request is called, and the saved view is in the request
+        expect(mockPutRequest).toHaveBeenCalledTimes(1);
+        const putRequestViews = mockPutRequest.mock.calls[0][1].data.views;
+        expect(putRequestViews).toHaveLength(3);
+        expect(putRequestViews).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              id: getRequestViews[0].id,
+              name: 'High Priority',
+              query: 'is:unresolved',
+              querySort: getRequestViews[0].querySort,
+            }),
+          ])
+        );
+
+        expect(unsavedTabRouter.push).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('Tab discarding changes', () => {
+      it('should discard the changes and then select the new tab', async () => {
+        const mockPutRequest = MockApiClient.addMockResponse({
+          url: `/organizations/org-slug/group-search-views/`,
+          method: 'PUT',
+        });
+
+        render(
+          <CustomViewsIssueListHeader {...defaultProps} router={unsavedTabRouter} />,
+          {router: unsavedTabRouter}
+        );
+
+        userEvent.click(
+          await screen.findByRole('button', {name: 'High Priority Ellipsis Menu'})
+        );
+
+        await userEvent.click(
+          await screen.findByRole('menuitemradio', {name: 'Discard Changes'})
+        );
+        // Just to be safe, make sure discarding changes does not trigger the put request
+        expect(mockPutRequest).not.toHaveBeenCalled();
+
+        // Make sure that the tab's original query is restored
+        expect(unsavedTabRouter.push).toHaveBeenCalledWith(
+          expect.objectContaining({
+            query: expect.objectContaining({
+              query: getRequestViews[0].query,
+              viewId: getRequestViews[0].id,
+              sort: getRequestViews[0].querySort,
+            }),
+          })
+        );
+      });
+    });
   });
-
-  describe('Tab renaming', () => {});
-
-  describe('Tab duplication', () => {});
-
-  describe('Tab deletion', () => {});
-
-  describe('Tab saving changes', () => {});
-
-  describe('Tab discarding changes', () => {});
 });
