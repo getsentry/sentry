@@ -193,7 +193,7 @@ simplejson==3.17.6
 six==1.16.0
 slack-sdk==3.27.2
 sniffio==1.2.0
-snuba-sdk==3.0.39
+snuba-sdk==3.0.40
 sortedcontainers==2.4.0
 soupsieve==2.3.2.post1
 sqlparse==0.5.0
