@@ -272,7 +272,7 @@ class TestProcessResourceChange(TestCase):
 
         assert len(safe_urlopen.mock_calls) == 0
 
-    @patch("sentry.tasks.sentry_apps._process_resource_change")
+    @patch("sentry.sentry_apps.tasks.sentry_apps._process_resource_change")
     def test_process_resource_change_bound_passes_retry_object(self, process, safe_urlopen):
         group = self.create_group(project=self.project)
 
