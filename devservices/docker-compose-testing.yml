@@ -59,7 +59,7 @@ services:
       KAFKA_NODE_ID: '1001'
       CLUSTER_ID: 'MkU3OEVBNTcwNTJENDM2Qk'
       KAFKA_LISTENERS: 'PLAINTEXT://0.0.0.0:29092,INTERNAL://0.0.0.0:9093,EXTERNAL://0.0.0.0:9092,CONTROLLER://0.0.0.0:29093'
-      KAFKA_ADVERTISED_LISTENERS: 'PLAINTEXT://127.0.0.1:29092,INTERNAL://kafka:9093,EXTERNAL://kafka:9092'
+      KAFKA_ADVERTISED_LISTENERS: 'PLAINTEXT://127.0.0.1:29092,INTERNAL://kafka:9093,EXTERNAL://127.0.0.1:9092'
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'PLAINTEXT:PLAINTEXT,INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT'
       KAFKA_INTER_BROKER_LISTENER_NAME: 'PLAINTEXT'
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: '1'
@@ -86,6 +86,7 @@ services:
       retries: 30
     ports:
       - '9092:9092'
+      - '9093:9093'
   clickhouse:
     <<: *restart_policy
     image: 'ghcr.io/getsentry/image-mirror-altinity-clickhouse-server:23.3.19.33.altinitystable'
@@ -223,3 +224,8 @@ volumes:
   sentry-vroom:
   sentry-kafka-log:
   sentry-clickhouse-log:
+
+networks:
+  sentry:
+    name: sentry
+    external: true

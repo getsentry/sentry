@@ -18,4 +18,4 @@ processing:
   topics:
     metrics_transactions: ingest-performance-metrics
     metrics_sessions: ingest-metrics
-  redis: redis://redis:6379
+  redis: redis://127.0.0.1:6379
