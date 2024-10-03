@@ -13,10 +13,11 @@ services:
   memcached:
     <<: *restart_policy
     image: 'ghcr.io/getsentry/image-mirror-library-memcached:1.5-alpine'
-    command: ['-I', '${SENTRY_MAX_EXTERNAL_SOURCEMAP_SIZE:-1M}']
     healthcheck:
       <<: *healthcheck_defaults
       test: echo stats | nc 127.0.0.1 11211
+    ports:
+      - '11211:11211'
   redis:
     <<: *restart_policy
     image: ghcr.io/getsentry/image-mirror-library-redis:5.0-alpine
@@ -45,6 +46,8 @@ services:
       POSTGRES_DB: 'sentry'
     volumes:
       - 'sentry-postgres:/var/lib/postgresql/data'
+    ports:
+      - '5432:5432'
   kafka:
     <<: *restart_policy
     image: 'ghcr.io/getsentry/image-mirror-confluentinc-cp-kafka:7.5.0'
@@ -81,6 +84,8 @@ services:
       interval: 10s
       timeout: 10s
       retries: 30
+    ports:
+      - '9092:9092'
   clickhouse:
     <<: *restart_policy
     image: 'ghcr.io/getsentry/image-mirror-altinity-clickhouse-server:23.3.19.33.altinitystable'
@@ -140,6 +145,8 @@ services:
         <<: *depends_on-healthy
       redis:
         <<: *depends_on-healthy
+    ports:
+      - '7899:7899'
   vroom:
     <<: *restart_policy
     image: 'us-central1-docker.pkg.dev/sentryio/vroom/vroom:latest'
@@ -153,8 +160,8 @@ services:
     depends_on:
       kafka:
         <<: *depends_on-healthy
-    profiles:
-      - feature-complete
+    ports:
+      - '8085:8085'
   snuba:
     image: ghcr.io/getsentry/snuba:latest
     ports:
