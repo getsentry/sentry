@@ -356,12 +356,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
         from sentry.grouping.api import sort_grouping_variants
 
         variants = self.get_grouping_variants(force_config)
-        hashes = [
-            hash_
-            for _, hash_ in self._hashes_from_sorted_grouping_variants(
-                sort_grouping_variants(variants)
-            )
-        ]
+        hashes = self._hashes_from_sorted_grouping_variants(sort_grouping_variants(variants))
 
         # Write to event before returning
         self.data["hashes"] = hashes
@@ -370,18 +365,18 @@ class BaseEvent(metaclass=abc.ABCMeta):
     @staticmethod
     def _hashes_from_sorted_grouping_variants(
         variants: KeyedVariants,
-    ) -> list[tuple[str, str]]:
+    ) -> list[str]:
         """Create hashes from variants and filter out duplicates and None values"""
 
         filtered_hashes = []
         seen_hashes = set()
-        for name, variant in variants:
+        for _, variant in variants:
             hash_ = variant.get_hash()
             if hash_ is None or hash_ in seen_hashes:
                 continue
 
             seen_hashes.add(hash_)
-            filtered_hashes.append((name, hash_))
+            filtered_hashes.append(hash_)
 
         return filtered_hashes
 
