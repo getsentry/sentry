@@ -12,7 +12,7 @@ x-healthcheck-defaults: &healthcheck_defaults
 services:
   memcached:
     <<: *restart_policy
-    image: 'memcached:1.6.26-alpine'
+    image: 'ghcr.io/getsentry/image-mirror-library-memcached:1.5-alpine'
     command: ['-I', '${SENTRY_MAX_EXTERNAL_SOURCEMAP_SIZE:-1M}']
     healthcheck:
       <<: *healthcheck_defaults
@@ -47,7 +47,7 @@ services:
       - 'sentry-postgres:/var/lib/postgresql/data'
   kafka:
     <<: *restart_policy
-    image: 'confluentinc/cp-kafka:7.6.1'
+    image: 'ghcr.io/getsentry/image-mirror-confluentinc-cp-kafka:7.5.0'
     environment:
       # https://docs.confluent.io/platform/current/installation/docker/config-reference.html#cp-kakfa-example
       KAFKA_PROCESS_ROLES: 'broker,controller'
@@ -83,11 +83,7 @@ services:
       retries: 30
   clickhouse:
     <<: *restart_policy
-    image: clickhouse-self-hosted-local
-    build:
-      context: ./clickhouse
-      args:
-        BASE_IMAGE: 'altinity/clickhouse-server:23.8.11.29.altinitystable'
+    image: 'ghcr.io/getsentry/image-mirror-altinity-clickhouse-server:23.3.19.33.altinitystable'
     ulimits:
       nofile:
         soft: 262144
@@ -121,7 +117,7 @@ services:
       - '9009:9009'
   symbolicator:
     <<: *restart_policy
-    image: ghcr.io/getsentry/symbolicator:latest
+    image: 'us-central1-docker.pkg.dev/sentryio/symbolicator/image:nightly'
     volumes:
       - 'sentry-symbolicator:/data'
       - type: bind
@@ -133,7 +129,7 @@ services:
       - '3021:3021'
   relay:
     <<: *restart_policy
-    image: ghcr.io/getsentry/relay:latest
+    image: 'us-central1-docker.pkg.dev/sentryio/relay/relay:nightly'
     volumes:
       - type: bind
         read_only: true
@@ -150,7 +146,7 @@ services:
         <<: *depends_on-healthy
   vroom:
     <<: *restart_policy
-    image: '$VROOM_IMAGE'
+    image: 'us-central1-docker.pkg.dev/sentryio/vroom/vroom:latest'
     environment:
       SENTRY_KAFKA_BROKERS_PROFILING: 'kafka:9092'
       SENTRY_KAFKA_BROKERS_OCCURRENCES: 'kafka:9092'
