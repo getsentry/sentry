@@ -40,8 +40,21 @@ def test_split_router_legacy() -> None:
             )
 
 
+CELERY_SPLIT_QUEUE_ROUTES: Mapping[str, SplitQueueSize] = {
+    "post_process_transactions": {"total": 5, "in_use": 3},
+    "post_process_errors": {"total": 5, "in_use": 1},
+}
+
+
 @django_db_all
-@override_settings(SENTRY_POST_PROCESS_QUEUE_SPLIT_ROUTER={})
+@override_settings(
+    SENTRY_POST_PROCESS_QUEUE_SPLIT_ROUTER={},
+    CELERY_SPLIT_QUEUE_ROUTES=CELERY_SPLIT_QUEUE_ROUTES,
+    CELERY_QUEUES=[
+        *settings.CELERY_QUEUES,
+        *make_split_queues(CELERY_SPLIT_QUEUE_ROUTES),
+    ],
+)
 @override_options(
     {
         "celery_split_queue_rollout": {
@@ -52,12 +65,6 @@ def test_split_router_legacy() -> None:
 def test_router_not_rolled_out() -> None:
     router = SplitQueueRouter()
     assert router.route_for_queue("post_process_transactions") == "post_process_transactions"
-
-
-CELERY_SPLIT_QUEUE_ROUTES: Mapping[str, SplitQueueSize] = {
-    "post_process_transactions": {"total": 5, "in_use": 3},
-    "post_process_errors": {"total": 5, "in_use": 1},
-}
 
 
 @django_db_all
