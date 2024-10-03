@@ -153,7 +153,7 @@ runs:
       run: |
         sentry init
 
-        docker compose up -f devservices/docker-compose-testing.yml
+        docker compose -f devservices/docker-compose-testing.yml up -d
 
         sentry devservices up "${services[@]}"
 
