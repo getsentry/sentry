@@ -159,7 +159,7 @@ export function DatabaseLandingPage() {
     ) ||
     throughputData['spm()'].data?.some(({value}) => value > 0);
 
-  useSynchronizeCharts([!isThroughputDataLoading && !isDurationDataLoading]);
+  useSynchronizeCharts(2, !isThroughputDataLoading && !isDurationDataLoading);
 
   const crumbs = useModuleBreadcrumbs('db');
 
