@@ -1,3 +1,4 @@
+import itertools
 from abc import ABC, abstractmethod
 from collections.abc import Mapping
 from enum import Enum
@@ -30,8 +31,46 @@ class EventLifecycleMetric(ABC):
 
     @abstractmethod
     def get_key(self, outcome: EventLifecycleOutcome) -> str:
-        """Construct the metrics key that will represent this event."""
+        """Construct the metrics key that will represent this event.
+
+        It is recommended to implement this method by delegating to a
+        `get_standard_key` call.
+        """
+
         raise NotImplementedError
+
+    @staticmethod
+    def get_standard_key(
+        domain: str,
+        integration_name: str,
+        interaction_type: str,
+        outcome: EventLifecycleOutcome,
+        *extra_tokens: str,
+    ) -> str:
+        """Construct a key with a standard cross-integration structure.
+
+        Implementations of `get_key` generally should delegate to this method in
+        order to ensure consistency across integrations.
+
+        :param domain:           a constant string representing the category of business
+                                 concern or vertical domain that the integration belongs
+                                 to (e.g., "messaging" or "source_code_management")
+        :param integration_name: the name of the integration (generally should match a
+                                 package name from `sentry.integrations`)
+        :param interaction_type: a key representing the category of interaction being
+                                 captured (generally should come from an Enum class)
+        :param outcome:          the object representing the event outcome
+        :param extra_tokens:     additional tokens to add extra context, if needed
+        :return: a key to represent the event in metrics or logging
+        """
+
+        # For now, universally include an "slo" token to distinguish from any
+        # previously existing metrics keys.
+        # TODO: Merge with or replace existing keys?
+        root_tokens = ("sentry", "integrations", "slo")
+
+        specific_tokens = (domain, integration_name, interaction_type, str(outcome))
+        return ".".join(itertools.chain(root_tokens, specific_tokens, extra_tokens))
 
     def get_extras(self) -> Mapping[str, Any]:
         """Get extra data to log."""

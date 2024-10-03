@@ -45,20 +45,17 @@ class MessagingInteractionEvent(EventLifecycleMetric):
     interaction_type: MessagingInteractionType
     spec: MessagingIntegrationSpec
 
-    # We can cram various optional attributes here if we want to capture them in logs
+    # Optional attributes to populate extras
     user: User | RpcUser | None = None
     organization: Organization | RpcOrganization | None = None
 
     def get_key(self, outcome: EventLifecycleOutcome) -> str:
-        # For now, creating a new namespace (with an "slo" token) to avoid clashing
-        # with existing keys. When we settle on an approach we like, this could
-        # replace or combine with existing metrics keys.
-        tag_tokens = ["sentry", "integrations", "messaging", "slo"]  # TODO: Change these?
-
-        tag_tokens += [
-            str(token) for token in [self.spec.provider_slug, self.interaction_type, outcome]
-        ]
-        return ".".join(tag_tokens)
+        return self.get_standard_key(
+            domain="messaging",
+            integration_name=self.spec.provider_slug,
+            interaction_type=str(self.interaction_type),
+            outcome=outcome,
+        )
 
     def get_extras(self) -> Mapping[str, Any]:
         return {
