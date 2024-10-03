@@ -5,14 +5,9 @@ x-depends_on-healthy: &depends_on-healthy
 x-depends_on-default: &depends_on-default
   condition: service_started
 x-healthcheck-defaults: &healthcheck_defaults
-  # Avoid setting the interval too small, as docker uses much more CPU than one would expect.
-  # Related issues:
-  # https://github.com/moby/moby/issues/39102
-  # https://github.com/moby/moby/issues/39388
-  # https://github.com/getsentry/self-hosted/issues/1000
-  interval: '$HEALTHCHECK_INTERVAL'
-  timeout: '$HEALTHCHECK_TIMEOUT'
-  retries: $HEALTHCHECK_RETRIES
+  interval: 30s
+  timeout: 1m30s
+  retries: 10
   start_period: 10s
 services:
   memcached:
@@ -21,7 +16,6 @@ services:
     command: ['-I', '${SENTRY_MAX_EXTERNAL_SOURCEMAP_SIZE:-1M}']
     healthcheck:
       <<: *healthcheck_defaults
-      # From: https://stackoverflow.com/a/31877626/5155484
       test: echo stats | nc 127.0.0.1 11211
   redis:
     <<: *restart_policy
