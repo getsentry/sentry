@@ -17,27 +17,6 @@ env:
   SEGMENT_DOWNLOAD_TIMEOUT_MINS: 3
 
 jobs:
-  files-changed:
-    name: detect what files changed
-    runs-on: ubuntu-22.04
-    timeout-minutes: 3
-    # Map a step output to a job output
-    outputs:
-      api_docs: ${{ steps.changes.outputs.api_docs }}
-      backend: ${{ steps.changes.outputs.backend_all }}
-      backend_dependencies: ${{ steps.changes.outputs.backend_dependencies }}
-      backend_any_type: ${{ steps.changes.outputs.backend_any_type }}
-      migration_lockfile: ${{ steps.changes.outputs.migration_lockfile }}
-    steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
-
-      - name: Check for backend file changes
-        uses: dorny/paths-filter@0bc4621a3135347011ad047f9ecf449bf72ce2bd # v3.0.0
-        id: changes
-        with:
-          token: ${{ github.token }}
-          filters: .github/file-filters.yml
-
   docker-compose-api-docs:
     if: needs.files-changed.outputs.api_docs == 'true'
     needs: files-changed
@@ -63,8 +42,6 @@ jobs:
           yarn add ts-node && make test-api-docs
 
   docker-compose-backend-test:
-    if: needs.files-changed.outputs.backend == 'true'
-    needs: files-changed
     name: backend test
     runs-on: ubuntu-22.04
     timeout-minutes: 60
@@ -116,8 +93,6 @@ jobs:
           commit_sha: ${{ github.event.pull_request.head.sha }}
 
   docker-compose-backend-migration-tests:
-    if: needs.files-changed.outputs.backend == 'true'
-    needs: files-changed
     name: backend migration tests
     runs-on: ubuntu-22.04
     timeout-minutes: 30
@@ -146,8 +121,6 @@ jobs:
           commit_sha: ${{ github.event.pull_request.head.sha }}
 
   docker-compose-cli:
-    if: needs.files-changed.outputs.backend == 'true'
-    needs: files-changed
     name: cli test
     runs-on: ubuntu-22.04
     timeout-minutes: 10
@@ -175,8 +148,6 @@ jobs:
           commit_sha: ${{ github.event.pull_request.head.sha }}
 
   docker-compose-migration:
-    if: needs.files-changed.outputs.migration_lockfile == 'true'
-    needs: files-changed
     name: check migration
     runs-on: ubuntu-22.04
     strategy:
@@ -199,8 +170,6 @@ jobs:
           ./.github/workflows/scripts/migration-check.sh
 
   docker-compose-monolith-dbs:
-    if: needs.files-changed.outputs.backend == 'true'
-    needs: files-changed
     name: monolith-dbs test
     runs-on: ubuntu-22.04
     timeout-minutes: 20
@@ -247,7 +216,6 @@ jobs:
         docker-compose-backend-test,
         docker-compose-backend-migration-tests,
         docker-compose-cli,
-        files-changed,
         docker-compose-migration,
         docker-compose-monolith-dbs,
       ]
