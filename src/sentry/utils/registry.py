@@ -29,7 +29,7 @@ class Registry(Generic[T]):
 
         return inner
 
-    def get_registration(self, key: str) -> T:
+    def get(self, key: str) -> T:
         if key not in self.registrations:
             raise NoRegistrationExistsError(f"No registration exists for {key}")
         return self.registrations[key]

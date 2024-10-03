@@ -17,12 +17,12 @@ class RegistryTest(TestCase):
         def unregistered_func():
             pass
 
-        assert test_registry.get_registration("something") == registered_func
+        assert test_registry.get("something") == registered_func
         with pytest.raises(NoRegistrationExistsError):
-            test_registry.get_registration("something else")
+            test_registry.get("something else")
 
         with pytest.raises(AlreadyRegisteredError):
             test_registry.register("something")(unregistered_func)
 
         test_registry.register("something else")(unregistered_func)
-        assert test_registry.get_registration("something else") == unregistered_func
+        assert test_registry.get("something else") == unregistered_func
