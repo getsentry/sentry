@@ -1,13 +1,13 @@
-import {useCallback} from 'react';
+import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import ButtonBar from 'sentry/components/buttonBar';
-import Duration from 'sentry/components/duration';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
+import {TabbedCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
@@ -19,9 +19,7 @@ import type {NewQuery} from 'sentry/types/organization';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
-import {DURATION_UNITS} from 'sentry/utils/discover/fieldRenderers';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {formatFloat} from 'sentry/utils/number/formatFloat';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -31,8 +29,10 @@ import {ModulePageProviders} from 'sentry/views/insights/common/components/modul
 import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import {PlatformSelector} from 'sentry/views/insights/mobile/screenload/components/platformSelector';
+import {SETUP_CONTENT as TTFD_SETUP} from 'sentry/views/insights/mobile/screenload/data/setupContent';
 import {ScreensOverview} from 'sentry/views/insights/mobile/screens/components/screensOverview';
 import VitalCard from 'sentry/views/insights/mobile/screens/components/vitalCard';
+import {VitalDetailPanel} from 'sentry/views/insights/mobile/screens/components/vitalDetailPanel';
 import {Referrer} from 'sentry/views/insights/mobile/screens/referrers';
 import {
   MODULE_DESCRIPTION,
@@ -47,6 +47,7 @@ import {
   type MetricValue,
   STATUS_UNKNOWN,
   type VitalItem,
+  type VitalStatus,
 } from 'sentry/views/insights/mobile/screens/utils';
 import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
@@ -59,7 +60,6 @@ export function ScreensLandingPage() {
   const location = useLocation();
   const organization = useOrganization();
   const {isProjectCrossPlatform, selectedPlatform} = useCrossPlatformProject();
-  // const {primaryRelease, secondaryRelease} = useReleaseSelection();
 
   const handleProjectChange = useCallback(() => {
     browserHistory.replace({
@@ -75,6 +75,19 @@ export function ScreensLandingPage() {
     {
       title: t('Cold App Start'),
       description: t('Average Cold App Start duration'),
+      docs: t(
+        'The average cold app start duration. A cold start usually occurs when the app launched for the first time, after a reboot or an app update.'
+      ),
+      setup: undefined,
+      platformDocLinks: {
+        Android:
+          'https://developer.android.com/topic/performance/vitals/launch-time#cold',
+      },
+      sdkDocLinks: {
+        Android:
+          'https://docs.sentry.io/platforms/android/tracing/instrumentation/automatic-instrumentation/#app-start-instrumentation',
+        iOS: 'https://docs.sentry.io/platforms/apple/guides/ios/tracing/instrumentation/automatic-instrumentation/#app-start-tracing',
+      },
       field: 'avg(measurements.app_start_cold)',
       dataset: DiscoverDatasets.METRICS,
       getStatus: getColdAppStartPerformance,
@@ -82,13 +95,38 @@ export function ScreensLandingPage() {
     {
       title: t('Warm App Start'),
       description: t('Average Warm App Start duration'),
+      docs: t(
+        'The average warm app start duration. A warm start usually occurs occurs when the app was already launched previously or the process was created beforehand.'
+      ),
+      setup: undefined,
+      platformDocLinks: {
+        Android:
+          'https://developer.android.com/topic/performance/vitals/launch-time#warm',
+      },
+      sdkDocLinks: {
+        Android:
+          'https://docs.sentry.io/platforms/android/tracing/instrumentation/automatic-instrumentation/#app-start-instrumentation',
+        iOS: 'https://docs.sentry.io/platforms/apple/guides/ios/tracing/instrumentation/automatic-instrumentation/#app-start-tracing',
+      },
       field: 'avg(measurements.app_start_warm)',
       dataset: DiscoverDatasets.METRICS,
       getStatus: getWarmAppStartPerformance,
     },
     {
       title: t('Slow Frames'),
-      description: t('Average number of slow frames'),
+      description: t('Slow frames ratio'),
+      docs: t(
+        'The number of slow frames divided by the total number of frames rendered.'
+      ),
+      setup: undefined,
+      platformDocLinks: {
+        Android: 'https://developer.android.com/topic/performance/vitals/render',
+      },
+      sdkDocLinks: {
+        Android:
+          'https://docs.sentry.io/platforms/android/tracing/instrumentation/automatic-instrumentation/#slow-and-frozen-frames',
+        iOS: 'https://docs.sentry.io/platforms/apple/guides/ios/tracing/instrumentation/automatic-instrumentation/#slow-and-frozen-frames',
+      },
       field: `avg(mobile.slow_frames)`,
       dataset: DiscoverDatasets.SPANS_METRICS,
       getStatus: getDefaultMetricPerformance,
@@ -96,6 +134,18 @@ export function ScreensLandingPage() {
     {
       title: t('Frozen Frames'),
       description: t('Average number of frozen frames'),
+      docs: t(
+        'The number of frozen frames divided by the total number of frames rendered.'
+      ),
+      setup: undefined,
+      platformDocLinks: {
+        Android: 'https://developer.android.com/topic/performance/vitals/render',
+      },
+      sdkDocLinks: {
+        Android:
+          'https://docs.sentry.io/platforms/android/tracing/instrumentation/automatic-instrumentation/#slow-and-frozen-frames',
+        iOS: 'https://docs.sentry.io/platforms/apple/guides/ios/tracing/instrumentation/automatic-instrumentation/#slow-and-frozen-frames',
+      },
       field: `avg(mobile.frozen_frames)`,
       dataset: DiscoverDatasets.SPANS_METRICS,
       getStatus: getDefaultMetricPerformance,
@@ -103,6 +153,16 @@ export function ScreensLandingPage() {
     {
       title: t('Frame Delay'),
       description: t('Average frame delay'),
+      docs: t('The average delay divided by the total rendering time.'),
+      setup: undefined,
+      platformDocLinks: {
+        Android: 'https://developer.android.com/topic/performance/vitals/render',
+      },
+      sdkDocLinks: {
+        Android:
+          'https://docs.sentry.io/platforms/android/tracing/instrumentation/automatic-instrumentation/#slow-and-frozen-frames',
+        iOS: 'https://docs.sentry.io/platforms/apple/guides/ios/tracing/instrumentation/automatic-instrumentation/#slow-and-frozen-frames',
+      },
       field: `avg(mobile.frames_delay)`,
       dataset: DiscoverDatasets.SPANS_METRICS,
       getStatus: getDefaultMetricPerformance,
@@ -110,6 +170,17 @@ export function ScreensLandingPage() {
     {
       title: t('TTID'),
       description: t('Average time to intial display.'),
+      docs: t('The average time it takes until your app is drawing the first frame.'),
+      setup: undefined,
+      platformDocLinks: {
+        Android:
+          'https://developer.android.com/topic/performance/vitals/launch-time#time-initial',
+      },
+      sdkDocLinks: {
+        Android:
+          'https://docs.sentry.io/platforms/android/tracing/instrumentation/automatic-instrumentation/#time-to-initial-display',
+        iOS: 'https://docs.sentry.io/platforms/apple/features/experimental-features/',
+      },
       field: `avg(measurements.time_to_initial_display)`,
       dataset: DiscoverDatasets.METRICS,
       getStatus: getDefaultMetricPerformance,
@@ -117,6 +188,17 @@ export function ScreensLandingPage() {
     {
       title: t('TTFD'),
       description: t('Average time to full display.'),
+      docs: t('The average time it takes until your app is drawing the full content.'),
+      setup: <TabbedCodeSnippet tabs={TTFD_SETUP} />,
+      platformDocLinks: {
+        Android:
+          'https://developer.android.com/topic/performance/vitals/launch-time#time-full',
+      },
+      sdkDocLinks: {
+        Android:
+          'https://docs.sentry.io/platforms/android/tracing/instrumentation/automatic-instrumentation/#time-to-initial-display',
+        iOS: 'https://docs.sentry.io/platforms/apple/features/experimental-features/',
+      },
       field: `avg(measurements.time_to_full_display)`,
       dataset: DiscoverDatasets.METRICS,
       getStatus: getDefaultMetricPerformance,
@@ -125,6 +207,10 @@ export function ScreensLandingPage() {
 
   const metricsFields: string[] = new Array();
   const spanMetricsFields: string[] = new Array();
+  const [state, setState] = useState<{
+    status: VitalStatus | undefined;
+    vital: VitalItem | undefined;
+  }>({status: undefined, vital: undefined});
 
   vitalItems.forEach(element => {
     if (element.dataset === DiscoverDatasets.METRICS) {
@@ -204,26 +290,6 @@ export function ScreensLandingPage() {
     return undefined;
   };
 
-  const formattedMetricValueFor = (metric: MetricValue): React.ReactNode => {
-    if (typeof metric.value === 'number' && metric.type === 'duration' && metric.unit) {
-      return (
-        <Duration
-          seconds={
-            (metric.value * ((metric.unit && DURATION_UNITS[metric.unit]) ?? 1)) / 1000
-          }
-          fixedDigits={2}
-          abbreviation
-        />
-      );
-    }
-
-    if (typeof metric.value === 'number' && metric.type === 'number') {
-      return <span>{formatFloat(metric.value, 2)}</span>;
-    }
-
-    return <span>{metric.value}</span>;
-  };
-
   return (
     <ModulePageProviders moduleName="mobile-screens" features={[MODULE_FEATURE]}>
       <Layout.Page>
@@ -271,17 +337,21 @@ export function ScreensLandingPage() {
                       const metricValue = metricValueFor(item);
                       const status =
                         (metricValue && item.getStatus(metricValue)) ?? STATUS_UNKNOWN;
-                      const formattedValue: React.ReactNode =
-                        metricValue && formattedMetricValueFor(metricValue);
 
                       return (
                         <VitalCard
+                          onClick={() => {
+                            setState({
+                              vital: item,
+                              status: status,
+                            });
+                          }}
                           key={item.field}
                           title={item.title}
                           description={item.description}
                           statusLabel={status.description}
                           status={status.score}
-                          formattedValue={formattedValue}
+                          formattedValue={status.formattedValue}
                         />
                       );
                     })}
@@ -291,6 +361,13 @@ export function ScreensLandingPage() {
               </ErrorBoundary>
             </Layout.Main>
           </Layout.Body>
+          <VitalDetailPanel
+            vital={state.vital}
+            status={state.status}
+            onClose={() => {
+              setState({vital: undefined, status: undefined});
+            }}
+          />
         </PageAlertProvider>
       </Layout.Page>
     </ModulePageProviders>

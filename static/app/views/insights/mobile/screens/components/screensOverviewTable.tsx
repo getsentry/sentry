@@ -87,12 +87,12 @@ function ScreensOverviewTable({data, eventView, isLoading, pageLinks}: Props) {
       pageLinks={pageLinks}
       columnOrder={[
         'transaction',
+        'avg(measurements.app_start_cold)',
+        'avg(measurements.app_start_warm)',
         `avg(mobile.slow_frames)`,
         `avg(mobile.frozen_frames)`,
         `avg(measurements.time_to_initial_display)`,
         `avg(measurements.time_to_full_display)`,
-        'avg(measurements.app_start_cold)',
-        'avg(measurements.app_start_warm)',
         `count()`,
       ]}
       defaultSort={[
