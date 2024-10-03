@@ -368,9 +368,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
     ) -> list[str]:
         """Create hashes from variants and filter out duplicates and None values"""
 
-        filtered_hashes = set()
-        for _, variant in variants:
-            filtered_hashes.add(variant.get_hash())
+        filtered_hashes = {variant.get_hash() for _, variant in variants}
 
         # If any of the hashes came out as None, filter those out before returning
         return list(filtered_hashes - {None})
