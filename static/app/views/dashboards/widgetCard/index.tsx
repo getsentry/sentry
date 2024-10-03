@@ -170,7 +170,7 @@ class WidgetCard extends Component<Props, State> {
     }
 
     return (
-      <StyledWidgetCardContextMenuContainer>
+      <WidgetCardContextMenuContainer>
         <WidgetCardContextMenu
           organization={organization}
           widget={widget}
@@ -192,7 +192,7 @@ class WidgetCard extends Component<Props, State> {
           description={widget.description}
           title={widget.title}
         />
-      </StyledWidgetCardContextMenuContainer>
+      </WidgetCardContextMenuContainer>
     );
   }
 
@@ -493,7 +493,7 @@ const ErrorCard = styled(Placeholder)`
   margin-bottom: ${space(2)};
 `;
 
-const StyledWidgetCardContextMenuContainer = styled('div')`
+export const WidgetCardContextMenuContainer = styled('div')`
   opacity: 1;
   transition: opacity 0.1s;
 `;
@@ -512,7 +512,7 @@ export const WidgetCardPanel = styled(Panel, {
   flex-direction: column;
 
   &:not(:hover):not(:focus-within) {
-    ${StyledWidgetCardContextMenuContainer} {
+    ${WidgetCardContextMenuContainer} {
       opacity: 0;
       clip: rect(0 0 0 0);
       clip-path: inset(50%);
@@ -522,6 +522,14 @@ export const WidgetCardPanel = styled(Panel, {
       white-space: nowrap;
       width: 1px;
     }
+  }
+
+  :hover {
+    background-color: ${p => p.theme.surface200};
+    transition:
+      background-color 100ms linear,
+      box-shadow 100ms linear;
+    box-shadow: ${p => p.theme.dropShadowLight};
   }
 `;
 
