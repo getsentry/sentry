@@ -8,6 +8,7 @@ from sentry.tasks.update_user_reports import update_user_reports
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import iso_format
 from sentry.testutils.skips import requires_snuba
+from sentry.utils.dates import epoch
 
 pytestmark = [requires_snuba]
 
@@ -44,7 +45,7 @@ class UpdateUserReportTest(TestCase):
         assert report3.group_id is None
         assert report3.environment_id is None
 
-    def test_start_end_reports(self):
+    def test_report_timerange(self):
         # The task should only update UserReports added in the given time range.
         now = timezone.now()
         start = now - timedelta(days=3)
@@ -80,9 +81,9 @@ class UpdateUserReportTest(TestCase):
         assert report4.group_id is None
         assert report4.environment_id is None
 
-    def test_start_end_events(self):
+    def test_event_timerange(self):
         # The task should only query associated events from the given time range, or up to 1 day older.
-        event_start_offset = timedelta(days=1)
+        event_lookback = timedelta(days=1)
 
         now = timezone.now()
         start = now - timedelta(days=3)
@@ -92,11 +93,11 @@ class UpdateUserReportTest(TestCase):
         project = self.create_project()
         event1, _ = self.create_event_and_report(
             project.id,
-            event_dt=start - event_start_offset - timedelta(hours=1),
+            event_dt=start - event_lookback - timedelta(hours=1),
             report_dt=report_dt,
         )
         event2, _ = self.create_event_and_report(
-            project.id, event_dt=start - event_start_offset, report_dt=report_dt
+            project.id, event_dt=start - event_lookback, report_dt=report_dt
         )
         event3, _ = self.create_event_and_report(
             project.id, event_dt=start + timedelta(hours=1), report_dt=report_dt
@@ -106,7 +107,7 @@ class UpdateUserReportTest(TestCase):
         )
 
         with self.tasks():
-            update_user_reports(start=start, end=end)
+            update_user_reports(start=start, end=end, event_lookback=event_lookback)
 
         report1 = UserReport.objects.get(project_id=project.id, event_id=event1.event_id)
         report2 = UserReport.objects.get(project_id=project.id, event_id=event2.event_id)
@@ -161,3 +162,24 @@ class UpdateUserReportTest(TestCase):
         assert mock_event_data["platform"] == "other"
         assert mock_event_data["contexts"]["feedback"]["associated_event_id"] == event1.event_id
         assert mock_event_data["level"] == "error"
+
+    @patch("sentry.quotas.backend.get_event_retention")
+    def test_event_retention(self, mock_get_event_retention):
+        retention_days = 21
+        mock_get_event_retention.return_value = retention_days
+        project = self.create_project()
+        now = timezone.now()
+
+        event_dt = now - timedelta(days=retention_days + 1)
+        report_dt = now - timedelta(days=retention_days - 1)
+        event_lookback = timedelta(days=3)
+
+        self.create_event_and_report(project.id, event_dt=event_dt, report_dt=report_dt)
+
+        with self.tasks():
+            update_user_reports(start=epoch, end=now, event_lookback=event_lookback)
+
+        assert mock_get_event_retention.call_count > 0
+        report = UserReport.objects.get()
+        assert report.group_id is None
+        assert report.environment_id is None
