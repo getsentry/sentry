@@ -168,8 +168,10 @@ export function MetricDetailsSidebar({
     <Button
       onClick={() => {
         openForm({
-          formTitle: 'Anomaly Threshold Feedback',
-          messagePlaceholder: t('How can we make anomalous thresholds more useful?'),
+          formTitle: 'Anomaly Detection Feedback',
+          messagePlaceholder: t(
+            'How can we make alerts using anomaly detection more useful?'
+          ),
           tags: {
             ['feedback.source']: 'dynamic_thresholding',
             ['feedback.owner']: 'ml-ai',
@@ -179,7 +181,7 @@ export function MetricDetailsSidebar({
       size="xs"
       icon={<IconMegaphone />}
     >
-      Give Feedback for Anomaly Thresholds
+      Give Feedback
     </Button>
   ) : null;
 
