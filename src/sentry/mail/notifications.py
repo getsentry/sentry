@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Iterable, Mapping, MutableMapping
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, TypeVar
 
 import orjson
 import sentry_sdk
@@ -17,6 +17,7 @@ from sentry.notifications.notifications.base import BaseNotification, ProjectNot
 from sentry.notifications.notify import register_notification_provider
 from sentry.notifications.types import UnsubscribeContext
 from sentry.types.actor import Actor
+from sentry.users.models.user import User
 from sentry.utils.email import MessageBuilder, group_id_to_email
 from sentry.utils.linksign import generate_signed_unsubscribe_link
 
@@ -79,7 +80,7 @@ def _log_message(notification: BaseNotification, recipient: Actor) -> None:
 
 def get_context(
     notification: BaseNotification,
-    recipient: Actor | Team | RpcUser,
+    recipient: Actor | Team | RpcUser | User,
     shared_context: Mapping[str, Any],
     extra_context: Mapping[str, Any],
 ) -> Mapping[str, Any]:
@@ -136,11 +137,14 @@ def send_notification_as_email(
             notification.record_notification_sent(recipient_actor, ExternalProviders.EMAIL)
 
 
+RecipientT = TypeVar("RecipientT", Actor, User)
+
+
 def get_builder_args(
     notification: BaseNotification,
-    recipient: Actor,
+    recipient: RecipientT,
     shared_context: Mapping[str, Any] | None = None,
-    extra_context_by_actor: Mapping[Actor, Mapping[str, Any]] | None = None,
+    extra_context_by_actor: Mapping[RecipientT, Mapping[str, Any]] | None = None,
 ) -> Mapping[str, Any]:
     # TODO: move context logic to single notification class method
     extra_context = (

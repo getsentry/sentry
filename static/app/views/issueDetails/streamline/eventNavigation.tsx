@@ -2,7 +2,6 @@ import {type CSSProperties, forwardRef, Fragment, useMemo} from 'react';
 import {css, type SerializedStyles, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import color from 'color';
-import omit from 'lodash/omit';
 
 import {Button, LinkButton} from 'sentry/components/button';
 import {Chevron} from 'sentry/components/chevron';
@@ -38,6 +37,8 @@ import {
   useEventDetails,
 } from 'sentry/views/issueDetails/streamline/context';
 import {getFoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
+import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 import {useDefaultIssueEvent} from 'sentry/views/issueDetails/utils';
 
 export const MIN_NAV_HEIGHT = 44;
@@ -46,6 +47,10 @@ type EventNavigationProps = {
   event: Event;
   group: Group;
   className?: string;
+  /**
+   * Data property to help style the component when it's sticky
+   */
+  'data-stuck'?: boolean;
   query?: string;
   style?: CSSProperties;
 };
@@ -61,7 +66,7 @@ const EventNavLabels = {
   [EventNavOptions.RECOMMENDED]: t('Recommended'),
   [EventNavOptions.OLDEST]: t('First'),
   [EventNavOptions.LATEST]: t('Last'),
-  [EventNavOptions.CUSTOM]: t('Custom'),
+  [EventNavOptions.CUSTOM]: t('Specific'),
 };
 
 const EventNavOrder = [
@@ -74,12 +79,14 @@ const EventNavOrder = [
 const sectionLabels = {
   [SectionKey.HIGHLIGHTS]: t('Event Highlights'),
   [SectionKey.STACKTRACE]: t('Stack Trace'),
+  [SectionKey.TRACE_PREVIEW]: t('Trace'),
   [SectionKey.EXCEPTION]: t('Stack Trace'),
   [SectionKey.BREADCRUMBS]: t('Breadcrumbs'),
   [SectionKey.TAGS]: t('Tags'),
   [SectionKey.CONTEXTS]: t('Context'),
   [SectionKey.USER_FEEDBACK]: t('User Feedback'),
   [SectionKey.REPLAY]: t('Replay'),
+  [SectionKey.FEATURE_FLAGS]: t('Flags'),
 };
 
 export const EventNavigation = forwardRef<HTMLDivElement, EventNavigationProps>(
@@ -98,6 +105,7 @@ export const EventNavigation = forwardRef<HTMLDivElement, EventNavigationProps>(
       true
     );
     const isMobile = useMedia(`(max-width: ${theme.breakpoints.small})`);
+    const {baseUrl} = useGroupDetailsRoute();
 
     const {data: actionableItems} = useActionableItems({
       eventId: event.id,
@@ -221,10 +229,8 @@ export const EventNavigation = forwardRef<HTMLDivElement, EventNavigationProps>(
             </Navigation>
             <LinkButton
               to={{
-                pathname: normalizeUrl(
-                  `/organizations/${organization.slug}/issues/${group.id}/events/`
-                ),
-                query: omit(location.query, 'query'),
+                pathname: `${baseUrl}${TabPaths[Tab.EVENTS]}`,
+                query: location.query,
               }}
               borderless
               size="xs"

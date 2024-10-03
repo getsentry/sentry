@@ -4,10 +4,13 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
-from sentry.api.bases.sentryapps import SentryAppBaseEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
+from sentry.integrations.api.serializers.models.integration_feature import (
+    IntegrationFeatureSerializer,
+)
 from sentry.integrations.models.integration_feature import IntegrationFeature, IntegrationTypes
+from sentry.sentry_apps.api.bases.sentryapps import SentryAppBaseEndpoint
 
 
 @control_silo_endpoint
@@ -26,5 +29,7 @@ class SentryAppFeaturesEndpoint(SentryAppBaseEndpoint):
             request=request,
             queryset=features,
             paginator_cls=OffsetPaginator,
-            on_results=lambda x: serialize(x, request.user),
+            on_results=lambda x: serialize(
+                x, request.user, serializer=IntegrationFeatureSerializer()
+            ),
         )

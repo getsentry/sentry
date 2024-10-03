@@ -1,3 +1,5 @@
+import {Fragment} from 'react';
+
 import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/crashReportCallout';
 import widgetCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/widgetCallout';
 import TracePropagationMessage from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
@@ -130,15 +132,23 @@ const getInstallConfig = () => [
 ];
 
 const onboarding: OnboardingConfig = {
-  introduction: MaybeBrowserProfilingBetaWarning,
+  introduction: params => (
+    <Fragment>
+      <MaybeBrowserProfilingBetaWarning {...params} />
+      <p>
+        {tct('In this quick guide you’ll use [strong:npm] or [strong:yarn] to set up:', {
+          strong: <strong />,
+        })}
+      </p>
+    </Fragment>
+  ),
   install: () => [
     {
       type: StepType.INSTALL,
       description: tct(
-        'Add the Sentry SDK as a dependency using [codeNpm:npm] or [codeYarn:yarn]:',
+        'Add the Sentry SDK as a dependency using [code:npm] or [code:yarn]:',
         {
-          codeYarn: <code />,
-          codeNpm: <code />,
+          code: <code />,
         }
       ),
       configurations: getInstallConfig(),
@@ -198,22 +208,6 @@ const onboarding: OnboardingConfig = {
       name: t('Solid Features'),
       description: t('Learn about our first class integration with the Solid framework.'),
       link: 'https://docs.sentry.io/platforms/javascript/guides/solid/features/',
-    },
-    {
-      id: 'performance-monitoring',
-      name: t('Tracing'),
-      description: t(
-        'Track down transactions to connect the dots between 10-second page loads and poor-performing API calls or slow database queries.'
-      ),
-      link: 'https://docs.sentry.io/platforms/javascript/guides/solid/tracing/',
-    },
-    {
-      id: 'session-replay',
-      name: t('Session Replay'),
-      description: t(
-        'Get to the root cause of an error or latency issue faster by seeing all the technical details related to that issue in one visual replay on your web application.'
-      ),
-      link: 'https://docs.sentry.io/platforms/javascript/guides/solid/session-replay/',
     },
   ],
 };

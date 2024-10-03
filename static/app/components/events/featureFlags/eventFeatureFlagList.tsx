@@ -31,6 +31,7 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useOrganization from 'sentry/utils/useOrganization';
+import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 export function EventFeatureFlagList({
@@ -200,7 +201,7 @@ export function EventFeatureFlagList({
         )}
         isHelpHoverable
         title={t('Feature Flags')}
-        type="feature-flags"
+        type={SectionKey.FEATURE_FLAGS}
         actions={actions}
       >
         <CardContainer numCols={columnTwo.length ? 2 : 1}>

@@ -5,10 +5,10 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
-from sentry.api.bases import SentryAppsBaseEndpoint
 from sentry.api.permissions import SuperuserOrStaffFeatureFlaggedPermission
 from sentry.api.serializers import serialize
 from sentry.models.avatars.sentry_app_avatar import SentryAppAvatar
+from sentry.sentry_apps.api.bases.sentryapps import SentryAppsBaseEndpoint
 from sentry.sentry_apps.models.sentry_app import SentryApp
 
 
@@ -23,7 +23,7 @@ class SentryAppsStatsEndpoint(SentryAppsBaseEndpoint):
     def get(self, request: Request) -> Response:
         sentry_apps = (
             SentryApp.objects.filter(installations__date_deleted=None)
-            .annotate(Count("installations"))
+            .annotate(installations__count=Count("installations"))
             .order_by("-installations__count")
         )
 
