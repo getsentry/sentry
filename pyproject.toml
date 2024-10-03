@@ -43,6 +43,9 @@ filterwarnings = [
 
   # pytest has not yet implemented the replacement for this yet
   "ignore:The --looponfail command line argument.*",
+
+  # sentry-sdk 2.15.0 deprecated description for name, ignore it while it's being upgraded
+  "ignore::DeprecationWarning:sentry_sdk",
 ]
 looponfailroots = ["src", "tests"]
 
