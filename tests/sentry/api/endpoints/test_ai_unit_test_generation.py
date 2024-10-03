@@ -15,6 +15,11 @@ class AIUnitTestGenerationEndpointTest(APITestCase):
         self.repo_name = "example-repo"
         self.pull_request_number = "123"
         self.external_id = "456"
+        self.user = self.create_user(email="example@example.com")
+        self.login_as(user=self.user)
+
+        self.organization = self.create_organization(owner=self.user)
+        self.project = self.create_project(organization=self.organization)
 
         self.url = reverse(
             self.endpoint,
@@ -22,7 +27,7 @@ class AIUnitTestGenerationEndpointTest(APITestCase):
                 "organization_id_or_slug": self.project.organization.slug,
                 "repo_name": self.repo_name,
                 "pull_request_number": self.pull_request_number,
-                "externalid": self.external_id,
+                "external_id": self.external_id,
             },
         )
 
@@ -31,15 +36,30 @@ class AIUnitTestGenerationEndpointTest(APITestCase):
         return_value="test-run-id",
     )
     def test_post_success(self, mock_call_unit_test_generation):
-
         response = self.client.post(
             self.url,
         )
-
         assert response.status_code == 202
         mock_call_unit_test_generation.assert_called_once_with(
             ANY,
-            owner=self.organization.slug,
+            owner=self.project.organization.slug,
+            name=self.repo_name,
+            external_id=self.external_id,
+            pr_id=int(self.pull_request_number),
+        )
+
+    @patch(
+        "sentry.api.endpoints.ai_unit_test_generation.AIUnitTestGenerationEndpoint._call_unit_test_generation",
+        side_effect=Exception("Something went wrong"),
+    )
+    def test_post_failure(self, mock_call_unit_test_generation):
+        response = self.client.post(
+            self.url,
+        )
+        assert response.status_code == 500
+        mock_call_unit_test_generation.assert_called_once_with(
+            ANY,
+            owner=self.project.organization.slug,
             name=self.repo_name,
             external_id=self.external_id,
             pr_id=int(self.pull_request_number),

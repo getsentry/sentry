@@ -2070,11 +2070,6 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-request-project-creation",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/repo/(?P<repo_name>[^\/]+)/pr/(?P<pull_request_number>[^\/]+)/externalid/(?P<external_id>[^\/]+)/generate-unit-tests/$",
-        AIUnitTestGenerationEndpoint.as_view(),
-        name="sentry-api-0-generate-unit-tests",
-    ),
-    re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/scim/v2/",
         include(
             [
@@ -3234,6 +3229,11 @@ urlpatterns = [
         r"^organizations/(?P<organization_id_or_slug>[^\/]+)/shared/(?:issues|groups)/(?P<share_id>[^\/]+)/$",
         SharedGroupDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-shared-group-details",
+    ),
+    re_path(
+        r"organizations/(?P<organization_id_or_slug>[^\/]+)/repo/(?P<repo_name>[^\/]+)/pr/(?P<pull_request_number>[^\/]+)/externalid/(?P<external_id>[^\/]+)/generate-unit-tests/$",
+        AIUnitTestGenerationEndpoint.as_view(),
+        name="sentry-api-0-generate-unit-tests",
     ),
     re_path(
         r"^shared/(?:issues|groups)/(?P<share_id>[^\/]+)/$",

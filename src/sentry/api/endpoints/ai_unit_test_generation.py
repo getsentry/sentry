@@ -95,12 +95,16 @@ class AIUnitTestGenerationEndpoint(OrganizationEndpoint):
 
         return response.json().get("run_id")
 
-    def post(self, request: Request, *args, **kwargs) -> Response:
-        owner = kwargs.get("organization_id_or_slug")
+    def post(
+        self,
+        request: Request,
+        *args,
+        **kwargs,
+    ) -> Response:
+        owner = kwargs.get("organization").slug
         repo_name = kwargs.get("repo_name")
         pull_request_number = kwargs.get("pull_request_number")
         external_id = kwargs.get("external_id")
-
         created_at = datetime.now().isoformat()
 
         if pull_request_number is None:
@@ -131,5 +135,4 @@ class AIUnitTestGenerationEndpoint(OrganizationEndpoint):
                 "Test generation failed to start.",
                 500,
             )
-
         return Response(status=202)
