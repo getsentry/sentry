@@ -13,4 +13,4 @@ replays: 0004_index_together
 sentry: 0771_add_grouping_config_to_grouphash_metadata
 social_auth: 0002_default_auto_field
 uptime: 0016_translate_uptime_object_headers_to_lists
-workflow_engine: 0008_detector_state
+workflow_engine: 0009_detector_type
