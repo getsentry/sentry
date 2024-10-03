@@ -309,26 +309,30 @@ function CustomViewsIssueListHeaderTabsContent({
 
   useEffect(() => {
     const currentTab = draggableTabs.find(tab => tab.key === viewId);
-    if (
-      currentTab &&
-      query !== undefined &&
-      sort &&
-      currentTab.unsavedChanges?.[0] !== query &&
-      currentTab.unsavedChanges?.[1] !== sort &&
-      (currentTab.query !== query || currentTab.querySort !== sort)
-    ) {
-      setDraggableTabs(
-        draggableTabs.map(tab =>
-          tab.key === currentTab.key
-            ? {
-                ...tab,
-                unsavedChanges: [query, sort],
-              }
-            : tab
-        )
-      );
+    if (currentTab) {
+      if (
+        query !== undefined &&
+        sort &&
+        currentTab.unsavedChanges?.[0] !== query &&
+        currentTab.unsavedChanges?.[1] !== sort &&
+        (currentTab.query !== query || currentTab.querySort !== sort)
+      ) {
+        setDraggableTabs(
+          draggableTabs.map(tab =>
+            tab.key === currentTab.key
+              ? {
+                  ...tab,
+                  unsavedChanges: [query, sort],
+                }
+              : tab
+          )
+        );
+      }
+      if (!tabListState?.selectionManager.isSelected(currentTab.key)) {
+        tabListState?.setSelectedKey(currentTab.key);
+      }
     }
-  }, [draggableTabs, query, sort, viewId]);
+  }, [draggableTabs, query, sort, tabListState, viewId]);
 
   // Update local tabs when new views are received from mutation request
   useEffectAfterFirstRender(() => {
