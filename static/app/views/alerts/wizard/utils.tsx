@@ -6,7 +6,7 @@ import type {MetricAlertType, WizardRuleTemplate} from './options';
 
 // A set of unique identifiers to be able to tie aggregate and dataset back to a wizard alert type
 const alertTypeIdentifiers: Record<
-  Exclude<Dataset, Dataset.ISSUE_PLATFORM | Dataset.REPLAYS>, // IssuePlatform (search_issues) is not used in alerts, so we can exclude it here
+  Exclude<Dataset, 'search_issues'>, // IssuePlatform (search_issues) is not used in alerts, so we can exclude it here
   Partial<Record<MetricAlertType, string>>
 > = {
   [Dataset.ERRORS]: {
