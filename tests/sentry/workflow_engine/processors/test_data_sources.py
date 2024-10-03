@@ -64,18 +64,12 @@ class TestProcessDataSources(TestCase):
         self.ds1.detectors.clear()
         self.ds2.detectors.clear()
 
-        assert process_data_sources(self.data_packets, DataSource.Type.SNUBA_QUERY) == [
-            (self.query, []),
-            (self.query_two, []),
-        ]
+        assert process_data_sources(self.data_packets, DataSource.Type.SNUBA_QUERY) == []
 
     def test_different_data_packet_type__no_results(self):
-        assert process_data_sources(
-            self.data_packets, DataSource.Type.SNUBA_QUERY_SUBSCRIPTION
-        ) == [
-            (self.query, []),
-            (self.query_two, []),
-        ]
+        assert (
+            process_data_sources(self.data_packets, DataSource.Type.SNUBA_QUERY_SUBSCRIPTION) == []
+        )
 
     def test_different_data_packet_type__with_results(self):
         self.ds1.type = DataSource.Type.SNUBA_QUERY_SUBSCRIPTION
