@@ -1,306 +1,221 @@
-import {Fragment} from 'react';
+import {Fragment, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {useFetchIssueTag, useFetchIssueTagValues} from 'sentry/actionCreators/group';
-import {DeviceName} from 'sentry/components/deviceName';
+import {Button} from 'sentry/components/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import UserBadge from 'sentry/components/idBadge/userBadge';
-import ExternalLink from 'sentry/components/links/externalLink';
-import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
-import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
 import Pagination from 'sentry/components/pagination';
-import {PanelTable} from 'sentry/components/panels/panelTable';
 import TimeSince from 'sentry/components/timeSince';
-import {IconArrow, IconEllipsis, IconMail, IconOpen} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {IconEllipsis} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Group} from 'sentry/types/group';
-import type {SavedQueryVersions} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
+import type {Group, Tag, TagValue} from 'sentry/types/group';
 import {percent} from 'sentry/utils';
-import EventView from 'sentry/utils/discover/eventView';
+import {parseCursor} from 'sentry/utils/cursor';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
-import {isUrl} from 'sentry/utils/string/isUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
-import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
-import {useGroup} from 'sentry/views/issueDetails/useGroup';
-import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
-import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
-
-type GroupTagsDrawerProps = {
-  groupId: Group['id'];
-  project: Project;
-};
-
-interface GroupTagsDrawerTagDetailsProps extends GroupTagsDrawerProps {
-  /**
-   * Helps dropdowns append to the correct element
-   */
-  drawerRef: React.RefObject<HTMLDivElement>;
-}
-
-const discoverFields = ['title', 'release', 'environment', 'user.display', 'timestamp'];
+import {TagBar} from 'sentry/views/issueDetails/groupTags/tagDistribution';
+import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/useIssueDetailsDiscoverQuery';
 
 type TagSort = 'date' | 'count';
 const DEFAULT_SORT: TagSort = 'count';
 
-export function TagDetailsDrawerContent({
-  groupId,
-  project,
-  drawerRef,
-}: GroupTagsDrawerTagDetailsProps) {
+export function TagDetailsDrawerContent({group}: {group: Group}) {
   const location = useLocation();
   const organization = useOrganization();
   const {tagKey} = useParams<{tagKey: string}>();
-  const environments = useEnvironmentsFromUrl();
-  const {baseUrl} = useGroupDetailsRoute();
 
-  const title = tagKey === 'user' ? t('Affected Users') : tagKey;
   const sort: TagSort =
     (location.query.tagDrawerSort as TagSort | undefined) ?? DEFAULT_SORT;
-  const sortArrow = <IconArrow color="gray300" size="xs" direction="down" />;
 
   const {
-    data: tagValueList,
-    isPending: tagValueListIsLoading,
-    isError: tagValueListIsError,
+    data: tagValues,
+    isError: tagValuesListIsError,
     getResponseHeader,
   } = useFetchIssueTagValues({
     orgSlug: organization.slug,
-    groupId,
+    groupId: group.id,
     tagKey,
-    environment: environments,
     sort,
     cursor: location.query.cursor as string | undefined,
   });
-  const {
-    data: tag,
-    isError: tagIsError,
-    isPending: tagIsLoading,
-  } = useFetchIssueTag({
+
+  const {data: tag, isError: tagIsError} = useFetchIssueTag({
     orgSlug: organization.slug,
-    groupId,
+    groupId: group.id,
     tagKey,
   });
-  const {data: group} = useGroup({groupId});
 
-  const isLoading = tagValueListIsLoading || tagIsLoading;
-  const isError = tagIsError || tagValueListIsError;
+  const isError = tagIsError || tagValuesListIsError;
+
+  const currentCursor = parseCursor(location.query?.cursor);
+  const start = currentCursor?.offset ?? 0;
+  const pageCount = tagValues?.length ?? 0;
+
+  const paginationCaption = tct('Showing [start]-[end] of [count]', {
+    start: start.toLocaleString(),
+    end: (start + pageCount).toLocaleString(),
+    count: (tag?.uniqueValues ?? 0).toLocaleString(),
+  });
 
   if (isError) {
     return <LoadingError message={t('There was an error loading tag details')} />;
   }
 
-  const globalSelectionParams = extractSelectionParameters(location.query);
-  const {cursor: _cursor, page: _page, ...currentQuery} = location.query;
-
   return (
     <Fragment>
-      <StyledPanelTable
-        isLoading={isLoading}
-        isEmpty={!isError && tagValueList?.length === 0}
-        headers={[
-          title,
-          <PercentColumnHeader key="percent">{t('Percent')}</PercentColumnHeader>,
-          <StyledSortLink
-            key="count"
-            to={{
-              pathname: location.pathname,
-              query: {
-                ...currentQuery,
-                cursor: undefined,
-                tagDrawerSort: 'count',
-              },
-            }}
-          >
-            {t('Count')} {sort === 'count' && sortArrow}
-          </StyledSortLink>,
-          <StyledSortLink
-            key="date"
-            to={{
-              pathname: location.pathname,
-              query: {
-                ...currentQuery,
-                cursor: undefined,
-                tagDrawerSort: 'date',
-              },
-            }}
-          >
-            {t('Last Seen')} {sort === 'date' && sortArrow}
-          </StyledSortLink>,
-          '',
-        ]}
-        emptyMessage={t('Sorry, the tags for this issue could not be found.')}
-        emptyAction={
-          environments?.length
-            ? t('No tags were found for the currently selected environments')
-            : null
-        }
-      >
-        {tagValueList?.map((tagValue, tagValueIdx) => {
-          const pct = tag?.totalValues
-            ? `${percent(tagValue.count, tag?.totalValues).toFixed(2)}%`
-            : '--';
-          const key = tagValue.key ?? tagKey;
-          const issuesQuery = tagValue.query || `${key}:"${tagValue.value}"`;
-          const discoverView = EventView.fromSavedQuery({
-            id: undefined,
-            name: key ?? '',
-            fields: [
-              ...(key !== undefined ? [key] : []),
-              ...discoverFields.filter(field => field !== key),
-            ],
-            orderby: '-timestamp',
-            query: group ? `issue:${group.shortId} ${issuesQuery}` : undefined,
-            projects: [Number(project?.id)],
-            environment: environments,
-            version: 2 as SavedQueryVersions,
-            range: '90d',
-          });
-          return (
-            <Fragment key={tagValueIdx}>
-              <NameColumn>
-                <NameWrapper data-test-id="group-tag-value">
-                  <Link
-                    to={{
-                      pathname: `${baseUrl}${TabPaths[Tab.EVENTS]}`,
-                      query: {
-                        ...globalSelectionParams,
-                        query: issuesQuery,
-                      },
-                    }}
-                  >
-                    {key === 'user' ? (
-                      <UserBadge
-                        user={{...tagValue, id: tagValue.id ?? ''}}
-                        avatarSize={20}
-                        hideEmail
-                      />
-                    ) : (
-                      <DeviceName value={tagValue.name} />
-                    )}
-                  </Link>
-                </NameWrapper>
-
-                {tagValue.email && (
-                  <StyledExternalLink
-                    href={`mailto:${tagValue.email}`}
-                    data-test-id="group-tag-mail"
-                  >
-                    <IconMail size="xs" color="gray300" />
-                  </StyledExternalLink>
-                )}
-                {isUrl(tagValue.value) && (
-                  <StyledExternalLink href={tagValue.value} data-test-id="group-tag-url">
-                    <IconOpen size="xs" color="gray300" />
-                  </StyledExternalLink>
-                )}
-              </NameColumn>
-              <RightAlignColumn>{pct}</RightAlignColumn>
-              <RightAlignColumn>{tagValue.count.toLocaleString()}</RightAlignColumn>
-              <RightAlignColumn>
-                <TimeSince date={tagValue.lastSeen} />
-              </RightAlignColumn>
-              <RightAlignColumn>
-                <DropdownMenu
-                  size="sm"
-                  position="bottom-end"
-                  triggerProps={{
-                    size: 'xs',
-                    showChevron: false,
-                    icon: <IconEllipsis />,
-                    'aria-label': t('More'),
-                  }}
-                  usePortal
-                  portalContainerRef={drawerRef}
-                  items={[
-                    {
-                      key: 'open-in-discover',
-                      label: t('Open in Discover'),
-                      to: discoverView.getResultsViewUrlTarget(
-                        organization.slug,
-                        false,
-                        hasDatasetSelector(organization)
-                          ? SavedQueryDatasets.ERRORS
-                          : undefined
-                      ),
-                      hidden: !group || !organization.features.includes('discover-basic'),
-                    },
-                    {
-                      key: 'search-issues',
-                      label: t('Search All Issues with Tag Value'),
-                      to: {
-                        pathname: baseUrl,
-                        query: {
-                          ...globalSelectionParams, // preserve page filter selections
-                          query: issuesQuery,
-                        },
-                      },
-                    },
-                  ]}
-                />
-              </RightAlignColumn>
-            </Fragment>
-          );
-        })}
-      </StyledPanelTable>
-      <StyledPagination pageLinks={getResponseHeader?.('Link')} />
+      {tag && tagValues?.length && (
+        <Table>
+          <Header>
+            <ColumnTitle>{t('Value')}</ColumnTitle>
+            <ColumnTitle>{t('Last Seen')}</ColumnTitle>
+            <ColumnTitle>{t('Count')}</ColumnTitle>
+            <ColumnTitle>{t('Percentage')}</ColumnTitle>
+          </Header>
+          <Body>
+            {tagValues.map(tv => (
+              <TagDetailsRow key={tv.key} group={group} tag={tag} tagValue={tv} />
+            ))}
+          </Body>
+        </Table>
+      )}
+      <Pagination
+        caption={paginationCaption}
+        size="xs"
+        pageLinks={getResponseHeader?.('Link')}
+      />
     </Fragment>
   );
 }
 
-const StyledPanelTable = styled(PanelTable)`
-  white-space: nowrap;
-  font-size: ${p => p.theme.fontSizeMedium};
+function TagDetailsRow({
+  group,
+  tag,
+  tagValue,
+}: {
+  group: Group;
+  tag: Tag;
+  tagValue: TagValue;
+}) {
+  const organization = useOrganization();
+  const [isHovered, setIsHovered] = useState(false);
+  const key = tagValue.key ?? tag.key;
+  const query = {query: tagValue.query || `${key}:"${tagValue.value}"`};
+  const percentage = tag.totalValues ? percent(tagValue.count, tag.totalValues) : NaN;
+  const displayPercentage =
+    !isNaN(percentage) && percentage < 1 ? '<1%' : `${percentage.toFixed(0)}%`;
+  const eventView = useIssueDetailsEventView({group, queryProps: query});
 
-  overflow: auto;
+  return (
+    <Row onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)}>
+      <Value>{tagValue.value}</Value>
+      <Value>
+        <TimeSince date={tagValue.lastSeen} />
+      </Value>
+      <Value>{tagValue.count.toLocaleString()}</Value>
+      {!isNaN(percentage) ? (
+        <TagBar
+          style={{height: space(2)}}
+          displayPercentage={displayPercentage}
+          widthPercent={percentage}
+        />
+      ) : (
+        '--'
+      )}
+      <DropdownMenu
+        size="xs"
+        trigger={triggerProps => (
+          <ActionButton
+            {...triggerProps}
+            isHidden={!isHovered}
+            size="xs"
+            icon={<IconEllipsis />}
+            aria-label={t('Tag Details Actions Menu')}
+          />
+        )}
+        items={[
+          {
+            key: 'open-in-discover',
+            label: t('Open in Discover'),
+            to: eventView.getResultsViewUrlTarget(
+              organization.slug,
+              false,
+              hasDatasetSelector(organization) ? SavedQueryDatasets.ERRORS : undefined
+            ),
+            hidden: !group || !organization.features.includes('discover-basic'),
+          },
+          {
+            key: 'view-events',
+            label: t('View other events with this tag value'),
+            to: {
+              pathname: `/organizations/${organization.slug}/issues/${group.id}/events/`,
+              query,
+            },
+          },
+          {
+            key: 'view-issues',
+            label: t('View issues with this tag value'),
+            to: {
+              pathname: `/organizations/${organization.slug}/issues/`,
+              query,
+            },
+          },
+        ]}
+      />
+    </Row>
+  );
+}
 
-  & > * {
-    padding: ${space(1)} ${space(2)};
+const Table = styled('div')`
+  display: grid;
+  grid-template-columns: repeat(3, auto) 1fr auto;
+  column-gap: ${space(2)};
+  row-gap: ${space(0.5)};
+  margin: 0 -${space(1)};
+`;
+
+const ColumnTitle = styled('div')`
+  color: ${p => p.theme.subText};
+  font-weight: ${p => p.theme.fontWeightBold};
+`;
+
+const Body = styled('div')`
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+`;
+
+const Header = styled(Body)`
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+  border-bottom: 1px solid ${p => p.theme.border};
+  margin: 0 ${space(1)};
+`;
+
+const Row = styled(Body)`
+  &:nth-child(even) {
+    background: ${p => p.theme.backgroundSecondary};
   }
-`;
-
-const PercentColumnHeader = styled('div')`
-  text-align: right;
-`;
-
-const StyledSortLink = styled(Link)`
-  text-align: right;
-  color: inherit;
-
-  :hover {
-    color: inherit;
-  }
-`;
-
-const Column = styled('div')`
-  display: flex;
   align-items: center;
+  border-radius: 4px;
+  padding: ${space(0.25)} ${space(1)};
 `;
 
-const NameColumn = styled(Column)`
-  ${p => p.theme.overflowEllipsis};
-  display: flex;
-  min-width: 320px;
-`;
+const Value = styled('div')``;
 
-const NameWrapper = styled('span')`
-  ${p => p.theme.overflowEllipsis};
-  width: auto;
-`;
-
-const RightAlignColumn = styled(Column)`
-  justify-content: flex-end;
-`;
-
-const StyledPagination = styled(Pagination)`
-  margin: 0;
-`;
-
-const StyledExternalLink = styled(ExternalLink)`
-  margin-left: ${space(0.5)};
+// We need to do the hiding here so that focus styles from the `Button` component take precedent
+const ActionButton = styled(Button)<{isHidden: boolean}>`
+  ${p =>
+    p.isHidden &&
+    css`
+      border: 0;
+      color: transparent;
+      background: transparent;
+    `}
 `;

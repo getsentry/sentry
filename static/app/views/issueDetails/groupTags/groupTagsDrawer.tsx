@@ -21,7 +21,7 @@ import {InputGroup} from 'sentry/components/inputGroup';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconDownload, IconSearch} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -177,16 +177,14 @@ export function GroupTagsDrawer({group}: {group: Group}) {
         />
       </EventDrawerHeader>
       <EventNavigator>
-        <Header>{tagKey ? t('Tag Details') : t('All Tags')}</Header>
+        <Header>
+          {tagKey ? tct('Tag Details - [tagKey]', {tagKey}) : t('All Tags')}
+        </Header>
         {headerActions}
       </EventNavigator>
       <EventDrawerBody>
         {tagKey ? (
-          <TagDetailsDrawerContent
-            project={project}
-            groupId={group.id}
-            drawerRef={drawerRef}
-          />
+          <TagDetailsDrawerContent group={group} />
         ) : (
           <Wrapper>
             <Container>

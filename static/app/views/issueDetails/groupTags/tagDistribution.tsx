@@ -37,7 +37,7 @@ export function TagDistribution({tag}: {tag: GroupTag}) {
       <TagValueContent>
         {tag.topValues.map((tagValue, tagValueIdx) => {
           const percentage = percent(tagValue.count, tag.totalValues);
-          const displayPercentage = percentage < 1 ? '<1%' : `${Math.round(percentage)}%`;
+          const displayPercentage = percentage < 1 ? '<1%' : `${percentage.toFixed(0)}%`;
           return (
             <TagValueRow key={tagValueIdx}>
               <Tooltip delay={300} title={tagValue.name} skipWrapper>
@@ -117,7 +117,7 @@ const TagValue = styled(Link)`
   max-width: calc(100% - ${space(2)});
 `;
 
-const TagBar = styled('div')<{displayPercentage: string; widthPercent: number}>`
+export const TagBar = styled('div')<{displayPercentage: string; widthPercent: number}>`
   height: ${space(1)};
   position: relative;
   flex: 1;
@@ -136,6 +136,7 @@ const TagBar = styled('div')<{displayPercentage: string; widthPercent: number}>`
     position: absolute;
     left: 100%;
     top: 50%;
+    color: ${p => p.theme.subText};
     content: '${p => p.displayPercentage}';
     line-height: 0;
     margin-left: ${space(0.5)};
