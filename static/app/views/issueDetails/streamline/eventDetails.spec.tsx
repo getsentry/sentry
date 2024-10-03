@@ -1,9 +1,11 @@
 import {EventFixture} from 'sentry-fixture/event';
 import {EventsStatsFixture} from 'sentry-fixture/events';
 import {GroupFixture} from 'sentry-fixture/group';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {RepositoryFixture} from 'sentry-fixture/repository';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {TagsFixture} from 'sentry-fixture/tags';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -151,22 +153,20 @@ describe('EventDetails', function () {
     expect(mockListMeta).not.toHaveBeenCalled();
   });
 
-  it('allows toggling between event and list views', async function () {
-    render(<EventDetails {...defaultProps} />, {organization});
-    await screen.findByText(event.id);
+  it('should display the events list', async function () {
+    const router = RouterFixture({
+      location: LocationFixture({
+        pathname: `/organizations/${organization.slug}/issues/${group.id}/events/`,
+      }),
+      routes: [{name: '', path: 'events/'}],
+    });
+    render(<EventDetails {...defaultProps} />, {organization, router});
 
-    const listButton = screen.getByRole('button', {name: 'View All Events'});
-    await userEvent.click(listButton);
-
-    expect(listButton).not.toBeInTheDocument();
+    expect(await screen.findByRole('button', {name: 'Close'})).toBeInTheDocument();
     expect(screen.getByText('All Events')).toBeInTheDocument();
+
     expect(mockList).toHaveBeenCalled();
     expect(mockListMeta).toHaveBeenCalled();
-    const closeButton = screen.getByRole('button', {name: 'Close'});
-    await userEvent.click(closeButton);
-
-    expect(closeButton).not.toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'View All Events'})).toBeInTheDocument();
   });
 
   it('displays error messages from bad queries', async function () {

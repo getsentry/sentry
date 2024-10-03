@@ -27,10 +27,9 @@ describe('EventNavigation', () => {
     previousEventID: 'prev-event-id',
     nextEventID: 'next-event-id',
   });
-  const defaultProps = {
+  const defaultProps: React.ComponentProps<typeof EventNavigation> = {
     event: testEvent,
     group: GroupFixture({id: 'group-id'}),
-    onViewAllEvents: jest.fn(),
   };
 
   beforeEach(() => {
@@ -105,15 +104,6 @@ describe('EventNavigation', () => {
         query: {referrer: 'recommended-event'},
       });
     });
-  });
-
-  it('can runs callback on view all events click', async () => {
-    render(<EventNavigation {...defaultProps} />);
-    expect(defaultProps.onViewAllEvents).not.toHaveBeenCalled();
-    const viewAllButton = screen.getByRole('button', {name: 'View All Events'});
-    expect(viewAllButton).toBeInTheDocument();
-    await userEvent.click(viewAllButton);
-    expect(defaultProps.onViewAllEvents).toHaveBeenCalled();
   });
 
   it('can navigate next/previous events', () => {
