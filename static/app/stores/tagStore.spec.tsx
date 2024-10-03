@@ -1,5 +1,3 @@
-import {OrganizationFixture} from 'sentry-fixture/organization';
-
 import TagStore from 'sentry/stores/tagStore';
 
 describe('TagStore', function () {
@@ -34,79 +32,6 @@ describe('TagStore', function () {
       });
 
       expect(TagStore.trigger).toHaveBeenCalledTimes(1);
-    });
-  });
-
-  describe('getIssueAttributes()', function () {
-    it('should populate the has tag with values', () => {
-      TagStore.loadTagsSuccess([
-        {
-          key: 'mytag',
-          name: 'My Custom Tag',
-        },
-        {
-          key: 'otherkey',
-          name: 'My other tag',
-        },
-      ]);
-
-      expect(TagStore.getIssueAttributes(OrganizationFixture()).has).toEqual({
-        key: 'has',
-        name: 'Has Tag',
-        values: ['mytag', 'otherkey'],
-        predefined: true,
-      });
-    });
-
-    it('should not overwrite predefined filters', () => {
-      TagStore.loadTagsSuccess([
-        {
-          key: 'is',
-          name: 'Custom Assigned To',
-        },
-      ]);
-
-      const tags = TagStore.getIssueAttributes(OrganizationFixture());
-      expect(tags.is).toBeTruthy();
-      expect(tags.is.key).toBe('is');
-      expect(tags.assigned).toBeTruthy();
-    });
-
-    it('should replace ignore with archive', () => {
-      TagStore.loadTagsSuccess([
-        {
-          key: 'is',
-          name: 'Custom Assigned To',
-        },
-      ]);
-
-      const tags = TagStore.getIssueAttributes(OrganizationFixture());
-      expect(tags.is.values).toContain('archived');
-    });
-  });
-
-  describe('getIssueTags()', function () {
-    it('should have built in, state, and issue attribute tags', () => {
-      TagStore.loadTagsSuccess([
-        {
-          key: 'mytag',
-          name: 'My Custom Tag',
-        },
-      ]);
-
-      const tags = TagStore.getIssueTags(OrganizationFixture());
-
-      // state
-      expect(tags.mytag).toBeTruthy();
-      expect(tags.mytag.key).toBe('mytag');
-
-      // attribute
-      expect(tags.has).toBeTruthy();
-      expect(tags.has.key).toBe('has');
-
-      // built in
-      expect(tags['device.family']).toBeTruthy();
-      expect(tags['device.family'].key).toBe('device.family');
     });
   });
 

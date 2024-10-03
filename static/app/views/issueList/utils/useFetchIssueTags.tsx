@@ -6,7 +6,6 @@ import {escapeTagValue} from 'sentry/components/smartSearchBar/utils';
 import {IconStar, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
-import {getBuiltInTags} from 'sentry/stores/tagStore';
 import TeamStore from 'sentry/stores/teamStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {
@@ -20,7 +19,14 @@ import {
 import type {Organization} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
-import {FieldKey, FieldKind, IsFieldValues, ISSUE_FIELDS} from 'sentry/utils/fields';
+import {
+  FieldKey,
+  FieldKind,
+  IsFieldValues,
+  ISSUE_EVENT_PROPERTY_FIELDS,
+  ISSUE_FIELDS,
+  ISSUE_PROPERTY_FIELDS,
+} from 'sentry/utils/fields';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 
 type UseFetchIssueTagsParams = {
@@ -32,6 +38,17 @@ type UseFetchIssueTagsParams = {
   start?: string;
   statsPeriod?: string | null;
   useCache?: boolean;
+};
+
+const PREDEFINED_FIELDS = {
+  ...ISSUE_PROPERTY_FIELDS.reduce<TagCollection>((acc, tag) => {
+    acc[tag] = {key: tag, name: tag, predefined: true, kind: FieldKind.ISSUE_FIELD};
+    return acc;
+  }, {}),
+  ...ISSUE_EVENT_PROPERTY_FIELDS.reduce<TagCollection>((acc, tag) => {
+    acc[tag] = {key: tag, name: tag, predefined: false, kind: FieldKind.EVENT_FIELD};
+    return acc;
+  }, {}),
 };
 
 // "environment" is excluded because it should be handled by the environment page filter
@@ -85,16 +102,7 @@ export const useFetchIssueTags = ({
       .filter(team => !team.isMember)
       .map(team => `#${team.slug}`);
 
-    const suggestedAssignees: string[] = [
-      'me',
-      'my_teams',
-      'none',
-      // New search builder only works with single value suggestions
-      ...(org.features.includes('issue-stream-search-query-builder')
-        ? []
-        : ['[me, my_teams, none]']),
-      ...userTeams,
-    ];
+    const suggestedAssignees: string[] = ['me', 'my_teams', 'none', ...userTeams];
 
     const assignedValues: SearchGroup[] | string[] = [
       {
@@ -138,7 +146,7 @@ export const useFetchIssueTags = ({
       delete allTagsCollection[excludedTag];
     }
 
-    const additionalTags = builtInIssuesFields(org, allTagsCollection, assignedValues, [
+    const additionalTags = builtInIssuesFields(allTagsCollection, assignedValues, [
       'me',
       ...usernames,
     ]);
@@ -147,7 +155,7 @@ export const useFetchIssueTags = ({
       ...allTagsCollection,
       ...additionalTags,
     };
-  }, [eventsTagsQuery.data, issuePlatformTagsQuery.data, members, org, teams]);
+  }, [eventsTagsQuery.data, issuePlatformTagsQuery.data, members, teams]);
 
   return {
     tags: allTags,
@@ -157,7 +165,6 @@ export const useFetchIssueTags = ({
 };
 
 function builtInIssuesFields(
-  org: Organization,
   currentTags: TagCollection,
   assigneeFieldValues: SearchGroup[] | string[] = [],
   bookmarksValues: string[] = []
@@ -169,9 +176,7 @@ function builtInIssuesFields(
         [tag.key]: {
           predefined: false,
           ...tag,
-          kind: org.features.includes('issue-stream-search-query-builder')
-            ? FieldKind.EVENT_FIELD
-            : FieldKind.FIELD,
+          kind: FieldKind.EVENT_FIELD,
         },
       };
     },
@@ -181,11 +186,10 @@ function builtInIssuesFields(
     ...Object.values(currentTags).map(tag => tag.key),
     ...Object.values(SEMVER_TAGS).map(tag => tag.key),
   ].sort();
-  const builtInTags = getBuiltInTags(org);
 
   const tagCollection: TagCollection = {
     [FieldKey.IS]: {
-      ...builtInTags[FieldKey.IS],
+      ...PREDEFINED_FIELDS[FieldKey.IS],
       key: FieldKey.IS,
       name: 'Status',
       values: Object.values(IsFieldValues),
@@ -193,34 +197,34 @@ function builtInIssuesFields(
       predefined: true,
     },
     [FieldKey.HAS]: {
-      ...builtInTags[FieldKey.HAS],
+      ...PREDEFINED_FIELDS[FieldKey.HAS],
       key: FieldKey.HAS,
       name: 'Has Tag',
       values: hasFieldValues,
       predefined: true,
     },
     [FieldKey.ASSIGNED]: {
-      ...builtInTags[FieldKey.ASSIGNED],
+      ...PREDEFINED_FIELDS[FieldKey.ASSIGNED],
       key: FieldKey.ASSIGNED,
       name: 'Assigned To',
       values: assigneeFieldValues,
       predefined: true,
     },
     [FieldKey.ASSIGNED_OR_SUGGESTED]: {
-      ...builtInTags[FieldKey.ASSIGNED_OR_SUGGESTED],
+      ...PREDEFINED_FIELDS[FieldKey.ASSIGNED_OR_SUGGESTED],
       name: 'Assigned or Suggested',
       isInput: true,
       values: assigneeFieldValues,
       predefined: true,
     },
     [FieldKey.BOOKMARKS]: {
-      ...builtInTags[FieldKey.BOOKMARKS],
+      ...PREDEFINED_FIELDS[FieldKey.BOOKMARKS],
       name: 'Bookmarked By',
       values: bookmarksValues,
       predefined: true,
     },
     [FieldKey.ISSUE_CATEGORY]: {
-      ...builtInTags[FieldKey.ISSUE_CATEGORY],
+      ...PREDEFINED_FIELDS[FieldKey.ISSUE_CATEGORY],
       name: 'Issue Category',
       values: [
         IssueCategory.ERROR,
@@ -232,7 +236,7 @@ function builtInIssuesFields(
       predefined: true,
     },
     [FieldKey.ISSUE_TYPE]: {
-      ...builtInTags[FieldKey.ISSUE_TYPE],
+      ...PREDEFINED_FIELDS[FieldKey.ISSUE_TYPE],
       name: 'Issue Type',
       values: [
         IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
@@ -259,31 +263,31 @@ function builtInIssuesFields(
       predefined: true,
     },
     [FieldKey.LAST_SEEN]: {
-      ...builtInTags[FieldKey.LAST_SEEN],
+      ...PREDEFINED_FIELDS[FieldKey.LAST_SEEN],
       name: 'Last Seen',
       values: [],
       predefined: false,
     },
     [FieldKey.FIRST_SEEN]: {
-      ...builtInTags[FieldKey.FIRST_SEEN],
+      ...PREDEFINED_FIELDS[FieldKey.FIRST_SEEN],
       name: 'First Seen',
       values: [],
       predefined: false,
     },
     [FieldKey.FIRST_RELEASE]: {
-      ...builtInTags[FieldKey.FIRST_RELEASE],
+      ...PREDEFINED_FIELDS[FieldKey.FIRST_RELEASE],
       name: 'First Release',
       values: ['latest'],
       predefined: true,
     },
     [FieldKey.EVENT_TIMESTAMP]: {
-      ...builtInTags[FieldKey.EVENT_TIMESTAMP],
+      ...PREDEFINED_FIELDS[FieldKey.EVENT_TIMESTAMP],
       name: 'Event Timestamp',
       values: [],
       predefined: true,
     },
     [FieldKey.TIMES_SEEN]: {
-      ...builtInTags[FieldKey.TIMES_SEEN],
+      ...PREDEFINED_FIELDS[FieldKey.TIMES_SEEN],
       name: 'Times Seen',
       isInput: true,
       // Below values are required or else SearchBar will attempt to get values
@@ -292,7 +296,7 @@ function builtInIssuesFields(
       predefined: true,
     },
     [FieldKey.ISSUE_PRIORITY]: {
-      ...builtInTags[FieldKey.ISSUE_PRIORITY],
+      ...PREDEFINED_FIELDS[FieldKey.ISSUE_PRIORITY],
       name: 'Issue Priority',
       values: [PriorityLevel.HIGH, PriorityLevel.MEDIUM, PriorityLevel.LOW],
       predefined: true,
@@ -306,7 +310,11 @@ function builtInIssuesFields(
     ISSUE_FIELDS.includes(key as FieldKey)
   );
 
-  return {...builtInTags, ...Object.fromEntries(filteredCollection), ...semverFields};
+  return {
+    ...PREDEFINED_FIELDS,
+    ...Object.fromEntries(filteredCollection),
+    ...semverFields,
+  };
 }
 
 const getUsername = ({isManaged, username, email}: User) => {

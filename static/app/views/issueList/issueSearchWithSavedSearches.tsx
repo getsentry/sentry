@@ -45,9 +45,8 @@ export function IssueSearchWithSavedSearches({
       <StyledIssueListSearchBarWithButton
         searchSource="main_search"
         organization={organization}
-        query={query || ''}
+        initialQuery={query || ''}
         onSearch={onSearch}
-        excludedTags={['environment']}
         placeholder={t('Search for events, users, tags, and more')}
         roundCorners={organization.features.includes('issue-stream-custom-views')}
       />

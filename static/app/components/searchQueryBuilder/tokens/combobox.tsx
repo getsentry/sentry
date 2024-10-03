@@ -64,6 +64,7 @@ type SearchQueryBuilderComboboxProps<T extends SelectOptionOrSectionWithKey<stri
    * Display an entirely custom menu.
    */
   customMenu?: CustomComboboxMenu<T>;
+  ['data-test-id']?: string;
   /**
    * If the combobox has additional information to display, passing JSX
    * to this prop will display it in an overlay at the top left position.
@@ -334,6 +335,7 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
     onClick,
     customMenu,
     isOpen: incomingIsOpen,
+    ['data-test-id']: dataTestId,
   }: SearchQueryBuilderComboboxProps<T>,
   ref: ForwardedRef<HTMLInputElement>
 ) {
@@ -538,6 +540,7 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
         onPaste={onPaste}
         disabled={disabled}
         onKeyDownCapture={e => onKeyDownCapture?.(e, {state})}
+        data-test-id={dataTestId}
       />
       {description ? (
         <StyledPositionWrapper

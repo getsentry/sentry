@@ -27,12 +27,18 @@ describe('IssueSearchWithSavedSearches', () => {
       url: '/organizations/org-slug/tags/',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/recent-searches/',
+      body: [],
+    });
   });
 
-  it('displays "Custom Search" label when no saved searches are selected', () => {
+  it('displays "Custom Search" label when no saved searches are selected', async () => {
     render(<IssueSearchWithSavedSearches {...defaultProps} />);
 
-    expect(screen.getByRole('button', {name: 'Custom Search'})).toBeInTheDocument();
+    expect(
+      await screen.findByRole('button', {name: 'Custom Search'})
+    ).toBeInTheDocument();
   });
 
   it('displays salected saved search label when one is selected', async () => {
