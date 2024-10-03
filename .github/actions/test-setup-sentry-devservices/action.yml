@@ -109,6 +109,7 @@ runs:
       run: |
         sentry init
 
+        docker network create sentry
         docker compose -f devservices/docker-compose-testing.yml up -d
 
         # have tests listen on the docker gateway ip so loopback can occur

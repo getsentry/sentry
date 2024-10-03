@@ -19,6 +19,8 @@ services:
       test: echo stats | nc 127.0.0.1 11211
     ports:
       - '11211:11211'
+    networks:
+      - sentry
   redis:
     <<: *restart_policy
     container_name: sentry_redis
@@ -34,6 +36,8 @@ services:
         hard: 10032
     ports:
       - '6379:6379'
+    networks:
+      - sentry
   postgres:
     <<: *restart_policy
     container_name: sentry_postgres
@@ -51,6 +55,8 @@ services:
       - 'sentry-postgres:/var/lib/postgresql/data'
     ports:
       - '5432:5432'
+    networks:
+      - sentry
   kafka:
     <<: *restart_policy
     image: 'ghcr.io/getsentry/image-mirror-confluentinc-cp-kafka:7.5.0'
@@ -91,6 +97,8 @@ services:
     ports:
       - '9092:9092'
       - '9093:9093'
+    networks:
+      - sentry
   clickhouse:
     <<: *restart_policy
     container_name: sentry_clickhouse
@@ -126,6 +134,8 @@ services:
       - '8123:8123'
       - '9000:9000'
       - '9009:9009'
+    networks:
+      - sentry
   symbolicator:
     <<: *restart_policy
     container_name: sentry_symbolicator
@@ -139,22 +149,8 @@ services:
     command: run -c /etc/symbolicator/config.yml
     ports:
       - '3021:3021'
-  relay:
-    <<: *restart_policy
-    container_name: sentry_relay
-    image: 'us-central1-docker.pkg.dev/sentryio/relay/relay:nightly'
-    volumes:
-      - type: bind
-        read_only: true
-        source: ./relay
-        target: /work/.relay
-    depends_on:
-      kafka:
-        <<: *depends_on-healthy
-      redis:
-        <<: *depends_on-healthy
-    ports:
-      - '7899:7899'
+    networks:
+      - sentry
   vroom:
     <<: *restart_policy
     container_name: sentry_vroom
@@ -171,6 +167,8 @@ services:
         <<: *depends_on-healthy
     ports:
       - '8085:8085'
+    networks:
+      - sentry
   snuba:
     <<: *restart_policy
     container_name: sentry_snuba
@@ -178,6 +176,8 @@ services:
     ports:
       - '1218:1218'
       - '1219:1219'
+    networks:
+      - sentry
     command: ['devserver']
     environment:
       PYTHONUNBUFFERED: '1'
@@ -207,6 +207,8 @@ services:
   #   image: 'us.gcr.io/sentryio/cbtemulator:23c02d92c7a1747068eb1fc57dddbad23907d614'
   #   ports:
   #     - '8086:8086'
+  #   networks:
+  #     - sentry
   redis-cluster:
     <<: *restart_policy
     container_name: sentry_redis-cluster
@@ -218,6 +220,8 @@ services:
       - '7003:7003'
       - '7004:7004'
       - '7005:7005'
+    networks:
+      - sentry
     volumes:
       - sentry-redis-cluster:/redis-data
     environment:
@@ -242,3 +246,4 @@ volumes:
 networks:
   sentry:
     name: sentry
+    external: true
