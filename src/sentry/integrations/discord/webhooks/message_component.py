@@ -18,7 +18,12 @@ from sentry.integrations.discord.message_builder.base.component.select_menu impo
 )
 from sentry.integrations.discord.message_builder.base.flags import DiscordMessageFlags
 from sentry.integrations.discord.requests.base import DiscordRequest
+from sentry.integrations.discord.spec import DiscordMessagingSpec
 from sentry.integrations.discord.webhooks.handler import DiscordInteractionHandler
+from sentry.integrations.messaging.metrics import (
+    MessagingInteractionEvent,
+    MessagingInteractionType,
+)
 from sentry.models.activity import ActivityIntegration
 from sentry.models.group import Group
 from sentry.models.grouphistory import STATUS_TO_STRING_LOOKUP, GroupHistoryStatus
@@ -85,36 +90,51 @@ class DiscordMessageComponentHandler(DiscordInteractionHandler):
             )
             return self.send_message(NOT_IN_ORG)
 
+        def record_event(interaction_type: MessagingInteractionType) -> MessagingInteractionEvent:
+            return MessagingInteractionEvent(
+                interaction_type,
+                DiscordMessagingSpec(),
+                user=self.user,
+                organization=(self.group.organization if self.group else None),
+            )
+
         if self.custom_id.startswith(CustomIds.ASSIGN_DIALOG):
             logger.info("discord.interaction.component.assign_dialog", extra={**logging_data})
-            return self.assign_dialog()
+            with record_event(MessagingInteractionType.ASSIGN_DIALOG).capture():
+                return self.assign_dialog()
 
         elif self.custom_id.startswith(CustomIds.ASSIGN):
             logger.info(
                 "discord.interaction.component.assign",
                 extra={**logging_data, "assign_to": self.request.get_selected_options()[0]},
             )
-            return self.assign()
+            with record_event(MessagingInteractionType.ASSIGN).capture():
+                return self.assign()
 
         elif self.custom_id.startswith(CustomIds.RESOLVE_DIALOG):
             logger.info("discord.interaction.component.resolve_dialog", extra={**logging_data})
-            return self.resolve_dialog()
+            with record_event(MessagingInteractionType.RESOLVE_DIALOG).capture():
+                return self.resolve_dialog()
 
         elif self.custom_id.startswith(CustomIds.RESOLVE):
             logger.info("discord.interaction.component.resolve", extra={**logging_data})
-            return self.resolve()
+            with record_event(MessagingInteractionType.RESOLVE).capture():
+                return self.resolve()
 
         elif self.custom_id.startswith(CustomIds.UNRESOLVE):
             logger.info("discord.interaction.component.unresolve", extra={**logging_data})
-            return self.unresolve()
+            with record_event(MessagingInteractionType.UNRESOLVE).capture():
+                return self.unresolve()
 
         elif self.custom_id.startswith(CustomIds.MARK_ONGOING):
             logger.info("discord.interaction.component.mark_ongoing", extra={**logging_data})
-            return self.unresolve(from_mark_ongoing=True)
+            with record_event(MessagingInteractionType.MARK_ONGOING).capture():
+                return self.unresolve(from_mark_ongoing=True)
 
         elif self.custom_id.startswith(CustomIds.ARCHIVE):
             logger.info("discord.interaction.component.archive", extra={**logging_data})
-            return self.archive()
+            with record_event(MessagingInteractionType.ARCHIVE).capture():
+                return self.archive()
 
         logger.warning("discord.interaction.component.unknown_custom_id", extra={**logging_data})
         return self.send_message(INVALID_GROUP_ID)

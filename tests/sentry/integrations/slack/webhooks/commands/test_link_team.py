@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 import orjson
 import responses
 from rest_framework import status
@@ -9,6 +11,7 @@ from sentry.integrations.slack.webhooks.command import (
     LINK_USER_FIRST_MESSAGE,
     TEAM_NOT_LINKED_MESSAGE,
 )
+from sentry.integrations.utils.metrics import EventLifecycleOutcome
 from sentry.silo.base import SiloMode
 from sentry.testutils.helpers import get_response_text, link_user
 from sentry.testutils.silo import assume_test_silo_mode
@@ -39,8 +42,9 @@ class SlackCommandsLinkTeamTestBase(SlackCommandsTest):
 
 
 class SlackCommandsLinkTeamTest(SlackCommandsLinkTeamTestBase):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @responses.activate
-    def test_link_another_team_to_channel(self):
+    def test_link_another_team_to_channel(self, mock_record):
         """
         Test that we block a user who tries to link a second team to a
         channel that already has a team linked to it.
@@ -58,6 +62,11 @@ class SlackCommandsLinkTeamTest(SlackCommandsLinkTeamTestBase):
         )
         data = orjson.loads(response.content)
         assert CHANNEL_ALREADY_LINKED_MESSAGE in get_response_text(data)
+
+        assert len(mock_record.mock_calls) == 2
+        start, halt = mock_record.mock_calls
+        assert start.args[0] == EventLifecycleOutcome.STARTED
+        assert halt.args[0] == EventLifecycleOutcome.HALTED
 
     @responses.activate
     def test_link_team_from_dm(self):
