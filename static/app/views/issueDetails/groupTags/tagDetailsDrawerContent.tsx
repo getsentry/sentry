@@ -5,10 +5,11 @@ import styled from '@emotion/styled';
 import {useFetchIssueTag, useFetchIssueTagValues} from 'sentry/actionCreators/group';
 import {Button} from 'sentry/components/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import Pagination from 'sentry/components/pagination';
 import TimeSince from 'sentry/components/timeSince';
-import {IconEllipsis} from 'sentry/icons';
+import {IconArrow, IconEllipsis} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group, Tag, TagValue} from 'sentry/types/group';
@@ -29,6 +30,7 @@ export function TagDetailsDrawerContent({group}: {group: Group}) {
   const location = useLocation();
   const organization = useOrganization();
   const {tagKey} = useParams<{tagKey: string}>();
+  const sortArrow = <IconArrow color="gray300" size="xs" direction="down" />;
 
   const sort: TagSort =
     (location.query.tagDrawerSort as TagSort | undefined) ?? DEFAULT_SORT;
@@ -56,6 +58,7 @@ export function TagDetailsDrawerContent({group}: {group: Group}) {
   const currentCursor = parseCursor(location.query?.cursor);
   const start = currentCursor?.offset ?? 0;
   const pageCount = tagValues?.length ?? 0;
+  const {cursor: _cursor, page: _page, ...currentQuery} = location.query;
 
   const paginationCaption = tct('Showing [start]-[end] of [count]', {
     start: start.toLocaleString(),
@@ -73,8 +76,32 @@ export function TagDetailsDrawerContent({group}: {group: Group}) {
         <Table>
           <Header>
             <ColumnTitle>{t('Value')}</ColumnTitle>
-            <ColumnTitle>{t('Last Seen')}</ColumnTitle>
-            <ColumnTitle>{t('Count')}</ColumnTitle>
+            <ColumnSort
+              to={{
+                pathname: location.pathname,
+                query: {
+                  ...currentQuery,
+                  cursor: undefined,
+                  tagDrawerSort: 'date',
+                },
+              }}
+            >
+              {sort === 'date' && sortArrow}
+              {t('Last Seen')}
+            </ColumnSort>
+            <ColumnSort
+              to={{
+                pathname: location.pathname,
+                query: {
+                  ...currentQuery,
+                  cursor: undefined,
+                  tagDrawerSort: 'count',
+                },
+              }}
+            >
+              {sort === 'count' && sortArrow}
+              {t('Count')}
+            </ColumnSort>
             <ColumnTitle>{t('Percentage')}</ColumnTitle>
           </Header>
           <Body>
@@ -182,6 +209,17 @@ const Table = styled('div')`
 const ColumnTitle = styled('div')`
   color: ${p => p.theme.subText};
   font-weight: ${p => p.theme.fontWeightBold};
+`;
+
+const ColumnSort = styled(Link)`
+  color: ${p => p.theme.subText};
+  font-weight: ${p => p.theme.fontWeightBold};
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-decoration-color: ${p => p.theme.textColor};
+  &:hover {
+    color: ${p => p.theme.subText};
+  }
 `;
 
 const Body = styled('div')`
