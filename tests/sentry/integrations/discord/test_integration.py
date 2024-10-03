@@ -473,3 +473,28 @@ class DiscordIntegrationTest(DiscordSetupTestCase):
         )
         with pytest.raises(ApiError):
             provider.post_install(integration=self.integration, organization=self.organization)
+
+    def test_build_integration_invalid_guild_id(self):
+        provider = self.provider()
+
+        with pytest.raises(
+            IntegrationError,
+            match="Invalid guild ID. The Discord guild ID must be entirely numeric.",
+        ):
+            provider.build_integration(
+                {
+                    "guild_id": "123abc",  # Invalid guild ID (contains non-numeric characters)
+                    "code": "some_auth_code",
+                }
+            )
+
+        # Test that a valid numeric guild ID doesn't raise an exception
+        try:
+            provider.build_integration(
+                {
+                    "guild_id": "123456789",  # Valid guild ID (entirely numeric)
+                    "code": "some_auth_code",
+                }
+            )
+        except IntegrationError:
+            pytest.fail("Unexpected IntegrationError raised for valid guild ID")
