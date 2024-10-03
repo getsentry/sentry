@@ -31,10 +31,11 @@ type Params = DocsParams;
 
 const getConfigStep = ({isSelfHosted, organization, projectSlug}: Params) => {
   const urlParam = isSelfHosted ? '' : '--saas';
+
   return [
     {
       description: tct(
-        'Configure your app automatically with the [wizardLink:Sentry wizard].',
+        'Configure your app automatically by running the [wizardLink:Sentry wizard] in the root of your project.',
         {
           wizardLink: (
             <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/remix/#install" />
@@ -59,12 +60,23 @@ const onboarding: OnboardingConfig = {
     tct("Sentry's integration with [remixLink:Remix] supports Remix 1.0.0 and above.", {
       remixLink: <ExternalLink href="https://remix.run/" />,
     }),
-  install: (params: Params) => getInstallConfig(params),
+  install: (params: Params) => [
+    {
+      title: t('Automatic Configuration (Recommended)'),
+      configurations: getConfigStep(params),
+    },
+  ],
   configure: () => [
     {
-      type: StepType.CONFIGURE,
-      description: t(
-        'The Sentry wizard will automatically add code to your project to inialize and configure the Sentry SDK:'
+      collapsible: true,
+      title: t('Manual Configuration'),
+      description: tct(
+        'Alternatively, you can also [manualSetupLink:set up the SDK manually], by following these steps:',
+        {
+          manualSetupLink: (
+            <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/remix/manual-setup/" />
+          ),
+        }
       ),
       configurations: [
         {
@@ -105,23 +117,46 @@ const onboarding: OnboardingConfig = {
             </List>
           ),
         },
-        {
-          description: tct(
-            'You can also further [manualConfigure:configure your SDK] or [manualSetupLink:set it up manually], without the wizard.',
-            {
-              manualConfigure: (
-                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/remix/manual-setup/#configuration" />
-              ),
-              manualSetupLink: (
-                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/remix/manual-setup/" />
-              ),
-            }
-          ),
-        },
       ],
     },
   ],
-  verify: () => [],
+  verify: () => [
+    {
+      type: StepType.VERIFY,
+      description: (
+        <Fragment>
+          <p>
+            {tct(
+              'Start your development server and visit [code:/sentry-example-page] if you have set it up. Click the button to trigger a test error.',
+              {
+                code: <code />,
+              }
+            )}
+          </p>
+          <p>
+            {t(
+              'Or, trigger a sample error by calling a function that does not exist somewhere in your application.'
+            )}
+          </p>
+        </Fragment>
+      ),
+      configurations: [
+        {
+          code: [
+            {
+              label: 'Javascript',
+              value: 'javascript',
+              language: 'javascript',
+              code: `myUndefinedFunction();`,
+            },
+          ],
+        },
+      ],
+      additionalInfo: t(
+        'If you see an issue in your Sentry dashboard, you have successfully set up Sentry.'
+      ),
+    },
+  ],
   nextSteps: () => [],
 };
 

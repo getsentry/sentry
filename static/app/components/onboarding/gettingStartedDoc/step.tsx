@@ -126,15 +126,18 @@ interface BaseStepProps {
    * Content that goes directly above the code snippet
    */
   codeHeader?: React.ReactNode;
+  /**
+   * Whether the step instructions are collapsible
+   */
+  collapsible?: boolean;
+  /**
+   * An array of configurations to be displayed
+   */
   configurations?: Configuration[];
   /**
    * A brief description of the step
    */
   description?: React.ReactNode | React.ReactNode[];
-  /**
-   * Whether the step is optional
-   */
-  isOptional?: boolean;
   /**
    * Fired when the optional toggle is clicked.
    * Useful for when we want to fire analytics events.
@@ -205,7 +208,7 @@ export function Step({
   additionalInfo,
   description,
   onOptionalToggleClick,
-  isOptional = false,
+  collapsible = false,
   codeHeader,
 }: StepProps) {
   const [showOptionalConfig, setShowOptionalConfig] = useState(false);
@@ -248,25 +251,23 @@ export function Step({
     </Fragment>
   );
 
-  return isOptional ? (
+  return collapsible ? (
     <div>
-      <OptionalConfigWrapper>
+      <OptionalConfigWrapper
+        expanded={showOptionalConfig}
+        onClick={() => {
+          onOptionalToggleClick?.(!showOptionalConfig);
+          setShowOptionalConfig(!showOptionalConfig);
+        }}
+      >
+        <h4 style={{marginBottom: 0}}>{title ?? StepTitle[type]}</h4>
         <ToggleButton
           priority="link"
           borderless
           size="zero"
           icon={<IconChevron direction={showOptionalConfig ? 'down' : 'right'} />}
           aria-label={t('Toggle optional configuration')}
-          onClick={() => {
-            onOptionalToggleClick?.(!showOptionalConfig);
-            setShowOptionalConfig(!showOptionalConfig);
-          }}
-        >
-          <h4 style={{marginBottom: 0}}>
-            {title ?? StepTitle[type]}
-            {t(' (Optional)')}
-          </h4>
-        </ToggleButton>
+        />
       </OptionalConfigWrapper>
       {showOptionalConfig ? config : null}
     </div>
@@ -307,13 +308,15 @@ const GeneralAdditionalInfo = styled(Description)`
   margin-top: ${space(2)};
 `;
 
-const OptionalConfigWrapper = styled('div')`
+const OptionalConfigWrapper = styled('div')<{expanded: boolean}>`
   display: flex;
+  gap: ${space(1)};
+  margin-bottom: ${p => (p.expanded ? space(2) : 0)};
   cursor: pointer;
-  margin-bottom: 0.5em;
 `;
 
 const ToggleButton = styled(Button)`
+  padding: 0;
   &,
   :hover {
     color: ${p => p.theme.gray500};
