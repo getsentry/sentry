@@ -49,7 +49,9 @@ export default function ParticipantList({users, teams}: DropdownListProps) {
                   <TeamAvatar team={team} size={20} />
                   <div>
                     {`#${team.slug}`}
-                    <SubText>{tn('%s member', '%s members', team.memberCount)}</SubText>
+                    <SmallText>
+                      {tn('%s member', '%s members', team.memberCount)}
+                    </SmallText>
                   </div>
                 </UserRow>
               ))}
@@ -59,10 +61,12 @@ export default function ParticipantList({users, teams}: DropdownListProps) {
               {users.map(user => (
                 <UserRow key={user.id}>
                   <Avatar user={user} size={20} />
-                  <div>
-                    {user.name}
-                    <SubText>{user.email}</SubText>
-                  </div>
+                  <NameWrapper>
+                    <div>{user.name}</div>
+                    {user.email !== user.name ? (
+                      <SmallText>{user.email}</SmallText>
+                    ) : null}
+                  </NameWrapper>
                 </UserRow>
               ))}
             </ParticipantListWrapper>
@@ -82,6 +86,7 @@ const ParticipantListWrapper = styled('div')`
   max-height: 325px;
   overflow-y: auto;
   border-radius: ${p => p.theme.borderRadius};
+  color: ${p => p.theme.textColor};
 
   & > div:not(:last-child) {
     border-bottom: 1px solid ${p => p.theme.border};
@@ -106,10 +111,16 @@ const UserRow = styled('div')`
   gap: ${space(1)};
   line-height: 1.2;
   font-size: ${p => p.theme.fontSizeSmall};
+  min-height: 45px;
 `;
 
-const SubText = styled('div')`
-  color: ${p => p.theme.subText};
+const NameWrapper = styled('div')`
+  & > div:only-child {
+    margin-top: ${space(0.25)};
+  }
+`;
+
+const SmallText = styled('div')`
   font-size: ${p => p.theme.fontSizeExtraSmall};
 `;
 
