@@ -215,7 +215,9 @@ def find_grouphash_with_group(
     return None
 
 
-def get_or_create_grouphashes(project: Project, hashes: Sequence[str]) -> list[GroupHash]:
+def get_or_create_grouphashes(
+    project: Project, hashes: Sequence[str], grouping_config: str
+) -> list[GroupHash]:
     grouphashes = []
 
     for hash_value in hashes:
@@ -223,13 +225,21 @@ def get_or_create_grouphashes(project: Project, hashes: Sequence[str]) -> list[G
 
         # TODO: Do we want to expand this to backfill metadata for existing grouphashes? If we do,
         # we'll have to override the metadata creation date for them.
-        if (
-            created
-            and options.get("grouping.grouphash_metadata.ingestion_writes_enabled")
-            and features.has("organizations:grouphash-metadata-creation", project.organization)
+        if options.get("grouping.grouphash_metadata.ingestion_writes_enabled") and features.has(
+            "organizations:grouphash-metadata-creation", project.organization
         ):
-            # For now, this just creates a record with a creation timestamp
-            GroupHashMetadata.objects.create(grouphash=grouphash)
+            if created:
+                GroupHashMetadata.objects.create(
+                    grouphash=grouphash,
+                    latest_grouping_config=grouping_config,
+                )
+            elif (
+                grouphash.metadata and grouphash.metadata.latest_grouping_config != grouping_config
+            ):
+                # Keep track of the most recent config which computed this hash, so that once a
+                # config is deprecated, we can clear out the GroupHash records which are no longer
+                # being produced
+                grouphash.metadata.update(latest_grouping_config=grouping_config)
 
         grouphashes.append(grouphash)
 
