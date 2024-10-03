@@ -11,8 +11,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.group import GroupEndpoint
+from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.seer.signed_seer_api import get_seer_salted_url, sign_with_seer_secret
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.users.models.user import User
@@ -25,7 +24,7 @@ TIMEOUT_SECONDS = 60 * 30  # 30 minutes
 
 
 @region_silo_endpoint
-class AIUnitTestGenerationEndpoint(GroupEndpoint):
+class AIUnitTestGenerationEndpoint(Endpoint):
     publish_status = {
         "POST": ApiPublishStatus.EXPERIMENTAL,
     }
@@ -95,11 +94,11 @@ class AIUnitTestGenerationEndpoint(GroupEndpoint):
 
         return response.json().get("run_id")
 
-    def post(self, request: Request) -> Response:
-        owner = request.query_params.get("org_slug")
-        repo_name = request.query_params.get("repo_name")
-        pull_request_number = request.query_params.get("pull_request_number")
-        external_id = request.query_params.get("external_id")
+    def post(self, request: Request, *args, **kwargs) -> Response:
+        owner = kwargs.get("organization_id_or_slug")
+        repo_name = kwargs.get("repo_name")
+        pull_request_number = kwargs.get("pull_request_number")
+        external_id = kwargs.get("external_id")
 
         created_at = datetime.now().isoformat()
 
@@ -127,12 +126,9 @@ class AIUnitTestGenerationEndpoint(GroupEndpoint):
                     "exception": e,
                 },
             )
-
             return self._respond_with_error(
                 "Test generation failed to start.",
                 500,
             )
 
-        return Response(
-            status=202,
-        )
+        return Response(status=202)

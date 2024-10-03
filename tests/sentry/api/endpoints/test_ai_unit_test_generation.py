@@ -21,11 +21,11 @@ class AIUnitTestGenerationEndpointTest(APITestCase):
         self.repo_name = "example-repo"
         self.pull_request_number = "123"
         self.external_id = "456"
-        # Construct the URL using the provided URL pattern
+
         self.url = reverse(
             "generate_unit_tests",
             kwargs={
-                "org_slug": self.org.slug,
+                "organization_id_or_slug": self.org.slug,
                 "repo_name": self.repo_name,
                 "pull_request_number": self.pull_request_number,
                 "external_id": self.external_id,
@@ -68,13 +68,12 @@ class AIUnitTestGenerationEndpointTest(APITestCase):
             )
 
     def test_post_invalid_pull_request_number(self):
-        # Test with an invalid pull request number
         invalid_url = reverse(
             "generate_unit_tests",
             kwargs={
-                "org_slug": self.org.slug,
+                "organization_id_or_slug": self.org.slug,
                 "repo_name": self.repo_name,
-                "pull_request_number": "invalid-pr-number",  # invalid string
+                "pull_request_number": "invalid-pr-number",
                 "external_id": self.external_id,
             },
         )
