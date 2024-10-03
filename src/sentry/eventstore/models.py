@@ -356,7 +356,9 @@ class BaseEvent(metaclass=abc.ABCMeta):
         from sentry.grouping.api import sort_grouping_variants
 
         variants = self.get_grouping_variants(force_config)
-        hashes = self._hashes_from_sorted_grouping_variants(sort_grouping_variants(variants))
+        # Sort the variants so that the system variant (if any) is always last
+        sorted_variants = sort_grouping_variants(variants)
+        hashes = self._hashes_from_sorted_grouping_variants(sorted_variants)
 
         # Write to event before returning
         self.data["hashes"] = hashes
