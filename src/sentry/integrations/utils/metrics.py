@@ -1,4 +1,5 @@
 import itertools
+import logging
 from abc import ABC, abstractmethod
 from collections.abc import Mapping
 from enum import Enum
@@ -8,6 +9,8 @@ from typing import Any, Self
 from django.conf import settings
 
 from sentry.utils import metrics
+
+logger = logging.getLogger(__name__)
 
 
 class EventLifecycleOutcome(Enum):
@@ -110,14 +113,14 @@ class EventLifecycle:
         """
 
         key = self.payload.get_key(outcome)
+
         sample_rate = (
             1.0 if outcome == EventLifecycleOutcome.FAILURE else settings.SENTRY_METRICS_SAMPLE_RATE
         )
-
-        # For now, assume that all cases want to increment metrics. Future cases may
-        # also want to write to a logger, which we may want to control from the
-        # EventLifecycleMetric object.
         metrics.incr(key, sample_rate=sample_rate)
+
+        if outcome == EventLifecycleOutcome.FAILURE:
+            logger.error(key, extra=self.payload.get_extras())
 
     def _terminate(self, new_state: EventLifecycleOutcome) -> None:
         if self._state is None:

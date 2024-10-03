@@ -59,8 +59,6 @@ class MessagingInteractionEvent(EventLifecycleMetric):
 
     def get_extras(self) -> Mapping[str, Any]:
         return {
-            "interaction_type": self.interaction_type.value,
-            "provider": self.spec.provider_slug,
             "user_id": (self.user.id if self.user else None),
             "organization_id": (self.organization.id if self.organization else None),
         }
