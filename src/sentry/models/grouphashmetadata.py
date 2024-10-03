@@ -18,6 +18,12 @@ class GroupHashMetadata(Model):
     )
     date_added = models.DateTimeField(default=timezone.now)
 
+    # HASHING
+
+    # Most recent config to produce this hash
+    # TODO: Backfill the current config for grouphashes with metadata and then make this non-nullable
+    latest_grouping_config = models.CharField(null=True)
+
     # SEER
 
     # When this hash was sent to Seer. This will be different than `date_added` if we send it to

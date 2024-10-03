@@ -1376,7 +1376,7 @@ def get_hashes_and_grouphashes(
     grouping_config, hashes = hash_calculation_function(project, job, metric_tags)
 
     if hashes:
-        grouphashes = get_or_create_grouphashes(project, hashes)
+        grouphashes = get_or_create_grouphashes(project, hashes, grouping_config["id"])
 
         existing_grouphash = find_grouphash_with_group(grouphashes)
 
