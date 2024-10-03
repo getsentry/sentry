@@ -290,7 +290,7 @@ export function MetricDetailsSidebar({
           />
           {rule.detectionType === AlertRuleComparisonType.DYNAMIC && (
             <KeyValueTableRow
-              keyName={t('Sensitivity')}
+              keyName={t('Responsiveness')}
               value={
                 rule.sensitivity
                   ? rule.sensitivity.charAt(0).toUpperCase() + rule.sensitivity.slice(1)
