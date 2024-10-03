@@ -33,8 +33,21 @@ def get_anomaly_data_from_seer(
     last_update: float,
     aggregation_value: float | None,
 ) -> list[TimeSeriesPoint] | None:
+    snuba_query = alert_rule.snuba_query
+    if not snuba_query or not aggregation_value:
+        return None
+
+    # XXX: we know we have these things because the serializer makes sure we do, but mypy insists
+    if (
+        not snuba_query.time_window
+        or not alert_rule.sensitivity
+        or not alert_rule.threshold_type
+        or not alert_rule.seasonality
+    ):
+        return None
+
     anomaly_detection_config = AnomalyDetectionConfig(
-        time_period=int(alert_rule.snuba_query.time_window / 60),
+        time_period=int(snuba_query.time_window / 60),
         sensitivity=alert_rule.sensitivity,
         direction=translate_direction(alert_rule.threshold_type),
         expected_seasonality=alert_rule.seasonality,
@@ -51,7 +64,7 @@ def get_anomaly_data_from_seer(
     )
     extra_data = {
         "subscription_id": subscription.id,
-        "dataset": subscription.snuba_query.dataset,
+        "dataset": snuba_query.dataset,
         "organization_id": subscription.project.organization.id,
         "project_id": subscription.project_id,
         "alert_rule_id": alert_rule.id,
