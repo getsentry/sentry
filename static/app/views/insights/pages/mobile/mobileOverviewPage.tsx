@@ -169,9 +169,7 @@ function MobileOverviewPage() {
       organization={organization}
       renderDisabled={NoAccess}
     >
-      <Layout.Header>
-        <MobileHeader />
-      </Layout.Header>
+      <MobileHeader />
       <Layout.Body>
         <Layout.Main fullWidth>
           <ModuleLayout.Layout>

@@ -1,5 +1,3 @@
-import {Fragment} from 'react';
-
 import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
 import ButtonBar from 'sentry/components/buttonBar';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
@@ -13,6 +11,7 @@ import {
   type RoutableModuleNames,
   useModuleURLBuilder,
 } from 'sentry/views/insights/common/utils/useModuleURL';
+import {ViewTrendsButton} from 'sentry/views/insights/http/components/viewTrendsButton';
 import {
   MOBILE_LANDING_SUB_PATH,
   MOBILE_LANDING_TITLE,
@@ -25,12 +24,13 @@ import {MODULE_TITLES} from 'sentry/views/insights/settings';
 import {ModuleName} from 'sentry/views/insights/types';
 
 type Props = {
+  children?: React.ReactNode;
   hideTabs?: boolean;
   module?: ModuleName;
 };
 
 // TODO - add props to append to breadcrumbs and change title
-export function MobileHeader({module, hideTabs}: Props) {
+export function MobileHeader({module, hideTabs, children}: Props) {
   const navigate = useNavigate();
   const {slug} = useOrganization();
   const moduleURLBuilder = useModuleURLBuilder();
@@ -38,6 +38,8 @@ export function MobileHeader({module, hideTabs}: Props) {
   const mobileBaseUrl = normalizeUrl(
     `/organizations/${slug}/${DOMAIN_VIEW_BASE_URL}/${MOBILE_LANDING_SUB_PATH}/`
   );
+
+  const showViewTrends = !module;
 
   const crumbs: Crumb[] = [
     {
@@ -72,8 +74,8 @@ export function MobileHeader({module, hideTabs}: Props) {
   };
 
   return (
-    <Fragment>
-      <Tabs value={module ?? OVERVIEW_PAGE_TITLE} onChange={handleTabChange}>
+    <Tabs value={module ?? OVERVIEW_PAGE_TITLE} onChange={handleTabChange}>
+      <Layout.Header>
         <Layout.HeaderContent>
           <Breadcrumbs crumbs={crumbs} />
 
@@ -81,6 +83,7 @@ export function MobileHeader({module, hideTabs}: Props) {
         </Layout.HeaderContent>
         <Layout.HeaderActions>
           <ButtonBar gap={1}>
+            {showViewTrends && <ViewTrendsButton />}
             <FeedbackWidgetButton />
           </ButtonBar>
         </Layout.HeaderActions>
@@ -92,7 +95,8 @@ export function MobileHeader({module, hideTabs}: Props) {
             </TabList.Item>
           </TabList>
         )}
-      </Tabs>
-    </Fragment>
+      </Layout.Header>
+      {children}
+    </Tabs>
   );
 }

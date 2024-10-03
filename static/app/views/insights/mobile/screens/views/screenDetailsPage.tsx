@@ -134,8 +134,7 @@ export function ScreenDetailsPage() {
             )}
 
             {isInDomainView && (
-              <Layout.Header>
-                <MobileHeader module={ModuleName.MOBILE_SCREENS} hideTabs />
+              <MobileHeader module={ModuleName.MOBILE_SCREENS} hideTabs>
                 <Layout.HeaderActions>
                   <ButtonBar gap={1}>
                     {isProjectCrossPlatform && <PlatformSelector />}
@@ -156,7 +155,7 @@ export function ScreenDetailsPage() {
                     );
                   })}
                 </TabList>
-              </Layout.Header>
+              </MobileHeader>
             )}
             <Layout.Body>
               <Layout.Main fullWidth>
