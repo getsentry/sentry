@@ -529,7 +529,7 @@ class RedisBuffer(Buffer):
             # model associated with the model_key.
             process_incr_kwargs: dict[str, Any] = dict()
             if model_key is None:
-                metrics.incr("buffer.process-incr.model-key-missing", tags={"model_key": model_key})
+                metrics.incr("buffer.process-incr.model-key-missing")
                 return process_incr_kwargs
             queue = pending_buffers_router.queue(model_key=model_key)
             if queue is not None:
