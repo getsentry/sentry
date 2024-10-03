@@ -18,8 +18,6 @@ env:
 
 jobs:
   docker-compose-api-docs:
-    if: needs.files-changed.outputs.api_docs == 'true'
-    needs: files-changed
     name: api docs test
     runs-on: ubuntu-22.04
     steps:
