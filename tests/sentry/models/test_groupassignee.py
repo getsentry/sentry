@@ -4,6 +4,7 @@ import pytest
 
 from sentry.integrations.example.integration import ExampleIntegration
 from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.integrations.services.assignment_source import AssignmentSource
 from sentry.integrations.utils import sync_group_assignee_inbound
 from sentry.models.activity import Activity
 from sentry.models.groupassignee import GroupAssignee
@@ -148,7 +149,20 @@ class GroupAssigneeTestCase(TestCase):
 
         with self.feature({"organizations:integrations-issue-sync": True}):
             with self.tasks():
-                GroupAssignee.objects.assign(self.group, self.user)
+                # Assert that we don't perform an outbound assignment if
+                # the source of the assignment is the same target integration
+                GroupAssignee.objects.assign(
+                    self.group,
+                    self.user,
+                    assignment_source=AssignmentSource.from_integration(integration),
+                )
+
+                mock_sync_assignee_outbound.assert_not_called()
+
+                GroupAssignee.objects.assign(
+                    self.group,
+                    self.user,
+                )
 
                 mock_sync_assignee_outbound.assert_called_with(
                     external_issue,

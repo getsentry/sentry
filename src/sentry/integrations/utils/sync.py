@@ -98,7 +98,7 @@ def sync_group_assignee_inbound(
                 assignment_source=AssignmentSource.from_integration(integration),
             )
 
-        return list(affected_groups)
+        return affected_groups
 
     users = user_service.get_many_by_email(emails=[email], is_verified=True)
     users_by_id = {user.id: user for user in users}
