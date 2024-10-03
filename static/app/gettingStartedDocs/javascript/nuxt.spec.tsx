@@ -33,14 +33,14 @@ describe('javascript-nuxt onboarding docs', function () {
       ],
     });
 
-    expect(screen.queryAllByText(textWithMarkupMatcher(/tracesSampleRate/))).toHaveLength(
+    expect(screen.getAllByText(textWithMarkupMatcher(/tracesSampleRate/))).toHaveLength(
       2
     ); // client and server
     expect(
-      screen.queryByText(textWithMarkupMatcher(/replaysSessionSampleRate/))
+      screen.getByText(textWithMarkupMatcher(/replaysSessionSampleRate/))
     ).toBeInTheDocument(); // only client
     expect(
-      screen.queryByText(textWithMarkupMatcher(/replaysOnErrorSampleRate/))
+      screen.getByText(textWithMarkupMatcher(/replaysOnErrorSampleRate/))
     ).toBeInTheDocument(); // only client
   });
 
