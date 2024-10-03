@@ -13,22 +13,21 @@ export interface Props {
   actions?: MenuItemProps[];
   children?: React.ReactNode;
   description?: string;
-  showDescriptionInTooltip?: boolean;
   title?: string;
 }
 
 export function WidgetFrame(props: Props) {
-  const {title, description, showDescriptionInTooltip = true, actions, children} = props;
+  const {title, description, actions, children} = props;
 
   return (
     <Frame>
-      <Header showDescriptionInTooltip={showDescriptionInTooltip}>
+      <Header>
         <Title>
           <Tooltip title={title} containerDisplayMode="grid" showOnlyOnOverflow>
             <TitleText>{title}</TitleText>
           </Tooltip>
 
-          {description && showDescriptionInTooltip && (
+          {description && (
             <TooltipAligner>
               <QuestionTooltip size="sm" title={description} />
             </TooltipAligner>
@@ -58,17 +57,6 @@ export function WidgetFrame(props: Props) {
             </TitleActions>
           )}
         </Title>
-
-        {description && !showDescriptionInTooltip && (
-          <Tooltip
-            title={description}
-            containerDisplayMode="grid"
-            showOnlyOnOverflow
-            isHoverable
-          >
-            <Description>{description}</Description>
-          </Tooltip>
-        )}
       </Header>
 
       <VisualizationWrapper>{children}</VisualizationWrapper>
@@ -95,23 +83,15 @@ const Frame = styled('div')`
   background: ${p => p.theme.background};
 `;
 
-const Header = styled('div')<{showDescriptionInTooltip: boolean}>`
+const Header = styled('div')`
   display: flex;
   flex-direction: column;
-
-  min-height: ${p => (p.showDescriptionInTooltip ? '' : '36px')};
 `;
 
 const Title = styled('div')`
   display: inline-flex;
   align-items: center;
   gap: ${space(0.75)};
-`;
-
-const Description = styled('small')`
-  ${p => p.theme.overflowEllipsis}
-
-  color: ${p => p.theme.gray300};
 `;
 
 const TitleText = styled(HeaderTitle)`

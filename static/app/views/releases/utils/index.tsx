@@ -11,7 +11,7 @@ import {PAGE_URL_PARAM, URL_PARAM} from 'sentry/constants/pageFilters';
 import {desktop, mobile} from 'sentry/data/platformCategories';
 import {t, tct} from 'sentry/locale';
 import type {PlatformKey} from 'sentry/types/project';
-import type {Release, SemverVerison, VersionInfo} from 'sentry/types/release';
+import type {Release, SemverVersion, VersionInfo} from 'sentry/types/release';
 import {ReleaseStatus} from 'sentry/types/release';
 import {defined} from 'sentry/utils';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -250,6 +250,6 @@ export function searchReleaseVersion(version: string): string {
 
 export function isVersionInfoSemver(
   versionInfo: VersionInfo['version']
-): versionInfo is SemverVerison {
+): versionInfo is SemverVersion {
   return versionInfo.hasOwnProperty('components');
 }

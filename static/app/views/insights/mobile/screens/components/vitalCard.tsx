@@ -7,16 +7,24 @@ import {PERFORMANCE_SCORE_COLORS} from 'sentry/views/insights/browser/webVitals/
 
 type Props = {
   description: string;
-  formattedValue: React.ReactNode;
+  formattedValue: string | undefined;
   status: string | undefined;
   statusLabel: string | undefined;
   title: string;
+  onClick?: () => void;
 };
 
-function VitalCard({description, formattedValue, status, statusLabel, title}: Props) {
+function VitalCard({
+  description,
+  formattedValue,
+  status,
+  statusLabel,
+  title,
+  onClick,
+}: Props) {
   return (
     <Fragment>
-      <MeterBarContainer>
+      <MeterBarContainer clickable={onClick !== undefined} onClick={onClick}>
         <MeterBarBody>
           {description && (
             <StyledQuestionTooltip
@@ -84,7 +92,8 @@ function MeterBarFooter({
 const MeterBarFooterContainer = styled('div')<{status: string}>`
   color: ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].normal]};
   border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
-  background-color: ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].light]};
+  background-color: ${p =>
+    p.status === 'none' ? 'none' : p.theme[PERFORMANCE_SCORE_COLORS[p.status].light]};
   border: solid 1px ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].light]};
   font-size: ${p => p.theme.fontSizeExtraSmall};
   padding: ${space(0.5)};

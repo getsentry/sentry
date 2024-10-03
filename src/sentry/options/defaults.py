@@ -1851,6 +1851,13 @@ register(
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Used for the z-score when calculating the margin of error in performance
+register(
+    "performance.extrapolation.confidence.z-score",
+    type=Float,
+    default=1.96,
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Used for enabling flags in ST. Should be removed once Flagpole works in all STs.
 register("performance.use_metrics.enabled", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
@@ -2750,5 +2757,13 @@ register(
 register(
     "celery_split_queue_rollout",
     default={"post_process_transactions": 1.0},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Secret Scanning. Allows to temporarily disable signature verification.
+register(
+    "secret-scanning.github.enable-signature-verification",
+    type=Bool,
+    default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

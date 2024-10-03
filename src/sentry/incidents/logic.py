@@ -647,13 +647,15 @@ def create_alert_rule(
             AlertRuleExcludedProjects.objects.bulk_create(exclusions)
 
         if alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC.value:
-            if not features.has("organizations:anomaly-detection-alerts", organization):
+            if not features.has(
+                "organizations:anomaly-detection-alerts", organization
+            ) and not features.has("organizations:anomaly-detection-rollout", organization):
                 alert_rule.delete()
                 raise ResourceDoesNotExist(
                     "Your organization does not have access to this feature."
                 )
             # NOTE: if adding a new metric alert type, take care to check that it's handled here
-            send_new_rule_data(alert_rule, projects[0])
+            send_new_rule_data(alert_rule, projects[0], snuba_query)
 
         if user:
             create_audit_entry_from_user(
@@ -909,13 +911,15 @@ def update_alert_rule(
             updated_fields["team_id"] = alert_rule.team_id
 
         if detection_type == AlertRuleDetectionType.DYNAMIC:
-            if not features.has("organizations:anomaly-detection-alerts", organization):
+            if not features.has(
+                "organizations:anomaly-detection-alerts", organization
+            ) and not features.has("organizations:anomaly-detection-rollout", organization):
                 raise ResourceDoesNotExist(
                     "Your organization does not have access to this feature."
                 )
             # NOTE: if adding a new metric alert type, take care to check that it's handled here
             project = projects[0] if projects else alert_rule.projects.get()
-            update_rule_data(alert_rule, project, updated_fields, updated_query_fields)
+            update_rule_data(alert_rule, project, snuba_query, updated_fields, updated_query_fields)
         else:
             # if this was a dynamic rule, delete the data in Seer
             if alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC:
@@ -949,7 +953,15 @@ def update_alert_rule(
                 "time_window", timedelta(seconds=snuba_query.time_window)
             )
             updated_query_fields.setdefault("event_types", None)
-            updated_query_fields.setdefault("resolution", timedelta(seconds=snuba_query.resolution))
+            if (
+                detection_type == AlertRuleDetectionType.DYNAMIC
+                and alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC
+            ):
+                updated_query_fields.setdefault("resolution", snuba_query.resolution)
+            else:
+                updated_query_fields.setdefault(
+                    "resolution", timedelta(seconds=snuba_query.resolution)
+                )
             update_snuba_query(snuba_query, environment=environment, **updated_query_fields)
 
         existing_subs: Iterable[QuerySubscription] = ()
@@ -1613,7 +1625,9 @@ def _get_alert_rule_trigger_action_slack_channel_id(
         except StopIteration:
             integration = None
     else:
-        integration = integration_service.get_integration(integration_id=integration_id)
+        integration = integration_service.get_integration(
+            integration_id=integration_id, status=ObjectStatus.ACTIVE
+        )
     if integration is None:
         raise InvalidTriggerActionError("Slack workspace is a required field.")
 
@@ -1644,7 +1658,9 @@ def _get_alert_rule_trigger_action_slack_channel_id(
 def _get_alert_rule_trigger_action_discord_channel_id(name: str, integration_id: int) -> str | None:
     from sentry.integrations.discord.utils.channel import validate_channel_id
 
-    integration = integration_service.get_integration(integration_id=integration_id)
+    integration = integration_service.get_integration(
+        integration_id=integration_id, status=ObjectStatus.ACTIVE
+    )
     if integration is None:
         raise InvalidTriggerActionError("Discord integration not found.")
     try:

@@ -13,6 +13,7 @@ import {EnvironmentPageFilter} from 'sentry/components/organizations/environment
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {MultiSeriesEventsStats} from 'sentry/types/organization';
+import {useIsStuck} from 'sentry/utils/useIsStuck';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -55,6 +56,7 @@ export function EventDetails({
   const isScreenMedium = useMedia(`(max-width: ${theme.breakpoints.medium})`);
   const {environments} = selection;
   const [nav, setNav] = useState<HTMLDivElement | null>(null);
+  const isStuck = useIsStuck(nav);
   const {eventDetails, dispatch} = useEventDetailsReducer();
 
   const searchQuery = useEventQuery({group});
@@ -160,6 +162,7 @@ export function EventDetails({
               ref={setNav}
               query={searchQuery}
               onViewAllEvents={() => setPageContent(EventPageContent.LIST)}
+              data-stuck={isStuck}
             />
             <ContentPadding>
               <EventDetailsContent group={group} event={event} project={project} />
@@ -197,6 +200,10 @@ const FloatingEventNavigation = styled(EventNavigation)`
   background: ${p => p.theme.background};
   z-index: 500;
   border-radius: ${p => p.theme.borderRadiusTop};
+
+  &[data-stuck='true'] {
+    border-radius: 0;
+  }
 `;
 
 const ExtraContent = styled('div')`
