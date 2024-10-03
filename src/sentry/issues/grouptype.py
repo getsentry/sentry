@@ -634,7 +634,7 @@ def should_create_group(
         return False
 
 
-def import_grouptypes():
+def import_grouptype():
     """
     Ensures that grouptype.py is imported in any apps that implement it. We do this to make sure that all implemented
     grouptypes are loaded and registered.
