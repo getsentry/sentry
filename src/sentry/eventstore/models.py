@@ -18,7 +18,7 @@ from django.utils.functional import cached_property
 
 from sentry import eventtypes
 from sentry.db.models import NodeData
-from sentry.grouping.variants import BaseVariant, KeyedVariants
+from sentry.grouping.variants import BaseVariant
 from sentry.interfaces.base import Interface, get_interfaces
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
@@ -353,37 +353,20 @@ class BaseEvent(metaclass=abc.ABCMeta):
                 return hashes
 
         # Create fresh hashes
-        from sentry.grouping.api import sort_grouping_variants
 
         variants = self.get_grouping_variants(force_config)
-        hashes = [
-            hash_
-            for _, hash_ in self._hashes_from_sorted_grouping_variants(
-                sort_grouping_variants(variants)
-            )
-        ]
+        # Sort the variants so that the system variant (if any) is always last, in order to resolve
+        # ambiguities when choosing primary_hash for Snuba
+        sorted_variants = sorted(
+            variants.items(),
+            key=lambda name_and_variant: 1 if name_and_variant[0] == "system" else 0,
+        )
+        # Get each variant's hash value, filtering out Nones
+        hashes = list({variant.get_hash() for _, variant in sorted_variants} - {None})
 
         # Write to event before returning
         self.data["hashes"] = hashes
         return hashes
-
-    @staticmethod
-    def _hashes_from_sorted_grouping_variants(
-        variants: KeyedVariants,
-    ) -> list[tuple[str, str]]:
-        """Create hashes from variants and filter out duplicates and None values"""
-
-        filtered_hashes = []
-        seen_hashes = set()
-        for name, variant in variants:
-            hash_ = variant.get_hash()
-            if hash_ is None or hash_ in seen_hashes:
-                continue
-
-            seen_hashes.add(hash_)
-            filtered_hashes.append((name, hash_))
-
-        return filtered_hashes
 
     def normalize_stacktraces_for_grouping(self, grouping_config: StrategyConfiguration) -> None:
         """Normalize stacktraces and clear memoized interfaces
