@@ -83,7 +83,7 @@ export function StreamlinedExternalIssueList({
                 </Tooltip>
               </ErrorBoundary>
             ))}
-            {integrations.length > 0 && linkedIssues.length > 0 && <Divider />}
+            {integrations.length > 0 && linkedIssues.length > 0 ? <Divider /> : null}
             {integrations.map(integration => {
               const sharedButtonProps: ButtonProps = {
                 size: 'zero',
