@@ -5,15 +5,6 @@
     "operationId": "Retrieve the Oldest Event for an Issue",
     "parameters": [
       {
-        "name": "organization_id_or_slug",
-        "in": "path",
-        "description": "The ID or slug of the organization the issue belong to.",
-        "required": true,
-        "schema": {
-          "type": "string"
-        }
-      },
-      {
         "name": "issue_id",
         "in": "path",
         "description": "The ID of the issue.",
