@@ -510,8 +510,6 @@ def register_temporary_features(manager: FeatureManager):
     # Enables uptime related settings for projects and orgs
     manager.add('organizations:uptime-settings', OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("organizations:use-metrics-layer", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-    # Enable User Feedback v2 ingest
-    manager.add("organizations:user-feedback-ingest", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Use ReplayClipPreview inside the User Feedback Details panel
     manager.add("organizations:user-feedback-replay-clip", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable User Feedback spam auto filtering feature ingest
