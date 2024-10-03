@@ -1,5 +1,6 @@
-import {Fragment, useCallback, useMemo} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import * as echarts from 'echarts/core';
 
 import {getInterval} from 'sentry/components/charts/utils';
 import {CompactSelect} from 'sentry/components/compactSelect';
@@ -43,6 +44,8 @@ const exploreChartTypeOptions = [
     label: t('Bar'),
   },
 ];
+
+export const EXPLORE_CHART_GROUP = 'explore-charts_group';
 
 // TODO: Update to support aggregate mode and multiple queries / visualizations
 export function ExploreCharts({query}: ExploreChartsProps) {
@@ -113,6 +116,15 @@ export function ExploreCharts({query}: ExploreChartsProps) {
     [visualizes, setVisualizes]
   );
 
+  // Synchronize chart cursors
+  const [_, setRenderTrigger] = useState(0);
+  useEffect(() => {
+    if (!timeSeriesResult.isPending) {
+      echarts?.connect(EXPLORE_CHART_GROUP);
+      setRenderTrigger(prev => (prev + 1) % Number.MAX_SAFE_INTEGER);
+    }
+  }, [visualizes, timeSeriesResult.isPending]);
+
   return (
     <Fragment>
       {visualizes.map((visualize, index) => {
@@ -154,6 +166,7 @@ export function ExploreCharts({query}: ExploreChartsProps) {
                 data={getSeries(dedupedYAxes)}
                 error={timeSeriesResult.error}
                 loading={timeSeriesResult.isPending}
+                chartGroup={EXPLORE_CHART_GROUP}
                 // TODO Abdullah: Make chart colors dynamic, with changing topN events count and overlay count.
                 chartColors={CHART_PALETTE[TOP_EVENTS_LIMIT - 1]}
                 type={chartType}
