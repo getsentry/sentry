@@ -97,7 +97,7 @@ def _has_customized_fingerprint(event: Event) -> bool:
             return True
 
     # Fully customized fingerprint (from either us or the user)
-    variants = event.get_grouping_variants()
+    variants = event.variants
     fingerprint_variant = variants.get("custom-fingerprint") or variants.get("built-in-fingerprint")
 
     if fingerprint_variant:
@@ -186,9 +186,7 @@ def get_seer_similar_issues(
     should go in (if any), or None if no neighbor was near enough.
     """
     event_hash = event.get_primary_hash()
-    stacktrace_string = get_stacktrace_string(
-        get_grouping_info_from_variants(event.get_grouping_variants())
-    )
+    stacktrace_string = get_stacktrace_string(get_grouping_info_from_variants(event.variants))
     exception_type = get_path(event.data, "exception", "values", -1, "type")
 
     request_data: SimilarIssuesEmbeddingsRequest = {
