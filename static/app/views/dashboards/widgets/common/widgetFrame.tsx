@@ -106,6 +106,7 @@ const Frame = styled('div')`
 const Header = styled('div')`
   display: flex;
   flex-direction: column;
+  min-height: 20px;
 `;
 
 const Title = styled('div')`
