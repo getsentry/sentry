@@ -2,90 +2,47 @@ import styled from '@emotion/styled';
 
 import type {Polarity} from 'sentry/components/percentChange';
 import {Tooltip} from 'sentry/components/tooltip';
-import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import type {MetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {AutoSizedText} from 'sentry/views/dashboards/widgetCard/autoSizedText';
-import {DifferenceToPreviousPeriodData} from 'sentry/views/dashboards/widgets/bigNumberWidget/differenceToPreviousPeriodData';
-import {
-  DEEMPHASIS_COLOR_NAME,
-  LOADING_PLACEHOLDER,
-  NO_DATA_PLACEHOLDER,
-} from 'sentry/views/dashboards/widgets/bigNumberWidget/settings';
-import {ErrorPanel} from 'sentry/views/dashboards/widgets/common/errorPanel';
-import type {
-  Meta,
-  StateProps,
-  TableData,
-} from 'sentry/views/dashboards/widgets/common/types';
+import {DifferenceToPreviousPeriodValue} from 'sentry/views/dashboards/widgets/bigNumberWidget/differenceToPreviousPeriodValue';
+import type {Meta, TableData} from 'sentry/views/dashboards/widgets/common/types';
 
-export interface Props extends StateProps {
-  data?: TableData;
+import {DEFAULT_FIELD} from '../common/settings';
+
+export interface Props {
+  value: number;
+  field?: string;
   maximumValue?: number;
   meta?: Meta;
   preferredPolarity?: Polarity;
-  previousPeriodData?: TableData;
+  previousPeriodValue?: number;
 }
 
 export function BigNumberWidgetVisualization(props: Props) {
   const {
-    data,
-    previousPeriodData,
+    field = DEFAULT_FIELD,
+    value,
+    previousPeriodValue,
     maximumValue = Number.MAX_VALUE,
     preferredPolarity,
     meta,
-    isLoading,
-    error,
   } = props;
 
   const location = useLocation();
   const organization = useOrganization();
 
-  if (error) {
-    return <ErrorPanel error={error} />;
-  }
-
-  // TODO: Instrument getting more than one data key back as an error
-  // e.g., with data that looks like `[{'apdex()': 0.8}] this pulls out `"apdex()"` or `undefined`
-  const field = Object.keys(data?.[0] ?? {})[0];
-  const value = data?.[0]?.[field];
-
-  if (isLoading) {
-    return (
-      <Wrapper>
-        <Deemphasize>{LOADING_PLACEHOLDER}</Deemphasize>
-      </Wrapper>
-    );
-  }
-
-  if (!defined(value)) {
-    return (
-      <Wrapper>
-        <Deemphasize>{NO_DATA_PLACEHOLDER}</Deemphasize>
-      </Wrapper>
-    );
-  }
-
-  if (!Number.isFinite(value) || error) {
-    return <ErrorPanel error={t('Value is not a finite number.')} />;
-  }
-
-  const parsedValue = Number(value);
-
   // TODO: meta as MetaType is a white lie. `MetaType` doesn't know that types can be null, but they can!
-  const fieldRenderer = meta
-    ? getFieldRenderer(field, meta as MetaType, false)
-    : renderableValue => renderableValue.toString();
+  const fieldRenderer =
+    meta && field
+      ? getFieldRenderer(field, meta as MetaType, false)
+      : renderableValue => renderableValue.toString();
 
-  const doesValueHitMaximum = maximumValue ? parsedValue >= maximumValue : false;
-  const clampedValue = Math.min(parsedValue, maximumValue);
-
-  const datum = {
-    [field]: clampedValue,
-  };
+  const doesValueHitMaximum = maximumValue ? value >= maximumValue : false;
+  const clampedValue = Math.min(value, maximumValue);
 
   const unit = meta?.units?.[field];
 
@@ -95,35 +52,41 @@ export function BigNumberWidgetVisualization(props: Props) {
     unit: unit ?? undefined, // TODO: Field formatters think units can't be null but they can
   };
 
-  const rendered = fieldRenderer(datum, baggage);
-
   return (
     <Wrapper>
       <NumberAndDifferenceContainer>
         <NumberContainerOverride>
           <Tooltip
-            title={parsedValue}
+            title={value}
             isHoverable
             delay={0}
             disabled={doesValueHitMaximum}
             containerDisplayMode="inline-flex"
           >
             {doesValueHitMaximum ? '>' : ''}
-            {rendered}
+            {fieldRenderer(
+              {
+                [field]: clampedValue,
+              },
+              baggage
+            )}
           </Tooltip>
         </NumberContainerOverride>
 
-        {data && previousPeriodData && !doesValueHitMaximum && (
-          <DifferenceToPreviousPeriodData
-            data={data}
-            previousPeriodData={previousPeriodData}
-            preferredPolarity={preferredPolarity}
-            renderer={(previousDatum: TableData[number]) =>
-              fieldRenderer(previousDatum, baggage)
-            }
-            field={field}
-          />
-        )}
+        {defined(previousPeriodValue) &&
+          Number.isFinite(previousPeriodValue) &&
+          !Number.isNaN(previousPeriodValue) &&
+          !doesValueHitMaximum && (
+            <DifferenceToPreviousPeriodValue
+              value={value}
+              previousPeriodValue={previousPeriodValue}
+              field={field}
+              preferredPolarity={preferredPolarity}
+              renderer={(previousDatum: TableData[number]) =>
+                fieldRenderer(previousDatum, baggage)
+              }
+            />
+          )}
       </NumberAndDifferenceContainer>
     </Wrapper>
   );
@@ -166,8 +129,4 @@ const NumberContainerOverride = styled('div')`
     display: inline;
     white-space: nowrap;
   }
-`;
-
-const Deemphasize = styled('span')`
-  color: ${p => p.theme[DEEMPHASIS_COLOR_NAME]};
 `;
