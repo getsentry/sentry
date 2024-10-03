@@ -1,6 +1,7 @@
 import logging
 from collections.abc import Sequence
 from datetime import datetime, timedelta
+from uuid import uuid4
 
 from django.conf import settings
 from django.db.models import Max
@@ -92,8 +93,10 @@ class PendingTaskStore:
         )
         for item in retry_qs:
             task_ns = taskregistry.get(item.namespace)
-            self.delete_task(item.id)
-            task_ns.retry_task(item.to_proto().activation)
+            task_proto = item.to_proto()
+            task_proto.activation.id = uuid4().hex
+            task_ns.retry_task(task_proto.activation)
+
         # With retries scheduled, the tasks are complete now.
         retry_qs.update(status=InflightActivationModel.Status.COMPLETE)
 

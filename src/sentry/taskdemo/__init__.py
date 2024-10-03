@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import time
+from multiprocessing.context import TimeoutError
 
 logger = logging.getLogger(__name__)
 
@@ -20,6 +21,13 @@ demotasks = taskregistry.create_namespace(
 def say_hello(name):
     # logger.info("hello %s", name) need to fix logging now that we are running this in another process
     print(f"hello {name}")  # noqa
+
+
+@demotasks.register(name="demos.raise_timeout", retry=Retry(times=3))
+def raise_timeout(name):
+    # logger.info("hello %s", name) need to fix logging now that we are running this in another process
+    print(f"raising timeout: {name}")  # noqa
+    raise TimeoutError
 
 
 @demotasks.register(name="demos.variable_time")

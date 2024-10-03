@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from multiprocessing.context import TimeoutError
 
 from sentry_protos.sentry.v1alpha.taskworker_pb2 import RetryState
 
@@ -35,8 +36,9 @@ class Retry:
         # No retries for types on the ignore list
         if self.__ignore and isinstance(exc, self.__ignore):
             return False
-        # In the retry allow list
-        if self.__on and isinstance(exc, self.__on):
+        # In the retry allow list or processing deadline is exceeded
+        # When processing deadline is exceeded, the subprocess raises a TimeoutError
+        if (self.__on and isinstance(exc, self.__on)) or isinstance(exc, TimeoutError):
             return True
         # TODO add logging/assertion for no funny business
         return False
