@@ -152,8 +152,11 @@ class EventLifecycle:
 
         self._terminate(EventLifecycleOutcome.SUCCESS)
 
-    def record_failure(self, exc: BaseException | None = None) -> None:
-        """Record that the event halted in failure.
+    def record_failure(
+        self, exc: BaseException | None = None, data: dict[str, Any] | None = None
+    ) -> None:
+        """Record that the event halted in failure. Additional data may be passed
+        to be logged.
 
         There is no need to call this method directly if an exception is raised from
         inside the context. It will be called automatically when exiting the context
@@ -165,6 +168,8 @@ class EventLifecycle:
         `record_failure` on the context object.
         """
 
+        if data:
+            self._extra.update(data)
         self._terminate(EventLifecycleOutcome.FAILURE, exc)
 
     def __enter__(self) -> Self:
