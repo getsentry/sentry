@@ -364,8 +364,10 @@ class BaseEvent(metaclass=abc.ABCMeta):
         # Get each variant's hash value, filtering out Nones
         hashes = list({variant.get_hash() for _, variant in sorted_variants} - {None})
 
-        # Write to event before returning
+        # Write data to event - `hashes` goes in `self.data` so that it's included in the stored
+        # event, and `variants` goes straight on `self`, so that it isn't stored
         self.data["hashes"] = hashes
+        self.variants = variants
         return hashes
 
     def normalize_stacktraces_for_grouping(self, grouping_config: StrategyConfiguration) -> None:
