@@ -198,7 +198,7 @@ export const EventNavigation = forwardRef<HTMLDivElement, EventNavigationProps>(
           </Tabs>
           <NavigationWrapper>
             <Navigation>
-              <Tooltip title={t('Previous Event')}>
+              <Tooltip title={t('Previous Event')} skipWrapper>
                 <LinkButton
                   aria-label={t('Previous Event')}
                   borderless
@@ -212,7 +212,7 @@ export const EventNavigation = forwardRef<HTMLDivElement, EventNavigationProps>(
                   css={grayText}
                 />
               </Tooltip>
-              <Tooltip title={t('Next Event')}>
+              <Tooltip title={t('Next Event')} skipWrapper>
                 <LinkButton
                   aria-label={t('Next Event')}
                   borderless
@@ -387,6 +387,7 @@ const NavigationWrapper = styled('div')`
 
 const Navigation = styled('div')`
   display: flex;
+  padding-right: ${space(0.25)};
   border-right: 1px solid ${p => p.theme.gray100};
 `;
 
