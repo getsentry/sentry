@@ -1,7 +1,5 @@
 from unittest.mock import patch
 
-from django.urls import reverse
-
 from sentry.api.endpoints.ai_unit_test_generation import AIUnitTestGenerationEndpoint
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import no_silo_test
@@ -11,23 +9,13 @@ from sentry.testutils.silo import no_silo_test
 class AIUnitTestGenerationEndpointTest(APITestCase):
     def setUp(self):
         super().setUp()
-        self.owner = self.create_user(
-            email="example@example.com", is_superuser=False, is_staff=True, is_active=True
-        )
-        self.org = self.create_organization(owner=self.owner)
-        self.client.force_authenticate(user=self.owner)
+        self.owner = self.create_user(email="example@example.com", is_superuser=False)
+        self.organization = self.create_organization(owner=self.owner, flags=0)
+
         self.repo_name = "example-repo"
         self.pull_request_number = "123"
         self.external_id = "456"
-        self.path = reverse(
-            "sentry-api-0-generate-unit-tests",
-            kwargs={
-                "organization_id_or_slug": self.org.slug,
-                "repo_name": self.repo_name,
-                "pull_request_number": self.pull_request_number,
-                "external_id": self.external_id,
-            },
-        )
+        self.url = f"/api/0/organizations/{self.organization.slug}/repo/{self.repo_name}/pr/{self.pull_request_number}/external/{self.external_id}/generate-unit-tests/"
 
     def test_post_success(self):
         with patch.object(
@@ -35,12 +23,14 @@ class AIUnitTestGenerationEndpointTest(APITestCase):
         ) as mock_call_unit_test_generation:
             mock_call_unit_test_generation.return_value = "test-run-id"
 
-            response = self.client.post(self.path)
+            response = self.client.post(
+                self.url,
+            )
 
             assert response.status_code == 202
             mock_call_unit_test_generation.assert_called_once_with(
                 self.owner,
-                owner=self.org.slug,
+                owner=self.organization.slug,
                 name=self.repo_name,
                 external_id=self.external_id,
                 pr_id=int(self.pull_request_number),
@@ -52,33 +42,30 @@ class AIUnitTestGenerationEndpointTest(APITestCase):
         ) as mock_call_unit_test_generation:
             mock_call_unit_test_generation.side_effect = Exception("Test exception")
 
-            response = self.client.post(self.path)
+            response = self.client.post(
+                self.url,
+            )
 
             assert response.status_code == 404
             assert response.data == {"detail": "Test generation failed to start."}
             mock_call_unit_test_generation.assert_called_once_with(
                 self.owner,
-                owner=self.org.slug,
+                owner=self.organization.slug,
                 name=self.repo_name,
                 external_id=self.external_id,
                 pr_id=int(self.pull_request_number),
             )
 
     def test_post_invalid_pull_request_number(self):
-        invalid_path = reverse(
-            "sentry-api-0-generate-unit-tests",
-            kwargs={
-                "organization_id_or_slug": self.org.slug,
-                "repo_name": self.repo_name,
-                "pull_request_number": "invalid-pr-number",
-                "external_id": self.external_id,
-            },
-        )
+        invalid_url = f"/api/0/organizations/{self.organization.slug}/repo/{self.repo_name}/pr/invalid-pr-number/external/{self.external_id}/generate-unit-tests/"
 
         with patch.object(
             AIUnitTestGenerationEndpoint, "_call_unit_test_generation"
         ) as mock_call_unit_test_generation:
-            response = self.client.post(invalid_path)
+
+            response = self.client.post(
+                invalid_url,
+            )
 
             assert response.status_code == 400
             assert response.data == {"detail": "Invalid pull request number."}
