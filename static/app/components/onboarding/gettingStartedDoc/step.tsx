@@ -253,7 +253,13 @@ export function Step({
 
   return collapsible ? (
     <div>
-      <OptionalConfigWrapper expanded={showOptionalConfig}>
+      <OptionalConfigWrapper
+        expanded={showOptionalConfig}
+        onClick={() => {
+          onOptionalToggleClick?.(!showOptionalConfig);
+          setShowOptionalConfig(!showOptionalConfig);
+        }}
+      >
         <h4 style={{marginBottom: 0}}>{title ?? StepTitle[type]}</h4>
         <ToggleButton
           priority="link"
@@ -261,10 +267,6 @@ export function Step({
           size="zero"
           icon={<IconChevron direction={showOptionalConfig ? 'down' : 'right'} />}
           aria-label={t('Toggle optional configuration')}
-          onClick={() => {
-            onOptionalToggleClick?.(!showOptionalConfig);
-            setShowOptionalConfig(!showOptionalConfig);
-          }}
         />
       </OptionalConfigWrapper>
       {showOptionalConfig ? config : null}

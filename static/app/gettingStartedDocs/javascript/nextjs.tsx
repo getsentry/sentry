@@ -182,7 +182,7 @@ const onboarding: OnboardingConfig = {
               'If you see an issue in your Sentry dashboard, you have successfully set up Sentry with Next.js.'
             )}
           </p>
-          <br />
+          <Divider />
           <DSNText>
             <p>
               {tct(
@@ -436,4 +436,13 @@ const AdditionalInfoWrapper = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(2)};
+`;
+
+const Divider = styled('hr')`
+  height: 1px;
+  width: 100%;
+  background: ${p => p.theme.border};
+  border: none;
+  margin-top: ${space(1)};
+  margin-bottom: ${space(2)};
 `;

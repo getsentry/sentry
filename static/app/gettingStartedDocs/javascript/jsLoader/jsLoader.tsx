@@ -64,7 +64,6 @@ const replayOnboardingJsLoader: OnboardingConfig = {
   install: (params: Params) => getInstallConfig(params),
   configure: (params: Params) => [
     {
-      // type: StepType.CONFIGURE,
       title: t('Configure Session Replay (Optional)'),
       description: getReplayConfigureDescription({
         link: 'https://docs.sentry.io/platforms/javascript/session-replay/',
