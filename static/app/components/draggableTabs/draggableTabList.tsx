@@ -268,7 +268,6 @@ function BaseDraggableTabList({
   const navigate = useNavigate();
   const [hoveringKey, setHoveringKey] = useState<Key | null>(null);
   const {rootProps, setTabListState} = useContext(TabsContext);
-  const navigate = useNavigate();
   const organization = useOrganization();
   const {
     value,

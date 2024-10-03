@@ -1,4 +1,3 @@
-import preview from 'jest-preview';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
@@ -502,7 +501,56 @@ describe('CustomViewsHeader', () => {
       ).not.toBeInTheDocument();
     });
 
-    describe('Tab renaming', () => {});
+    describe('Tab renaming', () => {
+      it('should begin editing the tab if the "Rename" ellipsis menu options is clicked', async () => {
+        const mockPutRequest = MockApiClient.addMockResponse({
+          url: `/organizations/org-slug/group-search-views/`,
+          method: 'PUT',
+        });
+
+        render(<CustomViewsIssueListHeader {...defaultProps} />, {router: defaultRouter});
+
+        userEvent.click(
+          await screen.findByRole('button', {name: 'High Priority Ellipsis Menu'})
+        );
+
+        await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Rename'}));
+
+        expect(await screen.findByRole('textbox')).toHaveValue('High Priority');
+
+        await userEvent.type(
+          await screen.findByRole('textbox'),
+          '{control>}A{/control}{backspace}'
+        );
+        await userEvent.type(await screen.findByRole('textbox'), 'New Name');
+        await userEvent.type(await screen.findByRole('textbox'), '{enter}');
+
+        expect(defaultRouter.push).not.toHaveBeenCalled();
+
+        // Make sure the put request is called, and the renamed view is in the request
+        expect(mockPutRequest).toHaveBeenCalledTimes(1);
+        const putRequestViews = mockPutRequest.mock.calls[0][1].data.views;
+        expect(putRequestViews).toHaveLength(3);
+        expect(putRequestViews).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              id: getRequestViews[0].id,
+              name: 'New Name',
+              query: getRequestViews[0].query,
+              querySort: getRequestViews[0].querySort,
+            }),
+          ])
+        );
+      });
+
+      it('should revert edits if esc is pressed while editing', async () => {
+        // TODO(msun)
+      });
+
+      it('should revert edits if the user attemps to rename the tab to an empty string', async () => {
+        // TODO(msun)
+      });
+    });
 
     describe('Tab duplication', () => {
       it('should duplicate the tab and then select the new tab', async () => {
@@ -512,7 +560,6 @@ describe('CustomViewsHeader', () => {
         });
 
         render(<CustomViewsIssueListHeader {...defaultProps} />, {router: defaultRouter});
-        preview.debug();
 
         userEvent.click(
           await screen.findByRole('button', {name: 'High Priority Ellipsis Menu'})
