@@ -1903,12 +1903,16 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
             queries.append(request)
 
             if count_hits:
+                sample_size = options.get("snuba.search.hits-sample-size")
                 hits_query = Query(
                     match=Join([Relationship(joined_entity, "attributes_inner", attr_entity)]),
                     select=[
                         Function("uniq", [Column("group_id", attr_entity)], alias="count"),
                     ],
                     where=where_conditions,
+                    limit=(
+                        Limit(sample_size) if too_many_candidates or cursor is not None else None
+                    ),
                 )
                 request = Request(
                     dataset=dataset,
@@ -1923,17 +1927,15 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         )
 
         data = []
-        count: int = 0
         # get the query data and the query counts
+        hits: int = 0
         k = 0
         for _ in range(len(entities_to_check)):
             data.extend(bulk_result[k]["data"])
             if count_hits:
                 k += 1
-                count += bulk_result[k]["data"][0]["count"]
+                hits += bulk_result[k]["data"][0]["count"]
             k += 1
-
-        metrics.distribution("snuba.search.group_attributes.num_snuba_results", len(data))
 
         if too_many_candidates:
             # If we had too many candidates to reasonably pass down to snuba,
@@ -1942,13 +1944,23 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                 id__in=[group["g.group_id"] for group in data]
             ).values_list("id", flat=True)
 
+            snuba_count = len(data)
             data = [group for group in data if group["g.group_id"] in filtered_group_ids]
+
+            if count_hits:
+                # We also need to adjust the hits count to reflect the fact that
+                # we only got a sample of the total results from Snuba.
+                # Detailed explanation: https://github.com/getsentry/sentry/blob/master/src/sentry/search/snuba/executors.py#L1097
+                hit_ratio = len(data) / float(snuba_count)
+                hits = int(hit_ratio * hits)
+
+        metrics.distribution("snuba.search.group_attributes.num_snuba_results", hits)
 
         paginator_results = SequencePaginator(
             [(row[self.sort_strategies[sort_by]], row["g.group_id"]) for row in data],
             reverse=True,
             **paginator_options,
-        ).get_result(limit, cursor, known_hits=count, max_hits=max_hits)
+        ).get_result(limit, cursor, known_hits=hits, max_hits=max_hits)
 
         # TODO: do we need to set has_results for the next cursor?
 
