@@ -243,13 +243,12 @@ def maybe_check_seer_for_matching_grouphash(
             sample_rate=options.get("seer.similarity.metrics_sample_rate"),
             tags={"call_made": True, "blocker": "none"},
         )
+
         try:
             # If no matching group is found in Seer, we'll still get back result
             # metadata, but `seer_matched_grouphash` will be None
             seer_response_data, seer_matched_grouphash = get_seer_similar_issues(event)
-
-        # Insurance - in theory we shouldn't ever land here
-        except Exception as e:
+        except Exception as e:  # Insurance - in theory we shouldn't ever land here
             sentry_sdk.capture_exception(
                 e, tags={"event": event.event_id, "project": event.project.id}
             )

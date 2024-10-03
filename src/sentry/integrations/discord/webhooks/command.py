@@ -1,10 +1,20 @@
+from collections.abc import Callable, Iterable
+from dataclasses import dataclass
+
 from rest_framework.response import Response
 
+from sentry.integrations.discord.requests.base import DiscordRequest
+from sentry.integrations.discord.utils import logger
 from sentry.integrations.discord.views.link_identity import build_linking_url
 from sentry.integrations.discord.views.unlink_identity import build_unlinking_url
 from sentry.integrations.discord.webhooks.handler import DiscordInteractionHandler
-
-from ..utils import logger
+from sentry.integrations.messaging import commands
+from sentry.integrations.messaging.commands import (
+    CommandInput,
+    CommandNotMatchedError,
+    MessagingIntegrationCommand,
+    MessagingIntegrationCommandDispatcher,
+)
 
 LINK_USER_MESSAGE = "[Click here]({url}) to link your Discord account to your Sentry account."
 ALREADY_LINKED_MESSAGE = "You are already linked to the Sentry account with email: `{email}`."
@@ -22,12 +32,6 @@ Note that in order for the link and unlink actions to work, you must be already 
 """
 
 
-class DiscordCommandNames:
-    LINK = "link"
-    UNLINK = "unlink"
-    HELP = "help"
-
-
 class DiscordCommandHandler(DiscordInteractionHandler):
     """
     Handles logic for Discord Command interactions.
@@ -37,25 +41,35 @@ class DiscordCommandHandler(DiscordInteractionHandler):
 
     def handle(self) -> Response:
         command_name = self.request.get_command_name()
-        logging_data = self.request.logging_data
-
-        if command_name == DiscordCommandNames.LINK:
-            return self.link_user()
-        elif command_name == DiscordCommandNames.UNLINK:
-            return self.unlink_user()
-        elif command_name == DiscordCommandNames.HELP:
-            return self.help()
-
-        logger.warning(
-            "discord.interaction.command.unknown", extra={"command": command_name, **logging_data}
-        )
-        return self.help()
-
-    def link_user(self) -> Response:
-        if self.request.has_identity():
-            return self.send_message(
-                ALREADY_LINKED_MESSAGE.format(email=self.request.get_identity_str())
+        cmd_input = CommandInput(command_name)
+        dispatcher = DiscordCommandDispatcher(self.request)
+        try:
+            message = dispatcher.dispatch(cmd_input)
+        except CommandNotMatchedError:
+            logger.warning(
+                "discord.interaction.command.unknown",
+                extra={"command": command_name, **self.request.logging_data},
             )
+            message = dispatcher.help(cmd_input)
+
+        return self.send_message(message)
+
+
+@dataclass(frozen=True)
+class DiscordCommandDispatcher(MessagingIntegrationCommandDispatcher[str]):
+    request: DiscordRequest
+
+    @property
+    def command_handlers(
+        self,
+    ) -> Iterable[tuple[MessagingIntegrationCommand, Callable[[CommandInput], str]]]:
+        yield commands.HELP, self.help
+        yield commands.LINK_IDENTITY, self.link_user
+        yield commands.UNLINK_IDENTITY, self.unlink_user
+
+    def link_user(self, _: CommandInput) -> str:
+        if self.request.has_identity():
+            return ALREADY_LINKED_MESSAGE.format(email=self.request.get_identity_str())
 
         if not self.request.integration or not self.request.user_id:
             logger.warning(
@@ -65,18 +79,18 @@ class DiscordCommandHandler(DiscordInteractionHandler):
                     "hasUserId": self.request.user_id,
                 },
             )
-            return self.send_message(MISSING_DATA_MESSAGE)
+            return MISSING_DATA_MESSAGE
 
         link_url = build_linking_url(
             integration=self.request.integration,
             discord_id=self.request.user_id,
         )
 
-        return self.send_message(LINK_USER_MESSAGE.format(url=link_url))
+        return LINK_USER_MESSAGE.format(url=link_url)
 
-    def unlink_user(self) -> Response:
+    def unlink_user(self, _: CommandInput) -> str:
         if not self.request.has_identity():
-            return self.send_message(NOT_LINKED_MESSAGE)
+            return NOT_LINKED_MESSAGE
 
         # if self.request.has_identity() then these must not be None
         assert self.request.integration is not None
@@ -87,7 +101,7 @@ class DiscordCommandHandler(DiscordInteractionHandler):
             discord_id=self.request.user_id,
         )
 
-        return self.send_message(UNLINK_USER_MESSAGE.format(url=unlink_url))
+        return UNLINK_USER_MESSAGE.format(url=unlink_url)
 
-    def help(self) -> Response:
-        return self.send_message(HELP_MESSAGE)
+    def help(self, _: CommandInput) -> str:
+        return HELP_MESSAGE
