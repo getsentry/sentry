@@ -240,10 +240,6 @@ def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
         project = Project.objects.filter(id=project_id).get()
         set_assemble_status(AssembleTask.DIF, project_id, checksum, ChunkFileState.ASSEMBLING)
 
-        logger.info(
-            "assembling file",
-            extra={"project_id": project_id, "checksum": checksum, "debug_id": debug_id},
-        )
         # Assemble the chunks into a temporary file
         rv = assemble_file(
             AssembleTask.DIF, project, name, checksum, chunks, file_type="project.dif"
@@ -255,10 +251,6 @@ def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
         if rv is None:
             return
 
-        logger.info(
-            "file successfully assembled",
-            extra={"project_id": project_id, "checksum": checksum, "debug_id": debug_id},
-        )
         file, temp_file = rv
         delete_file = True
 
@@ -266,42 +258,22 @@ def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
             # We only permit split difs to hit this endpoint.
             # The client is required to split them up first or we error.
             try:
-                logger.info(
-                    "detecting dif",
-                    extra={"project_id": project_id, "checksum": checksum, "debug_id": debug_id},
-                )
                 result = detect_dif_from_path(temp_file.name, name=name, debug_id=debug_id)
             except BadDif as e:
-                logger.exception(
-                    "failed to detect dif",
-                    extra={"project_id": project_id, "checksum": checksum, "debug_id": debug_id},
-                )
                 set_assemble_status(
                     AssembleTask.DIF, project_id, checksum, ChunkFileState.ERROR, detail=e.args[0]
                 )
                 return
 
             if len(result) != 1:
-                logger.error(
-                    "Object contains more than 1 architecture",
-                    extra={"project_id": project_id, "checksum": checksum, "debug_id": debug_id},
-                )
                 detail = "Object contains %s architectures (1 expected)" % len(result)
                 set_assemble_status(
                     AssembleTask.DIF, project_id, checksum, ChunkFileState.ERROR, detail=detail
                 )
                 return
 
-            logger.info(
-                "creating `DIF` object",
-                extra={"project_id": project_id, "checksum": checksum, "debug_id": debug_id},
-            )
             dif, created = create_dif_from_id(project, result[0], file=file)
             delete_file = False
-            logger.info(
-                "`DIF` created",
-                extra={"project_id": project_id, "checksum": checksum, "debug_id": debug_id},
-            )
 
             if created:
                 record_last_upload(project)
