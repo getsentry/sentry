@@ -9,6 +9,8 @@ import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
+import {MIN_HEIGHT, MIN_WIDTH} from './settings';
+
 export interface Props {
   actions?: MenuItemProps[];
   children?: React.ReactNode;
@@ -70,9 +72,9 @@ const Frame = styled('div')`
   flex-direction: column;
 
   height: 100%;
-  min-height: 96px;
+  min-height: ${MIN_HEIGHT}px;
   width: 100%;
-  min-width: 120px;
+  min-width: ${MIN_WIDTH}px;
 
   padding: ${space(2)};
 
