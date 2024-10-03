@@ -368,17 +368,15 @@ class BaseEvent(metaclass=abc.ABCMeta):
     ) -> list[str]:
         """Create hashes from variants and filter out duplicates and None values"""
 
-        filtered_hashes = []
-        seen_hashes = set()
+        filtered_hashes = set()
         for _, variant in variants:
             hash_ = variant.get_hash()
-            if hash_ is None or hash_ in seen_hashes:
+            if hash_ is None:
                 continue
 
-            seen_hashes.add(hash_)
-            filtered_hashes.append(hash_)
+            filtered_hashes.add(hash_)
 
-        return filtered_hashes
+        return list(filtered_hashes)
 
     def normalize_stacktraces_for_grouping(self, grouping_config: StrategyConfiguration) -> None:
         """Normalize stacktraces and clear memoized interfaces
