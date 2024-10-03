@@ -1,10 +1,10 @@
-import {useMemo, useState} from 'react';
+import {startTransition, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from 'sentry/components/button';
 import {BarChart, type BarChartSeries} from 'sentry/components/charts/barChart';
+import {useChartZoom} from 'sentry/components/charts/useChartZoom';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconTelescope} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -15,6 +15,7 @@ import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import theme from 'sentry/utils/theme';
 import useOrganization from 'sentry/utils/useOrganization';
+import useRouter from 'sentry/utils/useRouter';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/useIssueDetailsDiscoverQuery';
 
@@ -52,6 +53,7 @@ export function EventGraph({group, groupStats, searchQuery}: EventGraphProps) {
   const [visibleSeries, setVisibleSeries] = useState<EventGraphSeries>(
     EventGraphSeries.EVENT
   );
+  const router = useRouter();
   const [isGraphHovered, setIsGraphHovered] = useState(false);
   const eventStats = groupStats['count()'];
   const {series: eventSeries, count: eventCount} = useMemo(
@@ -70,33 +72,38 @@ export function EventGraph({group, groupStats, searchQuery}: EventGraphProps) {
     false,
     hasDatasetSelector(organization) ? SavedQueryDatasets.ERRORS : undefined
   );
+  const chartZoomProps = useChartZoom({saveOnZoom: true, router});
 
-  const series: BarChartSeries[] = [];
+  const series = useMemo((): BarChartSeries[] => {
+    const seriesData: BarChartSeries[] = [];
 
-  if (eventStats && visibleSeries === EventGraphSeries.USER) {
-    series.push({
-      seriesName: t('Users'),
-      itemStyle: {
-        borderRadius: [2, 2, 0, 0],
-        borderColor: theme.translucentGray200,
-        color: theme.purple200,
-      },
-      stack: 'stats',
-      data: userSeries,
-    });
-  }
-  if (eventStats && visibleSeries === EventGraphSeries.EVENT) {
-    series.push({
-      seriesName: t('Events'),
-      itemStyle: {
-        borderRadius: [2, 2, 0, 0],
-        borderColor: theme.translucentGray200,
-        color: theme.gray200,
-      },
-      stack: 'stats',
-      data: eventSeries,
-    });
-  }
+    if (eventStats && visibleSeries === EventGraphSeries.USER) {
+      seriesData.push({
+        seriesName: t('Users'),
+        itemStyle: {
+          borderRadius: [2, 2, 0, 0],
+          borderColor: theme.translucentGray200,
+          color: theme.purple200,
+        },
+        stack: 'stats',
+        data: userSeries,
+      });
+    }
+    if (eventStats && visibleSeries === EventGraphSeries.EVENT) {
+      seriesData.push({
+        seriesName: t('Events'),
+        itemStyle: {
+          borderRadius: [2, 2, 0, 0],
+          borderColor: theme.translucentGray200,
+          color: theme.gray200,
+        },
+        stack: 'stats',
+        data: eventSeries,
+      });
+    }
+
+    return seriesData;
+  }, [eventStats, visibleSeries, userSeries, eventSeries]);
 
   return (
     <GraphWrapper>
@@ -128,14 +135,20 @@ export function EventGraph({group, groupStats, searchQuery}: EventGraphProps) {
       </SummaryContainer>
       <ChartContainer
         role="figure"
-        onMouseEnter={() => setIsGraphHovered(true)}
-        onMouseLeave={() => setIsGraphHovered(false)}
+        onMouseEnter={() => {
+          startTransition(() => {
+            setIsGraphHovered(true);
+          });
+        }}
+        onMouseLeave={() => {
+          startTransition(() => {
+            setIsGraphHovered(false);
+          });
+        }}
       >
         <BarChart
           height={100}
           series={series}
-          isGroupedByDate
-          showTimeInTooltip
           grid={{
             top: 8,
             left: 8,
@@ -148,17 +161,17 @@ export function EventGraph({group, groupStats, searchQuery}: EventGraphProps) {
               formatter: value => formatAbbreviatedNumber(value),
             },
           }}
+          {...chartZoomProps}
         />
         {discoverUrl && isGraphHovered && (
           <OpenInDiscoverButton>
-            <Tooltip title={t('Open in Discover')}>
-              <LinkButton
-                size="xs"
-                icon={<IconTelescope />}
-                to={discoverUrl}
-                aria-label={t('Open in Discover')}
-              />
-            </Tooltip>
+            <LinkButton
+              size="xs"
+              icon={<IconTelescope />}
+              to={discoverUrl}
+              aria-label={t('Open in Discover')}
+              title={t('Open in Discover')}
+            />
           </OpenInDiscoverButton>
         )}
       </ChartContainer>

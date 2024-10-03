@@ -1,6 +1,7 @@
 import {useCallback, useMemo, useState} from 'react';
 import type {
   DataZoomComponentOption,
+  ECharts,
   InsideDataZoomComponentOption,
   ToolboxComponentOption,
   XAXisComponentOption,
@@ -64,6 +65,10 @@ interface Props {
   onZoom?: (period: Period) => void;
   period?: string | null;
   router?: InjectedRouter;
+  /**
+   * Persist changes to the page filter selection into local storage
+   * Must provide router to apply changes to URL
+   */
   saveOnZoom?: boolean;
   showSlider?: boolean;
   start?: DateString;
@@ -194,50 +199,60 @@ export function useChartZoom({
   /**
    * Enable zoom immediately instead of having to toggle to zoom
    */
-  const handleChartReady = chart => {
-    onChartReady?.(chart);
-  };
+  const handleChartReady = useCallback(
+    (chart: ECharts) => {
+      onChartReady?.(chart);
+    },
+    [onChartReady]
+  );
 
   /**
    * Restores the chart to initial viewport/zoom level
    *
    * Updates URL state to reflect initial params
    */
-  const handleZoomRestore = (evt, chart) => {
-    if (!history.length) {
-      return;
-    }
-
-    setPeriod(history[0]);
-    setHistory([]);
-
-    onRestore?.(evt, chart);
-  };
-
-  const handleDataZoom = (evt, chart) => {
-    const model = chart.getModel();
-    const {startValue, endValue} = model._payload.batch[0];
-
-    // if `rangeStart` and `rangeEnd` are null, then we are going back
-    if (startValue === null && endValue === null) {
-      const previousPeriod = history.pop();
-      setHistory(history);
-
-      if (!previousPeriod) {
+  const handleZoomRestore = useCallback(
+    (evt: any, chart: ECharts) => {
+      if (!history.length) {
         return;
       }
 
-      setPeriod(previousPeriod);
-    } else {
-      setPeriod(
-        // Add a day so we go until the end of the day (e.g. next day at midnight)
-        {period: null, start: moment.utc(startValue), end: moment.utc(endValue)},
-        true
-      );
-    }
+      setPeriod(history[0]);
+      setHistory([]);
 
-    onDataZoom?.(evt, chart);
-  };
+      onRestore?.(evt, chart);
+    },
+    [history, onRestore, setPeriod]
+  );
+
+  const handleDataZoom = useCallback(
+    (evt: any, chart: ECharts) => {
+      // @ts-expect-error getModel is private
+      const model = chart.getModel();
+      const {startValue, endValue} = model._payload.batch[0];
+
+      // if `rangeStart` and `rangeEnd` are null, then we are going back
+      if (startValue === null && endValue === null) {
+        const previousPeriod = history.pop();
+        setHistory(history);
+
+        if (!previousPeriod) {
+          return;
+        }
+
+        setPeriod(previousPeriod);
+      } else {
+        setPeriod(
+          // Add a day so we go until the end of the day (e.g. next day at midnight)
+          {period: null, start: moment.utc(startValue), end: moment.utc(endValue)},
+          true
+        );
+      }
+
+      onDataZoom?.(evt, chart);
+    },
+    [history, onDataZoom, setPeriod]
+  );
 
   /**
    * Chart event when *any* rendering+animation finishes
@@ -246,27 +261,31 @@ export function useChartZoom({
    * we can let the native zoom animation on the chart complete
    * before we update URL state and re-render
    */
-  const handleChartFinished = (_props, chart) => {
-    if (typeof zooming === 'function') {
-      zooming();
-      setZooming(null);
-    }
+  const handleChartFinished = useCallback(
+    (_props: any, chart: ECharts) => {
+      if (typeof zooming === 'function') {
+        zooming();
+        setZooming(null);
+      }
 
-    // This attempts to activate the area zoom toolbox feature
-    const zoom = chart._componentsViews?.find(c => c._features?.dataZoom);
-    if (zoom && !zoom._features.dataZoom._isZoomActive) {
-      // Calling dispatchAction will re-trigger handleChartFinished
-      chart.dispatchAction({
-        type: 'takeGlobalCursor',
-        key: 'dataZoomSelect',
-        dataZoomSelectActive: true,
-      });
-    }
+      // This attempts to activate the area zoom toolbox feature
+      // @ts-expect-error _componentsViews is private
+      const zoom = chart._componentsViews?.find(c => c._features?.dataZoom);
+      if (zoom && !zoom._features.dataZoom._isZoomActive) {
+        // Calling dispatchAction will re-trigger handleChartFinished
+        chart.dispatchAction({
+          type: 'takeGlobalCursor',
+          key: 'dataZoomSelect',
+          dataZoomSelectActive: true,
+        });
+      }
 
-    if (typeof onFinished === 'function') {
-      onFinished(_props, chart);
-    }
-  };
+      if (typeof onFinished === 'function') {
+        onFinished(_props, chart);
+      }
+    },
+    [onFinished, zooming]
+  );
 
   const startProp = start ? getUtcToLocalDateObject(start) : undefined;
   const endProp = end ? getUtcToLocalDateObject(end) : undefined;
