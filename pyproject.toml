@@ -545,6 +545,7 @@ module = [
     "sentry.web.frontend.auth_provider_login",
     "sentry.web.frontend.csv",
     "sentry_plugins.base",
+    "tests.sentry.deletions.test_group",
     "tests.sentry.event_manager.test_event_manager",
     "tests.sentry.grouping.test_fingerprinting",
     "tests.sentry.hybridcloud.*",
