@@ -7,7 +7,7 @@ from uuid import uuid4
 from snuba_sdk import Column, Condition, Entity, Function, Op, Query, Request
 
 from sentry import nodestore
-from sentry.deletions.defaults.group import EventDataDeletionTask
+from sentry.deletions.defaults.group import ErrorEventsDeletionTask
 from sentry.deletions.tasks.groups import delete_groups
 from sentry.event_manager import GroupInfo
 from sentry.eventstore.models import Event
@@ -30,7 +30,7 @@ from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 
 class DeleteGroupTest(TestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         one_minute = iso_format(before_now(minutes=1))
         group1_data = {"timestamp": one_minute, "fingerprint": ["group1"]}
@@ -69,8 +69,8 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
         GroupMeta.objects.create(group=group, key="foo", value="bar")
         GroupRedirect.objects.create(group_id=group.id, previous_group_id=1)
 
-    def test_simple(self):
-        EventDataDeletionTask.DEFAULT_CHUNK_SIZE = 1  # test chunking logic
+    def test_simple(self) -> None:
+        ErrorEventsDeletionTask.DEFAULT_CHUNK_SIZE = 1  # test chunking logic
         group = self.event.group
         assert nodestore.backend.get(self.node_id)
         assert nodestore.backend.get(self.node_id2)
@@ -91,7 +91,7 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
         assert nodestore.backend.get(self.keep_node_id), "Does not remove from second group"
         assert Group.objects.filter(id=self.keep_event.group_id).exists()
 
-    def test_simple_multiple_groups(self):
+    def test_simple_multiple_groups(self) -> None:
         other_event = self.store_event(
             data={"timestamp": iso_format(before_now(minutes=1)), "fingerprint": ["group3"]},
             project_id=self.project.id,
@@ -110,7 +110,7 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
         assert Group.objects.filter(id=self.keep_event.group_id).exists()
         assert nodestore.backend.get(self.keep_node_id)
 
-    def test_grouphistory_relation(self):
+    def test_grouphistory_relation(self) -> None:
         other_event = self.store_event(
             data={"timestamp": iso_format(before_now(minutes=1)), "fingerprint": ["group3"]},
             project_id=self.project.id,
@@ -141,7 +141,7 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
 
     @mock.patch("os.environ.get")
     @mock.patch("sentry.nodestore.delete_multi")
-    def test_cleanup(self, nodestore_delete_multi, os_environ):
+    def test_cleanup(self, nodestore_delete_multi: mock.Mock, os_environ: mock.Mock) -> None:
         os_environ.side_effect = lambda key: "1" if key == "_SENTRY_CLEANUP" else None
         group = self.event.group
 
@@ -154,8 +154,8 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
         "sentry.tasks.delete_seer_grouping_records.delete_seer_grouping_records_by_hash.apply_async"
     )
     def test_delete_groups_delete_grouping_records_by_hash(
-        self, mock_delete_seer_grouping_records_by_hash_apply_async
-    ):
+        self, mock_delete_seer_grouping_records_by_hash_apply_async: mock.Mock
+    ) -> None:
         self.project.update_option("sentry:similarity_backfill_completed", int(time()))
         other_event = self.store_event(
             data={
@@ -208,17 +208,16 @@ class DeleteIssuePlatformTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         return self.select_rows(Entity(EntityKey.IssuePlatform.value), columns, project_id)
 
     def select_rows(self, entity: Entity, columns: list[str], project_id: int) -> object:
-        # Unfortunatelly, the cache is always used when we call bulk_snuba_queries even if we pass use_cache=False
-        # So we need to make sure that the query is not cached by adding a random time range
+        # Adding the random microseconds is to circumvent Snuba's caching mechanism
         now = datetime.now()
-        self.start_time = now - timedelta(days=1, microseconds=random.randint(0, 100000000))
-        self.end_time = now + timedelta(days=1, microseconds=random.randint(0, 100000000))
+        start_time = now - timedelta(days=1, microseconds=random.randint(0, 100000000))
+        end_time = now + timedelta(days=1, microseconds=random.randint(0, 100000000))
 
         select = [Column(column) for column in columns]
         where = [
             Condition(Column("project_id"), Op.IN, Function("tuple", [project_id])),
-            Condition(Column("timestamp"), Op.GTE, self.start_time),
-            Condition(Column("timestamp"), Op.LT, self.end_time),
+            Condition(Column("timestamp"), Op.GTE, start_time),
+            Condition(Column("timestamp"), Op.LT, end_time),
         ]
         query = Query(match=entity, select=select, where=where)
         request = Request(
