@@ -135,10 +135,6 @@ services:
         read_only: true
         source: ./relay
         target: /work/.relay
-      - type: bind
-        read_only: true
-        source: ./geoip
-        target: /geoip
     depends_on:
       kafka:
         <<: *depends_on-healthy
