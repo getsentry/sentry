@@ -20,6 +20,7 @@ from sentry.testutils.helpers.eventprocessing import save_new_event
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.testutils.skips import requires_snuba
+from sentry.utils.types import NonNone
 
 pytestmark = [requires_snuba]
 
@@ -167,6 +168,16 @@ class EventManagerGroupingTest(TestCase):
             int(audit_log_entry.datetime.timestamp()) + SENTRY_GROUPING_UPDATE_MIGRATION_PHASE
         )
         assert actual_expiry == expected_expiry or actual_expiry == expected_expiry - 1
+
+    def test_variants_not_stored_with_event(self):
+        event = save_new_event({"message": "Dogs are great!"}, self.project)
+        assert hasattr(event, "variants")
+
+        # Pull the event from the DB to show that `variants` isn't saved
+        saved_event = NonNone(event.group).get_latest_event()
+
+        assert saved_event.event_id == event.event_id
+        assert not hasattr(saved_event, "variants")
 
 
 class PlaceholderTitleTest(TestCase):
