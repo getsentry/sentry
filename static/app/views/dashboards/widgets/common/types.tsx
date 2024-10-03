@@ -3,7 +3,13 @@ export type Meta = {
   units?: Record<string, string | null>;
 };
 
-export type TableData = Record<string, number | string | undefined>[];
+type TableRow = Record<string, number | string | undefined>;
+export type TableData = TableRow[];
+
+export interface DataProps {
+  data?: TableData;
+  previousPeriodData?: TableData;
+}
 
 export interface StateProps {
   error?: Error | string;

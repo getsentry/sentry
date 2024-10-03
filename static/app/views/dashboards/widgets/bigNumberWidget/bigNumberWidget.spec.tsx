@@ -140,6 +140,14 @@ describe('BigNumberWidget', () => {
       expect(screen.getByText('—')).toBeInTheDocument();
     });
 
+    it('Loading state takes precedence over error state', () => {
+      render(
+        <BigNumberWidget isLoading error={new Error('Parsing error of old value')} />
+      );
+
+      expect(screen.getByText('—')).toBeInTheDocument();
+    });
+
     it('Shows an error message', () => {
       render(<BigNumberWidget error={new Error('Uh oh')} />);
 
