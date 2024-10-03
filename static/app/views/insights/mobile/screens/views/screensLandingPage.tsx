@@ -314,11 +314,7 @@ export function ScreensLandingPage() {
               </Layout.HeaderActions>
             </Layout.Header>
           )}
-          {isInDomainView && (
-            <Layout.Header>
-              <MobileHeader module={ModuleName.MOBILE_SCREENS} />
-            </Layout.Header>
-          )}
+          {isInDomainView && <MobileHeader module={ModuleName.MOBILE_SCREENS} />}
 
           <Layout.Body>
             <Layout.Main fullWidth>
