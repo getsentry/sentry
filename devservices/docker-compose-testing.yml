@@ -12,6 +12,7 @@ x-healthcheck-defaults: &healthcheck_defaults
 services:
   memcached:
     <<: *restart_policy
+    container_name: sentry_memcached
     image: 'ghcr.io/getsentry/image-mirror-library-memcached:1.5-alpine'
     healthcheck:
       <<: *healthcheck_defaults
@@ -20,6 +21,7 @@ services:
       - '11211:11211'
   redis:
     <<: *restart_policy
+    container_name: sentry_redis
     image: ghcr.io/getsentry/image-mirror-library-redis:5.0-alpine
     healthcheck:
       <<: *healthcheck_defaults
@@ -34,6 +36,7 @@ services:
       - '6379:6379'
   postgres:
     <<: *restart_policy
+    container_name: sentry_postgres
     # Using the same postgres version as Sentry dev for consistency purposes
     image: 'ghcr.io/getsentry/image-mirror-library-postgres:14-alpine'
     healthcheck:
@@ -51,6 +54,7 @@ services:
   kafka:
     <<: *restart_policy
     image: 'ghcr.io/getsentry/image-mirror-confluentinc-cp-kafka:7.5.0'
+    container_name: sentry_kafka
     environment:
       # https://docs.confluent.io/platform/current/installation/docker/config-reference.html#cp-kakfa-example
       KAFKA_PROCESS_ROLES: 'broker,controller'
@@ -89,6 +93,7 @@ services:
       - '9093:9093'
   clickhouse:
     <<: *restart_policy
+    container_name: sentry_clickhouse
     image: 'ghcr.io/getsentry/image-mirror-altinity-clickhouse-server:23.3.19.33.altinitystable'
     ulimits:
       nofile:
@@ -123,6 +128,7 @@ services:
       - '9009:9009'
   symbolicator:
     <<: *restart_policy
+    container_name: sentry_symbolicator
     image: 'us-central1-docker.pkg.dev/sentryio/symbolicator/image:nightly'
     volumes:
       - 'sentry-symbolicator:/data'
@@ -135,6 +141,7 @@ services:
       - '3021:3021'
   relay:
     <<: *restart_policy
+    container_name: sentry_relay
     image: 'us-central1-docker.pkg.dev/sentryio/relay/relay:nightly'
     volumes:
       - type: bind
@@ -150,6 +157,7 @@ services:
       - '7899:7899'
   vroom:
     <<: *restart_policy
+    container_name: sentry_vroom
     image: 'us-central1-docker.pkg.dev/sentryio/vroom/vroom:latest'
     environment:
       SENTRY_KAFKA_BROKERS_PROFILING: 'kafka:9092'
@@ -164,6 +172,8 @@ services:
     ports:
       - '8085:8085'
   snuba:
+    <<: *restart_policy
+    container_name: sentry_snuba
     image: ghcr.io/getsentry/snuba:latest
     ports:
       - '1218:1218'
@@ -191,11 +201,15 @@ services:
       - kafka
       - redis
       - clickhouse
-  bigtable:
-    image: 'us.gcr.io/sentryio/cbtemulator:23c02d92c7a1747068eb1fc57dddbad23907d614'
-    ports:
-      - '8086:8086'
+  # bigtable:
+  #   <<: *restart_policy
+  #   container_name: sentry_bigtable
+  #   image: 'us.gcr.io/sentryio/cbtemulator:23c02d92c7a1747068eb1fc57dddbad23907d614'
+  #   ports:
+  #     - '8086:8086'
   redis-cluster:
+    <<: *restart_policy
+    container_name: sentry_redis-cluster
     image: ghcr.io/getsentry/docker-redis-cluster:7.0.10
     ports:
       - '7000:7000'
@@ -228,4 +242,3 @@ volumes:
 networks:
   sentry:
     name: sentry
-    external: true
