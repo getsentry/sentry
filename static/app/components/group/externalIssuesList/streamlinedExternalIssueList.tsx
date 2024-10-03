@@ -13,6 +13,7 @@ import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import useOrganization from 'sentry/utils/useOrganization';
+import {Divider} from 'sentry/views/issueDetails/divider';
 
 import useStreamLinedExternalIssueData from './hooks/useGroupExternalIssues';
 
@@ -82,6 +83,7 @@ export function StreamlinedExternalIssueList({
                 </Tooltip>
               </ErrorBoundary>
             ))}
+            {integrations.length > 0 && linkedIssues.length > 0 ? <Divider /> : null}
             {integrations.map(integration => {
               const sharedButtonProps: ButtonProps = {
                 size: 'zero',
@@ -138,6 +140,7 @@ const IssueActionWrapper = styled('div')`
   display: flex;
   flex-wrap: wrap;
   gap: ${space(1)};
+  line-height: 1.2;
 `;
 
 const StyledSectionTitle = styled(SidebarSection.Title)`
@@ -148,8 +151,7 @@ const LinkedIssue = styled(LinkButton)`
   display: flex;
   align-items: center;
   padding: ${space(0.5)} ${space(0.75)};
-  line-height: 1.05;
-  border: 1px dashed ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   font-weight: normal;
 `;
@@ -158,7 +160,6 @@ const IssueActionButton = styled(Button)`
   display: flex;
   align-items: center;
   padding: ${space(0.5)} ${space(0.75)};
-  line-height: 1.05;
   border: 1px dashed ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   font-weight: normal;
