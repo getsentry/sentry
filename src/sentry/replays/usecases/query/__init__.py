@@ -248,7 +248,7 @@ def query_using_optimized_search(
                 period_stop,
             )
     except (ParseError, ValueError) as exc:
-        sentry_sdk.set_tag("org_id", organization.id)
+        sentry_sdk.set_tag("org_id", organization.id if organization else None)
         sentry_sdk.capture_exception(exc)
         raise
 
