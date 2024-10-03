@@ -54,7 +54,7 @@ class UptimeSubscription(BaseRemoteSubscription, DefaultFieldsModelExisting):
     # HTTP method to perform the check with
     method = models.CharField(max_length=20, db_default="GET")
     # HTTP headers to send when performing the check
-    headers = JSONField(json_dumps=headers_json_encoder, db_default={})
+    headers = JSONField(json_dumps=headers_json_encoder, db_default=[])
     # HTTP body to send when performing the check
     body = models.TextField(null=True)
 

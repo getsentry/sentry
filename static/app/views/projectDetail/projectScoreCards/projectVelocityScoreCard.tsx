@@ -1,8 +1,7 @@
 import {Fragment} from 'react';
 
-import {fetchAnyReleaseExistence} from 'sentry/actionCreators/projects';
 import {shouldFetchPreviousPeriod} from 'sentry/components/charts/utils';
-import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
+import LoadingError from 'sentry/components/loadingError';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import ScoreCard from 'sentry/components/scoreCard';
 import {parseStatsPeriod} from 'sentry/components/timeRangeSelector/utils';
@@ -12,6 +11,7 @@ import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {getPeriod} from 'sentry/utils/duration/getPeriod';
+import {useApiQuery} from 'sentry/utils/queryClient';
 
 import MissingReleasesButtons from '../missingFeatureButtons/missingReleasesButtons';
 
@@ -19,225 +19,197 @@ const API_LIMIT = 1000;
 
 type Release = {date: string; version: string};
 
-type Props = DeprecatedAsyncComponent['props'] & {
+const useReleaseCount = (props: Props) => {
+  const {organization, selection, isProjectStabilized, query} = props;
+
+  const isEnabled = isProjectStabilized;
+  const {projects, environments, datetime} = selection;
+  const {period} = datetime;
+
+  const {start: previousStart} = parseStatsPeriod(
+    getPeriod({period, start: undefined, end: undefined}, {shouldDoublePeriod: true})
+      .statsPeriod!
+  );
+
+  const {start: previousEnd} = parseStatsPeriod(
+    getPeriod({period, start: undefined, end: undefined}, {shouldDoublePeriod: false})
+      .statsPeriod!
+  );
+
+  const commonQuery = {
+    environment: environments,
+    project: projects[0],
+    query,
+  };
+
+  const currentQuery = useApiQuery<Release[]>(
+    [
+      `/organizations/${organization.slug}/releases/stats/`,
+      {
+        query: {
+          ...commonQuery,
+          ...normalizeDateTimeParams(datetime),
+        },
+      },
+    ],
+    {staleTime: 0, enabled: isEnabled}
+  );
+
+  const isPreviousPeriodEnabled = shouldFetchPreviousPeriod({
+    start: datetime.start,
+    end: datetime.end,
+    period: datetime.period,
+  });
+
+  const previousQuery = useApiQuery<Release[]>(
+    [
+      `/organizations/${organization.slug}/releases/stats/`,
+      {
+        query: {
+          ...commonQuery,
+          start: previousStart,
+          end: previousEnd,
+        },
+      },
+    ],
+    {
+      staleTime: 0,
+      enabled: isEnabled && isPreviousPeriodEnabled,
+    }
+  );
+
+  const allReleases = [...(currentQuery.data ?? []), ...(previousQuery.data ?? [])];
+
+  const isAllTimePeriodEnabled =
+    !currentQuery.isPending &&
+    !currentQuery.error &&
+    !previousQuery.isPending &&
+    !previousQuery.error &&
+    allReleases.length === 0;
+
+  const allTimeQuery = useApiQuery<Release[]>(
+    [
+      `/organizations/${organization.slug}/releases/stats/`,
+      {
+        query: {
+          ...commonQuery,
+          statsPeriod: '90d',
+          per_page: 1,
+        },
+      },
+    ],
+    {
+      staleTime: 0,
+      enabled: isEnabled && isAllTimePeriodEnabled,
+    }
+  );
+
+  return {
+    data: currentQuery.data,
+    previousData: previousQuery.data,
+    allTimeData: allTimeQuery.data,
+    isLoading:
+      currentQuery.isPending ||
+      (previousQuery.isPending && isPreviousPeriodEnabled) ||
+      (allTimeQuery.isPending && isAllTimePeriodEnabled),
+    error: currentQuery.error || previousQuery.error || allTimeQuery.error,
+    refetch: () => {
+      currentQuery.refetch();
+      previousQuery.refetch();
+      allTimeQuery.refetch();
+    },
+  };
+};
+
+type Props = {
   isProjectStabilized: boolean;
   organization: Organization;
   selection: PageFilters;
   query?: string;
 };
 
-type State = DeprecatedAsyncComponent['state'] & {
-  currentReleases: Release[] | null;
-  noReleaseEver: boolean;
-  previousReleases: Release[] | null;
-};
+function ProjectVelocityScoreCard(props: Props) {
+  const {organization} = props;
 
-class ProjectVelocityScoreCard extends DeprecatedAsyncComponent<Props, State> {
-  shouldRenderBadRequests = true;
+  const {
+    data: currentReleases,
+    previousData: previousReleases,
+    allTimeData: allTimeReleases,
+    isLoading,
+    error,
+    refetch,
+  } = useReleaseCount(props);
 
-  getDefaultState() {
-    return {
-      ...super.getDefaultState(),
-      currentReleases: null,
-      previousReleases: null,
-      noReleaseEver: false,
-    };
-  }
+  const trend =
+    defined(currentReleases) &&
+    defined(previousReleases) &&
+    currentReleases?.length !== API_LIMIT
+      ? currentReleases.length - previousReleases.length
+      : undefined;
 
-  getEndpoints() {
-    const {organization, selection, isProjectStabilized, query} = this.props;
+  const shouldRenderTrend =
+    !isLoading && defined(currentReleases) && defined(previousReleases) && defined(trend);
 
-    if (!isProjectStabilized) {
-      return [];
-    }
+  const noReleaseEver =
+    [...(allTimeReleases ?? []), ...(previousReleases ?? []), ...(allTimeReleases ?? [])]
+      .length === 0;
 
-    const {projects, environments, datetime} = selection;
-    const {period} = datetime;
-    const commonQuery = {
-      environment: environments,
-      project: projects[0],
-      query,
-    };
-    const endpoints: ReturnType<DeprecatedAsyncComponent['getEndpoints']> = [
-      [
-        'currentReleases',
-        `/organizations/${organization.slug}/releases/stats/`,
-        {
-          includeAllArgs: true,
-          method: 'GET',
-          query: {
-            ...commonQuery,
-            ...normalizeDateTimeParams(datetime),
-          },
-        },
-      ],
-    ];
+  const cardTitle = t('Number of Releases');
 
-    if (
-      shouldFetchPreviousPeriod({
-        start: datetime.start,
-        end: datetime.end,
-        period: datetime.period,
-      })
-    ) {
-      const {start: previousStart} = parseStatsPeriod(
-        getPeriod({period, start: undefined, end: undefined}, {shouldDoublePeriod: true})
-          .statsPeriod!
-      );
+  const cardHelp = trend
+    ? t(
+        'The number of releases for this project and how it has changed since the last period.'
+      )
+    : t('The number of releases for this project.');
 
-      const {start: previousEnd} = parseStatsPeriod(
-        getPeriod({period, start: undefined, end: undefined}, {shouldDoublePeriod: false})
-          .statsPeriod!
-      );
-
-      endpoints.push([
-        'previousReleases',
-        `/organizations/${organization.slug}/releases/stats/`,
-        {
-          query: {
-            ...commonQuery,
-            start: previousStart,
-            end: previousEnd,
-          },
-        },
-      ]);
-    }
-
-    return endpoints;
-  }
-
-  /**
-   * If our releases are empty, determine if we had a release in the last 90 days (empty message differs then)
-   */
-  async onLoadAllEndpointsSuccess() {
-    const {currentReleases, previousReleases} = this.state;
-    const {organization, selection, isProjectStabilized} = this.props;
-
-    if (!isProjectStabilized) {
-      return;
-    }
-
-    if ([...(currentReleases ?? []), ...(previousReleases ?? [])].length !== 0) {
-      this.setState({noReleaseEver: false});
-      return;
-    }
-
-    this.setState({loading: true});
-
-    const hasOlderReleases = await fetchAnyReleaseExistence(
-      this.api,
-      organization.slug,
-      selection.projects[0]
-    );
-
-    this.setState({noReleaseEver: !hasOlderReleases, loading: false});
-  }
-
-  get cardTitle() {
-    return t('Number of Releases');
-  }
-
-  get cardHelp() {
-    return this.trend
-      ? t(
-          'The number of releases for this project and how it has changed since the last period.'
-        )
-      : t('The number of releases for this project.');
-  }
-
-  get trend() {
-    const {currentReleases, previousReleases} = this.state;
-
-    if (!defined(currentReleases) || !defined(previousReleases)) {
-      return null;
-    }
-
-    return currentReleases.length - previousReleases.length;
-  }
-
-  get trendStatus(): React.ComponentProps<typeof ScoreCard>['trendStatus'] {
-    if (!this.trend) {
-      return undefined;
-    }
-
-    return this.trend > 0 ? 'good' : 'bad';
-  }
-
-  componentDidUpdate(prevProps: Props) {
-    const {selection, isProjectStabilized, query} = this.props;
-
-    if (
-      prevProps.selection !== selection ||
-      prevProps.isProjectStabilized !== isProjectStabilized ||
-      prevProps.query !== query
-    ) {
-      this.remountComponent();
-    }
-  }
-
-  renderLoading() {
-    return this.renderBody();
-  }
-
-  renderMissingFeatureCard() {
-    const {organization} = this.props;
+  if (noReleaseEver) {
     return (
       <ScoreCard
-        title={this.cardTitle}
-        help={this.cardHelp}
+        title={cardTitle}
+        help={cardHelp}
         score={<MissingReleasesButtons organization={organization} />}
       />
     );
   }
 
-  renderScore() {
-    const {currentReleases, loading} = this.state;
-
-    if (loading || !defined(currentReleases)) {
-      return '\u2014';
-    }
-
-    return currentReleases.length === API_LIMIT
-      ? `${API_LIMIT - 1}+`
-      : currentReleases.length;
-  }
-
-  renderTrend() {
-    const {loading, currentReleases} = this.state;
-
-    if (loading || !defined(this.trend) || currentReleases?.length === API_LIMIT) {
-      return null;
-    }
-
+  if (error) {
     return (
-      <Fragment>
-        {this.trend >= 0 ? (
-          <IconArrow direction="up" size="xs" />
-        ) : (
-          <IconArrow direction="down" size="xs" />
-        )}
-        {Math.abs(this.trend)}
-      </Fragment>
-    );
-  }
-
-  renderBody() {
-    const {noReleaseEver} = this.state;
-
-    if (noReleaseEver) {
-      return this.renderMissingFeatureCard();
-    }
-
-    return (
-      <ScoreCard
-        title={this.cardTitle}
-        help={this.cardHelp}
-        score={this.renderScore()}
-        trend={this.renderTrend()}
-        trendStatus={this.trendStatus}
+      <LoadingError
+        message={
+          (error.responseJSON?.detail as React.ReactNode) ||
+          t('There was an error loading data.')
+        }
+        onRetry={refetch}
       />
     );
   }
+
+  return (
+    <ScoreCard
+      title={cardTitle}
+      help={cardHelp}
+      score={
+        isLoading || !defined(currentReleases)
+          ? '\u2014'
+          : currentReleases.length === API_LIMIT
+            ? `${API_LIMIT - 1}+`
+            : currentReleases.length
+      }
+      trend={
+        shouldRenderTrend ? (
+          <Fragment>
+            {trend >= 0 ? (
+              <IconArrow direction="up" size="xs" />
+            ) : (
+              <IconArrow direction="down" size="xs" />
+            )}
+            {Math.abs(trend)}
+          </Fragment>
+        ) : null
+      }
+      trendStatus={!trend ? undefined : trend > 0 ? 'good' : 'bad'}
+    />
+  );
 }
 
 export default ProjectVelocityScoreCard;

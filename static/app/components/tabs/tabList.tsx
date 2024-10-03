@@ -14,7 +14,7 @@ import DropdownButton from 'sentry/components/dropdownButton';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {browserHistory} from 'sentry/utils/browserHistory';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 import {TabsContext} from './index';
 import type {TabListItemProps} from './item';
@@ -132,6 +132,7 @@ function BaseTabList({
   variant = 'flat',
   ...props
 }: BaseTabListProps) {
+  const navigate = useNavigate();
   const tabListRef = useRef<HTMLUListElement>(null);
   const {rootProps, setTabListState} = useContext(TabsContext);
   const {
@@ -156,7 +157,7 @@ function BaseTabList({
       if (!linkTo) {
         return;
       }
-      browserHistory.push(linkTo);
+      navigate(linkTo);
     },
     isDisabled: disabled,
     keyboardActivation,

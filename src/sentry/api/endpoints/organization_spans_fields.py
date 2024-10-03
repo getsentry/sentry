@@ -32,7 +32,7 @@ from sentry.search.events.types import QueryBuilderConfig, SnubaParams
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.tagstore.types import TagKey, TagValue
-from sentry.utils import snuba
+from sentry.utils import snuba_rpc
 
 # This causes problems if a user sends an attribute with any of these values
 # but the meta table currently can't handle that anyways
@@ -117,7 +117,7 @@ class OrganizationSpansFieldsEndpoint(OrganizationSpansFieldsEndpointBase):
                 offset=0,
                 type=AttributeKey.Type.TYPE_STRING,
             )
-            rpc_response = snuba.rpc(rpc_request, TraceItemAttributesResponse)
+            rpc_response = snuba_rpc.rpc(rpc_request, TraceItemAttributesResponse)
 
             paginator = ChainPaginator(
                 [
@@ -233,7 +233,7 @@ class OrganizationSpansFieldValuesEndpoint(OrganizationSpansFieldsEndpointBase):
                 limit=max_span_tag_values,
                 offset=0,
             )
-            rpc_response = snuba.rpc(rpc_request, AttributeValuesResponse)
+            rpc_response = snuba_rpc.rpc(rpc_request, AttributeValuesResponse)
 
             paginator = ChainPaginator(
                 [
