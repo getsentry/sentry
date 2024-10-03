@@ -14,6 +14,7 @@ from sentry.feedback.usecases.create_feedback import (
     FeedbackCreationSource,
     create_feedback_issue,
     fix_for_issue_platform,
+    is_in_feedback_denylist,
     shim_to_feedback,
     validate_issue_platform_event_schema,
 )
@@ -814,3 +815,17 @@ def test_shim_to_feedback_missing_fields(default_project, monkeypatch):
         report_dict, event, default_project, FeedbackCreationSource.USER_REPORT_ENVELOPE  # type: ignore[arg-type]
     )
     assert mock_create_feedback_issue.call_count == 0
+
+
+@django_db_all
+def test_denylist(set_sentry_option, default_project):
+    with set_sentry_option(
+        "feedback.organizations.slug-denylist", [default_project.organization.slug]
+    ):
+        assert is_in_feedback_denylist(default_project.organization) is True
+
+
+@django_db_all
+def test_denylist_not_in_list(set_sentry_option, default_project):
+    with set_sentry_option("feedback.organizations.slug-denylist", ["not-in-list"]):
+        assert is_in_feedback_denylist(default_project.organization) is False

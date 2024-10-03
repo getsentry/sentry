@@ -1,5 +1,5 @@
 from sentry.feedback.usecases.create_feedback import UNREAL_FEEDBACK_UNATTENDED_MESSAGE
-from sentry.ingest.userreport import is_org_in_denylist, save_userreport, should_filter_user_report
+from sentry.ingest.userreport import save_userreport, should_filter_user_report
 from sentry.models.userreport import UserReport
 from sentry.testutils.pytest.fixtures import django_db_all
 
@@ -23,23 +23,9 @@ def test_empty_message(set_sentry_option):
 
 
 @django_db_all
-def test_org_denylist(set_sentry_option, default_project):
-    with set_sentry_option(
-        "feedback.organizations.slug-denylist", [default_project.organization.slug]
-    ):
-        assert is_org_in_denylist(default_project.organization) is True
-
-
-@django_db_all
-def test_org_denylist_not_in_list(set_sentry_option, default_project):
-    with set_sentry_option("feedback.organizations.slug-denylist", ["not-in-list"]):
-        assert is_org_in_denylist(default_project.organization) is False
-
-
-@django_db_all
 def test_save_user_report_returns_instance(set_sentry_option, default_project, monkeypatch):
     # Mocking dependencies and setting up test data
-    monkeypatch.setattr("sentry.ingest.userreport.is_org_in_denylist", lambda org: False)
+    monkeypatch.setattr("sentry.ingest.userreport.is_in_feedback_denylist", lambda org: False)
     monkeypatch.setattr("sentry.ingest.userreport.should_filter_user_report", lambda message: False)
     monkeypatch.setattr(
         "sentry.ingest.userreport.UserReport.objects.create", lambda **kwargs: UserReport()
@@ -66,7 +52,7 @@ def test_save_user_report_returns_instance(set_sentry_option, default_project, m
 
 @django_db_all
 def test_save_user_report_denylist(set_sentry_option, default_project, monkeypatch):
-    monkeypatch.setattr("sentry.ingest.userreport.is_org_in_denylist", lambda org: True)
+    monkeypatch.setattr("sentry.ingest.userreport.is_in_feedback_denylist", lambda org: True)
     report = {
         "event_id": "123456",
         "name": "Test User",

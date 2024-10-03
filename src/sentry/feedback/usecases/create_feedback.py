@@ -8,7 +8,7 @@ from uuid import uuid4
 
 import jsonschema
 
-from sentry import features
+from sentry import features, options
 from sentry.constants import DataCategory
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.feedback.usecases.spam_detection import is_spam
@@ -353,6 +353,9 @@ def shim_to_feedback(
     User feedbacks are an event type, so we try and grab as much from the
     legacy user report and event to create the new feedback.
     """
+    if is_in_feedback_denylist(project.organization):
+        return
+
     try:
         feedback_event: dict[str, Any] = {
             "contexts": {
@@ -399,3 +402,7 @@ def auto_ignore_spam_feedbacks(project, issue_fingerprint):
                 new_substatus=GroupSubStatus.FOREVER,
             ),
         )
+
+
+def is_in_feedback_denylist(organization):
+    return organization.slug in options.get("feedback.organizations.slug-denylist")

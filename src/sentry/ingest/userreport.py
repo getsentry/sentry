@@ -6,10 +6,11 @@ from datetime import timedelta
 from django.db import IntegrityError, router
 from django.utils import timezone
 
-from sentry import eventstore, features, options
+from sentry import eventstore, options
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.feedback.usecases.create_feedback import (
     UNREAL_FEEDBACK_UNATTENDED_MESSAGE,
+    is_in_feedback_denylist,
     shim_to_feedback,
 )
 from sentry.models.userreport import UserReport
@@ -32,7 +33,8 @@ def save_userreport(
     start_time=None,
 ):
     with metrics.timer("sentry.ingest.userreport.save_userreport"):
-        if is_org_in_denylist(project.organization):
+        if is_in_feedback_denylist(project.organization):
+            metrics.incr("user_report.create_user_report.filtered", tags={"reason": "org.denylist"})
             return
         if should_filter_user_report(report["comments"]):
             return
@@ -97,24 +99,19 @@ def save_userreport(
 
         user_feedback_received.send(project=project, sender=save_userreport)
 
-        has_feedback_ingest = features.has(
-            "organizations:user-feedback-ingest", project.organization, actor=None
-        )
         logger.info(
             "ingest.user_report",
             extra={
                 "project_id": project.id,
                 "event_id": report["event_id"],
                 "has_event": bool(event),
-                "has_feedback_ingest": has_feedback_ingest,
             },
         )
         metrics.incr(
             "user_report.create_user_report.saved",
-            tags={"has_event": bool(event), "has_feedback_ingest": has_feedback_ingest},
+            tags={"has_event": bool(event)},
         )
-
-        if has_feedback_ingest and event:
+        if event:
             logger.info(
                 "ingest.user_report.shim_to_feedback",
                 extra={"project_id": project.id, "event_id": report["event_id"]},
@@ -149,11 +146,4 @@ def should_filter_user_report(comments: str):
         )
         return True
 
-    return False
-
-
-def is_org_in_denylist(organization):
-    if organization.slug in options.get("feedback.organizations.slug-denylist"):
-        metrics.incr("user_report.create_user_report.filtered", tags={"reason": "org.denylist"})
-        return True
     return False
