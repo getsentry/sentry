@@ -31,7 +31,6 @@ import {
   getReplayConfigureDescription,
   getReplayVerifyStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
-import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import {t, tct} from 'sentry/locale';
 
 export enum AngularConfigType {
@@ -248,30 +247,6 @@ function getVerifyConfiguration(): Configuration {
   };
 }
 
-const getNextStep = (
-  params: Params
-): {
-  description: string;
-  id: string;
-  link: string;
-  name: string;
-}[] => {
-  let nextStepDocs = [...nextSteps];
-
-  if (params.isPerformanceSelected) {
-    nextStepDocs = nextStepDocs.filter(
-      step => step.id !== ProductSolution.PERFORMANCE_MONITORING
-    );
-  }
-
-  if (params.isReplaySelected) {
-    nextStepDocs = nextStepDocs.filter(
-      step => step.id !== ProductSolution.SESSION_REPLAY
-    );
-  }
-  return nextStepDocs;
-};
-
 const getInstallConfig = () => [
   {
     language: 'bash',
@@ -374,33 +349,17 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
       ],
     },
   ],
-  nextSteps: (params: Params) => getNextStep(params),
+  nextSteps: () => [
+    {
+      id: 'angular-features',
+      name: t('Angular Features'),
+      description: t(
+        'Learn about our first class integration with the Angular framework.'
+      ),
+      link: 'https://docs.sentry.io/platforms/javascript/guides/angular/features/',
+    },
+  ],
 };
-
-export const nextSteps = [
-  {
-    id: 'angular-features',
-    name: t('Angular Features'),
-    description: t('Learn about our first class integration with the Angular framework.'),
-    link: 'https://docs.sentry.io/platforms/javascript/guides/angular/features/',
-  },
-  {
-    id: 'performance-monitoring',
-    name: t('Tracing'),
-    description: t(
-      'Track down transactions to connect the dots between 10-second page loads and poor-performing API calls or slow database queries.'
-    ),
-    link: 'https://docs.sentry.io/platforms/javascript/guides/angular/tracing/',
-  },
-  {
-    id: 'session-replay',
-    name: t('Session Replay'),
-    description: t(
-      'Get to the root cause of an error or latency issue faster by seeing all the technical details related to that issue in one visual replay on your web application.'
-    ),
-    link: 'https://docs.sentry.io/platforms/javascript/guides/angular/session-replay/',
-  },
-];
 
 const replayOnboarding: OnboardingConfig<PlatformOptions> = {
   install: () => [
