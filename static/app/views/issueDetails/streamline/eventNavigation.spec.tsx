@@ -1,9 +1,11 @@
 import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {browserHistory} from 'sentry/utils/browserHistory';
 import * as useMedia from 'sentry/utils/useMedia';
 import {SectionKey, useEventDetails} from 'sentry/views/issueDetails/streamline/context';
 import {EventNavigation} from 'sentry/views/issueDetails/streamline/eventNavigation';
@@ -11,6 +13,7 @@ import {EventNavigation} from 'sentry/views/issueDetails/streamline/eventNavigat
 jest.mock('sentry/views/issueDetails/streamline/context');
 
 describe('EventNavigation', () => {
+  const {router} = initializeOrg();
   const testEvent = EventFixture({
     id: 'event-id',
     size: 7,
@@ -58,11 +61,11 @@ describe('EventNavigation', () => {
     it('can navigate to the oldest event', async () => {
       jest.spyOn(useMedia, 'default').mockReturnValue(true);
 
-      render(<EventNavigation {...defaultProps} />);
+      render(<EventNavigation {...defaultProps} />, {router});
 
       await userEvent.click(screen.getByRole('tab', {name: 'First'}));
 
-      expect(browserHistory.push).toHaveBeenCalledWith({
+      expect(router.push).toHaveBeenCalledWith({
         pathname: '/organizations/org-slug/issues/group-id/events/oldest/',
         query: {referrer: 'oldest-event'},
       });
@@ -71,11 +74,11 @@ describe('EventNavigation', () => {
     it('can navigate to the latest event', async () => {
       jest.spyOn(useMedia, 'default').mockReturnValue(true);
 
-      render(<EventNavigation {...defaultProps} />);
+      render(<EventNavigation {...defaultProps} />, {router});
 
       await userEvent.click(screen.getByRole('tab', {name: 'Last'}));
 
-      expect(browserHistory.push).toHaveBeenCalledWith({
+      expect(router.push).toHaveBeenCalledWith({
         pathname: '/organizations/org-slug/issues/group-id/events/latest/',
         query: {referrer: 'latest-event'},
       });
@@ -84,15 +87,20 @@ describe('EventNavigation', () => {
     it('can navigate to the recommended event', async () => {
       jest.spyOn(useMedia, 'default').mockReturnValue(true);
 
+      const recommendedEventRouter = RouterFixture({
+        params: {eventId: 'latest'},
+        location: LocationFixture({
+          pathname: `/organizations/org-slug/issues/group-id/events/latest/`,
+        }),
+      });
+
       render(<EventNavigation {...defaultProps} />, {
-        router: {
-          params: {eventId: 'latest'},
-        },
+        router: recommendedEventRouter,
       });
 
       await userEvent.click(screen.getByRole('tab', {name: 'Recommended'}));
 
-      expect(browserHistory.push).toHaveBeenCalledWith({
+      expect(recommendedEventRouter.push).toHaveBeenCalledWith({
         pathname: '/organizations/org-slug/issues/group-id/events/recommended/',
         query: {referrer: 'recommended-event'},
       });
