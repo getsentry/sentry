@@ -68,7 +68,9 @@ class OrganizationEventsAnomaliesEndpoint(OrganizationEventsV2EndpointBase):
         """
         Return a list of anomalies for a time series of historical event data.
         """
-        if not features.has("organizations:anomaly-detection-alerts", organization):
+        if not features.has(
+            "organizations:anomaly-detection-alerts", organization
+        ) and not features.has("organizations:anomaly-detection-rollout", organization):
             raise ResourceDoesNotExist("Your organization does not have access to this feature.")
 
         historical_data = self._format_historical_data(request.data.get("historical_data"))

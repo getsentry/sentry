@@ -25,6 +25,7 @@ import {
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {Tooltip} from 'sentry/components/tooltip';
+import {IconCode, IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {getFileExtension} from 'sentry/utils/fileExtension';
@@ -165,24 +166,69 @@ export function replaceHeadersWithBold(markdown: string) {
 
 function RootCauseDescription({cause}: {cause: AutofixRootCauseData}) {
   return (
-    <Fragment>
-      <CauseDescription
-        dangerouslySetInnerHTML={{
-          __html: marked(replaceHeadersWithBold(cause.description)),
-        }}
-      />
-      {cause.reproduction && (
-        <Fragment>
-          <ExpandableInsightContext title={'How to reproduce'}>
+    <CauseDescription
+      dangerouslySetInnerHTML={{
+        __html: marked(replaceHeadersWithBold(cause.description)),
+      }}
+    />
+  );
+}
+
+function RootCauseContext({
+  cause,
+  repos,
+}: {
+  cause: AutofixRootCauseData;
+  repos: AutofixRepository[];
+}) {
+  const unitTestFileExtension = cause.unit_test?.file_path
+    ? getFileExtension(cause.unit_test.file_path)
+    : undefined;
+  const unitTestLanguage = unitTestFileExtension
+    ? getPrismLanguage(unitTestFileExtension)
+    : undefined;
+
+  return (
+    <RootCauseContextContainer>
+      {(cause.reproduction || cause.unit_test) && (
+        <ExpandableInsightContext
+          icon={<IconInfo size="sm" color="subText" />}
+          title={'How to reproduce'}
+          rounded
+        >
+          {cause.reproduction && (
             <CauseDescription
               dangerouslySetInnerHTML={{
                 __html: marked(replaceHeadersWithBold(cause.reproduction)),
               }}
             />
-          </ExpandableInsightContext>
-        </Fragment>
+          )}
+          {cause.unit_test && (
+            <Fragment>
+              <strong>{t('Unit test that reproduces this root cause:')}</strong>
+              <CauseDescription
+                dangerouslySetInnerHTML={{
+                  __html: marked(replaceHeadersWithBold(cause.unit_test.description)),
+                }}
+              />
+              <StyledCodeSnippet
+                filename={cause.unit_test.file_path}
+                language={unitTestLanguage}
+              >
+                {cause.unit_test.snippet}
+              </StyledCodeSnippet>
+            </Fragment>
+          )}
+        </ExpandableInsightContext>
       )}
-    </Fragment>
+      <ExpandableInsightContext
+        icon={<IconCode size="sm" color="subText" />}
+        title={'Relevant code'}
+        rounded
+      >
+        <AutofixRootCauseCodeContexts codeContext={cause.code_context} repos={repos} />
+      </ExpandableInsightContext>
+    </RootCauseContextContainer>
   );
 }
 
@@ -282,9 +328,7 @@ function CauseOption({
       </RootCauseOptionHeader>
       <RootCauseContent selected={selected}>
         <RootCauseDescription cause={cause} />
-        <ExpandableInsightContext title={'Relevant code'}>
-          <AutofixRootCauseCodeContexts codeContext={cause.code_context} repos={repos} />
-        </ExpandableInsightContext>
+        <RootCauseContext cause={cause} repos={repos} />
       </RootCauseContent>
     </RootCauseOption>
   );
@@ -292,7 +336,6 @@ function CauseOption({
 
 function SelectedRootCauseOption({
   selectedCause,
-  codeContext,
   repos,
 }: {
   codeContext: AutofixRootCauseCodeContext[];
@@ -307,9 +350,7 @@ function SelectedRootCauseOption({
         }}
       />
       <RootCauseDescription cause={selectedCause} />
-      <ExpandableInsightContext title={'Relevant code'}>
-        <AutofixRootCauseCodeContexts codeContext={codeContext} repos={repos} />
-      </ExpandableInsightContext>
+      <RootCauseContext cause={selectedCause} repos={repos} />
     </RootCauseOption>
   );
 }
@@ -373,18 +414,8 @@ function AutofixRootCauseDisplay({
                       {t('Fix This Instead')}
                     </Button>
                   </RootCauseOptionHeader>
-
-                  <CauseDescription
-                    dangerouslySetInnerHTML={{
-                      __html: marked(cause.description),
-                    }}
-                  />
-                  <ExpandableInsightContext title={'Relevant Code'}>
-                    <AutofixRootCauseCodeContexts
-                      codeContext={cause.code_context}
-                      repos={repos}
-                    />
-                  </ExpandableInsightContext>
+                  <RootCauseDescription cause={cause} />
+                  <RootCauseContext cause={cause} repos={repos} />
                 </RootCauseOption>
               ))}
             </AutofixShowMore>
@@ -501,6 +532,12 @@ const RootCauseOption = styled('div')<{selected: boolean}>`
   padding-top: ${space(1)};
   padding-left: ${space(2)};
   padding-right: ${space(2)};
+`;
+
+const RootCauseContextContainer = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(0.5)};
 `;
 
 const RootCauseOptionHeader = styled('div')`

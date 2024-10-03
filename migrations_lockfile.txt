@@ -10,7 +10,7 @@ hybridcloud: 0016_add_control_cacheversion
 nodestore: 0002_nodestore_no_dictfield
 remote_subscriptions: 0003_drop_remote_subscription
 replays: 0004_index_together
-sentry: 0768_fix_old_group_first_seen_dates
+sentry: 0772_backfill_grouphash_metadata_grouping_config
 social_auth: 0002_default_auto_field
-uptime: 0013_uptime_subscription_new_unique
-workflow_engine: 0007_loosen_workflow_action_relationship
+uptime: 0016_translate_uptime_object_headers_to_lists
+workflow_engine: 0009_detector_type

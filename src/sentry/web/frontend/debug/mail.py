@@ -33,7 +33,7 @@ from sentry.http import get_server_hostname
 from sentry.issues.grouptype import NoiseConfig
 from sentry.issues.occurrence_consumer import process_event_and_issue_occurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
-from sentry.mail.notifications import get_builder_args
+from sentry.mail.notifications import RecipientT, get_builder_args
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.organization import Organization
@@ -58,7 +58,6 @@ from sentry.testutils.helpers.notifications import (  # NOQA:S007
     TEST_FEEDBACK_ISSUE_OCCURENCE,
     TEST_ISSUE_OCCURRENCE,
 )
-from sentry.types.actor import Actor
 from sentry.types.group import GroupSubStatus
 from sentry.users.models.lostpasswordhash import LostPasswordHash
 from sentry.utils import json, loremipsum
@@ -822,7 +821,7 @@ def org_delete_confirm(request):
 
 # Used to generate debug email views from a notification
 def render_preview_email_for_notification(
-    notification: BaseNotification, recipient: Actor
+    notification: BaseNotification, recipient: RecipientT
 ) -> HttpResponse:
     shared_context = notification.get_context()
     basic_args = get_builder_args(notification, recipient, shared_context)

@@ -9,28 +9,45 @@ import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
-export interface Props {
+import {ErrorPanel} from './errorPanel';
+import {MIN_HEIGHT, MIN_WIDTH} from './settings';
+import type {StateProps} from './types';
+
+export interface Props extends StateProps {
   actions?: MenuItemProps[];
   children?: React.ReactNode;
   description?: string;
-  showDescriptionInTooltip?: boolean;
   title?: string;
 }
 
 export function WidgetFrame(props: Props) {
-  const {title, description, showDescriptionInTooltip = true, actions, children} = props;
+  const {error} = props;
+
+  // The error state has its own set of available actions
+  const actions =
+    (error
+      ? props.onRetry
+        ? [
+            {
+              key: 'retry',
+              label: t('Retry'),
+              onAction: props.onRetry,
+            },
+          ]
+        : []
+      : props.actions) ?? [];
 
   return (
     <Frame>
-      <Header showDescriptionInTooltip={showDescriptionInTooltip}>
+      <Header>
         <Title>
-          <Tooltip title={title} containerDisplayMode="grid" showOnlyOnOverflow>
-            <TitleText>{title}</TitleText>
+          <Tooltip title={props.title} containerDisplayMode="grid" showOnlyOnOverflow>
+            <TitleText>{props.title}</TitleText>
           </Tooltip>
 
-          {description && showDescriptionInTooltip && (
+          {props.description && (
             <TooltipAligner>
-              <QuestionTooltip size="sm" title={description} />
+              <QuestionTooltip size="sm" title={props.description} />
             </TooltipAligner>
           )}
 
@@ -58,20 +75,11 @@ export function WidgetFrame(props: Props) {
             </TitleActions>
           )}
         </Title>
-
-        {description && !showDescriptionInTooltip && (
-          <Tooltip
-            title={description}
-            containerDisplayMode="grid"
-            showOnlyOnOverflow
-            isHoverable
-          >
-            <Description>{description}</Description>
-          </Tooltip>
-        )}
       </Header>
 
-      <VisualizationWrapper>{children}</VisualizationWrapper>
+      <VisualizationWrapper>
+        {props.error ? <ErrorPanel error={error} /> : props.children}
+      </VisualizationWrapper>
     </Frame>
   );
 }
@@ -82,9 +90,9 @@ const Frame = styled('div')`
   flex-direction: column;
 
   height: 100%;
-  min-height: 96px;
+  min-height: ${MIN_HEIGHT}px;
   width: 100%;
-  min-width: 120px;
+  min-width: ${MIN_WIDTH}px;
 
   padding: ${space(2)};
 
@@ -95,23 +103,15 @@ const Frame = styled('div')`
   background: ${p => p.theme.background};
 `;
 
-const Header = styled('div')<{showDescriptionInTooltip: boolean}>`
+const Header = styled('div')`
   display: flex;
   flex-direction: column;
-
-  min-height: ${p => (p.showDescriptionInTooltip ? '' : '36px')};
 `;
 
 const Title = styled('div')`
   display: inline-flex;
   align-items: center;
   gap: ${space(0.75)};
-`;
-
-const Description = styled('small')`
-  ${p => p.theme.overflowEllipsis}
-
-  color: ${p => p.theme.gray300};
 `;
 
 const TitleText = styled(HeaderTitle)`

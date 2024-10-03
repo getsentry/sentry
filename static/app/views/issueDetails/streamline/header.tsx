@@ -164,7 +164,7 @@ export default function StreamlinedGroupHeader({
                 </ReleaseWrapper>
               </Fragment>
             )}
-            <AttachmentsBadge group={group} project={project} />
+            <AttachmentsBadge group={group} />
             <UserFeedbackBadge group={group} project={project} />
             <ReplayBadge group={group} project={project} />
           </MessageWrapper>

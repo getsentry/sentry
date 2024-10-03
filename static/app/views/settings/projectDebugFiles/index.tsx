@@ -246,7 +246,6 @@ function ProjectDebugSymbols({organization, project, location, router, params}: 
                       debugFile={debugFile}
                       showDetails={showDetails}
                       downloadUrl={downloadUrl}
-                      downloadRole={organization.debugFilesRole}
                       onDelete={handleDeleteDebugFile}
                       key={debugFile.id}
                       orgSlug={organization.slug}
