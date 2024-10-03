@@ -21,7 +21,6 @@ class GroupHashMetadata(Model):
     # HASHING
 
     # Most recent config to produce this hash
-    # TODO: Backfill the current config for grouphashes with metadata and then make this non-nullable
     latest_grouping_config = models.CharField(null=True)
 
     # SEER
