@@ -224,7 +224,6 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             "hash": NonNone(self.event.get_primary_hash()),
             "project_id": self.project.id,
             "stacktrace": EXPECTED_STACKTRACE_STRING,
-            "message": self.group.get_latest_event().title,
             "exception_type": "ZeroDivisionError",
             "read_only": True,
             "referrer": "similar_issues",
@@ -239,7 +238,6 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             headers={"content-type": "application/json;charset=utf-8"},
         )
 
-        expected_seer_request_params["group_message"] = expected_seer_request_params.pop("message")
         mock_logger.info.assert_called_with(
             "Similar issues embeddings parameters", extra=expected_seer_request_params
         )
@@ -342,7 +340,6 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                     "hash": NonNone(self.event.get_primary_hash()),
                     "project_id": self.project.id,
                     "stacktrace": EXPECTED_STACKTRACE_STRING,
-                    "message": self.group.get_latest_event().title,
                     "exception_type": "ZeroDivisionError",
                     "read_only": True,
                     "referrer": "similar_issues",
@@ -614,7 +611,6 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                     "hash": NonNone(self.event.get_primary_hash()),
                     "project_id": self.project.id,
                     "stacktrace": EXPECTED_STACKTRACE_STRING,
-                    "message": self.group.get_latest_event().title,
                     "exception_type": "ZeroDivisionError",
                     "read_only": True,
                     "referrer": "similar_issues",
@@ -643,7 +639,6 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                     "hash": NonNone(self.event.get_primary_hash()),
                     "project_id": self.project.id,
                     "stacktrace": EXPECTED_STACKTRACE_STRING,
-                    "message": self.group.get_latest_event().title,
                     "exception_type": "ZeroDivisionError",
                     "read_only": True,
                     "referrer": "similar_issues",
@@ -673,7 +668,6 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                     "hash": NonNone(self.event.get_primary_hash()),
                     "project_id": self.project.id,
                     "stacktrace": EXPECTED_STACKTRACE_STRING,
-                    "message": self.group.get_latest_event().title,
                     "exception_type": "ZeroDivisionError",
                     "read_only": True,
                     "referrer": "similar_issues",

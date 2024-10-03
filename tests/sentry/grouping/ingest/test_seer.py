@@ -216,7 +216,6 @@ class GetSeerSimilarIssuesTest(TestCase):
                 "hash": new_event.get_primary_hash(),
                 "project_id": self.project.id,
                 "stacktrace": f'{type}: {value}\n  File "dogpark.py", function play_fetch\n    {context_line}',
-                "message": "FailedToFetchError('Charlie didn't bring the ball back')",
                 "exception_type": "FailedToFetchError",
                 "k": 1,
                 "referrer": "ingest",
