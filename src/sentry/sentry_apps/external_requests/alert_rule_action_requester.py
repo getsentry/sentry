@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TypedDict
 from urllib.parse import urlparse, urlunparse
 from uuid import uuid4
@@ -27,7 +27,7 @@ class AlertRuleActionResult(TypedDict):
 class AlertRuleActionRequester:
     install: SentryAppInstallation | RpcSentryAppInstallation
     uri: str
-    fields: list[dict[str, str]] = []
+    fields: list[dict[str, str]] = field(default_factory=list)
     http_method: str | None = "POST"
 
     def run(self) -> AlertRuleActionResult:
@@ -83,7 +83,7 @@ class AlertRuleActionRequester:
         Used to bubble up info from the Sentry App to the UI.
         The location should be coordinated with the docs on Alert Rule Action UI Components.
         """
-        if not response:
+        if response is None:
             message = default_message
         else:
             try:
