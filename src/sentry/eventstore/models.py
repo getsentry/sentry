@@ -353,11 +353,14 @@ class BaseEvent(metaclass=abc.ABCMeta):
                 return hashes
 
         # Create fresh hashes
-        from sentry.grouping.api import sort_grouping_variants
 
         variants = self.get_grouping_variants(force_config)
-        # Sort the variants so that the system variant (if any) is always last
-        sorted_variants = sort_grouping_variants(variants)
+        # Sort the variants so that the system variant (if any) is always last, in order to resolve
+        # ambiguities when choosing primary_hash for Snuba
+        sorted_variants = sorted(
+            variants.items(),
+            key=lambda name_and_variant: 1 if name_and_variant[0] == "system" else 0,
+        )
         # Get each variant's hash value, filtering out Nones
         hashes = list({variant.get_hash() for _, variant in sorted_variants} - {None})
 
