@@ -50,6 +50,7 @@ type PropType = {
   dragProps: DragManagerChildrenProps;
   event: EventTransaction | AggregateEventTransaction;
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
+  isEmbedded: boolean;
   minimapInteractiveRef: React.RefObject<HTMLDivElement>;
   operationNameFilters: ActiveOperationFilter;
   organization: Organization;
@@ -475,6 +476,7 @@ class TraceViewHeader extends Component<PropType, State> {
             <HeaderContainer
               ref={this.props.traceViewHeaderRef}
               hasProfileMeasurementsChart={hasProfileMeasurementsChart}
+              isEmbedded={this.props.isEmbedded}
             >
               <DividerHandlerManager.Consumer>
                 {dividerHandlerChildrenProps => {
@@ -801,12 +803,15 @@ const DurationGuideBox = styled('div')<{alignLeft: boolean}>`
   }};
 `;
 
-export const HeaderContainer = styled('div')<{hasProfileMeasurementsChart: boolean}>`
+export const HeaderContainer = styled('div')<{
+  hasProfileMeasurementsChart: boolean;
+  isEmbedded: boolean;
+}>`
   width: 100%;
   position: sticky;
   left: 0;
   top: ${p => (ConfigStore.get('demoMode') ? p.theme.demo.headerSize : 0)};
-  z-index: ${p => p.theme.zIndex.traceView.minimapContainer};
+  z-index: ${p => (p.isEmbedded ? 'initial' : p.theme.zIndex.traceView.minimapContainer)};
   background-color: ${p => p.theme.background};
   border-bottom: 1px solid ${p => p.theme.border};
   height: ${p =>
