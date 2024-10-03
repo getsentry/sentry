@@ -28,8 +28,13 @@ from sentry.integrations.messaging.commands import (
     MessagingIntegrationCommand,
     MessagingIntegrationCommandDispatcher,
 )
+from sentry.integrations.messaging.metrics import (
+    MessagingInteractionEvent,
+    MessagingInteractionType,
+)
+from sentry.integrations.messaging.spec import MessagingIntegrationSpec
 from sentry.integrations.msteams import parsing
-from sentry.integrations.msteams.spec import PROVIDER
+from sentry.integrations.msteams.spec import PROVIDER, MsTeamsMessagingSpec
 from sentry.integrations.services.integration import integration_service
 from sentry.models.activity import ActivityIntegration
 from sentry.models.apikey import ApiKey
@@ -455,22 +460,21 @@ class MsTeamsWebhookEndpoint(Endpoint):
             action_data = {"assignedTo": ""}
         return action_data
 
+    _ACTION_TYPES = {
+        ACTION_TYPE.RESOLVE: ("resolve", MessagingInteractionType.RESOLVE),
+        ACTION_TYPE.IGNORE: ("ignore", MessagingInteractionType.IGNORE),
+        ACTION_TYPE.ASSIGN: ("assign", MessagingInteractionType.ASSIGN),
+        ACTION_TYPE.UNRESOLVE: ("unresolve", MessagingInteractionType.UNRESOLVE),
+        ACTION_TYPE.UNASSIGN: ("unassign", MessagingInteractionType.UNASSIGN),
+    }
+
     def _issue_state_change(self, group: Group, identity: RpcIdentity, data) -> Response:
         event_write_key = ApiKey(
             organization_id=group.project.organization_id, scope_list=["event:write"]
         )
 
-        # undoing the enum structure of ACTION_TYPE to
-        # get a more sensible analytics_event
-        action_types = {
-            ACTION_TYPE.RESOLVE: "resolve",
-            ACTION_TYPE.IGNORE: "ignore",
-            ACTION_TYPE.ASSIGN: "assign",
-            ACTION_TYPE.UNRESOLVE: "unresolve",
-            ACTION_TYPE.UNASSIGN: "unassign",
-        }
         action_data = self._make_action_data(data, identity.user_id)
-        status = action_types[data["payload"]["actionType"]]
+        status, interaction_type = self._ACTION_TYPES[data["payload"]["actionType"]]
         analytics_event = f"integrations.msteams.{status}"
         analytics.record(
             analytics_event,
@@ -478,13 +482,19 @@ class MsTeamsWebhookEndpoint(Endpoint):
             organization_id=group.project.organization.id,
         )
 
-        return client.put(
-            path=f"/projects/{group.project.organization.slug}/{group.project.slug}/issues/",
-            params={"id": group.id},
-            data=action_data,
-            user=user_service.get_user(user_id=identity.user_id),
-            auth=event_write_key,
-        )
+        with MessagingInteractionEvent(
+            interaction_type, MsTeamsMessagingSpec()
+        ).capture() as lifecycle:
+            response = client.put(
+                path=f"/projects/{group.project.organization.slug}/{group.project.slug}/issues/",
+                params={"id": group.id},
+                data=action_data,
+                user=user_service.get_user(user_id=identity.user_id),
+                auth=event_write_key,
+            )
+            if response.status_code >= 400:
+                lifecycle.record_failure()
+            return response
 
     def _handle_action_submitted(self, request: Request) -> Response:
         # pull out parameters
@@ -625,6 +635,10 @@ class MsTeamsWebhookEndpoint(Endpoint):
 @dataclass(frozen=True)
 class MsTeamsCommandDispatcher(MessagingIntegrationCommandDispatcher[AdaptiveCard]):
     data: dict[str, Any]
+
+    @property
+    def integration_spec(self) -> MessagingIntegrationSpec:
+        return MsTeamsMessagingSpec()
 
     @property
     def conversation_id(self) -> str:
