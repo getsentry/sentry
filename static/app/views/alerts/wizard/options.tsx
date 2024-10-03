@@ -65,7 +65,7 @@ export enum MEPAlertsDataset {
 export type MetricAlertType = Exclude<AlertType, 'issues' | 'uptime_monitor'>;
 
 export const DatasetMEPAlertQueryTypes: Record<
-  Exclude<Dataset, Dataset.ISSUE_PLATFORM | Dataset.SESSIONS | Dataset.REPLAYS>, // IssuePlatform (search_issues) is not used in alerts, so we can exclude it here
+  Exclude<Dataset, 'search_issues' | Dataset.SESSIONS>, // IssuePlatform (search_issues) is not used in alerts, so we can exclude it here
   MEPAlertsQueryType
 > = {
   [Dataset.ERRORS]: MEPAlertsQueryType.ERROR,

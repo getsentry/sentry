@@ -41,7 +41,6 @@ export enum Dataset {
   /** Also used for crash free alerts */
   METRICS = 'metrics',
   ISSUE_PLATFORM = 'search_issues',
-  REPLAYS = 'replays',
 }
 
 export enum EventTypes {
