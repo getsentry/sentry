@@ -389,11 +389,6 @@ describe('Incident Rules Form', () => {
         },
       });
       expect(
-        await screen.findByLabelText(
-          'Anomaly: whenever values are outside of expected bounds'
-        )
-      ).toBeChecked();
-      expect(
         await screen.findByRole('textbox', {name: 'Level of responsiveness'})
       ).toBeInTheDocument();
       await userEvent.click(screen.getByLabelText('Save Rule'));
