@@ -319,8 +319,9 @@ export class DeprecatedLine extends Component<Props, State> {
       );
 
     const frameHasValidFileEndingForSourceMapDebugger =
-      VALID_SOURCE_MAP_DEBUGGER_FILE_ENDINGS.some(ending =>
-        (data.absPath || data.filename || '').endsWith(ending)
+      VALID_SOURCE_MAP_DEBUGGER_FILE_ENDINGS.some(
+        ending =>
+          (data.absPath ?? '').endsWith(ending) || (data.filename ?? '').endsWith(ending)
       );
 
     const shouldShowSourceMapDebuggerButton =
