@@ -721,7 +721,7 @@ def create_group_urls(name_prefix: str) -> list[URLPattern | URLResolver]:
             name=f"{name_prefix}-group-events",
         ),
         re_path(
-            r"^(?P<issue_id>[^\/]+)/events/(?P<event_id>(?:latest|oldest|helpful|recommended|\d+|[A-Fa-f0-9-]{32,36}))/$",
+            r"^(?P<issue_id>[^\/]+)/events/(?P<event_id>(?:latest|oldest|recommended|\d+|[A-Fa-f0-9-]{32,36}))/$",
             GroupEventDetailsEndpoint.as_view(),
             name=f"{name_prefix}-group-event-details",
         ),

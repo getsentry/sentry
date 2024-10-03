@@ -115,10 +115,10 @@ class GroupEventDetailsEndpoint(GroupEndpoint):
 
     def get(self, request: Request, group: Group, event_id: str) -> Response:
         """
-        Retrieve the latest(most recent), oldest, or most helpful Event for an Issue
+        Retrieve the latest(most recent), oldest, or recommended Event for an Issue
         ``````````````````````````````````````
 
-        Retrieves the details of the latest/oldest/most-helpful event for an issue.
+        Retrieves the details of the latest/oldest/recommended event for an issue.
 
         :pparam string group_id: the ID of the issue
         """
@@ -133,7 +133,7 @@ class GroupEventDetailsEndpoint(GroupEndpoint):
         elif event_id == "oldest":
             with metrics.timer("api.endpoints.group_event_details.get", tags={"type": "oldest"}):
                 event = group.get_oldest_event_for_environments(environment_names)
-        elif event_id in ("helpful", "recommended"):
+        elif event_id == "recommended":
             query = request.GET.get("query")
             if query:
                 with metrics.timer(
