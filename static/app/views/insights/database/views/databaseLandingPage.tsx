@@ -9,10 +9,10 @@ import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionT
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useSynchronizeCharts} from 'sentry/views/insights/common/components/chart';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
@@ -70,13 +70,15 @@ export function DatabaseLandingPage() {
     sort = DEFAULT_SORT;
   }
 
+  const navigate = useNavigate();
+
   const handleSearch = (newQuery: string) => {
     trackAnalytics('insight.general.search', {
       organization,
       query: newQuery,
       source: ModuleName.DB,
     });
-    browserHistory.push({
+    navigate({
       ...location,
       query: {
         ...location.query,
