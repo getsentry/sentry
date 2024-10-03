@@ -364,7 +364,7 @@ def project(organization: Organization) -> Project:
 )
 @django_db_all
 def test_schedule_on_demand_check(
-    feature_flags: set[str],
+    feature_flags: dict[str, bool],
     option_enable: bool,
     option_rollout: bool,
     option_batch_size: float,
@@ -460,7 +460,7 @@ def test_schedule_on_demand_check(
 def test_process_widget_specs(
     raw_snql_query: Any,
     _set_cardinality_cache: Any,
-    feature_flags: set[str],
+    feature_flags: dict[str, bool],
     option_enable: bool,
     widget_query_ids: Sequence[int],
     set_high_cardinality: bool,

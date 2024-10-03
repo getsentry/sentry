@@ -6,7 +6,7 @@ __all__ = ["FeatureManager"]
 
 import abc
 from collections import defaultdict
-from collections.abc import Iterable, Mapping, MutableMapping, MutableSet, Sequence
+from collections.abc import Iterable, Sequence
 from typing import TYPE_CHECKING, Any
 
 import sentry_sdk
@@ -44,7 +44,7 @@ class RegisteredFeatureManager:
     """
 
     def __init__(self) -> None:
-        self._handler_registry: MutableMapping[str, list[FeatureHandler]] = defaultdict(list)
+        self._handler_registry: dict[str, list[FeatureHandler]] = defaultdict(list)
 
     def add_handler(self, handler: FeatureHandler) -> None:
         """
@@ -78,7 +78,7 @@ class RegisteredFeatureManager:
         organization: Organization,
         objects: Sequence[Project],
         actor: User | None = None,
-    ) -> Mapping[Project, bool]:
+    ) -> dict[Project, bool | None]:
         """
         Determine if a feature is enabled for a batch of objects.
 
@@ -100,7 +100,7 @@ class RegisteredFeatureManager:
         >>> FeatureManager.has_for_batch('projects:feature', organization, [project1, project2], actor=request.user)
         """
 
-        result = dict()
+        result: dict[Project, bool | None] = {}
         remaining = set(objects)
 
         handlers = self._handler_registry[name]
@@ -143,17 +143,17 @@ FLAGPOLE_OPTION_PREFIX = "feature"
 class FeatureManager(RegisteredFeatureManager):
     def __init__(self) -> None:
         super().__init__()
-        self._feature_registry: MutableMapping[str, type[Feature]] = {}
+        self._feature_registry: dict[str, type[Feature]] = {}
         # Deprecated: Remove entity_features once flagr has been removed.
-        self.entity_features: MutableSet[str] = set()
-        self.exposed_features: MutableSet[str] = set()
-        self.option_features: MutableSet[str] = set()
-        self.flagpole_features: MutableSet[str] = set()
+        self.entity_features: set[str] = set()
+        self.exposed_features: set[str] = set()
+        self.option_features: set[str] = set()
+        self.flagpole_features: set[str] = set()
         self._entity_handler: FeatureHandler | None = None
 
     def all(
         self, feature_type: type[Feature] = Feature, api_expose_only: bool = False
-    ) -> Mapping[str, type[Feature]]:
+    ) -> dict[str, type[Feature]]:
         """
         Get a mapping of feature name -> feature class, optionally specific to a
         particular feature type.
@@ -328,7 +328,7 @@ class FeatureManager(RegisteredFeatureManager):
         actor: User | RpcUser | AnonymousUser | None = None,
         projects: Sequence[Project] | None = None,
         organization: Organization | None = None,
-    ) -> Mapping[str, Mapping[str, bool | None]] | None:
+    ) -> dict[str, dict[str, bool | None]] | None:
         """
         Determine if multiple features are enabled. Unhandled flags will not be in
         the results if they cannot be handled.
@@ -346,7 +346,7 @@ class FeatureManager(RegisteredFeatureManager):
                 # Fall back to default handler if no entity handler available.
                 project_features = [name for name in feature_names if name.startswith("projects:")]
                 if projects and project_features:
-                    results: MutableMapping[str, Mapping[str, bool]] = {}
+                    results: dict[str, dict[str, bool | None]] = {}
                     for project in projects:
                         proj_results = results[f"project:{project.id}"] = {}
                         for feature_name in project_features:
@@ -357,7 +357,7 @@ class FeatureManager(RegisteredFeatureManager):
 
                 org_features = filter(lambda name: name.startswith("organizations:"), feature_names)
                 if organization and org_features:
-                    org_results = {}
+                    org_results: dict[str, bool | None] = {}
                     for feature_name in org_features:
                         org_results[feature_name] = self.has(
                             feature_name, organization, actor=actor
@@ -370,7 +370,7 @@ class FeatureManager(RegisteredFeatureManager):
                     feature_names,
                 )
                 if unscoped_features:
-                    unscoped_results = {}
+                    unscoped_results: dict[str, bool | None] = {}
                     for feature_name in unscoped_features:
                         unscoped_results[feature_name] = self.has(feature_name, actor=actor)
                     return {"unscoped": unscoped_results}
@@ -417,7 +417,7 @@ class FeatureCheckBatch:
         self.objects = objects
         self.actor = actor
 
-    def get_feature_objects(self) -> Mapping[Project, Feature]:
+    def get_feature_objects(self) -> dict[Project, Feature]:
         """
         Iterate over individual Feature objects.
 
@@ -429,5 +429,5 @@ class FeatureCheckBatch:
         return {obj: cls(self.feature_name, obj) for obj in self.objects}
 
     @property
-    def subject(self) -> Organization | User:
+    def subject(self) -> Organization | User | None:
         return self.organization or self.actor
