@@ -117,14 +117,14 @@ function EditableTabTitle({
           <UnselectedTabTitle
             onDoubleClick={() => setIsEditing(true)}
             onPointerDown={e => {
-              e.stopPropagation();
-              if (!isEditing) {
+              if (isSelected) {
+                e.stopPropagation();
                 e.preventDefault();
               }
             }}
             onMouseDown={e => {
-              e.stopPropagation();
-              if (!isEditing) {
+              if (isSelected) {
+                e.stopPropagation();
                 e.preventDefault();
               }
             }}
