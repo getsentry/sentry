@@ -20,7 +20,7 @@ class AIUnitTestGenerationEndpointTest(APITestCase):
         self.pull_request_number = "123"
         self.external_id = "456"
         self.path = reverse(
-            "sentry-api-generate-unit-tests",
+            "sentry-api-0-generate-unit-tests",
             kwargs={
                 "organization_id_or_slug": self.org.slug,
                 "repo_name": self.repo_name,
@@ -66,7 +66,7 @@ class AIUnitTestGenerationEndpointTest(APITestCase):
 
     def test_post_invalid_pull_request_number(self):
         invalid_path = reverse(
-            "sentry-api-generate-unit-tests",
+            "sentry-api-0-generate-unit-tests",
             kwargs={
                 "organization_id_or_slug": self.org.slug,
                 "repo_name": self.repo_name,
