@@ -919,39 +919,42 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
   };
 
   handleComparisonTypeChange = (value: AlertRuleComparisonType) => {
-    this.setState({comparisonType: value});
-
+    let updateState = {};
     switch (value) {
       case AlertRuleComparisonType.DYNAMIC:
-        this.setState({
+        updateState = {
+          comparisonType: value,
           comparisonDelta: undefined,
           thresholdType: AlertRuleThresholdType.ABOVE_AND_BELOW,
           timeWindow: DEFAULT_DYNAMIC_TIME_WINDOW,
           sensitivity: AlertRuleSensitivity.MEDIUM,
           seasonality: AlertRuleSeasonality.AUTO,
-        });
+        };
         break;
       case AlertRuleComparisonType.CHANGE:
-        this.setState({
+        updateState = {
+          comparisonType: value,
           comparisonDelta: DEFAULT_CHANGE_COMP_DELTA,
           thresholdType: AlertRuleThresholdType.ABOVE,
           timeWindow: DEFAULT_CHANGE_TIME_WINDOW,
           sensitivity: undefined,
           seasonality: undefined,
-        });
+        };
         break;
       case AlertRuleComparisonType.COUNT:
-        this.setState({
+        updateState = {
+          comparisonType: value,
           comparisonDelta: undefined,
           thresholdType: AlertRuleThresholdType.ABOVE,
           timeWindow: DEFAULT_COUNT_TIME_WINDOW,
           sensitivity: undefined,
           seasonality: undefined,
-        });
+        };
         break;
       default:
         break;
     }
+    this.setState(updateState);
   };
 
   handleDeleteRule = async () => {
