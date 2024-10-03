@@ -18,7 +18,7 @@ from django.utils.functional import cached_property
 
 from sentry import eventtypes
 from sentry.db.models import NodeData
-from sentry.grouping.variants import BaseVariant, KeyedVariants
+from sentry.grouping.variants import BaseVariant
 from sentry.interfaces.base import Interface, get_interfaces
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
@@ -358,20 +358,12 @@ class BaseEvent(metaclass=abc.ABCMeta):
         variants = self.get_grouping_variants(force_config)
         # Sort the variants so that the system variant (if any) is always last
         sorted_variants = sort_grouping_variants(variants)
-        hashes = self._hashes_from_sorted_grouping_variants(sorted_variants)
+        # Get each variant's hash value, filtering out Nones
+        hashes = list({variant.get_hash() for _, variant in sorted_variants} - {None})
 
         # Write to event before returning
         self.data["hashes"] = hashes
         return hashes
-
-    @staticmethod
-    def _hashes_from_sorted_grouping_variants(
-        variants: KeyedVariants,
-    ) -> list[str]:
-        """Create hashes from variants and filter out duplicates and None values"""
-
-        # If any of the hashes came out as None, filter those out before returning
-        return list({variant.get_hash() for _, variant in variants} - {None})
 
     def normalize_stacktraces_for_grouping(self, grouping_config: StrategyConfiguration) -> None:
         """Normalize stacktraces and clear memoized interfaces
