@@ -19,22 +19,32 @@ describe('ParticipantList', () => {
   it('expands and collapses the list when clicked', async () => {
     render(<ParticipantList teams={teams} users={users} />);
     expect(screen.queryByText('#team-1')).not.toBeInTheDocument();
-    await userEvent.click(screen.getByText('JD'));
+    await userEvent.click(screen.getByText('JD'), {skipHover: true});
     expect(await screen.findByText('#team-1')).toBeInTheDocument();
     expect(await screen.findByText('Bob Alice')).toBeInTheDocument();
 
     expect(screen.getByText('Teams (2)')).toBeInTheDocument();
     expect(screen.getByText('Individuals (2)')).toBeInTheDocument();
 
-    await userEvent.click(screen.getAllByText('JD')[0]);
+    await userEvent.click(screen.getAllByText('JD')[0], {skipHover: true});
     expect(screen.queryByText('Bob Alice')).not.toBeInTheDocument();
   });
 
   it('does not display section headers when there is only users or teams', async () => {
     render(<ParticipantList users={users} />);
-    await userEvent.click(screen.getByText('JD'));
+    await userEvent.click(screen.getByText('JD'), {skipHover: true});
     expect(await screen.findByText('Bob Alice')).toBeInTheDocument();
 
     expect(screen.queryByText('Teams')).not.toBeInTheDocument();
+  });
+
+  it('skips duplicate information between name and email', async () => {
+    const duplicateInfoUsers = [
+      UserFixture({id: '1', name: 'john.doe@example.com', email: 'john.doe@example.com'}),
+    ];
+    render(<ParticipantList users={duplicateInfoUsers} />);
+    await userEvent.click(screen.getByText('J'), {skipHover: true});
+    // Would find two elements if it was duplicated
+    expect(await screen.findByText('john.doe@example.com')).toBeInTheDocument();
   });
 });
