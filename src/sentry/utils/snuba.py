@@ -1180,6 +1180,14 @@ def _bulk_snuba_query(snuba_requests: Sequence[SnubaRequest]) -> ResultSet:
                     elif error["type"] == "schema":
                         raise SchemaValidationError(error["message"])
                     elif error["type"] == "invalid_query":
+                        logger.warning(
+                            "UnqualifiedQueryError",
+                            extra={
+                                "error": error["message"],
+                                "has_data": "data" in body and body["data"] is not None,
+                                "query": snuba_requests_list[index].request.serialize(),
+                            },
+                        )
                         raise UnqualifiedQueryError(error["message"])
                     elif error["type"] == "clickhouse":
                         raise clickhouse_error_codes_map.get(error["code"], QueryExecutionError)(
