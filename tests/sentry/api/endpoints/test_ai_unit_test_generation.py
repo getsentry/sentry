@@ -15,7 +15,7 @@ class AIUnitTestGenerationEndpointTest(APITestCase):
         self.repo_name = "example-repo"
         self.pull_request_number = "123"
         self.external_id = "456"
-        self.url = f"/api/0/organizations/{self.organization.slug}/repo/{self.repo_name}/pr/{self.pull_request_number}/external/{self.external_id}/generate-unit-tests/"
+        self.url = f"/api/0/organizations/{self.organization.slug}/repo/{self.repo_name}/pr/{self.pull_request_number}/externalid/{self.external_id}/generate-unit-tests/"
 
     def test_post_success(self):
         with patch.object(
@@ -46,7 +46,7 @@ class AIUnitTestGenerationEndpointTest(APITestCase):
                 self.url,
             )
 
-            assert response.status_code == 404
+            assert response.status_code == 500
             assert response.data == {"detail": "Test generation failed to start."}
             mock_call_unit_test_generation.assert_called_once_with(
                 self.owner,

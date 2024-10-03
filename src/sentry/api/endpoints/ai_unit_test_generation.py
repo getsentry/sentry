@@ -11,7 +11,8 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import Endpoint, region_silo_endpoint
+from sentry.api.base import region_silo_endpoint
+from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.seer.signed_seer_api import get_seer_salted_url, sign_with_seer_secret
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.users.models.user import User
@@ -24,7 +25,7 @@ TIMEOUT_SECONDS = 60 * 30  # 30 minutes
 
 
 @region_silo_endpoint
-class AIUnitTestGenerationEndpoint(Endpoint):
+class AIUnitTestGenerationEndpoint(OrganizationEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.EXPERIMENTAL,
     }
