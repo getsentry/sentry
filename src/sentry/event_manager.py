@@ -1290,24 +1290,7 @@ def get_culprit(data: Mapping[str, Any]) -> str:
 
 
 @sentry_sdk.tracing.trace
-def assign_event_to_group(event: Event, job: Job, metric_tags: MutableTags) -> GroupInfo | None:
-    group_info = _save_aggregate_new(
-        event=event,
-        job=job,
-        metric_tags=metric_tags,
-    )
-
-    # The only way there won't be group info is we matched to a performance, cron, replay, or
-    # other-non-error-type group because of a hash collision - exceedingly unlikely, and not
-    # something we've ever observed, but theoretically possible.
-    if group_info:
-        event.group = group_info.group
-    job["groups"] = [group_info]
-
-    return group_info
-
-
-def _save_aggregate_new(
+def assign_event_to_group(
     event: Event,
     job: Job,
     metric_tags: MutableTags,
@@ -1360,6 +1343,13 @@ def _save_aggregate_new(
     # config, but will also be grandfathered into the current config for a week, so as not to
     # erroneously create new groups.
     update_grouping_config_if_needed(project, "ingest")
+
+    # The only way there won't be group info is we matched to a performance, cron, replay, or
+    # other-non-error-type group because of a hash collision - exceedingly unlikely, and not
+    # something we've ever observed, but theoretically possible.
+    if group_info:
+        event.group = group_info.group
+    job["groups"] = [group_info]
 
     return group_info
 
@@ -1420,7 +1410,7 @@ def handle_existing_grouphash(
     #    (otherwise the update would not change anything)
     #
     # We think this is a very unlikely situation. A previous version of
-    # _save_aggregate had races around group creation which made this race
+    # this function had races around group creation which made this race
     # more user visible. For more context, see 84c6f75a and d0e22787, as
     # well as GH-5085.
     group = Group.objects.get(id=existing_grouphash.group_id)
