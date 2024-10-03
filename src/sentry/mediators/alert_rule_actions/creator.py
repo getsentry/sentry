@@ -2,12 +2,12 @@ from django.db import router
 from django.utils.functional import cached_property
 
 from sentry.coreapi import APIError
-from sentry.mediators.external_requests.alert_rule_action_requester import (
+from sentry.mediators.mediator import Mediator
+from sentry.mediators.param import Param
+from sentry.sentry_apps.external_requests.alert_rule_action_requester import (
     AlertRuleActionRequester,
     AlertRuleActionResult,
 )
-from sentry.mediators.mediator import Mediator
-from sentry.mediators.param import Param
 from sentry.sentry_apps.models.sentry_app_component import SentryAppComponent
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 
@@ -33,11 +33,11 @@ class AlertRuleActionCreator(Mediator):
         if uri is None:
             raise APIError("Sentry App request url not found")
 
-        self.response = AlertRuleActionRequester.run(
+        self.response = AlertRuleActionRequester(
             install=self.install,
             uri=uri,
             fields=self.fields,
-        )
+        ).run()
 
     @cached_property
     def sentry_app(self):
