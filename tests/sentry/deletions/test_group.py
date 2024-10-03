@@ -1,12 +1,18 @@
+import random
+from datetime import datetime, timedelta
 from time import time
 from unittest import mock
 from uuid import uuid4
 
+from snuba_sdk import Column, Condition, Entity, Function, Op, Query, Request
+
 from sentry import nodestore
 from sentry.deletions.defaults.group import ErrorEventsDeletionTask
 from sentry.deletions.tasks.groups import delete_groups
+from sentry.event_manager import GroupInfo
 from sentry.eventstore.models import Event
-from sentry.issues.grouptype import FeedbackGroup
+from sentry.issues.grouptype import FeedbackGroup, GroupCategory
+from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.eventattachment import EventAttachment
 from sentry.models.files.file import File
 from sentry.models.group import Group
@@ -16,8 +22,10 @@ from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
 from sentry.models.groupmeta import GroupMeta
 from sentry.models.groupredirect import GroupRedirect
 from sentry.models.userreport import UserReport
+from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.utils.snuba import bulk_snuba_queries
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 
@@ -182,32 +190,86 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
 
 
 class DeleteIssuePlatformTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
-    def test_issue_platform(self) -> None:
-        event = self.store_event(data={}, project_id=self.project.id)
-        issue_occurrence, group_info = self.process_occurrence(
+    referrer = "testing.test"
+
+    def create_occurrence(
+        self, event: Event, type_id: int
+    ) -> tuple[IssueOccurrence, GroupInfo | None]:
+        occurrence, issue_platform_group = self.process_occurrence(
             event_id=event.event_id,
-            project_id=self.project.id,
-            # We are using ReplayDeadClickType as a representative of Issue Platform
-            type=FeedbackGroup.type_id,
-            event_data={
-                "fingerprint": ["issue-platform-group"],
-                "timestamp": before_now(minutes=1).isoformat(),
-            },
+            project_id=event.project.id,
+            type=type_id,
+            event_data={},
         )
+        return occurrence, issue_platform_group
+
+    def select_issue_platform_events(self, project_id: int) -> object:
+        columns = ["event_id", "group_id", "occurrence_id"]
+        return self.select_rows(Entity(EntityKey.IssuePlatform.value), columns, project_id)
+
+    def select_rows(self, entity: Entity, columns: list[str], project_id: int) -> object:
+        # Adding the random microseconds is to circumvent Snuba's caching mechanism
+        now = datetime.now()
+        start_time = now - timedelta(days=1, microseconds=random.randint(0, 100000000))
+        end_time = now + timedelta(days=1, microseconds=random.randint(0, 100000000))
+
+        select = [Column(column) for column in columns]
+        where = [
+            Condition(Column("project_id"), Op.IN, Function("tuple", [project_id])),
+            Condition(Column("timestamp"), Op.GTE, start_time),
+            Condition(Column("timestamp"), Op.LT, end_time),
+        ]
+        query = Query(match=entity, select=select, where=where)
+        request = Request(
+            dataset=Dataset.IssuePlatform.value,
+            app_id=self.referrer,
+            query=query,
+            tenant_ids=self.tenant_ids,
+        )
+        results = bulk_snuba_queries([request])[0]["data"]
+        return results
+
+    @property
+    def tenant_ids(self) -> dict[str, str]:
+        return {"referrer": self.referrer, "organization_id": self.organization.id}
+
+    def test_issue_platform(self) -> None:
+        # Adding this query here to make sure that the cache is not being used
+        assert self.select_issue_platform_events(self.project.id) == []
+        # Create initial error event and occurrence related to it; two different groups will exist
+        event = self.store_event(data={}, project_id=self.project.id)
+        occurrence, group_info = self.create_occurrence(event, type_id=FeedbackGroup.type_id)
+
+        # Assertions after creation
+        assert occurrence.id != event.event_id
         assert group_info is not None
         issue_platform_group = group_info.group
         assert event.group_id != issue_platform_group.id
+        assert event.group.issue_category == GroupCategory.ERROR
+        assert issue_platform_group.issue_category != GroupCategory.ERROR
+        # Assert that the occurrence has been inserted in Snuba
+        expected = [
+            {
+                "event_id": event.event_id,
+                "group_id": issue_platform_group.id,
+                "occurrence_id": occurrence.id,
+            }
+        ]
+        assert self.select_issue_platform_events(self.project.id) == expected
 
+        # This will delete the group and the events from the node store
         with self.tasks():
             delete_groups(object_ids=[issue_platform_group.id])
 
         # The original event and group still exist
         assert Group.objects.filter(id=event.group_id).exists()
-        node_id = Event.generate_node_id(event.project_id, event.event_id)
-        assert nodestore.backend.get(node_id)
+        event_node_id = Event.generate_node_id(event.project_id, event.event_id)
+        assert nodestore.backend.get(event_node_id)
 
         # The Issue Platform group and occurrence are deleted
         assert issue_platform_group.issue_type == FeedbackGroup
         assert not Group.objects.filter(id=issue_platform_group.id).exists()
-        node_id = Event.generate_node_id(issue_occurrence.project_id, issue_occurrence.id)
-        assert not nodestore.backend.get(node_id)
+        occurrence_node_id = Event.generate_node_id(occurrence.project_id, occurrence.id)
+        assert not nodestore.backend.get(occurrence_node_id)
+        # We don't yet delete the occurrence from Snuba but it will expire with the TTL
+        assert self.select_issue_platform_events(self.project.id) == expected
