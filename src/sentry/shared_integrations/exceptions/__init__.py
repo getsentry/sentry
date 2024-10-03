@@ -84,6 +84,8 @@ class ApiError(Exception):
             return ApiRateLimitedError(response.text, url=url)
         elif response.status_code == 409:
             return ApiConflictError(response.text, url=url)
+        elif response.status_code == 400:
+            return ApiInvalidRequest(response.text, url=url)
 
         return cls(response.text, response.status_code, url=url)
 
@@ -149,6 +151,10 @@ class ApiConflictError(ApiError):
 
 class ApiConnectionResetError(ApiError):
     code = errno.ECONNRESET
+
+
+class ApiInvalidRequest(ApiError):
+    code = 400
 
 
 class UnsupportedResponseType(ApiError):

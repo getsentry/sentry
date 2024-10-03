@@ -36,6 +36,7 @@ from sentry.shared_integrations.constants import (
 from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiHostError,
+    ApiInvalidRequest,
     ApiUnauthorized,
     IntegrationError,
     IntegrationFormError,
@@ -431,7 +432,7 @@ class IntegrationInstallation(abc.ABC):
             raise InvalidIdentity(self.message_from_error(exc), identity=identity).with_traceback(
                 sys.exc_info()[2]
             )
-        elif isinstance(exc, ApiError):
+        elif isinstance(exc, ApiInvalidRequest):
             if exc.json:
                 error_fields = self.error_fields_from_json(exc.json)
                 if error_fields is not None:

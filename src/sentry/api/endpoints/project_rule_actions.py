@@ -1,5 +1,6 @@
 import logging
 
+import sentry_sdk
 from rest_framework.exceptions import ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -110,7 +111,10 @@ class ProjectRuleActionsEndpoint(ProjectEndpoint):
                     logger.warning(
                         "%s.test_alert.unexpected_exception", callback_name, exc_info=True
                     )
-                    break
+                    error_id = sentry_sdk.capture_exception(exc)
+                    action_exceptions.append(
+                        f"An unexpected error occurred. Error ID: '{error_id}'"
+                    )
 
         status = None
         data = None
