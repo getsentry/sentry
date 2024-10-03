@@ -12,24 +12,27 @@ interface Props {
 export function ErrorPanel({error}: Props) {
   return (
     <Panel>
-      <IconWarning color={DEEMPHASIS_COLOR_NAME} size="lg" />
+      <NonShrinkingWarningIcon color={DEEMPHASIS_COLOR_NAME} size="md" />
       <span>{error?.toString()}</span>
     </Panel>
   );
 }
 
+const NonShrinkingWarningIcon = styled(IconWarning)`
+  flex-shrink: 0;
+`;
+
 const Panel = styled('div')<{height?: string}>`
   position: absolute;
   inset: 0;
 
+  padding: ${space(0.5)} 0;
+
   display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  gap: ${space(0.5)};
+  gap: ${space(1)};
 
   overflow: hidden;
 
   color: ${p => p.theme[DEEMPHASIS_COLOR_NAME]};
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSizeLarge};
 `;

@@ -124,7 +124,8 @@ export default storyBook(BigNumberWidget, story => {
       <Fragment>
         <p>
           <JSXNode name="BigNumberWidget" /> supports the usual loading and error states.
-          The loading state shows a simple placeholder.
+          The loading state shows a simple placeholder. The error state also shows an
+          optional "Retry" button.
         </p>
 
         <SideBySide>
@@ -144,6 +145,13 @@ export default storyBook(BigNumberWidget, story => {
             <BigNumberWidget
               title="Count Error"
               error={new Error('Something went wrong!')}
+            />
+          </NormalWidget>
+          <NormalWidget>
+            <BigNumberWidget
+              title="Data Error"
+              error={new Error('Something went wrong!')}
+              onRetry={() => {}}
             />
           </NormalWidget>
         </SideBySide>
