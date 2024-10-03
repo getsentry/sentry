@@ -16,7 +16,6 @@ from urllib3.exceptions import MaxRetryError, TimeoutError
 
 from sentry import features
 from sentry.conf.server import SEER_ANOMALY_DETECTION_ENDPOINT_URL
-from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS, CRASH_RATE_ALERT_SESSION_COUNT_ALIAS
 from sentry.incidents.logic import (
     CRITICAL_TRIGGER_LABEL,
     WARNING_TRIGGER_LABEL,
@@ -61,7 +60,6 @@ from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.entity_subscription import (
     ENTITY_TIME_COLUMNS,
-    BaseCrashRateMetricsEntitySubscription,
     get_entity_key_from_query_builder,
     get_entity_subscription_from_snuba_query,
 )
@@ -282,131 +280,7 @@ class SubscriptionProcessor:
         result: float = (aggregation_value / comparison_aggregate) * 100
         return result
 
-    def get_crash_rate_alert_aggregation_value(
-        self, subscription_update: QuerySubscriptionUpdate
-    ) -> float | None:
-        """
-        Handles validation and extraction of Crash Rate Alerts subscription updates values.
-        The subscription update looks like
-        {
-            '_crash_rate_alert_aggregate': 0.5,
-            '_total_count': 34
-        }
-        - `_crash_rate_alert_aggregate` represents sessions_crashed/sessions or
-        users_crashed/users, and so we need to subtract that number from 1 and then multiply by
-        100 to get the crash free percentage
-        - `_total_count` represents the total sessions or user counts. This is used when
-        CRASH_RATE_ALERT_MINIMUM_THRESHOLD is set in the sense that if the minimum threshold is
-        greater than the session count, then the update is dropped. If the minimum threshold is
-        not set then the total sessions count is just ignored
-        """
-        aggregation_value = subscription_update["values"]["data"][0][
-            CRASH_RATE_ALERT_AGGREGATE_ALIAS
-        ]
-        if aggregation_value is None:
-            self.reset_trigger_counts()
-            metrics.incr("incidents.alert_rules.ignore_update_no_session_data")
-            return None
-
-        try:
-            total_count = subscription_update["values"]["data"][0][
-                CRASH_RATE_ALERT_SESSION_COUNT_ALIAS
-            ]
-            if CRASH_RATE_ALERT_MINIMUM_THRESHOLD is not None:
-                min_threshold = int(CRASH_RATE_ALERT_MINIMUM_THRESHOLD)
-                if total_count < min_threshold:
-                    self.reset_trigger_counts()
-                    metrics.incr(
-                        "incidents.alert_rules.ignore_update_count_lower_than_min_threshold"
-                    )
-                    return None
-        except KeyError:
-            # If for whatever reason total session count was not sent in the update,
-            # ignore the minimum threshold comparison and continue along with processing the
-            # update. However, this should not happen.
-            logger.exception(
-                "Received an update for a crash rate alert subscription, but no total "
-                "sessions count was sent"
-            )
-        # The subscription aggregation for crash rate alerts uses the Discover percentage
-        # function, which would technically return a ratio of sessions_crashed/sessions and
-        # so we need to calculate the crash free percentage out of that returned value
-        aggregation_value_result: int = round((1 - aggregation_value) * 100, 3)
-        return aggregation_value_result
-
     def get_crash_rate_alert_metrics_aggregation_value(
-        self, subscription_update: QuerySubscriptionUpdate
-    ) -> float | None:
-        """
-        Handle both update formats.
-        Once all subscriptions have been updated to v2,
-        we can remove v1 and replace this function with current v2.
-        """
-        rows = subscription_update["values"]["data"]
-        if BaseCrashRateMetricsEntitySubscription.is_crash_rate_format_v2(rows):
-            version = "v2"
-            result = self._get_crash_rate_alert_metrics_aggregation_value_v2(subscription_update)
-        else:
-            version = "v1"
-            result = self._get_crash_rate_alert_metrics_aggregation_value_v1(subscription_update)
-
-        metrics.incr(
-            "incidents.alert_rules.get_crash_rate_alert_metrics_aggregation_value",
-            tags={"format": version},
-            sample_rate=1.0,
-        )
-        return result
-
-    def _get_crash_rate_alert_metrics_aggregation_value_v1(
-        self, subscription_update: QuerySubscriptionUpdate
-    ) -> float | None:
-        """
-        Handles validation and extraction of Crash Rate Alerts subscription updates values over
-        metrics dataset.
-        The subscription update looks like
-        [
-            {'project_id': 8, 'tags[5]': 6, 'value': 2.0},
-            {'project_id': 8, 'tags[5]': 13,'value': 1.0}
-        ]
-        where each entry represents a session status and the count of that specific session status.
-        As an example, `tags[5]` represents string `session.status`, while `tags[5]: 6` could
-        mean something like there are 2 sessions of status `crashed`. Likewise the other entry
-        represents the number of sessions started. In this method, we need to reverse match these
-        strings to end up with something that looks like
-        {"init": 2, "crashed": 4}
-        - `init` represents sessions or users sessions that were started, hence to get the crash
-        free percentage, we would need to divide number of crashed sessions by that number,
-        and subtract that value from 1. This is also used when CRASH_RATE_ALERT_MINIMUM_THRESHOLD is
-        set in the sense that if the minimum threshold is greater than the session count,
-        then the update is dropped. If the minimum threshold is not set then the total sessions
-        count is just ignored
-        - `crashed` represents the total sessions or user counts that crashed.
-        """
-        (
-            total_session_count,
-            crash_count,
-        ) = BaseCrashRateMetricsEntitySubscription.translate_sessions_tag_keys_and_values(
-            data=subscription_update["values"]["data"],
-            org_id=self.subscription.project.organization.id,
-        )
-
-        if total_session_count == 0:
-            self.reset_trigger_counts()
-            metrics.incr("incidents.alert_rules.ignore_update_no_session_data")
-            return None
-
-        if CRASH_RATE_ALERT_MINIMUM_THRESHOLD is not None:
-            min_threshold = int(CRASH_RATE_ALERT_MINIMUM_THRESHOLD)
-            if total_session_count < min_threshold:
-                self.reset_trigger_counts()
-                metrics.incr("incidents.alert_rules.ignore_update_count_lower_than_min_threshold")
-                return None
-
-        aggregation_value = round((1 - crash_count / total_session_count) * 100, 3)
-
-        return aggregation_value
-
-    def _get_crash_rate_alert_metrics_aggregation_value_v2(
         self, subscription_update: QuerySubscriptionUpdate
     ) -> float | None:
         """
@@ -425,8 +299,8 @@ class SubscriptionProcessor:
         - `crashed` represents the total sessions or user counts that crashed.
         """
         row = subscription_update["values"]["data"][0]
-        total_session_count = row["count"]
-        crash_count = row["crashed"]
+        total_session_count = row.get("count", 0)
+        crash_count = row.get("crashed", 0)
 
         if total_session_count == 0:
             self.reset_trigger_counts()
@@ -532,9 +406,8 @@ class SubscriptionProcessor:
 
         self.has_anomaly_detection = features.has(
             "organizations:anomaly-detection-alerts", self.subscription.project.organization
-        )
-        has_fake_anomalies = features.has(
-            "organizations:fake-anomaly-detection", self.subscription.project.organization
+        ) and features.has(
+            "organizations:anomaly-detection-rollout", self.subscription.project.organization
         )
 
         potential_anomalies = None
@@ -586,7 +459,7 @@ class SubscriptionProcessor:
                                 continue
 
                         if self.has_anomaly(
-                            potential_anomaly, trigger.label, has_fake_anomalies
+                            potential_anomaly, trigger.label
                         ) and not self.check_trigger_matches_status(trigger, TriggerStatus.ACTIVE):
                             metrics.incr(
                                 "incidents.alert_rules.threshold.alert",
@@ -601,9 +474,7 @@ class SubscriptionProcessor:
                             self.trigger_alert_counts[trigger.id] = 0
 
                         if (
-                            not self.has_anomaly(
-                                potential_anomaly, trigger.label, has_fake_anomalies
-                            )
+                            not self.has_anomaly(potential_anomaly, trigger.label)
                             and self.active_incident
                             and self.check_trigger_matches_status(trigger, TriggerStatus.ACTIVE)
                         ):
@@ -670,14 +541,11 @@ class SubscriptionProcessor:
         # before the next one then we might alert twice.
         self.update_alert_rule_stats()
 
-    def has_anomaly(self, anomaly: TimeSeriesPoint, label: str, has_fake_anomalies: bool) -> bool:
+    def has_anomaly(self, anomaly: TimeSeriesPoint, label: str) -> bool:
         """
         Helper function to determine whether we care about an anomaly based on the
         anomaly type and trigger type.
         """
-        if has_fake_anomalies:
-            return True
-
         anomaly_type = anomaly.get("anomaly", {}).get("anomaly_type")
 
         if anomaly_type == AnomalyType.HIGH_CONFIDENCE.value or (
@@ -752,7 +620,7 @@ class SubscriptionProcessor:
                     "ad_config": anomaly_detection_config,
                     "context": context,
                     "response_data": response.data,
-                    "reponse_code": response.status,
+                    "response_code": response.status,
                 },
             )
             return None
@@ -766,7 +634,7 @@ class SubscriptionProcessor:
                     "ad_config": anomaly_detection_config,
                     "context": context,
                     "response_data": decoded_data,
-                    "reponse_code": response.status,
+                    "response_code": response.status,
                 },
             )
             return None

@@ -25,7 +25,7 @@ type RouteParams = {
   orgId: string;
 };
 
-type Props = RouteComponentProps<RouteParams, {}> & {
+type Props = Pick<RouteComponentProps<RouteParams, {}>, 'params' | 'location'> & {
   location: Location;
   project: Project;
 };
@@ -246,6 +246,7 @@ function SimilarStackTrace({params, location, project}: Props) {
 export default SimilarStackTrace;
 
 const Title = styled('h4')`
+  font-size: ${p => p.theme.fontSizeLarge};
   margin-bottom: ${space(0.75)};
 `;
 

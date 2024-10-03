@@ -634,6 +634,7 @@ def get_sdk_debug_id_support(event_data):
             "sentry.javascript.browser",
             "sentry.javascript.capacitor",
             "sentry.javascript.cordova",
+            "sentry.javascript.cloudflare",
             "sentry.javascript.electron",
             "sentry.javascript.gatsby",
             "sentry.javascript.nextjs",
@@ -660,32 +661,41 @@ def get_sdk_debug_id_support(event_data):
 
     if sdk_name == "sentry.javascript.react-native":
         return (
-            "full"
-            if Version(sdk_version) >= Version(MIN_REACT_NATIVE_SDK_VERSION_FOR_DEBUG_IDS)
-            else "needs-upgrade",
+            (
+                "full"
+                if Version(sdk_version) >= Version(MIN_REACT_NATIVE_SDK_VERSION_FOR_DEBUG_IDS)
+                else "needs-upgrade"
+            ),
             MIN_REACT_NATIVE_SDK_VERSION_FOR_DEBUG_IDS,
         )
 
     if sdk_name == "sentry.javascript.electron":
         return (
-            "full"
-            if Version(sdk_version) >= Version(MIN_ELECTRON_SDK_VERSION_FOR_DEBUG_IDS)
-            else "needs-upgrade",
+            (
+                "full"
+                if Version(sdk_version) >= Version(MIN_ELECTRON_SDK_VERSION_FOR_DEBUG_IDS)
+                else "needs-upgrade"
+            ),
             MIN_ELECTRON_SDK_VERSION_FOR_DEBUG_IDS,
         )
 
     if sdk_name == "sentry.javascript.nextjs" or sdk_name == "sentry.javascript.sveltekit":
         return (
-            "full"
-            if Version(sdk_version) >= Version(MIN_NEXTJS_AND_SVELTEKIT_SDK_VERSION_FOR_DEBUG_IDS)
-            else "needs-upgrade",
+            (
+                "full"
+                if Version(sdk_version)
+                >= Version(MIN_NEXTJS_AND_SVELTEKIT_SDK_VERSION_FOR_DEBUG_IDS)
+                else "needs-upgrade"
+            ),
             MIN_NEXTJS_AND_SVELTEKIT_SDK_VERSION_FOR_DEBUG_IDS,
         )
 
     return (
-        "full"
-        if Version(sdk_version) >= Version(MIN_JS_SDK_VERSION_FOR_DEBUG_IDS)
-        else "needs-upgrade",
+        (
+            "full"
+            if Version(sdk_version) >= Version(MIN_JS_SDK_VERSION_FOR_DEBUG_IDS)
+            else "needs-upgrade"
+        ),
         MIN_JS_SDK_VERSION_FOR_DEBUG_IDS,
     )
 

@@ -9,7 +9,6 @@ import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {Flex} from 'sentry/components/container/flex';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import Link from 'sentry/components/links/link';
-import ObjectInspector from 'sentry/components/objectInspector';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {OpenReplayComparisonButton} from 'sentry/components/replays/breadcrumbs/openReplayComparisonButton';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
@@ -23,7 +22,6 @@ import {space} from 'sentry/styles/space';
 import type {Extraction} from 'sentry/utils/replays/extractHtml';
 import {getReplayDiffOffsetsFromFrame} from 'sentry/utils/replays/getDiffTimestamps';
 import getFrameDetails from 'sentry/utils/replays/getFrameDetails';
-import useExtractDomNodes from 'sentry/utils/replays/hooks/useExtractDomNodes';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
 import type {
   ErrorFrame,
@@ -46,6 +44,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
 import IconWrapper from 'sentry/views/replays/detail/iconWrapper';
 import TimestampButton from 'sentry/views/replays/detail/timestampButton';
+import type {OnExpandCallback} from 'sentry/views/replays/detail/useVirtualizedInspector';
 
 type MouseCallback = (frame: ReplayFrame, nodeId?: number) => void;
 
@@ -54,7 +53,7 @@ const FRAMES_WITH_BUTTONS = ['replay.hydrate-error'];
 interface Props {
   frame: ReplayFrame;
   onClick: null | MouseCallback;
-  onInspectorExpanded: (path: string, expandedState: Record<string, boolean>) => void;
+  onInspectorExpanded: OnExpandCallback;
   onMouseEnter: MouseCallback;
   onMouseLeave: MouseCallback;
   startTimestampMs: number;
@@ -88,22 +87,24 @@ function BreadcrumbItem({
         {description}
       </Description>
     ) : (
-      <InspectorWrapper>
-        <ObjectInspector
-          data={description}
-          expandPaths={expandPaths}
-          onExpand={onInspectorExpanded}
-          theme={{
-            TREENODE_FONT_SIZE: '0.7rem',
-            ARROW_FONT_SIZE: '0.5rem',
+      <Wrapper>
+        <StructuredEventData
+          initialExpandedPaths={expandPaths ?? []}
+          onToggleExpand={(expandedPaths, path) => {
+            onInspectorExpanded(
+              path,
+              Object.fromEntries(expandedPaths.map(item => [item, true]))
+            );
           }}
+          data={description}
+          withAnnotatedText
         />
-      </InspectorWrapper>
+      </Wrapper>
     );
   }, [description, expandPaths, onInspectorExpanded]);
 
   const renderComparisonButton = useCallback(() => {
-    return isBreadcrumbFrame(frame) && isHydrationErrorFrame(frame) ? (
+    return isBreadcrumbFrame(frame) && isHydrationErrorFrame(frame) && replay ? (
       <CrumbHydrationButton replay={replay} frame={frame} />
     ) : null;
   }, [frame, replay]);
@@ -111,7 +112,7 @@ function BreadcrumbItem({
   const renderWebVital = useCallback(() => {
     return isSpanFrame(frame) && isWebVitalFrame(frame) ? (
       <WebVitalData
-        replay={replay}
+        selectors={extraction?.selectors}
         frame={frame}
         expandPaths={expandPaths}
         onInspectorExpanded={onInspectorExpanded}
@@ -119,7 +120,14 @@ function BreadcrumbItem({
         onMouseLeave={onMouseLeave}
       />
     ) : null;
-  }, [expandPaths, frame, onInspectorExpanded, onMouseEnter, onMouseLeave, replay]);
+  }, [
+    expandPaths,
+    extraction?.selectors,
+    frame,
+    onInspectorExpanded,
+    onMouseEnter,
+    onMouseLeave,
+  ]);
 
   const renderCodeSnippet = useCallback(() => {
     return (
@@ -220,7 +228,7 @@ function BreadcrumbItem({
 }
 
 function WebVitalData({
-  replay,
+  selectors,
   frame,
   expandPaths,
   onInspectorExpanded,
@@ -229,14 +237,11 @@ function WebVitalData({
 }: {
   expandPaths: string[] | undefined;
   frame: WebVitalFrame;
-  onInspectorExpanded: (path: string, expandedState: Record<string, boolean>) => void;
+  onInspectorExpanded: OnExpandCallback;
   onMouseEnter: MouseCallback;
   onMouseLeave: MouseCallback;
-  replay: ReplayReader | null;
+  selectors: Map<number, string> | undefined;
 }) {
-  const {data: frameToExtraction} = useExtractDomNodes({replay});
-  const selectors = frameToExtraction?.get(frame)?.selectors;
-
   const webVitalData = {value: frame.data.value};
   if (isCLSFrame(frame) && frame.data.attributions && selectors) {
     const layoutShifts: {[x: string]: ReactNode[]}[] = [];
@@ -276,7 +281,7 @@ function WebVitalData({
     if (layoutShifts.length) {
       webVitalData['Layout shifts'] = layoutShifts;
     }
-  } else if (selectors?.size) {
+  } else if (selectors) {
     selectors.forEach((key, value) => {
       webVitalData[key] = (
         <span
@@ -295,17 +300,19 @@ function WebVitalData({
   }
 
   return (
-    <StructuredEventData
-      initialExpandedPaths={expandPaths ?? []}
-      onToggleExpand={(expandedPaths, path) => {
-        onInspectorExpanded(
-          path,
-          Object.fromEntries(expandedPaths.map(item => [item, true]))
-        );
-      }}
-      data={webVitalData}
-      withAnnotatedText
-    />
+    <Wrapper>
+      <StructuredEventData
+        initialExpandedPaths={expandPaths ?? []}
+        onToggleExpand={(expandedPaths, path) => {
+          onInspectorExpanded(
+            path,
+            Object.fromEntries(expandedPaths.map(item => [item, true]))
+          );
+        }}
+        data={webVitalData}
+        withAnnotatedText
+      />
+    </Wrapper>
   );
 }
 
@@ -314,7 +321,7 @@ function CrumbHydrationButton({
   frame,
 }: {
   frame: HydrationErrorFrame;
-  replay: ReplayReader | null;
+  replay: ReplayReader;
 }) {
   const {leftOffsetMs, rightOffsetMs} = getReplayDiffOffsetsFromFrame(replay, frame);
 
@@ -374,10 +381,6 @@ const CrumbIssueWrapper = styled('div')`
   gap: ${space(0.5)};
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.subText};
-`;
-
-const InspectorWrapper = styled('div')`
-  font-family: ${p => p.theme.text.familyMono};
 `;
 
 const CrumbDetails = styled('div')`
@@ -519,6 +522,12 @@ const SelectorButton = styled(Button)`
   margin: 0 ${space(0.5)};
   height: auto;
   min-height: auto;
+`;
+
+const Wrapper = styled('div')`
+  pre {
+    margin: 0;
+  }
 `;
 
 export default memo(BreadcrumbItem);

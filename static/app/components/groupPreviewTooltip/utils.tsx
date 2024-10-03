@@ -5,8 +5,8 @@ import {defined} from 'sentry/utils';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import useTimeout from 'sentry/utils/useTimeout';
+import {useGroup} from 'sentry/views/issueDetails/useGroup';
 import {
-  getGroupDetailsQueryData,
   getGroupEventDetailsQueryData,
   useDefaultIssueEvent,
 } from 'sentry/views/issueDetails/utils';
@@ -63,17 +63,7 @@ export function usePreviewEvent<T = Event>({
   );
 
   // Prefetch the group as well, but don't use the result
-  useApiQuery(
-    [
-      `/organizations/${organization.slug}/issues/${groupId}/`,
-      {query: getGroupDetailsQueryData()},
-    ],
-    {
-      staleTime: 30000,
-      gcTime: 30000,
-      enabled: defined(groupId),
-    }
-  );
+  useGroup({groupId, options: {enabled: defined(groupId)}});
 
   return eventQuery;
 }

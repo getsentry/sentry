@@ -1,5 +1,9 @@
 ---
-created: '2024-09-17T12:19:51.014511+00:00'
+<<<<<<< HEAD
+created: '2024-09-30T17:27:03.064802+00:00'
+=======
+created: '2024-09-28T00:12:56.122846+00:00'
+>>>>>>> 2a2d464df9a (GENERATED - Snapshots)
 creator: sentry
 source: tests/sentry/backup/test_comparators.py
 ---
@@ -10,6 +14,11 @@ source: tests/sentry/backup/test_comparators.py
     - organization_id
     - project_id
   model_name: feedback.feedback
+- comparators:
+  - class: ForeignKeyComparator
+    fields:
+    - organization_id
+  model_name: flags.flagauditlogmodel
 - comparators:
   - class: ForeignKeyComparator
     fields:
@@ -154,12 +163,14 @@ source: tests/sentry/backup/test_comparators.py
   - class: ForeignKeyComparator
     fields:
     - application
+    - organization_id
     - user
   model_name: sentry.apiauthorization
 - comparators:
   - class: ForeignKeyComparator
     fields:
     - application
+    - organization_id
     - user
   model_name: sentry.apigrant
 - comparators:
@@ -187,6 +198,7 @@ source: tests/sentry/backup/test_comparators.py
   - class: ForeignKeyComparator
     fields:
     - application
+    - scoping_organization_id
     - user
   model_name: sentry.apitoken
 - comparators:
@@ -579,6 +591,7 @@ source: tests/sentry/backup/test_comparators.py
   - class: ForeignKeyComparator
     fields:
     - grouphash
+    - seer_matched_grouphash
   model_name: sentry.grouphashmetadata
 - comparators:
   - class: ForeignKeyComparator
@@ -1599,6 +1612,7 @@ source: tests/sentry/backup/test_comparators.py
 - comparators:
   - class: ForeignKeyComparator
     fields:
+    - environment
     - owner_team
     - owner_user_id
     - project
@@ -1608,6 +1622,42 @@ source: tests/sentry/backup/test_comparators.py
   - class: ForeignKeyComparator
     fields: []
   model_name: uptime.uptimesubscription
+- comparators:
+  - class: DateUpdatedComparator
+    fields:
+    - date_added
+    - date_updated
+  - class: ForeignKeyComparator
+    fields: []
+  model_name: workflow_engine.action
+- comparators:
+  - class: DateUpdatedComparator
+    fields:
+    - date_added
+    - date_updated
+  - class: ForeignKeyComparator
+    fields:
+    - condition_group
+  model_name: workflow_engine.datacondition
+- comparators:
+  - class: DateUpdatedComparator
+    fields:
+    - date_added
+    - date_updated
+  - class: ForeignKeyComparator
+    fields:
+    - organization
+  model_name: workflow_engine.dataconditiongroup
+- comparators:
+  - class: DateUpdatedComparator
+    fields:
+    - date_added
+    - date_updated
+  - class: ForeignKeyComparator
+    fields:
+    - action
+    - condition_group
+  model_name: workflow_engine.dataconditiongroupaction
 - comparators:
   - class: DateUpdatedComparator
     fields:
@@ -1637,6 +1687,7 @@ source: tests/sentry/backup/test_comparators.py
     - organization
     - owner_team
     - owner_user_id
+    - workflow_condition_group
   model_name: workflow_engine.detector
 - comparators:
   - class: DateUpdatedComparator
@@ -1645,7 +1696,27 @@ source: tests/sentry/backup/test_comparators.py
     - date_updated
   - class: ForeignKeyComparator
     fields:
+    - detector
+  model_name: workflow_engine.detectorstate
+- comparators:
+  - class: DateUpdatedComparator
+    fields:
+    - date_added
+    - date_updated
+  - class: ForeignKeyComparator
+    fields:
+    - detector
+    - workflow
+  model_name: workflow_engine.detectorworkflow
+- comparators:
+  - class: DateUpdatedComparator
+    fields:
+    - date_added
+    - date_updated
+  - class: ForeignKeyComparator
+    fields:
     - organization
+    - when_condition_group
   model_name: workflow_engine.workflow
 - comparators:
   - class: DateUpdatedComparator
@@ -1654,5 +1725,6 @@ source: tests/sentry/backup/test_comparators.py
     - date_updated
   - class: ForeignKeyComparator
     fields:
+    - condition_group
     - workflow
-  model_name: workflow_engine.workflowaction
+  model_name: workflow_engine.workflowdataconditiongroup

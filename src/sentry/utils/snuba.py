@@ -13,17 +13,15 @@ from contextlib import contextmanager
 from copy import deepcopy
 from datetime import datetime, timedelta, timezone
 from hashlib import sha1
-from typing import Any, Protocol, TypeVar
+from typing import Any
 from urllib.parse import urlparse
 
-import sentry_protos.snuba.v1alpha.request_common_pb2
 import sentry_sdk
 import sentry_sdk.scope
 import urllib3
 from dateutil.parser import parse as parse_datetime
 from django.conf import settings
 from django.core.cache import cache
-from google.protobuf.message import Message as ProtobufMessage
 from snuba_sdk import DeleteQuery, MetricsQuery, Request
 from snuba_sdk.legacy import json_to_snql
 
@@ -188,8 +186,11 @@ SPAN_EAP_COLUMN_MAP = {
     # message also maps to span description but gets special handling
     # to support wild card searching by default
     "message": "name",
-    "span.domain": "domain",
-    "span.group": "group",
+    # These sample columns are for debugging only and shouldn't be used
+    "sampling_weight": "sampling_weight",
+    "sampling_factor": "sampling_factor",
+    "span.domain": "attr_str[domain]",
+    "span.group": "attr_str[group]",
     "span.op": "attr_str[op]",
     "span.category": "attr_str[category]",
     "span.self_time": "exclusive_time_ms",
@@ -198,12 +199,21 @@ SPAN_EAP_COLUMN_MAP = {
     "trace": "trace_id",
     "transaction": "segment_name",
     "transaction.id": "segment_id",
+    "transaction.method": "attr_str[transaction.method]",
     "is_transaction": "is_segment",
     "segment.id": "segment_id",
     # We should be able to delete origin.transaction and just use transaction
     "origin.transaction": "segment_name",
+    # Copy paste, unsure if this is truth in production
+    "messaging.destination.name": "attr_str[messaging.destination.name]",
+    "messaging.message.id": "attr_str[messaging.message.id]",
     "span.status_code": "attr_str[status_code]",
     "replay.id": "attr_str[replay_id]",
+    "span.ai.pipeline.group": "attr_str[ai_pipeline_group]",
+    "trace.status": "attr_str[trace.status]",
+    "browser.name": "attr_str[browser.name]",
+    "ai.total_tokens.used": "attr_num[ai_total_tokens_used]",
+    "ai.total_cost": "attr_num[ai_total_cost]",
 }
 
 METRICS_SUMMARIES_COLUMN_MAP = {
@@ -1170,6 +1180,14 @@ def _bulk_snuba_query(snuba_requests: Sequence[SnubaRequest]) -> ResultSet:
                     elif error["type"] == "schema":
                         raise SchemaValidationError(error["message"])
                     elif error["type"] == "invalid_query":
+                        logger.warning(
+                            "UnqualifiedQueryError",
+                            extra={
+                                "error": error["message"],
+                                "has_data": "data" in body and body["data"] is not None,
+                                "query": snuba_requests_list[index].request.serialize(),
+                            },
+                        )
                         raise UnqualifiedQueryError(error["message"])
                     elif error["type"] == "clickhouse":
                         raise clickhouse_error_codes_map.get(error["code"], QueryExecutionError)(
@@ -1197,66 +1215,6 @@ def _log_request_query(req: Request) -> None:
         message=f"{query_type}_query",
         data={query_type: query_str},
     )
-
-
-RPCResponseType = TypeVar("RPCResponseType", bound=ProtobufMessage)
-
-
-class SnubaRPCRequest(Protocol):
-    def SerializeToString(self, deterministic: bool = ...) -> bytes:
-        ...
-
-    @property
-    def meta(self) -> sentry_protos.snuba.v1alpha.request_common_pb2.RequestMeta:
-        ...
-
-
-def rpc(req: SnubaRPCRequest, resp_type: type[RPCResponseType]) -> RPCResponseType:
-    """
-    You want to call a snuba RPC. Here's how you do it:
-
-    start_time_proto = ProtobufTimestamp()
-    start_time_proto.FromDatetime(start)
-    end_time_proto = ProtobufTimestamp()
-    end_time_proto.FromDatetime(end)
-    aggregate_req = AggregateBucketRequest(
-        meta=RequestMeta(
-            organization_id=organization.id,
-            cogs_category="events_analytics_platform",
-            referrer=referrer,
-            project_ids=[project.id for project in projects],
-            start_timestamp=start_time_proto,
-            end_timestamp=end_time_proto,
-        ),
-        aggregate=AggregateBucketRequest.FUNCTION_SUM,
-        filter=TraceItemFilter(
-            comparison_filter=ComparisonFilter(
-                key=AttributeKey(name="op", type=AttributeKey.Type.TYPE_STRING),
-                value=AttributeValue(val_str="ai.run"),
-            )
-        ),
-        granularity_secs=60,
-        key=AttributeKey(
-            name="duration", type=AttributeKey.TYPE_FLOAT
-        ),
-        attribute_key_transform_context=AttributeKeyTransformContext(),
-    )
-    aggregate_resp = snuba.rpc(aggregate_req, AggregateBucketResponse)
-    """
-    referrer = req.meta.referrer
-    with sentry_sdk.start_span(op="snuba_rpc.run", description=req.__class__.__name__) as span:
-        span.set_tag("snuba.referrer", referrer)
-        http_resp = _snuba_pool.urlopen(
-            "POST",
-            f"/rpc/{req.__class__.__name__}",
-            body=req.SerializeToString(),
-            headers={
-                "referer": referrer,
-            },
-        )
-        resp = resp_type()
-        resp.ParseFromString(http_resp.data)
-        return resp
 
 
 RawResult = tuple[str, urllib3.response.HTTPResponse, Translator, Translator]
@@ -1458,7 +1416,11 @@ def resolve_column(dataset) -> Callable:
             return col
         if isinstance(col, int) or isinstance(col, float):
             return col
-        if isinstance(col, str) and (col.startswith("tags[") or QUOTED_LITERAL_RE.match(col)):
+        if (
+            dataset != Dataset.SpansEAP
+            and isinstance(col, str)
+            and (col.startswith("tags[") or QUOTED_LITERAL_RE.match(col))
+        ):
             return col
 
         # Some dataset specific logic:
@@ -1470,6 +1432,9 @@ def resolve_column(dataset) -> Callable:
             if isinstance(col, str) and col.startswith("sentry_tags["):
                 # Replace the first instance of sentry tags with attr str instead
                 return col.replace("sentry_tags", "attr_str", 1)
+            if isinstance(col, str) and col.startswith("tags["):
+                # Replace the first instance of sentry tags with attr str instead
+                return col.replace("tags", "attr_str", 1)
             measurement_name = get_measurement_name(col)
             if measurement_name:
                 return f"attr_num[{measurement_name}]"

@@ -23,6 +23,12 @@ from sentry.types.actor import Actor
 from sentry.utils.function_cache import cache_func_for_models
 from sentry.utils.json import JSONEncoder
 
+headers_json_encoder = JSONEncoder(
+    separators=(",", ":"),
+    # We sort the keys here so that we can deterministically compare headers
+    sort_keys=True,
+).encode
+
 
 @region_silo_model
 class UptimeSubscription(BaseRemoteSubscription, DefaultFieldsModelExisting):
@@ -48,14 +54,7 @@ class UptimeSubscription(BaseRemoteSubscription, DefaultFieldsModelExisting):
     # HTTP method to perform the check with
     method = models.CharField(max_length=20, db_default="GET")
     # HTTP headers to send when performing the check
-    headers = JSONField(
-        json_dumps=JSONEncoder(
-            separators=(",", ":"),
-            # We sort the keys here so that we can deterministically compare headers
-            sort_keys=True,
-        ).encode,
-        db_default={},
-    )
+    headers = JSONField(json_dumps=headers_json_encoder, db_default=[])
     # HTTP body to send when performing the check
     body = models.TextField(null=True)
 
@@ -101,6 +100,9 @@ class ProjectUptimeSubscription(DefaultFieldsModelExisting):
     __relocation_scope__ = RelocationScope.Excluded
 
     project = FlexibleForeignKey("sentry.Project")
+    environment = FlexibleForeignKey(
+        "sentry.Environment", db_index=True, db_constraint=False, null=True
+    )
     uptime_subscription = FlexibleForeignKey("uptime.UptimeSubscription", on_delete=models.PROTECT)
     mode = models.SmallIntegerField(default=ProjectUptimeSubscriptionMode.MANUAL.value)
     uptime_status = models.PositiveSmallIntegerField(default=UptimeStatus.OK.value)
@@ -155,6 +157,9 @@ class ProjectUptimeSubscription(DefaultFieldsModelExisting):
             "url": self.uptime_subscription.url,
             "interval_seconds": self.uptime_subscription.interval_seconds,
             "timeout": self.uptime_subscription.timeout_ms,
+            "method": self.uptime_subscription.method,
+            "headers": self.uptime_subscription.headers,
+            "body": self.uptime_subscription.body,
         }
 
 
@@ -163,5 +168,11 @@ def get_org_from_uptime_monitor(uptime_monitor: ProjectUptimeSubscription) -> tu
 
 
 @cache_func_for_models([(ProjectUptimeSubscription, get_org_from_uptime_monitor)])
-def get_active_monitor_count_for_org(organization: Organization) -> int:
-    return ProjectUptimeSubscription.objects.filter(project__organization=organization).count()
+def get_active_auto_monitor_count_for_org(organization: Organization) -> int:
+    return ProjectUptimeSubscription.objects.filter(
+        project__organization=organization,
+        mode__in=[
+            ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING,
+            ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE,
+        ],
+    ).count()

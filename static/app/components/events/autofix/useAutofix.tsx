@@ -35,6 +35,7 @@ const makeInitialAutofixData = (): AutofixResponse => ({
         index: 0,
         status: 'PROCESSING',
         title: 'Starting Autofix...',
+        insights: [],
         progress: [],
       },
     ],
@@ -56,6 +57,7 @@ const makeErrorAutofixData = (errorMessage: string): AutofixResponse => {
         status: 'ERROR',
         title: 'Something went wrong',
         completedMessage: errorMessage,
+        insights: [],
         progress: [],
       },
     ];
@@ -88,8 +90,8 @@ export const useAiAutofix = (group: GroupWithAutofix, event: Event) => {
   const {data: apiData} = useApiQuery<AutofixResponse>(makeAutofixQueryKey(group.id), {
     staleTime: 0,
     retry: false,
-    refetchInterval: data => {
-      if (isPolling(data?.[0]?.autofix)) {
+    refetchInterval: query => {
+      if (isPolling(query.state.data?.[0]?.autofix)) {
         return POLL_INTERVAL;
       }
       return false;

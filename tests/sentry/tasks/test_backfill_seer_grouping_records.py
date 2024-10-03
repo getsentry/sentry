@@ -18,6 +18,8 @@ from sentry import options
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.conf.server import SEER_SIMILARITY_MODEL_VERSION
 from sentry.eventstore.models import Event
+from sentry.grouping.api import GroupingConfigNotFound
+from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
 from sentry.issues.occurrence_consumer import EventLookupError
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphash import GroupHash
@@ -181,7 +183,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 group_id=event.group.id,
                 hash=self.group_hashes[event.group.id],
                 project_id=self.project.id,
-                message=event.title,
                 exception_type=get_path(event.data, "exception", "values", -1, "type"),
             )
             for event in events
@@ -210,7 +211,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 group_id=event.group.id,
                 hash=self.group_hashes[event.group.id],
                 project_id=self.project.id,
-                message=event.title,
                 exception_type=get_path(event.data, "exception", "values", -1, "type"),
             )
             for event in events
@@ -280,7 +280,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 group_id=event.group.id,
                 hash=hashes[event.group.id],
                 project_id=self.project.id,
-                message=event.title,
                 exception_type=get_path(event.data, "exception", "values", -1, "type"),
             )
             for event in events
@@ -315,7 +314,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 group_id=event.group.id,
                 hash=hashes[event.group.id],
                 project_id=self.project.id,
-                message=event.title,
                 exception_type=get_path(event.data, "exception", "values", -1, "type"),
             )
             for event in events
@@ -343,7 +341,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 group_id=event.group.id,
                 hash=hashes[event.group.id],
                 project_id=self.project.id,
-                message=event.title,
                 exception_type=get_path(event.data, "exception", "values", -1, "type"),
             )
             for event in events
@@ -381,7 +378,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 group_id=event.group.id,
                 hash=hashes[event.group.id],
                 project_id=self.project.id,
-                message=event.title,
                 exception_type=get_path(event.data, "exception", "values", -1, "type"),
             )
             for event in events
@@ -416,7 +412,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 group_id=event.group.id,
                 hash=hashes[event.group.id],
                 project_id=self.project.id,
-                message=event.title,
                 exception_type=get_path(event.data, "exception", "values", -1, "type"),
             )
             for event in events
@@ -1500,23 +1495,26 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         mock_lookup_group_data_stacktrace_bulk,
         mock_logger,
     ):
-        mock_lookup_group_data_stacktrace_bulk.side_effect = ResourceDoesNotExist()
+        exceptions = (GroupingConfigNotFound(), ResourceDoesNotExist(), InvalidEnhancerConfig())
 
-        with TaskRunner():
-            backfill_seer_grouping_records_for_project(self.project.id, None)
+        for exception in exceptions:
+            mock_lookup_group_data_stacktrace_bulk.side_effect = exception
 
-        groups = Group.objects.all()
-        group_ids_sorted = sorted([group.id for group in groups], reverse=True)
-        mock_call_next_backfill.assert_called_with(
-            last_processed_group_id=group_ids_sorted[-1],
-            project_id=self.project.id,
-            last_processed_project_index=0,
-            cohort=None,
-            enable_ingestion=False,
-            skip_processed_projects=False,
-            skip_project_ids=None,
-            worker_number=None,
-        )
+            with TaskRunner():
+                backfill_seer_grouping_records_for_project(self.project.id, None)
+
+            groups = Group.objects.all()
+            group_ids_sorted = sorted([group.id for group in groups], reverse=True)
+            mock_call_next_backfill.assert_called_with(
+                last_processed_group_id=group_ids_sorted[-1],
+                project_id=self.project.id,
+                last_processed_project_index=0,
+                cohort=None,
+                enable_ingestion=False,
+                skip_processed_projects=False,
+                skip_project_ids=None,
+                worker_number=None,
+            )
 
     @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.embeddings_grouping.utils.logger")
