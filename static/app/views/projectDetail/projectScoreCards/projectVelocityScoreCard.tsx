@@ -1,17 +1,14 @@
-import {Fragment} from 'react';
-
 import {shouldFetchPreviousPeriod} from 'sentry/components/charts/utils';
-import LoadingError from 'sentry/components/loadingError';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import ScoreCard from 'sentry/components/scoreCard';
 import {parseStatsPeriod} from 'sentry/components/timeRangeSelector/utils';
-import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {getPeriod} from 'sentry/utils/duration/getPeriod';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {BigNumberWidget} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidget';
+import {WidgetFrame} from 'sentry/views/dashboards/widgets/common/widgetFrame';
 
 import MissingReleasesButtons from '../missingFeatureButtons/missingReleasesButtons';
 
@@ -156,58 +153,43 @@ function ProjectVelocityScoreCard(props: Props) {
 
   const cardTitle = t('Number of Releases');
 
-  const cardHelp = trend
+  const cardHelp = shouldRenderTrend
     ? t(
         'The number of releases for this project and how it has changed since the last period.'
       )
     : t('The number of releases for this project.');
 
-  if (noReleaseEver) {
+  if (!isLoading && noReleaseEver) {
     return (
-      <ScoreCard
-        title={cardTitle}
-        help={cardHelp}
-        score={<MissingReleasesButtons organization={organization} />}
-      />
-    );
-  }
-
-  if (error) {
-    return (
-      <LoadingError
-        message={
-          (error.responseJSON?.detail as React.ReactNode) ||
-          t('There was an error loading data.')
-        }
-        onRetry={refetch}
-      />
+      <WidgetFrame title={cardTitle} description={cardHelp}>
+        <MissingReleasesButtons organization={organization} />
+      </WidgetFrame>
     );
   }
 
   return (
-    <ScoreCard
+    <BigNumberWidget
       title={cardTitle}
-      help={cardHelp}
-      score={
-        isLoading || !defined(currentReleases)
-          ? '\u2014'
-          : currentReleases.length === API_LIMIT
-            ? `${API_LIMIT - 1}+`
-            : currentReleases.length
-      }
-      trend={
-        shouldRenderTrend ? (
-          <Fragment>
-            {trend >= 0 ? (
-              <IconArrow direction="up" size="xs" />
-            ) : (
-              <IconArrow direction="down" size="xs" />
-            )}
-            {Math.abs(trend)}
-          </Fragment>
-        ) : null
-      }
-      trendStatus={!trend ? undefined : trend > 0 ? 'good' : 'bad'}
+      description={cardHelp}
+      data={[
+        {
+          'count()': currentReleases?.length,
+        },
+      ]}
+      previousPeriodData={[
+        {
+          'count()': previousReleases?.length,
+        },
+      ]}
+      meta={{
+        fields: {
+          'count()': 'number',
+        },
+      }}
+      preferredPolarity="+"
+      isLoading={isLoading}
+      error={error ?? undefined}
+      onRetry={refetch}
     />
   );
 }

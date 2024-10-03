@@ -48,7 +48,7 @@ describe('ProjectDetail > ProjectVelocity', function () {
       />
     );
 
-    expect(await screen.findByText('Number of Releases')).toBeInTheDocument();
+    expect(await screen.findByText(/Number of Releases/)).toBeInTheDocument();
     expect(await screen.findByText('202')).toBeInTheDocument();
     expect(await screen.findByText('104')).toBeInTheDocument();
 
