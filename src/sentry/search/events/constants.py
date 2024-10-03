@@ -326,6 +326,7 @@ DEFAULT_METRIC_TAGS = {
     "histogram_outlier",
     "http.method",
     "http.status_code",
+    "http.url",
     "measurement_rating",
     "os.name",
     "query_hash",
