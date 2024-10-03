@@ -3319,7 +3319,7 @@ urlpatterns = [
     re_path(
         r"^api/0/organizations/(?P<organization_id_or_slug>[^/]+)/repo/(?P<repo_name>[^/]+)/pr/(?P<pull_request_number>\d+)/externalid/(?P<external_id>[^/]+)/generate-unit-tests/$",
         AIUnitTestGenerationEndpoint.as_view(),
-        name="generate_unit_tests",
+        name="sentry-api-generate-unit-tests",
     ),
     # re_path(r'^api-auth/', include('rest_framework.urls', namespace='rest_framework'))
 ]

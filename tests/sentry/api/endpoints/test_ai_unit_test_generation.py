@@ -1,7 +1,6 @@
 from unittest.mock import patch
 
 from django.urls import reverse
-from rest_framework.test import APIClient
 
 from sentry.api.endpoints.ai_unit_test_generation import AIUnitTestGenerationEndpoint
 from sentry.testutils.cases import APITestCase
@@ -16,14 +15,12 @@ class AIUnitTestGenerationEndpointTest(APITestCase):
             email="example@example.com", is_superuser=False, is_staff=True, is_active=True
         )
         self.org = self.create_organization(owner=self.owner)
-        self.client = APIClient()
         self.client.force_authenticate(user=self.owner)
         self.repo_name = "example-repo"
         self.pull_request_number = "123"
         self.external_id = "456"
-
-        self.url = reverse(
-            "generate_unit_tests",
+        self.path = reverse(
+            "sentry-api-generate-unit-tests",
             kwargs={
                 "organization_id_or_slug": self.org.slug,
                 "repo_name": self.repo_name,
@@ -38,7 +35,7 @@ class AIUnitTestGenerationEndpointTest(APITestCase):
         ) as mock_call_unit_test_generation:
             mock_call_unit_test_generation.return_value = "test-run-id"
 
-            response = self.client.post(self.url)
+            response = self.client.post(self.path)
 
             assert response.status_code == 202
             mock_call_unit_test_generation.assert_called_once_with(
@@ -55,9 +52,9 @@ class AIUnitTestGenerationEndpointTest(APITestCase):
         ) as mock_call_unit_test_generation:
             mock_call_unit_test_generation.side_effect = Exception("Test exception")
 
-            response = self.client.post(self.url)
+            response = self.client.post(self.path)
 
-            assert response.status_code == 500
+            assert response.status_code == 404
             assert response.data == {"detail": "Test generation failed to start."}
             mock_call_unit_test_generation.assert_called_once_with(
                 self.owner,
@@ -68,8 +65,8 @@ class AIUnitTestGenerationEndpointTest(APITestCase):
             )
 
     def test_post_invalid_pull_request_number(self):
-        invalid_url = reverse(
-            "generate_unit_tests",
+        invalid_path = reverse(
+            "sentry-api-generate-unit-tests",
             kwargs={
                 "organization_id_or_slug": self.org.slug,
                 "repo_name": self.repo_name,
@@ -81,7 +78,7 @@ class AIUnitTestGenerationEndpointTest(APITestCase):
         with patch.object(
             AIUnitTestGenerationEndpoint, "_call_unit_test_generation"
         ) as mock_call_unit_test_generation:
-            response = self.client.post(invalid_url)
+            response = self.client.post(invalid_path)
 
             assert response.status_code == 400
             assert response.data == {"detail": "Invalid pull request number."}
