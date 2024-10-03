@@ -208,19 +208,12 @@ services:
 volumes:
   # These store application data that should persist across restarts.
   sentry-data:
-    external: true
   sentry-postgres:
-    external: true
   sentry-redis:
-    external: true
   sentry-redis-cluster:
-    external: true
   sentry-kafka:
-    external: true
   sentry-clickhouse:
-    external: true
   sentry-symbolicator:
-    external: true
   # This volume stores profiles and should be persisted.
   # Not being external will still persist data across restarts.
   # It won't persist if someone does a docker compose down -v.
