@@ -5,6 +5,7 @@ from io import BytesIO
 from os.path import join
 from tempfile import TemporaryFile
 from typing import Any
+from unittest.mock import patch
 
 import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -27,6 +28,7 @@ from sentry.profiles.task import (
     _set_frames_platform,
     _symbolicate_profile,
     get_metrics_dsn,
+    process_profile_task,
 )
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.factories import Factories, get_fixture_path
@@ -911,3 +913,88 @@ def test_get_metrics_dsn(default_project):
     ProjectKey.objects.create(project_id=default_project.id, use_case=UseCase.PROFILING.value)
 
     assert get_metrics_dsn(default_project.id) == key1.get_dsn(public=True)
+
+
+@patch("sentry.profiles.task._track_outcome")
+@patch("sentry.profiles.task._track_duration_outcome")
+@patch("sentry.profiles.task._symbolicate_profile")
+@patch("sentry.profiles.task._deobfuscate_profile")
+@patch("sentry.profiles.task._push_profile_to_vroom")
+@django_db_all
+@pytest.mark.parametrize(
+    "profile",
+    ["sample_v1_profile", "sample_v2_profile"],
+)
+def test_process_profile_task_should_emit_profile_duration_outcome(
+    _push_profile_to_vroom,
+    _deobfuscate_profile,
+    _symbolicate_profile,
+    _track_duration_outcome,
+    _track_outcome,
+    profile,
+    organization,
+    project,
+    request,
+):
+    _push_profile_to_vroom.return_value = True
+    _deobfuscate_profile.return_value = True
+    _symbolicate_profile.return_value = True
+
+    profile = request.getfixturevalue(profile)
+    profile["organization_id"] = organization.id
+    profile["project_id"] = project.id
+
+    process_profile_task(profile=profile)
+
+    assert _track_duration_outcome.call_count == 1
+
+    if profile.get("version") != "2":
+        assert _track_outcome.call_count == 1
+    else:
+        assert _track_outcome.call_count == 0
+
+
+@patch("sentry.quotas.backend.should_emit_profile_duration_outcome")
+@patch("sentry.profiles.task._track_outcome")
+@patch("sentry.profiles.task._track_duration_outcome")
+@patch("sentry.profiles.task._symbolicate_profile")
+@patch("sentry.profiles.task._deobfuscate_profile")
+@patch("sentry.profiles.task._push_profile_to_vroom")
+@django_db_all
+@pytest.mark.parametrize(
+    "profile",
+    ["sample_v1_profile", "sample_v2_profile"],
+)
+def test_process_profile_task_should_not_emit_profile_duration_outcome(
+    _push_profile_to_vroom,
+    _deobfuscate_profile,
+    _symbolicate_profile,
+    _track_duration_outcome,
+    _track_outcome,
+    should_emit_profile_duration_outcome,
+    profile,
+    organization,
+    project,
+    request,
+):
+    _push_profile_to_vroom.return_value = True
+    _deobfuscate_profile.return_value = True
+    _symbolicate_profile.return_value = True
+    should_emit_profile_duration_outcome.return_value = False
+
+    profile = request.getfixturevalue(profile)
+    profile["organization_id"] = organization.id
+    profile["project_id"] = project.id
+
+    process_profile_task(profile=profile)
+
+    assert _track_duration_outcome.call_count == 0
+    assert should_emit_profile_duration_outcome.call_count == 1
+    should_emit_profile_duration_outcome.assert_called_with(
+        organization=organization, profile=profile
+    )
+
+    if profile.get("version") != "2":
+        assert _track_outcome.call_count == 1
+    else:
+        assert _track_outcome.call_count == 0
