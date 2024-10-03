@@ -1,5 +1,3 @@
-import {Fragment} from 'react';
-
 import {
   getDiffInMinutes,
   shouldFetchPreviousPeriod,
@@ -147,31 +145,29 @@ function ProjectStabilityScoreCard(props: Props) {
   }
 
   return (
-    <Fragment>
-      <BigNumberWidget
-        title={cardTitle}
-        description={cardHelp}
-        data={[
-          {
-            [`${props.field}()`]: score ? score / 100 : undefined,
-          },
-        ]}
-        previousPeriodData={[
-          {
-            [`${props.field}()`]: previousScore ? previousScore / 100 : undefined,
-          },
-        ]}
-        meta={{
-          fields: {
-            [`${props.field}()`]: 'percentage',
-          },
-        }}
-        preferredPolarity="+"
-        isLoading={isLoading}
-        error={error ?? undefined}
-        onRetry={refetch}
-      />
-    </Fragment>
+    <BigNumberWidget
+      title={cardTitle}
+      description={cardHelp}
+      data={[
+        {
+          [`${props.field}()`]: score ? score / 100 : undefined,
+        },
+      ]}
+      previousPeriodData={[
+        {
+          [`${props.field}()`]: previousScore ? previousScore / 100 : undefined,
+        },
+      ]}
+      meta={{
+        fields: {
+          [`${props.field}()`]: 'percentage',
+        },
+      }}
+      preferredPolarity="+"
+      isLoading={isLoading}
+      error={error ?? undefined}
+      onRetry={refetch}
+    />
   );
 }
 

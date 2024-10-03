@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useState} from 'react';
+import {useEffect, useState} from 'react';
 import type {Location} from 'history';
 import pick from 'lodash/pick';
 
@@ -139,39 +139,37 @@ export function ProjectAnrScoreCard({
   };
 
   return (
-    <Fragment>
-      <BigNumberWidget
-        title={t('ANR Rate')}
-        description={getSessionTermDescription(SessionTerm.ANR_RATE, null)}
-        data={[
-          {
-            'anr_rate()': value ?? undefined,
+    <BigNumberWidget
+      title={t('ANR Rate')}
+      description={getSessionTermDescription(SessionTerm.ANR_RATE, null)}
+      data={[
+        {
+          'anr_rate()': value ?? undefined,
+        },
+      ]}
+      previousPeriodData={[
+        {
+          'anr_rate()': previousValue ?? undefined,
+        },
+      ]}
+      preferredPolarity="-"
+      meta={{
+        fields: {
+          'anr_rate()': 'percentage',
+        },
+      }}
+      actions={[
+        {
+          key: 'issue-search',
+          label: t('View Issues'),
+          to: issueSearch,
+          onAction: () => {
+            trackAnalytics('project_detail.open_anr_issues', {
+              organization,
+            });
           },
-        ]}
-        previousPeriodData={[
-          {
-            'anr_rate()': previousValue ?? undefined,
-          },
-        ]}
-        preferredPolarity="-"
-        meta={{
-          fields: {
-            'anr_rate()': 'percentage',
-          },
-        }}
-        actions={[
-          {
-            key: 'issue-search',
-            label: t('View Issues'),
-            to: issueSearch,
-            onAction: () => {
-              trackAnalytics('project_detail.open_anr_issues', {
-                organization,
-              });
-            },
-          },
-        ]}
-      />
-    </Fragment>
+        },
+      ]}
+    />
   );
 }
