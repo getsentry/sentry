@@ -257,8 +257,8 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
 
         assert len(mock_record.mock_calls) == 2
         start, halt = mock_record.mock_calls
-        assert start.args == (EventLifecycleOutcome.STARTED,)
-        assert halt.args == (EventLifecycleOutcome.SUCCESS,)
+        assert start.args[0] == EventLifecycleOutcome.STARTED
+        assert halt.args[0] == EventLifecycleOutcome.SUCCESS
 
     @patch("sentry.integrations.slack.message_builder.issues.get_tags", return_value=[])
     def test_archive_issue_until_escalating_through_unfurl(self, mock_tags):

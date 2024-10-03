@@ -105,7 +105,7 @@ class EventLifecycle:
         self.assume_success = assume_success
         self._state: EventLifecycleOutcome | None = None
 
-    def record_event(self, outcome: EventLifecycleOutcome) -> None:
+    def record_event(self, outcome: EventLifecycleOutcome, exc: BaseException | None) -> None:
         """Record a starting or halting event.
 
         This method is public so that unit tests may mock it, but it should be called
@@ -120,15 +120,17 @@ class EventLifecycle:
         metrics.incr(key, sample_rate=sample_rate)
 
         if outcome == EventLifecycleOutcome.FAILURE:
-            logger.error(key, extra=self.payload.get_extras())
+            logger.error(key, extra=self.payload.get_extras(), exc_info=exc)
 
-    def _terminate(self, new_state: EventLifecycleOutcome) -> None:
+    def _terminate(
+        self, new_state: EventLifecycleOutcome, exc: BaseException | None = None
+    ) -> None:
         if self._state is None:
             raise EventLifecycleStateError("The lifecycle has not yet been entered")
         if self._state != EventLifecycleOutcome.STARTED:
             raise EventLifecycleStateError("The lifecycle has already been exited")
         self._state = new_state
-        self.record_event(new_state)
+        self.record_event(new_state, exc)
 
     def record_success(self) -> None:
         """Record that the event halted successfully.
@@ -152,8 +154,6 @@ class EventLifecycle:
         display an error response to the user, it would be necessary to manually call
         `record_failure` on the context object.
         """
-
-        # TODO: Capture information from `exc`?
 
         self._terminate(EventLifecycleOutcome.FAILURE)
 

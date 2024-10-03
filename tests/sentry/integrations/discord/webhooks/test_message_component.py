@@ -178,8 +178,8 @@ class DiscordMessageComponentInteractionTest(APITestCase):
 
         assert len(mock_record.mock_calls) == 2
         start, halt = mock_record.mock_calls
-        assert start.args == (EventLifecycleOutcome.STARTED,)
-        assert halt.args == (EventLifecycleOutcome.SUCCESS,)
+        assert start.args[0] == EventLifecycleOutcome.STARTED
+        assert halt.args[0] == EventLifecycleOutcome.SUCCESS
 
     def test_resolve_dialog(self):
         response = self.send_interaction(

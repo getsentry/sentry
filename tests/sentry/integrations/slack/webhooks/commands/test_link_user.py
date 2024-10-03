@@ -113,8 +113,8 @@ class SlackCommandsUnlinkUserTest(SlackCommandsTest):
 
         assert len(mock_record.mock_calls) == 2
         start, halt = mock_record.mock_calls
-        assert start.args == (EventLifecycleOutcome.STARTED,)
-        assert halt.args == (EventLifecycleOutcome.HALTED,)
+        assert start.args[0] == EventLifecycleOutcome.STARTED
+        assert halt.args[0] == EventLifecycleOutcome.HALTED
 
     def test_unlink_command_already_unlinked(self):
         data = self.send_slack_message("unlink")

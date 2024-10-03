@@ -65,8 +65,8 @@ class SlackCommandsLinkTeamTest(SlackCommandsLinkTeamTestBase):
 
         assert len(mock_record.mock_calls) == 2
         start, halt = mock_record.mock_calls
-        assert start.args == (EventLifecycleOutcome.STARTED,)
-        assert halt.args == (EventLifecycleOutcome.HALTED,)
+        assert start.args[0] == EventLifecycleOutcome.STARTED
+        assert halt.args[0] == EventLifecycleOutcome.HALTED
 
     @responses.activate
     def test_link_team_from_dm(self):
