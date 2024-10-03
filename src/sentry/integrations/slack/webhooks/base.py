@@ -16,12 +16,14 @@ from sentry.integrations.messaging.commands import (
     MessagingIntegrationCommand,
     MessagingIntegrationCommandDispatcher,
 )
+from sentry.integrations.messaging.spec import MessagingIntegrationSpec
 from sentry.integrations.slack.message_builder.help import SlackHelpMessageBuilder
 from sentry.integrations.slack.metrics import (
     SLACK_WEBHOOK_DM_ENDPOINT_FAILURE_DATADOG_METRIC,
     SLACK_WEBHOOK_DM_ENDPOINT_SUCCESS_DATADOG_METRIC,
 )
 from sentry.integrations.slack.requests.base import SlackDMRequest, SlackRequestError
+from sentry.integrations.slack.spec import SlackMessagingSpec
 from sentry.utils import metrics
 
 LINK_USER_MESSAGE = (
@@ -126,6 +128,10 @@ class SlackDMEndpoint(Endpoint, abc.ABC):
 class SlackCommandDispatcher(MessagingIntegrationCommandDispatcher[Response]):
     endpoint: SlackDMEndpoint
     request: SlackDMRequest
+
+    @property
+    def integration_spec(self) -> MessagingIntegrationSpec:
+        return SlackMessagingSpec()
 
     @property
     def command_handlers(
