@@ -56,9 +56,14 @@ def rpc(req: SnubaRPCRequest, resp_type: type[RPCResponseType]) -> RPCResponseTy
     referrer = req.meta.referrer
     with sentry_sdk.start_span(op="snuba_rpc.run", description=req.__class__.__name__) as span:
         span.set_tag("snuba.referrer", referrer)
+
+        cls = req.__class__
+        class_name = cls.__name__
+        class_version = cls.__module__.split(".", 3)[2]
+
         http_resp = _snuba_pool.urlopen(
             "POST",
-            f"/rpc/{req.__class__.__name__}/v1alpha",
+            f"/rpc/{class_name}/{class_version}",
             body=req.SerializeToString(),
             headers={
                 "referer": referrer,
