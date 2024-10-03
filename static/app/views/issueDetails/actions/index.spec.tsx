@@ -177,6 +177,34 @@ describe('GroupActions', function () {
     });
   });
 
+  it('delete for issue platform is enabled', async () => {
+    const org = OrganizationFixture({
+      ...organization,
+      access: [...organization.access, 'event:admin'],
+      features: [...organization.features, 'issue-platform-deletions-ui'],
+    });
+    render(
+      <Fragment>
+        <GlobalModal />
+        <GroupActions
+          group={group}
+          project={project}
+          organization={org}
+          disabled={false}
+        />
+      </Fragment>,
+      {organization: org}
+    );
+
+    await userEvent.click(screen.getByLabelText('More Actions'));
+    expect(
+      await screen.findByRole('menuitemradio', {name: 'Delete'})
+    ).not.toHaveAttribute('aria-disabled');
+    expect(
+      await screen.findByRole('menuitemradio', {name: 'Delete and discard future events'})
+    ).toHaveAttribute('aria-disabled');
+  });
+
   it('opens share modal from more actions dropdown', async () => {
     const org = {
       ...organization,
