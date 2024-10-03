@@ -104,6 +104,14 @@ class EventLifecycle:
         self.payload = payload
         self.assume_success = assume_success
         self._state: EventLifecycleOutcome | None = None
+        self._extra = dict(self.payload.get_extras())
+
+    def add_extra(self, name: str, value: Any) -> None:
+        """Add a value to logged "extra" data.
+
+        Overwrites the name with a new value if it was previously used.
+        """
+        self._extra[name] = value
 
     def record_event(
         self, outcome: EventLifecycleOutcome, exc: BaseException | None = None
@@ -122,7 +130,7 @@ class EventLifecycle:
         metrics.incr(key, sample_rate=sample_rate)
 
         if outcome == EventLifecycleOutcome.FAILURE:
-            logger.error(key, extra=self.payload.get_extras(), exc_info=exc)
+            logger.error(key, extra=self._extra, exc_info=exc)
 
     def _terminate(
         self, new_state: EventLifecycleOutcome, exc: BaseException | None = None
