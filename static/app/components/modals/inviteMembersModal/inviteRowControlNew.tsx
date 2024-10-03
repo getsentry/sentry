@@ -65,14 +65,14 @@ function InviteRowControl({roleDisabledUnallowed, roleOptions}: Props) {
   );
   const isTeamRolesAllowed = isTeamRolesAllowedForRole(role);
 
-  const handleKeyDown = (event: React.KeyboardEvent<HTMLElement>) => {
-    switch (event.key) {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLElement>) => {
+    switch (e.key) {
       case 'Enter':
       case ',':
       case ' ':
+        e.preventDefault();
         handleInput(inputValue);
         setInputValue('');
-        event.preventDefault();
         break;
       default:
       // do nothing.
