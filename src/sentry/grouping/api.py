@@ -32,7 +32,7 @@ from sentry.grouping.variants import (
 from sentry.models.grouphash import GroupHash
 
 if TYPE_CHECKING:
-    from sentry.eventstore.models import Event
+    from sentry.eventstore.models import BaseEvent
     from sentry.grouping.fingerprinting import FingerprintingRules
     from sentry.grouping.strategies.base import StrategyConfiguration
     from sentry.models.project import Project
@@ -257,7 +257,7 @@ def apply_server_fingerprinting(event, config, allow_custom_title=True):
 
 
 def _get_calculated_grouping_variants_for_event(
-    event: Event, context: GroupingContext
+    event: BaseEvent, context: GroupingContext
 ) -> dict[str, GroupingComponent]:
     winning_strategy: str | None = None
     precedence_hint: str | None = None
@@ -296,7 +296,7 @@ def _get_calculated_grouping_variants_for_event(
 
 # This is called by the Event model in get_grouping_variants()
 def get_grouping_variants_for_event(
-    event: Event, config: StrategyConfiguration | None = None
+    event: BaseEvent, config: StrategyConfiguration | None = None
 ) -> dict[str, BaseVariant]:
     """Returns a dict of all grouping variants for this event."""
     # If a checksum is set the only variant that comes back from this

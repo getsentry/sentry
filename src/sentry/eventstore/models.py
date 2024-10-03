@@ -60,12 +60,12 @@ class BaseEvent(metaclass=abc.ABCMeta):
         project_id: int,
         event_id: str,
         snuba_data: Mapping[str, Any] | None = None,
-    ):
+    ) -> None:
         self.project_id = project_id
         self.event_id = event_id
         self._snuba_data = snuba_data or {}
 
-    def __getstate__(self) -> Mapping[str, Any]:
+    def __getstate__(self) -> dict[str, Any]:
         state = self.__dict__.copy()
         # do not pickle cached info.  We want to fetch this on demand
         # again.
@@ -98,7 +98,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
         column = self._get_column_name(Columns.PLATFORM)
         if column in self._snuba_data:
             return cast(str, self._snuba_data[column])
-        return cast(str, self.data.get("platform", None))
+        return self.data.get("platform")
 
     @property
     def message(self) -> str:
@@ -225,7 +225,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
         column = self._get_column_name(Columns.TYPE)
         if column in self._snuba_data:
             return cast(str, self._snuba_data[column])
-        return cast(str, self.data.get("type", "default"))
+        return self.data.get("type", "default")
 
     @property
     def ip_address(self) -> str | None:
@@ -294,10 +294,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
 
     @project.setter
     def project(self, project: Project) -> None:
-        if project is None:
-            self.project_id = None
-        else:
-            self.project_id = project.id
+        self.project_id = project.id
         self._project_cache = project
 
     @cached_property
@@ -315,16 +312,16 @@ class BaseEvent(metaclass=abc.ABCMeta):
     def get_interface(self, name: str) -> Interface | None:
         return self.interfaces.get(name)
 
-    def get_event_metadata(self) -> Mapping[str, Any]:
+    def get_event_metadata(self) -> Mapping[str, Any] | None:
         """
         Return the metadata of this event.
 
         See ``sentry.eventtypes``.
         """
         # For some inexplicable reason we have some cases where the data
-        # is completely empty.  In that case we want to hobble along
+        # is completely empty. In that case we want to hobble along
         # further.
-        return self.data.get("metadata") or {}
+        return self.data.get("metadata")
 
     def get_grouping_config(self) -> GroupingConfig:
         """Returns the event grouping config."""
@@ -464,7 +461,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
 
     @property
     def version(self) -> str:
-        return cast(str, self.data.get("version", "5"))
+        return self.data.get("version", "5")
 
     def get_raw_data(self, for_stream: bool = False) -> Mapping[str, Any]:
         """Returns the internal raw event data dict."""
@@ -479,47 +476,6 @@ class BaseEvent(metaclass=abc.ABCMeta):
     @property
     def size(self) -> int:
         return len(orjson.dumps(dict(self.data)).decode())
-
-    def get_email_subject(self) -> str:
-        template = self.project.get_option("mail:subject_template")
-        if template:
-            template = EventSubjectTemplate(template)
-        elif self.group.issue_category == GroupCategory.PERFORMANCE:
-            template = EventSubjectTemplate("$shortID - $issueType")
-        else:
-            template = DEFAULT_SUBJECT_TEMPLATE
-        return cast(
-            str, truncatechars(template.safe_substitute(EventSubjectTemplateData(self)), 128)
-        )
-
-    def as_dict(self) -> dict[str, Any]:
-        """Returns the data in normalized form for external consumers."""
-        data: dict[str, Any] = {}
-        data["event_id"] = self.event_id
-        data["project"] = self.project_id
-        data["release"] = self.release
-        data["dist"] = self.dist
-        data["platform"] = self.platform
-        data["message"] = self.message
-        data["datetime"] = self.datetime
-        data["tags"] = [(k.split("sentry:", 1)[-1], v) for (k, v) in self.tags]
-        for k, v in sorted(self.data.items()):
-            if k in data:
-                continue
-            if k == "sdk":
-                v = {v_k: v_v for v_k, v_v in v.items() if v_k != "client_ip"}
-            data[k] = v
-
-        # for a long time culprit was not persisted.  In those cases put
-        # the culprit in from the group.
-        if data.get("culprit") is None and self.group_id and self.group:
-            data["culprit"] = self.group.culprit
-
-        # Override title and location with dynamically generated data
-        data["title"] = self.title
-        data["location"] = self.location
-
-        return data
 
     @cached_property
     def search_message(self) -> str:
@@ -572,10 +528,10 @@ class Event(BaseEvent):
     ):
         super().__init__(project_id, event_id, snuba_data=snuba_data)
         self.group_id = group_id
-        self.groups = groups
+        self.groups = groups or []
         self.data = data
 
-    def __getstate__(self) -> Mapping[str, Any]:
+    def __getstate__(self) -> dict[str, Any]:
         state = super().__getstate__()
         state.pop("_group_cache", None)
         state.pop("_groups_cache", None)
@@ -659,7 +615,7 @@ class Event(BaseEvent):
         return groups
 
     @groups.setter
-    def groups(self, values: Sequence[Group] | None):
+    def groups(self, values: Sequence[Group]) -> None:
         self._groups_cache = values
         self._group_ids = [group.id for group in values] if values else None
 
@@ -738,7 +694,7 @@ class GroupEvent(BaseEvent):
     @property
     def occurrence_id(self) -> str | None:
         if self._occurrence:
-            return self.occurrence.id
+            return self._occurrence.id
 
         column = self._get_column_name(Columns.OCCURRENCE_ID)
         if column in self._snuba_data:
@@ -754,6 +710,47 @@ class GroupEvent(BaseEvent):
             message = augment_message_with_occurrence(message, self.occurrence)
 
         return message
+
+    def as_dict(self) -> dict[str, Any]:
+        """Returns the data in normalized form for external consumers."""
+        data: dict[str, Any] = {}
+        data["event_id"] = self.event_id
+        data["project"] = self.project_id
+        data["release"] = self.release
+        data["dist"] = self.dist
+        data["platform"] = self.platform
+        data["message"] = self.message
+        data["datetime"] = self.datetime
+        data["tags"] = [(k.split("sentry:", 1)[-1], v) for (k, v) in self.tags]
+        for k, v in sorted(self.data.items()):
+            if k in data:
+                continue
+            if k == "sdk":
+                v = {v_k: v_v for v_k, v_v in v.items() if v_k != "client_ip"}
+            data[k] = v
+
+        # for a long time culprit was not persisted.  In those cases put
+        # the culprit in from the group.
+        if data.get("culprit") is None and self.group_id and self.group:
+            data["culprit"] = self.group.culprit
+
+        # Override title and location with dynamically generated data
+        data["title"] = self.title
+        data["location"] = self.location
+
+        return data
+
+    def get_email_subject(self) -> str:
+        template = self.project.get_option("mail:subject_template")
+        if template:
+            template = EventSubjectTemplate(template)
+        elif self.group and self.group.issue_category == GroupCategory.PERFORMANCE:
+            template = EventSubjectTemplate("$shortID - $issueType")
+        else:
+            template = DEFAULT_SUBJECT_TEMPLATE
+
+        template_data = EventSubjectTemplateData(self)
+        return truncatechars(template.safe_substitute(template_data), 128)
 
 
 def augment_message_with_occurrence(message: str, occurrence: IssueOccurrence) -> str:
@@ -772,7 +769,7 @@ class EventSubjectTemplate(string.Template):
 class EventSubjectTemplateData:
     tag_aliases = {"release": "sentry:release", "dist": "sentry:dist", "user": "sentry:user"}
 
-    def __init__(self, event: Event):
+    def __init__(self, event: GroupEvent):
         self.event = event
 
     def __getitem__(self, name: str) -> str:
@@ -794,7 +791,7 @@ class EventSubjectTemplateData:
         elif name == "orgID":
             return self.event.organization.slug
         elif name == "title":
-            if getattr(self.event, "occurrence", None):
+            if getattr(self.event, "occurrence", None) and self.event.occurrence is not None:
                 return self.event.occurrence.issue_title
             else:
                 return self.event.title
