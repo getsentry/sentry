@@ -105,7 +105,9 @@ class EventLifecycle:
         self.assume_success = assume_success
         self._state: EventLifecycleOutcome | None = None
 
-    def record_event(self, outcome: EventLifecycleOutcome, exc: BaseException | None) -> None:
+    def record_event(
+        self, outcome: EventLifecycleOutcome, exc: BaseException | None = None
+    ) -> None:
         """Record a starting or halting event.
 
         This method is public so that unit tests may mock it, but it should be called
@@ -155,7 +157,7 @@ class EventLifecycle:
         `record_failure` on the context object.
         """
 
-        self._terminate(EventLifecycleOutcome.FAILURE)
+        self._terminate(EventLifecycleOutcome.FAILURE, exc)
 
     def __enter__(self) -> Self:
         if self._state is not None:
