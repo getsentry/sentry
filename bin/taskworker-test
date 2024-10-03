@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 import csv
-import math
 import os
 import random
 import sys
@@ -41,10 +40,11 @@ def main(number: int, verbose: bool, workers: int, seed: float | None, mode: str
 
     cwd = os.getcwd()
 
+    os.unlink("./taskworker.log")
+
     # Use honcho to control the worker and consumer proceses.
     honcho_printer = get_honcho_printer(prefix=True, pretty=False)
     manager = Manager(honcho_printer)
-    tasks_per_worker = math.ceil(number / workers)
 
     processes = []
     if mode == "pull":
@@ -79,8 +79,6 @@ def main(number: int, verbose: bool, workers: int, seed: float | None, mode: str
                         "taskworker-pull",
                         "--namespace",
                         "demos",
-                        "--max-task-count",
-                        str(tasks_per_worker),
                     ],
                 },
             )
@@ -109,7 +107,7 @@ def main(number: int, verbose: bool, workers: int, seed: float | None, mode: str
                     "consumer",
                     "taskworker",
                     "--consumer-group",
-                    "taskworker-push",
+                    "taskworker-pull",
                     "--log-level",
                     "warning",
                 ],

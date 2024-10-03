@@ -104,7 +104,11 @@ class InflightActivationModel(Model):
             status=cls.to_model_status(inflight.status),
             offset=inflight.offset,
             added_at=datetime.fromtimestamp(inflight.added_at.seconds),
-            deadletter_at=datetime.fromtimestamp(inflight.deadletter_at.seconds),
+            deadletter_at=(
+                datetime.fromtimestamp(inflight.deadletter_at.seconds)
+                if inflight.deadletter_at
+                else None
+            ),
             processing_deadline=(
                 datetime.fromtimestamp(inflight.processing_deadline.seconds)
                 if inflight.processing_deadline

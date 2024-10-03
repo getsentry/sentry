@@ -117,7 +117,8 @@ class PendingTaskStore:
         )
         # Messages that are still pending and exceeded their deadletter_at are failures
         updated = expired_qs.update(status=InflightActivationModel.Status.FAILURE)
-        logger.debug("task.deadletter_at", extra={"count": updated})
+        if updated:
+            logger.info("task.deadletter_at", extra={"count": updated})
 
     def handle_processing_deadlines(self) -> None:
         from sentry.taskworker.models import InflightActivationModel
@@ -135,7 +136,8 @@ class PendingTaskStore:
             status=InflightActivationModel.Status.PENDING,
             processing_deadline=None,
         )
-        logger.debug("task.processingdeadline", extra={"count": len(to_update)})
+        if len(to_update):
+            logger.info("task.processingdeadline", extra={"count": len(to_update)})
 
     def handle_failed_tasks(self) -> None:
         from sentry.taskworker.models import InflightActivationModel
@@ -155,11 +157,12 @@ class PendingTaskStore:
         InflightActivationModel.objects.filter(id__in=to_discard).update(
             status=InflightActivationModel.Status.COMPLETE
         )
-        logger.debug("task.failed.discarded", extra={"count": len(to_discard)})
+        if len(to_discard):
+            logger.info("task.failed.discarded", extra={"count": len(to_discard)})
 
         # TODO do deadletter delivery
         InflightActivationModel.objects.filter(id__in=to_deadletter).update(
             status=InflightActivationModel.Status.COMPLETE
         )
-        logger.debug("task.failed.deadletter", extra={"count": len(to_deadletter)})
-        logger.debug("task.failed.deadletter", extra={"count": len(to_deadletter)})
+        if len(to_deadletter):
+            logger.info("task.failed.deadletter", extra={"count": len(to_deadletter)})

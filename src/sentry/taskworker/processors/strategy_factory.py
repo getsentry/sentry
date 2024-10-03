@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping, MutableSequence
+from datetime import timedelta
 from time import time
 
 from arroyo.backends.kafka.consumer import KafkaPayload
@@ -14,6 +15,7 @@ from arroyo.processing.strategies import (
 )
 from arroyo.processing.strategies.run_task_with_multiprocessing import MultiprocessingPool
 from arroyo.types import BaseValue, Commit, Message, Partition
+from django.utils import timezone
 from google.protobuf.timestamp_pb2 import Timestamp
 from sentry_protos.sentry.v1alpha.taskworker_pb2 import (
     TASK_ACTIVATION_STATUS_PENDING,
@@ -32,13 +34,15 @@ def process_message(message: Message[KafkaPayload]) -> InflightActivation:
     activation.ParseFromString(message.payload.value)
     ((_partition, offset),) = message.committable.items()
 
+    # TODO this should read from task namespace configuration
+    deadletter_at = timezone.now() + timedelta(minutes=10)
+
     return InflightActivation(
         activation=activation,
         status=TASK_ACTIVATION_STATUS_PENDING,
         offset=offset,
         added_at=Timestamp(seconds=int(time())),
-        # TODO set deadletter_at based on configuration
-        deadletter_at=None,
+        deadletter_at=Timestamp(seconds=int(deadletter_at.timestamp())),
         processing_deadline=None,
     )
 
