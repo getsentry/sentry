@@ -20,7 +20,7 @@ def process_data_sources(
     with sentry_sdk.start_span(op="sentry.workflow_engine.process_data_sources.fetch_data_sources"):
         data_sources = DataSource.objects.filter(
             query_id__in=data_packet_ids, type=query_type
-        ).prefetch_related(Prefetch("datasourcedetector_set"))
+        ).prefetch_related(Prefetch("detectors"))
 
     # Build a lookup dict for query_id to detectors
     query_id_to_detectors = {ds.query_id: list(ds.detectors.all()) for ds in data_sources}
@@ -34,7 +34,9 @@ def process_data_sources(
             data_packet_tuple = (packet, detectors)
             result.append(data_packet_tuple)
         else:
-            logger.warning("No detectors found for query_id=%s", packet.query_id)
+            logger.warning(
+                "No detectors found", extra={"query_id": packet.query_id, "query_type": query_type}
+            )
             metrics.incr(
                 "sentry.workflow_engine.process_data_sources.no_detectors",
                 tags={"query_type": query_type},

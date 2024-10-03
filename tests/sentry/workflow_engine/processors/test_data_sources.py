@@ -53,11 +53,20 @@ class TestProcessDataSources(TestCase):
 
     def test_multiple_detectors(self):
         self.detector_three = self.create_detector(name="test_detector3")
+        self.detector_four = self.create_detector(name="test_detector4")
+        self.detector_five = self.create_detector(name="test_detector5")
+        self.detector_five = self.create_detector(name="test_detector5")
+
         self.ds2.detectors.add(self.detector_three)
+        self.ds2.detectors.add(self.detector_four)
+        self.ds2.detectors.add(self.detector_five)
 
         assert process_data_sources(self.data_packets, DataSource.Type.SNUBA_QUERY) == [
             (self.query, [self.detector_one]),
-            (self.query_two, [self.detector_two, self.detector_three]),
+            (
+                self.query_two,
+                [self.detector_two, self.detector_three, self.detector_four, self.detector_five],
+            ),
         ]
 
     def test_no_results(self):
