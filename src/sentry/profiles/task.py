@@ -187,7 +187,10 @@ def process_profile_task(
             if not project.flags.has_profiles:
                 first_profile_received.send_robust(project=project, sender=Project)
             try:
-                _track_duration_outcome(profile=profile, project=project)
+                if quotas.backend.should_emit_profile_duration_outcome(
+                    organization=organization, profile=profile
+                ):
+                    _track_duration_outcome(profile=profile, project=project)
             except Exception as e:
                 sentry_sdk.capture_exception(e)
             if profile.get("version") != "2":
