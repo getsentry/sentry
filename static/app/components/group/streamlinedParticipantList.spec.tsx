@@ -37,4 +37,14 @@ describe('ParticipantList', () => {
 
     expect(screen.queryByText('Teams')).not.toBeInTheDocument();
   });
+
+  it('skips duplicate information between name and email', async () => {
+    const duplicateInfoUsers = [
+      UserFixture({id: '1', name: 'john.doe@example.com', email: 'john.doe@example.com'}),
+    ];
+    render(<ParticipantList users={duplicateInfoUsers} />);
+    await userEvent.click(screen.getByText('J'));
+    // Would find two elements if it was duplicated
+    expect(await screen.findByText('john.doe@example.com')).toBeInTheDocument();
+  });
 });
