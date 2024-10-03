@@ -12,6 +12,7 @@ from sentry.uptime.models import ProjectUptimeSubscription
 class ProjectUptimeSubscriptionSerializerResponse(TypedDict):
     id: str
     projectSlug: str
+    environment: str | None
     name: str
     status: int
     mode: int
@@ -32,7 +33,7 @@ class ProjectUptimeSubscriptionSerializer(Serializer):
     def get_attrs(
         self, item_list: Sequence[ProjectUptimeSubscription], user: Any, **kwargs: Any
     ) -> MutableMapping[Any, Any]:
-        prefetch_related_objects(item_list, "uptime_subscription", "project")
+        prefetch_related_objects(item_list, "uptime_subscription", "project", "environment")
         owners = list(filter(None, [item.owner for item in item_list]))
         owners_serialized = serialize(
             Actor.resolve_many(owners, filter_none=False), user, ActorSerializer()
@@ -58,6 +59,7 @@ class ProjectUptimeSubscriptionSerializer(Serializer):
         return {
             "id": str(obj.id),
             "projectSlug": obj.project.slug,
+            "environment": obj.environment.name if obj.environment else None,
             "name": obj.name or f"Uptime Monitoring for {obj.uptime_subscription.url}",
             "status": obj.uptime_status,
             "mode": obj.mode,
