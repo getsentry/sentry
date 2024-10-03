@@ -11,7 +11,10 @@ export interface DataProps {
   previousPeriodData?: TableData;
 }
 
+export type ErrorProp = Error | string;
+
 export interface StateProps {
-  error?: Error | string;
+  error?: ErrorProp;
   isLoading?: boolean;
+  onRetry?: () => void;
 }

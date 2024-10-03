@@ -9,9 +9,11 @@ import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
+import {ErrorPanel} from './errorPanel';
 import {MIN_HEIGHT, MIN_WIDTH} from './settings';
+import type {StateProps} from './types';
 
-export interface Props {
+export interface Props extends StateProps {
   actions?: MenuItemProps[];
   children?: React.ReactNode;
   description?: string;
@@ -19,19 +21,33 @@ export interface Props {
 }
 
 export function WidgetFrame(props: Props) {
-  const {title, description, actions, children} = props;
+  const {error} = props;
+
+  // The error state has its own set of available actions
+  const actions =
+    (error
+      ? props.onRetry
+        ? [
+            {
+              key: 'retry',
+              label: t('Retry'),
+              onAction: props.onRetry,
+            },
+          ]
+        : []
+      : props.actions) ?? [];
 
   return (
     <Frame>
       <Header>
         <Title>
-          <Tooltip title={title} containerDisplayMode="grid" showOnlyOnOverflow>
-            <TitleText>{title}</TitleText>
+          <Tooltip title={props.title} containerDisplayMode="grid" showOnlyOnOverflow>
+            <TitleText>{props.title}</TitleText>
           </Tooltip>
 
-          {description && (
+          {props.description && (
             <TooltipAligner>
-              <QuestionTooltip size="sm" title={description} />
+              <QuestionTooltip size="sm" title={props.description} />
             </TooltipAligner>
           )}
 
@@ -61,7 +77,9 @@ export function WidgetFrame(props: Props) {
         </Title>
       </Header>
 
-      <VisualizationWrapper>{children}</VisualizationWrapper>
+      <VisualizationWrapper>
+        {props.error ? <ErrorPanel error={error} /> : props.children}
+      </VisualizationWrapper>
     </Frame>
   );
 }

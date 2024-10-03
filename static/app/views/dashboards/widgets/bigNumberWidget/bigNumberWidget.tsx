@@ -11,7 +11,6 @@ import {
   WidgetFrame,
 } from 'sentry/views/dashboards/widgets/common/widgetFrame';
 
-import {ErrorPanel} from '../common/errorPanel';
 import {MISSING_DATA_MESSAGE, NON_FINITE_NUMBER_MESSAGE} from '../common/settings';
 import type {DataProps, StateProps} from '../common/types';
 
@@ -50,19 +49,13 @@ export function BigNumberWidget(props: Props) {
 
   const error = props.error ?? parsingError;
 
-  if (error) {
-    return (
-      <WidgetFrame title={props.title} description={props.description}>
-        <ErrorPanel error={error} />
-      </WidgetFrame>
-    );
-  }
-
   return (
     <WidgetFrame
       title={props.title}
       description={props.description}
       actions={props.actions}
+      error={error}
+      onRetry={props.onRetry}
     >
       <BigNumberResizeWrapper>
         <BigNumberWidgetVisualization

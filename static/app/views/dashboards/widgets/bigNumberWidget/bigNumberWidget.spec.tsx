@@ -153,6 +153,37 @@ describe('BigNumberWidget', () => {
 
       expect(screen.getByText('Error: Uh oh')).toBeInTheDocument();
     });
+
+    it('Shows a retry button', async () => {
+      const onRetry = jest.fn();
+
+      render(<BigNumberWidget error={new Error('Oh no!')} onRetry={onRetry} />);
+
+      await userEvent.click(screen.getByRole('button', {name: 'Retry'}));
+      expect(onRetry).toHaveBeenCalledTimes(1);
+    });
+
+    it('Hides other actions if there is an error and a retry handler', () => {
+      const onRetry = jest.fn();
+
+      render(
+        <BigNumberWidget
+          error={new Error('Oh no!')}
+          onRetry={onRetry}
+          actions={[
+            {
+              key: 'Open in Discover',
+              to: '/discover',
+            },
+          ]}
+        />
+      );
+
+      expect(screen.getByRole('button', {name: 'Retry'})).toBeInTheDocument();
+      expect(
+        screen.queryByRole('link', {name: 'Open in Discover'})
+      ).not.toBeInTheDocument();
+    });
   });
 
   describe('Previous Period Data', () => {
