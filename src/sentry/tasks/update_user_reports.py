@@ -5,7 +5,7 @@ from typing import Any
 import sentry_sdk
 from django.utils import timezone
 
-from sentry import eventstore, features
+from sentry import eventstore, features, quotas
 from sentry.feedback.usecases.create_feedback import FeedbackCreationSource, shim_to_feedback
 from sentry.models.project import Project
 from sentry.models.userreport import UserReport
@@ -24,8 +24,12 @@ logger = logging.getLogger(__name__)
 )
 def update_user_reports(**kwargs: Any) -> None:
     now = timezone.now()
-    end = kwargs.get("end", now + timedelta(minutes=5))  # +5 minutes just to catch clock skew
     start = kwargs.get("start", now - timedelta(days=1))
+    end = kwargs.get("end", now + timedelta(minutes=5))  # +5 minutes just to catch clock skew
+
+    # The event query time range is [start - event_lookback, end].
+    event_lookback = kwargs.get("event_lookback", timedelta(days=1))
+
     # Filter for user reports where there was no event associated with them at
     # ingestion time
     user_reports = UserReport.objects.filter(
@@ -54,11 +58,16 @@ def update_user_reports(**kwargs: Any) -> None:
         event_ids = [r.event_id for r in reports]
         report_by_event = {r.event_id: r for r in reports}
         events = []
+
+        event_start = start - event_lookback
+        if retention := quotas.backend.get_event_retention(organization=project.organization):
+            event_start = max(event_start, now - timedelta(days=retention))
+
         for event_id_chunk in chunked(event_ids, MAX_EVENTS):
             snuba_filter = eventstore.Filter(
                 project_ids=[project_id],
                 event_ids=event_id_chunk,
-                start=start - timedelta(days=1),  # we go one extra day back for events
+                start=event_start,
                 end=end,
             )
             try:
