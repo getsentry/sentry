@@ -37,6 +37,8 @@ import {
   useEventDetails,
 } from 'sentry/views/issueDetails/streamline/context';
 import {getFoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
+import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 import {useDefaultIssueEvent} from 'sentry/views/issueDetails/utils';
 
 export const MIN_NAV_HEIGHT = 44;
@@ -44,7 +46,6 @@ export const MIN_NAV_HEIGHT = 44;
 type EventNavigationProps = {
   event: Event;
   group: Group;
-  onViewAllEvents: (e: React.MouseEvent) => void;
   className?: string;
   /**
    * Data property to help style the component when it's sticky
@@ -89,7 +90,7 @@ const sectionLabels = {
 };
 
 export const EventNavigation = forwardRef<HTMLDivElement, EventNavigationProps>(
-  function EventNavigation({event, group, query, onViewAllEvents, ...props}, ref) {
+  function EventNavigation({event, group, query, ...props}, ref) {
     const location = useLocation();
     const organization = useOrganization();
     const theme = useTheme();
@@ -104,6 +105,7 @@ export const EventNavigation = forwardRef<HTMLDivElement, EventNavigationProps>(
       true
     );
     const isMobile = useMedia(`(max-width: ${theme.breakpoints.small})`);
+    const {baseUrl} = useGroupDetailsRoute();
 
     const {data: actionableItems} = useActionableItems({
       eventId: event.id,
@@ -225,9 +227,17 @@ export const EventNavigation = forwardRef<HTMLDivElement, EventNavigationProps>(
                 />
               </Tooltip>
             </Navigation>
-            <Button onClick={onViewAllEvents} borderless size="xs" css={grayText}>
+            <LinkButton
+              to={{
+                pathname: `${baseUrl}${TabPaths[Tab.EVENTS]}`,
+                query: location.query,
+              }}
+              borderless
+              size="xs"
+              css={grayText}
+            >
               {isMobile ? '' : t('View')} {t('All Events')}
-            </Button>
+            </LinkButton>
           </NavigationWrapper>
         </EventNavigationWrapper>
         <EventInfoJumpToWrapper>
