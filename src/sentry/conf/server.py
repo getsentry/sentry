@@ -823,7 +823,7 @@ CELERY_IMPORTS = (
     "sentry.integrations.tasks",
 )
 
-# tmp(michal): Default configuration for post_process* queueus split
+# tmp(michal): Default configuration for post_process* queues split
 SENTRY_POST_PROCESS_QUEUE_SPLIT_ROUTER: dict[str, Callable[[], str]] = {}
 
 # Mapping from queue name to split queues to be used by SplitQueueRouter.
