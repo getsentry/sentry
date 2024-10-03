@@ -218,7 +218,14 @@ def find_grouphash_with_group(
 def get_or_create_grouphashes(
     project: Project, hashes: Sequence[str], grouping_config: str
 ) -> list[GroupHash]:
-    grouphashes = []
+    is_secondary = grouping_config != project.get_option("sentry:grouping_config")
+    grouphashes: list[GroupHash] = []
+
+    # The only utility of secondary hashes is to link new primary hashes to an existing group.
+    # Secondary hashes which are also new are therefore of no value, so there's no need to store or
+    # annotate them and we can bail now.
+    if is_secondary and not GroupHash.objects.filter(project=project, hash__in=hashes).exists():
+        return grouphashes
 
     for hash_value in hashes:
         grouphash, created = GroupHash.objects.get_or_create(project=project, hash=hash_value)

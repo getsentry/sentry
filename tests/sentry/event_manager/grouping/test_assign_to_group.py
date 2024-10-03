@@ -242,8 +242,8 @@ def get_results_from_saving_event(
 #      doesn't find an existing group
 #   c) If the primary (or secondary, if it's calculated) hash finds a group, the event is
 #      assigned there
-#   d) If neither finds a group, a new group is created and both the primary (and secondary,
-#      if it's calculated) hashes are stored
+#   d) If neither finds a group, a new group is created and the primary hash is stored (but
+#      the secondary hash is not, even if it's calculated)
 
 
 @django_db_all
@@ -276,7 +276,7 @@ def test_new_group(
             "primary_grouphash_existed_already": False,
             "secondary_grouphash_existed_already": False,
             "primary_grouphash_exists_now": True,
-            "secondary_grouphash_exists_now": True,
+            "secondary_grouphash_exists_now": False,
             "result_tag_value_for_metrics": "no_match",
             # Moot since no existing group was passed
             "event_assigned_to_given_existing_group": None,
@@ -376,18 +376,24 @@ def test_existing_group_new_hash_exists(
 
     # Set the stage by creating a group tied to the new hash (and possibly the legacy hash as well)
     if secondary_hash_exists:
-        existing_event = save_event_with_grouping_config(
+        existing_event_with_secondary_hash = save_event_with_grouping_config(
+            event_data, project, LEGACY_GROUPING_CONFIG
+        )
+        existing_event_with_primary_hash = save_event_with_grouping_config(
             event_data, project, DEFAULT_GROUPING_CONFIG, LEGACY_GROUPING_CONFIG, True
         )
-        group_id = existing_event.group_id
+        group_id = existing_event_with_primary_hash.group_id
 
+        assert (
+            existing_event_with_secondary_hash.group_id == existing_event_with_primary_hash.group_id
+        )
         assert group_id is not None
         assert GroupHash.objects.filter(project_id=project.id, group_id=group_id).count() == 2
     else:
-        existing_event = save_event_with_grouping_config(
+        existing_event_with_primary_hash = save_event_with_grouping_config(
             event_data, project, DEFAULT_GROUPING_CONFIG
         )
-        group_id = existing_event.group_id
+        group_id = existing_event_with_primary_hash.group_id
 
         assert group_id is not None
         assert GroupHash.objects.filter(project_id=project.id, group_id=group_id).count() == 1

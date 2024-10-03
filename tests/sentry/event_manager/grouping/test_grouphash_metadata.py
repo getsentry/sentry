@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from time import time
-
 from sentry.models.grouphash import GroupHash
 from sentry.models.grouphashmetadata import GroupHashMetadata
 from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG, LEGACY_GROUPING_CONFIG
@@ -11,7 +9,6 @@ from sentry.testutils.helpers.eventprocessing import save_new_event
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.skips import requires_snuba
-from sentry.utils.types import NonNone
 
 pytestmark = [requires_snuba]
 
@@ -89,28 +86,3 @@ class GroupHashMetadataTest(TestCase):
 
         # Make sure we're dealing with a single grouphash that got updated rather than two different grouphashes
         assert grouphash1 and grouphash2 and grouphash1.id == grouphash2.id
-
-    @with_feature("organizations:grouphash-metadata-creation")
-    def test_stores_correct_config_on_primary_and_secondary_hash(self):
-        # Set the project to be in a grouping config transition so that primary and secondary hashes
-        # will both be calculated, and include numbers in the message of one of the events sent to
-        # Seer so that the primary and secondary hashes will be different (since the legacy config
-        # won't parameterize the numbers)
-        self.project.update_option("sentry:grouping_config", DEFAULT_GROUPING_CONFIG)
-        self.project.update_option("sentry:secondary_grouping_config", LEGACY_GROUPING_CONFIG)
-        self.project.update_option("sentry:secondary_grouping_expiry", time() + 3600)
-
-        event = save_new_event({"message": "Dogs are great! 11211231"}, self.project)
-
-        grouphashes = GroupHash.objects.filter(group_id=NonNone(event.group_id))
-        assert len(grouphashes) == 2
-
-        primary_grouphash = grouphashes.filter(hash=event.get_primary_hash()).first()
-        secondary_grouphash = grouphashes.exclude(hash=event.get_primary_hash()).first()
-
-        self.assert_metadata_value(
-            primary_grouphash, "latest_grouping_config", DEFAULT_GROUPING_CONFIG
-        )
-        self.assert_metadata_value(
-            secondary_grouphash, "latest_grouping_config", LEGACY_GROUPING_CONFIG
-        )
