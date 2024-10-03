@@ -8,6 +8,7 @@ import removeAtArrayIndex from 'sentry/utils/array/removeAtArrayIndex';
 import replaceAtArrayIndex from 'sentry/utils/array/replaceAtArrayIndex';
 import ActionsPanel from 'sentry/views/alerts/rules/metric/triggers/actionsPanel';
 import AnomalyDetectionFormField from 'sentry/views/alerts/rules/metric/triggers/anomalyAlertsForm';
+import DynamicAlertsFeedbackButton from 'sentry/views/alerts/rules/metric/triggers/dynamicAlertsFeedbackButton';
 import TriggerForm from 'sentry/views/alerts/rules/metric/triggers/form';
 
 import {
@@ -151,6 +152,10 @@ class Triggers extends Component<Props> {
             )}
           </PanelBody>
         </Panel>
+
+        {comparisonType === AlertRuleComparisonType.DYNAMIC && (
+          <DynamicAlertsFeedbackButton />
+        )}
 
         {isMigration ? null : (
           <ActionsPanel

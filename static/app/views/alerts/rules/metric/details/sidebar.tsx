@@ -4,12 +4,13 @@ import styled from '@emotion/styled';
 import {OnDemandWarningIcon} from 'sentry/components/alerts/onDemandMetricAlert';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import AlertBadge from 'sentry/components/badge/alertBadge';
+import {Button} from 'sentry/components/button';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
 import TimeSince from 'sentry/components/timeSince';
-import {IconDiamond} from 'sentry/icons';
+import {IconDiamond, IconMegaphone} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {ActivationConditionType, MonitorType} from 'sentry/types/alerts';
@@ -17,6 +18,7 @@ import type {Actor} from 'sentry/types/core';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {getSearchFilters, isOnDemandSearchKey} from 'sentry/utils/onDemandMetrics/index';
 import {capitalize} from 'sentry/utils/string/capitalize';
+import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constants';
 import type {Action, MetricRule} from 'sentry/views/alerts/rules/metric/types';
 import {
@@ -160,6 +162,29 @@ export function MetricDetailsSidebar({
       break;
   }
 
+  const openForm = useFeedbackForm();
+
+  const feedbackButton = openForm ? (
+    <Button
+      onClick={() => {
+        openForm({
+          formTitle: 'Anomaly Detection Feedback',
+          messagePlaceholder: t(
+            'How can we make alerts using anomaly detection more useful?'
+          ),
+          tags: {
+            ['feedback.source']: 'dynamic_thresholding',
+            ['feedback.owner']: 'ml-ai',
+          },
+        });
+      }}
+      size="xs"
+      icon={<IconMegaphone />}
+    >
+      Give Feedback
+    </Button>
+  ) : null;
+
   return (
     <Fragment>
       <StatusContainer>
@@ -289,6 +314,7 @@ export function MetricDetailsSidebar({
           )}
         </KeyValueTable>
       </SidebarGroup>
+      {rule.detectionType === AlertRuleComparisonType.DYNAMIC && feedbackButton}
     </Fragment>
   );
 }
