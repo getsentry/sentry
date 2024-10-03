@@ -4,8 +4,7 @@ import styled from '@emotion/styled';
 import {getInterval} from 'sentry/components/charts/utils';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
-import {IconClock} from 'sentry/icons';
-import {IconGraphLine} from 'sentry/icons/iconGraphLine';
+import {IconClock, IconGraph} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
@@ -131,6 +130,8 @@ export function ExploreCharts({query}: ExploreChartsProps) {
       {visualizes.map((visualize, index) => {
         const dedupedYAxes = dedupeArray(visualize.yAxes);
         const {chartType} = visualize;
+        const chartIcon = chartType === 1 ? 'line' : chartType === 2 ? 'area' : 'bar';
+
         return (
           <ChartContainer key={index}>
             <ChartPanel>
@@ -140,11 +141,13 @@ export function ExploreCharts({query}: ExploreChartsProps) {
                   <CompactSelect
                     triggerLabel=""
                     triggerProps={{
-                      icon: <IconGraphLine />,
+                      icon: <IconGraph type={chartIcon} />,
                       borderless: true,
                       showChevron: false,
+                      size: 'sm',
                     }}
                     value={chartType}
+                    menuTitle="Type"
                     options={exploreChartTypeOptions}
                     onChange={option => handleChartTypeChange(option.value, index)}
                   />
@@ -156,7 +159,9 @@ export function ExploreCharts({query}: ExploreChartsProps) {
                       icon: <IconClock />,
                       borderless: true,
                       showChevron: false,
+                      size: 'sm',
                     }}
+                    menuTitle="Interval"
                     options={intervalOptions}
                   />
                 </ChartSettingsContainer>
@@ -179,7 +184,6 @@ export function ExploreCharts({query}: ExploreChartsProps) {
                 type={chartType}
                 // for now, use the first y axis unit
                 aggregateOutputFormat={aggregateOutputType(dedupedYAxes[0])}
-                showLegend
               />
             </ChartPanel>
           </ChartContainer>
@@ -200,7 +204,6 @@ const ChartHeader = styled('div')`
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  margin-bottom: ${space(1)};
 `;
 
 const ChartTitle = styled('div')`
@@ -209,6 +212,4 @@ const ChartTitle = styled('div')`
 
 const ChartSettingsContainer = styled('div')`
   display: flex;
-  align-items: center;
-  gap: ${space(0.5)};
 `;
