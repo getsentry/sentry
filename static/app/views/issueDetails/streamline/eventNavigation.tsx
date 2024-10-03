@@ -47,6 +47,10 @@ type EventNavigationProps = {
   event: Event;
   group: Group;
   className?: string;
+  /**
+   * Data property to help style the component when it's sticky
+   */
+  'data-stuck'?: boolean;
   query?: string;
   style?: CSSProperties;
 };
