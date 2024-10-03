@@ -375,10 +375,7 @@ def get_grouping_variants_for_event(
 def sort_grouping_variants(variants: dict[str, BaseVariant]) -> KeyedVariants:
     """Sort a sequence of variants into flat variants"""
 
-    flat_variants = []
-
-    for name, variant in variants.items():
-        flat_variants.append((name, variant))
+    flat_variants = list(variants.items())
 
     # Sort system variant to the back of the list to resolve ambiguities when
     # choosing primary_hash for Snuba
