@@ -1,7 +1,7 @@
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
 
 jest.mock('moment-timezone', () => {
-  const moment = jest.requireActual('moment');
+  const moment = jest.requireActual('moment-timezone');
   // Jun 06 2022
   moment.now = jest.fn().mockReturnValue(1654492173000);
   return moment;
