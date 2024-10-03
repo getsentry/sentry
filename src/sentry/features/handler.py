@@ -1,9 +1,7 @@
 from __future__ import annotations
 
-__all__ = ["FeatureHandler", "BatchFeatureHandler"]
-
 import abc
-from collections.abc import Mapping, MutableSet, Sequence
+from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -17,6 +15,9 @@ if TYPE_CHECKING:
     from sentry.users.services.user import RpcUser
 
 
+__all__ = ["FeatureHandler", "BatchFeatureHandler"]
+
+
 class FeatureHandler:
     """
     Base class for defining custom logic for feature decisions.
@@ -28,7 +29,7 @@ class FeatureHandler:
     as we don't programatically release features in self-hosted.
     """
 
-    features: MutableSet[str] = set()
+    features: set[str] = set()
 
     def __call__(self, feature: Feature, actor: User) -> bool | None:
         if feature.name not in self.features:
@@ -45,7 +46,7 @@ class FeatureHandler:
     ) -> bool | None:
         raise NotImplementedError
 
-    def has_for_batch(self, batch: FeatureCheckBatch) -> Mapping[Project, bool | None]:
+    def has_for_batch(self, batch: FeatureCheckBatch) -> dict[Project, bool | None]:
         # If not overridden, iterate over objects in the batch individually.
         return {
             obj: self.has(feature, batch.actor)
@@ -60,7 +61,7 @@ class FeatureHandler:
         projects: Sequence[Project] | None = None,
         organization: Organization | None = None,
         batch: bool = True,
-    ) -> Mapping[str, Mapping[str, bool | None]] | None:
+    ) -> dict[str, dict[str, bool | None]] | None:
         raise NotImplementedError
 
 
@@ -80,13 +81,21 @@ class BatchFeatureHandler(FeatureHandler):
 
     @abc.abstractmethod
     def _check_for_batch(
-        self, feature_name: str, entity: Organization | User, actor: User
+        self,
+        feature_name: str,
+        entity: Organization | User | None,
+        actor: User | RpcUser | AnonymousUser | None,
     ) -> bool | None:
         raise NotImplementedError
 
-    def has(self, feature: Feature, actor: User, skip_entity: bool | None = False) -> bool | None:
+    def has(
+        self,
+        feature: Feature,
+        actor: User | RpcUser | AnonymousUser | None,
+        skip_entity: bool | None = False,
+    ) -> bool | None:
         return self._check_for_batch(feature.name, feature.get_subject(), actor)
 
-    def has_for_batch(self, batch: FeatureCheckBatch) -> Mapping[Project, bool | None]:
+    def has_for_batch(self, batch: FeatureCheckBatch) -> dict[Project, bool | None]:
         flag = self._check_for_batch(batch.feature_name, batch.subject, batch.actor)
         return {obj: flag for obj in batch.objects}
