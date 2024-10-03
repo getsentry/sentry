@@ -253,34 +253,10 @@ const loaderScriptOnboarding: OnboardingConfig<PlatformOptions> = {
   verify: getVerifyConfig,
   nextSteps: () => [
     {
-      id: 'performance-monitoring',
-      name: t('Tracing'),
-      description: t(
-        'Track down transactions to connect the dots between 10-second page loads and poor-performing API calls or slow database queries.'
-      ),
-      link: 'https://docs.sentry.io/platforms/javascript/tracing/',
-    },
-    {
-      id: 'session-replay',
-      name: t('Session Replay'),
-      description: t(
-        'Get to the root cause of an error or latency issue faster by seeing all the technical details related to that issue in one visual replay on your web application.'
-      ),
-      link: 'https://docs.sentry.io/platforms/javascript/session-replay/',
-    },
-    {
       id: 'source-maps',
       name: t('Source Maps'),
       description: t('Learn how to enable readable stack traces in your Sentry errors.'),
       link: 'https://docs.sentry.io/platforms/javascript/sourcemaps/',
-    },
-    {
-      id: 'sdk-configuration',
-      name: t('SDK Configuration'),
-      description: t(
-        'Learn about additional configuration options for the Javascript SDK.'
-      ),
-      link: 'https://docs.sentry.io/platforms/javascript/configuration/',
     },
   ],
   onPageLoad: params => {
@@ -367,24 +343,7 @@ const packageManagerOnboarding: OnboardingConfig<PlatformOptions> = {
     }),
   ],
   verify: getVerifyConfig,
-  nextSteps: () => [
-    {
-      id: 'performance-monitoring',
-      name: t('Tracing'),
-      description: t(
-        'Track down transactions to connect the dots between 10-second page loads and poor-performing API calls or slow database queries.'
-      ),
-      link: 'https://docs.sentry.io/platforms/javascript/tracing/',
-    },
-    {
-      id: 'session-replay',
-      name: t('Session Replay'),
-      description: t(
-        'Get to the root cause of an error or latency issue faster by seeing all the technical details related to that issue in one visual replay on your web application.'
-      ),
-      link: 'https://docs.sentry.io/platforms/javascript/session-replay/',
-    },
-  ],
+  nextSteps: () => [],
   onPageLoad: params => {
     return () => {
       trackAnalytics('onboarding.js_loader_npm_docs_shown', {
