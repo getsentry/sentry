@@ -255,7 +255,6 @@ def worker(ignore_unknown_queues: bool, **options: Any) -> None:
     ),
 )
 @click.option("--autoreload", is_flag=True, default=False, help="Enable autoreloading.")
-@click.option("--max-tasks-per-child", default=10000)
 @click.option("--port", "-P", help=("The port number the sever runs on"), default=50051)
 @log_options()
 @configuration
