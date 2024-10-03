@@ -30,10 +30,7 @@ export function VitalDetailPanel({
 
   return (
     <PageAlertProvider>
-      <DetailPanel
-        detailKey={vital !== undefined ? vital.field : undefined}
-        onClose={onClose}
-      >
+      <DetailPanel detailKey={vital?.field} onClose={onClose}>
         {vital && (
           <React.Fragment>
             <VitalDetailTitle>{vital.title}</VitalDetailTitle>
