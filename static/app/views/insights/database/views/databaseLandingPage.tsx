@@ -186,11 +186,7 @@ export function DatabaseLandingPage() {
         </Layout.Header>
       )}
 
-      {isInDomainView && (
-        <Layout.Header>
-          <BackendHeader module={ModuleName.DB} />
-        </Layout.Header>
-      )}
+      {isInDomainView && <BackendHeader module={ModuleName.DB} />}
 
       <Layout.Body>
         <Layout.Main fullWidth>
