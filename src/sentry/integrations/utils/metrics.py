@@ -91,13 +91,13 @@ class EventLifecycleStateError(Exception):
 class EventLifecycle:
     """Context object that measures an event that may succeed or fail.
 
-    The `assume_success` attribute can be set to False for events that may or may not
-    have a soft failure condition (that is, if investigating the event's exit
-    condition is still a to-do item). In this state, if the program exits the context
-    without `record_success` or `record_failure` being called first, it will log the
-    outcome "halt" in place of "success" or "failure". A "halt" outcome should be
-    understood to mean, "No exception was logged and the event presumably succeeded,
-    but there may have been a soft failure."
+    The `assume_success` attribute can be set to False for events where exiting the
+    context may or may not represent a failure condition. In this state,
+    if the program exits the context without `record_success` or `record_failure`
+    being called first, it will log the outcome "halted" in place of "success" or
+    "failure". "Halted" could mean that we received an ambiguous exception from a
+    remote service that may have been caused either by a bug or user error, or merely
+    that inserting `record_failure` calls is still a dev to-do item.
     """
 
     def __init__(self, payload: EventLifecycleMetric, assume_success: bool = True) -> None:
