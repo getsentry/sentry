@@ -93,6 +93,10 @@ module.exports = {
             name: 'qs',
             message: 'Please use query-string instead of qs',
           },
+          {
+            name: 'moment',
+            message: 'Please import moment-timezone instead of moment',
+          },
         ],
       },
     ],
