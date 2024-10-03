@@ -500,6 +500,9 @@ function SearchQueryBuilderInputInternal({
           return true;
         }}
         onClick={onClick}
+        data-test-id={
+          state.collection.getLastKey() === item.key ? 'query-builder-input' : undefined
+        }
       >
         {keyItem =>
           itemIsSection(keyItem) ? (

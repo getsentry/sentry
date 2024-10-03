@@ -69,6 +69,10 @@ describe('SavedIssueSearches', function () {
       url: '/organizations/org-slug/tags/',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/recent-searches/',
+      body: [],
+    });
   });
 
   it('displays saved searches with correct text and in correct sections', async function () {

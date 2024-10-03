@@ -1,7 +1,6 @@
 import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
-import EventSearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
@@ -55,24 +54,12 @@ function GroupEvents({params, location, group, environments}: Props) {
     <Layout.Body>
       <Layout.Main fullWidth>
         <AllEventsFilters>
-          {organization.features.includes('issue-stream-search-query-builder') ? (
-            <EventSearch
-              environments={environments}
-              group={group}
-              handleSearch={handleSearch}
-              query={query}
-            />
-          ) : (
-            <EventSearchBar
-              organization={organization}
-              defaultQuery=""
-              onSearch={handleSearch}
-              excludedTags={ALL_EVENTS_EXCLUDED_TAGS}
-              query={query}
-              hasRecentSearches={false}
-              searchSource="issue_events_tab"
-            />
-          )}
+          <EventSearch
+            environments={environments}
+            group={group}
+            handleSearch={handleSearch}
+            query={query}
+          />
         </AllEventsFilters>
         <AllEventsTable
           issueId={group.id}

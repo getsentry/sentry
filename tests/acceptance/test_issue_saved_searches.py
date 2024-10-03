@@ -60,17 +60,19 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
 
         self.browser.find_element(by=By.NAME, value="name").send_keys("My Saved Search")
         query_input = self.browser.find_element(
-            by=By.CSS_SELECTOR, value='[role="dialog"] textarea'
+            by=By.CSS_SELECTOR, value='[role="dialog"] [data-test-id="query-builder-input"]'
         )
-        self.browser.click('[role="dialog"] button[aria-label="Clear search"]')
-        query_input.send_keys("browser.name:Firefox", Keys.ENTER)
+        query_input.click()
+        query_input.send_keys("event.type:error", Keys.ENTER)
         self.browser.click('[role="dialog"] button[aria-label="Save"]')
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
 
         # The saved search should have been created with the correct options
         created_search = SavedSearch.objects.get(name="My Saved Search")
         assert created_search
-        assert created_search.query == "browser.name:Firefox"
+        assert (
+            created_search.query == "is:unresolved issue.priority:[high, medium] event.type:error"
+        )
         assert created_search.sort == SortOptions.DATE
         assert created_search.visibility == Visibility.OWNER
         assert not created_search.is_global
