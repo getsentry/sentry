@@ -5,8 +5,13 @@ import re
 from django.http.request import HttpRequest
 
 from sentry import eventstore
+from sentry.integrations.messaging.metrics import (
+    MessagingInteractionEvent,
+    MessagingInteractionType,
+)
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import integration_service
+from sentry.integrations.slack import SlackMessagingSpec
 from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder
 from sentry.integrations.slack.unfurl.types import (
     Handler,
@@ -37,6 +42,14 @@ def unfurl_issues(
     for a particular issue by the URL of the yet-unfurled links a user included
     in their Slack message.
     """
+    event = MessagingInteractionEvent(
+        MessagingInteractionType.UNFURL_ISSUES, SlackMessagingSpec(), user=user
+    )
+    with event.capture():
+        return _unfurl_issues(integration, links)
+
+
+def _unfurl_issues(integration: Integration, links: list[UnfurlableUrl]) -> UnfurledUrl:
     org_integrations = integration_service.get_organization_integrations(
         integration_id=integration.id
     )
