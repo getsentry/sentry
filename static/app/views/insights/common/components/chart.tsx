@@ -621,7 +621,7 @@ export function useSynchronizeCharts(
 
   useEffect(() => {
     if (charts && ready) {
-      echarts.connect(group);
+      echarts?.connect?.(group);
 
       // need to force a re-render otherwise only the currently visible charts
       // in the group will end up connected
