@@ -31,7 +31,7 @@ def sync_assignee_outbound(
     external_issue_id: int,
     user_id: int | None,
     assign: bool,
-    assignment_source_dict: dict[str, Any] = None,
+    assignment_source_dict: dict[str, Any] | None = None,
 ) -> None:
     # Sync Sentry assignee to an external issue.
     external_issue = ExternalIssue.objects.get(id=external_issue_id)
