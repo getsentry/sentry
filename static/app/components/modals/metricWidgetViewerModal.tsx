@@ -2,7 +2,7 @@ import {Fragment, useCallback, useMemo, useState} from 'react';
 import {css} from '@emotion/react';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Button, LinkButton} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {
@@ -16,8 +16,6 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {getMetricsUrl} from 'sentry/utils/metrics';
-import {toDisplayType} from 'sentry/utils/metrics/dashboard';
-import {parseMRI} from 'sentry/utils/metrics/mri';
 import {MetricExpressionType} from 'sentry/utils/metrics/types';
 import {useVirtualMetricsContext} from 'sentry/utils/metrics/virtualMetricsContext';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -27,7 +25,6 @@ import type {
   Order,
 } from 'sentry/views/dashboards/metrics/types';
 import {
-  expressionsToWidget,
   formatAlias,
   getMetricEquations,
   getMetricQueries,
@@ -53,13 +50,10 @@ function MetricWidgetViewerModal({
   Header,
   closeModal,
   CloseButton,
-  onMetricWidgetEdit,
   dashboardFilters,
 }: Props) {
   const {selection} = usePageFilters();
-  const {resolveVirtualMRI, getVirtualMRIQuery, getExtractionRule, isLoading} =
-    useVirtualMetricsContext();
-  const [userHasModified, setUserHasModified] = useState(false);
+  const {getVirtualMRIQuery, getExtractionRule, isLoading} = useVirtualMetricsContext();
   const [displayType, setDisplayType] = useState(widget.displayType);
   const [metricQueries, setMetricQueries] = useState<DashboardMetricsQuery[]>(() =>
     getMetricQueries(widget, dashboardFilters, getVirtualMRIQuery)
@@ -98,7 +92,6 @@ function MetricWidgetViewerModal({
   const handleTitleChange = useCallback(
     (patch: Partial<MetricWidgetTitleState>) => {
       setTitle(curr => ({...curr, ...patch}));
-      setUserHasModified(true);
     },
     [setTitle]
   );
@@ -127,7 +120,6 @@ function MetricWidgetViewerModal({
         updated[index] = updatedQuery;
         return updated;
       });
-      setUserHasModified(true);
     },
     [setMetricQueries, getExtractionRule]
   );
@@ -139,15 +131,12 @@ function MetricWidgetViewerModal({
         updated[index] = {...updated[index], ...data} as DashboardMetricsEquation;
         return updated;
       });
-      setUserHasModified(true);
     },
     [setMetricEquations]
   );
 
   const handleOrderChange = useCallback(
     ({id, order}: {id: number; order: Order}) => {
-      setUserHasModified(true);
-
       const queryIdx = metricQueries.findIndex(query => query.id === id);
       if (queryIdx > -1) {
         setMetricQueries(curr => {
@@ -186,7 +175,6 @@ function MetricWidgetViewerModal({
           },
         ];
       });
-      setUserHasModified(true);
     },
     [displayType, generateQueryId, metricQueries]
   );
@@ -209,8 +197,6 @@ function MetricWidgetViewerModal({
     if (displayType === DisplayType.BIG_NUMBER) {
       setMetricQueries(curr => curr.map(q => ({...q, isHidden: true})));
     }
-
-    setUserHasModified(true);
   }, [displayType, generateEquationId]);
 
   const removeEquation = useCallback(
@@ -227,8 +213,6 @@ function MetricWidgetViewerModal({
           curr.map((q, idx) => (idx === curr.length - 1 ? {...q, isHidden: false} : q))
         );
       }
-
-      setUserHasModified(true);
     },
     [displayType]
   );
@@ -244,67 +228,17 @@ function MetricWidgetViewerModal({
         }
         return updated;
       });
-
-      setUserHasModified(true);
     },
     [displayType, filteredEquations.length]
   );
 
-  const handleSubmit = useCallback(() => {
-    const resolvedQueries = metricQueries.map(query => {
-      const {type} = parseMRI(query.mri);
-      if (type !== 'v' || !query.condition) {
-        return query;
-      }
-
-      const {mri, aggregation} = resolveVirtualMRI(
-        query.mri,
-        query.condition,
-        query.aggregation
-      );
-
-      return {
-        ...query,
-        mri,
-        aggregation,
-      };
-    });
-
-    const convertedWidget = expressionsToWidget(
-      [...resolvedQueries, ...filteredEquations],
-      title.edited,
-      toDisplayType(displayType),
-      widget.interval
-    );
-    onMetricWidgetEdit?.({...widget, ...convertedWidget});
-
-    closeModal();
-  }, [
-    metricQueries,
-    filteredEquations,
-    title.edited,
-    displayType,
-    widget,
-    onMetricWidgetEdit,
-    closeModal,
-    resolveVirtualMRI,
-  ]);
-
   const handleDisplayTypeChange = useCallback((type: DisplayType) => {
     setDisplayType(type);
-    setUserHasModified(true);
   }, []);
 
   const handleClose = useCallback(() => {
-    if (
-      userHasModified &&
-      // eslint-disable-next-line no-alert
-      !window.confirm(t('You have unsaved changes, are you sure you want to close?'))
-    ) {
-      return;
-    }
     closeModal();
-  }, [userHasModified, closeModal]);
+  }, [closeModal]);
 
   const {mri, aggregation, query, condition} = metricQueries[0];
 
@@ -363,9 +297,6 @@ function MetricWidgetViewerModal({
             >
               {t('Open in Metrics')}
             </LinkButton>
-            <Button priority="primary" onClick={handleSubmit}>
-              {t('Save changes')}
-            </Button>
           </ButtonBar>
         </Footer>
       </OrganizationContext.Provider>

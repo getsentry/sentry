@@ -3,7 +3,6 @@ import {useSortable} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
-import FeatureBadge from 'sentry/components/badge/featureBadge';
 import type {ButtonProps} from 'sentry/components/button';
 import {Button} from 'sentry/components/button';
 import DropdownButton from 'sentry/components/dropdownButton';
@@ -140,7 +139,6 @@ export function AddWidgetButton({onAddWidget, ...buttonProps}: Props & ButtonPro
         onAction: () => handleAction(DataSet.EVENTS),
       });
     }
-
     menuItems.push({
       key: DataSet.ISSUES,
       label: t('Issues'),
@@ -154,22 +152,6 @@ export function AddWidgetButton({onAddWidget, ...buttonProps}: Props & ButtonPro
       details: t('Sessions, Crash rates, etc.'),
       onAction: () => handleAction(DataSet.RELEASES),
     });
-
-    if (hasCustomMetrics(organization)) {
-      menuItems.push({
-        key: DataSet.METRICS,
-        label: t('Metrics'),
-        onAction: () => handleAction(DataSet.METRICS),
-        trailingItems: (
-          <FeatureBadge
-            type="beta"
-            title={
-              'The Metrics beta will end and we will retire the current solution on October 7th, 2024'
-            }
-          />
-        ),
-      });
-    }
 
     return menuItems;
   }, [handleAction, organization]);

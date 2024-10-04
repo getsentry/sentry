@@ -151,8 +151,8 @@ export const getAlertWizardCategories = (org: Organization) => {
       });
     }
     result.push({
-      categoryHeading: hasCustomMetrics(org) ? t('Metrics') : t('Custom'),
-      options: [hasCustomMetrics(org) ? 'custom_metrics' : 'custom_transactions'],
+      categoryHeading: t('Custom'),
+      options: ['custom_transactions'],
     });
   }
   return result;

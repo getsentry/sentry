@@ -42,7 +42,6 @@ import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withProjects from 'sentry/utils/withProjects';
-import {defaultMetricWidget} from 'sentry/views/dashboards/metrics/utils';
 import {
   cloneDashboard,
   getCurrentPageFilters,
@@ -51,7 +50,7 @@ import {
   isWidgetUsingTransactionName,
   resetPageFilters,
 } from 'sentry/views/dashboards/utils';
-import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
+import type {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 import {MetricsDataSwitcherAlert} from 'sentry/views/performance/landing/metricsDataSwitcherAlert';
 
 import {generatePerformanceEventView} from '../performance/data';
@@ -66,9 +65,7 @@ import {DEFAULT_STATS_PERIOD} from './data';
 import FiltersBar from './filtersBar';
 import {
   assignDefaultLayout,
-  assignTempId,
   calculateColumnDepths,
-  generateWidgetsAfterCompaction,
   getDashboardLayout,
 } from './layoutUtils';
 import DashboardTitle from './title';
@@ -217,14 +214,6 @@ class DashboardDetail extends Component<Props, State> {
           pageLinks,
           totalIssuesCount,
           dashboardFilters: getDashboardFiltersFromURL(location) ?? dashboard.filters,
-          onMetricWidgetEdit: (updatedWidget: Widget) => {
-            const widgets = [...dashboard.widgets];
-
-            const widgetIndex = dashboard.widgets.indexOf(widget);
-            widgets[widgetIndex] = {...widgets[widgetIndex], ...updatedWidget};
-
-            this.handleUpdateWidgetList(widgets);
-          },
           onClose: () => {
             // Filter out Widget Viewer Modal query params when exiting the Modal
             const query = omit(location.query, Object.values(WidgetViewerQueryField));
@@ -495,26 +484,6 @@ class DashboardDetail extends Component<Props, State> {
     this.onUpdateWidget([...newModifiedDashboard.widgets, widget]);
   };
 
-  handleAddMetricWidget = (layout?: Widget['layout']) => {
-    const widgetCopy = assignTempId({
-      layout,
-      ...defaultMetricWidget(),
-    });
-
-    const currentWidgets =
-      this.state.modifiedDashboard?.widgets ?? this.props.dashboard.widgets;
-
-    openWidgetViewerModal({
-      organization: this.props.organization,
-      widget: widgetCopy,
-      onMetricWidgetEdit: widget => {
-        const nextList = generateWidgetsAfterCompaction([...currentWidgets, widget]);
-        this.onUpdateWidget(nextList);
-        this.handleUpdateWidgetList(nextList);
-      },
-    });
-  };
-
   onAddWidget = (dataset: DataSet) => {
     const {
       organization,
@@ -524,10 +493,6 @@ class DashboardDetail extends Component<Props, State> {
       params: {dashboardId},
     } = this.props;
 
-    if (dataset === DataSet.METRICS) {
-      this.handleAddMetricWidget();
-      return;
-    }
     this.setState(
       {
         modifiedDashboard: cloneDashboard(dashboard),
@@ -781,7 +746,6 @@ class DashboardDetail extends Component<Props, State> {
                           onUpdate={this.onUpdateWidget}
                           handleUpdateWidgetList={this.handleUpdateWidgetList}
                           handleAddCustomWidget={this.handleAddCustomWidget}
-                          handleAddMetricWidget={this.handleAddMetricWidget}
                           isPreview={this.isPreview}
                           router={router}
                           location={location}
@@ -1005,7 +969,6 @@ class DashboardDetail extends Component<Props, State> {
                                   onUpdate={this.onUpdateWidget}
                                   handleUpdateWidgetList={this.handleUpdateWidgetList}
                                   handleAddCustomWidget={this.handleAddCustomWidget}
-                                  handleAddMetricWidget={this.handleAddMetricWidget}
                                   router={router}
                                   location={location}
                                   newWidget={newWidget}

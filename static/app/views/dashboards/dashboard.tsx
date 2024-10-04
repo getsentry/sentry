@@ -30,7 +30,7 @@ import theme from 'sentry/utils/theme';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import withApi from 'sentry/utils/withApi';
 import withPageFilters from 'sentry/utils/withPageFilters';
-import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
+import type {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 
 import AddWidget, {ADD_WIDGET_BUTTON_DRAG_ID} from './addWidget';
 import type {Position} from './layoutUtils';
@@ -48,7 +48,6 @@ import {
   getMobileLayout,
   getNextAvailablePosition,
   isValidLayout,
-  METRIC_WIDGET_MIN_SIZE,
   pickDefinedStoreKeys,
 } from './layoutUtils';
 import SortableWidget from './sortableWidget';
@@ -88,7 +87,6 @@ type Props = {
   router: InjectedRouter;
   selection: PageFilters;
   widgetLimitReached: boolean;
-  handleAddMetricWidget?: (layout?: Widget['layout']) => void;
   isPreview?: boolean;
   newWidget?: Widget;
   onSetNewWidget?: () => void;
@@ -218,13 +216,7 @@ class Dashboard extends Component<Props, State> {
   }
 
   handleStartAdd = (dataset?: DataSet) => {
-    const {organization, router, location, paramDashboardId, handleAddMetricWidget} =
-      this.props;
-
-    if (dataset === DataSet.METRICS) {
-      handleAddMetricWidget?.({...this.addWidgetLayout, ...METRIC_WIDGET_MIN_SIZE});
-      return;
-    }
+    const {organization, router, location, paramDashboardId} = this.props;
 
     if (paramDashboardId) {
       router.push(

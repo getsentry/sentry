@@ -9,7 +9,6 @@ import {Button} from 'sentry/components/button';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import Input, {type InputProps} from 'sentry/components/input';
-import {CreateMetricAlertFeature} from 'sentry/components/metrics/createMetricAlertFeature';
 import {EquationInput} from 'sentry/components/metrics/equationInput';
 import {EquationSymbol} from 'sentry/components/metrics/equationSymbol';
 import {QueryBuilder} from 'sentry/components/metrics/queryBuilder';
@@ -25,12 +24,11 @@ import {
   IconEdit,
   IconEllipsis,
   IconSettings,
-  IconSiren,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {isCustomMetric} from 'sentry/utils/metrics';
-import {hasMetricAlertFeature, hasMetricsNewInputs} from 'sentry/utils/metrics/features';
+import {hasMetricsNewInputs} from 'sentry/utils/metrics/features';
 import {MetricExpressionType} from 'sentry/utils/metrics/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -46,7 +44,6 @@ import {
   isVirtualExpression,
 } from 'sentry/views/dashboards/metrics/utils';
 import {DisplayType} from 'sentry/views/dashboards/types';
-import {getCreateAlert} from 'sentry/views/metrics/metricQueryContextMenu';
 
 interface Props {
   addEquation: () => void;
@@ -278,13 +275,7 @@ function QueryContextMenu({
   queryIndex,
   editAlias,
 }: QueryContextMenuProps) {
-  const organization = useOrganization();
   const router = useRouter();
-
-  const createAlert = useMemo(
-    () => getCreateAlert(organization, metricsQuery),
-    [metricsQuery, organization]
-  );
 
   const items = useMemo<MenuItemProps[]>(() => {
     const customMetric = !isCustomMetric({mri: metricsQuery.mri});
@@ -295,15 +286,6 @@ function QueryContextMenu({
       label: t('Duplicate'),
       onAction: () => {
         addQuery(queryIndex);
-      },
-    };
-    const addAlertItem = {
-      leadingItems: [<IconSiren key="icon" />],
-      key: 'add-alert',
-      label: <CreateMetricAlertFeature>{t('Create Alert')}</CreateMetricAlertFeature>,
-      disabled: !createAlert || !hasMetricAlertFeature(organization),
-      onAction: () => {
-        createAlert?.();
       },
     };
     const removeQueryItem = {
@@ -337,12 +319,10 @@ function QueryContextMenu({
     };
 
     return customMetric
-      ? [duplicateQueryItem, aliasItem, addAlertItem, removeQueryItem, settingsItem]
-      : [duplicateQueryItem, aliasItem, addAlertItem, removeQueryItem];
+      ? [duplicateQueryItem, aliasItem, removeQueryItem, settingsItem]
+      : [duplicateQueryItem, aliasItem, removeQueryItem];
   }, [
     metricsQuery.mri,
-    createAlert,
-    organization,
     canRemoveQuery,
     addQuery,
     queryIndex,
