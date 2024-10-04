@@ -1481,13 +1481,10 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:anomaly-detection-rollout")
     @patch("sentry.seer.anomaly_detection.utils.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen")
-    @patch("sentry.seer.anomaly_detection.utils.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen")
-    def test_update_detection_type(self, mock_seer_delete_request, mock_seer_request):
+    def test_update_detection_type(self, mock_seer_request):
         seer_return_value: StoreDataResponse = {"success": True}
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
-        mock_seer_delete_request.return_value = HTTPResponse(
-            orjson.dumps(seer_return_value), status=200
-        )
+
         comparison_delta = 60
         # test percent to dynamic
         rule = self.create_alert_rule(
