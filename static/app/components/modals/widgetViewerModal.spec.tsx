@@ -370,13 +370,13 @@ describe('Modals -> WidgetViewerModal', function () {
       it('renders with first legend disabled by default', async function () {
         mockEvents();
         // Rerender with first legend disabled
-        initialData.router.location.query = {legend: ['Query Name']};
+        initialData.router.location.query = {legend: [`${mockWidget.id}-Query Name`]};
         await renderModal({initialData, widget: mockWidget});
         expect(ReactEchartsCore).toHaveBeenLastCalledWith(
           expect.objectContaining({
             option: expect.objectContaining({
               legend: expect.objectContaining({
-                selected: {'Query Name': false},
+                selected: {[`Query Name:${mockWidget.id}`]: false},
               }),
             }),
           }),
