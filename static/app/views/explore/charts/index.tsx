@@ -1,6 +1,5 @@
-import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
+import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
-import * as echarts from 'echarts/core';
 
 import {getInterval} from 'sentry/components/charts/utils';
 import {CompactSelect} from 'sentry/components/compactSelect';
@@ -15,7 +14,10 @@ import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {useDataset} from 'sentry/views/explore/hooks/useDataset';
 import {useVisualizes} from 'sentry/views/explore/hooks/useVisualizes';
-import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
+import Chart, {
+  ChartType,
+  useSynchronizeCharts,
+} from 'sentry/views/insights/common/components/chart';
 import ChartPanel from 'sentry/views/insights/common/components/chartPanel';
 import {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 import {CHART_HEIGHT} from 'sentry/views/insights/database/settings';
@@ -116,14 +118,11 @@ export function ExploreCharts({query}: ExploreChartsProps) {
     [visualizes, setVisualizes]
   );
 
-  // Synchronize chart cursors
-  const [_, setRenderTrigger] = useState(0);
-  useEffect(() => {
-    if (!timeSeriesResult.isPending) {
-      echarts?.connect(EXPLORE_CHART_GROUP);
-      setRenderTrigger(prev => (prev + 1) % Number.MAX_SAFE_INTEGER);
-    }
-  }, [visualizes, timeSeriesResult.isPending]);
+  useSynchronizeCharts(
+    visualizes.length,
+    !timeSeriesResult.isPending,
+    EXPLORE_CHART_GROUP
+  );
 
   return (
     <Fragment>
