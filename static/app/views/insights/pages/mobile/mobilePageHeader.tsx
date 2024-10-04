@@ -25,12 +25,14 @@ import {MODULE_TITLES} from 'sentry/views/insights/settings';
 import {ModuleName} from 'sentry/views/insights/types';
 
 type Props = {
-  hideTabs?: boolean;
+  headerActions?: React.ReactNode;
+  hideDefaultTabs?: boolean;
   module?: ModuleName;
+  tabs?: {onTabChange: (key: string) => void; tabList: React.ReactNode; value: string};
 };
 
 // TODO - add props to append to breadcrumbs and change title
-export function MobileHeader({module, hideTabs}: Props) {
+export function MobileHeader({module, hideDefaultTabs, headerActions, tabs}: Props) {
   const navigate = useNavigate();
   const {slug} = useOrganization();
   const moduleURLBuilder = useModuleURLBuilder();
@@ -57,7 +59,7 @@ export function MobileHeader({module, hideTabs}: Props) {
     },
   ];
 
-  const handleTabChange = (key: ModuleName | typeof OVERVIEW_PAGE_TITLE) => {
+  const defaultHandleTabChange = (key: ModuleName | typeof OVERVIEW_PAGE_TITLE) => {
     if (key === module || (key === OVERVIEW_PAGE_TITLE && !module)) {
       return;
     }
@@ -71,27 +73,37 @@ export function MobileHeader({module, hideTabs}: Props) {
     navigate(`${moduleURLBuilder(key as RoutableModuleNames)}/`);
   };
 
+  const tabValue =
+    hideDefaultTabs && tabs?.value ? tabs.value : module ?? OVERVIEW_PAGE_TITLE;
+
+  const handleTabChange =
+    hideDefaultTabs && tabs ? tabs.onTabChange : defaultHandleTabChange;
+
   return (
     <Fragment>
-      <Tabs value={module ?? OVERVIEW_PAGE_TITLE} onChange={handleTabChange}>
-        <Layout.HeaderContent>
-          <Breadcrumbs crumbs={crumbs} />
+      <Tabs value={tabValue} onChange={handleTabChange}>
+        <Layout.Header>
+          <Layout.HeaderContent>
+            <Breadcrumbs crumbs={crumbs} />
 
-          <Layout.Title>{MOBILE_LANDING_TITLE}</Layout.Title>
-        </Layout.HeaderContent>
-        <Layout.HeaderActions>
-          <ButtonBar gap={1}>
-            <FeedbackWidgetButton />
-          </ButtonBar>
-        </Layout.HeaderActions>
-        {!hideTabs && (
-          <TabList hideBorder>
-            <TabList.Item key={OVERVIEW_PAGE_TITLE}>{OVERVIEW_PAGE_TITLE}</TabList.Item>
-            <TabList.Item key={ModuleName.MOBILE_SCREENS}>
-              {MODULE_TITLES[ModuleName.MOBILE_SCREENS]}
-            </TabList.Item>
-          </TabList>
-        )}
+            <Layout.Title>{MOBILE_LANDING_TITLE}</Layout.Title>
+          </Layout.HeaderContent>
+          <Layout.HeaderActions>
+            <ButtonBar gap={1}>
+              {headerActions}
+              <FeedbackWidgetButton />
+            </ButtonBar>
+          </Layout.HeaderActions>
+          {!hideDefaultTabs && (
+            <TabList hideBorder>
+              <TabList.Item key={OVERVIEW_PAGE_TITLE}>{OVERVIEW_PAGE_TITLE}</TabList.Item>
+              <TabList.Item key={ModuleName.MOBILE_SCREENS}>
+                {MODULE_TITLES[ModuleName.MOBILE_SCREENS]}
+              </TabList.Item>
+            </TabList>
+          )}
+          {hideDefaultTabs && tabs && tabs.tabList}
+        </Layout.Header>
       </Tabs>
     </Fragment>
   );

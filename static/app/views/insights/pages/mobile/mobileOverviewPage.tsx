@@ -22,6 +22,7 @@ import useProjects from 'sentry/utils/useProjects';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
+import {ViewTrendsButton} from 'sentry/views/insights/common/viewTrendsButton';
 import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
 import {OVERVIEW_PAGE_TITLE} from 'sentry/views/insights/pages/settings';
 import {
@@ -169,9 +170,7 @@ function MobileOverviewPage() {
       organization={organization}
       renderDisabled={NoAccess}
     >
-      <Layout.Header>
-        <MobileHeader />
-      </Layout.Header>
+      <MobileHeader headerActions={<ViewTrendsButton />} />
       <Layout.Body>
         <Layout.Main fullWidth>
           <ModuleLayout.Layout>
