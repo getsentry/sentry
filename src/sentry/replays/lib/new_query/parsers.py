@@ -7,11 +7,11 @@ import uuid
 
 from sentry.replays.lib.new_query.errors import CouldNotParseValue
 
-NULL_VALUES: tuple[str] = (
+NULL_VALUES: list[str] = [
     "None",
     "none",
     "",
-)
+]
 
 
 def parse_float(value: str) -> float:
