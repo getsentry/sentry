@@ -5,13 +5,16 @@ from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from typing import Any
 
-from sentry import eventstore, eventstream, models, nodestore
+from snuba_sdk import DeleteQuery, Request
+
+from sentry import eventstore, eventstream, features, models, nodestore
 from sentry.eventstore.models import Event
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.group import Group, GroupStatus
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.snuba.dataset import Dataset
 from sentry.tasks.delete_seer_grouping_records import call_delete_seer_grouping_records_by_hash
+from sentry.utils.snuba import bulk_snuba_queries
 
 from ..base import BaseDeletionTask, BaseRelation, ModelDeletionTask, ModelRelation
 from ..manager import DeletionTaskManager
@@ -132,6 +135,7 @@ class ErrorEventsDeletionTask(EventsBaseDeletionTask):
             # As long as it returns True the task will keep iterating
             return True
         else:
+            # Now that all events have been deleted from the eventstore, we can delete the events from snuba
             self.delete_events_from_snuba()
             return False
 
@@ -157,6 +161,57 @@ class ErrorEventsDeletionTask(EventsBaseDeletionTask):
         for project_id, group_ids in self.project_groups.items():
             eventstream_state = eventstream.backend.start_delete_groups(project_id, group_ids)
             eventstream.backend.end_delete_groups(eventstream_state)
+
+
+class IssuePlatformEventsDeletionTask(EventsBaseDeletionTask):
+    """
+    This class helps delete Issue Platform events which use the new Clickhouse light deletes.
+    """
+
+    dataset = Dataset.IssuePlatform
+
+    def chunk(self) -> bool:
+        """This method is called to delete chunks of data. It returns a boolean to say
+        if the deletion has completed and if it needs to be called again."""
+        events = self.get_unfetched_events()
+        if events:
+            # Ideally, in some cases, we should also delete the associated event from the Nodestore.
+            # In the occurrence_consumer [1] we sometimes create a new event but it's hard in post-ingestion to distinguish between
+            # a created event and an existing one.
+            # https://github.com/getsentry/sentry/blob/a86b9b672709bc9c4558cffb2c825965b8cee0d1/src/sentry/issues/occurrence_consumer.py#L324-L339
+            self.delete_events_from_nodestore(events)
+            # This value will be used in the next call to chunk
+            self.last_event = events[-1]
+            # As long as it returns True the task will keep iterating
+            return True
+        else:
+            # Now that all events have been deleted from the eventstore, we can delete the occurrences from Snuba
+            self.delete_events_from_snuba()
+            return False
+
+    def delete_events_from_nodestore(self, events: Sequence[Event]) -> None:
+        # We delete by the occurrence_id instead of the event_id
+        node_ids = [
+            Event.generate_node_id(event.project_id, event._snuba_data["occurrence_id"])
+            for event in events
+        ]
+        nodestore.backend.delete_multi(node_ids)
+
+    def delete_events_from_snuba(self) -> None:
+        requests = []
+        for project_id, group_ids in self.project_groups.items():
+            query = DeleteQuery(
+                self.dataset.value,
+                column_conditions={"project_id": [project_id], "group_id": group_ids},
+            )
+            request = Request(
+                dataset=self.dataset.value,
+                app_id=self.referrer,
+                query=query,
+                tenant_ids=self.tenant_ids,
+            )
+            requests.append(request)
+        bulk_snuba_queries(requests)
 
 
 class GroupDeletionTask(ModelDeletionTask[Group]):
@@ -194,13 +249,29 @@ class GroupDeletionTask(ModelDeletionTask[Group]):
         for model in _GROUP_RELATED_MODELS:
             child_relations.append(ModelRelation(model, {"group_id__in": group_ids}))
 
-        error_groups, _ = separate_by_group_category(instance_list)
+        org = instance_list[0].project.organization
+        issue_platform_deletion_allowed = features.has(
+            "organizations:issue-platform-deletion", org, actor=None
+        )
+        error_groups, issue_platform_groups = separate_by_group_category(instance_list)
 
         # If this isn't a retention cleanup also remove event data.
         if not os.environ.get("_SENTRY_CLEANUP"):
-            if error_groups:
-                params = {"groups": error_groups}
+            if not issue_platform_deletion_allowed:
+                params = {"groups": instance_list}
                 child_relations.append(BaseRelation(params=params, task=ErrorEventsDeletionTask))
+            else:
+                if error_groups:
+                    params = {"groups": error_groups}
+                    child_relations.append(
+                        BaseRelation(params=params, task=ErrorEventsDeletionTask)
+                    )
+
+                if issue_platform_groups:
+                    params = {"groups": issue_platform_groups}
+                    child_relations.append(
+                        BaseRelation(params=params, task=IssuePlatformEventsDeletionTask)
+                    )
 
         self.delete_children(child_relations)
 
