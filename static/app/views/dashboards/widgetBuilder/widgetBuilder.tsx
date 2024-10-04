@@ -882,9 +882,24 @@ function WidgetBuilder({
         nextWidgetList[updateWidgetIndex] = nextWidgetData;
       }
 
+      const query =
+        organization.features.includes('dashboards-releases-on-charts') &&
+        (nextWidgetData.displayType === DisplayType.AREA ||
+          nextWidgetData.displayType === DisplayType.LINE)
+          ? {
+              ...location.query,
+              legend: location.query.legend.map(widgetLegend => {
+                if (widgetLegend.includes(nextWidgetData.id)) {
+                  // legend query param formatted as widgetId-seriesName-seriesName2-...
+                  return `${nextWidgetData.id}-Releases`;
+                }
+                return widgetLegend;
+              }),
+            }
+          : location.query;
       onSave(nextWidgetList);
       addSuccessMessage(t('Updated widget.'));
-      goToDashboards(dashboardId ?? NEW_DASHBOARD_ID);
+      goToDashboards(dashboardId ?? NEW_DASHBOARD_ID, query);
       trackAnalytics('dashboards_views.widget_builder.save', {
         organization,
         data_set: widgetData.widgetType ?? defaultWidgetType,

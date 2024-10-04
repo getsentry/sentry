@@ -82,6 +82,7 @@ import {
   DashboardFilterKeys,
   DashboardState,
   DashboardWidgetSource,
+  DisplayType,
   MAX_WIDGETS,
   WidgetType,
 } from './types';
@@ -473,6 +474,27 @@ class DashboardDetail extends Component<Props, State> {
             modifiedDashboard: null,
           });
         }
+        const legendQuery = organization.features.includes(
+          'dashboards-releases-on-charts'
+        )
+          ? newDashboard.widgets
+              .filter(
+                widget =>
+                  widget.displayType === DisplayType.LINE ||
+                  widget.displayType === DisplayType.AREA
+              )
+              .map(widget => {
+                const widgetRegex = new RegExp(`/^${widget.id}-.*`);
+                const widgetIdMatches = location.query.legend.filter(legend =>
+                  widgetRegex.test(legend)
+                );
+                if (widgetIdMatches.length) {
+                  return widgetIdMatches[0];
+                }
+                return `${widget.id}-Releases`;
+              })
+          : location.query.legend;
+
         addSuccessMessage(t('Dashboard updated'));
         if (dashboard && newDashboard.id !== dashboard.id) {
           browserHistory.replace(
@@ -480,6 +502,17 @@ class DashboardDetail extends Component<Props, State> {
               pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
               query: {
                 ...location.query,
+                legend: legendQuery,
+              },
+            })
+          );
+        } else {
+          browserHistory.replace(
+            normalizeUrl({
+              pathname: `/organizations/${organization.slug}/dashboard/${dashboard.id}/`,
+              query: {
+                ...location.query,
+                legend: legendQuery,
               },
             })
           );

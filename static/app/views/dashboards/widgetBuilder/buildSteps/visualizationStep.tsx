@@ -90,6 +90,8 @@ export function VisualizationStep({
     value,
   }));
 
+  const unselectedReleasesForCharts = {[`Releases:${debouncedWidget.id}`]: false};
+
   return (
     <StyledBuildStep
       title={t('Choose your visualization')}
@@ -133,6 +135,20 @@ export function VisualizationStep({
           onDataFetched={onDataFetched}
           onWidgetSplitDecision={onWidgetSplitDecision}
           shouldResize={false}
+          onLegendSelectChanged={
+            organization.features.includes('dashboards-releases-on-charts') &&
+            (widget.displayType === DisplayType.AREA ||
+              widget.displayType === DisplayType.LINE)
+              ? () => {}
+              : undefined
+          }
+          legendOptions={
+            organization.features.includes('dashboards-releases-on-charts') &&
+            (widget.displayType === DisplayType.AREA ||
+              widget.displayType === DisplayType.LINE)
+              ? {selected: unselectedReleasesForCharts}
+              : undefined
+          }
         />
       </VisualizationWrapper>
     </StyledBuildStep>
