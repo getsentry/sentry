@@ -125,7 +125,7 @@ def eat_slice(slice):
 def eat_pizza(pizza):
     with sentry_sdk.start_transaction(op="task", name="Eat Pizza"):
         while pizza.slices > 0:
-            with sentry_sdk.start_span(description="Eat Slice"):
+            with sentry_sdk.start_span(name="Eat Slice"):
                 eat_slice(pizza.slices.pop())
 `}
       </StyledCodeSnippet>
