@@ -67,11 +67,7 @@ class AIUnitTestGenerationEndpointTest(APITestCase):
             pr_id=self.pull_request_number,
         )
 
-    @patch(
-        "sentry.api.endpoints.ai_unit_test_generation.AIUnitTestGenerationEndpoint._call_unit_test_generation",
-        side_effect=Exception("Something went wrong"),
-    )
-    def test_post_validation_error(self, mock_call_unit_test_generation):
+    def test_post_validation_error(self):
         invalid_pr_url = reverse(
             self.endpoint,
             kwargs={
