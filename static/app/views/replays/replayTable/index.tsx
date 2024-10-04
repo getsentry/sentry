@@ -45,35 +45,28 @@ type Props = {
 };
 
 function getErrorMessage(fetchError: RequestError) {
-  const defaultString = t('Sorry, the list of replays could not be loaded.');
   if (typeof fetchError === 'string') {
-    return tct('[defaultString] [errorMessage]', {
-      defaultString,
+    return tct('Sorry, the list of replays could not be loaded. [errorMessage]', {
       errorMessage: fetchError,
     });
   }
   if (typeof fetchError?.responseJSON?.detail === 'string') {
-    return tct('[defaultString] [errorMessage]', {
-      defaultString,
+    return tct('Sorry, the list of replays could not be loaded. [errorMessage]', {
       errorMessage: fetchError.responseJSON.detail,
     });
   }
   if (fetchError?.responseJSON?.detail?.message) {
-    return tct('[defaultString] [errorMessage]', {
-      defaultString,
+    return tct('Sorry, the list of replays could not be loaded. [errorMessage]', {
       errorMessage: fetchError.responseJSON.detail.message,
     });
   }
   if (fetchError.name === ERROR_MAP[500]) {
-    return tct('[defaultString] There was an internal systems error.', {
-      defaultString,
-    });
+    return t(
+      'Sorry, the list of replays could not be loaded. There was an internal systems error.'
+    );
   }
-  return tct(
-    '[defaultString] This could be due to invalid search parameters or an internal systems error.',
-    {
-      defaultString,
-    }
+  return t(
+    'Sorry, the list of replays could not be loaded. This could be due to invalid search parameters or an internal systems error.'
   );
 }
 
