@@ -22,6 +22,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
+import {ViewTrendsButton} from 'sentry/views/insights/common/components/viewTrendsButton';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
 import {OVERVIEW_PAGE_TITLE} from 'sentry/views/insights/pages/settings';
@@ -136,9 +137,7 @@ function FrontendOverviewPage() {
       organization={organization}
       renderDisabled={NoAccess}
     >
-      <Layout.Header>
-        <FrontendHeader />
-      </Layout.Header>
+      <FrontendHeader headerActions={<ViewTrendsButton />} />
       <Layout.Body>
         <Layout.Main fullWidth>
           <ModuleLayout.Layout>
