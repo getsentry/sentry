@@ -1,5 +1,5 @@
 import datetime
-from typing import Any, Literal, TypedDict
+from typing import Any, TypedDict
 
 from rest_framework import serializers
 
@@ -106,7 +106,7 @@ Allows us to skip the HTTP endpoint.
 class FlagAuditLogItem(TypedDict):
     """A simplified type which is easier to work with than the row definition."""
 
-    action: Literal["created", "deleted", "updated"]
+    action: str
     flag: str
     created_at: datetime.datetime
     created_by: str

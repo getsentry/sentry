@@ -31,7 +31,7 @@ class AuditLogPresenter(WebhookPresenter):
         return [
             {
                 "action": action,
-                "created_at": datetime.now(tz=timezone.utc).isoformat(),
+                "created_at": datetime.now(tz=timezone.utc),
                 "created_by": "internal",
                 "flag": flag,
                 "tags": tags,
