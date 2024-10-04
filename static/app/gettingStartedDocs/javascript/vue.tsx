@@ -1,3 +1,5 @@
+import {Fragment} from 'react';
+
 import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/crashReportCallout';
 import widgetCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/widgetCallout';
 import TracePropagationMessage from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
@@ -26,7 +28,6 @@ import {
   getReplayConfigureDescription,
   getReplayVerifyStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
-import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import {t, tct} from 'sentry/locale';
 
 export enum VueVersion {
@@ -120,42 +121,26 @@ const getInstallConfig = () => [
   },
 ];
 
-const getNextStep = (
-  params: Params
-): {
-  description: string;
-  id: string;
-  link: string;
-  name: string;
-}[] => {
-  let nextStepDocs = [...nextSteps];
-
-  if (params.isPerformanceSelected) {
-    nextStepDocs = nextStepDocs.filter(
-      step => step.id !== ProductSolution.PERFORMANCE_MONITORING
-    );
-  }
-
-  if (params.isReplaySelected) {
-    nextStepDocs = nextStepDocs.filter(
-      step => step.id !== ProductSolution.SESSION_REPLAY
-    );
-  }
-  return nextStepDocs;
-};
-
 const onboarding: OnboardingConfig<PlatformOptions> = {
-  introduction: MaybeBrowserProfilingBetaWarning,
+  introduction: params => (
+    <Fragment>
+      <MaybeBrowserProfilingBetaWarning {...params} />
+      <p>
+        {tct('In this quick guide you’ll use [strong:npm] or [strong:yarn] to set up:', {
+          strong: <strong />,
+        })}
+      </p>
+    </Fragment>
+  ),
   install: () => [
     {
       type: StepType.INSTALL,
       description: (
         <p>
           {tct(
-            `Install the Sentry Vue SDK as a dependency using [codeNpm:npm] or [codeYarn:yarn], alongside the Sentry Vue SDK:`,
+            `Install the Sentry Vue SDK as a dependency using [code:npm] or [code:yarn], alongside the Sentry Vue SDK:`,
             {
-              codeYarn: <code />,
-              codeNpm: <code />,
+              code: <code />,
             }
           )}
         </p>
@@ -191,33 +176,15 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
       ],
     },
   ],
-  nextSteps: params => getNextStep(params),
+  nextSteps: () => [
+    {
+      id: 'vue-features',
+      name: t('Vue Features'),
+      description: t('Learn about our first class integration with the Vue framework.'),
+      link: 'https://docs.sentry.io/platforms/javascript/guides/vue/features/',
+    },
+  ],
 };
-
-export const nextSteps = [
-  {
-    id: 'vue-features',
-    name: t('Vue Features'),
-    description: t('Learn about our first class integration with the Vue framework.'),
-    link: 'https://docs.sentry.io/platforms/javascript/guides/vue/features/',
-  },
-  {
-    id: 'performance-monitoring',
-    name: t('Tracing'),
-    description: t(
-      'Track down transactions to connect the dots between 10-second page loads and poor-performing API calls or slow database queries.'
-    ),
-    link: 'https://docs.sentry.io/platforms/javascript/guides/vue/tracing/',
-  },
-  {
-    id: 'session-replay',
-    name: t('Session Replay'),
-    description: t(
-      'Get to the root cause of an error or latency issue faster by seeing all the technical details related to that issue in one visual replay on your web application.'
-    ),
-    link: 'https://docs.sentry.io/platforms/javascript/guides/vue/session-replay/',
-  },
-];
 
 function getSiblingImportsSetupConfiguration(siblingOption: string): string {
   switch (siblingOption) {

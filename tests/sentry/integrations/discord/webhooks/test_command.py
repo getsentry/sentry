@@ -4,6 +4,7 @@ from sentry.integrations.discord.message_builder.base.flags import EPHEMERAL_FLA
 from sentry.integrations.discord.requests.base import DiscordRequestTypes
 from sentry.integrations.discord.webhooks.command import HELP_MESSAGE, NOT_LINKED_MESSAGE
 from sentry.integrations.discord.webhooks.types import DiscordResponseTypes
+from sentry.integrations.utils.metrics import EventLifecycleOutcome
 from sentry.testutils.cases import APITestCase
 
 WEBHOOK_URL = "/extensions/discord/interactions/"
@@ -246,7 +247,8 @@ class DiscordCommandInteractionTest(APITestCase):
             assert data["data"]["flags"] == EPHEMERAL_FLAG
             assert response.status_code == 200
 
-    def test_help(self):
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_help(self, mock_record):
         with mock.patch(
             "sentry.integrations.discord.requests.base.verify_signature", return_value=True
         ):
@@ -267,3 +269,8 @@ class DiscordCommandInteractionTest(APITestCase):
             assert HELP_MESSAGE in data["data"]["content"]
             assert data["data"]["flags"] == EPHEMERAL_FLAG
             assert response.status_code == 200
+
+        assert len(mock_record.mock_calls) == 2
+        start, halt = mock_record.mock_calls
+        assert start.args[0] == EventLifecycleOutcome.STARTED
+        assert halt.args[0] == EventLifecycleOutcome.HALTED

@@ -1,16 +1,19 @@
 import {EventFixture} from 'sentry-fixture/event';
 import {EventsStatsFixture} from 'sentry-fixture/events';
 import {GroupFixture} from 'sentry-fixture/group';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {RepositoryFixture} from 'sentry-fixture/repository';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {TagsFixture} from 'sentry-fixture/tags';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {EventDetails} from 'sentry/views/issueDetails/streamline/eventDetails';
+import {MOCK_EVENTS_TABLE_DATA} from 'sentry/views/performance/transactionSummary/transactionEvents/testUtils';
 
 jest.mock('sentry/views/issueDetails/groupEventDetails/groupEventDetailsContent');
 jest.mock('sentry/views/issueDetails/streamline/issueContent');
@@ -21,6 +24,11 @@ jest.mock('screenfull', () => ({
   exit: jest.fn(),
   on: jest.fn(),
   off: jest.fn(),
+}));
+
+const mockUseNavigate = jest.fn();
+jest.mock('sentry/utils/useNavigate', () => ({
+  useNavigate: () => mockUseNavigate,
 }));
 
 describe('EventDetails', function () {
@@ -40,7 +48,13 @@ describe('EventDetails', function () {
     ],
   };
   const defaultProps = {project, group, event};
-  let mockActionableItems, mockCommitters, mockTags;
+
+  let mockActionableItems: jest.Mock;
+  let mockCommitters: jest.Mock;
+  let mockTags: jest.Mock;
+  let mockStats: jest.Mock;
+  let mockList: jest.Mock;
+  let mockListMeta: jest.Mock;
 
   beforeEach(function () {
     PageFiltersStore.init();
@@ -69,14 +83,49 @@ describe('EventDetails', function () {
       body: TagsFixture(),
       method: 'GET',
     });
-  });
 
-  it('displays all basic components', async function () {
-    const mockStats = MockApiClient.addMockResponse({
+    mockStats = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-stats/`,
       body: {'count()': EventsStatsFixture(), 'count_unique(user)': EventsStatsFixture()},
       method: 'GET',
     });
+
+    mockList = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      headers: {
+        Link:
+          `<http://localhost/api/0/organizations/${organization.slug}/events/?cursor=2:0:0>; rel="next"; results="true"; cursor="2:0:0",` +
+          `<http://localhost/api/0/organizations/${organization.slug}/events/?cursor=1:0:0>; rel="previous"; results="false"; cursor="1:0:0"`,
+      },
+      body: {
+        data: MOCK_EVENTS_TABLE_DATA,
+      },
+      match: [
+        (_url, options) => {
+          return options.query?.field?.includes('user.display');
+        },
+      ],
+    });
+
+    mockListMeta = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      headers: {
+        Link:
+          `<http://localhost/api/0/organizations/${organization.slug}/events/?cursor=2:0:0>; rel="next"; results="true"; cursor="2:0:0",` +
+          `<http://localhost/api/0/organizations/${organization.slug}/events/?cursor=1:0:0>; rel="previous"; results="false"; cursor="1:0:0"`,
+      },
+      body: {
+        data: [{'count()': 100}],
+      },
+      match: [
+        (_url, options) => {
+          return options.query?.field?.includes('count()');
+        },
+      ],
+    });
+  });
+
+  it('displays all basic components', async function () {
     render(<EventDetails {...defaultProps} />, {organization});
     await screen.findByText(event.id);
 
@@ -99,11 +148,30 @@ describe('EventDetails', function () {
     expect(screen.getByRole('button', {name: 'View All Events'})).toBeInTheDocument();
     // Content
     expect(mockActionableItems).toHaveBeenCalled();
+    // All Events (should not query initially)
+    expect(mockList).not.toHaveBeenCalled();
+    expect(mockListMeta).not.toHaveBeenCalled();
+  });
+
+  it('should display the events list', async function () {
+    const router = RouterFixture({
+      location: LocationFixture({
+        pathname: `/organizations/${organization.slug}/issues/${group.id}/events/`,
+      }),
+      routes: [{name: '', path: 'events/'}],
+    });
+    render(<EventDetails {...defaultProps} />, {organization, router});
+
+    expect(await screen.findByRole('button', {name: 'Close'})).toBeInTheDocument();
+    expect(screen.getByText('All Events')).toBeInTheDocument();
+
+    expect(mockList).toHaveBeenCalled();
+    expect(mockListMeta).toHaveBeenCalled();
   });
 
   it('displays error messages from bad queries', async function () {
     const errorMessage = 'wrong, try again';
-    const mockErrorStats = MockApiClient.addMockResponse({
+    mockStats = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-stats/`,
       body: {detail: errorMessage},
       method: 'GET',
@@ -113,9 +181,39 @@ describe('EventDetails', function () {
     render(<EventDetails {...defaultProps} />, {organization});
     await screen.findByText(event.id);
 
-    expect(mockErrorStats).toHaveBeenCalled();
+    expect(mockStats).toHaveBeenCalled();
     expect(screen.getByText(errorMessage)).toBeInTheDocument();
     // Omit the graph
     expect(screen.queryByRole('figure')).not.toBeInTheDocument();
+  });
+
+  it('updates the query params with search tokens', async function () {
+    const [tagKey, tagValue] = ['user.email', 'leander.rodrigues@sentry.io'];
+    const locationQuery = {
+      query: {
+        query: `${tagKey}:${tagValue}`,
+      },
+    };
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/tags/${tagKey}/values/`,
+      body: [
+        {
+          key: tagKey,
+          name: tagValue,
+          value: tagValue,
+        },
+      ],
+      method: 'GET',
+    });
+
+    render(<EventDetails {...defaultProps} />, {organization});
+    await screen.findByText(event.id);
+
+    const search = screen.getAllByRole('combobox', {name: 'Add a search term'})[0];
+    await userEvent.type(search, `${tagKey}:`);
+    await userEvent.keyboard(`${tagValue}{enter}{enter}`);
+    expect(mockUseNavigate).toHaveBeenCalledWith(expect.objectContaining(locationQuery), {
+      replace: true,
+    });
   });
 });

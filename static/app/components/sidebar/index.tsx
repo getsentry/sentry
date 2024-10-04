@@ -56,25 +56,25 @@ import {MODULE_SIDEBAR_TITLE as HTTP_MODULE_SIDEBAR_TITLE} from 'sentry/views/in
 import {
   AI_LANDING_SUB_PATH,
   AI_LANDING_TITLE,
-} from 'sentry/views/insights/pages/aiLandingPage';
+} from 'sentry/views/insights/pages/ai/settings';
 import {
   BACKEND_LANDING_SUB_PATH,
   BACKEND_LANDING_TITLE,
-} from 'sentry/views/insights/pages/backendLandingPage';
+} from 'sentry/views/insights/pages/backend/settings';
 import {
   FRONTEND_LANDING_SUB_PATH,
   FRONTEND_LANDING_TITLE,
-} from 'sentry/views/insights/pages/frontendLandingPage';
+} from 'sentry/views/insights/pages/frontend/settings';
 import {
   MOBILE_LANDING_SUB_PATH,
   MOBILE_LANDING_TITLE,
-} from 'sentry/views/insights/pages/mobileLandingPage';
+} from 'sentry/views/insights/pages/mobile/settings';
 import {MODULE_TITLES} from 'sentry/views/insights/settings';
 import MetricsOnboardingSidebar from 'sentry/views/metrics/ddmOnboarding/sidebar';
 
 import {ProfilingOnboardingSidebar} from '../profiling/profilingOnboardingSidebar';
 
-import Broadcasts from './broadcasts';
+import {Broadcasts} from './broadcasts';
 import SidebarHelp from './help';
 import OnboardingStatus from './onboardingStatus';
 import ServiceIncidents from './serviceIncidents';
@@ -264,7 +264,7 @@ function Sidebar() {
     </Feature>
   );
 
-  const moduleURLBuilder = useModuleURLBuilder(true);
+  const moduleURLBuilder = useModuleURLBuilder(true, false);
 
   const queries = hasOrganization && (
     <Feature key="db" features="insights-entry-points" organization={organization}>
@@ -822,7 +822,6 @@ function Sidebar() {
                 currentPanel={activePanel}
                 onShowPanel={() => togglePanel(SidebarPanelKey.BROADCASTS)}
                 hidePanel={hidePanel}
-                organization={organization}
               />
               <ServiceIncidents
                 orientation={orientation}

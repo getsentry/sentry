@@ -1,7 +1,6 @@
-import {Component} from 'react';
+import {useLayoutEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import type {Client} from 'sentry/api';
 import NotFound from 'sentry/components/errors/notFound';
 import {BorderlessEventEntries} from 'sentry/components/events/eventEntries';
 import Footer from 'sentry/components/footer';
@@ -10,61 +9,26 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {SentryPropTypeValidators} from 'sentry/sentryPropTypeValidators';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import withApi from 'sentry/utils/withApi';
+import {useApiQuery} from 'sentry/utils/queryClient';
 
 import {OrganizationContext} from '../organizationContext';
 
 import SharedGroupHeader from './sharedGroupHeader';
 
-type Props = RouteComponentProps<{shareId: string; orgId?: string}, {}> & {
-  api: Client;
-};
+type Props = RouteComponentProps<{shareId: string; orgId?: string}, {}>;
 
-type State = {
-  error: boolean;
-  group: Group | null;
-  loading: boolean;
-};
-
-class SharedGroupDetails extends Component<Props, State> {
-  static childContextTypes = {
-    group: SentryPropTypeValidators.isGroup,
-  };
-
-  state: State = this.getInitialState();
-
-  getInitialState() {
-    return {
-      group: null,
-      loading: true,
-      error: false,
-    };
-  }
-
-  getChildContext() {
-    return {
-      group: this.state.group,
-    };
-  }
-
-  UNSAFE_componentWillMount() {
+function SharedGroupDetails({params}: Props) {
+  useLayoutEffect(() => {
     document.body.classList.add('shared-group');
-  }
+    return () => {
+      document.body.classList.remove('shared-group');
+    };
+  }, []);
 
-  componentDidMount() {
-    this.fetchData();
-  }
-
-  componentWillUnmount() {
-    document.body.classList.remove('shared-group');
-  }
-
-  orgSlug(): string | null {
-    const {params} = this.props;
+  const orgSlug = useMemo(() => {
     if (params.orgId) {
       return params.orgId;
     }
@@ -73,101 +37,81 @@ class SharedGroupDetails extends Component<Props, State> {
       return customerDomain.subdomain;
     }
     return null;
+  }, [params.orgId]);
+
+  const {shareId} = params;
+  const {
+    data: group,
+    isPending,
+    isError,
+    refetch,
+  } = useApiQuery<Group>(
+    [
+      orgSlug
+        ? `/organizations/${orgSlug}/shared/issues/${shareId}/`
+        : `/shared/issues/${shareId}/`,
+    ],
+    {
+      staleTime: 0,
+    }
+  );
+
+  if (isPending) {
+    return <LoadingIndicator />;
   }
 
-  async fetchData() {
-    const {params, api} = this.props;
-    const {shareId} = params;
-    const orgSlug = this.orgSlug();
-    try {
-      if (orgSlug) {
-        const group = await api.requestPromise(
-          `/organizations/${orgSlug}/shared/issues/${shareId}/`
-        );
-        this.setState({loading: false, group});
-      } else {
-        const group = await api.requestPromise(`/shared/issues/${shareId}/`);
-        this.setState({loading: false, group});
-      }
-    } catch {
-      this.setState({loading: false, error: true});
-    }
+  if (!group) {
+    return <NotFound />;
   }
 
-  handleRetry = () => {
-    this.setState(this.getInitialState());
-    this.fetchData();
-  };
-
-  getTitle() {
-    const {group} = this.state;
-
-    return group?.title ?? 'Sentry';
+  if (isError) {
+    return <LoadingError onRetry={refetch} />;
   }
 
-  render() {
-    const {group, loading, error} = this.state;
+  // project.organization is not a real organization, it's just the slug and name
+  // Add the features array to avoid errors when using OrganizationContext
+  const org = {...group.project.organization, features: []};
 
-    if (loading) {
-      return <LoadingIndicator />;
-    }
-
-    if (!group) {
-      return <NotFound />;
-    }
-
-    if (error) {
-      return <LoadingError onRetry={this.handleRetry} />;
-    }
-
-    const {permalink, latestEvent, project} = group;
-    const title = this.getTitle();
-    // project.organization is not a real organization, it's just the slug and name
-    // Add the features array to avoid errors when using OrganizationContext
-    const org = {...project.organization, features: []};
-
-    return (
-      <SentryDocumentTitle noSuffix title={title}>
-        <OrganizationContext.Provider value={org}>
-          <div className="app">
-            <div className="pattern-bg" />
-            <div className="container">
-              <div className="box box-modal">
-                <div className="box-header">
-                  <Link className="logo" to="/">
-                    <span className="icon-sentry-logo-full" />
+  return (
+    <SentryDocumentTitle noSuffix title={group?.title ?? 'Sentry'}>
+      <OrganizationContext.Provider value={org}>
+        <div className="app">
+          <div className="pattern-bg" />
+          <div className="container">
+            <div className="box box-modal">
+              <div className="box-header">
+                <Link className="logo" to="/">
+                  <span className="icon-sentry-logo-full" />
+                </Link>
+                {group.permalink && (
+                  <Link className="details" to={group.permalink}>
+                    {t('Details')}
                   </Link>
-                  {permalink && (
-                    <Link className="details" to={permalink}>
-                      {t('Details')}
-                    </Link>
-                  )}
-                </div>
-                <div className="box-content">
-                  <SharedGroupHeader group={group} />
-                  <Container className="group-overview event-details-container">
-                    <BorderlessEventEntries
-                      organization={org}
-                      group={group}
-                      event={latestEvent}
-                      project={project}
-                      isShare
-                    />
-                  </Container>
-                  <Footer />
-                </div>
+                )}
+              </div>
+              <div className="box-content">
+                <SharedGroupHeader group={group} />
+                <Container className="group-overview event-details-container">
+                  <BorderlessEventEntries
+                    organization={org}
+                    group={group}
+                    event={group.latestEvent}
+                    project={group.project}
+                    isShare
+                  />
+                </Container>
+                <Footer />
               </div>
             </div>
           </div>
-        </OrganizationContext.Provider>
-      </SentryDocumentTitle>
-    );
-  }
+        </div>
+      </OrganizationContext.Provider>
+    </SentryDocumentTitle>
+  );
 }
 
 const Container = styled('div')`
   padding: ${space(4)};
 `;
 
-export {SharedGroupDetails};
-export default withApi(SharedGroupDetails);
+export default SharedGroupDetails;

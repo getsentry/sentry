@@ -35,15 +35,17 @@ import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modul
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
 import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
+import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {
-  type InsightLandingProps,
   ModuleName,
   SpanMetricsField,
   type SubregionCode,
 } from 'sentry/views/insights/types';
 
-export function WebVitalsLandingPage({disableHeader}: InsightLandingProps) {
+export function WebVitalsLandingPage() {
   const location = useLocation();
+  const {isInDomainView} = useDomainViewFilters();
 
   const router = useRouter();
 
@@ -72,7 +74,7 @@ export function WebVitalsLandingPage({disableHeader}: InsightLandingProps) {
 
   return (
     <React.Fragment>
-      {!disableHeader && (
+      {!isInDomainView && (
         <Layout.Header>
           <Layout.HeaderContent>
             <Breadcrumbs crumbs={crumbs} />
@@ -93,6 +95,11 @@ export function WebVitalsLandingPage({disableHeader}: InsightLandingProps) {
         </Layout.Header>
       )}
 
+      {isInDomainView && (
+        <Layout.Header>
+          <FrontendHeader module={ModuleName.VITAL} />
+        </Layout.Header>
+      )}
       <Layout.Body>
         <Layout.Main fullWidth>
           <TopMenuContainer>
@@ -169,14 +176,14 @@ export function WebVitalsLandingPage({disableHeader}: InsightLandingProps) {
   );
 }
 
-function PageWithProviders(props: InsightLandingProps) {
+function PageWithProviders() {
   return (
     <ModulePageProviders
       moduleName="vital"
       features="insights-initial-modules"
       analyticEventName="insight.page_loads.vital"
     >
-      <WebVitalsLandingPage {...props} />
+      <WebVitalsLandingPage />
     </ModulePageProviders>
   );
 }
