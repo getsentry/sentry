@@ -156,24 +156,29 @@ def print_results(log_file: str, worker_count: int) -> None:
 
     fieldnames = ["event", "worker_id", "task_add_time", "execution_time", "latency"]
     latency_times = []
+    execution_times = []
     with open(log_file) as logs:
         results = csv.DictReader(logs, fieldnames=fieldnames)
         for row in results:
             latency_times.append(float(row["latency"].strip()))
+            execution_times.append(float(row["execution_time"].strip()))
 
     # We append tasks and then start applications. The first
     # message always has long latency as application startup
     # and kafka take some time to get going.
-    startup_latency = latency_times[0]
+    first_latency = latency_times[0]
 
     min_latency = min(latency_times)
     max_latency = max(latency_times)
     avg_latency = sum(latency_times) / len(latency_times)
 
+    processing_time = execution_times[-1] - execution_times[0]
+    task_throughput = len(latency_times) / processing_time
+
     # Remove the startup overhead to get relative latency.
-    adj_min_latency = min_latency - startup_latency
-    adj_max_latency = max_latency - startup_latency
-    adj_avg_latency = avg_latency - startup_latency
+    adj_min_latency = min_latency - first_latency
+    adj_max_latency = max_latency - first_latency
+    adj_avg_latency = avg_latency - first_latency
 
     # Bucket latency and count totals in each bucket
     latency_spread = adj_max_latency - adj_min_latency
@@ -181,14 +186,21 @@ def print_results(log_file: str, worker_count: int) -> None:
     bucket_width = latency_spread / bucket_count
     buckets = defaultdict(int)
     for value in latency_times:
-        adjusted = max(value - startup_latency, 0)
+        adjusted = max(value - first_latency, 0)
         bucket = int(adjusted / bucket_width)
         buckets[bucket] += 1
 
     click.echo("")
+    click.echo("## Run summary")
+    click.echo("")
+    click.echo(f"Task count: {len(latency_times)}")
+    click.echo(f"Processing time: {processing_time:.4f}")
+    click.echo(f"Throughput: {task_throughput:.4f}")
+
+    click.echo("")
     click.echo("## Task latency")
     click.echo("")
-    click.echo(f"Startup Latency: {startup_latency:.5f}")
+    click.echo(f"First task Latency: {first_latency:.5f}")
     click.echo(
         f"Raw Min / Max / Avg latency: {min_latency:.5f} / {max_latency:.5f} / {avg_latency:.5f}"
     )
