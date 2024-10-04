@@ -625,10 +625,7 @@ function GroupDetailsContent({
     group,
     project,
   });
-  const {openTagsDrawer} = useGroupTagsDrawer({
-    groupId: group.id,
-    projectSlug: project.slug,
-  });
+  const {openTagsDrawer} = useGroupTagsDrawer({group});
   const {openUserFeedbackDrawer} = useUserFeedbackDrawer({group, project});
   const {openReplaysDrawer} = useReplaysDrawer({group, project});
   const {isDrawerOpen} = useDrawer();
