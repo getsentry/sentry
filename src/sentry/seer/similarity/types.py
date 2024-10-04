@@ -37,7 +37,7 @@ class SimilarIssuesEmbeddingsRequest(TypedDict):
 class RawSeerSimilarIssueData(TypedDict):
     parent_hash: str
     stacktrace_distance: float
-    message_distance: float
+    message_distance: NotRequired[float]
     should_group: bool
 
 
@@ -49,20 +49,19 @@ class SimilarIssuesEmbeddingsResponse(TypedDict):
 @dataclass
 class SeerSimilarIssueData:
     stacktrace_distance: float
-    message_distance: float
     should_group: bool
     parent_group_id: int
     parent_hash: str
+    message_distance: float | None = None
 
     # Unfortunately, we have to hardcode this separately from the `RawSeerSimilarIssueData` type
     # definition because Python has no way to derive it from the type (nor vice-versa)
     required_incoming_keys: ClassVar = {
         "stacktrace_distance",
-        "message_distance",
         "should_group",
         "parent_hash",
     }
-    optional_incoming_keys: ClassVar = {}
+    optional_incoming_keys: ClassVar = {"message_distance"}
     expected_incoming_keys: ClassVar = {*required_incoming_keys, *optional_incoming_keys}
 
     @classmethod

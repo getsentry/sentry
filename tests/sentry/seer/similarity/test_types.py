@@ -36,6 +36,25 @@ class SeerSimilarIssueDataTest(TestCase):
             **similar_issue_data  # type:ignore[arg-type]
         )
 
+    def test_from_raw_no_message_distance(self):
+        similar_event = save_new_event({"message": "Dogs are great!"}, self.project)
+        raw_similar_issue_data: RawSeerSimilarIssueData = {
+            "parent_hash": NonNone(similar_event.get_primary_hash()),
+            "should_group": True,
+            "stacktrace_distance": 0.01,
+        }
+
+        similar_issue_data = {
+            **raw_similar_issue_data,
+            "parent_group_id": similar_event.group_id,
+        }
+
+        assert SeerSimilarIssueData.from_raw(
+            self.project.id, raw_similar_issue_data
+        ) == SeerSimilarIssueData(
+            **similar_issue_data  # type:ignore[arg-type]
+        )
+
     def test_from_raw_unexpected_data(self):
         similar_event = save_new_event({"message": "Dogs are great!"}, self.project)
         raw_similar_issue_data = {
@@ -79,20 +98,7 @@ class SeerSimilarIssueDataTest(TestCase):
 
         with pytest.raises(
             IncompleteSeerDataError,
-            match="Seer similar issues response entry missing key 'message_distance'",
-        ):
-            raw_similar_issue_data = {
-                "parent_hash": NonNone(similar_event.get_primary_hash()),
-                # missing `message_distance`
-                "should_group": True,
-                "stacktrace_distance": 0.01,
-            }
-
-            SeerSimilarIssueData.from_raw(self.project.id, raw_similar_issue_data)
-
-        with pytest.raises(
-            IncompleteSeerDataError,
-            match="Seer similar issues response entry missing keys 'message_distance', 'stacktrace_distance'",
+            match="Seer similar issues response entry missing key 'stacktrace_distance'",
         ):
             raw_similar_issue_data = {
                 "parent_hash": NonNone(similar_event.get_primary_hash()),
