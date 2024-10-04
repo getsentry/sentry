@@ -154,10 +154,7 @@ export enum TimePeriod {
   SIX_HOURS = '6h',
   ONE_DAY = '1d',
   THREE_DAYS = '3d',
-  // Seven days is actually 10080m but Snuba can only return up to 10000 entries, for this
-  // we approximate to 9998m which prevents rounding errors due to the minutes granularity
-  // limitations.
-  SEVEN_DAYS = '9998m',
+  SEVEN_DAYS = '7d',
   FOURTEEN_DAYS = '14d',
 }
 

@@ -1,4 +1,4 @@
-import type {ReactNode} from 'react';
+import type {ComponentProps, ReactNode} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -53,13 +53,13 @@ import {IncompatibleAlertQuery} from 'sentry/views/alerts/rules/metric/incompati
 import RuleNameOwnerForm from 'sentry/views/alerts/rules/metric/ruleNameOwnerForm';
 import ThresholdTypeForm from 'sentry/views/alerts/rules/metric/thresholdTypeForm';
 import Triggers from 'sentry/views/alerts/rules/metric/triggers';
-import TriggersChart from 'sentry/views/alerts/rules/metric/triggers/chart';
+import TriggersChart, {ErrorChart} from 'sentry/views/alerts/rules/metric/triggers/chart';
 import {getEventTypeFilter} from 'sentry/views/alerts/rules/metric/utils/getEventTypeFilter';
 import hasThresholdValue from 'sentry/views/alerts/rules/metric/utils/hasThresholdValue';
 import {isCustomMetricAlert} from 'sentry/views/alerts/rules/metric/utils/isCustomMetricAlert';
 import {isInsightsMetricAlert} from 'sentry/views/alerts/rules/metric/utils/isInsightsMetricAlert';
 import {isOnDemandMetricAlert} from 'sentry/views/alerts/rules/metric/utils/onDemandMetricAlert';
-import {AlertRuleType} from 'sentry/views/alerts/types';
+import {AlertRuleType, type Anomaly} from 'sentry/views/alerts/types';
 import {ruleNeedsErrorMigration} from 'sentry/views/alerts/utils/migrationUi';
 import type {MetricAlertType} from 'sentry/views/alerts/wizard/options';
 import {
@@ -125,14 +125,17 @@ type Props = {
 type State = {
   aggregate: string;
   alertType: MetricAlertType;
+  anomalies: Anomaly[];
   // `null` means loading
   availableActions: MetricActionTemplate[] | null;
   comparisonType: AlertRuleComparisonType;
+  currentData: any[];
   // Rule conditions form inputs
   // Needed for TriggersChart
   dataset: Dataset;
   environment: string | null;
   eventTypes: EventTypes[];
+  historicalData: any[];
   isQueryValid: boolean;
   project: Project;
   query: string;
@@ -144,6 +147,8 @@ type State = {
   triggerErrors: Map<number, {[fieldName: string]: string}>;
   triggers: Trigger[];
   activationCondition?: ActivationConditionType;
+  chartError?: boolean;
+  chartErrorMessage?: string;
   comparisonDelta?: number;
   isExtrapolatedChartData?: boolean;
   monitorType?: MonitorType;
@@ -156,6 +161,12 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
   form = new FormModel();
   pollingTimeout: number | undefined = undefined;
   uuid: string | null = null;
+
+  constructor(props, context) {
+    super(props, context);
+    this.handleHistoricalTimeSeriesDataFetched =
+      this.handleHistoricalTimeSeriesDataFetched.bind(this);
+  }
 
   get isDuplicateRule(): boolean {
     return Boolean(this.props.isDuplicateRule);
@@ -216,7 +227,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
 
     return {
       ...super.getDefaultState(),
-
+      currentData: [],
       name: name ?? rule.name ?? '',
       aggregate,
       dataset,
@@ -538,7 +549,10 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
 
   handleFieldChange = (name: string, value: unknown) => {
     const {projects} = this.props;
-    const {timeWindow} = this.state;
+    const {timeWindow, chartError} = this.state;
+    if (chartError) {
+      this.setState({chartError: false, chartErrorMessage: undefined});
+    }
 
     if (name === 'alertType') {
       if (value === 'crash_free_sessions' || value === 'crash_free_users') {
@@ -879,7 +893,13 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
         clearIndicators();
       }
 
-      return {triggers, triggerErrors, triggersHaveChanged: true};
+      return {
+        triggers,
+        triggerErrors,
+        triggersHaveChanged: true,
+        chartError: false,
+        chartErrorMessage: undefined,
+      };
     });
   };
 
@@ -921,7 +941,8 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
   handleComparisonTypeChange = (value: AlertRuleComparisonType) => {
     let updateState = {};
     switch (value) {
-      case AlertRuleComparisonType.DYNAMIC:
+      case AlertRuleComparisonType.DYNAMIC: {
+        this.fetchAnomalies();
         updateState = {
           comparisonType: value,
           comparisonDelta: undefined,
@@ -931,6 +952,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
           seasonality: AlertRuleSeasonality.AUTO,
         };
         break;
+      }
       case AlertRuleComparisonType.CHANGE:
         updateState = {
           comparisonType: value,
@@ -1006,16 +1028,75 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
 
   handleTimeSeriesDataFetched = (data: EventsStats | MultiSeriesEventsStats | null) => {
     const {isExtrapolatedData} = data ?? {};
+    const currentData = Array.isArray(data?.data) ? data.data ?? [] : [];
 
+    const newState: Partial<State> = {currentData};
     if (shouldShowOnDemandMetricAlertUI(this.props.organization)) {
-      this.setState({isExtrapolatedChartData: Boolean(isExtrapolatedData)});
+      newState.isExtrapolatedChartData = Boolean(isExtrapolatedData);
     }
-
+    this.setState(newState, () => this.fetchAnomalies());
     const {dataset, aggregate, query} = this.state;
     if (!isOnDemandMetricAlert(dataset, aggregate, query)) {
       this.handleMEPAlertDataset(data);
     }
   };
+
+  handleHistoricalTimeSeriesDataFetched(
+    data: EventsStats | MultiSeriesEventsStats | null
+  ) {
+    const historicalData = Array.isArray(data?.data) ? data.data ?? [] : [];
+    this.setState({historicalData}, () => this.fetchAnomalies());
+  }
+
+  async fetchAnomalies() {
+    if (this.state.comparisonType !== AlertRuleComparisonType.DYNAMIC) {
+      return;
+    }
+    const {organization, project} = this.props;
+    const {
+      timeWindow,
+      sensitivity,
+      seasonality,
+      thresholdType,
+      historicalData,
+      currentData,
+    } = this.state;
+    if (!(Array.isArray(currentData) && Array.isArray(historicalData))) {
+      return;
+    }
+    const params = {
+      organization_id: organization.id,
+      project_id: project.id,
+      config: {
+        time_period: timeWindow,
+        sensitivity,
+        direction: thresholdType,
+        expected_seasonality: seasonality,
+      },
+      historical_data: historicalData.map(([ts]) => [
+        ts,
+        {count: Math.floor(Math.random() * 100)},
+      ]),
+      current_data: currentData.map(([ts]) => [
+        ts,
+        {count: Math.floor(Math.random() * 100)},
+      ]),
+    };
+    try {
+      const response = await this.api.requestPromise(
+        `/organizations/${organization.slug}/events/anomalies/`,
+        {method: 'POST', data: params}
+      );
+      const {status, error, anomalies} = response;
+      if (status === 'failed') {
+        this.setState({chartError: true, chartErrorMessage: error});
+      } else if (status === 'success') {
+        this.setState({anomalies});
+      }
+    } catch (e) {
+      this.setState({chartError: true, chartErrorMessage: e.message || e});
+    }
+  }
 
   // If the user is creating an on-demand metric alert, we want to override the dataset
   // to be generic metrics instead of transactions
@@ -1067,25 +1148,16 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       dataset,
       alertType,
       isQueryValid,
-      // sensitivity,
-      // seasonality
+      anomalies,
+      chartError,
+      chartErrorMessage,
     } = this.state;
-    // const params = {
-    //   organization_id: organization.id,
-    //   project_id: project.id,
-    //   config: {
-    //     time_period: timeWindow,
-    //     sensitivity,
-    //     direction: thresholdType,
-    //     expected_seasonality: seasonality
-    //   },
-    //   context: {
-    //     history: [],
-    //     current: []
-    //   }
-    // }
-    // console.log('renderTriggerChart', { params });
 
+    if (chartError) {
+      return (
+        <ErrorChart errorMessage={`${chartErrorMessage}`} isAllowIndexed isQueryValid />
+      );
+    }
     const isOnDemand = isOnDemandMetricAlert(dataset, aggregate, query);
 
     let formattedAggregate = aggregate;
@@ -1093,16 +1165,16 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       formattedAggregate = formatMRIField(aggregate);
     }
 
-    const chartProps = {
+    const chartProps: ComponentProps<typeof TriggersChart> = {
       organization,
       projects: [project],
       triggers,
+      anomalies: comparisonType === AlertRuleComparisonType.DYNAMIC ? anomalies : [],
       location,
       query: this.chartQuery,
       aggregate,
       formattedAggregate: formattedAggregate,
       dataset,
-      includePrevious: comparisonType === AlertRuleComparisonType.DYNAMIC,
       newAlertOrQuery: !ruleId || query !== rule.query,
       timeWindow,
       environment,
@@ -1115,6 +1187,8 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       showTotalCount:
         !['custom_metrics', 'span_metrics'].includes(alertType) && !isOnDemand,
       onDataLoaded: this.handleTimeSeriesDataFetched,
+      includeHistorical: comparisonType === AlertRuleComparisonType.DYNAMIC,
+      onHistoricalDataLoaded: this.handleHistoricalTimeSeriesDataFetched,
     };
 
     let formattedQuery = `event.type:${eventTypes?.join(',')}`;

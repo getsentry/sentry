@@ -1,4 +1,4 @@
-import {Fragment, PureComponent} from 'react';
+import {type ComponentProps, Fragment, PureComponent} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import isEqual from 'lodash/isEqual';
@@ -8,7 +8,9 @@ import minBy from 'lodash/minBy';
 import {fetchTotalCount} from 'sentry/actionCreators/events';
 import type {Client} from 'sentry/api';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
-import EventsRequest from 'sentry/components/charts/eventsRequest';
+import EventsRequest, {
+  type EventsRequestProps,
+} from 'sentry/components/charts/eventsRequest';
 import type {LineChartSeries} from 'sentry/components/charts/lineChart';
 import {OnDemandMetricRequest} from 'sentry/components/charts/onDemandMetricRequest';
 import SessionsRequest from 'sentry/components/charts/sessionsRequest';
@@ -64,6 +66,7 @@ import ThresholdsChart from './thresholdsChart';
 
 type Props = {
   aggregate: MetricRule['aggregate'];
+  anomalies: Anomaly[];
   api: Client;
   comparisonType: AlertRuleComparisonType;
   dataset: MetricRule['dataset'];
@@ -78,12 +81,13 @@ type Props = {
   thresholdType: MetricRule['thresholdType'];
   timeWindow: MetricRule['timeWindow'];
   triggers: Trigger[];
-  anomalies?: Anomaly[];
   comparisonDelta?: number;
   formattedAggregate?: string;
   header?: React.ReactNode;
+  includeHistorical?: boolean;
   isOnDemandMetricAlert?: boolean;
   onDataLoaded?: (data: EventsStats | MultiSeriesEventsStats | null) => void;
+  onHistoricalDataLoaded?: (data: EventsStats | MultiSeriesEventsStats | null) => void;
   showTotalCount?: boolean;
 };
 
@@ -142,6 +146,16 @@ const SESSION_AGGREGATE_TO_HEADING = {
   [SessionsAggregate.CRASH_FREE_SESSIONS]: t('Total Sessions'),
   [SessionsAggregate.CRASH_FREE_USERS]: t('Total Users'),
 };
+
+const HISTORICAL_TIME_PERIOD_MAP: Record<TimePeriod, string> = {
+  [TimePeriod.SIX_HOURS]: '678h',
+  [TimePeriod.ONE_DAY]: '29d',
+  [TimePeriod.THREE_DAYS]: '31d',
+  [TimePeriod.SEVEN_DAYS]: '35d',
+  [TimePeriod.FOURTEEN_DAYS]: '42d',
+};
+
+const noop: any = () => {};
 
 type State = {
   sampleRate: number;
@@ -272,7 +286,6 @@ class TriggersChart extends PureComponent<Props, State> {
     }
 
     const alertType = getAlertTypeFromAggregateDataset({aggregate, dataset});
-
     try {
       const totalCount = await fetchTotalCount(api, organization.slug, {
         field: [],
@@ -307,7 +320,6 @@ class TriggersChart extends PureComponent<Props, State> {
     isReloading: boolean;
     orgFeatures: string[];
     timeseriesData: Series[];
-    anomalies?: Anomaly[];
     comparisonData?: Series[];
     comparisonMarkLines?: LineChartSeries[];
     errorMessage?: string;
@@ -362,9 +374,6 @@ class TriggersChart extends PureComponent<Props, State> {
             minValue={minBy(timeseriesData[0]?.data, ({value}) => value)?.value}
             maxValue={maxBy(timeseriesData[0]?.data, ({value}) => value)?.value}
             data={timeseriesData}
-            includePrevious={
-              this.props.comparisonType === AlertRuleComparisonType.DYNAMIC
-            }
             comparisonData={comparisonData ?? []}
             comparisonSeriesName={this.comparisonSeriesName}
             comparisonMarkLines={comparisonMarkLines ?? []}
@@ -423,6 +432,7 @@ class TriggersChart extends PureComponent<Props, State> {
       dataset,
       newAlertOrQuery,
       onDataLoaded,
+      onHistoricalDataLoaded,
       environment,
       formattedAggregate,
       comparisonDelta,
@@ -453,24 +463,158 @@ class TriggersChart extends PureComponent<Props, State> {
     };
 
     if (isOnDemandMetricAlert) {
+      const {sampleRate} = this.state;
+      const baseProps: EventsRequestProps = {
+        api,
+        organization,
+        query,
+        queryExtras,
+        sampleRate,
+        environment: environment ? [environment] : undefined,
+        project: projects.map(({id}) => Number(id)),
+        interval: `${timeWindow}m`,
+        comparisonDelta: comparisonDelta ? comparisonDelta * 60 : undefined,
+        yAxis: aggregate,
+        includePrevious: false,
+        currentSeriesNames: [formattedAggregate || aggregate],
+        partial: false,
+        includeTimeAggregation: false,
+        includeTransformedData: false,
+        limit: 15,
+        children: noop,
+      };
+
       return (
-        <OnDemandMetricRequest
-          api={api}
-          organization={organization}
-          query={query}
-          environment={environment ? [environment] : undefined}
-          project={projects.map(({id}) => Number(id))}
-          interval={`${timeWindow}m`}
-          comparisonDelta={comparisonDelta && comparisonDelta * 60}
-          period={period}
-          yAxis={aggregate}
-          includePrevious={false}
-          currentSeriesNames={[formattedAggregate || aggregate]}
-          partial={false}
-          queryExtras={queryExtras}
-          sampleRate={this.state.sampleRate}
-          dataLoadedCallback={onDataLoaded}
-        >
+        <Fragment>
+          {this.props.includeHistorical ? (
+            <OnDemandMetricRequest
+              {...baseProps}
+              period={period}
+              dataLoadedCallback={onHistoricalDataLoaded}
+            />
+          ) : null}
+          <OnDemandMetricRequest
+            {...baseProps}
+            period={period}
+            dataLoadedCallback={onDataLoaded}
+          >
+            {({
+              loading,
+              errored,
+              errorMessage,
+              reloading,
+              timeseriesData,
+              comparisonTimeseriesData,
+              seriesAdditionalInfo,
+            }) => {
+              let comparisonMarkLines: LineChartSeries[] = [];
+              if (renderComparisonStats && comparisonTimeseriesData) {
+                comparisonMarkLines = getComparisonMarkLines(
+                  timeseriesData,
+                  comparisonTimeseriesData,
+                  timeWindow,
+                  triggers,
+                  thresholdType
+                );
+              }
+
+              return this.renderChart({
+                timeseriesData: timeseriesData as Series[],
+                isLoading: loading,
+                isReloading: reloading,
+                comparisonData: comparisonTimeseriesData,
+                comparisonMarkLines,
+                errorMessage,
+                isQueryValid,
+                errored,
+                orgFeatures: organization.features,
+                seriesAdditionalInfo,
+              });
+            }}
+          </OnDemandMetricRequest>
+          );
+        </Fragment>
+      );
+    }
+
+    if (isSessionAggregate(aggregate)) {
+      const baseProps: ComponentProps<typeof SessionsRequest> = {
+        api: api,
+        organization: organization,
+        project: projects.map(({id}) => Number(id)),
+        environment: environment ? [environment] : undefined,
+        statsPeriod: period,
+        query: query,
+        interval: TIME_WINDOW_TO_SESSION_INTERVAL[timeWindow],
+        field: SESSION_AGGREGATE_TO_FIELD[aggregate],
+        groupBy: ['session.status'],
+        children: noop,
+      };
+      return (
+        <SessionsRequest {...baseProps}>
+          {({loading, errored, reloading, response}) => {
+            const {groups, intervals} = response || {};
+            const sessionTimeSeries = [
+              {
+                seriesName:
+                  AlertWizardAlertNames[
+                    getAlertTypeFromAggregateDataset({
+                      aggregate,
+                      dataset: Dataset.SESSIONS,
+                    })
+                  ],
+                data: getCrashFreeRateSeries(
+                  groups,
+                  intervals,
+                  SESSION_AGGREGATE_TO_FIELD[aggregate]
+                ),
+              },
+            ];
+
+            return this.renderChart({
+              timeseriesData: sessionTimeSeries,
+              isLoading: loading,
+              isReloading: reloading,
+              comparisonData: undefined,
+              comparisonMarkLines: undefined,
+              minutesThresholdToDisplaySeconds: MINUTES_THRESHOLD_TO_DISPLAY_SECONDS,
+              isQueryValid,
+              errored,
+              orgFeatures: organization.features,
+            });
+          }}
+        </SessionsRequest>
+      );
+    }
+
+    const baseProps = {
+      api,
+      organization,
+      query,
+      period,
+      queryExtras,
+      environment: environment ? [environment] : undefined,
+      project: projects.map(({id}) => Number(id)),
+      interval: `${timeWindow}m`,
+      comparisonDelta: comparisonDelta ? comparisonDelta * 60 : undefined,
+      yAxis: aggregate,
+      includePrevious: false,
+      currentSeriesNames: [formattedAggregate || aggregate],
+      partial: false,
+    };
+
+    return (
+      <Fragment>
+        {this.props.includeHistorical ? (
+          <EventsRequest
+            {...baseProps}
+            period={HISTORICAL_TIME_PERIOD_MAP[period]}
+            dataLoadedCallback={onHistoricalDataLoaded}
+          >
+            {noop}
+          </EventsRequest>
+        ) : null}
+        <EventsRequest {...baseProps} period={period} dataLoadedCallback={onDataLoaded}>
           {({
             loading,
             errored,
@@ -478,7 +622,6 @@ class TriggersChart extends PureComponent<Props, State> {
             reloading,
             timeseriesData,
             comparisonTimeseriesData,
-            seriesAdditionalInfo,
           }) => {
             let comparisonMarkLines: LineChartSeries[] = [];
             if (renderComparisonStats && comparisonTimeseriesData) {
@@ -501,110 +644,10 @@ class TriggersChart extends PureComponent<Props, State> {
               isQueryValid,
               errored,
               orgFeatures: organization.features,
-              seriesAdditionalInfo,
             });
           }}
-        </OnDemandMetricRequest>
-      );
-    }
-
-    return isSessionAggregate(aggregate) ? (
-      <SessionsRequest
-        api={api}
-        organization={organization}
-        project={projects.map(({id}) => Number(id))}
-        environment={environment ? [environment] : undefined}
-        statsPeriod={period}
-        query={query}
-        interval={TIME_WINDOW_TO_SESSION_INTERVAL[timeWindow]}
-        field={SESSION_AGGREGATE_TO_FIELD[aggregate]}
-        groupBy={['session.status']}
-      >
-        {({loading, errored, reloading, response}) => {
-          const {groups, intervals} = response || {};
-          const sessionTimeSeries = [
-            {
-              seriesName:
-                AlertWizardAlertNames[
-                  getAlertTypeFromAggregateDataset({aggregate, dataset: Dataset.SESSIONS})
-                ],
-              data: getCrashFreeRateSeries(
-                groups,
-                intervals,
-                SESSION_AGGREGATE_TO_FIELD[aggregate]
-              ),
-            },
-          ];
-
-          return this.renderChart({
-            timeseriesData: sessionTimeSeries,
-            isLoading: loading,
-            isReloading: reloading,
-            comparisonData: undefined,
-            comparisonMarkLines: undefined,
-            minutesThresholdToDisplaySeconds: MINUTES_THRESHOLD_TO_DISPLAY_SECONDS,
-            isQueryValid,
-            errored,
-            orgFeatures: organization.features,
-          });
-        }}
-      </SessionsRequest>
-    ) : (
-      <EventsRequest
-        api={api}
-        organization={organization}
-        query={query}
-        environment={environment ? [environment] : undefined}
-        project={projects.map(({id}) => Number(id))}
-        interval={`${timeWindow}m`}
-        comparisonDelta={comparisonDelta && comparisonDelta * 60}
-        period={period}
-        yAxis={aggregate}
-        includePrevious={false}
-        currentSeriesNames={[formattedAggregate || aggregate]}
-        partial={false}
-        queryExtras={queryExtras}
-        useOnDemandMetrics
-        dataLoadedCallback={onDataLoaded}
-      >
-        {({
-          loading,
-          errored,
-          errorMessage,
-          reloading,
-          timeseriesData,
-          comparisonTimeseriesData,
-        }) => {
-          let comparisonMarkLines: LineChartSeries[] = [];
-          if (renderComparisonStats && comparisonTimeseriesData) {
-            comparisonMarkLines = getComparisonMarkLines(
-              timeseriesData,
-              comparisonTimeseriesData,
-              timeWindow,
-              triggers,
-              thresholdType
-            );
-          }
-          // console.log('timeseriesData', {
-          //   timeWindow,
-          //   timeseriesData,
-          //   comparisonTimeseriesData,
-          // });
-
-          return this.renderChart({
-            timeseriesData: timeseriesData as Series[],
-            isLoading: loading,
-            isReloading: reloading,
-            comparisonData: comparisonTimeseriesData,
-            comparisonMarkLines,
-            anomalies: [],
-            errorMessage,
-            isQueryValid,
-            errored,
-            orgFeatures: organization.features,
-          });
-        }}
-      </EventsRequest>
+        </EventsRequest>
+      </Fragment>
     );
   }
 }
@@ -633,7 +676,7 @@ const ChartErrorWrapper = styled('div')`
   margin-top: ${space(2)};
 `;
 
-function ErrorChart({isAllowIndexed, isQueryValid, errorMessage}) {
+export function ErrorChart({isAllowIndexed, isQueryValid, errorMessage}) {
   return (
     <ChartErrorWrapper>
       <PanelAlert type="error">
