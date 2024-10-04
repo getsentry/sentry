@@ -446,7 +446,7 @@ def notify_sentry_app(event: Event | GroupEvent, futures):
         )
 
 
-def send_webhooks(installation: RpcSentryAppInstallation, event: str, **kwargs: Any):
+def send_webhooks(installation: RpcSentryAppInstallation, event: str, **kwargs: Any) -> None:
     servicehook: ServiceHook
     try:
         servicehook = ServiceHook.objects.get(
@@ -457,10 +457,10 @@ def send_webhooks(installation: RpcSentryAppInstallation, event: str, **kwargs: 
             "send_webhooks.missing_servicehook",
             extra={"installation_id": installation.id, "event": event},
         )
-        return
+        return None
 
     if event not in servicehook.events:
-        return
+        return None
 
     # The service hook applies to all projects if there are no
     # ServiceHookProject records. Otherwise we want check if
