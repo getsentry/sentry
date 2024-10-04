@@ -1,3 +1,5 @@
+import pytest
+
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupsnooze import GroupSnooze
@@ -7,6 +9,7 @@ from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
 
 
+@pytest.mark.skip("Migration is no longer runnable. Retain until migration is removed.")
 class FixSubstatusForIgnoreedGroupsTest(TestMigrations):
     migrate_from = "0752_fix_substatus_for_unresolved_groups"
     migrate_to = "0753_fix_substatus_for_ignored_groups"

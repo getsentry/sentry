@@ -183,7 +183,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 group_id=event.group.id,
                 hash=self.group_hashes[event.group.id],
                 project_id=self.project.id,
-                message=event.title,
                 exception_type=get_path(event.data, "exception", "values", -1, "type"),
             )
             for event in events
@@ -212,7 +211,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 group_id=event.group.id,
                 hash=self.group_hashes[event.group.id],
                 project_id=self.project.id,
-                message=event.title,
                 exception_type=get_path(event.data, "exception", "values", -1, "type"),
             )
             for event in events
@@ -282,7 +280,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 group_id=event.group.id,
                 hash=hashes[event.group.id],
                 project_id=self.project.id,
-                message=event.title,
                 exception_type=get_path(event.data, "exception", "values", -1, "type"),
             )
             for event in events
@@ -317,7 +314,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 group_id=event.group.id,
                 hash=hashes[event.group.id],
                 project_id=self.project.id,
-                message=event.title,
                 exception_type=get_path(event.data, "exception", "values", -1, "type"),
             )
             for event in events
@@ -345,7 +341,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 group_id=event.group.id,
                 hash=hashes[event.group.id],
                 project_id=self.project.id,
-                message=event.title,
                 exception_type=get_path(event.data, "exception", "values", -1, "type"),
             )
             for event in events
@@ -383,7 +378,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 group_id=event.group.id,
                 hash=hashes[event.group.id],
                 project_id=self.project.id,
-                message=event.title,
                 exception_type=get_path(event.data, "exception", "values", -1, "type"),
             )
             for event in events
@@ -418,7 +412,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 group_id=event.group.id,
                 hash=hashes[event.group.id],
                 project_id=self.project.id,
-                message=event.title,
                 exception_type=get_path(event.data, "exception", "values", -1, "type"),
             )
             for event in events

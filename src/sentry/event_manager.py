@@ -55,7 +55,7 @@ from sentry.grouping.api import (
 )
 from sentry.grouping.ingest.config import is_in_transition, update_grouping_config_if_needed
 from sentry.grouping.ingest.hashing import (
-    find_existing_grouphash,
+    find_grouphash_with_group,
     get_or_create_grouphashes,
     maybe_run_background_grouping,
     maybe_run_secondary_grouping,
@@ -65,8 +65,8 @@ from sentry.grouping.ingest.metrics import record_hash_calculation_metrics, reco
 from sentry.grouping.ingest.seer import maybe_check_seer_for_matching_grouphash
 from sentry.grouping.ingest.utils import (
     add_group_id_to_grouphashes,
-    check_for_category_mismatch,
     check_for_group_creation_load_shed,
+    is_non_error_type_group,
 )
 from sentry.ingest.inbound_filters import FilterStatKeys
 from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
@@ -1290,21 +1290,7 @@ def get_culprit(data: Mapping[str, Any]) -> str:
 
 
 @sentry_sdk.tracing.trace
-def assign_event_to_group(event: Event, job: Job, metric_tags: MutableTags) -> GroupInfo | None:
-    group_info = _save_aggregate_new(
-        event=event,
-        job=job,
-        metric_tags=metric_tags,
-    )
-
-    if group_info:
-        event.group = group_info.group
-    job["groups"] = [group_info]
-
-    return group_info
-
-
-def _save_aggregate_new(
+def assign_event_to_group(
     event: Event,
     job: Job,
     metric_tags: MutableTags,
@@ -1319,7 +1305,8 @@ def _save_aggregate_new(
     if primary.existing_grouphash:
         group_info = handle_existing_grouphash(job, primary.existing_grouphash, primary.grouphashes)
         result = "found_primary"
-    # If we haven't, try again using the secondary config
+    # If we haven't, try again using the secondary config. (If there is no secondary config, or
+    # we're out of the transition period, we'll get back the empty `NULL_GROUPHASH_INFO`.)
     else:
         secondary = get_hashes_and_grouphashes(job, maybe_run_secondary_grouping, metric_tags)
         all_grouphashes = primary.grouphashes + secondary.grouphashes
@@ -1357,6 +1344,13 @@ def _save_aggregate_new(
     # erroneously create new groups.
     update_grouping_config_if_needed(project, "ingest")
 
+    # The only way there won't be group info is we matched to a performance, cron, replay, or
+    # other-non-error-type group because of a hash collision - exceedingly unlikely, and not
+    # something we've ever observed, but theoretically possible.
+    if group_info:
+        event.group = group_info.group
+    job["groups"] = [group_info]
+
     return group_info
 
 
@@ -1382,9 +1376,9 @@ def get_hashes_and_grouphashes(
     grouping_config, hashes = hash_calculation_function(project, job, metric_tags)
 
     if hashes:
-        grouphashes = get_or_create_grouphashes(project, hashes)
+        grouphashes = get_or_create_grouphashes(project, hashes, grouping_config["id"])
 
-        existing_grouphash = find_existing_grouphash(grouphashes)
+        existing_grouphash = find_grouphash_with_group(grouphashes)
 
         return GroupHashInfo(grouping_config, hashes, grouphashes, existing_grouphash)
     else:
@@ -1416,12 +1410,16 @@ def handle_existing_grouphash(
     #    (otherwise the update would not change anything)
     #
     # We think this is a very unlikely situation. A previous version of
-    # _save_aggregate had races around group creation which made this race
+    # this function had races around group creation which made this race
     # more user visible. For more context, see 84c6f75a and d0e22787, as
     # well as GH-5085.
     group = Group.objects.get(id=existing_grouphash.group_id)
 
-    if check_for_category_mismatch(group):
+    # As far as we know this has never happened, but in theory at least, the error event hashing
+    # algorithm and other event hashing algorithms could come up with the same hash value in the
+    # same project and our hash could have matched to a non-error group. Just to be safe, we make
+    # sure that's not the case before proceeding.
+    if is_non_error_type_group(group):
         return None
 
     # There may still be hashes that we did not use to find an existing
@@ -1487,7 +1485,7 @@ def create_group_with_grouphashes(job: Job, grouphashes: list[GroupHash]) -> Gro
         # condition scenario above, we'll have been blocked long enough for the other event to
         # have created the group and updated our grouphashes with a group id, which means this
         # time, we'll find something.
-        existing_grouphash = find_existing_grouphash(grouphashes)
+        existing_grouphash = find_grouphash_with_group(grouphashes)
 
         # If we still haven't found a matching grouphash, we're now safe to go ahead and create
         # the group.

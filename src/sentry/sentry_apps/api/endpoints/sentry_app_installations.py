@@ -6,7 +6,6 @@ from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
-from sentry.api.bases import SentryAppInstallationsBaseEndpoint
 from sentry.api.fields.sentry_slug import SentrySerializerSlugField
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
@@ -14,6 +13,7 @@ from sentry.auth.superuser import superuser_has_permission
 from sentry.constants import SENTRY_APP_SLUG_MAX_LENGTH, SentryAppStatus
 from sentry.features.exceptions import FeatureNotRegistered
 from sentry.integrations.models.integration_feature import IntegrationFeature, IntegrationTypes
+from sentry.sentry_apps.api.bases.sentryapps import SentryAppInstallationsBaseEndpoint
 from sentry.sentry_apps.api.serializers.sentry_app_installation import (
     SentryAppInstallationSerializer,
 )

@@ -40,8 +40,8 @@ def _calculate_event_grouping(
     project: Project, event: Event, grouping_config: GroupingConfig
 ) -> list[str]:
     """
-    Main entrypoint for modifying/enhancing and grouping an event, writes
-    hashes back into event payload.
+    Calculate hashes for the event using the given grouping config, and add them into the event
+    data.
     """
     metric_tags: MutableTags = {
         "grouping_config": grouping_config["id"],
@@ -144,10 +144,10 @@ def _calculate_secondary_hashes(
     try:
         with sentry_sdk.start_span(
             op="event_manager",
-            description="event_manager.save.secondary_calculate_event_grouping",
+            name="event_manager.save.secondary_calculate_event_grouping",
         ):
             # create a copy since `_calculate_event_grouping` modifies the event to add all sorts
-            # of grouping info and we don't want the backup grouping data in there
+            # of grouping info and we don't want the secondary grouping data in there
             event_copy = copy.deepcopy(job["event"])
             secondary_hashes = _calculate_event_grouping(
                 project, event_copy, secondary_grouping_config
@@ -171,7 +171,7 @@ def run_primary_grouping(
     with (
         sentry_sdk.start_span(
             op="event_manager",
-            description="event_manager.save.calculate_event_grouping",
+            name="event_manager.save.calculate_event_grouping",
         ),
         metrics.timer("event_manager.calculate_event_grouping", tags=metric_tags),
     ):
@@ -191,9 +191,13 @@ def _calculate_primary_hashes(
     return _calculate_event_grouping(project, job["event"], grouping_config)
 
 
-def find_existing_grouphash(
+def find_grouphash_with_group(
     grouphashes: Sequence[GroupHash],
 ) -> GroupHash | None:
+    """
+    Search in the list of given `GroupHash` records for one which has a group assigned to it, and
+    return the first one found. (Assumes grouphashes have already been sorted in priority order.)
+    """
     for group_hash in grouphashes:
         if group_hash.group_id is not None:
             return group_hash
@@ -211,21 +215,38 @@ def find_existing_grouphash(
     return None
 
 
-def get_or_create_grouphashes(project: Project, hashes: Sequence[str]) -> list[GroupHash]:
-    grouphashes = []
+def get_or_create_grouphashes(
+    project: Project, hashes: Sequence[str], grouping_config: str
+) -> list[GroupHash]:
+    is_secondary = grouping_config != project.get_option("sentry:grouping_config")
+    grouphashes: list[GroupHash] = []
+
+    # The only utility of secondary hashes is to link new primary hashes to an existing group.
+    # Secondary hashes which are also new are therefore of no value, so there's no need to store or
+    # annotate them and we can bail now.
+    if is_secondary and not GroupHash.objects.filter(project=project, hash__in=hashes).exists():
+        return grouphashes
 
     for hash_value in hashes:
         grouphash, created = GroupHash.objects.get_or_create(project=project, hash=hash_value)
 
         # TODO: Do we want to expand this to backfill metadata for existing grouphashes? If we do,
         # we'll have to override the metadata creation date for them.
-        if (
-            created
-            and options.get("grouping.grouphash_metadata.ingestion_writes_enabled")
-            and features.has("organizations:grouphash-metadata-creation", project.organization)
+        if options.get("grouping.grouphash_metadata.ingestion_writes_enabled") and features.has(
+            "organizations:grouphash-metadata-creation", project.organization
         ):
-            # For now, this just creates a record with a creation timestamp
-            GroupHashMetadata.objects.create(grouphash=grouphash)
+            if created:
+                GroupHashMetadata.objects.create(
+                    grouphash=grouphash,
+                    latest_grouping_config=grouping_config,
+                )
+            elif (
+                grouphash.metadata and grouphash.metadata.latest_grouping_config != grouping_config
+            ):
+                # Keep track of the most recent config which computed this hash, so that once a
+                # config is deprecated, we can clear out the GroupHash records which are no longer
+                # being produced
+                grouphash.metadata.update(latest_grouping_config=grouping_config)
 
         grouphashes.append(grouphash)
 

@@ -2,7 +2,7 @@ import {useState} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button, LinkButton} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {
   GridBodyCell,
@@ -24,15 +24,15 @@ import {useRoutes} from 'sentry/utils/useRoutes';
 import {useEventColumns} from 'sentry/views/issueDetails/allEventsTable';
 import {ALL_EVENTS_EXCLUDED_TAGS} from 'sentry/views/issueDetails/groupEvents';
 import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/useIssueDetailsDiscoverQuery';
+import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 import EventsTable from 'sentry/views/performance/transactionSummary/transactionEvents/eventsTable';
 
 interface EventListProps {
   group: Group;
   project: Project;
-  onClose?: (e: React.MouseEvent) => void;
 }
 
-export function EventList({group, onClose}: EventListProps) {
+export function EventList({group}: EventListProps) {
   const referrer = 'issue_details.streamline_list';
   const theme = useTheme();
   const location = useLocation();
@@ -41,6 +41,7 @@ export function EventList({group, onClose}: EventListProps) {
   const [_error, setError] = useState('');
   const {fields, columnTitles} = useEventColumns(group, organization);
   const eventView = useIssueDetailsEventView({group, queryProps: {fields}});
+  const {baseUrl} = useGroupDetailsRoute();
 
   const grayText = css`
     color: ${theme.subText};
@@ -126,13 +127,20 @@ export function EventList({group, onClose}: EventListProps) {
                   />
                 </ButtonBar>
               </EventListHeaderItem>
-              {onClose && (
-                <EventListHeaderItem>
-                  <Button borderless size="xs" css={grayText} onClick={onClose}>
-                    {t('Close')}
-                  </Button>
-                </EventListHeaderItem>
-              )}
+
+              <EventListHeaderItem>
+                <LinkButton
+                  borderless
+                  size="xs"
+                  css={grayText}
+                  to={{
+                    pathname: baseUrl,
+                    query: location.query,
+                  }}
+                >
+                  {t('Close')}
+                </LinkButton>
+              </EventListHeaderItem>
             </EventListHeader>
           );
         }}
