@@ -1,12 +1,13 @@
 from typing import Any
 
-from sentry.runner.commands.presenters.audit_log_presenter import AuditLogPresenter
 from sentry.runner.commands.presenters.consolepresenter import ConsolePresenter
 from sentry.runner.commands.presenters.webhookpresenter import WebhookPresenter
 
 
 class PresenterDelegator:
     def __init__(self, source: str) -> None:
+        from sentry.runner.commands.presenters.audit_log_presenter import AuditLogPresenter
+
         self._consolepresenter = ConsolePresenter()
 
         self._slackpresenter = None
