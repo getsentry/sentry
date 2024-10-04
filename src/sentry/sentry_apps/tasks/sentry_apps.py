@@ -399,7 +399,7 @@ def get_webhook_data(
 
 
 @instrumented_task(
-    "sentry.sentry_apps.tasks.sentry_apps.send_process_resource_change_webhook", **TASK_OPTIONS
+    "sentry.sentry_apps.tasks.sentry_apps.send_resource_change_webhook", **TASK_OPTIONS
 )
 @retry_decorator
 def send_resource_change_webhook(
@@ -408,7 +408,7 @@ def send_resource_change_webhook(
     installation = app_service.installation_by_id(id=installation_id)
     if not installation:
         logger.info(
-            "send_process_resource_change_webhook.missing_installation",
+            "send_resource_change_webhook.missing_installation",
             extra={"installation_id": installation_id, "event": event},
         )
         return
