@@ -613,6 +613,7 @@ class ExhaustiveFixtures(Fixtures):
         workflow = self.create_workflow(organization=org)
         detector = self.create_detector(organization=org)
         self.create_detector_workflow(detector=detector, workflow=workflow)
+        self.create_detector_state(detector=detector)
 
         notification_condition_group = self.create_data_condition_group(
             logic_type=DataConditionGroup.Type.ANY,

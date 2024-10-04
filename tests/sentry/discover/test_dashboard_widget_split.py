@@ -219,6 +219,79 @@ class DashboardWidgetDatasetSplitTestCase(TestCase, SnubaTestCase):
         )
         assert queried_snuba
 
+    def test_alias_with_user_misery_widget(self):
+        data = load_data("transaction", timestamp=self.ten_mins_ago)
+        data["transaction"] = "/to_other/"
+        self.store_event(data, project_id=self.project.id, assert_no_errors=False)
+
+        data = load_data("transaction", timestamp=self.ten_mins_ago)
+        data["transaction"] = "/to_other/2"
+        self.store_event(data, project_id=self.project.id, assert_no_errors=False)
+
+        user_misery_widget = DashboardWidget.objects.create(
+            dashboard=self.dashboard,
+            order=0,
+            title="user misery",
+            display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+            widget_type=DashboardWidgetTypes.DISCOVER,
+            interval="1d",
+            detail={"layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2}},
+        )
+        user_misery_widget_query = DashboardWidgetQuery.objects.create(
+            widget=user_misery_widget,
+            fields=["title", "user_misery(300)"],
+            columns=[],
+            aggregates=["user_misery(300)"],
+            conditions="",
+            order=0,
+        )
+
+        _, queried_snuba = _get_and_save_split_decision_for_dashboard_widget(
+            user_misery_widget_query, self.dry_run
+        )
+        user_misery_widget.refresh_from_db()
+        assert not queried_snuba
+
+        assert (
+            user_misery_widget.discover_widget_split is None
+            if self.dry_run
+            else user_misery_widget.discover_widget_split == 101
+        )
+
+    def test_alias_with_last_seen_widget(self):
+        data = load_data("python", timestamp=self.ten_mins_ago)
+        self.store_event(data, project_id=self.project.id, assert_no_errors=False)
+
+        last_seen_widget = DashboardWidget.objects.create(
+            dashboard=self.dashboard,
+            order=0,
+            title="last seen",
+            display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+            widget_type=DashboardWidgetTypes.DISCOVER,
+            interval="1d",
+            detail={"layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2}},
+        )
+        last_seen_widget_query = DashboardWidgetQuery.objects.create(
+            widget=last_seen_widget,
+            fields=["title", "last_seen()"],
+            columns=[],
+            aggregates=["last_seen()"],
+            conditions="",
+            order=0,
+        )
+
+        _, queried_snuba = _get_and_save_split_decision_for_dashboard_widget(
+            last_seen_widget_query, self.dry_run
+        )
+        last_seen_widget.refresh_from_db()
+        assert not queried_snuba
+
+        assert (
+            last_seen_widget.discover_widget_split is None
+            if self.dry_run
+            else last_seen_widget.discover_widget_split == 100
+        )
+
     @freeze_time("2024-05-01 12:00:00")
     def test_out_of_range_defaults_to_seven_days(self):
         dashboard = Dashboard.objects.create(

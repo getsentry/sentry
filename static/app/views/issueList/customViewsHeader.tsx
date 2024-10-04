@@ -156,6 +156,9 @@ function CustomViewsIssueListHeaderTabsContent({
 
   const getInitialTabKey = () => {
     if (draggableTabs[0].key.startsWith('default')) {
+      if (query) {
+        return TEMPORARY_TAB_KEY;
+      }
       return draggableTabs[0].key;
     }
     if (!query && !sort && !viewId) {
@@ -330,7 +333,7 @@ function CustomViewsIssueListHeaderTabsContent({
       });
     });
 
-    if (viewId.startsWith('_') && currentView) {
+    if (viewId?.startsWith('_') && currentView) {
       const matchingView = newlyCreatedViews.find(
         view =>
           view.id &&

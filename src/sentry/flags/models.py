@@ -13,6 +13,16 @@ class ActionEnum(Enum):
     DELETED = 1
     UPDATED = 2
 
+    @classmethod
+    def to_string(cls, integer):
+        if integer == 0:
+            return "created"
+        if integer == 1:
+            return "deleted"
+        if integer == 2:
+            return "updated"
+        raise ValueError
+
 
 ACTION_MAP = {
     "created": ActionEnum.CREATED.value,
@@ -25,6 +35,16 @@ class CreatedByTypeEnum(Enum):
     EMAIL = 0
     ID = 1
     NAME = 2
+
+    @classmethod
+    def to_string(cls, integer):
+        if integer == 0:
+            return "email"
+        if integer == 1:
+            return "id"
+        if integer == 2:
+            return "name"
+        raise ValueError
 
 
 CREATED_BY_TYPE_MAP = {

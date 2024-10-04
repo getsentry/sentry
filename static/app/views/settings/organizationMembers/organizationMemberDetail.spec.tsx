@@ -149,9 +149,9 @@ describe('OrganizationMemberDetail', function () {
         organization,
       });
 
-      // Should have 4 roles
-      const radios = await screen.findAllByRole('radio');
-      expect(radios).toHaveLength(4);
+      // Should have 5 roles
+      const radios = screen.getAllByRole('radio');
+      expect(radios).toHaveLength(5);
 
       // Click last radio
       await userEvent.click(radios.at(-1) as Element);
@@ -776,7 +776,7 @@ describe('OrganizationMemberDetail', function () {
 
       // Change member to owner
       const orgRoleRadio = screen.getAllByRole('radio');
-      expect(orgRoleRadio).toHaveLength(4);
+      expect(orgRoleRadio).toHaveLength(5);
       await userEvent.click(orgRoleRadio.at(-1) as Element);
       expect(orgRoleRadio.at(-1)).toBeChecked();
 
