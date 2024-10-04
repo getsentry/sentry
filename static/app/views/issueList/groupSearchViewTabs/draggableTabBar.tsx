@@ -222,8 +222,6 @@ export function DraggableTabBar({
         ...location,
         query: {
           ...queryParams,
-          query: duplicatedTab.query,
-          sort: duplicatedTab.querySort,
           viewId: tempId,
         },
       });
