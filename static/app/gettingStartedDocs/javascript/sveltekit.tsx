@@ -1,3 +1,5 @@
+import {Fragment} from 'react';
+
 import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list/';
 import ListItem from 'sentry/components/list/listItem';
@@ -27,19 +29,14 @@ import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
 
-const getInstallConfig = ({
-  isSelfHosted,
-  urlPrefix,
-  organization,
-  projectSlug,
-}: Params) => {
-  const urlParam = !isSelfHosted && urlPrefix ? `--url ${urlPrefix}` : '';
+const getConfigStep = ({isSelfHosted, organization, projectSlug}: Params) => {
+  const urlParam = isSelfHosted ? '' : '--saas';
 
   return [
     {
       type: StepType.INSTALL,
       description: tct(
-        'Configure your app automatically with the [wizardLink:Sentry wizard].',
+        'Configure your app automatically by running the [wizardLink:Sentry wizard] in the root of your project.',
         {
           wizardLink: (
             <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/sveltekit/#install" />
@@ -56,13 +53,31 @@ const getInstallConfig = ({
   ];
 };
 
+const getInstallConfig = (params: Params) => [
+  {
+    type: StepType.INSTALL,
+    configurations: getConfigStep(params),
+  },
+];
+
 const onboarding: OnboardingConfig = {
-  install: (params: Params) => getInstallConfig(params),
+  install: (params: Params) => [
+    {
+      title: t('Automatic Configuration (Recommended)'),
+      configurations: getConfigStep(params),
+    },
+  ],
   configure: () => [
     {
-      type: StepType.CONFIGURE,
-      description: t(
-        'The Sentry wizard will automatically patch your application to configure the Sentry SDK:'
+      title: t('Manual Configuration'),
+      collapsible: true,
+      description: tct(
+        'Alternatively, you can also [manualSetupLink:set up the SDK manually], by following these steps:',
+        {
+          manualSetupLink: (
+            <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/sveltekit/manual-setup/" />
+          ),
+        }
       ),
       configurations: [
         {
@@ -70,11 +85,9 @@ const onboarding: OnboardingConfig = {
             <List symbol="bullet">
               <ListItem>
                 {tct(
-                  'Create or update [hookClientCode:src/hooks.client.js] and [hookServerCode:src/hooks.server.js] with the default [sentryInitCode:Sentry.init] call and SvelteKit hooks handlers.',
+                  'Create or update [code:src/hooks.client.js] and [code:src/hooks.server.js] with the default [code:Sentry.init] call and SvelteKit hooks handlers.',
                   {
-                    hookClientCode: <code />,
-                    hookServerCode: <code />,
-                    sentryInitCode: <code />,
+                    code: <code />,
                   }
                 )}
               </ListItem>
@@ -88,28 +101,55 @@ const onboarding: OnboardingConfig = {
               </ListItem>
               <ListItem>
                 {tct(
-                  'Create [sentryClircCode:.sentryclirc] and [sentryPropertiesCode:sentry.properties] files with configuration for sentry-cli (which is used when automatically uploading source maps).',
+                  'Create [code:.sentryclirc] and [code:sentry.properties] files with configuration for sentry-cli (which is used when automatically uploading source maps).',
                   {
-                    sentryClircCode: <code />,
-                    sentryPropertiesCode: <code />,
+                    code: <code />,
                   }
                 )}
               </ListItem>
             </List>
           ),
-          additionalInfo: tct(
-            'Alternatively, you can also [manualSetupLink:set up the SDK manually].',
-            {
-              manualSetupLink: (
-                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/sveltekit/manual-setup/" />
-              ),
-            }
-          ),
         },
       ],
     },
   ],
-  verify: () => [],
+  verify: () => [
+    {
+      type: StepType.VERIFY,
+      description: (
+        <Fragment>
+          <p>
+            {tct(
+              'Start your development server and visit [code:/sentry-example-page] if you have set it up. Click the button to trigger a test error.',
+              {
+                code: <code />,
+              }
+            )}
+          </p>
+          <p>
+            {t(
+              'Or, trigger a sample error by calling a function that does not exist somewhere in your application.'
+            )}
+          </p>
+        </Fragment>
+      ),
+      configurations: [
+        {
+          code: [
+            {
+              label: 'Javascript',
+              value: 'javascript',
+              language: 'javascript',
+              code: `myUndefinedFunction();`,
+            },
+          ],
+        },
+      ],
+      additionalInfo: t(
+        'If you see an issue in your Sentry dashboard, you have successfully set up Sentry.'
+      ),
+    },
+  ],
 };
 
 const replayOnboarding: OnboardingConfig = {

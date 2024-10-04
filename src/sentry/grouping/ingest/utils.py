@@ -48,7 +48,7 @@ def check_for_group_creation_load_shed(project: Project, event: Event) -> None:
         raise HashDiscarded("Load shedding group creation", reason="load_shed")
 
 
-def check_for_category_mismatch(group: Group) -> bool:
+def is_non_error_type_group(group: Group) -> bool:
     """
     Make sure an error event hasn't hashed to a value assigned to a non-error-type group
     """

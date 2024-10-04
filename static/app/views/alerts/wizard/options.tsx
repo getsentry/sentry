@@ -65,7 +65,7 @@ export enum MEPAlertsDataset {
 export type MetricAlertType = Exclude<AlertType, 'issues' | 'uptime_monitor'>;
 
 export const DatasetMEPAlertQueryTypes: Record<
-  Exclude<Dataset, 'search_issues' | Dataset.SESSIONS>, // IssuePlatform (search_issues) is not used in alerts, so we can exclude it here
+  Exclude<Dataset, Dataset.ISSUE_PLATFORM | Dataset.SESSIONS | Dataset.REPLAYS>, // IssuePlatform (search_issues) is not used in alerts, so we can exclude it here
   MEPAlertsQueryType
 > = {
   [Dataset.ERRORS]: MEPAlertsQueryType.ERROR,
@@ -144,10 +144,12 @@ export const getAlertWizardCategories = (org: Organization) => {
       });
     }
 
-    result.push({
-      categoryHeading: t('Uptime Monitoring'),
-      options: ['uptime_monitor'],
-    });
+    if (org.features.includes('uptime-display-wizard-create')) {
+      result.push({
+        categoryHeading: t('Uptime Monitoring'),
+        options: ['uptime_monitor'],
+      });
+    }
     result.push({
       categoryHeading: hasCustomMetrics(org) ? t('Metrics') : t('Custom'),
       options: [hasCustomMetrics(org) ? 'custom_metrics' : 'custom_transactions'],

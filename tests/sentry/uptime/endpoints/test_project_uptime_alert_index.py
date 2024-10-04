@@ -2,6 +2,8 @@ from unittest import mock
 
 from rest_framework.exceptions import ErrorDetail
 
+from sentry.models.environment import Environment
+from sentry.testutils.helpers import with_feature
 from sentry.uptime.endpoints.validators import MAX_REQUEST_SIZE_BYTES
 from sentry.uptime.models import ProjectUptimeSubscription, ProjectUptimeSubscriptionMode
 from sentry.uptime.subscriptions.subscriptions import DEFAULT_SUBSCRIPTION_TIMEOUT_MS
@@ -15,7 +17,45 @@ class ProjectUptimeAlertIndexBaseEndpointTest(UptimeAlertBaseEndpointTest):
 class ProjectUptimeAlertIndexPostEndpointTest(ProjectUptimeAlertIndexBaseEndpointTest):
     method = "post"
 
+    def test_no_feature(self):
+        self.get_error_response(
+            self.organization.slug,
+            self.project.slug,
+            name="test",
+            owner=f"user:{self.user.id}",
+            url="http://sentry.io",
+            interval_seconds=60,
+            status_code=404,
+        )
+
+    @with_feature("organizations:uptime-api-create-update")
     def test(self):
+        resp = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            name="test",
+            environment="uptime-prod",
+            owner=f"user:{self.user.id}",
+            url="http://sentry.io",
+            interval_seconds=60,
+            body=None,
+        )
+        uptime_monitor = ProjectUptimeSubscription.objects.get(id=resp.data["id"])
+        uptime_subscription = uptime_monitor.uptime_subscription
+        assert uptime_monitor.name == "test"
+        assert uptime_monitor.environment == Environment.get_or_create(
+            project=self.project, name="uptime-prod"
+        )
+        assert uptime_monitor.owner_user_id == self.user.id
+        assert uptime_monitor.owner_team_id is None
+        assert uptime_monitor.mode == ProjectUptimeSubscriptionMode.MANUAL
+        assert uptime_subscription.url == "http://sentry.io"
+        assert uptime_subscription.interval_seconds == 60
+        assert uptime_subscription.timeout_ms == DEFAULT_SUBSCRIPTION_TIMEOUT_MS
+        assert uptime_subscription.body is None
+
+    @with_feature("organizations:uptime-api-create-update")
+    def test_no_environment(self):
         resp = self.get_success_response(
             self.organization.slug,
             self.project.slug,
@@ -28,6 +68,7 @@ class ProjectUptimeAlertIndexPostEndpointTest(ProjectUptimeAlertIndexBaseEndpoin
         uptime_monitor = ProjectUptimeSubscription.objects.get(id=resp.data["id"])
         uptime_subscription = uptime_monitor.uptime_subscription
         assert uptime_monitor.name == "test"
+        assert uptime_monitor.environment is None
         assert uptime_monitor.owner_user_id == self.user.id
         assert uptime_monitor.owner_team_id is None
         assert uptime_monitor.mode == ProjectUptimeSubscriptionMode.MANUAL
@@ -36,10 +77,12 @@ class ProjectUptimeAlertIndexPostEndpointTest(ProjectUptimeAlertIndexBaseEndpoin
         assert uptime_subscription.timeout_ms == DEFAULT_SUBSCRIPTION_TIMEOUT_MS
         assert uptime_subscription.body is None
 
+    @with_feature("organizations:uptime-api-create-update")
     def test_no_owner(self):
         resp = self.get_success_response(
             self.organization.slug,
             self.project.slug,
+            environment=self.environment.name,
             name="test",
             url="http://sentry.io",
             owner=None,
@@ -55,10 +98,25 @@ class ProjectUptimeAlertIndexPostEndpointTest(ProjectUptimeAlertIndexBaseEndpoin
         assert uptime_subscription.interval_seconds == 60
         assert uptime_subscription.timeout_ms == DEFAULT_SUBSCRIPTION_TIMEOUT_MS
 
+        # Test without passing the owner
+        resp = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            environment=self.environment.name,
+            name="test",
+            url="http://getsentry.com",
+            interval_seconds=60,
+        )
+        uptime_monitor = ProjectUptimeSubscription.objects.get(id=resp.data["id"])
+        assert uptime_monitor.owner_user_id is None
+        assert uptime_monitor.owner_team_id is None
+
+    @with_feature("organizations:uptime-api-create-update")
     def test_mode_no_superadmin(self):
         resp = self.get_error_response(
             self.organization.slug,
             self.project.slug,
+            environment=self.environment.name,
             name="test",
             owner=f"user:{self.user.id}",
             url="http://sentry.io",
@@ -70,11 +128,13 @@ class ProjectUptimeAlertIndexPostEndpointTest(ProjectUptimeAlertIndexBaseEndpoin
             "mode": [ErrorDetail(string="Only superusers can modify `mode`", code="invalid")]
         }
 
+    @with_feature("organizations:uptime-api-create-update")
     def test_mode_superadmin(self):
         self.login_as(self.user, superuser=True)
         resp = self.get_success_response(
             self.organization.slug,
             self.project.slug,
+            environment=self.environment.name,
             name="test",
             owner=f"user:{self.user.id}",
             url="http://sentry.io",
@@ -91,10 +151,12 @@ class ProjectUptimeAlertIndexPostEndpointTest(ProjectUptimeAlertIndexBaseEndpoin
         assert uptime_subscription.interval_seconds == 60
         assert uptime_subscription.timeout_ms == DEFAULT_SUBSCRIPTION_TIMEOUT_MS
 
+    @with_feature("organizations:uptime-api-create-update")
     def test_headers_body_method(self):
         resp = self.get_success_response(
             self.organization.slug,
             self.project.slug,
+            environment=self.environment.name,
             name="test",
             owner=f"user:{self.user.id}",
             url="http://sentry.io",
@@ -115,10 +177,12 @@ class ProjectUptimeAlertIndexPostEndpointTest(ProjectUptimeAlertIndexBaseEndpoin
         assert uptime_subscription.body == '{"key": "value"}'
         assert uptime_subscription.headers == [["header", "value"]]
 
+    @with_feature("organizations:uptime-api-create-update")
     def test_headers_body_method_already_exists(self):
         resp = self.get_success_response(
             self.organization.slug,
             self.project.slug,
+            environment=self.environment.name,
             name="test",
             owner=f"user:{self.user.id}",
             url="http://sentry.io",
@@ -132,6 +196,7 @@ class ProjectUptimeAlertIndexPostEndpointTest(ProjectUptimeAlertIndexBaseEndpoin
         resp = self.get_success_response(
             self.organization.slug,
             new_proj.slug,
+            environment=self.environment.name,
             name="test",
             owner=f"user:{self.user.id}",
             url="http://sentry.io",
@@ -146,6 +211,7 @@ class ProjectUptimeAlertIndexPostEndpointTest(ProjectUptimeAlertIndexBaseEndpoin
         resp = self.get_success_response(
             self.organization.slug,
             new_proj.slug,
+            environment=self.environment.name,
             name="test",
             owner=f"user:{self.user.id}",
             url="http://sentry.io",
@@ -159,10 +225,12 @@ class ProjectUptimeAlertIndexPostEndpointTest(ProjectUptimeAlertIndexBaseEndpoin
             newer_uptime_monitor.uptime_subscription_id != new_uptime_monitor.uptime_subscription_id
         )
 
+    @with_feature("organizations:uptime-api-create-update")
     def test_headers_invalid_format(self):
         resp = self.get_error_response(
             self.organization.slug,
             self.project.slug,
+            environment=self.environment.name,
             name="test",
             owner=f"user:{self.user.id}",
             url="http://sentry.io",
@@ -176,10 +244,12 @@ class ProjectUptimeAlertIndexPostEndpointTest(ProjectUptimeAlertIndexBaseEndpoin
             "headers": [ErrorDetail(string="Expected array of header tuples.", code="invalid")]
         }
 
+    @with_feature("organizations:uptime-api-create-update")
     def test_size_too_big(self):
         resp = self.get_error_response(
             self.organization.slug,
             self.project.slug,
+            environment=self.environment.name,
             name="test",
             owner=f"user:{self.user.id}",
             url="http://sentry.io",
@@ -197,6 +267,7 @@ class ProjectUptimeAlertIndexPostEndpointTest(ProjectUptimeAlertIndexBaseEndpoin
             ]
         }
 
+    @with_feature("organizations:uptime-api-create-update")
     def test_over_limit(self):
         with mock.patch(
             "sentry.uptime.subscriptions.subscriptions.MAX_MANUAL_SUBSCRIPTIONS_PER_ORG", new=1
@@ -204,6 +275,7 @@ class ProjectUptimeAlertIndexPostEndpointTest(ProjectUptimeAlertIndexBaseEndpoin
             self.get_success_response(
                 self.organization.slug,
                 self.project.slug,
+                environment=self.environment.name,
                 name="test",
                 url="http://sentry.io",
                 interval_seconds=60,
@@ -212,6 +284,7 @@ class ProjectUptimeAlertIndexPostEndpointTest(ProjectUptimeAlertIndexBaseEndpoin
             self.get_error_response(
                 self.organization.slug,
                 self.project.slug,
+                environment=self.environment.name,
                 name="test",
                 url="http://santry.io",
                 interval_seconds=60,

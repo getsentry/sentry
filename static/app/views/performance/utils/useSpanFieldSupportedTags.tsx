@@ -33,7 +33,7 @@ interface SpanFieldEntry {
   key: string;
   name: string;
 }
-type SpanFieldsResponse = SpanFieldEntry[];
+export type SpanFieldsResponse = SpanFieldEntry[];
 
 const getDynamicSpanFieldsEndpoint = (
   orgSlug: string,
@@ -60,14 +60,12 @@ export function useSpanMetricsFieldSupportedTags(options?: {excludedTags?: strin
   );
 }
 
-export function useSpanFieldCustomTags(options?: {
-  projects?: PageFilters['projects'];
-}): TagCollection {
+export function useSpanFieldCustomTags(options?: {projects?: PageFilters['projects']}) {
   const {projects} = options || {};
   const {selection} = usePageFilters();
   const organization = useOrganization();
 
-  const {data} = useApiQuery<SpanFieldsResponse>(
+  const {data, ...rest} = useApiQuery<SpanFieldsResponse>(
     getDynamicSpanFieldsEndpoint(
       organization.slug,
       projects ?? selection.projects,
@@ -79,7 +77,7 @@ export function useSpanFieldCustomTags(options?: {
     }
   );
 
-  const tags = useMemo(() => {
+  const tags: TagCollection = useMemo(() => {
     if (!data) {
       return {};
     }
@@ -88,16 +86,16 @@ export function useSpanFieldCustomTags(options?: {
     );
   }, [data]);
 
-  return tags;
+  return {...rest, data: tags};
 }
 
 export function useSpanFieldSupportedTags(options?: {
   excludedTags?: string[];
   projects?: PageFilters['projects'];
-}): TagCollection {
+}) {
   const {excludedTags = [], projects} = options || {};
   // we do not yet support span field search by SPAN_AI_PIPELINE_GROUP and SPAN_CATEGORY should not be surfaced to users
-  const staticTags = getSpanFieldSupportedTags(
+  const staticTags: TagCollection = getSpanFieldSupportedTags(
     [
       SpanIndexedField.SPAN_AI_PIPELINE_GROUP,
       SpanIndexedField.SPAN_CATEGORY,
@@ -107,14 +105,14 @@ export function useSpanFieldSupportedTags(options?: {
     DiscoverDatasets.SPANS_INDEXED
   );
 
-  const customTags = useSpanFieldCustomTags({projects});
+  const {data: customTags, ...rest} = useSpanFieldCustomTags({projects});
 
-  const tags = useMemo(() => {
+  const tags: TagCollection = useMemo(() => {
     return {
       ...customTags,
       ...staticTags,
     };
   }, [customTags, staticTags]);
 
-  return tags;
+  return {...rest, data: tags};
 }

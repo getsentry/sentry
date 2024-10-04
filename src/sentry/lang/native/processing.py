@@ -5,6 +5,7 @@ import posixpath
 from collections.abc import Callable, Mapping
 from typing import Any
 
+import sentry_sdk
 from symbolic.debuginfo import normalize_debug_id
 from symbolic.exceptions import ParseDebugIdError
 
@@ -287,6 +288,14 @@ def process_minidump(symbolicator: Symbolicator, data: Any) -> Any:
     if _handle_response_status(data, response):
         _merge_full_response(data, response)
 
+        # Emit Apple symbol stats
+        apple_symbol_stats = response.get("apple_symbol_stats")
+        if apple_symbol_stats:
+            try:
+                emit_apple_symbol_stats(apple_symbol_stats, data)
+            except Exception as e:
+                sentry_sdk.capture_exception(e)
+
     return data
 
 
@@ -301,6 +310,14 @@ def process_applecrashreport(symbolicator: Symbolicator, data: Any) -> Any:
 
     if _handle_response_status(data, response):
         _merge_full_response(data, response)
+
+        # Emit Apple symbol stats
+        apple_symbol_stats = response.get("apple_symbol_stats")
+        if apple_symbol_stats:
+            try:
+                emit_apple_symbol_stats(apple_symbol_stats, data)
+            except Exception as e:
+                sentry_sdk.capture_exception(e)
 
     return data
 
@@ -409,6 +426,14 @@ def process_native_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
     if not _handle_response_status(data, response):
         return data
 
+    # Emit Apple symbol stats
+    apple_symbol_stats = response.get("apple_symbol_stats")
+    if apple_symbol_stats:
+        try:
+            emit_apple_symbol_stats(apple_symbol_stats, data)
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+
     assert len(modules) == len(response["modules"]), (modules, response)
 
     os = get_os_from_event(data)
@@ -453,6 +478,49 @@ def process_native_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
         sinfo.stacktrace["frames"] = new_frames
 
     return data
+
+
+def emit_apple_symbol_stats(apple_symbol_stats, data):
+    os_name = get_path(data, "contexts", "os", "name") or get_path(
+        data, "contexts", "os", "raw_description"
+    )
+    os_version = get_path(data, "contexts", "os", "version")
+
+    if neither := apple_symbol_stats.get("neither"):
+        metrics.incr(
+            "apple_symbol_availability_v2",
+            amount=neither,
+            tags={"availability": "neither", "os_name": os_name, "os_version": os_version},
+            sample_rate=1.0,
+        )
+
+    # TODO: This seems to just be wrong
+    # We want mutual exclusion here, since we don't want to double count. E.g., an event has both symbols, so we
+    # count it both in `both` and `old` or `symx` which makes it impossible for us to know the percentage of events
+    # that matched both.
+    if both := apple_symbol_stats.get("both"):
+        metrics.incr(
+            "apple_symbol_availability_v2",
+            amount=both,
+            tags={"availability": "both", "os_name": os_name, "os_version": os_version},
+            sample_rate=1.0,
+        )
+
+    if old := apple_symbol_stats.get("old"):
+        metrics.incr(
+            "apple_symbol_availability_v2",
+            amount=old,
+            tags={"availability": "old", "os_name": os_name, "os_version": os_version},
+            sample_rate=1.0,
+        )
+
+    if symx := apple_symbol_stats.get("symx"):
+        metrics.incr(
+            "apple_symbol_availability_v2",
+            amount=symx,
+            tags={"availability": "symx", "os_name": os_name, "os_version": os_version},
+            sample_rate=1.0,
+        )
 
 
 def get_native_symbolication_function(

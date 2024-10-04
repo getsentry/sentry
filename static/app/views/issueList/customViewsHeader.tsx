@@ -17,6 +17,7 @@ import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -144,6 +145,7 @@ function CustomViewsIssueListHeaderTabsContent({
         label: name,
         query: viewQuery,
         querySort: viewQuerySort,
+        isCommitted: true,
       };
     }
   );
@@ -154,6 +156,9 @@ function CustomViewsIssueListHeaderTabsContent({
 
   const getInitialTabKey = () => {
     if (draggableTabs[0].key.startsWith('default')) {
+      if (query) {
+        return TEMPORARY_TAB_KEY;
+      }
       return draggableTabs[0].key;
     }
     if (!query && !sort && !viewId) {
@@ -177,6 +182,7 @@ function CustomViewsIssueListHeaderTabsContent({
           label: t('Unsaved'),
           query: query,
           querySort: sort ?? IssueSortOptions.DATE,
+          isCommitted: true,
         }
       : undefined
   );
@@ -189,14 +195,18 @@ function CustomViewsIssueListHeaderTabsContent({
         if (newTabs) {
           updateViews({
             orgSlug: organization.slug,
-            groupSearchViews: newTabs.map(tab => ({
-              // Do not send over an ID if it's a temporary or default tab so that
-              // the backend will save these and generate permanent Ids for them
-              ...(tab.id[0] !== '_' && !tab.id.startsWith('default') ? {id: tab.id} : {}),
-              name: tab.label,
-              query: tab.query,
-              querySort: tab.querySort,
-            })),
+            groupSearchViews: newTabs
+              .filter(tab => tab.isCommitted)
+              .map(tab => ({
+                // Do not send over an ID if it's a temporary or default tab so that
+                // the backend will save these and generate permanent Ids for them
+                ...(tab.id[0] !== '_' && !tab.id.startsWith('default')
+                  ? {id: tab.id}
+                  : {}),
+                name: tab.label,
+                query: tab.query,
+                querySort: tab.querySort,
+              })),
           });
         }
       }, 500),
@@ -292,44 +302,64 @@ function CustomViewsIssueListHeaderTabsContent({
   }, [navigate, organization.slug, query, sort, viewId, tabListState]);
 
   // Update local tabs when new views are received from mutation request
-  useEffect(() => {
-    const currentViewId = viewId;
-    setDraggableTabs(
-      draggableTabs.map(tab => {
+  useEffectAfterFirstRender(() => {
+    const newlyCreatedViews = views.filter(
+      view => !draggableTabs.find(tab => tab.id === view.id)
+    );
+    const currentView = draggableTabs.find(tab => tab.id === viewId);
+
+    setDraggableTabs(oldDraggableTabs => {
+      const assignedIds = new Set();
+      return oldDraggableTabs.map(tab => {
+        // Temp viewIds are prefixed with '_'
         if (tab.id && tab.id[0] === '_') {
-          // Temp viewIds are prefixed with '_'
-          views.forEach(view => {
-            if (
+          const matchingView = newlyCreatedViews.find(
+            view =>
               view.id &&
+              !assignedIds.has(view.id) &&
               tab.query === view.query &&
               tab.querySort === view.querySort &&
               tab.label === view.name
-            ) {
-              if (tab.id === currentViewId) {
-                navigate(
-                  normalizeUrl({
-                    ...location,
-                    query: {
-                      ...queryParamsWithPageFilters,
-                      viewId: view.id,
-                    },
-                  }),
-                  {replace: true}
-                );
-              }
-              tab.id = view.id;
-            }
-          });
+          );
+          if (matchingView?.id) {
+            assignedIds.add(matchingView.id);
+            return {
+              ...tab,
+              id: matchingView.id,
+            };
+          }
         }
         return tab;
-      })
-    );
+      });
+    });
+
+    if (viewId?.startsWith('_') && currentView) {
+      const matchingView = newlyCreatedViews.find(
+        view =>
+          view.id &&
+          currentView.query === view.query &&
+          currentView.querySort === view.querySort &&
+          currentView.label === view.name
+      );
+      if (matchingView?.id) {
+        navigate(
+          normalizeUrl({
+            ...location,
+            query: {
+              ...queryParamsWithPageFilters,
+              viewId: matchingView.id,
+            },
+          }),
+          {replace: true}
+        );
+      }
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [views]);
 
   useEffect(() => {
     if (viewId?.startsWith('_')) {
-      if (draggableTabs.find(tab => tab.id === viewId)?.label.endsWith('(Copy)')) {
+      if (draggableTabs.find(tab => tab.id === viewId)?.isCommitted) {
         return;
       }
       // If the user types in query manually while the new view flow is showing,
@@ -342,6 +372,7 @@ function CustomViewsIssueListHeaderTabsContent({
             ? {
                 ...tab,
                 unsavedChanges: [query, sort ?? IssueSortOptions.DATE],
+                isCommitted: true,
               }
             : tab
         );

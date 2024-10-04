@@ -121,6 +121,13 @@ class AlertRuleIndexMixin(Endpoint):
         if not serializer.is_valid():
             raise ValidationError(serializer.errors)
 
+        # if there are no triggers, then the serializer will raise an error
+        for trigger in data["triggers"]:
+            if not trigger.get("actions", []):
+                raise ValidationError(
+                    "Each trigger must have an associated action for this alert to fire."
+                )
+
         trigger_sentry_app_action_creators_for_incidents(serializer.validated_data)
         if get_slack_actions_with_async_lookups(organization, request.user, request.data):
             # need to kick off an async job for Slack
@@ -216,6 +223,9 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
                 ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE,
             ),
         )
+
+        if not features.has("organizations:uptime-rule-api", organization):
+            uptime_rules = ProjectUptimeSubscription.objects.none()
 
         if not features.has("organizations:performance-view", organization):
             # Filter to only error alert rules
