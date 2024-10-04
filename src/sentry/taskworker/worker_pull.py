@@ -14,6 +14,7 @@ from sentry_protos.sentry.v1alpha.taskworker_pb2 import (
     TASK_ACTIVATION_STATUS_FAILURE,
     TASK_ACTIVATION_STATUS_RETRY,
     GetTaskResponse,
+    TaskActivation,
 )
 
 from sentry.taskworker import worker_process
@@ -52,10 +53,24 @@ class Worker:
     def start(self) -> None:
         self.do_imports()
         max_task_count = self.options.get("max_task_count", None)
+        next_task = None
+        processing_deadline = None
         try:
             with ThreadPoolExecutor(max_workers=2) as executor:
                 while True:
-                    self.process_tasks(self.namespace, executor)
+                    if next_task:
+                        task = next_task
+                        next_task = None
+                    else:
+                        (task, processing_deadline) = self.fetch_task()
+
+                    if not task:
+                        time.sleep(1)
+                        continue
+
+                    next_task, processing_deadline = self.process_task(
+                        executor, task, processing_deadline
+                    )
 
                     if max_task_count is not None and max_task_count <= self.__execution_count:
                         self.exitcode = 1
@@ -69,27 +84,33 @@ class Worker:
         except Exception:
             logger.exception("Worker process crashed")
 
-    def process_tasks(self, namespace: TaskNamespace, executor: Executor) -> None:
+    def fetch_task(self) -> tuple[TaskActivation | None, datetime | None]:
         from sentry.taskworker.service.client import task_client
 
         try:
-            response: GetTaskResponse | None = task_client.get_task(topic=namespace.topic)
+            response: GetTaskResponse | None = task_client.get_task(topic=self.namespace.topic)
         except grpc.RpcError:
             logger.info("get_task failed. Retrying in 1 second")
-            time.sleep(1)
-            return
+            return (None, None)
 
         if not response:
             logger.info("No tasks")
-            time.sleep(1)
-            return
+            return (None, None)
 
-        activation = response.task
-        processing_deadline = response.processing_deadline
+        deadline = None
+        if response.processing_deadline:
+            deadline = response.processing_deadline.ToDatetime()
+
+        return (response.task, deadline)
+
+    def process_task(
+        self, executor: Executor, activation: TaskActivation, processing_deadline: datetime | None
+    ) -> tuple[TaskActivation | None, datetime | None]:
+        from sentry.taskworker.service.client import task_client
 
         if not self.namespace.contains(activation.taskname):
             logger.exception("Could not resolve task with name %s", activation.taskname)
-            return
+            return (None, None)
 
         # TODO: Check idempotency
         task_added_time = activation.received_at.seconds
@@ -97,7 +118,7 @@ class Worker:
         next_state = TASK_ACTIVATION_STATUS_FAILURE
         try:
             task_data_parameters = orjson.loads(activation.parameters)
-            processing_timeout = (processing_deadline.ToDatetime() - datetime.now()).total_seconds()
+            processing_timeout = (processing_deadline - datetime.now()).total_seconds()
             future = executor.submit(
                 worker_process._process_activation,
                 self.options["namespace"],
@@ -133,13 +154,20 @@ class Worker:
             logger.info(
                 "taskworker.task.complete", extra={"task": activation.taskname, "id": activation.id}
             )
-            task_client.complete_task(task_id=activation.id)
+            response = task_client.complete_task(task_id=activation.id)
         else:
             logger.info(
                 "taskworker.task.change_status",
                 extra={"task": activation.taskname, "state": next_state},
             )
-            task_client.set_task_status(
+            response = task_client.set_task_status(
                 task_id=activation.id,
                 task_status=next_state,
             )
+
+        if response.HasField("task") and response.HasField("processing_deadline"):
+            new_task = response.task
+            new_processing_deadline = response.processing_deadline.ToDatetime()
+            return new_task, new_processing_deadline
+
+        return None, None
