@@ -220,9 +220,7 @@ class IPv4Scalar(GenericBase):
     def visit_neq(expression: Expression, value: str | None) -> Condition:
         if value is None:
             return Condition(Function("isNull", parameters=[expression]), Op.EQ, 0)
-        return Condition(
-            expression, Op.NEQ, Function("toIPv4", parameters=[value]) if value else None
-        )
+        return Condition(expression, Op.NEQ, Function("toIPv4", parameters=[value]))
 
     @staticmethod
     def visit_in(expression: Expression, value: list[str | None]) -> Condition:
