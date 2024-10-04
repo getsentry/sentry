@@ -72,7 +72,12 @@ export function EventGraph({group, groupStats, searchQuery}: EventGraphProps) {
     false,
     hasDatasetSelector(organization) ? SavedQueryDatasets.ERRORS : undefined
   );
-  const chartZoomProps = useChartZoom({saveOnZoom: true, router});
+  const chartZoomProps = useChartZoom({
+    saveOnZoom: true,
+    router,
+    start: eventView.start,
+    end: eventView.end,
+  });
 
   const series = useMemo((): BarChartSeries[] => {
     const seriesData: BarChartSeries[] = [];
