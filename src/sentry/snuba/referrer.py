@@ -321,6 +321,9 @@ class Referrer(Enum):
     API_PERFORMANCE_GENERIC_WIDGET_CHART_SLOW_RESOURCE_OPS = (
         "api.performance.generic-widget-chart.slow-resource-ops"
     )
+    API_PERFORMANCE_GENERIC_WIDGET_CHART_SLOW_SCREENS_BY_TTID = (
+        "api.performance.generic-widget-chart.slow-screens-by-ttid"
+    )
     API_PERFORMANCE_GENERIC_WIDGET_CHART_TPM_AREA_METRICS_ENHANCED = (
         "api.performance.generic-widget-chart.tpm-area.metrics-enhanced"
     )
