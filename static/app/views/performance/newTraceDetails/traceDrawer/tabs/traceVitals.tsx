@@ -30,6 +30,7 @@ export function TraceVitals(props: TraceVitalsProps) {
     <TraceDrawerComponents.DetailContainer>
       {measurements.map(([node, vital]) => {
         const op = isTransactionNode(node) ? node.value['transaction.op'] : '';
+        const transaction = isTransactionNode(node) ? node.value.transaction : '';
         const project = projects.find(p => p.slug === node.metadata.project_slug);
 
         return (
@@ -45,7 +46,15 @@ export function TraceVitals(props: TraceVitalsProps) {
                 </Tooltip>
                 <div>
                   <div>{t('transaction')}</div>
-                  <TraceDrawerComponents.TitleOp text={op} />
+                  <TraceDrawerComponents.TitleOp
+                    text={
+                      transaction && op
+                        ? `${op} - ${transaction}`
+                        : transaction
+                          ? transaction
+                          : op
+                    }
+                  />
                 </div>
               </TraceDrawerComponents.Title>
             </TraceDrawerComponents.HeaderContainer>
