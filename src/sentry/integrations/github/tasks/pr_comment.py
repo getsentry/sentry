@@ -9,6 +9,7 @@ from django.db import connection
 from snuba_sdk import Column, Condition, Direction, Entity, Function, Op, OrderBy, Query
 from snuba_sdk import Request as SnubaRequest
 
+from sentry import features
 from sentry.constants import ObjectStatus
 from sentry.integrations.github.constants import ISSUE_LOCKED_ERROR_MESSAGE, RATE_LIMITED_MESSAGE
 from sentry.integrations.github.tasks.utils import PullRequestIssue
@@ -215,6 +216,22 @@ def github_comment_workflow(pullrequest_id: int, project_id: int):
 
     top_24_issues = issue_list[:24]  # 24 is the P99 for issues-per-PR
 
+    enabled_copilot = features.has("projects:ai-autofix", project) or features.has(
+        "organizations:autofix", organization
+    )
+    github_copilot_actions = (
+        [
+            {
+                "name": f"Root cause issue {i} with Sentry",
+                "type": "copilot-chat",
+                "prompt": f"@sentry root cause issue {str(issue_id)} with PR URL https://github.com/{repo.name}/pull/{str(pullrequest_id)}",
+            }
+            for i, issue_id in enumerate(top_24_issues)
+        ]
+        if enabled_copilot
+        else None
+    )
+
     try:
         installation.create_or_update_comment(
             repo=repo,
@@ -223,6 +240,7 @@ def github_comment_workflow(pullrequest_id: int, project_id: int):
             pullrequest_id=pullrequest_id,
             issue_list=top_24_issues,
             metrics_base=MERGED_PR_METRICS_BASE,
+            github_copilot_actions=github_copilot_actions,
         )
     except ApiError as e:
         cache.delete(cache_key)
