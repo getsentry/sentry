@@ -1,11 +1,14 @@
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import AutofixInsightCards from 'sentry/components/events/autofix/autofixInsightCards';
 import type {AutofixInsight} from 'sentry/components/events/autofix/types';
 
 jest.mock('sentry/utils/marked', () => ({
   singleLineRenderer: jest.fn(text => text),
 }));
+
+jest.mock('sentry/actionCreators/indicator');
 
 const sampleInsights: AutofixInsight[] = [
   {
@@ -60,6 +63,12 @@ const sampleRepos = [
   },
 ];
 
+beforeEach(() => {
+  (addSuccessMessage as jest.Mock).mockClear();
+  (addErrorMessage as jest.Mock).mockClear();
+  MockApiClient.clearMockResponses();
+});
+
 describe('AutofixInsightCards', () => {
   const renderComponent = (props = {}) => {
     return render(
@@ -68,6 +77,9 @@ describe('AutofixInsightCards', () => {
         repos={sampleRepos}
         hasStepAbove={false}
         hasStepBelow={false}
+        groupId="1"
+        runId="1"
+        stepIndex={0}
         {...props}
       />
     );
@@ -143,5 +155,112 @@ describe('AutofixInsightCards', () => {
     expect(screen.getByText('Sample insight 1')).toBeInTheDocument();
     expect(screen.getByText('User message')).toBeInTheDocument();
     expect(screen.getByText('Another insight')).toBeInTheDocument();
+  });
+
+  it('renders "Rethink from here" buttons', () => {
+    renderComponent();
+    const rethinkButtons = screen.getAllByText('Rethink from here');
+    expect(rethinkButtons.length).toBeGreaterThan(0);
+  });
+
+  it('shows rethink input overlay when "Rethink from here" is clicked', async () => {
+    renderComponent();
+    const rethinkButton = screen.getAllByText('Rethink from here')[0];
+    await userEvent.click(rethinkButton);
+    expect(screen.getByPlaceholderText('Say something...')).toBeInTheDocument();
+  });
+
+  it('hides rethink input overlay when clicked outside', async () => {
+    renderComponent();
+    const rethinkButton = screen.getAllByText('Rethink from here')[0];
+    await userEvent.click(rethinkButton);
+    expect(screen.getByPlaceholderText('Say something...')).toBeInTheDocument();
+
+    await userEvent.click(document.body);
+    expect(screen.queryByPlaceholderText('Say something...')).not.toBeInTheDocument();
+  });
+
+  it('submits rethink request when form is submitted', async () => {
+    const mockApi = MockApiClient.addMockResponse({
+      url: '/issues/1/autofix/update/',
+      method: 'POST',
+    });
+
+    renderComponent();
+    const rethinkButton = screen.getAllByText('Rethink from here')[0];
+    await userEvent.click(rethinkButton);
+
+    const input = screen.getByPlaceholderText('Say something...');
+    await userEvent.type(input, 'Rethink this part');
+
+    const submitButton = screen.getByLabelText(
+      'Restart analysis from this point in the chain'
+    );
+    await userEvent.click(submitButton);
+
+    expect(mockApi).toHaveBeenCalledWith(
+      '/issues/1/autofix/update/',
+      expect.objectContaining({
+        method: 'POST',
+        data: expect.objectContaining({
+          run_id: '1',
+          payload: expect.objectContaining({
+            type: 'restart_from_point_with_feedback',
+            message: 'Rethink this part',
+            step_index: 0,
+            retain_insight_card_index: null,
+          }),
+        }),
+      })
+    );
+  });
+
+  it('shows success message after successful rethink submission', async () => {
+    MockApiClient.addMockResponse({
+      url: '/issues/1/autofix/update/',
+      method: 'POST',
+    });
+
+    renderComponent();
+    const rethinkButton = screen.getAllByText('Rethink from here')[0];
+    await userEvent.click(rethinkButton);
+
+    const input = screen.getByPlaceholderText('Say something...');
+    await userEvent.type(input, 'Rethink this part');
+
+    const submitButton = screen.getByLabelText(
+      'Restart analysis from this point in the chain'
+    );
+    await userEvent.click(submitButton);
+
+    await waitFor(() => {
+      expect(addSuccessMessage).toHaveBeenCalledWith("Thanks, I'll rethink this...");
+    });
+  });
+
+  it('shows error message after failed rethink submission', async () => {
+    MockApiClient.addMockResponse({
+      url: '/issues/1/autofix/update/',
+      method: 'POST',
+      statusCode: 500,
+    });
+
+    renderComponent();
+    const rethinkButton = screen.getAllByText('Rethink from here')[0];
+    await userEvent.click(rethinkButton);
+
+    const input = screen.getByPlaceholderText('Say something...');
+    await userEvent.type(input, 'Rethink this part');
+
+    const submitButton = screen.getByLabelText(
+      'Restart analysis from this point in the chain'
+    );
+    await userEvent.click(submitButton);
+
+    await waitFor(() => {
+      expect(addErrorMessage).toHaveBeenCalledWith(
+        'Something went wrong when sending Autofix your message.'
+      );
+    });
   });
 });

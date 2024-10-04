@@ -114,6 +114,11 @@ function AutofixMessageBox({
   const [message, setMessage] = useState('');
   const {mutate: send} = useSendMessage({groupId, runId});
 
+  isDisabled =
+    isDisabled ||
+    step?.status === 'ERROR' ||
+    (step?.type === AutofixStepType.ROOT_CAUSE_ANALYSIS && step.causes?.length === 0);
+
   const handleSend = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (message.trim() !== '' || allowEmptyMessage) {
