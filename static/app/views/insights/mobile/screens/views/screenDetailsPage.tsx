@@ -99,6 +99,21 @@ export function ScreenDetailsPage() {
     });
   }
 
+  const tabList = (
+    <TabList hideBorder>
+      {tabs.map(tab => {
+        const visible =
+          tab.feature === undefined || organization.features?.includes(tab.feature);
+        return (
+          <TabList.Item key={tab.key} hidden={!visible} textValue={tab.label}>
+            {tab.label}
+            {tab.alpha && <FeatureBadge type="alpha" variant={'badge'} />}
+          </TabList.Item>
+        );
+      })}
+    </TabList>
+  );
+
   return (
     <PageFiltersContainer>
       <SentryDocumentTitle title={t('Mobile Screens')} orgSlug={organization.slug} />
@@ -116,47 +131,17 @@ export function ScreenDetailsPage() {
                     {isProjectCrossPlatform && <PlatformSelector />}
                   </ButtonBar>
                 </Layout.HeaderActions>
-
-                <TabList hideBorder>
-                  {tabs.map(tab => {
-                    const visible =
-                      tab.feature === undefined ||
-                      organization.features?.includes(tab.feature);
-                    return (
-                      <TabList.Item key={tab.key} hidden={!visible} textValue={tab.label}>
-                        {tab.label}
-                        {tab.alpha && <FeatureBadge type="alpha" variant={'badge'} />}
-                      </TabList.Item>
-                    );
-                  })}
-                </TabList>
+                {tabList}
               </Layout.Header>
             )}
 
             {isInDomainView && (
-              <Layout.Header>
-                <MobileHeader module={ModuleName.MOBILE_SCREENS} hideTabs />
-                <Layout.HeaderActions>
-                  <ButtonBar gap={1}>
-                    {isProjectCrossPlatform && <PlatformSelector />}
-                  </ButtonBar>
-                </Layout.HeaderActions>
-
-                {/* TODO - There's two sets of tabs here, we'll have to do some UI work here */}
-                <TabList hideBorder>
-                  {tabs.map(tab => {
-                    const visible =
-                      tab.feature === undefined ||
-                      organization.features?.includes(tab.feature);
-                    return (
-                      <TabList.Item key={tab.key} hidden={!visible} textValue={tab.label}>
-                        {tab.label}
-                        {tab.alpha && <FeatureBadge type="alpha" variant={'badge'} />}
-                      </TabList.Item>
-                    );
-                  })}
-                </TabList>
-              </Layout.Header>
+              <MobileHeader
+                module={ModuleName.MOBILE_SCREENS}
+                hideDefaultTabs
+                tabs={{tabList, value: selectedTabKey, onTabChange: handleTabChange}}
+                headerActions={isProjectCrossPlatform && <PlatformSelector />}
+              />
             )}
             <Layout.Body>
               <Layout.Main fullWidth>
