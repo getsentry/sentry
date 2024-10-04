@@ -91,7 +91,7 @@ jobs:
       - name: Bring up devservices
         run: |
           docker network create sentry
-          docker compose -f devservices/docker-compose-testing.yml up -d redis postgres snuba chartcuterie
+          docker compose -f devservices/docker-compose-testing.yml up -d redis postgres snuba clickhouse chartcuterie
 
       - name: Run acceptance tests (#${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
         run: make run-acceptance
