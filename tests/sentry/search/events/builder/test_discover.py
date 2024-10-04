@@ -498,12 +498,7 @@ class DiscoverQueryBuilderTest(TestCase):
         self.assertCountEqual(
             query.where,
             [
-                Or(
-                    conditions=[
-                        Condition(Function("isNull", [frames_frozen_rate]), Op.EQ, 1),
-                        Condition(frames_frozen_rate, Op.NEQ, ""),
-                    ]
-                ),
+                Condition(Function("isNull", [frames_frozen_rate]), Op.EQ, 0),
                 *self.default_conditions,
             ],
         )
