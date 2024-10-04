@@ -46,7 +46,9 @@ export function TraceVitals(props: TraceVitalsProps) {
                 </Tooltip>
                 <div>
                   <div>{t('transaction')}</div>
-                  <TraceDrawerComponents.TitleOp text={op + ' - ' + transaction} />
+                  <TraceDrawerComponents.TitleOp
+                    text={transaction ? `${op} - ${transaction}` : op}
+                  />
                 </div>
               </TraceDrawerComponents.Title>
             </TraceDrawerComponents.HeaderContainer>
