@@ -119,6 +119,7 @@ export function EventGraph({group, groupStats, searchQuery}: EventGraphProps) {
 
   const legend = Legend({
     theme: theme,
+    icon: 'path://M 10 10 H 500 V 9000 H 10 L 10 10',
     orient: 'horizontal',
     align: 'left',
     show: true,
