@@ -205,11 +205,7 @@ export function CacheLandingPage() {
         </Layout.Header>
       )}
 
-      {isInDomainView && (
-        <Layout.Header>
-          <BackendHeader module={ModuleName.CACHE} />
-        </Layout.Header>
-      )}
+      {isInDomainView && <BackendHeader module={ModuleName.CACHE} />}
 
       <Layout.Body>
         <Layout.Main fullWidth>
