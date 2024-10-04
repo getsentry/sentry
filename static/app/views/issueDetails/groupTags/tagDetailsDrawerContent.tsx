@@ -1,22 +1,29 @@
 import {Fragment, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import type {LocationDescriptor} from 'history';
 
 import {useFetchIssueTag, useFetchIssueTagValues} from 'sentry/actionCreators/group';
+import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
+import {DeviceName} from 'sentry/components/deviceName';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import UserBadge from 'sentry/components/idBadge/userBadge';
 import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import TimeSince from 'sentry/components/timeSince';
-import {IconArrow, IconEllipsis} from 'sentry/icons';
+import {IconArrow, IconEllipsis, IconMail, IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group, Tag, TagValue} from 'sentry/types/group';
 import {percent} from 'sentry/utils';
 import {parseCursor} from 'sentry/utils/cursor';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
+import {isUrl} from 'sentry/utils/string/isUrl';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
@@ -28,6 +35,7 @@ const DEFAULT_SORT: TagSort = 'count';
 
 export function TagDetailsDrawerContent({group}: {group: Group}) {
   const location = useLocation();
+  const navigate = useNavigate();
   const organization = useOrganization();
   const {tagKey} = useParams<{tagKey: string}>();
   const sortArrow = <IconArrow color="gray300" size="xs" direction="down" />;
@@ -37,27 +45,34 @@ export function TagDetailsDrawerContent({group}: {group: Group}) {
 
   const {
     data: tagValues,
-    isError: tagValuesListIsError,
+    isError: tagValuesIsError,
+    isPending: tagValuesIsPending,
     getResponseHeader,
   } = useFetchIssueTagValues({
     orgSlug: organization.slug,
     groupId: group.id,
     tagKey,
     sort,
-    cursor: location.query.cursor as string | undefined,
+    cursor: location.query.tagDrawerCursor as string | undefined,
   });
 
-  const {data: tag, isError: tagIsError} = useFetchIssueTag({
+  const {
+    data: tag,
+    isError: tagIsError,
+    isPending: tagIsPending,
+  } = useFetchIssueTag({
     orgSlug: organization.slug,
     groupId: group.id,
     tagKey,
   });
 
-  const isError = tagIsError || tagValuesListIsError;
+  const isError = tagValuesIsError || tagIsError;
+  const isPending = tagValuesIsPending || tagIsPending;
 
-  const currentCursor = parseCursor(location.query?.cursor);
+  const currentCursor = parseCursor(location.query?.tagDrawerCursor);
   const start = currentCursor?.offset ?? 0;
   const pageCount = tagValues?.length ?? 0;
+
   const {cursor: _cursor, page: _page, ...currentQuery} = location.query;
 
   const paginationCaption = tct('Showing [start]-[end] of [count]', {
@@ -65,6 +80,10 @@ export function TagDetailsDrawerContent({group}: {group: Group}) {
     end: (start + pageCount).toLocaleString(),
     count: (tag?.uniqueValues ?? 0).toLocaleString(),
   });
+
+  if (isPending) {
+    return <LoadingIndicator />;
+  }
 
   if (isError) {
     return <LoadingError message={t('There was an error loading tag details')} />;
@@ -81,7 +100,7 @@ export function TagDetailsDrawerContent({group}: {group: Group}) {
                 pathname: location.pathname,
                 query: {
                   ...currentQuery,
-                  cursor: undefined,
+                  tagDrawerCursor: undefined,
                   tagDrawerSort: 'date',
                 },
               }}
@@ -94,7 +113,7 @@ export function TagDetailsDrawerContent({group}: {group: Group}) {
                 pathname: location.pathname,
                 query: {
                   ...currentQuery,
-                  cursor: undefined,
+                  tagDrawerCursor: undefined,
                   tagDrawerSort: 'count',
                 },
               }}
@@ -105,14 +124,28 @@ export function TagDetailsDrawerContent({group}: {group: Group}) {
             <ColumnTitle>{t('Percentage')}</ColumnTitle>
           </Header>
           <Body>
-            {tagValues.map(tv => (
-              <TagDetailsRow key={tv.key} group={group} tag={tag} tagValue={tv} />
+            {tagValues.map((tv, i) => (
+              <TagDetailsRow
+                key={`${tv.value}-${i}`}
+                group={group}
+                tag={tag}
+                tagValue={tv}
+              />
             ))}
           </Body>
         </Table>
       )}
       <Pagination
         caption={paginationCaption}
+        onCursor={(cursor, path, query) =>
+          navigate({
+            pathname: path,
+            query: {
+              ...query,
+              tagDrawerCursor: cursor,
+            },
+          })
+        }
         size="xs"
         pageLinks={getResponseHeader?.('Link')}
       />
@@ -134,23 +167,23 @@ function TagDetailsRow({
   const key = tagValue.key ?? tag.key;
   const query = {query: tagValue.query || `${key}:"${tagValue.value}"`};
   const percentage = tag.totalValues ? percent(tagValue.count, tag.totalValues) : NaN;
-  const displayPercentage =
-    !isNaN(percentage) && percentage < 1 ? '<1%' : `${percentage.toFixed(0)}%`;
   const eventView = useIssueDetailsEventView({group, queryProps: query});
+  const allEventsLocation = {
+    pathname: `/organizations/${organization.slug}/issues/${group.id}/events/`,
+    query,
+  };
 
   return (
     <Row onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)}>
-      <Value>{tagValue.value}</Value>
-      <Value>
-        <TimeSince date={tagValue.lastSeen} />
-      </Value>
-      <Value>{tagValue.count.toLocaleString()}</Value>
+      <TagDetailsValue
+        valueLocation={allEventsLocation}
+        tagKey={key}
+        tagValue={tagValue}
+      />
+      <OverflowTimeSince date={tagValue.lastSeen} />
+      <div>{tagValue.count.toLocaleString()}</div>
       {!isNaN(percentage) ? (
-        <TagBar
-          style={{height: space(2)}}
-          displayPercentage={displayPercentage}
-          widthPercent={percentage}
-        />
+        <TagBar style={{height: space(2)}} percentage={percentage} />
       ) : (
         '--'
       )}
@@ -162,7 +195,7 @@ function TagDetailsRow({
             isHidden={!isHovered}
             size="xs"
             icon={<IconEllipsis />}
-            aria-label={t('Tag Details Actions Menu')}
+            aria-label={t('Tag Value Actions Menu')}
           />
         )}
         items={[
@@ -179,10 +212,7 @@ function TagDetailsRow({
           {
             key: 'view-events',
             label: t('View other events with this tag value'),
-            to: {
-              pathname: `/organizations/${organization.slug}/issues/${group.id}/events/`,
-              query,
-            },
+            to: allEventsLocation,
           },
           {
             key: 'view-issues',
@@ -198,6 +228,43 @@ function TagDetailsRow({
   );
 }
 
+function TagDetailsValue({
+  valueLocation,
+  tagKey,
+  tagValue,
+}: {
+  tagKey: string;
+  tagValue: TagValue;
+  valueLocation: LocationDescriptor;
+}) {
+  const valueComponent =
+    tagKey === 'user' ? (
+      <UserBadge user={{...tagValue, id: tagValue.id ?? ''}} avatarSize={20} hideEmail />
+    ) : (
+      <DeviceName value={tagValue.value} />
+    );
+
+  return (
+    <Value>
+      <ValueLink to={valueLocation}>{valueComponent}</ValueLink>
+      {tagValue?.email && (
+        <IconLink to={`mailto:${tagValue.email}`}>
+          <IconMail size="xs" color="gray300" />
+        </IconLink>
+      )}
+      {isUrl(tagValue.value) && (
+        <ExternalLinkbutton
+          priority="link"
+          icon={<IconOpen />}
+          aria-label="Open link"
+          size="xs"
+          onClick={() => openNavigateToExternalLinkModal({linkText: tagValue.value})}
+        />
+      )}
+    </Value>
+  );
+}
+
 const Table = styled('div')`
   display: grid;
   grid-template-columns: repeat(3, auto) 1fr auto;
@@ -207,11 +274,16 @@ const Table = styled('div')`
 `;
 
 const ColumnTitle = styled('div')`
+  white-space: nowrap;
   color: ${p => p.theme.subText};
   font-weight: ${p => p.theme.fontWeightBold};
 `;
 
 const ColumnSort = styled(Link)`
+  display: flex;
+  gap: ${space(0.5)};
+  align-items: center;
+  white-space: nowrap;
   color: ${p => p.theme.subText};
   font-weight: ${p => p.theme.fontWeightBold};
   text-decoration: underline;
@@ -245,7 +317,29 @@ const Row = styled(Body)`
   padding: ${space(0.25)} ${space(1)};
 `;
 
-const Value = styled('div')``;
+const Value = styled('div')`
+  display: flex;
+  gap: ${space(0.5)};
+  align-items: center;
+`;
+
+const ValueLink = styled(Link)`
+  color: ${p => p.theme.textColor};
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-decoration-color: ${p => p.theme.subText};
+`;
+
+const IconLink = styled(Link)`
+  display: block;
+  line-height: 0;
+`;
+
+const OverflowTimeSince = styled(TimeSince)`
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+`;
 
 // We need to do the hiding here so that focus styles from the `Button` component take precedent
 const ActionButton = styled(Button)<{isHidden: boolean}>`
@@ -256,4 +350,8 @@ const ActionButton = styled(Button)<{isHidden: boolean}>`
       color: transparent;
       background: transparent;
     `}
+`;
+
+const ExternalLinkbutton = styled(Button)`
+  color: ${p => p.theme.subText};
 `;

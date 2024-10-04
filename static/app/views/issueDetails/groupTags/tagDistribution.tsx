@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {type CSSProperties, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from 'sentry/components/button';
@@ -12,9 +12,11 @@ import {percent} from 'sentry/utils';
 import {useLocation} from 'sentry/utils/useLocation';
 import type {GroupTag} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
+import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
 export function TagDistribution({tag}: {tag: GroupTag}) {
   const location = useLocation();
+  const {baseUrl} = useGroupDetailsRoute();
   const [isHovered, setIsHovered] = useState(false);
 
   return (
@@ -35,40 +37,56 @@ export function TagDistribution({tag}: {tag: GroupTag}) {
         </TagDetailsButton>
       </TagHeader>
       <TagValueContent>
-        {tag.topValues.map((tagValue, tagValueIdx) => {
-          const percentage = percent(tagValue.count, tag.totalValues);
-          const displayPercentage = percentage < 1 ? '<1%' : `${percentage.toFixed(0)}%`;
-          return (
-            <TagValueRow key={tagValueIdx}>
-              <Tooltip delay={300} title={tagValue.name} skipWrapper>
-                <TagValue
-                  to={{
-                    pathname: `${location.pathname}${TabPaths[Tab.EVENTS]}`,
-                    query: {
-                      ...location.query,
-                      query: tagValue.query || `${tag.key}:"${tagValue.value}"`,
-                    },
-                  }}
-                >
-                  {tag.key === 'release' ? (
-                    <Version version={tagValue.name} anchor={false} />
-                  ) : (
-                    <DeviceName value={tagValue.name} />
-                  )}
-                </TagValue>
-              </Tooltip>
-              <Tooltip
-                delay={300}
-                title={`${tagValue.count} / ${tag.totalValues} `}
-                skipWrapper
+        {tag.topValues.map((tagValue, tagValueIdx) => (
+          <TagValueRow key={tagValueIdx}>
+            <Tooltip delay={300} title={tagValue.name} skipWrapper>
+              <TagValue
+                to={{
+                  pathname: `${baseUrl}${TabPaths[Tab.EVENTS]}`,
+                  query: {
+                    ...location.query,
+                    query: tagValue.query || `${tag.key}:"${tagValue.value}"`,
+                  },
+                }}
               >
-                <TagBar widthPercent={percentage} displayPercentage={displayPercentage} />
-              </Tooltip>
-            </TagValueRow>
-          );
-        })}
+                {tag.key === 'release' ? (
+                  <Version version={tagValue.name} anchor={false} />
+                ) : (
+                  <DeviceName value={tagValue.name} />
+                )}
+              </TagValue>
+            </Tooltip>
+            <Tooltip
+              delay={300}
+              title={`${tagValue.count} / ${tag.totalValues} `}
+              skipWrapper
+            >
+              <TagBar percentage={percent(tagValue.count, tag.totalValues)} />
+            </Tooltip>
+          </TagValueRow>
+        ))}
       </TagValueContent>
     </div>
+  );
+}
+
+export function TagBar({
+  percentage,
+  ...props
+}: {
+  percentage: number;
+  className?: string;
+  style?: CSSProperties;
+}) {
+  const displayPercentage = percentage < 1 ? '<1%' : `${percentage.toFixed(0)}%`;
+  return (
+    <TagBarContainer
+      displayPercentage={displayPercentage}
+      widthPercent={percentage}
+      {...props}
+    >
+      <TagBarValue>{displayPercentage}</TagBarValue>
+    </TagBarContainer>
   );
 }
 
@@ -117,12 +135,14 @@ const TagValue = styled(Link)`
   max-width: calc(100% - ${space(2)});
 `;
 
-export const TagBar = styled('div')<{displayPercentage: string; widthPercent: number}>`
+const TagBarContainer = styled('div')<{displayPercentage: string; widthPercent: number}>`
   height: ${space(1)};
   position: relative;
   flex: 1;
   width: calc(${p => p.widthPercent}%);
   min-width: ${space(1)};
+  display: flex;
+  align-items: center;
   &:before {
     position: absolute;
     inset: 0;
@@ -132,13 +152,11 @@ export const TagBar = styled('div')<{displayPercentage: string; widthPercent: nu
     border: 1px solid ${p => p.theme.translucentBorder};
     width: 100%;
   }
-  &:after {
-    position: absolute;
-    left: 100%;
-    top: 50%;
-    color: ${p => p.theme.subText};
-    content: '${p => p.displayPercentage}';
-    line-height: 0;
-    margin-left: ${space(0.5)};
-  }
+`;
+
+const TagBarValue = styled('div')`
+  margin-left: 100%;
+  padding-left: ${space(0.5)};
+
+  color: ${p => p.theme.subText};
 `;
