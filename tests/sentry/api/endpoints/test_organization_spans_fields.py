@@ -78,7 +78,8 @@ class OrganizationEAPSpansTagsEndpointTest(OrganizationSpansTagsEndpointTest):
         if query is None:
             query = {}
         query["dataset"] = "spans"
-        query["type"] = "string"
+        if "type" not in query:
+            query["type"] = "string"
 
         with self.feature(features):
             return self.client.get(
@@ -109,7 +110,9 @@ class OrganizationEAPSpansTagsEndpointTest(OrganizationSpansTagsEndpointTest):
             None,  # use the default features
             ["organizations:performance-trace-explorer"],
         ]:
-            response = self.do_request(features=features)
+            response = self.do_request(
+                features=features, query={"dataset": "spans", "type": "string"}
+            )
             assert response.status_code == 200, response.data
             assert {"key": "bar", "name": "Bar"} in response.data
             assert {"key": "foo", "name": "Foo"} in response.data
@@ -120,6 +123,35 @@ class OrganizationEAPSpansTagsEndpointTest(OrganizationSpansTagsEndpointTest):
             #     {"key": "transaction", "name": "Transaction"},
             #     {"key": "project", "name": "Project"},
             # ]
+
+    def test_tags_list_nums(self):
+        for tag in ["foo", "bar", "baz"]:
+            self.store_segment(
+                self.project.id,
+                uuid4().hex,
+                uuid4().hex,
+                span_id=uuid4().hex[:15],
+                organization_id=self.organization.id,
+                parent_span_id=None,
+                timestamp=before_now(days=0, minutes=10).replace(microsecond=0),
+                transaction="foo",
+                duration=100,
+                exclusive_time=100,
+                measurements={tag: 0},
+                is_eap=self.is_eap,
+            )
+
+        for features in [
+            None,  # use the default features
+            ["organizations:performance-trace-explorer"],
+        ]:
+            response = self.do_request(
+                features=features, query={"dataset": "spans", "type": "number"}
+            )
+            assert response.status_code == 200, response.data
+            assert {"key": "bar", "name": "Bar"} in response.data
+            assert {"key": "foo", "name": "Foo"} in response.data
+            assert {"key": "baz", "name": "Baz"} in response.data
 
 
 class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
