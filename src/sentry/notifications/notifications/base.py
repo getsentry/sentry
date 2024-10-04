@@ -171,7 +171,7 @@ class BaseNotification(abc.ABC):
         analytics.record(event_name, *args, **kwargs)
 
     def record_notification_sent(self, recipient: Actor, provider: ExternalProviders) -> None:
-        with sentry_sdk.start_span(op="notification.send", description="record_notification_sent"):
+        with sentry_sdk.start_span(op="notification.send", name="record_notification_sent"):
             # may want to explicitly pass in the parameters for this event
             self.record_analytics(
                 f"integrations.{provider.name}.notification_sent",
@@ -284,14 +284,14 @@ class BaseNotification(abc.ABC):
         """The default way to send notifications that respects Notification Settings."""
         from sentry.notifications.notify import notify
 
-        with sentry_sdk.start_span(op="notification.send", description="get_participants"):
+        with sentry_sdk.start_span(op="notification.send", name="get_participants"):
             participants_by_provider = self.get_participants()
             if not participants_by_provider:
                 return
 
         context = self.get_context()
         for provider, recipients in participants_by_provider.items():
-            with sentry_sdk.start_span(op="notification.send", description=f"send_for_{provider}"):
+            with sentry_sdk.start_span(op="notification.send", name=f"send_for_{provider}"):
                 safe_execute(notify, provider, self, recipients, context)
 
 

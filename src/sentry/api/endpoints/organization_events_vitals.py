@@ -31,7 +31,7 @@ class OrganizationEventsVitalsEndpoint(OrganizationEventsV2EndpointBase):
         if not self.has_feature(organization, request):
             return Response(status=404)
 
-        with sentry_sdk.start_span(op="discover.endpoint", description="parse params"):
+        with sentry_sdk.start_span(op="discover.endpoint", name="parse params"):
             try:
                 snuba_params = self.get_snuba_params(request, organization)
             except NoProjects:

@@ -111,7 +111,7 @@ class RegisteredFeatureManager:
 
                 with sentry_sdk.start_span(
                     op="feature.has_for_batch.handler",
-                    description=f"{type(handler).__name__} ({name})",
+                    name=f"{type(handler).__name__} ({name})",
                 ) as span:
                     batch_size = len(remaining)
                     span.set_data("Batch Size", batch_size)

@@ -90,7 +90,7 @@ class OrganizationEventsFacetsPerformanceEndpoint(OrganizationEventsFacetsPerfor
             tag_key = TAG_ALIASES.get(tag_key)
 
         def data_fn(offset, limit):
-            with sentry_sdk.start_span(op="discover.endpoint", description="discover_query"):
+            with sentry_sdk.start_span(op="discover.endpoint", name="discover_query"):
                 referrer = "api.organization-events-facets-performance.top-tags"
                 tag_data = query_tag_data(
                     filter_query=filter_query,
@@ -178,7 +178,7 @@ class OrganizationEventsFacetsPerformanceHistogramEndpoint(
             tag_key = TAG_ALIASES.get(tag_key)
 
         def data_fn(offset, limit, raw_limit):
-            with sentry_sdk.start_span(op="discover.endpoint", description="discover_query"):
+            with sentry_sdk.start_span(op="discover.endpoint", name="discover_query"):
                 referrer = "api.organization-events-facets-performance-histogram"
                 top_tags = query_top_tags(
                     tag_key=tag_key,
@@ -269,9 +269,7 @@ def query_tag_data(
     :return: Returns the row with aggregate and count if the query was successful
              Returns None if query was not successful which causes the endpoint to return early
     """
-    with sentry_sdk.start_span(
-        op="discover.discover", description="facets.filter_transform"
-    ) as span:
+    with sentry_sdk.start_span(op="discover.discover", name="facets.filter_transform") as span:
         span.set_data("query", filter_query)
         tag_query = DiscoverQueryBuilder(
             dataset=Dataset.Discover,
@@ -289,7 +287,7 @@ def query_tag_data(
             Condition(tag_query.resolve_column(aggregate_column), Op.IS_NOT_NULL)
         )
 
-    with sentry_sdk.start_span(op="discover.discover", description="facets.frequent_tags"):
+    with sentry_sdk.start_span(op="discover.discover", name="facets.frequent_tags"):
         # Get the average and count to use to filter the next request to facets
         tag_data = tag_query.run_query(f"{referrer}.all_transactions")
 
@@ -324,7 +322,7 @@ def query_top_tags(
     """
     translated_aggregate_column = discover.resolve_discover_column(aggregate_column)
 
-    with sentry_sdk.start_span(op="discover.discover", description="facets.top_tags"):
+    with sentry_sdk.start_span(op="discover.discover", name="facets.top_tags"):
         if not orderby:
             orderby = ["-count"]
 
@@ -399,9 +397,7 @@ def query_facet_performance(
 
     tag_key_limit = limit if tag_key else 1
 
-    with sentry_sdk.start_span(
-        op="discover.discover", description="facets.filter_transform"
-    ) as span:
+    with sentry_sdk.start_span(op="discover.discover", name="facets.filter_transform") as span:
         span.set_data("query", filter_query)
         tag_query = DiscoverQueryBuilder(
             dataset=Dataset.Discover,
@@ -452,7 +448,7 @@ def query_facet_performance(
         ["trace", "trace.ctx", "trace.span", "project", "browser", "celery_task_id", "url"],
     )
 
-    with sentry_sdk.start_span(op="discover.discover", description="facets.aggregate_tags"):
+    with sentry_sdk.start_span(op="discover.discover", name="facets.aggregate_tags"):
         span.set_data("sample_rate", sample_rate)
         span.set_data("target_sample", target_sample)
         aggregate_comparison = transaction_aggregate * 1.005 if transaction_aggregate else 0

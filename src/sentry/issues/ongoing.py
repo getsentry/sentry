@@ -20,7 +20,7 @@ def bulk_transition_group_to_ongoing(
     group_ids: list[int],
     activity_data: Mapping[str, Any] | None = None,
 ) -> None:
-    with sentry_sdk.start_span(description="groups_to_transistion") as span:
+    with sentry_sdk.start_span(name="groups_to_transistion") as span:
         # make sure we don't update the Group when its already updated by conditionally updating the Group
         groups_to_transistion = Group.objects.filter(
             id__in=group_ids, status=from_status, substatus=from_substatus
@@ -28,7 +28,7 @@ def bulk_transition_group_to_ongoing(
         span.set_tag("group_ids", group_ids)
         span.set_tag("groups_to_transistion count", len(groups_to_transistion))
 
-    with sentry_sdk.start_span(description="update_group_status"):
+    with sentry_sdk.start_span(name="update_group_status"):
         Group.objects.update_group_status(
             groups=groups_to_transistion,
             status=GroupStatus.UNRESOLVED,
@@ -51,10 +51,10 @@ def bulk_transition_group_to_ongoing(
                 sender=bulk_transition_group_to_ongoing,
             )
 
-    with sentry_sdk.start_span(description="bulk_remove_groups_from_inbox"):
+    with sentry_sdk.start_span(name="bulk_remove_groups_from_inbox"):
         bulk_remove_groups_from_inbox(groups_to_transistion)
 
-    with sentry_sdk.start_span(description="post_save_send_robust"):
+    with sentry_sdk.start_span(name="post_save_send_robust"):
         if not options.get("groups.enable-post-update-signal"):
             for group in groups_to_transistion:
                 post_save.send_robust(

@@ -55,7 +55,7 @@ class OrganizationEventsSpansHistogramEndpoint(OrganizationEventsV2EndpointBase)
         except NoProjects:
             return Response({})
 
-        with sentry_sdk.start_span(op="discover.endpoint", description="spans_histogram"):
+        with sentry_sdk.start_span(op="discover.endpoint", name="spans_histogram"):
             serializer = SpansHistogramSerializer(data=request.GET)
             if serializer.is_valid():
                 data = serializer.validated_data

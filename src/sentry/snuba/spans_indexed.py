@@ -98,7 +98,7 @@ def timeseries_query(
     """
     equations, columns = categorize_columns(selected_columns)
 
-    with sentry_sdk.start_span(op="spans_indexed", description="TimeseriesSpanIndexedQueryBuilder"):
+    with sentry_sdk.start_span(op="spans_indexed", name="TimeseriesSpanIndexedQueryBuilder"):
         query = TimeseriesSpanIndexedQueryBuilder(
             Dataset.SpansIndexed,
             {},
@@ -111,7 +111,7 @@ def timeseries_query(
             ),
         )
         result = query.run_query(referrer, query_source=query_source)
-    with sentry_sdk.start_span(op="spans_indexed", description="query.transform_results"):
+    with sentry_sdk.start_span(op="spans_indexed", name="query.transform_results"):
         result = query.process_results(result)
         result["data"] = (
             discover.zerofill(
@@ -163,7 +163,7 @@ def top_events_timeseries(
     """
 
     if top_events is None:
-        with sentry_sdk.start_span(op="spans_indexed", description="top_events.fetch_events"):
+        with sentry_sdk.start_span(op="spans_indexed", name="top_events.fetch_events"):
             top_events = query(
                 selected_columns,
                 query=user_query,
@@ -235,9 +235,7 @@ def top_events_timeseries(
             snuba_params.end_date,
             rollup,
         )
-    with sentry_sdk.start_span(
-        op="spans_indexed", description="top_events.transform_results"
-    ) as span:
+    with sentry_sdk.start_span(op="spans_indexed", name="top_events.transform_results") as span:
         span.set_data("result_count", len(result.get("data", [])))
         result = top_events_builder.process_results(result)
 

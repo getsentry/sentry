@@ -394,7 +394,7 @@ class Endpoint(APIView):
         Identical to rest framework's dispatch except we add the ability
         to convert arguments (for common URL params).
         """
-        with sentry_sdk.start_span(op="base.dispatch.setup", description=type(self).__name__):
+        with sentry_sdk.start_span(op="base.dispatch.setup", name=type(self).__name__):
             self.args = args
             self.kwargs = kwargs
             request = self.initialize_request(request, *args, **kwargs)
@@ -415,7 +415,7 @@ class Endpoint(APIView):
             origin = None
 
         try:
-            with sentry_sdk.start_span(op="base.dispatch.request", description=type(self).__name__):
+            with sentry_sdk.start_span(op="base.dispatch.request", name=type(self).__name__):
                 if origin:
                     if request.auth:
                         allowed_origins = request.auth.get_allowed_origins()
@@ -449,7 +449,7 @@ class Endpoint(APIView):
 
             with sentry_sdk.start_span(
                 op="base.dispatch.execute",
-                description=".".join(
+                name=".".join(
                     getattr(part, "__name__", None) or str(part) for part in (type(self), handler)
                 ),
             ) as span:
@@ -469,7 +469,7 @@ class Endpoint(APIView):
             if duration < (settings.SENTRY_API_RESPONSE_DELAY / 1000.0):
                 with sentry_sdk.start_span(
                     op="base.dispatch.sleep",
-                    description=type(self).__name__,
+                    name=type(self).__name__,
                 ) as span:
                     span.set_data("SENTRY_API_RESPONSE_DELAY", settings.SENTRY_API_RESPONSE_DELAY)
                     time.sleep(settings.SENTRY_API_RESPONSE_DELAY / 1000.0 - duration)
@@ -556,7 +556,7 @@ class Endpoint(APIView):
             cursor = self.get_cursor_from_request(request, cursor_cls)
             with sentry_sdk.start_span(
                 op="base.paginate.get_result",
-                description=type(self).__name__,
+                name=type(self).__name__,
             ) as span:
                 annotate_span_with_pagination_args(span, per_page)
                 paginator = get_paginator(paginator, paginator_cls, paginator_kwargs)
@@ -576,7 +576,7 @@ class Endpoint(APIView):
         if on_results:
             with sentry_sdk.start_span(
                 op="base.paginate.on_results",
-                description=type(self).__name__,
+                name=type(self).__name__,
             ):
                 results = on_results(cursor_result.results)
         else:
