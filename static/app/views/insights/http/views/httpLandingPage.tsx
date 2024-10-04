@@ -157,7 +157,10 @@ export function HTTPLandingPage() {
     Referrer.LANDING_DOMAINS_LIST
   );
 
-  useSynchronizeCharts([!isThroughputDataLoading && !isDurationDataLoading]);
+  useSynchronizeCharts(
+    3,
+    !isThroughputDataLoading && !isDurationDataLoading && !isResponseCodeDataLoading
+  );
 
   const crumbs = useModuleBreadcrumbs('http');
 
