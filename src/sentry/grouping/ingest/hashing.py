@@ -40,8 +40,8 @@ def _calculate_event_grouping(
     project: Project, event: Event, grouping_config: GroupingConfig
 ) -> tuple[list[str], dict[str, BaseVariant]]:
     """
-    Calculate hashes for the event using the given grouping config, and add them into the event
-    data.
+    Calculate hashes for the event using the given grouping config, add them to the event data, and
+    return them, along with the variants data upon which they're based.
     """
     metric_tags: MutableTags = {
         "grouping_config": grouping_config["id"],
@@ -129,10 +129,9 @@ def maybe_run_secondary_grouping(
 def _calculate_secondary_hashes(
     project: Project, job: Job, secondary_grouping_config: GroupingConfig
 ) -> list[str]:
-    """Calculate secondary hash for event using a fallback grouping config for a period of time.
-    This happens when we upgrade all projects that have not opted-out to automatic upgrades plus
-    when the customer changes the grouping config.
-    This causes extra load in save_event processing.
+    """
+    Calculate hashes based on an older grouping config, so that unknown hashes calculated by the
+    current config can be matched to an existing group if there is one.
     """
     secondary_hashes: list[str] = []
     try:
@@ -156,7 +155,7 @@ def run_primary_grouping(
     project: Project, job: Job, metric_tags: MutableTags
 ) -> tuple[GroupingConfig, list[str], dict[str, BaseVariant]]:
     """
-    Get the primary grouping config and primary hashes for the event.
+    Get the primary grouping config, primary hashes, and variants for the event.
     """
     with metrics.timer("event_manager.load_grouping_config"):
         grouping_config = get_grouping_config_dict_for_project(project)
@@ -178,7 +177,7 @@ def _calculate_primary_hashes_and_variants(
     project: Project, job: Job, grouping_config: GroupingConfig
 ) -> tuple[list[str], dict[str, BaseVariant]]:
     """
-    Get the primary hash for the event.
+    Get the primary hash and variants for the event.
 
     This is pulled out into a separate function mostly in order to make testing easier.
     """
