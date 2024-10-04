@@ -46,6 +46,12 @@ type Props = {
 
 function getErrorMessage(fetchError: RequestError) {
   const defaultString = t('Sorry, the list of replays could not be loaded.');
+  if (typeof fetchError === 'string') {
+    return tct('[defaultString] [errorMessage]', {
+      defaultString,
+      errorMessage: fetchError,
+    });
+  }
   if (typeof fetchError?.responseJSON?.detail === 'string') {
     return tct('[defaultString] [errorMessage]', {
       defaultString,
