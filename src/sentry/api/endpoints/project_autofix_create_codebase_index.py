@@ -33,7 +33,6 @@ class ProjectAutofixCreateCodebaseIndexEndpoint(ProjectEndpoint):
         "POST": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.ML_AI
-    private = True
 
     permission_classes = (ProjectAutofixCreateCodebaseIndexPermission,)
 

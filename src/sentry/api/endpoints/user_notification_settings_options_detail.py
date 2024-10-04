@@ -17,8 +17,6 @@ class UserNotificationSettingsOptionsDetailEndpoint(UserEndpoint):
         "DELETE": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.ALERTS_NOTIFICATIONS
-    # TODO(Steve): Make not private when we launch new system
-    private = True
 
     def convert_args(
         self,

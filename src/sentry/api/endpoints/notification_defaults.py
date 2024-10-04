@@ -17,7 +17,6 @@ class NotificationDefaultsEndpoints(Endpoint):
     }
     owner = ApiOwner.ALERTS_NOTIFICATIONS
     permission_classes = ()
-    private = True
 
     def get(self, request: Request) -> Response:
         """

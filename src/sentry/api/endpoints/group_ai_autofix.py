@@ -39,8 +39,6 @@ class GroupAutofixEndpoint(GroupEndpoint):
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.ML_AI
-    # go away
-    private = True
     enforce_rate_limit = True
     rate_limits = {
         "POST": {

@@ -297,8 +297,6 @@ class EventAiSuggestedFixEndpoint(ProjectEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
-    # go away
-    private = True
     enforce_rate_limit = True
     rate_limits = {
         "GET": {
