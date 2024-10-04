@@ -15,7 +15,7 @@ from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallat
 class AlertRuleActionCreator(Mediator):
     using = router.db_for_write(SentryAppComponent)
     install = Param(SentryAppInstallation)
-    fields = Param(list[dict[str, str]], default=[])  # array of dicts
+    fields = Param(list, default=[])  # array of dicts
 
     def call(self) -> AlertRuleActionResult:
         uri = self._fetch_sentry_app_uri()
@@ -32,7 +32,6 @@ class AlertRuleActionCreator(Mediator):
     def _make_external_request(self, uri=None):
         if uri is None:
             raise APIError("Sentry App request url not found")
-
         self.response = AlertRuleActionRequester(
             install=self.install,
             uri=uri,
