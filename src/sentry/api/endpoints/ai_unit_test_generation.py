@@ -7,6 +7,7 @@ import orjson
 import requests
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
+from rest_framework import serializers
 from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
@@ -21,7 +22,14 @@ logger = logging.getLogger(__name__)
 
 from rest_framework.request import Request
 
-TIMEOUT_SECONDS = 60 * 30  # 30 minutes
+
+class AIUnitTestGenerationPOSTValidator(serializers.Serializer):
+    pull_request_number = serializers.IntegerField(
+        required=True,
+    )
+    github_org = serializers.CharField(required=True)
+    external_id = serializers.CharField(required=True)
+    repo_name = serializers.CharField(required=True)
 
 
 @region_silo_endpoint
@@ -98,22 +106,25 @@ class AIUnitTestGenerationEndpoint(OrganizationEndpoint):
     def post(
         self,
         request: Request,
-        *args,
-        **kwargs,
+        organization,
+        github_org,
+        repo_name,
+        pull_request_number,
+        external_id,
     ) -> Response:
-        owner = kwargs.get("github_org")
-        repo_name = kwargs.get("repo_name")
-        pull_request_number = kwargs.get("pull_request_number")
-        external_id = kwargs.get("external_id")
+        owner = github_org
         created_at = datetime.now().isoformat()
 
-        if pull_request_number is None:
-            return self._respond_with_error("Missing pull request number.", 400)
-
-        try:
-            pr_id = int(pull_request_number)
-        except ValueError:
-            return self._respond_with_error("Invalid pull request number.", 400)
+        validator = AIUnitTestGenerationPOSTValidator(
+            data={
+                "pull_request_number": pull_request_number,
+                "github_org": github_org,
+                "external_id": external_id,
+                "repo_name": repo_name,
+            }
+        )
+        if not validator.is_valid():
+            return self.respond(validator.errors, status=400)
 
         try:
             self._call_unit_test_generation(
@@ -121,7 +132,7 @@ class AIUnitTestGenerationEndpoint(OrganizationEndpoint):
                 owner=owner,
                 name=repo_name,
                 external_id=external_id,
-                pr_id=pr_id,
+                pr_id=pull_request_number,
             )
         except Exception as e:
             logger.exception(

@@ -47,7 +47,7 @@ class AIUnitTestGenerationEndpointTest(APITestCase):
             owner=self.github_org,
             name=self.repo_name,
             external_id=self.external_id,
-            pr_id=int(self.pull_request_number),
+            pr_id=self.pull_request_number,
         )
 
     @patch(
@@ -64,5 +64,24 @@ class AIUnitTestGenerationEndpointTest(APITestCase):
             owner=self.github_org,
             name=self.repo_name,
             external_id=self.external_id,
-            pr_id=int(self.pull_request_number),
+            pr_id=self.pull_request_number,
         )
+
+    @patch(
+        "sentry.api.endpoints.ai_unit_test_generation.AIUnitTestGenerationEndpoint._call_unit_test_generation",
+        side_effect=Exception("Something went wrong"),
+    )
+    def test_post_validation_error(self, mock_call_unit_test_generation):
+        invalid_pr_url = reverse(
+            self.endpoint,
+            kwargs={
+                "organization_id_or_slug": self.project.organization.slug,
+                "repo_name": self.repo_name,
+                "pull_request_number": "abc",
+                "external_id": self.external_id,
+                "github_org": self.github_org,
+            },
+        )
+
+        response = self.client.post(invalid_pr_url)
+        assert response.status_code == 400
