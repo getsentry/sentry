@@ -1,8 +1,6 @@
 import datetime
 from typing import Any, TypedDict
 
-from rest_framework import serializers
-
 from sentry.flags.models import ACTION_MAP, CREATED_BY_TYPE_MAP, FlagAuditLogModel
 
 
@@ -51,50 +49,7 @@ def handle_provider_event(
     request_data: dict[str, Any],
     organization_id: int,
 ) -> list[FlagAuditLogRow]:
-    if provider == "flag-pole":
-        return handle_flag_pole_event(request_data, organization_id)
-    else:
-        raise InvalidProvider(provider)
-
-
-"""Flag pole provider definition.
-
-If you are not Sentry you will not ever use this driver. Metadata provider by flag pole is
-limited to what we can extract from the git repository on merge.
-"""
-
-
-class FlagPoleItemSerializer(serializers.Serializer):
-    action = serializers.ChoiceField(choices=("created", "updated"), required=True)
-    created_at = serializers.DateTimeField(required=True)
-    created_by = serializers.CharField(required=True)
-    flag = serializers.CharField(max_length=100, required=True)
-    tags = serializers.DictField(required=True)
-
-
-class FlagPoleSerializer(serializers.Serializer):
-    data = FlagPoleItemSerializer(many=True, required=True)  # type: ignore[assignment]
-
-
-def handle_flag_pole_event(
-    request_data: dict[str, Any], organization_id: int
-) -> list[FlagAuditLogRow]:
-    serializer = FlagPoleSerializer(data=request_data)
-    if not serializer.is_valid():
-        raise DeserializationError(serializer.errors)
-
-    return [
-        dict(
-            action=ACTION_MAP[validated_item["action"]],
-            created_at=validated_item["created_at"],
-            created_by=validated_item["created_by"],
-            created_by_type=CREATED_BY_TYPE_MAP["name"],
-            flag=validated_item["flag"],
-            organization_id=organization_id,
-            tags=validated_item["tags"],
-        )
-        for validated_item in serializer.validated_data["data"]
-    ]
+    raise InvalidProvider(provider)
 
 
 """Internal flag-pole provider.
