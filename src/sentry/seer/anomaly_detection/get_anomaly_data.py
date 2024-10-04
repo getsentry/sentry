@@ -1,11 +1,9 @@
 import logging
 
-from django.conf import settings
 from urllib3.exceptions import MaxRetryError, TimeoutError
 
 from sentry.conf.server import SEER_ANOMALY_DETECTION_ENDPOINT_URL
 from sentry.incidents.models.alert_rule import AlertRule
-from sentry.net.http import connection_from_url
 from sentry.seer.anomaly_detection.types import (
     AlertInSeer,
     AnomalyDetectionConfig,
@@ -13,18 +11,16 @@ from sentry.seer.anomaly_detection.types import (
     DetectAnomaliesResponse,
     TimeSeriesPoint,
 )
-from sentry.seer.anomaly_detection.utils import translate_direction
+from sentry.seer.anomaly_detection.utils import (
+    SEER_ANOMALY_DETECTION_CONNECTION_POOL,
+    translate_direction,
+)
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.snuba.models import QuerySubscription
 from sentry.utils import json
 from sentry.utils.json import JSONDecodeError
 
 logger = logging.getLogger(__name__)
-
-SEER_ANOMALY_DETECTION_CONNECTION_POOL = connection_from_url(
-    settings.SEER_ANOMALY_DETECTION_URL,
-    timeout=settings.SEER_ANOMALY_DETECTION_TIMEOUT,
-)
 
 
 def get_anomaly_data_from_seer(

@@ -3,7 +3,6 @@ from datetime import datetime, timedelta
 from enum import StrEnum
 from typing import Any
 
-from django.conf import settings
 from django.core.exceptions import ValidationError
 from parsimonious.exceptions import ParseError
 from urllib3.exceptions import MaxRetryError, TimeoutError
@@ -12,7 +11,6 @@ from sentry.api.bases.organization_events import get_query_columns
 from sentry.conf.server import SEER_ANOMALY_DETECTION_STORE_DATA_URL
 from sentry.incidents.models.alert_rule import AlertRule, AlertRuleDetectionType, AlertRuleStatus
 from sentry.models.project import Project
-from sentry.net.http import connection_from_url
 from sentry.seer.anomaly_detection.types import (
     AlertInSeer,
     AnomalyDetectionConfig,
@@ -21,6 +19,7 @@ from sentry.seer.anomaly_detection.types import (
     TimeSeriesPoint,
 )
 from sentry.seer.anomaly_detection.utils import (
+    SEER_ANOMALY_DETECTION_CONNECTION_POOL,
     fetch_historical_data,
     format_historical_data,
     get_dataset_from_label,
@@ -33,11 +32,6 @@ from sentry.utils import json, metrics
 from sentry.utils.json import JSONDecodeError
 
 logger = logging.getLogger(__name__)
-
-seer_anomaly_detection_connection_pool = connection_from_url(
-    settings.SEER_ANOMALY_DETECTION_URL,
-    timeout=settings.SEER_ANOMALY_DETECTION_TIMEOUT,
-)
 MIN_DAYS = 7
 
 
@@ -218,7 +212,7 @@ def send_historical_data_to_seer(
     )
     try:
         response = make_signed_seer_api_request(
-            connection_pool=seer_anomaly_detection_connection_pool,
+            connection_pool=SEER_ANOMALY_DETECTION_CONNECTION_POOL,
             path=SEER_ANOMALY_DETECTION_STORE_DATA_URL,
             body=json.dumps(body).encode("utf-8"),
         )
