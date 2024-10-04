@@ -176,6 +176,7 @@ class GetSeerSimilarIssuesTest(TestCase):
             event_id="11212012123120120415201309082013",
             data={"message": "Adopt don't shop"},
         )
+        self.variants = self.new_event.get_grouping_variants()
         assert self.new_event.get_primary_hash() == "3f11319f08263b2ee1e654779742955a"
 
     @patch("sentry.grouping.ingest.seer.get_similarity_data_from_seer", return_value=[])
@@ -208,7 +209,7 @@ class GetSeerSimilarIssuesTest(TestCase):
                 "platform": "python",
             },
         )
-        get_seer_similar_issues(new_event)
+        get_seer_similar_issues(new_event, new_event.get_grouping_variants())
 
         mock_get_similarity_data.assert_called_with(
             {
@@ -240,7 +241,7 @@ class GetSeerSimilarIssuesTest(TestCase):
             "sentry.grouping.ingest.seer.get_similarity_data_from_seer",
             return_value=[seer_result_data],
         ):
-            assert get_seer_similar_issues(self.new_event) == (
+            assert get_seer_similar_issues(self.new_event, self.variants) == (
                 expected_metadata,
                 self.existing_event_grouphash,
             )
@@ -255,7 +256,7 @@ class GetSeerSimilarIssuesTest(TestCase):
             "sentry.grouping.ingest.seer.get_similarity_data_from_seer",
             return_value=[],
         ):
-            assert get_seer_similar_issues(self.new_event) == (
+            assert get_seer_similar_issues(self.new_event, self.variants) == (
                 expected_metadata,
                 None,
             )
