@@ -42,6 +42,7 @@ class ShouldCallSeerTest(TestCase):
             event_id="11212012123120120415201309082013",
             data=self.event_data,
         )
+        self.variants = self.event.get_grouping_variants()
         self.primary_hashes = self.event.get_hashes()
 
     def test_obeys_feature_enablement_check(self):
@@ -50,7 +51,7 @@ class ShouldCallSeerTest(TestCase):
                 "sentry:similarity_backfill_completed", backfill_completed_option
             )
             assert (
-                should_call_seer_for_grouping(self.event) is expected_result
+                should_call_seer_for_grouping(self.event, self.variants) is expected_result
             ), f"Case {backfill_completed_option} failed."
 
     def test_obeys_content_filter(self):
@@ -61,21 +62,21 @@ class ShouldCallSeerTest(TestCase):
                 "sentry.grouping.ingest.seer.event_content_is_seer_eligible",
                 return_value=content_eligibility,
             ):
-                assert should_call_seer_for_grouping(self.event) is expected_result
+                assert should_call_seer_for_grouping(self.event, self.variants) is expected_result
 
     def test_obeys_global_seer_killswitch(self):
         self.project.update_option("sentry:similarity_backfill_completed", int(time()))
 
         for killswitch_enabled, expected_result in [(True, False), (False, True)]:
             with override_options({"seer.global-killswitch.enabled": killswitch_enabled}):
-                assert should_call_seer_for_grouping(self.event) is expected_result
+                assert should_call_seer_for_grouping(self.event, self.variants) is expected_result
 
     def test_obeys_similarity_service_killswitch(self):
         self.project.update_option("sentry:similarity_backfill_completed", int(time()))
 
         for killswitch_enabled, expected_result in [(True, False), (False, True)]:
             with override_options({"seer.similarity-killswitch.enabled": killswitch_enabled}):
-                assert should_call_seer_for_grouping(self.event) is expected_result
+                assert should_call_seer_for_grouping(self.event, self.variants) is expected_result
 
     def test_obeys_project_specific_killswitch(self):
         self.project.update_option("sentry:similarity_backfill_completed", int(time()))
@@ -84,7 +85,7 @@ class ShouldCallSeerTest(TestCase):
             with override_options(
                 {"seer.similarity.grouping_killswitch_projects": blocked_projects}
             ):
-                assert should_call_seer_for_grouping(self.event) is expected_result
+                assert should_call_seer_for_grouping(self.event, self.variants) is expected_result
 
     def test_obeys_global_ratelimit(self):
         self.project.update_option("sentry:similarity_backfill_completed", int(time()))
@@ -96,7 +97,7 @@ class ShouldCallSeerTest(TestCase):
                     is_enabled if key == "seer:similarity:global-limit" else False
                 ),
             ):
-                assert should_call_seer_for_grouping(self.event) is expected_result
+                assert should_call_seer_for_grouping(self.event, self.variants) is expected_result
 
     def test_obeys_project_ratelimit(self):
         self.project.update_option("sentry:similarity_backfill_completed", int(time()))
@@ -110,7 +111,7 @@ class ShouldCallSeerTest(TestCase):
                     else False
                 ),
             ):
-                assert should_call_seer_for_grouping(self.event) is expected_result
+                assert should_call_seer_for_grouping(self.event, self.variants) is expected_result
 
     def test_obeys_circuit_breaker(self):
         self.project.update_option("sentry:similarity_backfill_completed", int(time()))
@@ -120,7 +121,7 @@ class ShouldCallSeerTest(TestCase):
                 "sentry.grouping.ingest.seer.CircuitBreaker.should_allow_request",
                 return_value=request_allowed,
             ):
-                assert should_call_seer_for_grouping(self.event) is expected_result
+                assert should_call_seer_for_grouping(self.event, self.variants) is expected_result
 
     def test_obeys_customized_fingerprint_check(self):
         self.project.update_option("sentry:similarity_backfill_completed", int(time()))
@@ -158,7 +159,8 @@ class ShouldCallSeerTest(TestCase):
         ]:
 
             assert (
-                should_call_seer_for_grouping(event) is expected_result
+                should_call_seer_for_grouping(event, event.get_grouping_variants())
+                is expected_result
             ), f'Case with fingerprint {event.data["fingerprint"]} failed.'
 
 
