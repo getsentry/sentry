@@ -14,7 +14,6 @@ from sentry.grouping.api import (
     NULL_GROUPING_CONFIG,
     BackgroundGroupingConfigLoader,
     GroupingConfig,
-    GroupingConfigNotFound,
     SecondaryGroupingConfigLoader,
     apply_server_fingerprinting,
     get_fingerprinting_config_for_project,
@@ -70,16 +69,7 @@ def _calculate_event_grouping(
             )
 
         with metrics.timer("event_manager.event.get_hashes", tags=metric_tags):
-            # TODO: It's not clear we can even hit `GroupingConfigNotFound` here - this is leftover
-            # from a time before we started separately retrieving the grouping config and passing it
-            # directly to `get_hashes`. Now that we do that, a bogus config will get replaced by the
-            # default long before we get here. Should we consolidate bogus config handling into the
-            # code actually getting the config?
-            try:
-                hashes = event.get_hashes(loaded_grouping_config)
-            except GroupingConfigNotFound:
-                event.data["grouping_config"] = get_grouping_config_dict_for_project(project)
-                hashes = event.get_hashes()
+            hashes = event.get_hashes(loaded_grouping_config)
 
         return hashes
 
