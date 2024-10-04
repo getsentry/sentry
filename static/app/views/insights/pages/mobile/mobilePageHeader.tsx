@@ -25,14 +25,23 @@ import {MODULE_TITLES} from 'sentry/views/insights/settings';
 import {ModuleName} from 'sentry/views/insights/types';
 
 type Props = {
+  breadcrumbs?: Crumb[];
   headerActions?: React.ReactNode;
+  headerTitle?: React.ReactNode;
   hideDefaultTabs?: boolean;
   module?: ModuleName;
   tabs?: {onTabChange: (key: string) => void; tabList: React.ReactNode; value: string};
 };
 
 // TODO - add props to append to breadcrumbs and change title
-export function MobileHeader({module, hideDefaultTabs, headerActions, tabs}: Props) {
+export function MobileHeader({
+  module,
+  hideDefaultTabs,
+  headerActions,
+  tabs,
+  headerTitle,
+  breadcrumbs = [],
+}: Props) {
   const navigate = useNavigate();
   const {slug} = useOrganization();
   const moduleURLBuilder = useModuleURLBuilder();
@@ -44,7 +53,7 @@ export function MobileHeader({module, hideDefaultTabs, headerActions, tabs}: Pro
   const crumbs: Crumb[] = [
     {
       label: t('Performance'),
-      to: '/performance', // There is no page at `/insights/` so there is nothing to link to
+      to: undefined, // There won't be a /performance page anymore
       preservePageFilters: true,
     },
     {
@@ -54,9 +63,10 @@ export function MobileHeader({module, hideDefaultTabs, headerActions, tabs}: Pro
     },
     {
       label: module ? MODULE_TITLES[module] : OVERVIEW_PAGE_TITLE,
-      to: undefined,
+      to: `${moduleURLBuilder(ModuleName.MOBILE_SCREENS)}/`,
       preservePageFilters: true,
     },
+    ...breadcrumbs,
   ];
 
   const defaultHandleTabChange = (key: ModuleName | typeof OVERVIEW_PAGE_TITLE) => {
@@ -86,7 +96,7 @@ export function MobileHeader({module, hideDefaultTabs, headerActions, tabs}: Pro
           <Layout.HeaderContent>
             <Breadcrumbs crumbs={crumbs} />
 
-            <Layout.Title>{MOBILE_LANDING_TITLE}</Layout.Title>
+            <Layout.Title>{headerTitle ?? MOBILE_LANDING_TITLE}</Layout.Title>
           </Layout.HeaderContent>
           <Layout.HeaderActions>
             <ButtonBar gap={1}>
