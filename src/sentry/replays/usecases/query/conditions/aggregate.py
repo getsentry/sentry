@@ -60,19 +60,19 @@ class SumOfIntegerIdScalar(GenericBase):
 
 class SumOfIPv4Scalar(GenericBase):
     @staticmethod
-    def visit_eq(expression: Expression, value: str) -> Condition:
+    def visit_eq(expression: Expression, value: str | None) -> Condition:
         return contains(IPv4Scalar.visit_eq(expression, value))
 
     @staticmethod
-    def visit_neq(expression: Expression, value: str) -> Condition:
+    def visit_neq(expression: Expression, value: str | None) -> Condition:
         return does_not_contain(IPv4Scalar.visit_eq(expression, value))
 
     @staticmethod
-    def visit_in(expression: Expression, value: list[str]) -> Condition:
+    def visit_in(expression: Expression, value: list[str | None]) -> Condition:
         return contains(IPv4Scalar.visit_in(expression, value))
 
     @staticmethod
-    def visit_not_in(expression: Expression, value: list[str]) -> Condition:
+    def visit_not_in(expression: Expression, value: list[str | None]) -> Condition:
         return does_not_contain(IPv4Scalar.visit_in(expression, value))
 
 

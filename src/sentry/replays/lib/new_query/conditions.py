@@ -211,20 +211,28 @@ class IPv4Scalar(GenericBase):
     """IPv4 scalar condition class."""
 
     @staticmethod
-    def visit_eq(expression: Expression, value: str) -> Condition:
+    def visit_eq(expression: Expression, value: str | None) -> Condition:
+        if value is None:
+            return Condition(Function("isNull", parameters=[expression]), Op.EQ, 1)
         return Condition(expression, Op.EQ, Function("toIPv4", parameters=[value]))
 
     @staticmethod
-    def visit_neq(expression: Expression, value: str) -> Condition:
-        return Condition(expression, Op.NEQ, Function("toIPv4", parameters=[value]))
+    def visit_neq(expression: Expression, value: str | None) -> Condition:
+        if value is None:
+            return Condition(Function("isNull", parameters=[expression]), Op.EQ, 0)
+        return Condition(
+            expression, Op.NEQ, Function("toIPv4", parameters=[value]) if value else None
+        )
 
     @staticmethod
-    def visit_in(expression: Expression, value: list[str]) -> Condition:
+    def visit_in(expression: Expression, value: list[str | None]) -> Condition:
+        # TODO: doesn't handle null
         values = [Function("toIPv4", parameters=[v]) for v in value]
         return Condition(expression, Op.IN, values)
 
     @staticmethod
-    def visit_not_in(expression: Expression, value: list[str]) -> Condition:
+    def visit_not_in(expression: Expression, value: list[str | None]) -> Condition:
+        # TODO: doesn't handle null
         values = [Function("toIPv4", parameters=[v]) for v in value]
         return Condition(expression, Op.NOT_IN, values)
 
