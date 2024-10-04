@@ -426,22 +426,16 @@ register(
 
 # Flag Options
 register(
-    "flags:options-audit-log-webhook-url",
-    default=None,
-    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-    type=String,
-)
-register(
-    "flags:options-audit-log-token",
-    default=None,
-    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-    type=String,
-)
-register(
-    "flags:options-audit-log-is-disabled",
-    default=False,
+    "flags:options-audit-log-is-enabled",
+    default=True,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
     type=Bool,
+)
+register(
+    "flags:options-audit-log-organization-id",
+    default=None,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+    type=Int,
 )
 
 # Replay Options
