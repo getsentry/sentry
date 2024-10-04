@@ -95,6 +95,7 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
 
   const [orgRole, setOrgRole] = useState<Member['orgRole']>('');
   const [teamRoles, setTeamRoles] = useState<Member['teamRoles']>([]);
+  const hasTeamRoles = organization.features.includes('team-roles');
 
   useEffect(() => {
     if (member) {
@@ -102,10 +103,6 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
       setTeamRoles(member.teamRoles);
     }
   }, [member]);
-
-  function hasTeamRoles() {
-    return organization.features.includes('team-roles');
-  }
 
   const {mutate: updatedMember, isPending: isSaving} = useMutation<Member, RequestError>({
     mutationFn: () => {
@@ -191,12 +188,8 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
     setTeamRoles(newTeamRoles);
   };
 
-  const onChangeOrgRole = (newOrgRole: Member['orgRole']) => {
-    setOrgRole(newOrgRole);
-  };
-
   const onChangeTeamRole = (teamSlug: string, role: string) => {
-    if (!hasTeamRoles()) {
+    if (!hasTeamRoles) {
       return;
     }
 
@@ -355,11 +348,13 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
 
       <OrganizationRoleSelect
         enforceAllowed={false}
-        enforceRetired={hasTeamRoles()}
+        enforceRetired={hasTeamRoles}
         disabled={!canEdit || isPartnershipUser}
         roleList={organization.orgRoleList}
         roleSelected={orgRole}
-        setSelected={onChangeOrgRole}
+        setSelected={(newOrgRole: Member['orgRole']) => {
+          setOrgRole(newOrgRole);
+        }}
         helpText={
           isPartnershipUser
             ? t('You cannot make changes to this partner-provisioned user.')
