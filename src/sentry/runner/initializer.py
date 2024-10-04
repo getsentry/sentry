@@ -389,6 +389,8 @@ def initialize_app(config: dict[str, Any], skip_service_validation: bool = False
 
     setup_services(validate=not skip_service_validation)
 
+    import_grouptype()
+
     from django.utils import timezone
 
     from sentry.app import env
@@ -711,3 +713,9 @@ def validate_outbox_config() -> None:
 
     for outbox_name in settings.SENTRY_OUTBOX_MODELS["REGION"]:
         RegionOutboxBase.from_outbox_name(outbox_name)
+
+
+def import_grouptype() -> None:
+    from sentry.issues.grouptype import import_grouptype
+
+    import_grouptype()
