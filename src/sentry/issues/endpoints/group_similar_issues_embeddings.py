@@ -26,7 +26,6 @@ MAX_FRAME_COUNT = 50
 
 class FormattedSimilarIssuesEmbeddingsData(TypedDict):
     exception: float
-    message: float
     shouldBeGrouped: str
 
 
@@ -49,7 +48,6 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
         group_data = {}
         for similar_issue_data in similar_issues_data:
             formatted_response: FormattedSimilarIssuesEmbeddingsData = {
-                "message": 1 - similar_issue_data.message_distance,
                 "exception": 1 - similar_issue_data.stacktrace_distance,
                 "shouldBeGrouped": "Yes" if similar_issue_data.should_group else "No",
             }
