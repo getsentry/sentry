@@ -1,5 +1,3 @@
-from django.urls import reverse
-
 from sentry.flags.models import ACTION_MAP, CREATED_BY_TYPE_MAP, FlagAuditLogModel
 from sentry.runner.commands.presenters.audit_log_presenter import AuditLogPresenter
 from sentry.testutils.cases import APITestCase
@@ -35,11 +33,7 @@ def test_audit_log_item_generation():
 class AuditLogPresenterFunctionalTestCase(APITestCase):
     endpoint = "sentry-api-0-organization-flag-hooks"
 
-    def setUp(self):
-        super().setUp()
-        self.url = reverse(self.endpoint, args=(self.organization.slug, "flag-pole"))
-
-    def test_post(self):
+    def test_audit_log_presenter_flush(self):
         with self.options(
             {
                 "flags:options-audit-log-is-enabled": True,
