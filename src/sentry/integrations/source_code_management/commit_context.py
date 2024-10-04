@@ -94,7 +94,7 @@ class CommitContextIntegration(ABC):
         metrics_base: str,
         comment_type: int = CommentType.MERGED_PR,
         language: str | None = None,
-        github_copilot_actions: list[Mapping[str, Any]] | None = None,
+        github_copilot_actions: list[dict[str, Any]] | None = None,
     ):
         client = self.get_client()
 
