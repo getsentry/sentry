@@ -180,7 +180,7 @@ export function DatabaseSpanSummaryPage({params}: Props) {
     'api.starfish.span-summary-page-metrics-chart'
   );
 
-  useSynchronizeCharts([!isThroughputDataLoading && !isDurationDataLoading]);
+  useSynchronizeCharts(2, !isThroughputDataLoading && !isDurationDataLoading);
 
   const crumbs = useModuleBreadcrumbs('db');
 

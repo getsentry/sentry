@@ -180,7 +180,10 @@ export function HTTPDomainSummaryPage() {
     Referrer.DOMAIN_SUMMARY_TRANSACTIONS_LIST
   );
 
-  useSynchronizeCharts([!isThroughputDataLoading && !isDurationDataLoading]);
+  useSynchronizeCharts(
+    3,
+    !isThroughputDataLoading && !isDurationDataLoading && !isResponseCodeDataLoading
+  );
 
   const crumbs = useModuleBreadcrumbs('http');
 
