@@ -803,10 +803,6 @@ export class TraceTree {
       baseTraceNode.profiles.push(profile);
     }
 
-    for (const [node, vitals] of tree.vitals) {
-      this.vitals.set(node, vitals);
-    }
-
     for (const [node, _] of tree.vitals) {
       if (
         baseTraceNode.space?.[0] &&
