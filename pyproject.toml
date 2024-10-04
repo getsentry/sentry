@@ -347,7 +347,6 @@ module = [
     "sentry.testutils.cases",
     "sentry.testutils.fixtures",
     "sentry.testutils.helpers.notifications",
-    "sentry.testutils.helpers.slack",
     "sentry.utils.auth",
     "sentry.utils.committers",
     "sentry.utils.services",
