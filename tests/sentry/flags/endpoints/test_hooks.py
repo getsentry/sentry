@@ -3,13 +3,13 @@ from datetime import datetime, timezone
 import pytest
 from django.urls import reverse
 
-from sentry.flags.endpoints.hooks import (
+from sentry.flags.models import ACTION_MAP, CREATED_BY_TYPE_MAP, FlagAuditLogModel
+from sentry.flags.providers import (
     DeserializationError,
     InvalidProvider,
     handle_flag_pole_event,
     handle_provider_event,
 )
-from sentry.flags.models import ACTION_MAP, CREATED_BY_TYPE_MAP, FlagAuditLogModel
 from sentry.testutils.cases import APITestCase
 from sentry.utils.security.orgauthtoken_token import hash_token
 
