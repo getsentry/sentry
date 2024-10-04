@@ -898,7 +898,7 @@ register(
     "seer.similarity.circuit-breaker-config",
     type=Dict,
     default={
-        "error_limit": 666,
+        "error_limit": 33250,
         "error_limit_window": 600,  # 10 min
         "broken_state_duration": 300,  # 5 min
     },
