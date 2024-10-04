@@ -24,7 +24,7 @@ import {getUtcDateString} from 'sentry/utils/dates';
 type DateTimeUpdate = Parameters<typeof updateDateTime>[0];
 
 /**
- * Our api expects a specific date format
+ * Our api query params expects a specific date format
  */
 const getQueryTime = (date: DateString | undefined) =>
   date ? getUtcDateString(date) : null;
@@ -45,16 +45,19 @@ interface Props {
    * Disables saving changes to the current period
    */
   disabled?: boolean;
-  end?: DateString;
-  onDataZoom?: EChartDataZoomHandler;
-  onFinished?: EChartFinishedHandler;
-  onRestore?: EChartRestoreHandler;
   onZoom?: (period: DateTimeUpdate) => void;
-  period?: string | null;
   router?: InjectedRouter;
+  /**
+   * Use eihter `saveOnZoom` or `usePageDate` not both
+   * Will persist zoom state to page filters
+   */
   saveOnZoom?: boolean;
   showSlider?: boolean;
-  start?: DateString;
+  /**
+   * Use eihter `saveOnZoom` or `usePageDate` not both
+   * Persists zoom state to query params without updating page filters.
+   * Sets the pageStart and pageEnd query params
+   */
   usePageDate?: boolean;
   xAxisIndex?: number | number[];
 }
@@ -66,9 +69,6 @@ interface Props {
 export function useChartZoom({
   router,
   onZoom,
-  onDataZoom,
-  onFinished,
-  onRestore,
   usePageDate,
   saveOnZoom,
   xAxisIndex,
@@ -173,25 +173,19 @@ export function useChartZoom({
    *
    * Updates URL state to reflect initial params
    */
-  const handleZoomRestore = useCallback<EChartRestoreHandler>(
-    (evt, chart) => {
-      if (!history.current.length) {
-        return;
-      }
+  const handleZoomRestore = useCallback<EChartRestoreHandler>(() => {
+    if (!history.current.length) {
+      return;
+    }
 
-      setPeriod(history.current[0]);
-      history.current = [];
-
-      onRestore?.(evt, chart);
-    },
-    [onRestore, setPeriod]
-  );
+    setPeriod(history.current[0]);
+    history.current = [];
+  }, [setPeriod]);
 
   const handleDataZoom = useCallback<EChartDataZoomHandler>(
-    (evt, chart) => {
+    evt => {
       // @ts-expect-error getModel is private
-      const model = chart.getModel();
-      const {startValue, endValue} = model._payload.batch[0] as {
+      const {startValue, endValue} = evt.batch[0] as {
         endValue: number | null;
         startValue: number | null;
       };
@@ -216,10 +210,8 @@ export function useChartZoom({
           true
         );
       }
-
-      onDataZoom?.(evt, chart);
     },
-    [onDataZoom, setPeriod]
+    [setPeriod]
   );
 
   /**
@@ -229,45 +221,33 @@ export function useChartZoom({
    * we can let the native zoom animation on the chart complete
    * before we update URL state and re-render
    */
-  const handleChartFinished = useCallback<EChartFinishedHandler>(
-    (_props, chart) => {
-      if (typeof zooming.current === 'function') {
-        zooming.current();
-        zooming.current = null;
-      }
+  const handleChartFinished = useCallback<EChartFinishedHandler>((_props, chart) => {
+    if (typeof zooming.current === 'function') {
+      zooming.current();
+      zooming.current = null;
+    }
 
-      // This attempts to activate the area zoom toolbox feature
-      // @ts-expect-error _componentsViews is private
-      const zoom = chart._componentsViews?.find((c: any) => c._features?.dataZoom);
-      if (zoom && !zoom._features.dataZoom._isZoomActive) {
-        // Calling dispatchAction will re-trigger handleChartFinished
-        chart.dispatchAction({
-          type: 'takeGlobalCursor',
-          key: 'dataZoomSelect',
-          dataZoomSelectActive: true,
-        });
-      }
-
-      if (typeof onFinished === 'function') {
-        onFinished(_props, chart);
-      }
-    },
-    [onFinished]
-  );
+    // This attempts to activate the area zoom toolbox feature
+    // @ts-expect-error _componentsViews is private
+    const zoom = chart._componentsViews?.find((c: any) => c._features?.dataZoom);
+    if (zoom && !zoom._features.dataZoom._isZoomActive) {
+      // Calling dispatchAction will re-trigger handleChartFinished
+      chart.dispatchAction({
+        type: 'takeGlobalCursor',
+        key: 'dataZoomSelect',
+        dataZoomSelectActive: true,
+      });
+    }
+  }, []);
 
   const dataZoomProp = useMemo<DataZoomComponentOption[]>(() => {
+    const zoomInside = DataZoomInside({
+      xAxisIndex,
+      ...(chartZoomOptions as InsideDataZoomComponentOption),
+    });
     return showSlider
-      ? [
-          ...DataZoomSlider({xAxisIndex, ...chartZoomOptions}),
-          ...DataZoomInside({
-            xAxisIndex,
-            ...(chartZoomOptions as InsideDataZoomComponentOption),
-          }),
-        ]
-      : DataZoomInside({
-          xAxisIndex,
-          ...(chartZoomOptions as InsideDataZoomComponentOption),
-        });
+      ? [...DataZoomSlider({xAxisIndex, ...chartZoomOptions}), ...zoomInside]
+      : zoomInside;
   }, [chartZoomOptions, showSlider, xAxisIndex]);
 
   const toolBox = useMemo<ToolboxComponentOption>(

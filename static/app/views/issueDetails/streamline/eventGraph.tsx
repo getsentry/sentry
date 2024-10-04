@@ -75,8 +75,6 @@ export function EventGraph({group, groupStats, searchQuery}: EventGraphProps) {
   const chartZoomProps = useChartZoom({
     saveOnZoom: true,
     router,
-    start: eventView.start,
-    end: eventView.end,
   });
 
   const series = useMemo((): BarChartSeries[] => {
