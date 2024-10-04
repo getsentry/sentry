@@ -7,7 +7,6 @@ import {t} from 'sentry/locale';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import {ViewTrendsButton} from 'sentry/views/insights/common/components/viewTrendsButton';
 import {
   type RoutableModuleNames,
   useModuleURLBuilder,
@@ -24,11 +23,12 @@ import {MODULE_TITLES} from 'sentry/views/insights/settings';
 import {ModuleName} from 'sentry/views/insights/types';
 
 type Props = {
+  headerActions?: React.ReactNode;
   module?: ModuleName;
 };
 
 // TODO - add props to append to breadcrumbs and change title
-export function FrontendHeader({module}: Props) {
+export function FrontendHeader({module, headerActions}: Props) {
   const navigate = useNavigate();
   const {slug} = useOrganization();
   const moduleURLBuilder = useModuleURLBuilder();
@@ -37,8 +37,6 @@ export function FrontendHeader({module}: Props) {
   const frontendBaseUrl = normalizeUrl(
     `/organizations/${slug}/${DOMAIN_VIEW_BASE_URL}/${FRONTEND_LANDING_SUB_PATH}/`
   );
-
-  const showViewTrends = !module; // Only for overview page
 
   const crumbs: Crumb[] = [
     {
@@ -82,8 +80,8 @@ export function FrontendHeader({module}: Props) {
         </Layout.HeaderContent>
         <Layout.HeaderActions>
           <ButtonBar gap={1}>
+            {headerActions}
             <FeedbackWidgetButton />
-            {showViewTrends && <ViewTrendsButton />}
           </ButtonBar>
         </Layout.HeaderActions>
         <TabList hideBorder>
