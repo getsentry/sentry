@@ -19,7 +19,7 @@ from sentry.users.services.user.service import user_service
 from sentry.utils.codeowners import codeowners_match
 from sentry.utils.event_frames import find_stack_frames, get_sdk_name, munged_filename_and_frames
 from sentry.utils.glob import glob_match
-from sentry.utils.safe import PathSearchable, get_path
+from sentry.utils.safe import get_path
 
 __all__ = ("parse_rules", "dump_schema", "load_schema")
 
@@ -146,7 +146,9 @@ class Matcher(namedtuple("Matcher", "type pattern")):
         return frames, keys
 
     def test_with_munged(
-        self, data: PathSearchable, munged_data: tuple[Sequence[Mapping[str, Any]], Sequence[str]]
+        self,
+        data: Mapping[str, Any],
+        munged_data: tuple[Sequence[Mapping[str, Any]], Sequence[str]],
     ) -> bool:
         """
         Temporary function to test pre-munging data performance in production. will remove
@@ -193,10 +195,7 @@ class Matcher(namedtuple("Matcher", "type pattern")):
             )
         return False
 
-    def test_url(self, data: PathSearchable) -> bool:
-        if not isinstance(data, Mapping):
-            return False
-
+    def test_url(self, data: Mapping[str, Any]) -> bool:
         url = get_path(data, "request", "url")
         return url and bool(glob_match(url, self.pattern, ignorecase=True))
 
@@ -223,7 +222,7 @@ class Matcher(namedtuple("Matcher", "type pattern")):
 
         return False
 
-    def test_tag(self, data: PathSearchable) -> bool:
+    def test_tag(self, data: Mapping[str, Any]) -> bool:
         tag = self.type[5:]
 
         # inspect the event-payload User interface first before checking tags.user
