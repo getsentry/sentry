@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import importlib
 from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import timedelta
@@ -7,6 +8,7 @@ from enum import Enum
 from typing import TYPE_CHECKING, Any
 
 import sentry_sdk
+from django.apps import apps
 from redis.client import StrictRedis
 from rediscluster import RedisCluster
 
@@ -20,6 +22,9 @@ if TYPE_CHECKING:
     from sentry.models.organization import Organization
     from sentry.models.project import Project
     from sentry.users.models.user import User
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class GroupCategory(Enum):
@@ -627,3 +632,19 @@ def should_create_group(
     else:
         client.expire(key, noise_config.expiry_seconds)
         return False
+
+
+def import_grouptype():
+    """
+    Ensures that grouptype.py is imported in any apps that implement it. We do this to make sure that all implemented
+    grouptypes are loaded and registered.
+    """
+    for app_config in apps.get_app_configs():
+        grouptype_module = f"{app_config.name}.grouptype"
+        try:
+            # Try to import the module
+            importlib.import_module(grouptype_module)
+            logger.debug("Imported module", extra={"module_name": grouptype_module})
+        except ModuleNotFoundError:
+            # If the module is not found, continue without any issues
+            logger.debug("No grouptypes found for app", extra={"app": app_config.name})
