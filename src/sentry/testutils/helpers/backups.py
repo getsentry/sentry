@@ -65,6 +65,7 @@ from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.models.counter import Counter
 from sentry.models.dashboard import Dashboard, DashboardTombstone
+from sentry.models.dashboard_permissions import DashboardPermissions
 from sentry.models.dashboard_widget import (
     DashboardWidget,
     DashboardWidgetQuery,
@@ -532,8 +533,14 @@ class ExhaustiveFixtures(Fixtures):
         )
 
         # Dashboard
+        permissions = DashboardPermissions.objects.create(
+            created_by_id=owner_id, is_creator_only_editable=False
+        )
         dashboard = Dashboard.objects.create(
-            title=f"Dashboard 1 for {slug}", created_by_id=owner_id, organization=org
+            title=f"Dashboard 1 for {slug}",
+            created_by_id=owner_id,
+            organization=org,
+            permissions=permissions,
         )
         widget = DashboardWidget.objects.create(
             dashboard=dashboard,
