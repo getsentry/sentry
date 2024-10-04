@@ -17,6 +17,7 @@ import BuilderBreadCrumbs from 'sentry/views/alerts/builder/builderBreadCrumbs';
 import IssueRuleEditor from 'sentry/views/alerts/rules/issue';
 import MetricRulesCreate from 'sentry/views/alerts/rules/metric/create';
 import MetricRuleDuplicate from 'sentry/views/alerts/rules/metric/duplicate';
+import {UptimeAlertForm} from 'sentry/views/alerts/rules/uptime/uptimeAlertForm';
 import {AlertRuleType} from 'sentry/views/alerts/types';
 import type {
   AlertType as WizardAlertType,
@@ -141,16 +142,16 @@ function Create(props: Props) {
           <LoadingIndicator />
         ) : (
           <Fragment>
-            {(!hasMetricAlerts || alertType === AlertRuleType.ISSUE) && (
+            {alertType === AlertRuleType.UPTIME ? (
+              <UptimeAlertForm {...props} />
+            ) : !hasMetricAlerts || alertType === AlertRuleType.ISSUE ? (
               <IssueRuleEditor
                 {...props}
-                project={project}
                 userTeamIds={teams.map(({id}) => id)}
                 members={members}
               />
-            )}
-
-            {hasMetricAlerts &&
+            ) : (
+              hasMetricAlerts &&
               alertType === AlertRuleType.METRIC &&
               (isDuplicateRule ? (
                 <MetricRuleDuplicate
@@ -158,7 +159,6 @@ function Create(props: Props) {
                   eventView={eventView}
                   wizardTemplate={wizardTemplate}
                   sessionId={sessionId.current}
-                  project={project}
                   userTeamIds={teams.map(({id}) => id)}
                 />
               ) : (
@@ -167,10 +167,10 @@ function Create(props: Props) {
                   eventView={eventView}
                   wizardTemplate={wizardTemplate}
                   sessionId={sessionId.current}
-                  project={project}
                   userTeamIds={teams.map(({id}) => id)}
                 />
-              ))}
+              ))
+            )}
           </Fragment>
         )}
       </Layout.Body>

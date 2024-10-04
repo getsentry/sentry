@@ -42,6 +42,27 @@ from sentry.utils.http import absolute_uri
 from sentry.utils.snuba import MAX_FIELDS, SnubaTSResult
 
 
+def get_query_columns(columns, rollup):
+    """
+    Backwards compatibility for incidents which uses the old
+    column aliases as it straddles both versions of events/discover.
+    We will need these aliases until discover2 flags are enabled for all users.
+    We need these rollup columns to generate correct events-stats results
+    """
+    column_map = {
+        "user_count": "count_unique(user)",
+        "event_count": "count()",
+        "epm()": "epm(%d)" % rollup,
+        "eps()": "eps(%d)" % rollup,
+        "tpm()": "tpm(%d)" % rollup,
+        "tps()": "tps(%d)" % rollup,
+        "sps()": "sps(%d)" % rollup,
+        "spm()": "spm(%d)" % rollup,
+    }
+
+    return [column_map.get(column, column) for column in columns]
+
+
 def resolve_axis_column(column: str, index: int = 0) -> str:
     return get_function_alias(column) if not is_equation(column) else f"equation[{index}]"
 
@@ -96,7 +117,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         quantize_date_params: bool = True,
     ) -> SnubaParams:
         """Returns params to make snuba queries with"""
-        with sentry_sdk.start_span(op="discover.endpoint", description="filter_params(dataclass)"):
+        with sentry_sdk.start_span(op="discover.endpoint", name="filter_params(dataclass)"):
             if (
                 len(self.get_field_list(organization, request))
                 + len(self.get_equation_list(organization, request))
@@ -296,7 +317,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         standard_meta: bool | None = False,
         dataset: Any | None = None,
     ) -> dict[str, Any]:
-        with sentry_sdk.start_span(op="discover.endpoint", description="base.handle_results"):
+        with sentry_sdk.start_span(op="discover.endpoint", name="base.handle_results"):
             data = self.handle_data(request, organization, project_ids, results.get("data"))
             meta = results.get("meta", {})
             fields_meta = meta.get("fields", {})
@@ -403,9 +424,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         dataset: Any | None = None,
     ) -> dict[str, Any]:
         with handle_query_errors():
-            with sentry_sdk.start_span(
-                op="discover.endpoint", description="base.stats_query_creation"
-            ):
+            with sentry_sdk.start_span(op="discover.endpoint", name="base.stats_query_creation"):
                 _columns = [query_column]
                 # temporary change to make topN query work for multi-axes requests
                 if additional_query_column is not None:
@@ -438,38 +457,21 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                     date_range = snuba_params.date_range
                     stats_period = parse_stats_period(get_interval_from_range(date_range, False))
                     rollup = int(stats_period.total_seconds()) if stats_period is not None else 3600
-
                 if comparison_delta is not None:
                     retention = quotas.get_event_retention(organization=organization)
                     comparison_start = snuba_params.start_date - comparison_delta
                     if retention and comparison_start < timezone.now() - timedelta(days=retention):
                         raise ValidationError("Comparison period is outside your retention window")
 
-                # Backwards compatibility for incidents which uses the old
-                # column aliases as it straddles both versions of events/discover.
-                # We will need these aliases until discover2 flags are enabled for all
-                # users.
-                # We need these rollup columns to generate correct events-stats results
-                column_map = {
-                    "user_count": "count_unique(user)",
-                    "event_count": "count()",
-                    "epm()": "epm(%d)" % rollup,
-                    "eps()": "eps(%d)" % rollup,
-                    "tpm()": "tpm(%d)" % rollup,
-                    "tps()": "tps(%d)" % rollup,
-                    "sps()": "sps(%d)" % rollup,
-                    "spm()": "spm(%d)" % rollup,
-                }
-
-                query_columns = [column_map.get(column, column) for column in columns]
-            with sentry_sdk.start_span(op="discover.endpoint", description="base.stats_query"):
+                query_columns = get_query_columns(columns, rollup)
+            with sentry_sdk.start_span(op="discover.endpoint", name="base.stats_query"):
                 result = get_event_stats(
                     query_columns, query, snuba_params, rollup, zerofill_results, comparison_delta
                 )
 
         serializer = SnubaTSResultSerializer(organization, None, request.user)
 
-        with sentry_sdk.start_span(op="discover.endpoint", description="base.stats_serialization"):
+        with sentry_sdk.start_span(op="discover.endpoint", name="base.stats_serialization"):
             # When the request is for top_events, result can be a SnubaTSResult in the event that
             # there were no top events found. In this case, result contains a zerofilled series
             # that acts as a placeholder.

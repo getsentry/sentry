@@ -70,7 +70,9 @@ function ProfilingOnboarding(props: CommonSidebarProps) {
   );
 
   useEffect(() => {
-    if (currentProject) return;
+    if (currentProject) {
+      return;
+    }
 
     // we'll only ever select an unsupportedProject if they do not have a supported project in their organization
     if (supportedProjects.length === 0 && unsupportedProjects.length > 0) {

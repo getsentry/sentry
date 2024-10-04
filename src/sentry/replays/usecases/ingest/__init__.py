@@ -11,13 +11,11 @@ from sentry_kafka_schemas.schema_types.ingest_replay_recordings_v1 import Replay
 from sentry_sdk import Scope, set_tag
 from sentry_sdk.tracing import Span
 
-from sentry import options
 from sentry.constants import DataCategory
 from sentry.models.project import Project
 from sentry.replays.lib.storage import (
     RecordingSegmentStorageMeta,
     make_recording_filename,
-    make_video_filename,
     storage_kv,
 )
 from sentry.replays.usecases.ingest.dom_index import log_canvas_size, parse_and_emit_replay_actions
@@ -76,7 +74,7 @@ def ingest_recording(
     with sentry_sdk.scope.use_isolation_scope(isolation_scope):
         with transaction.start_child(
             op="replays.usecases.ingest.ingest_recording",
-            description="ingest_recording",
+            name="ingest_recording",
         ):
             message = RecordingIngestMessage(
                 replay_id=message_dict["replay_id"],
@@ -145,19 +143,13 @@ def _ingest_recording(message: RecordingIngestMessage, transaction: Span) -> Non
             unit="byte",
         )
 
-        # Packing only if the organization has been opted in. Otherwise the default
-        # behavior is observed.
-        if message.org_id in options.get("replay.replay-video.organization-file-packing"):
-            dat = zlib.compress(pack(rrweb=recording_segment, video=message.replay_video))
-            storage_kv.set(make_recording_filename(segment_data), dat)
+        dat = zlib.compress(pack(rrweb=recording_segment, video=message.replay_video))
+        storage_kv.set(make_recording_filename(segment_data), dat)
 
-            # Track combined payload size.
-            metrics.distribution(
-                "replays.recording_consumer.replay_video_event_size", len(dat), unit="byte"
-            )
-        else:
-            storage_kv.set(make_recording_filename(segment_data), compressed_segment)
-            storage_kv.set(make_video_filename(segment_data), message.replay_video)
+        # Track combined payload size.
+        metrics.distribution(
+            "replays.recording_consumer.replay_video_event_size", len(dat), unit="byte"
+        )
     else:
         storage_kv.set(make_recording_filename(segment_data), compressed_segment)
 
@@ -268,11 +260,12 @@ def recording_post_processor(
         # Emit DOM search metadata to Clickhouse.
         with transaction.start_child(
             op="replays.usecases.ingest.parse_and_emit_replay_actions",
-            description="parse_and_emit_replay_actions",
+            name="parse_and_emit_replay_actions",
         ):
+            project = Project.objects.get_from_cache(id=message.project_id)
             parse_and_emit_replay_actions(
                 retention_days=message.retention_days,
-                project_id=message.project_id,
+                project=project,
                 replay_id=message.replay_id,
                 segment_data=parsed_segment_data,
                 replay_event=parsed_replay_event,

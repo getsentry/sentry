@@ -464,13 +464,6 @@ register(
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Disables video packing for an organization
-register(
-    "replay.replay-video.organization-file-packing",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # User Feedback Options
 register(
@@ -508,9 +501,6 @@ register("slack.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 register("slack.verification-token", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 register("slack.signing-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 
-
-# Slack Middleware Parser
-register("send-slack-response-from-control-silo", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Codecov Integration
 register("codecov.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
@@ -579,9 +569,22 @@ register(
 # VSTS Integration
 register("vsts.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 register("vsts.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
+
+# New VSTS Integration
+register("vsts_new.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
+register("vsts_new.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
+
 # VSTS Integration - with limited scopes
 register("vsts-limited.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 register("vsts-limited.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
+
+# Azure DevOps Integration Social Login Flow
+register(
+    "vsts.social-auth-migration",
+    default=False,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # PagerDuty Integration
 register("pagerduty.app-id", default="", flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -1848,6 +1851,13 @@ register(
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Used for the z-score when calculating the margin of error in performance
+register(
+    "performance.extrapolation.confidence.z-score",
+    type=Float,
+    default=1.96,
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Used for enabling flags in ST. Should be removed once Flagpole works in all STs.
 register("performance.use_metrics.enabled", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
@@ -2392,12 +2402,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-register(
-    "grouping.config_transition.killswitch_enabled",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # Sample rate for double writing to experimental dsn
 register(
@@ -2735,4 +2739,31 @@ register(
     type=Sequence,
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "releases.no_snuba_for_release_creation",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "celery_split_queue_legacy_mode",
+    default=["post_process_transactions"],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "celery_split_queue_rollout",
+    default={"post_process_transactions": 1.0},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Secret Scanning. Allows to temporarily disable signature verification.
+register(
+    "secret-scanning.github.enable-signature-verification",
+    type=Bool,
+    default=True,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

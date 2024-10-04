@@ -106,7 +106,7 @@ def timeseries_query(
     query_source: QuerySource | None = None,
 ):
 
-    with sentry_sdk.start_span(op="errors", description="timeseries.filter_transform"):
+    with sentry_sdk.start_span(op="errors", name="timeseries.filter_transform"):
         equations, columns = categorize_columns(selected_columns)
         base_builder = ErrorsTimeseriesQueryBuilder(
             Dataset.Events,
@@ -145,7 +145,7 @@ def timeseries_query(
             [query.get_snql_query() for query in query_list], referrer, query_source=query_source
         )
 
-    with sentry_sdk.start_span(op="errors", description="timeseries.transform_results"):
+    with sentry_sdk.start_span(op="errors", name="timeseries.transform_results"):
         results = []
         for snql_query, result in zip(query_list, query_results):
             results.append(
@@ -238,7 +238,7 @@ def top_events_timeseries(
                     the top events earlier and want to save a query.
     """
     if top_events is None:
-        with sentry_sdk.start_span(op="discover.errors", description="top_events.fetch_events"):
+        with sentry_sdk.start_span(op="discover.errors", name="top_events.fetch_events"):
             top_events = query(
                 selected_columns,
                 query=user_query,
@@ -308,9 +308,7 @@ def top_events_timeseries(
             snuba_params.end_date,
             rollup,
         )
-    with sentry_sdk.start_span(
-        op="discover.errors", description="top_events.transform_results"
-    ) as span:
+    with sentry_sdk.start_span(op="discover.errors", name="top_events.transform_results") as span:
         span.set_data("result_count", len(result.get("data", [])))
         result = top_events_builder.process_results(result)
 

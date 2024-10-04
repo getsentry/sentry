@@ -72,10 +72,9 @@ const getInstallConfig = () => [
   {
     type: StepType.INSTALL,
     description: tct(
-      'Install the [sentryAstroPkg:@sentry/astro] package with the [astroCli:astro] CLI:',
+      'Install the [code:@sentry/astro] package with the [code:astro] CLI:',
       {
-        sentryAstroPkg: <code />,
-        astroCli: <code />,
+        code: <code />,
       }
     ),
     configurations: [
@@ -95,10 +94,23 @@ const getInstallConfig = () => [
 ];
 
 const onboarding: OnboardingConfig = {
-  introduction: () =>
-    tct("Sentry's integration with [astroLink:Astro] supports Astro 3.0.0 and above.", {
-      astroLink: <ExternalLink href="https://astro.build/" />,
-    }),
+  introduction: () => (
+    <Fragment>
+      <p>
+        {tct(
+          "Sentry's integration with [astroLink:Astro] supports Astro 3.0.0 and above.",
+          {
+            astroLink: <ExternalLink href="https://astro.build/" />,
+          }
+        )}
+      </p>
+      <p>
+        {tct("In this quick guide you'll use the [astrocli:astro] CLI to set up:", {
+          astrocli: <strong />,
+        })}
+      </p>
+    </Fragment>
+  ),
   install: () => getInstallConfig(),
   configure: (params: Params) => [
     {
@@ -193,22 +205,6 @@ const onboarding: OnboardingConfig = {
       ),
       link: 'https://docs.sentry.io/platforms/javascript/guides/astro/manual-setup/',
     },
-    {
-      id: 'performance-monitoring',
-      name: t('Tracing'),
-      description: t(
-        'Track down transactions to connect the dots between 10-second page loads and poor-performing API calls or slow database queries.'
-      ),
-      link: 'https://docs.sentry.io/platforms/javascript/guides/astro/tracing/',
-    },
-    {
-      id: 'session-replay',
-      name: t('Session Replay'),
-      description: t(
-        'Get to the root cause of an error or latency issue faster by seeing all the technical details related to that issue in one visual replay on your web application.'
-      ),
-      link: 'https://docs.sentry.io/platforms/javascript/guides/astro/session-replay/',
-    },
   ],
 };
 
@@ -222,7 +218,7 @@ const replayOnboarding: OnboardingConfig = {
   ],
   configure: (params: Params) => [
     {
-      type: StepType.CONFIGURE,
+      title: 'Configure Session Replay (Optional)',
       description: tct(
         'There are several privacy and sampling options available. Learn more about configuring Session Replay by reading the [link:configuration docs].',
         {
@@ -290,10 +286,9 @@ import * as Sentry from "@sentry/astro";`,
             },
           ],
           additionalInfo: tct(
-            `Note that creating your own [code:sentry.client.config.js] file will override the default settings in your [code2:astro.config.js] file. Learn more about this [link:here].`,
+            `Note that creating your own [code:sentry.client.config.js] file will override the default settings in your [code:astro.config.js] file. Learn more about this [link:here].`,
             {
               code: <code />,
-              code2: <code />,
               link: (
                 <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/astro/manual-setup/#manual-sdk-initialization" />
               ),
@@ -302,7 +297,7 @@ import * as Sentry from "@sentry/astro";`,
         },
       ],
       additionalInfo: <TracePropagationMessage />,
-      isOptional: true,
+      collapsible: true,
     },
   ],
   verify: getReplayVerifyStep(),

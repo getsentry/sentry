@@ -601,6 +601,39 @@ describe('WidgetBuilder', function () {
     expect(handleSave).toHaveBeenCalledTimes(1);
   });
 
+  it('can add additional fields and equation for Big Number with selection', async function () {
+    renderTestComponent({
+      query: {
+        displayType: DisplayType.BIG_NUMBER,
+      },
+      orgFeatures: [...defaultOrgFeatures, 'dashboards-bignumber-equations'],
+    });
+
+    // Add new field
+    await userEvent.click(screen.getByLabelText('Add Field'));
+    expect(screen.getByText('(Required)')).toBeInTheDocument();
+    await selectEvent.select(screen.getByText('(Required)'), ['count_unique(…)']);
+    expect(screen.getByRole('radio', {name: 'field1'})).toBeChecked();
+
+    // Add another new field
+    await userEvent.click(screen.getByLabelText('Add Field'));
+    expect(screen.getByText('(Required)')).toBeInTheDocument();
+    await selectEvent.select(screen.getByText('(Required)'), ['eps()']);
+    expect(screen.getByRole('radio', {name: 'field2'})).toBeChecked();
+
+    // Add an equation
+    await userEvent.click(screen.getByLabelText('Add an Equation'));
+    expect(screen.getByPlaceholderText('Equation')).toBeInTheDocument();
+    expect(screen.getByRole('radio', {name: 'field3'})).toBeChecked();
+    await userEvent.click(screen.getByPlaceholderText('Equation'));
+    await userEvent.paste('eps() + 100');
+
+    // Check if right value is displayed from equation
+    await userEvent.click(screen.getByPlaceholderText('Equation'));
+    await userEvent.paste('2 * 100');
+    expect(screen.getByText('200')).toBeInTheDocument();
+  });
+
   it('can add equation fields', async function () {
     const handleSave = jest.fn();
 
@@ -958,7 +991,9 @@ describe('WidgetBuilder', function () {
     expect(await screen.findByText('tag:value')).toBeInTheDocument();
 
     // Table display, column, and sort field
-    expect(screen.getAllByText('count()')).toHaveLength(3);
+    await waitFor(() => {
+      expect(screen.getAllByText('count()')).toHaveLength(3);
+    });
     // Table display and column
     expect(screen.getAllByText('failure_count()')).toHaveLength(2);
     // Table display
@@ -1335,13 +1370,8 @@ describe('WidgetBuilder', function () {
   });
 
   it('alerts the user if there are unsaved title changes', async function () {
-    const {router} = renderTestComponent();
-
-    const alertMock = jest.fn();
-    const setRouteLeaveHookMock = jest.spyOn(router, 'setRouteLeaveHook');
-    setRouteLeaveHookMock.mockImplementationOnce((_route, _callback) => {
-      return alertMock();
-    });
+    renderTestComponent();
+    window.confirm = jest.fn();
 
     const customWidgetLabels = await screen.findByText('Custom Widget');
     // EditableText and chart title
@@ -1357,17 +1387,12 @@ describe('WidgetBuilder', function () {
     await userEvent.click(screen.getByText('Cancel'));
 
     // Assert an alert was triggered
-    expect(alertMock).toHaveBeenCalled();
+    expect(window.confirm).toHaveBeenCalled();
   });
 
   it('alerts the user if there are unsaved description changes', async function () {
-    const {router} = renderTestComponent();
-
-    const alertMock = jest.fn();
-    const setRouteLeaveHookMock = jest.spyOn(router, 'setRouteLeaveHook');
-    setRouteLeaveHookMock.mockImplementationOnce((_route, _callback) => {
-      return alertMock();
-    });
+    renderTestComponent();
+    window.confirm = jest.fn();
 
     const descriptionTextArea = await screen.findByRole('textbox', {
       name: 'Widget Description',
@@ -1388,12 +1413,12 @@ describe('WidgetBuilder', function () {
     await userEvent.click(screen.getByText('Cancel'));
 
     // Assert an alert was triggered
-    expect(alertMock).toHaveBeenCalled();
+    expect(window.confirm).toHaveBeenCalled();
   });
 
   it('does not trigger alert dialog if no changes', async function () {
     renderTestComponent();
-    const alertMock = jest.spyOn(window, 'alert');
+    const alertMock = jest.spyOn(window, 'confirm');
 
     await userEvent.click(await screen.findByText('Cancel'));
     expect(alertMock).not.toHaveBeenCalled();

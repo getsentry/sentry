@@ -1,3 +1,5 @@
+import {Fragment} from 'react';
+
 import ExternalLink from 'sentry/components/links/externalLink';
 import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/crashReportCallout';
 import widgetCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/widgetCallout';
@@ -95,7 +97,7 @@ const getSdkServerSetupSnippet = (params: Params) => `
 import * as Sentry from "@sentry/solidstart";
 
 Sentry.init({
-  dsn: "__PUBLIC_DSN__",
+  dsn: "${params.dsn.public}",
   ${
     params.isPerformanceSelected
       ? `
@@ -127,6 +129,16 @@ export default createMiddleware({
     sentryBeforeResponseMiddleware(),
     // Add your other middleware handlers after \`sentryBeforeResponseMiddleware\`
   ],
+});
+`;
+
+const getSdkMiddlewareLinkSetup = () => `
+import { defineConfig } from "@solidjs/start/config";
+
+export default defineConfig({
+  middleware: "./src/middleware.ts"
+  // Other configuration options
+  // ...
 });
 `;
 
@@ -191,15 +203,26 @@ const getInstallConfig = () => [
 ];
 
 const onboarding: OnboardingConfig = {
-  introduction: MaybeBrowserProfilingBetaWarning,
+  introduction: params => (
+    <Fragment>
+      <MaybeBrowserProfilingBetaWarning {...params} />
+      <p>
+        {tct(
+          'In this quick guide you’ll use [strong:npm], [strong:yarn] or [strong:pnpm] to set up:',
+          {
+            strong: <strong />,
+          }
+        )}
+      </p>
+    </Fragment>
+  ),
   install: () => [
     {
       type: StepType.INSTALL,
       description: tct(
-        'Add the Sentry SDK as a dependency using [codeNpm:npm] or [codeYarn:yarn]:',
+        'Add the Sentry SDK as a dependency using [code:npm], [code:yarn] or [code:pnpm]:',
         {
-          codeYarn: <code />,
-          codeNpm: <code />,
+          code: <code />,
         }
       ),
       configurations: getInstallConfig(),
@@ -231,8 +254,8 @@ const onboarding: OnboardingConfig = {
         },
         {
           description: tct(
-            'For the server, create an instrument file [codeFile:instrument.server.mjs], initialize the Sentry SDK and deploy it alongside your application. For example by placing it in the [codeFolder:public] folder.',
-            {codeFile: <code />, codeFolder: <code />}
+            'For the server, create an instrument file [code:instrument.server.mjs], initialize the Sentry SDK and deploy it alongside your application. For example by placing it in the [code:public] folder.',
+            {code: <code />}
           ),
           code: [
             {
@@ -243,16 +266,21 @@ const onboarding: OnboardingConfig = {
             },
           ],
           additionalInfo: tct(
-            'Note: Placing [codeFile:instrument.server.mjs] inside the [codeFolder:public] folder makes it accessible to the outside world. Consider blocking requests to this file or finding a more appropriate location which your backend can access.',
-            {codeFile: <code />, codeFolder: <code />}
+            'Note: Placing [code:instrument.server.mjs] inside the [code:public] folder makes it accessible to the outside world. Consider blocking requests to this file or finding a more appropriate location which your backend can access.',
+            {code: <code />}
           ),
         },
         ...(params.isPerformanceSelected
           ? [
               {
                 description: tct(
-                  'Complete the setup by adding the Sentry middleware to your [code:src/middleware.ts] file',
-                  {code: <code />}
+                  'Complete the setup by adding the Sentry [solidStartMiddlewareLink: middleware] to your [code:src/middleware.ts] file',
+                  {
+                    code: <code />,
+                    solidStartMiddlewareLink: (
+                      <ExternalLink href="https://docs.solidjs.com/solid-start/advanced/middleware" />
+                    ),
+                  }
                 ),
                 code: [
                   {
@@ -267,11 +295,23 @@ const onboarding: OnboardingConfig = {
                 ],
               },
               {
-                description: tct(
-                  "If you're using [solidRouterLink:Solid Router], wrap your [codeRouter:Router] with [codeRouterWrapping:withSentryRouterRouting]. This creates a higher order component, which will enable Sentry to collect navigation spans.",
+                description: tct('And including it in the [code:app.config.ts] file', {
+                  code: <code />,
+                }),
+                code: [
                   {
-                    codeRouter: <code />,
-                    codeRouterWrapping: <code />,
+                    label: 'TypeScript',
+                    value: 'javascript',
+                    language: 'javascript',
+                    code: getSdkMiddlewareLinkSetup(),
+                  },
+                ],
+              },
+              {
+                description: tct(
+                  "If you're using [solidRouterLink:Solid Router], wrap your [code:Router] with [code:withSentryRouterRouting]. This creates a higher order component, which will enable Sentry to collect navigation spans.",
+                  {
+                    code: <code />,
                     solidRouterLink: (
                       <ExternalLink href="https://docs.solidjs.com/solid-router" />
                     ),
@@ -293,13 +333,9 @@ const onboarding: OnboardingConfig = {
           : []),
         {
           description: tct(
-            'Add an [codeFlag:--import] flag to the [codeNodeOptions:NODE_OPTIONS] environment variable wherever you run your application to import [codeInstrument:public/instrument.server.mjs]. For example, update your [codeScripts:scripts] entry in [codePackageJson:package.json]',
+            'Add an [code:--import] flag to the [code:NODE_OPTIONS] environment variable wherever you run your application to import [code:public/instrument.server.mjs]. For example, update your [code:scripts] entry in [code:package.json]',
             {
-              codeFlag: <code />,
-              codeNodeOptions: <code />,
-              codeInstrument: <code />,
-              codeScripts: <code />,
-              codePackageJson: <code />,
+              code: <code />,
             }
           ),
           code: [
@@ -351,22 +387,6 @@ const onboarding: OnboardingConfig = {
       name: t('Solid Features'),
       description: t('Learn about our first class integration with the Solid framework.'),
       link: 'https://docs.sentry.io/platforms/javascript/guides/solid/features/',
-    },
-    {
-      id: 'performance-monitoring',
-      name: t('Performance Monitoring'),
-      description: t(
-        'Track down transactions to connect the dots between 10-second page loads and poor-performing API calls or slow database queries.'
-      ),
-      link: 'https://docs.sentry.io/platforms/javascript/guides/solid/tracing/',
-    },
-    {
-      id: 'session-replay',
-      name: t('Session Replay'),
-      description: t(
-        'Get to the root cause of an error or latency issue faster by seeing all the technical details related to that issue in one visual replay on your web application.'
-      ),
-      link: 'https://docs.sentry.io/platforms/javascript/guides/solid/session-replay/',
     },
   ],
 };
