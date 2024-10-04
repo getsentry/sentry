@@ -1,5 +1,5 @@
 from sentry.testutils.cases import TestCase
-from sentry.workflow_engine.models.workflow import Workflow
+from sentry.workflow_engine.models import Workflow
 
 
 class WorkflowTest(TestCase):
