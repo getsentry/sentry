@@ -63,6 +63,14 @@ const routerProps = {
   location: router.location,
 };
 
+function getSearchInput() {
+  const input = screen.getAllByRole('combobox', {name: 'Add a search term'}).at(-1);
+
+  expect(input).toBeInTheDocument();
+
+  return input!;
+}
+
 describe('IssueList', function () {
   let props;
 
@@ -76,7 +84,6 @@ describe('IssueList', function () {
     name: 'Unresolved TypeErrors',
   });
 
-  let fetchTagsRequest: jest.Mock;
   let fetchMembersRequest: jest.Mock;
   const api = new MockApiClient();
   const parseLinkHeaderSpy = jest.spyOn(parseLinkHeader, 'default');
@@ -86,6 +93,7 @@ describe('IssueList', function () {
     // It should be safe to ignore this error, but we should remove the mock once we move to react testing library
     // eslint-disable-next-line no-console
     jest.spyOn(console, 'error').mockImplementation(jest.fn());
+    Object.defineProperty(Element.prototype, 'clientWidth', {value: 1000});
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/',
@@ -128,7 +136,7 @@ describe('IssueList', function () {
         },
       ],
     });
-    fetchTagsRequest = MockApiClient.addMockResponse({
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/',
       method: 'GET',
       body: tags,
@@ -209,11 +217,16 @@ describe('IssueList', function () {
       await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
       expect(savedSearchesRequest).toHaveBeenCalledTimes(1);
 
-      await userEvent.click(await screen.findByDisplayValue(DEFAULT_QUERY));
+      await screen.findByRole('grid', {name: 'Create a search query'});
+      expect(screen.getByRole('row', {name: 'is:unresolved'})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: /custom search/i})).toBeInTheDocument();
+
+      await userEvent.click(getSearchInput());
 
       // auxillary requests being made
-      expect(recentSearchesRequest).toHaveBeenCalledTimes(1);
-      expect(fetchTagsRequest).toHaveBeenCalledTimes(1);
+      await waitFor(() => {
+        expect(recentSearchesRequest).toHaveBeenCalledTimes(1);
+      });
       expect(fetchMembersRequest).toHaveBeenCalledTimes(1);
 
       // primary /issues/ request
@@ -224,10 +237,6 @@ describe('IssueList', function () {
           data: expect.stringContaining('is%3Aunresolved'),
         })
       );
-
-      expect(screen.getByDisplayValue(DEFAULT_QUERY)).toBeInTheDocument();
-
-      expect(screen.getByRole('button', {name: /custom search/i})).toBeInTheDocument();
     });
 
     it('loads with query in URL and pinned queries', async function () {
@@ -261,7 +270,7 @@ describe('IssueList', function () {
         );
       });
 
-      expect(screen.getByDisplayValue('level:foo')).toBeInTheDocument();
+      expect(screen.getByRole('row', {name: 'level:foo'})).toBeInTheDocument();
 
       // Tab shows "custom search"
       expect(screen.getByRole('button', {name: 'Custom Search'})).toBeInTheDocument();
@@ -294,7 +303,7 @@ describe('IssueList', function () {
         );
       });
 
-      expect(screen.getByDisplayValue('is:resolved')).toBeInTheDocument();
+      expect(screen.getByRole('row', {name: 'is:resolved'})).toBeInTheDocument();
 
       // Organization saved search selector should have default saved search selected
       expect(screen.getByRole('button', {name: 'My Default Search'})).toBeInTheDocument();
@@ -334,7 +343,7 @@ describe('IssueList', function () {
         );
       });
 
-      expect(screen.getByDisplayValue('assigned:me')).toBeInTheDocument();
+      expect(screen.getByRole('row', {name: 'assigned:me'})).toBeInTheDocument();
 
       // Organization saved search selector should have default saved search selected
       expect(screen.getByRole('button', {name: 'Assigned to Me'})).toBeInTheDocument();
@@ -371,7 +380,7 @@ describe('IssueList', function () {
         );
       });
 
-      expect(screen.getByDisplayValue('level:error')).toBeInTheDocument();
+      expect(screen.getByRole('row', {name: 'level:error'})).toBeInTheDocument();
 
       // Organization saved search selector should have default saved search selected
       expect(screen.getByRole('button', {name: 'Custom Search'})).toBeInTheDocument();
@@ -408,7 +417,7 @@ describe('IssueList', function () {
         );
       });
 
-      expect(screen.getByDisplayValue('is:resolved')).toBeInTheDocument();
+      expect(screen.getByRole('row', {name: 'is:resolved'})).toBeInTheDocument();
 
       // Organization saved search selector should have default saved search selected
       expect(screen.getByRole('button', {name: 'My Default Search'})).toBeInTheDocument();
@@ -505,9 +514,10 @@ describe('IssueList', function () {
 
       await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
 
-      const queryInput = screen.getByDisplayValue('is:resolved');
-      await userEvent.clear(queryInput);
-      await userEvent.type(queryInput, 'dogs{enter}');
+      await screen.findByRole('grid', {name: 'Create a search query'});
+      await userEvent.click(screen.getByRole('button', {name: 'Clear search query'}));
+      await userEvent.click(getSearchInput());
+      await userEvent.keyboard('dogs{Enter}');
 
       expect(browserHistory.push).toHaveBeenLastCalledWith(
         expect.objectContaining({
@@ -544,11 +554,13 @@ describe('IssueList', function () {
 
       await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
 
-      const queryInput = screen.getByDisplayValue(DEFAULT_QUERY);
-      await userEvent.clear(queryInput);
-      await userEvent.type(queryInput, 'assigned:me level:fatal{enter}');
+      await screen.findByRole('grid', {name: 'Create a search query'});
+      await userEvent.click(screen.getByRole('button', {name: 'Clear search query'}));
+      await userEvent.click(getSearchInput());
+      await userEvent.paste('assigned:me level:fatal');
+      await userEvent.keyboard('{Enter}');
 
-      expect((browserHistory.push as jest.Mock).mock.calls[0][0]).toEqual(
+      expect(browserHistory.push as jest.Mock).toHaveBeenCalledWith(
         expect.objectContaining({
           query: expect.objectContaining({
             query: 'assigned:me level:fatal',
@@ -937,19 +949,22 @@ describe('IssueList', function () {
         router,
       });
 
-      const queryInput = screen.getByDisplayValue(DEFAULT_QUERY);
-      await userEvent.clear(queryInput);
-      await userEvent.type(queryInput, 'is:ignored{enter}');
+      await userEvent.click(screen.getByRole('button', {name: 'Clear search query'}));
+      await userEvent.click(getSearchInput());
+      await userEvent.paste('is:ignored');
+      await userEvent.keyboard('{enter}');
 
-      expect(browserHistory.push).toHaveBeenCalledWith({
-        pathname: '/organizations/org-slug/issues/',
-        query: {
-          environment: [],
-          project: [parseInt(project.id, 10)],
-          query: 'is:ignored',
-          statsPeriod: '14d',
-          referrer: 'issue-list',
-        },
+      await waitFor(() => {
+        expect(browserHistory.push).toHaveBeenCalledWith({
+          pathname: '/organizations/org-slug/issues/',
+          query: {
+            environment: [],
+            project: [parseInt(project.id, 10)],
+            query: 'is:ignored',
+            statsPeriod: '14d',
+            referrer: 'issue-list',
+          },
+        });
       });
     });
   });
@@ -958,7 +973,6 @@ describe('IssueList', function () {
     render(<IssueListOverview {...routerProps} {...props} />, {router});
 
     await waitFor(() => {
-      expect(fetchTagsRequest).toHaveBeenCalled();
       expect(fetchMembersRequest).toHaveBeenCalled();
     });
   });
@@ -977,7 +991,7 @@ describe('IssueList', function () {
       fetchDataMock.mockReset();
     });
 
-    it('fetches data on selection change', function () {
+    it('fetches data on selection change', async function () {
       const {rerender} = render(<IssueListOverview {...routerProps} {...props} />, {
         router,
       });
@@ -990,10 +1004,12 @@ describe('IssueList', function () {
         />
       );
 
-      expect(fetchDataMock).toHaveBeenCalled();
+      await waitFor(() => {
+        expect(fetchDataMock).toHaveBeenCalled();
+      });
     });
 
-    it('fetches data on savedSearch change', function () {
+    it('fetches data on savedSearch change', async function () {
       const {rerender} = render(<IssueListOverview {...routerProps} {...props} />, {
         router,
       });
@@ -1006,33 +1022,38 @@ describe('IssueList', function () {
         />
       );
 
-      expect(fetchDataMock).toHaveBeenCalled();
+      await waitFor(() => {
+        expect(fetchDataMock).toHaveBeenCalled();
+      });
     });
 
-    it('uses correct statsPeriod when fetching issues list and no datetime given', function () {
+    it('uses correct statsPeriod when fetching issues list and no datetime given', async function () {
       const {rerender} = render(<IssueListOverview {...routerProps} {...props} />, {
         router,
       });
       const selection = {projects: [99], environments: [], datetime: {}};
       rerender(<IssueListOverview {...routerProps} {...props} selection={selection} />);
 
-      expect(fetchDataMock).toHaveBeenLastCalledWith(
-        '/organizations/org-slug/issues/',
-        expect.objectContaining({
-          data: 'collapse=stats&collapse=unhandled&expand=owners&expand=inbox&limit=25&project=99&query=is%3Aunresolved%20issue.priority%3A%5Bhigh%2C%20medium%5D&savedSearch=1&shortIdLookup=1&statsPeriod=14d',
-        })
-      );
+      await waitFor(() => {
+        expect(fetchDataMock).toHaveBeenLastCalledWith(
+          '/organizations/org-slug/issues/',
+          expect.objectContaining({
+            data: 'collapse=stats&collapse=unhandled&expand=owners&expand=inbox&limit=25&project=99&query=is%3Aunresolved%20issue.priority%3A%5Bhigh%2C%20medium%5D&savedSearch=1&shortIdLookup=1&statsPeriod=14d',
+          })
+        );
+      });
     });
   });
 
   describe('componentDidUpdate fetching members', function () {
-    it('fetches memberlist and tags list on project change', function () {
+    it('fetches memberlist on project change', async function () {
       const {rerender} = render(<IssueListOverview {...routerProps} {...props} />, {
         router,
       });
       // Called during componentDidMount
-      expect(fetchMembersRequest).toHaveBeenCalledTimes(1);
-      expect(fetchTagsRequest).toHaveBeenCalledTimes(1);
+      await waitFor(() => {
+        expect(fetchMembersRequest).toHaveBeenCalled();
+      });
 
       const selection = {
         projects: [99],
@@ -1040,17 +1061,26 @@ describe('IssueList', function () {
         datetime: {period: '24h'},
       };
       rerender(<IssueListOverview {...routerProps} {...props} selection={selection} />);
-      expect(fetchMembersRequest).toHaveBeenCalledTimes(2);
-      expect(fetchTagsRequest).toHaveBeenCalledTimes(2);
+
+      await waitFor(() => {
+        expect(fetchMembersRequest).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            query: {
+              project: selection.projects.map(p => p.toString()),
+            },
+          })
+        );
+      });
     });
   });
 
   describe('render states', function () {
-    it('displays the loading icon when saved searches are loading', function () {
+    it('displays the loading icon when saved searches are loading', async function () {
       render(<IssueListOverview {...routerProps} {...props} savedSearchLoading />, {
         router,
       });
-      expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
+      expect(await screen.findByTestId('loading-indicator')).toBeInTheDocument();
     });
 
     it('displays an error when issues fail to load', async function () {
@@ -1092,10 +1122,9 @@ describe('IssueList', function () {
 
       render(<IssueListOverview {...routerProps} {...props} />, {router});
 
-      await userEvent.type(
-        screen.getByDisplayValue(DEFAULT_QUERY),
-        ' level:error{enter}'
-      );
+      await screen.findByRole('grid', {name: 'Create a search query'});
+      await userEvent.click(getSearchInput());
+      await userEvent.keyboard('foo{enter}');
 
       expect(
         await screen.findByText(/We couldn't find any issues that matched your filters/i)
@@ -1311,7 +1340,7 @@ describe('IssueList', function () {
     });
   });
 
-  it('displays a count that represents the current page', function () {
+  it('displays a count that represents the current page', async function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/',
       body: [...new Array(25)].map((_, i) => ({id: i})),
@@ -1349,7 +1378,9 @@ describe('IssueList', function () {
       router: newRouter,
     });
 
-    expect(screen.getByText(textWithMarkupMatcher('1-25 of 500'))).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText(textWithMarkupMatcher('1-25 of 500'))).toBeInTheDocument();
+    });
 
     parseLinkHeaderSpy.mockReturnValue({
       next: {
@@ -1365,7 +1396,9 @@ describe('IssueList', function () {
     });
     rerender(<IssueListOverview {...props} />);
 
-    expect(screen.getByText(textWithMarkupMatcher('26-50 of 500'))).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText(textWithMarkupMatcher('26-50 of 500'))).toBeInTheDocument();
+    });
   });
 
   describe('project low trends queue alert', function () {
@@ -1375,18 +1408,20 @@ describe('IssueList', function () {
       act(() => ProjectsStore.reset());
     });
 
-    it('does not render event processing alert', function () {
+    it('does not render event processing alert', async function () {
       act(() => ProjectsStore.loadInitialData([project]));
 
       render(<IssueListOverview {...props} />, {
         router: newRouter,
       });
 
-      expect(screen.queryByText(/event processing/i)).not.toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.queryByText(/event processing/i)).not.toBeInTheDocument();
+      });
     });
 
     describe('renders alert', function () {
-      it('for one project', function () {
+      it('for one project', async function () {
         act(() =>
           ProjectsStore.loadInitialData([
             {...project, eventProcessing: {symbolicationDegraded: true}},
@@ -1395,12 +1430,14 @@ describe('IssueList', function () {
 
         render(<IssueListOverview {...props} />, {router});
 
-        expect(
-          screen.getByText(/Event Processing for this project is currently degraded/i)
-        ).toBeInTheDocument();
+        await waitFor(() => {
+          expect(
+            screen.getByText(/Event Processing for this project is currently degraded/i)
+          ).toBeInTheDocument();
+        });
       });
 
-      it('for multiple projects', function () {
+      it('for multiple projects', async function () {
         const projectBar = ProjectFixture({
           id: '3560',
           name: 'Bar Project',
@@ -1435,13 +1472,15 @@ describe('IssueList', function () {
           }
         );
 
-        expect(
-          screen.getByText(
-            textWithMarkupMatcher(
-              'Event Processing for the project-slug, project-slug-bar projects is currently degraded.'
+        await waitFor(() => {
+          expect(
+            screen.getByText(
+              textWithMarkupMatcher(
+                'Event Processing for the project-slug, project-slug-bar projects is currently degraded.'
+              )
             )
-          )
-        ).toBeInTheDocument();
+          ).toBeInTheDocument();
+        });
       });
     });
   });
