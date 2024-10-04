@@ -5,7 +5,7 @@ from sentry.issues.grouptype import GroupCategory
 # TODO(mgaeta): Continue fleshing out these types.
 SlackAttachment = dict[str, Any]
 SlackBlock = dict[str, Any]
-SlackBody = Union[SlackAttachment, SlackBlock, list[SlackAttachment]]
+SlackBody = Union[SlackAttachment, SlackBlock]
 
 # Attachment colors used for issues with no actions take.
 LEVEL_TO_COLOR = {
