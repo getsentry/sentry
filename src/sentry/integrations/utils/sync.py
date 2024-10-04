@@ -5,6 +5,7 @@ from collections.abc import Mapping, Sequence
 from typing import TYPE_CHECKING
 
 from sentry import features
+from sentry.integrations.services.assignment_source import AssignmentSource
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.tasks.sync_assignee_outbound import sync_assignee_outbound
 from sentry.models.group import Group
@@ -92,7 +93,11 @@ def sync_group_assignee_inbound(
 
     if not assign:
         for group in affected_groups:
-            GroupAssignee.objects.deassign(group)
+            GroupAssignee.objects.deassign(
+                group,
+                assignment_source=AssignmentSource.from_integration(integration),
+            )
+
         return affected_groups
 
     users = user_service.get_many_by_email(emails=[email], is_verified=True)
@@ -104,14 +109,23 @@ def sync_group_assignee_inbound(
         user_id = get_user_id(projects_by_user, group)
         user = users_by_id.get(user_id)
         if user:
-            GroupAssignee.objects.assign(group, user)
+            GroupAssignee.objects.assign(
+                group,
+                user,
+                assignment_source=AssignmentSource.from_integration(integration),
+            )
             groups_assigned.append(group)
         else:
             logger.info("assignee-not-found-inbound", extra=log_context)
     return groups_assigned
 
 
-def sync_group_assignee_outbound(group: Group, user_id: int | None, assign: bool = True) -> None:
+def sync_group_assignee_outbound(
+    group: Group,
+    user_id: int | None,
+    assign: bool = True,
+    assignment_source: AssignmentSource | None = None,
+) -> None:
     from sentry.models.grouplink import GroupLink
 
     external_issue_ids = GroupLink.objects.filter(
@@ -120,5 +134,12 @@ def sync_group_assignee_outbound(group: Group, user_id: int | None, assign: bool
 
     for external_issue_id in external_issue_ids:
         sync_assignee_outbound.apply_async(
-            kwargs={"external_issue_id": external_issue_id, "user_id": user_id, "assign": assign}
+            kwargs={
+                "external_issue_id": external_issue_id,
+                "user_id": user_id,
+                "assign": assign,
+                "assignment_source_dict": assignment_source.to_dict()
+                if assignment_source
+                else None,
+            }
         )
