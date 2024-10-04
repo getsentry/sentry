@@ -8,6 +8,7 @@ from django.conf import settings
 
 from sentry import options
 from sentry.celery import app
+from sentry.conf.types.celery import SplitQueueSize
 from sentry.utils.celery import build_queue_names
 
 logger = logging.getLogger(__name__)
@@ -27,6 +28,35 @@ class TaskRoute(NamedTuple):
     queues: Iterator[str]
 
 
+def _build_destination_names(default_queue: str, queue_size_conf: SplitQueueSize) -> Sequence[str]:
+    """
+    Validates the configurations and builds the list of queues to cycle through.
+
+    If no valid configuration is provided it returns an empty Sequence.
+    It is up to the callsite to decide what to do with that to properly route
+    messages.
+    """
+
+    known_queues = _get_known_queues()
+
+    assert (
+        default_queue in known_queues
+    ), f"Queue {default_queue} in split queue config is not declared."
+
+    assert queue_size_conf["in_use"] <= queue_size_conf["total"]
+    if queue_size_conf["in_use"] >= 2:
+        destinations = build_queue_names(default_queue, queue_size_conf["in_use"])
+        _validate_destinations(destinations)
+        return destinations
+    else:
+        logger.error(
+            "Invalid configuration for queue %s. In use is not greater than 1: %d. Fall back to source",
+            default_queue,
+            queue_size_conf["in_use"],
+        )
+        return []
+
+
 class SplitQueueTaskRouter:
     """
     Routes tasks to split queues.
@@ -43,30 +73,16 @@ class SplitQueueTaskRouter:
     """
 
     def __init__(self) -> None:
-        known_queues = _get_known_queues()
-
         self.__task_routers = {}
         for task, dest_config in settings.CELERY_SPLIT_QUEUE_TASK_ROUTES.items():
             default_destination = dest_config["default_queue"]
-            assert (
-                default_destination in known_queues
-            ), f"Queue {default_destination} in split queue config is not declared."
+            destinations: Sequence[str] = []
             if "queues_config" in dest_config:
-                queues_config = dest_config["queues_config"]
-                assert queues_config["in_use"] <= queues_config["total"]
-                if queues_config["in_use"] >= 2:
-                    destinations = build_queue_names(default_destination, queues_config["in_use"])
-                    _validate_destinations(destinations)
-                else:
-                    logger.error(
-                        "Invalid configuration for task %s. In use is not greater than 1: %d. Fall back to source",
-                        task,
-                        queues_config["in_use"],
-                    )
-                    destinations = [dest_config["default_queue"]]
-            else:
-                # This is the case where a specific environment does not want to
-                # split the queues. The settings must be there anyway.
+                destinations = _build_destination_names(
+                    dest_config["default_queue"], dest_config["queues_config"]
+                )
+
+            if not destinations:
                 destinations = [dest_config["default_queue"]]
 
             # It is critical to add a TaskRoute even if the configuration is invalid
@@ -100,22 +116,11 @@ class SplitQueueRouter:
     """
 
     def __init__(self) -> None:
-        known_queues = _get_known_queues()
         self.__queue_routers = {}
         for source, dest_config in settings.CELERY_SPLIT_QUEUE_ROUTES.items():
-            assert source in known_queues, f"Queue {source} in split queue config is not declared."
-            assert dest_config["in_use"] <= dest_config["total"]
-
-            if dest_config["in_use"] >= 2:
-                destinations = build_queue_names(source, dest_config["in_use"])
-                _validate_destinations(destinations)
+            destinations = _build_destination_names(source, dest_config)
+            if destinations:
                 self.__queue_routers[source] = cycle(destinations)
-            else:
-                logger.error(
-                    "Invalid configuration for queue %s. In use is not greater than 1: %d. Fall back to source",
-                    source,
-                    dest_config["in_use"],
-                )
 
     def route_for_queue(self, queue: str) -> str:
         rollout_rate = options.get("celery_split_queue_rollout").get(queue, 0.0)

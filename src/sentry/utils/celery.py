@@ -44,11 +44,7 @@ def make_split_queues(config: Mapping[str, SplitQueueSize]) -> Sequence[Queue]:
     """
     ret: MutableSequence[Queue] = []
     for base_name, conf in config.items():
-        names = [
-            Queue(name=name, routing_key=name)
-            for name in build_queue_names(base_name, conf["total"])
-        ]
-        ret.extend(names)
+        ret.extend(_build_queues(base_name, conf["total"]))
 
     return ret
 
