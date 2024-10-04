@@ -208,7 +208,7 @@ class Matcher(namedtuple("Matcher", "type pattern")):
         ),
         match_frame_func: Callable[[Mapping[str, Any]], bool] = lambda _: True,
     ) -> bool:
-        for frame in (f for f in frames if isinstance(f, Mapping)):
+        for frame in frames:
             if not match_frame_func(frame):
                 continue
 
