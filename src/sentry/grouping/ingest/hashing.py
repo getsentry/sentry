@@ -14,7 +14,6 @@ from sentry.grouping.api import (
     NULL_GROUPING_CONFIG,
     BackgroundGroupingConfigLoader,
     GroupingConfig,
-    GroupingConfigNotFound,
     SecondaryGroupingConfigLoader,
     apply_server_fingerprinting,
     get_fingerprinting_config_for_project,
@@ -70,16 +69,7 @@ def _calculate_event_grouping(
             )
 
         with metrics.timer("event_manager.event.get_hashes", tags=metric_tags):
-            # TODO: It's not clear we can even hit `GroupingConfigNotFound` here - this is leftover
-            # from a time before we started separately retrieving the grouping config and passing it
-            # directly to `get_hashes`. Now that we do that, a bogus config will get replaced by the
-            # default long before we get here. Should we consolidate bogus config handling into the
-            # code actually getting the config?
-            try:
-                hashes = event.get_hashes(loaded_grouping_config)
-            except GroupingConfigNotFound:
-                event.data["grouping_config"] = get_grouping_config_dict_for_project(project)
-                hashes = event.get_hashes()
+            hashes = event.get_hashes(loaded_grouping_config)
 
         return hashes
 
@@ -144,7 +134,7 @@ def _calculate_secondary_hashes(
     try:
         with sentry_sdk.start_span(
             op="event_manager",
-            description="event_manager.save.secondary_calculate_event_grouping",
+            name="event_manager.save.secondary_calculate_event_grouping",
         ):
             # create a copy since `_calculate_event_grouping` modifies the event to add all sorts
             # of grouping info and we don't want the secondary grouping data in there
@@ -171,7 +161,7 @@ def run_primary_grouping(
     with (
         sentry_sdk.start_span(
             op="event_manager",
-            description="event_manager.save.calculate_event_grouping",
+            name="event_manager.save.calculate_event_grouping",
         ),
         metrics.timer("event_manager.calculate_event_grouping", tags=metric_tags),
     ):
@@ -218,7 +208,14 @@ def find_grouphash_with_group(
 def get_or_create_grouphashes(
     project: Project, hashes: Sequence[str], grouping_config: str
 ) -> list[GroupHash]:
-    grouphashes = []
+    is_secondary = grouping_config != project.get_option("sentry:grouping_config")
+    grouphashes: list[GroupHash] = []
+
+    # The only utility of secondary hashes is to link new primary hashes to an existing group.
+    # Secondary hashes which are also new are therefore of no value, so there's no need to store or
+    # annotate them and we can bail now.
+    if is_secondary and not GroupHash.objects.filter(project=project, hash__in=hashes).exists():
+        return grouphashes
 
     for hash_value in hashes:
         grouphash, created = GroupHash.objects.get_or_create(project=project, hash=hash_value)

@@ -26,7 +26,6 @@ import {getFormattedDate} from 'sentry/utils/dates';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {parseFunction} from 'sentry/utils/discover/fields';
-import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import {hasOnDemandMetricWidgetFeature} from 'sentry/utils/onDemandMetrics/features';
 import {ExtractedMetricsTag} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {
@@ -282,25 +281,23 @@ class WidgetCard extends Component<Props, State> {
     );
 
     if (widget.widgetType === WidgetType.METRICS) {
-      if (hasCustomMetrics(organization)) {
-        return (
-          <MetricWidgetCard
-            index={this.props.index}
-            isEditingDashboard={this.props.isEditingDashboard}
-            onEdit={this.props.onEdit}
-            onDelete={this.props.onDelete}
-            onDuplicate={this.props.onDuplicate}
-            router={this.props.router}
-            location={this.props.location}
-            organization={organization}
-            selection={selection}
-            widget={widget}
-            dashboardFilters={dashboardFilters}
-            renderErrorMessage={renderErrorMessage}
-            showContextMenu={this.props.showContextMenu}
-          />
-        );
-      }
+      return (
+        <MetricWidgetCard
+          index={this.props.index}
+          isEditingDashboard={this.props.isEditingDashboard}
+          onEdit={this.props.onEdit}
+          onDelete={this.props.onDelete}
+          onDuplicate={this.props.onDuplicate}
+          router={this.props.router}
+          location={this.props.location}
+          organization={organization}
+          selection={selection}
+          widget={widget}
+          dashboardFilters={dashboardFilters}
+          renderErrorMessage={renderErrorMessage}
+          showContextMenu={this.props.showContextMenu}
+        />
+      );
     }
 
     return (

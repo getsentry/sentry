@@ -54,16 +54,14 @@ def send_notification_as_slack(
     Sending Slack notifications to a channel is in integrations/slack/actions/notification.py"""
 
     service = SlackService.default()
-    with sentry_sdk.start_span(
-        op="notification.send_slack", description="gen_channel_integration_map"
-    ):
+    with sentry_sdk.start_span(op="notification.send_slack", name="gen_channel_integration_map"):
         data = get_integrations_by_channel_by_recipient(
             notification.organization, recipients, ExternalProviders.SLACK
         )
 
     for recipient, integrations_by_channel in data.items():
-        with sentry_sdk.start_span(op="notification.send_slack", description="send_one"):
-            with sentry_sdk.start_span(op="notification.send_slack", description="gen_attachments"):
+        with sentry_sdk.start_span(op="notification.send_slack", name="send_one"):
+            with sentry_sdk.start_span(op="notification.send_slack", name="gen_attachments"):
                 attachments = service.get_attachments(
                     notification,
                     recipient,
