@@ -20,7 +20,10 @@ __all__ = (
     "ApiTimeoutError",
     "ApiUnauthorized",
     "ApiRateLimitedError",
+    "ApiInvalidRequestError",
     "IntegrationError",
+    "IntegrationFormError",
+    "UnsupportedResponseType",
 )
 
 
@@ -85,7 +88,7 @@ class ApiError(Exception):
         elif response.status_code == 409:
             return ApiConflictError(response.text, url=url)
         elif response.status_code == 400:
-            return ApiInvalidRequest(response.text, url=url)
+            return ApiInvalidRequestError(response.text, url=url)
 
         return cls(response.text, response.status_code, url=url)
 
@@ -153,7 +156,7 @@ class ApiConnectionResetError(ApiError):
     code = errno.ECONNRESET
 
 
-class ApiInvalidRequest(ApiError):
+class ApiInvalidRequestError(ApiError):
     code = 400
 
 

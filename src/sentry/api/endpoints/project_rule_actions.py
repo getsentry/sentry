@@ -14,7 +14,7 @@ from sentry.api.serializers.rest_framework import RuleActionSerializer
 from sentry.eventstore.models import GroupEvent
 from sentry.models.rule import Rule
 from sentry.rules.processing.processor import activate_downstream_actions
-from sentry.shared_integrations.exceptions import IntegrationError
+from sentry.shared_integrations.exceptions import IntegrationFormError
 from sentry.utils.safe import safe_execute
 from sentry.utils.samples import create_sample_event
 
@@ -98,7 +98,7 @@ class ProjectRuleActionsEndpoint(ProjectEndpoint):
 
                 # safe_execute logs these as exceptions, which can result in
                 # noisy sentry issues, so log with a warning instead.
-                if isinstance(exc, IntegrationError):
+                if isinstance(exc, IntegrationFormError):
                     logger.warning(
                         "%s.test_alert.integration_error", callback_name, extra={"exc": exc}
                     )
