@@ -3,10 +3,10 @@ from django.utils.functional import cached_property
 
 from sentry.coreapi import APIUnauthorized
 from sentry.mediators.external_issues.creator import Creator
-from sentry.mediators.external_requests.issue_link_requester import IssueLinkRequester
 from sentry.mediators.mediator import Mediator
 from sentry.mediators.param import Param
 from sentry.models.group import Group
+from sentry.sentry_apps.external_requests.issue_link_requester import IssueLinkRequester
 from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
 from sentry.sentry_apps.services.app import RpcSentryAppInstallation
 from sentry.users.services.user import RpcUser
