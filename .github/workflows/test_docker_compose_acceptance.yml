@@ -75,7 +75,7 @@ jobs:
           SENTRY_WEBPACK_WEBHOOK_SECRET: ${{ secrets.SENTRY_WEBPACK_WEBHOOK_SECRET }}
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
           # should set value either as `true` or `false`
-          CODECOV_ENABLE_BA: ${{ needs.files-changed.outputs.frontend_all == 'true'}}
+          CODECOV_ENABLE_BA: true
           GH_COMMIT_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           yarn build-acceptance
@@ -98,7 +98,7 @@ jobs:
 
       - name: Collect test data
         uses: ./.github/actions/collect-test-data
-        if: ${{ !cancelled() && needs.files-changed.outputs.backend_all == 'true' }}
+        if: ${{ !cancelled() }}
         with:
           artifact_path: .artifacts/pytest.acceptance.json
           gcs_bucket: ${{ secrets.COLLECT_TEST_DATA_GCS_BUCKET }}
@@ -113,7 +113,7 @@ jobs:
       # it reduces large coverage fluctuations
       - name: Handle artifacts
         uses: ./.github/actions/artifacts
-        if: ${{ always() && needs.files-changed.outputs.backend_all == 'true' }}
+        if: ${{ always() }}
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           commit_sha: ${{ github.event.pull_request.head.sha }}
@@ -122,7 +122,7 @@ jobs:
     # this is a required check so we need this job to always run and report a status.
     if: always()
     name: Acceptance
-    needs: [acceptance, files-changed]
+    needs: [acceptance]
     runs-on: ubuntu-22.04
     timeout-minutes: 3
     steps:
