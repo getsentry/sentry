@@ -10,6 +10,7 @@ from sentry import ratelimits as ratelimiter
 from sentry.conf.server import SEER_SIMILARITY_MODEL_VERSION
 from sentry.eventstore.models import Event
 from sentry.grouping.grouping_info import get_grouping_info_from_variants
+from sentry.grouping.variants import BaseVariant
 from sentry.models.grouphash import GroupHash
 from sentry.models.project import Project
 from sentry.seer.similarity.similar_issues import get_similarity_data_from_seer
@@ -232,7 +233,7 @@ def get_seer_similar_issues(
 
 
 def maybe_check_seer_for_matching_grouphash(
-    event: Event, all_grouphashes: list[GroupHash]
+    event: Event, variants: dict[str, BaseVariant], all_grouphashes: list[GroupHash]
 ) -> GroupHash | None:
     seer_matched_grouphash = None
 
