@@ -1,10 +1,10 @@
 name: test-docker-compose-backend
 
 on:
-  schedule:
-    # We want the release to be at 9-10am Pacific Time
-    # We also want it to be 1 hour before the self-hosted release
-    - cron: '* * * * *'
+  push:
+    branches:
+      - master
+  pull_request:
 
 # Cancel in progress workflows on pull_requests.
 # https://docs.github.com/en/actions/using-jobs/using-concurrency#example-using-a-fallback-value

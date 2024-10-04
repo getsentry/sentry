@@ -236,6 +236,21 @@ services:
       - sentry-redis-cluster:/redis-data
     environment:
       - IP=0.0.0.0
+  chartcuterie:
+    <<: *restart_policy
+    container_name: sentry_chartcuterie
+    image: 'us-central1-docker.pkg.dev/sentryio/chartcuterie/image:latest'
+    environment:
+      CHARTCUTERIE_CONFIG: /etc/chartcuterie/config.js
+      CHARTCUTERIE_CONFIG_POLLING: true
+    volumes:
+      - ./chartcuterie:/etc/chartcuterie
+    ports:
+      - '9090:7901'
+    networks:
+      - sentry
+    extra_hosts:
+      host.docker.internal: host-gateway
 
 volumes:
   # These store application data that should persist across restarts.
