@@ -343,7 +343,6 @@ module = [
     "sentry.tasks.process_buffer",
     "sentry.templatetags.sentry_assets",
     "sentry.templatetags.sentry_helpers",
-    "sentry.templatetags.sentry_plugins",
     "sentry.testutils.cases",
     "sentry.testutils.fixtures",
     "sentry.testutils.helpers.notifications",
