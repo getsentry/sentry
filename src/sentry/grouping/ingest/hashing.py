@@ -144,7 +144,7 @@ def _calculate_secondary_hashes(
     try:
         with sentry_sdk.start_span(
             op="event_manager",
-            description="event_manager.save.secondary_calculate_event_grouping",
+            name="event_manager.save.secondary_calculate_event_grouping",
         ):
             # create a copy since `_calculate_event_grouping` modifies the event to add all sorts
             # of grouping info and we don't want the secondary grouping data in there
@@ -171,7 +171,7 @@ def run_primary_grouping(
     with (
         sentry_sdk.start_span(
             op="event_manager",
-            description="event_manager.save.calculate_event_grouping",
+            name="event_manager.save.calculate_event_grouping",
         ),
         metrics.timer("event_manager.calculate_event_grouping", tags=metric_tags),
     ):

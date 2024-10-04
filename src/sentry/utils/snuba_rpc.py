@@ -54,7 +54,7 @@ def rpc(req: SnubaRPCRequest, resp_type: type[RPCResponseType]) -> RPCResponseTy
     aggregate_resp = snuba.rpc(aggregate_req, AggregateBucketResponse)
     """
     referrer = req.meta.referrer
-    with sentry_sdk.start_span(op="snuba_rpc.run", description=req.__class__.__name__) as span:
+    with sentry_sdk.start_span(op="snuba_rpc.run", name=req.__class__.__name__) as span:
         span.set_tag("snuba.referrer", referrer)
 
         cls = req.__class__

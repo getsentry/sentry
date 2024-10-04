@@ -324,7 +324,7 @@ def normalize_stacktraces_for_grouping(
     # the trimming produces a different function than the function we have
     # otherwise stored in `function` to not make the payload larger
     # unnecessarily.
-    with sentry_sdk.start_span(op=op, description="iterate_frames"):
+    with sentry_sdk.start_span(op=op, name="iterate_frames"):
         stripped_querystring = False
         for frames in stacktrace_frames:
             for frame in frames:
@@ -347,7 +347,7 @@ def normalize_stacktraces_for_grouping(
 
     # If a grouping config is available, run grouping enhancers
     if grouping_config is not None:
-        with sentry_sdk.start_span(op=op, description="apply_modifications_to_frame"):
+        with sentry_sdk.start_span(op=op, name="apply_modifications_to_frame"):
             for frames, stacktrace_container in zip(stacktrace_frames, stacktrace_containers):
                 # This call has a caching mechanism when the same stacktrace and rules are used
                 grouping_config.enhancements.apply_modifications_to_frame(

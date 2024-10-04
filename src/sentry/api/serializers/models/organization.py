@@ -266,7 +266,7 @@ class OrganizationSerializer(Serializer):
         ]
         feature_set = set()
 
-        with sentry_sdk.start_span(op="features.check", description="check batch features"):
+        with sentry_sdk.start_span(op="features.check", name="check batch features"):
             # Check features in batch using the entity handler
             batch_features = features.batch_has(org_features, actor=user, organization=obj)
 
@@ -282,7 +282,7 @@ class OrganizationSerializer(Serializer):
                     # This feature_name was found via `batch_has`, don't check again using `has`
                     org_features.remove(feature_name)
 
-        with sentry_sdk.start_span(op="features.check", description="check individual features"):
+        with sentry_sdk.start_span(op="features.check", name="check individual features"):
             # Remaining features should not be checked via the entity handler
             for feature_name in org_features:
                 if features.has(feature_name, obj, actor=user, skip_entity=True):

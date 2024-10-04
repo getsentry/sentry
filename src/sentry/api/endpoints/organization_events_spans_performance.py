@@ -333,9 +333,7 @@ class OrganizationEventsSpansStatsEndpoint(OrganizationEventsSpansEndpointBase):
             zerofill_results: bool,
             comparison_delta: datetime | None = None,
         ) -> SnubaTSResult:
-            with sentry_sdk.start_span(
-                op="discover.discover", description="timeseries.filter_transform"
-            ):
+            with sentry_sdk.start_span(op="discover.discover", name="timeseries.filter_transform"):
                 builder = TimeseriesQueryBuilder(
                     Dataset.Discover,
                     {},
@@ -372,9 +370,7 @@ class OrganizationEventsSpansStatsEndpoint(OrganizationEventsSpansEndpointBase):
                     snql_query, "api.organization-events-spans-performance-stats"
                 )
 
-            with sentry_sdk.start_span(
-                op="discover.discover", description="timeseries.transform_results"
-            ):
+            with sentry_sdk.start_span(op="discover.discover", name="timeseries.transform_results"):
                 result = discover.zerofill(
                     results["data"],
                     snuba_params.start_date,

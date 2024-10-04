@@ -554,7 +554,7 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient)
 
         with sentry_sdk.start_span(
             op=f"{self.integration_type}.http.pagination",
-            description=f"{self.integration_type}.http_response.pagination.{self.name}",
+            name=f"{self.integration_type}.http_response.pagination.{self.name}",
         ):
             output = []
 

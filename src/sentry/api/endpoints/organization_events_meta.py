@@ -66,7 +66,7 @@ class OrganizationEventsRelatedIssuesEndpoint(OrganizationEventsEndpointBase, En
         except NoProjects:
             return Response([])
 
-        with sentry_sdk.start_span(op="discover.endpoint", description="find_lookup_keys") as span:
+        with sentry_sdk.start_span(op="discover.endpoint", name="find_lookup_keys") as span:
             possible_keys = ["transaction"]
             lookup_keys = {key: request.query_params.get(key) for key in possible_keys}
 
@@ -79,7 +79,7 @@ class OrganizationEventsRelatedIssuesEndpoint(OrganizationEventsEndpointBase, En
                 )
 
         with handle_query_errors():
-            with sentry_sdk.start_span(op="discover.endpoint", description="filter_creation"):
+            with sentry_sdk.start_span(op="discover.endpoint", name="filter_creation"):
                 projects = self.get_projects(request, organization)
                 query_kwargs = build_query_params_from_request(
                     request, organization, projects, snuba_params.environments
@@ -99,10 +99,10 @@ class OrganizationEventsRelatedIssuesEndpoint(OrganizationEventsEndpointBase, En
 
                 query_kwargs["actor"] = request.user
 
-            with sentry_sdk.start_span(op="discover.endpoint", description="issue_search"):
+            with sentry_sdk.start_span(op="discover.endpoint", name="issue_search"):
                 results_cursor = search.backend.query(**query_kwargs)
 
-        with sentry_sdk.start_span(op="discover.endpoint", description="serialize_results") as span:
+        with sentry_sdk.start_span(op="discover.endpoint", name="serialize_results") as span:
             results = list(results_cursor)
             span.set_data("result_length", len(results))
             context = serialize(
