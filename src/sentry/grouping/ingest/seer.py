@@ -43,7 +43,7 @@ def should_call_seer_for_grouping(event: Event, variants: dict[str, BaseVariant]
         return False
 
     if (
-        _has_customized_fingerprint(event)
+        _has_customized_fingerprint(event, variants)
         or killswitch_enabled(project.id, event)
         or _circuit_breaker_broken(event, project)
         # **Do not add any new checks after this.** The rate limit check MUST remain the last of all
@@ -80,7 +80,7 @@ def _project_has_similarity_grouping_enabled(project: Project) -> bool:
 # combined with some other value). To the extent to which we're then using this function to decide
 # whether or not to call Seer, this means that the calculations giving rise to the default part of
 # the value never involve Seer input. In the long run, we probably want to change that.
-def _has_customized_fingerprint(event: Event) -> bool:
+def _has_customized_fingerprint(event: Event, variants: dict[str, BaseVariant]) -> bool:
     fingerprint = event.data.get("fingerprint", [])
 
     if "{{ default }}" in fingerprint:
@@ -98,7 +98,6 @@ def _has_customized_fingerprint(event: Event) -> bool:
             return True
 
     # Fully customized fingerprint (from either us or the user)
-    variants = event.get_grouping_variants()
     fingerprint_variant = variants.get("custom-fingerprint") or variants.get("built-in-fingerprint")
 
     if fingerprint_variant:
