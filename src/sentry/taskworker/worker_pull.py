@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import time
-from concurrent.futures import Executor, ThreadPoolExecutor
+from concurrent.futures import Executor, ProcessPoolExecutor
 from datetime import datetime
 from uuid import uuid4
 
@@ -56,7 +56,7 @@ class Worker:
         next_task = None
         processing_deadline = None
         try:
-            with ThreadPoolExecutor(max_workers=2) as executor:
+            with ProcessPoolExecutor(max_workers=2) as executor:
                 while True:
                     if next_task:
                         task = next_task

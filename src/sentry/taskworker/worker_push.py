@@ -2,8 +2,7 @@ from __future__ import annotations
 
 import logging
 import time
-from concurrent import futures
-from concurrent.futures.thread import ThreadPoolExecutor
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 from datetime import datetime
 from uuid import uuid4
 
@@ -38,7 +37,7 @@ class WorkerServicer(BaseWorkerServiceServicer):
         self.do_imports()
         self.__worker_id = uuid4().hex
         # TODO we are not waiting for threads to complete on shutdown
-        self.executor = ThreadPoolExecutor(max_workers=2)
+        self.executor = ProcessPoolExecutor(max_workers=2)
 
     @property
     def namespace(self) -> TaskNamespace:
@@ -100,7 +99,7 @@ class WorkerServicer(BaseWorkerServiceServicer):
 
 def serve(port: int, **options):
     logger.info("Starting server on: %s", port)
-    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+    server = grpc.server(ThreadPoolExecutor(max_workers=10))
     add_WorkerServiceServicer_to_server(WorkerServicer(**options), server)
     server.add_insecure_port(f"[::]:{port}")
     server.start()
