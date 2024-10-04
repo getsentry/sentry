@@ -25,11 +25,12 @@ import {MODULE_TITLES} from 'sentry/views/insights/settings';
 import {ModuleName} from 'sentry/views/insights/types';
 
 type Props = {
+  headerActions?: React.ReactNode;
   module?: ModuleName;
 };
 
 // TODO - add props to append to breadcrumbs and change title
-export function AiHeader({module}: Props) {
+export function AiHeader({module, headerActions}: Props) {
   const navigate = useNavigate();
   const {slug} = useOrganization();
   const moduleURLBuilder = useModuleURLBuilder();
@@ -73,20 +74,24 @@ export function AiHeader({module}: Props) {
   return (
     <Fragment>
       <Tabs value={module ?? OVERVIEW_PAGE_TITLE} onChange={handleTabChange}>
-        <Layout.HeaderContent>
-          <Breadcrumbs crumbs={crumbs} />
-
-          <Layout.Title>{AI_LANDING_TITLE}</Layout.Title>
-        </Layout.HeaderContent>
-        <Layout.HeaderActions>
-          <ButtonBar gap={1}>
-            <FeedbackWidgetButton />
-          </ButtonBar>
-        </Layout.HeaderActions>
-        <TabList hideBorder>
-          <TabList.Item key={OVERVIEW_PAGE_TITLE}>{OVERVIEW_PAGE_TITLE}</TabList.Item>
-          <TabList.Item key={ModuleName.AI}>{MODULE_TITLES[ModuleName.AI]}</TabList.Item>
-        </TabList>
+        <Layout.Header>
+          <Layout.HeaderContent>
+            <Breadcrumbs crumbs={crumbs} />
+            <Layout.Title>{AI_LANDING_TITLE}</Layout.Title>
+          </Layout.HeaderContent>
+          <Layout.HeaderActions>
+            <ButtonBar gap={1}>
+              {headerActions}
+              <FeedbackWidgetButton />
+            </ButtonBar>
+          </Layout.HeaderActions>
+          <TabList hideBorder>
+            <TabList.Item key={OVERVIEW_PAGE_TITLE}>{OVERVIEW_PAGE_TITLE}</TabList.Item>
+            <TabList.Item key={ModuleName.AI}>
+              {MODULE_TITLES[ModuleName.AI]}
+            </TabList.Item>
+          </TabList>
+        </Layout.Header>
       </Tabs>
     </Fragment>
   );

@@ -63,11 +63,7 @@ export function LLMMonitoringPage() {
             </Layout.HeaderActions>
           </Layout.Header>
         )}
-        {isInDomainView && (
-          <Layout.Header>
-            <AiHeader module={ModuleName.AI} />
-          </Layout.Header>
-        )}
+        {isInDomainView && <AiHeader module={ModuleName.AI} />}
         <Layout.Body>
           <Layout.Main fullWidth>
             <ModuleLayout.Layout>
