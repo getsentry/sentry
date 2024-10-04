@@ -30,7 +30,7 @@ const historyMethods: Array<keyof History> = [
  */
 const proxyLegacyBrowserHistory: ProxyHandler<History> = {
   get(_target, prop, _receiver) {
-    if (prop in historyMethods) {
+    if (historyMethods.includes(prop.toString() as keyof History)) {
       // eslint-disable-next-line no-console
       console.warn('Legacy browserHistory called before patched!');
       Sentry.captureException(new Error('legacy browserHistory called!'), {

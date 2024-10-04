@@ -22,7 +22,7 @@ type Props = {
   project: Project;
 } & RouteComponentProps<{projectId: string}, {}>;
 
-function ProjectMetrics({project}: Props) {
+function ProjectMetrics({project, organization}: Props) {
   const {activateSidebar} = useMetricsOnboardingSidebar();
 
   return (
@@ -57,7 +57,7 @@ function ProjectMetrics({project}: Props) {
         )}
       </TextBlock>
 
-      <MetricsBetaEndAlert />
+      <MetricsBetaEndAlert organization={organization} />
 
       <PermissionAlert project={project} />
 
