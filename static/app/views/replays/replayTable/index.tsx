@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {Alert} from 'sentry/components/alert';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {PanelTable} from 'sentry/components/panels/panelTable';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import EventView from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
@@ -46,27 +46,19 @@ type Props = {
 
 function getErrorMessage(fetchError: RequestError) {
   if (typeof fetchError === 'string') {
-    return tct('Sorry, the list of replays could not be loaded. [errorMessage]', {
-      errorMessage: fetchError,
-    });
+    return fetchError;
   }
   if (typeof fetchError?.responseJSON?.detail === 'string') {
-    return tct('Sorry, the list of replays could not be loaded. [errorMessage]', {
-      errorMessage: fetchError.responseJSON.detail,
-    });
+    return fetchError.responseJSON.detail;
   }
   if (fetchError?.responseJSON?.detail?.message) {
-    return tct('Sorry, the list of replays could not be loaded. [errorMessage]', {
-      errorMessage: fetchError.responseJSON.detail.message,
-    });
+    return fetchError.responseJSON.detail.message;
   }
   if (fetchError.name === ERROR_MAP[500]) {
-    return t(
-      'Sorry, the list of replays could not be loaded. There was an internal systems error.'
-    );
+    return t('There was an internal systems error.');
   }
   return t(
-    'Sorry, the list of replays could not be loaded. This could be due to invalid search parameters or an internal systems error.'
+    'This could be due to invalid search parameters or an internal systems error.'
   );
 }
 
@@ -108,6 +100,7 @@ function ReplayTable({
         gridRows={undefined}
       >
         <StyledAlert type="error" showIcon>
+          {t('Sorry, the list of replays could not be loaded. ')}
           {getErrorMessage(fetchError)}
         </StyledAlert>
       </StyledPanelTable>
