@@ -7,6 +7,8 @@ from parsimonious.exceptions import ParseError
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
     AttributeKey,
     AttributeValue,
+    IntArray,
+    StrArray,
     VirtualColumnContext,
 )
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
@@ -18,12 +20,22 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
 
 from sentry.api import event_search
 from sentry.exceptions import InvalidSearchQuery
-from sentry.search.eap.span_columns import SPAN_COLUMN_DEFINITIONS
-from sentry.search.eap.types import ResolvedColumn, SearchResolverConfig
+from sentry.search.eap.span_columns import SPAN_COLUMN_DEFINITIONS, ResolvedColumn
+from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events import filter as event_filter
 from sentry.search.events.types import SnubaParams
 
-OPERATOR_MAP = {"=": ComparisonFilter.OP_EQUALS}
+OPERATOR_MAP = {
+    "=": ComparisonFilter.OP_EQUALS,
+    "!=": ComparisonFilter.OP_NOT_EQUALS,
+    "IN": ComparisonFilter.OP_IN,
+    "NOT IN": ComparisonFilter.OP_NOT_IN,
+    ">": ComparisonFilter.OP_GREATER_THAN,
+    "<": ComparisonFilter.OP_LESS_THAN,
+    ">=": ComparisonFilter.OP_GREATER_THAN_OR_EQUALS,
+    "<=": ComparisonFilter.OP_LESS_THAN_OR_EQUALS,
+}
+
 STRING = AttributeKey.TYPE_STRING
 BOOLEAN = AttributeKey.TYPE_BOOLEAN
 FLOAT = AttributeKey.TYPE_FLOAT
@@ -45,8 +57,8 @@ class SearchResolver:
         try:
             parsed_terms = event_search.parse_search_query(
                 querystring,
-                params=None,  # TODO
-                # config_overrides
+                params=self.params,
+                get_field_type=self.get_field_type,
             )
         except ParseError as e:
             if e.expr is not None:
@@ -149,10 +161,14 @@ class SearchResolver:
     def _resolve_term(self, term: event_filter.ParsedTerm) -> TraceItemFilter:
         if isinstance(term, event_filter.SearchFilter):
             resolved_column, context = self.resolve_column(term.key.name)
+            if term.operator in OPERATOR_MAP:
+                operator = OPERATOR_MAP[term.operator]
+            else:
+                raise InvalidSearchQuery(f"Unknown operator: {term.operator}")
             return TraceItemFilter(
                 comparison_filter=ComparisonFilter(
                     key=resolved_column.proto_definition,
-                    op=OPERATOR_MAP[term.operator],
+                    op=operator,
                     value=self.resolve_value(resolved_column, term.operator, term.value.raw_value),
                 )
             )
@@ -166,13 +182,31 @@ class SearchResolver:
         column.validate(value)
         column_type = column.proto_definition.type
         if column_type == STRING:
-            if operator == "IN":
-                if isinstance(value, Sequence[str]):
-                    return AttributeValue(val_str_array=value)
+            if operator in ["IN", "NOT IN"]:
+                if isinstance(value, list) and all(isinstance(item, str) for item in value):
+                    return AttributeValue(val_str_array=StrArray(values=value))
                 else:
                     raise InvalidSearchQuery()
-            elif isinstance(value, str):
+            else:
                 return AttributeValue(val_str=value)
+        elif column_type == INT:
+            # These int casts are only necessary because floats aren't supported in the proto yet
+            if operator in ["IN", "NOT IN"]:
+                if isinstance(value, list):
+                    return AttributeValue(
+                        val_int_array=IntArray(values=[int(val) for val in value])
+                    )
+                else:
+                    raise InvalidSearchQuery()
+            else:
+                return AttributeValue(val_int=int(value))
+        elif column_type == FLOAT:
+            if operator in ["IN", "NOT IN"]:
+                if isinstance(value, list):
+                    # TODO: need to implement this once the proto supports floats
+                    raise InvalidSearchQuery()
+            else:
+                return AttributeValue(val_float=value)
 
     def resolve_columns(
         self, selected_columns: list[str]
@@ -189,6 +223,7 @@ class SearchResolver:
     def resolve_column(self, column: str) -> tuple[ResolvedColumn, VirtualColumnContext | None]:
         """Column is either an attribute or an aggregate, this function will determine which it is and call the relevant
         resolve function"""
+        # Temporary, this is just to make testing resolve_query easier
         return SPAN_COLUMN_DEFINITIONS[column], None
         # Check if column is an aggregate if so
         # self.resolve_aggregate(column)
@@ -199,6 +234,10 @@ class SearchResolver:
         # self.resolved_coluumn[alias] = ResolvedColumn()
         # return ResolvedColumn()
         pass
+
+    def get_field_type(self, column: str) -> str:
+        resolved_column, _ = self.resolve_column(column)
+        return resolved_column.search_type
 
     def resolve_attributes(
         self, column: list[str]
