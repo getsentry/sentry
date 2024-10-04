@@ -37,7 +37,7 @@ from sentry.rules.processing.delayed_processing import (
     process_delayed_alert_conditions,
     process_rulegroups_in_batches,
 )
-from sentry.rules.processing.processor import PROJECT_ID_BUFFER_LIST_KEY
+from sentry.rules.processing.processor import PROJECT_ID_BUFFER_LIST_KEY, RuleProcessor
 from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase, TestCase
 from sentry.testutils.factories import EventType
 from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
@@ -673,85 +673,85 @@ class ProcessDelayedAlertConditionsTest(CreateEventTestCase, PerformanceIssueTes
     def setUp(self):
         super().setUp()
 
-        self.tag_filter = {
-            "id": "sentry.rules.filters.tagged_event.TaggedEventFilter",
-            "key": "foo",
-            "match": "eq",
-            "value": "bar",
-        }
+        # self.tag_filter = {
+        #     "id": "sentry.rules.filters.tagged_event.TaggedEventFilter",
+        #     "key": "foo",
+        #     "match": "eq",
+        #     "value": "bar",
+        # }
 
-        self.event_frequency_condition = self.create_event_frequency_condition()
-        self.event_frequency_condition2 = self.create_event_frequency_condition(value=2)
-        self.event_frequency_condition3 = self.create_event_frequency_condition(
-            interval="1h", value=1
-        )
-        self.user_frequency_condition = self.create_event_frequency_condition(
-            interval="1m",
-            id="EventUniqueUserFrequencyCondition",
-        )
-        event_frequency_percent_condition = self.create_event_frequency_condition(
-            interval="5m", id="EventFrequencyPercentCondition", value=1.0
-        )
+        # self.event_frequency_condition = self.create_event_frequency_condition()
+        # self.event_frequency_condition2 = self.create_event_frequency_condition(value=2)
+        # self.event_frequency_condition3 = self.create_event_frequency_condition(
+        #     interval="1h", value=1
+        # )
+        # self.user_frequency_condition = self.create_event_frequency_condition(
+        #     interval="1m",
+        #     id="EventUniqueUserFrequencyCondition",
+        # )
+        # event_frequency_percent_condition = self.create_event_frequency_condition(
+        #     interval="5m", id="EventFrequencyPercentCondition", value=1.0
+        # )
 
-        self.rule1 = self.create_project_rule(
-            project=self.project,
-            condition_match=[self.event_frequency_condition],
-            environment_id=self.environment.id,
-        )
-        self.event1 = self.create_event(
-            self.project.id, FROZEN_TIME, "group-1", self.environment.name
-        )
-        self.create_event(self.project.id, FROZEN_TIME, "group-1", self.environment.name)
-        self.group1 = self.event1.group
+        # self.rule1 = self.create_project_rule(
+        #     project=self.project,
+        #     condition_match=[self.event_frequency_condition],
+        #     environment_id=self.environment.id,
+        # )
+        # self.event1 = self.create_event(
+        #     self.project.id, FROZEN_TIME, "group-1", self.environment.name
+        # )
+        # self.create_event(self.project.id, FROZEN_TIME, "group-1", self.environment.name)
+        # self.group1 = self.event1.group
 
-        self.rule2 = self.create_project_rule(
-            project=self.project, condition_match=[self.user_frequency_condition]
-        )
-        self.event2 = self.create_event(
-            self.project.id, FROZEN_TIME, "group-2", self.environment.name
-        )
-        self.create_event(self.project.id, FROZEN_TIME, "group-2", self.environment.name)
-        self.group2 = self.event2.group
+        # self.rule2 = self.create_project_rule(
+        #     project=self.project, condition_match=[self.user_frequency_condition]
+        # )
+        # self.event2 = self.create_event(
+        #     self.project.id, FROZEN_TIME, "group-2", self.environment.name
+        # )
+        # self.create_event(self.project.id, FROZEN_TIME, "group-2", self.environment.name)
+        # self.group2 = self.event2.group
 
-        self.rulegroup_event_mapping_one = {
-            f"{self.rule1.id}:{self.group1.id}": {self.event1.event_id},
-            f"{self.rule2.id}:{self.group2.id}": {self.event2.event_id},
-        }
+        # self.rulegroup_event_mapping_one = {
+        #     f"{self.rule1.id}:{self.group1.id}": {self.event1.event_id},
+        #     f"{self.rule2.id}:{self.group2.id}": {self.event2.event_id},
+        # }
 
-        self.project_two = self.create_project(organization=self.organization)
-        self.environment2 = self.create_environment(project=self.project_two)
+        # self.project_two = self.create_project(organization=self.organization)
+        # self.environment2 = self.create_environment(project=self.project_two)
 
-        self.rule3 = self.create_project_rule(
-            project=self.project_two,
-            condition_match=[self.event_frequency_condition2],
-            environment_id=self.environment2.id,
-        )
-        self.event3 = self.create_event(
-            self.project_two.id, FROZEN_TIME, "group-3", self.environment2.name
-        )
-        self.create_event(self.project_two.id, FROZEN_TIME, "group-3", self.environment2.name)
-        self.create_event(self.project_two.id, FROZEN_TIME, "group-3", self.environment2.name)
-        self.create_event(self.project_two.id, FROZEN_TIME, "group-3", self.environment2.name)
-        self.group3 = self.event3.group
+        # self.rule3 = self.create_project_rule(
+        #     project=self.project_two,
+        #     condition_match=[self.event_frequency_condition2],
+        #     environment_id=self.environment2.id,
+        # )
+        # self.event3 = self.create_event(
+        #     self.project_two.id, FROZEN_TIME, "group-3", self.environment2.name
+        # )
+        # self.create_event(self.project_two.id, FROZEN_TIME, "group-3", self.environment2.name)
+        # self.create_event(self.project_two.id, FROZEN_TIME, "group-3", self.environment2.name)
+        # self.create_event(self.project_two.id, FROZEN_TIME, "group-3", self.environment2.name)
+        # self.group3 = self.event3.group
 
-        self.rule4 = self.create_project_rule(
-            project=self.project_two, condition_match=[event_frequency_percent_condition]
-        )
-        self.event4 = self.create_event(self.project_two.id, FROZEN_TIME, "group-4")
-        self.create_event(self.project_two.id, FROZEN_TIME, "group-4")
-        self._make_sessions(60, project=self.project_two)
-        self.group4 = self.event4.group
+        # self.rule4 = self.create_project_rule(
+        #     project=self.project_two, condition_match=[event_frequency_percent_condition]
+        # )
+        # self.event4 = self.create_event(self.project_two.id, FROZEN_TIME, "group-4")
+        # self.create_event(self.project_two.id, FROZEN_TIME, "group-4")
+        # self._make_sessions(60, project=self.project_two)
+        # self.group4 = self.event4.group
 
-        self.rulegroup_event_mapping_two = {
-            f"{self.rule3.id}:{self.group3.id}": {self.event3.event_id},
-            f"{self.rule4.id}:{self.group4.id}": {self.event4.event_id},
-        }
-        self.buffer_mapping = {
-            self.project.id: self.rulegroup_event_mapping_one,
-            self.project_two.id: self.rulegroup_event_mapping_two,
-        }
+        # self.rulegroup_event_mapping_two = {
+        #     f"{self.rule3.id}:{self.group3.id}": {self.event3.event_id},
+        #     f"{self.rule4.id}:{self.group4.id}": {self.event4.event_id},
+        # }
+        # self.buffer_mapping = {
+        #     self.project.id: self.rulegroup_event_mapping_one,
+        #     self.project_two.id: self.rulegroup_event_mapping_two,
+        # }
         buffer.backend.push_to_sorted_set(key=PROJECT_ID_BUFFER_LIST_KEY, value=self.project.id)
-        buffer.backend.push_to_sorted_set(key=PROJECT_ID_BUFFER_LIST_KEY, value=self.project_two.id)
+        # buffer.backend.push_to_sorted_set(key=PROJECT_ID_BUFFER_LIST_KEY, value=self.project_two.id)
 
     def _push_base_events(self) -> None:
         self.push_to_hash(self.project.id, self.rule1.id, self.group1.id, self.event1.event_id)
@@ -1099,6 +1099,74 @@ class ProcessDelayedAlertConditionsTest(CreateEventTestCase, PerformanceIssueTes
         assert len(rule_fire_histories) == 2
         assert (self.rule1.id, self.group1.id) in rule_fire_histories
         assert (two_conditions_match_all_rule.id, group5.id) in rule_fire_histories
+        self.assert_buffer_cleared(project_id=self.project.id)
+
+    def test_special_event_frequency_condition(self):
+        Rule.objects.all().delete()
+        event_frequency_special_condition = Rule.objects.create(
+            label="Event Frequency Special Condition",
+            project=self.project,
+            environment_id=self.environment.id,
+            data={
+                "filter_match": "all",
+                "action_match": "all",
+                "actions": [
+                    {"id": "sentry.rules.actions.notify_event.NotifyEventAction"},
+                    {
+                        "id": "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
+                        "service": "mail",
+                    },
+                ],
+                "conditions": [
+                    {
+                        "id": "sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyConditionWithConditions",
+                        "value": 2,
+                        "comparisonType": "count",
+                        "interval": "1m",
+                    },
+                    {
+                        "match": "eq",
+                        "id": "sentry.rules.filters.tagged_event.TaggedEventFilter",
+                        "key": "region",
+                        "value": "EU",
+                    },
+                ],
+            },
+        )
+
+        self.create_event(
+            self.project.id, FROZEN_TIME, "group-1", self.environment.name, tags=[["region", "US"]]
+        )
+        self.create_event(
+            self.project.id, FROZEN_TIME, "group-1", self.environment.name, tags=[["region", "US"]]
+        )
+        evaluated_event = self.create_event(
+            self.project.id, FROZEN_TIME, "group-1", self.environment.name, tags=[["region", "EU"]]
+        )
+
+        group1 = evaluated_event.group
+
+        project_ids = buffer.backend.get_sorted_set(
+            PROJECT_ID_BUFFER_LIST_KEY, 0, self.buffer_timestamp
+        )
+        rp = RuleProcessor(
+            evaluated_event.for_group(cast(Group, evaluated_event.group)),
+            is_new=False,
+            is_regression=False,
+            is_new_group_environment=False,
+            has_reappeared=False,
+        )
+        rp.apply()
+
+        apply_delayed(project_ids[0][0])
+        rule_fire_histories = RuleFireHistory.objects.filter(
+            rule__in=[event_frequency_special_condition],
+            group__in=[group1],
+            event_id__in=[evaluated_event.event_id],
+            project=self.project,
+        ).values_list("rule", "group")
+        assert len(rule_fire_histories) == 0
+        assert (event_frequency_special_condition.id, group1.id) in rule_fire_histories
         self.assert_buffer_cleared(project_id=self.project.id)
 
     def test_apply_delayed_shared_condition_diff_filter(self):

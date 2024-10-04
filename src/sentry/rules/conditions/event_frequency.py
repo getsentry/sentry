@@ -474,9 +474,22 @@ class EventUniqueUserFrequencyCondition(BaseEventFrequencyCondition):
     id = "sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyCondition"
     label = "The issue is seen by more than {value} users in {interval}"
 
+    # def __init__(
+    #     self,
+    #     # Data specifically takes on this typeddict form for the
+    #     # Event Frequency condition classes.
+    #     data: EventFrequencyConditionData | None = None,
+    #     *args: Any,
+    #     **kwargs: Any,
+    # ) -> None:
+    #     if kwargs.get("special_conditions"):
+    #         self.special_conditions = kwargs.pop("special_conditions")
+    #     super().__init__(data, *args, **kwargs)
+
     def query_hook(
         self, event: GroupEvent, start: datetime, end: datetime, environment_id: int
     ) -> int:
+
         totals: Mapping[int, int] = self.get_snuba_query_result(
             tsdb_function=self.tsdb.get_distinct_counts_totals,
             keys=[event.group_id],
@@ -493,6 +506,7 @@ class EventUniqueUserFrequencyCondition(BaseEventFrequencyCondition):
     def batch_query_hook(
         self, group_ids: set[int], start: datetime, end: datetime, environment_id: int
     ) -> dict[int, int]:
+        breakpoint()
         batch_totals: dict[int, int] = defaultdict(int)
         groups = Group.objects.filter(id__in=group_ids).values(
             "id", "type", "project_id", "project__organization_id"
@@ -531,6 +545,103 @@ class EventUniqueUserFrequencyCondition(BaseEventFrequencyCondition):
 
     def get_preview_aggregate(self) -> tuple[str, str]:
         return "uniq", "user"
+
+
+class EventUniqueUserFrequencyConditionWithConditions(EventUniqueUserFrequencyCondition):
+    id = "sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyConditionWithConditions"
+
+    def query_hook(
+        self, event: GroupEvent, start: datetime, end: datetime, environment_id: int
+    ) -> int:
+        raise NotImplementedError()
+        # totals: Mapping[int, int] = self.get_snuba_query_result(
+        #     tsdb_function=self.tsdb.get_distinct_counts_totals,
+        #     keys=[event.group_id],
+        #     group_id=event.group.id,
+        #     organization_id=event.group.project.organization_id,
+        #     model=get_issue_tsdb_user_group_model(event.group.issue_category),
+        #     start=start,
+        #     end=end,
+        #     environment_id=environment_id,
+        #     referrer_suffix="alert_event_uniq_user_frequency",
+        # )
+        # return totals[event.group_id]
+
+    def batch_query_hook(
+        self, group_ids: set[int], start: datetime, end: datetime, environment_id: int
+    ) -> dict[int, int]:
+        import traceback
+
+        traceback.print_stack()
+        breakpoint()
+
+        batch_totals: dict[int, int] = defaultdict(int)
+        groups = Group.objects.filter(id__in=group_ids).values(
+            "id", "type", "project_id", "project__organization_id"
+        )
+        error_issue_ids, generic_issue_ids = self.get_error_and_generic_group_ids(groups)
+        organization_id = self.get_value_from_groups(groups, "project__organization_id")
+        error_issue_ids, generic_issue_ids = self.get_error_and_generic_group_ids(groups)
+
+        totals = {}
+
+        for error_issue_id in error_issue_ids:
+            totals.update(
+                self.get_snuba_query_result(
+                    tsdb_function=self.tsdb.get_distinct_counts_totals,
+                    keys=[event.group_id],
+                    group_id=event.group.id,
+                    organization_id=event.group.project.organization_id,
+                    model=get_issue_tsdb_user_group_model(event.group.issue_category),
+                    start=start,
+                    end=end,
+                    environment_id=environment_id,
+                    referrer_suffix="alert_event_uniq_user_frequency",
+                )
+            )
+        for generic_issue_id in generic_issue_ids:
+            totals.update(
+                self.get_snuba_query_result(
+                    tsdb_function=self.tsdb.get_distinct_counts_totals,
+                    keys=[event.group_id],
+                    group_id=event.group.id,
+                    organization_id=event.group.project.organization_id,
+                    model=get_issue_tsdb_user_group_model(event.group.issue_category),
+                    start=start,
+                    end=end,
+                    environment_id=environment_id,
+                    referrer_suffix="alert_event_uniq_user_frequency",
+                )
+            )
+
+        if error_issue_ids and organization_id:
+            error_totals = self.get_chunked_result(
+                tsdb_function=self.tsdb.get_distinct_counts_totals,
+                model=get_issue_tsdb_user_group_model(GroupCategory.ERROR),
+                group_ids=error_issue_ids,
+                organization_id=organization_id,
+                start=start,
+                end=end,
+                environment_id=environment_id,
+                referrer_suffix="batch_alert_event_uniq_user_frequency",
+            )
+            batch_totals.update(error_totals)
+
+        if generic_issue_ids and organization_id:
+            generic_totals = self.get_chunked_result(
+                tsdb_function=self.tsdb.get_distinct_counts_totals,
+                # this isn't necessarily performance, just any non-error category
+                model=get_issue_tsdb_user_group_model(GroupCategory.PERFORMANCE),
+                group_ids=generic_issue_ids,
+                organization_id=organization_id,
+                start=start,
+                end=end,
+                environment_id=environment_id,
+                referrer_suffix="batch_alert_event_uniq_user_frequency",
+            )
+            batch_totals.update(generic_totals)
+
+        return batch_totals
 
 
 PERCENT_INTERVALS: dict[str, tuple[str, timedelta]] = {

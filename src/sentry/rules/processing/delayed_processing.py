@@ -565,6 +565,7 @@ def apply_delayed(project_id: int, batch_key: str | None = None, *args: Any, **k
     )
 
     with metrics.timer("delayed_processing.get_condition_group_results.duration"):
+        breakpoint()
         condition_group_results = get_condition_group_results(condition_groups, project)
 
     rules_to_slow_conditions = defaultdict(list)
