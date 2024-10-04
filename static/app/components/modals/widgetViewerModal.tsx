@@ -62,12 +62,14 @@ import {
   eventViewFromWidget,
   getColoredWidgetIndicator,
   getFieldsFromEquations,
+  getLegendUnselected,
   getNumEquations,
   getWidgetDiscoverUrl,
   getWidgetIssueUrl,
   getWidgetMetricsUrl,
   getWidgetReleasesUrl,
   hasDatasetSelector,
+  updateLegendQueryParam,
 } from 'sentry/views/dashboards/utils';
 import {
   SESSION_DURATION_ALERT,
@@ -246,10 +248,9 @@ function WidgetViewerModal(props: Props) {
   // Get legends toggle settings from location
   // We use the legend query params for just the initial state
   const [disabledLegends, setDisabledLegends] = useState<{[key: string]: boolean}>(
-    decodeList(location.query[WidgetViewerQueryField.LEGEND]).reduce((acc, legend) => {
-      acc[legend] = false;
-      return acc;
-    }, {})
+    location.query[WidgetViewerQueryField.LEGEND]
+      ? getLegendUnselected(location, widget)
+      : {}
   );
   const [totalResults, setTotalResults] = useState<string | undefined>();
 
@@ -471,15 +472,7 @@ function WidgetViewerModal(props: Props) {
 
   function onLegendSelectChanged({selected}: {selected: Record<string, boolean>}) {
     setDisabledLegends(selected);
-    router.replace({
-      pathname: location.pathname,
-      query: {
-        ...location.query,
-        [WidgetViewerQueryField.LEGEND]: Object.keys(selected).filter(
-          key => !selected[key]
-        ),
-      },
-    });
+    updateLegendQueryParam(selected, location, widget, router);
     trackAnalytics('dashboards_views.widget_viewer.toggle_legend', {
       organization,
       widget_type: widget.widgetType ?? WidgetType.DISCOVER,

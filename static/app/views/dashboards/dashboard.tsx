@@ -53,7 +53,7 @@ import {
 } from './layoutUtils';
 import SortableWidget from './sortableWidget';
 import type {DashboardDetails, Widget} from './types';
-import {DashboardWidgetSource, WidgetType} from './types';
+import {DashboardWidgetSource, DisplayType, WidgetType} from './types';
 import {connectDashboardCharts, getDashboardFiltersFromURL} from './utils';
 
 export const DRAG_HANDLE_CLASS = 'widget-drag';
@@ -146,7 +146,7 @@ class Dashboard extends Component<Props, State> {
   }
 
   componentDidMount() {
-    const {newWidget} = this.props;
+    const {newWidget, organization, dashboard, location, paramDashboardId} = this.props;
     window.addEventListener('resize', this.debouncedHandleResize);
 
     // Always load organization tags on dashboards
@@ -160,6 +160,29 @@ class Dashboard extends Component<Props, State> {
     this.fetchMemberList();
 
     connectDashboardCharts(DASHBOARD_CHART_GROUP);
+
+    if (
+      organization.features.includes('dashboards-releases-on-charts') &&
+      !location.query.legend
+    ) {
+      const legendQuery = dashboard.widgets
+        .filter(
+          widget =>
+            widget.displayType === DisplayType.AREA ||
+            widget.displayType === DisplayType.LINE
+        )
+        .map(widget => widget.id + '-Releases');
+
+      this.props.router.push(
+        normalizeUrl({
+          pathname: `/organizations/${organization.slug}/dashboard/${paramDashboardId}`,
+          query: {
+            ...location.query,
+            legend: legendQuery,
+          },
+        })
+      );
+    }
   }
 
   componentDidUpdate(prevProps: Props) {

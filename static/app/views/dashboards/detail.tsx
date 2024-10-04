@@ -227,7 +227,10 @@ class DashboardDetail extends Component<Props, State> {
           },
           onClose: () => {
             // Filter out Widget Viewer Modal query params when exiting the Modal
-            const query = omit(location.query, Object.values(WidgetViewerQueryField));
+            const query = omit(
+              location.query,
+              Object.values(omit(WidgetViewerQueryField, 'LEGEND'))
+            );
             router.push({
               pathname: location.pathname.replace(/widget\/[0-9]+\/$/, ''),
               query,

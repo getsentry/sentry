@@ -21,9 +21,11 @@ import {
   TWENTY_FOUR_HOURS,
 } from 'sentry/components/charts/utils';
 import CircleIndicator from 'sentry/components/circleIndicator';
+import {WidgetViewerQueryField} from 'sentry/components/modals/widgetViewerModal/utils';
 import {normalizeDateTimeString} from 'sentry/components/organizations/pageFilters/parse';
 import {parseSearch, Token} from 'sentry/components/searchSyntax/parser';
 import type {PageFilters} from 'sentry/types/core';
+import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {browserHistory} from 'sentry/utils/browserHistory';
@@ -701,4 +703,94 @@ export function appendQueryDatasetParam(
     return {queryDataset: queryDataset};
   }
   return {};
+}
+
+// Updates legend param when a legend selection has been changed
+export function updateLegendQueryParam(
+  selected: Record<string, boolean>,
+  location: Location,
+  widget: Widget,
+  router: InjectedRouter
+) {
+  if (Array.isArray(location.query[WidgetViewerQueryField.LEGEND])) {
+    let isInQuery = false;
+    const newLegendQuery = location.query[WidgetViewerQueryField.LEGEND].map(
+      widgetLegend => {
+        if (widgetLegend.includes(widget.id!)) {
+          isInQuery = true;
+          // names of legend options are stored as seriesName:widgetId and are stored in
+          // query param as widgetId-seriesName-seriesName2-...
+          return (
+            widget.id +
+            '-' +
+            Object.keys(selected)
+              .filter(key => !selected[key])
+              .map(series => series.split(':')[0])
+              .join('-')
+          );
+        }
+        return widgetLegend;
+      }
+    );
+
+    !isInQuery
+      ? router.replace({
+          pathname: location.pathname,
+          query: {
+            ...location.query,
+            [WidgetViewerQueryField.LEGEND]: [
+              ...location.query[WidgetViewerQueryField.LEGEND],
+              widget.id +
+                '-' +
+                Object.keys(selected)
+                  .filter(key => !selected[key])
+                  .map(series => series.split(':')[0])
+                  .join('-'),
+            ],
+          },
+        })
+      : router.replace({
+          pathname: location.pathname,
+          query: {
+            ...location.query,
+            [WidgetViewerQueryField.LEGEND]: newLegendQuery,
+          },
+        });
+  } else {
+    router.replace({
+      pathname: location.pathname,
+      query: {
+        ...location.query,
+        [WidgetViewerQueryField.LEGEND]: [
+          location.query[WidgetViewerQueryField.LEGEND],
+          widget.id +
+            '-' +
+            Object.keys(selected)
+              .filter(key => !selected[key])
+              .map(series => series.split(':')[0])
+              .join('-'),
+        ],
+      },
+    });
+  }
+}
+
+// sets unselected legend options by the legend query param
+export function getLegendUnselected(location: Location, widget: Widget) {
+  return decodeList(location.query[WidgetViewerQueryField.LEGEND]).reduce(
+    (acc, legend) => {
+      const legendValues = legend.split('-');
+      const widgetId = legendValues[0];
+      const seriesNames = legendValues.splice(1);
+      if (widget.id === widgetId && seriesNames) {
+        seriesNames.forEach(series => {
+          if (series) {
+            acc[`${series}:${widget.id}`] = false;
+          }
+        });
+      }
+      return acc;
+    },
+    {}
+  );
 }

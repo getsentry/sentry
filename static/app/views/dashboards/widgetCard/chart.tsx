@@ -358,6 +358,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
       top: 0,
       selected: getSeriesSelection(location),
       formatter: (seriesName: string) => {
+        seriesName = seriesName.split(':')[0];
         const arg = getAggregateArg(seriesName);
         if (arg !== null) {
           const slug = getMeasurementSlug(arg);
@@ -544,8 +545,15 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
               memoized
             >
               {({releaseSeries}) => {
-                legend.selected = {Releases: false, ...legend.selected};
-
+                // make series name into seriesName:widgetId form for individual widget legend control
+                const modifiedReleaseSeriesResults = releaseSeries
+                  ? releaseSeries.map(releases => {
+                      return {
+                        ...releases,
+                        seriesName: `${releases.seriesName}:${widget.id}`,
+                      };
+                    })
+                  : [];
                 return (
                   <TransitionChart loading={loading} reloading={loading}>
                     <LoadingScreen loading={loading} />
@@ -568,7 +576,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
                               }
                             : {}),
                           legend,
-                          series: [...series, ...releaseSeries],
+                          series: [...series, ...modifiedReleaseSeriesResults],
                           onLegendSelectChanged,
                           forwardedRef,
                         }),
