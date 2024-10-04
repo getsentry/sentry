@@ -108,10 +108,14 @@ class CommitContextIntegration(ABC):
             resp = client.create_comment(
                 repo=repo.name,
                 issue_id=str(pr_key),
-                data={
-                    "body": comment_body,
-                    "actions": github_copilot_actions if github_copilot_actions else [],
-                },
+                data=(
+                    {
+                        "body": comment_body,
+                        "actions": github_copilot_actions,
+                    }
+                    if github_copilot_actions
+                    else {"body": comment_body}
+                ),
             )
 
             current_time = timezone.now()
@@ -140,10 +144,14 @@ class CommitContextIntegration(ABC):
                 repo=repo.name,
                 issue_id=str(pr_key),
                 comment_id=pr_comment.external_id,
-                data={
-                    "body": comment_body,
-                    "actions": github_copilot_actions,
-                },
+                data=(
+                    {
+                        "body": comment_body,
+                        "actions": github_copilot_actions,
+                    }
+                    if github_copilot_actions
+                    else {"body": comment_body}
+                ),
             )
             metrics.incr(
                 metrics_base.format(integration=self.integration_name, key="comment_updated")
