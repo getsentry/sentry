@@ -267,7 +267,9 @@ describe('GroupReplays', () => {
       });
 
       expect(
-        await screen.findByText('Invalid number: asdf. Expected number.')
+        await screen.findByText(
+          'Sorry, the list of replays could not be loaded. Invalid number: asdf. Expected number.'
+        )
       ).toBeInTheDocument();
 
       await waitFor(() => {
