@@ -45,6 +45,7 @@ const browser: Set<PlatformKey> = new Set([
   'javascript-svelte',
   'javascript-sveltekit',
   'javascript-vue',
+  'javascript-nuxt',
   'unity',
 ]);
 

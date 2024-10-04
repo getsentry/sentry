@@ -46,6 +46,7 @@ export const topJavascriptFrameworks: PlatformKey[] = [
   'javascript-nextjs',
   'javascript-react',
   'javascript-vue',
+  'javascript-nuxt',
   'javascript-angular',
   'javascript-solid',
   'javascript-solidstart',

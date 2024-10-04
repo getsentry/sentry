@@ -217,6 +217,7 @@ export type PlatformKey =
   | 'javascript-ember'
   | 'javascript-gatsby'
   | 'javascript-nextjs'
+  | 'javascript-nuxt'
   | 'javascript-react'
   | 'javascript-remix'
   | 'javascript-solid'
