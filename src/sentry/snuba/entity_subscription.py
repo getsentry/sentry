@@ -47,6 +47,7 @@ ENTITY_TIME_COLUMNS: Mapping[EntityKey, str] = {
     EntityKey.GenericMetricsGauges: "timestamp",
     EntityKey.MetricsCounters: "timestamp",
     EntityKey.MetricsSets: "timestamp",
+    EntityKey.SpansEAP: "timestamp",
 }
 CRASH_RATE_ALERT_AGGREGATE_RE = (
     r"^percentage\([ ]*(sessions_crashed|users_crashed)[ ]*\,[ ]*(sessions|users)[ ]*\)"
@@ -217,6 +218,63 @@ class PerformanceTransactionsEntitySubscription(BaseEventsAndTransactionEntitySu
     dataset = Dataset.Transactions
 
 
+class EAPSpansEntitySubscription(BaseEntitySubscription, ABC):
+    query_type = SnubaQuery.Type.PERFORMANCE
+    dataset = Dataset.SpansEAP
+
+    def __init__(
+        self, aggregate: str, time_window: int, extra_fields: _EntitySpecificParams | None = None
+    ):
+        super().__init__(aggregate, time_window, extra_fields)
+        self.aggregate = aggregate
+        self.event_types = None
+        if extra_fields:
+            self.event_types = extra_fields.get("event_types")
+
+    def build_query_builder(
+        self,
+        query: str,
+        project_ids: list[int],
+        environment: Environment | None,
+        params: ParamsType | None = None,
+        skip_field_validation_for_entity_subscription_deletion: bool = False,
+    ) -> BaseQueryBuilder:
+        from sentry.search.events.builder.spans_indexed import SpansEAPQueryBuilder
+
+        if params is None:
+            params = {}
+
+        params["project_id"] = project_ids
+
+        if environment:
+            params["environment"] = environment.name
+
+        query_builder_cls = SpansEAPQueryBuilder
+        parser_config_overrides: MutableMapping[str, Any] = {"blocked_keys": ALERT_BLOCKED_FIELDS}
+
+        return query_builder_cls(
+            dataset=Dataset.SpansEAP,
+            query=query,
+            selected_columns=[self.aggregate],
+            params=params,
+            offset=None,
+            limit=None,
+            config=QueryBuilderConfig(
+                skip_time_conditions=True,
+                parser_config_overrides=parser_config_overrides,
+                skip_field_validation_for_entity_subscription_deletion=skip_field_validation_for_entity_subscription_deletion,
+            ),
+        )
+
+    def get_entity_extra_params(self) -> Mapping[str, Any]:
+        return {}
+
+    def aggregate_query_results(
+        self, data: list[dict[str, Any]], alias: str | None = None
+    ) -> list[dict[str, Any]]:
+        return data
+
+
 class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
     def __init__(
         self, aggregate: str, time_window: int, extra_fields: _EntitySpecificParams | None = None
@@ -296,7 +354,6 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
         if environment:
             params["environment"] = environment.name
 
-        query = apply_dataset_query_conditions(self.query_type, query, None)
         params["project_id"] = project_ids
         params["use_case_id"] = self._get_use_case_id().value
         qb = AlertMetricsQueryBuilder(
@@ -453,6 +510,7 @@ EntitySubscription = Union[
     MetricsSetsEntitySubscription,
     PerformanceTransactionsEntitySubscription,
     PerformanceMetricsEntitySubscription,
+    EAPSpansEntitySubscription,
 ]
 
 
@@ -476,6 +534,8 @@ def get_entity_subscription(
             entity_subscription_cls = PerformanceTransactionsEntitySubscription
         elif dataset in (Dataset.Metrics, Dataset.PerformanceMetrics):
             entity_subscription_cls = PerformanceMetricsEntitySubscription
+        elif dataset == Dataset.SpansEAP:
+            entity_subscription_cls = EAPSpansEntitySubscription
     if query_type == SnubaQuery.Type.CRASH_RATE:
         entity_key = determine_crash_rate_alert_entity(aggregate)
         if entity_key == EntityKey.MetricsCounters:

@@ -251,7 +251,7 @@ def _create_snql_in_snuba(subscription, snuba_query, snql_query, entity_subscrip
     post_body: str | bytes = orjson.dumps(body)
     response = _snuba_pool.urlopen(
         "POST",
-        f"/{snuba_query.dataset}/{entity_key.value}/subscriptions",
+        f"/events_analytics_platform/{entity_key.value}/subscriptions",
         body=post_body,
     )
     if response.status != 202:

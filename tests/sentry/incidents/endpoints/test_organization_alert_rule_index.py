@@ -1195,6 +1195,27 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
                 == "Performance alerts must use the `generic_metrics` dataset"
             )
 
+    def test_eap_spans_dataset(self):
+        with self.feature(
+            [
+                "organizations:incidents",
+                "organizations:performance-view",
+                "organizations:mep-rollout-flag",
+                "organizations:dynamic-sampling",
+            ]
+        ):
+            test_params = {**self.alert_rule_dict, "dataset": "eap_spans"}
+
+            resp = self.get_success_response(
+                self.organization.slug,
+                status_code=201,
+                **test_params,
+            )
+
+            assert "id" in resp.data
+            alert_rule = AlertRule.objects.get(id=resp.data["id"])
+            assert resp.data == serialize(alert_rule, self.user)
+
     def test_alert_with_metrics_layer(self):
         with self.feature(
             [

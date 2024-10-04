@@ -476,6 +476,7 @@ SORTED_TIMEWINDOWS = sorted(DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION.keys())
 # able to be run on `METRICS` as well.
 query_datasets_to_type = {
     Dataset.Events: SnubaQuery.Type.ERROR,
+    Dataset.SpansEAP: SnubaQuery.Type.PERFORMANCE,
     Dataset.Transactions: SnubaQuery.Type.PERFORMANCE,
     Dataset.PerformanceMetrics: SnubaQuery.Type.PERFORMANCE,
     Dataset.Metrics: SnubaQuery.Type.CRASH_RATE,
