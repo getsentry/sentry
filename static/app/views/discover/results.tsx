@@ -990,6 +990,9 @@ function ResultsContainer(props: Props) {
       skipLoadLastUsed={
         props.organization.features.includes('global-views') && !!props.savedQuery
       }
+      // The Discover Results component will manage URL params, including page filters state
+      // This avoids an unnecessary re-render when forcing a project filter for team plan users
+      skipInitializeUrlParams
     >
       <SavedQueryAPI {...props} />
     </PageFiltersContainer>
