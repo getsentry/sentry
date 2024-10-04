@@ -19,7 +19,8 @@ import selectEvent from 'sentry-test/selectEvent';
 import {updateMember} from 'sentry/actionCreators/members';
 import TeamStore from 'sentry/stores/teamStore';
 import type {Member} from 'sentry/types/organization';
-import OrganizationMemberDetailContent from 'sentry/views/settings/organizationMembers/organizationMemberDetail';
+
+import OrganizationMemberDetail from './organizationMemberDetail';
 
 jest.mock('sentry/actionCreators/members', () => ({
   updateMember: jest.fn().mockReturnValue(new Promise(() => {})),
@@ -144,7 +145,7 @@ describe('OrganizationMemberDetail', function () {
         router: {params: {memberId: member.id}},
       });
 
-      render(<OrganizationMemberDetailContent />, {
+      render(<OrganizationMemberDetail />, {
         router,
         organization,
       });
@@ -176,7 +177,7 @@ describe('OrganizationMemberDetail', function () {
         router: {params: {memberId: member.id}},
       });
 
-      render(<OrganizationMemberDetailContent />, {
+      render(<OrganizationMemberDetail />, {
         router,
         organization,
       });
@@ -203,7 +204,7 @@ describe('OrganizationMemberDetail', function () {
         router: {params: {memberId: idpTeamMember.id}},
       });
 
-      render(<OrganizationMemberDetailContent />, {
+      render(<OrganizationMemberDetail />, {
         router,
         organization,
       });
@@ -217,7 +218,7 @@ describe('OrganizationMemberDetail', function () {
         router: {params: {memberId: member.id}},
       });
 
-      render(<OrganizationMemberDetailContent />, {
+      render(<OrganizationMemberDetail />, {
         router,
         organization,
       });
@@ -257,7 +258,7 @@ describe('OrganizationMemberDetail', function () {
         router: {params: {memberId: member.id}},
       });
 
-      render(<OrganizationMemberDetailContent />, {
+      render(<OrganizationMemberDetail />, {
         router,
         organization,
       });
@@ -305,7 +306,7 @@ describe('OrganizationMemberDetail', function () {
         router: {params: {memberId: member.id}},
       });
 
-      render(<OrganizationMemberDetailContent />, {
+      render(<OrganizationMemberDetail />, {
         router,
         organization,
       });
@@ -352,7 +353,7 @@ describe('OrganizationMemberDetail', function () {
         router: {params: {memberId: pendingMember.id}},
       });
 
-      render(<OrganizationMemberDetailContent />, {
+      render(<OrganizationMemberDetail />, {
         router,
         organization,
       });
@@ -368,7 +369,7 @@ describe('OrganizationMemberDetail', function () {
         router: {params: {memberId: expiredMember.id}},
       });
 
-      render(<OrganizationMemberDetailContent />, {
+      render(<OrganizationMemberDetail />, {
         router,
         organization,
       });
@@ -412,7 +413,7 @@ describe('OrganizationMemberDetail', function () {
         router: {params: {memberId: pendingMember.id}},
       });
 
-      render(<OrganizationMemberDetailContent />, {
+      render(<OrganizationMemberDetail />, {
         router,
         organization,
       });
@@ -428,7 +429,7 @@ describe('OrganizationMemberDetail', function () {
         router: {params: {memberId: expiredMember.id}},
       });
 
-      render(<OrganizationMemberDetailContent />, {
+      render(<OrganizationMemberDetail />, {
         router,
         organization,
       });
@@ -542,7 +543,7 @@ describe('OrganizationMemberDetail', function () {
         router: {params: {memberId: pendingMember.id}},
       });
 
-      render(<OrganizationMemberDetailContent />, {
+      render(<OrganizationMemberDetail />, {
         router,
         organization,
       });
@@ -561,7 +562,7 @@ describe('OrganizationMemberDetail', function () {
         router: {params: {memberId: noAccess.id}},
       });
 
-      render(<OrganizationMemberDetailContent />, {
+      render(<OrganizationMemberDetail />, {
         router,
         organization,
       });
@@ -574,7 +575,7 @@ describe('OrganizationMemberDetail', function () {
         router: {params: {memberId: no2fa.id}},
       });
 
-      render(<OrganizationMemberDetailContent />, {
+      render(<OrganizationMemberDetail />, {
         router,
         organization,
       });
@@ -594,7 +595,7 @@ describe('OrganizationMemberDetail', function () {
         })
       );
 
-      render(<OrganizationMemberDetailContent />, {
+      render(<OrganizationMemberDetail />, {
         router,
         organization,
       });
@@ -618,7 +619,7 @@ describe('OrganizationMemberDetail', function () {
         router: {params: {memberId: multipleOrgs.id}},
       });
 
-      render(<OrganizationMemberDetailContent />, {
+      render(<OrganizationMemberDetail />, {
         router,
         organization,
       });
@@ -638,7 +639,7 @@ describe('OrganizationMemberDetail', function () {
         body: has2fa,
       });
 
-      render(<OrganizationMemberDetailContent />, {
+      render(<OrganizationMemberDetail />, {
         router,
         organization,
       });
@@ -700,7 +701,7 @@ describe('OrganizationMemberDetail', function () {
         router: {params: {memberId: member.id}},
       });
 
-      render(<OrganizationMemberDetailContent />, {
+      render(<OrganizationMemberDetail />, {
         router,
         organization,
       });
@@ -731,7 +732,7 @@ describe('OrganizationMemberDetail', function () {
           router: {params: {memberId: testMember.id}},
         });
         cleanup();
-        render(<OrganizationMemberDetailContent />, {
+        render(<OrganizationMemberDetail />, {
           router,
           organization,
         });
@@ -762,7 +763,7 @@ describe('OrganizationMemberDetail', function () {
         router: {params: {memberId: member.id}},
       });
 
-      render(<OrganizationMemberDetailContent />, {
+      render(<OrganizationMemberDetail />, {
         router,
         organization,
       });
