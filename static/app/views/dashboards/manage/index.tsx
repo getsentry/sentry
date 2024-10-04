@@ -33,6 +33,7 @@ import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import {DashboardImportButton} from 'sentry/views/dashboards/manage/dashboardImport';
 import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
+import {MetricsRemovedAlertsWidgetsAlert} from 'sentry/views/metrics/metricsRemovedAlertsWidgetsAlert';
 
 import {getDashboardTemplates} from '../data';
 import {assignDefaultLayout, getInitialColumnDepths} from '../layoutUtils';
@@ -353,6 +354,8 @@ class ManageDashboards extends DeprecatedAsyncView<Props, State> {
               </Layout.Header>
               <Layout.Body>
                 <Layout.Main fullWidth>
+                  <MetricsRemovedAlertsWidgetsAlert organization={organization} />
+
                   {showTemplates && this.renderTemplates()}
                   {this.renderActions()}
                   {this.renderDashboards()}
