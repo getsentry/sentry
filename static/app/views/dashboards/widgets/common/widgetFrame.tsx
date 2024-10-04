@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import {HeaderTitle} from 'sentry/components/charts/styles';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import QuestionTooltip from 'sentry/components/questionTooltip';
@@ -54,9 +54,15 @@ export function WidgetFrame(props: Props) {
           {actions && actions.length > 0 && (
             <TitleActions>
               {actions.length === 1 ? (
-                <Button size="xs" onClick={actions[0].onAction}>
-                  {actions[0].label}
-                </Button>
+                actions[0].to ? (
+                  <LinkButton size="xs" onClick={actions[0].onAction} to={actions[0].to}>
+                    {actions[0].label}
+                  </LinkButton>
+                ) : (
+                  <Button size="xs" onClick={actions[0].onAction}>
+                    {actions[0].label}
+                  </Button>
+                )
               ) : null}
 
               {actions.length > 1 ? (
@@ -106,6 +112,7 @@ const Frame = styled('div')`
 const Header = styled('div')`
   display: flex;
   flex-direction: column;
+  min-height: 20px;
 `;
 
 const Title = styled('div')`
