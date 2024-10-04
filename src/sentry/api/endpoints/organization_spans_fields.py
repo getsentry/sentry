@@ -58,6 +58,13 @@ class OrganizationSpansFieldsEndpointSerializer(serializers.Serializer):
     )
     type = serializers.ChoiceField(["string", "number"], required=False)
 
+    def validate_type(self, value):
+        if value == "string":
+            return AttributeKey.Type.TYPE_STRING
+        if value == "number":
+            return AttributeKey.Type.TYPE_FLOAT
+        raise NotImplementedError
+
     def validate(self, attrs):
         if attrs["dataset"] == "spans" and attrs.get("type") is None:
             raise ParseError(detail='type is required when using dataset="spans"')
@@ -115,7 +122,7 @@ class OrganizationSpansFieldsEndpoint(OrganizationSpansFieldsEndpointBase):
                 ),
                 limit=max_span_tags,
                 offset=0,
-                type=AttributeKey.Type.TYPE_STRING,
+                type=serialized["type"],
             )
             rpc_response = snuba_rpc.rpc(rpc_request, TraceItemAttributesResponse)
 
