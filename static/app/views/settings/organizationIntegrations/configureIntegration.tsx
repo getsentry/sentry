@@ -44,7 +44,7 @@ import IntegrationExternalUserMappings from './integrationExternalUserMappings';
 import IntegrationItem from './integrationItem';
 import IntegrationMainSettings from './integrationMainSettings';
 import IntegrationRepos from './integrationRepos';
-import IntegrationServerlessFunctions from './integrationServerlessFunctions';
+import {IntegrationServerlessFunctions} from './integrationServerlessFunctions';
 
 type Props = RouteComponentProps<
   {
