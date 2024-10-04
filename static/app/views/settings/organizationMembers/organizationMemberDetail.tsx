@@ -369,19 +369,17 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
 
       <Teams slugs={member.teams}>
         {({initiallyLoaded}) => (
-          <Fragment>
-            <TeamSelectForMember
-              disabled={!canEdit}
-              organization={organization}
-              member={member}
-              selectedOrgRole={orgRole}
-              selectedTeamRoles={teamRoles}
-              onChangeTeamRole={onChangeTeamRole}
-              onAddTeam={onAddTeam}
-              onRemoveTeam={onRemoveTeam}
-              loadingTeams={!initiallyLoaded}
-            />
-          </Fragment>
+          <TeamSelectForMember
+            disabled={!canEdit}
+            organization={organization}
+            member={member}
+            selectedOrgRole={orgRole}
+            selectedTeamRoles={teamRoles}
+            onChangeTeamRole={onChangeTeamRole}
+            onAddTeam={onAddTeam}
+            onRemoveTeam={onRemoveTeam}
+            loadingTeams={!initiallyLoaded}
+          />
         )}
       </Teams>
 
