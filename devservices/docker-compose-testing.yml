@@ -28,6 +28,19 @@ services:
     healthcheck:
       <<: *healthcheck_defaults
       test: redis-cli ping
+    command:
+      [
+        'redis-server',
+        '--appendonly',
+        'yes',
+        '--save',
+        '60',
+        '20',
+        '--auto-aof-rewrite-percentage',
+        '100',
+        '--auto-aof-rewrite-min-size',
+        '64mb',
+      ]
     volumes:
       - 'sentry-redis:/data'
     ulimits:
@@ -156,8 +169,8 @@ services:
     container_name: sentry_vroom
     image: 'us-central1-docker.pkg.dev/sentryio/vroom/vroom:latest'
     environment:
-      SENTRY_KAFKA_BROKERS_PROFILING: 'kafka:9092'
-      SENTRY_KAFKA_BROKERS_OCCURRENCES: 'kafka:9092'
+      SENTRY_KAFKA_BROKERS_PROFILING: 'sentry_kafka:9092'
+      SENTRY_KAFKA_BROKERS_OCCURRENCES: 'sentry_kafka:9092'
       SENTRY_BUCKET_PROFILES: file://localhost//var/lib/sentry-profiles
       SENTRY_SNUBA_HOST: 'http://snuba-api:1218'
     volumes:
@@ -187,7 +200,7 @@ services:
       CLICKHOUSE_PORT: '9000'
       CLICKHOUSE_HTTP_PORT: '8123'
       DEFAULT_BROKERS: 'kafka:9093'
-      REDIS_HOST: '${REDIS_HOST:-redis}'
+      REDIS_HOST: 'redis'
       REDIS_PORT: '6379'
       REDIS_DB: '1'
       ENABLE_SENTRY_METRICS_DEV: '${ENABLE_SENTRY_METRICS_DEV:-}'
