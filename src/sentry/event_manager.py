@@ -68,6 +68,7 @@ from sentry.grouping.ingest.utils import (
     check_for_group_creation_load_shed,
     is_non_error_type_group,
 )
+from sentry.grouping.variants import BaseVariant
 from sentry.ingest.inbound_filters import FilterStatKeys
 from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
 from sentry.issues.grouptype import ErrorGroupType
@@ -1358,7 +1359,7 @@ def get_hashes_and_grouphashes(
     job: Job,
     hash_calculation_function: Callable[
         [Project, Job, MutableTags],
-        tuple[GroupingConfig, list[str]],
+        tuple[GroupingConfig, list[str], dict[str, BaseVariant]],
     ],
     metric_tags: MutableTags,
 ) -> GroupHashInfo:
@@ -1373,7 +1374,7 @@ def get_hashes_and_grouphashes(
     project = job["event"].project
 
     # These will come back as Nones if the calculation decides it doesn't need to run
-    grouping_config, hashes = hash_calculation_function(project, job, metric_tags)
+    grouping_config, hashes, _ = hash_calculation_function(project, job, metric_tags)
 
     if hashes:
         grouphashes = get_or_create_grouphashes(project, hashes, grouping_config["id"])
