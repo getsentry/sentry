@@ -116,6 +116,7 @@ class Worker:
         task_added_time = activation.received_at.seconds
         execution_time = time.time()
         next_state = TASK_ACTIVATION_STATUS_FAILURE
+        future = None
         try:
             task_data_parameters = orjson.loads(activation.parameters)
             processing_timeout = (processing_deadline - datetime.now()).total_seconds()
@@ -132,6 +133,8 @@ class Worker:
 
             next_state = TASK_ACTIVATION_STATUS_COMPLETE
         except Exception as err:
+            if future:
+                future.cancel()
             logger.info("taskworker.task_errored", extra={"error": str(err)})
             # TODO check retry policy
             if self.namespace.get(activation.taskname).should_retry(activation.retry_state, err):
