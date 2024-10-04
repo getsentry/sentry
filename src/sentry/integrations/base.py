@@ -125,6 +125,53 @@ class IntegrationFeatures(Enum):
     DEPLOYMENT = "deployment"
 
 
+# Integration Types
+MESSAGING = "messaging"
+PROJECT_MANAGEMENT = "project_management"
+SOURCE_CODE_MANAGEMENT = "source_code_management"
+ON_CALL_SCHEDULING = "on_call_scheduling"
+
+
+class IntegrationProvider(Enum):
+    SLACK = "slack"
+    DISCORD = "discord"
+    MSTeams = "msteams"
+    JIRA = "jira"
+    JIRA_SERVER = "jira_server"
+    AZURE_DEVOPS = "vsts"
+    GITHUB = "github"
+    GITHUB_ENTERPRISE = "github_enterprise"
+    GITLAB = "gitlab"
+    BITBUCKET = "bitbucket"
+    PAGERDUTY = "pagerduty"
+    OPSGENIE = "opsgenie"
+
+
+INTEGRATION_TYPE_TO_PROVIDER = {
+    MESSAGING: [
+        IntegrationProvider.SLACK,
+        IntegrationProvider.DISCORD,
+        IntegrationProvider.MSTeams,
+    ],
+    PROJECT_MANAGEMENT: [
+        IntegrationProvider.JIRA,
+        IntegrationProvider.JIRA_SERVER,
+        IntegrationProvider.AZURE_DEVOPS,
+    ],
+    SOURCE_CODE_MANAGEMENT: [
+        IntegrationProvider.GITHUB,
+        IntegrationProvider.GITHUB_ENTERPRISE,
+        IntegrationProvider.GITLAB,
+        IntegrationProvider.BITBUCKET,
+        IntegrationProvider.AZURE_DEVOPS,
+    ],
+    ON_CALL_SCHEDULING: [
+        IntegrationProvider.PAGERDUTY,
+        IntegrationProvider.OPSGENIE,
+    ],
+}
+
+
 class IntegrationProvider(PipelineProvider, abc.ABC):
     """
     An integration provider describes a third party that can be registered within Sentry.
