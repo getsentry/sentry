@@ -109,9 +109,6 @@ runs:
       run: |
         sentry init
 
-        docker network create sentry
-        docker compose -f devservices/docker-compose-testing.yml up -d
-
         # have tests listen on the docker gateway ip so loopback can occur
         echo "DJANGO_LIVE_TEST_SERVER_ADDRESS=$(docker network inspect bridge --format='{{(index .IPAM.Config 0).Gateway}}')" >> "$GITHUB_ENV"
 

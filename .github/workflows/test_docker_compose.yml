@@ -32,6 +32,11 @@ jobs:
         uses: ./.github/actions/test-setup-sentry-devservices
         id: setup
 
+      - name: Bring up devservices
+        run: |
+          docker network create sentry
+          docker compose -f devservices/docker-compose-testing.yml up -d redis postgres
+
       - name: Run API docs tests
         # install ts-node for ts build scripts to execute properly without potentially installing
         # conflicting deps when running scripts locally
@@ -65,6 +70,11 @@ jobs:
 
       - name: Setup sentry env
         uses: ./.github/actions/test-setup-sentry-devservices
+
+      - name: Bring up devservices
+        run: |
+          docker network create sentry
+          docker compose -f devservices/docker-compose-testing.yml up -d
 
       - name: Run backend test (${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
         run: |
@@ -105,6 +115,11 @@ jobs:
         uses: ./.github/actions/test-setup-sentry-devservices
         id: setup
 
+      - name: Bring up devservices
+        run: |
+          docker network create sentry
+          docker compose -f devservices/docker-compose-testing.yml up -d redis postgres
+
       - name: run tests
         run: |
           PYTEST_ADDOPTS="$PYTEST_ADDOPTS -m migrations --migrations --reruns 0" make test-python-ci
@@ -131,6 +146,11 @@ jobs:
       - name: Setup sentry env
         uses: ./.github/actions/test-setup-sentry-devservices
         id: setup
+
+      - name: Bring up devservices
+        run: |
+          docker network create sentry
+          docker compose -f devservices/docker-compose-testing.yml up -d redis postgres
 
       - name: Run test
         run: |
@@ -160,6 +180,11 @@ jobs:
         uses: ./.github/actions/test-setup-sentry-devservices
         id: setup
 
+      - name: Bring up devservices
+        run: |
+          docker network create sentry
+          docker compose -f devservices/docker-compose-testing.yml up -d redis postgres
+
       - name: Migration & lockfile checks
         env:
           SENTRY_LOG_LEVEL: ERROR
@@ -180,6 +205,11 @@ jobs:
       - name: Setup sentry env
         uses: ./.github/actions/test-setup-sentry-devservices
         id: setup
+
+      - name: Bring up devservices
+        run: |
+          docker network create sentry
+          docker compose -f devservices/docker-compose-testing.yml up -d redis postgres
 
       - name: Run test
         run: |

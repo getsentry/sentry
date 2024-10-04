@@ -32,10 +32,6 @@ services:
       ]
     volumes:
       - 'sentry-redis:/data'
-    ulimits:
-      nofile:
-        soft: 10032
-        hard: 10032
     ports:
       - '6379:6379'
     networks:
@@ -92,10 +88,6 @@ services:
       KAFKA_LOG_RETENTION_HOURS: '24'
       KAFKA_MESSAGE_MAX_BYTES: '50000000' #50MB or bust
       KAFKA_MAX_REQUEST_SIZE: '50000000' #50MB on requests apparently too
-    ulimits:
-      nofile:
-        soft: 4096
-        hard: 4096
     volumes:
       - 'sentry-kafka:/var/lib/kafka/data'
       - 'sentry-kafka-log:/var/lib/kafka/log'
