@@ -17,7 +17,7 @@ env:
   NODE_OPTIONS: '--max-old-space-size=4096'
 
 jobs:
-  acceptance:
+  docker-compose-acceptance:
     name: acceptance
     runs-on: ubuntu-22.04
     timeout-minutes: 30
@@ -118,11 +118,11 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           commit_sha: ${{ github.event.pull_request.head.sha }}
 
-  acceptance-required-checks:
+  docker-compose-acceptance-required-checks:
     # this is a required check so we need this job to always run and report a status.
     if: always()
     name: Acceptance
-    needs: [acceptance]
+    needs: [docker-compose-acceptance]
     runs-on: ubuntu-22.04
     timeout-minutes: 3
     steps:
