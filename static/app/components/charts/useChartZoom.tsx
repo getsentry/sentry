@@ -11,11 +11,7 @@ import DataZoomInside from 'sentry/components/charts/components/dataZoomInside';
 import DataZoomSlider from 'sentry/components/charts/components/dataZoomSlider';
 import ToolBox from 'sentry/components/charts/components/toolBox';
 import type {DateString} from 'sentry/types/core';
-import type {
-  EChartDataZoomHandler,
-  EChartFinishedHandler,
-  EChartRestoreHandler,
-} from 'sentry/types/echarts';
+import type {EChartDataZoomHandler, EChartFinishedHandler} from 'sentry/types/echarts';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import {getUtcDateString} from 'sentry/utils/dates';
 
@@ -34,7 +30,6 @@ interface ZoomRenderProps {
   isGroupedByDate: boolean;
   onDataZoom: EChartDataZoomHandler;
   onFinished: EChartFinishedHandler;
-  onRestore: EChartRestoreHandler;
   toolBox: ToolboxComponentOption;
 }
 
@@ -74,34 +69,12 @@ export function useChartZoom({
   xAxisIndex,
   showSlider,
   chartZoomOptions,
-  disabled,
 }: Omit<Props, 'children'>): ZoomRenderProps {
-  const currentPeriod = useRef<DateTimeUpdate | undefined>(undefined);
-  const history = useRef<DateTimeUpdate[]>([]);
   /**
    * Used to store the date update function so that we can call it after the chart
    * animation is complete
    */
   const zooming = useRef<(() => void) | null>(null);
-
-  /**
-   * Save current period state from period in props to be used
-   * in handling chart's zoom history state
-   */
-  const saveCurrentPeriod = useCallback(
-    (newPeriod: DateTimeUpdate) => {
-      if (disabled) {
-        return;
-      }
-
-      currentPeriod.current = {
-        period: newPeriod.period,
-        start: getQueryTime(newPeriod.start),
-        end: getQueryTime(newPeriod.end),
-      };
-    },
-    [disabled]
-  );
 
   /**
    * Sets the new period due to a zoom related action
@@ -113,14 +86,9 @@ export function useChartZoom({
    * Saves a callback function to be called after chart animation is completed
    */
   const setPeriod = useCallback(
-    (newPeriod: DateTimeUpdate, saveHistory = false) => {
+    (newPeriod: DateTimeUpdate) => {
       const startFormatted = getQueryTime(newPeriod.start);
       const endFormatted = getQueryTime(newPeriod.end);
-
-      // Save period so that we can revert back to it when using echarts "back" navigation
-      if (saveHistory) {
-        history.current = [...history.current, currentPeriod.current!];
-      }
 
       // Callback to let parent component know zoom has changed
       // This is required for some more perceived responsiveness since
@@ -161,54 +129,26 @@ export function useChartZoom({
             {save: saveOnZoom}
           );
         }
-
-        saveCurrentPeriod(newPeriod);
       };
     },
-    [onZoom, router, saveCurrentPeriod, saveOnZoom, usePageDate]
+    [onZoom, router, saveOnZoom, usePageDate]
   );
-
-  /**
-   * Restores the chart to initial viewport/zoom level
-   *
-   * Updates URL state to reflect initial params
-   */
-  const handleZoomRestore = useCallback<EChartRestoreHandler>(() => {
-    if (!history.current.length) {
-      return;
-    }
-
-    setPeriod(history.current[0]);
-    history.current = [];
-  }, [setPeriod]);
 
   const handleDataZoom = useCallback<EChartDataZoomHandler>(
     evt => {
-      // @ts-expect-error getModel is private
+      // @ts-expect-error weirdly evt.startValue and evt.endValue do not exist
       const {startValue, endValue} = evt.batch[0] as {
         endValue: number | null;
         startValue: number | null;
       };
 
       // if `rangeStart` and `rangeEnd` are null, then we are going back
-      if (startValue === null && endValue === null) {
-        const previousPeriod = history.current.pop();
-
-        if (!previousPeriod) {
-          return;
-        }
-
-        setPeriod(previousPeriod);
-      } else {
-        setPeriod(
-          // Add a day so we go until the end of the day (e.g. next day at midnight)
-          {
-            period: null,
-            start: startValue ? getUtcDateString(startValue) : null,
-            end: endValue ? getUtcDateString(endValue) : null,
-          },
-          true
-        );
+      if (startValue && endValue) {
+        setPeriod({
+          period: null,
+          start: startValue ? getUtcDateString(startValue) : null,
+          end: endValue ? getUtcDateString(endValue) : null,
+        });
       }
     },
     [setPeriod]
@@ -278,7 +218,6 @@ export function useChartZoom({
     toolBox,
     onDataZoom: handleDataZoom,
     onFinished: handleChartFinished,
-    onRestore: handleZoomRestore,
   };
 
   return renderProps;
