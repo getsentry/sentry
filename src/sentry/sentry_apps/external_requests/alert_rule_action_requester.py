@@ -1,3 +1,4 @@
+import logging
 from dataclasses import dataclass, field
 from typing import TypedDict
 from urllib.parse import urlparse, urlunparse
@@ -7,7 +8,6 @@ from django.db import router, transaction
 from django.utils.functional import cached_property
 from requests import RequestException
 from requests.models import Response
-from sentry_sdk import isolation_scope
 
 from sentry.sentry_apps.external_requests.utils import send_and_save_sentry_app_request
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
@@ -16,6 +16,8 @@ from sentry.utils import json
 
 DEFAULT_SUCCESS_MESSAGE = "Success!"
 DEFAULT_ERROR_MESSAGE = "Something went wrong!"
+
+logger = logging.getLogger("sentry.sentry_apps.external_requests")
 
 
 class AlertRuleActionResult(TypedDict):
@@ -44,17 +46,15 @@ class AlertRuleActionRequester:
                 )
 
         except RequestException as e:
-            with isolation_scope() as scope:
-                scope.set_tag("sentry_app", self.sentry_app.slug)
-                scope.set_context(
-                    "alert_rule_action.error",
-                    {
-                        "sentry_app_slug": self.sentry_app.slug,
-                        "install_uuid": self.install.uuid,
-                        "uri": self.uri,
-                        "error_message": str(e),
-                    },
-                )
+            logger.info(
+                "alert_rule_action.error",
+                extra={
+                    "sentry_app_slug": self.sentry_app.slug,
+                    "install_uuid": self.install.uuid,
+                    "uri": self.uri,
+                    "error_message": str(e),
+                },
+            )
 
             return AlertRuleActionResult(
                 success=False, message=self._get_response_message(e.response, DEFAULT_ERROR_MESSAGE)
