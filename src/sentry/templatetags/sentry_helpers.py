@@ -22,8 +22,7 @@ SentryVersion = namedtuple("SentryVersion", ["current", "latest", "update_availa
 
 register = template.Library()
 
-truncatechars = register.filter(stringfilter(truncatechars))
-truncatechars.is_safe = True
+truncatechars = register.filter(stringfilter(truncatechars), is_safe=True)
 
 
 @register.filter
@@ -254,7 +253,7 @@ def date(dt, arg=None):
 @register.simple_tag
 def percent(value, total, format=None):
     if not (value and total):
-        result = 0
+        result = 0.0
     else:
         result = int(value) / float(total) * 100
 
