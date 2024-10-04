@@ -166,6 +166,8 @@ describe('Uptime Alert Form', function () {
     );
     await screen.findByText('Configure Request');
 
+    await selectEvent.select(input('Interval'), 'Every 10 minutes');
+
     await userEvent.clear(input('URL'));
     await userEvent.type(input('URL'), 'http://another-url.com');
 
@@ -207,7 +209,7 @@ describe('Uptime Alert Form', function () {
             ['X-Another', 'Second Value'],
           ],
           body: '{"different": "value"}',
-          intervalSeconds: 60,
+          intervalSeconds: 60 * 10,
         }),
       })
     );

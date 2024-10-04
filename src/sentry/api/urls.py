@@ -55,6 +55,7 @@ from sentry.api.endpoints.relocations.public_key import RelocationPublicKeyEndpo
 from sentry.api.endpoints.relocations.recover import RelocationRecoverEndpoint
 from sentry.api.endpoints.relocations.retry import RelocationRetryEndpoint
 from sentry.api.endpoints.relocations.unpause import RelocationUnpauseEndpoint
+from sentry.api.endpoints.secret_scanning.github import SecretScanningGitHubEndpoint
 from sentry.api.endpoints.seer_rpc import SeerRpcServiceEndpoint
 from sentry.api.endpoints.source_map_debug_blue_thunder_edition import (
     SourceMapDebugBlueThunderEditionEndpoint,
@@ -74,6 +75,10 @@ from sentry.discover.endpoints.discover_saved_query_detail import (
     DiscoverSavedQueryVisitEndpoint,
 )
 from sentry.flags.endpoints.hooks import OrganizationFlagsHooksEndpoint
+from sentry.flags.endpoints.logs import (
+    OrganizationFlagLogDetailsEndpoint,
+    OrganizationFlagLogIndexEndpoint,
+)
 from sentry.incidents.endpoints.organization_alert_rule_activations import (
     OrganizationAlertRuleActivationsEndpoint,
 )
@@ -244,10 +249,6 @@ from sentry.monitors.endpoints.project_processing_errors_details import (
 )
 from sentry.monitors.endpoints.project_processing_errors_index import (
     ProjectProcessingErrorsIndexEndpoint,
-)
-from sentry.remote_config.endpoints import (
-    ProjectConfigurationEndpoint,
-    ProjectConfigurationProxyEndpoint,
 )
 from sentry.replays.endpoints.organization_replay_count import OrganizationReplayCountEndpoint
 from sentry.replays.endpoints.organization_replay_details import OrganizationReplayDetailsEndpoint
@@ -716,7 +717,7 @@ def create_group_urls(name_prefix: str) -> list[URLPattern | URLResolver]:
             name=f"{name_prefix}-group-events",
         ),
         re_path(
-            r"^(?P<issue_id>[^\/]+)/events/(?P<event_id>(?:latest|oldest|helpful|recommended|\d+|[A-Fa-f0-9-]{32,36}))/$",
+            r"^(?P<issue_id>[^\/]+)/events/(?P<event_id>(?:latest|oldest|recommended|\d+|[A-Fa-f0-9-]{32,36}))/$",
             GroupEventDetailsEndpoint.as_view(),
             name=f"{name_prefix}-group-event-details",
         ),
@@ -2033,11 +2034,23 @@ ORGANIZATION_URLS = [
         OrganizationRelayUsage.as_view(),
         name="sentry-api-0-organization-relay-usage",
     ),
+    # Flags
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/flags/logs/$",
+        OrganizationFlagLogIndexEndpoint.as_view(),
+        name="sentry-api-0-organization-flag-logs",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/flags/logs/(?P<flag_log_id>\d+)/$",
+        OrganizationFlagLogDetailsEndpoint.as_view(),
+        name="sentry-api-0-organization-flag-log",
+    ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/flags/hooks/provider/(?P<provider>[\w-]+)/$",
         OrganizationFlagsHooksEndpoint.as_view(),
         name="sentry-api-0-organization-flag-hooks",
     ),
+    # Replays
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/replays/$",
         OrganizationReplayIndexEndpoint.as_view(),
@@ -2423,11 +2436,6 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/keys/(?P<key_id>[^\/]+)/stats/$",
         ProjectKeyStatsEndpoint.as_view(),
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/configuration/$",
-        ProjectConfigurationEndpoint.as_view(),
-        name="sentry-api-0-project-key-configuration",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/members/$",
@@ -3284,11 +3292,6 @@ urlpatterns = [
         SetupWizard.as_view(),
         name="sentry-api-0-project-wizard",
     ),
-    re_path(
-        r"^remote-config/projects/(?P<project_id>[^\/]+)/$",
-        ProjectConfigurationProxyEndpoint.as_view(),
-        name="sentry-api-0-project-remote-configuration",
-    ),
     # Internal
     re_path(
         r"^internal/",
@@ -3303,6 +3306,12 @@ urlpatterns = [
         r"^publickeys/relocations/$",
         RelocationPublicKeyEndpoint.as_view(),
         name="sentry-api-0-relocations-public-key",
+    ),
+    # Secret Scanning
+    re_path(
+        r"^secret-scanning/github/$",
+        SecretScanningGitHubEndpoint.as_view(),
+        name="sentry-api-0-secret-scanning-github",
     ),
     # Catch all
     re_path(

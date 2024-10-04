@@ -374,7 +374,6 @@ def get_events_from_nodestore(
                 CreateGroupingRecordData(
                     group_id=group_id,
                     project_id=project.id,
-                    message=filter_null_from_string(event.title),
                     exception_type=(
                         filter_null_from_string(exception_type) if exception_type else None
                     ),
@@ -634,9 +633,7 @@ def lookup_group_data_stacktrace_bulk(
         else:
             bulk_data = _make_nodestore_call(project, list(node_id_to_group_data.keys()))
 
-        with sentry_sdk.start_span(
-            op="lookup_event_bulk.loop", description="lookup_event_bulk.loop"
-        ):
+        with sentry_sdk.start_span(op="lookup_event_bulk.loop", name="lookup_event_bulk.loop"):
             for node_id, data in bulk_data.items():
                 if node_id in node_id_to_group_data:
                     event_id, group_id = (
@@ -650,7 +647,7 @@ def lookup_group_data_stacktrace_bulk(
 
         with sentry_sdk.start_span(
             op="lookup_event_bulk.individual_lookup",
-            description="lookup_event_bulk.individual_lookup",
+            name="lookup_event_bulk.individual_lookup",
         ):
             # look up individually any that may have failed during bulk lookup
             for node_id, (event_id, group_id) in node_id_to_group_data.items():
