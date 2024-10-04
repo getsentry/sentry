@@ -8,6 +8,8 @@ import {t} from 'sentry/locale';
 import EventView from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
+import type RequestError from 'sentry/utils/requestError/requestError';
+import {ERROR_MAP} from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useRoutes} from 'sentry/utils/useRoutes';
@@ -30,7 +32,7 @@ import {ReplayColumn} from 'sentry/views/replays/replayTable/types';
 import type {ReplayListRecord} from 'sentry/views/replays/types';
 
 type Props = {
-  fetchError: null | undefined | Error;
+  fetchError: null | undefined | RequestError;
   isFetching: boolean;
   replays: undefined | ReplayListRecord[] | ReplayListRecordWithTx[];
   sort: Sort | undefined;
@@ -41,6 +43,24 @@ type Props = {
   referrerLocation?: string;
   showDropdownFilters?: boolean;
 };
+
+function getErrorMessage(fetchError: RequestError) {
+  if (typeof fetchError === 'string') {
+    return fetchError;
+  }
+  if (typeof fetchError?.responseJSON?.detail === 'string') {
+    return fetchError.responseJSON.detail;
+  }
+  if (fetchError?.responseJSON?.detail?.message) {
+    return fetchError.responseJSON.detail.message;
+  }
+  if (fetchError.name === ERROR_MAP[500]) {
+    return t('There was an internal systems error.');
+  }
+  return t(
+    'This could be due to invalid search parameters or an internal systems error.'
+  );
+}
 
 function ReplayTable({
   fetchError,
@@ -80,11 +100,8 @@ function ReplayTable({
         gridRows={undefined}
       >
         <StyledAlert type="error" showIcon>
-          {typeof fetchError === 'string'
-            ? fetchError
-            : t(
-                'Sorry, the list of replays could not be loaded. This could be due to invalid search parameters or an internal systems error.'
-              )}
+          {t('Sorry, the list of replays could not be loaded. ')}
+          {getErrorMessage(fetchError)}
         </StyledAlert>
       </StyledPanelTable>
     );
