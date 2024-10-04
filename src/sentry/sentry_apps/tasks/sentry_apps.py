@@ -446,7 +446,7 @@ def notify_sentry_app(event: Event | GroupEvent, futures):
         )
 
 
-def send_webhooks(installation, event, **kwargs):
+def send_webhooks(installation: RpcSentryAppInstallation, event: str, **kwargs: Any):
     servicehook: ServiceHook
     try:
         servicehook = ServiceHook.objects.get(
