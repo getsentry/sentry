@@ -26,7 +26,6 @@ class GroupAutofixUpdateEndpoint(GroupEndpoint):
         "POST": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.ML_AI
-    private = True
 
     def post(self, request: Request, group: Group) -> Response:
         """

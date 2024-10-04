@@ -44,7 +44,6 @@ class GroupAiSummaryEndpoint(GroupEndpoint):
         "POST": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.ML_AI
-    private = True
     enforce_rate_limit = True
     rate_limits = {
         "POST": {

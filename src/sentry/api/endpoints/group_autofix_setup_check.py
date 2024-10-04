@@ -102,7 +102,6 @@ class GroupAutofixSetupCheck(GroupEndpoint):
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.ML_AI
-    private = True
 
     def get(self, request: Request, group: Group) -> Response:
         """
