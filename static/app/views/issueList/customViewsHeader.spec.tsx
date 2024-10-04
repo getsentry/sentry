@@ -300,28 +300,6 @@ describe('CustomViewsHeader', () => {
         })
       );
     });
-    //   render(<CustomViewsIssueListHeader {...defaultProps} />, {router: defaultRouter});
-
-    //   await userEvent.click(await screen.findByRole('tab', {name: 'Medium Priority'}));
-
-    //   defaultRouter.goBack();
-    //   waitFor(() => {
-    //     expect(screen.getByRole('tab', {name: 'High Priority'})).toHaveAttribute(
-    //       'aria-selected',
-    //       'true'
-    //     );
-    //   });
-
-    //   expect(defaultRouter.go).toHaveBeenCalledWith(
-    //     expect.objectContaining({
-    //       query: expect.objectContaining({
-    //         query: getRequestViews[0].query,
-    //         viewId: getRequestViews[0].id,
-    //         sort: getRequestViews[0].querySort,
-    //       }),
-    //     })
-    //   );
-    // });
 
     // biome-ignore lint/suspicious/noSkippedTests: <This behavior works when testing in browser, need to debug why its failing tests>
     it.skip('retains unsaved changes after switching tabs', async () => {
