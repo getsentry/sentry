@@ -888,7 +888,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         seer_return_value: DetectAnomaliesResponse = {"success": True, "timeseries": []}
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
         result = get_anomaly_data_from_seer(
-            alert_rule=processor.alert_rule,
+            alert_rule=self.dynamic_rule,
             subscription=processor.subscription,
             last_update=processor.last_update.timestamp(),
             aggregation_value=10,
@@ -908,7 +908,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         processor = SubscriptionProcessor(self.sub)
         mock_seer_request.return_value = HTTPResponse(status=403)
         result = get_anomaly_data_from_seer(
-            alert_rule=processor.alert_rule,
+            alert_rule=self.dynamic_rule,
             subscription=processor.subscription,
             last_update=processor.last_update.timestamp(),
             aggregation_value=10,
@@ -936,7 +936,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         processor = SubscriptionProcessor(self.sub)
         mock_seer_request.return_value = HTTPResponse(None, status=200)  # type: ignore[arg-type]
         result = get_anomaly_data_from_seer(
-            alert_rule=processor.alert_rule,
+            alert_rule=self.dynamic_rule,
             subscription=processor.subscription,
             last_update=processor.last_update.timestamp(),
             aggregation_value=10,
