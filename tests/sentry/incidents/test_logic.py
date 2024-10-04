@@ -948,7 +948,7 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
             time_window=self.dynamic_metric_alert_settings["time_window"],
         ).exists()
         assert mock_logger.warning.call_count == 1
-        assert mock_seer_request.call_count == 1
+        assert mock_seer_request.call_count == 2  # 1 for create, 1 for delete because create failed
 
         mock_seer_request.reset_mock()
         mock_logger.reset_mock()
@@ -970,7 +970,7 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
             time_window=self.dynamic_metric_alert_settings["time_window"],
         ).exists()
         assert mock_logger.warning.call_count == 1
-        assert mock_seer_request.call_count == 1
+        assert mock_seer_request.call_count == 2  # 1 for create, 1 for delete because create failed
 
     @patch("sentry.seer.anomaly_detection.utils.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen")
     def test_create_alert_rule_anomaly_detection_no_feature(self, mock_seer_request):
@@ -1677,7 +1677,9 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert mock_seer_request.call_count == 0
         mock_seer_request.reset_mock()
         # update name
-        update_alert_rule(dynamic_rule, name="everything is broken")
+        update_alert_rule(
+            dynamic_rule, detection_type=AlertRuleDetectionType.DYNAMIC, name="everything is broken"
+        )
         dynamic_rule.refresh_from_db()
         assert dynamic_rule.name == "everything is broken"
         assert mock_seer_request.call_count == 0
@@ -1982,13 +1984,9 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:anomaly-detection-rollout")
     @patch("sentry.seer.anomaly_detection.utils.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen")
-    @patch("sentry.seer.anomaly_detection.utils.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen")
-    def test_update_alert_rule_dynamic_to_static_delete_call(
-        self, mock_store_request, mock_delete_request
-    ):
+    def test_update_alert_rule_dynamic_to_static_delete_call(self, mock_seer_request):
         seer_return_value = {"success": True}
-        mock_store_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
-        mock_delete_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
 
         alert_rule = self.create_alert_rule(
             sensitivity=AlertRuleSensitivity.HIGH,
@@ -1999,7 +1997,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
 
         update_alert_rule(alert_rule, detection_type=AlertRuleDetectionType.STATIC)
 
-        assert mock_delete_request.call_count == 1
+        assert mock_seer_request.call_count == 2  # 1 for update, 1 for delete
 
     @patch("sentry.seer.anomaly_detection.utils.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen")
     def test_update_alert_rule_anomaly_detection_no_feature(self, mock_seer_request):
