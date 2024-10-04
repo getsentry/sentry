@@ -59,7 +59,7 @@ def _calculate_event_grouping(
             # The active grouping config was put into the event in the
             # normalize step before.  We now also make sure that the
             # fingerprint was set to `'{{ default }}' just in case someone
-            # removed it from the payload.  The call to get_hashes will then
+            # removed it from the payload.  The call to `get_hashes_and_variants` will then
             # look at `grouping_config` to pick the right parameters.
             event.data["fingerprint"] = event.data.data.get("fingerprint") or ["{{ default }}"]
             apply_server_fingerprinting(
@@ -69,7 +69,7 @@ def _calculate_event_grouping(
             )
 
         with metrics.timer("event_manager.event.get_hashes", tags=metric_tags):
-            hashes = event.get_hashes(loaded_grouping_config)
+            hashes, _ = event.get_hashes_and_variants(loaded_grouping_config)
 
         return hashes
 
