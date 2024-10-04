@@ -34,7 +34,7 @@ export function IntegrationServerlessFunctions({
   ];
   const {data: serverlessFunctions = [], isSuccess} = useApiQuery<ServerlessFunction[]>(
     queryKey,
-    {staleTime: Infinity}
+    {staleTime: 0}
   );
 
   useEffect(() => {
