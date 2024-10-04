@@ -252,6 +252,9 @@ class Referrer(Enum):
     API_PERFORMANCE_GENERIC_WIDGET_CHART_MOST_SLOW_FRAMES = (
         "api.performance.generic-widget-chart.most-slow-frames"
     )
+    API_PERFORMANCE_GENERIC_WIDGET_CHART_MOST_TIME_CONSUMING_DOMAINS = (
+        "api.performance.generic-widget-chart.most-time-consuming-domains"
+    )
     API_PERFORMANCE_GENERIC_WIDGET_CHART_MOST_TIME_CONSUMING_RESOURCES = (
         "api.performance.generic-widget-chart.most-time-consuming-resources"
     )
