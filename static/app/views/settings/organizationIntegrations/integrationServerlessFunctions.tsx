@@ -1,110 +1,96 @@
-// eslint-disable-next-line simple-import-sort/imports
-import {Fragment} from 'react';
+import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 
-import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
-import type {Organization} from 'sentry/types/organization';
+import {Alert} from 'sentry/components/alert';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelHeader from 'sentry/components/panels/panelHeader';
+import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {
   OrganizationIntegration,
   ServerlessFunction,
 } from 'sentry/types/integrations';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
-import {space} from 'sentry/styles/space';
-import {Alert} from 'sentry/components/alert';
-import withOrganization from 'sentry/utils/withOrganization';
-import {t} from 'sentry/locale';
-import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {
+  type ApiQueryKey,
+  setApiQueryData,
+  useApiQuery,
+  useQueryClient,
+} from 'sentry/utils/queryClient';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import IntegrationServerlessRow from './integrationServerlessRow';
 
-type Props = DeprecatedAsyncComponent['props'] & {
+export function IntegrationServerlessFunctions({
+  integration,
+}: {
   integration: OrganizationIntegration;
-  organization: Organization;
-};
+}) {
+  const organization = useOrganization();
+  const queryClient = useQueryClient();
+  const queryKey: ApiQueryKey = [
+    `/organizations/${organization.slug}/integrations/${integration.id}/serverless-functions/`,
+  ];
+  const {data: serverlessFunctions = [], isSuccess} = useApiQuery<ServerlessFunction[]>(
+    queryKey,
+    {staleTime: 0}
+  );
 
-type State = DeprecatedAsyncComponent['state'] & {
-  serverlessFunctions: ServerlessFunction[];
-};
+  useEffect(() => {
+    if (isSuccess) {
+      trackAnalytics('integrations.serverless_functions_viewed', {
+        integration: integration.provider.key,
+        integration_type: 'first_party',
+        num_functions: serverlessFunctions.length,
+        organization,
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSuccess]);
 
-class IntegrationServerlessFunctions extends DeprecatedAsyncComponent<Props, State> {
-  getDefaultState(): State {
-    return {
-      ...super.getDefaultState(),
-      serverlessFunctions: [],
-    };
-  }
-
-  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
-    const orgSlug = this.props.organization.slug;
-    return [
-      [
-        'serverlessFunctions',
-        `/organizations/${orgSlug}/integrations/${this.props.integration.id}/serverless-functions/`,
-      ],
-    ];
-  }
-
-  get serverlessFunctions() {
-    return this.state.serverlessFunctions;
-  }
-
-  onLoadAllEndpointsSuccess() {
-    trackIntegrationAnalytics('integrations.serverless_functions_viewed', {
-      integration: this.props.integration.provider.key,
-      integration_type: 'first_party',
-      num_functions: this.serverlessFunctions.length,
-      organization: this.props.organization,
-    });
-  }
-
-  handleFunctionUpdate = (
-    serverlessFunctionUpdate: Partial<ServerlessFunction>,
-    index: number
-  ) => {
-    const serverlessFunctions = [...this.serverlessFunctions];
-    const serverlessFunction = {
-      ...serverlessFunctions[index],
-      ...serverlessFunctionUpdate,
-    };
-    serverlessFunctions[index] = serverlessFunction;
-    this.setState({serverlessFunctions});
-  };
-
-  renderBody() {
-    return (
-      <Fragment>
-        <Alert type="info">
-          {t(
-            'Manage your AWS Lambda functions below. Only Node and Python runtimes are currently supported.'
-          )}
-        </Alert>
-        <Panel>
-          <StyledPanelHeader disablePadding hasButtons>
-            <NameHeader>{t('Name')}</NameHeader>
-            <LayerStatusWrapper>{t('Layer Status')}</LayerStatusWrapper>
-            <EnableHeader>{t('Enabled')}</EnableHeader>
-          </StyledPanelHeader>
-          <StyledPanelBody>
-            {this.serverlessFunctions.map((serverlessFunction, i) => (
-              <IntegrationServerlessRow
-                key={serverlessFunction.name}
-                serverlessFunction={serverlessFunction}
-                onUpdateFunction={(update: Partial<ServerlessFunction>) =>
-                  this.handleFunctionUpdate(update, i)
-                }
-                {...this.props}
-              />
-            ))}
-          </StyledPanelBody>
-        </Panel>
-      </Fragment>
-    );
-  }
+  return (
+    <Fragment>
+      <Alert type="info">
+        {t(
+          'Manage your AWS Lambda functions below. Only Node and Python runtimes are currently supported.'
+        )}
+      </Alert>
+      <Panel>
+        <StyledPanelHeader disablePadding hasButtons>
+          <NameHeader>{t('Name')}</NameHeader>
+          <LayerStatusWrapper>{t('Layer Status')}</LayerStatusWrapper>
+          <EnableHeader>{t('Enabled')}</EnableHeader>
+        </StyledPanelHeader>
+        <StyledPanelBody>
+          {serverlessFunctions.map((serverlessFn, i) => (
+            <IntegrationServerlessRow
+              key={serverlessFn.name}
+              serverlessFunction={serverlessFn}
+              onUpdateFunction={(update: Partial<ServerlessFunction>) => {
+                setApiQueryData<ServerlessFunction[]>(
+                  queryClient,
+                  queryKey,
+                  existingServerlessFunctions => {
+                    const newServerlessFunctions = [...existingServerlessFunctions];
+                    const updatedFunction = {
+                      ...newServerlessFunctions[i],
+                      ...update,
+                    };
+                    newServerlessFunctions[i] = updatedFunction;
+                    return newServerlessFunctions;
+                  }
+                );
+              }}
+              integration={integration}
+              organization={organization}
+            />
+          ))}
+        </StyledPanelBody>
+      </Panel>
+    </Fragment>
+  );
 }
-
-export default withOrganization(IntegrationServerlessFunctions);
 
 const StyledPanelHeader = styled(PanelHeader)`
   padding: ${space(2)};
