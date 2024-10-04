@@ -3,11 +3,12 @@ from __future__ import annotations
 import re
 from collections import namedtuple
 from collections.abc import Callable, Iterable, Mapping, Sequence
-from typing import Any, NamedTuple
+from typing import TYPE_CHECKING, Any, NamedTuple
 
 from parsimonious.exceptions import ParseError
 from parsimonious.grammar import Grammar
-from parsimonious.nodes import Node, NodeVisitor
+from parsimonious.nodes import Node
+from parsimonious.nodes import NodeVisitor as BaseNodeVisitor
 from rest_framework.serializers import ValidationError
 
 from sentry.eventstore.models import EventSubjectTemplateData
@@ -21,6 +22,11 @@ from sentry.utils.glob import glob_match
 from sentry.utils.safe import PathSearchable, get_path
 
 __all__ = ("parse_rules", "dump_schema", "load_schema")
+
+if TYPE_CHECKING:
+    NodeVisitor = BaseNodeVisitor[str]
+else:
+    NodeVisitor = BaseNodeVisitor
 
 VERSION = 1
 
@@ -124,7 +130,9 @@ class Matcher(namedtuple("Matcher", "type pattern")):
         return cls(data["type"], data["pattern"])
 
     @staticmethod
-    def munge_if_needed(data: PathSearchable) -> tuple[Sequence[Mapping[str, Any]], Sequence[str]]:
+    def munge_if_needed(
+        data: Mapping[str, Any]
+    ) -> tuple[Sequence[Mapping[str, Any]], Sequence[str]]:
         keys = ["filename", "abs_path"]
         platform = data.get("platform")
         sdk_name = get_sdk_name(data)
@@ -164,7 +172,7 @@ class Matcher(namedtuple("Matcher", "type pattern")):
             )
         return False
 
-    def test(self, data: PathSearchable) -> bool:
+    def test(self, data: Mapping[str, Any]) -> bool:
         if self.type == URL:
             return self.test_url(data)
         elif self.type == PATH:
@@ -296,7 +304,7 @@ class OwnershipVisitor(NodeVisitor):
 
     def visit_owners(self, node: Node, children: tuple[Any, Sequence[Owner]]) -> list[Owner]:
         _, owners = children
-        return owners
+        return list(owners)
 
     def visit_owner(self, node: Node, children: tuple[Node, bool, str]) -> Owner:
         _, is_team, pattern = children
@@ -320,7 +328,7 @@ class OwnershipVisitor(NodeVisitor):
         return str(node.text[1:-1].encode("ascii", "backslashreplace").decode("unicode-escape"))
 
     def generic_visit(self, node: Node, children: Sequence[Any]) -> list[Node] | Node:
-        return children or node
+        return list(children) or node
 
 
 def parse_rules(data: str) -> Any:
@@ -462,7 +470,7 @@ def convert_codeowners_syntax(
     return result
 
 
-def resolve_actors(owners: Iterable[Owner], project_id: int) -> dict[Owner, Actor]:
+def resolve_actors(owners: Iterable[Owner], project_id: int) -> dict[Owner, Actor | None]:
     """Convert a list of Owner objects into a dictionary
     of {Owner: Actor} pairs. Actors not identified are returned
     as None."""
@@ -563,8 +571,9 @@ def create_schema_from_issue_owners(
     try:
         rules = parse_rules(issue_owners)
     except ParseError as e:
+        rule_name = e.expr.name if e.expr else str(e.expr)
         raise ValidationError(
-            {"raw": f"Parse error: {e.expr.name} (line {e.line()}, column {e.column()})"}
+            {"raw": f"Parse error: {rule_name} (line {e.line()}, column {e.column()})"}
         )
 
     schema = dump_schema(rules)
