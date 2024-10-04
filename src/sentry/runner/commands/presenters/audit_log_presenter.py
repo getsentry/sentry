@@ -14,7 +14,7 @@ class AuditLogPresenter(WebhookPresenter):
     def is_webhook_enabled() -> bool:
         return (
             options.get("flags:options-audit-log-is-enabled") is True
-            and options.get("flags:options-audit-log-organization-id") is not None
+            and options.get("flags:options-audit-log-organization-id") != -1
         )
 
     def flush(self) -> None:
