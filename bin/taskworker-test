@@ -188,10 +188,12 @@ def print_results(log_file: str, worker_count: int) -> None:
     click.echo("")
     click.echo("## Task latency")
     click.echo("")
-    click.echo(f"Startup Latency: {startup_latency}")
-    click.echo(f"Raw Min / Max / Avg latency: {min_latency} / {max_latency} / {avg_latency}")
+    click.echo(f"Startup Latency: {startup_latency:.5f}")
     click.echo(
-        f"Adjusted Min / Max / Avg latency: {adj_min_latency} / {adj_max_latency} / {adj_avg_latency}"
+        f"Raw Min / Max / Avg latency: {min_latency:.5f} / {max_latency:.5f} / {avg_latency:.5f}"
+    )
+    click.echo(
+        f"Adjusted Min / Max / Avg latency: {adj_min_latency:.5f} / {adj_max_latency:.5f} / {adj_avg_latency:.5f}"
     )
 
     click.echo("")
@@ -206,7 +208,7 @@ def print_results(log_file: str, worker_count: int) -> None:
         bars.append((bucket_upper, bar))
 
     for (bucket_upper, bar) in sorted(bars, key=lambda x: x[0]):
-        click.echo(f"{bucket_upper:.4f} {bar}")
+        click.echo(f"{bucket_upper:.5f} {bar}")
 
 
 if __name__ == "__main__":
