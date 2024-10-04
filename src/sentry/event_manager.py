@@ -1374,14 +1374,14 @@ def get_hashes_and_grouphashes(
     project = job["event"].project
 
     # These will come back as Nones if the calculation decides it doesn't need to run
-    grouping_config, hashes, _ = hash_calculation_function(project, job, metric_tags)
+    grouping_config, hashes, variants = hash_calculation_function(project, job, metric_tags)
 
     if hashes:
         grouphashes = get_or_create_grouphashes(project, hashes, grouping_config["id"])
 
         existing_grouphash = find_grouphash_with_group(grouphashes)
 
-        return GroupHashInfo(grouping_config, hashes, grouphashes, existing_grouphash)
+        return GroupHashInfo(grouping_config, variants, hashes, grouphashes, existing_grouphash)
     else:
         return NULL_GROUPHASH_INFO
 
