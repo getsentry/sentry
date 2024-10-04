@@ -323,12 +323,6 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 ## End of Profiling
 
 
-## Configurations
-/src/sentry/remote_config/              @getsentry/replay-backend
-/tests/sentry/remote_config/            @getsentry/replay-backend
-## End of Configurations
-
-
 ## Flags
 /src/sentry/flags/              @getsentry/replay-backend
 /tests/sentry/flags/            @getsentry/replay-backend
