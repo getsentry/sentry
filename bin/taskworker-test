@@ -154,14 +154,20 @@ def print_results(log_file: str, worker_count: int) -> None:
     click.echo("== Test run complete ==")
     click.echo("")
 
-    fieldnames = ["event", "worker_id", "task_add_time", "execution_time", "latency"]
+    fieldnames = ["event", "worker_id", "task_add_time", "execution_time", "latency", "task_id"]
     latency_times = []
     execution_times = []
+    task_ids = set()
+    duplicates = []
     with open(log_file) as logs:
         results = csv.DictReader(logs, fieldnames=fieldnames)
         for row in results:
             latency_times.append(float(row["latency"].strip()))
             execution_times.append(float(row["execution_time"].strip()))
+            row_id = row["task_id"].strip()
+            if row_id in task_ids:
+                duplicates.append(row_id)
+            task_ids.add(row_id)
 
     # We append tasks and then start applications. The first
     # message always has long latency as application startup
@@ -196,6 +202,13 @@ def print_results(log_file: str, worker_count: int) -> None:
     click.echo(f"Task count: {len(latency_times)}")
     click.echo(f"Processing time: {processing_time:.4f}")
     click.echo(f"Throughput: {task_throughput:.4f}")
+
+    if duplicates:
+        click.echo("")
+        click.echo("Duplicate executions found:")
+        for dupe in duplicates:
+            click.echo(f"- {dupe}")
+        click.echo("")
 
     click.echo("")
     click.echo("## Task latency")

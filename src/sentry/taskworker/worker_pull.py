@@ -146,11 +146,12 @@ class Worker:
 
         # Dump results to a log file that is CSV shaped
         result_logger.info(
-            "task.complete, %s, %s, %s, %s",
+            "task.complete, %s, %s, %s, %s, %s",
             self.__worker_id,
             task_added_time,
             execution_time,
             task_latency,
+            activation.id,
         )
 
         if next_state == TASK_ACTIVATION_STATUS_COMPLETE:
