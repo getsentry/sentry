@@ -333,7 +333,7 @@ function CustomViewsIssueListHeaderTabsContent({
       });
     });
 
-    if (viewId.startsWith('_') && currentView) {
+    if (viewId?.startsWith('_') && currentView) {
       const matchingView = newlyCreatedViews.find(
         view =>
           view.id &&

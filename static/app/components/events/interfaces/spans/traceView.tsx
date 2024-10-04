@@ -67,6 +67,7 @@ function TraceView(props: Props) {
               viewStart: 0,
               viewEnd: 1,
             })}
+            isEmbedded={!!props.isEmbedded}
           />
         );
       }}

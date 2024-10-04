@@ -15,24 +15,23 @@ import {
 } from 'sentry/views/dashboards/widgets/bigNumberWidget/settings';
 import type {TableData} from 'sentry/views/dashboards/widgets/common/types';
 
+import {DEFAULT_FIELD} from '../common/settings';
+
 interface Props {
-  data: TableData;
-  field: string;
-  previousPeriodData: TableData;
+  previousPeriodValue: number;
   renderer: (datum: TableData[number]) => React.ReactNode;
+  value: number;
+  field?: string;
   preferredPolarity?: Polarity;
 }
 
-export function DifferenceToPreviousPeriodData({
-  data,
-  previousPeriodData,
+export function DifferenceToPreviousPeriodValue({
+  value: currentValue,
+  previousPeriodValue: previousValue,
   preferredPolarity = '',
-  field,
+  field = DEFAULT_FIELD,
   renderer,
 }: Props) {
-  const currentValue = data[0][field];
-  const previousValue = previousPeriodData[0][field];
-
   if (!isNumber(currentValue) || !isNumber(previousValue)) {
     return <Deemphasize>{LOADING_PLACEHOLDER}</Deemphasize>;
   }
@@ -45,7 +44,7 @@ export function DifferenceToPreviousPeriodData({
 
   // Create a fake data row so we can pass it to field renderers. Omit the +/- sign since the direction marker will indicate it
   const differenceAsDatum = {
-    [field]: Math.abs(difference),
+    [field ?? 'unknown']: Math.abs(difference),
   };
 
   return (
