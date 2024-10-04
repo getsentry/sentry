@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import logging
 import time
+from concurrent.futures import Executor, ThreadPoolExecutor
 from datetime import datetime
-from multiprocessing.pool import Pool
 from uuid import uuid4
 
 import grpc
@@ -53,11 +53,13 @@ class Worker:
         self.do_imports()
         max_task_count = self.options.get("max_task_count", None)
         try:
-            while True:
-                self.process_tasks(self.namespace)
-                if max_task_count is not None and max_task_count <= self.__execution_count:
-                    self.exitcode = 1
-                    raise WorkerComplete("Max task exeuction count reached")
+            with ThreadPoolExecutor(max_workers=2) as executor:
+                while True:
+                    self.process_tasks(self.namespace, executor)
+
+                    if max_task_count is not None and max_task_count <= self.__execution_count:
+                        self.exitcode = 1
+                        raise WorkerComplete("Max task exeuction count reached")
 
         except KeyboardInterrupt:
             self.exitcode = 1
@@ -67,7 +69,7 @@ class Worker:
         except Exception:
             logger.exception("Worker process crashed")
 
-    def process_tasks(self, namespace: TaskNamespace) -> None:
+    def process_tasks(self, namespace: TaskNamespace, executor: Executor) -> None:
         from sentry.taskworker.service.client import task_client
 
         try:
@@ -95,19 +97,18 @@ class Worker:
         next_state = TASK_ACTIVATION_STATUS_FAILURE
         try:
             task_data_parameters = orjson.loads(activation.parameters)
-            with Pool(processes=1) as pool:
-                result = pool.apply_async(
-                    worker_process._process_activation,
-                    (
-                        self.options["namespace"],
-                        activation.taskname,
-                        task_data_parameters["args"],
-                        task_data_parameters["kwargs"],
-                    ),
-                )
-                result.get(
-                    timeout=(processing_deadline.ToDatetime() - datetime.now()).total_seconds()
-                )
+            processing_timeout = (processing_deadline.ToDatetime() - datetime.now()).total_seconds()
+            future = executor.submit(
+                worker_process._process_activation,
+                self.options["namespace"],
+                activation.taskname,
+                task_data_parameters["args"],
+                task_data_parameters["kwargs"],
+            )
+
+            # Will trigger a TimeoutError if the task execution runs long
+            future.result(timeout=processing_timeout)
+
             next_state = TASK_ACTIVATION_STATUS_COMPLETE
         except Exception as err:
             logger.info("taskworker.task_errored", extra={"error": str(err)})

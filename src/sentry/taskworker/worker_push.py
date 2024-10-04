@@ -3,8 +3,8 @@ from __future__ import annotations
 import logging
 import time
 from concurrent import futures
+from concurrent.futures.thread import ThreadPoolExecutor
 from datetime import datetime
-from multiprocessing.pool import Pool
 from uuid import uuid4
 
 import grpc
@@ -37,6 +37,8 @@ class WorkerServicer(BaseWorkerServiceServicer):
         self.options = options
         self.do_imports()
         self.__worker_id = uuid4().hex
+        # TODO we are not waiting for threads to complete on shutdown
+        self.executor = ThreadPoolExecutor(max_workers=2)
 
     @property
     def namespace(self) -> TaskNamespace:
@@ -65,21 +67,16 @@ class WorkerServicer(BaseWorkerServiceServicer):
         try:
             task_data_parameters = orjson.loads(activation.parameters)
             # TODO: Reuse this process pool
-            with Pool(processes=1) as pool:
-                result = pool.apply_async(
-                    worker_process._process_activation,
-                    (
-                        self.options["namespace"],
-                        activation.taskname,
-                        task_data_parameters["args"],
-                        task_data_parameters["kwargs"],
-                    ),
-                )
-                result.get(
-                    timeout=(
-                        request.processing_deadline.ToDatetime() - datetime.now()
-                    ).total_seconds()
-                )
+            future = self.executor.submit(
+                worker_process._process_activation,
+                self.options["namespace"],
+                activation.taskname,
+                task_data_parameters["args"],
+                task_data_parameters["kwargs"],
+            )
+            future.result(
+                timeout=(request.processing_deadline.ToDatetime() - datetime.now()).total_seconds()
+            )
             next_state = TASK_ACTIVATION_STATUS_COMPLETE
         except Exception as err:
             logger.info("taskworker.task_errored", extra={"error": str(err)})
