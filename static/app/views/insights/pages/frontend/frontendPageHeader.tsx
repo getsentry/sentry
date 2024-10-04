@@ -1,5 +1,3 @@
-import {Fragment} from 'react';
-
 import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
 import ButtonBar from 'sentry/components/buttonBar';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
@@ -25,11 +23,12 @@ import {MODULE_TITLES} from 'sentry/views/insights/settings';
 import {ModuleName} from 'sentry/views/insights/types';
 
 type Props = {
+  headerActions?: React.ReactNode;
   module?: ModuleName;
 };
 
 // TODO - add props to append to breadcrumbs and change title
-export function FrontendHeader({module}: Props) {
+export function FrontendHeader({module, headerActions}: Props) {
   const navigate = useNavigate();
   const {slug} = useOrganization();
   const moduleURLBuilder = useModuleURLBuilder();
@@ -72,8 +71,8 @@ export function FrontendHeader({module}: Props) {
   };
 
   return (
-    <Fragment>
-      <Tabs value={module ?? OVERVIEW_PAGE_TITLE} onChange={handleTabChange}>
+    <Tabs value={module ?? OVERVIEW_PAGE_TITLE} onChange={handleTabChange}>
+      <Layout.Header>
         <Layout.HeaderContent>
           <Breadcrumbs crumbs={crumbs} />
 
@@ -81,6 +80,7 @@ export function FrontendHeader({module}: Props) {
         </Layout.HeaderContent>
         <Layout.HeaderActions>
           <ButtonBar gap={1}>
+            {headerActions}
             <FeedbackWidgetButton />
           </ButtonBar>
         </Layout.HeaderActions>
@@ -96,7 +96,7 @@ export function FrontendHeader({module}: Props) {
             {MODULE_TITLES[ModuleName.RESOURCE]}
           </TabList.Item>
         </TabList>
-      </Tabs>
-    </Fragment>
+      </Layout.Header>
+    </Tabs>
   );
 }
