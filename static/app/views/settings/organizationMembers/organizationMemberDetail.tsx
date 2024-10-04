@@ -60,6 +60,29 @@ const DisabledMemberTooltip = HookOrDefault({
   defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
 });
 
+function MemberStatus({
+  member,
+  memberDeactivated,
+}: {
+  member: Member;
+  memberDeactivated: boolean;
+}) {
+  if (memberDeactivated) {
+    return (
+      <em>
+        <DisabledMemberTooltip>{t('Deactivated')}</DisabledMemberTooltip>
+      </em>
+    );
+  }
+  if (member!.expired) {
+    return <em>{t('Invitation Expired')}</em>;
+  }
+  if (member!.pending) {
+    return <em>{t('Invitation Pending')}</em>;
+  }
+  return t('Active');
+}
+
 const getMemberQueryKey = (orgSlug: string, memberId: string): ApiQueryKey => [
   `/organizations/${orgSlug}/members/${memberId}/`,
 ];
@@ -230,8 +253,6 @@ function OrganizationMemberDetail() {
     return '';
   };
 
-  const memberDeactivated = isMemberDisabledFromLimit(member);
-
   function hasFormChanged() {
     if (!member) {
       return false;
@@ -256,25 +277,8 @@ function OrganizationMemberDetail() {
     return <NotFound />;
   }
 
-  function renderMemberStatus() {
-    if (memberDeactivated) {
-      return (
-        <em>
-          <DisabledMemberTooltip>{t('Deactivated')}</DisabledMemberTooltip>
-        </em>
-      );
-    }
-    if (member!.expired) {
-      return <em>{t('Invitation Expired')}</em>;
-    }
-    if (member!.pending) {
-      return <em>{t('Invitation Pending')}</em>;
-    }
-    return t('Active');
-  }
-
-  const {access, orgRoleList} = organization;
-  const canEdit = access.includes('org:write') && !memberDeactivated;
+  const memberDeactivated = isMemberDisabledFromLimit(member);
+  const canEdit = organization.access.includes('org:write') && !memberDeactivated;
   const isPartnershipUser = member.flags['partnership:restricted'] === true;
 
   const {email, expired, pending} = member;
@@ -325,7 +329,9 @@ function OrganizationMemberDetail() {
               </div>
               <div>
                 <DetailLabel>{t('Status')}</DetailLabel>
-                <div data-test-id="member-status">{renderMemberStatus()}</div>
+                <div data-test-id="member-status">
+                  <MemberStatus member={member} memberDeactivated={memberDeactivated} />
+                </div>
               </div>
               <div>
                 <DetailLabel>{t('Added')}</DetailLabel>
@@ -373,7 +379,7 @@ function OrganizationMemberDetail() {
         enforceAllowed={false}
         enforceRetired={hasTeamRoles()}
         disabled={!canEdit || isPartnershipUser}
-        roleList={orgRoleList}
+        roleList={organization.orgRoleList}
         roleSelected={orgRole}
         setSelected={onChangeOrgRole}
         helpText={
