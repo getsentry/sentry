@@ -28,4 +28,3 @@ class ApiOwner(Enum):
     TELEMETRY_EXPERIENCE = "telemetry-experience"
     UNOWNED = "unowned"
     WEB_FRONTEND_SDKS = "team-web-sdk-frontend"
-    REMOTE_CONFIG = "replay-backend"
