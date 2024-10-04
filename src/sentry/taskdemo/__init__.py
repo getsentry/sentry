@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import time
+from datetime import timedelta
 from multiprocessing.context import TimeoutError
 
 logger = logging.getLogger(__name__)
@@ -35,6 +36,16 @@ def variable_time(wait=None, taskno=None):
     logger.info("running task %s with %s delay", taskno, wait)
     if wait is not None:
         time.sleep(wait)
+
+
+@demotasks.register(name="demos.run_forever", deadline=timedelta(seconds=8))
+def run_forever():
+    from random import randint
+
+    id = randint(1, 999999)
+    while True:
+        print(f"{id}: Running forever")  # noqa
+        time.sleep(1)
 
 
 @demotasks.register(name="demos.broken", retry=Retry(times=5, on=(KeyError,)))
