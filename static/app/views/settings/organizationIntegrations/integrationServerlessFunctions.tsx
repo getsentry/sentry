@@ -19,8 +19,7 @@ import {
   useQueryClient,
 } from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
-
-import IntegrationServerlessRow from './integrationServerlessRow';
+import {IntegrationServerlessRow} from 'sentry/views/settings/organizationIntegrations/integrationServerlessRow';
 
 export function IntegrationServerlessFunctions({
   integration,
@@ -67,7 +66,8 @@ export function IntegrationServerlessFunctions({
             <IntegrationServerlessRow
               key={serverlessFn.name}
               serverlessFunction={serverlessFn}
-              onUpdateFunction={(update: Partial<ServerlessFunction>) => {
+              integration={integration}
+              onUpdate={(update: Partial<ServerlessFunction>) => {
                 setApiQueryData<ServerlessFunction[]>(
                   queryClient,
                   queryKey,
@@ -82,8 +82,6 @@ export function IntegrationServerlessFunctions({
                   }
                 );
               }}
-              integration={integration}
-              organization={organization}
             />
           ))}
         </StyledPanelBody>
