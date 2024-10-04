@@ -18,7 +18,6 @@ import {IconArrow, IconEllipsis, IconMail, IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group, Tag, TagValue} from 'sentry/types/group';
-import {percent} from 'sentry/utils';
 import {parseCursor} from 'sentry/utils/cursor';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {isUrl} from 'sentry/utils/string/isUrl';
@@ -166,7 +165,6 @@ function TagDetailsRow({
   const [isHovered, setIsHovered] = useState(false);
   const key = tagValue.key ?? tag.key;
   const query = {query: tagValue.query || `${key}:"${tagValue.value}"`};
-  const percentage = tag.totalValues ? percent(tagValue.count, tag.totalValues) : NaN;
   const eventView = useIssueDetailsEventView({group, queryProps: query});
   const allEventsLocation = {
     pathname: `/organizations/${organization.slug}/issues/${group.id}/events/`,
@@ -182,8 +180,12 @@ function TagDetailsRow({
       />
       <OverflowTimeSince date={tagValue.lastSeen} />
       <div>{tagValue.count.toLocaleString()}</div>
-      {!isNaN(percentage) ? (
-        <TagBar style={{height: space(2)}} percentage={percentage} />
+      {tag.totalValues ? (
+        <TagBar
+          style={{height: space(2)}}
+          count={tagValue.count}
+          total={tag.totalValues}
+        />
       ) : (
         '--'
       )}

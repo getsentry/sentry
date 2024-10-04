@@ -56,13 +56,7 @@ export function TagDistribution({tag}: {tag: GroupTag}) {
                 )}
               </TagValue>
             </Tooltip>
-            <Tooltip
-              delay={300}
-              title={`${tagValue.count} / ${tag.totalValues} `}
-              skipWrapper
-            >
-              <TagBar percentage={percent(tagValue.count, tag.totalValues)} />
-            </Tooltip>
+            <TagBar count={tagValue.count} total={tag.totalValues} />
           </TagValueRow>
         ))}
       </TagValueContent>
@@ -71,22 +65,27 @@ export function TagDistribution({tag}: {tag: GroupTag}) {
 }
 
 export function TagBar({
-  percentage,
+  count,
+  total,
   ...props
 }: {
-  percentage: number;
+  count: number;
+  total: number;
   className?: string;
   style?: CSSProperties;
 }) {
+  const percentage = percent(count, total);
   const displayPercentage = percentage < 1 ? '<1%' : `${percentage.toFixed(0)}%`;
   return (
-    <TagBarContainer
-      displayPercentage={displayPercentage}
-      widthPercent={percentage}
-      {...props}
-    >
-      <TagBarValue>{displayPercentage}</TagBarValue>
-    </TagBarContainer>
+    <Tooltip delay={300} title={`${count} / ${total}`} skipWrapper>
+      <TagBarContainer
+        displayPercentage={displayPercentage}
+        widthPercent={percentage}
+        {...props}
+      >
+        <TagBarValue>{displayPercentage}</TagBarValue>
+      </TagBarContainer>
+    </Tooltip>
   );
 }
 
