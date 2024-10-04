@@ -12,6 +12,7 @@ from typing import Any, ClassVar
 from sentry.eventstore.models import GroupEvent
 from sentry.integrations.base import IntegrationInstallation
 from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.integrations.services.assignment_source import AssignmentSource
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.tasks.sync_status_inbound import (
     sync_status_inbound as sync_status_inbound_task,
@@ -62,7 +63,7 @@ class ResolveSyncAction(enum.Enum):
 
 
 class IssueBasicIntegration(IntegrationInstallation, ABC):
-    def should_sync(self, attribute):
+    def should_sync(self, attribute, sync_source: AssignmentSource | None = None):
         return False
 
     def get_group_title(self, group, event, **kwargs):
@@ -378,10 +379,17 @@ class IssueSyncIntegration(IssueBasicIntegration, ABC):
     outbound_assignee_key: ClassVar[str | None] = None
     inbound_assignee_key: ClassVar[str | None] = None
 
-    def should_sync(self, attribute: str) -> bool:
+    def should_sync(self, attribute: str, sync_source: AssignmentSource | None = None) -> bool:
         key = getattr(self, f"{attribute}_key", None)
         if key is None or self.org_integration is None:
             return False
+
+        # Check that the assignment source isn't this same integration in order to
+        # prevent sync-cycles from occurring. This should still allow other
+        # integrations to propagate changes outward.
+        if sync_source and sync_source.integration_id == self.org_integration.integration_id:
+            return False
+
         value: bool = self.org_integration.config.get(key, False)
         return value
 
@@ -400,7 +408,14 @@ class IssueSyncIntegration(IssueBasicIntegration, ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def sync_status_outbound(self, external_issue, is_resolved, project_id, **kwargs):
+    def sync_status_outbound(
+        self,
+        external_issue,
+        is_resolved,
+        project_id,
+        assignment_source: AssignmentSource | None = None,
+        **kwargs,
+    ):
         """
         Propagate a sentry issue's status to a linked issue's status.
         """

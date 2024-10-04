@@ -12,6 +12,7 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, region_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base import BaseManager
+from sentry.integrations.services.assignment_source import AssignmentSource
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.models.groupowner import GroupOwner
 from sentry.models.groupsubscription import GroupSubscription
@@ -134,6 +135,7 @@ class GroupAssigneeManager(BaseManager["GroupAssignee"]):
         create_only: bool = False,
         extra: dict[str, str] | None = None,
         force_autoassign: bool = False,
+        assignment_source: AssignmentSource | None = None,
     ):
         from sentry.integrations.utils import sync_group_assignee_outbound
         from sentry.models.activity import Activity
@@ -187,7 +189,9 @@ class GroupAssigneeManager(BaseManager["GroupAssignee"]):
             if assignee_type == "user" and features.has(
                 "organizations:integrations-issue-sync", group.organization, actor=acting_user
             ):
-                sync_group_assignee_outbound(group, assigned_to.id, assign=True)
+                sync_group_assignee_outbound(
+                    group, assigned_to.id, assign=True, assignment_source=assignment_source
+                )
 
             if not created:  # aka re-assignment
                 self.remove_old_assignees(group, assignee, assigned_to_id, assignee_type)
@@ -200,6 +204,7 @@ class GroupAssigneeManager(BaseManager["GroupAssignee"]):
         acting_user: User | RpcUser | None = None,
         assigned_to: Team | RpcUser | None = None,
         extra: dict[str, str] | None = None,
+        assignment_source: AssignmentSource | None = None,
     ) -> None:
         from sentry.integrations.utils import sync_group_assignee_outbound
         from sentry.models.activity import Activity
@@ -230,7 +235,9 @@ class GroupAssigneeManager(BaseManager["GroupAssignee"]):
             if features.has(
                 "organizations:integrations-issue-sync", group.organization, actor=acting_user
             ):
-                sync_group_assignee_outbound(group, None, assign=False)
+                sync_group_assignee_outbound(
+                    group, None, assign=False, assignment_source=assignment_source
+                )
 
             issue_unassigned.send_robust(
                 project=group.project, group=group, user=acting_user, sender=self.__class__
