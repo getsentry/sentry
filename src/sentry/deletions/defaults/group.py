@@ -175,13 +175,17 @@ class IssuePlatformEventsDeletionTask(EventsBaseDeletionTask):
         if the deletion has completed and if it needs to be called again."""
         events = self.get_unfetched_events()
         if events:
+            # Ideally, in some cases, we should also delete the associated event from the Nodestore.
+            # In the occurrence_consumer [1] we sometimes create a new event but it's hard in post-ingestion to distinguish between
+            # a created event and an existing one.
+            # https://github.com/getsentry/sentry/blob/a86b9b672709bc9c4558cffb2c825965b8cee0d1/src/sentry/issues/occurrence_consumer.py#L324-L339
             self.delete_events_from_nodestore(events)
             # This value will be used in the next call to chunk
             self.last_event = events[-1]
             # As long as it returns True the task will keep iterating
             return True
         else:
-            # Now that all events have been deleted from the eventstore, we can delete the events from snuba
+            # Now that all events have been deleted from the eventstore, we can delete the occurrences from Snuba
             self.delete_events_from_snuba()
             return False
 
