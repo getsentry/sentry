@@ -129,7 +129,7 @@ function ReplaySearchBar(props: Props) {
     {
       orgSlug: organization.slug,
       projectIds: projectIds.map(String),
-      dataset: Dataset.ISSUE_PLATFORM,
+      dataset: Dataset.REPLAYS,
       useCache: true,
       enabled: true,
       keepPreviousData: false,
@@ -139,7 +139,7 @@ function ReplaySearchBar(props: Props) {
     },
     {}
   );
-  const issuePlatformTags: TagCollection = useMemo(() => {
+  const customTags: TagCollection = useMemo(() => {
     return (tagQuery.data ?? []).reduce<TagCollection>((acc, tag) => {
       acc[tag.key] = {...tag, kind: FieldKind.TAG};
       return acc;
@@ -147,13 +147,10 @@ function ReplaySearchBar(props: Props) {
   }, [tagQuery]);
   // tagQuery.isLoading and tagQuery.isError are not used
 
-  const filterKeys = useMemo(
-    () => getReplayFilterKeys(issuePlatformTags),
-    [issuePlatformTags]
-  );
+  const filterKeys = useMemo(() => getReplayFilterKeys(customTags), [customTags]);
   const filterKeySections = useMemo(() => {
-    return getFilterKeySections(issuePlatformTags, organization);
-  }, [issuePlatformTags, organization]);
+    return getFilterKeySections(customTags, organization);
+  }, [customTags, organization]);
 
   const getTagValues = useCallback(
     (tag: Tag, searchQuery: string): Promise<string[]> => {
