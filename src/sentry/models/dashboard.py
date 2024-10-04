@@ -44,6 +44,9 @@ class Dashboard(Model):
     last_visited = models.DateTimeField(null=True, default=timezone.now)
     projects = models.ManyToManyField("sentry.Project", through=DashboardProject)
     filters: models.Field[dict[str, Any] | None, dict[str, Any] | None] = JSONField(null=True)
+    permissions = models.OneToOneField(
+        "sentry.DashboardPermissions", null=True, blank=True, on_delete=models.CASCADE
+    )
 
     MAX_WIDGETS = 30
 
@@ -186,9 +189,11 @@ def get_prebuilt_dashboards(organization, user) -> list[dict[str, Any]]:
                     "queries": [
                         {
                             "name": "Known Users",
-                            "conditions": "has:user.email"
-                            if has_discover_split
-                            else "has:user.email !event.type:transaction",
+                            "conditions": (
+                                "has:user.email"
+                                if has_discover_split
+                                else "has:user.email !event.type:transaction"
+                            ),
                             "fields": ["count_unique(user)"],
                             "aggregates": ["count_unique(user)"],
                             "columns": [],
@@ -196,9 +201,11 @@ def get_prebuilt_dashboards(organization, user) -> list[dict[str, Any]]:
                         },
                         {
                             "name": "Anonymous Users",
-                            "conditions": "!has:user.email"
-                            if has_discover_split
-                            else "!has:user.email !event.type:transaction",
+                            "conditions": (
+                                "!has:user.email"
+                                if has_discover_split
+                                else "!has:user.email !event.type:transaction"
+                            ),
                             "fields": ["count_unique(user)"],
                             "aggregates": ["count_unique(user)"],
                             "columns": [],
@@ -238,9 +245,11 @@ def get_prebuilt_dashboards(organization, user) -> list[dict[str, Any]]:
                     "queries": [
                         {
                             "name": "Error counts",
-                            "conditions": "has:geo.country_code"
-                            if has_discover_split
-                            else "has:geo.country_code !event.type:transaction",
+                            "conditions": (
+                                "has:geo.country_code"
+                                if has_discover_split
+                                else "has:geo.country_code !event.type:transaction"
+                            ),
                             "fields": ["geo.country_code", "geo.region", "count()"],
                             "aggregates": ["count()"],
                             "columns": ["geo.country_code", "geo.region"],
@@ -256,9 +265,11 @@ def get_prebuilt_dashboards(organization, user) -> list[dict[str, Any]]:
                     "queries": [
                         {
                             "name": "",
-                            "conditions": "has:browser.name"
-                            if has_discover_split
-                            else "has:browser.name !event.type:transaction",
+                            "conditions": (
+                                "has:browser.name"
+                                if has_discover_split
+                                else "has:browser.name !event.type:transaction"
+                            ),
                             "fields": ["browser.name", "count()"],
                             "aggregates": ["count()"],
                             "columns": ["browser.name"],
