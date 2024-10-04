@@ -14,7 +14,6 @@ from sentry.api.serializers import serialize
 from sentry.constants import SentryAppInstallationStatus
 from sentry.db.models.base import Model
 from sentry.eventstore.models import Event, GroupEvent
-from sentry.eventtypes.base import BaseEvent
 from sentry.hybridcloud.rpc.caching import region_caching_service
 from sentry.models.activity import Activity
 from sentry.models.group import Group
@@ -103,7 +102,7 @@ def _webhook_event_data(
 @instrumented_task(name="sentry.sentry_apps.tasks.sentry_apps.send_alert_event", **TASK_OPTIONS)
 @retry_decorator
 def send_alert_event(
-    event: Event,
+    event: Event | GroupEvent,
     rule: str,
     sentry_app_id: int,
     additional_payload_key: str | None = None,
@@ -419,7 +418,7 @@ def send_resource_change_webhook(
     metrics.incr("resource_change.processed", sample_rate=1.0, tags={"change_event": event})
 
 
-def notify_sentry_app(event: BaseEvent, futures):
+def notify_sentry_app(event: Event | GroupEvent, futures):
     for f in futures:
         if not f.kwargs.get("sentry_app"):
             continue
