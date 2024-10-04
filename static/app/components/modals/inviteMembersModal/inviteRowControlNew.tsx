@@ -93,32 +93,30 @@ function InviteRowControl({roleDisabledUnallowed, roleOptions}: Props) {
     <RowWrapper>
       <div>
         <Heading>Email addresses</Heading>
-        <EmailWrapper>
-          <SelectControl
-            aria-label={t('Email Addresses')}
-            data-test-id="select-emails"
-            placeholder={t('Enter one or more emails')}
-            inputValue={inputValue}
-            value={emails}
-            components={{
-              MultiValue: props => ValueComponent(props, inviteStatus),
-              DropdownIndicator: () => null,
-            }}
-            options={mapToOptions(emails)}
-            onBlur={(e: React.ChangeEvent<HTMLInputElement>) => {
-              handleInput(e.target.value);
-            }}
-            styles={getStyles(theme, inviteStatus)}
-            onInputChange={setInputValue}
-            onKeyDown={handleKeyDown}
-            onChange={onChangeEmails}
-            multiple
-            creatable
-            clearable
-            onClear={reset}
-            menuIsOpen={false}
-          />
-        </EmailWrapper>
+        <SelectControl
+          aria-label={t('Email Addresses')}
+          data-test-id="select-emails"
+          placeholder={t('Enter one or more emails')}
+          inputValue={inputValue}
+          value={emails}
+          components={{
+            MultiValue: props => ValueComponent(props, inviteStatus),
+            DropdownIndicator: () => null,
+          }}
+          options={mapToOptions(emails)}
+          onBlur={(e: React.ChangeEvent<HTMLInputElement>) => {
+            handleInput(e.target.value);
+          }}
+          styles={getStyles(theme, inviteStatus)}
+          onInputChange={setInputValue}
+          onKeyDown={handleKeyDown}
+          onChange={onChangeEmails}
+          multiple
+          creatable
+          clearable
+          onClear={reset}
+          menuIsOpen={false}
+        />
       </div>
       <RoleTeamWrapper>
         <div>
@@ -209,12 +207,6 @@ const RowWrapper = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(1.5)};
-`;
-
-const EmailWrapper = styled('div')`
-  &:focus-within {
-    display: grid;
-  }
 `;
 
 const RoleTeamWrapper = styled('div')`
