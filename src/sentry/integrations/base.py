@@ -132,7 +132,7 @@ SOURCE_CODE_MANAGEMENT = "source_code_management"
 ON_CALL_SCHEDULING = "on_call_scheduling"
 
 
-class IntegrationProvider(Enum):
+class IntegrationProviderSlug(Enum):
     SLACK = "slack"
     DISCORD = "discord"
     MSTeams = "msteams"
@@ -149,25 +149,25 @@ class IntegrationProvider(Enum):
 
 INTEGRATION_TYPE_TO_PROVIDER = {
     MESSAGING: [
-        IntegrationProvider.SLACK,
-        IntegrationProvider.DISCORD,
-        IntegrationProvider.MSTeams,
+        IntegrationProviderSlug.SLACK,
+        IntegrationProviderSlug.DISCORD,
+        IntegrationProviderSlug.MSTeams,
     ],
     PROJECT_MANAGEMENT: [
-        IntegrationProvider.JIRA,
-        IntegrationProvider.JIRA_SERVER,
-        IntegrationProvider.AZURE_DEVOPS,
+        IntegrationProviderSlug.JIRA,
+        IntegrationProviderSlug.JIRA_SERVER,
+        IntegrationProviderSlug.AZURE_DEVOPS,
     ],
     SOURCE_CODE_MANAGEMENT: [
-        IntegrationProvider.GITHUB,
-        IntegrationProvider.GITHUB_ENTERPRISE,
-        IntegrationProvider.GITLAB,
-        IntegrationProvider.BITBUCKET,
-        IntegrationProvider.AZURE_DEVOPS,
+        IntegrationProviderSlug.GITHUB,
+        IntegrationProviderSlug.GITHUB_ENTERPRISE,
+        IntegrationProviderSlug.GITLAB,
+        IntegrationProviderSlug.BITBUCKET,
+        IntegrationProviderSlug.AZURE_DEVOPS,
     ],
     ON_CALL_SCHEDULING: [
-        IntegrationProvider.PAGERDUTY,
-        IntegrationProvider.OPSGENIE,
+        IntegrationProviderSlug.PAGERDUTY,
+        IntegrationProviderSlug.OPSGENIE,
     ],
 }
 
