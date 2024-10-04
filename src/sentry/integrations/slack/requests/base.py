@@ -12,6 +12,7 @@ from slack_sdk.signature import SignatureVerifier
 from sentry import options
 from sentry.identity.services.identity import RpcIdentity, identity_service
 from sentry.identity.services.identity.model import RpcIdentityProvider
+from sentry.integrations.messaging.commands import CommandInput
 from sentry.integrations.services.integration import RpcIntegration, integration_service
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
@@ -275,6 +276,10 @@ class SlackDMRequest(SlackRequest):
         if not command:
             return "", []
         return command[0], command[1:]
+
+    def get_command_input(self) -> CommandInput:
+        cmd, args = self.get_command_and_args()
+        return CommandInput(cmd, tuple(args))
 
     def _validate_identity(self) -> None:
         self.user = self.get_identity_user()
