@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useState} from 'react';
+import {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
@@ -74,10 +74,10 @@ function MemberStatus({
       </em>
     );
   }
-  if (member!.expired) {
+  if (member.expired) {
     return <em>{t('Invitation Expired')}</em>;
   }
-  if (member!.pending) {
+  if (member.pending) {
     return <em>{t('Invitation Pending')}</em>;
   }
   return t('Active');
@@ -87,24 +87,14 @@ const getMemberQueryKey = (orgSlug: string, memberId: string): ApiQueryKey => [
   `/organizations/${orgSlug}/members/${memberId}/`,
 ];
 
-function OrganizationMemberDetail() {
+function OrganizationMemberDetailContent({member}: {member: Member}) {
   const api = useApi();
   const queryClient = useQueryClient();
   const organization = useOrganization();
-  const params = useParams<{memberId: string}>();
   const navigate = useNavigate();
 
   const [orgRole, setOrgRole] = useState<Member['orgRole']>('');
   const [teamRoles, setTeamRoles] = useState<Member['teamRoles']>([]);
-
-  const {
-    data: member,
-    isPending,
-    isError,
-    refetch,
-  } = useApiQuery<Member>(getMemberQueryKey(organization.slug, params.memberId), {
-    staleTime: 0,
-  });
 
   useEffect(() => {
     if (member) {
@@ -121,7 +111,7 @@ function OrganizationMemberDetail() {
     mutationFn: () => {
       return updateMember(api, {
         orgId: organization.slug,
-        memberId: params.memberId,
+        memberId: member.id,
         data: {orgRole, teamRoles} as any,
       });
     },
@@ -132,7 +122,7 @@ function OrganizationMemberDetail() {
       addSuccessMessage(t('Saved'));
       setApiQueryData<Member>(
         queryClient,
-        getMemberQueryKey(organization.slug, params.memberId),
+        getMemberQueryKey(organization.slug, member.id),
         data
       );
     },
@@ -148,7 +138,7 @@ function OrganizationMemberDetail() {
       mutationFn: () => {
         return resendMemberInvite(api, {
           orgId: organization.slug,
-          memberId: params.memberId,
+          memberId: member.id,
           regenerate: true,
         });
       },
@@ -157,7 +147,7 @@ function OrganizationMemberDetail() {
 
         setApiQueryData<Member>(
           queryClient,
-          getMemberQueryKey(organization.slug, params.memberId),
+          getMemberQueryKey(organization.slug, member.id),
           data
         );
       },
@@ -169,7 +159,7 @@ function OrganizationMemberDetail() {
 
   const {mutate: reset2fa, isPending: isResetting2fa} = useMutation<unknown>({
     mutationFn: () => {
-      const {user} = member!;
+      const {user} = member;
       const promises =
         user?.authenticators?.map(auth => removeAuthenticator(api, user.id, auth.id)) ??
         [];
@@ -220,18 +210,18 @@ function OrganizationMemberDetail() {
     setTeamRoles(newTeamRoles);
   };
 
-  const showResetButton = () => {
-    const {user} = member!;
+  const showResetButton = useMemo(() => {
+    const {user} = member;
 
     if (!user || !user.authenticators || organization.require2FA) {
       return false;
     }
     const hasAuth = user.authenticators.length >= 1;
     return hasAuth && user.canReset2fa;
-  };
+  }, [member, organization.require2FA]);
 
   const getTooltip = (): string => {
-    const {user} = member!;
+    const {user} = member;
 
     if (!user) {
       return '';
@@ -263,18 +253,6 @@ function OrganizationMemberDetail() {
     }
 
     return false;
-  }
-
-  if (isPending) {
-    return <LoadingIndicator />;
-  }
-
-  if (isError) {
-    return <LoadingError onRetry={refetch} />;
-  }
-
-  if (!member) {
-    return <NotFound />;
   }
 
   const memberDeactivated = isMemberDisabledFromLimit(member);
@@ -356,9 +334,9 @@ function OrganizationMemberDetail() {
                 'Resetting two-factor authentication will remove all two-factor authentication methods for this member.'
               )}
             >
-              <Tooltip disabled={showResetButton()} title={getTooltip()}>
+              <Tooltip disabled={showResetButton} title={getTooltip()}>
                 <Confirm
-                  disabled={!showResetButton()}
+                  disabled={!showResetButton}
                   message={tct(
                     'Are you sure you want to disable all two-factor authentication methods for [name]?',
                     {name: member.name ? member.name : 'this member'}
@@ -419,6 +397,34 @@ function OrganizationMemberDetail() {
       </Footer>
     </Fragment>
   );
+}
+
+function OrganizationMemberDetail() {
+  const params = useParams<{memberId: string}>();
+  const organization = useOrganization();
+
+  const {
+    data: member,
+    isPending,
+    isError,
+    refetch,
+  } = useApiQuery<Member>(getMemberQueryKey(organization.slug, params.memberId), {
+    staleTime: 0,
+  });
+
+  if (isPending) {
+    return <LoadingIndicator />;
+  }
+
+  if (isError) {
+    return <LoadingError onRetry={refetch} />;
+  }
+
+  if (!member) {
+    return <NotFound />;
+  }
+
+  return <OrganizationMemberDetailContent member={member} />;
 }
 
 export default OrganizationMemberDetail;
