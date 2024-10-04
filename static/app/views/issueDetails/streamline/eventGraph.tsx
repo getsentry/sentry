@@ -1,4 +1,4 @@
-import {startTransition, useMemo, useState} from 'react';
+import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from 'sentry/components/button';
@@ -75,7 +75,6 @@ export function EventGraph({group, groupStats, searchQuery}: EventGraphProps) {
   const chartZoomProps = useChartZoom({
     saveOnZoom: true,
     router,
-    usePageDate: true,
     start: eventView.start,
     end: eventView.end,
   });
@@ -141,16 +140,8 @@ export function EventGraph({group, groupStats, searchQuery}: EventGraphProps) {
       </SummaryContainer>
       <ChartContainer
         role="figure"
-        onMouseEnter={() => {
-          startTransition(() => {
-            setIsGraphHovered(true);
-          });
-        }}
-        onMouseLeave={() => {
-          startTransition(() => {
-            setIsGraphHovered(false);
-          });
-        }}
+        onMouseEnter={() => setIsGraphHovered(true)}
+        onMouseLeave={() => setIsGraphHovered(false)}
       >
         <BarChart
           height={100}

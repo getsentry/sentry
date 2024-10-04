@@ -31,12 +31,10 @@ const getQueryTime = (date: DateString | undefined) =>
 
 interface ZoomRenderProps {
   dataZoom: DataZoomComponentOption[];
-  end: string | null;
   isGroupedByDate: boolean;
   onDataZoom: EChartDataZoomHandler;
   onFinished: EChartFinishedHandler;
   onRestore: EChartRestoreHandler;
-  start: string | null;
   toolBox: ToolboxComponentOption;
 }
 
@@ -66,9 +64,6 @@ interface Props {
  * the props that would be passed to the `BaseChart` as zoomRenderProps.
  */
 export function useChartZoom({
-  period,
-  start,
-  end,
   router,
   onZoom,
   onDataZoom,
@@ -81,11 +76,7 @@ export function useChartZoom({
   chartZoomOptions,
   disabled,
 }: Omit<Props, 'children'>): ZoomRenderProps {
-  const currentPeriod = useRef<DateTimeUpdate | undefined>({
-    period: period!,
-    start: getQueryTime(start),
-    end: getQueryTime(end),
-  });
+  const currentPeriod = useRef<DateTimeUpdate | undefined>(undefined);
   const history = useRef<DateTimeUpdate[]>([]);
   /**
    * Used to store the date update function so that we can call it after the chart
@@ -303,8 +294,6 @@ export function useChartZoom({
   const renderProps: ZoomRenderProps = {
     // Zooming only works when grouped by date
     isGroupedByDate: true,
-    start: getQueryTime(start),
-    end: getQueryTime(end),
     dataZoom: dataZoomProp,
     toolBox,
     onDataZoom: handleDataZoom,
