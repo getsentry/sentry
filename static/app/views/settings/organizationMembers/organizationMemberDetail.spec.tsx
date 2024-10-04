@@ -151,7 +151,7 @@ describe('OrganizationMemberDetail', function () {
       });
 
       // Should have 5 roles
-      const radios = screen.getAllByRole('radio');
+      const radios = await screen.findAllByRole('radio');
       expect(radios).toHaveLength(5);
 
       // Click last radio
