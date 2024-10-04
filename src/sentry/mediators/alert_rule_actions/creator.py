@@ -15,7 +15,7 @@ from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallat
 class AlertRuleActionCreator(Mediator):
     using = router.db_for_write(SentryAppComponent)
     install = Param(SentryAppInstallation)
-    fields = Param(object, default=[])  # array of dicts
+    fields = Param(list[dict[str, str]], default=[])  # array of dicts
 
     def call(self) -> AlertRuleActionResult:
         uri = self._fetch_sentry_app_uri()
