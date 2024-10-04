@@ -166,20 +166,20 @@ def run_primary_grouping(
         ),
         metrics.timer("event_manager.calculate_event_grouping", tags=metric_tags),
     ):
-        hashes = _calculate_primary_hashes(project, job, grouping_config)
+        hashes = _calculate_primary_hashes_and_variants(project, job, grouping_config)[0]
 
     return (grouping_config, hashes)
 
 
-def _calculate_primary_hashes(
+def _calculate_primary_hashes_and_variants(
     project: Project, job: Job, grouping_config: GroupingConfig
-) -> list[str]:
+) -> tuple[list[str], dict[str, BaseVariant]]:
     """
     Get the primary hash for the event.
 
     This is pulled out into a separate function mostly in order to make testing easier.
     """
-    return _calculate_event_grouping(project, job["event"], grouping_config)[0]
+    return _calculate_event_grouping(project, job["event"], grouping_config)
 
 
 def find_grouphash_with_group(
