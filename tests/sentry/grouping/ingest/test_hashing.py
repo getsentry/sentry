@@ -7,7 +7,7 @@ from sentry.event_manager import EventManager
 from sentry.grouping.ingest.hashing import (
     _calculate_background_grouping,
     _calculate_event_grouping,
-    _calculate_secondary_hashes,
+    _calculate_secondary_hashes_and_variants,
 )
 from sentry.models.group import Group
 from sentry.projectoptions.defaults import LEGACY_GROUPING_CONFIG
@@ -133,8 +133,8 @@ class SecondaryGroupingTest(TestCase):
 
     @patch("sentry_sdk.capture_exception")
     @patch(
-        "sentry.grouping.ingest.hashing._calculate_secondary_hashes",
-        wraps=_calculate_secondary_hashes,
+        "sentry.grouping.ingest.hashing._calculate_secondary_hashes_and_variants",
+        wraps=_calculate_secondary_hashes_and_variants,
     )
     def test_handles_errors_with_secondary_grouping(
         self,
@@ -145,8 +145,8 @@ class SecondaryGroupingTest(TestCase):
         secondary_grouping_config = "legacy:2019-03-12"
 
         def mock_calculate_event_grouping(project, event, grouping_config):
-            # We only want `_calculate_event_grouping` to error inside of `_calculate_secondary_hash`,
-            # not anywhere else it's called
+            # We only want `_calculate_event_grouping` to error inside of
+            # `_calculate_secondary_hashes_and_variants`, not anywhere else it's called
             if grouping_config["id"] == secondary_grouping_config:
                 raise secondary_grouping_error
             else:

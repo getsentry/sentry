@@ -14,7 +14,6 @@ from sentry.grouping.api import (
     NULL_GROUPING_CONFIG,
     BackgroundGroupingConfigLoader,
     GroupingConfig,
-    GroupingConfigNotFound,
     SecondaryGroupingConfigLoader,
     apply_server_fingerprinting,
     get_fingerprinting_config_for_project,
@@ -22,6 +21,7 @@ from sentry.grouping.api import (
     load_grouping_config,
 )
 from sentry.grouping.ingest.config import is_in_transition
+from sentry.grouping.variants import BaseVariant
 from sentry.models.grouphash import GroupHash
 from sentry.models.grouphashmetadata import GroupHashMetadata
 from sentry.models.project import Project
@@ -38,7 +38,7 @@ logger = logging.getLogger("sentry.events.grouping")
 
 def _calculate_event_grouping(
     project: Project, event: Event, grouping_config: GroupingConfig
-) -> list[str]:
+) -> tuple[list[str], dict[str, BaseVariant]]:
     """
     Calculate hashes for the event using the given grouping config, and add them into the event
     data.
@@ -60,7 +60,7 @@ def _calculate_event_grouping(
             # The active grouping config was put into the event in the
             # normalize step before.  We now also make sure that the
             # fingerprint was set to `'{{ default }}' just in case someone
-            # removed it from the payload.  The call to get_hashes will then
+            # removed it from the payload.  The call to `get_hashes_and_variants` will then
             # look at `grouping_config` to pick the right parameters.
             event.data["fingerprint"] = event.data.data.get("fingerprint") or ["{{ default }}"]
             apply_server_fingerprinting(
@@ -70,18 +70,9 @@ def _calculate_event_grouping(
             )
 
         with metrics.timer("event_manager.event.get_hashes", tags=metric_tags):
-            # TODO: It's not clear we can even hit `GroupingConfigNotFound` here - this is leftover
-            # from a time before we started separately retrieving the grouping config and passing it
-            # directly to `get_hashes`. Now that we do that, a bogus config will get replaced by the
-            # default long before we get here. Should we consolidate bogus config handling into the
-            # code actually getting the config?
-            try:
-                hashes = event.get_hashes(loaded_grouping_config)
-            except GroupingConfigNotFound:
-                event.data["grouping_config"] = get_grouping_config_dict_for_project(project)
-                hashes = event.get_hashes()
+            hashes, variants = event.get_hashes_and_variants(loaded_grouping_config)
 
-        return hashes
+        return (hashes, variants)
 
 
 def maybe_run_background_grouping(project: Project, job: Job) -> None:
@@ -110,12 +101,12 @@ def _calculate_background_grouping(
         "sdk": normalized_sdk_tag_from_event(event.data),
     }
     with metrics.timer("event_manager.background_grouping", tags=metric_tags):
-        return _calculate_event_grouping(project, event, config)
+        return _calculate_event_grouping(project, event, config)[0]
 
 
 def maybe_run_secondary_grouping(
     project: Project, job: Job, metric_tags: MutableTags
-) -> tuple[GroupingConfig, list[str]]:
+) -> tuple[GroupingConfig, list[str], dict[str, BaseVariant]]:
     """
     If the projct is in a grouping config transition phase, calculate a set of secondary hashes for
     the job's event.
@@ -127,14 +118,19 @@ def maybe_run_secondary_grouping(
     if is_in_transition(project):
         with metrics.timer("event_manager.secondary_grouping", tags=metric_tags):
             secondary_grouping_config = SecondaryGroupingConfigLoader().get_config_dict(project)
-            secondary_hashes = _calculate_secondary_hashes(project, job, secondary_grouping_config)
+            secondary_hashes = _calculate_secondary_hashes_and_variants(
+                project, job, secondary_grouping_config
+            )[0]
 
-    return (secondary_grouping_config, secondary_hashes)
+    # Return an empty variants dictionary because we need the signature of this function to match
+    # that of `run_primary_grouping` (so we have to return something), but we don't ever actually
+    # need the variant information
+    return (secondary_grouping_config, secondary_hashes, {})
 
 
-def _calculate_secondary_hashes(
+def _calculate_secondary_hashes_and_variants(
     project: Project, job: Job, secondary_grouping_config: GroupingConfig
-) -> list[str]:
+) -> tuple[list[str], dict[str, BaseVariant]]:
     """Calculate secondary hash for event using a fallback grouping config for a period of time.
     This happens when we upgrade all projects that have not opted-out to automatic upgrades plus
     when the customer changes the grouping config.
@@ -151,16 +147,19 @@ def _calculate_secondary_hashes(
             event_copy = copy.deepcopy(job["event"])
             secondary_hashes = _calculate_event_grouping(
                 project, event_copy, secondary_grouping_config
-            )
+            )[0]
     except Exception as err:
         sentry_sdk.capture_exception(err)
 
-    return secondary_hashes
+    # Return an empty variants dictionary because we need the signature of this function to match
+    # that of `_calculate_primary_hashes_and_variants` (so we have to return something), but we
+    # don't ever actually need the variant information
+    return (secondary_hashes, {})
 
 
 def run_primary_grouping(
     project: Project, job: Job, metric_tags: MutableTags
-) -> tuple[GroupingConfig, list[str]]:
+) -> tuple[GroupingConfig, list[str], dict[str, BaseVariant]]:
     """
     Get the primary grouping config and primary hashes for the event.
     """
@@ -175,14 +174,14 @@ def run_primary_grouping(
         ),
         metrics.timer("event_manager.calculate_event_grouping", tags=metric_tags),
     ):
-        hashes = _calculate_primary_hashes(project, job, grouping_config)
+        hashes, variants = _calculate_primary_hashes_and_variants(project, job, grouping_config)
 
-    return (grouping_config, hashes)
+    return (grouping_config, hashes, variants)
 
 
-def _calculate_primary_hashes(
+def _calculate_primary_hashes_and_variants(
     project: Project, job: Job, grouping_config: GroupingConfig
-) -> list[str]:
+) -> tuple[list[str], dict[str, BaseVariant]]:
     """
     Get the primary hash for the event.
 
