@@ -1,6 +1,6 @@
 import abc
 import dataclasses
-from typing import TypeVar, Generic
+from typing import Generic, TypeVar
 
 from sentry.workflow_engine.models import Detector
 from sentry.workflow_engine.models.data_source import DataPacket
@@ -20,7 +20,6 @@ class DetectorHandler(abc.ABC, Generic[T]):
 def process_detectors(data_packet: DataPacket, detectors: list[Detector]):
     for detector in detectors:
         detector.evaluate(data_packet)
-
 
 
 @dataclasses.dataclass(frozen=True)
