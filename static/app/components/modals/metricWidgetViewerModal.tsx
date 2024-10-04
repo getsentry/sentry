@@ -17,6 +17,7 @@ import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {getMetricsUrl} from 'sentry/utils/metrics';
 import {toDisplayType} from 'sentry/utils/metrics/dashboard';
+import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import {parseMRI} from 'sentry/utils/metrics/mri';
 import {MetricExpressionType} from 'sentry/utils/metrics/types';
 import {useVirtualMetricsContext} from 'sentry/utils/metrics/virtualMetricsContext';
@@ -298,13 +299,14 @@ function MetricWidgetViewerModal({
   const handleClose = useCallback(() => {
     if (
       userHasModified &&
+      hasCustomMetrics(organization) &&
       // eslint-disable-next-line no-alert
       !window.confirm(t('You have unsaved changes, are you sure you want to close?'))
     ) {
       return;
     }
     closeModal();
-  }, [userHasModified, closeModal]);
+  }, [userHasModified, closeModal, organization]);
 
   const {mri, aggregation, query, condition} = metricQueries[0];
 
@@ -325,7 +327,7 @@ function MetricWidgetViewerModal({
           <CloseButton onClick={handleClose} />
         </Header>
         <Body>
-          <MetricsBetaEndAlert />
+          <MetricsBetaEndAlert organization={organization} />
           <Queries
             displayType={displayType}
             metricQueries={metricQueries}
@@ -363,9 +365,11 @@ function MetricWidgetViewerModal({
             >
               {t('Open in Metrics')}
             </LinkButton>
-            <Button priority="primary" onClick={handleSubmit}>
-              {t('Save changes')}
-            </Button>
+            {hasCustomMetrics(organization) && (
+              <Button priority="primary" onClick={handleSubmit}>
+                {t('Save changes')}
+              </Button>
+            )}
           </ButtonBar>
         </Footer>
       </OrganizationContext.Provider>

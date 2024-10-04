@@ -173,7 +173,7 @@ export default function MetricDetailsBody({
       <StyledLayoutBody>
         {isCustomMetricAlert(rule.aggregate) &&
           !isInsightsMetricAlert(rule.aggregate) && (
-            <MetricsBetaEndAlert style={{marginBottom: 0}} />
+            <MetricsBetaEndAlert style={{marginBottom: 0}} organization={organization} />
           )}
       </StyledLayoutBody>
       {selectedIncident?.alertRule.status === AlertRuleStatus.SNAPSHOT && (
