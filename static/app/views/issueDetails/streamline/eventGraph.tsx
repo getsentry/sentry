@@ -75,6 +75,7 @@ export function EventGraph({group, groupStats, searchQuery}: EventGraphProps) {
   const chartZoomProps = useChartZoom({
     saveOnZoom: true,
     router,
+    usePageDate: true,
     start: eventView.start,
     end: eventView.end,
   });

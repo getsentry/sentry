@@ -31,12 +31,12 @@ const getQueryTime = (date: DateString | undefined) =>
 
 interface ZoomRenderProps {
   dataZoom: DataZoomComponentOption[];
-  end: Date | undefined;
+  end: string | null;
   isGroupedByDate: boolean;
   onDataZoom: EChartDataZoomHandler;
   onFinished: EChartFinishedHandler;
   onRestore: EChartRestoreHandler;
-  start: Date | undefined;
+  start: string | null;
   toolBox: ToolboxComponentOption;
 }
 
@@ -54,10 +54,6 @@ interface Props {
   onZoom?: (period: DateTimeUpdate) => void;
   period?: string | null;
   router?: InjectedRouter;
-  /**
-   * Persist changes to the page filter selection into local storage
-   * Must provide router to apply changes
-   */
   saveOnZoom?: boolean;
   showSlider?: boolean;
   start?: DateString;
@@ -251,7 +247,7 @@ export function useChartZoom({
 
       // This attempts to activate the area zoom toolbox feature
       // @ts-expect-error _componentsViews is private
-      const zoom = chart._componentsViews?.find(c => c._features?.dataZoom);
+      const zoom = chart._componentsViews?.find((c: any) => c._features?.dataZoom);
       if (zoom && !zoom._features.dataZoom._isZoomActive) {
         // Calling dispatchAction will re-trigger handleChartFinished
         chart.dispatchAction({
@@ -267,9 +263,6 @@ export function useChartZoom({
     },
     [onFinished]
   );
-
-  const startProp = start ? new Date(start) : undefined;
-  const endProp = end ? new Date(end) : undefined;
 
   const dataZoomProp = useMemo<DataZoomComponentOption[]>(() => {
     return showSlider
@@ -310,8 +303,8 @@ export function useChartZoom({
   const renderProps: ZoomRenderProps = {
     // Zooming only works when grouped by date
     isGroupedByDate: true,
-    start: startProp,
-    end: endProp,
+    start: getQueryTime(start),
+    end: getQueryTime(end),
     dataZoom: dataZoomProp,
     toolBox,
     onDataZoom: handleDataZoom,
