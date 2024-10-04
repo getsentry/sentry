@@ -23,11 +23,6 @@ Job = MutableMapping[str, Any]
 CONFIGS_TO_DEPRECATE = ()
 
 
-# Used by getsentry script. Remove it once the script has been updated to call update_grouping_config_if_needed
-def update_grouping_config_if_permitted(project: Project) -> None:
-    update_grouping_config_if_needed(project, "script")
-
-
 def update_grouping_config_if_needed(project: Project, source: str) -> None:
     current_config = project.get_option("sentry:grouping_config")
     new_config = DEFAULT_GROUPING_CONFIG
