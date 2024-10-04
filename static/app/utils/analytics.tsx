@@ -9,6 +9,14 @@ import {
   featureFlagEventMap,
   type FeatureFlagEventParameters,
 } from 'sentry/utils/analytics/featureFlagAnalyticsEvents';
+import {
+  quickStartEventMap,
+  type QuickStartEventParameters,
+} from 'sentry/utils/analytics/quickStartAnalyticsEvents';
+import {
+  statsEventMap,
+  type StatsEventParameters,
+} from 'sentry/utils/analytics/statsAnalyticsEvents';
 
 import type {AiSuggestedSolutionEventParameters} from './analytics/aiSuggestedSolutionAnalyticsEvents';
 import {aiSuggestedSolutionEventMap} from './analytics/aiSuggestedSolutionAnalyticsEvents';
@@ -87,6 +95,8 @@ interface EventParameters
     ProjectCreationEventParameters,
     SignupAnalyticsParameters,
     TracingEventParameters,
+    StatsEventParameters,
+    QuickStartEventParameters,
     Record<string, Record<string, any>> {}
 
 const allEventMap: Record<string, string | null> = {
@@ -117,6 +127,8 @@ const allEventMap: Record<string, string | null> = {
   ...projectCreationEventMap,
   ...starfishEventMap,
   ...signupEventMap,
+  ...statsEventMap,
+  ...quickStartEventMap,
 };
 
 /**

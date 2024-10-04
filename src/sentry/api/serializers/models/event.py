@@ -4,7 +4,7 @@ import re
 from collections import defaultdict
 from collections.abc import Sequence
 from datetime import datetime, timezone
-from typing import Any, NotRequired, TypedDict
+from typing import Any, TypedDict
 
 import sentry_sdk
 import sqlparse
@@ -426,7 +426,7 @@ class SqlFormatEventSerializer(EventSerializer):
     def serialize(self, obj, attrs, user, include_full_release_data=False):
         result = super().serialize(obj, attrs, user)
 
-        with sentry_sdk.start_span(op="serialize", description="Format SQL"):
+        with sentry_sdk.start_span(op="serialize", name="Format SQL"):
             result = self._format_breadcrumb_messages(result, obj, user)
             result = self._format_db_spans(result, obj, user)
             result["release"] = self._get_release_info(user, obj, include_full_release_data)
@@ -483,10 +483,13 @@ class SharedEventSerializer(EventSerializer):
         return result
 
 
-class SimpleEventTag(TypedDict):
+class SimpleEventTagOptional(TypedDict, total=False):
+    query: str
+
+
+class SimpleEventTag(SimpleEventTagOptional):
     key: str
     value: str
-    query: NotRequired[str]
 
 
 SimpleEventSerializerResponse = TypedDict(

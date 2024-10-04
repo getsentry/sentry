@@ -150,38 +150,9 @@ describe('groupEvents', () => {
     expect(screen.getByText('sentry@sentry.sentry')).toBeInTheDocument();
   });
 
-  it('handles search', async () => {
+  it('pushes new query parameter when searching', async () => {
     render(<GroupEvents {...baseProps} location={{...location, query: {}}} />, {
       router,
-      organization,
-    });
-
-    const list = [
-      {searchTerm: '', expectedQuery: ''},
-      {searchTerm: 'test', expectedQuery: 'test'},
-      {searchTerm: 'environment:production test', expectedQuery: 'test'},
-    ];
-
-    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
-    const input = screen.getByPlaceholderText('Search for events, users, tags, and more');
-
-    for (const item of list) {
-      await userEvent.clear(input);
-      await userEvent.paste(`${item.searchTerm}`);
-      await userEvent.keyboard('[Enter>]');
-
-      expect(browserHistory.push).toHaveBeenCalledWith(
-        expect.objectContaining({
-          query: {query: item.expectedQuery},
-        })
-      );
-    }
-  });
-
-  it('pushes new query parameter when searching (issue-stream-search-query-builder)', async () => {
-    render(<GroupEvents {...baseProps} location={{...location, query: {}}} />, {
-      router,
-      organization: {...organization, features: ['issue-stream-search-query-builder']},
     });
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
@@ -200,7 +171,7 @@ describe('groupEvents', () => {
     });
   });
 
-  it('displays event filters and tags (issue-stream-search-query-builder)', async () => {
+  it('displays event filters and tags', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/1/tags/',
       body: [{key: 'custom_tag', name: 'custom_tag', totalValues: 1}],
@@ -208,7 +179,6 @@ describe('groupEvents', () => {
 
     render(<GroupEvents {...baseProps} location={{...location, query: {}}} />, {
       router,
-      organization: {...organization, features: ['issue-stream-search-query-builder']},
     });
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));

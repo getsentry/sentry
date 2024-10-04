@@ -82,9 +82,7 @@ class OrganizationSessionsEndpoint(OrganizationEndpoint):
 
         def data_fn(offset: int, limit: int) -> SessionsQueryResult:
             with self.handle_query_errors():
-                with sentry_sdk.start_span(
-                    op="sessions.endpoint", description="build_sessions_query"
-                ):
+                with sentry_sdk.start_span(op="sessions.endpoint", name="build_sessions_query"):
                     request_limit = None
                     if request.GET.get("per_page") is not None:
                         request_limit = limit

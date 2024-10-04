@@ -1,12 +1,48 @@
-// biome-ignore lint/nursery/noRestrictedImports: Will be removed with react router 6
-import {browserHistory as react3BrowserHistory} from 'react-router';
 import type {Router} from '@remix-run/router/dist/router';
+import * as Sentry from '@sentry/react';
 import type {History} from 'history';
 
 import {
   location6ToLocation3,
   locationDescriptorToTo,
 } from './reactRouter6Compat/location';
+
+const historyMethods: Array<keyof History> = [
+  'listenBefore',
+  'listen',
+  'transitionTo',
+  'push',
+  'replace',
+  'go',
+  'goBack',
+  'goForward',
+  'createKey',
+  'createPath',
+  'createHref',
+  'createLocation',
+  'getCurrentLocation',
+];
+
+/**
+ * Configures a proxy object for the default value of browserHistory. This
+ * should NOT be called before the DANGEROUS_SET_REACT_ROUTER_6_HISTORY
+ * fucntion is called. But let's be sure it isn't by adding some logging.
+ */
+const proxyLegacyBrowserHistory: ProxyHandler<History> = {
+  get(_target, prop, _receiver) {
+    if (historyMethods.includes(prop.toString() as keyof History)) {
+      // eslint-disable-next-line no-console
+      console.warn('Legacy browserHistory called before patched!');
+      Sentry.captureException(new Error('legacy browserHistory called!'), {
+        level: 'info',
+        extra: {prop},
+      });
+
+      return () => {};
+    }
+    return undefined;
+  },
+};
 
 /**
  * @deprecated Prefer using useNavigate
@@ -22,7 +58,7 @@ import {
  * browserHistory.push({...location, query: {someKey: 1}})
  * navigate({...location, query: {someKey: 1}})
  */
-export let browserHistory = react3BrowserHistory;
+export let browserHistory = new Proxy({} as History, proxyLegacyBrowserHistory);
 
 /**
  * This shim sets the global `browserHistory` to a shim object that matches
@@ -83,4 +119,8 @@ export function DANGEROUS_SET_REACT_ROUTER_6_HISTORY(router: Router) {
   };
 
   browserHistory = compat6BrowserHistory;
+}
+
+export function DANGEROUS_SET_TEST_HISTORY(router: any) {
+  browserHistory = router;
 }

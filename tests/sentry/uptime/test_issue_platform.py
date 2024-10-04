@@ -97,7 +97,7 @@ class BuildEventDataForOccurrenceTest(UptimeTestCase):
         project_subscription = self.create_project_uptime_subscription()
         event_data = build_event_data_for_occurrence(result, project_subscription, occurrence)
         assert event_data == {
-            "environment": "prod",
+            "environment": "development",
             "event_id": event_id.hex,
             "fingerprint": fingerprint,
             "platform": "other",

@@ -20,7 +20,7 @@ import sentry
 from sentry.conf.api_pagination_allowlist_do_not_modify import (
     SENTRY_API_PAGINATION_ALLOWLIST_DO_NOT_MODIFY,
 )
-from sentry.conf.types.celery import SplitQueueTaskRoute
+from sentry.conf.types.celery import SplitQueueSize, SplitQueueTaskRoute
 from sentry.conf.types.kafka_definition import ConsumerDefinition
 from sentry.conf.types.logging_config import LoggingConfig
 from sentry.conf.types.role_dict import RoleDict
@@ -753,6 +753,7 @@ CELERY_IMPORTS = (
     "sentry.integrations.github.tasks.pr_comment",
     "sentry.integrations.jira.tasks",
     "sentry.integrations.opsgenie.tasks",
+    "sentry.sentry_apps.tasks",
     "sentry.snuba.tasks",
     "sentry.replays.tasks",
     "sentry.monitors.tasks.clock_pulse",
@@ -833,6 +834,10 @@ SENTRY_POST_PROCESS_QUEUE_SPLIT_ROUTER: dict[str, Callable[[], str]] = {}
 # rollout option is not active.
 CELERY_SPLIT_QUEUE_TASK_ROUTES: Mapping[str, SplitQueueTaskRoute] = {}
 
+# Mapping from queue name to split queues to be used by SplitQueueRouter.
+# This is meant to be used in those case where we have to specify the
+# queue name when issuing a task. Example: post process.
+CELERY_SPLIT_QUEUE_ROUTES: Mapping[str, SplitQueueSize] = {}
 
 default_exchange = Exchange("default", type="direct")
 control_exchange = default_exchange
