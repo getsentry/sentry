@@ -129,12 +129,21 @@ function CustomViewsIssueListHeaderTabsContent({
 
   const {query, sort, viewId, project, environment} = queryParams;
 
-  const queryParamsWithPageFilters = {
-    ...queryParams,
-    project: project ?? pageFilters.selection.projects,
-    environment: environment ?? pageFilters.selection.environments,
-    ...normalizeDateTimeParams(pageFilters.selection.datetime),
-  };
+  const queryParamsWithPageFilters = useMemo(() => {
+    return {
+      ...queryParams,
+      project: project ?? pageFilters.selection.projects,
+      environment: environment ?? pageFilters.selection.environments,
+      ...normalizeDateTimeParams(pageFilters.selection.datetime),
+    };
+  }, [
+    environment,
+    pageFilters.selection.datetime,
+    pageFilters.selection.environments,
+    pageFilters.selection.projects,
+    project,
+    queryParams,
+  ]);
 
   const [draggableTabs, setDraggableTabs] = useState<Tab[]>(
     views.map(({id, name, query: viewQuery, querySort: viewQuerySort}, index): Tab => {
@@ -240,36 +249,56 @@ function CustomViewsIssueListHeaderTabsContent({
           ? sort
           : IssueSortOptions.DATE;
 
-        const unsavedChanges: [string, IssueSortOptions] | undefined =
+        const newUnsavedChanges: [string, IssueSortOptions] | undefined =
           query === selectedTab.query && sort === selectedTab.querySort
             ? undefined
             : [query ?? selectedTab.query, issueSortOption];
+        if (
+          (newUnsavedChanges && !selectedTab.unsavedChanges) ||
+          selectedTab.unsavedChanges?.[0] !== newUnsavedChanges?.[0] ||
+          selectedTab.unsavedChanges?.[1] !== newUnsavedChanges?.[1]
+        ) {
+          // If there were no unsaved changes before, or the existing unsaved changes
+          // don't match the new query and/or sort, update the unsaved changes
+          setDraggableTabs(
+            draggableTabs.map(tab =>
+              tab.key === selectedTab.key
+                ? {
+                    ...tab,
+                    unsavedChanges: newUnsavedChanges,
+                  }
+                : tab
+            )
+          );
+        } else if (!newUnsavedChanges && selectedTab.unsavedChanges) {
+          // If there are no longer unsaved changes but there were before, remove them
+          setDraggableTabs(
+            draggableTabs.map(tab =>
+              tab.key === selectedTab.key
+                ? {
+                    ...tab,
+                    unsavedChanges: undefined,
+                  }
+                : tab
+            )
+          );
+        }
 
-        setDraggableTabs(
-          draggableTabs.map(tab =>
-            tab.key === selectedTab.key
-              ? {
-                  ...tab,
-                  unsavedChanges,
-                }
-              : tab
-          )
-        );
-
-        navigate(
-          normalizeUrl({
-            ...location,
-            query: {
-              ...queryParamsWithPageFilters,
-              query: unsavedChanges ? unsavedChanges[0] : selectedTab.query,
-              sort: unsavedChanges ? unsavedChanges[1] : selectedTab.querySort,
-              viewId: selectedTab.id,
-            },
-          }),
-          {replace: true}
-        );
-
-        tabListState?.setSelectedKey(selectedTab.key);
+        if (!tabListState?.selectionManager.isSelected(selectedTab.key)) {
+          navigate(
+            normalizeUrl({
+              ...location,
+              query: {
+                ...queryParamsWithPageFilters,
+                query: newUnsavedChanges ? newUnsavedChanges[0] : selectedTab.query,
+                sort: newUnsavedChanges ? newUnsavedChanges[1] : selectedTab.querySort,
+                viewId: selectedTab.id,
+              },
+            }),
+            {replace: true}
+          );
+          tabListState?.setSelectedKey(selectedTab.key);
+        }
       } else {
         // if a viewId does not exist, remove it from the query
         tabListState?.setSelectedKey(TEMPORARY_TAB_KEY);
@@ -291,48 +320,33 @@ function CustomViewsIssueListHeaderTabsContent({
       return;
     }
     if (query) {
-      tabListState?.setSelectedKey(TEMPORARY_TAB_KEY);
-      navigate(
-        normalizeUrl({
-          ...location,
-          query: {
-            ...queryParamsWithPageFilters,
-            viewId: undefined,
-          },
-        }),
-        {replace: true}
-      );
-      return;
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    const currentTab = draggableTabs.find(tab => tab.key === viewId);
-    if (currentTab) {
-      if (
-        query !== undefined &&
-        sort &&
-        currentTab.unsavedChanges?.[0] !== query &&
-        currentTab.unsavedChanges?.[1] !== sort &&
-        (currentTab.query !== query || currentTab.querySort !== sort)
-      ) {
-        setDraggableTabs(
-          draggableTabs.map(tab =>
-            tab.key === currentTab.key
-              ? {
-                  ...tab,
-                  unsavedChanges: [query, sort],
-                }
-              : tab
-          )
+      if (!tabListState?.selectionManager.isSelected(TEMPORARY_TAB_KEY)) {
+        tabListState?.setSelectedKey(TEMPORARY_TAB_KEY);
+        navigate(
+          normalizeUrl({
+            ...location,
+            query: {
+              ...queryParamsWithPageFilters,
+              viewId: undefined,
+            },
+          }),
+          {replace: true}
         );
-      }
-      if (!tabListState?.selectionManager.isSelected(currentTab.key)) {
-        tabListState?.setSelectedKey(currentTab.key);
+        return;
       }
     }
-  }, [draggableTabs, query, sort, tabListState, viewId]);
+  }, [
+    navigate,
+    organization.slug,
+    query,
+    sort,
+    viewId,
+    tabListState,
+    location,
+    queryParamsWithPageFilters,
+    draggableTabs,
+    organization,
+  ]);
 
   // Update local tabs when new views are received from mutation request
   useEffectAfterFirstRender(() => {
