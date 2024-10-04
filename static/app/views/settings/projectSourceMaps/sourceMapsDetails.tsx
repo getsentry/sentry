@@ -106,7 +106,7 @@ type Props = RouteComponentProps<
   project: Project;
 };
 
-export function ProjectSourceMapsArtifacts({params, location, router, project}: Props) {
+export function SourceMapsDetails({params, location, router, project}: Props) {
   const api = useApi();
   const organization = useOrganization();
 
@@ -124,7 +124,7 @@ export function ProjectSourceMapsArtifacts({params, location, router, project}: 
 
   // debug id bundles tab url
   const debugIdsUrl = normalizeUrl(
-    `/settings/${organization.slug}/projects/${project.slug}/source-maps/artifact-bundles/${params.bundleId}/`
+    `/settings/${organization.slug}/projects/${project.slug}/source-maps/${params.bundleId}/`
   );
 
   const tabDebugIdBundlesActive = location.pathname === debugIdsUrl;
@@ -167,9 +167,7 @@ export function ProjectSourceMapsArtifacts({params, location, router, project}: 
 
   const {mutate: deleteDebugIdArtifacts} = useDeleteDebugIdBundle({
     onSuccess: () =>
-      router.push(
-        `/settings/${organization.slug}/projects/${project.slug}/source-maps/artifact-bundles/`
-      ),
+      router.push(`/settings/${organization.slug}/projects/${project.slug}/source-maps/`),
   });
 
   const handleDeleteDebugIdBundle = useCallback(() => {

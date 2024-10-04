@@ -16,7 +16,7 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import ConfigStore from 'sentry/stores/configStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
-import {ProjectSourceMapsArtifacts} from 'sentry/views/settings/projectSourceMaps/projectSourceMapsArtifacts';
+import {SourceMapsDetails} from 'sentry/views/settings/projectSourceMaps/sourceMapsDetails';
 
 function renderReleaseBundlesMockRequests({
   orgSlug,
@@ -109,7 +109,7 @@ describe('ProjectSourceMapsArtifacts', function () {
       });
 
       render(
-        <ProjectSourceMapsArtifacts
+        <SourceMapsDetails
           {...routerProps}
           project={project}
           params={{
@@ -162,7 +162,7 @@ describe('ProjectSourceMapsArtifacts', function () {
       });
 
       render(
-        <ProjectSourceMapsArtifacts
+        <SourceMapsDetails
           {...routerProps}
           project={project}
           params={{
@@ -207,7 +207,7 @@ describe('ProjectSourceMapsArtifacts', function () {
       });
 
       render(
-        <ProjectSourceMapsArtifacts
+        <SourceMapsDetails
           {...routerProps}
           project={project}
           params={{
@@ -302,7 +302,7 @@ describe('ProjectSourceMapsArtifacts', function () {
       });
 
       render(
-        <ProjectSourceMapsArtifacts
+        <SourceMapsDetails
           {...routerProps}
           project={project}
           params={{

@@ -12,7 +12,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {ProjectSourceMaps} from 'sentry/views/settings/projectSourceMaps/projectSourceMaps';
+import {SourceMapsList} from 'sentry/views/settings/projectSourceMaps/sourceMapsList';
 
 function renderReleaseBundlesMockRequests({
   orgSlug,
@@ -82,7 +82,7 @@ describe('ProjectSourceMaps', function () {
         projectSlug: project.slug,
       });
 
-      render(<ProjectSourceMaps project={project} {...routerProps} />, {
+      render(<SourceMapsList project={project} {...routerProps} />, {
         router,
         organization,
       });
@@ -187,7 +187,7 @@ describe('ProjectSourceMaps', function () {
         empty: true,
       });
 
-      render(<ProjectSourceMaps project={project} {...routerProps} />, {
+      render(<SourceMapsList project={project} {...routerProps} />, {
         router,
         organization,
       });
@@ -216,7 +216,7 @@ describe('ProjectSourceMaps', function () {
         projectSlug: project.slug,
       });
 
-      render(<ProjectSourceMaps project={project} {...routerProps} />, {
+      render(<SourceMapsList project={project} {...routerProps} />, {
         router,
         organization,
       });
@@ -322,7 +322,7 @@ describe('ProjectSourceMaps', function () {
         empty: true,
       });
 
-      render(<ProjectSourceMaps project={project} {...routerProps} />, {
+      render(<SourceMapsList project={project} {...routerProps} />, {
         router,
         organization,
       });
