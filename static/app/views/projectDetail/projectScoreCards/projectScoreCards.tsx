@@ -83,6 +83,11 @@ function ProjectScoreCards({
 }
 
 const CardWrapper = styled('div')`
+  display: grid;
+  gap: ${space(2)};
+  grid-template-columns: 1fr;
+  margin-bottom: ${space(2)};
+
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
     display: grid;
     grid-column-gap: ${space(2)};
