@@ -126,7 +126,7 @@ function OrganizationMemberDetail() {
       });
     },
     onMutate: () => {
-      addLoadingMessage(t('Saving...'));
+      addLoadingMessage(t('Saving\u2026'));
     },
     onSuccess: data => {
       addSuccessMessage(t('Saved'));
