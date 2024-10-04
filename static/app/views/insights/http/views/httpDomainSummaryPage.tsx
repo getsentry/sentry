@@ -212,15 +212,11 @@ export function HTTPDomainSummaryPage() {
       )}
 
       {isInDomainView && view === FRONTEND_LANDING_SUB_PATH && (
-        <Layout.Header>
-          <FrontendHeader module={ModuleName.HTTP} />
-        </Layout.Header>
+        <FrontendHeader module={ModuleName.HTTP} />
       )}
 
       {isInDomainView && view === BACKEND_LANDING_SUB_PATH && (
-        <Layout.Header>
-          <BackendHeader module={ModuleName.HTTP} />
-        </Layout.Header>
+        <BackendHeader module={ModuleName.HTTP} />
       )}
 
       <Layout.Body>

@@ -55,19 +55,15 @@ export function SavedSearchModalContent({organization}: SavedSearchModalContentP
         flexibleControlStateSize
         required
       >
-        {({id, name, onChange, onBlur, disabled, value}) => (
+        {({onChange, onBlur, disabled, value}) => (
           <IssueListSearchBar
-            id={id}
-            name={name}
             organization={organization}
-            onClose={newValue => {
+            onChange={newValue => {
               onChange(newValue, {});
               onBlur(newValue, {});
             }}
-            includeLabel={false}
-            useFormWrapper={false}
             disabled={disabled}
-            query={value}
+            initialQuery={value}
             searchSource="saved_searches_modal"
           />
         )}

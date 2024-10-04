@@ -921,12 +921,15 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         }
 
         with self.feature("organizations:incidents"):
-            resp = self.get_success_response(
-                self.organization.slug, status_code=201, **rule_one_trigger_only_critical_no_action
+            resp = self.get_error_response(
+                self.organization.slug, status_code=400, **rule_one_trigger_only_critical_no_action
             )
-        assert "id" in resp.data
-        alert_rule = AlertRule.objects.get(id=resp.data["id"])
-        assert resp.data == serialize(alert_rule, self.user)
+        assert resp.data == [
+            ErrorDetail(
+                string="Each trigger must have an associated action for this alert to fire.",
+                code="invalid",
+            )
+        ]
 
     def test_invalid_projects(self):
         with self.feature("organizations:incidents"):
@@ -1009,7 +1012,15 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
             "name": "JustATestRule",
             "resolveThreshold": 100,
             "thresholdType": 1,
-            "triggers": [{"label": "critical", "alertThreshold": 75}],
+            "triggers": [
+                {
+                    "label": "critical",
+                    "alertThreshold": 75,
+                    "actions": [
+                        {"type": "email", "targetType": "team", "targetIdentifier": self.team.id}
+                    ],
+                }
+            ],
         }
 
         with self.feature("organizations:incidents"):

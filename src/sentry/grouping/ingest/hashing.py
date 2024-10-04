@@ -144,7 +144,7 @@ def _calculate_secondary_hashes(
     try:
         with sentry_sdk.start_span(
             op="event_manager",
-            description="event_manager.save.secondary_calculate_event_grouping",
+            name="event_manager.save.secondary_calculate_event_grouping",
         ):
             # create a copy since `_calculate_event_grouping` modifies the event to add all sorts
             # of grouping info and we don't want the secondary grouping data in there
@@ -171,7 +171,7 @@ def run_primary_grouping(
     with (
         sentry_sdk.start_span(
             op="event_manager",
-            description="event_manager.save.calculate_event_grouping",
+            name="event_manager.save.calculate_event_grouping",
         ),
         metrics.timer("event_manager.calculate_event_grouping", tags=metric_tags),
     ):
@@ -215,21 +215,38 @@ def find_grouphash_with_group(
     return None
 
 
-def get_or_create_grouphashes(project: Project, hashes: Sequence[str]) -> list[GroupHash]:
-    grouphashes = []
+def get_or_create_grouphashes(
+    project: Project, hashes: Sequence[str], grouping_config: str
+) -> list[GroupHash]:
+    is_secondary = grouping_config != project.get_option("sentry:grouping_config")
+    grouphashes: list[GroupHash] = []
+
+    # The only utility of secondary hashes is to link new primary hashes to an existing group.
+    # Secondary hashes which are also new are therefore of no value, so there's no need to store or
+    # annotate them and we can bail now.
+    if is_secondary and not GroupHash.objects.filter(project=project, hash__in=hashes).exists():
+        return grouphashes
 
     for hash_value in hashes:
         grouphash, created = GroupHash.objects.get_or_create(project=project, hash=hash_value)
 
         # TODO: Do we want to expand this to backfill metadata for existing grouphashes? If we do,
         # we'll have to override the metadata creation date for them.
-        if (
-            created
-            and options.get("grouping.grouphash_metadata.ingestion_writes_enabled")
-            and features.has("organizations:grouphash-metadata-creation", project.organization)
+        if options.get("grouping.grouphash_metadata.ingestion_writes_enabled") and features.has(
+            "organizations:grouphash-metadata-creation", project.organization
         ):
-            # For now, this just creates a record with a creation timestamp
-            GroupHashMetadata.objects.create(grouphash=grouphash)
+            if created:
+                GroupHashMetadata.objects.create(
+                    grouphash=grouphash,
+                    latest_grouping_config=grouping_config,
+                )
+            elif (
+                grouphash.metadata and grouphash.metadata.latest_grouping_config != grouping_config
+            ):
+                # Keep track of the most recent config which computed this hash, so that once a
+                # config is deprecated, we can clear out the GroupHash records which are no longer
+                # being produced
+                grouphash.metadata.update(latest_grouping_config=grouping_config)
 
         grouphashes.append(grouphash)
 
