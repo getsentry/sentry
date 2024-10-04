@@ -1731,27 +1731,19 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
         self.store_replays(mock_replay(seq2_timestamp, project.id, replay2_id, ipv4=None))
 
         with self.feature(self.features):
-            queries = [
-                "user.ip:None",
-                'user.ip:"None"',
-                "user.ip:none",
-                'user.ip:"none"',
-                'user.ip:""',
-            ]
-            for query in queries:
-                response = self.client.get(self.url + f"?field=id&query={query}")
-                assert response.status_code == 200
-                data = response.json()["data"]
-                assert len(data) == 1
-                assert data[0]["id"] == replay2_id
+            null_ip_query = 'user.ip:""'
+            response = self.client.get(self.url + f"?field=id&query={null_ip_query}")
+            assert response.status_code == 200
+            data = response.json()["data"]
+            assert len(data) == 1
+            assert data[0]["id"] == replay2_id
 
-            negated_queries = ["!" + query for query in queries]
-            for query in negated_queries:
-                response = self.client.get(self.url + f"?field=id&query={query}")
-                assert response.status_code == 200
-                data = response.json()["data"]
-                assert len(data) == 1
-                assert data[0]["id"] == replay1_id
+            negated_query = "!" + null_ip_query
+            response = self.client.get(self.url + f"?field=id&query={negated_query}")
+            assert response.status_code == 200
+            data = response.json()["data"]
+            assert len(data) == 1
+            assert data[0]["id"] == replay1_id
 
     def test_query_contains_null_ipv4(self):
         project = self.create_project(teams=[self.team])
@@ -1767,17 +1759,15 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
         self.store_replays(mock_replay(seq2_timestamp, project.id, replay2_id, ipv4=None))
 
         with self.feature(self.features):
-            queries = [
-                f"user.ip:[127.1.42.0, {val}]" for val in ["None", '"None"', "none", '"none"', '""']
-            ]
-            # for query in queries:
-            #     response = self.client.get(self.url + f"?field=id&query={query}")
-            #     assert response.status_code == 200
-            #     data = response.json()["data"]
-            #     assert len(data) == 2
-            #     assert set([item["id"] for item in data]) == {replay1_id, replay2_id}
+            list_queries = ['user.ip:[127.1.42.0, ""]', 'user.ip:["127.1.42.0", ""]']
+            for query in list_queries:
+                response = self.client.get(self.url + f"?field=id&query={query}")
+                assert response.status_code == 200
+                data = response.json()["data"]
+                assert len(data) == 2
+                assert {item["id"] for item in data} == {replay1_id, replay2_id}
 
-            negated_queries = ["!" + query for query in queries]
+            negated_queries = ["!" + query for query in list_queries]
             for query in negated_queries:
                 response = self.client.get(self.url + f"?field=id&query={query}")
                 assert response.status_code == 200

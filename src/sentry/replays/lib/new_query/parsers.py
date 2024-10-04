@@ -7,12 +7,6 @@ import uuid
 
 from sentry.replays.lib.new_query.errors import CouldNotParseValue
 
-NULL_VALUES: list[str] = [
-    "None",
-    "none",
-    "",
-]
-
 
 def parse_float(value: str) -> float:
     """Coerce to float or fail."""
@@ -34,7 +28,7 @@ def parse_str(value: str) -> str:
 
 def parse_ipv4(value: str) -> str | None:
     """Validates an IPv4 address"""
-    if value in NULL_VALUES:
+    if value == "":
         return None
     try:
         ipaddress.IPv4Address(value)
