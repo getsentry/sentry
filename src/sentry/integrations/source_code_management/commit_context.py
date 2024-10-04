@@ -94,6 +94,7 @@ class CommitContextIntegration(ABC):
         metrics_base: str,
         comment_type: int = CommentType.MERGED_PR,
         language: str | None = None,
+        github_copilot_actions: list[Mapping[str, Any]] | None = None,
     ):
         client = self.get_client()
 
@@ -105,7 +106,12 @@ class CommitContextIntegration(ABC):
         # client will raise ApiError if the request is not successful
         if pr_comment is None:
             resp = client.create_comment(
-                repo=repo.name, issue_id=str(pr_key), data={"body": comment_body}
+                repo=repo.name,
+                issue_id=str(pr_key),
+                data={
+                    "body": comment_body,
+                    "actions": github_copilot_actions if github_copilot_actions else [],
+                },
             )
 
             current_time = timezone.now()
@@ -134,7 +140,10 @@ class CommitContextIntegration(ABC):
                 repo=repo.name,
                 issue_id=str(pr_key),
                 comment_id=pr_comment.external_id,
-                data={"body": comment_body},
+                data={
+                    "body": comment_body,
+                    "actions": github_copilot_actions,
+                },
             )
             metrics.incr(
                 metrics_base.format(integration=self.integration_name, key="comment_updated")
