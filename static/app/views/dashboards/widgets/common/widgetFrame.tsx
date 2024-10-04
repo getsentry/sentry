@@ -1,40 +1,91 @@
 import styled from '@emotion/styled';
 
+import {Button, LinkButton} from 'sentry/components/button';
 import {HeaderTitle} from 'sentry/components/charts/styles';
+import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import {Tooltip} from 'sentry/components/tooltip';
+import {IconEllipsis} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
-export interface Props {
-  children: React.ReactNode;
+import {ErrorPanel} from './errorPanel';
+import {MIN_HEIGHT, MIN_WIDTH} from './settings';
+import type {StateProps} from './types';
+
+export interface Props extends StateProps {
+  actions?: MenuItemProps[];
+  children?: React.ReactNode;
   description?: string;
   title?: string;
 }
 
 export function WidgetFrame(props: Props) {
-  const {title, description, children} = props;
+  const {error} = props;
+
+  // The error state has its own set of available actions
+  const actions =
+    (error
+      ? props.onRetry
+        ? [
+            {
+              key: 'retry',
+              label: t('Retry'),
+              onAction: props.onRetry,
+            },
+          ]
+        : []
+      : props.actions) ?? [];
 
   return (
     <Frame>
       <Header>
         <Title>
-          <Tooltip title={title} containerDisplayMode="grid" showOnlyOnOverflow>
-            <TitleText>{title}</TitleText>
+          <Tooltip title={props.title} containerDisplayMode="grid" showOnlyOnOverflow>
+            <TitleText>{props.title}</TitleText>
           </Tooltip>
-        </Title>
 
-        {description && (
-          <Tooltip
-            title={description}
-            containerDisplayMode="grid"
-            showOnlyOnOverflow
-            isHoverable
-          >
-            <Description>{description}</Description>
-          </Tooltip>
-        )}
+          {props.description && (
+            <TooltipAligner>
+              <QuestionTooltip size="sm" title={props.description} />
+            </TooltipAligner>
+          )}
+
+          {actions && actions.length > 0 && (
+            <TitleActions>
+              {actions.length === 1 ? (
+                actions[0].to ? (
+                  <LinkButton size="xs" onClick={actions[0].onAction} to={actions[0].to}>
+                    {actions[0].label}
+                  </LinkButton>
+                ) : (
+                  <Button size="xs" onClick={actions[0].onAction}>
+                    {actions[0].label}
+                  </Button>
+                )
+              ) : null}
+
+              {actions.length > 1 ? (
+                <DropdownMenu
+                  items={actions}
+                  triggerProps={{
+                    'aria-label': t('Actions'),
+                    size: 'xs',
+                    borderless: true,
+                    showChevron: false,
+                    icon: <IconEllipsis direction="down" size="sm" />,
+                  }}
+                  position="bottom-end"
+                />
+              ) : null}
+            </TitleActions>
+          )}
+        </Title>
       </Header>
 
-      <VisualizationWrapper>{children}</VisualizationWrapper>
+      <VisualizationWrapper>
+        {props.error ? <ErrorPanel error={error} /> : props.children}
+      </VisualizationWrapper>
     </Frame>
   );
 }
@@ -45,7 +96,11 @@ const Frame = styled('div')`
   flex-direction: column;
 
   height: 100%;
+  min-height: ${MIN_HEIGHT}px;
   width: 100%;
+  min-width: ${MIN_WIDTH}px;
+
+  padding: ${space(2)};
 
   border-radius: ${p => p.theme.panelBorderRadius};
   border: ${p => p.theme.border};
@@ -57,11 +112,7 @@ const Frame = styled('div')`
 const Header = styled('div')`
   display: flex;
   flex-direction: column;
-
-  width: 100%;
-  min-height: 36px;
-
-  padding: ${space(2)} ${space(1)} 0 ${space(3)};
+  min-height: 20px;
 `;
 
 const Title = styled('div')`
@@ -70,15 +121,19 @@ const Title = styled('div')`
   gap: ${space(0.75)};
 `;
 
-const Description = styled('small')`
-  ${p => p.theme.overflowEllipsis}
-
-  color: ${p => p.theme.gray300};
-`;
-
 const TitleText = styled(HeaderTitle)`
   ${p => p.theme.overflowEllipsis};
   font-weight: ${p => p.theme.fontWeightBold};
+`;
+
+const TitleActions = styled('div')`
+  margin-left: auto;
+`;
+
+const TooltipAligner = styled('div')`
+  font-size: 0;
+  line-height: 1;
+  margin-bottom: 2px;
 `;
 
 const VisualizationWrapper = styled('div')`

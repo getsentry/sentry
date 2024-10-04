@@ -580,6 +580,18 @@ class GoodImportExportCommandTests(TransactionTestCase):
                 export_args=["--filter-usernames-file", str(tmp_findings_file_path)],
             )
 
+            # Test empty `--filter-usernames-file`
+            with open(tmp_findings_file_path, "w") as f:
+                f.write(
+                    """
+                    """
+                )
+            cli_import_then_export(
+                "users",
+                import_args=["--filter-usernames-file", str(tmp_findings_file_path)],
+                export_args=["--filter-usernames-file", str(tmp_findings_file_path)],
+            )
+
 
 class GoodImportExportCommandEncryptionTests(TransactionTestCase):
     """

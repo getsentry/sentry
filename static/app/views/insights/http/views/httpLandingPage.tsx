@@ -39,14 +39,17 @@ import {
   MODULE_DOC_LINK,
   MODULE_TITLE,
 } from 'sentry/views/insights/http/settings';
+import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
+import {BACKEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/backend/settings';
 import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
+import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/settings';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
 
 export function HTTPLandingPage() {
   const organization = useOrganization();
   const location = useLocation();
-  const {isInDomainView} = useDomainViewFilters();
+  const {isInDomainView, view} = useDomainViewFilters();
 
   const sortField = decodeScalar(location.query?.[QueryParameterNames.DOMAINS_SORT]);
 
@@ -154,7 +157,10 @@ export function HTTPLandingPage() {
     Referrer.LANDING_DOMAINS_LIST
   );
 
-  useSynchronizeCharts([!isThroughputDataLoading && !isDurationDataLoading]);
+  useSynchronizeCharts(
+    3,
+    !isThroughputDataLoading && !isDurationDataLoading && !isResponseCodeDataLoading
+  );
 
   const crumbs = useModuleBreadcrumbs('http');
 
@@ -181,10 +187,12 @@ export function HTTPLandingPage() {
         </Layout.Header>
       )}
 
-      {isInDomainView && (
-        <Layout.Header>
-          <FrontendHeader module={ModuleName.HTTP} />
-        </Layout.Header>
+      {isInDomainView && view === FRONTEND_LANDING_SUB_PATH && (
+        <FrontendHeader module={ModuleName.HTTP} />
+      )}
+
+      {isInDomainView && view === BACKEND_LANDING_SUB_PATH && (
+        <BackendHeader module={ModuleName.HTTP} />
       )}
 
       <Layout.Body>

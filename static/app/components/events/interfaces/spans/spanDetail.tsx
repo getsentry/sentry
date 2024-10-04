@@ -398,24 +398,15 @@ function SpanDetail(props: Props) {
   }
 
   function renderSpanDetails() {
-    const {span, event, organization, resetCellMeasureCache, scrollToHash} = props;
+    const {span, event, organization, scrollToHash} = props;
 
     if (isGapSpan(span)) {
       return (
         <SpanDetails>
           {organization.features.includes('profiling') ? (
-            <GapSpanDetails
-              event={event}
-              span={span}
-              resetCellMeasureCache={resetCellMeasureCache}
-            />
+            <GapSpanDetails event={event} span={span} />
           ) : (
-            <InlineDocs
-              orgSlug={organization.slug}
-              platform={event.sdk?.name || ''}
-              projectSlug={event?.projectSlug ?? ''}
-              resetCellMeasureCache={resetCellMeasureCache}
-            />
+            <InlineDocs platform={event.sdk?.name || ''} />
           )}
         </SpanDetails>
       );

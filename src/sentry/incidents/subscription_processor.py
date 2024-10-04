@@ -12,11 +12,8 @@ from django.db import router, transaction
 from django.utils import timezone
 from sentry_redis_tools.retrying_cluster import RetryingRedisCluster
 from snuba_sdk import Column, Condition, Limit, Op
-from urllib3.exceptions import MaxRetryError, TimeoutError
 
 from sentry import features
-from sentry.conf.server import SEER_ANOMALY_DETECTION_ENDPOINT_URL
-from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS, CRASH_RATE_ALERT_SESSION_COUNT_ALIAS
 from sentry.incidents.logic import (
     CRITICAL_TRIGGER_LABEL,
     WARNING_TRIGGER_LABEL,
@@ -47,29 +44,18 @@ from sentry.incidents.models.incident import (
 from sentry.incidents.tasks import handle_trigger_action
 from sentry.incidents.utils.types import QuerySubscriptionUpdate
 from sentry.models.project import Project
-from sentry.net.http import connection_from_url
-from sentry.seer.anomaly_detection.types import (
-    AlertInSeer,
-    AnomalyDetectionConfig,
-    AnomalyType,
-    DetectAnomaliesRequest,
-    DetectAnomaliesResponse,
-    TimeSeriesPoint,
-)
-from sentry.seer.anomaly_detection.utils import translate_direction
-from sentry.seer.signed_seer_api import make_signed_seer_api_request
+from sentry.seer.anomaly_detection.get_anomaly_data import get_anomaly_data_from_seer
+from sentry.seer.anomaly_detection.utils import anomaly_has_confidence, has_anomaly
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.entity_subscription import (
     ENTITY_TIME_COLUMNS,
-    BaseCrashRateMetricsEntitySubscription,
     get_entity_key_from_query_builder,
     get_entity_subscription_from_snuba_query,
 )
 from sentry.snuba.models import QuerySubscription
 from sentry.snuba.subscriptions import delete_snuba_subscription
-from sentry.utils import json, metrics, redis
+from sentry.utils import metrics, redis
 from sentry.utils.dates import to_datetime
-from sentry.utils.json import JSONDecodeError
 
 logger = logging.getLogger(__name__)
 REDIS_TTL = int(timedelta(days=7).total_seconds())
@@ -105,11 +91,6 @@ class SubscriptionProcessor:
         AlertRuleThresholdType.ABOVE: (operator.gt, operator.lt),
         AlertRuleThresholdType.BELOW: (operator.lt, operator.gt),
     }
-
-    seer_anomaly_detection_connection_pool = connection_from_url(
-        settings.SEER_ANOMALY_DETECTION_URL,
-        timeout=settings.SEER_ANOMALY_DETECTION_TIMEOUT,
-    )
 
     def __init__(self, subscription: QuerySubscription) -> None:
         self.subscription = subscription
@@ -282,131 +263,7 @@ class SubscriptionProcessor:
         result: float = (aggregation_value / comparison_aggregate) * 100
         return result
 
-    def get_crash_rate_alert_aggregation_value(
-        self, subscription_update: QuerySubscriptionUpdate
-    ) -> float | None:
-        """
-        Handles validation and extraction of Crash Rate Alerts subscription updates values.
-        The subscription update looks like
-        {
-            '_crash_rate_alert_aggregate': 0.5,
-            '_total_count': 34
-        }
-        - `_crash_rate_alert_aggregate` represents sessions_crashed/sessions or
-        users_crashed/users, and so we need to subtract that number from 1 and then multiply by
-        100 to get the crash free percentage
-        - `_total_count` represents the total sessions or user counts. This is used when
-        CRASH_RATE_ALERT_MINIMUM_THRESHOLD is set in the sense that if the minimum threshold is
-        greater than the session count, then the update is dropped. If the minimum threshold is
-        not set then the total sessions count is just ignored
-        """
-        aggregation_value = subscription_update["values"]["data"][0][
-            CRASH_RATE_ALERT_AGGREGATE_ALIAS
-        ]
-        if aggregation_value is None:
-            self.reset_trigger_counts()
-            metrics.incr("incidents.alert_rules.ignore_update_no_session_data")
-            return None
-
-        try:
-            total_count = subscription_update["values"]["data"][0][
-                CRASH_RATE_ALERT_SESSION_COUNT_ALIAS
-            ]
-            if CRASH_RATE_ALERT_MINIMUM_THRESHOLD is not None:
-                min_threshold = int(CRASH_RATE_ALERT_MINIMUM_THRESHOLD)
-                if total_count < min_threshold:
-                    self.reset_trigger_counts()
-                    metrics.incr(
-                        "incidents.alert_rules.ignore_update_count_lower_than_min_threshold"
-                    )
-                    return None
-        except KeyError:
-            # If for whatever reason total session count was not sent in the update,
-            # ignore the minimum threshold comparison and continue along with processing the
-            # update. However, this should not happen.
-            logger.exception(
-                "Received an update for a crash rate alert subscription, but no total "
-                "sessions count was sent"
-            )
-        # The subscription aggregation for crash rate alerts uses the Discover percentage
-        # function, which would technically return a ratio of sessions_crashed/sessions and
-        # so we need to calculate the crash free percentage out of that returned value
-        aggregation_value_result: int = round((1 - aggregation_value) * 100, 3)
-        return aggregation_value_result
-
     def get_crash_rate_alert_metrics_aggregation_value(
-        self, subscription_update: QuerySubscriptionUpdate
-    ) -> float | None:
-        """
-        Handle both update formats.
-        Once all subscriptions have been updated to v2,
-        we can remove v1 and replace this function with current v2.
-        """
-        rows = subscription_update["values"]["data"]
-        if BaseCrashRateMetricsEntitySubscription.is_crash_rate_format_v2(rows):
-            version = "v2"
-            result = self._get_crash_rate_alert_metrics_aggregation_value_v2(subscription_update)
-        else:
-            version = "v1"
-            result = self._get_crash_rate_alert_metrics_aggregation_value_v1(subscription_update)
-
-        metrics.incr(
-            "incidents.alert_rules.get_crash_rate_alert_metrics_aggregation_value",
-            tags={"format": version},
-            sample_rate=1.0,
-        )
-        return result
-
-    def _get_crash_rate_alert_metrics_aggregation_value_v1(
-        self, subscription_update: QuerySubscriptionUpdate
-    ) -> float | None:
-        """
-        Handles validation and extraction of Crash Rate Alerts subscription updates values over
-        metrics dataset.
-        The subscription update looks like
-        [
-            {'project_id': 8, 'tags[5]': 6, 'value': 2.0},
-            {'project_id': 8, 'tags[5]': 13,'value': 1.0}
-        ]
-        where each entry represents a session status and the count of that specific session status.
-        As an example, `tags[5]` represents string `session.status`, while `tags[5]: 6` could
-        mean something like there are 2 sessions of status `crashed`. Likewise the other entry
-        represents the number of sessions started. In this method, we need to reverse match these
-        strings to end up with something that looks like
-        {"init": 2, "crashed": 4}
-        - `init` represents sessions or users sessions that were started, hence to get the crash
-        free percentage, we would need to divide number of crashed sessions by that number,
-        and subtract that value from 1. This is also used when CRASH_RATE_ALERT_MINIMUM_THRESHOLD is
-        set in the sense that if the minimum threshold is greater than the session count,
-        then the update is dropped. If the minimum threshold is not set then the total sessions
-        count is just ignored
-        - `crashed` represents the total sessions or user counts that crashed.
-        """
-        (
-            total_session_count,
-            crash_count,
-        ) = BaseCrashRateMetricsEntitySubscription.translate_sessions_tag_keys_and_values(
-            data=subscription_update["values"]["data"],
-            org_id=self.subscription.project.organization.id,
-        )
-
-        if total_session_count == 0:
-            self.reset_trigger_counts()
-            metrics.incr("incidents.alert_rules.ignore_update_no_session_data")
-            return None
-
-        if CRASH_RATE_ALERT_MINIMUM_THRESHOLD is not None:
-            min_threshold = int(CRASH_RATE_ALERT_MINIMUM_THRESHOLD)
-            if total_session_count < min_threshold:
-                self.reset_trigger_counts()
-                metrics.incr("incidents.alert_rules.ignore_update_count_lower_than_min_threshold")
-                return None
-
-        aggregation_value = round((1 - crash_count / total_session_count) * 100, 3)
-
-        return aggregation_value
-
-    def _get_crash_rate_alert_metrics_aggregation_value_v2(
         self, subscription_update: QuerySubscriptionUpdate
     ) -> float | None:
         """
@@ -425,8 +282,8 @@ class SubscriptionProcessor:
         - `crashed` represents the total sessions or user counts that crashed.
         """
         row = subscription_update["values"]["data"][0]
-        total_session_count = row["count"]
-        crash_count = row["crashed"]
+        total_session_count = row.get("count", 0)
+        crash_count = row.get("crashed", 0)
 
         if total_session_count == 0:
             self.reset_trigger_counts()
@@ -530,19 +387,23 @@ class SubscriptionProcessor:
                 },
             )
 
-        self.has_anomaly_detection = features.has(
+        has_anomaly_detection = features.has(
             "organizations:anomaly-detection-alerts", self.subscription.project.organization
-        )
-        has_fake_anomalies = features.has(
-            "organizations:fake-anomaly-detection", self.subscription.project.organization
+        ) and features.has(
+            "organizations:anomaly-detection-rollout", self.subscription.project.organization
         )
 
         potential_anomalies = None
         if (
-            self.has_anomaly_detection
+            has_anomaly_detection
             and self.alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC
         ):
-            potential_anomalies = self.get_anomaly_data_from_seer(aggregation_value)
+            potential_anomalies = get_anomaly_data_from_seer(
+                alert_rule=self.alert_rule,
+                subscription=self.subscription,
+                last_update=self.last_update.timestamp(),
+                aggregation_value=aggregation_value,
+            )
             if potential_anomalies is None:
                 return []
 
@@ -576,7 +437,7 @@ class SubscriptionProcessor:
                     for potential_anomaly in potential_anomalies:
                         # check to see if we have enough data for the dynamic alert rule now
                         if self.alert_rule.status == AlertRuleStatus.NOT_ENOUGH_DATA.value:
-                            if self.anomaly_has_confidence(potential_anomaly):
+                            if anomaly_has_confidence(potential_anomaly):
                                 # NOTE: this means "enabled," and it's the default alert rule status.
                                 # TODO: change these status labels to be less confusing
                                 self.alert_rule.status = AlertRuleStatus.PENDING.value
@@ -585,8 +446,8 @@ class SubscriptionProcessor:
                                 # we don't need to check if the alert should fire if the alert can't fire yet
                                 continue
 
-                        if self.has_anomaly(
-                            potential_anomaly, trigger.label, has_fake_anomalies
+                        if has_anomaly(
+                            potential_anomaly, trigger.label
                         ) and not self.check_trigger_matches_status(trigger, TriggerStatus.ACTIVE):
                             metrics.incr(
                                 "incidents.alert_rules.threshold.alert",
@@ -601,9 +462,7 @@ class SubscriptionProcessor:
                             self.trigger_alert_counts[trigger.id] = 0
 
                         if (
-                            not self.has_anomaly(
-                                potential_anomaly, trigger.label, has_fake_anomalies
-                            )
+                            not has_anomaly(potential_anomaly, trigger.label)
                             and self.active_incident
                             and self.check_trigger_matches_status(trigger, TriggerStatus.ACTIVE)
                         ):
@@ -669,130 +528,6 @@ class SubscriptionProcessor:
         # this will have no effect, but if someone manages to close a triggered incident
         # before the next one then we might alert twice.
         self.update_alert_rule_stats()
-
-    def has_anomaly(self, anomaly: TimeSeriesPoint, label: str, has_fake_anomalies: bool) -> bool:
-        """
-        Helper function to determine whether we care about an anomaly based on the
-        anomaly type and trigger type.
-        """
-        if has_fake_anomalies:
-            return True
-
-        anomaly_type = anomaly.get("anomaly", {}).get("anomaly_type")
-
-        if anomaly_type == AnomalyType.HIGH_CONFIDENCE.value or (
-            label == WARNING_TRIGGER_LABEL and anomaly_type == AnomalyType.LOW_CONFIDENCE.value
-        ):
-            return True
-        return False
-
-    def anomaly_has_confidence(self, anomaly: TimeSeriesPoint) -> bool:
-        """
-        Helper function to determine whether we have the 7+ days of data necessary
-        to detect anomalies/send alerts for dynamic alert rules.
-        """
-        anomaly_type = anomaly.get("anomaly", {}).get("anomaly_type")
-        return anomaly_type != AnomalyType.NO_DATA.value
-
-    def get_anomaly_data_from_seer(
-        self, aggregation_value: float | None
-    ) -> list[TimeSeriesPoint] | None:
-        anomaly_detection_config = AnomalyDetectionConfig(
-            time_period=int(self.alert_rule.snuba_query.time_window / 60),
-            sensitivity=self.alert_rule.sensitivity,
-            direction=translate_direction(self.alert_rule.threshold_type),
-            expected_seasonality=self.alert_rule.seasonality,
-        )
-        context = AlertInSeer(
-            id=self.alert_rule.id,
-            cur_window=TimeSeriesPoint(
-                timestamp=self.last_update.timestamp(), value=aggregation_value
-            ),
-        )
-        detect_anomalies_request = DetectAnomaliesRequest(
-            organization_id=self.subscription.project.organization.id,
-            project_id=self.subscription.project_id,
-            config=anomaly_detection_config,
-            context=context,
-        )
-        extra_data = {
-            "subscription_id": self.subscription.id,
-            "dataset": self.subscription.snuba_query.dataset,
-            "organization_id": self.subscription.project.organization.id,
-            "project_id": self.subscription.project_id,
-            "alert_rule_id": self.alert_rule.id,
-        }
-        try:
-            response = make_signed_seer_api_request(
-                self.seer_anomaly_detection_connection_pool,
-                SEER_ANOMALY_DETECTION_ENDPOINT_URL,
-                json.dumps(detect_anomalies_request).encode("utf-8"),
-            )
-        except (TimeoutError, MaxRetryError):
-            logger.warning(
-                "Timeout error when hitting anomaly detection endpoint", extra=extra_data
-            )
-            return None
-
-        if response.status > 400:
-            logger.error(
-                "Error when hitting Seer detect anomalies endpoint",
-                extra={
-                    "response_data": response.data,
-                    **extra_data,
-                },
-            )
-            return None
-        try:
-            decoded_data = response.data.decode("utf-8")
-        except AttributeError:
-            logger.exception(
-                "Failed to parse Seer anomaly detection response",
-                extra={
-                    "ad_config": anomaly_detection_config,
-                    "context": context,
-                    "response_data": response.data,
-                    "response_code": response.status,
-                },
-            )
-            return None
-
-        try:
-            results: DetectAnomaliesResponse = json.loads(decoded_data)
-        except JSONDecodeError:
-            logger.exception(
-                "Failed to parse Seer anomaly detection response",
-                extra={
-                    "ad_config": anomaly_detection_config,
-                    "context": context,
-                    "response_data": decoded_data,
-                    "response_code": response.status,
-                },
-            )
-            return None
-
-        if not results.get("success"):
-            logger.error(
-                "Error when hitting Seer detect anomalies endpoint",
-                extra={
-                    "error_message": results.get("message", ""),
-                    **extra_data,
-                },
-            )
-            return None
-
-        ts = results.get("timeseries")
-        if not ts:
-            logger.warning(
-                "Seer anomaly detection response returned no potential anomalies",
-                extra={
-                    "ad_config": anomaly_detection_config,
-                    "context": context,
-                    "response_data": results.get("message"),
-                },
-            )
-            return None
-        return ts
 
     def calculate_event_date_from_update_date(self, update_date: datetime) -> datetime:
         """

@@ -38,7 +38,7 @@ function useSendMessage({groupId, runId}: {groupId: string; runId: string}) {
       });
     },
     onSuccess: _ => {
-      addSuccessMessage("Thanks for the input! I'll get to it right after this.");
+      addSuccessMessage("Thanks for the input. I'll get to it soon.");
     },
     onError: () => {
       addErrorMessage(t('Something went wrong when sending Autofix your message.'));
@@ -80,6 +80,8 @@ function StepIcon({step}: {step: AutofixStep}) {
   }
 
   switch (step.status) {
+    case 'WAITING_FOR_USER_RESPONSE':
+      return <IconQuestion size="sm" color="gray300" />;
     case 'PROCESSING':
       return <ProcessingStatusIndicator size={14} mini hideMessage />;
     case 'CANCELLED':
@@ -111,6 +113,11 @@ function AutofixMessageBox({
 }: AutofixMessageBoxProps) {
   const [message, setMessage] = useState('');
   const {mutate: send} = useSendMessage({groupId, runId});
+
+  isDisabled =
+    isDisabled ||
+    step?.status === 'ERROR' ||
+    (step?.type === AutofixStepType.ROOT_CAUSE_ANALYSIS && step.causes?.length === 0);
 
   const handleSend = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();

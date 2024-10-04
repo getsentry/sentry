@@ -5,6 +5,7 @@ from sentry.models.savedsearch import SavedSearch
 from sentry.testutils.cases import TestMigrations
 
 
+@pytest.mark.skip("Migration is no longer runnable. Retain until migration is removed.")
 class BackfillGroupSearchViewsWithPinnedSearchesTest(TestMigrations):
     migrate_from = "0728_incident_subscription_fk"
     migrate_to = "0729_backfill_groupsearchviews_with_pinned_searches"

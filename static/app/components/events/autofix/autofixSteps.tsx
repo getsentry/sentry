@@ -68,10 +68,8 @@ export function Step({
   hasStepAbove,
   hasErroredStepBefore,
 }: StepProps) {
-  const isActive = step.status !== 'PENDING' && step.status !== 'CANCELLED';
-
   return (
-    <StepCard active={isActive}>
+    <StepCard>
       <ContentWrapper>
         <AnimatePresence initial={false}>
           <AnimationWrapper key="content" {...animationProps}>
@@ -82,6 +80,9 @@ export function Step({
                   repos={repos}
                   hasStepBelow={hasStepBelow}
                   hasStepAbove={hasStepAbove}
+                  stepIndex={step.index}
+                  groupId={groupId}
+                  runId={runId}
                 />
               )}
               {step.type === AutofixStepType.ROOT_CAUSE_ANALYSIS && (
@@ -177,12 +178,6 @@ export function AutofixSteps({data, groupId, runId, onRetry}: AutofixStepsProps)
     lastStep.type === AutofixStepType.CHANGES && lastStep.status === 'COMPLETED';
   const disabled = areCodeChangesShowing ? true : false;
 
-  const previousStep = steps.length > 2 ? steps[steps.length - 2] : null;
-  const previousStepErrored =
-    previousStep !== null &&
-    previousStep?.type === lastStep.type &&
-    previousStep.status === 'ERROR';
-
   const scrollToMatchingStep = () => {
     const matchingStepIndex = steps.findIndex(step => step.type === lastStep.type);
     if (matchingStepIndex !== -1 && stepsRef.current[matchingStepIndex]) {
@@ -193,20 +188,27 @@ export function AutofixSteps({data, groupId, runId, onRetry}: AutofixStepsProps)
   return (
     <div>
       <StepsContainer>
-        {steps.map((step, index) => (
-          <div ref={el => (stepsRef.current[index] = el)} key={step.id}>
-            <Step
-              step={step}
-              hasStepBelow={index + 1 < steps.length}
-              hasStepAbove={index > 0}
-              groupId={groupId}
-              runId={runId}
-              onRetry={onRetry}
-              repos={repos}
-              hasErroredStepBefore={previousStepErrored}
-            />
-          </div>
-        ))}
+        {steps.map((step, index) => {
+          const previousStep = index > 0 ? steps[index - 1] : null;
+          const previousStepErrored =
+            previousStep !== null &&
+            previousStep?.type === step.type &&
+            previousStep.status === 'ERROR';
+          return (
+            <div ref={el => (stepsRef.current[index] = el)} key={step.id}>
+              <Step
+                step={step}
+                hasStepBelow={index + 1 < steps.length}
+                hasStepAbove={index > 0}
+                groupId={groupId}
+                runId={runId}
+                onRetry={onRetry}
+                repos={repos}
+                hasErroredStepBefore={previousStepErrored}
+              />
+            </div>
+          );
+        })}
       </StepsContainer>
 
       <AutofixMessageBox
@@ -217,7 +219,7 @@ export function AutofixSteps({data, groupId, runId, onRetry}: AutofixStepsProps)
             ? 'Say something...'
             : 'Or propose your own root cause instead...'
         }
-        responseRequired={false}
+        responseRequired={lastStep.status === 'WAITING_FOR_USER_RESPONSE'}
         onSend={!isRootCauseSelectionStep ? null : selectRootCause}
         actionText={!isRootCauseSelectionStep ? 'Send' : 'Find a Fix'}
         allowEmptyMessage={!isRootCauseSelectionStep ? false : true}
@@ -255,8 +257,7 @@ const StepsContainer = styled('div')`
   margin-bottom: 13em;
 `;
 
-const StepCard = styled('div')<{active?: boolean}>`
-  opacity: ${p => (p.active ? 1 : 0.6)};
+const StepCard = styled('div')`
   overflow: hidden;
 
   :last-child {

@@ -254,8 +254,8 @@ const onboarding: OnboardingConfig = {
         },
         {
           description: tct(
-            'For the server, create an instrument file [codeFile:instrument.server.mjs], initialize the Sentry SDK and deploy it alongside your application. For example by placing it in the [codeFolder:public] folder.',
-            {codeFile: <code />, codeFolder: <code />}
+            'For the server, create an instrument file [code:instrument.server.mjs], initialize the Sentry SDK and deploy it alongside your application. For example by placing it in the [code:public] folder.',
+            {code: <code />}
           ),
           code: [
             {
@@ -266,8 +266,8 @@ const onboarding: OnboardingConfig = {
             },
           ],
           additionalInfo: tct(
-            'Note: Placing [codeFile:instrument.server.mjs] inside the [codeFolder:public] folder makes it accessible to the outside world. Consider blocking requests to this file or finding a more appropriate location which your backend can access.',
-            {codeFile: <code />, codeFolder: <code />}
+            'Note: Placing [code:instrument.server.mjs] inside the [code:public] folder makes it accessible to the outside world. Consider blocking requests to this file or finding a more appropriate location which your backend can access.',
+            {code: <code />}
           ),
         },
         ...(params.isPerformanceSelected
@@ -309,10 +309,9 @@ const onboarding: OnboardingConfig = {
               },
               {
                 description: tct(
-                  "If you're using [solidRouterLink:Solid Router], wrap your [codeRouter:Router] with [codeRouterWrapping:withSentryRouterRouting]. This creates a higher order component, which will enable Sentry to collect navigation spans.",
+                  "If you're using [solidRouterLink:Solid Router], wrap your [code:Router] with [code:withSentryRouterRouting]. This creates a higher order component, which will enable Sentry to collect navigation spans.",
                   {
-                    codeRouter: <code />,
-                    codeRouterWrapping: <code />,
+                    code: <code />,
                     solidRouterLink: (
                       <ExternalLink href="https://docs.solidjs.com/solid-router" />
                     ),
@@ -334,13 +333,9 @@ const onboarding: OnboardingConfig = {
           : []),
         {
           description: tct(
-            'Add an [codeFlag:--import] flag to the [codeNodeOptions:NODE_OPTIONS] environment variable wherever you run your application to import [codeInstrument:public/instrument.server.mjs]. For example, update your [codeScripts:scripts] entry in [codePackageJson:package.json]',
+            'Add an [code:--import] flag to the [code:NODE_OPTIONS] environment variable wherever you run your application to import [code:public/instrument.server.mjs]. For example, update your [code:scripts] entry in [code:package.json]',
             {
-              codeFlag: <code />,
-              codeNodeOptions: <code />,
-              codeInstrument: <code />,
-              codeScripts: <code />,
-              codePackageJson: <code />,
+              code: <code />,
             }
           ),
           code: [
@@ -392,22 +387,6 @@ const onboarding: OnboardingConfig = {
       name: t('Solid Features'),
       description: t('Learn about our first class integration with the Solid framework.'),
       link: 'https://docs.sentry.io/platforms/javascript/guides/solid/features/',
-    },
-    {
-      id: 'performance-monitoring',
-      name: t('Performance Monitoring'),
-      description: t(
-        'Track down transactions to connect the dots between 10-second page loads and poor-performing API calls or slow database queries.'
-      ),
-      link: 'https://docs.sentry.io/platforms/javascript/guides/solid/tracing/',
-    },
-    {
-      id: 'session-replay',
-      name: t('Session Replay'),
-      description: t(
-        'Get to the root cause of an error or latency issue faster by seeing all the technical details related to that issue in one visual replay on your web application.'
-      ),
-      link: 'https://docs.sentry.io/platforms/javascript/guides/solid/session-replay/',
     },
   ],
 };

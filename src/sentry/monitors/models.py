@@ -31,13 +31,12 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-from sentry.db.models.fields.slug import SentrySlugField
+from sentry.db.models.fields.slug import DEFAULT_SLUG_MAX_LENGTH, SentrySlugField
 from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.utils import slugify_instance
 from sentry.locks import locks
 from sentry.models.environment import Environment
 from sentry.models.rule import Rule, RuleSource
-from sentry.monitors.constants import MAX_SLUG_LENGTH
 from sentry.monitors.types import CrontabSchedule, IntervalSchedule
 from sentry.types.actor import Actor
 from sentry.utils.retries import TimedRetryPolicy
@@ -296,14 +295,12 @@ class Monitor(Model):
                     self,
                     self.name,
                     organization_id=self.organization_id,
-                    max_length=MAX_SLUG_LENGTH,
+                    max_length=DEFAULT_SLUG_MAX_LENGTH,
                 )
         return super().save(*args, **kwargs)
 
     @property
     def owner_actor(self) -> Actor | None:
-        if not (self.owner_user_id or self.owner_team_id):
-            return None
         return Actor.from_id(user_id=self.owner_user_id, team_id=self.owner_team_id)
 
     @property
