@@ -20,6 +20,8 @@ type RawFlag = {
 export type RawFlagData = {data: RawFlag[]};
 
 type FlagSeriesDatapoint = {
+  // flag action
+  label: {formatter: () => string};
   // flag name
   name: string;
   // unix timestamp
@@ -53,7 +55,8 @@ function hydrateFlagData({
   const flagData = rawFlagData.data.map(f => {
     return {
       xAxis: Date.parse(f.created_at),
-      name: `${f.flag} ${f.action}`,
+      label: {formatter: () => f.action},
+      name: `${f.flag}`,
     };
   });
   return flagData;
@@ -99,7 +102,7 @@ export default function useFlagSeries({query = {}}: {query?: Record<string, any>
           `<div><span class="tooltip-label"><strong>${t(
             'Feature Flag'
           )}</strong></span></div>`,
-          `<div>${data.name}</div>`,
+          `<div><code class="code-no-margin">${data.name}</code>${data.label.formatter()}</div>`,
           '</div>',
           '<div class="tooltip-footer">',
           time,
