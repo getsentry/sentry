@@ -513,7 +513,7 @@ const CausesContainer = styled('div')`
   border: 1px solid ${p => p.theme.innerBorder};
   border-radius: ${p => p.theme.borderRadius};
   overflow: hidden;
-  box-shadow: ${p => p.theme.dropShadowHeavy};
+  box-shadow: ${p => p.theme.dropShadowMedium};
 `;
 
 const PotentialCausesContainer = styled(CausesContainer)`

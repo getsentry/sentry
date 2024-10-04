@@ -267,7 +267,7 @@ const ChangesContainer = styled('div')`
   border: 1px solid ${p => p.theme.innerBorder};
   border-radius: ${p => p.theme.borderRadius};
   overflow: hidden;
-  box-shadow: ${p => p.theme.dropShadowHeavy};
+  box-shadow: ${p => p.theme.dropShadowMedium};
   padding-left: ${space(2)};
   padding-right: ${space(2)};
   padding-top: ${space(1)};

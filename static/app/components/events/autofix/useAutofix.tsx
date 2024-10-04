@@ -66,10 +66,7 @@ const makeErrorAutofixData = (errorMessage: string): AutofixResponse => {
   return data;
 };
 
-const isPolling = (autofixData?: AutofixData | null) =>
-  autofixData?.status === 'PROCESSING' ||
-  autofixData?.status === 'PENDING' ||
-  autofixData?.status === 'NEED_MORE_INFORMATION';
+const isPolling = (autofixData?: AutofixData | null) => autofixData?.status !== 'PENDING';
 
 export const useAutofixData = ({groupId}: {groupId: string}) => {
   const {data} = useApiQuery<AutofixResponse>(makeAutofixQueryKey(groupId), {
