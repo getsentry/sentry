@@ -203,11 +203,17 @@ class DeleteIssuePlatformTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         )
         return occurrence, issue_platform_group
 
+    def select_error_events(self, project_id: int) -> object:
+        columns = ["event_id", "group_id"]
+        return self.select_rows(Entity(EntityKey.Events.value), columns, project_id)
+
     def select_issue_platform_events(self, project_id: int) -> object:
         columns = ["event_id", "group_id", "occurrence_id"]
         return self.select_rows(Entity(EntityKey.IssuePlatform.value), columns, project_id)
 
-    def select_rows(self, entity: Entity, columns: list[str], project_id: int) -> object:
+    def select_rows(
+        self, entity: Entity, columns: list[str], project_id: int
+    ) -> None | dict[str, object]:
         # Adding the random microseconds is to circumvent Snuba's caching mechanism
         now = datetime.now()
         start_time = now - timedelta(days=1, microseconds=random.randint(0, 100000000))
@@ -227,7 +233,7 @@ class DeleteIssuePlatformTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
             tenant_ids=self.tenant_ids,
         )
         results = bulk_snuba_queries([request])[0]["data"]
-        return results
+        return results[0] if results else None
 
     @property
     def tenant_ids(self) -> dict[str, str]:
@@ -235,7 +241,8 @@ class DeleteIssuePlatformTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
 
     def test_issue_platform(self) -> None:
         # Adding this query here to make sure that the cache is not being used
-        assert self.select_issue_platform_events(self.project.id) == []
+        assert self.select_error_events(self.project.id) is None
+        assert self.select_issue_platform_events(self.project.id) is None
         # Create initial error event and occurrence related to it; two different groups will exist
         event = self.store_event(data={}, project_id=self.project.id)
         occurrence, group_info = self.create_occurrence(event, type_id=FeedbackGroup.type_id)
@@ -248,28 +255,28 @@ class DeleteIssuePlatformTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         assert event.group.issue_category == GroupCategory.ERROR
         assert issue_platform_group.issue_category != GroupCategory.ERROR
         # Assert that the occurrence has been inserted in Snuba
-        expected = [
-            {
-                "event_id": event.event_id,
-                "group_id": issue_platform_group.id,
-                "occurrence_id": occurrence.id,
-            }
-        ]
-        assert self.select_issue_platform_events(self.project.id) == expected
+        error_expected = {"event_id": event.event_id, "group_id": event.group_id}
+        occurrence_expected = {
+            "event_id": event.event_id,
+            "group_id": issue_platform_group.id,
+            "occurrence_id": occurrence.id,
+        }
+        assert self.select_error_events(self.project.id) == error_expected
+        assert self.select_issue_platform_events(self.project.id) == occurrence_expected
 
-        # This will delete the group and the events from the node store
-        with self.tasks():
+        # This will delete the group and the events from the node store and Snuba
+        with self.tasks(), self.feature({"organizations:issue-platform-deletion": True}):
             delete_groups(object_ids=[issue_platform_group.id])
 
         # The original event and group still exist
         assert Group.objects.filter(id=event.group_id).exists()
         event_node_id = Event.generate_node_id(event.project_id, event.event_id)
         assert nodestore.backend.get(event_node_id)
-
+        assert self.select_error_events(self.project.id) == error_expected
         # The Issue Platform group and occurrence are deleted
         assert issue_platform_group.issue_type == FeedbackGroup
         assert not Group.objects.filter(id=issue_platform_group.id).exists()
         occurrence_node_id = Event.generate_node_id(occurrence.project_id, occurrence.id)
         assert not nodestore.backend.get(occurrence_node_id)
-        # We don't yet delete the occurrence from Snuba but it will expire with the TTL
-        assert self.select_issue_platform_events(self.project.id) == expected
+        # Assert that occurrence is gone
+        assert self.select_issue_platform_events(self.project.id) is None
