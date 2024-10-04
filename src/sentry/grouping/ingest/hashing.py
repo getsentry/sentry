@@ -21,6 +21,7 @@ from sentry.grouping.api import (
     load_grouping_config,
 )
 from sentry.grouping.ingest.config import is_in_transition
+from sentry.grouping.variants import BaseVariant
 from sentry.models.grouphash import GroupHash
 from sentry.models.grouphashmetadata import GroupHashMetadata
 from sentry.models.project import Project
@@ -37,7 +38,7 @@ logger = logging.getLogger("sentry.events.grouping")
 
 def _calculate_event_grouping(
     project: Project, event: Event, grouping_config: GroupingConfig
-) -> list[str]:
+) -> tuple[list[str], dict[str, BaseVariant]]:
     """
     Calculate hashes for the event using the given grouping config, and add them into the event
     data.
@@ -69,9 +70,9 @@ def _calculate_event_grouping(
             )
 
         with metrics.timer("event_manager.event.get_hashes", tags=metric_tags):
-            hashes, _ = event.get_hashes_and_variants(loaded_grouping_config)
+            hashes, variants = event.get_hashes_and_variants(loaded_grouping_config)
 
-        return hashes
+        return (hashes, variants)
 
 
 def maybe_run_background_grouping(project: Project, job: Job) -> None:
@@ -100,7 +101,7 @@ def _calculate_background_grouping(
         "sdk": normalized_sdk_tag_from_event(event.data),
     }
     with metrics.timer("event_manager.background_grouping", tags=metric_tags):
-        return _calculate_event_grouping(project, event, config)
+        return _calculate_event_grouping(project, event, config)[0]
 
 
 def maybe_run_secondary_grouping(
@@ -130,7 +131,7 @@ def _calculate_secondary_hashes(
     when the customer changes the grouping config.
     This causes extra load in save_event processing.
     """
-    secondary_hashes = []
+    secondary_hashes: list[str] = []
     try:
         with sentry_sdk.start_span(
             op="event_manager",
@@ -139,7 +140,7 @@ def _calculate_secondary_hashes(
             # create a copy since `_calculate_event_grouping` modifies the event to add all sorts
             # of grouping info and we don't want the secondary grouping data in there
             event_copy = copy.deepcopy(job["event"])
-            secondary_hashes = _calculate_event_grouping(
+            secondary_hashes, _ = _calculate_event_grouping(
                 project, event_copy, secondary_grouping_config
             )
     except Exception as err:
@@ -178,7 +179,7 @@ def _calculate_primary_hashes(
 
     This is pulled out into a separate function mostly in order to make testing easier.
     """
-    return _calculate_event_grouping(project, job["event"], grouping_config)
+    return _calculate_event_grouping(project, job["event"], grouping_config)[0]
 
 
 def find_grouphash_with_group(
