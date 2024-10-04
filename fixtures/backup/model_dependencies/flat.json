@@ -4,6 +4,9 @@
     "sentry.organization",
     "sentry.project"
   ],
+  "flags.flagauditlogmodel": [
+    "sentry.organization"
+  ],
   "hybridcloud.apikeyreplica": [
     "sentry.apikey",
     "sentry.organization"
@@ -880,6 +883,9 @@
     "sentry.team",
     "sentry.user",
     "workflow_engine.dataconditiongroup"
+  ],
+  "workflow_engine.detectorstate": [
+    "workflow_engine.detector"
   ],
   "workflow_engine.detectorworkflow": [
     "workflow_engine.detector",
