@@ -10,19 +10,6 @@ x-healthcheck-defaults: &healthcheck_defaults
   retries: 10
   start_period: 10s
 services:
-  memcached:
-    <<: *restart_policy
-    container_name: sentry_memcached
-    image: 'ghcr.io/getsentry/image-mirror-library-memcached:1.5-alpine'
-    healthcheck:
-      <<: *healthcheck_defaults
-      test: echo stats | nc 127.0.0.1 11211
-    ports:
-      - '11211:11211'
-    networks:
-      - sentry
-    extra_hosts:
-      host.docker.internal: host-gateway
   redis:
     <<: *restart_policy
     container_name: sentry_redis
@@ -92,9 +79,9 @@ services:
     environment:
       # https://docs.confluent.io/platform/current/installation/docker/config-reference.html#cp-kakfa-example
       KAFKA_PROCESS_ROLES: 'broker,controller'
-      KAFKA_CONTROLLER_QUORUM_VOTERS: '1001@127.0.0.1:29093'
+      KAFKA_CONTROLLER_QUORUM_VOTERS: '1@127.0.0.1:29093'
       KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
-      KAFKA_NODE_ID: '1001'
+      KAFKA_NODE_ID: '1'
       CLUSTER_ID: 'MkU3OEVBNTcwNTJENDM2Qk'
       KAFKA_LISTENERS: 'PLAINTEXT://0.0.0.0:29092,INTERNAL://0.0.0.0:9093,EXTERNAL://0.0.0.0:9092,CONTROLLER://0.0.0.0:29093'
       KAFKA_ADVERTISED_LISTENERS: 'PLAINTEXT://127.0.0.1:29092,INTERNAL://kafka:9093,EXTERNAL://127.0.0.1:9092'
@@ -105,10 +92,6 @@ services:
       KAFKA_LOG_RETENTION_HOURS: '24'
       KAFKA_MESSAGE_MAX_BYTES: '50000000' #50MB or bust
       KAFKA_MAX_REQUEST_SIZE: '50000000' #50MB on requests apparently too
-      CONFLUENT_SUPPORT_METRICS_ENABLE: 'false'
-      KAFKA_LOG4J_LOGGERS: 'kafka.cluster=WARN,kafka.controller=WARN,kafka.coordinator=WARN,kafka.log=WARN,kafka.server=WARN,state.change.logger=WARN'
-      KAFKA_LOG4J_ROOT_LOGLEVEL: 'WARN'
-      KAFKA_TOOLS_LOG4J_LOGLEVEL: 'WARN'
     ulimits:
       nofile:
         soft: 4096
@@ -144,11 +127,6 @@ services:
         read_only: true
         source: ./clickhouse/config.xml
         target: /etc/clickhouse-server/config.d/sentry.xml
-    environment:
-      # This limits Clickhouse's memory to 30% of the host memory
-      # If you have high volume and your search return incomplete results
-      # You might want to change this to a higher value (and ensure your host has enough memory)
-      MAX_MEMORY_USAGE_RATIO: 0.3
     healthcheck:
       test: [
           'CMD-SHELL',
