@@ -31,12 +31,12 @@ const getQueryTime = (date: DateString | undefined) =>
 
 interface ZoomRenderProps {
   dataZoom: DataZoomComponentOption[];
-  end: string | undefined;
+  end: Date | undefined;
   isGroupedByDate: boolean;
   onDataZoom: EChartDataZoomHandler;
   onFinished: EChartFinishedHandler;
   onRestore: EChartRestoreHandler;
-  start: string | undefined;
+  start: Date | undefined;
   toolBox: ToolboxComponentOption;
 }
 
@@ -268,8 +268,8 @@ export function useChartZoom({
     [onFinished]
   );
 
-  const startProp = start ? new Date(start).toISOString() : undefined;
-  const endProp = end ? new Date(end).toISOString() : undefined;
+  const startProp = start ? new Date(start) : undefined;
+  const endProp = end ? new Date(end) : undefined;
 
   const dataZoomProp = useMemo<DataZoomComponentOption[]>(() => {
     return showSlider

@@ -166,6 +166,7 @@ export function EventGraph({group, groupStats, searchQuery}: EventGraphProps) {
               formatter: value => formatAbbreviatedNumber(value),
             },
           }}
+          showTimeInTooltip
           {...chartZoomProps}
         />
         {discoverUrl && isGraphHovered && (
