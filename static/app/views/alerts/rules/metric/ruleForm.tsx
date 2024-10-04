@@ -1219,7 +1219,9 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       <Main fullWidth>
         <PermissionAlert access={['alerts:write']} project={project} />
         {isCustomMetricAlert(rule.aggregate) &&
-          !isInsightsMetricAlert(rule.aggregate) && <MetricsBetaEndAlert />}
+          !isInsightsMetricAlert(rule.aggregate) && (
+            <MetricsBetaEndAlert organization={organization} />
+          )}
 
         {eventView && <IncompatibleAlertQuery eventView={eventView} />}
         <Form

@@ -342,8 +342,7 @@ class Dashboard extends Component<Props, State> {
       widget_type: widget.displayType,
     });
 
-    if (widget.widgetType === WidgetType.METRICS && hasCustomMetrics(organization)) {
-      // TODO(ddm): open preview modal
+    if (widget.widgetType === WidgetType.METRICS) {
       return;
     }
 

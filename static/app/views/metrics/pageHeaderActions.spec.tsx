@@ -3,6 +3,10 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {PageHeaderActions} from 'sentry/views/metrics/pageHeaderActions';
 
 jest.mock('sentry/views/metrics/useCreateDashboard');
+jest.mock('sentry/utils/metrics/features', () => ({
+  hasCustomMetrics: jest.fn(() => true),
+  hasMetricsNewInputs: jest.fn(() => true),
+}));
 
 describe('Metrics Page Header Actions', function () {
   describe('add metric buttons', function () {

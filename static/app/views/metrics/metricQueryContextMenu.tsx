@@ -67,121 +67,132 @@ export function MetricQueryContextMenu({
   const canDelete = widgets.filter(isMetricsQueryWidget).length > 1;
   const hasDashboardFeature = organization.features.includes('dashboards-edit');
 
-  const items = useMemo<MenuItemProps[]>(
-    () => [
-      {
-        leadingItems: [<IconCopy key="icon" />],
-        key: 'duplicate',
-        label: t('Duplicate'),
-        onAction: () => {
-          trackAnalytics('ddm.widget.duplicate', {
-            organization,
-          });
-          Sentry.metrics.increment('ddm.widget.duplicate');
-          duplicateWidget(widgetIndex);
-        },
+  const items = useMemo<MenuItemProps[]>(() => {
+    const duplicateItem = {
+      leadingItems: [<IconCopy key="icon" />],
+      key: 'duplicate',
+      label: t('Duplicate'),
+      onAction: () => {
+        trackAnalytics('ddm.widget.duplicate', {
+          organization,
+        });
+        Sentry.metrics.increment('ddm.widget.duplicate');
+        duplicateWidget(widgetIndex);
       },
-      {
-        leadingItems: [<IconSiren key="icon" />],
-        key: 'add-alert',
-        label: <CreateMetricAlertFeature>{t('Create Alert')}</CreateMetricAlertFeature>,
-        disabled: !createAlert || !hasMetricAlertFeature(organization),
-        onAction: () => {
-          trackAnalytics('ddm.create-alert', {
-            organization,
-            source: 'widget',
-          });
-          Sentry.metrics.increment('ddm.widget.alert');
-          createAlert?.();
-        },
-      },
-      {
-        leadingItems: [<IconDashboard key="icon" />],
-        key: 'add-dashboard',
-        label: (
-          <Feature
-            organization={organization}
-            hookName="feature-disabled:dashboards-edit"
-            features="dashboards-edit"
-            renderDisabled={p => (
-              <Hovercard
-                body={
-                  <FeatureDisabled
-                    features={p.features}
-                    hideHelpToggle
-                    featureName={t('Metric Alerts')}
-                  />
-                }
-              >
-                {typeof p.children === 'function' ? p.children(p) : p.children}
-              </Hovercard>
-            )}
-          >
-            <span>{t('Add to Dashboard')}</span>
-          </Feature>
-        ),
-        disabled: !createDashboardWidget || !hasDashboardFeature,
-        onAction: () => {
-          if (!organization.features.includes('dashboards-edit')) {
-            return;
-          }
-          trackAnalytics('ddm.add-to-dashboard', {
-            organization,
-            source: 'widget',
-          });
-          Sentry.metrics.increment('ddm.widget.dashboard');
-          createDashboardWidget?.();
-        },
-      },
-      {
-        leadingItems: [<IconSettings key="icon" />],
-        key: 'settings',
-        disabled: !isCustomMetric({mri: metricsQuery.mri}),
-        label: t('Configure Metric'),
-        onAction: () => {
-          trackAnalytics('ddm.widget.settings', {
-            organization,
-          });
-          Sentry.metrics.increment('ddm.widget.settings');
+    };
 
-          if (!isVirtualMetric(metricsQuery)) {
-            navigateTo(
-              `/settings/projects/:projectId/metrics/${encodeURIComponent(
-                metricsQuery.mri
-              )}`,
-              router
-            );
-          }
-        },
+    const createAlertItem = {
+      leadingItems: [<IconSiren key="icon" />],
+      key: 'add-alert',
+      label: <CreateMetricAlertFeature>{t('Create Alert')}</CreateMetricAlertFeature>,
+      disabled: !createAlert || !hasMetricAlertFeature(organization),
+      onAction: () => {
+        trackAnalytics('ddm.create-alert', {
+          organization,
+          source: 'widget',
+        });
+        Sentry.metrics.increment('ddm.widget.alert');
+        createAlert?.();
       },
-      {
-        leadingItems: [<IconClose key="icon" />],
-        key: 'delete',
-        label: t('Remove Metric'),
-        disabled: !canDelete,
-        onAction: () => {
-          Sentry.metrics.increment('ddm.widget.delete');
-          removeWidget(widgetIndex);
-        },
-      },
-    ],
-    [
-      createAlert,
-      organization,
-      metricsQuery,
-      createDashboardWidget,
-      hasDashboardFeature,
-      canDelete,
-      duplicateWidget,
-      widgetIndex,
-      router,
-      removeWidget,
-    ]
-  );
+    };
 
-  if (!hasCustomMetrics(organization)) {
-    return null;
-  }
+    const addToDashboardItem = {
+      leadingItems: [<IconDashboard key="icon" />],
+      key: 'add-dashboard',
+      label: (
+        <Feature
+          organization={organization}
+          hookName="feature-disabled:dashboards-edit"
+          features="dashboards-edit"
+          renderDisabled={p => (
+            <Hovercard
+              body={
+                <FeatureDisabled
+                  features={p.features}
+                  hideHelpToggle
+                  featureName={t('Metric Alerts')}
+                />
+              }
+            >
+              {typeof p.children === 'function' ? p.children(p) : p.children}
+            </Hovercard>
+          )}
+        >
+          <span>{t('Add to Dashboard')}</span>
+        </Feature>
+      ),
+      disabled: !createDashboardWidget || !hasDashboardFeature,
+      onAction: () => {
+        if (!organization.features.includes('dashboards-edit')) {
+          return;
+        }
+        trackAnalytics('ddm.add-to-dashboard', {
+          organization,
+          source: 'widget',
+        });
+        Sentry.metrics.increment('ddm.widget.dashboard');
+        createDashboardWidget?.();
+      },
+    };
+
+    const settingsItem = {
+      leadingItems: [<IconSettings key="icon" />],
+      key: 'settings',
+      disabled: !isCustomMetric({mri: metricsQuery.mri}),
+      label: t('Configure Metric'),
+      onAction: () => {
+        trackAnalytics('ddm.widget.settings', {
+          organization,
+        });
+        Sentry.metrics.increment('ddm.widget.settings');
+
+        if (!isVirtualMetric(metricsQuery)) {
+          navigateTo(
+            `/settings/projects/:projectId/metrics/${encodeURIComponent(
+              metricsQuery.mri
+            )}`,
+            router
+          );
+        }
+      },
+    };
+
+    const deleteItem = {
+      leadingItems: [<IconClose key="icon" />],
+      key: 'delete',
+      label: t('Delete'),
+      disabled: !canDelete,
+      onAction: () => {
+        trackAnalytics('ddm.widget.delete', {
+          organization,
+        });
+        Sentry.metrics.increment('ddm.widget.delete');
+        removeWidget(widgetIndex);
+      },
+    };
+
+    if (hasCustomMetrics(organization)) {
+      return [
+        duplicateItem,
+        createAlertItem,
+        addToDashboardItem,
+        settingsItem,
+        deleteItem,
+      ];
+    }
+    return [duplicateItem, settingsItem, deleteItem];
+  }, [
+    createAlert,
+    organization,
+    metricsQuery,
+    createDashboardWidget,
+    hasDashboardFeature,
+    canDelete,
+    duplicateWidget,
+    widgetIndex,
+    router,
+    removeWidget,
+  ]);
 
   return (
     <DropdownMenu
