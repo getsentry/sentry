@@ -21,6 +21,8 @@ services:
       - '11211:11211'
     networks:
       - sentry
+    extra_hosts:
+      host.docker.internal: host-gateway
   redis:
     <<: *restart_policy
     container_name: sentry_redis
@@ -51,6 +53,8 @@ services:
       - '6379:6379'
     networks:
       - sentry
+    extra_hosts:
+      host.docker.internal: host-gateway
   postgres:
     <<: *restart_policy
     container_name: sentry_postgres
@@ -70,6 +74,8 @@ services:
       - '5432:5432'
     networks:
       - sentry
+    extra_hosts:
+      host.docker.internal: host-gateway
   kafka:
     <<: *restart_policy
     image: 'ghcr.io/getsentry/image-mirror-confluentinc-cp-kafka:7.5.0'
@@ -112,6 +118,8 @@ services:
       - '9093:9093'
     networks:
       - sentry
+    extra_hosts:
+      host.docker.internal: host-gateway
   clickhouse:
     <<: *restart_policy
     container_name: sentry_clickhouse
@@ -149,6 +157,8 @@ services:
       - '9009:9009'
     networks:
       - sentry
+    extra_hosts:
+      host.docker.internal: host-gateway
   symbolicator:
     <<: *restart_policy
     container_name: sentry_symbolicator
@@ -164,6 +174,8 @@ services:
       - '3021:3021'
     networks:
       - sentry
+    extra_hosts:
+      host.docker.internal: host-gateway
   vroom:
     <<: *restart_policy
     container_name: sentry_vroom
@@ -182,6 +194,8 @@ services:
       - '8085:8085'
     networks:
       - sentry
+    extra_hosts:
+      host.docker.internal: host-gateway
   snuba:
     <<: *restart_policy
     container_name: sentry_snuba
@@ -214,14 +228,18 @@ services:
       - kafka
       - redis
       - clickhouse
-  # bigtable:
-  #   <<: *restart_policy
-  #   container_name: sentry_bigtable
-  #   image: 'us.gcr.io/sentryio/cbtemulator:23c02d92c7a1747068eb1fc57dddbad23907d614'
-  #   ports:
-  #     - '8086:8086'
-  #   networks:
-  #     - sentry
+    extra_hosts:
+      host.docker.internal: host-gateway
+  bigtable:
+    <<: *restart_policy
+    container_name: sentry_bigtable
+    image: 'us.gcr.io/sentryio/cbtemulator:23c02d92c7a1747068eb1fc57dddbad23907d614'
+    ports:
+      - '8086:8086'
+    networks:
+      - sentry
+    extra_hosts:
+      host.docker.internal: host-gateway
   redis-cluster:
     <<: *restart_policy
     container_name: sentry_redis-cluster
