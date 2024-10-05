@@ -59,7 +59,7 @@ class IssueLinkRequester:
 
     def run(self) -> dict[str, Any]:
         with transaction.atomic(router.db_for_write(Group)):
-            response = {}
+            response: dict[str, str] = {}
 
             try:
                 request = send_and_save_sentry_app_request(
@@ -88,7 +88,9 @@ class IssueLinkRequester:
                 )
 
             if not self._validate_response(response):
-                raise APIError()
+                raise APIError(
+                    f"Invalid response format from sentry app {self.sentry_app} when linking issue"
+                )
 
             return response
 
@@ -96,7 +98,7 @@ class IssueLinkRequester:
         urlparts = urlparse(self.sentry_app.webhook_url)
         return f"{urlparts.scheme}://{urlparts.netloc}{self.uri}"
 
-    def _validate_response(self, resp) -> bool:
+    def _validate_response(self, resp: dict[str, str]) -> bool:
         return validate(instance=resp, schema_type="issue_link")
 
     def _build_headers(self) -> dict[str, str]:
