@@ -125,7 +125,7 @@ function CustomViewsIssueListHeaderTabsContent({
   const pageFilters = usePageFilters();
 
   // TODO(msun): Use the location from useLocation instead of props router in the future
-  const {cursor: _cursor, page: _page, ...queryParams} = router?.location.query;
+  const {cursor: _cursor, page: _page, viewName, ...queryParams} = router?.location.query;
 
   const {query, sort, viewId, project, environment} = queryParams;
 
@@ -179,7 +179,7 @@ function CustomViewsIssueListHeaderTabsContent({
       ? {
           id: TEMPORARY_TAB_KEY,
           key: TEMPORARY_TAB_KEY,
-          label: t('Unsaved'),
+          label: viewName ?? t('Unsaved'),
           query: query,
           querySort: sort ?? IssueSortOptions.DATE,
           isCommitted: true,

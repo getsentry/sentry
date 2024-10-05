@@ -17,6 +17,7 @@ import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -120,12 +121,27 @@ export function DraggableTabBar({
   const organization = useOrganization();
   const navigate = useNavigate();
   const location = useLocation();
+  const {tabListState} = useContext(TabsContext);
+  const {setNewViewActive, setOnNewViewsSaved} = useContext(NewTabContext);
 
   const {cursor: _cursor, page: _page, ...queryParams} = router?.location?.query ?? {};
   const {viewId} = queryParams;
 
-  const {tabListState} = useContext(TabsContext);
-  const {setNewViewActive, setOnNewViewsSaved} = useContext(NewTabContext);
+  const constructSharedViewUrl = () => {
+    const currentUrl = new URL(window.location.href);
+    currentUrl.searchParams.delete('cursor');
+    currentUrl.searchParams.delete('page');
+    currentUrl.searchParams.delete('viewId');
+    if (tabListState?.selectedItem?.textValue) {
+      currentUrl.searchParams.append('viewName', tabListState?.selectedItem?.textValue);
+    }
+    return currentUrl.href;
+  };
+
+  const {onClick: onCopyViewLink} = useCopyToClipboard({
+    text: constructSharedViewUrl(),
+    successMessage: t('Copied link to clipboard'),
+  });
 
   const handleOnReorder = (newOrder: Node<DraggableTabListItemProps>[]) => {
     const newTabs: Tab[] = newOrder
@@ -202,6 +218,15 @@ export function DraggableTabBar({
     }
   };
 
+  const handleOnShareView = () => {
+    onCopyViewLink();
+    trackAnalytics('issue_views.shared_view', {
+      organization,
+      query: queryParams.query,
+      viewName: tabListState?.selectedItem?.textValue,
+    });
+  };
+
   const handleOnDuplicate = () => {
     const idx = tabs.findIndex(tb => tb.key === tabListState?.selectedKey);
     if (idx !== -1) {
@@ -252,7 +277,7 @@ export function DraggableTabBar({
       const newTab: Tab = {
         id: tempId,
         key: tempId,
-        label: 'New View',
+        label: tempTab.label === t('Unsaved') ? 'New View' : tempTab.label,
         query: tempTab.query,
         querySort: tempTab.querySort,
         isCommitted: true,
@@ -264,7 +289,7 @@ export function DraggableTabBar({
           query: {
             ...queryParams,
             query: tempTab.query,
-            querySort: tempTab.querySort,
+            sort: tempTab.querySort,
             viewId: tempId,
           },
         },
@@ -398,6 +423,7 @@ export function DraggableTabBar({
       return makeUnsavedChangesMenuOptions({
         onRename: () => setEditingTabKey(tab.key),
         onDuplicate: handleOnDuplicate,
+        onShareView: handleOnShareView,
         onDelete: tabs.length > 1 ? handleOnDelete : undefined,
         onSave: handleOnSaveChanges,
         onDiscard: handleOnDiscardChanges,
@@ -406,6 +432,7 @@ export function DraggableTabBar({
     return makeDefaultMenuOptions({
       onRename: () => setEditingTabKey(tab.key),
       onDuplicate: handleOnDuplicate,
+      onShareView: handleOnShareView,
       onDelete: tabs.length > 1 ? handleOnDelete : undefined,
     });
   };
@@ -474,11 +501,13 @@ export function DraggableTabBar({
 const makeDefaultMenuOptions = ({
   onRename,
   onDuplicate,
+  onShareView,
   onDelete,
 }: {
+  onDuplicate: () => void;
+  onRename: () => void;
+  onShareView: () => void;
   onDelete?: () => void;
-  onDuplicate?: () => void;
-  onRename?: () => void;
 }): MenuItemProps[] => {
   const menuOptions: MenuItemProps[] = [
     {
@@ -490,6 +519,11 @@ const makeDefaultMenuOptions = ({
       key: 'duplicate-tab',
       label: t('Duplicate'),
       onAction: onDuplicate,
+    },
+    {
+      key: 'share-tab',
+      label: t('Share View'),
+      onAction: onShareView,
     },
   ];
   if (onDelete) {
@@ -506,15 +540,17 @@ const makeDefaultMenuOptions = ({
 const makeUnsavedChangesMenuOptions = ({
   onRename,
   onDuplicate,
+  onShareView,
   onDelete,
   onSave,
   onDiscard,
 }: {
+  onDiscard: () => void;
+  onDuplicate: () => void;
+  onRename: () => void;
+  onSave: () => void;
+  onShareView: () => void;
   onDelete?: () => void;
-  onDiscard?: () => void;
-  onDuplicate?: () => void;
-  onRename?: () => void;
-  onSave?: () => void;
 }): MenuItemProps[] => {
   return [
     {
@@ -535,7 +571,7 @@ const makeUnsavedChangesMenuOptions = ({
     },
     {
       key: 'default',
-      children: makeDefaultMenuOptions({onRename, onDuplicate, onDelete}),
+      children: makeDefaultMenuOptions({onRename, onDuplicate, onShareView, onDelete}),
     },
   ];
 };
