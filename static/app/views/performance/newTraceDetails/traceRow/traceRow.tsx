@@ -4,7 +4,7 @@ import type {Theme} from '@emotion/react';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import type {PlatformKey} from 'sentry/types/project';
 
-import type {TraceTree} from '../traceModels/traceTree';
+import {TraceTree} from '../traceModels/traceTree';
 import type {TraceTreeNode} from '../traceModels/traceTreeNode';
 import type {VirtualizedViewManager} from '../traceRenderers/virtualizedViewManager';
 
@@ -69,17 +69,19 @@ export function TraceRowConnectors(props: {
   manager: VirtualizedViewManager;
   node: TraceTreeNode<TraceTree.NodeValue>;
 }) {
-  const hasChildren = props.node.children.length > 0;
+  // @TODO check for visible children
+  const hasChildren = TraceTree.HasVisibleChildren(props.node);
+  const nodeDepth = TraceTree.Depth(props.node);
 
   return (
     <Fragment>
-      {props.node.connectors.map((c, i) => {
+      {TraceTree.ConnectorsTo(props.node).map((c, i) => {
         return (
           <span
             key={i}
             style={{
               left: -(
-                Math.abs(Math.abs(c) - props.node.depth) * props.manager.row_depth_padding
+                Math.abs(Math.abs(c) - nodeDepth) * props.manager.row_depth_padding
               ),
             }}
             className={`TraceVerticalConnector ${c <= 0 ? 'Orphaned' : ''}`}
@@ -87,7 +89,7 @@ export function TraceRowConnectors(props: {
         );
       })}
       {hasChildren ? <span className="TraceExpandedVerticalConnector" /> : null}
-      {props.node.isLastChild ? (
+      {TraceTree.IsLastChild(props.node) ? (
         <span className="TraceVerticalLastChildConnector" />
       ) : null}
     </Fragment>

@@ -10,7 +10,7 @@ import {
 } from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
 
 import {isMissingInstrumentationNode} from '../traceGuards';
-import type {TraceTree} from '../traceModels/traceTree';
+import {TraceTree} from '../traceModels/traceTree';
 import type {TraceTreeNode} from '../traceModels/traceTreeNode';
 import {TraceRowWidthMeasurer} from '../traceRenderers/traceRowWidthMeasurer';
 import {TraceTextMeasurer} from '../traceRenderers/traceTextMeasurer';
@@ -931,7 +931,9 @@ export class VirtualizedViewManager {
       min = Math.min(min, width);
       max = Math.max(max, width);
       innerMostNode =
-        !innerMostNode || this.columns.list.column_nodes[i].depth < innerMostNode.depth
+        !innerMostNode ||
+        TraceTree.Depth(this.columns.list.column_nodes[i]) <
+          TraceTree.Depth(innerMostNode)
           ? this.columns.list.column_nodes[i]
           : innerMostNode;
     }
@@ -940,7 +942,7 @@ export class VirtualizedViewManager {
       if (translation + max < 0) {
         this.scrollRowIntoViewHorizontally(innerMostNode);
       } else if (
-        translation + innerMostNode.depth * this.row_depth_padding >
+        translation + TraceTree.Depth(innerMostNode) * this.row_depth_padding >
         this.columns.list.width * this.view.trace_container_physical_space.width
       ) {
         this.scrollRowIntoViewHorizontally(innerMostNode);
@@ -958,8 +960,8 @@ export class VirtualizedViewManager {
     const translation = this.columns.list.translate[0];
 
     return (
-      translation + node.depth * this.row_depth_padding < 0 ||
-      translation + node.depth * this.row_depth_padding >
+      translation + TraceTree.Depth(node) * this.row_depth_padding < 0 ||
+      translation + TraceTree.Depth(node) * this.row_depth_padding >
         (this.columns.list.width * this.view.trace_container_physical_space.width) / 2
     );
   }
@@ -970,7 +972,7 @@ export class VirtualizedViewManager {
     offset_px: number = 0,
     position: 'exact' | 'measured' = 'measured'
   ) {
-    const depth_px = -node.depth * this.row_depth_padding + offset_px;
+    const depth_px = -TraceTree.Depth(node) * this.row_depth_padding + offset_px;
     const newTransform =
       position === 'exact' ? depth_px : this.clampRowTransform(depth_px);
 

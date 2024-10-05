@@ -27,7 +27,7 @@ export function MissingInstrumentationNodeDetails({
   const {projects} = useProjects();
 
   const parentTransaction = TraceTree.ParentTransaction(node);
-  const event = node.previous.value.event || node.next.value.event || null;
+  const event = node.previous.event ?? node.next.event ?? null;
   const project = projects.find(proj => proj.slug === event?.projectSlug);
   const profileId = event?.contexts?.profile?.profile_id ?? null;
 
@@ -99,10 +99,10 @@ export function MissingInstrumentationNodeDetails({
         />
       </TraceDrawerComponents.HeaderContainer>
 
-      {event.projectSlug ? (
+      {node.event?.projectSlug ? (
         <ProfilesProvider
           orgSlug={organization.slug}
-          projectSlug={event.projectSlug}
+          projectSlug={node.event?.projectSlug ?? ''}
           profileId={profileId || ''}
         >
           <ProfileContext.Consumer>
@@ -112,7 +112,7 @@ export function MissingInstrumentationNodeDetails({
                 input={profiles?.type === 'resolved' ? profiles.data : null}
                 traceID={profileId || ''}
               >
-                <ProfilePreview event={event} node={node} />
+                <ProfilePreview event={node.event!} node={node} />
               </ProfileGroupProvider>
             )}
           </ProfileContext.Consumer>

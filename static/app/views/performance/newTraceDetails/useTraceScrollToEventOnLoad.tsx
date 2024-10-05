@@ -74,7 +74,7 @@ export function useTraceScrollToEventOnLoad(options: UseTraceScrollToEventOnLoad
         // only points to the transaction, but we want to fetch the children of the
         // transaction to show the user the list of spans in that transaction
         if (scrollQueueRef.current.eventId && node?.canFetch) {
-          await trace.zoomIn(node, true, {api, organization}).catch(_e => {
+          await trace.zoom(node, true, {api, organization}).catch(_e => {
             Sentry.captureMessage('Failed to fetch children of eventId on mount');
           });
         }

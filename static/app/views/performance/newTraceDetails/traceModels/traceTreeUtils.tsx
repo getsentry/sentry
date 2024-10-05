@@ -6,7 +6,7 @@ import type {TraceTree} from './traceTree';
 import type {TraceTreeNode} from './traceTreeNode';
 
 export function getRelatedSpanErrorsFromTransaction(
-  span: TraceTree.RawSpan,
+  span: TraceTree.Span,
   node: TraceTreeNode<TraceTree.NodeValue>
 ): TraceTree.TraceError[] {
   if (!isTransactionNode(node) || !node.value?.errors?.length) {
@@ -25,7 +25,7 @@ export function getRelatedSpanErrorsFromTransaction(
 
 // Returns a list of performance errors related to the txn with ids matching the span id
 export function getRelatedPerformanceIssuesFromTransaction(
-  span: TraceTree.RawSpan,
+  span: TraceTree.Span,
   node: TraceTreeNode<TraceTree.NodeValue>
 ): TraceTree.TracePerformanceIssue[] {
   if (!isTransactionNode(node) || !node.value?.performance_issues?.length) {

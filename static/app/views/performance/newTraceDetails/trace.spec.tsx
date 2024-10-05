@@ -14,12 +14,13 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
-import {EntryType, type Event, type EventTransaction} from 'sentry/types/event';
+import {EntryType, type EventTransaction} from 'sentry/types/event';
 import type {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
 import {TraceView} from 'sentry/views/performance/newTraceDetails/index';
-
-import type {TraceTree} from './traceModels/traceTree';
+import {
+  makeSpan,
+  makeTransaction,
+} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeTestUtils';
 
 jest.mock('screenfull', () => ({
   enabled: true,
@@ -157,41 +158,11 @@ function mockSpansResponse(
   });
 }
 
-let sid = -1;
-let tid = -1;
-const span_id = () => `${++sid}`;
-const txn_id = () => `${++tid}`;
-
 const {router} = initializeOrg({
   router: {
     params: {orgId: 'org-slug', traceSlug: 'trace-id'},
   },
 });
-
-function makeTransaction(overrides: Partial<TraceFullDetailed> = {}): TraceFullDetailed {
-  const t = txn_id();
-  const s = span_id();
-  return {
-    children: [],
-    event_id: t,
-    parent_event_id: 'parent_event_id',
-    parent_span_id: 'parent_span_id',
-    start_timestamp: 0,
-    timestamp: 1,
-    generation: 0,
-    span_id: s,
-    sdk_name: 'sdk_name',
-    'transaction.duration': 1,
-    transaction: 'transaction-name' + t,
-    'transaction.op': 'transaction-op-' + t,
-    'transaction.status': '',
-    project_id: 0,
-    project_slug: 'project_slug',
-    errors: [],
-    performance_issues: [],
-    ...overrides,
-  };
-}
 
 function mockMetricsResponse() {
   MockApiClient.addMockResponse({
@@ -202,28 +173,6 @@ function mockMetricsResponse() {
       queries: [],
     },
   });
-}
-
-function makeEvent(overrides: Partial<Event> = {}, spans: RawSpanType[] = []): Event {
-  return {
-    entries: [{type: EntryType.SPANS, data: spans}],
-    ...overrides,
-  } as Event;
-}
-
-function makeSpan(overrides: Partial<RawSpanType> = {}): TraceTree.Span {
-  return {
-    span_id: '',
-    op: '',
-    description: '',
-    start_timestamp: 0,
-    timestamp: 10,
-    data: {},
-    trace_id: '',
-    childTransactions: [],
-    event: makeEvent() as EventTransaction,
-    ...overrides,
-  };
 }
 
 function getVirtualizedContainer(): HTMLElement {

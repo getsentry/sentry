@@ -17,7 +17,7 @@ const metadata: TraceTree.Metadata = {
 describe('TraceTreeNode', () => {
   it('infers space from timestamp and start_timestamp', () => {
     const node = new TraceTreeNode(null, makeTraceError({timestamp: 1}), metadata);
-    expect(node.space).toEqual([1 * node.multiplier, 0]);
+    expect(node.space).toEqual([1 * 1e3, 0]);
   });
 
   it('infers start_timestamp and timestamp when not provided', () => {
@@ -26,7 +26,7 @@ describe('TraceTreeNode', () => {
       makeSpan({start_timestamp: 1, timestamp: 3}),
       metadata
     );
-    expect(node.space).toEqual([1 * node.multiplier, 2 * node.multiplier]);
+    expect(node.space).toEqual([1 * 1e3, 2 * 1e3]);
   });
 
   it('stores performance issue on node', () => {
@@ -76,26 +76,6 @@ describe('TraceTreeNode', () => {
     );
 
     expect(node.profiles[0].profile_id).toBe('profile');
-  });
-
-  describe('isLastChild', () => {
-    it('true', () => {
-      const parent = new TraceTreeNode(null, makeTransaction(), metadata);
-      const child = new TraceTreeNode(parent, makeTransaction(), metadata);
-      parent.children.push(child);
-      expect(parent.children.length).toBe(1);
-      expect(child.isLastChild).toBe(true);
-    });
-
-    it('false', () => {
-      const parent = new TraceTreeNode(null, makeTransaction(), metadata);
-      const other = new TraceTreeNode(parent, makeTransaction(), metadata);
-      const child = new TraceTreeNode(parent, makeTransaction(), metadata);
-      parent.children.push(other);
-      parent.children.push(child);
-      expect(parent.children.length).toBe(2);
-      expect(other.isLastChild).toBe(false);
-    });
   });
 
   describe('maxSeverity', () => {

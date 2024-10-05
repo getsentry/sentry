@@ -3,7 +3,7 @@ import type {Theme} from '@emotion/react';
 import Placeholder from 'sentry/components/placeholder';
 
 import {isTraceNode} from '../traceGuards';
-import type {TraceTree} from '../traceModels/traceTree';
+import {TraceTree} from '../traceModels/traceTree';
 import type {TraceTreeNode} from '../traceModels/traceTreeNode';
 import type {VirtualizedViewManager} from '../traceRenderers/virtualizedViewManager';
 import {
@@ -44,7 +44,7 @@ export function TraceLoadingRow(props: {
         <div
           className="TraceLeftColumnInner"
           style={{
-            paddingLeft: props.node.depth * props.manager.row_depth_padding,
+            paddingLeft: TraceTree.Depth(props.node) * props.manager.row_depth_padding,
           }}
         >
           <div

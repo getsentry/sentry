@@ -168,13 +168,11 @@ export function SpanKeys({node}: {node: TraceTreeNode<TraceTree.Span>}) {
     }
   });
   unknownKeys.forEach(key => {
-    if (key !== 'event' && key !== 'childTransactions') {
-      items.push({
-        key: key,
-        subject: key,
-        value: span[key],
-      });
-    }
+    items.push({
+      key: key,
+      subject: key,
+      value: span[key],
+    });
   });
   timingKeys.forEach(timing => {
     items.push({

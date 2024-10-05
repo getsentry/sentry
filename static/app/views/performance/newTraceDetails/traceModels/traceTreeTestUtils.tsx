@@ -1,3 +1,5 @@
+import {uuid4} from '@sentry/utils';
+
 import {EntryType, type Event, type EventTransaction} from 'sentry/types/event';
 import type {
   TracePerformanceIssue,
@@ -37,7 +39,7 @@ export function makeTransaction(
     start_timestamp: 0,
     timestamp: 1,
     transaction: 'transaction',
-    'transaction.op': '',
+    'transaction.op': 'transaction.op',
     'transaction.status': '',
     performance_issues: [],
     errors: [],
@@ -45,17 +47,15 @@ export function makeTransaction(
   } as TraceTree.Transaction;
 }
 
-export function makeSpan(overrides: Partial<TraceTree.RawSpan> = {}): TraceTree.Span {
+export function makeSpan(overrides: Partial<TraceTree.Span> = {}): TraceTree.Span {
   return {
-    span_id: '',
-    op: '',
-    description: '',
+    span_id: overrides.span_id ?? uuid4(),
+    op: 'span.op',
+    description: 'span.description',
     start_timestamp: 0,
     timestamp: 10,
     data: {},
     trace_id: '',
-    childTransactions: [],
-    event: makeEvent() as EventTransaction,
     ...overrides,
   };
 }
@@ -87,14 +87,14 @@ export function makeTracePerformanceIssue(
   } as TracePerformanceIssue;
 }
 
-export function makeEvent(
+export function makeEventTransaction(
   overrides: Partial<Event> = {},
-  spans: TraceTree.RawSpan[] = []
-): Event {
+  spans: TraceTree.Span[] = []
+): EventTransaction {
   return {
     entries: [{type: EntryType.SPANS, data: spans}],
     ...overrides,
-  } as Event;
+  } as EventTransaction;
 }
 
 export function makeParentAutogroup(

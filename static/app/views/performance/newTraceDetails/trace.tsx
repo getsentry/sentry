@@ -22,7 +22,7 @@ import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
-import type {TraceTree} from './traceModels/traceTree';
+import {TraceTree} from './traceModels/traceTree';
 import type {TraceTreeNode} from './traceModels/traceTreeNode';
 import type {TraceEvents, TraceScheduler} from './traceRenderers/traceScheduler';
 import {
@@ -194,7 +194,7 @@ export function Trace({
       rerenderRef.current();
 
       treeRef.current
-        .zoomIn(node, value, {
+        .zoom(node, value, {
           api,
           organization,
         })
@@ -575,7 +575,7 @@ function RenderTraceRow(props: {
     : TRACE_CHILDREN_COUNT_WRAPPER_CLASSNAME;
 
   const listColumnStyle: React.CSSProperties = {
-    paddingLeft: node.depth * props.manager.row_depth_padding,
+    paddingLeft: TraceTree.Depth(node) * props.manager.row_depth_padding,
   };
 
   const rowProps: TraceRowProps<TraceTreeNode<TraceTree.NodeValue>> = {

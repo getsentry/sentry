@@ -180,18 +180,20 @@ export function GeneralInfo(props: GeneralInfoProps) {
     {
       key: 'start_timestamp',
       subject: t('Start Timestamp'),
-      value: traceNode.space?.[1] ? (
-        <SpanTimeRenderer timestamp={traceNode.space?.[0]} tooltipShowSeconds />
-      ) : (
-        '\u2014'
-      ),
+      value:
+        traceNode.space[1] > 0 ? (
+          <SpanTimeRenderer timestamp={traceNode.space[0]} tooltipShowSeconds />
+        ) : (
+          '\u2014'
+        ),
     },
     {
       key: 'total_duration',
       subject: t('Total Duration'),
-      value: traceNode.space?.[1]
-        ? getDuration(traceNode.space[1] / 1000, 2, true)
-        : '\u2014',
+      value:
+        traceNode.space[1] > 0
+          ? getDuration(traceNode.space[1] / 1e3, 2, true)
+          : '\u2014',
     },
     {
       key: 'user',

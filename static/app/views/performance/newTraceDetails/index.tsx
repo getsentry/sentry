@@ -303,13 +303,12 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
 
   useEffect(() => {
     if (props.status === 'error') {
-      const errorTree = TraceTree.Error(
-        {
+      const errorTree =
+        loadingTraceRef.current ??
+        TraceTree.Error({
           project_slug: projects?.[0]?.slug ?? '',
           event_id: props.traceSlug,
-        },
-        loadingTraceRef.current
-      );
+        });
       setTree(errorTree);
       return;
     }
@@ -325,13 +324,10 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
     if (props.status === 'pending') {
       const loadingTrace =
         loadingTraceRef.current ??
-        TraceTree.Loading(
-          {
-            project_slug: projects?.[0]?.slug ?? '',
-            event_id: props.traceSlug,
-          },
-          loadingTraceRef.current
-        );
+        TraceTree.Loading({
+          project_slug: projects?.[0]?.slug ?? '',
+          event_id: props.traceSlug,
+        });
 
       loadingTraceRef.current = loadingTrace;
       setTree(loadingTrace);
@@ -339,18 +335,17 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
     }
 
     if (props.trace && props.metaResults.data) {
-      const trace = TraceTree.FromTrace(
-        props.trace,
-        props.metaResults,
-        props.replayRecord
-      );
+      const trace = TraceTree.FromTrace(props.trace, {
+        meta: props.metaResults,
+        replayRecord: props.replayRecord,
+      });
 
       // Root frame + 2 nodes
       const promises: Promise<void>[] = [];
       if (trace.list.length <= 3) {
         for (const c of trace.list) {
           if (c.canFetch) {
-            promises.push(trace.zoomIn(c, true, {api, organization}).then(rerender));
+            promises.push(trace.zoom(c, true, {api, organization}).then(rerender));
           }
         }
       }

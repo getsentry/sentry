@@ -24,13 +24,6 @@ export class ParentAutogroupNode extends TraceTreeNode<TraceTree.ChildrenAutogro
     this.tail = tail;
   }
 
-  get children() {
-    if (this.expanded) {
-      return [this.head];
-    }
-    return this.tail.children;
-  }
-
   get autogroupedSegments(): [number, number][] {
     if (this._autogroupedSegments) {
       return this._autogroupedSegments;
