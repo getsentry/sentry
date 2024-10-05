@@ -123,7 +123,7 @@ class SlackIntegrationProvider(IntegrationProvider):
         identity_pipeline_config = {
             "oauth_scopes": self.identity_oauth_scopes,
             "user_scopes": self.user_scopes,
-            "redirect_url": absolute_uri("/extensions/slack/setup/"),
+            "redirect_url": absolute_uri("/extensions/slack/setup/", options.get("slack.url-prefix")),
         }
 
         identity_pipeline_view = NestedPipelineView(
