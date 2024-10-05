@@ -16,7 +16,7 @@ class IssueLinkCreator(Mediator):
     install = Param(RpcSentryAppInstallation)
     group = Param(Group)
     action = Param(str)
-    fields = Param(object)
+    fields = Param(dict)
     uri = Param(str)
     user = Param(RpcUser)
     using = router.db_for_write(PlatformExternalIssue)
