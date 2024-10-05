@@ -15,12 +15,41 @@ from sentry.sentry_apps.services.app import RpcSentryAppInstallation
 from sentry.users.services.user import RpcUser
 from sentry.utils import json
 
-logger = logging.getLogger("sentry.mediators.external-requests")
+logger = logging.getLogger("sentry.sentry_apps.external_requests")
 ACTION_TO_PAST_TENSE = {"create": "created", "link": "linked"}
 
 
 @dataclass
 class IssueLinkRequester:
+    """
+    1. Makes a POST request to another service with data used for creating or
+    linking a Sentry issue to an issue in the other service.
+
+    The data sent to the other service is always in the following format:
+        {
+            'installationId': <install_uuid>,
+            'issueId': <sentry_group_id>,
+            'webUrl': <sentry_group_web_url>,
+            <fields>,
+        }
+
+    <fields> are any of the 'create' or 'link' form fields (determined by
+    the schema for that particular service)
+
+    2. Validates the response format from the other service and returns the
+    payload.
+
+    The data sent to the other service is always in the following format:
+        {
+            'identifier': <some_identifier>,
+            'webUrl': <external_issue_web_url>,
+            'project': <top_level_identifier>,
+        }
+
+    The project and identifier are use to generate the display text for the linked
+    issue in the UI (i.e. <project>#<identifier>)
+    """
+
     install: RpcSentryAppInstallation
     uri: str
     group: Group

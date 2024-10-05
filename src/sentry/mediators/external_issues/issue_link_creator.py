@@ -32,14 +32,14 @@ class IssueLinkCreator(Mediator):
             raise APIUnauthorized(f"Invalid action '{self.action}'")
 
     def _make_external_request(self):
-        self.response = IssueLinkRequester.run(
+        self.response = IssueLinkRequester(
             install=self.install,
             uri=self.uri,
             group=self.group,
             fields=self.fields,
             user=self.user,
             action=self.action,
-        )
+        ).run()
 
     def _create_external_issue(self):
         self.external_issue = Creator.run(
