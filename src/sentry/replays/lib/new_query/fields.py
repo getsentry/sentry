@@ -154,7 +154,7 @@ class StringColumnField(ColumnField[str]):
     """String-type condition column field."""
 
 
-class OptionalStringColumnField(ColumnField[str | None]):
+class NullableStringColumnField(ColumnField[str | None]):
     """Null or string-type condition column field."""
 
 
