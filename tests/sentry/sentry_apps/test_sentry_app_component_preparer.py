@@ -184,7 +184,7 @@ class TestPreparerAlertRuleAction(TestCase):
                 id=self.install.organization_id
             ).project_set.first()
 
-    @patch("sentry.semtry_apps.external_requests.SelectRequester.run")
+    @patch("sentry.sentry_apps.external_requests.SelectRequester.run")
     def test_prepares_components_requiring_requests(self, run):
         self.preparer = SentryAppComponentPreparer(
             component=self.component,
