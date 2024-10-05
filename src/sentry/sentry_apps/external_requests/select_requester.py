@@ -33,7 +33,7 @@ class SelectRequester:
     query: str | None = field(default=None)
     dependent_data: str | None = field(default=None)
 
-    def run(self):
+    def run(self) -> dict[str, Any]:
         response: list[dict[str, str]] = []
         try:
             body = safe_urlread(
@@ -83,7 +83,7 @@ class SelectRequester:
         urlparts[4] = urlencode(query)
         return str(urlunparse(urlparts))
 
-    def _validate_response(self, resp):
+    def _validate_response(self, resp: list[dict[str, Any]]) -> bool:
         return validate(instance=resp, schema_type="select")
 
     def _format_response(self, resp: list[dict[str, Any]]) -> dict[str, Any]:
