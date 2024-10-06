@@ -20,6 +20,16 @@ import {ParentAutogroupNode} from './parentAutogroupNode';
 import {SiblingAutogroupNode} from './siblingAutogroupNode';
 import type {TraceTreeNode} from './traceTreeNode';
 
+export function makeEvent(
+  overrides: Partial<Event> = {},
+  spans: TraceTree.Span[] = []
+): Event {
+  return {
+    entries: [{type: EntryType.SPANS, data: spans}],
+    ...overrides,
+  } as Event;
+}
+
 export function makeTrace(
   overrides: Partial<TraceSplitResults<TraceTree.Transaction>>
 ): TraceSplitResults<TraceTree.Transaction> {
