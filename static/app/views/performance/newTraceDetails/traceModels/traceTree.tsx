@@ -392,15 +392,16 @@ export class TraceTree extends TraceTreeEventDispatcher {
     ) {
       const node = new TraceTreeNode(parent, value, {
         spans: options.meta?.data?.transactiontoSpanChildrenCount[value.event_id] ?? 0,
-        project_slug:
-          value && 'project_slug' in value
-            ? value.project_slug
-            : parent.metadata.project_slug ?? parent?.metadata.project_slug,
-        event_id:
-          value && 'event_id' in value
-            ? value.event_id
-            : parent.metadata.event_id ?? parent?.metadata.event_id,
+        project_slug: value && 'project_slug' in value ? value.project_slug : undefined,
+        event_id: value && 'event_id' in value ? value.event_id : undefined,
       });
+
+      if (!node.metadata.project_slug && !node.metadata.event_id) {
+        const parentNodeMetadata = TraceTree.ParentTransaction(node)?.metadata;
+        if (parentNodeMetadata) {
+          node.metadata = {...parentNodeMetadata};
+        }
+      }
 
       parent.children.push(node);
 

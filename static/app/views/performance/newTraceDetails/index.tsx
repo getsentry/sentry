@@ -303,12 +303,10 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
 
   useEffect(() => {
     if (props.status === 'error') {
-      const errorTree =
-        loadingTraceRef.current ??
-        TraceTree.Error({
-          project_slug: projects?.[0]?.slug ?? '',
-          event_id: props.traceSlug,
-        });
+      const errorTree = TraceTree.Error({
+        project_slug: projects?.[0]?.slug ?? '',
+        event_id: props.traceSlug,
+      });
       setTree(errorTree);
       return;
     }
@@ -975,6 +973,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
     tree.type !== 'trace' ||
     scrollQueueRef.current
   );
+
   return (
     <Fragment>
       <TraceTypeWarnings

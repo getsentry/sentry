@@ -203,6 +203,7 @@ async function keyboardNavigationTestSetup() {
         event_id: i + '',
         transaction: 'transaction-name' + i,
         'transaction.op': 'transaction-op-' + i,
+        project_slug: 'project_slug',
       })
     );
     mockTransactionDetailsResponse(i.toString());
@@ -698,7 +699,7 @@ describe('trace view', () => {
       const {virtualizedContainer} = await keyboardNavigationTestSetup();
       const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
 
-      mockSpansResponse(
+      const request = mockSpansResponse(
         '0',
         {},
         {
@@ -711,6 +712,8 @@ describe('trace view', () => {
       await waitFor(() => expect(rows[1]).toHaveFocus());
 
       await userEvent.keyboard('{arrowright}');
+      expect(request).toHaveBeenCalledTimes(1);
+
       expect(await screen.findByText('special-span')).toBeInTheDocument();
       await userEvent.keyboard('{arrowleft}');
       expect(screen.queryByText('special-span')).not.toBeInTheDocument();
