@@ -249,6 +249,7 @@ async function pageloadTestSetup() {
         event_id: i + '',
         transaction: 'transaction-name' + i,
         'transaction.op': 'transaction-op-' + i,
+        project_slug: 'project_slug',
       })
     );
     mockTransactionDetailsResponse(i.toString());
@@ -283,6 +284,7 @@ async function searchTestSetup() {
         event_id: i + '',
         transaction: 'transaction-name' + i,
         'transaction.op': 'transaction-op-' + i,
+        project_slug: 'project_slug',
       })
     );
     mockTransactionDetailsResponse(i.toString());
@@ -317,6 +319,7 @@ async function simpleTestSetup() {
       event_id: i + '',
       transaction: 'transaction-name' + i,
       'transaction.op': 'transaction-op-' + i,
+      project_slug: 'project_slug',
     });
 
     if (parent) {
@@ -1064,24 +1067,28 @@ describe('trace view', () => {
               event_id: '0',
               transaction: 'transaction-name-0',
               'transaction.op': 'transaction-op-0',
+              project_slug: 'project_slug',
             }),
             makeTransaction({
               span_id: '1',
               event_id: '1',
               transaction: 'transaction-name-1',
               'transaction.op': 'transaction-op-1',
+              project_slug: 'project_slug',
             }),
             makeTransaction({
               span_id: '2',
               event_id: '2',
               transaction: 'transaction-name-2',
               'transaction.op': 'transaction-op-2',
+              project_slug: 'project_slug',
             }),
             makeTransaction({
               span_id: '3',
               event_id: '3',
               transaction: 'transaction-name-3',
               'transaction.op': 'transaction-op-3',
+              project_slug: 'project_slug',
             }),
           ],
           orphan_errors: [],
