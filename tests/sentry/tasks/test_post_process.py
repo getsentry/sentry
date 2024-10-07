@@ -116,8 +116,8 @@ class BasePostProgressGroupMixin(BaseTestCase, metaclass=abc.ABCMeta):
 
 class CorePostProcessGroupTestMixin(BasePostProgressGroupMixin):
     @patch("sentry.rules.processing.processor.RuleProcessor")
-    @patch("sentry.sentry_apps.tasks.service_hooks.process_service_hook")
-    @patch("sentry.sentry_apps.tasks.sentry_apps.process_resource_change_bound.delay")
+    @patch("sentry.tasks.servicehooks.process_service_hook")
+    @patch("sentry.tasks.sentry_apps.process_resource_change_bound.delay")
     @patch("sentry.signals.event_processed.send_robust")
     def test_issueless(
         self,
@@ -543,7 +543,7 @@ class RuleProcessorTestMixin(BasePostProgressGroupMixin):
 
 
 class ServiceHooksTestMixin(BasePostProgressGroupMixin):
-    @patch("sentry.sentry_apps.tasks.service_hooks.process_service_hook")
+    @patch("sentry.tasks.servicehooks.process_service_hook")
     def test_service_hook_fires_on_new_event(self, mock_process_service_hook):
         event = self.create_event(data={}, project_id=self.project.id)
         hook = self.create_service_hook(
@@ -565,7 +565,7 @@ class ServiceHooksTestMixin(BasePostProgressGroupMixin):
             servicehook_id=hook.id, event=EventMatcher(event)
         )
 
-    @patch("sentry.sentry_apps.tasks.service_hooks.process_service_hook")
+    @patch("sentry.tasks.servicehooks.process_service_hook")
     @patch("sentry.rules.processing.processor.RuleProcessor")
     def test_service_hook_fires_on_alert(self, mock_processor, mock_process_service_hook):
         event = self.create_event(data={}, project_id=self.project.id)
@@ -594,7 +594,7 @@ class ServiceHooksTestMixin(BasePostProgressGroupMixin):
             servicehook_id=hook.id, event=EventMatcher(event)
         )
 
-    @patch("sentry.sentry_apps.tasks.service_hooks.process_service_hook")
+    @patch("sentry.tasks.servicehooks.process_service_hook")
     @patch("sentry.rules.processing.processor.RuleProcessor")
     def test_service_hook_does_not_fire_without_alert(
         self, mock_processor, mock_process_service_hook
@@ -620,7 +620,7 @@ class ServiceHooksTestMixin(BasePostProgressGroupMixin):
 
         assert not mock_process_service_hook.delay.mock_calls
 
-    @patch("sentry.sentry_apps.tasks.service_hooks.process_service_hook")
+    @patch("sentry.tasks.servicehooks.process_service_hook")
     def test_service_hook_does_not_fire_without_event(self, mock_process_service_hook):
         event = self.create_event(data={}, project_id=self.project.id)
 
@@ -640,7 +640,7 @@ class ServiceHooksTestMixin(BasePostProgressGroupMixin):
 
 
 class ResourceChangeBoundsTestMixin(BasePostProgressGroupMixin):
-    @patch("sentry.sentry_apps.tasks.sentry_apps.process_resource_change_bound.delay")
+    @patch("sentry.tasks.sentry_apps.process_resource_change_bound.delay")
     def test_processes_resource_change_task_on_new_group(self, delay):
         event = self.create_event(data={}, project_id=self.project.id)
         group = event.group
@@ -654,7 +654,7 @@ class ResourceChangeBoundsTestMixin(BasePostProgressGroupMixin):
         delay.assert_called_once_with(action="created", sender="Group", instance_id=group.id)
 
     @with_feature("organizations:integrations-event-hooks")
-    @patch("sentry.sentry_apps.tasks.sentry_apps.process_resource_change_bound.delay")
+    @patch("sentry.tasks.sentry_apps.process_resource_change_bound.delay")
     def test_processes_resource_change_task_on_error_events(self, delay):
         event = self.create_event(
             data={
@@ -689,7 +689,7 @@ class ResourceChangeBoundsTestMixin(BasePostProgressGroupMixin):
         )
 
     @with_feature("organizations:integrations-event-hooks")
-    @patch("sentry.sentry_apps.tasks.sentry_apps.process_resource_change_bound.delay")
+    @patch("sentry.tasks.sentry_apps.process_resource_change_bound.delay")
     def test_processes_resource_change_task_not_called_for_non_errors(self, delay):
         event = self.create_event(
             data={
@@ -710,7 +710,7 @@ class ResourceChangeBoundsTestMixin(BasePostProgressGroupMixin):
 
         assert not delay.called
 
-    @patch("sentry.sentry_apps.tasks.sentry_apps.process_resource_change_bound.delay")
+    @patch("sentry.tasks.sentry_apps.process_resource_change_bound.delay")
     def test_processes_resource_change_task_not_called_without_feature_flag(self, delay):
         event = self.create_event(
             data={
@@ -732,7 +732,7 @@ class ResourceChangeBoundsTestMixin(BasePostProgressGroupMixin):
         assert not delay.called
 
     @with_feature("organizations:integrations-event-hooks")
-    @patch("sentry.sentry_apps.tasks.sentry_apps.process_resource_change_bound.delay")
+    @patch("sentry.tasks.sentry_apps.process_resource_change_bound.delay")
     def test_processes_resource_change_task_not_called_without_error_created(self, delay):
         event = self.create_event(
             data={

@@ -15,7 +15,7 @@ from sentry.sentry_apps.services.app import (
     RpcSentryAppEventData,
     app_service,
 )
-from sentry.sentry_apps.tasks.sentry_apps import notify_sentry_app
+from sentry.tasks.sentry_apps import notify_sentry_app
 
 ValidationError = serializers.ValidationError
 

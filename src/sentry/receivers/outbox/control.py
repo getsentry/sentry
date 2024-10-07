@@ -24,7 +24,7 @@ from sentry.organizations.services.organization import RpcOrganizationSignal, or
 from sentry.receivers.outbox import maybe_process_tombstone
 from sentry.relocation.services.relocation_export.service import region_relocation_export_service
 from sentry.sentry_apps.models.sentry_app import SentryApp
-from sentry.sentry_apps.tasks.sentry_apps import clear_region_cache
+from sentry.tasks.sentry_apps import clear_region_cache
 
 logger = logging.getLogger(__name__)
 

@@ -36,7 +36,7 @@ class ProcessControlOutboxTest(TestCase):
             ApiApplication, self.identifier, region_name=_TEST_REGION.name
         )
 
-    @patch("sentry.sentry_apps.tasks.sentry_apps.region_caching_service")
+    @patch("sentry.tasks.sentry_apps.region_caching_service")
     def test_process_sentry_app_updates(self, mock_caching):
         org = self.create_organization()
         sentry_app = self.create_sentry_app()
