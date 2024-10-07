@@ -29,13 +29,13 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.services.repository import RpcRepository, repository_service
 from sentry.integrations.source_code_management.commit_context import CommitContextIntegration
-from sentry.integrations.source_code_management.metrics import (
-    SCMPipelineViewEvent,
-    SCMPipelineViewType,
-)
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.integrations.tasks.migrate_repo import migrate_repo
 from sentry.integrations.utils.code_mapping import RepoTree
+from sentry.integrations.utils.metrics import (
+    IntegrationPipelineViewEvent,
+    IntegrationPipelineViewType,
+)
 from sentry.models.repository import Repository
 from sentry.organizations.absolute_url import generate_organization_url
 from sentry.organizations.services.organization import RpcOrganizationSummary, organization_service
@@ -413,11 +413,13 @@ class GitHubInstallationError(StrEnum):
     USER_MISMATCH = "Authenticated user is not the same as who installed the app."
 
 
+def record_event(event: IntegrationPipelineViewType):
+    return IntegrationPipelineViewEvent(event, "source_code", GitHubIntegrationProvider.key)
+
+
 class OAuthLoginView(PipelineView):
     def dispatch(self, request: Request, pipeline) -> HttpResponseBase:
-        with SCMPipelineViewEvent(
-            SCMPipelineViewType.OAUTH_LOGIN, pipeline.provider.key
-        ).capture() as lifecycle:
+        with record_event(IntegrationPipelineViewType.OAUTH_LOGIN).capture() as lifecycle:
             self.determine_active_organization(request)
             lifecycle.add_extra(
                 "organization_id",
@@ -490,9 +492,7 @@ class GitHubInstallation(PipelineView):
         return f"https://github.com/apps/{slugify(name)}"
 
     def dispatch(self, request: Request, pipeline: Pipeline) -> HttpResponseBase:
-        with SCMPipelineViewEvent(
-            SCMPipelineViewType.GITHUB_INSTALLATION, pipeline.provider.key
-        ).capture() as lifecycle:
+        with record_event(IntegrationPipelineViewType.GITHUB_INSTALLATION).capture() as lifecycle:
             installation_id = request.GET.get(
                 "installation_id", pipeline.fetch_state("installation_id")
             )
