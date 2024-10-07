@@ -976,7 +976,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       default:
         break;
     }
-    this.setState(updateState);
+    this.setState({...updateState, chartError: false, chartErrorMessage: undefined});
   };
 
   handleDeleteRule = async () => {
