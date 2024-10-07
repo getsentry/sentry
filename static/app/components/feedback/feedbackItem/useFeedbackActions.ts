@@ -1,5 +1,6 @@
 import {useCallback} from 'react';
 
+import {bulkDelete} from 'sentry/actionCreators/group';
 import {
   addErrorMessage,
   addLoadingMessage,
@@ -10,6 +11,10 @@ import {t} from 'sentry/locale';
 import {GroupStatus} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface Props {
@@ -27,12 +32,62 @@ const mutationOptions = {
 
 export default function useFeedbackActions({feedbackItem}: Props) {
   const organization = useOrganization();
+  const projectId = feedbackItem.project?.id;
+  const api = useApi();
+  const navigate = useNavigate();
+  const {pathname, query} = useLocation();
+  const hasDelete =
+    organization.access.includes('event:admin') &&
+    organization.features.includes('issue-platform-deletion-ui');
 
   const {markAsRead, resolve} = useMutateFeedback({
     feedbackIds: [feedbackItem.id],
     organization,
     projectIds: feedbackItem.project ? [feedbackItem.project.id] : [],
   });
+
+  const onDelete = useCallback(
+    closeModal => {
+      addLoadingMessage(t('Updating feedback...'));
+
+      bulkDelete(
+        api,
+        {
+          orgId: organization.slug,
+          projectId: projectId,
+          itemIds: [feedbackItem.id],
+        },
+        {
+          complete: () => {
+            closeModal();
+            navigate(
+              normalizeUrl({
+                pathname: pathname,
+                query: {
+                  mailbox: query.mailbox,
+                  project: query.project,
+                  query: query.query,
+                  statsPeriod: query.statsPeriod,
+                },
+              })
+            );
+          },
+        }
+      );
+    },
+    [
+      api,
+      feedbackItem.id,
+      navigate,
+      organization.slug,
+      pathname,
+      projectId,
+      query.mailbox,
+      query.project,
+      query.query,
+      query.statsPeriod,
+    ]
+  );
 
   // reuse the issues ignored category for spam feedbacks
   const isResolved = feedbackItem.status === GroupStatus.RESOLVED;
@@ -63,6 +118,8 @@ export default function useFeedbackActions({feedbackItem}: Props) {
   }, [hasSeen, markAsRead]);
 
   return {
+    hasDelete,
+    onDelete,
     isResolved,
     onResolveClick,
     isSpam,

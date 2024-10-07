@@ -1,6 +1,7 @@
 import type {CSSProperties} from 'react';
 import {Fragment} from 'react';
 
+import {type ModalRenderProps, openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import {Flex} from 'sentry/components/container/flex';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
@@ -48,11 +49,24 @@ export default function FeedbackActions({
 }
 
 function LargeWidth({feedbackItem}: {feedbackItem: FeedbackIssue}) {
-  const {isResolved, onResolveClick, isSpam, onSpamClick, hasSeen, onMarkAsReadClick} =
-    useFeedbackActions({feedbackItem});
+  const {
+    hasDelete,
+    onDelete,
+    isResolved,
+    onResolveClick,
+    isSpam,
+    onSpamClick,
+    hasSeen,
+    onMarkAsReadClick,
+  } = useFeedbackActions({feedbackItem});
 
   return (
     <Fragment>
+      {hasDelete && (
+        <Button size="xs" onClick={() => openDeleteModal(onDelete)} priority="danger">
+          {t('Delete')}
+        </Button>
+      )}
       <Button
         size="xs"
         priority={isResolved ? 'danger' : 'primary'}
@@ -71,11 +85,24 @@ function LargeWidth({feedbackItem}: {feedbackItem: FeedbackIssue}) {
 }
 
 function MediumWidth({feedbackItem}: {feedbackItem: FeedbackIssue}) {
-  const {isResolved, onResolveClick, isSpam, onSpamClick, hasSeen, onMarkAsReadClick} =
-    useFeedbackActions({feedbackItem});
+  const {
+    hasDelete,
+    onDelete,
+    isResolved,
+    onResolveClick,
+    isSpam,
+    onSpamClick,
+    hasSeen,
+    onMarkAsReadClick,
+  } = useFeedbackActions({feedbackItem});
 
   return (
     <Fragment>
+      {hasDelete && (
+        <Button size="xs" onClick={() => openDeleteModal(onDelete)} priority={'danger'}>
+          {t('Delete')}
+        </Button>
+      )}
       <Button
         size="xs"
         priority={isResolved ? 'danger' : 'primary'}
@@ -110,8 +137,16 @@ function MediumWidth({feedbackItem}: {feedbackItem: FeedbackIssue}) {
 }
 
 function SmallWidth({feedbackItem}: {feedbackItem: FeedbackIssue}) {
-  const {isResolved, onResolveClick, isSpam, onSpamClick, hasSeen, onMarkAsReadClick} =
-    useFeedbackActions({feedbackItem});
+  const {
+    hasDelete,
+    onDelete,
+    isResolved,
+    onResolveClick,
+    isSpam,
+    onSpamClick,
+    hasSeen,
+    onMarkAsReadClick,
+  } = useFeedbackActions({feedbackItem});
 
   return (
     <DropdownMenu
@@ -123,6 +158,13 @@ function SmallWidth({feedbackItem}: {feedbackItem: FeedbackIssue}) {
         size: 'xs',
       }}
       items={[
+        {
+          key: 'delete',
+          label: t('Delete'),
+          onAction: () => openDeleteModal(onDelete),
+          hidden: !hasDelete,
+          priority: 'danger',
+        },
         {
           key: 'resolve',
           label: isResolved ? t('Unresolve') : t('Resolve'),
@@ -142,3 +184,22 @@ function SmallWidth({feedbackItem}: {feedbackItem: FeedbackIssue}) {
     />
   );
 }
+
+const openDeleteModal = onDelete =>
+  openModal(({Body, Footer, closeModal}: ModalRenderProps) => (
+    <Fragment>
+      <Body>
+        {t('Deleting this feedback is permanent. Are you sure you wish to continue?')}
+      </Body>
+      <Footer>
+        <Button onClick={closeModal}>{t('Cancel')}</Button>
+        <Button
+          style={{marginLeft: space(1)}}
+          priority="primary"
+          onClick={() => onDelete(closeModal)}
+        >
+          {t('Delete')}
+        </Button>
+      </Footer>
+    </Fragment>
+  ));
