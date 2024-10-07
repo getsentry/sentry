@@ -7,6 +7,7 @@ import Link from 'sentry/components/links/link';
 import ReplaySettingsAlert from 'sentry/components/replays/alerts/replaySettingsAlert';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -80,6 +81,9 @@ function ProjectReplaySettings({organization, project, params: {projectId}}: Pro
         apiMethod="PUT"
         apiEndpoint={`/projects/${organization.slug}/${projectId}/`}
         initialData={project.options}
+        onSubmitSuccess={(
+          response // This will update our project context
+        ) => ProjectsStore.onUpdateSuccess(response)}
       >
         <Access access={['project:write']} project={project}>
           {({hasAccess}) => (
