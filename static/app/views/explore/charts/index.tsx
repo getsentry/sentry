@@ -130,7 +130,12 @@ export function ExploreCharts({query}: ExploreChartsProps) {
       {visualizes.map((visualize, index) => {
         const dedupedYAxes = dedupeArray(visualize.yAxes);
         const {chartType} = visualize;
-        const chartIcon = chartType === 1 ? 'line' : chartType === 2 ? 'area' : 'bar';
+        const chartIcon =
+          chartType === ChartType.LINE
+            ? 'line'
+            : chartType === ChartType.AREA
+              ? 'area'
+              : 'bar';
 
         return (
           <ChartContainer key={index}>
