@@ -2,7 +2,6 @@ from dataclasses import dataclass
 from typing import Any
 
 from django.db import router, transaction
-from django.utils.functional import cached_property
 
 from sentry.coreapi import APIUnauthorized
 from sentry.mediators.external_requests.issue_link_requester import IssueLinkRequester
@@ -56,7 +55,3 @@ class IssueLinkCreator:
         ).run()
 
         return external_issue
-
-    @cached_property
-    def sentry_app(self):
-        return self.install.sentry_app
