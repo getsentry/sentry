@@ -180,7 +180,7 @@ export function DatabaseSpanSummaryPage({params}: Props) {
     'api.starfish.span-summary-page-metrics-chart'
   );
 
-  useSynchronizeCharts([!isThroughputDataLoading && !isDurationDataLoading]);
+  useSynchronizeCharts(2, !isThroughputDataLoading && !isDurationDataLoading);
 
   const crumbs = useModuleBreadcrumbs('db');
 
@@ -207,11 +207,7 @@ export function DatabaseSpanSummaryPage({params}: Props) {
         </Layout.Header>
       )}
 
-      {isInDomainView && (
-        <Layout.Header>
-          <BackendHeader module={ModuleName.DB} />
-        </Layout.Header>
-      )}
+      {isInDomainView && <BackendHeader module={ModuleName.DB} />}
 
       <Layout.Body>
         <Layout.Main fullWidth>

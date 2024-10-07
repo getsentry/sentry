@@ -75,11 +75,7 @@ function DestinationSummaryPage() {
         </Layout.Header>
       )}
 
-      {isInDomainView && (
-        <Layout.Header>
-          <BackendHeader module={ModuleName.QUEUE} />
-        </Layout.Header>
-      )}
+      {isInDomainView && <BackendHeader module={ModuleName.QUEUE} />}
 
       <Layout.Body>
         <Layout.Main fullWidth>
