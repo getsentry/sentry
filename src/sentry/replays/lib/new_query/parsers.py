@@ -26,8 +26,10 @@ def parse_str(value: str) -> str:
     return value
 
 
-def parse_ipv4(value: str) -> str:
+def parse_ipv4(value: str) -> str | None:
     """Validates an IPv4 address"""
+    if value == "":
+        return None
     try:
         ipaddress.IPv4Address(value)
         return value
