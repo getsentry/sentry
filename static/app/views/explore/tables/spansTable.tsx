@@ -1,19 +1,13 @@
 import {Fragment, useMemo} from 'react';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {NewQuery} from 'sentry/types/organization';
-import type {EventData} from 'sentry/utils/discover/eventView';
 import EventView from 'sentry/utils/discover/eventView';
-import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
-import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {fieldAlignment} from 'sentry/utils/discover/fields';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {
   Table,
@@ -30,7 +24,8 @@ import {useSampleFields} from 'sentry/views/explore/hooks/useSampleFields';
 import {useSorts} from 'sentry/views/explore/hooks/useSorts';
 import {useUserQuery} from 'sentry/views/explore/hooks/useUserQuery';
 import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
-import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceMetadataHeader';
+
+import {FieldRenderer} from './fieldRenderer';
 
 interface SpansTableProps {}
 
@@ -87,11 +82,20 @@ export function SpansTable({}: SpansTableProps) {
       <Table style={tableStyles}>
         <TableHead>
           <TableRow>
-            {fields.map((field, i) => (
-              <TableHeadCell key={i} isFirst={i === 0}>
-                {field}
-              </TableHeadCell>
-            ))}
+            {fields.map((field, i) => {
+              // Hide column names before alignment is determined
+              if (result.isPending) {
+                return <TableHeadCell key={i} isFirst={i === 0} />;
+              }
+
+              const fieldType = meta.fields?.[field];
+              const align = fieldAlignment(field, fieldType);
+              return (
+                <TableHeadCell align={align} key={i} isFirst={i === 0}>
+                  <span>{field}</span>
+                </TableHeadCell>
+              );
+            })}
           </TableRow>
         </TableHead>
         <TableBody>
@@ -109,12 +113,12 @@ export function SpansTable({}: SpansTableProps) {
                 {fields.map((field, j) => {
                   return (
                     <TableBodyCell key={j}>
-                      <Field
+                      <FieldRenderer
                         dataset={dataset}
                         data={row}
                         field={field}
                         unit={meta?.units?.[field]}
-                        meta={fields}
+                        meta={meta}
                       />
                     </TableBodyCell>
                   );
@@ -133,43 +137,4 @@ export function SpansTable({}: SpansTableProps) {
       <Pagination pageLinks={result.pageLinks} />
     </Fragment>
   );
-}
-
-interface FieldProps {
-  data: EventData;
-  dataset: DiscoverDatasets;
-  field: string;
-  meta: string[];
-  unit?: string;
-}
-
-function Field({data, dataset, field, meta, unit}: FieldProps) {
-  const location = useLocation();
-  const organization = useOrganization();
-
-  const renderer = getFieldRenderer(field, meta, false);
-
-  let rendered = renderer(data, {
-    location,
-    organization,
-    unit,
-  });
-
-  if (field === 'id' || field === 'span_id') {
-    const target = generateLinkToEventInTraceView({
-      projectSlug: data.project,
-      traceSlug: data.trace,
-      timestamp: data.timestamp,
-      eventId:
-        dataset === DiscoverDatasets.SPANS_INDEXED ? data['transaction.id'] : undefined,
-      organization,
-      location,
-      spanId: data.span_id,
-      source: TraceViewSources.TRACES,
-    });
-
-    rendered = <Link to={target}>{rendered}</Link>;
-  }
-
-  return <Fragment>{rendered}</Fragment>;
 }

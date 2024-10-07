@@ -1,6 +1,8 @@
 import {useMemo} from 'react';
+import styled from '@emotion/styled';
 
 import {COL_WIDTH_MINIMUM} from 'sentry/components/gridEditable';
+import type {Alignments} from 'sentry/components/gridEditable/sortLink';
 import {
   Body as _TableWrapper,
   Grid as _Table,
@@ -74,10 +76,19 @@ export function useTableStyles({
 }
 
 export const TableBody = GridBody;
-export const TableBodyCell = GridBodyCell;
+export const TableRow = GridRow;
+export const TableBodyCell = styled(GridBodyCell)`
+  &:first-child {
+    > * {
+      text-align: left;
+    }
+  }
+`;
+
 export const TableHead = GridHead;
-export const TableHeadCell = GridHeadCell;
 export const TableHeader = Header;
 export const TableHeaderActions = HeaderButtonContainer;
 export const TableHeaderTitle = HeaderTitle;
-export const TableRow = GridRow;
+export const TableHeadCell = styled(GridHeadCell)<{align?: Alignments}>`
+  justify-content: ${({isFirst, align}) => (isFirst ? 'left' : align ? align : 'right')};
+`;
