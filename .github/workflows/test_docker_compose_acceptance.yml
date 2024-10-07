@@ -88,6 +88,10 @@ jobs:
         uses: ./.github/actions/test-setup-sentry-devservices
         id: setup
 
+      - name: copy chartcuterie config to devservices chartcuterie directory
+        run: |
+          cp -r chartcuterie devservices/chartcuterie
+
       - name: Bring up devservices
         run: |
           docker network create sentry
