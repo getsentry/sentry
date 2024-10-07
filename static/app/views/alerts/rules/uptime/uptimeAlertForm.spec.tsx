@@ -1,17 +1,25 @@
 import {ActorFixture} from 'sentry-fixture/actor';
 import {MemberFixture} from 'sentry-fixture/member';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 import {TeamFixture} from 'sentry-fixture/team';
 import {UptimeRuleFixture} from 'sentry-fixture/uptimeRule';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import selectEvent from 'sentry-test/selectEvent';
 
 import OrganizationStore from 'sentry/stores/organizationStore';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import {UptimeAlertForm} from 'sentry/views/alerts/rules/uptime/uptimeAlertForm';
 
 describe('Uptime Alert Form', function () {
+  const organization = OrganizationFixture();
+  const project = ProjectFixture({environments: ['prod', 'dev']});
+
   beforeEach(function () {
+    OrganizationStore.onUpdate(organization);
+    ProjectsStore.loadInitialData([project]);
+
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/members/',
       body: [MemberFixture()],
@@ -27,13 +35,12 @@ describe('Uptime Alert Form', function () {
   }
 
   it('can create a new rule', async function () {
-    const {organization, project} = initializeOrg();
-    OrganizationStore.onUpdate(organization);
-
     render(<UptimeAlertForm organization={organization} project={project} />, {
       organization,
     });
     await screen.findByText('Configure Request');
+
+    await selectEvent.select(input('Environment'), 'prod');
 
     await userEvent.clear(input('URL'));
     await userEvent.type(input('URL'), 'http://example.com');
@@ -51,7 +58,7 @@ describe('Uptime Alert Form', function () {
     await userEvent.clear(name);
     await userEvent.type(name, 'New Uptime Rule');
 
-    await selectEvent.select(screen.getByRole('textbox', {name: 'Owner'}), 'Foo Bar');
+    await selectEvent.select(input('Owner'), 'Foo Bar');
 
     const updateMock = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/uptime/`,
@@ -64,6 +71,7 @@ describe('Uptime Alert Form', function () {
       expect.anything(),
       expect.objectContaining({
         data: expect.objectContaining({
+          environment: 'prod',
           name: 'New Uptime Rule',
           owner: 'user:1',
           url: 'http://example.com',
@@ -77,11 +85,9 @@ describe('Uptime Alert Form', function () {
   });
 
   it('renders existing rule', async function () {
-    const {organization, project} = initializeOrg();
-    OrganizationStore.onUpdate(organization);
-
     const rule = UptimeRuleFixture({
       name: 'Existing Rule',
+      environment: 'prod',
       projectSlug: project.slug,
       url: 'https://existing-url.com',
       method: 'POST',
@@ -107,6 +113,8 @@ describe('Uptime Alert Form', function () {
     expect(input('Value of X-Test2')).toHaveValue('value 2');
     await selectEvent.openMenu(input('Method'));
     expect(screen.getByRole('menuitemradio', {name: 'POST'})).toBeChecked();
+    await selectEvent.openMenu(input('Environment'));
+    expect(screen.getByRole('menuitemradio', {name: 'prod'})).toBeChecked();
   });
 
   it('handles simple edits', async function () {
@@ -115,9 +123,6 @@ describe('Uptime Alert Form', function () {
     // selected project for existing rules. The other tests all pass as the
     // triggered error state from clearing the fields causes the observer to be
     // called for the first time and correctly set the apiEndpoint.
-
-    const {organization, project} = initializeOrg();
-    OrganizationStore.onUpdate(organization);
 
     const rule = UptimeRuleFixture({
       name: 'Existing Rule',
@@ -151,7 +156,6 @@ describe('Uptime Alert Form', function () {
   });
 
   it('can edit an existing rule', async function () {
-    const {organization, project} = initializeOrg();
     OrganizationStore.onUpdate(organization);
 
     const rule = UptimeRuleFixture({
@@ -167,6 +171,7 @@ describe('Uptime Alert Form', function () {
     await screen.findByText('Configure Request');
 
     await selectEvent.select(input('Interval'), 'Every 10 minutes');
+    await selectEvent.select(input('Environment'), 'dev');
 
     await userEvent.clear(input('URL'));
     await userEvent.type(input('URL'), 'http://another-url.com');
@@ -187,7 +192,7 @@ describe('Uptime Alert Form', function () {
     await userEvent.clear(name);
     await userEvent.type(name, 'Updated name');
 
-    await selectEvent.select(screen.getByRole('textbox', {name: 'Owner'}), 'Foo Bar');
+    await selectEvent.select(input('Owner'), 'Foo Bar');
 
     const updateMock = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/uptime/${rule.id}/`,
@@ -201,6 +206,7 @@ describe('Uptime Alert Form', function () {
       expect.objectContaining({
         data: expect.objectContaining({
           name: 'Updated name',
+          environment: 'dev',
           owner: 'user:1',
           url: 'http://another-url.com',
           method: 'POST',
@@ -216,7 +222,6 @@ describe('Uptime Alert Form', function () {
   });
 
   it('does not show body for GET and HEAD', async function () {
-    const {organization, project} = initializeOrg();
     OrganizationStore.onUpdate(organization);
 
     const rule = UptimeRuleFixture({
@@ -242,6 +247,80 @@ describe('Uptime Alert Form', function () {
     // POST
     await selectEvent.clearAll(input('Method'));
     await selectEvent.select(input('Method'), 'POST');
-    expect(screen.getByRole('textbox', {name: 'Body'})).toBeInTheDocument();
+    expect(input('Body')).toBeInTheDocument();
+  });
+
+  it('updates environments for different projects', async function () {
+    OrganizationStore.onUpdate(organization);
+
+    const project1 = ProjectFixture({
+      slug: 'project-1',
+      environments: ['dev-1', 'prod-1'],
+    });
+    const project2 = ProjectFixture({
+      slug: 'project-2',
+      environments: ['dev-2', 'prod-2'],
+    });
+
+    ProjectsStore.loadInitialData([project, project1, project2]);
+    render(<UptimeAlertForm organization={organization} project={project} />, {
+      organization,
+    });
+    await screen.findByText('Configure Request');
+
+    // Select project 1
+    await selectEvent.openMenu(input('Project'));
+    expect(screen.getByRole('menuitemradio', {name: 'project-1'})).toBeInTheDocument();
+    expect(screen.getByRole('menuitemradio', {name: 'project-2'})).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'project-1'}));
+
+    // Verify correct envs
+    await selectEvent.openMenu(input('Environment'));
+    expect(screen.getByRole('menuitemradio', {name: 'dev-1'})).toBeInTheDocument();
+    expect(screen.getByRole('menuitemradio', {name: 'prod-1'})).toBeInTheDocument();
+
+    // Select project 2
+    await selectEvent.openMenu(input('Project'));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'project-2'}));
+
+    // Verify correct envs
+    await selectEvent.openMenu(input('Environment'));
+    expect(screen.getByRole('menuitemradio', {name: 'dev-2'})).toBeInTheDocument();
+    expect(screen.getByRole('menuitemradio', {name: 'prod-2'})).toBeInTheDocument();
+  });
+
+  it('can create a new environment', async function () {
+    OrganizationStore.onUpdate(organization);
+
+    render(<UptimeAlertForm organization={organization} project={project} />, {
+      organization,
+    });
+    await screen.findByText('Configure Request');
+
+    await userEvent.type(input('Environment'), 'my-custom-env');
+    await userEvent.click(
+      screen.getByRole('menuitemradio', {name: 'Create "my-custom-env"'})
+    );
+
+    await userEvent.clear(input('URL'));
+    await userEvent.type(input('URL'), 'http://example.com');
+
+    const name = input('Uptime rule name');
+    await userEvent.clear(name);
+    await userEvent.type(name, 'New Uptime Rule');
+
+    const updateMock = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/uptime/`,
+      method: 'POST',
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Create Rule'}));
+
+    expect(updateMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        data: expect.objectContaining({}),
+      })
+    );
   });
 });
