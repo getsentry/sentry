@@ -20,9 +20,7 @@ from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.rule import Rule
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
-from sentry.shared_integrations.exceptions import ClientError
-from sentry.tasks.post_process import post_process_group
-from sentry.tasks.sentry_apps import (
+from sentry.sentry_apps.tasks.sentry_apps import (
     build_comment_webhook,
     installation_webhook,
     notify_sentry_app,
@@ -31,6 +29,8 @@ from sentry.tasks.sentry_apps import (
     send_webhooks,
     workflow_notification,
 )
+from sentry.shared_integrations.exceptions import ClientError
+from sentry.tasks.post_process import post_process_group
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
@@ -272,7 +272,7 @@ class TestProcessResourceChange(TestCase):
 
         assert len(safe_urlopen.mock_calls) == 0
 
-    @patch("sentry.tasks.sentry_apps._process_resource_change")
+    @patch("sentry.sentry_apps.tasks.sentry_apps._process_resource_change")
     def test_process_resource_change_bound_passes_retry_object(self, process, safe_urlopen):
         group = self.create_group(project=self.project)
 
