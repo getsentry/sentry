@@ -109,7 +109,8 @@ class IframeViewTest(APITestCase):
 
 
 def _get_csp_parts(response):
-    csp = response.headers.get("c")  # TODO: Why "c" and not "Content-Security-Policy"?
+    # Fallback to `c` for tests in dev.
+    csp = response.headers.get("Content-Security-Policy", response.headers.get("c"))
     return [chunk.strip() for chunk in csp.split(";")]
 
 
