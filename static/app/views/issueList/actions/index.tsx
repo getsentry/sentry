@@ -11,6 +11,7 @@ import {
 import {Alert} from 'sentry/components/alert';
 import Checkbox from 'sentry/components/checkbox';
 import {Sticky} from 'sentry/components/sticky';
+import ToolbarHeader from 'sentry/components/toolbarHeader';
 import {t, tct, tn} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -137,8 +138,10 @@ function ActionsBarPriority({
           )}
           {!anySelected && (
             <HeaderButtonsWrapper key="sort" {...animationProps}>
-              {!organization.features.includes('issue-stream-table-layout') && (
+              {!organization.features.includes('issue-stream-table-layout') ? (
                 <IssueListSortOptions sort={sort} query={query} onSelect={onSortChange} />
+              ) : (
+                <ToolbarHeader>{t('Issue')}</ToolbarHeader>
               )}
             </HeaderButtonsWrapper>
           )}
