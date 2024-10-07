@@ -61,7 +61,7 @@ class ProjectOwnership(Model):
     __repr__ = sane_repr("project_id", "is_active")
 
     @classmethod
-    def get_cache_key(self, project_id):
+    def get_cache_key(self, project_id) -> str:
         return f"projectownership_project_id:1:{project_id}"
 
     @classmethod
@@ -134,12 +134,14 @@ class ProjectOwnership(Model):
 
         owners = {o for rule in rules for o in rule.owners}
         owners_to_actors = resolve_actors(owners, project_id)
-        ordered_actors = []
+        ordered_actors: list[Actor] = []
         for rule in rules:
             for o in rule.owners:
-                if o in owners and owners_to_actors.get(o) is not None:
-                    ordered_actors.append(owners_to_actors[o])
-                    owners.remove(o)
+                if o in owners:
+                    actor = owners_to_actors.get(o)
+                    if actor is not None:
+                        ordered_actors.append(actor)
+                        owners.remove(o)
 
         return ordered_actors, rules
 
@@ -236,7 +238,7 @@ class ProjectOwnership(Model):
         organization_id: int | None = None,
         force_autoassign: bool = False,
         logging_extra: dict[str, str | bool | int] | None = None,
-    ):
+    ) -> None:
         """
         Get the auto-assign owner for a project if there are any.
         We combine the schemas from IssueOwners and CodeOwners.
