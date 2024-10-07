@@ -1,6 +1,30 @@
 from kombu import Queue
 
-from sentry.utils.celery import build_queue_names, make_split_queues, safe_append, safe_extend
+from sentry.utils.celery import (
+    build_queue_names,
+    make_split_queues,
+    make_split_task_queues,
+    safe_append,
+    safe_extend,
+)
+
+
+def test_split_task_queue() -> None:
+    assert make_split_task_queues(
+        {
+            "my_task": {
+                "default_queue": "my_queue",
+            },
+            "my_other_task": {
+                "default_queue": "my_other_queue",
+                "queues_config": {"total": 3, "in_use": 1},
+            },
+        }
+    ) == [
+        Queue(name="my_other_queue_1", routing_key="my_other_queue_1"),
+        Queue(name="my_other_queue_2", routing_key="my_other_queue_2"),
+        Queue(name="my_other_queue_3", routing_key="my_other_queue_3"),
+    ]
 
 
 def test_split_queue() -> None:
