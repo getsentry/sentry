@@ -75,18 +75,7 @@ export default function useFeedbackActions({feedbackItem}: Props) {
         }
       );
     },
-    [
-      api,
-      feedbackItem.id,
-      navigate,
-      organization.slug,
-      pathname,
-      projectId,
-      query.mailbox,
-      query.project,
-      query.query,
-      query.statsPeriod,
-    ]
+    [api, feedbackItem.id, navigate, organization.slug, pathname, projectId, query]
   );
 
   // reuse the issues ignored category for spam feedbacks
