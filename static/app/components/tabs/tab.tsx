@@ -1,5 +1,5 @@
 import {forwardRef, useCallback} from 'react';
-import type {Theme} from '@emotion/react';
+import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {AriaTabProps} from '@react-aria/tabs';
 import {useTab} from '@react-aria/tabs';
@@ -187,11 +187,10 @@ const FloatingTabWrap = styled('li', {shouldForwardProp: tabsShouldForwardProp})
   overflowing: boolean;
 }>`
   &[aria-selected='true'] {
-    ${p =>
-      `
-        color: ${p.theme.purple400};
-        font-weight: ${p.theme.fontWeightBold};
-        background-color: ${p.theme.purple100};
+    ${p => css`
+      color: ${p.theme.purple400};
+      font-weight: ${p.theme.fontWeightBold};
+      background-color: ${p.theme.purple100};
     `}
   }
   &[aria-selected='false'] {
@@ -207,7 +206,7 @@ const FloatingTabWrap = styled('li', {shouldForwardProp: tabsShouldForwardProp})
   }
   ${p =>
     p.overflowing &&
-    `
+    css`
       opacity: 0;
       pointer-events: none;
     `}
@@ -218,13 +217,12 @@ const FilledTabWrap = styled('li', {shouldForwardProp: tabsShouldForwardProp})<{
   overflowing: boolean;
 }>`
   &[aria-selected='true'] {
-    ${p =>
-      `
-        border-top: 1px ${p.borderStyle} ${p.theme.border};
-        border-left: 1px ${p.borderStyle} ${p.theme.border};
-        border-right: 1px ${p.borderStyle} ${p.theme.border};
-        background-color: ${p.theme.background};
-        font-weight: ${p.theme.fontWeightBold};
+    ${p => css`
+      border-top: 1px ${p.borderStyle} ${p.theme.border};
+      border-left: 1px ${p.borderStyle} ${p.theme.border};
+      border-right: 1px ${p.borderStyle} ${p.theme.border};
+      background-color: ${p.theme.background};
+      font-weight: ${p.theme.fontWeightBold};
     `}
   }
 
@@ -245,7 +243,7 @@ const FilledTabWrap = styled('li', {shouldForwardProp: tabsShouldForwardProp})<{
 
   ${p =>
     p.overflowing &&
-    `
+    css`
       opacity: 0;
       pointer-events: none;
     `}
@@ -276,7 +274,7 @@ const TabWrap = styled('li', {shouldForwardProp: tabsShouldForwardProp})<{
 
   ${p =>
     p.overflowing &&
-    `
+    css`
       opacity: 0;
       pointer-events: none;
     `}
@@ -288,27 +286,26 @@ const innerWrapStyles = ({
 }: {
   orientation: Orientation;
   theme: Theme;
-}) => `
+}) => css`
   display: flex;
   align-items: center;
   position: relative;
   height: calc(
-    ${theme.form.sm.height}px +
-      ${orientation === 'horizontal' ? space(0.75) : '0px'}
+    ${theme.form.sm.height}px + ${orientation === 'horizontal' ? space(0.75) : '0px'}
   );
   border-radius: ${theme.borderRadius};
   transform: translateY(1px);
 
-  ${
-    orientation === 'horizontal'
-      ? `
+  ${orientation === 'horizontal'
+    ? css`
         /* Extra padding + negative margin trick, to expand click area */
         padding: ${space(0.75)} ${space(1)} ${space(1.5)};
         margin-left: -${space(1)};
         margin-right: -${space(1)};
       `
-      : `padding: ${space(0.75)} ${space(2)};`
-  };
+    : css`
+        padding: ${space(0.75)} ${space(2)};
+      `};
 `;
 
 const TabLink = styled(Link)<{orientation: Orientation}>`
@@ -422,20 +419,20 @@ const TabSelectionIndicator = styled('div')<{
 
   ${p =>
     p.orientation === 'horizontal'
-      ? `
-        width: calc(100% - ${space(2)});
-        height: 3px;
+      ? css`
+          width: calc(100% - ${space(2)});
+          height: 3px;
 
-        bottom: 0;
-        left: 50%;
-        transform: translateX(-50%);
-      `
-      : `
-        width: 3px;
-        height: 50%;
+          bottom: 0;
+          left: 50%;
+          transform: translateX(-50%);
+        `
+      : css`
+          width: 3px;
+          height: 50%;
 
-        left: 0;
-        top: 50%;
-        transform: translateY(-50%);
-      `};
+          left: 0;
+          top: 50%;
+          transform: translateY(-50%);
+        `};
 `;

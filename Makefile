@@ -36,7 +36,6 @@ devenv-sync:
 
 build-js-po:
 	mkdir -p build
-	rm -rf node_modules/.cache/babel-loader
 	SENTRY_EXTRACT_TRANSLATIONS=1 $(WEBPACK)
 
 build-spectacular-docs:
