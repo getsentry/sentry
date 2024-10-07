@@ -116,6 +116,8 @@ class ProjectRuleActionsEndpoint(ProjectEndpoint):
                         f"An unexpected error occurred. Error ID: '{error_id}'"
                     )
 
+                break
+
         status = None
         data = None
         # Presence of "actions" here means we have exceptions to surface to the user
