@@ -292,7 +292,6 @@ class ReleaseSeries extends Component<ReleaseSeriesProps, State> {
             '<div class="tooltip-footer">',
             time,
             '</div>',
-            '</div>',
             '<div class="tooltip-arrow"></div>',
           ].join('');
         },
