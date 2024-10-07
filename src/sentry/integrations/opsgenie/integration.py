@@ -19,6 +19,8 @@ from sentry.integrations.base import (
 )
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.on_call.metrics import OnCallInteractionEvent, OnCallInteractionType
+from sentry.integrations.opsgenie.spec import OpsgenieOnCallSpec
 from sentry.integrations.opsgenie.tasks import migrate_opsgenie_plugin
 from sentry.organizations.services.organization import RpcOrganizationSummary
 from sentry.pipeline import PipelineView
@@ -180,40 +182,43 @@ class OpsgenieIntegration(IntegrationInstallation):
             team["id"] = str(self.org_integration.id) + "-" + team["team"]
 
         invalid_keys = []
-        for team in teams:
-            # skip if team, key pair already exist in config
-            if (team["team"], team["integration_key"]) in existing_team_key_pairs:
-                continue
+        with OnCallInteractionEvent(
+            OnCallInteractionType.VERIFY_KEYS, OpsgenieOnCallSpec()
+        ).capture():
+            for team in teams:
+                # skip if team, key pair already exist in config
+                if (team["team"], team["integration_key"]) in existing_team_key_pairs:
+                    continue
 
-            integration_key = team["integration_key"]
+                integration_key = team["integration_key"]
 
-            # validate integration keys
-            client = OpsgenieClient(
-                integration=integration,
-                integration_key=integration_key,
-            )
-            # call an API to test the integration key
-            try:
-                client.get_alerts()
-            except ApiError as e:
-                logger.info(
-                    "opsgenie.authorization_error",
-                    extra={"error": str(e), "status_code": e.code},
+                # validate integration keys
+                client = OpsgenieClient(
+                    integration=integration,
+                    integration_key=integration_key,
                 )
-                if e.code == 429:
-                    raise ApiRateLimitedError(
-                        "Too many requests. Please try updating one team/key at a time."
+                # call an API to test the integration key
+                try:
+                    client.get_alerts()
+                except ApiError as e:
+                    logger.info(
+                        "opsgenie.authorization_error",
+                        extra={"error": str(e), "status_code": e.code},
                     )
-                elif e.code == 401:
-                    invalid_keys.append(integration_key)
-                    pass
-                elif e.json and e.json.get("message"):
-                    raise ApiError(e.json["message"])
-                else:
-                    raise
+                    if e.code == 429:
+                        raise ApiRateLimitedError(
+                            "Too many requests. Please try updating one team/key at a time."
+                        )
+                    elif e.code == 401:
+                        invalid_keys.append(integration_key)
+                        pass
+                    elif e.json and e.json.get("message"):
+                        raise ApiError(e.json["message"])
+                    else:
+                        raise
 
-        if invalid_keys:
-            raise ApiUnauthorized(f"Invalid integration key: {str(invalid_keys)}")
+            if invalid_keys:
+                raise ApiUnauthorized(f"Invalid integration key: {str(invalid_keys)}")
 
         return super().update_organization_config(data)
 

@@ -19,10 +19,13 @@ class OnCallInteractionType(Enum):
 
     # TODO: add the interactions
     # General interactions
-
-    #
+    ADD_KEY = "ADD_KEY"
+    # Interacting with external alerts
     CREATE = "CREATE"  # create an alert in Opsgenie/Pagerduty
     RESOLVE = "RESOLVE"  # resolve an alert in Opsgenie/Pagerduty
+
+    # Opsgenie only
+    VERIFY_KEYS = "VERIFY_KEYS"
 
     def __str__(self) -> str:
         return self.value.lower()

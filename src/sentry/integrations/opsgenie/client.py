@@ -5,7 +5,7 @@ from typing import Literal
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.integrations.client import ApiClient
 from sentry.integrations.models.integration import Integration
-from sentry.integrations.on_call.metrics import OnCallInteractionEvent
+from sentry.integrations.on_call.metrics import OnCallInteractionEvent, OnCallInteractionType
 from sentry.integrations.opsgenie.spec import OpsgenieOnCallSpec
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.models.group import Group
@@ -99,7 +99,7 @@ class OpsgenieClient(ApiClient):
         notification_uuid: str | None = None,
     ):
         headers = self._get_auth_headers()
-        interaction_type = "create"
+        interaction_type = OnCallInteractionType.CREATE
         if isinstance(data, (Event, GroupEvent)):
             group = data.group
             event = data
@@ -114,7 +114,7 @@ class OpsgenieClient(ApiClient):
         else:
             # if we're acknowledging the alert—meaning that the Sentry alert was resolved
             if data.get("identifier"):
-                interaction_type = "resolve"
+                interaction_type = OnCallInteractionType.RESOLVE
                 alias = data["identifier"]
                 resp = self.post(
                     f"/alerts/{alias}/acknowledge",
