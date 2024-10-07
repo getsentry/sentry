@@ -225,6 +225,10 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
           cursor: 'pointer',
         }),
         ...omit(theme.form[size ?? 'md'], 'height'),
+        ...(state.isMulti && {
+          maxHeight: '20.8em', // 10 lines (1.8em * 10) + padding
+          overflow: 'hidden',
+        }),
       }),
 
       menu: provided => ({
@@ -261,7 +265,12 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
         paddingRight: space(0.5),
         // offset horizontal margin/padding from multiValue (space(0.25)) &
         // multiValueLabel (space(0.75))
-        ...(state.isMulti && {marginLeft: `-${space(1)}`}),
+        ...(state.isMulti && {
+          marginLeft: `-${space(1)}`,
+          maxHeight: 'inherit',
+          overflowY: 'auto',
+          scrollbarColor: `${theme.purple200} ${theme.background}`,
+        }),
       }),
       input: provided => ({
         ...provided,
