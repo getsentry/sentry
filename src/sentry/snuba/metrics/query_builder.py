@@ -396,7 +396,7 @@ def resolve_tags(
         if not allowed:
             raise InvalidParams(
                 f"The tag key {name} usage has been prohibited by one of the expressions "
-                f"{set(allowed_tag_keys.values()) if allowed_tag_keys else {} }"
+                f"{set(allowed_tag_keys.values()) if allowed_tag_keys else {}}"
             )
 
         return Column(name=resolve_tag_key(use_case_id, org_id, name))
