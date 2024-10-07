@@ -73,7 +73,7 @@ grpcio==1.60.1
 grpcio-status==1.60.1
 h11==0.13.0
 hiredis==2.3.2
-honcho==1.1.0
+honcho==2.0.0
 httpcore==1.0.2
 httpx==0.25.2
 identify==2.5.24
