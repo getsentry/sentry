@@ -1,6 +1,3 @@
-import re
-from typing import Any
-
 from django.test import override_settings
 from django.urls import reverse
 
@@ -36,10 +33,6 @@ class LoginSuccessViewTest(APITestCase):
         self.login_as(self.user)
         res = self.client.get(self.url)
         assert _has_nonce(res)
-
-
-def _get_nonce_from_csp(csp: str) -> str | Any:
-    return re.search("nonce-([^']+)", csp).group(1)
 
 
 def _has_nonce(response):

@@ -1,5 +1,3 @@
-from typing import Any
-
 from django.http import HttpRequest, HttpResponse
 from django.http.response import HttpResponseBase
 
@@ -11,30 +9,22 @@ from sentry.web.frontend.base import ProjectView, region_silo_view
 TEMPLATE = "sentry/toolbar/iframe.html"
 
 
-def _get_referrer(request) -> str | None:
+def _get_referrer(request) -> str:
     # 1 R is because of legacy http reasons: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Referer
-    return request.META.get("HTTP_REFERER")
+    return request.META.get("HTTP_REFERER", "")
+
+
+def _add_frame_headers(request: HttpRequest, response: HttpResponseBase):
+    referrer = _get_referrer(request)
+
+    # This is an alternative to @csp_replace - we need to use this pattern to access the referrer.
+    response._csp_replace = {"frame-ancestors": [referrer.strip("/")]}  # type: ignore[attr-defined]
+    response["X-Frame-Options"] = "DENY" if referrer == "'none'" else "ALLOWALL"
+    return response
 
 
 @region_silo_view
 class IframeView(ProjectView):
-    def respond(
-        self, template: str, context: dict[str, Any] | None = None, status: int = 200
-    ) -> HttpResponseBase:
-        if not context or not context.get("referrer"):
-            raise
-
-        self.default_context = {}  # self.get_context_data(request, *args, **kwargs)
-
-        referrer = context.get("referrer") or "'none'"
-        response = super().respond(template, context=context, status=status)
-
-        # This is an alternative to @csp_replace - we need to use this pattern to access the referrer.
-        response._csp_replace = {"frame-ancestors": [referrer.strip("/")]}  # type: ignore[attr-defined]
-        response["X-Frame-Options"] = "DENY" if referrer == "'none'" else "ALLOWALL"
-
-        return response
-
     def handle_disabled_member(self, organization: Organization) -> HttpResponse:
         return self._handle_logged_out(self.request)
 
@@ -48,7 +38,7 @@ class IframeView(ProjectView):
         return self._handle_logged_out(request, *args, **kwargs)
 
     def _handle_logged_out(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
-        return self.respond(
+        response = self.respond(
             TEMPLATE,
             status=200,
             context={
@@ -57,9 +47,10 @@ class IframeView(ProjectView):
                 "logging": request.GET.get("logging", ""),
             },
         )
+        return _add_frame_headers(request, response)
 
     def handle_permission_required(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
-        return self.respond(
+        response = self.respond(
             TEMPLATE,
             status=200,
             context={
@@ -68,6 +59,7 @@ class IframeView(ProjectView):
                 "logging": request.GET.get("logging", ""),
             },
         )
+        return _add_frame_headers(request, response)
 
     def get(
         self, request: HttpRequest, organization: Organization, project: Project, *args, **kwargs
@@ -76,7 +68,7 @@ class IframeView(ProjectView):
         allowed_origins: list[str] = project.get_option("sentry:toolbar_allowed_origins")
 
         if referrer and is_origin_allowed(referrer, allowed_origins):
-            return self.respond(
+            response = self.respond(
                 TEMPLATE,
                 status=200,
                 context={
@@ -85,8 +77,9 @@ class IframeView(ProjectView):
                     "logging": request.GET.get("logging", ""),
                 },
             )
+            return _add_frame_headers(request, response)
 
-        return self.respond(
+        response = self.respond(
             TEMPLATE,
             status=200,
             context={
@@ -95,3 +88,4 @@ class IframeView(ProjectView):
                 "logging": request.GET.get("logging", ""),
             },
         )
+        return _add_frame_headers(request, response)

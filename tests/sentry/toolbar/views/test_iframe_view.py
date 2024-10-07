@@ -1,5 +1,3 @@
-import re
-
 from django.test import override_settings
 from django.urls import reverse
 
@@ -112,10 +110,6 @@ def _get_csp_parts(response):
     # Fallback to `c` for tests in dev.
     csp = response.headers.get("Content-Security-Policy", response.headers.get("c"))
     return [chunk.strip() for chunk in csp.split(";")]
-
-
-def _get_nonce_from_csp(csp: str) -> str:
-    return re.search("nonce-([^']+)", csp).group(1)
 
 
 def _has_nonce(response):
