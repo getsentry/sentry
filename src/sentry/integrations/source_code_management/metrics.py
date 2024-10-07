@@ -39,6 +39,11 @@ class SCMPipelineViewEvent(EventLifecycleMetric):
     def get_key(self, outcome: EventLifecycleOutcome) -> str:
         # not reporting as SLOs
         root_tokens = ("sentry", "integrations", "installation")
-        specific_tokens = ("source_code", self.provider_key, str(self.interaction_type), outcome)
+        specific_tokens = (
+            "source_code",
+            self.provider_key,
+            str(self.interaction_type),
+            str(outcome),
+        )
 
         return ".".join(itertools.chain(root_tokens, specific_tokens))
