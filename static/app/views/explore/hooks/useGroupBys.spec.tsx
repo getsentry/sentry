@@ -28,10 +28,10 @@ describe('useGroupBys', function () {
       ],
     });
 
-    let groupBys, setGroupBys, isLoadingGroupBys;
+    let groupBys, setGroupBys;
 
     function TestPage() {
-      ({groupBys, setGroupBys, isLoadingGroupBys} = useGroupBys());
+      ({groupBys, setGroupBys} = useGroupBys());
       return null;
     }
 
@@ -54,10 +54,8 @@ describe('useGroupBys', function () {
       </SpanTagsProvider>
     );
 
-    expect(isLoadingGroupBys).toBe(true);
     await waitFor(() => expect(mockSpanTagsApiCall).toHaveBeenCalledTimes(1));
     expect(groupBys).toEqual(['']); // default
-    expect(isLoadingGroupBys).toBe(false);
 
     act(() => setGroupBys(['foo', 'bar']));
     expect(groupBys).toEqual(['foo', 'bar']);

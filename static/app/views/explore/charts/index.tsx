@@ -56,7 +56,7 @@ export function ExploreCharts({query}: ExploreChartsProps) {
   const [dataset] = useDataset();
   const [visualizes, setVisualizes] = useVisualizes();
   const [interval, setInterval, intervalOptions] = useChartInterval();
-  const {groupBys, isLoadingGroupBys} = useGroupBys();
+  const {groupBys} = useGroupBys();
   const [resultMode] = useResultMode();
   const topEvents = useTopEvents();
 
@@ -90,7 +90,6 @@ export function ExploreCharts({query}: ExploreChartsProps) {
       search: new MutableSearch(query ?? ''),
       yAxis: yAxes,
       interval: interval ?? getInterval(pageFilters.selection.datetime, 'metrics'),
-      enabled: !isLoadingGroupBys,
       fields,
       orderby,
       topEvents,
