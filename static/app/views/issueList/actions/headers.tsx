@@ -50,6 +50,8 @@ function Headers({
               </GraphToggle>
             </GraphHeader>
           </GraphHeaderWrapper>
+          <TimestampLabel>{t('Age')}</TimestampLabel>
+          <TimestampLabel>{t('Seen')}</TimestampLabel>
           <EventsOrUsersLabel>{t('Events')}</EventsOrUsersLabel>
           <EventsOrUsersLabel>{t('Users')}</EventsOrUsersLabel>
           <PriorityLabel isSavedSearchesOpen={isSavedSearchesOpen}>
@@ -96,6 +98,15 @@ const GraphToggle = styled('a')<{active: boolean}>`
   &:active {
     color: ${p => (p.active ? p.theme.textColor : p.theme.disabled)};
   }
+`;
+
+const TimestampLabel = styled(ToolbarHeader)`
+  display: inline-grid;
+  align-items: center;
+  justify-content: flex-start;
+  text-align: left;
+  width: 40px;
+  margin: 0 ${space(1)};
 `;
 
 const EventsOrUsersLabel = styled(ToolbarHeader)`
