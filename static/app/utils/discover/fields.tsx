@@ -763,6 +763,7 @@ export const ERRORS_AGGREGATION_FUNCTIONS = [
   AggregationKey.COUNT_UNIQUE,
   AggregationKey.EPS,
   AggregationKey.EPM,
+  AggregationKey.LAST_SEEN,
 ];
 
 // This list contains fields/functions that are available with profiling feature.
