@@ -1,3 +1,4 @@
+import itertools
 from dataclasses import dataclass
 from enum import Enum
 
@@ -36,9 +37,8 @@ class SCMPipelineViewEvent(EventLifecycleMetric):
     provider_key: str
 
     def get_key(self, outcome: EventLifecycleOutcome) -> str:
-        return self.get_standard_key(
-            domain="source_code",
-            integration_name=self.provider_key,
-            interaction_type=str(self.interaction_type),
-            outcome=outcome,
-        )
+        # not reporting as SLOs
+        root_tokens = ("sentry", "integrations", "installation")
+        specific_tokens = ("source_code", self.provider_key, str(self.interaction_type), outcome)
+
+        return ".".join(itertools.chain(root_tokens, specific_tokens))
