@@ -76,7 +76,7 @@ hiredis==2.3.2
 honcho==2.0.0
 httpcore==1.0.2
 httpx==0.25.2
-identify==2.5.24
+identify==2.6.1
 idna==2.10
 inflection==0.5.1
 iniconfig==1.1.1
@@ -103,7 +103,7 @@ msgpack==1.0.7
 msgpack-types==0.2.0
 mypy==1.11.2
 mypy-extensions==1.0.0
-nodeenv==1.8.0
+nodeenv==1.9.1
 oauthlib==3.1.0
 openai==1.3.5
 openapi-core==0.18.2
@@ -125,7 +125,7 @@ pillow==10.2.0
 pip-tools==7.1.0
 platformdirs==4.2.0
 pluggy==1.5.0
-pre-commit==3.3.2
+pre-commit==4.0.0
 progressbar2==3.41.0
 prompt-toolkit==3.0.41
 proto-plus==1.24.0
