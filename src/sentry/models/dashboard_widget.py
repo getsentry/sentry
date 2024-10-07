@@ -99,7 +99,7 @@ class DatasetSourcesTypes(Enum):
     """
      Dataset inferred by split querscript, version 1
     """
-    RERUN_VERSION_1 = 4
+    SPLIT_VERSION_1 = 4
 
     @classmethod
     def as_choices(cls):
