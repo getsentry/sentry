@@ -405,11 +405,12 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
         if request.auth:
             referrer = API_TOKEN_REFERRER
         elif referrer not in ALLOWED_EVENTS_REFERRERS:
-            with sentry_sdk.isolation_scope() as scope:
-                scope.set_tag("forbidden_referrer", referrer)
-                sentry_sdk.capture_message(
-                    "Forbidden Referrer. If this is intentional, add it to `ALLOWED_EVENTS_REFERRERS`"
-                )
+            if referrer:
+                with sentry_sdk.isolation_scope() as scope:
+                    scope.set_tag("forbidden_referrer", referrer)
+                    sentry_sdk.capture_message(
+                        "Forbidden Referrer. If this is intentional, add it to `ALLOWED_EVENTS_REFERRERS`"
+                    )
             referrer = Referrer.API_ORGANIZATION_EVENTS.value
 
         def _data_fn(scoped_dataset, offset, limit, query) -> dict[str, Any]:
