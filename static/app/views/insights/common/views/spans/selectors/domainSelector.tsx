@@ -94,12 +94,15 @@ export function DomainSelector({
 
   const {options: domainOptions, clear: clearDomainOptionsCache} =
     useCompactSelectOptionsCache(
-      incomingDomains.filter(Boolean).map(datum => {
-        return {
-          value: datum,
-          label: datum,
-        };
-      })
+      incomingDomains
+        .filter(Boolean)
+        .filter(domain => domain !== EMPTY_OPTION_VALUE)
+        .map(datum => {
+          return {
+            value: datum,
+            label: datum,
+          };
+        })
     );
 
   useEffect(() => {
