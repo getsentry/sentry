@@ -35,7 +35,7 @@ export function ToolbarGroupBy({disabled}: ToolbarGroupByProps) {
     // One place this may come from is when switching projects/environment/date range,
     // a tag may disappear based on the selection.
     const unknownOptions = groupBys
-      .filter(groupBy => !tags.hasOwnProperty(groupBy))
+      .filter(groupBy => groupBy && !tags.hasOwnProperty(groupBy))
       .map(groupBy => {
         return {
           label: groupBy,
