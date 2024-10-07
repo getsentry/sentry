@@ -148,6 +148,12 @@ class DiscordIntegrationProvider(IntegrationProvider):
 
     def build_integration(self, state: Mapping[str, object]) -> Mapping[str, object]:
         guild_id = str(state.get("guild_id"))
+
+        if not guild_id.isdigit():
+            raise IntegrationError(
+                "Invalid guild ID. The Discord guild ID must be entirely numeric."
+            )
+
         try:
             guild_name = self.client.get_guild_name(guild_id=guild_id)
         except (ApiError, AttributeError):
