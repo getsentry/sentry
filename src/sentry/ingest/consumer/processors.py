@@ -53,6 +53,11 @@ def trace_func(**span_kwargs):
     return wrapper
 
 
+from sentry.queue.routers import SplitQueueRouter
+
+split_queue_router = SplitQueueRouter()
+
+
 @trace_func(name="ingest_consumer.process_event")
 @metrics.wraps("ingest_consumer.process_event")
 def process_event(
@@ -186,6 +191,7 @@ def process_event(
                 start_time=start_time,
                 event_id=event_id,
                 project_id=project_id,
+                queue=split_queue_router.route_for_queue("event.save_event_transaction"),
             )
 
             try:
