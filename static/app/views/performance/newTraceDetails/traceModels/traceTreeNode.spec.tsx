@@ -75,7 +75,30 @@ describe('TraceTreeNode', () => {
       metadata
     );
 
-    expect(node.profiles[0].profile_id).toBe('profile');
+    const profile = node.profiles[0] as {profile_id: string};
+    expect(profile.profile_id).toBe('profile');
+  });
+
+  it('stores profiler_id on node', () => {
+    const node = new TraceTreeNode(
+      null,
+      makeTransaction({
+        start_timestamp: 1,
+        timestamp: 3,
+        profiler_id: 'profile',
+      }),
+      metadata
+    );
+
+    const profile = node.profiles[0] as {profiler_id: string};
+    expect(profile.profiler_id).toBe('profile');
+  });
+
+  it('stores parent reference', () => {
+    const parent = new TraceTreeNode(null, makeTransaction(), metadata);
+    const child = new TraceTreeNode(parent, makeTransaction(), metadata);
+
+    expect(child.parent).toBe(parent);
   });
 
   describe('maxSeverity', () => {

@@ -8,6 +8,15 @@ trace root
 "
 `;
 
+exports[`TraceTree if parent span does not exist in span tree, the transaction stays under its previous parent 1`] = `
+"
+trace root
+  span.op - span.description
+  root - transaction.op
+    child - transaction.op
+"
+`;
+
 exports[`TraceTree inserts orphan error 1`] = `
 "
 trace root
@@ -34,6 +43,17 @@ trace root
     db - redis
     missing_instrumentation
     db - redis
+"
+`;
+
+exports[`TraceTree missing instrumentation adds missing instrumentation between two spans that share a common root 1`] = `
+"
+trace root
+  transaction - transaction.op
+    http - request
+      db - redis
+    missing_instrumentation
+    cache - redis
 "
 `;
 
@@ -141,6 +161,15 @@ exports[`TraceTree parent autogrouping groups parent chain with same op 1`] = `
 trace root
   transaction - transaction.op
     parent autogroup (db: 3)
+"
+`;
+
+exports[`TraceTree server side rendering does not reparent if server handler has multiple direct transaction children 1`] = `
+"
+trace root
+  SSR - http.server
+    pageload - pageload
+    pageload - pageload
 "
 `;
 

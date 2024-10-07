@@ -573,7 +573,18 @@ export class TraceTree extends TraceTreeEventDispatcher {
 
       const parent = spanIdToNode.get(transaction.value.parent_span_id);
 
+      // If the parent span does not exist in the span tree, the transaction will remain under the current node
       if (!parent) {
+        Sentry.withScope(scope => {
+          scope.setFingerprint(['trace-span-parent']);
+          scope.captureMessage(
+            'A transaction was found to have a span parent that does not exist in the span list'
+          );
+        });
+
+        if (transaction.parent?.children.indexOf(transaction) === -1) {
+          transaction.parent!.children.push(transaction);
+        }
         continue;
       }
 
@@ -753,7 +764,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
         child.space[0] - previous.space[0] - previous.space[1] >= threshold
       ) {
         const node = new MissingInstrumentationNode(
-          previous.parent!,
+          child.parent!,
           {
             type: 'missing_instrumentation',
             start_timestamp: previous.value.timestamp,
@@ -772,13 +783,13 @@ export class TraceTree extends TraceTreeEventDispatcher {
           previous.children.splice(0, 0, node);
           node.parent = previous;
         } else {
-          let childIndex = node.parent?.children.indexOf(child) ?? -1;
+          const childIndex = child.parent?.children.indexOf(child) ?? -1;
           if (childIndex === -1) {
-            childIndex = 0;
-            Sentry;
             Sentry.captureException('Detecting missing instrumentation failed');
+            return;
           }
-          node.parent?.children.splice(childIndex, 0, node);
+
+          child.parent?.children.splice(childIndex, 0, node);
         }
 
         previous = node;
@@ -1195,6 +1206,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
     return recurseToRow();
   }
 
+  // Removes node and its children from the tree
   static Filter(
     node: TraceTreeNode<TraceTree.NodeValue>,
     predicate: (node: TraceTreeNode) => boolean
@@ -1239,6 +1251,32 @@ export class TraceTree extends TraceTreeEventDispatcher {
     }
 
     return null;
+  }
+
+  static FindAll(
+    root: TraceTreeNode<TraceTree.NodeValue>,
+    predicate: (node: TraceTreeNode<TraceTree.NodeValue>) => boolean
+  ): TraceTreeNode<TraceTree.NodeValue>[] {
+    const queue = [root];
+    const results: TraceTreeNode<TraceTree.NodeValue>[] = [];
+
+    while (queue.length > 0) {
+      const next = queue.pop()!;
+
+      if (predicate(next)) {
+        results.push(next);
+      }
+
+      if (isParentAutogroupedNode(next)) {
+        queue.push(next.head);
+      } else {
+        for (const child of next.children) {
+          queue.push(child);
+        }
+      }
+    }
+
+    return results;
   }
 
   static FindInTreeFromSegment(

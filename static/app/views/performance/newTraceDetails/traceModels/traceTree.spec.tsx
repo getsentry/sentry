@@ -301,6 +301,29 @@ describe('TraceTree', () => {
       expect(tree.root.space[0]).toBe(start * 1e3 - 1e3);
     });
 
+    it('considers orphan errors when inferring end', () => {
+      const tree = TraceTree.FromTrace(
+        makeTrace({
+          transactions: [
+            makeTransaction({
+              start_timestamp: start,
+              timestamp: start + 1,
+              children: [],
+            }),
+          ],
+          orphan_errors: [
+            makeTraceError({
+              level: 'error',
+              timestamp: start + 5,
+            }),
+          ],
+        }),
+        traceMetadata
+      );
+      expect(tree.root.space[1]).toBe(5000);
+      expect(tree.root.space[0]).toBe(start * 1e3);
+    });
+
     it('replay record extends trace start', () => {
       const replayStart = new Date('2024-02-29T00:00:00Z').getTime();
       const replayEnd = new Date(replayStart + 5000).getTime();
@@ -325,6 +348,33 @@ describe('TraceTree', () => {
 
       expect(tree.root.space[0]).toBe(replayStart);
       expect(tree.root.space[1]).toBe(5000);
+    });
+
+    it('measurements extend trace start and end', () => {
+      const tree = TraceTree.FromTrace(
+        makeTrace({
+          transactions: [
+            makeTransaction({
+              start_timestamp: start,
+              timestamp: start + 1,
+              children: [],
+              measurements: {
+                ttfb: {
+                  unit: 'millisecond',
+                  value: -5000,
+                },
+                lcp: {
+                  unit: 'millisecond',
+                  value: 5000,
+                },
+              },
+            }),
+          ],
+          orphan_errors: [],
+        }),
+        traceMetadata
+      );
+      expect(tree.root.space).toEqual([start * 1e3 - 5000, 10_000]);
     });
   });
 
@@ -356,6 +406,17 @@ describe('TraceTree', () => {
     });
   });
 
+  describe('GetVisibleChildren', () => {
+    it.todo('expanded transaction children are visible');
+    it.todo('zoomed in transaction children are visible');
+    it.todo('collapsed span children are not visible');
+    it.todo('expanded parent autogroup children shows head to tail chain');
+    it.todo(
+      'expanded parent autogroup with intermediary collapsed span stop the chain at the collapsed span'
+    );
+    it.todo('collapsed parent autogroup shows tail chain');
+  });
+
   describe('missing instrumentation', () => {
     it('adds missing instrumentation between sibling spans', () => {
       const tree = TraceTree.FromTrace(singleTransactionTrace, traceMetadata);
@@ -376,6 +437,55 @@ describe('TraceTree', () => {
       const _spans = TraceTree.FromSpans(
         tree.root.children[0].children[0],
         childrenMissingInstrumentationSpans,
+        makeEventTransaction(),
+        {
+          sdk: undefined,
+        }
+      );
+
+      expect(tree.build().serialize()).toMatchSnapshot();
+    });
+
+    it('adds missing instrumentation between two spans that share a common root', () => {
+      const tree = TraceTree.FromTrace(
+        makeTrace({
+          transactions: [
+            makeTransaction({
+              span_id: 'parent-transaction',
+            }),
+          ],
+        }),
+        traceMetadata
+      );
+
+      const _spans = TraceTree.FromSpans(
+        tree.root.children[0].children[0],
+        [
+          makeSpan({
+            op: 'http',
+            description: 'request',
+            span_id: '0000',
+            parent_span_id: 'parent-transaction',
+            start_timestamp: start,
+            timestamp: start + 2,
+          }),
+          makeSpan({
+            op: 'db',
+            description: 'redis',
+            span_id: '0001',
+            parent_span_id: '0000',
+            start_timestamp: start,
+            timestamp: start + 2,
+          }),
+          makeSpan({
+            op: 'cache',
+            description: 'redis',
+            span_id: '0002',
+            parent_span_id: 'parent-transaction',
+            start_timestamp: start + 3,
+            timestamp: start + 4,
+          }),
+        ],
         makeEventTransaction(),
         {
           sdk: undefined,
@@ -736,5 +846,58 @@ describe('TraceTree', () => {
 
       expect(tree.build().serialize()).toMatchSnapshot();
     });
+
+    it('does not reparent if server handler has multiple direct transaction children', () => {
+      const tree = TraceTree.FromTrace(
+        makeTrace({
+          transactions: [
+            makeTransaction({
+              transaction: 'SSR',
+              ['transaction.op']: 'http.server',
+              children: [
+                makeTransaction({
+                  transaction: 'pageload',
+                  ['transaction.op']: 'pageload',
+                }),
+                makeTransaction({
+                  transaction: 'pageload',
+                  ['transaction.op']: 'pageload',
+                }),
+              ],
+            }),
+          ],
+        }),
+        traceMetadata
+      );
+
+      expect(tree.build().serialize()).toMatchSnapshot();
+    });
+  });
+
+  it('if parent span does not exist in span tree, the transaction stays under its previous parent', () => {
+    const tree = TraceTree.FromTrace(
+      makeTrace({
+        transactions: [
+          makeTransaction({
+            transaction: 'root',
+            children: [
+              makeTransaction({transaction: 'child', parent_span_id: 'does not exist'}),
+            ],
+          }),
+        ],
+      }),
+      traceMetadata
+    );
+
+    const _spans = TraceTree.FromSpans(
+      tree.root.children[0],
+      [makeSpan()],
+      makeEventTransaction(),
+      {
+        sdk: undefined,
+      }
+    );
+
+    expect(tree.build().serialize()).toMatchSnapshot();
   });
 });
