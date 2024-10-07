@@ -1166,7 +1166,6 @@ class ProcessDelayedAlertConditionsTest(CreateEventTestCase, PerformanceIssueTes
             project=self.project,
         ).values_list("rule", "group")
         assert len(rule_fire_histories) == 0
-        assert (event_frequency_special_condition.id, group1.id) in rule_fire_histories
         self.assert_buffer_cleared(project_id=self.project.id)
 
     def test_apply_delayed_shared_condition_diff_filter(self):

@@ -220,7 +220,6 @@ class RuleProcessor:
         if condition_cls is None:
             logger.warning("Unregistered condition %r", condition["id"])
             return None
-        breakpoint()
         condition_inst = condition_cls(project=self.project, data=condition, rule=rule)
         if not isinstance(condition_inst, (EventCondition, EventFilter)):
             logger.warning("Unregistered condition %r", condition["id"])

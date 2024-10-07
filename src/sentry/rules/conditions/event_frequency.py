@@ -13,6 +13,7 @@ from django.core.cache import cache
 from django.db.models import QuerySet
 from django.db.models.enums import TextChoices
 from django.utils import timezone
+from snuba_sdk import Op
 
 from sentry import release_health, tsdb
 from sentry.eventstore.models import GroupEvent
@@ -335,6 +336,7 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
         end: datetime,
         environment_id: int,
         referrer_suffix: str,
+        conditions: list[dict[str, Any]] | None = None,
     ) -> Mapping[int, int]:
         result: Mapping[int, int] = tsdb_function(
             model=model,
@@ -346,6 +348,7 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
             jitter_value=group_id,
             tenant_ids={"organization_id": organization_id},
             referrer_suffix=referrer_suffix,
+            conditions=conditions,
         )
         return result
 
@@ -359,6 +362,7 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
         end: datetime,
         environment_id: int,
         referrer_suffix: str,
+        conditions: list[dict[str, Any]] | None = None,
     ) -> dict[int, int]:
         batch_totals: dict[int, int] = defaultdict(int)
         group_id = group_ids[0]
@@ -373,6 +377,7 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
                 end=end,
                 environment_id=environment_id,
                 referrer_suffix=referrer_suffix,
+                conditions=conditions,
             )
             batch_totals.update(result)
         return batch_totals
@@ -506,7 +511,6 @@ class EventUniqueUserFrequencyCondition(BaseEventFrequencyCondition):
     def batch_query_hook(
         self, group_ids: set[int], start: datetime, end: datetime, environment_id: int
     ) -> dict[int, int]:
-        breakpoint()
         batch_totals: dict[int, int] = defaultdict(int)
         groups = Group.objects.filter(id__in=group_ids).values(
             "id", "type", "project_id", "project__organization_id"
@@ -554,26 +558,16 @@ class EventUniqueUserFrequencyConditionWithConditions(EventUniqueUserFrequencyCo
         self, event: GroupEvent, start: datetime, end: datetime, environment_id: int
     ) -> int:
         raise NotImplementedError()
-        # totals: Mapping[int, int] = self.get_snuba_query_result(
-        #     tsdb_function=self.tsdb.get_distinct_counts_totals,
-        #     keys=[event.group_id],
-        #     group_id=event.group.id,
-        #     organization_id=event.group.project.organization_id,
-        #     model=get_issue_tsdb_user_group_model(event.group.issue_category),
-        #     start=start,
-        #     end=end,
-        #     environment_id=environment_id,
-        #     referrer_suffix="alert_event_uniq_user_frequency",
-        # )
-        # return totals[event.group_id]
+        # TODO: what does this do? where is it used?
 
     def batch_query_hook(
         self, group_ids: set[int], start: datetime, end: datetime, environment_id: int
     ) -> dict[int, int]:
-        import traceback
 
-        traceback.print_stack()
-        breakpoint()
+        if self.rule.data["filter_match"] == "any":
+            raise NotImplementedError(
+                "EventUniqueUserFrequencyConditionWithConditions does not support filter_match == any"
+            )
 
         batch_totals: dict[int, int] = defaultdict(int)
         groups = Group.objects.filter(id__in=group_ids).values(
@@ -583,40 +577,19 @@ class EventUniqueUserFrequencyConditionWithConditions(EventUniqueUserFrequencyCo
         organization_id = self.get_value_from_groups(groups, "project__organization_id")
         error_issue_ids, generic_issue_ids = self.get_error_and_generic_group_ids(groups)
 
-        totals = {}
+        conditions = []
 
-        for error_issue_id in error_issue_ids:
-            totals.update(
-                self.get_snuba_query_result(
-                    tsdb_function=self.tsdb.get_distinct_counts_totals,
-                    keys=[event.group_id],
-                    group_id=event.group.id,
-                    organization_id=event.group.project.organization_id,
-                    model=get_issue_tsdb_user_group_model(event.group.issue_category),
-                    start=start,
-                    end=end,
-                    environment_id=environment_id,
-                    referrer_suffix="alert_event_uniq_user_frequency",
-                )
-            )
-        for generic_issue_id in generic_issue_ids:
-            totals.update(
-                self.get_snuba_query_result(
-                    tsdb_function=self.tsdb.get_distinct_counts_totals,
-                    keys=[event.group_id],
-                    group_id=event.group.id,
-                    organization_id=event.group.project.organization_id,
-                    model=get_issue_tsdb_user_group_model(event.group.issue_category),
-                    start=start,
-                    end=end,
-                    environment_id=environment_id,
-                    referrer_suffix="alert_event_uniq_user_frequency",
-                )
-            )
+        for condition in self.rule.data["conditions"]:
+            if condition["id"] == self.id:
+                continue
+
+            snuba_condition = self.convert_rule_condition_to_snuba_condition(condition)
+            if snuba_condition:
+                conditions.append(snuba_condition)
 
         if error_issue_ids and organization_id:
             error_totals = self.get_chunked_result(
-                tsdb_function=self.tsdb.get_distinct_counts_totals,
+                tsdb_function=self.tsdb.get_distinct_counts_totals_with_conditions,
                 model=get_issue_tsdb_user_group_model(GroupCategory.ERROR),
                 group_ids=error_issue_ids,
                 organization_id=organization_id,
@@ -624,13 +597,13 @@ class EventUniqueUserFrequencyConditionWithConditions(EventUniqueUserFrequencyCo
                 end=end,
                 environment_id=environment_id,
                 referrer_suffix="batch_alert_event_uniq_user_frequency",
+                conditions=conditions,
             )
             batch_totals.update(error_totals)
 
         if generic_issue_ids and organization_id:
-            generic_totals = self.get_chunked_result(
-                tsdb_function=self.tsdb.get_distinct_counts_totals,
-                # this isn't necessarily performance, just any non-error category
+            error_totals = self.get_chunked_result(
+                tsdb_function=self.tsdb.get_distinct_counts_totals_with_conditions,
                 model=get_issue_tsdb_user_group_model(GroupCategory.PERFORMANCE),
                 group_ids=generic_issue_ids,
                 organization_id=organization_id,
@@ -638,10 +611,45 @@ class EventUniqueUserFrequencyConditionWithConditions(EventUniqueUserFrequencyCo
                 end=end,
                 environment_id=environment_id,
                 referrer_suffix="batch_alert_event_uniq_user_frequency",
+                conditions=conditions,
             )
-            batch_totals.update(generic_totals)
+            batch_totals.update(error_totals)
 
         return batch_totals
+
+    @staticmethod
+    def convert_rule_condition_to_snuba_condition(condition: dict[str, Any]) -> list[Any]:
+        if not condition["id"] == "sentry.rules.filters.tagged_event.TaggedEventFilter":
+            return None
+        lhs = f"tags[{condition['key']}]"
+        rhs = condition["value"]
+        match condition["match"]:
+            case "eq":
+                operator = Op.EQ
+            case "ne":
+                operator = Op.NEQ
+            case "sw":
+                operator = Op.LIKE
+                rhs = f"{rhs}%"
+            case "ew":
+                operator = Op.LIKE
+                rhs = f"%{rhs}"
+            case "co":
+                operator = Op.LIKE
+                rhs = f"%{rhs}%"
+            case "nc":
+                operator = Op.NOT_LIKE
+                rhs = f"%{rhs}%"
+            case "is":
+                operator = Op.IS_NOT_NULL
+                rhs = None
+            case "ns":
+                operator = Op.IS_NULL
+                rhs = None
+            case _:
+                raise ValueError(f"Unsupported match type: {condition['match']}")
+
+        return [lhs, operator.value, rhs]
 
 
 PERCENT_INTERVALS: dict[str, tuple[str, timedelta]] = {

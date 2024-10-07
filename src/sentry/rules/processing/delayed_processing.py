@@ -70,6 +70,7 @@ class UniqueConditionQuery(NamedTuple):
 class DataAndGroups(NamedTuple):
     data: EventFrequencyConditionData
     group_ids: set[int]
+    rule_id: int
 
     def __repr__(self):
         return f"<DataAndGroups data: {self.data} group_ids: {self.group_ids}>"
@@ -176,7 +177,7 @@ def get_condition_query_groups(
                     data_and_groups.group_ids.update(rules_to_groups[rule.id])
                 else:
                     condition_groups[condition_query] = DataAndGroups(
-                        condition_data, set(rules_to_groups[rule.id])
+                        condition_data, set(rules_to_groups[rule.id]), rule.id
                     )
     return condition_groups
 
@@ -305,7 +306,7 @@ def get_condition_group_results(
     current_time = datetime.now(tz=timezone.utc)
     project_id = project.id
 
-    for unique_condition, (condition_data, group_ids) in condition_groups.items():
+    for unique_condition, (condition_data, group_ids, rule_id) in condition_groups.items():
         cls_id = unique_condition.cls_id
         condition_cls = rules.get(cls_id)
         if condition_cls is None:
@@ -316,7 +317,9 @@ def get_condition_group_results(
             )
             continue
 
-        condition_inst = condition_cls(project=project, data=condition_data)  # type: ignore[arg-type]
+        condition_inst = condition_cls(
+            project=project, data=condition_data, rule=Rule.objects.get(id=rule_id)
+        )  # type: ignore[arg-type]
         if not isinstance(condition_inst, BaseEventFrequencyCondition):
             logger.warning("Unregistered condition %r", cls_id, extra={"project_id": project_id})
             continue
@@ -565,7 +568,6 @@ def apply_delayed(project_id: int, batch_key: str | None = None, *args: Any, **k
     )
 
     with metrics.timer("delayed_processing.get_condition_group_results.duration"):
-        breakpoint()
         condition_group_results = get_condition_group_results(condition_groups, project)
 
     rules_to_slow_conditions = defaultdict(list)
