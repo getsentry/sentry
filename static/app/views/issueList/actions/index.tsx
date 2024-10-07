@@ -99,6 +99,7 @@ function ActionsBarPriority({
   sort: string;
   statsPeriod: string;
 }) {
+  const organization = useOrganization();
   const shouldDisplayActions = anySelected && !narrowViewport;
 
   return (
@@ -136,7 +137,9 @@ function ActionsBarPriority({
           )}
           {!anySelected && (
             <HeaderButtonsWrapper key="sort" {...animationProps}>
-              <IssueListSortOptions sort={sort} query={query} onSelect={onSortChange} />
+              {!organization.features.includes('issue-stream-table-layout') && (
+                <IssueListSortOptions sort={sort} query={query} onSelect={onSortChange} />
+              )}
             </HeaderButtonsWrapper>
           )}
         </AnimatePresence>
