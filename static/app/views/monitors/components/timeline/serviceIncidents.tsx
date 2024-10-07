@@ -118,6 +118,8 @@ function CronServiceIncidents({timeWindowConfig}: CronServiceIncidentsProps) {
 
 const IncidentHovercard = styled(Hovercard)`
   width: 400px;
+  max-height: 500px;
+  overflow-y: scroll;
 `;
 
 const IncidentOverlay = styled('div')`
