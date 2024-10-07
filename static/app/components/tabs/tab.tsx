@@ -312,7 +312,7 @@ const innerWrapStyles = ({
 `;
 
 const TabLink = styled(Link)<{orientation: Orientation}>`
-  ${innerWrapStyles}
+  ${p => innerWrapStyles(p)}
 
   &,
   &:hover {
@@ -321,7 +321,7 @@ const TabLink = styled(Link)<{orientation: Orientation}>`
 `;
 
 const TabInnerWrap = styled('span')<{orientation: Orientation}>`
-  ${innerWrapStyles}
+  ${p => innerWrapStyles(p)}
 `;
 
 const StyledInteractionStateLayer = styled(InteractionStateLayer)<{
