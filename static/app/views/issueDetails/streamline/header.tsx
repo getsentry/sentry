@@ -1,18 +1,12 @@
-import {Fragment, useEffect, useMemo} from 'react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import Color from 'color';
 
-import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {Button} from 'sentry/components/button';
 import Count from 'sentry/components/count';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import EventMessage from 'sentry/components/events/eventMessage';
-import {getOwnerList} from 'sentry/components/group/assignedTo';
-import {
-  AssigneeSelector,
-  useHandleAssigneeChange,
-} from 'sentry/components/group/assigneeSelector';
 import ParticipantList from 'sentry/components/group/streamlinedParticipantList';
 import Link from 'sentry/components/links/link';
 import Version from 'sentry/components/version';
@@ -25,9 +19,6 @@ import type {Group, TeamParticipant, UserParticipant} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import type {Release} from 'sentry/types/release';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
-import useCommitters from 'sentry/utils/useCommitters';
-import {useIssueEventOwners} from 'sentry/utils/useIssueEventOwners';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
@@ -35,6 +26,7 @@ import {useUser} from 'sentry/utils/useUser';
 import GroupActions from 'sentry/views/issueDetails/actions/index';
 import {Divider} from 'sentry/views/issueDetails/divider';
 import GroupPriority from 'sentry/views/issueDetails/groupPriority';
+import {GroupHeaderAssigneeSelector} from 'sentry/views/issueDetails/streamline/assigneeSelector';
 import {AttachmentsBadge} from 'sentry/views/issueDetails/streamline/attachmentsBadge';
 import {ReplayBadge} from 'sentry/views/issueDetails/streamline/replayBadge';
 import {UserFeedbackBadge} from 'sentry/views/issueDetails/streamline/userFeedbackBadge';
@@ -52,50 +44,6 @@ interface GroupHeaderProps {
   group: Group;
   groupReprocessingStatus: ReprocessingStatus;
   project: Project;
-}
-
-function AssigneeSelectorWrapper({
-  group,
-  project,
-  event,
-}: Pick<GroupHeaderProps, 'group' | 'project' | 'event'>) {
-  const api = useApi();
-  const organization = useOrganization();
-  const {handleAssigneeChange, assigneeLoading} = useHandleAssigneeChange({
-    organization,
-    group,
-  });
-  const {data: eventOwners} = useIssueEventOwners({
-    eventId: event?.id ?? '',
-    projectSlug: project.slug,
-  });
-  const {data: committersResponse} = useCommitters({
-    eventId: event?.id ?? '',
-    projectSlug: project.slug,
-  });
-
-  useEffect(() => {
-    // TODO: We should check if this is already loaded
-    fetchOrgMembers(api, organization.slug, [project.id]);
-  }, [api, organization, project]);
-
-  const owners = getOwnerList(
-    committersResponse?.committers ?? [],
-    eventOwners,
-    group.assignedTo
-  );
-
-  return (
-    <Wrapper>
-      {t('Assignee')}
-      <AssigneeSelector
-        group={group}
-        owners={owners}
-        assigneeLoading={assigneeLoading}
-        handleAssigneeChange={handleAssigneeChange}
-      />
-    </Wrapper>
-  );
 }
 
 export default function StreamlinedGroupHeader({
@@ -246,7 +194,14 @@ export default function StreamlinedGroupHeader({
               {t('Priority')}
               <GroupPriority group={group} />
             </Wrapper>
-            <AssigneeSelectorWrapper group={group} project={project} event={event} />
+            <Wrapper>
+              {t('Assignee')}
+              <GroupHeaderAssigneeSelector
+                group={group}
+                project={project}
+                event={event}
+              />
+            </Wrapper>
             {group.participants.length > 0 && (
               <Wrapper>
                 {t('Participants')}

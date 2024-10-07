@@ -33,14 +33,24 @@ import useCommitters from 'sentry/utils/useCommitters';
 import {useIssueEventOwners} from 'sentry/utils/useIssueEventOwners';
 import useOrganization from 'sentry/utils/useOrganization';
 
-// TODO(ts): add the correct type
-type Rules = Array<any> | null;
+/**
+ * example: codeowners:/issues -> [['codeowners', '/issues']]
+ */
+type RuleDefinition = [string, string];
+/**
+ * example: #team1 -> ['team', 'team1']
+ */
+type RuleOwner = [string, string];
+type Rule = [RuleDefinition, RuleOwner[]];
 
 /**
  * Given a list of rule objects returned from the API, locate the matching
  * rules for a specific owner.
  */
-function findMatchedRules(rules: Rules, owner: Actor) {
+function findMatchedRules(
+  rules: EventOwners['rules'],
+  owner: Actor
+): Array<Rule[0]> | undefined {
   if (!rules) {
     return undefined;
   }
@@ -49,7 +59,7 @@ function findMatchedRules(rules: Rules, owner: Actor) {
     (actorType === 'user' && key === owner.email) ||
     (actorType === 'team' && key === owner.name);
 
-  const actorHasOwner = ([actorType, key]) =>
+  const actorHasOwner = ([actorType, key]: RuleOwner) =>
     actorType === owner.type && matchOwner(actorType, key);
 
   return rules
@@ -70,10 +80,11 @@ type IssueOwner = {
   commits?: Commit[];
   rules?: Array<[string, string]> | null;
 };
-export type EventOwners = {
+export interface EventOwners {
   owners: Actor[];
-  rules: Rules;
-};
+  rule: RuleDefinition;
+  rules: Array<Rule>;
+}
 
 function getSuggestedReason(owner: IssueOwner) {
   if (owner.commits) {
@@ -128,7 +139,7 @@ export function getOwnerList(
     const normalizedOwner: IssueOwner = {
       actor: owner,
       rules: matchingRule,
-      source: matchingRule?.[0] === 'codeowners' ? 'codeowners' : 'projectOwnership',
+      source: matchingRule?.[0]?.[0] === 'codeowners' ? 'codeowners' : 'projectOwnership',
     };
 
     const existingIdx =
