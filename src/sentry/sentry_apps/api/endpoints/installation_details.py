@@ -9,12 +9,14 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.serializers import serialize
-from sentry.mediators.sentry_app_installations.installation_notifier import InstallationNotifier
-from sentry.mediators.sentry_app_installations.updater import Updater
 from sentry.sentry_apps.api.bases.sentryapps import SentryAppInstallationBaseEndpoint
 from sentry.sentry_apps.api.parsers.sentry_app_installation import SentryAppInstallationParser
 from sentry.sentry_apps.api.serializers.sentry_app_installation import (
     SentryAppInstallationSerializer,
+)
+from sentry.sentry_apps.installations import (
+    SentryAppInstallationNotifier,
+    SentryAppInstallationUpdater,
 )
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.utils.audit import create_audit_entry
@@ -39,10 +41,12 @@ class SentryAppInstallationDetailsEndpoint(SentryAppInstallationBaseEndpoint):
         )
 
     def delete(self, request: Request, installation) -> Response:
-        installation = SentryAppInstallation.objects.get(id=installation.id)
+        installation: SentryAppInstallation = SentryAppInstallation.objects.get(id=installation.id)
         with transaction.atomic(using=router.db_for_write(SentryAppInstallation)):
             try:
-                InstallationNotifier.run(install=installation, user=request.user, action="deleted")
+                SentryAppInstallationNotifier(
+                    install=installation, user=request.user, action="deleted"
+                ).run()
             # if the error is from a request exception, log the error and continue
             except RequestException as exc:
                 sentry_sdk.capture_exception(exc)
@@ -68,9 +72,9 @@ class SentryAppInstallationDetailsEndpoint(SentryAppInstallationBaseEndpoint):
         if serializer.is_valid():
             result = serializer.validated_data
 
-            Updater.run(
+            SentryAppInstallationUpdater(
                 user=request.user, sentry_app_installation=installation, status=result.get("status")
-            )
+            ).run()
 
             return Response(
                 serialize(
