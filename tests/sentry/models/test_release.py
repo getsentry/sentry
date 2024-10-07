@@ -578,7 +578,7 @@ class SetCommitsTestCase(TestCase):
 
 @apply_feature_flag_on_cls("organizations:set-commits-updated")
 class SetCommitsTestUpdated(SetCommitsTestCase):
-    ...
+    pass
 
 
 class SetRefsTest(SetRefsTestCase):

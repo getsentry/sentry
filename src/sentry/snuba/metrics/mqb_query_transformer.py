@@ -22,7 +22,7 @@ TEAM_KEY_TRANSACTION_OP = "team_key_transaction"
 
 
 class MQBQueryTransformationException(Exception):
-    ...
+    pass
 
 
 def _get_derived_op_metric_field_from_snuba_function(function: Function):
