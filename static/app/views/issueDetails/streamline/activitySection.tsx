@@ -12,6 +12,7 @@ import GroupStore from 'sentry/stores/groupStore';
 import {space} from 'sentry/styles/space';
 import type {NoteType} from 'sentry/types/alerts';
 import type {Group, GroupActivity} from 'sentry/types/group';
+import {GroupActivityType} from 'sentry/types/group';
 import type {User} from 'sentry/types/user';
 import {uniqueId} from 'sentry/utils/guid';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -112,7 +113,9 @@ function StreamlinedActivitySection({group}: {group: Group}) {
               title={
                 <TitleWrapper>
                   {title}
-                  <NoteDropdown onDelete={() => handleDelete(item)} user={item.user} />
+                  {item.type === GroupActivityType.NOTE && (
+                    <NoteDropdown onDelete={() => handleDelete(item)} user={item.user} />
+                  )}
                 </TitleWrapper>
               }
               timestamp={<SmallTimestamp date={item.dateCreated} />}

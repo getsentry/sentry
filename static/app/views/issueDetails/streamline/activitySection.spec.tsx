@@ -32,7 +32,7 @@ describe('StreamlinedActivitySection', function () {
         id: 'note-1',
         data: {text: 'Test Note'},
         dateCreated: '2020-01-01T00:00:00',
-        user: UserFixture(),
+        user: user,
         project,
       },
     ],
@@ -64,5 +64,29 @@ describe('StreamlinedActivitySection', function () {
     expect(deleteMock).toHaveBeenCalledTimes(1);
 
     expect(screen.queryByText('Test Note')).not.toBeInTheDocument();
+  });
+
+  it('renders note but does not allow for deletion if written by someone else', async function () {
+    const updatedActivityGroup = GroupFixture({
+      id: '1338',
+      activity: [
+        {
+          type: GroupActivityType.NOTE,
+          id: 'note-1',
+          data: {text: 'Test Note'},
+          dateCreated: '2020-01-01T00:00:00',
+          user: UserFixture({id: '2'}),
+          project,
+        },
+      ],
+      project,
+    });
+
+    render(<StreamlinedActivitySection group={updatedActivityGroup} />);
+    expect(await screen.findByText('Test Note')).toBeInTheDocument();
+
+    expect(
+      screen.queryByRole('button', {name: 'Comment Actions'})
+    ).not.toBeInTheDocument();
   });
 });
