@@ -475,6 +475,51 @@ class DiscoverQueryBuilderTest(TestCase):
             ],
         )
 
+    def test_not_empty_measurement(self):
+        query = DiscoverQueryBuilder(
+            Dataset.Discover,
+            self.params,
+            query="has:measurements.lcp",
+        )
+
+        lcp = Column("measurements[lcp]")
+
+        self.assertCountEqual(
+            query.where,
+            [
+                Condition(Function("isNull", [lcp]), Op.EQ, 0),
+                *self.default_conditions,
+            ],
+        )
+
+    def test_not_empty_function_measurement(self):
+        query = DiscoverQueryBuilder(
+            Dataset.Discover,
+            self.params,
+            query="has:measurements.frames_frozen_rate",
+        )
+
+        frames_total = Column("measurements[frames_total]")
+        frames_frozen = Column("measurements[frames_frozen]")
+
+        frames_frozen_rate = Function(
+            "if",
+            [
+                Function("greater", [frames_total, 0]),
+                Function("divide", [frames_frozen, frames_total]),
+                None,
+            ],
+            alias="measurements.frames_frozen_rate",
+        )
+
+        self.assertCountEqual(
+            query.where,
+            [
+                Condition(Function("isNull", [frames_frozen_rate]), Op.EQ, 0),
+                *self.default_conditions,
+            ],
+        )
+
     def test_array_join(self):
         query = DiscoverQueryBuilder(
             Dataset.Discover,
