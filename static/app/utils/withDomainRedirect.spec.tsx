@@ -19,7 +19,7 @@ const projectRoutes = [
   {childRoutes: []},
   {path: '/settings/', name: 'Settings', indexRoute: {}, childRoutes: []},
   {name: 'Organizations', path: ':orgId/', childRoutes: []},
-  {name: 'Projects', path: ':projectId/(searches/:searchId/)', childRoutes: []},
+  {name: 'Projects', path: ':projectId/', childRoutes: []},
   {name: 'Alerts', path: 'alerts/'},
 ];
 
