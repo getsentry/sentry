@@ -89,17 +89,17 @@ function EditableTabTitle({
 
   return (
     <Tooltip title={label} disabled={isEditing} showOnlyOnOverflow skipWrapper>
-      <motion.div layout="position" transition={{duration: 0.25}}>
-        {isSelected ? (
+      <motion.div layout="position" transition={{duration: 0.2}}>
+        {isSelected && isEditing ? (
           <StyledGrowingInput
             value={inputValue}
             onChange={handleOnChange}
             onKeyDown={handleOnKeyDown}
-            onDoubleClick={() => setIsEditing(true)}
             onBlur={handleOnBlur}
             ref={inputRef}
             style={memoizedStyles}
             isEditing={isEditing}
+            maxLength={128}
             onPointerDown={e => {
               e.stopPropagation();
               if (!isEditing) {
@@ -112,10 +112,26 @@ function EditableTabTitle({
                 e.preventDefault();
               }
             }}
-            maxLength={128}
           />
         ) : (
-          <UnselectedTabTitle>{label}</UnselectedTabTitle>
+          <UnselectedTabTitle
+            onDoubleClick={() => setIsEditing(true)}
+            onPointerDown={e => {
+              if (isSelected) {
+                e.stopPropagation();
+                e.preventDefault();
+              }
+            }}
+            onMouseDown={e => {
+              if (isSelected) {
+                e.stopPropagation();
+                e.preventDefault();
+              }
+            }}
+            isSelected={isSelected}
+          >
+            {label}
+          </UnselectedTabTitle>
         )}
       </motion.div>
     </Tooltip>
@@ -124,13 +140,15 @@ function EditableTabTitle({
 
 export default EditableTabTitle;
 
-const UnselectedTabTitle = styled('div')`
+const UnselectedTabTitle = styled('div')<{isSelected: boolean}>`
   height: 20px;
-  /* The max width is slightly smaller than the GrowingInput since the text in the growing input is bolded */
-  max-width: 310px;
+  max-width: ${p => (p.isSelected ? '325px' : '310px')};
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  padding-right: 1px;
+  cursor: pointer;
+  font-weight: ${p => (p.isSelected ? 'bold' : 'normal')};
 `;
 
 const StyledGrowingInput = styled(GrowingInput)<{
@@ -138,15 +156,15 @@ const StyledGrowingInput = styled(GrowingInput)<{
 }>`
   position: relative;
   border: none;
+  margin: 0;
   padding: 0;
   background: transparent;
   min-height: 0px;
   height: 20px;
   border-radius: 0px;
   text-overflow: ellipsis;
-  cursor: ${p => (p.isEditing ? 'text' : 'pointer')};
-
-  ${p => !p.isEditing && `max-width: 325px;`}
+  cursor: text;
+  max-width: 325px;
 
   &,
   &:focus,
