@@ -119,4 +119,7 @@ def _get_nonce_from_csp(csp: str) -> str:
 
 def _has_nonce(response):
     content = response.content.decode("utf-8")
+    # Middleware automatically injects the `nonce` attribute onto our <script>
+    # tag; so if that attribute is there then we can assume the nonce header and
+    # value are set correctly.
     return "<script nonce=" in content
