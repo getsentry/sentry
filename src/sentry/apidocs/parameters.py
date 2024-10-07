@@ -95,7 +95,8 @@ class EnvironmentParams:
         location="query",
         required=False,
         type=str,
-        description="""The visibility of the environments to filter by. The options are: `all`, `hidden`, `visible`. Defaults to `visible`.""",
+        description="""The visibility of the environments to filter by. Defaults to `visible`.""",
+        enum=["all", "hidden", "visible"],
     )
 
 

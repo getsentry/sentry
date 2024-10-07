@@ -1,3 +1,4 @@
+from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -6,33 +7,42 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.helpers.environments import environment_visibility_filter_options
 from sentry.api.serializers import serialize
+from sentry.api.serializers.models.environment import EnvironmentProjectSerializerResponse
+from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
+from sentry.apidocs.examples.environment_examples import EnvironmentExamples
+from sentry.apidocs.parameters import EnvironmentParams, GlobalParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.environment import EnvironmentProject
 
 
+@extend_schema(tags=["Environments"])
 @region_silo_endpoint
 class ProjectEnvironmentsEndpoint(ProjectEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PUBLIC,
     }
 
+    @extend_schema(
+        operation_id="List a Project's Environments",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
+            EnvironmentParams.VISIBILITY,
+        ],
+        responses={
+            200: inline_sentry_response_serializer(
+                "ListProjectEnvironments", list[EnvironmentProjectSerializerResponse]
+            ),
+            400: OpenApiResponse(description="Invalid value for 'visibility'."),
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+        examples=EnvironmentExamples.GET_PROJECT_ENVIRONMENTS,
+    )
     def get(self, request: Request, project) -> Response:
         """
-        List a Project's Environments
-        ```````````````````````````````
-
-        Return environments for a given project.
-
-        :qparam string visibility: when omitted only visible environments are
-                                   returned. Set to ``"hidden"`` for only hidden
-                                   environments, or ``"all"`` for both hidden
-                                   and visible environments.
-
-        :pparam string organization_id_or_slug: the id or slug of the organization the project
-                                          belongs to.
-
-        :pparam string project_id_or_slug: the id or slug of the project.
-
-        :auth: required
+        Lists a project's environments.
         """
 
         queryset = (
