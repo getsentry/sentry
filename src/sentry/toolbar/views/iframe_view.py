@@ -1,6 +1,7 @@
 from typing import Any
 
-from django.http import HttpRequest
+from django.http import HttpRequest, HttpResponse
+from django.http.response import HttpResponseBase
 
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -17,7 +18,12 @@ def _get_referrer(request) -> str | None:
 
 @region_silo_view
 class IframeView(ProjectView):
-    def respond(self, template: str, context: dict[str, Any], status: int = 200):
+    def respond(
+        self, template: str, context: dict[str, Any] | None = None, status: int = 200
+    ) -> HttpResponseBase:
+        if not context or not context.get("referrer"):
+            raise
+
         self.default_context = {}  # self.get_context_data(request, *args, **kwargs)
 
         referrer = context.get("referrer") or "'none'"
@@ -29,19 +35,19 @@ class IframeView(ProjectView):
 
         return response
 
-    def handle_disabled_member(self, request: HttpRequest, *args, **kwargs):
+    def handle_disabled_member(self, organization: Organization) -> HttpResponse:
+        return self._handle_logged_out(self.request)
+
+    def handle_not_2fa_compliant(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
         return self._handle_logged_out(request, *args, **kwargs)
 
-    def handle_not_2fa_compliant(self, request: HttpRequest, *args, **kwargs):
+    def handle_sudo_required(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
         return self._handle_logged_out(request, *args, **kwargs)
 
-    def handle_sudo_required(self, request: HttpRequest, *args, **kwargs):
+    def handle_auth_required(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
         return self._handle_logged_out(request, *args, **kwargs)
 
-    def handle_auth_required(self, request: HttpRequest, *args, **kwargs):
-        return self._handle_logged_out(request, *args, **kwargs)
-
-    def _handle_logged_out(self, request: HttpRequest, *args, **kwargs):
+    def _handle_logged_out(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
         return self.respond(
             TEMPLATE,
             status=200,
@@ -52,7 +58,7 @@ class IframeView(ProjectView):
             },
         )
 
-    def handle_permission_required(self, request: HttpRequest, *args, **kwargs):
+    def handle_permission_required(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
         return self.respond(
             TEMPLATE,
             status=200,
@@ -65,7 +71,7 @@ class IframeView(ProjectView):
 
     def get(
         self, request: HttpRequest, organization: Organization, project: Project, *args, **kwargs
-    ):
+    ) -> HttpResponse:
         referrer = _get_referrer(request)
         allowed_origins: list[str] = project.get_option("sentry:toolbar_allowed_origins")
 

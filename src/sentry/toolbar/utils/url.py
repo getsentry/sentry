@@ -33,7 +33,7 @@ def url_matches(referrer: ParseResult, target_url: str) -> bool:
     )
 
 
-def is_origin_allowed(referrer: str, allowed_origins: list[str]) -> tuple[bool, str]:
+def is_origin_allowed(referrer: str, allowed_origins: list[str]) -> bool:
     if not urlparse(referrer).scheme:
         referrer = "http://" + referrer
 
