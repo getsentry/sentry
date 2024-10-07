@@ -246,7 +246,7 @@ services:
     volumes:
       - ./chartcuterie:/etc/chartcuterie
     ports:
-      - '9090:7901'
+      - '7901:9090'
     networks:
       - sentry
     extra_hosts:
