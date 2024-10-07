@@ -96,6 +96,16 @@ export default function useInviteModal({organization, initialData, source}: Prop
     );
   }, [state.pendingInvites]);
 
+  const sentCount = useMemo(() => {
+    const statuses = Object.values(state.inviteStatus) as InviteStatus[];
+    return statuses.filter(i => i.sent).length;
+  }, [state.inviteStatus]);
+
+  const errorCount = useMemo(() => {
+    const statuses = Object.values(state.inviteStatus) as InviteStatus[];
+    return statuses.filter(i => i.error).length;
+  }, [state.inviteStatus]);
+
   const reset = useCallback(() => {
     setState({
       pendingInvites: [defaultInvite()],
@@ -194,10 +204,20 @@ export default function useInviteModal({organization, initialData, source}: Prop
       {
         organization,
         modal_session: sessionId.current,
+        sent_invites: sentCount,
+        failed_invites: errorCount,
         is_new_modal: organization.features.includes('invite-members-new-modal'),
       }
     );
-  }, [organization, invites, sendInvite, willInvite, removeSentInvites]);
+  }, [
+    organization,
+    invites,
+    sentCount,
+    errorCount,
+    sendInvite,
+    willInvite,
+    removeSentInvites,
+  ]);
 
   const addInviteRow = useCallback(() => {
     setState(prev => ({

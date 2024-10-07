@@ -120,7 +120,9 @@ export type GrowthEventParameters = {
   'invite_modal.add_more': InviteModal;
   'invite_modal.closed': InviteModal;
   'invite_modal.invites_sent': InviteModal & {
+    failed_invites: number;
     is_new_modal: boolean;
+    sent_invites: number;
   };
   'invite_modal.opened': InviteModal & {
     can_invite: boolean;
