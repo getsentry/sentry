@@ -13,6 +13,7 @@ from sentry.models.dashboard_widget import (
     DashboardWidgetQuery,
     DashboardWidgetTypes,
 )
+from sentry.models.dashboard_widget import DatasetSourcesTypes as DashboardDatasetSourcesTypes
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
 from sentry.testutils.silo import assume_test_silo_mode_of
@@ -342,6 +343,35 @@ class DashboardWidgetDatasetSplitTestCase(TestCase, SnubaTestCase):
         assert snuba_dataclass.start == datetime(2024, 5, 1, 11, 0, tzinfo=timezone.utc)
         assert snuba_dataclass.end == datetime(2024, 5, 1, 12, 0, tzinfo=timezone.utc)
         assert snuba_dataclass.environments == [environment]
+
+    def test_errors_widget_unhandled_in_conditions(self):
+        error_widget = DashboardWidget.objects.create(
+            dashboard=self.dashboard,
+            order=0,
+            title="error widget",
+            display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+            widget_type=DashboardWidgetTypes.DISCOVER,
+            interval="1d",
+            detail={"layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2}},
+        )
+        errors_widget_query = DashboardWidgetQuery.objects.create(
+            widget=error_widget,
+            fields=["title", "issue", "project", "release", "count()", "count_unique(user)"],
+            columns=[],
+            aggregates=["count_unique(user)"],
+            conditions="(error.unhandled:true message:testing) OR message:test",
+            order=0,
+        )
+
+        _get_and_save_split_decision_for_dashboard_widget(errors_widget_query, self.dry_run)
+        error_widget.refresh_from_db()
+        assert (
+            error_widget.discover_widget_split is None
+            if self.dry_run
+            else error_widget.discover_widget_split == 100
+        )
+        if not self.dry_run:
+            assert error_widget.dataset_source == DashboardDatasetSourcesTypes.FORCED.value
 
 
 class DashboardWidgetDatasetSplitDryRunTestCase(DashboardWidgetDatasetSplitTestCase):
