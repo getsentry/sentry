@@ -13,6 +13,7 @@ from arroyo.processing.strategies import (
     Reduce,
     RunTask,
 )
+from arroyo.processing.strategies.abstract import MessageRejected
 from arroyo.processing.strategies.run_task_with_multiprocessing import MultiprocessingPool
 from arroyo.types import BaseValue, Commit, Message, Partition
 from django.utils import timezone
@@ -102,7 +103,7 @@ class StrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             message: Message[KafkaPayload],
         ) -> KafkaPayload:
             count = self.pending_task_store.count_pending_task()
-            while count >= self.max_inflight_activation_in_store:
+            if count >= self.max_inflight_activation_in_store:
                 # The number of pending inflight activations in the store exceeds the limit.
                 # Wait for workers to complete tasks before adding the next offset to the queue.
                 logger.info(
@@ -110,8 +111,7 @@ class StrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
                     count,
                     self.max_inflight_activation_in_store,
                 )
-                time.sleep(3)  # TODO: make this a parameter
-                count = self.pending_task_store.count_pending_task()
+                raise MessageRejected()
             return message.payload
 
         flush = RunTask(
