@@ -4,7 +4,7 @@ from django.test import override_settings
 from django.urls import reverse
 
 from sentry.testutils.cases import APITestCase
-from sentry.toolbar.views.login_success_view import SUCCESS_TEMPLATE
+from sentry.toolbar.views.login_success_view import TEMPLATE
 
 
 class LoginSuccessViewTest(APITestCase):
@@ -28,7 +28,7 @@ class LoginSuccessViewTest(APITestCase):
         self.login_as(self.user)
         res = self.client.get(self.url)
         assert res.status_code == 200
-        self.assertTemplateUsed(res, SUCCESS_TEMPLATE)
+        self.assertTemplateUsed(res, TEMPLATE)
 
     @override_settings(CSP_REPORT_ONLY=False)
     def test_csp_script_src_nonce(self):

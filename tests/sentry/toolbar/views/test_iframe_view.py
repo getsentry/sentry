@@ -4,6 +4,7 @@ from django.test import override_settings
 from django.urls import reverse
 
 from sentry.testutils.cases import APITestCase
+from sentry.toolbar.views.iframe_view import TEMPLATE
 
 
 class IframeViewTest(APITestCase):
@@ -20,11 +21,12 @@ class IframeViewTest(APITestCase):
         url = reverse(self.view_name, args=(self.organization.slug, "abc123xyz"))
         res = self.client.get(url, HTTP_REFERER=referrer)
 
-        assert res.status_code == 404
+        assert res.status_code == 200
         assert res.headers.get("X-Frame-Options") == "ALLOWALL"
         assert f"frame-ancestors {referrer}" in _get_csp_parts(res)
         assert _has_nonce(res)
 
+        self.assertTemplateUsed(res, TEMPLATE)
         assert f"const referrer = '{referrer}';" in res.content.decode("utf-8")
         # TODO: 'missing-project' is the full string to check for
         assert "const state = 'missing" in res.content.decode("utf-8")
@@ -34,18 +36,19 @@ class IframeViewTest(APITestCase):
         referrer = "https://example.com"
         res = self.client.get(self.url, HTTP_REFERER=referrer)
 
-        assert res.status_code == 403
+        assert res.status_code == 200
         assert res.headers.get("X-Frame-Options") == "ALLOWALL"
         assert f"frame-ancestors {referrer}" in _get_csp_parts(res)
         assert _has_nonce(res)
 
+        self.assertTemplateUsed(res, TEMPLATE)
         assert f"const referrer = '{referrer}';" in res.content.decode("utf-8")
         # TODO: 'invalid-domain' is the full string to check for
         assert "const state = 'invalid" in res.content.decode("utf-8")
 
     @override_settings(CSP_REPORT_ONLY=False)
     def test_allowed_origins_basic(self):
-        referrer = "https://sentry.io:127/replays/"
+        referrer = "https://sentry.io:127/replays"
         self.project.update_option("sentry:toolbar_allowed_origins", ["sentry.io"])
 
         res = self.client.get(self.url, HTTP_REFERER=referrer)
@@ -54,6 +57,7 @@ class IframeViewTest(APITestCase):
         assert f"frame-ancestors {referrer}" in _get_csp_parts(res)
         assert _has_nonce(res)
 
+        self.assertTemplateUsed(res, TEMPLATE)
         assert f"const referrer = '{referrer}';" in res.content.decode("utf-8")
         assert "const state = 'success';" in res.content.decode("utf-8")
 
@@ -68,6 +72,7 @@ class IframeViewTest(APITestCase):
         assert f"frame-ancestors {referrer}" in _get_csp_parts(res)
         assert _has_nonce(res)
 
+        self.assertTemplateUsed(res, TEMPLATE)
         assert f"const referrer = '{referrer}';" in res.content.decode("utf-8")
         assert "const state = 'success';" in res.content.decode("utf-8")
 
@@ -77,11 +82,12 @@ class IframeViewTest(APITestCase):
         self.project.update_option("sentry:toolbar_allowed_origins", ["*.nugettrends.com"])
 
         res = self.client.get(self.url, HTTP_REFERER=referrer)
-        assert res.status_code == 403
+        assert res.status_code == 200
         assert res.headers.get("X-Frame-Options") == "ALLOWALL"
         assert f"frame-ancestors {referrer}" in _get_csp_parts(res)
         assert _has_nonce(res)
 
+        self.assertTemplateUsed(res, TEMPLATE)
         assert f"const referrer = '{referrer}';" in res.content.decode("utf-8")
         # TODO: 'invalid-domain' is the full string to check for
         assert "const state = 'invalid" in res.content.decode("utf-8")
@@ -91,11 +97,12 @@ class IframeViewTest(APITestCase):
         self.project.update_option("sentry:toolbar_allowed_origins", ["*.nugettrends.com"])
 
         res = self.client.get(self.url)
-        assert res.status_code == 403
+        assert res.status_code == 200
         assert res.headers.get("X-Frame-Options") == "DENY"
         assert "frame-ancestors 'none'" in _get_csp_parts(res)
         assert _has_nonce(res)
 
+        self.assertTemplateUsed(res, TEMPLATE)
         assert "const referrer = 'None';" in res.content.decode("utf-8")
         # TODO: 'invalid-domain' is the full string to check for
         assert "const state = 'invalid" in res.content.decode("utf-8")

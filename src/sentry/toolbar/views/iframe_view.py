@@ -44,7 +44,7 @@ class IframeView(ProjectView):
     def _handle_logged_out(self, request: HttpRequest, *args, **kwargs):
         return self.respond(
             TEMPLATE,
-            status=200,  # 401,
+            status=200,
             context={
                 "referrer": _get_referrer(request),
                 "state": "logged-out",
@@ -55,7 +55,7 @@ class IframeView(ProjectView):
     def handle_permission_required(self, request: HttpRequest, *args, **kwargs):
         return self.respond(
             TEMPLATE,
-            status=200,  # 404,
+            status=200,
             context={
                 "referrer": _get_referrer(request),
                 "state": "missing-project",
@@ -82,7 +82,7 @@ class IframeView(ProjectView):
 
         return self.respond(
             TEMPLATE,
-            status=200,  # 403,
+            status=200,
             context={
                 "referrer": referrer,
                 "state": "invalid-domain",
