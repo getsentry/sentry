@@ -37,7 +37,7 @@ from sentry.sentry_apps.models.sentry_app import (
 )
 from sentry.sentry_apps.models.sentry_app_component import SentryAppComponent
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
-from sentry.tasks.sentry_apps import create_or_update_service_hooks_for_sentry_app
+from sentry.sentry_apps.tasks.sentry_apps import create_or_update_service_hooks_for_sentry_app
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.utils.sentry_apps.service_hook_manager import (
