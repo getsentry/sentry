@@ -52,10 +52,7 @@ class OrganizationDashboardsPermission(OrganizationPermission):
         if isinstance(obj, Dashboard):
             # 1. Dashboard contains certain projects
             if obj.projects.exists():
-                for project in obj.projects.all():
-                    if not request.access.has_project_access(project):
-                        return False
-                return True
+                return request.access.has_projects_access(obj.projects.all())
 
             # 2. Dashboard covers all projects or all my projects
 
