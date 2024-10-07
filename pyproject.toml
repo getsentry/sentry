@@ -340,7 +340,6 @@ module = [
     "sentry.tagstore.types",
     "sentry.tasks.auth",
     "sentry.tasks.base",
-    "sentry.tasks.process_buffer",
     "sentry.testutils.cases",
     "sentry.testutils.fixtures",
     "sentry.testutils.helpers.notifications",
