@@ -2,10 +2,14 @@ import datetime
 from typing import Any, TypedDict
 
 from sentry.flags.models import ACTION_MAP, CREATED_BY_TYPE_MAP, FlagAuditLogModel
+from sentry.silo.base import SiloLimit
 
 
 def write(rows: list["FlagAuditLogRow"]) -> None:
-    FlagAuditLogModel.objects.bulk_create(FlagAuditLogModel(**row) for row in rows)
+    try:
+        FlagAuditLogModel.objects.bulk_create(FlagAuditLogModel(**row) for row in rows)
+    except SiloLimit.AvailabilityError:
+        pass
 
 
 """Provider definitions.
