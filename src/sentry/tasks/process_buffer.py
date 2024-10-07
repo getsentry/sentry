@@ -30,7 +30,7 @@ def process_pending() -> None:
 
     try:
         with lock.acquire():
-            buffer.process_pending()
+            buffer.backend.process_pending()
     except UnableToAcquireLock as error:
         logger.warning("process_pending.fail", extra={"error": error})
 
@@ -48,7 +48,7 @@ def process_pending_batch() -> None:
 
     try:
         with lock.acquire():
-            buffer.process_batch()
+            buffer.backend.process_batch()
     except UnableToAcquireLock as error:
         logger.warning("process_pending_batch.fail", extra={"error": error})
 
@@ -62,7 +62,7 @@ def process_incr(**kwargs):
 
     sentry_sdk.set_tag("model", kwargs.get("model", "Unknown"))
 
-    buffer.process(**kwargs)
+    buffer.backend.process(**kwargs)
 
 
 def buffer_incr(model, *args, **kwargs):
@@ -91,4 +91,4 @@ def buffer_incr_task(app_label, model_name, args, kwargs):
 
     sentry_sdk.set_tag("model", model_name)
 
-    buffer.incr(apps.get_model(app_label=app_label, model_name=model_name), *args, **kwargs)
+    buffer.backend.incr(apps.get_model(app_label=app_label, model_name=model_name), *args, **kwargs)

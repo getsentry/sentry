@@ -140,10 +140,49 @@ describe('BigNumberWidget', () => {
       expect(screen.getByText('—')).toBeInTheDocument();
     });
 
+    it('Loading state takes precedence over error state', () => {
+      render(
+        <BigNumberWidget isLoading error={new Error('Parsing error of old value')} />
+      );
+
+      expect(screen.getByText('—')).toBeInTheDocument();
+    });
+
     it('Shows an error message', () => {
       render(<BigNumberWidget error={new Error('Uh oh')} />);
 
       expect(screen.getByText('Error: Uh oh')).toBeInTheDocument();
+    });
+
+    it('Shows a retry button', async () => {
+      const onRetry = jest.fn();
+
+      render(<BigNumberWidget error={new Error('Oh no!')} onRetry={onRetry} />);
+
+      await userEvent.click(screen.getByRole('button', {name: 'Retry'}));
+      expect(onRetry).toHaveBeenCalledTimes(1);
+    });
+
+    it('Hides other actions if there is an error and a retry handler', () => {
+      const onRetry = jest.fn();
+
+      render(
+        <BigNumberWidget
+          error={new Error('Oh no!')}
+          onRetry={onRetry}
+          actions={[
+            {
+              key: 'Open in Discover',
+              to: '/discover',
+            },
+          ]}
+        />
+      );
+
+      expect(screen.getByRole('button', {name: 'Retry'})).toBeInTheDocument();
+      expect(
+        screen.queryByRole('link', {name: 'Open in Discover'})
+      ).not.toBeInTheDocument();
     });
   });
 

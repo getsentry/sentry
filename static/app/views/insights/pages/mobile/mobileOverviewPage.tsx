@@ -22,6 +22,7 @@ import useProjects from 'sentry/utils/useProjects';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
+import {ViewTrendsButton} from 'sentry/views/insights/common/viewTrendsButton';
 import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
 import {OVERVIEW_PAGE_TITLE} from 'sentry/views/insights/pages/settings';
 import {
@@ -43,23 +44,25 @@ import {
 
 const MOBILE_COLUMN_TITLES = [
   'transaction',
-  'project',
   'operation',
+  'project',
   'tpm',
   'slow frame %',
   'frozen frame %',
   'users',
+  'user misery',
 ];
 
 const REACT_NATIVE_COLUMN_TITLES = [
   'transaction',
-  'project',
   'operation',
+  'project',
   'tpm',
   'slow frame %',
   'frozen frame %',
   'stall %',
   'users',
+  'user misery',
 ];
 
 function MobileOverviewPage() {
@@ -80,10 +83,6 @@ function MobileOverviewPage() {
     organization
   );
 
-  eventView.fields = eventView.fields.filter(
-    field => !['user_misery()', 'count_miserable(user)'].includes(field.field)
-  );
-
   let columnTitles = checkIsReactNative(eventView)
     ? REACT_NATIVE_COLUMN_TITLES
     : MOBILE_COLUMN_TITLES;
@@ -102,10 +101,6 @@ function MobileOverviewPage() {
     PerformanceWidgetSetting.P95_DURATION_AREA,
     PerformanceWidgetSetting.P99_DURATION_AREA,
     PerformanceWidgetSetting.FAILURE_RATE_AREA,
-    PerformanceWidgetSetting.COLD_STARTUP_AREA,
-    PerformanceWidgetSetting.WARM_STARTUP_AREA,
-    PerformanceWidgetSetting.SLOW_FRAMES_AREA,
-    PerformanceWidgetSetting.FROZEN_FRAMES_AREA,
   ];
 
   if (organization.features.includes('mobile-vitals')) {
@@ -169,9 +164,7 @@ function MobileOverviewPage() {
       organization={organization}
       renderDisabled={NoAccess}
     >
-      <Layout.Header>
-        <MobileHeader />
-      </Layout.Header>
+      <MobileHeader headerActions={<ViewTrendsButton />} />
       <Layout.Body>
         <Layout.Main fullWidth>
           <ModuleLayout.Layout>

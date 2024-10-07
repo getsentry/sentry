@@ -141,7 +141,7 @@
     "papaparse": "^5.3.2",
     "pegjs": "^0.10.0",
     "pegjs-loader": "^0.5.8",
-    "platformicons": "^6.0.1",
+    "platformicons": "^6.0.3",
     "po-catalog-loader": "2.1.0",
     "prettier": "3.3.2",
     "prismjs": "^1.29.0",

@@ -612,7 +612,7 @@ def bind_organization_context(organization: Organization | RpcOrganization) -> N
     scope = Scope.get_isolation_scope()
 
     # XXX(dcramer): this is duplicated in organizationContext.jsx on the frontend
-    with sentry_sdk.start_span(op="other", description="bind_organization_context"):
+    with sentry_sdk.start_span(op="other", name="bind_organization_context"):
         # This can be used to find errors that may have been mistagged
         check_tag_for_scope_bleed("organization.slug", organization.slug)
 

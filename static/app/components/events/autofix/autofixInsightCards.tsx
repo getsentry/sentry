@@ -1,9 +1,10 @@
-import {useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
 
 import bannerImage from 'sentry-images/insights/module-upsells/insights-module-upsell.svg';
 
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/button';
 import {
   replaceHeadersWithBold,
@@ -21,13 +22,24 @@ import {
   getBreadcrumbColorConfig,
   getBreadcrumbTitle,
 } from 'sentry/components/events/breadcrumbs/utils';
+import Input from 'sentry/components/input';
 import StructuredEventData from 'sentry/components/structuredEventData';
 import Timeline from 'sentry/components/timeline';
-import {IconArrow, IconChevron, IconCode, IconFire, IconUser} from 'sentry/icons';
+import {
+  IconArrow,
+  IconChevron,
+  IconCode,
+  IconFire,
+  IconRefresh,
+  IconUser,
+} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
 import {singleLineRenderer} from 'sentry/utils/marked';
+import {useMutation} from 'sentry/utils/queryClient';
 import testableTransition from 'sentry/utils/testableTransition';
+import useApi from 'sentry/utils/useApi';
 
 interface AutofixBreadcrumbSnippetProps {
   breadcrumb: BreadcrumbContext;
@@ -113,10 +125,14 @@ const animationProps: AnimationProps = {
 };
 
 interface AutofixInsightCardProps {
+  groupId: string;
   hasCardAbove: boolean;
   hasCardBelow: boolean;
+  index: number;
   insight: AutofixInsight;
   repos: AutofixRepository[];
+  runId: string;
+  stepIndex: number;
 }
 
 function AutofixInsightCard({
@@ -124,6 +140,10 @@ function AutofixInsightCard({
   hasCardBelow,
   hasCardAbove,
   repos,
+  index,
+  stepIndex,
+  groupId,
+  runId,
 }: AutofixInsightCardProps) {
   const isUserMessage = insight.justification === 'USER';
 
@@ -132,9 +152,12 @@ function AutofixInsightCard({
       <AnimatePresence initial>
         <AnimationWrapper key="content" {...animationProps}>
           {hasCardAbove && (
-            <IconContainer>
-              <IconArrow direction={'down'} />
-            </IconContainer>
+            <ChainLink
+              insightCardAboveIndex={index - 1}
+              stepIndex={stepIndex}
+              groupId={groupId}
+              runId={runId}
+            />
           )}
           {!isUserMessage && (
             <InsightContainer>
@@ -245,9 +268,12 @@ function AutofixInsightCard({
             </UserMessageContainer>
           )}
           {hasCardBelow && (
-            <IconContainer>
-              <IconArrow direction={'down'} />
-            </IconContainer>
+            <ChainLink
+              insightCardAboveIndex={index}
+              stepIndex={stepIndex}
+              groupId={groupId}
+              runId={runId}
+            />
           )}
         </AnimationWrapper>
       </AnimatePresence>
@@ -256,10 +282,13 @@ function AutofixInsightCard({
 }
 
 interface AutofixInsightCardsProps {
+  groupId: string;
   hasStepAbove: boolean;
   hasStepBelow: boolean;
   insights: AutofixInsight[];
   repos: AutofixRepository[];
+  runId: string;
+  stepIndex: number;
 }
 
 function AutofixInsightCards({
@@ -267,15 +296,21 @@ function AutofixInsightCards({
   repos,
   hasStepBelow,
   hasStepAbove,
+  stepIndex,
+  groupId,
+  runId,
 }: AutofixInsightCardsProps) {
   return (
     <InsightsContainer>
       {!hasStepAbove && (
         <div>
           <TitleText>Insights</TitleText>
-          <IconContainer>
-            <IconArrow direction={'down'} />
-          </IconContainer>
+          <ChainLink
+            insightCardAboveIndex={null}
+            stepIndex={stepIndex}
+            groupId={groupId}
+            runId={runId}
+          />
         </div>
       )}
       {insights.length > 0 ? (
@@ -287,6 +322,10 @@ function AutofixInsightCards({
               hasCardBelow={index < insights.length - 1 || hasStepBelow}
               hasCardAbove={hasStepAbove && index === 0}
               repos={repos}
+              index={index}
+              stepIndex={stepIndex}
+              groupId={groupId}
+              runId={runId}
             />
           )
         )
@@ -302,6 +341,120 @@ function AutofixInsightCards({
         </NoInsightsYet>
       ) : null}
     </InsightsContainer>
+  );
+}
+
+function useUpdateInsightCard({groupId, runId}: {groupId: string; runId: string}) {
+  const api = useApi({persistInFlight: true});
+
+  return useMutation({
+    mutationFn: (params: {
+      message: string;
+      retain_insight_card_index: number | null;
+      step_index: number;
+    }) => {
+      return api.requestPromise(`/issues/${groupId}/autofix/update/`, {
+        method: 'POST',
+        data: {
+          run_id: runId,
+          payload: {
+            type: 'restart_from_point_with_feedback',
+            message: params.message,
+            step_index: params.step_index,
+            retain_insight_card_index: params.retain_insight_card_index,
+          },
+        },
+      });
+    },
+    onSuccess: _ => {
+      addSuccessMessage(t("Thanks, I'll rethink this..."));
+    },
+    onError: () => {
+      addErrorMessage(t('Something went wrong when sending Autofix your message.'));
+    },
+  });
+}
+
+function ChainLink({
+  groupId,
+  runId,
+  stepIndex,
+  insightCardAboveIndex,
+}: {
+  groupId: string;
+  insightCardAboveIndex: number | null;
+  runId: string;
+  stepIndex: number;
+}) {
+  const [showOverlay, setShowOverlay] = useState(false);
+  const overlayRef = useRef<HTMLDivElement | null>(null);
+  const [comment, setComment] = useState('');
+  const {mutate: send} = useUpdateInsightCard({groupId, runId});
+
+  const handleClickOutside = event => {
+    if (overlayRef.current && !overlayRef.current.contains(event.target)) {
+      setShowOverlay(false);
+    }
+  };
+
+  useEffect(() => {
+    if (showOverlay) {
+      document.addEventListener('mousedown', handleClickOutside);
+    } else {
+      document.removeEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showOverlay]);
+
+  return (
+    <ArrowContainer>
+      <IconArrow direction={'down'} className="arrow-icon" />
+      <RethinkButton
+        icon={<IconRefresh />}
+        size="zero"
+        className="hover-button"
+        onClick={() => setShowOverlay(true)}
+      >
+        Rethink from here
+      </RethinkButton>
+
+      {showOverlay && (
+        <RethinkInput ref={overlayRef}>
+          <form
+            onSubmit={e => {
+              e.preventDefault();
+              setShowOverlay(false);
+              setComment('');
+              send({
+                message: comment,
+                step_index: stepIndex,
+                retain_insight_card_index: insightCardAboveIndex,
+              });
+            }}
+            className="row-form"
+          >
+            <Input
+              type="text"
+              placeholder="Say something..."
+              value={comment}
+              onChange={e => setComment(e.target.value)}
+              size="md"
+              autoFocus
+            />
+            <Button
+              type="submit"
+              icon={<IconRefresh />}
+              title="Restart analysis from this point in the chain"
+              aria-label="Restart analysis from this point in the chain"
+              priority="primary"
+              size="md"
+            />
+          </form>
+        </RethinkInput>
+      )}
+    </ArrowContainer>
   );
 }
 
@@ -350,11 +503,54 @@ const InsightContainer = styled(motion.div)`
   box-shadow: ${p => p.theme.dropShadowMedium};
 `;
 
-const IconContainer = styled('div')`
-  padding: ${space(1)};
-  display: flex;
-  justify-content: center;
+const ArrowContainer = styled('div')`
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   color: ${p => p.theme.subText};
+  align-items: center;
+  position: relative;
+  z-index: 0;
+
+  .arrow-icon {
+    margin-top: ${space(1)};
+    grid-column: 2 / 3;
+    justify-self: center;
+  }
+
+  .hover-button {
+    opacity: 0;
+    grid-column: 3 / 4;
+    justify-self: end;
+    transition: opacity 0.1s ease-in-out;
+  }
+
+  &:hover .hover-button {
+    opacity: 1;
+  }
+`;
+
+const RethinkButton = styled(Button)`
+  font-weight: normal;
+  font-size: small;
+  border: none;
+  color: ${p => p.theme.subText};
+  margin-top: ${space(1)};
+`;
+
+const RethinkInput = styled('div')`
+  position: absolute;
+  box-shadow: ${p => p.theme.dropShadowHeavy};
+  border: 1px solid ${p => p.theme.border};
+  width: 95%;
+  background: ${p => p.theme.backgroundElevated};
+  padding: ${space(0.5)};
+  border-radius: ${p => p.theme.borderRadius};
+  margin: 0 ${space(2)} 0 ${space(2)};
+
+  .row-form {
+    display: flex;
+    gap: ${space(1)};
+  }
 `;
 
 const BreadcrumbItem = styled(Timeline.Item)`
