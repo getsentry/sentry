@@ -18,7 +18,7 @@ type Props = RouteComponentProps<RouteParams, {}> & {
   project: Project;
 };
 
-function ProjectToolbarSettings({organization, project, params: {projectId}}: Props) {
+function ProjectToolbar({organization, project, params: {projectId}}: Props) {
   const formGroups: JsonFormObject[] = [
     {
       title: 'Settings',
@@ -49,7 +49,7 @@ function ProjectToolbarSettings({organization, project, params: {projectId}}: Pr
         apiMethod="PUT"
         apiEndpoint={`/projects/${organization.slug}/${projectId}/`}
         initialData={project.options}
-        requireChanges
+        saveOnBlur
       >
         <Access access={['project:write']} project={project}>
           {({hasAccess}) => (
@@ -65,4 +65,4 @@ function ProjectToolbarSettings({organization, project, params: {projectId}}: Pr
   );
 }
 
-export default ProjectToolbarSettings;
+export default ProjectToolbar;
