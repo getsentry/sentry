@@ -1,4 +1,3 @@
-import Feature from 'sentry/components/acl/feature';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -11,11 +10,7 @@ type Props = RouteComponentProps<{projectId: string}, {}> & {
 };
 
 function ProjectMetricsContainer(props: Props) {
-  return (
-    <Feature features={['custom-metrics']}>
-      <ProjectMetrics {...props} />
-    </Feature>
-  );
+  return <ProjectMetrics {...props} />;
 }
 
 export default ProjectMetricsContainer;
