@@ -178,6 +178,20 @@ class Referrer(Enum):
     API_ORGANIZATION_VITALS = "api.organization-vitals"
     API_PERFORMANCE_DURATIONPERCENTILECHART = "api.performance.durationpercentilechart"
     API_AI_PIPELINES_VIEW = "api.ai-pipelines.view"
+    API_PERFORMANCE_BROWSER_RESOURCE_MAIN_TABLE = "api.performance.browser.resources.main-table"
+    API_PERFORMANCE_BROWSER_RESOURCES_PAGE_SELECTOR = (
+        "api.performance.browser.resources.page-selector"
+    )
+    API_PERFORMANCE_BROWSER_WEB_VITALS_PROJECT = "api.performance.browser.web-vitals.project"
+    API_PERFORMANCE_BROWSER_WEB_VITALS_PROJECT_SCORES = (
+        "api.performance.browser.web-vitals.project-scores"
+    )
+    API_PERFORMANCE_BROWSER_WEB_VITALS_TRANSACTION = (
+        "api.performance.browser.web-vitals.transaction"
+    )
+    API_PERFORMANCE_BROWSER_WEB_VITALS_TRANSACTIONS_SCORES = (
+        "api.performance.browser.web-vitals.transactions-scores"
+    )
     API_PERFORMANCE_GENERIC_WIDGET_CHART_APDEX_AREA_METRICS_ENHANCED = (
         "api.performance.generic-widget-chart.apdex-area.metrics-enhanced"
     )
@@ -208,6 +222,9 @@ class Referrer(Enum):
     API_PERFORMANCE_GENERIC_WIDGET_CHART_FROZEN_FRAMES_AREA = (
         "api.performance.generic-widget-chart.frozen-frames-area"
     )
+    API_PERFORMANCE_GENERIC_WIDGET_CHART_HIGHEST_CACHE_MISS_RATE_TRANSACTIONS = (
+        "api.performance.generic-widget-chart.highest-cache--miss-rate-transactions"
+    )
     API_PERFORMANCE_GENERIC_WIDGET_CHART_LCP_HISTOGRAM = (
         "api.performance.generic-widget-chart.lcp-histogram"
     )
@@ -234,6 +251,15 @@ class Referrer(Enum):
     )
     API_PERFORMANCE_GENERIC_WIDGET_CHART_MOST_SLOW_FRAMES = (
         "api.performance.generic-widget-chart.most-slow-frames"
+    )
+    API_PERFORMANCE_GENERIC_WIDGET_CHART_MOST_TIME_CONSUMING_DOMAINS = (
+        "api.performance.generic-widget-chart.most-time-consuming-domains"
+    )
+    API_PERFORMANCE_GENERIC_WIDGET_CHART_MOST_TIME_CONSUMING_RESOURCES = (
+        "api.performance.generic-widget-chart.most-time-consuming-resources"
+    )
+    API_PERFORMANCE_GENERIC_WIDGET_CHART_MOST_TIME_SPENT_DB_QUERIES = (
+        "api.performance.generic-widget-chart.most-time-spent-db-queries"
     )
     API_PERFORMANCE_GENERIC_WIDGET_CHART_P50_DURATION_AREA_METRICS_ENHANCED = (
         "api.performance.generic-widget-chart.p50-duration-area.metrics-enhanced"
@@ -295,15 +321,18 @@ class Referrer(Enum):
     API_PERFORMANCE_GENERIC_WIDGET_CHART_SLOW_RESOURCE_OPS = (
         "api.performance.generic-widget-chart.slow-resource-ops"
     )
+    API_PERFORMANCE_GENERIC_WIDGET_CHART_SLOW_SCREENS_BY_TTID = (
+        "api.performance.generic-widget-chart.slow-screens-by-ttid"
+    )
     API_PERFORMANCE_GENERIC_WIDGET_CHART_TPM_AREA_METRICS_ENHANCED = (
         "api.performance.generic-widget-chart.tpm-area.metrics-enhanced"
     )
     API_PERFORMANCE_GENERIC_WIDGET_CHART_TPM_AREA = "api.performance.generic-widget-chart.tpm-area"
-    API_PERFORMANCE_GENERIC_WIDGET_CHART_USER_MISERY_AREA_METRICS_ENHANCED = (
-        "api.performance.generic-widget-chart.user-misery-area.metrics-enhanced"
-    )
     API_PERFORMANCE_GENERIC_WIDGET_CHART_USER_MISERY_AREA = (
         "api.performance.generic-widget-chart.user-misery-area"
+    )
+    API_PERFORMANCE_GENERIC_WIDGET_CHART_USER_MISERY_AREA_METRICS_ENHANCED = (
+        "api.performance.generic-widget-chart.user-misery-area.metrics-enhanced"
     )
     API_PERFORMANCE_GENERIC_WIDGET_CHART_WARM_STARTUP_AREA_METRICS_ENHANCED = (
         "api.performance.generic-widget-chart.warm-startup-area.metrics-enhanced"
@@ -343,6 +372,11 @@ class Referrer(Enum):
     API_PERFORMANCE_LANDING_TABLE = "api.performance.landing-table"
     API_PERFORMANCE_STATUS_BREAKDOWN = "api.performance.status-breakdown"
     API_PERFORMANCE_TAG_PAGE = "api.performance.tag-page"
+    API_PERFORMANCE_TRACE_TRACE_DRAWER_TRANSACTION_CACHE_METRICS = (
+        "api.performance.trace.trace-drawer-transaction-cache-metrics"
+    )
+    API_PERFORMANCE_TRANSACTION_EVENTS = "api.performance.transaction-events"
+    API_PERFORMANCE_TRANSACTION_NAME_SEARCH_BAR = "api.performance.transaction-name-search-bar"
     API_PERFORMANCE_TRANSACTION_SPANS = "api.performance.transaction-spans"
     API_PERFORMANCE_TRANSACTION_SUMMARY_DURATION = "api.performance.transaction-summary.duration"
     API_PERFORMANCE_TRANSACTION_SUMMARY_SIDEBAR_CHART_METRICS_ENHANCED = (
@@ -416,13 +450,15 @@ class Referrer(Enum):
     API_PROJECT_EVENTS = "api.project-events"
     API_RELEASES_RELEASE_DETAILS_CHART = "api.releases.release-details-chart"
     API_REPLAY_DETAILS_PAGE = "api.replay.details-page"
-
+    API_STARFISH_DATABASE_SYSTEM_SELECTOR = "api.starfish.database-system-selector"
     API_STARFISH_ENDPOINT_LIST = "api.starfish.endpoint-list"
+    API_STARFISH_FULL_SPAN_FROM_TRACE = "api.starfish.full-span-from-trace"
     API_STARFISH_GET_SPAN_ACTIONS = "api.starfish.get-span-actions"
     API_STARFISH_GET_SPAN_DOMAINS = "api.starfish.get-span-domains"
     API_STARFISH_GET_SPAN_OPERATIONS = "api.starfish.get-span-operations"
     API_STARFISH_SIDEBAR_SPAN_METRICS = "api.starfish.sidebar-span-metrics"
     API_STARFISH_SPAN_CATEGORY_BREAKDOWN = "api.starfish-web-service.span-category-breakdown"
+    API_STARFISH_SPAN_DESCRIPTION = "api.starfish.span-description"
     API_STARFISH_SPAN_LIST = "api.starfish.use-span-list"
     API_STARFISH_SPAN_LIST_PRIMARY = "api.starfish.use-span-list.primary"
     API_STARFISH_SPAN_SUMMARY_P95 = "api.starfish.span-summary-panel-samples-table-p95"
