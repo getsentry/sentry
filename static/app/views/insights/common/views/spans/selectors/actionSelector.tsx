@@ -72,7 +72,7 @@ export function ActionSelector({value = '', moduleName, spanCategory, filters}: 
       ];
 
   // The empty option is not necessary for MongoDB, since all queries will have a command
-  if (filters && filters['span.system'] === SupportedDatabaseSystem.MONGODB) {
+  if (filters?.['span.system'] === SupportedDatabaseSystem.MONGODB) {
     options.pop();
   }
 
