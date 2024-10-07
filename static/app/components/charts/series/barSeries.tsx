@@ -1,11 +1,15 @@
 import 'echarts/lib/chart/bar';
 
-import type {BarSeriesOption} from 'echarts';
+import type {BarSeriesOption, LineSeriesOption} from 'echarts';
 
-function barSeries(props: BarSeriesOption): BarSeriesOption {
+/**
+ * The return type can be BarSeriesOption or LineSeriesOption so that we can add
+ * custom lines on top of the event bar chart in `eventGraph.tsx`.
+ */
+function barSeries(props: BarSeriesOption): BarSeriesOption | LineSeriesOption {
   return {
     ...props,
-    type: 'bar',
+    type: props.type ?? 'bar',
   };
 }
 
