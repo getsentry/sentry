@@ -1,4 +1,4 @@
-import {type Crumb} from 'sentry/components/breadcrumbs';
+import type {Crumb} from 'sentry/components/breadcrumbs';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOrganization from 'sentry/utils/useOrganization';
 import {DomainViewHeader} from 'sentry/views/insights/pages/domainViewHeader';
