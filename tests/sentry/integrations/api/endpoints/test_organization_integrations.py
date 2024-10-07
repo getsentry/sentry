@@ -87,3 +87,22 @@ class OrganizationIntegrationsListTest(APITestCase):
         )
         assert response.data == {"detail": "Invalid integration type"}
         assert response.status_code == 400
+
+    def test_provider_key_and_integration_type(self):
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={"providerKey": "slack", "integrationType": "messaging"},
+        )
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(self.slack_integration.id)
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={"providerKey": "vercel", "integrationType": "messaging"},
+        )
+        assert response.data == []
+        response = self.get_error_response(
+            self.organization.slug,
+            qs_params={"providerKey": "slack", "integrationType": "third_party"},
+        )
+        assert response.data == {"detail": "Invalid integration type"}
+        assert response.status_code == 400
