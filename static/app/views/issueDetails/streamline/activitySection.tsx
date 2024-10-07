@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo, useState} from 'react';
+import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -8,7 +8,6 @@ import useMutateActivity from 'sentry/components/feedback/useMutateActivity';
 import Timeline from 'sentry/components/timeline';
 import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
 import GroupStore from 'sentry/stores/groupStore';
 import {space} from 'sentry/styles/space';
 import type {NoteType} from 'sentry/types/alerts';
@@ -17,7 +16,7 @@ import type {User} from 'sentry/types/user';
 import {uniqueId} from 'sentry/utils/guid';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
-import type {MutateActivityOptions} from 'sentry/views/issueDetails/groupActivity';
+import {useUser} from 'sentry/utils/useUser';
 import {groupActivityTypeIconMapping} from 'sentry/views/issueDetails/streamline/groupActivityIcons';
 import getGroupActivityItem from 'sentry/views/issueDetails/streamline/groupActivityItem';
 import {NoteDropdown} from 'sentry/views/issueDetails/streamline/noteDropdown';
@@ -28,7 +27,7 @@ function StreamlinedActivitySection({group}: {group: Group}) {
 
   const [inputId, setInputId] = useState(uniqueId());
 
-  const me = ConfigStore.get('user');
+  const activeUser = useUser();
   const projectSlugs = group?.project ? [group.project.slug] : [];
   const noteProps = {
     minHeight: 140,
@@ -42,29 +41,6 @@ function StreamlinedActivitySection({group}: {group: Group}) {
     group,
   });
 
-  const deleteOptions: MutateActivityOptions = useMemo(() => {
-    return {
-      onError: () => {
-        addErrorMessage(t('Failed to delete comment'));
-      },
-      onSuccess: () => {
-        addSuccessMessage(t('Comment removed'));
-      },
-    };
-  }, []);
-
-  const createOptions: MutateActivityOptions = useMemo(() => {
-    return {
-      onError: () => {
-        addErrorMessage(t('Unable to post comment'));
-      },
-      onSuccess: data => {
-        GroupStore.addActivity(group.id, data);
-        addSuccessMessage(t('Comment posted'));
-      },
-    };
-  }, [group.id]);
-
   const handleDelete = useCallback(
     (item: GroupActivity) => {
       const restore = group.activity.find(activity => activity.id === item.id);
@@ -77,17 +53,32 @@ function StreamlinedActivitySection({group}: {group: Group}) {
       mutators.handleDelete(
         item.id,
         group.activity.filter(a => a.id !== item.id),
-        deleteOptions
+        {
+          onError: () => {
+            addErrorMessage(t('Failed to delete comment'));
+          },
+          onSuccess: () => {
+            addSuccessMessage(t('Comment removed'));
+          },
+        }
       );
     },
-    [deleteOptions, group.activity, mutators, group.id]
+    [group.activity, mutators, group.id]
   );
 
   const handleCreate = useCallback(
     (n: NoteType, _me: User) => {
-      mutators.handleCreate(n, group.activity, createOptions);
+      mutators.handleCreate(n, group.activity, {
+        onError: () => {
+          addErrorMessage(t('Unable to post comment'));
+        },
+        onSuccess: data => {
+          GroupStore.addActivity(group.id, data);
+          addSuccessMessage(t('Comment posted'));
+        },
+      });
     },
-    [createOptions, group.activity, mutators]
+    [group.activity, mutators, group.id]
   );
 
   return (
@@ -98,7 +89,7 @@ function StreamlinedActivitySection({group}: {group: Group}) {
           storageKey="groupinput:latest"
           itemKey={group.id}
           onCreate={n => {
-            handleCreate(n, me);
+            handleCreate(n, activeUser);
             setInputId(uniqueId());
           }}
           source="issue-details"
@@ -121,7 +112,7 @@ function StreamlinedActivitySection({group}: {group: Group}) {
               title={
                 <TitleWrapper>
                   {title}
-                  <NoteDropdown onDelete={() => handleDelete(item)} />
+                  <NoteDropdown onDelete={() => handleDelete(item)} user={item.user} />
                 </TitleWrapper>
               }
               timestamp={<SmallTimestamp date={item.dateCreated} />}

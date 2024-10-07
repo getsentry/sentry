@@ -2,16 +2,16 @@ import {openConfirmModal} from 'sentry/components/confirm';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
 import type {User} from 'sentry/types/user';
+import {useUser} from 'sentry/utils/useUser';
 
 type Props = {
   onDelete: () => void;
-  user?: User;
+  user?: User | null;
 };
 
 function NoteDropdown({user, onDelete}: Props) {
-  const activeUser = ConfigStore.get('user');
+  const activeUser = useUser();
   const canEdit = activeUser && (activeUser.isSuperuser || user?.id === activeUser.id);
 
   if (!canEdit) {
