@@ -95,11 +95,7 @@ export function WebVitalsLandingPage() {
         </Layout.Header>
       )}
 
-      {isInDomainView && (
-        <Layout.Header>
-          <FrontendHeader module={ModuleName.VITAL} />
-        </Layout.Header>
-      )}
+      {isInDomainView && <FrontendHeader module={ModuleName.VITAL} />}
       <Layout.Body>
         <Layout.Main fullWidth>
           <TopMenuContainer>

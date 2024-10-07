@@ -1,4 +1,8 @@
-from sentry import eventstore
+from datetime import timedelta
+
+from django.utils import timezone
+
+from sentry import eventstore, quotas
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.eventstore.models import Event
 from sentry.models.group import Group
@@ -14,11 +18,13 @@ class UserReportSerializer(Serializer):
         attrs = {}
 
         project = Project.objects.get(id=item_list[0].project_id)
+        retention = quotas.backend.get_event_retention(organization=project.organization)
 
         events = eventstore.backend.get_events(
             filter=eventstore.Filter(
                 event_ids=[item.event_id for item in item_list],
                 project_ids=[project.id],
+                start=timezone.now() - timedelta(days=retention) if retention else None,
             ),
             referrer="UserReportSerializer.get_attrs",
             dataset=Dataset.Events,

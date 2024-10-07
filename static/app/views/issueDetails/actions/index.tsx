@@ -42,6 +42,7 @@ import {uniqueId} from 'sentry/utils/guid';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {getAnalyicsDataForProject} from 'sentry/utils/projects';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import useOrganization from 'sentry/utils/useOrganization';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
@@ -90,6 +91,9 @@ export function Actions(props: Props) {
 
   const hasStreamlinedUI = useHasStreamlinedUI();
 
+  const org = useOrganization();
+  const hasIssuePlatformDeletionUI = org.features.includes('issue-platform-deletion-ui');
+
   const {
     actions: {
       archiveUntilOccurrence: archiveUntilOccurrenceCap,
@@ -100,6 +104,13 @@ export function Actions(props: Props) {
     },
     discover: discoverCap,
   } = config;
+
+  // Update the deleteCap to be enabled if the feature flag is present
+  const updatedDeleteCap = {
+    ...deleteCap,
+    enabled: hasIssuePlatformDeletionUI || deleteCap.enabled,
+    disabledReason: hasIssuePlatformDeletionUI ? null : deleteCap.disabledReason,
+  };
 
   const getDiscoverUrl = () => {
     const {title, type, shortId} = group;
@@ -490,8 +501,8 @@ export function Actions(props: Props) {
             priority: 'danger',
             label: t('Delete'),
             hidden: !hasDeleteAccess,
-            disabled: !deleteCap.enabled,
-            details: deleteCap.disabledReason,
+            disabled: !updatedDeleteCap.enabled,
+            details: updatedDeleteCap.disabledReason,
             onAction: openDeleteModal,
           },
           {

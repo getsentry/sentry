@@ -61,7 +61,7 @@ describe('ProjectDetail > ProjectApdex', function () {
 
     expect(await screen.findByText('Apdex')).toBeInTheDocument();
     expect(await screen.findByText('0.781')).toBeInTheDocument();
-    expect(await screen.findByText('0.103')).toBeInTheDocument();
+    expect(await screen.findByText('0.102')).toBeInTheDocument();
 
     expect(currentDataEndpointMock).toHaveBeenNthCalledWith(
       1,

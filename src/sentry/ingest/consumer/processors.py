@@ -13,7 +13,7 @@ from sentry import eventstore, features
 from sentry.attachments import CachedAttachment, attachment_cache
 from sentry.event_manager import save_attachment
 from sentry.eventstore.processing import event_processing_store
-from sentry.feedback.usecases.create_feedback import FeedbackCreationSource
+from sentry.feedback.usecases.create_feedback import FeedbackCreationSource, is_in_feedback_denylist
 from sentry.ingest.userreport import Conflict, save_userreport
 from sentry.killswitches import killswitch_matches_context
 from sentry.models.project import Project
@@ -193,7 +193,7 @@ def process_event(
             except Exception:
                 pass
         elif data.get("type") == "feedback":
-            if features.has("organizations:user-feedback-ingest", project.organization, actor=None):
+            if not is_in_feedback_denylist(project.organization):
                 save_event_feedback.delay(
                     cache_key=None,  # no need to cache as volume is low
                     data=data,
@@ -201,6 +201,8 @@ def process_event(
                     event_id=event_id,
                     project_id=project_id,
                 )
+            else:
+                metrics.incr("feedback.ingest.filtered", tags={"reason": "org.denylist"})
         else:
             # Preprocess this event, which spawns either process_event or
             # save_event. Pass data explicitly to avoid fetching it again from the

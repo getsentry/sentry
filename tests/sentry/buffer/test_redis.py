@@ -139,7 +139,7 @@ class TestRedisBuffer:
             {"pk": default_group.id},
             {"last_seen": timezone.now()},
         )
-        with task_runner(), mock.patch("sentry.buffer", self.buf):
+        with task_runner(), mock.patch("sentry.buffer.backend", self.buf):
             self.buf.process_pending()
         group = Group.objects.get_from_cache(id=default_group.id)
         assert group.times_seen == orig_times_seen + times_seen_incr
@@ -452,7 +452,7 @@ class TestRedisBuffer:
             {"pk": default_group.id},
             {"last_seen": timezone.now()},
         )
-        with task_runner(), mock.patch("sentry.buffer", self.buf):
+        with task_runner(), mock.patch("sentry.buffer.backend", self.buf):
             self.buf.process_pending()
 
         assert len(mock_process_incr.apply_async.mock_calls) == 2
@@ -523,7 +523,7 @@ class TestRedisBuffer:
             {"pk": default_group.id + 2},
             {"last_seen": timezone.now()},
         )
-        with task_runner(), mock.patch("sentry.buffer", self.buf):
+        with task_runner(), mock.patch("sentry.buffer.backend", self.buf):
             self.buf.process_pending()
 
         assert len(mock_process_incr.apply_async.mock_calls) == 2
@@ -588,7 +588,7 @@ class TestRedisBuffer:
             {"pk": default_group.id},
             {"last_seen": timezone.now()},
         )
-        with task_runner(), mock.patch("sentry.buffer", self.buf):
+        with task_runner(), mock.patch("sentry.buffer.backend", self.buf):
             self.buf.process_pending()
 
         assert len(mock_process_incr.apply_async.mock_calls) == 2
@@ -619,7 +619,7 @@ class TestRedisBuffer:
             {"last_seen": timezone.now()},
             signal_only=True,
         )
-        with task_runner(), mock.patch("sentry.buffer", self.buf):
+        with task_runner(), mock.patch("sentry.buffer.backend", self.buf):
             self.buf.process_pending()
         group = Group.objects.get_from_cache(id=default_group.id)
 
