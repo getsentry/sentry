@@ -1,8 +1,7 @@
 from __future__ import annotations
 
+from datetime import datetime
 from typing import TYPE_CHECKING
-
-from django.utils import timezone
 
 from sentry.audit_log.manager import AuditLogEvent
 from sentry.utils.strings import truncatechars
@@ -358,8 +357,8 @@ class DataSecrecyWaivedAuditLogEvent(AuditLogEvent):
 
         rendered_text = "waived data secrecy"
         if access_start is not None and access_end is not None:
-            start_dt = timezone.datetime.fromisoformat(access_start)
-            end_dt = timezone.datetime.fromisoformat(access_end)
+            start_dt = datetime.fromisoformat(access_start)
+            end_dt = datetime.fromisoformat(access_end)
 
             formatted_start = start_dt.strftime("%b %d, %Y %I:%M %p UTC")
             formatted_end = end_dt.strftime("%b %d, %Y %I:%M %p UTC")
