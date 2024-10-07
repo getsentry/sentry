@@ -166,3 +166,27 @@ class PendingTaskStore:
         )
         if len(to_deadletter):
             logger.info("task.failed.deadletter", extra={"count": len(to_deadletter)})
+
+    def remove_completed(self) -> None:
+        from sentry.taskworker.models import InflightActivationModel
+
+        lowest_incomplete = (
+            InflightActivationModel.objects.exclude(
+                status=InflightActivationModel.Status.COMPLETE,
+            )
+            .order_by("-offset")
+            .values_list("offset", flat=True)
+            .first()
+        )
+        if not lowest_incomplete:
+            return
+
+        # Only remove completed records that have lower offsets than the lowest
+        # incomplete offset. We don't want to remove completed tasks that have
+        # incomplete tasks with lower offsets as it can lead to dataloss due to worker
+        # exhaustion.
+        query = InflightActivationModel.objects.filter(
+            status=InflightActivationModel.Status.COMPLETE,
+            offset__lt=lowest_incomplete,
+        )
+        query.delete()
