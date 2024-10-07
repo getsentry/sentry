@@ -42,13 +42,14 @@ HASH_RE = re.compile(r"^[0-9a-f]{32}$")
 @dataclass
 class GroupHashInfo:
     config: GroupingConfig
+    variants: dict[str, BaseVariant]
     hashes: list[str]
     grouphashes: list[GroupHash]
     existing_grouphash: GroupHash | None
 
 
 NULL_GROUPING_CONFIG: GroupingConfig = {"id": "", "enhancements": ""}
-NULL_GROUPHASH_INFO = GroupHashInfo(NULL_GROUPING_CONFIG, [], [], None)
+NULL_GROUPHASH_INFO = GroupHashInfo(NULL_GROUPING_CONFIG, {}, [], [], None)
 
 
 class GroupingConfigNotFound(LookupError):

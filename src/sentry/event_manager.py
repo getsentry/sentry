@@ -68,6 +68,7 @@ from sentry.grouping.ingest.utils import (
     check_for_group_creation_load_shed,
     is_non_error_type_group,
 )
+from sentry.grouping.variants import BaseVariant
 from sentry.ingest.inbound_filters import FilterStatKeys
 from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
 from sentry.issues.grouptype import ErrorGroupType
@@ -1318,7 +1319,9 @@ def assign_event_to_group(
             result = "found_secondary"
         # If we still haven't found a group, ask Seer for a match (if enabled for the project)
         else:
-            seer_matched_grouphash = maybe_check_seer_for_matching_grouphash(event, all_grouphashes)
+            seer_matched_grouphash = maybe_check_seer_for_matching_grouphash(
+                event, primary.variants, all_grouphashes
+            )
 
             if seer_matched_grouphash:
                 group_info = handle_existing_grouphash(job, seer_matched_grouphash, all_grouphashes)
@@ -1358,7 +1361,7 @@ def get_hashes_and_grouphashes(
     job: Job,
     hash_calculation_function: Callable[
         [Project, Job, MutableTags],
-        tuple[GroupingConfig, list[str]],
+        tuple[GroupingConfig, list[str], dict[str, BaseVariant]],
     ],
     metric_tags: MutableTags,
 ) -> GroupHashInfo:
@@ -1373,14 +1376,14 @@ def get_hashes_and_grouphashes(
     project = job["event"].project
 
     # These will come back as Nones if the calculation decides it doesn't need to run
-    grouping_config, hashes = hash_calculation_function(project, job, metric_tags)
+    grouping_config, hashes, variants = hash_calculation_function(project, job, metric_tags)
 
     if hashes:
         grouphashes = get_or_create_grouphashes(project, hashes, grouping_config["id"])
 
         existing_grouphash = find_grouphash_with_group(grouphashes)
 
-        return GroupHashInfo(grouping_config, hashes, grouphashes, existing_grouphash)
+        return GroupHashInfo(grouping_config, variants, hashes, grouphashes, existing_grouphash)
     else:
         return NULL_GROUPHASH_INFO
 
