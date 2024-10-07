@@ -2,7 +2,7 @@ from unittest.mock import patch
 
 import responses
 
-from sentry.sentry_apps.tasks.service_hooks import get_payload_v0, process_service_hook
+from sentry.tasks.servicehooks import get_payload_v0, process_service_hook
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.skips import requires_snuba
@@ -15,7 +15,7 @@ class TestServiceHooks(TestCase):
     def setUp(self):
         self.hook = self.create_service_hook(project=self.project, events=("issue.created",))
 
-    @patch("sentry.sentry_apps.tasks.service_hooks.safe_urlopen")
+    @patch("sentry.tasks.servicehooks.safe_urlopen")
     @responses.activate
     def test_verify_sentry_hook_signature(self, safe_urlopen):
         import hmac
@@ -36,7 +36,7 @@ class TestServiceHooks(TestCase):
         ((_, kwargs),) = safe_urlopen.call_args_list
         assert expected == kwargs["headers"]["X-ServiceHook-Signature"]
 
-    @patch("sentry.sentry_apps.tasks.service_hooks.safe_urlopen")
+    @patch("sentry.tasks.servicehooks.safe_urlopen")
     @responses.activate
     def test_event_created_sends_service_hook(self, safe_urlopen):
         self.hook.update(events=["event.created", "event.alert"])
