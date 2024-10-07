@@ -194,6 +194,7 @@ export default function useInviteModal({organization, initialData, source}: Prop
       {
         organization,
         modal_session: sessionId.current,
+        is_new_modal: organization.features.includes('invite-members-new-modal'),
       }
     );
   }, [organization, invites, sendInvite, willInvite, removeSentInvites]);
