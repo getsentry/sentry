@@ -181,19 +181,10 @@ export default function useInviteModal({organization, initialData, source}: Prop
     });
   }, []);
 
-  const statuses = useMemo(() => {
-    return Object.values(state.inviteStatus) as InviteStatus[];
-  }, [state.inviteStatus]);
-
-  const sentCount = useMemo(() => {
-    return statuses.filter(i => i.sent).length;
-  }, [statuses]);
-
-  const errorCount = useMemo(() => {
-    return statuses.filter(i => i.error).length;
-  }, [statuses]);
-
   useEffect(() => {
+    const statuses = Object.values(state.inviteStatus) as InviteStatus[];
+    const sentCount = statuses.filter(i => i.sent).length;
+    const errorCount = statuses.filter(i => i.error).length;
     // Don't track if no invites have been sent or invites are still sending
     if ((sentCount === 0 && errorCount === 0) || state.sendingInvites) {
       return;
@@ -208,7 +199,7 @@ export default function useInviteModal({organization, initialData, source}: Prop
         is_new_modal: organization.features.includes('invite-members-new-modal'),
       }
     );
-  }, [organization, sentCount, errorCount, state.sendingInvites, willInvite]);
+  }, [organization, state.inviteStatus, state.sendingInvites, willInvite]);
 
   const sendInvites = useCallback(async () => {
     setState(prev => ({...prev, sendingInvites: true}));
