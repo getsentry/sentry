@@ -88,13 +88,20 @@ function useLastEditedBy({
 
 export function makeGroupPriorityDropdownOptions({
   onChange,
+  hasStreamlinedIssueStream,
 }: {
+  hasStreamlinedIssueStream: boolean;
   onChange: (value: PriorityLevel) => void;
 }) {
   return PRIORITY_OPTIONS.map(priority => ({
     textValue: PRIORITY_KEY_TO_LABEL[priority],
     key: priority,
-    label: <GroupPriorityBadge priority={priority} />,
+    label: (
+      <GroupPriorityBadge
+        variant={hasStreamlinedIssueStream ? 'streamlined' : 'default'}
+        priority={priority}
+      />
+    ),
     onAction: () => onChange(priority),
   }));
 }
@@ -201,14 +208,14 @@ export function GroupPriorityDropdown({
   onChange,
   lastEditedBy,
 }: GroupPriorityDropdownProps) {
-  const options: MenuItemProps[] = useMemo(
-    () => makeGroupPriorityDropdownOptions({onChange}),
-    [onChange]
-  );
-
   const organization = useOrganization();
   const hasStreamlinedIssueStream = organization.features.includes(
     'issue-stream-table-layout'
+  );
+
+  const options: MenuItemProps[] = useMemo(
+    () => makeGroupPriorityDropdownOptions({onChange, hasStreamlinedIssueStream}),
+    [onChange, hasStreamlinedIssueStream]
   );
 
   return (
