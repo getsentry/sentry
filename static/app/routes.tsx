@@ -559,7 +559,7 @@ function buildRoutes() {
       <Route
         path="toolbar/"
         name={t('Developer Toolbar')}
-        component={make(() => import('sentry/views/settings/project/toolbar'))}
+        component={make(() => import('sentry/views/settings/project/projectToolbar'))}
       />
       <Route path="source-maps/" name={t('Source Maps')}>
         <IndexRoute
