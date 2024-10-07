@@ -635,6 +635,190 @@ export class TraceTree extends TraceTreeEventDispatcher {
 
     const remappedTransactionParents = new Set<TraceTreeNode<TraceTree.NodeValue>>();
 
+    for (const [node, _] of tree.vitals) {
+      if (
+        baseTraceNode.space?.[0] &&
+        node.value &&
+        'start_timestamp' in node.value &&
+        'measurements' in node.value
+      ) {
+        this.collectMeasurements(
+          node,
+          baseTraceNode.space[0],
+          node.value.measurements as Record<string, Measurement>,
+          this.vitals,
+          this.vital_types,
+          this.indicators
+        );
+      }
+    }
+
+    // We need to invalidate the data in the last node of the tree
+    // so that the connectors are updated and pointing to the sibling nodes
+    const last = this.root.children[this.root.children.length - 1];
+    last.invalidate(last);
+
+    for (const child of tree.root.children) {
+      this._list = this._list.concat(child.getVisibleChildren());
+    }
+  }
+
+  findByEventId(
+    start: TraceTreeNode<TraceTree.NodeValue>,
+    eventId: string
+  ): TraceTreeNode<TraceTree.NodeValue> | null {
+    return TraceTreeNode.Find(start, node => {
+      if (isTransactionNode(node)) {
+        return node.value.event_id === eventId;
+      }
+      if (isSpanNode(node)) {
+        return node.value.span_id === eventId;
+      }
+      if (isTraceErrorNode(node)) {
+        return node.value.event_id === eventId;
+      }
+      return hasEventWithEventId(node, eventId);
+    });
+  }
+
+  findByPath(
+    start: TraceTreeNode<TraceTree.NodeValue>,
+    path: TraceTree.NodePath[]
+  ): TraceTreeNode<TraceTree.NodeValue> | null {
+    const queue = [...path];
+    let segment = start;
+    let node: TraceTreeNode<TraceTree.NodeValue> | null = null;
+
+    while (queue.length > 0) {
+      const current = queue.pop()!;
+
+      node = findInTreeFromSegment(segment, current);
+      if (!node) {
+        return null;
+      }
+      segment = node;
+    }
+
+    return node;
+  }
+
+  get shape(): TraceType {
+    const trace = this.root.children[0];
+    if (!trace) {
+      return TraceType.EMPTY_TRACE;
+    }
+
+    if (!isTraceNode(trace)) {
+      throw new TypeError('Not trace node');
+    }
+
+    const {transactions, orphan_errors} = trace.value;
+    const traceStats = transactions?.reduce<{
+      javascriptRootTransactions: TraceTree.Transaction[];
+      orphans: number;
+      roots: number;
+    }>(
+      (stats, transaction) => {
+        if (isRootTransaction(transaction)) {
+          stats.roots++;
+
+          if (isJavascriptSDKTransaction(transaction)) {
+            stats.javascriptRootTransactions.push(transaction);
+          }
+        } else {
+          stats.orphans++;
+        }
+        return stats;
+      },
+      {roots: 0, orphans: 0, javascriptRootTransactions: []}
+    ) ?? {roots: 0, orphans: 0, javascriptRootTransactions: []};
+
+    if (traceStats.roots === 0) {
+      if (traceStats.orphans > 0) {
+        return TraceType.NO_ROOT;
+      }
+
+      if (orphan_errors && orphan_errors.length > 0) {
+        return TraceType.ONLY_ERRORS;
+      }
+
+      return TraceType.EMPTY_TRACE;
+    }
+
+    if (traceStats.roots === 1) {
+      if (traceStats.orphans > 0) {
+        return TraceType.BROKEN_SUBTRACES;
+      }
+
+      return TraceType.ONE_ROOT;
+    }
+
+    if (traceStats.roots > 1) {
+      if (traceStats.javascriptRootTransactions.length > 0) {
+        return TraceType.BROWSER_MULTIPLE_ROOTS;
+      }
+
+      return TraceType.MULTIPLE_ROOTS;
+    }
+
+    throw new Error('Unknown trace type');
+  }
+
+  static FromSpans(
+    parent: TraceTreeNode<TraceTree.NodeValue>,
+    data: Event,
+    spans: TraceTree.RawSpan[],
+    options: {sdk: string | undefined} | undefined
+  ): [TraceTreeNode<TraceTree.NodeValue>, [number, number] | null] {
+    parent.invalidate(parent);
+    const platformHasMissingSpans = shouldAddMissingInstrumentationSpan(options?.sdk);
+
+    let min_span_start = Number.POSITIVE_INFINITY;
+    let min_span_end = Number.NEGATIVE_INFINITY;
+
+    const parentIsSpan = isSpanNode(parent);
+    const lookuptable: Record<
+      TraceTree.RawSpan['span_id'],
+      TraceTreeNode<TraceTree.Span | TraceTree.Transaction>
+    > = {};
+
+    // If we've already fetched children, the tree is already assembled
+    if (parent.spanChildren.length > 0) {
+      parent.zoomedIn = true;
+      return [parent, null];
+    }
+
+    if (parentIsSpan) {
+      if (parent.value && 'span_id' in parent.value) {
+        lookuptable[parent.value.span_id] = parent as TraceTreeNode<TraceTree.Span>;
+      }
+    }
+
+    const transactionsToSpanMap = new Map<
+      string,
+      TraceTreeNode<TraceTree.Transaction>[]
+    >();
+
+    let firstTransaction: TraceTreeNode<TraceTree.Transaction> | null = null;
+    for (const child of parent.children) {
+      if (isTransactionNode(child)) {
+        firstTransaction = firstTransaction ?? child;
+        // keep track of the transaction nodes that should be reparented under the newly fetched spans.
+        const key =
+          'parent_span_id' in child.value &&
+          typeof child.value.parent_span_id === 'string'
+            ? child.value.parent_span_id
+            : // This should be unique, but unreachable at lookup time.
+              `unreachable-${child.value.event_id}`;
+
+        const list = transactionsToSpanMap.get(key) ?? [];
+        list.push(child);
+        transactionsToSpanMap.set(key, list);
+      }
+    }
+
+    const remappedTransactionParents = new Set<TraceTreeNode<TraceTree.NodeValue>>();
+
     for (const span of spans) {
       let childTransactions = transactionsToSpanMap.get(span.span_id) ?? [];
 

@@ -14,7 +14,10 @@ import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {useDataset} from 'sentry/views/explore/hooks/useDataset';
 import {useVisualizes} from 'sentry/views/explore/hooks/useVisualizes';
-import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
+import Chart, {
+  ChartType,
+  useSynchronizeCharts,
+} from 'sentry/views/insights/common/components/chart';
 import ChartPanel from 'sentry/views/insights/common/components/chartPanel';
 import {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 import {CHART_HEIGHT} from 'sentry/views/insights/database/settings';
@@ -43,6 +46,8 @@ const exploreChartTypeOptions = [
     label: t('Bar'),
   },
 ];
+
+export const EXPLORE_CHART_GROUP = 'explore-charts_group';
 
 // TODO: Update to support aggregate mode and multiple queries / visualizations
 export function ExploreCharts({query}: ExploreChartsProps) {
@@ -113,6 +118,12 @@ export function ExploreCharts({query}: ExploreChartsProps) {
     [visualizes, setVisualizes]
   );
 
+  useSynchronizeCharts(
+    visualizes.length,
+    !timeSeriesResult.isPending,
+    EXPLORE_CHART_GROUP
+  );
+
   return (
     <Fragment>
       {visualizes.map((visualize, index) => {
@@ -154,6 +165,7 @@ export function ExploreCharts({query}: ExploreChartsProps) {
                 data={getSeries(dedupedYAxes)}
                 error={timeSeriesResult.error}
                 loading={timeSeriesResult.isPending}
+                chartGroup={EXPLORE_CHART_GROUP}
                 // TODO Abdullah: Make chart colors dynamic, with changing topN events count and overlay count.
                 chartColors={CHART_PALETTE[TOP_EVENTS_LIMIT - 1]}
                 type={chartType}

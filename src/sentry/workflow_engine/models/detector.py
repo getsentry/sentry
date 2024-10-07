@@ -26,6 +26,7 @@ class Detector(DefaultFieldsModel, OwnerModel):
         unique=True,
         on_delete=models.SET_NULL,
     )
+    type = models.CharField(max_length=200)
 
     class Meta(OwnerModel.Meta):
         constraints = OwnerModel.Meta.constraints + [

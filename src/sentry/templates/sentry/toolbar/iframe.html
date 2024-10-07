@@ -12,11 +12,14 @@ Required context variables:
     <link rel="icon" type="image/png" href="{% absolute_asset_url "sentry" "images/favicon.png" %}">
   </head>
   <body>
+    {% script %}
     <script>
       const referrer = "{{ referrer|escapejs }}";
 
       function log(...args) {
-        console.log('iframe:', ...args);
+        if (localStorage && localStorage.getItem('sentry-toolbar-iframe-debug')) {
+          console.log('iframe:', ...args);
+        }
       }
 
       log('Init', {referrer});
@@ -63,5 +66,9 @@ Required context variables:
       }, referrer, [port2]);
       log('Sent', {message: 'port-connect', referrer})
     </script>
-  </body>
-</html>
+    {% endscript %}
+
+{% comment %}
+No need to close `body`. If we do then middleware will inject some extra markup
+we don't need. Browsers can figure out when it missing and deal with it.
+{% endcomment %}

@@ -319,10 +319,11 @@ class UsageStatsOrganization<
       | 'card-invalid'
       | 'chart-title'
   ) => {
-    const {organization} = this.props;
+    const {organization, dataCategory} = this.props;
     trackAnalytics('stats.docs_clicked', {
       organization,
       source,
+      dataCategory,
     });
   };
 
