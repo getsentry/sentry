@@ -10,6 +10,7 @@ import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import GroupStore from 'sentry/stores/groupStore';
+import {space} from 'sentry/styles/space';
 import type {NoteType} from 'sentry/types/alerts';
 import type {Group, GroupActivity} from 'sentry/types/group';
 import type {User} from 'sentry/types/user';
@@ -151,6 +152,7 @@ const TitleWrapper = styled('div')`
   display: flex;
   align-items: center;
   font-weight: normal;
+  gap: ${space(0.5)};
 `;
 
 const ActivityTimelineItem = styled(Timeline.Item)`
