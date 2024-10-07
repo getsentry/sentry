@@ -928,7 +928,12 @@ class DashboardDetail extends Component<Props, State> {
                                   this.isEditingDashboard
                                 }
                                 isPreview={this.isPreview}
-                                onDashboardFilterChange={this.handleChangeFilter}
+                                onDashboardFilterChange={() => {
+                                  this.handleChangeFilter;
+                                  trackAnalytics('dashboards2.filter.change', {
+                                    organization,
+                                  });
+                                }}
                                 onCancel={() => {
                                   resetPageFilters(dashboard, location);
                                   trackAnalytics('dashboards2.filter.cancel', {
