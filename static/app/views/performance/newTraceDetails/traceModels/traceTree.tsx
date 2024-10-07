@@ -589,8 +589,8 @@ export class TraceTree extends TraceTreeEventDispatcher {
     TraceTree.invalidate(parent, true);
     const platformHasMissingSpans = shouldAddMissingInstrumentationSpan(options?.sdk);
 
-    let min_span_start = Number.POSITIVE_INFINITY;
-    let min_span_end = Number.NEGATIVE_INFINITY;
+    const min_span_start = Number.POSITIVE_INFINITY;
+    const min_span_end = Number.NEGATIVE_INFINITY;
 
     const parentIsSpan = isSpanNode(parent);
     const lookuptable: Record<
