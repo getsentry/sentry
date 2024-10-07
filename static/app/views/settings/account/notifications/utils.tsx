@@ -44,7 +44,7 @@ export function getDocsLinkForEventType(
     | 'replay'
     | 'monitorSeat'
     | 'span'
-    | 'continuousProfiling'
+    | 'profileDuration'
 ) {
   switch (event) {
     case 'transaction':
@@ -59,7 +59,7 @@ export function getDocsLinkForEventType(
       return 'https://docs.sentry.io/product/session-replay/';
     case 'monitorSeat':
       return 'https://docs.sentry.io/product/crons/';
-    case 'continuousProfiling':
+    case 'profileDuration':
       // TODO: Update this link when documentation for continuous profiles are released
       return 'https://docs.sentry.io/product/continuous-profiles/';
     default:
