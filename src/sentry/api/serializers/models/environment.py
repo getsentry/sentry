@@ -13,7 +13,7 @@ StatsPeriod = namedtuple("StatsPeriod", ("segments", "interval"))
 
 
 class EnvironmentSerializerResponse(TypedDict):
-    id: int
+    id: str
     name: str
 
 
