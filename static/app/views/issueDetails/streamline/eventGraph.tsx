@@ -81,6 +81,14 @@ export function EventGraph({group, groupStats, searchQuery}: EventGraphProps) {
     router,
   });
 
+  const flagSeries = useFlagSeries({
+    query: {
+      start: eventView.start,
+      end: eventView.end,
+      statsPeriod: eventView.statsPeriod,
+    },
+  });
+
   const series = useMemo((): BarChartSeries[] => {
     const seriesData: BarChartSeries[] = [];
 
@@ -110,22 +118,14 @@ export function EventGraph({group, groupStats, searchQuery}: EventGraphProps) {
     }
 
     if (flagSeries.markLine) {
-      series.push(flagSeries as BarChartSeries);
+      seriesData.push(flagSeries as BarChartSeries);
     }
 
     return seriesData;
-  }, [eventStats, visibleSeries, userSeries, eventSeries]);
+  }, [eventStats, visibleSeries, userSeries, eventSeries, flagSeries, theme]);
 
   const [legendSelected, setLegendSelected] = useState({
     ['Feature Flags']: true,
-  });
-
-  const flagSeries = useFlagSeries({
-    query: {
-      start: eventView.start,
-      end: eventView.end,
-      statsPeriod: eventView.statsPeriod,
-    },
   });
 
   const legend = Legend({
@@ -200,7 +200,9 @@ export function EventGraph({group, groupStats, searchQuery}: EventGraphProps) {
           yAxis={{
             splitNumber: 2,
             axisLabel: {
-              formatter: value => formatAbbreviatedNumber(value),
+              formatter: (value: number) => {
+                return formatAbbreviatedNumber(value);
+              },
             },
           }}
           {...chartZoomProps}
