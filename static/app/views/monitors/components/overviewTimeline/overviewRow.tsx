@@ -23,13 +23,12 @@ import {StatusToggleButton} from '../statusToggleButton';
 import {CheckInPlaceholder} from '../timeline/checkInPlaceholder';
 import type {CheckInTimelineProps} from '../timeline/checkInTimeline';
 import {CheckInTimeline} from '../timeline/checkInTimeline';
-import type {MonitorBucket} from '../timeline/types';
+import {useMonitorStats} from '../timeline/hooks/useMonitorStats';
 
 import MonitorEnvironmentLabel from './monitorEnvironmentLabel';
 
 interface Props extends Omit<CheckInTimelineProps, 'bucketedData' | 'environment'> {
   monitor: Monitor;
-  bucketedData?: MonitorBucket[];
   onDeleteEnvironment?: (env: string) => Promise<void>;
   onToggleMuteEnvironment?: (env: string, isMuted: boolean) => Promise<void>;
   onToggleStatus?: (monitor: Monitor, status: ObjectStatus) => Promise<void>;
@@ -44,14 +43,19 @@ const MAX_SHOWN_ENVIRONMENTS = 4;
 
 export function OverviewRow({
   monitor,
-  bucketedData,
   singleMonitorView,
+  timeWindowConfig,
   onDeleteEnvironment,
   onToggleMuteEnvironment,
   onToggleStatus,
   ...timelineProps
 }: Props) {
   const organization = useOrganization();
+
+  const {data: monitorStats, isPending} = useMonitorStats({
+    monitors: [monitor.id],
+    timeWindowConfig,
+  });
 
   const [isExpanded, setExpanded] = useState(
     monitor.environments.length <= MAX_SHOWN_ENVIRONMENTS
@@ -195,13 +199,14 @@ export function OverviewRow({
         {environments.map(({name}) => {
           return (
             <TimelineEnvOuterContainer key={name}>
-              {!bucketedData ? (
+              {isPending ? (
                 <CheckInPlaceholder />
               ) : (
                 <TimelineEnvContainer>
                   <CheckInTimeline
                     {...timelineProps}
-                    bucketedData={bucketedData}
+                    timeWindowConfig={timeWindowConfig}
+                    bucketedData={monitorStats?.[monitor.id] ?? []}
                     environment={name}
                   />
                 </TimelineEnvContainer>
