@@ -146,7 +146,7 @@ def _get_and_save_split_decision_for_dashboard_widget(
         and not equations
     ):
         try:
-            metrics_query(
+            metrics_query_result = metrics_query(
                 selected_columns,
                 query,
                 snuba_dataclass,
@@ -157,20 +157,21 @@ def _get_and_save_split_decision_for_dashboard_widget(
                 referrer="tasks.performance.split_discover_dataset",
             )
 
-            if dry_run:
-                logger.info(
-                    "Split decision for %s: %s (inferred from running metrics query)",
-                    widget.id,
-                    DashboardWidgetTypes.TRANSACTION_LIKE,
-                )
-            else:
-                _save_split_decision_for_widget(
-                    widget,
-                    DashboardWidgetTypes.TRANSACTION_LIKE,
-                    DatasetSourcesTypes.INFERRED,
-                )
+            if metrics_query_result.get("data") and len(metrics_query_result["data"]) > 0:
+                if dry_run:
+                    logger.info(
+                        "Split decision for %s: %s (inferred from running metrics query)",
+                        widget.id,
+                        DashboardWidgetTypes.TRANSACTION_LIKE,
+                    )
+                else:
+                    _save_split_decision_for_widget(
+                        widget,
+                        DashboardWidgetTypes.TRANSACTION_LIKE,
+                        DatasetSourcesTypes.INFERRED,
+                    )
 
-            return DashboardWidgetTypes.TRANSACTION_LIKE, True
+                return DashboardWidgetTypes.TRANSACTION_LIKE, True
         except (
             IncompatibleMetricsQuery,
             snuba.QueryIllegalTypeOfArgument,

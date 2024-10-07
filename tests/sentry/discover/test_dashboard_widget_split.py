@@ -13,7 +13,8 @@ from sentry.models.dashboard_widget import (
     DashboardWidgetQuery,
     DashboardWidgetTypes,
 )
-from sentry.testutils.cases import SnubaTestCase, TestCase
+from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
+from sentry.testutils.cases import BaseMetricsLayerTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
 from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.users.models.user import User
@@ -22,7 +23,11 @@ from sentry.utils.samples import load_data
 pytestmark = pytest.mark.sentry_metrics
 
 
-class DashboardWidgetDatasetSplitTestCase(TestCase, SnubaTestCase):
+class DashboardWidgetDatasetSplitTestCase(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
+    @property
+    def now(self):
+        return before_now(minutes=10)
+
     def setUp(self):
         super().setUp()
         self.org = self.create_organization()
@@ -96,6 +101,46 @@ class DashboardWidgetDatasetSplitTestCase(TestCase, SnubaTestCase):
             fields=["transaction", "count()"],
             columns=[],
             aggregates=[],
+            conditions="",
+            order=0,
+        )
+
+        self.store_performance_metric(
+            name=TransactionMRI.DURATION.value,
+            project_id=self.project.id,
+            tags={"transaction": "/sentry/scripts/views.js"},
+            value=30,
+            org_id=self.dashboard.organization.id,
+            hours_before_now=2,
+        )
+
+        with self.feature({"organizations:dynamic-sampling": True}):
+            _, queried_snuba = _get_and_save_split_decision_for_dashboard_widget(
+                metrics_query, self.dry_run
+            )
+        metrics_widget.refresh_from_db()
+        assert (
+            metrics_widget.discover_widget_split is None
+            if self.dry_run
+            else metrics_widget.discover_widget_split == 101
+        )
+        assert queried_snuba
+
+    def test_metrics_compatible_query_no_data(self):
+        metrics_widget = DashboardWidget.objects.create(
+            dashboard=self.dashboard,
+            order=0,
+            title="widget",
+            display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+            widget_type=DashboardWidgetTypes.DISCOVER,
+            interval="1d",
+            detail={"layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2}},
+        )
+        metrics_query = DashboardWidgetQuery.objects.create(
+            widget=metrics_widget,
+            fields=["transaction", "count()"],
+            columns=[],
+            aggregates=[],
             conditions="transaction:'/sentry/scripts/views.js'",
             order=0,
         )
@@ -108,7 +153,7 @@ class DashboardWidgetDatasetSplitTestCase(TestCase, SnubaTestCase):
         assert (
             metrics_widget.discover_widget_split is None
             if self.dry_run
-            else metrics_widget.discover_widget_split == 101
+            else metrics_widget.discover_widget_split == 100
         )
         assert queried_snuba
 
