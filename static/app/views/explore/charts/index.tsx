@@ -1,10 +1,10 @@
-import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
+import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
-import * as echarts from 'echarts/core';
 
 import {getInterval} from 'sentry/components/charts/utils';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
+import {IconClock, IconGraph} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
@@ -15,7 +15,10 @@ import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {useDataset} from 'sentry/views/explore/hooks/useDataset';
 import {useVisualizes} from 'sentry/views/explore/hooks/useVisualizes';
-import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
+import Chart, {
+  ChartType,
+  useSynchronizeCharts,
+} from 'sentry/views/insights/common/components/chart';
 import ChartPanel from 'sentry/views/insights/common/components/chartPanel';
 import {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 import {CHART_HEIGHT} from 'sentry/views/insights/database/settings';
@@ -116,20 +119,24 @@ export function ExploreCharts({query}: ExploreChartsProps) {
     [visualizes, setVisualizes]
   );
 
-  // Synchronize chart cursors
-  const [_, setRenderTrigger] = useState(0);
-  useEffect(() => {
-    if (!timeSeriesResult.isPending) {
-      echarts?.connect(EXPLORE_CHART_GROUP);
-      setRenderTrigger(prev => (prev + 1) % Number.MAX_SAFE_INTEGER);
-    }
-  }, [visualizes, timeSeriesResult.isPending]);
+  useSynchronizeCharts(
+    visualizes.length,
+    !timeSeriesResult.isPending,
+    EXPLORE_CHART_GROUP
+  );
 
   return (
     <Fragment>
       {visualizes.map((visualize, index) => {
         const dedupedYAxes = dedupeArray(visualize.yAxes);
         const {chartType} = visualize;
+        const chartIcon =
+          chartType === ChartType.LINE
+            ? 'line'
+            : chartType === ChartType.AREA
+              ? 'area'
+              : 'bar';
+
         return (
           <ChartContainer key={index}>
             <ChartPanel>
@@ -137,19 +144,29 @@ export function ExploreCharts({query}: ExploreChartsProps) {
                 <ChartTitle>{dedupedYAxes.join(',')}</ChartTitle>
                 <ChartSettingsContainer>
                   <CompactSelect
-                    size="xs"
-                    triggerProps={{prefix: t('Type')}}
+                    triggerLabel=""
+                    triggerProps={{
+                      icon: <IconGraph type={chartIcon} />,
+                      borderless: true,
+                      showChevron: false,
+                      size: 'sm',
+                    }}
                     value={chartType}
+                    menuTitle="Type"
                     options={exploreChartTypeOptions}
                     onChange={option => handleChartTypeChange(option.value, index)}
                   />
                   <CompactSelect
-                    size="xs"
+                    triggerLabel=""
                     value={interval}
                     onChange={({value}) => setInterval(value)}
                     triggerProps={{
-                      prefix: t('Interval'),
+                      icon: <IconClock />,
+                      borderless: true,
+                      showChevron: false,
+                      size: 'sm',
                     }}
+                    menuTitle="Interval"
                     options={intervalOptions}
                   />
                 </ChartSettingsContainer>
@@ -172,7 +189,6 @@ export function ExploreCharts({query}: ExploreChartsProps) {
                 type={chartType}
                 // for now, use the first y axis unit
                 aggregateOutputFormat={aggregateOutputType(dedupedYAxes[0])}
-                showLegend
               />
             </ChartPanel>
           </ChartContainer>
@@ -193,7 +209,6 @@ const ChartHeader = styled('div')`
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  margin-bottom: ${space(1)};
 `;
 
 const ChartTitle = styled('div')`
@@ -202,6 +217,4 @@ const ChartTitle = styled('div')`
 
 const ChartSettingsContainer = styled('div')`
   display: flex;
-  align-items: center;
-  gap: ${space(0.5)};
 `;

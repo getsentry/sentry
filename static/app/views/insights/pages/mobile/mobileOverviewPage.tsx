@@ -44,23 +44,25 @@ import {
 
 const MOBILE_COLUMN_TITLES = [
   'transaction',
-  'project',
   'operation',
+  'project',
   'tpm',
   'slow frame %',
   'frozen frame %',
   'users',
+  'user misery',
 ];
 
 const REACT_NATIVE_COLUMN_TITLES = [
   'transaction',
-  'project',
   'operation',
+  'project',
   'tpm',
   'slow frame %',
   'frozen frame %',
   'stall %',
   'users',
+  'user misery',
 ];
 
 function MobileOverviewPage() {
@@ -81,10 +83,6 @@ function MobileOverviewPage() {
     organization
   );
 
-  eventView.fields = eventView.fields.filter(
-    field => !['user_misery()', 'count_miserable(user)'].includes(field.field)
-  );
-
   let columnTitles = checkIsReactNative(eventView)
     ? REACT_NATIVE_COLUMN_TITLES
     : MOBILE_COLUMN_TITLES;
@@ -103,10 +101,6 @@ function MobileOverviewPage() {
     PerformanceWidgetSetting.P95_DURATION_AREA,
     PerformanceWidgetSetting.P99_DURATION_AREA,
     PerformanceWidgetSetting.FAILURE_RATE_AREA,
-    PerformanceWidgetSetting.COLD_STARTUP_AREA,
-    PerformanceWidgetSetting.WARM_STARTUP_AREA,
-    PerformanceWidgetSetting.SLOW_FRAMES_AREA,
-    PerformanceWidgetSetting.FROZEN_FRAMES_AREA,
   ];
 
   if (organization.features.includes('mobile-vitals')) {

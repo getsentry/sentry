@@ -139,7 +139,6 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
     def get_expected_response(
         self,
         group_ids: Sequence[int],
-        message_distances: Sequence[float],
         exception_distances: Sequence[float],
         should_be_grouped: Sequence[str],
     ) -> Sequence[tuple[Any, Mapping[str, Any]]]:
@@ -152,7 +151,6 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                 (
                     group,
                     {
-                        "message": message_distances[i],
                         "exception": exception_distances[i],
                         "shouldBeGrouped": should_be_grouped[i],
                     },
@@ -164,7 +162,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         event_from_second_similar_group = save_new_event(
             {"message": "Adopt don't shop"}, self.project
         )
-
+        # test including message_distance
         similar_issue_data_1 = SeerSimilarIssueData(
             message_distance=0.05,
             parent_group_id=NonNone(self.similar_event.group_id),
@@ -172,8 +170,8 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             should_group=True,
             stacktrace_distance=0.01,
         )
+        # test without including message_distance
         similar_issue_data_2 = SeerSimilarIssueData(
-            message_distance=0.49,
             parent_group_id=NonNone(event_from_second_similar_group.group_id),
             parent_hash=NonNone(event_from_second_similar_group.get_primary_hash()),
             should_group=False,
@@ -188,7 +186,6 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                 NonNone(self.similar_event.group_id),
                 NonNone(event_from_second_similar_group.group_id),
             ],
-            [0.95, 0.51],
             [0.99, 0.77],
             ["Yes", "No"],
         )
@@ -215,7 +212,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         )
 
         assert response.data == self.get_expected_response(
-            [NonNone(self.similar_event.group_id)], [0.95], [0.99], ["Yes"]
+            [NonNone(self.similar_event.group_id)], [0.99], ["Yes"]
         )
 
         expected_seer_request_params = {
@@ -260,19 +257,19 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         seer_return_value: SimilarIssuesEmbeddingsResponse = {
             "responses": [
                 {
+                    # test with message_distance
                     "message_distance": 0.05,
                     "parent_hash": NonNone(self.similar_event.get_primary_hash()),
                     "should_group": True,
                     "stacktrace_distance": 0.002,  # Over threshold
                 },
                 {
-                    "message_distance": 0.05,
+                    # test without message_distance
                     "parent_hash": NonNone(over_threshold_group_event.get_primary_hash()),
                     "should_group": True,
                     "stacktrace_distance": 0.002,  # Over threshold
                 },
                 {
-                    "message_distance": 0.05,
                     "parent_hash": NonNone(under_threshold_group_event.get_primary_hash()),
                     "should_group": False,
                     "stacktrace_distance": 0.05,  # Under threshold
@@ -292,7 +289,6 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                 NonNone(over_threshold_group_event.group_id),
                 NonNone(under_threshold_group_event.group_id),
             ],
-            [0.95, 0.95, 0.95],
             [0.998, 0.998, 0.95],
             ["Yes", "Yes", "No"],
         )
@@ -364,7 +360,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         )
 
         assert response.data == self.get_expected_response(
-            [NonNone(self.similar_event.group_id)], [0.95], [0.99], ["Yes"]
+            [NonNone(self.similar_event.group_id)], [0.99], ["Yes"]
         )
 
     @mock.patch("sentry.seer.similarity.similar_issues.delete_seer_grouping_records_by_hash")
@@ -416,7 +412,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             },
         )
         assert response.data == self.get_expected_response(
-            [NonNone(self.similar_event.group_id)], [0.95], [0.99], ["Yes"]
+            [NonNone(self.similar_event.group_id)], [0.99], ["Yes"]
         )
         mock_logger.warning.assert_called_with(
             "get_similarity_data_from_seer.parent_hash_not_found",
@@ -598,7 +594,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             # optional params would be here
         )
         assert response.data == self.get_expected_response(
-            [NonNone(self.similar_event.group_id)], [0.95], [0.99], ["Yes"]
+            [NonNone(self.similar_event.group_id)], [0.99], ["Yes"]
         )
 
         mock_seer_request.assert_called_with(
@@ -626,7 +622,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             data={"k": 1},
         )
         assert response.data == self.get_expected_response(
-            [NonNone(self.similar_event.group_id)], [0.95], [0.99], ["Yes"]
+            [NonNone(self.similar_event.group_id)], [0.99], ["Yes"]
         )
 
         mock_seer_request.assert_called_with(
@@ -655,7 +651,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             data={"threshold": "0.01"},
         )
         assert response.data == self.get_expected_response(
-            [NonNone(self.similar_event.group_id)], [0.95], [0.99], ["Yes"]
+            [NonNone(self.similar_event.group_id)], [0.99], ["Yes"]
         )
 
         mock_seer_request.assert_called_with(
