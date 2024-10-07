@@ -151,7 +151,7 @@ const TitleWrapper = styled('div')`
   display: flex;
   align-items: center;
   font-weight: normal;
-`
+`;
 
 const ActivityTimelineItem = styled(Timeline.Item)`
   align-items: center;
