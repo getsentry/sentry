@@ -1310,7 +1310,7 @@ class BaseQueryBuilder:
             if is_tag or is_attr or is_context or name in self.config.non_nullable_keys:
                 return Condition(lhs, Op(search_filter.operator), value)
             elif is_measurement(name):
-                # Measurements are nullable, but are a `Function` not a `Column`. Check if null
+                # Measurements can be a `Column` (e.g., `"lcp"`) or a `Function` (e.g., `"frames_frozen_rate"`). In either cause, since they are nullable, return a simple null check
                 return Condition(
                     Function("isNull", [lhs]), Op.EQ, 1 if search_filter.operator == "=" else 0
                 )

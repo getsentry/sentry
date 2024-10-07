@@ -479,6 +479,23 @@ class DiscoverQueryBuilderTest(TestCase):
         query = DiscoverQueryBuilder(
             Dataset.Discover,
             self.params,
+            query="has:measurements.lcp",
+        )
+
+        lcp = Column("measurements[lcp]")
+
+        self.assertCountEqual(
+            query.where,
+            [
+                Condition(Function("isNull", [lcp]), Op.EQ, 0),
+                *self.default_conditions,
+            ],
+        )
+
+    def test_not_empty_function_measurement(self):
+        query = DiscoverQueryBuilder(
+            Dataset.Discover,
+            self.params,
             query="has:measurements.frames_frozen_rate",
         )
 
