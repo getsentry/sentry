@@ -53,10 +53,6 @@ import {
   getRelatedPerformanceIssuesFromTransaction,
   getRelatedSpanErrorsFromTransaction,
 } from './traceTreeUtils';
-// import {
-//   getRelatedPerformanceIssuesFromTransaction,
-//   getRelatedSpanErrorsFromTransaction,
-// } from './traceTreeUtils';
 
 /**
  *
