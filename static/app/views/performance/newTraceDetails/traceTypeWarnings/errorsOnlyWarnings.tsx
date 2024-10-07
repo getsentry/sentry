@@ -28,20 +28,19 @@ type ErrorOnlyWarningsProps = {
   tree: TraceTree;
 };
 
-function filterProjects(projects: Project[], _tree: TraceTree) {
+function filterProjects(projects: Project[], tree: TraceTree) {
   const projectsWithNoPerformance: Project[] = [];
   const projectsWithOnboardingChecklist: Project[] = [];
 
   for (const project of projects) {
-    // @TODO FIX THIS
-    // if (tree.project_ids.has(Number(project.id))) {
-    if (!project.firstTransactionEvent) {
-      projectsWithNoPerformance.push(project);
-      if (project.platform && withPerformanceOnboarding.has(project.platform)) {
-        projectsWithOnboardingChecklist.push(project);
+    if (tree.project_ids.has(Number(project.id))) {
+      if (!project.firstTransactionEvent) {
+        projectsWithNoPerformance.push(project);
+        if (project.platform && withPerformanceOnboarding.has(project.platform)) {
+          projectsWithOnboardingChecklist.push(project);
+        }
       }
     }
-    // }
   }
 
   return {projectsWithNoPerformance, projectsWithOnboardingChecklist};

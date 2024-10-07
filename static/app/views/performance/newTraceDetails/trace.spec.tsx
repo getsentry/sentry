@@ -929,10 +929,7 @@ describe('trace view', () => {
         });
       }
     });
-    // @TODO I am torn on this because left-right
-    // should probably also move the input cursor...
-    // it.todo("supports expanding with arrowright")
-    // it.todo("supports collapsing with arrowleft")
+
     it('search roving updates the element in the drawer', async () => {
       await searchTestSetup();
 

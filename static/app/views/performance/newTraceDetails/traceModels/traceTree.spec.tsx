@@ -255,9 +255,6 @@ describe('TraceTree', () => {
       );
       expect(tree.root.children[0].children[0].profiles.length).toBe(1);
     });
-
-    it.todo('errors extend trace start and end');
-    it.todo('performance issues extend trace start and end');
   });
 
   describe('trace start and end', () => {
@@ -357,13 +354,6 @@ describe('TraceTree', () => {
 
       expect(visitedNodes).toEqual(['root', 'child', 'other_child']);
     });
-  });
-
-  describe('FromTrace', () => {
-    it.todo('places spans under parents');
-    it.todo('reparents transactions under spans');
-    it.todo('transaction under okhttp span is visible');
-    it.todo('ssr');
   });
 
   describe('missing instrumentation', () => {

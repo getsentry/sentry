@@ -343,6 +343,8 @@ function fetchTrace(
 
 export class TraceTree extends TraceTreeEventDispatcher {
   eventsCount = 0;
+  project_ids = new Set<number>();
+
   type: 'loading' | 'empty' | 'error' | 'trace' = 'trace';
   root: TraceTreeNode<null> = TraceTreeNode.Root();
 
@@ -354,6 +356,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
 
   list: TraceTreeNode<TraceTree.NodeValue>[] = [];
   events: Map<string, EventTransaction> = new Map();
+
   private _spanPromises: Map<string, Promise<EventTransaction>> = new Map();
 
   static Empty() {
@@ -391,6 +394,9 @@ export class TraceTree extends TraceTreeEventDispatcher {
       parent: TraceTreeNode<TraceTree.NodeValue | null>,
       value: TraceTree.Transaction | TraceTree.TraceError
     ) {
+      tree.eventsCount++;
+      tree.project_ids.add(value.project_id);
+
       const node = new TraceTreeNode(parent, value, {
         spans: options.meta?.data?.transactiontoSpanChildrenCount[value.event_id] ?? 0,
         project_slug: value && 'project_slug' in value ? value.project_slug : undefined,
@@ -568,8 +574,6 @@ export class TraceTree extends TraceTreeEventDispatcher {
       const parent = spanIdToNode.get(transaction.value.parent_span_id);
 
       if (!parent) {
-        root.children.push(transaction);
-        transaction.parent = root;
         continue;
       }
 
@@ -768,10 +772,11 @@ export class TraceTree extends TraceTreeEventDispatcher {
           previous.children.splice(0, 0, node);
           node.parent = previous;
         } else {
-          let childIndex = node.parent?.children.indexOf(child) ?? 0;
+          let childIndex = node.parent?.children.indexOf(child) ?? -1;
           if (childIndex === -1) {
             childIndex = 0;
-            // @TODO: Add sentry log
+            Sentry;
+            Sentry.captureException('Detecting missing instrumentation failed');
           }
           node.parent?.children.splice(childIndex, 0, node);
         }
@@ -956,7 +961,6 @@ export class TraceTree extends TraceTreeEventDispatcher {
 
           const start = index - matchCount;
 
-          // @TODO use space to compute this
           let start_timestamp = Number.MAX_SAFE_INTEGER;
           let timestamp = Number.MIN_SAFE_INTEGER;
 
@@ -1447,8 +1451,11 @@ export class TraceTree extends TraceTreeEventDispatcher {
     if (!zoomedIn) {
       const index = this.list.indexOf(node);
 
-      // @todo add sentry log
       if (index === -1) {
+        Sentry.withScope(scope => {
+          scope.setFingerprint(['trace-view-zooming']);
+          scope.captureMessage('Cannot zoom into a node that is not in the list');
+        });
         return Promise.resolve(null);
       }
 
@@ -1474,7 +1481,10 @@ export class TraceTree extends TraceTreeEventDispatcher {
             continue;
           }
           if (!parent) {
-            // @TODO Log to Sentry
+            Sentry.withScope(scope => {
+              scope.setFingerprint(['trace-view-transaction-parent']);
+              scope.captureMessage('Failed to find parent transaction when zooming out');
+            });
             continue;
           }
           t.parent = parent;
@@ -1520,7 +1530,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
         node.fetchStatus = 'resolved';
 
         if (index === -1 || !node.expanded) {
-          // @todo node may have been collapsed by user by the time the promise resolved
+          // The node may have been collapsed by user by the time the promise resolved
           return data;
         }
 

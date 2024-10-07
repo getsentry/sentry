@@ -69,7 +69,6 @@ export function TraceRowConnectors(props: {
   manager: VirtualizedViewManager;
   node: TraceTreeNode<TraceTree.NodeValue>;
 }) {
-  // @TODO check for visible children
   const hasChildren = TraceTree.HasVisibleChildren(props.node);
   const nodeDepth = TraceTree.Depth(props.node);
 
