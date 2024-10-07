@@ -1,4 +1,5 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {BigNumberWidget} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidget';
 
@@ -9,7 +10,6 @@ describe('BigNumberWidget', () => {
         <BigNumberWidget
           title="EPS"
           description="Number of events per second"
-          showDescriptionInTooltip={false}
           data={[
             {
               'eps()': 0.01087819860850493,
@@ -31,6 +31,40 @@ describe('BigNumberWidget', () => {
   });
 
   describe('Visualization', () => {
+    it('Explains missing data', () => {
+      render(
+        <BigNumberWidget
+          data={[{}]}
+          meta={{
+            fields: {
+              'p95(span.duration)': 'number',
+            },
+          }}
+        />
+      );
+
+      expect(screen.getByText('No Data')).toBeInTheDocument();
+    });
+
+    it('Explains non-numeric data', () => {
+      render(
+        <BigNumberWidget
+          data={[
+            {
+              'count()': Infinity,
+            },
+          ]}
+          meta={{
+            fields: {
+              'count()': 'number',
+            },
+          }}
+        />
+      );
+
+      expect(screen.getByText('Value is not a finite number.')).toBeInTheDocument();
+    });
+
     it('Formats duration data', () => {
       render(
         <BigNumberWidget
@@ -76,6 +110,27 @@ describe('BigNumberWidget', () => {
 
       expect(screen.getByText('178451214')).toBeInTheDocument();
     });
+
+    it('Respect maximum value', () => {
+      render(
+        <BigNumberWidget
+          title="Count"
+          data={[
+            {
+              'count()': 178451214,
+            },
+          ]}
+          maximumValue={100000000}
+          meta={{
+            fields: {
+              'count()': 'integer',
+            },
+          }}
+        />
+      );
+
+      expect(screen.getByText(textWithMarkupMatcher('>100m'))).toBeInTheDocument();
+    });
   });
 
   describe('State', () => {
@@ -85,10 +140,49 @@ describe('BigNumberWidget', () => {
       expect(screen.getByText('—')).toBeInTheDocument();
     });
 
+    it('Loading state takes precedence over error state', () => {
+      render(
+        <BigNumberWidget isLoading error={new Error('Parsing error of old value')} />
+      );
+
+      expect(screen.getByText('—')).toBeInTheDocument();
+    });
+
     it('Shows an error message', () => {
       render(<BigNumberWidget error={new Error('Uh oh')} />);
 
       expect(screen.getByText('Error: Uh oh')).toBeInTheDocument();
+    });
+
+    it('Shows a retry button', async () => {
+      const onRetry = jest.fn();
+
+      render(<BigNumberWidget error={new Error('Oh no!')} onRetry={onRetry} />);
+
+      await userEvent.click(screen.getByRole('button', {name: 'Retry'}));
+      expect(onRetry).toHaveBeenCalledTimes(1);
+    });
+
+    it('Hides other actions if there is an error and a retry handler', () => {
+      const onRetry = jest.fn();
+
+      render(
+        <BigNumberWidget
+          error={new Error('Oh no!')}
+          onRetry={onRetry}
+          actions={[
+            {
+              key: 'Open in Discover',
+              to: '/discover',
+            },
+          ]}
+        />
+      );
+
+      expect(screen.getByRole('button', {name: 'Retry'})).toBeInTheDocument();
+      expect(
+        screen.queryByRole('link', {name: 'Open in Discover'})
+      ).not.toBeInTheDocument();
     });
   });
 
