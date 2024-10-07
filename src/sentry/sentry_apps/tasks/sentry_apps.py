@@ -49,7 +49,7 @@ def process_resource_change_bound(
     self: Task, action: str, sender: str, instance_id: int, **kwargs: Any
 ) -> None:
     old_process_resource_change_bound(
-        self=self, action=action, sender=sender, instance_id=instance_id, **kwargs
+        action=action, sender=sender, instance_id=instance_id, **kwargs
     )
 
 
