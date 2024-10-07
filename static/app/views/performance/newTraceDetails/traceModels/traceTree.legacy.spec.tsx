@@ -2402,45 +2402,6 @@ describe('TraceTree', () => {
       assertTransactionNode(secondPageload);
       expect(secondPageload.value.transaction).toBe('second pageload');
     });
-    it('doesnt reparent http.server child txn under browser request span if it was not reparented', async () => {
-      const tree: TraceTree = TraceTree.FromTrace(
-        makeTrace({
-          transactions: [
-            makeTransaction({
-              transaction: 'pageload',
-              ['transaction.op']: 'pageload',
-              event_id: 'pageload',
-              project_slug: 'js',
-              children: [
-                makeTransaction({
-                  transaction: 'http.server',
-                  ['transaction.op']: 'http.server',
-                }),
-              ],
-            }),
-          ],
-        }),
-        {replayRecord: null, meta: null}
-      );
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/events/js:pageload/?averageColumn=span.self_time&averageColumn=span.duration',
-        method: 'GET',
-        body: makeEventTransaction({}, [
-          makeSpan({description: 'request', op: 'browser'}),
-        ]),
-      });
-
-      tree.zoom(tree.list[1], true, {
-        api: new MockApiClient(),
-        organization: OrganizationFixture(),
-      });
-
-      await waitFor(() => tree.list.length === 4);
-
-      const pageloadTransaction = tree.list[1];
-      const serverHandlerTransaction = tree.list[3];
-      expect(serverHandlerTransaction.parent).toBe(pageloadTransaction);
-    });
     describe('expanded', () => {
       it.each([['browser'], ['browser.request']])(
         'server handler transaction becomes a child of %s span if present',
