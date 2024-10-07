@@ -1,6 +1,6 @@
-import type {Theme} from '@emotion/react';
+import {css, type Theme} from '@emotion/react';
 
-export const linkStyles = ({disabled, theme}: {theme: Theme; disabled?: boolean}) => `
+export const linkStyles = ({disabled, theme}: {theme: Theme; disabled?: boolean}) => css`
   border-radius: ${theme.linkBorderRadius};
 
   &:focus-visible {
@@ -9,14 +9,12 @@ export const linkStyles = ({disabled, theme}: {theme: Theme; disabled?: boolean}
     outline: none;
   }
 
-  ${
-    disabled &&
-    `
-      color:${theme.disabled};
-      pointer-events: none;
-      :hover {
-        color: ${theme.disabled};
-      }
-    `
-  }
+  ${disabled &&
+  css`
+    color: ${theme.disabled};
+    pointer-events: none;
+    :hover {
+      color: ${theme.disabled};
+    }
+  `}
 `;
