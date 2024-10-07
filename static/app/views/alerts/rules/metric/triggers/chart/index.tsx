@@ -676,9 +676,9 @@ const ChartErrorWrapper = styled('div')`
   margin-top: ${space(2)};
 `;
 
-export function ErrorChart({isAllowIndexed, isQueryValid, errorMessage}) {
+export function ErrorChart({isAllowIndexed, isQueryValid, errorMessage, ...props}) {
   return (
-    <ChartErrorWrapper>
+    <ChartErrorWrapper {...props}>
       <PanelAlert type="error">
         {!isAllowIndexed && !isQueryValid
           ? t('Your filter conditions contain an unsupported field - please review.')

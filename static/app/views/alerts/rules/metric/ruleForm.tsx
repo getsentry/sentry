@@ -1089,14 +1089,17 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
         `/organizations/${organization.slug}/events/anomalies/`,
         {method: 'POST', data: params}
       );
-      const {status, error, anomalies} = response;
+      const {status, error, ...rest} = response;
       if (status === 'failed') {
         this.setState({chartError: true, chartErrorMessage: error});
       } else if (status === 'success') {
-        this.setState({anomalies});
+        this.setState(rest);
       }
     } catch (e) {
-      this.setState({chartError: true, chartErrorMessage: e.message || e});
+      this.setState({
+        chartError: true,
+        chartErrorMessage: e.responseJSON || e.message || e,
+      });
     }
   }
 
@@ -1157,7 +1160,12 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
 
     if (chartError) {
       return (
-        <ErrorChart errorMessage={`${chartErrorMessage}`} isAllowIndexed isQueryValid />
+        <ErrorChart
+          style={{marginTop: 0}}
+          errorMessage={`${chartErrorMessage}`}
+          isAllowIndexed
+          isQueryValid
+        />
       );
     }
     const isOnDemand = isOnDemandMetricAlert(dataset, aggregate, query);
