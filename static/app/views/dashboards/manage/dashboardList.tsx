@@ -208,6 +208,10 @@ const DashboardGrid = styled('div')`
   @media (min-width: ${p => p.theme.breakpoints.large}) {
     grid-template-columns: repeat(3, minmax(100px, 1fr));
   }
+
+  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
+    grid-template-columns: repeat(4, minmax(100px, 1fr));
+  }
 `;
 
 const PaginationRow = styled(Pagination)`

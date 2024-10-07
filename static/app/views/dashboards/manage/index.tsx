@@ -83,7 +83,7 @@ class ManageDashboards extends DeprecatedAsyncView<Props, State> {
           query: {
             ...pick(location.query, ['cursor', 'query']),
             sort: this.getActiveSort().value,
-            per_page: '9',
+            per_page: '12',
           },
         },
       ],
