@@ -1,10 +1,6 @@
-// biome-ignore lint/nursery/noRestrictedImports: Will be removed with react router 6
-import {createMemoryHistory, Route, Router, RouterContext} from 'react-router';
-
 import {act, render} from 'sentry-test/reactTestingLibrary';
 
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
-import {RouteContext} from 'sentry/views/routeContext';
 
 import {useChartInterval} from './useChartInterval';
 
@@ -22,22 +18,7 @@ describe('useChartInterval', function () {
       return null;
     }
 
-    const memoryHistory = createMemoryHistory();
-
-    render(
-      <Router
-        history={memoryHistory}
-        render={props => {
-          return (
-            <RouteContext.Provider value={props}>
-              <RouterContext {...props} />
-            </RouteContext.Provider>
-          );
-        }}
-      >
-        <Route path="/" component={TestPage} />
-      </Router>
-    );
+    render(<TestPage />, {disableRouterMocks: true});
 
     expect(intervalOptions).toEqual([
       {value: '1h', label: '1 hour'},
