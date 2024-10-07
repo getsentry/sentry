@@ -96,16 +96,6 @@ export default function useInviteModal({organization, initialData, source}: Prop
     );
   }, [state.pendingInvites]);
 
-  const sentCount = useMemo(() => {
-    const statuses = Object.values(state.inviteStatus) as InviteStatus[];
-    return statuses.filter(i => i.sent).length;
-  }, [state.inviteStatus]);
-
-  const errorCount = useMemo(() => {
-    const statuses = Object.values(state.inviteStatus) as InviteStatus[];
-    return statuses.filter(i => i.error).length;
-  }, [state.inviteStatus]);
-
   const reset = useCallback(() => {
     setState({
       pendingInvites: [defaultInvite()],
@@ -191,14 +181,23 @@ export default function useInviteModal({organization, initialData, source}: Prop
     });
   }, []);
 
-  const sendInvites = useCallback(async () => {
-    setState(prev => ({...prev, sendingInvites: true}));
-    await Promise.all(invites.map(sendInvite));
-    if (organization.features.includes('invite-members-new-modal')) {
-      removeSentInvites();
-    }
-    setState(prev => ({...prev, sendingInvites: false, complete: true}));
+  const statuses = useMemo(() => {
+    return Object.values(state.inviteStatus) as InviteStatus[];
+  }, [state.inviteStatus]);
 
+  const sentCount = useMemo(() => {
+    return statuses.filter(i => i.sent).length;
+  }, [statuses]);
+
+  const errorCount = useMemo(() => {
+    return statuses.filter(i => i.error).length;
+  }, [statuses]);
+
+  useEffect(() => {
+    // Don't track if no invites have been sent or invites are still sending
+    if ((sentCount === 0 && errorCount === 0) || state.sendingInvites) {
+      return;
+    }
     trackAnalytics(
       willInvite ? 'invite_modal.invites_sent' : 'invite_modal.requests_sent',
       {
@@ -209,15 +208,16 @@ export default function useInviteModal({organization, initialData, source}: Prop
         is_new_modal: organization.features.includes('invite-members-new-modal'),
       }
     );
-  }, [
-    organization,
-    invites,
-    sentCount,
-    errorCount,
-    sendInvite,
-    willInvite,
-    removeSentInvites,
-  ]);
+  }, [organization, sentCount, errorCount, state.sendingInvites, willInvite]);
+
+  const sendInvites = useCallback(async () => {
+    setState(prev => ({...prev, sendingInvites: true}));
+    await Promise.all(invites.map(sendInvite));
+    if (organization.features.includes('invite-members-new-modal')) {
+      removeSentInvites();
+    }
+    setState(prev => ({...prev, sendingInvites: false, complete: true}));
+  }, [organization, invites, sendInvite, removeSentInvites]);
 
   const addInviteRow = useCallback(() => {
     setState(prev => ({
