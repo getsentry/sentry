@@ -147,10 +147,6 @@ class Matcher(namedtuple("Matcher", "type pattern")):
         data: Mapping[str, Any],
         munged_data: tuple[Sequence[Mapping[str, Any]], Sequence[str]],
     ) -> bool:
-        """
-        Temporary function to test pre-munging data performance in production. will remove
-        and combine with test if prod deployment goes well.
-        """
         if self.type == URL:
             return self.test_url(data)
         elif self.type == PATH:
