@@ -1,10 +1,10 @@
-from sentry.mediators.external_issues.creator import Creator
+from sentry.sentry_apps.external_issues.external_issue_creator import ExternalIssueCreator
 from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
 from sentry.sentry_apps.services.app import app_service
 from sentry.testutils.cases import TestCase
 
 
-class TestCreator(TestCase):
+class TextExternalIssueCreator(TestCase):
     def setUp(self):
         super().setUp()
 
@@ -23,13 +23,13 @@ class TestCreator(TestCase):
         self.install = app_service.get_many(filter=dict(installation_ids=[self.orm_install.id]))[0]
 
     def test_creates_platform_external_issue(self):
-        result = Creator.run(
+        result = ExternalIssueCreator(
             install=self.install,
             group=self.group,
             web_url="https://example.com/project/issue-id",
             project="Projectname",
             identifier="issue-1",
-        )
+        ).run()
 
         external_issue = PlatformExternalIssue.objects.all()[0]
         assert result == external_issue
