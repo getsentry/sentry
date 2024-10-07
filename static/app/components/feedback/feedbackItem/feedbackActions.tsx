@@ -160,10 +160,10 @@ function SmallWidth({feedbackItem}: {feedbackItem: FeedbackIssue}) {
       items={[
         {
           key: 'delete',
+          priority: 'danger' as const,
           label: t('Delete'),
-          onAction: () => openDeleteModal(onDelete),
           hidden: !hasDelete,
-          priority: 'danger',
+          onAction: () => openDeleteModal(onDelete),
         },
         {
           key: 'resolve',
