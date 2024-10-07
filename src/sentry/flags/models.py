@@ -4,7 +4,7 @@ from django.db import models
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import Model, region_silo_model, sane_repr
+from sentry.db.models import Model, control_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 
 
@@ -54,7 +54,7 @@ CREATED_BY_TYPE_MAP = {
 }
 
 
-@region_silo_model
+@control_silo_model
 class FlagAuditLogModel(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
