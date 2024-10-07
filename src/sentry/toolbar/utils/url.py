@@ -1,7 +1,7 @@
-from urllib.parse import urlparse
+from urllib.parse import ParseResult, urlparse
 
 
-def url_matches(referrer_url: str, target_url: str) -> bool:
+def url_matches(referrer: ParseResult, target_url: str) -> bool:
     """
     Matches a referrer url with a user-provided one. Checks 3 fields:
     * hostname: must equal target.hostname. The first subdomain in target may be a wildcard "*".
@@ -12,7 +12,6 @@ def url_matches(referrer_url: str, target_url: str) -> bool:
     @param referrer_url: Must have a valid scheme and hostname.
     @param target_url: Must have a valid hostname, may exclude scheme. The first subdomain may be a wildcard "*".
     """
-    referrer = urlparse(referrer_url)  # Always has scheme and hostname
     target = urlparse(target_url)
     if not target.scheme:  # urlparse doesn't work well if scheme is missing
         target = urlparse(referrer.scheme + "://" + target_url)
@@ -34,14 +33,12 @@ def url_matches(referrer_url: str, target_url: str) -> bool:
     )
 
 
-def check_origin(referrer: str | None, allowed_origins: list[str]) -> tuple[bool, str]:
-    if referrer:
-        if not urlparse(referrer).scheme:
-            referrer = "http://" + referrer
+def is_origin_allowed(referrer: str, allowed_origins: list[str]) -> tuple[bool, str]:
+    if not urlparse(referrer).scheme:
+        referrer = "http://" + referrer
 
-        for origin in allowed_origins:
-            if url_matches(referrer, origin):
-                return True, f"Matched allowed origin: {origin}"
-        return False, f"Referrer {referrer} does not match allowed origins."
-
-    return False, "Could not validate origin, missing HTTP_REFERER header."
+    parsed_referrer = urlparse(referrer)
+    for origin in allowed_origins:
+        if url_matches(parsed_referrer, origin):
+            return True
+    return False

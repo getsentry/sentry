@@ -4,7 +4,7 @@ from django.http import HttpRequest, HttpResponse
 
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.toolbar.utils.url import check_origin
+from sentry.toolbar.utils.url import is_origin_allowed
 from sentry.web.frontend.base import OrganizationView, region_silo_view
 
 REFERRER_HEADER = "HTTP_REFERER"  # 1 R is the spelling used here: https://docs.djangoproject.com/en/5.1/ref/request-response/
@@ -59,7 +59,7 @@ class IframeView(OrganizationView):
             )
 
         allowed_origins: list[str] = project.get_option("sentry:toolbar_allowed_origins")
-        origin_allowed, info_msg = check_origin(referrer, allowed_origins)
+        origin_allowed = is_origin_allowed(referrer, allowed_origins)
         if not origin_allowed:
             return self.respond(
                 INVALID_TEMPLATE,
