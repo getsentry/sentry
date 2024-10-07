@@ -96,7 +96,7 @@ export function DomainSelector({
     useCompactSelectOptionsCache(
       incomingDomains
         .filter(Boolean)
-        .filter(domain => domain !== '(empty)')
+        .filter(domain => domain !== EMPTY_OPTION_VALUE)
         .map(datum => {
           return {
             value: datum,
