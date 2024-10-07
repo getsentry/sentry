@@ -1,18 +1,17 @@
 import {useMemo} from 'react';
 import {useMatches} from 'react-router-dom';
 
-import {NODE_ENV} from 'sentry/constants';
 import type {PlainRoute} from 'sentry/types/legacyReactRouter';
-import {useRouteContext} from 'sentry/utils/useRouteContext';
+
+import {useRouteContext} from './useRouteContext';
 
 export function useRoutes(): PlainRoute<any>[] {
   // When running in test mode we still read from the legacy route context to
   // keep test compatability while we fully migrate to react router 6
-  const useReactRouter6 = NODE_ENV !== 'test';
+  const legacyRouterContext = useRouteContext();
 
-  if (!useReactRouter6) {
-    // biome-ignore lint/correctness/useHookAtTopLevel: react-router-6 migration
-    return useRouteContext().routes;
+  if (legacyRouterContext) {
+    return legacyRouterContext.routes;
   }
 
   // biome-ignore lint/correctness/useHookAtTopLevel: react-router-6 migration
