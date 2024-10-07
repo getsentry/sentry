@@ -107,6 +107,13 @@ class TeamDetailsEndpoint(TeamEndpoint):
         Update various attributes and configurable settings for the given
         team.
         """
+
+        if team.idp_provisioned:
+            return Response(
+                {"detail": "This team is managed through your organization's identity provider."},
+                status=403,
+            )
+
         serializer = TeamDetailsSerializer(team, data=request.data, partial=True)
         if serializer.is_valid():
             team = serializer.save()
@@ -141,6 +148,13 @@ class TeamDetailsEndpoint(TeamEndpoint):
         **Note:** Deletion happens asynchronously and therefore is not
         immediate. Teams will have their slug released while waiting for deletion.
         """
+
+        if team.idp_provisioned:
+            return Response(
+                {"detail": "This team is managed through your organization's identity provider."},
+                status=403,
+            )
+
         suffix = uuid4().hex
         new_slug = f"{team.slug}-{suffix}"[0:50]
         try:
