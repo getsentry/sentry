@@ -30,6 +30,7 @@ from sentry.snuba.metrics_performance import query as metrics_query
 from sentry.snuba.query_sources import QuerySource
 from sentry.utils import snuba
 from sentry.utils.dates import parse_timestamp
+from src.sentry.discover.arithmetic import ArithmeticParseError
 
 logger = logging.getLogger("sentry.tasks.split_discover_query_dataset")
 
@@ -177,6 +178,8 @@ def _get_and_save_split_decision_for_dashboard_widget(
             snuba.UnqualifiedQueryError,
             InvalidQueryError,
             snuba.QueryExecutionError,
+            snuba.SnubaError,
+            ArithmeticParseError,
         ):
             pass
 
@@ -193,6 +196,8 @@ def _get_and_save_split_decision_for_dashboard_widget(
         snuba.UnqualifiedQueryError,
         InvalidQueryError,
         snuba.QueryExecutionError,
+        snuba.SnubaError,
+        ArithmeticParseError,
     ):
         pass
 
@@ -224,6 +229,8 @@ def _get_and_save_split_decision_for_dashboard_widget(
         snuba.UnqualifiedQueryError,
         InvalidQueryError,
         snuba.QueryExecutionError,
+        snuba.SnubaError,
+        ArithmeticParseError,
     ):
         pass
 
