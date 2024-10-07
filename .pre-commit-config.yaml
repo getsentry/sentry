@@ -65,7 +65,7 @@ repos:
         additional_dependencies: [packaging==21.3]
       - id: requirements-overrides
         name: use pinned archives (see comment in file)
-        stages: [commit]
+        stages: [pre-commit]
         language: pygrep
         entry: |
           (?x)

@@ -21,7 +21,7 @@ selenium>=4.16.0
 sentry-cli>=2.16.0
 
 # pre-commit dependencies
-pre-commit>=3.3
+pre-commit>=4
 black>=22.10.0
 flake8>=7
 flake8-bugbear>=22.10
