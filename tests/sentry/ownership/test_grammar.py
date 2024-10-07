@@ -1,3 +1,6 @@
+from collections.abc import Mapping, Sequence
+from typing import Any
+
 import pytest
 
 from sentry.ownership.grammar import (
@@ -44,7 +47,7 @@ tests/file\ with\ spaces/ @NisanthanNanthakumar
 """
 
 
-def test_parse_rules():
+def test_parse_rules() -> None:
     assert parse_rules(fixture_data) == [
         Rule(Matcher("path", "*.js"), [Owner("team", "frontend"), Owner("user", "m@robenolt.com")]),
         Rule(Matcher("url", "http://google.com/*"), [Owner("team", "backend")]),
@@ -58,7 +61,7 @@ def test_parse_rules():
     ]
 
 
-def test_dump_schema():
+def test_dump_schema() -> None:
     assert dump_schema([Rule(Matcher("path", "*.js"), [Owner("team", "frontend")])]) == {
         "$version": 1,
         "rules": [
@@ -70,7 +73,7 @@ def test_dump_schema():
     }
 
 
-def test_str_schema():
+def test_str_schema() -> None:
     assert str(Rule(Matcher("path", "*.js"), [Owner("team", "frontend")])) == "path:*.js #frontend"
     assert (
         str(Rule(Matcher("url", "http://google.com/*"), [Owner("team", "backend")]))
@@ -92,7 +95,7 @@ def test_str_schema():
     )
 
 
-def test_load_schema():
+def test_load_schema() -> None:
     assert load_schema(
         {
             "$version": 1,
@@ -106,7 +109,7 @@ def test_load_schema():
     ) == [Rule(Matcher("path", "*.js"), [Owner("team", "frontend")])]
 
 
-def test_load_tag_schema():
+def test_load_tag_schema() -> None:
     assert load_schema(
         {
             "$version": 1,
@@ -120,7 +123,7 @@ def test_load_tag_schema():
     ) == [Rule(Matcher("tags.release", "*"), [Owner("user", "test@sentry.io")])]
 
 
-def test_matcher_test_url():
+def test_matcher_test_url() -> None:
     data = {"request": {"url": "http://example.com/foo.js"}}
 
     assert Matcher("url", "*.js").test(data)
@@ -131,14 +134,13 @@ def test_matcher_test_url():
     assert not Matcher("url", "*.js").test({})
 
 
-def test_matcher_test_url_none():
-    assert not Matcher("url", "doesnt_matter").test(None)
+def test_matcher_test_url_none() -> None:
     assert not Matcher("url", "doesnt_matter").test({})
     assert not Matcher("url", "doesnt_matter").test({"request": None})
     assert not Matcher("url", "doesnt_matter").test({"request": {"url": None}})
 
 
-def test_matcher_test_exception():
+def test_matcher_test_exception() -> None:
     data = {
         "exception": {
             "values": [
@@ -163,7 +165,7 @@ def test_matcher_test_exception():
     assert not Matcher("path", "*.py").test({})
 
 
-def test_matcher_file_abs_path_same_frame():
+def test_matcher_file_abs_path_same_frame() -> None:
     data = {
         "exception": {
             "values": [
@@ -182,7 +184,7 @@ def test_matcher_file_abs_path_same_frame():
     assert Matcher("path", "*local/src/*").test(data)
 
 
-def test_matcher_test_stacktrace():
+def test_matcher_test_stacktrace() -> None:
     data = {
         "stacktrace": {
             "frames": [{"filename": "foo/file.py"}, {"abs_path": "/usr/local/src/other/app.py"}]
@@ -198,7 +200,7 @@ def test_matcher_test_stacktrace():
     assert not Matcher("path", "*.py").test({})
 
 
-def test_matcher_test_threads():
+def test_matcher_test_threads() -> None:
     data = {
         "threads": {
             "values": [
@@ -226,7 +228,7 @@ def test_matcher_test_threads():
     assert not Matcher("path", "*.py").test({})
 
 
-def test_matcher_test_platform_java_threads():
+def test_matcher_test_platform_java_threads() -> None:
     data = {
         "platform": "java",
         "threads": {
@@ -257,7 +259,7 @@ def test_matcher_test_platform_java_threads():
     assert not Matcher("path", "*.py").test({})
 
 
-def test_matcher_test_platform_cocoa_threads():
+def test_matcher_test_platform_cocoa_threads() -> None:
     data = {
         "platform": "cocoa",
         "threads": {
@@ -296,7 +298,7 @@ def test_matcher_test_platform_cocoa_threads():
     assert not Matcher("path", "*.py").test({})
 
 
-def test_matcher_test_platform_react_native():
+def test_matcher_test_platform_react_native() -> None:
     data = {
         "platform": "javascript",
         "exception": {
@@ -353,7 +355,7 @@ def test_matcher_test_platform_react_native():
     assert Matcher("path", "app:///src/screens/EndToEndTestsScreen.tsx").test(data)
 
 
-def test_matcher_test_platform_other_flutter():
+def test_matcher_test_platform_other_flutter() -> None:
     data = {
         "platform": "other",
         "sdk": {"name": "sentry.dart.flutter"},
@@ -422,7 +424,7 @@ def test_matcher_test_platform_other_flutter():
     assert Matcher("path", "package:sentry_flutter_example/a/b/test.dart").test(data)
 
 
-def test_matcher_test_platform_none_threads():
+def test_matcher_test_platform_none_threads() -> None:
     data = {
         "threads": {
             "values": [
@@ -458,7 +460,7 @@ def test_matcher_test_platform_none_threads():
     assert not Matcher("path", "*.py").test({})
 
 
-def test_matcher_test_tags():
+def test_matcher_test_tags() -> None:
     data = {
         "tags": [["foo", "foo_value"], ["bar", "barval"]],
     }
@@ -468,7 +470,7 @@ def test_matcher_test_tags():
     assert not Matcher("tags.barz", "barval").test(data)
 
 
-def test_matcher_test_module():
+def test_matcher_test_module() -> None:
     data = {
         "stacktrace": {
             "frames": [
@@ -501,12 +503,14 @@ def test_matcher_test_module():
 
 
 @pytest.mark.parametrize("data", [{}, {"tags": None}, {"tags": [None]}])
-def test_matcher_test_tags_without_tag_data(data):
+def test_matcher_test_tags_without_tag_data(data: Mapping[str, Any]) -> None:
     assert not Matcher("tags.foo", "foo_value").test(data)
     assert not Matcher("tags.bar", "barval").test(data)
 
 
-def _assert_matcher(matcher: Matcher, path_details, expected):
+def _assert_matcher(
+    matcher: Matcher, path_details: Sequence[Mapping[str, str]], expected: bool
+) -> None:
     """Helper function to reduce repeated code"""
     frames = {"stacktrace": {"frames": path_details}}
     assert matcher.test(frames) == expected
@@ -526,7 +530,9 @@ def _assert_matcher(matcher: Matcher, path_details, expected):
         ([{"filename": "not_in_repo.py"}, {"abs_path": "/root/not_in_repo.py"}], True),
     ],
 )
-def test_codeowners_match_any_file(path_details, expected):
+def test_codeowners_match_any_file(
+    path_details: Sequence[Mapping[str, str]], expected: bool
+) -> None:
     """* and ** should match to any file"""
     _assert_matcher(Matcher("codeowners", "**"), path_details, expected)
     _assert_matcher(Matcher("codeowners", "*"), path_details, expected)
@@ -559,7 +565,9 @@ def test_codeowners_match_any_file(path_details, expected):
         ),
     ],
 )
-def test_codeowners_match_extension(path_details, expected):
+def test_codeowners_match_extension(
+    path_details: Sequence[Mapping[str, str]], expected: bool
+) -> None:
     """*.py should match to any .py file or directory in the repo"""
     _assert_matcher(Matcher("codeowners", "*.py"), path_details, expected)
 
@@ -591,7 +599,9 @@ def test_codeowners_match_extension(path_details, expected):
         ),
     ],
 )
-def test_codeowners_match_specific_filename(path_details, expected):
+def test_codeowners_match_specific_filename(
+    path_details: Sequence[Mapping[str, str]], expected: bool
+) -> None:
     """test.py should match to any test.py file or directory in the repo"""
     _assert_matcher(Matcher("codeowners", "test.py"), path_details, expected)
 
@@ -610,7 +620,9 @@ def test_codeowners_match_specific_filename(path_details, expected):
         ),
     ],
 )
-def test_codeowners_match_specific_path(path_details, expected):
+def test_codeowners_match_specific_path(
+    path_details: Sequence[Mapping[str, str]], expected: bool
+) -> None:
     """
     When codeowners is converted to issue owners, the code path is prepended
     /usr/local/src/foo/test.py should match to any foo/test.py within the code path
@@ -636,7 +648,9 @@ def test_codeowners_match_specific_path(path_details, expected):
         ),
     ],
 )
-def test_codeowners_match_abs_wildcard(path_details, expected):
+def test_codeowners_match_abs_wildcard(
+    path_details: Sequence[Mapping[str, str]], expected: bool
+) -> None:
     """/usr/local/src/foo/*.py should match any file or directory"""
     _assert_matcher(Matcher("codeowners", "/usr/local/src/foo/*.py"), path_details, expected)
 
@@ -673,7 +687,9 @@ def test_codeowners_match_abs_wildcard(path_details, expected):
         ),
     ],
 )
-def test_codeowners_match_recursive_directory(path_details, expected):
+def test_codeowners_match_recursive_directory(
+    path_details: Sequence[Mapping[str, str]], expected: bool
+) -> None:
     """
     /usr/local/src/foo/ should match recursively to any file within the /src/foo directory"
     /usr/local/src/foo/** should do the same"
@@ -706,7 +722,9 @@ def test_codeowners_match_recursive_directory(path_details, expected):
         ),
     ],
 )
-def test_codeowners_match_nonrecursive_directory(path_details, expected):
+def test_codeowners_match_nonrecursive_directory(
+    path_details: Sequence[Mapping[str, str]], expected: bool
+) -> None:
     """
     /src/foo/* should match to any file directly within the /src/foo directory
     src/foo/* should match to any file directly withing any src/foo directory
@@ -735,8 +753,10 @@ def test_codeowners_match_nonrecursive_directory(path_details, expected):
     ],
 )
 def test_codeowners_match_wildcard_directory(
-    path_details, single_star_expected, double_star_expected
-):
+    path_details: Sequence[Mapping[str, str]],
+    single_star_expected: bool,
+    double_star_expected: bool,
+) -> None:
     """
     /src/foo/*/test.py should only match with test.py 1 directory deeper than foo
     /src/foo/**/test.py can match with test.py anywhere under foo
@@ -761,7 +781,9 @@ def test_codeowners_match_wildcard_directory(
         ([{"filename": "foo/test./y"}, {"abs_path": "/usr/local/src/foo/test./y"}], False),
     ],
 )
-def test_codeowners_match_question_mark(path_details, expected):
+def test_codeowners_match_question_mark(
+    path_details: Sequence[Mapping[str, str]], expected: bool
+) -> None:
     """
     "?" should match any character execept slash
     """
@@ -776,7 +798,9 @@ def test_codeowners_match_question_mark(path_details, expected):
         ([{"filename": "foo"}, {"abs_path": "/usr/local/src/foo"}], False),
     ],
 )
-def test_codeowners_match_loose_directory(path_details, expected):
+def test_codeowners_match_loose_directory(
+    path_details: Sequence[Mapping[str, str]], expected: bool
+) -> None:
     """
     unanchored directories can match to a foo directory anywhere in the tree
     """
@@ -793,7 +817,9 @@ def test_codeowners_match_loose_directory(path_details, expected):
         ([{"filename": "foo/test./file"}, {"abs_path": "/usr/local/src/foo/test./file"}], True),
     ],
 )
-def test_codeowners_match_wildcard_extension(path_details, expected):
+def test_codeowners_match_wildcard_extension(
+    path_details: Sequence[Mapping[str, str]], expected: bool
+) -> None:
     """
     "*" can match 0 or more characters in files or directories
     """
@@ -827,7 +853,9 @@ def test_codeowners_match_wildcard_extension(path_details, expected):
         ),
     ],
 )
-def test_codeowners_match_backslash(path_details, expected):
+def test_codeowners_match_backslash(
+    path_details: Sequence[Mapping[str, str]], expected: bool
+) -> None:
     """\\ should ignore anything after the backslash and only match with files named '\'"""
     _assert_matcher(Matcher("codeowners", "\\filename"), path_details, expected)
 
@@ -852,11 +880,13 @@ def test_codeowners_match_backslash(path_details, expected):
         ),
     ],
 )
-def test_codeowners_match_forwardslash(path_details, expected):
+def test_codeowners_match_forwardslash(
+    path_details: Sequence[Mapping[str, str]], expected: bool
+) -> None:
     _assert_matcher(Matcher("codeowners", "/"), path_details, expected)
 
 
-def test_codeowners_match_threads():
+def test_codeowners_match_threads() -> None:
     data = {
         "threads": {
             "values": [
@@ -880,7 +910,7 @@ def test_codeowners_match_threads():
     assert Matcher("codeowners", "/usr/*/src/*/app.py").test(data)
 
 
-def test_parse_code_owners():
+def test_parse_code_owners() -> None:
     assert parse_code_owners(codeowners_fixture_data) == (
         ["@getsentry/frontend", "@getsentry/docs", "@getsentry/ecosystem"],
         ["@NisanthanNanthakumar", "@AnotherUser", "@NisanthanNanthakumar"],
@@ -888,7 +918,7 @@ def test_parse_code_owners():
     )
 
 
-def test_parse_code_owners_with_line_of_spaces():
+def test_parse_code_owners_with_line_of_spaces() -> None:
     data = f"{codeowners_fixture_data}\n                                                                                       \n"
 
     assert parse_code_owners(data) == (
@@ -898,7 +928,7 @@ def test_parse_code_owners_with_line_of_spaces():
     )
 
 
-def test_parse_code_owners_rule_with_comments():
+def test_parse_code_owners_rule_with_comments() -> None:
     codeowners = """
 # regular comment
 /path # no owners comment
@@ -913,7 +943,7 @@ def test_parse_code_owners_rule_with_comments():
     )
 
 
-def test_convert_codeowners_syntax():
+def test_convert_codeowners_syntax() -> None:
     code_mapping = type("", (), {})()
     code_mapping.stack_root = "webpack://docs"
     code_mapping.source_root = "docs"
@@ -934,7 +964,7 @@ def test_convert_codeowners_syntax():
     )
 
 
-def test_convert_codeowners_syntax_excludes_invalid():
+def test_convert_codeowners_syntax_excludes_invalid() -> None:
     code_mapping = type("", (), {})()
     code_mapping.stack_root = "webpack://static/"
     code_mapping.source_root = ""
@@ -1029,11 +1059,13 @@ codeowners:docs-ui/ docs-sentry ecosystem
         ),
     ],
 )
-def test_codeowners_select_in_app_frames_only(path_details, expected):
+def test_codeowners_select_in_app_frames_only(
+    path_details: Sequence[Mapping[str, str]], expected: bool
+) -> None:
     _assert_matcher(Matcher("codeowners", "test.py"), path_details, expected)
 
 
-def test_convert_schema_to_rules_text():
+def test_convert_schema_to_rules_text() -> None:
     assert (
         convert_schema_to_rules_text(
             {

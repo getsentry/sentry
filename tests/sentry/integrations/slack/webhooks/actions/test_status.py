@@ -14,6 +14,7 @@ from sentry.integrations.slack.webhooks.action import (
     LINK_IDENTITY_MESSAGE,
     UNLINK_IDENTITY_MESSAGE,
 )
+from sentry.integrations.utils.metrics import EventLifecycleOutcome
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.models.activity import Activity, ActivityIntegration
 from sentry.models.authidentity import AuthIdentity
@@ -234,8 +235,9 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert resp.data["response_type"] == "ephemeral"
         assert resp.data["text"] == LINK_IDENTITY_MESSAGE.format(associate_url=associate_url)
 
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.integrations.slack.message_builder.issues.get_tags", return_value=[])
-    def test_archive_issue_until_escalating(self, mock_tags):
+    def test_archive_issue_until_escalating(self, mock_tags, mock_record):
         original_message = self.get_original_message(self.group.id)
         self.archive_issue(original_message, "ignored:archived_until_escalating")
 
@@ -252,6 +254,11 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert blocks[2]["text"]["text"].endswith(expect_status)
         assert "via" not in blocks[4]["elements"][0]["text"]
         assert ":white_circle:" in blocks[0]["text"]["text"]
+
+        assert len(mock_record.mock_calls) == 2
+        start, halt = mock_record.mock_calls
+        assert start.args[0] == EventLifecycleOutcome.STARTED
+        assert halt.args[0] == EventLifecycleOutcome.SUCCESS
 
     @patch("sentry.integrations.slack.message_builder.issues.get_tags", return_value=[])
     def test_archive_issue_until_escalating_through_unfurl(self, mock_tags):

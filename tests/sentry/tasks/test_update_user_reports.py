@@ -140,7 +140,7 @@ class UpdateUserReportTest(TestCase):
             email="foo@example.com",
             name="Foo Bar",
         )
-        with self.feature("organizations:user-feedback-ingest"), self.tasks():
+        with self.tasks():
             update_user_reports(max_events=2)
 
         report1 = UserReport.objects.get(project_id=project.id, event_id=event1.event_id)

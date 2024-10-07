@@ -424,6 +424,20 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Flag Options
+register(
+    "flags:options-audit-log-is-enabled",
+    default=True,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+    type=Bool,
+)
+register(
+    "flags:options-audit-log-organization-id",
+    default=None,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+    type=Int,
+)
+
 # Replay Options
 #
 # Replay storage backend configuration (only applicable if the direct-storage driver is used)
@@ -1791,6 +1805,12 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "performance.traces.trace-explorer-skip-recent-seconds",
+    type=Int,
+    default=0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "performance.traces.span_query_minimum_spans",
     type=Int,
     default=10000,
@@ -2745,6 +2765,18 @@ register(
     "releases.no_snuba_for_release_creation",
     type=Bool,
     default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "celery_split_queue_legacy_mode",
+    default=["post_process_transactions"],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "celery_split_queue_rollout",
+    default={"post_process_transactions": 1.0},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
