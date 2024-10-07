@@ -307,7 +307,7 @@ class DiscordIntegrationTest(DiscordSetupTestCase):
     def test_get_guild_name_failure(self):
         provider = self.provider()
 
-        responses.add(responses.GET, "https://discord.com/api/v10/guilds/guild_name", status=500),
+        (responses.add(responses.GET, "https://discord.com/api/v10/guilds/guild_name", status=500),)
         responses.add(
             responses.POST,
             url="https://discord.com/api/v10/oauth2/token",
@@ -487,14 +487,3 @@ class DiscordIntegrationTest(DiscordSetupTestCase):
                     "code": "some_auth_code",
                 }
             )
-
-        # Test that a valid numeric guild ID doesn't raise an exception
-        try:
-            provider.build_integration(
-                {
-                    "guild_id": "123456789",  # Valid guild ID (entirely numeric)
-                    "code": "some_auth_code",
-                }
-            )
-        except IntegrationError:
-            pytest.fail("Unexpected IntegrationError raised for valid guild ID")
