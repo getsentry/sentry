@@ -90,6 +90,7 @@ jobs:
 
       - name: copy chartcuterie config to devservices chartcuterie directory
         run: |
+          ls config/chartcuterie
           cp -r config/chartcuterie devservices/chartcuterie
 
       - name: Bring up devservices
