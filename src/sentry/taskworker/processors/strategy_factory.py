@@ -41,7 +41,7 @@ def process_message(message: Message[KafkaPayload]) -> InflightActivation:
         activation=activation,
         status=TASK_ACTIVATION_STATUS_PENDING,
         offset=offset,
-        added_at=Timestamp(seconds=int(time())),
+        added_at=Timestamp(seconds=int(time.time())),
         deadletter_at=Timestamp(seconds=int(deadletter_at.timestamp())),
         processing_deadline=None,
     )
@@ -55,7 +55,6 @@ class StrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         num_processes: int,
         input_block_size: int | None,
         output_block_size: int | None,
-        max_inflight_activation_in_store: int | None,
     ) -> None:
         super().__init__()
         self.pool = MultiprocessingPool(num_processes)
@@ -69,7 +68,7 @@ class StrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         self.max_pending_timeout = 8 * 60
 
         # Maximum number of pending inflight activations in the store before backpressure is emitted
-        self.max_inflight_activation_in_store = max_inflight_activation_in_store
+        self.max_inflight_activation_in_store = 1000  # TODO: make this a parameter
 
         self.pending_task_store = PendingTaskStore()
 
@@ -91,27 +90,29 @@ class StrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             return message
 
         def do_upkeep(
-            message: Message[MutableSequence[InflightActivation]],
-        ) -> Message[MutableSequence[InflightActivation]]:
+            message: Message[KafkaPayload],
+        ) -> KafkaPayload:
             self.pending_task_store.handle_processing_deadlines()
             self.pending_task_store.handle_retry_state_tasks()
             self.pending_task_store.handle_deadletter_at()
             self.pending_task_store.handle_failed_tasks()
-            return
+            return message.payload
 
         def limit_tasks(
-            message: Message[MutableSequence[InflightActivation]],
-        ) -> Message[MutableSequence[InflightActivation]]:
+            message: Message[KafkaPayload],
+        ) -> KafkaPayload:
             count = self.pending_task_store.count_pending_task()
             while count >= self.max_inflight_activation_in_store:
                 # The number of pending inflight activations in the store exceeds the limit.
                 # Wait for workers to complete tasks before adding the next offset to the queue.
                 logger.info(
-                    "Number of inflight activation: %s exceeds the limit: %s. Retrying in 1 second",
+                    "Number of inflight activation: %s exceeds the limit: %s. Retrying in 3 seconds",
                     count,
                     self.max_inflight_activation_in_store,
                 )
-                time.sleep(1)
+                time.sleep(3)  # TODO: make this a parameter
+                count = self.pending_task_store.count_pending_task()
+            return message.payload
 
         flush = RunTask(
             function=flush_batch,
