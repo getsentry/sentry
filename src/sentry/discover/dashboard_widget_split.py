@@ -138,7 +138,7 @@ def _get_and_save_split_decision_for_dashboard_widget(
             _save_split_decision_for_widget(
                 widget,
                 widget_dataset,
-                DatasetSourcesTypes.INFERRED,
+                DatasetSourcesTypes.SPLIT_VERSION_1,
             )
         return widget_dataset, False
 
@@ -169,7 +169,7 @@ def _get_and_save_split_decision_for_dashboard_widget(
                     _save_split_decision_for_widget(
                         widget,
                         DashboardWidgetTypes.TRANSACTION_LIKE,
-                        DatasetSourcesTypes.INFERRED,
+                        DatasetSourcesTypes.SPLIT_VERSION_1,
                     )
 
                 return DashboardWidgetTypes.TRANSACTION_LIKE, True
@@ -213,7 +213,7 @@ def _get_and_save_split_decision_for_dashboard_widget(
             _save_split_decision_for_widget(
                 widget,
                 DashboardWidgetTypes.ERROR_EVENTS,
-                DatasetSourcesTypes.INFERRED,
+                DatasetSourcesTypes.SPLIT_VERSION_1,
             )
         return DashboardWidgetTypes.ERROR_EVENTS, True
 
@@ -246,7 +246,7 @@ def _get_and_save_split_decision_for_dashboard_widget(
             _save_split_decision_for_widget(
                 widget,
                 DashboardWidgetTypes.TRANSACTION_LIKE,
-                DatasetSourcesTypes.INFERRED,
+                DatasetSourcesTypes.SPLIT_VERSION_1,
             )
 
         return DashboardWidgetTypes.TRANSACTION_LIKE, True
