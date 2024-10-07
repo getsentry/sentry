@@ -31,7 +31,7 @@ if TYPE_CHECKING:
     # Django doesn't permit models to have parent classes that are Generic
     # this kludge lets satisfy both mypy and django
     class _Parent(Generic[BlobOwnerType]):
-        ...
+        pass
 
 else:
 

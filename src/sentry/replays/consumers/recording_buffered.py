@@ -101,7 +101,7 @@ def cast_payload_from_bytes(x: bytes) -> Any:
 
 
 class BufferCommitFailed(Exception):
-    ...
+    pass
 
 
 class RecordingBufferedStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
