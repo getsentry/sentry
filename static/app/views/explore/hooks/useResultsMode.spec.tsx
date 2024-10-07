@@ -4,6 +4,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {act, render} from 'sentry-test/reactTestingLibrary';
 
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useGroupBys} from 'sentry/views/explore/hooks/useGroupBys';
 import {useResultMode} from 'sentry/views/explore/hooks/useResultsMode';
 import {useSampleFields} from 'sentry/views/explore/hooks/useSampleFields';
@@ -35,7 +36,7 @@ describe('useResultMode', function () {
     const memoryHistory = createMemoryHistory();
 
     render(
-      <SpanTagsProvider>
+      <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP}>
         <Router
           history={memoryHistory}
           render={props => {
