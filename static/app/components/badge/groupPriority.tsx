@@ -15,6 +15,7 @@ import HookOrDefault from 'sentry/components/hookOrDefault';
 import Placeholder from 'sentry/components/placeholder';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconClose} from 'sentry/icons';
+import {IconCellSignal} from 'sentry/icons/iconCellSignal';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Activity} from 'sentry/types/group';
@@ -34,6 +35,8 @@ type GroupPriorityDropdownProps = {
 type GroupPriorityBadgeProps = {
   priority: PriorityLevel;
   children?: React.ReactNode;
+  showLabel?: boolean;
+  variant?: 'default' | 'streamlined';
 };
 
 const PRIORITY_KEY_TO_LABEL: Record<PriorityLevel, string> = {
@@ -96,10 +99,21 @@ export function makeGroupPriorityDropdownOptions({
   }));
 }
 
-export function GroupPriorityBadge({priority, children}: GroupPriorityBadgeProps) {
+export function GroupPriorityBadge({
+  priority,
+  showLabel = true,
+  variant = 'default',
+  children,
+}: GroupPriorityBadgeProps) {
+  const bars =
+    priority === PriorityLevel.HIGH ? 3 : priority === PriorityLevel.MEDIUM ? 2 : 1;
+
   return (
-    <StyledTag type={getTagTypeForPriority(priority)}>
-      {PRIORITY_KEY_TO_LABEL[priority] ?? t('Unknown')}
+    <StyledTag
+      type={variant === 'streamlined' ? 'default' : getTagTypeForPriority(priority)}
+      icon={variant === 'streamlined' && <IconCellSignal bars={bars} />}
+    >
+      {(showLabel && PRIORITY_KEY_TO_LABEL[priority]) ?? t('Unknown')}
       {children}
     </StyledTag>
   );
@@ -192,6 +206,11 @@ export function GroupPriorityDropdown({
     [onChange]
   );
 
+  const organization = useOrganization();
+  const hasStreamlinedIssueStream = organization.features.includes(
+    'issue-stream-table-layout'
+  );
+
   return (
     <DropdownMenu
       size="sm"
@@ -207,7 +226,11 @@ export function GroupPriorityDropdown({
           aria-label={t('Modify issue priority')}
           size="zero"
         >
-          <GroupPriorityBadge priority={value}>
+          <GroupPriorityBadge
+            showLabel={!hasStreamlinedIssueStream}
+            variant={hasStreamlinedIssueStream ? 'streamlined' : 'default'}
+            priority={value}
+          >
             <Chevron light direction={isOpen ? 'up' : 'down'} size="small" />
           </GroupPriorityBadge>
         </DropdownButton>
