@@ -43,7 +43,7 @@ class PendingTaskStore:
                 return None
 
             # TODO this duration should be a tasknamespace setting, or with an option
-            deadline = datetime.now() + timedelta(minutes=3)
+            deadline = datetime.now() + timedelta(seconds=30)
 
             task.update(
                 status=InflightActivationModel.Status.PROCESSING, processing_deadline=deadline
