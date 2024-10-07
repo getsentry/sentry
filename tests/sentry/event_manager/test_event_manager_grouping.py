@@ -476,8 +476,8 @@ def test_records_hash_comparison_metric(
     project.update_option("sentry:secondary_grouping_expiry", time() + 3600)
 
     with mock.patch(
-        "sentry.grouping.ingest.hashing._calculate_primary_hashes",
-        return_value=primary_hashes,
+        "sentry.grouping.ingest.hashing._calculate_primary_hashes_and_variants",
+        return_value=(primary_hashes, {}),
     ):
         with mock.patch(
             "sentry.grouping.ingest.hashing._calculate_secondary_hashes",
