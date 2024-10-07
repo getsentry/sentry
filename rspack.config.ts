@@ -204,7 +204,8 @@ const appConfig: rspack.Configuration = {
                   '@swc/plugin-emotion',
                   {
                     sourceMap: true,
-                    autoLabel: 'always',
+                    // The "dev-only" option does not seem to apply correctly
+                    autoLabel: IS_PRODUCTION ? 'never' : 'always',
                   },
                 ],
               ],
