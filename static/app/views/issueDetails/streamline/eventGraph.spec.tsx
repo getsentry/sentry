@@ -37,7 +37,7 @@ describe('EventGraph', () => {
   const persistantQuery = `issue:${group.shortId}`;
   const defaultProps = {project, group, event};
 
-  let mockEventStats;
+  let mockEventStats: jest.Mock;
 
   beforeEach(() => {
     mockUseLocation.mockReturnValue(LocationFixture());

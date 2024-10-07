@@ -243,11 +243,9 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
         {
           language: 'xml',
           description: tct(
-            'The following example using the [log4j2Code:log4j2.xml] format to configure a [sentryConsoleAppenderCode:ConsoleAppender] that logs to standard out at the INFO level, and a [sentryAppenderCode:SentryAppender] that logs to the Sentry server at the ERROR level.',
+            'The following example using the [code:log4j2.xml] format to configure a [code:ConsoleAppender] that logs to standard out at the INFO level, and a [code:SentryAppender] that logs to the Sentry server at the ERROR level.',
             {
-              log4j2Code: <code />,
-              sentryConsoleAppenderCode: <code />,
-              sentryAppenderCode: <code />,
+              code: <code />,
             }
           ),
           code: getConsoleAppenderSnippet(params),

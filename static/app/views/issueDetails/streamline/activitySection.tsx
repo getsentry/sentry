@@ -2,6 +2,7 @@ import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {NoteBody} from 'sentry/components/activity/note/body';
 import {NoteInputWithStorage} from 'sentry/components/activity/note/inputWithStorage';
 import useMutateActivity from 'sentry/components/feedback/useMutateActivity';
 import Timeline from 'sentry/components/timeline';
@@ -115,21 +116,26 @@ function StreamlinedActivitySection({group}: {group: Group}) {
           const Icon = groupActivityTypeIconMapping[item.type]?.Component ?? null;
 
           return (
-            <Timeline.Item
+            <ActivityTimelineItem
               title={
                 <TitleWrapper>
                   {title}
                   <NoteDropdown onDelete={() => handleDelete(item)} />
                 </TitleWrapper>
               }
-              timestamp={<TimeSince date={item.dateCreated} />}
+              timestamp={<SmallTimestamp date={item.dateCreated} />}
               icon={
-                Icon && <Icon {...groupActivityTypeIconMapping[item.type].defaultProps} />
+                Icon && (
+                  <Icon
+                    {...groupActivityTypeIconMapping[item.type].defaultProps}
+                    size="xs"
+                  />
+                )
               }
               key={item.id}
             >
-              {message}
-            </Timeline.Item>
+              {typeof message === 'string' ? <NoteBody text={message} /> : message}
+            </ActivityTimelineItem>
           );
         })}
       </Timeline.Container>
@@ -145,6 +151,14 @@ const TitleWrapper = styled('div')`
   display: flex;
   align-items: center;
   font-weight: normal;
+`
+
+const ActivityTimelineItem = styled(Timeline.Item)`
+  align-items: center;
+`;
+
+const SmallTimestamp = styled(TimeSince)`
+  font-size: ${p => p.theme.fontSizeSmall};
 `;
 
 export default StreamlinedActivitySection;

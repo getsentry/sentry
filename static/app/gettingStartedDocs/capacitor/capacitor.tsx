@@ -171,10 +171,9 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
       description: (
         <p>
           {tct(
-            `Install the Sentry Capacitor SDK as a dependency using [codeNpm:npm] or [codeYarn:yarn], alongside the Sentry [siblingName:] SDK:`,
+            `Install the Sentry Capacitor SDK as a dependency using [code:npm] or [code:yarn], alongside the Sentry [siblingName:] SDK:`,
             {
-              codeYarn: <code />,
-              codeNpm: <code />,
+              code: <code />,
               siblingName: getSiblingName(params.platformOptions.siblingOption),
             }
           )}
@@ -243,7 +242,7 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
       ],
     },
   ],
-  nextSteps: params => [
+  nextSteps: () => [
     {
       id: 'capacitor-android-setup',
       name: t('Capacitor 2 Setup'),
@@ -252,26 +251,6 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
       ),
       link: 'https://docs.sentry.io/platforms/javascript/guides/capacitor/?#capacitor-2---android-specifics',
     },
-    params.isPerformanceSelected
-      ? null
-      : {
-          id: 'performance-monitoring',
-          name: t('Tracing'),
-          description: t(
-            'Track down transactions to connect the dots between 10-second page loads and poor-performing API calls or slow database queries.'
-          ),
-          link: 'https://docs.sentry.io/platforms/javascript/guides/capacitor/tracing/',
-        },
-    params.isReplaySelected
-      ? null
-      : {
-          id: 'session-replay',
-          name: t('Session Replay'),
-          description: t(
-            'Get to the root cause of an error or latency issue faster by seeing all the technical details related to that issue in one visual replay on your web application.'
-          ),
-          link: 'https://docs.sentry.io/platforms/javascript/guides/capacitor/session-replay/',
-        },
   ],
 };
 

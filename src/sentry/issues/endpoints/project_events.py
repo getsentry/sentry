@@ -2,6 +2,7 @@ from datetime import timedelta
 from functools import partial
 
 from django.utils import timezone
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -11,16 +12,22 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import EventSerializer, SimpleEventSerializer, serialize
+from sentry.api.serializers.models.event import SimpleEventSerializerResponse
+from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
+from sentry.apidocs.examples.event_examples import EventExamples
+from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.project import Project
 from sentry.snuba.events import Columns
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
+@extend_schema(tags=["Events"])
 @region_silo_endpoint
 class ProjectEventsEndpoint(ProjectEndpoint):
     owner = ApiOwner.ISSUES
     publish_status = {
-        "GET": ApiPublishStatus.EXPERIMENTAL,
+        "GET": ApiPublishStatus.PUBLIC,
     }
     enforce_rate_limit = True
     rate_limits = {
@@ -31,26 +38,42 @@ class ProjectEventsEndpoint(ProjectEndpoint):
         }
     }
 
+    @extend_schema(
+        operation_id="List a Project's Error Events",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
+            CursorQueryParam,
+            OpenApiParameter(
+                name="full",
+                description="If this is set to true, the event payload will include the full event body, including the stacktrace. Set to 1 to enable.",
+                required=False,
+                type=bool,
+                location="query",
+                default=False,
+            ),
+            OpenApiParameter(
+                name="sample",
+                description="Return events in pseudo-random order. This is deterministic so an identical query will always return the same events in the same order.",
+                required=False,
+                type=bool,
+                location="query",
+                default=False,
+            ),
+        ],
+        responses={
+            200: inline_sentry_response_serializer(
+                "ProjectEventsResponseDict", list[SimpleEventSerializerResponse]
+            ),
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+        examples=EventExamples.PROJECT_EVENTS_SIMPLE,
+    )
     def get(self, request: Request, project: Project) -> Response:
         """
-        List a Project's Error Events
-        ```````````````````````
-
         Return a list of events bound to a project.
-
-        Note: This endpoint is experimental and may be removed without notice.
-
-        :qparam bool full: if this is set to true then the event payload will
-                           include the full event body, including the stacktrace.
-                           Set to 1 to enable.
-
-        :qparam bool sample: return events in pseudo-random order. This is deterministic,
-                             same query will return the same events in the same order.
-
-        :pparam string organization_id_or_slug: the id or slug of the organization the
-                                          groups belong to.
-        :pparam string project_id_or_slug: the id or slug of the project the groups
-                                     belong to.
         """
         from sentry.api.paginator import GenericOffsetPaginator
 

@@ -32,7 +32,7 @@ import TeamKeyTransactionButton from './teamKeyTransactionButton';
 import TransactionThresholdButton from './transactionThresholdButton';
 import type {TransactionThresholdMetric} from './transactionThresholdModal';
 
-type Props = {
+export type Props = {
   currentTab: Tab;
   eventView: EventView;
   hasWebVitals: 'maybe' | 'yes' | 'no';

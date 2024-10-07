@@ -13,6 +13,7 @@ import {EnvironmentPageFilter} from 'sentry/components/organizations/environment
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {MultiSeriesEventsStats} from 'sentry/types/organization';
+import {useIsStuck} from 'sentry/utils/useIsStuck';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -37,11 +38,8 @@ import {
   useIssueDetailsDiscoverQuery,
   useIssueDetailsEventView,
 } from 'sentry/views/issueDetails/streamline/useIssueDetailsDiscoverQuery';
-
-const enum EventPageContent {
-  EVENT = 'event',
-  LIST = 'list',
-}
+import {Tab} from 'sentry/views/issueDetails/types';
+import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
 export function EventDetails({
   group,
@@ -55,14 +53,12 @@ export function EventDetails({
   const isScreenMedium = useMedia(`(max-width: ${theme.breakpoints.medium})`);
   const {environments} = selection;
   const [nav, setNav] = useState<HTMLDivElement | null>(null);
+  const isStuck = useIsStuck(nav);
   const {eventDetails, dispatch} = useEventDetailsReducer();
 
   const searchQuery = useEventQuery({group});
   const eventView = useIssueDetailsEventView({group});
-
-  const [pageContent, setPageContent] = useState<EventPageContent>(
-    EventPageContent.EVENT
-  );
+  const {currentTab} = useGroupDetailsRoute();
 
   const {
     data: groupStats,
@@ -137,36 +133,40 @@ export function EventDetails({
           )}
         </PageErrorBoundary>
       )}
-      {pageContent === EventPageContent.LIST && (
+      {/* TODO(issues): We should use the router for this */}
+      {currentTab === Tab.EVENTS && (
         <PageErrorBoundary mini message={t('There was an error loading the event list')}>
           <GroupContent>
-            <EventList
-              group={group}
-              project={project}
-              onClose={() => setPageContent(EventPageContent.EVENT)}
-            />
+            <EventList group={group} project={project} />
           </GroupContent>
         </PageErrorBoundary>
       )}
-      {pageContent === EventPageContent.EVENT && (
-        <GroupContent>
-          <FloatingEventNavigation
-            event={event}
-            group={group}
-            ref={setNav}
-            query={searchQuery}
-            onViewAllEvents={() => setPageContent(EventPageContent.LIST)}
-          />
-          <ContentPadding>
-            <EventDetailsContent group={group} event={event} project={project} />
-          </ContentPadding>
-        </GroupContent>
+      {currentTab !== Tab.EVENTS && (
+        <PageErrorBoundary
+          mini
+          message={t('There was an error loading the event content')}
+        >
+          <GroupContent>
+            <FloatingEventNavigation
+              event={event}
+              group={group}
+              ref={setNav}
+              query={searchQuery}
+              data-stuck={isStuck}
+            />
+            <ContentPadding>
+              <EventDetailsContent group={group} event={event} project={project} />
+            </ContentPadding>
+          </GroupContent>
+        </PageErrorBoundary>
       )}
-      <ExtraContent>
-        <ContentPadding>
-          <IssueContent group={group} project={project} />
-        </ContentPadding>
-      </ExtraContent>
+      <PageErrorBoundary mini message={t('There was an error loading the issue content')}>
+        <ExtraContent>
+          <ContentPadding>
+            <IssueContent group={group} project={project} />
+          </ContentPadding>
+        </ExtraContent>
+      </PageErrorBoundary>
     </EventDetailsContext.Provider>
   );
 }
@@ -178,7 +178,7 @@ const SearchFilter = styled(EventSearch)`
 const FilterContainer = styled('div')`
   display: grid;
   grid-template-columns: auto 1fr auto;
-  gap: ${space(1)};
+  gap: ${space(1.5)};
 `;
 
 const FloatingEventNavigation = styled(EventNavigation)`
@@ -190,6 +190,10 @@ const FloatingEventNavigation = styled(EventNavigation)`
   background: ${p => p.theme.background};
   z-index: 500;
   border-radius: ${p => p.theme.borderRadiusTop};
+
+  &[data-stuck='true'] {
+    border-radius: 0;
+  }
 `;
 
 const ExtraContent = styled('div')`
@@ -212,6 +216,6 @@ const GraphAlert = styled(Alert)`
 `;
 
 const PageErrorBoundary = styled(ErrorBoundary)`
-  margin: 0 ${space(1.5)};
+  margin: 0;
   border: 1px solid ${p => p.theme.translucentBorder};
 `;

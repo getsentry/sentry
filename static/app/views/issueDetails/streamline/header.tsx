@@ -15,9 +15,8 @@ import ParticipantList from 'sentry/components/group/streamlinedParticipantList'
 import Link from 'sentry/components/links/link';
 import Version from 'sentry/components/version';
 import VersionHoverCard from 'sentry/components/versionHoverCard';
-import {IconDashboard} from 'sentry/icons';
+import {IconChevron, IconPanel} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group, TeamParticipant, UserParticipant} from 'sentry/types/group';
@@ -27,11 +26,13 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
+import {useUser} from 'sentry/utils/useUser';
 import GroupActions from 'sentry/views/issueDetails/actions/index';
 import {Divider} from 'sentry/views/issueDetails/divider';
 import GroupPriority from 'sentry/views/issueDetails/groupPriority';
-import {GroupHeaderTabs} from 'sentry/views/issueDetails/header';
 import {AttachmentsBadge} from 'sentry/views/issueDetails/streamline/attachmentsBadge';
+import {ReplayBadge} from 'sentry/views/issueDetails/streamline/replayBadge';
+import {UserFeedbackBadge} from 'sentry/views/issueDetails/streamline/userFeedbackBadge';
 import {useIssueDetailsHeader} from 'sentry/views/issueDetails/useIssueDetailsHeader';
 import type {ReprocessingStatus} from 'sentry/views/issueDetails/utils';
 
@@ -55,6 +56,7 @@ export default function StreamlinedGroupHeader({
   groupReprocessingStatus,
   event,
 }: GroupHeaderProps) {
+  const activeUser = useUser();
   const location = useLocation();
   const organization = useOrganization();
   const {sort: _sort, ...query} = location.query;
@@ -80,15 +82,12 @@ export default function StreamlinedGroupHeader({
     true
   );
 
-  const {disabledTabs, message, eventRoute, disableActions, shortIdBreadcrumb} =
-    useIssueDetailsHeader({
-      group,
-      groupReprocessingStatus,
-      baseUrl,
-      project,
-    });
-
-  const activeUser = ConfigStore.get('user');
+  const {message, eventRoute, disableActions, shortIdBreadcrumb} = useIssueDetailsHeader({
+    group,
+    groupReprocessingStatus,
+    baseUrl,
+    project,
+  });
 
   const {userParticipants, teamParticipants, displayUsers} = useMemo(() => {
     return {
@@ -165,7 +164,9 @@ export default function StreamlinedGroupHeader({
                 </ReleaseWrapper>
               </Fragment>
             )}
-            <AttachmentsBadge group={group} project={project} />
+            <AttachmentsBadge group={group} />
+            <UserFeedbackBadge group={group} project={project} />
+            <ReplayBadge group={group} project={project} />
           </MessageWrapper>
         </Heading>
         <AllStats>
@@ -224,7 +225,13 @@ export default function StreamlinedGroupHeader({
           </WorkflowWrapper>
           <Divider />
           <Button
-            icon={<IconDashboard />}
+            icon={
+              sidebarOpen ? (
+                <IconChevron direction="right" />
+              ) : (
+                <IconPanel direction="right" />
+              )
+            }
             title={sidebarOpen ? t('Close Sidebar') : t('Open Sidebar')}
             aria-label={sidebarOpen ? t('Close Sidebar') : t('Open Sidebar')}
             size="sm"
@@ -233,9 +240,6 @@ export default function StreamlinedGroupHeader({
           />
         </SidebarWorkflowWrapper>
       </InfoWrapper>
-      <div>
-        <GroupHeaderTabs {...{baseUrl, disabledTabs, eventRoute, group, project}} />
-      </div>
     </Header>
   );
 }

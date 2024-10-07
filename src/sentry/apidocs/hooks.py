@@ -224,6 +224,8 @@ def _validate_request_body(
 
 
 def custom_postprocessing_hook(result: Any, generator: Any, **kwargs: Any) -> Any:
+    _fix_issue_paths(result)
+
     # Fetch schema component references
     schema_components = result["components"]["schemas"]
 
@@ -281,3 +283,41 @@ def _check_tag(method_info: Mapping[str, Any], endpoint_name: str) -> None:
 def _check_description(json_body: Mapping[str, Any], err_str: str) -> None:
     if json_body.get("description") is None:
         raise SentryApiBuildError(err_str)
+
+
+def _fix_issue_paths(result: Any) -> Any:
+    """
+    The way we define `/issues/` paths causes some problems with drf-spectacular:
+    - The path is defined twice, with `/organizations/{organization_id_slug}` prefix and without
+    - The `/issues/` part of the path is defined as `issues|groups` for compatibility reasons,
+      but we only want to use `issues` in the docs
+
+    This function removes duplicate paths, removes the `issues|groups` path parameter and
+    replaces it with `issues` in the path.
+    """
+    items = list(result["paths"].items())
+
+    deleted_paths = []
+    modified_paths = []
+
+    for path, endpoint in items:
+        if "{var}/{issue_id}" in path:
+            if path.startswith("/api/0/organizations/{organization_id_or_slug}/"):
+                deleted_paths.append(path)
+            else:
+                modified_paths.append(path)
+
+    for path in deleted_paths:
+        del result["paths"][path]
+
+    for path in modified_paths:
+        updated_path = path.replace("{var}/{issue_id}", "issues/{issue_id}")
+        endpoint = result["paths"][path]
+        for method in endpoint.keys():
+            endpoint[method]["parameters"] = [
+                param
+                for param in endpoint[method]["parameters"]
+                if not (param["in"] == "path" and param["name"] == "var")
+            ]
+        result["paths"][updated_path] = endpoint
+        del result["paths"][path]
