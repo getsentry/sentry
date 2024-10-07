@@ -23,7 +23,7 @@ function NoteDropdown({user, onDelete}: Props) {
       offset={4}
       size="sm"
       triggerProps={{
-        size: 'xs',
+        size: 'zero',
         showChevron: false,
         borderless: true,
         icon: <IconEllipsis />,
