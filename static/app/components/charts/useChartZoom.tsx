@@ -43,7 +43,7 @@ interface Props {
   onZoom?: (period: DateTimeUpdate) => void;
   router?: InjectedRouter;
   /**
-   * Use eihter `saveOnZoom` or `usePageDate` not both
+   * Use either `saveOnZoom` or `usePageDate` not both
    * Will persist zoom state to page filters
    */
   saveOnZoom?: boolean;
