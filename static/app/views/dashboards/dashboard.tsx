@@ -54,7 +54,11 @@ import {
 import SortableWidget from './sortableWidget';
 import type {DashboardDetails, Widget} from './types';
 import {DashboardWidgetSource, DisplayType, WidgetType} from './types';
-import {connectDashboardCharts, getDashboardFiltersFromURL} from './utils';
+import {
+  connectDashboardCharts,
+  formatLegendDefaultQuery,
+  getDashboardFiltersFromURL,
+} from './utils';
 
 export const DRAG_HANDLE_CLASS = 'widget-drag';
 const DRAG_RESIZE_CLASS = 'widget-resize';
@@ -171,7 +175,7 @@ class Dashboard extends Component<Props, State> {
             widget.displayType === DisplayType.AREA ||
             widget.displayType === DisplayType.LINE
         )
-        .map(widget => widget.id + '-Releases');
+        .map(widget => formatLegendDefaultQuery(widget.id));
 
       this.props.router.push(
         normalizeUrl({

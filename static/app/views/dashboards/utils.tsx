@@ -785,7 +785,7 @@ export function getLegendUnselected(location: Location, widget: Widget) {
       if (widget.id === widgetId && seriesNames) {
         seriesNames.forEach(series => {
           if (series) {
-            acc[`${series}:${widget.id}`] = false;
+            acc[formatSeriesNameForLegend(series, widget.id)] = false;
           }
         });
       }
@@ -793,4 +793,12 @@ export function getLegendUnselected(location: Location, widget: Widget) {
     },
     {}
   );
+}
+
+export function formatLegendDefaultQuery(widgetId?: string) {
+  return `${widgetId}-Releases`;
+}
+
+export function formatSeriesNameForLegend(seriesName: string, widgetId?: string) {
+  return `${seriesName}:${widgetId}`;
 }

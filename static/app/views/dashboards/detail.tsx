@@ -45,6 +45,7 @@ import withProjects from 'sentry/utils/withProjects';
 import {defaultMetricWidget} from 'sentry/views/dashboards/metrics/utils';
 import {
   cloneDashboard,
+  formatLegendDefaultQuery,
   getCurrentPageFilters,
   getDashboardFiltersFromURL,
   hasUnsavedFilterChanges,
@@ -491,7 +492,7 @@ class DashboardDetail extends Component<Props, State> {
                 if (widgetIdMatches.length) {
                   return widgetIdMatches[0];
                 }
-                return `${widget.id}-Releases`;
+                return formatLegendDefaultQuery(widget.id);
               })
           : location.query.legend;
 

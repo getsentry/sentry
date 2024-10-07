@@ -17,7 +17,11 @@ import useRouter from 'sentry/utils/useRouter';
 
 import type {DashboardFilters, Widget} from '../types';
 import {WidgetType} from '../types';
-import {getLegendUnselected, updateLegendQueryParam} from '../utils';
+import {
+  formatSeriesNameForLegend,
+  getLegendUnselected,
+  updateLegendQueryParam,
+} from '../utils';
 
 import type {AugmentedEChartDataZoomHandler} from './chart';
 import WidgetCardChart from './chart';
@@ -149,7 +153,10 @@ export function WidgetCardChartContainer({
           // Bind timeseries to widget for ability to control each widget's legend individually
           const modifiedTimeseriesResults = timeseriesResults
             ? timeseriesResults.map(series => {
-                return {...series, seriesName: `${series.seriesName}:${widget.id}`};
+                return {
+                  ...series,
+                  seriesName: formatSeriesNameForLegend(series.seriesName, widget.id),
+                };
               })
             : undefined;
           return (
@@ -211,7 +218,10 @@ export function WidgetCardChartContainer({
         // Bind timeseries to widget for ability to control each widget's legend individually
         const modifiedTimeseriesResults = timeseriesResults
           ? timeseriesResults.map(series => {
-              return {...series, seriesName: `${series.seriesName}:${widget.id}`};
+              return {
+                ...series,
+                seriesName: formatSeriesNameForLegend(series.seriesName, widget.id),
+              };
             })
           : undefined;
         return (

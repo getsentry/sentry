@@ -20,7 +20,7 @@ import usePrevious from 'sentry/utils/usePrevious';
 import type {DashboardFilters, Widget, WidgetType} from 'sentry/views/dashboards/types';
 import {DisplayType} from 'sentry/views/dashboards/types';
 
-import {getDashboardFiltersFromURL} from '../../utils';
+import {formatSeriesNameForLegend, getDashboardFiltersFromURL} from '../../utils';
 import WidgetCard, {WidgetCardPanel} from '../../widgetCard';
 import {displayTypes} from '../utils';
 
@@ -90,7 +90,9 @@ export function VisualizationStep({
     value,
   }));
 
-  const unselectedReleasesForCharts = {[`Releases:${debouncedWidget.id}`]: false};
+  const unselectedReleasesForCharts = {
+    [formatSeriesNameForLegend('Releases', debouncedWidget.id)]: false,
+  };
 
   return (
     <StyledBuildStep

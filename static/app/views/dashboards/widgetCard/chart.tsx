@@ -53,7 +53,10 @@ import {
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
+import {
+  eventViewFromWidget,
+  formatSeriesNameForLegend,
+} from 'sentry/views/dashboards/utils';
 import {AutoSizedText} from 'sentry/views/dashboards/widgetCard/autoSizedText';
 
 import {getFormatter} from '../../../components/charts/components/tooltip';
@@ -550,7 +553,10 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
                   ? releaseSeries.map(releases => {
                       return {
                         ...releases,
-                        seriesName: `${releases.seriesName}:${widget.id}`,
+                        seriesName: formatSeriesNameForLegend(
+                          releases.seriesName,
+                          widget.id
+                        ),
                       };
                     })
                   : [];
