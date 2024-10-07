@@ -1,12 +1,14 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 import Color from 'color';
 
+import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {Button} from 'sentry/components/button';
 import Count from 'sentry/components/count';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import EventMessage from 'sentry/components/events/eventMessage';
+import {getOwnerList} from 'sentry/components/group/assignedTo';
 import {
   AssigneeSelector,
   useHandleAssigneeChange,
@@ -23,6 +25,9 @@ import type {Group, TeamParticipant, UserParticipant} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import type {Release} from 'sentry/types/release';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import useApi from 'sentry/utils/useApi';
+import useCommitters from 'sentry/utils/useCommitters';
+import {useIssueEventOwners} from 'sentry/utils/useIssueEventOwners';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
@@ -43,10 +48,54 @@ interface GroupRelease {
 
 interface GroupHeaderProps {
   baseUrl: string;
+  event: Event | null;
   group: Group;
   groupReprocessingStatus: ReprocessingStatus;
   project: Project;
-  event?: Event;
+}
+
+function AssigneeSelectorWrapper({
+  group,
+  project,
+  event,
+}: Pick<GroupHeaderProps, 'group' | 'project' | 'event'>) {
+  const api = useApi();
+  const organization = useOrganization();
+  const {handleAssigneeChange, assigneeLoading} = useHandleAssigneeChange({
+    organization,
+    group,
+  });
+  const {data: eventOwners} = useIssueEventOwners({
+    eventId: event?.id ?? '',
+    projectSlug: project.slug,
+  });
+  const {data: committersResponse} = useCommitters({
+    eventId: event?.id ?? '',
+    projectSlug: project.slug,
+  });
+
+  useEffect(() => {
+    // TODO: We should check if this is already loaded
+    fetchOrgMembers(api, organization.slug, [project.id]);
+  }, [api, organization, project]);
+
+  const owners = getOwnerList(
+    committersResponse?.committers ?? [],
+    eventOwners,
+    group.assignedTo
+  );
+
+  return (
+    <Wrapper>
+      {t('Assignee')}
+      <AssigneeSelector
+        group={group}
+        owners={owners}
+        assigneeLoading={assigneeLoading}
+        handleAssigneeChange={handleAssigneeChange}
+      />
+    </Wrapper>
+  );
 }
 
 export default function StreamlinedGroupHeader({
@@ -71,11 +120,6 @@ export default function StreamlinedGroupHeader({
 
   const {count: eventCount, userCount} = group;
   const {firstRelease, lastRelease} = groupReleaseData || {};
-
-  const {handleAssigneeChange, assigneeLoading} = useHandleAssigneeChange({
-    organization,
-    group,
-  });
 
   const [sidebarOpen, setSidebarOpen] = useSyncedLocalStorageState(
     'issue-details-sidebar-open',
@@ -202,14 +246,7 @@ export default function StreamlinedGroupHeader({
               {t('Priority')}
               <GroupPriority group={group} />
             </Wrapper>
-            <Wrapper>
-              {t('Assignee')}
-              <AssigneeSelector
-                group={group}
-                assigneeLoading={assigneeLoading}
-                handleAssigneeChange={handleAssigneeChange}
-              />
-            </Wrapper>
+            <AssigneeSelectorWrapper group={group} project={project} event={event} />
             {group.participants.length > 0 && (
               <Wrapper>
                 {t('Participants')}

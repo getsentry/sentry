@@ -677,6 +677,7 @@ function GroupDetailsContent({
   return hasStreamlinedUI ? (
     <div>
       <StreamlinedGroupHeader
+        event={event}
         group={group}
         project={project}
         groupReprocessingStatus={groupReprocessingStatus}
