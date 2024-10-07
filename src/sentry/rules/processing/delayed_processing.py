@@ -70,7 +70,7 @@ class UniqueConditionQuery(NamedTuple):
 class DataAndGroups(NamedTuple):
     data: EventFrequencyConditionData
     group_ids: set[int]
-    rule_id: int
+    rule_id: int | None = None
 
     def __repr__(self):
         return f"<DataAndGroups data: {self.data} group_ids: {self.group_ids}>"
@@ -319,7 +319,8 @@ def get_condition_group_results(
 
         condition_inst = condition_cls(
             project=project, data=condition_data, rule=Rule.objects.get(id=rule_id)
-        )  # type: ignore[arg-type]
+        )
+
         if not isinstance(condition_inst, BaseEventFrequencyCondition):
             logger.warning("Unregistered condition %r", cls_id, extra={"project_id": project_id})
             continue

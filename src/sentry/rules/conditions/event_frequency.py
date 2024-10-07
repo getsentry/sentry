@@ -336,7 +336,7 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
         end: datetime,
         environment_id: int,
         referrer_suffix: str,
-        conditions: list[dict[str, Any]] | None = None,
+        conditions: list[tuple[str, str, str]] | None = None,
     ) -> Mapping[int, int]:
         result: Mapping[int, int] = tsdb_function(
             model=model,
@@ -362,7 +362,7 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
         end: datetime,
         environment_id: int,
         referrer_suffix: str,
-        conditions: list[dict[str, Any]] | None = None,
+        conditions: list[tuple[str, str, str]] | None = None,
     ) -> dict[int, int]:
         batch_totals: dict[int, int] = defaultdict(int)
         group_id = group_ids[0]
@@ -563,6 +563,7 @@ class EventUniqueUserFrequencyConditionWithConditions(EventUniqueUserFrequencyCo
     def batch_query_hook(
         self, group_ids: set[int], start: datetime, end: datetime, environment_id: int
     ) -> dict[int, int]:
+        assert self.rule
 
         if self.rule.data["filter_match"] == "any":
             raise NotImplementedError(
@@ -618,8 +619,10 @@ class EventUniqueUserFrequencyConditionWithConditions(EventUniqueUserFrequencyCo
         return batch_totals
 
     @staticmethod
-    def convert_rule_condition_to_snuba_condition(condition: dict[str, Any]) -> list[Any]:
-        if not condition["id"] == "sentry.rules.filters.tagged_event.TaggedEventFilter":
+    def convert_rule_condition_to_snuba_condition(
+        condition: dict[str, Any]
+    ) -> tuple[str, str, str] | None:
+        if condition["id"] != "sentry.rules.filters.tagged_event.TaggedEventFilter":
             return None
         lhs = f"tags[{condition['key']}]"
         rhs = condition["value"]
@@ -649,7 +652,7 @@ class EventUniqueUserFrequencyConditionWithConditions(EventUniqueUserFrequencyCo
             case _:
                 raise ValueError(f"Unsupported match type: {condition['match']}")
 
-        return [lhs, operator.value, rhs]
+        return (lhs, operator.value, rhs)
 
 
 PERCENT_INTERVALS: dict[str, tuple[str, timedelta]] = {
