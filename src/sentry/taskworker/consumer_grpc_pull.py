@@ -39,9 +39,18 @@ class ConsumerServicer(BaseConsumerServicer):
 
     def SetTaskStatus(self, request: SetTaskStatusRequest, context) -> SetTaskStatusResponse:
         logger.info("update status", extra={"id": request.id})
-        # TODO handle fetch_next to read another task
         self.pending_task_store.set_task_status(task_id=request.id, task_status=request.status)
-        return SetTaskStatusResponse()
+
+        if not request.fetch_next:
+            return SetTaskStatusResponse()
+
+        inflight = self.pending_task_store.get_pending_task()
+        if not inflight:
+            return SetTaskStatusResponse()
+
+        task = inflight.activation
+        processing_deadline = inflight.processing_deadline
+        return SetTaskStatusResponse(task=task, processing_deadline=processing_deadline)
 
     def AddTask(self, request: AddTaskRequest, context) -> AddTaskResponse:
         return AddTaskResponse(ok=False, error="Not implemented")

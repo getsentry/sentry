@@ -39,17 +39,20 @@ export type RoutableModuleNames = Exclude<ModuleNameStrings, '' | 'other'>;
 
 export const useModuleURL = (
   moduleName: RoutableModuleNames,
-  bare: boolean = false
+  bare: boolean = false,
+  view?: DomainView
 ): string => {
-  const builder = useModuleURLBuilder(bare);
-  return builder(moduleName);
+  const forceDomainView = Boolean(view);
+  const builder = useModuleURLBuilder(bare, true, forceDomainView);
+  return builder(moduleName, view);
 };
 
 type URLBuilder = (moduleName: RoutableModuleNames, domainView?: DomainView) => string;
 
 export function useModuleURLBuilder(
   bare: boolean = false,
-  autoDetectDomainView: boolean = true
+  autoDetectDomainView: boolean = true,
+  forceDomainView?: boolean // TODO - eventually this param will be removed once we don't have modules in two spots
 ): URLBuilder {
   const organization = useOrganization({allowNull: true}); // Some parts of the app, like the main sidebar, render even if the organization isn't available (during loading, or at all).
   const {isInDomainView, view: currentView} = useDomainViewFilters();
@@ -61,7 +64,7 @@ export function useModuleURLBuilder(
 
   const {slug} = organization;
 
-  if (autoDetectDomainView && isInDomainView) {
+  if ((autoDetectDomainView && isInDomainView) || forceDomainView) {
     return function (moduleName: RoutableModuleNames, domainView?: DomainView) {
       const view = domainView ?? currentView;
       return bare

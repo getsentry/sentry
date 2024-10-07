@@ -6,6 +6,7 @@ from sentry_protos.sentry.v1alpha.taskworker_pb2 import (
     GetTaskRequest,
     GetTaskResponse,
     SetTaskStatusRequest,
+    SetTaskStatusResponse,
     TaskActivationStatus,
 )
 from sentry_protos.sentry.v1alpha.taskworker_pb2_grpc import ConsumerServiceStub
@@ -41,12 +42,14 @@ class TaskClient:
             return response
         return None
 
-    def set_task_status(self, task_id: str, task_status: TaskActivationStatus.ValueType):
-        request = SetTaskStatusRequest(id=task_id, status=task_status)
-        self.stub.SetTaskStatus(request)
+    def set_task_status(
+        self, task_id: str, task_status: TaskActivationStatus.ValueType
+    ) -> SetTaskStatusResponse:
+        request = SetTaskStatusRequest(id=task_id, status=task_status, fetch_next=True)
+        return self.stub.SetTaskStatus(request)
 
-    def complete_task(self, task_id: str):
-        self.set_task_status(task_id=task_id, task_status=TASK_ACTIVATION_STATUS_COMPLETE)
+    def complete_task(self, task_id: str) -> SetTaskStatusResponse:
+        return self.set_task_status(task_id=task_id, task_status=TASK_ACTIVATION_STATUS_COMPLETE)
 
 
 task_client = TaskClient()
