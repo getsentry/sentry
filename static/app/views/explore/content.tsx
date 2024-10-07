@@ -69,7 +69,7 @@ function ExploreContentImpl({}: ExploreContentProps) {
             </Layout.HeaderContent>
             <Layout.HeaderActions>
               <ButtonBar gap={1}>
-                <Button onClick={switchToOldTraceExplorer}>
+                <Button onClick={switchToOldTraceExplorer} size="sm">
                   {t('Switch to Old Trace Explore')}
                 </Button>
                 <FeedbackWidgetButton />
