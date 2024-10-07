@@ -54,6 +54,7 @@ const VALID_INTERVALS_SEC = [
 function getFormDataFromRule(rule: UptimeRule) {
   return {
     name: rule.name,
+    environment: rule.environment,
     url: rule.url,
     projectSlug: rule.projectSlug,
     method: rule.method,
@@ -75,6 +76,10 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
 
   const [formModel] = useState(() => new FormModel());
 
+  const [knownEnvironments, setEnvironments] = useState<string[]>([]);
+  const [newEnvironment, setNewEnvironment] = useState<string | undefined>(undefined);
+  const environments = [newEnvironment, ...knownEnvironments].filter(Boolean);
+
   // XXX(epurkhiser): The forms API endpoint is derived from the selcted
   // project. We don't have an easy way to interpolate this into the <Form />
   // components `apiEndpoint` prop, so instead we setup a mobx observer on
@@ -84,6 +89,7 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
     () =>
       autorun(() => {
         const projectSlug = formModel.getValue('projectSlug');
+        const selectedProject = projects.find(p => p.slug === projectSlug);
         const apiEndpoint = rule
           ? `/projects/${organization.slug}/${projectSlug}/uptime/${rule.id}/`
           : `/projects/${organization.slug}/${projectSlug}/uptime/`;
@@ -96,8 +102,12 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
           );
         }
         formModel.setFormOptions({apiEndpoint, onSubmitSuccess});
+
+        if (selectedProject) {
+          setEnvironments(selectedProject.environments);
+        }
       }),
-    [formModel, navigate, organization.slug, rule]
+    [formModel, navigate, organization.slug, projects, rule]
   );
 
   return (
@@ -141,6 +151,22 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
             hideLabel
             projects={projects}
             valueIsSlug
+            inline={false}
+            flexibleControlStateSize
+            stacked
+            required
+          />
+          <SelectField
+            name="environment"
+            label={t('Environment')}
+            placeholder={t('Select an environment')}
+            hideLabel
+            onCreateOption={env => {
+              setNewEnvironment(env);
+              formModel.setValue('environment', env);
+            }}
+            creatable
+            options={environments.map(e => ({value: e, label: e}))}
             inline={false}
             flexibleControlStateSize
             stacked
