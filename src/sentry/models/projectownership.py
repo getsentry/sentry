@@ -165,6 +165,7 @@ class ProjectOwnership(Model):
         return result
 
     @classmethod
+    @metrics.wraps("projectownership.get_autoassign_owners")
     def get_issue_owners(
         cls, project_id, data, limit=2
     ) -> Sequence[tuple[Rule, Sequence[Team | RpcUser], str]]:
@@ -177,41 +178,40 @@ class ProjectOwnership(Model):
         """
         from sentry.models.projectcodeowners import ProjectCodeOwners
 
-        with metrics.timer("projectownership.get_autoassign_owners"):
-            ownership = cls.get_ownership_cached(project_id)
-            codeowners = ProjectCodeOwners.get_codeowners_cached(project_id)
-            if not (ownership or codeowners):
-                return []
+        ownership = cls.get_ownership_cached(project_id)
+        codeowners = ProjectCodeOwners.get_codeowners_cached(project_id)
+        if not (ownership or codeowners):
+            return []
 
-            if not ownership:
-                ownership = cls(project_id=project_id)
+        if not ownership:
+            ownership = cls(project_id=project_id)
 
-            ownership_rules = cls._matching_ownership_rules(ownership, data)
-            codeowners_rules = cls._matching_ownership_rules(codeowners, data) if codeowners else []
+        ownership_rules = cls._matching_ownership_rules(ownership, data)
+        codeowners_rules = cls._matching_ownership_rules(codeowners, data) if codeowners else []
 
-            if not (codeowners_rules or ownership_rules):
-                return []
+        if not (codeowners_rules or ownership_rules):
+            return []
 
-            hydrated_ownership_rules = cls._hydrate_rules(
-                project_id, ownership_rules, OwnerRuleType.OWNERSHIP_RULE.value
+        hydrated_ownership_rules = cls._hydrate_rules(
+            project_id, ownership_rules, OwnerRuleType.OWNERSHIP_RULE.value
+        )
+        hydrated_codeowners_rules = cls._hydrate_rules(
+            project_id, codeowners_rules, OwnerRuleType.CODEOWNERS.value
+        )
+
+        rules_in_evaluation_order = [
+            *hydrated_ownership_rules[::-1],
+            *hydrated_codeowners_rules[::-1],
+        ]
+
+        rules_with_owners = list(
+            filter(
+                lambda item: len(item[1]) > 0,
+                rules_in_evaluation_order,
             )
-            hydrated_codeowners_rules = cls._hydrate_rules(
-                project_id, codeowners_rules, OwnerRuleType.CODEOWNERS.value
-            )
+        )
 
-            rules_in_evaluation_order = [
-                *hydrated_ownership_rules[::-1],
-                *hydrated_codeowners_rules[::-1],
-            ]
-
-            rules_with_owners = list(
-                filter(
-                    lambda item: len(item[1]) > 0,
-                    rules_in_evaluation_order,
-                )
-            )
-
-            return rules_with_owners[:limit]
+        return rules_with_owners[:limit]
 
     @classmethod
     def _get_autoassignment_types(cls, ownership):
@@ -361,9 +361,7 @@ class ProjectOwnership(Model):
     ) -> Sequence[Rule]:
         rules = []
         if ownership.schema is not None:
-            munged_data = None
-            if options.get("ownership.munge_data_for_performance"):
-                munged_data = Matcher.munge_if_needed(data)
+            munged_data = Matcher.munge_if_needed(data)
             for rule in load_schema(ownership.schema):
                 if rule.test(data, munged_data):
                     rules.append(rule)
