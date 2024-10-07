@@ -228,6 +228,8 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     return {
       ...super.getDefaultState(),
       currentData: [],
+      historicalData: [],
+      anomalies: [],
       name: name ?? rule.name ?? '',
       aggregate,
       dataset,
