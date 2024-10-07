@@ -2479,6 +2479,7 @@ describe('TraceTree', () => {
           });
 
           await waitFor(() => tree.list.length === 4);
+
           const browserRequestSpan = tree.list[1].children[0];
           const ssrTransaction = browserRequestSpan.children[0];
 

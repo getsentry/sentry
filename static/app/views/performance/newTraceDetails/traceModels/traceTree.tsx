@@ -27,6 +27,7 @@ import type {TraceMetaQueryResults} from '../traceApi/useTraceMeta';
 import {
   getPageloadTransactionChildCount,
   isAutogroupedNode,
+  isBrowserRequestSpan,
   isJavascriptSDKTransaction,
   isMissingInstrumentationNode,
   isPageloadTransactionNode,
@@ -458,11 +459,11 @@ export class TraceTree extends TraceTreeEventDispatcher {
         isServerRequestHandlerTransactionNode(c.parent) &&
         getPageloadTransactionChildCount(c.parent) === 1
       ) {
-        // The swap can occur at a later point when new transactions are fetched,
-        // which means we need to invalidate the tree and re-render the UI.
+        //   // The swap can occur at a later point when new transactions are fetched,
+        //   // which means we need to invalidate the tree and re-render the UI.
+        const parent = c.parent.parent;
         TraceTree.Swap({parent: c.parent, child: c, reason: 'pageload server handler'});
-        TraceTree.invalidate(c.parent, true);
-        TraceTree.invalidate(c, true);
+        TraceTree.invalidate(parent!, true);
       }
     });
 
@@ -585,7 +586,6 @@ export class TraceTree extends TraceTreeEventDispatcher {
       c.invalidate();
       // When reparenting transactions under spans, the children are not guaranteed to be in order
       // so we need to sort them chronologically after the reparenting is complete
-      c.children.sort(chronologicalSort);
 
       // Track the min and max space of the sub tree as spans have ms precision
       subTreeSpaceBounds[0] = Math.min(subTreeSpaceBounds[0], c.space[0]);
@@ -602,7 +602,24 @@ export class TraceTree extends TraceTreeEventDispatcher {
         for (const error of getRelatedSpanErrorsFromTransaction(c.value, root)) {
           c.errors.add(error);
         }
+
+        if (isBrowserRequestSpan(c.value)) {
+          const serverRequestHandler = c.parent?.children.find(n =>
+            isServerRequestHandlerTransactionNode(n)
+          );
+
+          if (serverRequestHandler) {
+            serverRequestHandler.parent!.children =
+              serverRequestHandler.parent!.children.filter(
+                n => n !== serverRequestHandler
+              );
+            c.children.push(serverRequestHandler);
+            serverRequestHandler.parent = c;
+          }
+        }
       }
+
+      c.children.sort(chronologicalSort);
     });
 
     if (!Number.isFinite(subTreeSpaceBounds[0])) {
@@ -1182,14 +1199,14 @@ export class TraceTree extends TraceTreeEventDispatcher {
 
     while (queue.length) {
       const next = queue.pop()!;
-      for (let i = next.children.length - 1; i >= 0; i--) {
-        if (!predicate(next.children[i])) {
-          // Some children may have been removed, so we cant use i
-          next.children.splice(next.children.indexOf(next.children[i]), 1);
-        } else {
-          queue.push(next.children[i]);
+
+      next.children = next.children.filter(c => {
+        if (predicate(c)) {
+          queue.push(c);
+          return true;
         }
-      }
+        return false;
+      });
     }
 
     return node;
@@ -1559,15 +1576,23 @@ export class TraceTree extends TraceTreeEventDispatcher {
     parent: TraceTreeNode<TraceTree.NodeValue>;
     reason: TraceTreeNode['reparent_reason'];
   }) {
-    const parentOfParent = parent.parent!;
+    const commonRoot = parent.parent!;
+    const parentIndex = commonRoot.children.indexOf(parent);
 
-    const parentIndex = parentOfParent.children.indexOf(parent);
-    parentOfParent.children[parentIndex] = child;
-    child.parent = parentOfParent;
+    if (!commonRoot || parentIndex === -1) {
+      throw new Error('Cannot find common parent');
+    }
 
-    // We need to remove the portion of the tree that was previously a child, else we will have a circular reference
+    TraceTree.Filter(commonRoot, c => c !== child);
+    parent.parent = null;
+    child.parent = null;
+
+    // Insert child into parent
+    commonRoot.children[parentIndex] = child;
+    child.children.push(parent);
+
+    child.parent = commonRoot;
     parent.parent = child;
-    child.children.push(TraceTree.Filter(parent, n => n !== child));
 
     child.reparent_reason = reason;
     parent.reparent_reason = reason;
