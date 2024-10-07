@@ -30,7 +30,7 @@ class TestPreparerIssueLink(TestCase):
             component=self.component, install=self.install, project_slug=self.project.slug
         )
 
-    @patch("sentry.sentry_apps.external_requests.SelectRequester.run")
+    @patch("sentry.sentry_apps.external_requests.select_requester.SelectRequester.run")
     def test_prepares_components_requiring_requests(self, run):
         self.component.schema = {
             "link": {
@@ -184,7 +184,7 @@ class TestPreparerAlertRuleAction(TestCase):
                 id=self.install.organization_id
             ).project_set.first()
 
-    @patch("sentry.sentry_apps.external_requests.SelectRequester.run")
+    @patch("sentry.sentry_apps.external_requests.select_requester.SelectRequester.run")
     def test_prepares_components_requiring_requests(self, run):
         self.preparer = SentryAppComponentPreparer(
             component=self.component,
