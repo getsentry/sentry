@@ -46,6 +46,21 @@ describe('IntegrationRepos', function () {
         )
       ).toBeInTheDocument();
     });
+
+    it('does not fetch repositories with empty query', async function () {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${org.slug}/repos/`,
+        method: 'GET',
+        body: [],
+      });
+
+      render(<IntegrationRepos integration={integration} />);
+      await userEvent.click(screen.getByText('Add Repository'));
+
+      expect(
+        await screen.findByText(/Please type to search for repositories/)
+      ).toBeInTheDocument();
+    });
   });
 
   describe('Adding repositories', function () {
