@@ -8,6 +8,7 @@ from sentry.event_manager import EventManager, get_event_type, materialize_metad
 from sentry.grouping.api import apply_server_fingerprinting, load_grouping_config
 from sentry.grouping.enhancer import Enhancements
 from sentry.grouping.fingerprinting import FingerprintingRules
+from sentry.grouping.strategies.configurations import CONFIGURATIONS
 from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
 from sentry.utils import json
 
@@ -33,6 +34,14 @@ class GroupingInput:
             e = Enhancements.from_config_string(enhancements or "", bases=enhancement_bases)
             grouping_config["enhancements"] = e.dumps()
 
+        fingerprinting_config = FingerprintingRules.from_json(
+            {
+                "rules": grouping_input.pop("_fingerprinting_rules", []),
+                "version": 1,
+            },
+            bases=CONFIGURATIONS[grouping_config["id"]].fingerprinting_bases,
+        )
+
         # Normalize the event
         mgr = EventManager(data=grouping_input, grouping_config=grouping_config)
         mgr.normalize()
@@ -41,6 +50,13 @@ class GroupingInput:
         # Normalize the stacktrace for grouping.  This normally happens in
         # save()
         normalize_stacktraces_for_grouping(data, load_grouping_config(grouping_config))
+
+        data.setdefault("fingerprint", ["{{ default }}"])
+        apply_server_fingerprinting(data, fingerprinting_config)
+        event_type = get_event_type(data)
+        event_metadata = event_type.get_metadata(data)
+        data.update(materialize_metadata(data, event_type, event_metadata))
+
         evt = eventstore.backend.create_event(data=data)
 
         return evt
