@@ -1,0 +1,113 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
+
+import {render, screen} from 'sentry-test/reactTestingLibrary';
+
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
+
+import {FieldRenderer} from './fieldRenderer';
+
+const mockedEventData = {
+  id: 'spanId',
+  timestamp: '2024-10-03T10:15:00',
+  trace: 'traceId',
+  'span.op': 'test_op',
+  'transaction.id': 'transactionId',
+};
+
+describe('FieldRenderer tests', function () {
+  const organization = OrganizationFixture({
+    features: ['trace-view-v1'],
+  });
+
+  beforeAll(() => {
+    const mockTimestamp = new Date('2024-10-06T00:00:00').getTime();
+    jest.spyOn(global.Date, 'now').mockImplementation(() => mockTimestamp);
+  });
+
+  afterAll(() => {
+    jest.restoreAllMocks();
+  });
+
+  it('renders span.op', function () {
+    render(
+      <FieldRenderer
+        data={mockedEventData}
+        dataset={DiscoverDatasets.SPANS_INDEXED}
+        field="span.op"
+        meta={{}}
+      />,
+      {organization}
+    );
+
+    expect(screen.getByText('test_op')).toBeInTheDocument();
+  });
+
+  it('renders span id link to traceview', function () {
+    render(
+      <FieldRenderer
+        data={mockedEventData}
+        dataset={DiscoverDatasets.SPANS_INDEXED}
+        field="id"
+        meta={{}}
+      />,
+      {organization}
+    );
+
+    expect(screen.getByText('spanId')).toBeInTheDocument();
+    expect(screen.getByRole('link')).toHaveAttribute(
+      'href',
+      `/organizations/org-slug/performance/trace/traceId/?eventId=transactionId&node=span-spanId&node=txn-transactionId&source=traces&statsPeriod=14d&timestamp=1727964900`
+    );
+  });
+
+  it('renders transaction id link to traceview', function () {
+    render(
+      <FieldRenderer
+        data={mockedEventData}
+        dataset={DiscoverDatasets.SPANS_INDEXED}
+        field="transaction.id"
+        meta={{}}
+      />,
+      {organization}
+    );
+
+    expect(screen.getByText('transactionId')).toBeInTheDocument();
+    expect(screen.getByRole('link')).toHaveAttribute(
+      'href',
+      `/organizations/org-slug/performance/trace/traceId/?eventId=transactionId&source=traces&statsPeriod=14d&timestamp=1727964900`
+    );
+  });
+
+  it('renders trace id link to traceview', function () {
+    render(
+      <FieldRenderer
+        data={mockedEventData}
+        dataset={DiscoverDatasets.SPANS_INDEXED}
+        field="trace"
+        meta={{}}
+      />,
+      {organization}
+    );
+
+    expect(screen.getByText('traceId')).toBeInTheDocument();
+    expect(screen.getByRole('link')).toHaveAttribute(
+      'href',
+      `/organizations/org-slug/performance/trace/traceId/?source=traces&statsPeriod=14d&timestamp=1727964900`
+    );
+  });
+
+  it('renders timestamp', function () {
+    render(
+      <FieldRenderer
+        data={mockedEventData}
+        dataset={DiscoverDatasets.SPANS_INDEXED}
+        field="timestamp"
+        meta={{}}
+      />,
+      {organization}
+    );
+
+    expect(screen.getByRole('time')).toBeInTheDocument();
+    expect(screen.getByText('3d ago')).toBeInTheDocument();
+  });
+});
