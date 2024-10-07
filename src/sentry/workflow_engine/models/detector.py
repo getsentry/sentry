@@ -1,14 +1,19 @@
+from __future__ import annotations
+
 import logging
+from typing import TYPE_CHECKING
 
 from django.db import models
 from django.db.models import UniqueConstraint
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo_model
-from sentry.models.owner_base import OwnerModel
-from sentry.workflow_engine.models.data_source import DataPacket
-from sentry.workflow_engine.models.data_source_detector import DataSourceDetector
 from sentry.issues import grouptype
+from sentry.models.owner_base import OwnerModel
+from sentry.workflow_engine.models.data_source_detector import DataSourceDetector
+
+if TYPE_CHECKING:
+    from sentry.workflow_engine.processors.detector import DetectorHandler
 
 logger = logging.getLogger(__name__)
 
@@ -42,19 +47,20 @@ class Detector(DefaultFieldsModel, OwnerModel):
             )
         ]
 
-    def evaluate(self, data_packet: DataPacket):
+    @property
+    def detector_handler(self) -> DetectorHandler | None:
         group_type = grouptype.registry.get_by_slug(self.type)
         if not group_type:
             logger.error(
                 "No registered grouptype for detector",
                 extra={"group_type": group_type, "detector_id": self.id},
             )
-            return
+            return None
 
         if not group_type.detector_handler:
             logger.error(
                 "Registered grouptype for detector has no detector_handler",
                 extra={"group_type": group_type, "detector_id": self.id},
             )
-            return
-        return group_type.detector_handler.evaluate(data_packet)
+            return None
+        return group_type.detector_handler(self)
