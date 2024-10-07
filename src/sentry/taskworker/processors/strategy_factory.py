@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import logging
+import time
 from collections.abc import Mapping, MutableSequence
 from datetime import timedelta
-from time import time
 
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.processing.strategies import (
@@ -55,6 +55,7 @@ class StrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         num_processes: int,
         input_block_size: int | None,
         output_block_size: int | None,
+        max_inflight_activation_in_store: int | None,
     ) -> None:
         super().__init__()
         self.pool = MultiprocessingPool(num_processes)
@@ -66,6 +67,10 @@ class StrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         # after this time tasks should be deadlettered if they are followed
         # by completed records. Should come from CLI/options
         self.max_pending_timeout = 8 * 60
+
+        # Maximum number of pending inflight activations in the store before backpressure is emitted
+        self.max_inflight_activation_in_store = max_inflight_activation_in_store
+
         self.pending_task_store = PendingTaskStore()
 
     def create_with_partitions(
@@ -92,12 +97,24 @@ class StrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             self.pending_task_store.handle_retry_state_tasks()
             self.pending_task_store.handle_deadletter_at()
             self.pending_task_store.handle_failed_tasks()
+            return
 
-            return message
+        def limit_tasks(
+            message: Message[MutableSequence[InflightActivation]],
+        ) -> Message[MutableSequence[InflightActivation]]:
+            count = self.pending_task_store.count_pending_task()
+            while count >= self.max_inflight_activation_in_store:
+                # The number of pending inflight activations in the store exceeds the limit.
+                # Wait for workers to complete tasks before adding the next offset to the queue.
+                logger.info(
+                    "Number of inflight activation: %s exceeds the limit: %s. Retrying in 1 second",
+                    count,
+                    self.max_inflight_activation_in_store,
+                )
+                time.sleep(1)
 
-        upkeep_step = RunTask(
-            function=do_upkeep,
-            # TODO ideally we commit offsets for completed work
+        flush = RunTask(
+            function=flush_batch,
             next_step=CommitOffsets(commit),
         )
 
@@ -107,14 +124,23 @@ class StrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             max_batch_time=2,
             accumulator=accumulator,
             initial_value=list,
-            next_step=RunTask(
-                function=flush_batch,
-                next_step=upkeep_step,
-            ),
+            next_step=flush,
         )
-        return RunTask(
+
+        process = RunTask(
             function=process_message,
             next_step=collect,
+        )
+
+        limit = RunTask(
+            function=limit_tasks,
+            next_step=process,
+        )
+
+        return RunTask(
+            function=do_upkeep,
+            # TODO ideally we commit offsets for completed work
+            next_step=limit,
         )
 
     def shutdown(self):

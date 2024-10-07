@@ -49,6 +49,7 @@ def run(
         num_processes=3,
         input_block_size=1000,
         output_block_size=1000,
+        max_inflight_activation_in_store=1000,
     )
 
     processor = StreamProcessor(
