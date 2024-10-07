@@ -704,7 +704,7 @@ const getTooltipStyles = (p: {theme: Theme}) => css`
     justify-content: space-between;
     align-items: baseline;
   }
-  .code-no-margin {
+  .tooltip-code-no-margin {
     padding-left: 0;
     margin-left: 0;
     color: ${p.theme.subText};

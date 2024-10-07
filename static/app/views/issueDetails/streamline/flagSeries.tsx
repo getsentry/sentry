@@ -102,7 +102,7 @@ export default function useFlagSeries({query = {}}: {query?: Record<string, any>
           `<div><span class="tooltip-label"><strong>${t(
             'Feature Flag'
           )}</strong></span></div>`,
-          `<div><code class="code-no-margin">${data.name}</code>${data.label.formatter()}</div>`,
+          `<div><code class="tooltip-code-no-margin">${data.name}</code>${data.label.formatter()}</div>`,
           '</div>',
           '<div class="tooltip-footer">',
           time,
