@@ -18,7 +18,7 @@ type Props = RouteComponentProps<RouteParams, {}> & {
   project: Project;
 };
 
-function ProjectToolbar({organization, project, params: {projectId}}: Props) {
+function ProjectToolbarSettings({organization, project, params: {projectId}}: Props) {
   const formGroups: JsonFormObject[] = [
     {
       title: 'Settings',
@@ -65,4 +65,4 @@ function ProjectToolbar({organization, project, params: {projectId}}: Props) {
   );
 }
 
-export default ProjectToolbar;
+export default ProjectToolbarSettings;

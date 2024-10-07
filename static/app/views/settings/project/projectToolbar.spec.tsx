@@ -1,46 +1,58 @@
-import {ProjectFixture} from 'sentry-fixture/project';
-
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import ProjectToolbar from 'sentry/views/settings/project/projectToolbar';
+import ProjectToolbarSettings from 'sentry/views/settings/project/projectToolbar';
 
-describe('ProjectToolbar', function () {
+describe('ProjectToolbarSettings', function () {
   const {routerProps, organization, project, router} = initializeOrg();
   const url = `/projects/${organization.slug}/${project.slug}/`;
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();
-    MockApiClient.addMockResponse({
-      url,
-      method: 'GET',
-      body: ProjectFixture(),
-    });
-    MockApiClient.addMockResponse({
-      url: `${url}keys/`,
-      method: 'GET',
-      body: [],
-    });
+  });
+
+  it('displays previously saved setting', function () {
+    const initialOptionValue = 'sentry.io';
+    project.options = {'sentry:toolbar_allowed_origins': initialOptionValue};
+    render(
+      <ProjectToolbarSettings
+        {...routerProps}
+        organization={organization}
+        project={project}
+      />,
+      {
+        router,
+      }
+    );
+    expect(screen.getByRole('textbox')).toHaveValue(initialOptionValue);
   });
 
   it('can submit new allowed origins', async function () {
     render(
-      <ProjectToolbar {...routerProps} organization={organization} project={project} />,
+      <ProjectToolbarSettings
+        {...routerProps}
+        organization={organization}
+        project={project}
+      />,
       {
         router,
       }
     );
 
-    const mock = MockApiClient.addMockResponse({
+    const mockPut = MockApiClient.addMockResponse({
       url,
       method: 'PUT',
     });
 
-    const mockInput = 'test.io\n*.example.com';
-    await userEvent.type(screen.getByLabelText('Allowed Origins'), mockInput);
-    await userEvent.tab();
+    const textarea = screen.getByRole('textbox');
+    expect(textarea).toBeEnabled();
 
-    expect(mock).toHaveBeenCalledWith(
+    const mockInput = 'test.io\n*.example.com';
+    await userEvent.clear(textarea);
+    await userEvent.type(textarea, mockInput);
+    await userEvent.tab(); // unfocus ("blur") the input
+
+    expect(mockPut).toHaveBeenCalledWith(
       url,
       expect.objectContaining({
         method: 'PUT',
@@ -49,5 +61,35 @@ describe('ProjectToolbar', function () {
         },
       })
     );
+  });
+
+  it('displays nothing when project options are undefined', function () {
+    project.options = undefined;
+    render(
+      <ProjectToolbarSettings
+        {...routerProps}
+        organization={organization}
+        project={project}
+      />,
+      {
+        router,
+      }
+    );
+    expect(screen.getByRole('textbox')).toHaveValue('');
+  });
+
+  it('displays nothing when project options are empty', function () {
+    project.options = {};
+    render(
+      <ProjectToolbarSettings
+        {...routerProps}
+        organization={organization}
+        project={project}
+      />,
+      {
+        router,
+      }
+    );
+    expect(screen.getByRole('textbox')).toHaveValue('');
   });
 });
