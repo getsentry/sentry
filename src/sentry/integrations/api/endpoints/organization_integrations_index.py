@@ -112,6 +112,11 @@ class OrganizationIntegrationsEndpoint(OrganizationIntegrationBaseEndpoint):
             queryset = queryset.filter(integration__provider=provider_key.lower())
 
         if integration_type:
+            if integration_type not in INTEGRATION_TYPE_TO_PROVIDER:
+                return Response(
+                    {"detail": "Invalid integration type"},
+                    status=400,
+                )
             provider_slugs = [
                 provider.value
                 for provider in INTEGRATION_TYPE_TO_PROVIDER.get(integration_type, [])

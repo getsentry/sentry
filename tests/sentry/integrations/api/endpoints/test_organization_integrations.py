@@ -82,7 +82,8 @@ class OrganizationIntegrationsListTest(APITestCase):
         )
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(self.opsgenie.id)
-        response = self.get_success_response(
+        response = self.get_error_response(
             self.organization.slug, qs_params={"integrationType": "third_party"}
         )
-        assert response.data == []
+        assert response.data == {"detail": "Invalid integration type"}
+        assert response.status_code == 400
