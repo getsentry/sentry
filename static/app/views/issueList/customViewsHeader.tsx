@@ -129,30 +129,37 @@ function CustomViewsIssueListHeaderTabsContent({
 
   const {query, sort, viewId, project, environment} = queryParams;
 
-  const queryParamsWithPageFilters = {
-    ...queryParams,
-    project: project ?? pageFilters.selection.projects,
-    environment: environment ?? pageFilters.selection.environments,
-    ...normalizeDateTimeParams(pageFilters.selection.datetime),
-  };
+  const queryParamsWithPageFilters = useMemo(() => {
+    return {
+      ...queryParams,
+      project: project ?? pageFilters.selection.projects,
+      environment: environment ?? pageFilters.selection.environments,
+      ...normalizeDateTimeParams(pageFilters.selection.datetime),
+    };
+  }, [
+    environment,
+    pageFilters.selection.datetime,
+    pageFilters.selection.environments,
+    pageFilters.selection.projects,
+    project,
+    queryParams,
+  ]);
 
-  const viewsToTabs = views.map(
-    ({id, name, query: viewQuery, querySort: viewQuerySort}, index): Tab => {
+  const [draggableTabs, setDraggableTabs] = useState<Tab[]>(
+    views.map(({id, name, query: viewQuery, querySort: viewQuerySort}, index): Tab => {
       const tabId = id ?? `default${index.toString()}`;
+
       return {
         id: tabId,
         key: tabId,
         label: name,
         query: viewQuery,
         querySort: viewQuerySort,
+        unsavedChanges: undefined,
         isCommitted: true,
       };
-    }
+    })
   );
-
-  const [draggableTabs, setDraggableTabs] = useState<Tab[]>(viewsToTabs);
-
-  const {tabListState} = useContext(TabsContext);
 
   const getInitialTabKey = () => {
     if (draggableTabs[0].key.startsWith('default')) {
@@ -172,6 +179,8 @@ function CustomViewsIssueListHeaderTabsContent({
     }
     return draggableTabs[0].key;
   };
+
+  const {tabListState} = useContext(TabsContext);
 
   // TODO: Try to remove this state if possible
   const [tempTab, setTempTab] = useState<Tab | undefined>(
@@ -235,46 +244,62 @@ function CustomViewsIssueListHeaderTabsContent({
     // if a viewId is present, check if it exists in the existing views.
     if (viewId) {
       const selectedTab = draggableTabs.find(tab => tab.id === viewId);
-      if (selectedTab && query !== undefined && sort) {
+      if (selectedTab) {
         const issueSortOption = Object.values(IssueSortOptions).includes(sort)
           ? sort
           : IssueSortOptions.DATE;
 
-        const unsavedChanges: [string, IssueSortOptions] | undefined =
+        const newUnsavedChanges: [string, IssueSortOptions] | undefined =
           query === selectedTab.query && sort === selectedTab.querySort
             ? undefined
-            : [query as string, issueSortOption];
+            : [query ?? selectedTab.query, issueSortOption];
+        if (
+          (newUnsavedChanges && !selectedTab.unsavedChanges) ||
+          selectedTab.unsavedChanges?.[0] !== newUnsavedChanges?.[0] ||
+          selectedTab.unsavedChanges?.[1] !== newUnsavedChanges?.[1]
+        ) {
+          // If there were no unsaved changes before, or the existing unsaved changes
+          // don't match the new query and/or sort, update the unsaved changes
+          setDraggableTabs(
+            draggableTabs.map(tab =>
+              tab.key === selectedTab.key
+                ? {
+                    ...tab,
+                    unsavedChanges: newUnsavedChanges,
+                  }
+                : tab
+            )
+          );
+        } else if (!newUnsavedChanges && selectedTab.unsavedChanges) {
+          // If there are no longer unsaved changes but there were before, remove them
+          setDraggableTabs(
+            draggableTabs.map(tab =>
+              tab.key === selectedTab.key
+                ? {
+                    ...tab,
+                    unsavedChanges: undefined,
+                  }
+                : tab
+            )
+          );
+        }
 
-        setDraggableTabs(
-          draggableTabs.map(tab =>
-            tab.key === selectedTab.key
-              ? {
-                  ...tab,
-                  unsavedChanges,
-                }
-              : tab
-          )
-        );
-
-        tabListState?.setSelectedKey(selectedTab.key);
-        return;
-      }
-      if (selectedTab && query === undefined) {
-        navigate(
-          normalizeUrl({
-            ...location,
-            query: {
-              ...queryParamsWithPageFilters,
-              query: selectedTab.query,
-              sort: selectedTab.querySort,
-              viewId: selectedTab.id,
-            },
-          })
-        );
-        tabListState?.setSelectedKey(selectedTab.key);
-        return;
-      }
-      if (!selectedTab) {
+        if (!tabListState?.selectionManager.isSelected(selectedTab.key)) {
+          navigate(
+            normalizeUrl({
+              ...location,
+              query: {
+                ...queryParamsWithPageFilters,
+                query: newUnsavedChanges ? newUnsavedChanges[0] : selectedTab.query,
+                sort: newUnsavedChanges ? newUnsavedChanges[1] : selectedTab.querySort,
+                viewId: selectedTab.id,
+              },
+            }),
+            {replace: true}
+          );
+          tabListState?.setSelectedKey(selectedTab.key);
+        }
+      } else {
         // if a viewId does not exist, remove it from the query
         tabListState?.setSelectedKey(TEMPORARY_TAB_KEY);
         navigate(
@@ -284,22 +309,44 @@ function CustomViewsIssueListHeaderTabsContent({
               ...queryParamsWithPageFilters,
               viewId: undefined,
             },
-          })
+          }),
+          {replace: true}
         );
         trackAnalytics('issue_views.shared_view_opened', {
           organization,
           query,
         });
-        return;
       }
       return;
     }
     if (query) {
-      tabListState?.setSelectedKey(TEMPORARY_TAB_KEY);
-      return;
+      if (!tabListState?.selectionManager.isSelected(TEMPORARY_TAB_KEY)) {
+        tabListState?.setSelectedKey(TEMPORARY_TAB_KEY);
+        navigate(
+          normalizeUrl({
+            ...location,
+            query: {
+              ...queryParamsWithPageFilters,
+              viewId: undefined,
+            },
+          }),
+          {replace: true}
+        );
+        return;
+      }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [navigate, organization.slug, query, sort, viewId, tabListState]);
+  }, [
+    navigate,
+    organization.slug,
+    query,
+    sort,
+    viewId,
+    tabListState,
+    location,
+    queryParamsWithPageFilters,
+    draggableTabs,
+    organization,
+  ]);
 
   // Update local tabs when new views are received from mutation request
   useEffectAfterFirstRender(() => {
