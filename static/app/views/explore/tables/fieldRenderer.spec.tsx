@@ -1,7 +1,10 @@
+import type {Location} from 'history';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 
 import {FieldRenderer} from './fieldRenderer';
@@ -19,6 +22,16 @@ describe('FieldRenderer tests', function () {
     features: ['trace-view-v1'],
   });
 
+  const location: Location = LocationFixture({
+    query: {
+      id: '42',
+      name: 'best query',
+      field: ['id', 'timestamp', 'trace', 'span.op', 'transaction.id'],
+    },
+  });
+
+  const eventView = EventView.fromLocation(location);
+
   beforeAll(() => {
     const mockTimestamp = new Date('2024-10-06T00:00:00').getTime();
     jest.spyOn(global.Date, 'now').mockImplementation(() => mockTimestamp);
@@ -31,6 +44,7 @@ describe('FieldRenderer tests', function () {
   it('renders span.op', function () {
     render(
       <FieldRenderer
+        column={eventView.getColumns()[3]}
         data={mockedEventData}
         dataset={DiscoverDatasets.SPANS_INDEXED}
         field="span.op"
@@ -45,6 +59,7 @@ describe('FieldRenderer tests', function () {
   it('renders span id link to traceview', function () {
     render(
       <FieldRenderer
+        column={eventView.getColumns()[0]}
         data={mockedEventData}
         dataset={DiscoverDatasets.SPANS_INDEXED}
         field="id"
@@ -63,6 +78,7 @@ describe('FieldRenderer tests', function () {
   it('renders transaction id link to traceview', function () {
     render(
       <FieldRenderer
+        column={eventView.getColumns()[4]}
         data={mockedEventData}
         dataset={DiscoverDatasets.SPANS_INDEXED}
         field="transaction.id"
@@ -81,6 +97,7 @@ describe('FieldRenderer tests', function () {
   it('renders trace id link to traceview', function () {
     render(
       <FieldRenderer
+        column={eventView.getColumns()[2]}
         data={mockedEventData}
         dataset={DiscoverDatasets.SPANS_INDEXED}
         field="trace"
@@ -99,6 +116,7 @@ describe('FieldRenderer tests', function () {
   it('renders timestamp', function () {
     render(
       <FieldRenderer
+        column={eventView.getColumns()[1]}
         data={mockedEventData}
         dataset={DiscoverDatasets.SPANS_INDEXED}
         field="timestamp"
