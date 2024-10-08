@@ -156,6 +156,9 @@ INTEGRATION_TYPE_TO_PROVIDER = {
     PROJECT_MANAGEMENT: [
         IntegrationProviderSlug.JIRA,
         IntegrationProviderSlug.JIRA_SERVER,
+        IntegrationProviderSlug.GITHUB,
+        IntegrationProviderSlug.GITHUB_ENTERPRISE,
+        IntegrationProviderSlug.GITLAB,
         IntegrationProviderSlug.AZURE_DEVOPS,
     ],
     SOURCE_CODE_MANAGEMENT: [
