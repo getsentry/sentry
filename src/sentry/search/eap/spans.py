@@ -1,7 +1,7 @@
-from collections.abc import Callable, Sequence
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any
+from typing import cast
 
 from parsimonious.exceptions import ParseError
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
@@ -20,26 +20,11 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
 
 from sentry.api import event_search
 from sentry.exceptions import InvalidSearchQuery
+from sentry.search.eap import constants
 from sentry.search.eap.span_columns import SPAN_COLUMN_DEFINITIONS, ResolvedColumn
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events import filter as event_filter
 from sentry.search.events.types import SnubaParams
-
-OPERATOR_MAP = {
-    "=": ComparisonFilter.OP_EQUALS,
-    "!=": ComparisonFilter.OP_NOT_EQUALS,
-    "IN": ComparisonFilter.OP_IN,
-    "NOT IN": ComparisonFilter.OP_NOT_IN,
-    ">": ComparisonFilter.OP_GREATER_THAN,
-    "<": ComparisonFilter.OP_LESS_THAN,
-    ">=": ComparisonFilter.OP_GREATER_THAN_OR_EQUALS,
-    "<=": ComparisonFilter.OP_LESS_THAN_OR_EQUALS,
-}
-
-STRING = AttributeKey.TYPE_STRING
-BOOLEAN = AttributeKey.TYPE_BOOLEAN
-FLOAT = AttributeKey.TYPE_FLOAT
-INT = AttributeKey.TYPE_INT
 
 
 @dataclass(frozen=True)
@@ -53,11 +38,12 @@ class SearchResolver:
     config: SearchResolverConfig
     resolved_columns: dict[str, ResolvedColumn] = field(default_factory=dict)
 
-    def _parse_query(self, querystring: str) -> event_filter.ParsedTerms:
+    def resolve_query(self, querystring: str) -> TraceItemFilter | None:
+        """Given a query string in the public search syntax eg. `span.description:foo` construct the TraceItemFilter"""
         try:
             parsed_terms = event_search.parse_search_query(
                 querystring,
-                params=self.params,
+                params=self.params.filter_params,
                 get_field_type=self.get_field_type,
             )
         except ParseError as e:
@@ -66,23 +52,25 @@ class SearchResolver:
             else:
                 raise InvalidSearchQuery(f"Parse error for: {querystring}")
 
-        return parsed_terms
-
-    def resolve_query(self, querystring: str) -> TraceItemFilter:
-        """Given a query string in the public search syntax eg. `span.description:foo` construct the TraceItemFilter"""
-        parsed_query = self._parse_query(querystring)
         if any(
             isinstance(term, event_search.ParenExpression)
             or event_search.SearchBoolean.is_operator(term)
-            for term in parsed_query
+            for term in parsed_terms
         ):
-            return self._resolve_boolean_conditions(parsed_query)
+            return self._resolve_boolean_conditions(parsed_terms)
         else:
-            return self._resolve_terms(parsed_query)
+            return self._resolve_terms(parsed_terms)
 
-    def _resolve_boolean_conditions(self, terms: event_filter.ParsedTerms) -> TraceItemFilter:
+    def _resolve_boolean_conditions(
+        self, terms: event_filter.ParsedTerms
+    ) -> TraceItemFilter | None:
         if len(terms) == 1:
-            return self._resolve_boolean_condition(terms[0])
+            if isinstance(terms[0], event_search.ParenExpression):
+                return self._resolve_boolean_conditions(terms[0].children)
+            elif isinstance(terms[0], event_search.SearchFilter):
+                return self._resolve_terms([cast(event_search.SearchFilter, terms[0])])
+            else:
+                raise NotImplementedError("Haven't handled all the search expressions yet")
 
         # Filter out any ANDs since we can assume anything without an OR is an AND. Also do some
         # basic sanitization of the query: can't have two operators next to each other, and can't
@@ -120,7 +108,7 @@ class SearchResolver:
         # the two sides. If there is no OR, split the first element out to AND
         index = None
         lhs, rhs = None, None
-        operator = None
+        operator: type[OrFilter] | type[AndFilter] | None = None
         try:
             index = terms.index(event_search.SearchBoolean.BOOLEAN_OR)
             lhs, rhs = terms[:index], terms[index + 1 :]
@@ -129,84 +117,88 @@ class SearchResolver:
             lhs, rhs = terms[:1], terms[1:]
             operator = AndFilter
 
-        lhs = self._resolve_boolean_conditions(lhs)
-        rhs = self._resolve_boolean_conditions(rhs)
+        resolved_lhs = self._resolve_boolean_conditions(lhs) if lhs else None
+        resolved_rhs = self._resolve_boolean_conditions(rhs) if rhs else None
 
-        return self._combine_conditions(lhs, rhs, operator)
-
-    def _combine_conditions(
-        self, lhs: TraceItemFilter, rhs: TraceItemFilter, operator: AndFilter | OrFilter
-    ) -> TraceItemFilter:
-        if operator == AndFilter:
-            return TraceItemFilter(and_filter=AndFilter(filters=[lhs, rhs]))
-        elif operator == OrFilter:
-            return TraceItemFilter(or_filter=OrFilter(filters=[lhs, rhs]))
-
-    def _resolve_boolean_condition(self, term: event_filter.ParsedTerm) -> TraceItemFilter:
-        if isinstance(term, event_search.ParenExpression):
-            return self._resolve_boolean_conditions(term.children)
-
-        if isinstance(term, event_search.SearchFilter):
-            return self._resolve_term(term)
+        if resolved_lhs is not None and resolved_rhs is not None:
+            if operator == AndFilter:
+                return TraceItemFilter(and_filter=AndFilter(filters=[resolved_lhs, resolved_rhs]))
+            else:
+                return TraceItemFilter(or_filter=OrFilter(filters=[resolved_lhs, resolved_rhs]))
+        elif resolved_lhs is None and resolved_rhs is not None:
+            return resolved_rhs
+        elif resolved_lhs is not None and resolved_rhs is None:
+            return resolved_lhs
+        else:
+            return None
 
     def _resolve_terms(self, terms: event_filter.ParsedTerms) -> TraceItemFilter:
         parsed_terms = []
         for item in terms:
-            parsed_terms.append(self._resolve_term(item))
+            if isinstance(item, event_search.SearchFilter):
+                resolved_column, context = self.resolve_column(item.key.name)
+                if item.operator in constants.OPERATOR_MAP:
+                    operator = constants.OPERATOR_MAP[item.operator]
+                else:
+                    raise InvalidSearchQuery(f"Unknown operator: {item.operator}")
+                if isinstance(resolved_column.proto_definition, AttributeKey):
+                    parsed_terms.append(
+                        TraceItemFilter(
+                            comparison_filter=ComparisonFilter(
+                                key=resolved_column.proto_definition,
+                                op=operator,
+                                value=self._resolve_search_value(
+                                    resolved_column, item.operator, item.value.raw_value
+                                ),
+                            )
+                        )
+                    )
+                else:
+                    raise NotImplementedError("Can't filter on aggregates yet")
+            else:
+                raise NotImplementedError()
         if len(parsed_terms) > 1:
             return TraceItemFilter(and_filter=AndFilter(filters=parsed_terms))
         else:
             return parsed_terms[0]
 
-    def _resolve_term(self, term: event_filter.ParsedTerm) -> TraceItemFilter:
-        if isinstance(term, event_filter.SearchFilter):
-            resolved_column, context = self.resolve_column(term.key.name)
-            if term.operator in OPERATOR_MAP:
-                operator = OPERATOR_MAP[term.operator]
-            else:
-                raise InvalidSearchQuery(f"Unknown operator: {term.operator}")
-            return TraceItemFilter(
-                comparison_filter=ComparisonFilter(
-                    key=resolved_column.proto_definition,
-                    op=operator,
-                    value=self.resolve_value(resolved_column, term.operator, term.value.raw_value),
-                )
-            )
-
-    def resolve_value(
+    def _resolve_search_value(
         self,
         column: ResolvedColumn,
         operator: str,
         value: str | int | datetime | Sequence[int] | Sequence[str],
     ) -> AttributeValue:
         column.validate(value)
-        column_type = column.proto_definition.type
-        if column_type == STRING:
-            if operator in ["IN", "NOT IN"]:
-                if isinstance(value, list) and all(isinstance(item, str) for item in value):
-                    return AttributeValue(val_str_array=StrArray(values=value))
+        if isinstance(column.proto_definition, AttributeKey):
+            column_type = column.proto_definition.type
+            if column_type == constants.STRING:
+                if operator in constants.IN_OPERATORS:
+                    if isinstance(value, list) and all(isinstance(item, str) for item in value):
+                        return AttributeValue(val_str_array=StrArray(values=value))
+                    else:
+                        raise InvalidSearchQuery(
+                            f"{value} is not a valid value for doing an IN filter"
+                        )
                 else:
-                    raise InvalidSearchQuery()
-            else:
-                return AttributeValue(val_str=value)
-        elif column_type == INT:
-            # These int casts are only necessary because floats aren't supported in the proto yet
-            if operator in ["IN", "NOT IN"]:
-                if isinstance(value, list):
-                    return AttributeValue(
-                        val_int_array=IntArray(values=[int(val) for val in value])
-                    )
-                else:
-                    raise InvalidSearchQuery()
-            else:
-                return AttributeValue(val_int=int(value))
-        elif column_type == FLOAT:
-            if operator in ["IN", "NOT IN"]:
-                if isinstance(value, list):
-                    # TODO: need to implement this once the proto supports floats
-                    raise InvalidSearchQuery()
-            else:
-                return AttributeValue(val_float=value)
+                    return AttributeValue(val_str=str(value))
+            elif column_type == constants.INT:
+                # These int casts are only necessary because floats aren't supported in the proto yet
+                if operator in constants.IN_OPERATORS:
+                    if isinstance(value, list):
+                        return AttributeValue(
+                            val_int_array=IntArray(values=[int(val) for val in value])
+                        )
+                    else:
+                        raise InvalidSearchQuery(
+                            f"{value} is not a valid value for doing an IN filter"
+                        )
+                elif isinstance(value, (int, float)):
+                    return AttributeValue(val_int=int(value))
+            raise InvalidSearchQuery(
+                f"{value} is not a valid filter value for {column.public_alias}"
+            )
+        else:
+            raise NotImplementedError("Aggregate Queries not implemented yet")
 
     def resolve_columns(
         self, selected_columns: list[str]
@@ -215,10 +207,10 @@ class SearchResolver:
 
         This function will also dedupe the virtual column contexts if necessary
         """
+        raise NotImplementedError()
         # go from public alias -> rpc
         # p = Procssors(parsed_column_name)
         # return [ResolvedColumn()]
-        pass
 
     def resolve_column(self, column: str) -> tuple[ResolvedColumn, VirtualColumnContext | None]:
         """Column is either an attribute or an aggregate, this function will determine which it is and call the relevant
@@ -233,7 +225,7 @@ class SearchResolver:
         # Cache the column
         # self.resolved_coluumn[alias] = ResolvedColumn()
         # return ResolvedColumn()
-        pass
+        raise NotImplementedError()
 
     def get_field_type(self, column: str) -> str:
         resolved_column, _ = self.resolve_column(column)
@@ -243,27 +235,19 @@ class SearchResolver:
         self, column: list[str]
     ) -> tuple[list[ResolvedColumn], list[VirtualColumnContext]]:
         """Helper function to resolve a list of attributes instead of 1 attribute at a time"""
-        pass
+        raise NotImplementedError()
 
     def resolve_attribute(self, column: str) -> tuple[ResolvedColumn, VirtualColumnContext]:
         """Attributes are columns that aren't 'functions' or 'aggregates', usually this means string or numeric
         attributes (aka. tags), but can also refer to fields like span.description"""
-        pass
+        raise NotImplementedError()
 
     def resolve_aggregates(
         self, column: list[str]
     ) -> tuple[list[ResolvedColumn], list[VirtualColumnContext]]:
         """Helper function to resolve a list of aggregates instead of 1 attribute at a time"""
-        pass
+        raise NotImplementedError()
 
     def resolve_aggregate(self, column: str) -> tuple[ResolvedColumn, VirtualColumnContext]:
+        raise NotImplementedError()
         # Throw error if column is not an aggregate
-        pass
-
-
-def process_project(row):
-    """Given a row of data"""
-    pass
-
-
-Processors: dict[str, Callable[[Any], Any]] = {"project": process_project}

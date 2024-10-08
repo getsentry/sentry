@@ -4,19 +4,7 @@ from typing import Any, Literal
 
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeAggregation, AttributeKey
 
-STRING = AttributeKey.TYPE_STRING
-BOOLEAN = AttributeKey.TYPE_BOOLEAN
-FLOAT = AttributeKey.TYPE_FLOAT
-INT = AttributeKey.TYPE_INT
-
-
-# TODO: we need a datetime type
-TYPE_MAP = {
-    # TODO:  need to update these to float once the proto supports float arrays
-    "number": INT,
-    "duration": INT,
-    "string": STRING,
-}
+from sentry.search.eap import constants
 
 
 @dataclass(frozen=True)
@@ -43,7 +31,8 @@ class ResolvedColumn:
     @property
     def proto_definition(self) -> AttributeAggregation | AttributeKey:
         """The definition of this function as needed by the RPC"""
-        return AttributeKey(name=self.rpc_name, type=TYPE_MAP[self.search_type])
+        # Placeholder to implement search for now
+        return AttributeKey(name=self.rpc_name, type=constants.TYPE_MAP[self.search_type])
 
 
 # Temporary, just doing enough of these for now so I can write some tests for resolve_query
@@ -73,3 +62,6 @@ SPAN_COLUMN_DEFINITIONS = {
         search_type="number",
     ),
 }
+
+
+Processors: dict[str, Callable[[Any], Any]] = {}
