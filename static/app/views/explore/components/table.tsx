@@ -77,18 +77,12 @@ export function useTableStyles({
 
 export const TableBody = GridBody;
 export const TableRow = GridRow;
-export const TableBodyCell = styled(GridBodyCell)`
-  &:first-child {
-    > * {
-      text-align: left;
-    }
-  }
-`;
+export const TableBodyCell = GridBodyCell;
 
 export const TableHead = GridHead;
 export const TableHeader = Header;
 export const TableHeaderActions = HeaderButtonContainer;
 export const TableHeaderTitle = HeaderTitle;
 export const TableHeadCell = styled(GridHeadCell)<{align?: Alignments}>`
-  justify-content: ${({isFirst, align}) => (isFirst ? 'left' : align ? align : 'right')};
+  justify-content: ${({align}) => (align ? align : 'right')};
 `;
