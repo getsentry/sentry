@@ -6,6 +6,7 @@ from sentry.cache import default_cache
 from sentry.models.projectkey import ProjectKey
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import PermissionTestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
@@ -135,6 +136,26 @@ class SetupWizard(PermissionTestCase):
         token = cached.get("apiKeys")["token"]
 
         assert token.startswith("sntrys_")
+
+    @with_feature("users:new-setup-wizard-ui")
+    def test_does_not_populate_cache_when_projects_can_be_selected(self):
+        self.org = self.create_organization(owner=self.user)
+        self.team = self.create_team(organization=self.org, name="Mariachi Band")
+        self.project = self.create_project(organization=self.org, teams=[self.team], name="Bengal")
+
+        self.login_as(self.user)
+
+        key = f"{SETUP_WIZARD_CACHE_KEY}abc"
+        default_cache.set(key, "test", 600)
+
+        url = reverse("sentry-project-wizard-fetch", kwargs={"wizard_hash": "abc"})
+        resp = self.client.get(url)
+
+        assert resp.status_code == 200
+        self.assertTemplateUsed(resp, "sentry/setup-wizard.html")
+        cached = default_cache.get(key)
+
+        assert cached == "test"
 
     @override_settings(SENTRY_SIGNUP_URL="https://sentry.io/signup/")
     def test_redirect_to_signup(self):

@@ -10,6 +10,7 @@ from django.http import Http404, HttpRequest, HttpResponse, HttpResponseBadReque
 from django.http.response import HttpResponseBase
 from django.shortcuts import get_object_or_404
 
+from sentry import features
 from sentry.api.endpoints.setup_wizard import SETUP_WIZARD_CACHE_KEY, SETUP_WIZARD_CACHE_TIMEOUT
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.project import STATUS_LABELS
@@ -62,7 +63,7 @@ class SetupWizardView(BaseView):
         This opens a page where with an active session fill stuff into the cache
         Redirects to organization whenever cache has been deleted
         """
-        context = {"hash": wizard_hash}
+        context = {"hash": wizard_hash, "enableProjectSelection": False}
         key = f"{SETUP_WIZARD_CACHE_KEY}{wizard_hash}"
 
         wizard_data = default_cache.get(key)
@@ -89,6 +90,12 @@ class SetupWizardView(BaseView):
             region_data_map[mapping.region_name]["org_ids"].append(mapping.organization_id)
             serialized_mapping = serialize_org_mapping(mapping)
             org_mappings_map[mapping.organization_id] = serialized_mapping
+
+        context["organizations"] = list(org_mappings_map.values())
+
+        if features.has("users:new-setup-wizard-ui", user=request.user, actor=request.user):
+            context["enableProjectSelection"] = True
+            return render_to_response("sentry/setup-wizard.html", context, request)
 
         for region_name, region_data in region_data_map.items():
             org_ids = region_data["org_ids"]
@@ -129,7 +136,6 @@ class SetupWizardView(BaseView):
         key = f"{SETUP_WIZARD_CACHE_KEY}{wizard_hash}"
         default_cache.set(key, result, SETUP_WIZARD_CACHE_TIMEOUT)
 
-        context["organizations"] = list(org_mappings_map.values())
         return render_to_response("sentry/setup-wizard.html", context, request)
 
     def post(self, request: HttpRequest, wizard_hash=None) -> HttpResponse:
