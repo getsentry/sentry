@@ -372,7 +372,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
 
     def test_max_raw_length(self):
         new_raw = f"*.py admin@localhost #{self.team.slug}"
-        with mock.patch("sentry.api.endpoints.project_ownership.MAX_RAW_LENGTH", 10):
+        with mock.patch("sentry.api.endpoints.project_ownership.DEFAULT_MAX_RAW_LENGTH", 10):
             resp = self.get_error_response(
                 self.organization.slug,
                 self.project.slug,
