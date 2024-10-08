@@ -431,27 +431,27 @@ def combine_dictionary_of_list_values(main_dict, other_dict):
 
 
 class MetricDoesNotExistException(Exception):
-    ...
+    pass
 
 
 class MetricDoesNotExistInIndexer(Exception):
-    ...
+    pass
 
 
 class DerivedMetricException(Exception, ABC):
-    ...
+    pass
 
 
 class DerivedMetricParseException(DerivedMetricException):
-    ...
+    pass
 
 
 class NotSupportedOverCompositeEntityException(DerivedMetricException):
-    ...
+    pass
 
 
 class OrderByNotSupportedOverCompositeEntityException(NotSupportedOverCompositeEntityException):
-    ...
+    pass
 
 
 @overload

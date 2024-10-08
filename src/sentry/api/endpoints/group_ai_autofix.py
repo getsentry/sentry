@@ -39,8 +39,6 @@ class GroupAutofixEndpoint(GroupEndpoint):
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.ML_AI
-    # go away
-    private = True
     enforce_rate_limit = True
     rate_limits = {
         "POST": {
@@ -87,6 +85,7 @@ class GroupAutofixEndpoint(GroupEndpoint):
         serialized_event: dict[str, Any],
         instruction: str,
         timeout_secs: int,
+        pr_to_comment_on_url: str | None = None,
     ):
         path = "/v1/automation/autofix/start"
         body = orjson.dumps(
@@ -116,7 +115,8 @@ class GroupAutofixEndpoint(GroupEndpoint):
                         "organizations:autofix-disable-codebase-indexing",
                         group.organization,
                         actor=user,
-                    )
+                    ),
+                    "comment_on_pr_with_url": pr_to_comment_on_url,
                 },
             },
             option=orjson.OPT_NON_STR_KEYS,
@@ -191,6 +191,7 @@ class GroupAutofixEndpoint(GroupEndpoint):
                 serialized_event,
                 data.get("instruction", data.get("additional_context", "")),
                 TIMEOUT_SECONDS,
+                data.get("pr_to_comment_on_url", None),  # support optional PR id for copilot
             )
         except Exception as e:
             logger.exception(
