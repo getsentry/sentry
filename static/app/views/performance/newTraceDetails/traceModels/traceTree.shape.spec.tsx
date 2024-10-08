@@ -1,5 +1,5 @@
 import {TraceShape, TraceTree} from './traceTree';
-import {makeTrace, makeTraceError, makeTransaction} from './traceTreeTestUtils';
+import {makeTrace, makeTraceError, makeTransaction} from './traceTreeTestUtils.spec';
 
 describe('TraceTree', () => {
   it('empty trace', () => {

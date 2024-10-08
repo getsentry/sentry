@@ -15,10 +15,10 @@ import {
   isTraceNode,
   isTransactionNode,
 } from '../traceGuards';
-import type {TraceTree} from '../traceModels/traceTree';
 
 import {ParentAutogroupNode} from './parentAutogroupNode';
 import {SiblingAutogroupNode} from './siblingAutogroupNode';
+import type {TraceTree} from './traceTree';
 import type {TraceTreeNode} from './traceTreeNode';
 
 export function makeEvent(

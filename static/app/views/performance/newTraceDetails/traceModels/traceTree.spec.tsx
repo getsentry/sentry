@@ -19,7 +19,7 @@ import {
   makeTracePerformanceIssue,
   makeTransaction,
   mockSpansResponse,
-} from './traceTreeTestUtils';
+} from './traceTreeTestUtils.spec';
 
 const start = new Date('2024-02-29T00:00:00Z').getTime() / 1e3;
 const end = new Date('2024-02-29T00:00:00Z').getTime() / 1e3 + 5;
