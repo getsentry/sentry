@@ -40,9 +40,7 @@ export default function useFeedbackActions({feedbackItem}: Props) {
   const hasDelete =
     organization.access.includes('event:admin') &&
     organization.features.includes('issue-platform-deletion-ui');
-  const onDelete = () => {
-    deleteFeedback();
-  };
+  const onDelete = deleteFeedback;
 
   // reuse the issues ignored category for spam feedbacks
   const isResolved = feedbackItem.status === GroupStatus.RESOLVED;
