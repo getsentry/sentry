@@ -15,21 +15,28 @@
 
     {% script %}
     <script>
-      // If the popup doesn't close, we can let people try to close it manually.
-      document.getElementById('close-popup').addEventListener('click', () => {
-        window.close();
-      });
+      (function() {
+        const delay = '{{ delay|escapejs }}';
+        const cookie = '{{ cookie|escapejs }}';
 
-      if (window.opener) {
-        window.opener.postMessage({
-          source: 'sentry-toolbar',
-          message: 'did-login',
-        }, '*');
-
-        setTimeout(() => {
+        document.getElementById('close-popup').addEventListener('click', () => {
           window.close();
-        }, 3_000);
-      }
+        });
+
+        if (window.opener) {
+          window.opener.postMessage({
+            source: 'sentry-toolbar',
+            message: 'did-login',
+            cookie: cookie,
+          }, window.location.origin);
+
+          if (delay && typeof delay === 'number') {
+            setTimeout(() => {
+              window.close();
+            }, delay);
+          }
+        }
+      })();
     </script>
     {% endscript %}
   </body>
