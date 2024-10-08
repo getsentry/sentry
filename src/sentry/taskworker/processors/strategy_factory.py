@@ -97,6 +97,8 @@ class StrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             self.pending_task_store.handle_retry_state_tasks()
             self.pending_task_store.handle_deadletter_at()
             self.pending_task_store.handle_failed_tasks()
+            self.pending_task_store.remove_completed()
+
             return message.payload
 
         def limit_tasks(

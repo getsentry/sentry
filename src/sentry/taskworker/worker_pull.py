@@ -2,13 +2,15 @@ from __future__ import annotations
 
 import logging
 import time
-from concurrent.futures import Executor, ProcessPoolExecutor
-from datetime import datetime
+from datetime import datetime, timedelta
+from multiprocessing.context import TimeoutError
+from multiprocessing.pool import Pool
 from uuid import uuid4
 
 import grpc
 import orjson
 from django.conf import settings
+from django.utils import timezone
 from sentry_protos.sentry.v1alpha.taskworker_pb2 import (
     TASK_ACTIVATION_STATUS_COMPLETE,
     TASK_ACTIVATION_STATUS_FAILURE,
@@ -36,6 +38,10 @@ class Worker:
         self.exitcode = None
         self.__execution_count = 0
         self.__worker_id = uuid4().hex
+        self._build_pool()
+
+    def _build_pool(self) -> None:
+        self.__pool = Pool(processes=2)
 
     @property
     def namespace(self) -> TaskNamespace:
@@ -56,25 +62,22 @@ class Worker:
         next_task = None
         processing_deadline = None
         try:
-            with ProcessPoolExecutor(max_workers=2) as executor:
-                while True:
-                    if next_task:
-                        task = next_task
-                        next_task = None
-                    else:
-                        (task, processing_deadline) = self.fetch_task()
+            while True:
+                if next_task:
+                    task = next_task
+                    next_task = None
+                else:
+                    (task, processing_deadline) = self.fetch_task()
 
-                    if not task:
-                        time.sleep(1)
-                        continue
+                if not task:
+                    time.sleep(1)
+                    continue
 
-                    next_task, processing_deadline = self.process_task(
-                        executor, task, processing_deadline
-                    )
+                next_task, processing_deadline = self.process_task(task, processing_deadline)
 
-                    if max_task_count is not None and max_task_count <= self.__execution_count:
-                        self.exitcode = 1
-                        raise WorkerComplete("Max task exeuction count reached")
+                if max_task_count is not None and max_task_count <= self.__execution_count:
+                    self.exitcode = 1
+                    raise WorkerComplete("Max task exeuction count reached")
 
         except KeyboardInterrupt:
             self.exitcode = 1
@@ -97,14 +100,15 @@ class Worker:
             logger.info("No tasks")
             return (None, None)
 
-        deadline = None
-        if response.processing_deadline:
+        # TODO this default should come from namespace config
+        deadline = timezone.now() + timedelta(seconds=30)
+        if response.HasField("processing_deadline"):
             deadline = response.processing_deadline.ToDatetime()
 
         return (response.task, deadline)
 
     def process_task(
-        self, executor: Executor, activation: TaskActivation, processing_deadline: datetime | None
+        self, activation: TaskActivation, processing_deadline: datetime
     ) -> tuple[TaskActivation | None, datetime | None]:
         from sentry.taskworker.service.client import task_client
 
@@ -116,26 +120,34 @@ class Worker:
         task_added_time = activation.received_at.seconds
         execution_time = time.time()
         next_state = TASK_ACTIVATION_STATUS_FAILURE
-        future = None
+        result = None
         try:
             task_data_parameters = orjson.loads(activation.parameters)
             processing_timeout = (processing_deadline - datetime.now()).total_seconds()
-            future = executor.submit(
-                worker_process._process_activation,
-                self.options["namespace"],
-                activation.taskname,
-                task_data_parameters["args"],
-                task_data_parameters["kwargs"],
+            result = self.__pool.apply_async(
+                func=worker_process._process_activation,
+                args=(
+                    self.options["namespace"],
+                    activation.taskname,
+                    task_data_parameters["args"],
+                    task_data_parameters["kwargs"],
+                ),
             )
 
             # Will trigger a TimeoutError if the task execution runs long
-            future.result(timeout=processing_timeout)
+            result.get(timeout=processing_timeout)
 
             next_state = TASK_ACTIVATION_STATUS_COMPLETE
+        except TimeoutError:
+            logger.info("taskworker.task_execution_timeout")
+            # When a task times out we kill the entire pool. This is necessary because
+            # stdlib multiprocessing.Pool doesn't expose ways to terminate individual tasks.
+            self.__pool.terminate()
+            self._build_pool()
         except Exception as err:
-            if future:
-                future.cancel()
-            logger.info("taskworker.task_errored", extra={"error": str(err)})
+            logger.info(
+                "taskworker.task_errored", extra={"type": str(err.__class__), "error": str(err)}
+            )
             # TODO check retry policy
             if self.namespace.get(activation.taskname).should_retry(activation.retry_state, err):
                 logger.info("taskworker.task.retry", extra={"task": activation.taskname})

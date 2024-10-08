@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import logging
 import time
-from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
+from multiprocessing.context import TimeoutError
+from multiprocessing.pool import Pool
 from uuid import uuid4
 
 import grpc
@@ -36,8 +38,10 @@ class WorkerServicer(BaseWorkerServiceServicer):
         self.options = options
         self.do_imports()
         self.__worker_id = uuid4().hex
-        # TODO we are not waiting for threads to complete on shutdown
-        self.executor = ProcessPoolExecutor(max_workers=2)
+        self._build_pool()
+
+    def _build_pool(self) -> None:
+        self.__pool = Pool(processes=2)
 
     @property
     def namespace(self) -> TaskNamespace:
@@ -63,24 +67,29 @@ class WorkerServicer(BaseWorkerServiceServicer):
         task_added_time = activation.received_at.seconds
         execution_time = time.time()
         next_state = TASK_ACTIVATION_STATUS_FAILURE
-        future = None
+        result = None
         try:
             task_data_parameters = orjson.loads(activation.parameters)
-            # TODO: Reuse this process pool
-            future = self.executor.submit(
+            result = self.__pool.apply_async(
                 worker_process._process_activation,
-                self.options["namespace"],
-                activation.taskname,
-                task_data_parameters["args"],
-                task_data_parameters["kwargs"],
+                args=[
+                    self.options["namespace"],
+                    activation.taskname,
+                    task_data_parameters["args"],
+                    task_data_parameters["kwargs"],
+                ],
             )
-            future.result(
+            result.get(
                 timeout=(request.processing_deadline.ToDatetime() - datetime.now()).total_seconds()
             )
             next_state = TASK_ACTIVATION_STATUS_COMPLETE
+        except TimeoutError:
+            logger.info("taskworker.task_execution_timeout")
+            # When a task times out we kill the entire pool. This is necessary because
+            # stdlib multiprocessing.Pool doesn't expose ways to terminate individual tasks.
+            self.__pool.terminate()
+            self._build_pool()
         except Exception as err:
-            if future:
-                future.cancel()
             logger.info("taskworker.task_errored", extra={"error": str(err)})
             # TODO check retry policy
             if self.namespace.get(activation.taskname).should_retry(activation.retry_state, err):

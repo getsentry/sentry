@@ -1,6 +1,7 @@
 import functools
 import itertools
 import logging
+import math
 import random
 import time
 from abc import ABC, abstractmethod
@@ -62,6 +63,49 @@ def exponential_delay(duration: float) -> Callable[[int], float]:
 
     def delay(attempt: int) -> float:
         return float(2 ** (attempt - 1)) * duration
+
+    return delay
+
+
+def sigmoid_delay(offset: int = -5, midpoint: int = 0, step: int = 1) -> Callable[[int], float]:
+    """
+    Returns an S-Curve function.
+
+    A sigmoid is the intersection of these two behaviors:
+        `while(true): retry() # immediate retry`
+    and
+        `while(true): sleep(1); retry() # static-wait then retry`
+
+    The intersection of these two worlds is an exponential function which
+    gradually ramps the program up to (or down to) a stable state (the s-curve).
+    The sharpness of the curse is controlled with step. A step of 0 flattens the
+    curve. A step of infinity turns the curve into a step change (a vertical
+    line).
+
+    The sigmoid is more difficult to intuit than a simple exponential delay but it
+    allows you to cap the maximum amount of time you're willing to wait between
+    retries. The cap is _always_ 1 second regardless of the value of the other
+    arguments. If you want to wait longer than one second multiply the result of
+    the function by something!
+
+    Consider this program:
+        [sigmoid_delay()(i) for i in range(-5, 5)]
+    is equivalent to:
+        [0.006, 0.017, 0.0474, 0.119, 0.268, 0.5, 0.731, 0.880, 0.952, 0.982]
+
+    You get the same results with:
+        [sigmoid_delay()(i) for i in range(10)]
+    except the window has changed:
+        [0.5, 0.731, 0.880, 0.952, 0.982, ...]
+
+    Now you see further along the curve. This explains the utility of the `offset`
+    parameter. The offset allows you to slide along the window. A smaller offset
+    gives you faster retries. A larger offset gives you slower retries. An offset
+    pushed too far past the midpoint reduces this function to a static wait.
+    """
+
+    def delay(attempt: int) -> float:
+        return 1 / (1 + math.exp(-step * ((attempt + offset) - midpoint)))
 
     return delay
 
