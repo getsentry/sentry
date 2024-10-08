@@ -108,7 +108,7 @@ metadata = IntegrationMetadata(
 
 # Some Jira errors for invalid field values don't actually provide the field
 # ID in an easily mappable way, so we have to manually map known error types
-# here to make it easier
+# here to make it explicit to the user what failed.
 CUSTOM_ERROR_MESSAGE_MATCHERS = [(re.compile("Team with id '.*' not found.$"), "Team Field")]
 
 # Hide linked issues fields because we don't have the necessary UI for fully specifying
