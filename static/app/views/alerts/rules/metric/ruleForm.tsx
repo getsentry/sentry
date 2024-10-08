@@ -1099,12 +1099,20 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
         this.setState(rest);
       }
     } catch (e) {
-      const chartErrorMessage =
-        e.responseJSON && typeof e.responseJSON === 'object'
-          ? e.responseJSON.detail
-          : typeof e.responseJSON === 'string'
-            ? e.responseJSON
-            : e.message || e;
+      let chartErrorMessage: string | undefined;
+      if (e.responseJSON) {
+        if (typeof e.responseJSON === 'object' && e.responseJSON.detail) {
+          chartErrorMessage = e.responseJSON.detail;
+        }
+        if (typeof e.responseJSON === 'string') {
+          chartErrorMessage = e.responseJSON;
+        }
+      } else if (typeof e.message === 'string') {
+        chartErrorMessage = e.message;
+      } else {
+        chartErrorMessage = t('Something went wrong when rendering this chart.');
+      }
+
       this.setState({
         chartError: true,
         chartErrorMessage,
