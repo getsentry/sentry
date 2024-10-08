@@ -126,7 +126,7 @@ def configoptions(ctx: click.Context, dry_run: bool, file: str | None, hide_drif
 
     drifted_options = set()
     invalid_options = set()
-    presenter_delegator = PresenterDelegator("options-automator")
+    presenter_delegator = PresenterDelegator("options-automator", dry_run=dry_run)
     ctx.obj["presenter_delegator"] = presenter_delegator
 
     for key, value in options_to_update.items():
