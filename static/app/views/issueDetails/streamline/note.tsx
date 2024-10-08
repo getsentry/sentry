@@ -114,8 +114,7 @@ function StreamlinedNoteInput({
 
   const handleKeyDown: MentionsInputProps['onKeyDown'] = useCallback(
     e => {
-      // Auto submit the form on [meta,ctrl] + Enter
-      if (e.key === 'Enter' && !e.shiftKey && canSubmit) {
+      if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && canSubmit) {
         handleSubmit(e);
       }
     },
