@@ -1,6 +1,5 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
-import debounce from 'lodash/debounce';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
@@ -26,6 +25,7 @@ import {
   useQuery,
 } from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
+import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useCompactSelectOptionsCache} from 'sentry/views/insights/common/utils/useCompactSelectOptionsCache';
 
 const queryClient = new QueryClient(DEFAULT_QUERY_CLIENT_CONFIG);
@@ -120,7 +120,8 @@ function ProjectSelection({hash, organizations = []}: Omit<Props, 'allowSelectio
   const baseApi = useApi({api: BASE_API_CLIENT});
   const lastOrganization = useLastOrganization(organizations);
   const [search, setSearch] = useState('');
-  const [pendingSearch, setPendingSearch] = useState(false);
+  const debouncedSearch = useDebouncedValue(search, 300);
+  const isSearchStale = search !== debouncedSearch;
   const [selectedOrgId, setSelectedOrgId] = useState<string | null>(() => {
     if (organizations.length === 1) {
       return organizations[0].id;
@@ -140,7 +141,7 @@ function ProjectSelection({hash, organizations = []}: Omit<Props, 'allowSelectio
 
   const orgProjectsRequest = useOrganizationProjects({
     organization: selectedOrg,
-    search: search,
+    search: debouncedSearch,
   });
 
   const selectedProject = useMemo(
@@ -210,15 +211,6 @@ function ProjectSelection({hash, organizations = []}: Omit<Props, 'allowSelectio
 
   const {options: cachedProjectOptions} = useCompactSelectOptionsCache(projectOptions);
 
-  const handleSearch = useMemo(
-    () =>
-      debounce((value: string) => {
-        setSearch(value);
-        setPendingSearch(false);
-      }, 300),
-    []
-  );
-
   const isFormValid = selectedOrg && selectedProject;
 
   if (isSuccess) {
@@ -265,10 +257,7 @@ function ProjectSelection({hash, organizations = []}: Omit<Props, 'allowSelectio
             // Remount the component when the org changes to reset the component state
             // TODO(aknaus): investigate why the selection is not reset when the value changes to null
             key={selectedOrgId}
-            onSearch={value => {
-              setPendingSearch(true);
-              handleSearch(value);
-            }}
+            onSearch={setSearch}
             disabled={!selectedOrgId}
             value={selectedProjectId as string}
             searchable
@@ -287,7 +276,7 @@ function ProjectSelection({hash, organizations = []}: Omit<Props, 'allowSelectio
               setSelectedProjectId(value as string);
             }}
             emptyMessage={
-              orgProjectsRequest.isPending || pendingSearch
+              orgProjectsRequest.isPending || isSearchStale
                 ? t('Loading...')
                 : search
                   ? t('No projects matching search')
