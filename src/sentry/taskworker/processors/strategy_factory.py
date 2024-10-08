@@ -69,7 +69,7 @@ class StrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         self.max_pending_timeout = 8 * 60
 
         # Maximum number of pending inflight activations in the store before backpressure is emitted
-        self.max_inflight_activation_in_store = 1000  # TODO: make this a parameter
+        self.max_inflight_activation_in_store = 1000  # make this configurable
 
         self.pending_task_store = PendingTaskStore()
 
