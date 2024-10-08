@@ -39,6 +39,8 @@ class MessagingInteractionType(Enum):
     UNFURL_METRIC_ALERTS = "UNFURL_METRIC_ALERTS"
     UNFURL_DISCOVER = "UNFURL_DISCOVER"
 
+    GET_PARENT_NOTIFICATION = "GET_PARENT_NOTIFICATION"
+
     def __str__(self) -> str:
         return self.value.lower()
 
