@@ -80,6 +80,7 @@ describe('incremental trace fetch', () => {
       },
     });
 
+    tree.build();
     expect(tree.list.length).toBe(3);
 
     tree.fetchAdditionalTraces({
@@ -152,6 +153,7 @@ describe('incremental trace fetch', () => {
       },
     });
 
+    tree.build();
     expect(tree.list.length).toBe(3);
 
     tree.fetchAdditionalTraces({
@@ -165,6 +167,7 @@ describe('incremental trace fetch', () => {
     });
 
     await waitFor(() => expect(tree.root.children[0].fetchStatus).toBe('idle'));
+    tree.build();
 
     expect(tree.list.length).toBe(7);
     expect(mockedResponse1).toHaveBeenCalledTimes(1);

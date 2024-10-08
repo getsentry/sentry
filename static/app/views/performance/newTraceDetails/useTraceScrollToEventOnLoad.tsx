@@ -15,8 +15,7 @@ type UseTraceScrollToEventOnLoadProps = {
   manager: VirtualizedViewManager;
   onTraceLoad: (
     trace: TraceTree,
-    node: TraceTreeNode<TraceTree.NodeValue> | null,
-    index: number | null
+    node: TraceTreeNode<TraceTree.NodeValue> | null
   ) => void;
   rerender: () => void;
   scheduler: TraceScheduler;
@@ -41,7 +40,7 @@ export function useTraceScrollToEventOnLoad(options: UseTraceScrollToEventOnLoad
     initializedRef.current = true;
 
     if (!scrollQueueRef.current) {
-      onTraceLoad(trace, null, null);
+      onTraceLoad(trace, null);
       return;
     }
 
@@ -105,7 +104,7 @@ export function useTraceScrollToEventOnLoad(options: UseTraceScrollToEventOnLoad
             parent_node = parent_node.parent;
           }
         }
-        onTraceLoad(trace, node, index === -1 ? null : index);
+        onTraceLoad(trace, node);
       })
       .finally(() => {
         // Important to set scrollQueueRef.current to null and trigger a rerender

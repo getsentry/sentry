@@ -407,14 +407,13 @@ export class TraceTree extends TraceTreeEventDispatcher {
     traceNode.space = [space[0], space[1]];
 
     tree.indicators.sort((a, b) => a.start - b.start);
-    return tree.build();
+    return tree;
   }
 
   static FromSpans(
     root: TraceTreeNode<TraceTree.NodeValue>,
     spans: TraceTree.Span[],
-    event: EventTransaction | null,
-    options: {sdk: string | undefined} | undefined
+    event: EventTransaction | null
   ): TraceTreeNode<TraceTree.NodeValue> {
     // collect transactions
     const transactions = TraceTree.FindAll(root, n =>
@@ -524,13 +523,6 @@ export class TraceTree extends TraceTreeEventDispatcher {
     }
 
     root.space = subTreeSpaceBounds;
-
-    // @TODO: each of these steps runs in On. If n becomes an issue as
-    // some traces can have tens of thousands of spans, we can optimize this by trying
-    // to run it all in a single pass.
-    TraceTree.DetectMissingInstrumentation(root, 100, options?.sdk);
-    TraceTree.AutogroupSiblingSpanNodes(root);
-    TraceTree.AutogroupDirectChildrenSpanNodes(root);
     return root;
   }
 
@@ -1379,9 +1371,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
 
         // API response is not sorted
         spans.data.sort((a, b) => a.start_timestamp - b.start_timestamp);
-        const root = TraceTree.FromSpans(node, spans.data, data, {
-          sdk: data.sdk?.name,
-        });
+        const root = TraceTree.FromSpans(node, spans.data, data);
 
         root.zoomedIn = true;
         // Spans contain millisecond precision, which means that it is possible for the
