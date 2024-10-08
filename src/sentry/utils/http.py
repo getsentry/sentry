@@ -228,17 +228,21 @@ def is_using_customer_domain(request: HttpRequest) -> TypeGuard[_HttpRequestWith
     return bool(hasattr(request, "subdomain") and request.subdomain)
 
 
-def get_api_relative_path(request: Request, scope: str | None) -> str:
+def get_api_path_from_request(request: HttpRequest, scope: str | None) -> str:
     """
-    Gets a suffix of request.path without the /api/<version>/ prefix, or org/project scopes.
-    @param scope - either "organization", "project", or None. Group endpoints aren't supported.
+    Returns request.path without the specific org, project, or group identifiers, depending on `scope`.
+
+    @param request - the request object.
+    @param scope - "organization", "project", "group", or None.
     """
-    path_segments = request.path.split("/")
-    idx = 0
-    if scope is None:
-        idx = 2
-    elif scope == "organization":
-        idx = 3
-    elif scope == "project":
-        idx = 4
-    return "/" + "/".join(path_segments[idx:]) + "/"
+    segments = request.path.split("/")
+    if scope is not None:
+        segments[2] = "<organization_id_or_slug>"
+
+    if scope == "project":
+        segments[3] = "<project_id_or_slug>"
+    elif scope == "group":
+        # segments[3] is either "issues" or "groups"
+        segments[4] = "<group_id>"
+
+    return "/" + "/".join(segments) + "/"

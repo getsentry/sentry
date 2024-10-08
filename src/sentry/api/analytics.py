@@ -54,14 +54,18 @@ class DevToolbarRequestEvent(analytics.Event):
 
 
 def track_devtoolbar_api_analytics(
-    request: Request, org_slug: str | None = None, project_slug: str | None = None
+    request: Request,
+    scope: str | None,
+    org_slug: str | None = None,
+    project_slug: str | None = None,
 ):
+    """
+    @param scope - "organization", "project", "group", or None.
+    """
     try:
         origin = origin_from_request(request)
         query = query_string(request)  # starts with ?
-        path = get_api_relative_path(
-            request, scope="project" if project_slug else "organization" if org_slug else None
-        )
+        path = get_api_relative_path(request, scope)
         analytics.record(
             "devtoolbar.request",
             path=path,
