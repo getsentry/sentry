@@ -411,6 +411,7 @@ class GitHubInstallationError(StrEnum):
     PENDING_DELETION = "GitHub installation pending deletion."
     INSTALLATION_EXISTS = "Github installed on another Sentry organization."
     USER_MISMATCH = "Authenticated user is not the same as who installed the app."
+    MISSING_INTEGRATION = "Integration does not exist."
 
 
 def record_event(event: IntegrationPipelineViewType):
@@ -480,7 +481,11 @@ class OAuthLoginView(PipelineView):
             authenticated_user_info = get_user_info(payload["access_token"])
             if "login" not in authenticated_user_info:
                 lifecycle.record_failure({"failure_reason": GitHubInstallationError.MISSING_LOGIN})
-                return error(request, self.active_organization, error_short="Missing login info")
+                return error(
+                    request,
+                    self.active_organization,
+                    error_short=GitHubInstallationError.MISSING_LOGIN,
+                )
 
             pipeline.bind_state("github_authenticated_user", authenticated_user_info["login"])
             return pipeline.next_step()
@@ -553,7 +558,9 @@ class GitHubInstallation(PipelineView):
                     external_id=installation_id, status=ObjectStatus.ACTIVE
                 )
             except Integration.DoesNotExist:
-                lifecycle.record_failure({"failure_reason": "Integration does not exist"})
+                lifecycle.record_failure(
+                    {"failure_reason": GitHubInstallationError.MISSING_INTEGRATION}
+                )
                 return error(request, self.active_organization)
 
             # Check that the authenticated GitHub user is the same as who installed the app.

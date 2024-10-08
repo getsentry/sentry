@@ -154,7 +154,7 @@ class EventLifecycle:
         self._terminate(EventLifecycleOutcome.SUCCESS)
 
     def record_failure(
-        self, exc: BaseException | None = None, data: dict[str, Any] | None = None
+        self, exc: BaseException | None = None, extra: dict[str, Any] | None = None
     ) -> None:
         """Record that the event halted in failure. Additional data may be passed
         to be logged.
@@ -169,8 +169,8 @@ class EventLifecycle:
         `record_failure` on the context object.
         """
 
-        if data:
-            self._extra.update(data)
+        if extra:
+            self._extra.update(extra)
         self._terminate(EventLifecycleOutcome.FAILURE, exc)
 
     def __enter__(self) -> Self:
