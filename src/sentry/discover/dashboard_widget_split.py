@@ -164,12 +164,10 @@ def _get_and_save_split_decision_for_dashboard_widget(
                 metrics_query_result.get("data")
                 # No results were returned at all
                 and len(metrics_query_result["data"]) > 0
-                # All of the aggregates in any possible row return 0
                 and any(
-                    metrics_query_result["data"][row][column] > 0
+                    metrics_query_result["data"][0][column] > 0
                     for column in selected_columns
                     if is_aggregate(column)
-                    for row in range(len(metrics_query_result["data"]))
                 )
             )
             if has_metrics_data:
@@ -227,7 +225,7 @@ def _get_and_save_split_decision_for_dashboard_widget(
             _save_split_decision_for_widget(
                 widget,
                 DashboardWidgetTypes.ERROR_EVENTS,
-                DatasetSourcesTypes.SPLIT_VERSION_1,
+                DatasetSourcesTypes.SPLIT_VERSION_2,
             )
         return DashboardWidgetTypes.ERROR_EVENTS, True
 
