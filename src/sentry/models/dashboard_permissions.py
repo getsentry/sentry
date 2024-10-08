@@ -22,4 +22,4 @@ class DashboardPermissions(Model):
         app_label = "sentry"
         db_table = "sentry_dashboardpermissions"
 
-    __repr__ = sane_repr("created_by_id", "is_creator_only_editable")
+    __repr__ = sane_repr("is_creator_only_editable")
