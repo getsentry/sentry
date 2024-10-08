@@ -1,11 +1,9 @@
-import {useCallback, useMemo, useState} from 'react';
+import {useCallback, useMemo, useRef} from 'react';
 import type {
   DataZoomComponentOption,
   InsideDataZoomComponentOption,
   ToolboxComponentOption,
-  XAXisComponentOption,
 } from 'echarts';
-import moment from 'moment-timezone';
 import * as qs from 'query-string';
 
 import {updateDateTime} from 'sentry/actionCreators/pageFilters';
@@ -13,63 +11,49 @@ import DataZoomInside from 'sentry/components/charts/components/dataZoomInside';
 import DataZoomSlider from 'sentry/components/charts/components/dataZoomSlider';
 import ToolBox from 'sentry/components/charts/components/toolBox';
 import type {DateString} from 'sentry/types/core';
-import type {
-  EChartChartReadyHandler,
-  EChartDataZoomHandler,
-  EChartFinishedHandler,
-  EChartRestoreHandler,
-} from 'sentry/types/echarts';
+import type {EChartDataZoomHandler, EChartFinishedHandler} from 'sentry/types/echarts';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
-import {getUtcDateString, getUtcToLocalDateObject} from 'sentry/utils/dates';
+import {getUtcDateString} from 'sentry/utils/dates';
 
 // TODO: replace usages of ChartZoom with useChartZoom
 
-const getDate = date =>
-  date ? moment.utc(date).format(moment.HTML5_FMT.DATETIME_LOCAL_SECONDS) : null;
+type DateTimeUpdate = Parameters<typeof updateDateTime>[0];
 
-type Period = {
-  end: DateString;
-  period: string | null;
-  start: DateString;
-};
+/**
+ * Our api query params expects a specific date format
+ */
+const getQueryTime = (date: DateString | undefined) =>
+  date ? getUtcDateString(date) : null;
 
-const ZoomPropKeys = [
-  'period',
-  'xAxis',
-  'onChartReady',
-  'onDataZoom',
-  'onRestore',
-  'onFinished',
-] as const;
-
-export interface ZoomRenderProps extends Pick<Props, (typeof ZoomPropKeys)[number]> {
-  dataZoom?: DataZoomComponentOption[];
-  end?: Date;
-  isGroupedByDate?: boolean;
-  showTimeInTooltip?: boolean;
-  start?: Date;
-  toolBox?: ToolboxComponentOption;
-  utc?: boolean;
+interface ZoomRenderProps {
+  dataZoom: DataZoomComponentOption[];
+  isGroupedByDate: boolean;
+  onDataZoom: EChartDataZoomHandler;
+  onFinished: EChartFinishedHandler;
+  toolBox: ToolboxComponentOption;
 }
 
 interface Props {
   children: (props: ZoomRenderProps) => React.ReactNode;
   chartZoomOptions?: DataZoomComponentOption;
+  /**
+   * Disables saving changes to the current period
+   */
   disabled?: boolean;
-  end?: DateString;
-  onChartReady?: EChartChartReadyHandler;
-  onDataZoom?: EChartDataZoomHandler;
-  onFinished?: EChartFinishedHandler;
-  onRestore?: EChartRestoreHandler;
-  onZoom?: (period: Period) => void;
-  period?: string | null;
+  onZoom?: (period: DateTimeUpdate) => void;
   router?: InjectedRouter;
+  /**
+   * Use either `saveOnZoom` or `usePageDate` not both
+   * Will persist zoom state to page filters
+   */
   saveOnZoom?: boolean;
   showSlider?: boolean;
-  start?: DateString;
+  /**
+   * Use either `saveOnZoom` or `usePageDate` not both
+   * Persists zoom state to query params without updating page filters.
+   * Sets the pageStart and pageEnd query params
+   */
   usePageDate?: boolean;
-  utc?: boolean | null;
-  xAxis?: XAXisComponentOption;
   xAxisIndex?: number | number[];
 }
 
@@ -78,51 +62,19 @@ interface Props {
  * the props that would be passed to the `BaseChart` as zoomRenderProps.
  */
 export function useChartZoom({
-  period,
-  start,
-  end,
-  utc,
   router,
   onZoom,
   usePageDate,
   saveOnZoom,
-  onChartReady,
-  onRestore,
-  onDataZoom,
-  onFinished,
   xAxisIndex,
   showSlider,
   chartZoomOptions,
-  xAxis,
-  disabled,
-}: Omit<Props, 'children'> = {}) {
-  const [currentPeriod, setCurrentPeriod] = useState<Period | undefined>({
-    period: period!,
-    start: getDate(start),
-    end: getDate(end),
-  });
-  const [history, setHistory] = useState<Period[]>([]);
-
-  const [zooming, setZooming] = useState<(() => void) | null>(null);
-
+}: Omit<Props, 'children'>): ZoomRenderProps {
   /**
-   * Save current period state from period in props to be used
-   * in handling chart's zoom history state
+   * Used to store the date update function so that we can call it after the chart
+   * animation is complete
    */
-  const saveCurrentPeriod = useCallback(
-    (newPeriod: Period) => {
-      if (disabled) {
-        return;
-      }
-
-      setCurrentPeriod({
-        period: newPeriod.period,
-        start: getDate(newPeriod.start),
-        end: getDate(newPeriod.end),
-      });
-    },
-    [disabled]
-  );
+  const zooming = useRef<(() => void) | null>(null);
 
   /**
    * Sets the new period due to a zoom related action
@@ -134,14 +86,9 @@ export function useChartZoom({
    * Saves a callback function to be called after chart animation is completed
    */
   const setPeriod = useCallback(
-    (newPeriod, saveHistory = false) => {
-      const startFormatted = getDate(newPeriod.start);
-      const endFormatted = getDate(newPeriod.end);
-
-      // Save period so that we can revert back to it when using echarts "back" navigation
-      if (saveHistory) {
-        setHistory(curr => [...curr, currentPeriod!]);
-      }
+    (newPeriod: DateTimeUpdate) => {
+      const startFormatted = getQueryTime(newPeriod.start);
+      const endFormatted = getQueryTime(newPeriod.end);
 
       // Callback to let parent component know zoom has changed
       // This is required for some more perceived responsiveness since
@@ -151,16 +98,16 @@ export function useChartZoom({
       // URL parameters are changed
       onZoom?.({
         period: newPeriod.period,
-        start: startFormatted,
-        end: endFormatted,
+        start: getQueryTime(newPeriod.start),
+        end: getQueryTime(newPeriod.end),
       });
 
-      setZooming(() => {
+      zooming.current = () => {
         if (usePageDate && router) {
           const newQuery = {
             ...router.location.query,
-            pageStart: newPeriod.start ? getUtcDateString(newPeriod.start) : undefined,
-            pageEnd: newPeriod.end ? getUtcDateString(newPeriod.end) : undefined,
+            pageStart: startFormatted,
+            pageEnd: endFormatted,
             pageStatsPeriod: newPeriod.period ?? undefined,
           };
 
@@ -175,69 +122,37 @@ export function useChartZoom({
           updateDateTime(
             {
               period: newPeriod.period,
-              start: startFormatted
-                ? getUtcToLocalDateObject(startFormatted)
-                : startFormatted,
-              end: endFormatted ? getUtcToLocalDateObject(endFormatted) : endFormatted,
+              start: startFormatted,
+              end: endFormatted,
             },
             router,
             {save: saveOnZoom}
           );
         }
-
-        saveCurrentPeriod(newPeriod);
-      });
+      };
     },
-    [currentPeriod, onZoom, router, saveCurrentPeriod, saveOnZoom, usePageDate]
+    [onZoom, router, saveOnZoom, usePageDate]
   );
 
-  /**
-   * Enable zoom immediately instead of having to toggle to zoom
-   */
-  const handleChartReady = chart => {
-    onChartReady?.(chart);
-  };
+  const handleDataZoom = useCallback<EChartDataZoomHandler>(
+    evt => {
+      // @ts-expect-error weirdly evt.startValue and evt.endValue do not exist
+      const {startValue, endValue} = evt.batch[0] as {
+        endValue: number | null;
+        startValue: number | null;
+      };
 
-  /**
-   * Restores the chart to initial viewport/zoom level
-   *
-   * Updates URL state to reflect initial params
-   */
-  const handleZoomRestore = (evt, chart) => {
-    if (!history.length) {
-      return;
-    }
-
-    setPeriod(history[0]);
-    setHistory([]);
-
-    onRestore?.(evt, chart);
-  };
-
-  const handleDataZoom = (evt, chart) => {
-    const model = chart.getModel();
-    const {startValue, endValue} = model._payload.batch[0];
-
-    // if `rangeStart` and `rangeEnd` are null, then we are going back
-    if (startValue === null && endValue === null) {
-      const previousPeriod = history.pop();
-      setHistory(history);
-
-      if (!previousPeriod) {
-        return;
+      // if `rangeStart` and `rangeEnd` are null, then we are going back
+      if (startValue && endValue) {
+        setPeriod({
+          period: null,
+          start: startValue ? getUtcDateString(startValue) : null,
+          end: endValue ? getUtcDateString(endValue) : null,
+        });
       }
-
-      setPeriod(previousPeriod);
-    } else {
-      setPeriod(
-        // Add a day so we go until the end of the day (e.g. next day at midnight)
-        {period: null, start: moment.utc(startValue), end: moment.utc(endValue)},
-        true
-      );
-    }
-
-    onDataZoom?.(evt, chart);
-  };
+    },
+    [setPeriod]
+  );
 
   /**
    * Chart event when *any* rendering+animation finishes
@@ -246,14 +161,15 @@ export function useChartZoom({
    * we can let the native zoom animation on the chart complete
    * before we update URL state and re-render
    */
-  const handleChartFinished = (_props, chart) => {
-    if (typeof zooming === 'function') {
-      zooming();
-      setZooming(null);
+  const handleChartFinished = useCallback<EChartFinishedHandler>((_props, chart) => {
+    if (typeof zooming.current === 'function') {
+      zooming.current();
+      zooming.current = null;
     }
 
     // This attempts to activate the area zoom toolbox feature
-    const zoom = chart._componentsViews?.find(c => c._features?.dataZoom);
+    // @ts-expect-error _componentsViews is private
+    const zoom = chart._componentsViews?.find((c: any) => c._features?.dataZoom);
     if (zoom && !zoom._features.dataZoom._isZoomActive) {
       // Calling dispatchAction will re-trigger handleChartFinished
       chart.dispatchAction({
@@ -262,31 +178,19 @@ export function useChartZoom({
         dataZoomSelectActive: true,
       });
     }
+  }, []);
 
-    if (typeof onFinished === 'function') {
-      onFinished(_props, chart);
-    }
-  };
-
-  const startProp = start ? getUtcToLocalDateObject(start) : undefined;
-  const endProp = end ? getUtcToLocalDateObject(end) : undefined;
-
-  const dataZoomProp = useMemo(() => {
+  const dataZoomProp = useMemo<DataZoomComponentOption[]>(() => {
+    const zoomInside = DataZoomInside({
+      xAxisIndex,
+      ...(chartZoomOptions as InsideDataZoomComponentOption),
+    });
     return showSlider
-      ? [
-          ...DataZoomSlider({xAxisIndex, ...chartZoomOptions}),
-          ...DataZoomInside({
-            xAxisIndex,
-            ...(chartZoomOptions as InsideDataZoomComponentOption),
-          }),
-        ]
-      : DataZoomInside({
-          xAxisIndex,
-          ...(chartZoomOptions as InsideDataZoomComponentOption),
-        });
+      ? [...DataZoomSlider({xAxisIndex, ...chartZoomOptions}), ...zoomInside]
+      : zoomInside;
   }, [chartZoomOptions, showSlider, xAxisIndex]);
 
-  const toolBox = useMemo(
+  const toolBox = useMemo<ToolboxComponentOption>(
     () =>
       ToolBox(
         {},
@@ -307,20 +211,13 @@ export function useChartZoom({
     []
   );
 
-  const renderProps = {
+  const renderProps: ZoomRenderProps = {
     // Zooming only works when grouped by date
     isGroupedByDate: true,
-    utc: utc ?? undefined,
-    start: startProp,
-    end: endProp,
-    xAxis,
     dataZoom: dataZoomProp,
-    showTimeInTooltip: true,
     toolBox,
-    onChartReady: handleChartReady,
     onDataZoom: handleDataZoom,
     onFinished: handleChartFinished,
-    onRestore: handleZoomRestore,
   };
 
   return renderProps;
