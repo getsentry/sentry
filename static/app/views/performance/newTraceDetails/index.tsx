@@ -776,18 +776,17 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
   // that is when the trace tree data and any data that the trace depends on is loaded,
   // but the trace is not yet rendered in the view.
   const onTraceLoad = useCallback(
-    (
-      _trace: TraceTree,
-      nodeToScrollTo: TraceTreeNode<TraceTree.NodeValue> | null,
-      indexOfNodeToScrollTo: number | null
-    ) => {
+    (_trace: TraceTree, nodeToScrollTo: TraceTreeNode<TraceTree.NodeValue> | null) => {
+      // @TODO indexof nodeToScrollTo
+      const indexOfNodeToScrollTo = 0;
+
       const query = qs.parse(location.search);
 
       if (query.fov && typeof query.fov === 'string') {
         viewManager.maybeInitializeTraceViewFromQS(query.fov);
       }
 
-      if (nodeToScrollTo !== null && indexOfNodeToScrollTo !== null) {
+      if (nodeToScrollTo !== null) {
         // At load time, we want to scroll the row into view, but we need to wait for the view
         // to initialize before we can do that. We listen for the 'initialize virtualized list' and scroll
         // to the row in the view if it is not in view yet. If its in the view, then scroll to it immediately.

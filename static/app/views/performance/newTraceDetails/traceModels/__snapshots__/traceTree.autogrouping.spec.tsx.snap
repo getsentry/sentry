@@ -23,7 +23,6 @@ exports[`autogrouping parent autogrouping autogroups siblings when they are chil
 trace root
   transaction - transaction.op
     parent autogroup (db: 3)
-      missing_instrumentation
       sibling autogroup (db: 5)
 "
 `;

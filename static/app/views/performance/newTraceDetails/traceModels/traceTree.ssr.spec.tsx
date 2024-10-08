@@ -61,12 +61,8 @@ describe('server side rendering', () => {
     TraceTree.FromSpans(
       tree.root.children[0].children[0],
       ssrSpans,
-      makeEventTransaction(),
-      {
-        sdk: undefined,
-      }
+      makeEventTransaction()
     );
-
     expect(tree.build().serialize()).toMatchSnapshot();
   });
 
