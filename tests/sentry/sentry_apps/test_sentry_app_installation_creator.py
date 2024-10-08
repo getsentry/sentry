@@ -87,14 +87,18 @@ class TestCreator(TestCase):
         ).exists()
 
     @responses.activate
+    # @patch("sentry.utils.sentry_apps.webhooks.send_and_save_webhook_request")
     def test_notifies_service(self):
-        responses.add(responses.POST, "https://example.com/webhook")
 
         rpc_user = user_service.get_user(user_id=self.user.id)
         with self.tasks():
-            self.run_creator()
-            assert json.loads(responses.calls[0].request.body).get("action") == "created"
-            assert json.loads(responses.calls[0].request.body).get("actor")["id"] == rpc_user.id
+            responses.add(responses.POST, "https://example.com/webhook")
+            install = self.run_creator()
+            response_body = json.loads(responses.calls[0].request.body)
+
+            assert response_body.get("installation").get("uuid") == install.uuid
+            assert response_body.get("action") == "created"
+            assert response_body.get("actor")["id"] == rpc_user.id
 
     @responses.activate
     def test_associations(self):
