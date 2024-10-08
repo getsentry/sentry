@@ -191,7 +191,7 @@ def process_event(
                 start_time=start_time,
                 event_id=event_id,
                 project_id=project_id,
-                queue=split_queue_router.route_for_queue("event.save_event_transaction"),
+                queue=split_queue_router.route_for_queue("events.save_event_transaction"),
             )
 
             try:
