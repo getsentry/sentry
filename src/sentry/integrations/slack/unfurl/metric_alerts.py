@@ -20,8 +20,8 @@ from sentry.integrations.messaging.metrics import (
 )
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import integration_service
-from sentry.integrations.slack import SlackMessagingSpec
 from sentry.integrations.slack.message_builder.metric_alerts import SlackMetricAlertMessageBuilder
+from sentry.integrations.slack.spec import SlackMessagingSpec
 from sentry.integrations.slack.unfurl.types import (
     Handler,
     UnfurlableUrl,
