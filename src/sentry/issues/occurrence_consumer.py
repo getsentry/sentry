@@ -18,6 +18,7 @@ from django.utils import timezone
 from sentry_sdk.tracing import NoOpSpan, Span, Transaction
 
 from sentry import features, nodestore
+from sentry import ratelimits as ratelimiter
 from sentry.event_manager import GroupInfo
 from sentry.eventstore.models import Event
 from sentry.issues.grouptype import get_group_type_by_type_id
@@ -317,6 +318,21 @@ def process_occurrence_message(
             tags=metric_tags,
         )
         txn.set_tag("result", "dropped_feature_disabled")
+        return None
+
+    # Rate limit based on project and fingerprint
+    rate_limit_key = f"occurrence_rate_limit:{occurrence_data['fingerprint']}"
+    if ratelimiter.is_limited(
+        rate_limit_key,
+        limit=10,
+        window=60,  # 10 occurrences per minute
+    ):
+        metrics.incr(
+            "occurrence_ingest.dropped_rate_limited",
+            sample_rate=1.0,
+            tags=metric_tags,
+        )
+        txn.set_tag("result", "dropped_rate_limited")
         return None
 
     if "event_data" in kwargs and is_buffered_spans:
