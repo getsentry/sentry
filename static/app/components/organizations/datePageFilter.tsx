@@ -3,6 +3,7 @@ import type {TimeRangeSelectorProps} from 'sentry/components/timeRangeSelector';
 import {TimeRangeSelector} from 'sentry/components/timeRangeSelector';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
@@ -52,10 +53,12 @@ export function DatePageFilter({
 
         onChange?.(timePeriodUpdate);
 
-        trackAnalytics('dashboards2.filter.change', {
-          organization,
-          filter_type: 'day',
-        });
+        if (getRouteStringFromRoutes(router.routes).includes('dashboardsId')) {
+          trackAnalytics('dashboards2.filter.change', {
+            organization,
+            filter_type: 'day',
+          });
+        }
 
         updateDateTime(newTimePeriod, router, {
           save: true,
