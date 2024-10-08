@@ -228,21 +228,30 @@ def is_using_customer_domain(request: HttpRequest) -> TypeGuard[_HttpRequestWith
     return bool(hasattr(request, "subdomain") and request.subdomain)
 
 
-def get_api_path_from_request(request: HttpRequest, scope: str | None) -> str:
+def get_api_path_from_request(request: HttpRequest, endpoint_scope: str | None) -> str:
     """
     Returns request.path without the specific org, project, or group identifiers, depending on `scope`.
 
-    @param request - the request object.
-    @param scope - "organization", "project", "group", or None.
+    @param request        - the request object.
+    @param endpoint_scope - "organization", "project", "group", or None.
     """
     segments = request.path.split("/")
-    if scope is not None:
+    if endpoint_scope is not None:
         segments[2] = "<organization_id_or_slug>"
 
-    if scope == "project":
+    if endpoint_scope == "project":
         segments[3] = "<project_id_or_slug>"
-    elif scope == "group":
+    elif endpoint_scope == "group":
         # segments[3] is either "issues" or "groups"
         segments[4] = "<group_id>"
 
     return "/" + "/".join(segments) + "/"
+
+
+def parse_id_or_slug_param(id_or_slug: str | None) -> tuple[int | None, str | None]:
+    if not id_or_slug:
+        return None, None
+
+    if id_or_slug.isnumeric():
+        return int(id_or_slug), None
+    return None, id_or_slug

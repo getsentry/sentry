@@ -43,9 +43,12 @@ from sentry.utils.cursors import Cursor
 from sentry.utils.dates import to_datetime
 from sentry.utils.http import (
     absolute_uri,
+    get_api_path_from_request,
     is_using_customer_domain,
     is_valid_origin,
     origin_from_request,
+    parse_id_or_slug_param,
+    query_string,
 )
 from sentry.utils.sdk import capture_exception, merge_context_into_scope
 
@@ -705,6 +708,55 @@ class ReleaseAnalyticsMixin:
             project_ids=project_ids,
             user_agent=request.META.get("HTTP_USER_AGENT", ""),
         )
+
+
+class DevtoolbarAnalyticsMixin:
+    # Must come before the base Endpoint in the inheritance chain. Ex: MyEndpoint(DevtoolbarAnalyticsMixin, Endpoint)
+    def dispatch(self, request, *args, **kwargs):
+        org_id, org_slug, project_id, project_slug = None, None, None, None
+        try:
+            if request.headers.get("queryReferrer") == "devtoolbar":
+                org_id_or_slug = kwargs.get(
+                    "organization_id_or_slug", kwargs.get("organization_slug")
+                )
+                org_id, org_slug = parse_id_or_slug_param(org_id_or_slug)
+
+                project_id_or_slug = kwargs.get("project_id_or_slug")
+                project_id, project_slug = parse_id_or_slug_param(project_id_or_slug)
+
+                issue_id = kwargs.get("issue_id")
+                scope = (
+                    "group"
+                    if issue_id
+                    else "project"
+                    if project_id_or_slug
+                    else "organization"
+                    if org_id_or_slug
+                    else None
+                )
+
+                origin = origin_from_request(request)
+                query = query_string(request)  # starts with '?'
+                path = get_api_path_from_request(request, scope)
+                analytics.record(
+                    "devtoolbar.request",
+                    path=path,
+                    query=query,
+                    origin=origin,
+                    organization_id=str(org_id) if org_id else None,
+                    organization_slug=org_slug,
+                    project_id=str(project_id) if project_id else None,
+                    project_slug=project_slug,
+                    issue_id=issue_id,
+                    user_id=str(request.user.id) if request.user else None,
+                )
+        except Exception:
+            logger.exception(
+                "devtoolbar: failed to record api analytics event.",
+                extra={"org_slug": org_slug, "project_slug": project_slug},
+            )
+
+        super().dispatch(*args, **kwargs)  # type: ignore[attr-defined]
 
 
 class EndpointSiloLimit(SiloLimit):

@@ -11,7 +11,7 @@ from rest_framework.exceptions import ParseError, PermissionDenied
 from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 
-from sentry.api.base import Endpoint
+from sentry.api.base import DevtoolbarAnalyticsMixin, Endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.environments import get_environments
 from sentry.api.permissions import SentryPermission, StaffPermissionMixin
@@ -228,7 +228,7 @@ class OrganizationMetricsPermission(OrganizationPermission):
     }
 
 
-class ControlSiloOrganizationEndpoint(Endpoint):
+class ControlSiloOrganizationEndpoint(DevtoolbarAnalyticsMixin, Endpoint):
     """
     A base class for endpoints that use an organization scoping but lives in the control silo
     """
@@ -319,7 +319,7 @@ def _validate_fetched_projects(
         raise PermissionDenied
 
 
-class OrganizationEndpoint(Endpoint):
+class OrganizationEndpoint(DevtoolbarAnalyticsMixin, Endpoint):
     permission_classes: tuple[type[BasePermission], ...] = (OrganizationPermission,)
 
     def get_projects(

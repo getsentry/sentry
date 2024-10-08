@@ -1,11 +1,4 @@
-import logging
-
-from rest_framework.request import Request
-
 from sentry import analytics
-from sentry.utils.http import get_api_relative_path, origin_from_request, query_string
-
-logger = logging.getLogger(__name__)
 
 
 class OrganizationSavedSearchCreatedEvent(analytics.Event):
@@ -47,39 +40,13 @@ class DevToolbarRequestEvent(analytics.Event):
         analytics.Attribute("path"),  # path to endpoint
         analytics.Attribute("query"),  # string or dict?
         analytics.Attribute("origin"),
-        analytics.Attribute("organization_slug"),
-        analytics.Attribute("project_slug"),
+        analytics.Attribute("organization_id", required=False),
+        analytics.Attribute("organization_slug", required=False),
+        analytics.Attribute("project_id", required=False),
+        analytics.Attribute("project_slug", required=False),
+        analytics.Attribute("issue_id", required=False),
         analytics.Attribute("user_id"),  # needed to aggregate/send to amplitude(?)
     )
-
-
-def track_devtoolbar_api_analytics(
-    request: Request,
-    scope: str | None,
-    org_slug: str | None = None,
-    project_slug: str | None = None,
-):
-    """
-    @param scope - "organization", "project", "group", or None.
-    """
-    try:
-        origin = origin_from_request(request)
-        query = query_string(request)  # starts with ?
-        path = get_api_relative_path(request, scope)
-        analytics.record(
-            "devtoolbar.request",
-            path=path,
-            query=query,
-            origin=origin,
-            organization_slug=org_slug,
-            project_slug=project_slug,
-            user_id=str(request.user.id) if request.user else None,
-        )
-    except Exception:
-        logger.exception(
-            "devtoolbar: failed to record api analytics event.",
-            extra={"org_slug": org_slug, "project_slug": project_slug},
-        )
 
 
 analytics.register(OrganizationSavedSearchCreatedEvent)
