@@ -2,7 +2,6 @@ import {useCallback, useEffect, useRef} from 'react';
 import {useNavigate as useReactRouter6Navigate} from 'react-router-dom';
 import type {LocationDescriptor} from 'history';
 
-import {NODE_ENV} from 'sentry/constants';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 
 import {locationDescriptorToTo} from './reactRouter6Compat/location';
@@ -27,9 +26,9 @@ interface ReactRouter3Navigate {
 export function useNavigate(): ReactRouter3Navigate {
   // When running in test mode we still read from the legacy route context to
   // keep test compatability while we fully migrate to react router 6
-  const useReactRouter6 = NODE_ENV !== 'test';
+  const legacyRouterContext = useRouteContext();
 
-  if (useReactRouter6) {
+  if (!legacyRouterContext) {
     // biome-ignore lint/correctness/useHookAtTopLevel: react-router-6 migration
     const router6Navigate = useReactRouter6Navigate();
 
@@ -51,8 +50,7 @@ export function useNavigate(): ReactRouter3Navigate {
   // XXX(epurkihser): We are using react-router 3 here, to avoid recursive
   // dependencies we just use the useRouteContext instead of useRouter here
 
-  // biome-ignore lint/correctness/useHookAtTopLevel: react-router-6 migration
-  const {router} = useRouteContext();
+  const {router} = legacyRouterContext;
 
   // biome-ignore lint/correctness/useHookAtTopLevel: react-router-6 migration
   const hasMountedRef = useRef(false);

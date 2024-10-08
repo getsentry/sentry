@@ -88,9 +88,9 @@ export function EventList({group}: EventListProps) {
                 {isPending
                   ? null
                   : tct('Showing [start]-[end] of [count]', {
-                      start: start,
-                      end: start + pageEventsCount,
-                      count: totalEventsCount,
+                      start: start.toLocaleString(),
+                      end: (start + pageEventsCount).toLocaleString(),
+                      count: (totalEventsCount ?? 0).toLocaleString(),
                     })}
               </EventListHeaderItem>
               <EventListHeaderItem>
