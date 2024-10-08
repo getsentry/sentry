@@ -140,8 +140,7 @@ class JiraIntegration(IssueSyncIntegration):
                     "items": [],  # Populated with projects
                 },
                 "mappedSelectors": {
-                    "on_resolve": {"choices": [], "placeholder": _("Select a status")},
-                    "on_unresolve": {"choices": [], "placeholder": _("Select a status")},
+                    # Populated on a per-project basis below
                 },
                 "columnLabels": {
                     "on_resolve": _("When resolved"),
@@ -149,6 +148,7 @@ class JiraIntegration(IssueSyncIntegration):
                 },
                 "mappedColumnLabel": _("Jira Project"),
                 "formatMessageValue": False,
+                "perItemMapping": True,
             },
             {
                 "name": self.outbound_assignee_key,
@@ -207,12 +207,29 @@ class JiraIntegration(IssueSyncIntegration):
         client = self.get_client()
 
         try:
-            statuses = [(c["id"], c["name"]) for c in client.get_valid_statuses()]
-            configuration[0]["mappedSelectors"]["on_resolve"]["choices"] = statuses
-            configuration[0]["mappedSelectors"]["on_unresolve"]["choices"] = statuses
-
             projects = [{"value": p["id"], "label": p["name"]} for p in client.get_projects_list()]
             configuration[0]["addDropdown"]["items"] = projects
+
+            # Each project can have a different set of statuses assignable for
+            # issues, so we need to create per-project mappings.
+            for proj in projects:
+                project_statuses = client.get_project_statuses(proj["value"]).get("values")
+                if not project_statuses:
+                    continue
+
+                statuses_for_project = [(c["id"], c["name"]) for c in project_statuses]
+
+                configuration[0]["mappedSelectors"][str(proj["value"])] = {
+                    "on_resolve": {
+                        "choices": statuses_for_project,
+                        "placeholder": _("Select a status"),
+                    },
+                    "on_unresolve": {
+                        "choices": statuses_for_project,
+                        "placeholder": _("Select a status"),
+                    },
+                }
+
         except ApiError:
             configuration[0]["disabled"] = True
             configuration[0]["disabledReason"] = _(
