@@ -1,4 +1,4 @@
-name: docker-compose-backend
+name: test-docker-compose-backend
 
 on:
   schedule:
