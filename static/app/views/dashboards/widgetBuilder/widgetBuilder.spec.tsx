@@ -8,7 +8,6 @@ import {WidgetFixture} from 'sentry-fixture/widget';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   act,
-  fireEvent,
   render,
   renderGlobalModal,
   screen,
@@ -479,16 +478,12 @@ describe('WidgetBuilder', function () {
       dashboard: testDashboard,
     });
 
-    const search = await screen.findByTestId(/smart-search-input/);
-
-    await userEvent.click(search);
-
-    // Use fireEvent for performance reasons as this test suite is slow
-    fireEvent.paste(search, {
-      target: {value: 'color:blue'},
-      clipboardData: {getData: () => 'color:blue'},
-    });
+    await userEvent.click(
+      await screen.findByRole('combobox', {name: 'Add a search term'})
+    );
+    await userEvent.paste('color:blue');
     await userEvent.keyboard('{enter}');
+
     await userEvent.click(screen.getByText('Add Widget'));
 
     await waitFor(() => {
@@ -1699,10 +1694,10 @@ describe('WidgetBuilder', function () {
     await userEvent.click(screen.getByText('Line Chart'));
     expect(eventsStatsMock).toHaveBeenCalledTimes(1);
 
-    await userEvent.type(
-      screen.getByTestId('smart-search-input'),
-      'transaction.duration:123a'
+    await userEvent.click(
+      await screen.findByRole('combobox', {name: 'Add a search term'})
     );
+    await userEvent.paste('transaction.duration:123a');
 
     // Unfocus input
     await userEvent.click(screen.getByText('Filter your results'));
