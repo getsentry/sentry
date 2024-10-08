@@ -1,9 +1,12 @@
+import {uuid4} from '@sentry/utils';
+
 import {EntryType, type Event, type EventTransaction} from 'sentry/types/event';
 import type {
   TracePerformanceIssue,
   TraceSplitResults,
 } from 'sentry/utils/performance/quickTrace/types';
 
+import type {TraceMetaQueryResults} from '../traceApi/useTraceMeta';
 import {
   isAutogroupedNode,
   isMissingInstrumentationNode,
@@ -17,6 +20,16 @@ import type {TraceTree} from '../traceModels/traceTree';
 import {ParentAutogroupNode} from './parentAutogroupNode';
 import {SiblingAutogroupNode} from './siblingAutogroupNode';
 import type {TraceTreeNode} from './traceTreeNode';
+
+export function makeEvent(
+  overrides: Partial<Event> = {},
+  spans: TraceTree.Span[] = []
+): Event {
+  return {
+    entries: [{type: EntryType.SPANS, data: spans}],
+    ...overrides,
+  } as Event;
+}
 
 export function makeTrace(
   overrides: Partial<TraceSplitResults<TraceTree.Transaction>>
@@ -37,7 +50,7 @@ export function makeTransaction(
     start_timestamp: 0,
     timestamp: 1,
     transaction: 'transaction',
-    'transaction.op': '',
+    'transaction.op': 'transaction.op',
     'transaction.status': '',
     performance_issues: [],
     errors: [],
@@ -45,17 +58,15 @@ export function makeTransaction(
   } as TraceTree.Transaction;
 }
 
-export function makeSpan(overrides: Partial<TraceTree.RawSpan> = {}): TraceTree.Span {
+export function makeSpan(overrides: Partial<TraceTree.Span> = {}): TraceTree.Span {
   return {
-    span_id: '',
-    op: '',
-    description: '',
+    span_id: overrides.span_id ?? uuid4(),
+    op: 'span.op',
+    description: 'span.description',
     start_timestamp: 0,
     timestamp: 10,
     data: {},
     trace_id: '',
-    childTransactions: [],
-    event: makeEvent() as EventTransaction,
     ...overrides,
   };
 }
@@ -87,14 +98,26 @@ export function makeTracePerformanceIssue(
   } as TracePerformanceIssue;
 }
 
-export function makeEvent(
+export function makeTraceMetaQueryResults(
+  overrides: Partial<TraceMetaQueryResults> = {}
+): TraceMetaQueryResults {
+  return {
+    data: undefined,
+    errors: [],
+    isLoading: false,
+    status: 'idle',
+    ...overrides,
+  } as TraceMetaQueryResults;
+}
+
+export function makeEventTransaction(
   overrides: Partial<Event> = {},
-  spans: TraceTree.RawSpan[] = []
-): Event {
+  spans: TraceTree.Span[] = []
+): EventTransaction {
   return {
     entries: [{type: EntryType.SPANS, data: spans}],
     ...overrides,
-  } as Event;
+  } as EventTransaction;
 }
 
 export function makeParentAutogroup(
@@ -192,4 +215,18 @@ export function makeNodeMetadata(
     project_slug: undefined,
     ...overrides,
   };
+}
+
+export function mockSpansResponse(
+  spans: TraceTree.Span[],
+  project_slug: string,
+  event_id: string
+): jest.Mock<any, any> {
+  return MockApiClient.addMockResponse({
+    url: `/organizations/org-slug/events/${project_slug}:${event_id}/?averageColumn=span.self_time&averageColumn=span.duration`,
+    method: 'GET',
+    body: makeEventTransaction({
+      entries: [{type: EntryType.SPANS, data: spans}],
+    }),
+  });
 }

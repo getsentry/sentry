@@ -1,7 +1,6 @@
 import {waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
-import type {EventTransaction} from 'sentry/types/event';
 
 import type {TraceTree} from '../traceModels/traceTree';
 import {TraceTreeNode} from '../traceModels/traceTreeNode';
@@ -33,8 +32,6 @@ function makeSpan(overrides: Partial<RawSpanType> = {}): TraceTree.Span {
     timestamp: 10,
     data: {},
     trace_id: '',
-    childTransactions: [],
-    event: undefined as unknown as EventTransaction,
     ...overrides,
   };
 }

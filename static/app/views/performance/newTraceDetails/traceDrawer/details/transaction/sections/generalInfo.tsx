@@ -49,12 +49,15 @@ function GeneralInfo({
     );
   }, [averageDurationQueryResult]);
 
-  const startTimestamp = Math.min(node.value.start_timestamp, node.value.timestamp);
-  const endTimestamp = Math.max(node.value.start_timestamp, node.value.timestamp);
-  const durationInSeconds = endTimestamp - startTimestamp;
+  const startTimestamp = node.space[0];
+  const endTimestamp = node.space[0] + node.space[1];
 
+  const durationInSeconds = (endTimestamp - startTimestamp) / 1e3;
   const {start: startTimeWithLeadingZero, end: endTimeWithLeadingZero} =
-    getFormattedTimeRangeWithLeadingAndTrailingZero(startTimestamp, endTimestamp);
+    getFormattedTimeRangeWithLeadingAndTrailingZero(
+      startTimestamp / 1e3,
+      endTimestamp / 1e3
+    );
 
   const parentTransaction = TraceTree.ParentTransaction(node);
 
@@ -81,7 +84,7 @@ function GeneralInfo({
           fixed: 'Mar 19, 2021 11:06:27 AM UTC',
           value: (
             <Fragment>
-              <DateTime date={startTimestamp * node.multiplier} />
+              <DateTime date={startTimestamp} />
               {` (${startTimeWithLeadingZero})`}
             </Fragment>
           ),
@@ -91,7 +94,7 @@ function GeneralInfo({
           fixed: 'Mar 19, 2021 11:06:28 AM UTC',
           value: (
             <Fragment>
-              <DateTime date={endTimestamp * node.multiplier} />
+              <DateTime date={endTimestamp} />
               {` (${endTimeWithLeadingZero})`}
             </Fragment>
           ),

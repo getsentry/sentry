@@ -64,7 +64,6 @@ export function GeneralInfo(props: GeneralnfoProps) {
   let items: SectionCardKeyValueList = [];
 
   const span = props.node.value;
-  const {event} = span;
   const resolvedModule: ModuleName = resolveSpanModule(
     span.sentry_tags?.op,
     span.sentry_tags?.category
@@ -90,10 +89,10 @@ export function GeneralInfo(props: GeneralnfoProps) {
             value={span.description}
             linkTarget={spanDetailsRouteWithQuery({
               orgSlug: props.organization.slug,
-              transaction: event.title,
+              transaction: props.node.event?.title ?? '',
               query: props.location.query,
               spanSlug: {op: span.op, group: groupHash},
-              projectID: event.projectID,
+              projectID: props.node.event?.projectID,
             })}
             linkText={t('View Similar Spans')}
             onClick={() =>

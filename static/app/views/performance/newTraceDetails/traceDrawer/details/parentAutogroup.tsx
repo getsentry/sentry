@@ -7,7 +7,7 @@ import {t} from 'sentry/locale';
 import type {TraceTreeNodeDetailsProps} from '../../traceDrawer/tabs/traceTreeNodeDetails';
 import type {ParentAutogroupNode} from '../../traceModels/parentAutogroupNode';
 import {TraceTree} from '../../traceModels/traceTree';
-import {makeTraceNodeBarColor} from '../../traceModels/traceTreeNodeUtils';
+import {makeTraceNodeBarColor} from '../../traceRow/traceBar';
 import {getTraceTabTitle} from '../../traceState/traceTabs';
 
 import {IssueList} from './issues/issues';

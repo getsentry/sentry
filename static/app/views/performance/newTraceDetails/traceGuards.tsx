@@ -15,6 +15,7 @@ export function isSpanNode(
 ): node is TraceTreeNode<TraceTree.Span> {
   return (
     !!(node.value && !('transaction' in node.value) && 'span_id' in node.value) &&
+    !isMissingInstrumentationNode(node) &&
     !isAutogroupedNode(node)
   );
 }

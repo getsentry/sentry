@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import omit from 'lodash/omit';
@@ -9,16 +9,13 @@ import DiscoverButton from 'sentry/components/discoverButton';
 import * as SpanEntryContext from 'sentry/components/events/interfaces/spans/context';
 import {
   getTraceDateTimeRange,
-  isGapSpan,
   scrollToSpan,
 } from 'sentry/components/events/interfaces/spans/utils';
 import Link from 'sentry/components/links/link';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {ALL_ACCESS_PROJECTS, PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
-import {assert} from 'sentry/types/utils';
 import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
@@ -26,6 +23,7 @@ import {generateEventSlug} from 'sentry/utils/discover/urls';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
+import {isTransactionNode} from '../../../../traceGuards';
 import {TraceTree} from '../../../../traceModels/traceTree';
 import type {TraceTreeNode} from '../../../../traceModels/traceTreeNode';
 import {getTraceTabTitle} from '../../../../traceState/traceTabs';
@@ -102,30 +100,30 @@ function SpanChildrenTraversalButton({
   node: TraceTreeNode<TraceTree.Span>;
   organization: Organization;
 }) {
-  if (!node.value.childTransactions) {
-    // TODO: Amend size to use theme when we eventually refactor LoadingIndicator
-    // 12px is consistent with theme.iconSizes['xs'] but theme returns a string.
-    return (
-      <StyledDiscoverButton href="#" size="xs" disabled>
-        <StyledLoadingIndicator size={12} />
-      </StyledDiscoverButton>
-    );
-  }
+  const childTransactions = useMemo(() => {
+    const transactions: TraceTreeNode<TraceTree.Transaction>[] = [];
+    TraceTree.ForEachChild(node, c => {
+      if (isTransactionNode(c)) {
+        transactions.push(c);
+      }
+    });
+    return transactions;
+  }, [node]);
 
-  if (node.value.childTransactions.length <= 0) {
+  const parentTransaction = useMemo(() => TraceTree.ParentTransaction(node), [node]);
+
+  if (childTransactions.length <= 0) {
     return null;
   }
 
-  assert(!isGapSpan(node.value));
-
-  if (node.value.childTransactions.length === 1) {
+  if (childTransactions.length === 1) {
     // Note: This is rendered by renderSpanChild() as a dedicated row
     return null;
   }
 
   const {start, end} = getTraceDateTimeRange({
-    start: node.value.event.startTimestamp,
-    end: node.value.event.endTimestamp,
+    start: parentTransaction?.value.start_timestamp!,
+    end: parentTransaction?.value.timestamp!,
   });
 
   const childrenEventView = EventView.fromSavedQuery({
@@ -136,7 +134,7 @@ function SpanChildrenTraversalButton({
     query: `event.type:transaction trace:${node.value.trace_id} trace.parent_span:${node.value.span_id}`,
     projects: organization.features.includes('global-views')
       ? [ALL_ACCESS_PROJECTS]
-      : [Number(node.value.event.projectID)],
+      : [Number(node.event?.projectID)],
     version: 2,
     start,
     end,
@@ -168,7 +166,16 @@ export function getSpanAncestryAndGroupingItems({
   onParentClick: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
   organization: Organization;
 }): SectionCardKeyValueList {
-  const parentTransaction = TraceTree.ParentTransaction(node);
+  const parentTransaction = useMemo(() => TraceTree.ParentTransaction(node), [node]);
+  const childTransactions = useMemo(() => {
+    const transactions: TraceTreeNode<TraceTree.Transaction>[] = [];
+    TraceTree.ForEachChild(node, c => {
+      if (isTransactionNode(c)) {
+        transactions.push(c);
+      }
+    });
+    return transactions;
+  }, [node]);
   const span = node.value;
   const items: SectionCardKeyValueList = [];
 
@@ -221,8 +228,7 @@ export function getSpanAncestryAndGroupingItems({
     subject: t('Parent Span ID'),
   });
 
-  const childTransaction = node.value.childTransactions?.[0];
-
+  const childTransaction = childTransactions[0];
   if (childTransaction) {
     items.push({
       key: 'child_transaction',
@@ -258,13 +264,6 @@ const StyledDiscoverButton = styled(DiscoverButton)`
   position: absolute;
   top: ${space(0.75)};
   right: ${space(0.5)};
-`;
-
-const StyledLoadingIndicator = styled(LoadingIndicator)`
-  display: flex;
-  align-items: center;
-  height: ${space(2)};
-  margin: 0;
 `;
 
 const SpanChildValueWrapper = styled(TraceDrawerComponents.FlexBox)`

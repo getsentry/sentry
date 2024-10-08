@@ -38,9 +38,9 @@ import {
 } from '../traceDrawer/usePassiveResizeableDrawer';
 import type {TraceShape, TraceTree} from '../traceModels/traceTree';
 import type {TraceTreeNode} from '../traceModels/traceTreeNode';
-import {makeTraceNodeBarColor} from '../traceModels/traceTreeNodeUtils';
 import type {TraceScheduler} from '../traceRenderers/traceScheduler';
 import type {VirtualizedViewManager} from '../traceRenderers/virtualizedViewManager';
+import {makeTraceNodeBarColor} from '../traceRow/traceBar';
 import type {TraceReducerAction, TraceReducerState} from '../traceState';
 import {TRACE_DRAWER_DEFAULT_SIZES} from '../traceState/tracePreferences';
 import {useTraceState, useTraceStateDispatch} from '../traceState/traceStateProvider';

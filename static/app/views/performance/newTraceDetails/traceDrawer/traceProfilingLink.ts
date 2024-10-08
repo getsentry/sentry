@@ -49,6 +49,7 @@ export function makeTraceContinuousProfilingLink(
   if (!transaction) {
     return null;
   }
+
   let start: Date | null = getDateFromTimestamp(transaction.space[0]);
   let end: Date | null = getDateFromTimestamp(
     transaction.space[0] + transaction.space[1]

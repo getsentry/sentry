@@ -17,7 +17,7 @@ import type {TraceTreeNodeDetailsProps} from '../../traceDrawer/tabs/traceTreeNo
 import {TraceIcons} from '../../traceIcons';
 import {TraceTree} from '../../traceModels/traceTree';
 import type {TraceTreeNode} from '../../traceModels/traceTreeNode';
-import {makeTraceNodeBarColor} from '../../traceModels/traceTreeNodeUtils';
+import {makeTraceNodeBarColor} from '../../traceRow/traceBar';
 import {getTraceTabTitle} from '../../traceState/traceTabs';
 
 import {IssueList} from './issues/issues';

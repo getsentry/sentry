@@ -52,7 +52,7 @@ export function SpanDescription({
   organization: Organization;
 }) {
   const span = node.value;
-  const {event} = span;
+
   const resolvedModule: ModuleName = resolveSpanModule(
     span.sentry_tags?.op,
     span.sentry_tags?.category
@@ -80,15 +80,15 @@ export function SpanDescription({
   const actions =
     !span.op || !span.hash ? null : (
       <ButtonGroup>
-        <SpanSummaryButton event={event} organization={organization} span={span} />
+        <SpanSummaryButton event={node.event!} organization={organization} span={span} />
         <LinkButton
           size="xs"
           to={spanDetailsRouteWithQuery({
             orgSlug: organization.slug,
-            transaction: event.title,
+            transaction: node.event?.title ?? '',
             query: location.query,
             spanSlug: {op: span.op, group: groupHash},
-            projectID: event.projectID,
+            projectID: node.event?.projectID,
           })}
           onClick={() => {
             hasNewSpansUIFlag
@@ -116,8 +116,8 @@ export function SpanDescription({
         </CodeSnippet>
         {span?.data?.['code.filepath'] ? (
           <StackTraceMiniFrame
-            projectId={span.event.projectID}
-            eventId={span.event.eventID}
+            projectId={node.event?.projectID}
+            eventId={node.event?.eventID}
             frame={{
               filename: span?.data?.['code.filepath'],
               lineNo: span?.data?.['code.lineno'],
