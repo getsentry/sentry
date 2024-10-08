@@ -21,7 +21,7 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
 from sentry.api import event_search
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap import constants
-from sentry.search.eap.span_columns import SPAN_COLUMN_DEFINITIONS, ResolvedColumn
+from sentry.search.eap.columns import SPAN_COLUMN_DEFINITIONS, ResolvedColumn
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events import filter as event_filter
 from sentry.search.events.types import SnubaParams
