@@ -860,6 +860,8 @@ describe('TraceTree', () => {
         organization: OrganizationFixture(),
       });
 
+      const spans = TraceTree.FindAll(tree.root, n => isSpanNode(n));
+      expect(spans.length).toBe(1);
       expect(tree.serialize()).toMatchSnapshot();
     });
   });

@@ -135,6 +135,7 @@ trace root
   root - transaction.op
     child - transaction.op
       grandchild - transaction.op
+        child-op - span.description
 "
 `;
 

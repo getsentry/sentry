@@ -1028,7 +1028,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
     }
   }
 
-  // Removes node and its children from the tree
+  // Removes node and all its children from the tree
   static Filter(
     node: TraceTreeNode<TraceTree.NodeValue>,
     predicate: (node: TraceTreeNode) => boolean
@@ -1299,6 +1299,10 @@ export class TraceTree extends TraceTreeEventDispatcher {
       node.zoomedIn = zoomedIn;
       // When transactions are zoomed out, they still render child transactions
       if (isTransactionNode(node)) {
+        // Find all transactions that are children of the current transaction
+        // remove all non transaction events from current node and its children
+        // point transactions back to their parents
+
         const transactions = TraceTree.FindAll(node, c => isTransactionNode(c));
 
         for (const t of transactions) {
@@ -1319,9 +1323,8 @@ export class TraceTree extends TraceTreeEventDispatcher {
           parent.children.push(t);
         }
 
-        TraceTree.Filter(node, c => {
-          return isTransactionNode(c);
-        });
+        node.children = node.children.filter(c => isTransactionNode(c));
+        node.children.sort(traceChronologicalSort);
 
         this.list.splice(index + 1, 0, ...TraceTree.VisibleChildren(node));
       }
