@@ -19,6 +19,7 @@ from sentry.api import client
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, all_silo_endpoint
+from sentry.constants import ObjectStatus
 from sentry.identity.services.identity import identity_service
 from sentry.identity.services.identity.model import RpcIdentity
 from sentry.integrations.messaging import commands
@@ -524,7 +525,9 @@ class MsTeamsWebhookEndpoint(Endpoint):
 
         group = Group.objects.select_related("project__organization").filter(id=group_id).first()
         if group:
-            integration = integration_service.get_integration(integration_id=integration.id)
+            integration = integration_service.get_integration(
+                integration_id=integration.id, status=ObjectStatus.ACTIVE
+            )
             if integration is None:
                 group = None
 
