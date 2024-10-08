@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 import type {Location} from 'history';
+import debounce from 'lodash/debounce';
+import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 
 import {createDashboard} from 'sentry/actionCreators/dashboards';
@@ -63,9 +65,22 @@ type State = {
   dashboards: DashboardListItem[] | null;
   dashboardsPageLinks: string;
   showTemplates: boolean;
+  windowWidth: number;
 } & DeprecatedAsyncView['state'];
 
 class ManageDashboards extends DeprecatedAsyncView<Props, State> {
+  constructor(props: Props, context: any) {
+    super(props, context);
+
+    this.state = {
+      ...super.getDefaultState(),
+      ...this.getDefaultState(),
+      dashboards: [],
+      dashboardsPageLinks: '',
+      windowWidth: window.innerWidth,
+    };
+  }
+
   getDefaultState() {
     return {
       ...super.getDefaultState(),
@@ -73,8 +88,42 @@ class ManageDashboards extends DeprecatedAsyncView<Props, State> {
     };
   }
 
+  debouncedHandleResize = debounce(() => {
+    const currentWidth = window.innerWidth;
+    // Only update state if the width has changed
+    if (currentWidth !== this.state.windowWidth) {
+      this.setState({windowWidth: currentWidth});
+    }
+    this.fetchData();
+  }, 250);
+
+  componentDidMount() {
+    window.addEventListener('resize', this.debouncedHandleResize);
+    super.componentDidMount();
+  }
+
+  componentWillUnmount() {
+    window.removeEventListener('resize', this.debouncedHandleResize);
+    super.componentWillUnmount();
+  }
+
+  shouldComponentUpdate(nextProps: Readonly<Props>, nextState: Readonly<State>): boolean {
+    const propsEqual = isEqual(nextProps, this.props);
+    const stateEqual = isEqual(nextState, this.state);
+    const windowEqual = isEqual(this.state.windowWidth, window.innerWidth);
+    return !propsEqual || !stateEqual || !windowEqual;
+  }
+
+  getDashboardsPerPage(): number {
+    // min-midth of widget is 300px with additional 16px margin on each side (also accounting for side menu)
+    return Math.floor((window.innerWidth - 100) / (300 + 32)) < 3
+      ? 8
+      : Math.floor((window.innerWidth - 100) / (300 + 32)) * 3;
+  }
+
   getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     const {organization, location} = this.props;
+    const dashboardsPerPage = this.getDashboardsPerPage();
     const endpoints: ReturnType<DeprecatedAsyncView['getEndpoints']> = [
       [
         'dashboards',
@@ -83,7 +132,7 @@ class ManageDashboards extends DeprecatedAsyncView<Props, State> {
           query: {
             ...pick(location.query, ['cursor', 'query']),
             sort: this.getActiveSort().value,
-            per_page: '12',
+            per_page: dashboardsPerPage,
           },
         },
       ],
