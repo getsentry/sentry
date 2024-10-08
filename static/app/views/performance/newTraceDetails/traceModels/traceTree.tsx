@@ -1303,7 +1303,10 @@ export class TraceTree extends TraceTreeEventDispatcher {
         // remove all non transaction events from current node and its children
         // point transactions back to their parents
 
-        const transactions = TraceTree.FindAll(node, c => isTransactionNode(c));
+        const transactions = TraceTree.FindAll(
+          node,
+          c => isTransactionNode(c) && c !== node
+        );
 
         for (const t of transactions) {
           // point transactions back to their parents
@@ -1595,7 +1598,16 @@ export class TraceTree extends TraceTreeEventDispatcher {
     }
 
     const connectors: number[] = [];
-    let start: TraceTreeNode<TraceTree.NodeValue> | null = node;
+    let start: TraceTreeNode<TraceTree.NodeValue> | null = node.parent;
+
+    if (start && isTraceNode(start) && !TraceTree.IsLastChild(node)) {
+      node.connectors = [-TraceTree.Depth(node)];
+      return node.connectors;
+    }
+
+    if (!TraceTree.IsLastChild(node)) {
+      connectors.push(TraceTree.Depth(node));
+    }
 
     while (start) {
       if (!start.value || !start.parent) {
@@ -1607,12 +1619,9 @@ export class TraceTree extends TraceTreeEventDispatcher {
         continue;
       }
 
-      if (isTraceNode(start)) {
-        connectors.push(-TraceTree.Depth(start));
-        break;
-      }
-
-      connectors.push(TraceTree.Depth(start));
+      connectors.push(
+        isTraceNode(start.parent) ? -TraceTree.Depth(start) : TraceTree.Depth(start)
+      );
       start = start.parent;
     }
 
