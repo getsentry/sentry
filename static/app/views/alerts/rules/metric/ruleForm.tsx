@@ -1086,6 +1086,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       historical_data: historicalData,
       current_data: currentData,
     };
+
     try {
       const response = await this.api.requestPromise(
         `/organizations/${organization.slug}/events/anomalies/`,
@@ -1098,9 +1099,15 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
         this.setState(rest);
       }
     } catch (e) {
+      const chartErrorMessage =
+        e.responseJSON && typeof e.responseJSON === 'object'
+          ? e.responseJSON.detail
+          : typeof e.responseJSON === 'string'
+            ? e.responseJSON
+            : e.message || e;
       this.setState({
         chartError: true,
-        chartErrorMessage: e.responseJSON || e.message || e,
+        chartErrorMessage,
       });
     }
   }
