@@ -21,7 +21,7 @@ const MAYBE_DEBUG_FILE_PLATFORMS: Set<PlatformKey> = new Set(['csharp', 'java'])
  * Debug Files for proper processing, as those Debug Files could have been uploaded *after*
  * the Event was ingested.
  */
-export function displayReprocessEventAction(event?: Event): boolean {
+export function displayReprocessEventAction(event: Event | null): boolean {
   if (!event) {
     return false;
   }

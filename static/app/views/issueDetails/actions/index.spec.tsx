@@ -64,6 +64,7 @@ describe('GroupActions', function () {
           project={project}
           organization={organization}
           disabled={false}
+          event={null}
         />
       );
       expect(await screen.findByRole('button', {name: 'Resolve'})).toBeInTheDocument();
@@ -87,6 +88,7 @@ describe('GroupActions', function () {
           project={project}
           organization={organization}
           disabled={false}
+          event={null}
         />
       );
       await userEvent.click(screen.getByRole('button', {name: 'Subscribe'}));
@@ -118,6 +120,7 @@ describe('GroupActions', function () {
           project={project}
           organization={organization}
           disabled={false}
+          event={null}
         />
       );
 
@@ -202,6 +205,7 @@ describe('GroupActions', function () {
           project={project}
           organization={org}
           disabled={false}
+          event={null}
         />
       </Fragment>,
       {organization: org}
@@ -239,6 +243,7 @@ describe('GroupActions', function () {
             project={project}
             organization={org}
             disabled={false}
+            event={null}
           />
         </Fragment>,
         {organization: org}
@@ -271,6 +276,7 @@ describe('GroupActions', function () {
           project={project}
           organization={org}
           disabled={false}
+          event={null}
         />,
         {organization: org}
       );
@@ -296,6 +302,7 @@ describe('GroupActions', function () {
           project={project}
           organization={org}
           disabled={false}
+          event={null}
         />,
         {organization: org}
       );
@@ -324,6 +331,7 @@ describe('GroupActions', function () {
         project={project}
         organization={organization}
         disabled={false}
+        event={null}
       />,
       {organization}
     );
@@ -349,6 +357,7 @@ describe('GroupActions', function () {
         project={project}
         organization={organization}
         disabled={false}
+        event={null}
       />
     );
 
@@ -375,6 +384,7 @@ describe('GroupActions', function () {
         project={project}
         organization={organization}
         disabled={false}
+        event={null}
       />,
       {organization}
     );
