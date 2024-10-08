@@ -49,7 +49,7 @@ function ProjectToolbarSettings({organization, project, params: {projectId}}: Pr
         apiMethod="PUT"
         apiEndpoint={`/projects/${organization.slug}/${projectId}/`}
         initialData={project.options}
-        requireChanges
+        saveOnBlur
       >
         <Access access={['project:write']} project={project}>
           {({hasAccess}) => (

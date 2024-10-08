@@ -32,6 +32,8 @@ import {
 } from 'sentry/views/insights/mobile/appStarts/components/startTypeSelector';
 import {SpanSamplesPanel} from 'sentry/views/insights/mobile/common/components/spanSamplesPanel';
 import {MobileMetricsRibbon} from 'sentry/views/insights/mobile/screenload/components/metricsRibbon';
+import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
 
 import AppStartWidgets from '../components/widgets';
@@ -52,23 +54,38 @@ export function ScreenSummary() {
   const location = useLocation<Query>();
   const {transaction: transactionName} = location.query;
   const crumbs = useModuleBreadcrumbs('app_start');
+  const {isInDomainView} = useDomainViewFilters();
 
   return (
     <Layout.Page>
       <PageAlertProvider>
-        <Layout.Header>
-          <Layout.HeaderContent>
-            <Breadcrumbs
-              crumbs={[
-                ...crumbs,
-                {
-                  label: t('Screen Summary'),
-                },
-              ]}
-            />
-            <Layout.Title>{transactionName}</Layout.Title>
-          </Layout.HeaderContent>
-        </Layout.Header>
+        {!isInDomainView && (
+          <Layout.Header>
+            <Layout.HeaderContent>
+              <Breadcrumbs
+                crumbs={[
+                  ...crumbs,
+                  {
+                    label: t('Screen Summary'),
+                  },
+                ]}
+              />
+              <Layout.Title>{transactionName}</Layout.Title>
+            </Layout.HeaderContent>
+          </Layout.Header>
+        )}
+        {isInDomainView && (
+          <MobileHeader
+            hideDefaultTabs
+            module={ModuleName.MOBILE_SCREENS}
+            headerTitle={transactionName}
+            breadcrumbs={[
+              {
+                label: t('Screen Summary'),
+              },
+            ]}
+          />
+        )}
         <Layout.Body>
           <Layout.Main fullWidth>
             <PageAlert />
