@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import hashlib
 import time
 from datetime import datetime
 from enum import IntEnum
+from uuid import uuid4
 
 from sentry.conf.types.kafka_definition import Topic
 from sentry.constants import DataCategory
@@ -102,6 +104,13 @@ def track_outcome(
         billing_config["real_topic_name"] if use_billing else outcomes_config["real_topic_name"]
     )
 
+    # Generate idempotency key using message fields
+    # This is to ensure that the message is processed at exactly once; even if the outcome is reprocessed again.
+    # For billing purposes, this lets us avoid duplicate usage counts.
+    random_str = uuid4().hex
+    idempotency_key_fields = f"{random_str}|{event_id}|{org_id}|{project_id}|{key_id}|{outcome.value}|{category}|{reason}|{quantity}|{timestamp}"
+    idempotency_key = hashlib.sha256(idempotency_key_fields.encode("utf-8")).hexdigest()
+
     # Send a snuba metrics payload.
     publisher.publish(
         topic_name,
@@ -116,6 +125,7 @@ def track_outcome(
                 "event_id": event_id,
                 "category": category,
                 "quantity": quantity,
+                "idempotency_key": idempotency_key,
             }
         ),
     )
