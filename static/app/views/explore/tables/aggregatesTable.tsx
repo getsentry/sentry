@@ -10,8 +10,11 @@ import {t} from 'sentry/locale';
 import type {NewQuery} from 'sentry/types/organization';
 import EventView from 'sentry/utils/discover/eventView';
 import {fieldAlignment, getAggregateAlias, type Sort} from 'sentry/utils/discover/fields';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import CellAction, {updateQuery} from 'sentry/views/discover/table/cellAction';
 import {
+  ALLOWED_CELL_ACTIONS,
   Table,
   TableBody,
   TableBodyCell,
@@ -51,7 +54,7 @@ export function AggregatesTable({}: AggregatesTableProps) {
     );
   }, [groupBys, visualizes]);
   const [sorts] = useSorts({fields});
-  const [query] = useUserQuery();
+  const [userQuery, setUserQuery] = useUserQuery();
 
   const eventView = useMemo(() => {
     const discoverQuery: NewQuery = {
@@ -59,13 +62,13 @@ export function AggregatesTable({}: AggregatesTableProps) {
       name: 'Explore - Span Aggregates',
       fields,
       orderby: sorts.map(formatSort),
-      query,
+      query: userQuery,
       version: 2,
       dataset,
     };
 
     return EventView.fromNewQueryWithPageFilters(discoverQuery, selection);
-  }, [dataset, fields, sorts, query, selection]);
+  }, [dataset, fields, sorts, userQuery, selection]);
 
   const result = useSpansQuery({
     eventView,
@@ -119,18 +122,30 @@ export function AggregatesTable({}: AggregatesTableProps) {
             result.data?.map((row, i) => (
               <TableRow key={i}>
                 {fields.map((field, j) => {
+                  const column = eventView.getColumns()[j];
+                  const query = new MutableSearch(eventView.query);
                   return (
                     <TableBodyCell key={j}>
-                      {topEvents && i < topEvents && j === 0 && (
-                        <TopResultsIndicator index={i} />
-                      )}
-                      <FieldRenderer
-                        dataset={dataset}
-                        data={row}
-                        field={field}
-                        unit={meta?.units?.[field]}
-                        meta={meta}
-                      />
+                      <CellAction
+                        column={column}
+                        dataRow={row}
+                        handleCellAction={(actions, value) => {
+                          updateQuery(query, actions, column, value);
+                          setUserQuery(query.formatString());
+                        }}
+                        allowActions={ALLOWED_CELL_ACTIONS}
+                      >
+                        {topEvents && i < topEvents && j === 0 && (
+                          <TopResultsIndicator index={i} />
+                        )}
+                        <FieldRenderer
+                          dataset={dataset}
+                          data={row}
+                          field={field}
+                          unit={meta?.units?.[field]}
+                          meta={meta}
+                        />
+                      </CellAction>
                     </TableBodyCell>
                   );
                 })}

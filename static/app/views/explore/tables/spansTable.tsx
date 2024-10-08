@@ -8,8 +8,11 @@ import {t} from 'sentry/locale';
 import type {NewQuery} from 'sentry/types/organization';
 import EventView from 'sentry/utils/discover/eventView';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import CellAction, {updateQuery} from 'sentry/views/discover/table/cellAction';
 import {
+  ALLOWED_CELL_ACTIONS,
   Table,
   TableBody,
   TableBodyCell,
@@ -35,7 +38,7 @@ export function SpansTable({}: SpansTableProps) {
   const [dataset] = useDataset();
   const [fields] = useSampleFields();
   const [sorts] = useSorts({fields});
-  const [query] = useUserQuery();
+  const [userQuery, setUserQuery] = useUserQuery();
 
   const eventView = useMemo(() => {
     const queryFields = [
@@ -52,13 +55,13 @@ export function SpansTable({}: SpansTableProps) {
       name: 'Explore - Span Samples',
       fields: queryFields,
       orderby: sorts.map(sort => `${sort.kind === 'desc' ? '-' : ''}${sort.field}`),
-      query,
+      query: userQuery,
       version: 2,
       dataset,
     };
 
     return EventView.fromNewQueryWithPageFilters(discoverQuery, selection);
-  }, [dataset, fields, sorts, query, selection]);
+  }, [dataset, fields, sorts, userQuery, selection]);
 
   const result = useSpansQuery({
     eventView,
@@ -111,15 +114,27 @@ export function SpansTable({}: SpansTableProps) {
             result.data?.map((row, i) => (
               <TableRow key={i}>
                 {fields.map((field, j) => {
+                  const column = eventView.getColumns()[j];
+                  const query = new MutableSearch(eventView.query);
                   return (
                     <TableBodyCell key={j}>
-                      <FieldRenderer
-                        dataset={dataset}
-                        data={row}
-                        field={field}
-                        unit={meta?.units?.[field]}
-                        meta={meta}
-                      />
+                      <CellAction
+                        column={column}
+                        dataRow={row}
+                        handleCellAction={(actions, value) => {
+                          updateQuery(query, actions, column, value);
+                          setUserQuery(query.formatString());
+                        }}
+                        allowActions={ALLOWED_CELL_ACTIONS}
+                      >
+                        <FieldRenderer
+                          dataset={dataset}
+                          data={row}
+                          field={field}
+                          unit={meta?.units?.[field]}
+                          meta={meta}
+                        />
+                      </CellAction>
                     </TableBodyCell>
                   );
                 })}
