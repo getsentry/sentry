@@ -1212,7 +1212,9 @@ def process_plugins(job: PostProcessJob) -> None:
 
 
 def process_similarity(job: PostProcessJob) -> None:
-    if job["is_reprocessed"]:
+    if job["is_reprocessed"] or features.has(
+        "projects:similarity-embeddings", job["event"].group.project
+    ):
         return
 
     from sentry import similarity
