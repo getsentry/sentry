@@ -320,7 +320,7 @@ const ProcessingStatusIndicator = styled(LoadingIndicator)`
 
 const ActionBar = styled('div')`
   position: absolute;
-  bottom: 4em;
+  bottom: 4.25em;
   left: ${space(2)};
 `;
 
