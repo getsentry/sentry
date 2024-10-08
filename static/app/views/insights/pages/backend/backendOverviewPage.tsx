@@ -43,11 +43,14 @@ export const BACKEND_COLUMN_TITLES = [
   'transaction',
   'project',
   'operation',
+  'http method',
   'tpm',
-  'p50()',
-  'p75()',
-  'p95()',
+  'p50',
+  'p95',
+  'failure rate',
+  'apdex',
   'users',
+  'user misery',
 ];
 
 function BackendOverviewPage() {
@@ -69,12 +72,17 @@ function BackendOverviewPage() {
   eventView.fields = [
     {field: 'team_key_transaction'},
     {field: 'transaction'},
-    {field: 'project'},
     {field: 'transaction.op'},
+    {field: 'http.method'},
+    {field: 'project'},
     {field: 'tpm()'},
     {field: 'p50(transaction.duration)'},
-    {field: 'p75(transaction.duration)'},
     {field: 'p95(transaction.duration)'},
+    {field: 'failure_rate()'},
+    {field: 'apdex()'},
+    {field: 'count_unique(user)'},
+    {field: 'count_miserable(user)'},
+    {field: 'user_misery()'},
   ].map(field => ({...field, width: COL_WIDTH_UNDEFINED}));
 
   const showOnboarding = onboardingProject !== undefined;
@@ -91,6 +99,7 @@ function BackendOverviewPage() {
     PerformanceWidgetSetting.P95_DURATION_AREA,
     PerformanceWidgetSetting.P99_DURATION_AREA,
     PerformanceWidgetSetting.FAILURE_RATE_AREA,
+    PerformanceWidgetSetting.APDEX_AREA,
   ];
 
   if (organization.features.includes('insights-initial-modules')) {

@@ -85,7 +85,7 @@ class SafePostgresDatabaseSchemaEditor(DatabaseSchemaEditorMixin, PostgresDataba
         """
         raise UnsafeOperationException(
             f"Deleting the {model.__name__} model is unsafe.\n"
-            "More info here: https://develop.sentry.dev/database-migrations/#tables"
+            "More info here: https://develop.sentry.dev/database-migrations/#deleting-tables"
         )
 
     def remove_field(self, model, field):
@@ -94,7 +94,7 @@ class SafePostgresDatabaseSchemaEditor(DatabaseSchemaEditorMixin, PostgresDataba
         """
         raise UnsafeOperationException(
             f"Removing the {model.__name__}.{field.name} field is unsafe.\n"
-            "More info here: https://develop.sentry.dev/database-migrations/#columns"
+            "More info here: https://develop.sentry.dev/database-migrations/#deleting-columns"
         )
 
 

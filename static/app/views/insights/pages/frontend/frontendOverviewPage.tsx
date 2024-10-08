@@ -40,14 +40,15 @@ import {
 } from 'sentry/views/performance/utils';
 
 export const FRONTEND_COLUMN_TITLES = [
-  'route',
-  'project',
+  'transaction',
   'operation',
+  'project',
   'tpm',
   'p50()',
   'p75()',
   'p95()',
   'users',
+  'user misery',
 ];
 
 function FrontendOverviewPage() {
@@ -69,12 +70,15 @@ function FrontendOverviewPage() {
   eventView.fields = [
     {field: 'team_key_transaction'},
     {field: 'transaction'},
-    {field: 'project'},
     {field: 'transaction.op'},
+    {field: 'project'},
     {field: 'tpm()'},
     {field: 'p50(transaction.duration)'},
     {field: 'p75(transaction.duration)'},
     {field: 'p95(transaction.duration)'},
+    {field: 'count_unique(user)'},
+    {field: 'count_miserable(user)'},
+    {field: 'user_misery()'},
   ].map(field => ({...field, width: COL_WIDTH_UNDEFINED}));
 
   const showOnboarding = onboardingProject !== undefined;
