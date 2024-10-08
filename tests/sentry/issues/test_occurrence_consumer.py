@@ -247,7 +247,7 @@ class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
         "sentry.issues.occurrence_consumer.ratelimiter.backend.is_limited",
         return_value=True,
     )
-    def test_rate_limit(self, is_limited: bool) -> None:
+    def test_rate_limit(self, is_limited: mock.MagicMock) -> None:
         message = get_test_message(self.project.id)
         with self.feature("organizations:profile-file-io-main-thread-ingest"):
             result = _process_message(message)
