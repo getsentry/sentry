@@ -20,7 +20,7 @@ from __future__ import annotations
 from typing import Any, NoReturn, TypeVar
 from uuid import UUID
 
-from snuba_sdk import And, Condition, Function, Identifier, Lambda, Op
+from snuba_sdk import And, Condition, Function, Identifier, Lambda, Op, Or
 from snuba_sdk.expressions import Expression
 
 from sentry.replays.lib.new_query.errors import OperatorNotSupported
@@ -211,21 +211,39 @@ class IPv4Scalar(GenericBase):
     """IPv4 scalar condition class."""
 
     @staticmethod
-    def visit_eq(expression: Expression, value: str) -> Condition:
+    def visit_eq(expression: Expression, value: str | None) -> Condition:
+        if value is None:
+            return Condition(Function("isNull", parameters=[expression]), Op.EQ, 1)
         return Condition(expression, Op.EQ, Function("toIPv4", parameters=[value]))
 
     @staticmethod
-    def visit_neq(expression: Expression, value: str) -> Condition:
+    def visit_neq(expression: Expression, value: str | None) -> Condition:
+        if value is None:
+            return Condition(Function("isNull", parameters=[expression]), Op.EQ, 0)
         return Condition(expression, Op.NEQ, Function("toIPv4", parameters=[value]))
 
     @staticmethod
-    def visit_in(expression: Expression, value: list[str]) -> Condition:
-        values = [Function("toIPv4", parameters=[v]) for v in value]
+    def visit_in(expression: Expression, value_list: list[str | None]) -> Condition:
+        values = [Function("toIPv4", parameters=[v]) for v in value_list if v is not None]
+        if None in value_list:
+            return Or(
+                conditions=[
+                    Condition(expression, Op.IN, values),
+                    Condition(Function("isNull", parameters=[expression]), Op.EQ, 1),
+                ]
+            )
         return Condition(expression, Op.IN, values)
 
     @staticmethod
-    def visit_not_in(expression: Expression, value: list[str]) -> Condition:
-        values = [Function("toIPv4", parameters=[v]) for v in value]
+    def visit_not_in(expression: Expression, value_list: list[str | None]) -> Condition:
+        values = [Function("toIPv4", parameters=[v]) for v in value_list if v is not None]
+        if None in value_list:
+            return And(
+                conditions=[
+                    Condition(expression, Op.NOT_IN, values),
+                    Condition(Function("isNull", parameters=[expression]), Op.EQ, 0),
+                ]
+            )
         return Condition(expression, Op.NOT_IN, values)
 
 
