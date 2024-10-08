@@ -106,6 +106,11 @@ metadata = IntegrationMetadata(
     aspects={"externalInstall": external_install},
 )
 
+# Some Jira errors for invalid field values don't actually provide the field
+# ID in an easily mappable way, so we have to manually map known error types
+# here to make it easier
+CUSTOM_ERROR_MESSAGE_MATCHERS = [(re.compile("Team with id '.*' not found.$"), "Team Field")]
+
 # Hide linked issues fields because we don't have the necessary UI for fully specifying
 # a valid link (e.g. "is blocked by ISSUE-1").
 HIDDEN_ISSUE_FIELDS = ["issuelinks"]
@@ -485,10 +490,28 @@ class JiraIntegration(IssueSyncIntegration):
 
     def error_fields_from_json(self, data):
         errors = data.get("errors")
-        if not errors:
+        error_messages = data.get("errorMessages")
+
+        if not errors and not error_messages:
             return None
 
-        return {key: [error] for key, error in data.get("errors").items()}
+        error_data = {}
+        if error_messages:
+            # These may or may not contain field specific errors, so we manually
+            # map them
+            for message in error_messages:
+                for error_regex, key in CUSTOM_ERROR_MESSAGE_MATCHERS:
+                    if error_regex.match(message):
+                        error_data[key] = [message]
+
+        if error_data:
+            for key, error in data.get("errors").items():
+                error_data[key] = [error]
+
+        if not error_data:
+            return None
+
+        return error_data
 
     def search_url(self, org_slug):
         """
