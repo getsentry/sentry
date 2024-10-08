@@ -2,7 +2,7 @@ import pytest
 import responses
 
 from sentry.coreapi import APIUnauthorized
-from sentry.mediators.external_issues.issue_link_creator import IssueLinkCreator
+from sentry.sentry_apps.external_issues.issue_link_creator import IssueLinkCreator
 from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
 from sentry.sentry_apps.services.app import app_service
 from sentry.testutils.cases import TestCase
@@ -43,14 +43,14 @@ class TestIssueLinkCreator(TestCase):
             content_type="application/json",
         )
 
-        result = IssueLinkCreator.run(
+        result = IssueLinkCreator(
             install=self.install,
             group=self.group,
             action="create",
             uri="/link-issue",
             fields=fields,
             user=serialize_rpc_user(self.user),
-        )
+        ).run()
 
         external_issue = PlatformExternalIssue.objects.all()[0]
         assert result == external_issue
@@ -61,11 +61,11 @@ class TestIssueLinkCreator(TestCase):
 
     def test_invalid_action(self):
         with pytest.raises(APIUnauthorized):
-            IssueLinkCreator.run(
+            IssueLinkCreator(
                 install=self.install,
                 group=self.group,
                 action="doop",
                 uri="/link-issue",
                 fields={},
                 user=serialize_rpc_user(self.user),
-            )
+            ).run()

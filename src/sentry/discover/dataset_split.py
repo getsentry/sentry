@@ -19,7 +19,7 @@ from snuba_sdk.query_visitors import InvalidQueryError
 
 from sentry.api.utils import get_date_range_from_stats_period
 from sentry.constants import ObjectStatus
-from sentry.discover.arithmetic import is_equation, strip_equation
+from sentry.discover.arithmetic import ArithmeticParseError, is_equation, strip_equation
 from sentry.discover.models import DatasetSourcesTypes, DiscoverSavedQuery, DiscoverSavedQueryTypes
 from sentry.exceptions import InvalidParams, InvalidSearchQuery
 from sentry.models.environment import Environment
@@ -458,7 +458,14 @@ def _get_and_save_split_decision_for_query(
             )
         )
         has_errors = len(error_results["data"]) > 0
-    except (snuba.QueryIllegalTypeOfArgument, snuba.UnqualifiedQueryError, InvalidQueryError):
+    except (
+        snuba.QueryIllegalTypeOfArgument,
+        snuba.UnqualifiedQueryError,
+        InvalidQueryError,
+        snuba.QueryExecutionError,
+        snuba.SnubaError,
+        ArithmeticParseError,
+    ):
         pass
 
     if has_errors:
@@ -484,7 +491,14 @@ def _get_and_save_split_decision_for_query(
             )
         )
         has_transactions = len(transaction_results["data"]) > 0
-    except (snuba.QueryIllegalTypeOfArgument, snuba.UnqualifiedQueryError, InvalidQueryError):
+    except (
+        snuba.QueryIllegalTypeOfArgument,
+        snuba.UnqualifiedQueryError,
+        InvalidQueryError,
+        snuba.QueryExecutionError,
+        snuba.SnubaError,
+        ArithmeticParseError,
+    ):
         pass
 
     if has_transactions:
