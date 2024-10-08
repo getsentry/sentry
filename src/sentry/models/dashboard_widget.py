@@ -97,9 +97,13 @@ class DatasetSourcesTypes(Enum):
     """
     FORCED = 3
     """
-     Dataset inferred by split querscript, version 1
+     Dataset inferred by split script, version 1
     """
     SPLIT_VERSION_1 = 4
+    """
+     Dataset inferred by split script, version 2
+    """
+    SPLIT_VERSION_2 = 5
 
     @classmethod
     def as_choices(cls):
