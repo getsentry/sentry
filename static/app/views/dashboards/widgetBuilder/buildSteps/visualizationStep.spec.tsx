@@ -70,13 +70,19 @@ function mockRequests(orgSlug: Organization['slug']) {
     body: [],
   });
 
+  MockApiClient.addMockResponse({
+    url: '/organizations/org-slug/recent-searches/',
+    method: 'GET',
+    body: [],
+  });
+
   return {eventsMock};
 }
 
 describe('VisualizationStep', function () {
   const {organization, projects, router} = initializeOrg({
     organization: {
-      features: ['dashboards-edit', 'global-views', 'dashboards-mep'],
+      features: ['performance-view', 'dashboards-edit', 'global-views', 'dashboards-mep'],
     },
     router: {
       location: {
