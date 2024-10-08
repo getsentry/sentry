@@ -72,7 +72,7 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
                 name="full",
                 type=OpenApiTypes.BOOL,
                 location=OpenApiParameter.QUERY,
-                description="If this is set to true, the event payload will include the full event body, including the stacktrace. Set to true to enable.",
+                description="Specify true to include the full event body, including the stacktrace, in the event payload.",
                 required=False,
             ),
             OpenApiParameter(
@@ -103,7 +103,7 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
     )
     def get(self, request: Request, group: Group) -> Response:
         """
-        This endpoint lists an issue's events.
+        Return a list of error events bound to an issue
         """
 
         try:
