@@ -336,7 +336,6 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
         end: datetime,
         environment_id: int,
         referrer_suffix: str,
-        conditions: list[tuple[str, str, str]] | None = None,
     ) -> Mapping[int, int]:
         result: Mapping[int, int] = tsdb_function(
             model=model,
@@ -348,7 +347,6 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
             jitter_value=group_id,
             tenant_ids={"organization_id": organization_id},
             referrer_suffix=referrer_suffix,
-            conditions=conditions,
         )
         return result
 
@@ -362,7 +360,6 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
         end: datetime,
         environment_id: int,
         referrer_suffix: str,
-        conditions: list[tuple[str, str, str]] | None = None,
     ) -> dict[int, int]:
         batch_totals: dict[int, int] = defaultdict(int)
         group_id = group_ids[0]
@@ -377,7 +374,6 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
                 end=end,
                 environment_id=environment_id,
                 referrer_suffix=referrer_suffix,
-                conditions=conditions,
             )
             batch_totals.update(result)
         return batch_totals
@@ -616,6 +612,63 @@ class EventUniqueUserFrequencyConditionWithConditions(EventUniqueUserFrequencyCo
             )
             batch_totals.update(error_totals)
 
+        return batch_totals
+
+    def get_snuba_query_result(
+        self,
+        tsdb_function: Callable[..., Any],
+        keys: list[int],
+        group_id: int,
+        organization_id: int,
+        model: TSDBModel,
+        start: datetime,
+        end: datetime,
+        environment_id: int,
+        referrer_suffix: str,
+        conditions: list[tuple[str, str, str]] | None = None,
+    ) -> Mapping[int, int]:
+        result: Mapping[int, int] = tsdb_function(
+            model=model,
+            keys=keys,
+            start=start,
+            end=end,
+            environment_id=environment_id,
+            use_cache=True,
+            jitter_value=group_id,
+            tenant_ids={"organization_id": organization_id},
+            referrer_suffix=referrer_suffix,
+            conditions=conditions,
+        )
+        return result
+
+    def get_chunked_result(
+        self,
+        tsdb_function: Callable[..., Any],
+        model: TSDBModel,
+        group_ids: list[int],
+        organization_id: int,
+        start: datetime,
+        end: datetime,
+        environment_id: int,
+        referrer_suffix: str,
+        conditions: list[tuple[str, str, str]] | None = None,
+    ) -> dict[int, int]:
+        batch_totals: dict[int, int] = defaultdict(int)
+        group_id = group_ids[0]
+        for group_chunk in chunked(group_ids, SNUBA_LIMIT):
+            result = self.get_snuba_query_result(
+                tsdb_function=tsdb_function,
+                model=model,
+                keys=[group_id for group_id in group_chunk],
+                group_id=group_id,
+                organization_id=organization_id,
+                start=start,
+                end=end,
+                environment_id=environment_id,
+                referrer_suffix=referrer_suffix,
+                conditions=conditions,
+            )
+            batch_totals.update(result)
         return batch_totals
 
     @staticmethod
