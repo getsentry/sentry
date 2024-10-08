@@ -317,8 +317,13 @@ def get_condition_group_results(
             )
             continue
 
+        if rule_id:
+            rule = Rule.objects.get(id=rule_id)
+        else:
+            rule = None
+
         condition_inst = condition_cls(
-            project=project, data=condition_data, rule=Rule.objects.get(id=rule_id)
+            project=project, data=condition_data, rule=rule  # type: ignore[arg-type]
         )
 
         if not isinstance(condition_inst, BaseEventFrequencyCondition):
