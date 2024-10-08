@@ -162,7 +162,7 @@ function CustomViewsIssueListHeaderTabsContent({
   );
 
   const getInitialTabKey = () => {
-    if (draggableTabs[0].key.startsWith('default')) {
+    if (draggableTabs[0].key.startsWith('default') || viewId?.startsWith('default')) {
       if (query) {
         return TEMPORARY_TAB_KEY;
       }
