@@ -25,6 +25,8 @@ import {
   useQuery,
 } from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
+import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
+import {useCompactSelectOptionsCache} from 'sentry/views/insights/common/utils/useCompactSelectOptionsCache';
 
 const queryClient = new QueryClient(DEFAULT_QUERY_CLIENT_CONFIG);
 
@@ -53,7 +55,13 @@ const useLastOrganization = (organizations: Organization[]) => {
   }, [organizations, lastOrgSlug]);
 };
 
-function useOrganizationProjects(organization?: Organization & {region: string}) {
+function useOrganizationProjects({
+  organization,
+  search,
+}: {
+  organization?: Organization & {region: string};
+  search?: string;
+}) {
   const api = useApi();
   const regions = useMemo(() => ConfigStore.get('memberRegions'), []);
   const orgRegion = useMemo(
@@ -62,10 +70,13 @@ function useOrganizationProjects(organization?: Organization & {region: string})
   );
 
   return useQuery<Project[]>({
-    queryKey: [`/organizations/${organization?.slug}/projects/`],
+    queryKey: [`/organizations/${organization?.slug}/projects/`, {slug: search}],
     queryFn: () => {
       return api.requestPromise(`/organizations/${organization?.slug}/projects/`, {
         host: orgRegion?.url,
+        query: {
+          slug: search,
+        },
       });
     },
     enabled: !!(orgRegion && organization),
@@ -108,6 +119,9 @@ const BASE_API_CLIENT = new Client({baseUrl: ''});
 function ProjectSelection({hash, organizations = []}: Omit<Props, 'allowSelection'>) {
   const baseApi = useApi({api: BASE_API_CLIENT});
   const lastOrganization = useLastOrganization(organizations);
+  const [search, setSearch] = useState('');
+  const debouncedSearch = useDebouncedValue(search, 300);
+  const isSearchStale = search !== debouncedSearch;
   const [selectedOrgId, setSelectedOrgId] = useState<string | null>(() => {
     if (organizations.length === 1) {
       return organizations[0].id;
@@ -125,7 +139,10 @@ function ProjectSelection({hash, organizations = []}: Omit<Props, 'allowSelectio
     [organizations, selectedOrgId]
   );
 
-  const orgProjectsRequest = useOrganizationProjects(selectedOrg);
+  const orgProjectsRequest = useOrganizationProjects({
+    organization: selectedOrg,
+    search: debouncedSearch,
+  });
 
   const selectedProject = useMemo(
     () => orgProjectsRequest.data?.find(org => org.id === selectedProjectId),
@@ -192,6 +209,8 @@ function ProjectSelection({hash, organizations = []}: Omit<Props, 'allowSelectio
     [orgProjectsRequest.data]
   );
 
+  const {options: cachedProjectOptions} = useCompactSelectOptionsCache(projectOptions);
+
   const isFormValid = selectedOrg && selectedProject;
 
   if (isSuccess) {
@@ -238,10 +257,11 @@ function ProjectSelection({hash, organizations = []}: Omit<Props, 'allowSelectio
             // Remount the component when the org changes to reset the component state
             // TODO(aknaus): investigate why the selection is not reset when the value changes to null
             key={selectedOrgId}
-            disabled={!selectedOrgId || orgProjectsRequest.isPending}
+            onSearch={setSearch}
+            disabled={!selectedOrgId}
             value={selectedProjectId as string}
             searchable
-            options={projectOptions}
+            options={cachedProjectOptions}
             triggerProps={{
               icon: selectedProject ? (
                 <ProjectBadge avatarSize={16} project={selectedProject} hideName />
@@ -255,16 +275,23 @@ function ProjectSelection({hash, organizations = []}: Omit<Props, 'allowSelectio
             onChange={({value}) => {
               setSelectedProjectId(value as string);
             }}
-            emptyMessage={tct('No projects found. [link:Create a project]', {
-              organization: selectedOrg?.name || selectedOrg?.slug || 'organization',
-              link: (
-                <a
-                  href={`/organizations/${selectedOrg?.slug}/projects/new`}
-                  target="_blank"
-                  rel="noreferrer"
-                />
-              ),
-            })}
+            emptyMessage={
+              orgProjectsRequest.isPending || isSearchStale
+                ? t('Loading...')
+                : search
+                  ? t('No projects matching search')
+                  : tct('No projects found. [link:Create a project]', {
+                      organization:
+                        selectedOrg?.name || selectedOrg?.slug || 'organization',
+                      link: (
+                        <a
+                          href={`/organizations/${selectedOrg?.slug}/projects/new`}
+                          target="_blank"
+                          rel="noreferrer"
+                        />
+                      ),
+                    })
+            }
           />
         )}
       </FieldWrapper>
