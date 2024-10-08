@@ -515,7 +515,12 @@ class JiraIntegration(IssueSyncIntegration):
         elif (
             # Assignee and reporter fields
             field_meta.get("autoCompleteUrl")
-            and (schema.get("items") == "user" or schema["type"] == "user")
+            and (
+                schema.get("items") == "user"
+                or schema["type"] == "user"
+                or schema["type"] == "team"
+                or schema.get("items") == "team"
+            )
             # Sprint and "Epic Link" fields
             or schema.get("custom")
             in (JIRA_CUSTOM_FIELD_TYPES["sprint"], JIRA_CUSTOM_FIELD_TYPES["epic"])
