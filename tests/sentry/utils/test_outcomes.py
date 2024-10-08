@@ -355,7 +355,8 @@ def test_track_outcome_with_invalid_inputs():
     """
     with pytest.raises(AssertionError):
         track_outcome(
-            org_id="invalid_org_id",  # Should be int
+            # Should be int
+            org_id="invalid_org_id",  # type: ignore[arg-type]
             project_id=2,
             key_id=3,
             outcome=Outcome.ACCEPTED,
@@ -366,7 +367,8 @@ def test_track_outcome_with_invalid_inputs():
             org_id=1,
             project_id=2,
             key_id=3,
-            outcome="invalid_outcome",  # Should be Outcome instance
+            # Should be Outcome instance
+            outcome="invalid_outcome",  # type: ignore[arg-type]
         )
 
     with pytest.raises(AssertionError):
@@ -375,7 +377,8 @@ def test_track_outcome_with_invalid_inputs():
             project_id=2,
             key_id=3,
             outcome=Outcome.ACCEPTED,
-            category="invalid_category",  # Should be DataCategory or None
+            # Should be DataCategory or None
+            category="invalid_category",  # type: ignore[arg-type]
         )
 
 
