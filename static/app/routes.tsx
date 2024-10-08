@@ -559,7 +559,7 @@ function buildRoutes() {
       <Route
         path="toolbar/"
         name={t('Developer Toolbar')}
-        component={make(() => import('sentry/views/settings/project/toolbar'))}
+        component={make(() => import('sentry/views/settings/project/projectToolbar'))}
       />
       <Route path="source-maps/" name={t('Source Maps')}>
         <IndexRoute
@@ -1767,6 +1767,28 @@ function buildRoutes() {
             path="details/"
             component={make(
               () => import('sentry/views/insights/mobile/screens/views/screenDetailsPage')
+            )}
+          />
+        </Route>
+        <Route path={`${MODULE_BASE_URLS[ModuleName.APP_START]}/`}>
+          <Route
+            path="spans/"
+            component={make(
+              () =>
+                import('sentry/views/insights/mobile/appStarts/views/screenSummaryPage')
+            )}
+          />
+        </Route>
+        <Route path={`${MODULE_BASE_URLS[ModuleName.MOBILE_UI]}/`}>
+          <IndexRoute
+            component={make(
+              () => import('sentry/views/insights/mobile/ui/views/uiLandingPage')
+            )}
+          />
+          <Route
+            path="spans/"
+            component={make(
+              () => import('sentry/views/insights/mobile/ui/views/screenSummaryPage')
             )}
           />
         </Route>
