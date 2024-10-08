@@ -479,7 +479,7 @@ class OAuthLoginView(PipelineView):
 
             authenticated_user_info = get_user_info(payload["access_token"])
             if "login" not in authenticated_user_info:
-                lifecycle.record_failure({"failure_reason", GitHubInstallationError.MISSING_LOGIN})
+                lifecycle.record_failure({"failure_reason": GitHubInstallationError.MISSING_LOGIN})
                 return error(request, self.active_organization, error_short="Missing login info")
 
             pipeline.bind_state("github_authenticated_user", authenticated_user_info["login"])
@@ -538,7 +538,7 @@ class GitHubInstallation(PipelineView):
 
             if installations_exist:
                 lifecycle.record_failure(
-                    {"failure_reason", GitHubInstallationError.INSTALLATION_EXISTS}
+                    {"failure_reason": GitHubInstallationError.INSTALLATION_EXISTS}
                 )
                 return error(
                     request,
