@@ -11,7 +11,6 @@ session_cookie_name = settings.SESSION_COOKIE_NAME
 @region_silo_view
 class LoginSuccessView(OrganizationView):
     def get(self, request: HttpRequest, organization, project_id_or_slug):
-
         return self.respond(
             TEMPLATE,
             status=200,

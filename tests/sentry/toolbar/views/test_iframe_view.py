@@ -101,7 +101,7 @@ class IframeViewTest(APITestCase):
         assert _has_nonce(res)
 
         self.assertTemplateUsed(res, TEMPLATE)
-        assert "const referrer = 'None';" in res.content.decode("utf-8")
+        assert "const referrer = '';" in res.content.decode("utf-8")
         # TODO: 'invalid-domain' is the full string to check for
         assert "const state = 'invalid" in res.content.decode("utf-8")
 

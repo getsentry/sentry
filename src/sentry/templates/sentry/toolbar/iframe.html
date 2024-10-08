@@ -1,8 +1,11 @@
 {% comment %}
 Template returned for requests to /iframe. The iframe serves as a proxy for Sentry API requests.
 Required context variables:
-- referrer: string. HTTP header from the request object.
-- state:    string. One of: `logged-out`, `missing-project`, `invalid-domain` or `success`.
+- referrer:           string.       HTTP header from the request object.
+- state:              string.       One of: `logged-out`, `missing-project`, `invalid-domain` or `success`.
+- logging:            any.          If the value is truthy in JavaScript then debug logging will be enabled.
+- organization_slug:  string.       The org named in the url params
+- project_id_or_slug: string | int. The project named in the url params
 {% endcomment %}
 {% load sentry_helpers %}
 {% load sentry_assets %}
@@ -23,6 +26,8 @@ Required context variables:
         const referrer = '{{ referrer|escapejs }}';
         const state = '{{ state|escapejs }}';
         const logging = '{{ logging|escapejs }}';
+        const orgIdOrSlug = '{{ organization_slug|escapejs }}';
+        const projectIdOrSlug = '{{ project_id_or_slug|escapejs }}';
 
         function log(...args) {
           if (logging) {
@@ -36,7 +41,7 @@ Required context variables:
           form.addEventListener('submit', submitEvent => {
             submitEvent.preventDefault();
             window.open(
-              `/toolbar/sentry/javascript/login-success/`,
+              `/toolbar/${orgIdOrSlug}/${projectIdOrSlug}/login-success/`,
               'sentry-toolbar-auth-popup',
               'popup=true,innerWidth=800,innerHeight=550,noopener=false'
             );
