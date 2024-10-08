@@ -76,6 +76,10 @@ OPSGENIE_BASE_URL_TO_DOMAIN_NAME = {
 }
 
 
+def record_event(event: OnCallInteractionType):
+    return OnCallInteractionEvent(event, OpsgenieOnCallSpec())
+
+
 class InstallationForm(forms.Form):
     base_url = forms.ChoiceField(
         label=_("Base URL"),
@@ -182,9 +186,7 @@ class OpsgenieIntegration(IntegrationInstallation):
             team["id"] = str(self.org_integration.id) + "-" + team["team"]
 
         invalid_keys = []
-        with OnCallInteractionEvent(
-            OnCallInteractionType.VERIFY_KEYS, OpsgenieOnCallSpec()
-        ).capture():
+        with record_event(OnCallInteractionType.VERIFY_KEYS).capture():
             for team in teams:
                 # skip if team, key pair already exist in config
                 if (team["team"], team["integration_key"]) in existing_team_key_pairs:
@@ -223,12 +225,13 @@ class OpsgenieIntegration(IntegrationInstallation):
         return super().update_organization_config(data)
 
     def schedule_migrate_opsgenie_plugin(self):
-        migrate_opsgenie_plugin.apply_async(
-            kwargs={
-                "integration_id": self.model.id,
-                "organization_id": self.organization_id,
-            }
-        )
+        with record_event(OnCallInteractionType.MIGRATE_PLUGIN).capture():
+            migrate_opsgenie_plugin.apply_async(
+                kwargs={
+                    "integration_id": self.model.id,
+                    "organization_id": self.organization_id,
+                }
+            )
 
 
 class OpsgenieIntegrationProvider(IntegrationProvider):
@@ -261,14 +264,15 @@ class OpsgenieIntegrationProvider(IntegrationProvider):
         organization: RpcOrganizationSummary,
         extra: Any | None = None,
     ) -> None:
-        try:
-            org_integration = OrganizationIntegration.objects.get(
-                integration=integration, organization_id=organization.id
-            )
+        with record_event(OnCallInteractionType.POST_INSTALL).capture():
+            try:
+                org_integration = OrganizationIntegration.objects.get(
+                    integration=integration, organization_id=organization.id
+                )
 
-        except OrganizationIntegration.DoesNotExist:
-            logger.exception("The Opsgenie post_install step failed.")
-            return
+            except OrganizationIntegration.DoesNotExist:
+                logger.exception("The Opsgenie post_install step failed.")
+                return
 
         key = integration.metadata["api_key"]
         team_table = []

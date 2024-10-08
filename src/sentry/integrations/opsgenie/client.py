@@ -5,8 +5,8 @@ from typing import Literal
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.integrations.client import ApiClient
 from sentry.integrations.models.integration import Integration
-from sentry.integrations.on_call.metrics import OnCallInteractionEvent, OnCallInteractionType
-from sentry.integrations.opsgenie.spec import OpsgenieOnCallSpec
+from sentry.integrations.on_call.metrics import OnCallInteractionType
+from sentry.integrations.opsgenie.integration import record_event
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.models.group import Group
 from sentry.shared_integrations.client.base import BaseApiResponseX
@@ -125,7 +125,7 @@ class OpsgenieClient(ApiClient):
                 return resp
             # this is a metric alert
             payload = data
-        with OnCallInteractionEvent(interaction_type, OpsgenieOnCallSpec()).capture() as lifecycle:
+        with record_event(interaction_type).capture() as lifecycle:
             resp = self.post("/alerts", data=payload, headers=headers)
             if resp.status_code >= 400:
                 lifecycle.record_failure()
