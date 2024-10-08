@@ -20,7 +20,6 @@ import {makeMonitorListQueryKey} from 'sentry/views/monitors/utils';
 import {DateNavigator} from '../timeline/dateNavigator';
 import {GridLineLabels, GridLineOverlay} from '../timeline/gridLines';
 import {useDateNavigation} from '../timeline/hooks/useDateNavigation';
-import {useMonitorStats} from '../timeline/hooks/useMonitorStats';
 import {useTimeWindowConfig} from '../timeline/hooks/useTimeWindowConfig';
 
 import {OverviewRow} from './overviewRow';
@@ -42,11 +41,6 @@ export function OverviewTimeline({monitorList}: Props) {
 
   const timeWindowConfig = useTimeWindowConfig({timelineWidth});
   const dateNavigation = useDateNavigation();
-
-  const {data: monitorStats, isPending} = useMonitorStats({
-    monitors: monitorList.map(m => m.id),
-    timeWindowConfig,
-  });
 
   const handleDeleteEnvironment = async (monitor: Monitor, env: string) => {
     const success = await deleteMonitorEnvironment(api, organization.slug, monitor, env);
@@ -148,8 +142,8 @@ export function OverviewTimeline({monitorList}: Props) {
       <AlignedGridLineOverlay
         stickyCursor
         allowZoom
-        showCursor={!isPending}
-        showIncidents={!isPending}
+        showCursor
+        showIncidents
         timeWindowConfig={timeWindowConfig}
       />
 
@@ -159,7 +153,6 @@ export function OverviewTimeline({monitorList}: Props) {
             key={monitor.id}
             monitor={monitor}
             timeWindowConfig={timeWindowConfig}
-            bucketedData={monitorStats?.[monitor.id]}
             onDeleteEnvironment={env => handleDeleteEnvironment(monitor, env)}
             onToggleMuteEnvironment={(env, isMuted) =>
               handleToggleMuteEnvironment(monitor, env, isMuted)

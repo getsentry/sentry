@@ -8,7 +8,7 @@ from sentry.discover.dataset_split import (
     _get_and_save_split_decision_for_query,
     _get_snuba_dataclass_for_saved_query,
 )
-from sentry.discover.models import DiscoverSavedQuery
+from sentry.discover.models import DatasetSourcesTypes, DiscoverSavedQuery
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
@@ -528,6 +528,31 @@ class DiscoverSavedQueryDatasetSplitTestCase(TestCase, SnubaTestCase):
 
         assert snuba_dataclass.start == datetime(2024, 5, 1, 11, 0, tzinfo=timezone.utc)
         assert snuba_dataclass.end == datetime(2024, 5, 1, 12, 0, tzinfo=timezone.utc)
+
+    def test_errors_query_fallback(self):
+        errors_query = DiscoverSavedQuery.objects.create(
+            organization_id=self.organization.id,
+            name="",
+            query={
+                "environment": [],
+                "query": "(error.unhandled:true message:testing) OR message:test",
+                "fields": ["title", "issue", "project", "release", "count()", "count_unique(user)"],
+                "range": "90d",
+                "orderby": "-count",
+            },
+            version=2,
+            dataset=0,
+            dataset_source=0,
+            is_homepage=True,
+        )
+        errors_query.set_projects(self.project_ids)
+
+        _get_and_save_split_decision_for_query(errors_query, self.dry_run)
+        saved_query = DiscoverSavedQuery.objects.get(id=errors_query.id)
+        assert saved_query.dataset == 0 if self.dry_run else saved_query.dataset == 1
+
+        if not self.dry_run:
+            assert errors_query.dataset_source == DatasetSourcesTypes.FORCED.value
 
 
 class DiscoverSavedQueryDatasetSplitDryRunTestCase(DiscoverSavedQueryDatasetSplitTestCase):

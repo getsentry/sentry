@@ -20,7 +20,7 @@ from sentry.rules.actions.services import PluginService
 from sentry.rules.base import CallbackFuture
 from sentry.sentry_apps.api.serializers.app_platform_event import AppPlatformEvent
 from sentry.sentry_apps.services.app import RpcSentryAppService, app_service
-from sentry.sentry_apps.tasks.sentry_apps import notify_sentry_app
+from sentry.tasks.sentry_apps import notify_sentry_app
 from sentry.utils import json, metrics
 from sentry.utils.forms import set_field_choices
 

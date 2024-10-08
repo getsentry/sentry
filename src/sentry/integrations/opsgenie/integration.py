@@ -10,6 +10,7 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework.request import Request
 from rest_framework.serializers import ValidationError
 
+from sentry.constants import ObjectStatus
 from sentry.integrations.base import (
     FeatureDescription,
     IntegrationFeatures,
@@ -169,7 +170,7 @@ class OpsgenieIntegration(IntegrationInstallation):
         }
 
         integration = integration_service.get_integration(
-            organization_integration_id=self.org_integration.id
+            organization_integration_id=self.org_integration.id, status=ObjectStatus.ACTIVE
         )
         if not integration:
             raise IntegrationError("Integration does not exist")
