@@ -407,9 +407,14 @@ class DashboardDetail extends Component<Props, State> {
   };
 
   handleChangeFilter = (activeFilters: DashboardFilters) => {
-    const {dashboard, location} = this.props;
+    const {dashboard, location, organization} = this.props;
     const {modifiedDashboard} = this.state;
     const newModifiedDashboard = modifiedDashboard || dashboard;
+
+    trackAnalytics('dashboards2.filter.change', {
+      organization,
+      filter_type: 'release',
+    });
 
     if (
       Object.keys(activeFilters).every(
@@ -928,12 +933,7 @@ class DashboardDetail extends Component<Props, State> {
                                   this.isEditingDashboard
                                 }
                                 isPreview={this.isPreview}
-                                onDashboardFilterChange={() => {
-                                  this.handleChangeFilter;
-                                  trackAnalytics('dashboards2.filter.change', {
-                                    organization,
-                                  });
-                                }}
+                                onDashboardFilterChange={this.handleChangeFilter}
                                 onCancel={() => {
                                   resetPageFilters(dashboard, location);
                                   trackAnalytics('dashboards2.filter.cancel', {

@@ -2,6 +2,8 @@ import {updateDateTime} from 'sentry/actionCreators/pageFilters';
 import type {TimeRangeSelectorProps} from 'sentry/components/timeRangeSelector';
 import {TimeRangeSelector} from 'sentry/components/timeRangeSelector';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
 
@@ -33,6 +35,7 @@ export function DatePageFilter({
   const {selection, desyncedFilters, isReady: pageFilterIsReady} = usePageFilters();
   const {start, end, period, utc} = selection.datetime;
   const desynced = desyncedFilters.has('datetime');
+  const organization = useOrganization();
 
   return (
     <TimeRangeSelector
@@ -48,6 +51,11 @@ export function DatePageFilter({
         const newTimePeriod = {period: relative, ...startEndUtc};
 
         onChange?.(timePeriodUpdate);
+
+        trackAnalytics('dashboards2.filter.change', {
+          organization,
+          filter_type: 'day',
+        });
 
         updateDateTime(newTimePeriod, router, {
           save: true,

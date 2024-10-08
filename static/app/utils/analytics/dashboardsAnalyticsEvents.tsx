@@ -33,7 +33,7 @@ export type DashboardsEventParameters = {
   'dashboards2.edit.complete': {};
   'dashboards2.edit.start': {};
   'dashboards2.filter.cancel': {};
-  'dashboards2.filter.change': {};
+  'dashboards2.filter.change': {filter_type: string};
   'dashboards2.filter.save': {};
   'dashboards_manage.change_sort': {
     sort: string;
