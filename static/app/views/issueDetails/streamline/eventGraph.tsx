@@ -1,8 +1,10 @@
 import {useMemo, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from 'sentry/components/button';
 import {BarChart, type BarChartSeries} from 'sentry/components/charts/barChart';
+import Legend from 'sentry/components/charts/components/legend';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconTelescope} from 'sentry/icons';
@@ -13,9 +15,9 @@ import type {Group} from 'sentry/types/group';
 import type {EventsStats, MultiSeriesEventsStats} from 'sentry/types/organization';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
-import theme from 'sentry/utils/theme';
 import useOrganization from 'sentry/utils/useOrganization';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
+import useFlagSeries from 'sentry/views/issueDetails/streamline/flagSeries';
 import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/useIssueDetailsDiscoverQuery';
 
 export const enum EventGraphSeries {
@@ -48,10 +50,12 @@ function createSeriesAndCount(stats: EventsStats) {
 }
 
 export function EventGraph({group, groupStats, searchQuery}: EventGraphProps) {
+  const theme = useTheme();
   const organization = useOrganization();
   const [visibleSeries, setVisibleSeries] = useState<EventGraphSeries>(
     EventGraphSeries.EVENT
   );
+
   const [isGraphHovered, setIsGraphHovered] = useState(false);
   const eventStats = groupStats['count()'];
   const {series: eventSeries, count: eventCount} = useMemo(
@@ -70,6 +74,18 @@ export function EventGraph({group, groupStats, searchQuery}: EventGraphProps) {
     false,
     hasDatasetSelector(organization) ? SavedQueryDatasets.ERRORS : undefined
   );
+
+  const [legendSelected, setLegendSelected] = useState({
+    ['Feature Flags']: true,
+  });
+
+  const flagSeries = useFlagSeries({
+    query: {
+      start: eventView.start,
+      end: eventView.end,
+      statsPeriod: eventView.statsPeriod,
+    },
+  });
 
   const series: BarChartSeries[] = [];
 
@@ -97,6 +113,33 @@ export function EventGraph({group, groupStats, searchQuery}: EventGraphProps) {
       data: eventSeries,
     });
   }
+  if (flagSeries.markLine) {
+    series.push(flagSeries as BarChartSeries);
+  }
+
+  const legend = Legend({
+    theme: theme,
+    icon: 'path://M 10 10 H 500 V 9000 H 10 L 10 10',
+    orient: 'horizontal',
+    align: 'left',
+    show: true,
+    right: 35,
+    top: 5,
+    data: ['Feature Flags'],
+    selected: legendSelected,
+  });
+
+  const onLegendSelectChanged = useMemo(
+    () =>
+      ({name, selected: record}) => {
+        const newValue = record[name];
+        setLegendSelected(prevState => ({
+          ...prevState,
+          [name]: newValue,
+        }));
+      },
+    []
+  );
 
   return (
     <GraphWrapper>
@@ -134,10 +177,12 @@ export function EventGraph({group, groupStats, searchQuery}: EventGraphProps) {
         <BarChart
           height={100}
           series={series}
+          legend={legend}
+          onLegendSelectChanged={onLegendSelectChanged}
           isGroupedByDate
           showTimeInTooltip
           grid={{
-            top: 8,
+            top: 28, // leave room for legend
             left: 8,
             right: 8,
             bottom: 0,

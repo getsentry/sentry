@@ -68,6 +68,7 @@ from sentry.grouping.ingest.utils import (
     check_for_group_creation_load_shed,
     is_non_error_type_group,
 )
+from sentry.grouping.variants import BaseVariant
 from sentry.ingest.inbound_filters import FilterStatKeys
 from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
 from sentry.issues.grouptype import ErrorGroupType
@@ -1290,24 +1291,7 @@ def get_culprit(data: Mapping[str, Any]) -> str:
 
 
 @sentry_sdk.tracing.trace
-def assign_event_to_group(event: Event, job: Job, metric_tags: MutableTags) -> GroupInfo | None:
-    group_info = _save_aggregate_new(
-        event=event,
-        job=job,
-        metric_tags=metric_tags,
-    )
-
-    # The only way there won't be group info is we matched to a performance, cron, replay, or
-    # other-non-error-type group because of a hash collision - exceedingly unlikely, and not
-    # something we've ever observed, but theoretically possible.
-    if group_info:
-        event.group = group_info.group
-    job["groups"] = [group_info]
-
-    return group_info
-
-
-def _save_aggregate_new(
+def assign_event_to_group(
     event: Event,
     job: Job,
     metric_tags: MutableTags,
@@ -1335,7 +1319,9 @@ def _save_aggregate_new(
             result = "found_secondary"
         # If we still haven't found a group, ask Seer for a match (if enabled for the project)
         else:
-            seer_matched_grouphash = maybe_check_seer_for_matching_grouphash(event, all_grouphashes)
+            seer_matched_grouphash = maybe_check_seer_for_matching_grouphash(
+                event, primary.variants, all_grouphashes
+            )
 
             if seer_matched_grouphash:
                 group_info = handle_existing_grouphash(job, seer_matched_grouphash, all_grouphashes)
@@ -1361,6 +1347,13 @@ def _save_aggregate_new(
     # erroneously create new groups.
     update_grouping_config_if_needed(project, "ingest")
 
+    # The only way there won't be group info is we matched to a performance, cron, replay, or
+    # other-non-error-type group because of a hash collision - exceedingly unlikely, and not
+    # something we've ever observed, but theoretically possible.
+    if group_info:
+        event.group = group_info.group
+    job["groups"] = [group_info]
+
     return group_info
 
 
@@ -1368,7 +1361,7 @@ def get_hashes_and_grouphashes(
     job: Job,
     hash_calculation_function: Callable[
         [Project, Job, MutableTags],
-        tuple[GroupingConfig, list[str]],
+        tuple[GroupingConfig, list[str], dict[str, BaseVariant]],
     ],
     metric_tags: MutableTags,
 ) -> GroupHashInfo:
@@ -1383,14 +1376,14 @@ def get_hashes_and_grouphashes(
     project = job["event"].project
 
     # These will come back as Nones if the calculation decides it doesn't need to run
-    grouping_config, hashes = hash_calculation_function(project, job, metric_tags)
+    grouping_config, hashes, variants = hash_calculation_function(project, job, metric_tags)
 
     if hashes:
-        grouphashes = get_or_create_grouphashes(project, hashes)
+        grouphashes = get_or_create_grouphashes(project, hashes, grouping_config["id"])
 
         existing_grouphash = find_grouphash_with_group(grouphashes)
 
-        return GroupHashInfo(grouping_config, hashes, grouphashes, existing_grouphash)
+        return GroupHashInfo(grouping_config, variants, hashes, grouphashes, existing_grouphash)
     else:
         return NULL_GROUPHASH_INFO
 
@@ -1420,7 +1413,7 @@ def handle_existing_grouphash(
     #    (otherwise the update would not change anything)
     #
     # We think this is a very unlikely situation. A previous version of
-    # _save_aggregate had races around group creation which made this race
+    # this function had races around group creation which made this race
     # more user visible. For more context, see 84c6f75a and d0e22787, as
     # well as GH-5085.
     group = Group.objects.get(id=existing_grouphash.group_id)
