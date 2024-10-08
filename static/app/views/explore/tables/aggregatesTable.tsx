@@ -10,11 +10,8 @@ import {t} from 'sentry/locale';
 import type {NewQuery} from 'sentry/types/organization';
 import EventView from 'sentry/utils/discover/eventView';
 import {fieldAlignment, getAggregateAlias, type Sort} from 'sentry/utils/discover/fields';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import CellAction, {updateQuery} from 'sentry/views/discover/table/cellAction';
 import {
-  ALLOWED_CELL_ACTIONS,
   Table,
   TableBody,
   TableBodyCell,
@@ -54,7 +51,7 @@ export function AggregatesTable({}: AggregatesTableProps) {
     );
   }, [groupBys, visualizes]);
   const [sorts] = useSorts({fields});
-  const [userQuery, setUserQuery] = useUserQuery();
+  const [userQuery] = useUserQuery();
 
   const eventView = useMemo(() => {
     const discoverQuery: NewQuery = {
@@ -123,29 +120,19 @@ export function AggregatesTable({}: AggregatesTableProps) {
               <TableRow key={i}>
                 {fields.map((field, j) => {
                   const column = eventView.getColumns()[j];
-                  const query = new MutableSearch(eventView.query);
                   return (
                     <TableBodyCell key={j}>
-                      <CellAction
+                      {topEvents && i < topEvents && j === 0 && (
+                        <TopResultsIndicator index={i} />
+                      )}
+                      <FieldRenderer
                         column={column}
-                        dataRow={row}
-                        handleCellAction={(actions, value) => {
-                          updateQuery(query, actions, column, value);
-                          setUserQuery(query.formatString());
-                        }}
-                        allowActions={ALLOWED_CELL_ACTIONS}
-                      >
-                        {topEvents && i < topEvents && j === 0 && (
-                          <TopResultsIndicator index={i} />
-                        )}
-                        <FieldRenderer
-                          dataset={dataset}
-                          data={row}
-                          field={field}
-                          unit={meta?.units?.[field]}
-                          meta={meta}
-                        />
-                      </CellAction>
+                        dataset={dataset}
+                        data={row}
+                        field={field}
+                        unit={meta?.units?.[field]}
+                        meta={meta}
+                      />
                     </TableBodyCell>
                   );
                 })}
