@@ -46,7 +46,8 @@ class ProcessResultTest(ProducerTestMixin):
             subscription_id=uuid.uuid4().hex, interval_seconds=300
         )
         self.project_subscription = self.create_project_uptime_subscription(
-            uptime_subscription=self.subscription
+            uptime_subscription=self.subscription,
+            owner=self.user,
         )
 
     def send_result(self, result: CheckResult):
@@ -122,6 +123,8 @@ class ProcessResultTest(ProducerTestMixin):
         hashed_fingerprint = md5(str(self.project_subscription.id).encode("utf-8")).hexdigest()
         group = Group.objects.get(grouphash__hash=hashed_fingerprint)
         assert group.issue_type == UptimeDomainCheckFailure
+        assignee = group.get_assignee()
+        assert assignee and (assignee.id == self.user.id)
         self.project_subscription.refresh_from_db()
         assert self.project_subscription.uptime_status == UptimeStatus.FAILED
 

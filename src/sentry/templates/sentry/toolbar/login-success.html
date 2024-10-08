@@ -13,29 +13,31 @@
       <button type="button" id="close-popup">Close Popup</button>
     </div>
 
+    {% script %}
     <script>
       (function() {
-        function notifyOpener() {
-          if (!window.opener) {
-            return;
-          }
+        const delay = '{{ delay|escapejs }}';
+        const cookie = '{{ cookie|escapejs }}';
 
-          window.opener.postMessage({
-            source: 'sentry-toolbar',
-            message: 'did-login',
-          }, '*');
-        }
-
-        notifyOpener();
-        setTimeout(() => {
-          window.close();
-        }, 3_000);
-
-        // If the popup doesn't close, we can let people try to close it manually.
         document.getElementById('close-popup').addEventListener('click', () => {
           window.close();
         });
+
+        if (window.opener) {
+          window.opener.postMessage({
+            source: 'sentry-toolbar',
+            message: 'did-login',
+            cookie: cookie,
+          }, window.location.origin);
+
+          if (delay && typeof delay === 'number') {
+            setTimeout(() => {
+              window.close();
+            }, delay);
+          }
+        }
       })();
     </script>
+    {% endscript %}
   </body>
 </html>

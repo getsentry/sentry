@@ -166,8 +166,8 @@ const onboarding: OnboardingConfig = {
               <strong>{t('Options')}</strong>
               <p>
                 {tct(
-                  '[sentryFiberCode:sentryfiber] accepts a struct of [optionsCode:Options] that allows you to configure how the handler will behave.',
-                  {sentryFiberCode: <code />, optionsCode: <code />}
+                  '[code:sentryfiber] accepts a struct of [code:Options] that allows you to configure how the handler will behave.',
+                  {code: <code />}
                 )}
               </p>
               {t('Currently it respects 3 options:')}
@@ -184,23 +184,19 @@ const onboarding: OnboardingConfig = {
         <Fragment>
           <p>
             {tct(
-              "[sentryFiberCode:sentryfiber] attaches an instance of [sentryHubLink:*sentry.Hub] to the [fiberContextCode:*fiber.Ctx], which makes it available throughout the rest of the request's lifetime. You can access it by using the [getHubFromContextCode:sentryfiber.GetHubFromContext()] method on the context itself in any of your proceeding middleware and routes. And it should be used instead of the global [captureMessageCode:sentry.CaptureMessage], [captureExceptionCode:sentry.CaptureException] or any other calls, as it keeps the separation of data between the requests.",
+              "[code:sentryfiber] attaches an instance of [sentryHubLink:*sentry.Hub] to the [code:*fiber.Ctx], which makes it available throughout the rest of the request's lifetime. You can access it by using the [code:sentryfiber.GetHubFromContext()] method on the context itself in any of your proceeding middleware and routes. And it should be used instead of the global [code:sentry.CaptureMessage], [code:sentry.CaptureException] or any other calls, as it keeps the separation of data between the requests.",
               {
-                sentryFiberCode: <code />,
+                code: <code />,
                 sentryHubLink: (
                   <ExternalLink href="https://godoc.org/github.com/getsentry/sentry-go#Hub" />
                 ),
-                fiberContextCode: <code />,
-                getHubFromContextCode: <code />,
-                captureMessageCode: <code />,
-                captureExceptionCode: <code />,
               }
             )}
           </p>
           <AlertWithoutMarginBottom>
             {tct(
-              "Keep in mind that [sentryHubCode:*sentry.Hub] won't be available in middleware attached before [sentryFiberCode:sentryfiber]!",
-              {sentryFiberCode: <code />, sentryHubCode: <code />}
+              "Keep in mind that [code:*sentry.Hub] won't be available in middleware attached before [code:sentryfiber]!",
+              {code: <code />}
             )}
           </AlertWithoutMarginBottom>
         </Fragment>

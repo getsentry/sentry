@@ -1,6 +1,9 @@
+from typing import Any
+
 from sentry import analytics, features
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration import Integration
+from sentry.integrations.services.assignment_source import AssignmentSource
 from sentry.integrations.services.integration import integration_service
 from sentry.models.organization import Organization
 from sentry.silo.base import SiloMode
@@ -24,7 +27,12 @@ from sentry.users.services.user.service import user_service
         Organization.DoesNotExist,
     )
 )
-def sync_assignee_outbound(external_issue_id: int, user_id: int | None, assign: bool) -> None:
+def sync_assignee_outbound(
+    external_issue_id: int,
+    user_id: int | None,
+    assign: bool,
+    assignment_source_dict: dict[str, Any] | None = None,
+) -> None:
     # Sync Sentry assignee to an external issue.
     external_issue = ExternalIssue.objects.get(id=external_issue_id)
 
@@ -42,10 +50,15 @@ def sync_assignee_outbound(external_issue_id: int, user_id: int | None, assign: 
     ):
         return
 
-    if installation.should_sync("outbound_assignee"):
+    parsed_assignment_source = (
+        AssignmentSource.from_dict(assignment_source_dict) if assignment_source_dict else None
+    )
+    if installation.should_sync("outbound_assignee", parsed_assignment_source):
         # Assume unassign if None.
         user = user_service.get_user(user_id) if user_id else None
-        installation.sync_assignee_outbound(external_issue, user, assign=assign)
+        installation.sync_assignee_outbound(
+            external_issue, user, assign=assign, assignment_source=parsed_assignment_source
+        )
         analytics.record(
             "integration.issue.assignee.synced",
             provider=integration.provider,

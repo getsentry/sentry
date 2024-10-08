@@ -21,6 +21,8 @@ import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries
 import {PlatformSelector} from 'sentry/views/insights/mobile/screenload/components/platformSelector';
 import {ScreenLoadSpansContent as ScreenLoadPage} from 'sentry/views/insights/mobile/screenload/views/screenLoadSpansPage';
 import {ScreenSummaryContent as UiPage} from 'sentry/views/insights/mobile/ui/views/screenSummaryPage';
+import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {ModuleName} from 'sentry/views/insights/types';
 
 type Query = {
@@ -38,6 +40,7 @@ type Tab = {
 };
 
 export function ScreenDetailsPage() {
+  const {isInDomainView} = useDomainViewFilters();
   const location: Location = useLocation<Query>();
   const organization = useOrganization();
   const {isProjectCrossPlatform} = useCrossPlatformProject();
@@ -96,37 +99,56 @@ export function ScreenDetailsPage() {
     });
   }
 
+  const tabList = (
+    <TabList hideBorder>
+      {tabs.map(tab => {
+        const visible =
+          tab.feature === undefined || organization.features?.includes(tab.feature);
+        return (
+          <TabList.Item key={tab.key} hidden={!visible} textValue={tab.label}>
+            {tab.label}
+            {tab.alpha && <FeatureBadge type="alpha" variant={'badge'} />}
+          </TabList.Item>
+        );
+      })}
+    </TabList>
+  );
+
   return (
     <PageFiltersContainer>
       <SentryDocumentTitle title={t('Mobile Screens')} orgSlug={organization.slug} />
       <Layout.Page>
         <PageAlertProvider>
           <Tabs value={selectedTabKey} onChange={tabKey => handleTabChange(tabKey)}>
-            <Layout.Header>
-              <Layout.HeaderContent style={{margin: 0}}>
-                <Breadcrumbs crumbs={crumbs} />
-                <Layout.Title>{transactionName}</Layout.Title>
-              </Layout.HeaderContent>
-              <Layout.HeaderActions>
-                <ButtonBar gap={1}>
-                  {isProjectCrossPlatform && <PlatformSelector />}
-                </ButtonBar>
-              </Layout.HeaderActions>
+            {!isInDomainView && (
+              <Layout.Header>
+                <Layout.HeaderContent style={{margin: 0}}>
+                  <Breadcrumbs crumbs={crumbs} />
+                  <Layout.Title>{transactionName}</Layout.Title>
+                </Layout.HeaderContent>
+                <Layout.HeaderActions>
+                  <ButtonBar gap={1}>
+                    {isProjectCrossPlatform && <PlatformSelector />}
+                  </ButtonBar>
+                </Layout.HeaderActions>
+                {tabList}
+              </Layout.Header>
+            )}
 
-              <TabList hideBorder>
-                {tabs.map(tab => {
-                  const visible =
-                    tab.feature === undefined ||
-                    organization.features?.includes(tab.feature);
-                  return (
-                    <TabList.Item key={tab.key} hidden={!visible} textValue={tab.label}>
-                      {tab.label}
-                      {tab.alpha && <FeatureBadge type="alpha" variant={'badge'} />}
-                    </TabList.Item>
-                  );
-                })}
-              </TabList>
-            </Layout.Header>
+            {isInDomainView && (
+              <MobileHeader
+                module={ModuleName.MOBILE_SCREENS}
+                hideDefaultTabs
+                tabs={{tabList, value: selectedTabKey, onTabChange: handleTabChange}}
+                headerActions={isProjectCrossPlatform && <PlatformSelector />}
+                headerTitle={transactionName}
+                breadcrumbs={[
+                  {
+                    label: t('Screen Summary'),
+                  },
+                ]}
+              />
+            )}
             <Layout.Body>
               <Layout.Main fullWidth>
                 <PageAlert />

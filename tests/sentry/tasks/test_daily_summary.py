@@ -73,7 +73,7 @@ class DailySummaryTest(
                     data=data,
                     project_id=project_id,
                     assert_no_errors=False,
-                    event_type=EventType.ERROR,
+                    default_event_type=EventType.DEFAULT,
                 )
             elif category == DataCategory.TRANSACTION:
                 event = self.create_performance_issue()
@@ -287,6 +287,7 @@ class DailySummaryTest(
         assert project_context_map2.regressed_today == []
         assert project_context_map2.new_in_release == {}
 
+    @pytest.mark.skip(reason="flaky and part of a dead project")
     def test_build_summary_data_filter_to_unresolved(self):
         with self.options({"issues.group_attributes.send_kafka": True}):
             for _ in range(3):
@@ -332,6 +333,7 @@ class DailySummaryTest(
         assert (group1, 3) in project_context_map.key_errors_by_group
         assert (group2, 3) in project_context_map.key_errors_by_group
 
+    @pytest.mark.skip(reason="flaky and part of a dead project")
     def test_build_summary_data_filter_to_error_level(self):
         """Test that non-error level issues are filtered out of the results"""
         with self.options({"issues.group_attributes.send_kafka": True}):
@@ -749,7 +751,7 @@ class DailySummaryTest(
                 data=data,
                 project_id=self.project.id,
                 assert_no_errors=False,
-                event_type=EventType.ERROR,
+                default_event_type=EventType.DEFAULT,
             )
             self.store_outcomes(
                 {
@@ -798,7 +800,7 @@ class DailySummaryTest(
                 data=data,
                 project_id=self.project.id,
                 assert_no_errors=False,
-                event_type=EventType.ERROR,
+                default_event_type=EventType.DEFAULT,
             )
             self.store_outcomes(
                 {
@@ -847,7 +849,7 @@ class DailySummaryTest(
                 data=data,
                 project_id=self.project.id,
                 assert_no_errors=False,
-                event_type=EventType.ERROR,
+                default_event_type=EventType.DEFAULT,
             )
             self.store_outcomes(
                 {

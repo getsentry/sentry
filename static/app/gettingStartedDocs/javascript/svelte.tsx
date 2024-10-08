@@ -139,10 +139,9 @@ const onboarding: OnboardingConfig = {
     {
       type: StepType.INSTALL,
       description: tct(
-        'Add the Sentry SDK as a dependency using [codeNpm:npm] or [codeYarn:yarn]:',
+        'Add the Sentry SDK as a dependency using [code:npm] or [code:yarn]:',
         {
-          codeYarn: <code />,
-          codeNpm: <code />,
+          code: <code />,
         }
       ),
       configurations: getInstallConfig(),
@@ -204,22 +203,6 @@ const onboarding: OnboardingConfig = {
         'Learn about our first class integration with the Svelte framework.'
       ),
       link: 'https://docs.sentry.io/platforms/javascript/guides/svelte/features/',
-    },
-    {
-      id: 'performance-monitoring',
-      name: t('Tracing'),
-      description: t(
-        'Track down transactions to connect the dots between 10-second page loads and poor-performing API calls or slow database queries.'
-      ),
-      link: 'https://docs.sentry.io/platforms/javascript/guides/svelte/tracing/',
-    },
-    {
-      id: 'session-replay',
-      name: t('Session Replay'),
-      description: t(
-        'Get to the root cause of an error or latency issue faster by seeing all the technical details related to that issue in one visual replay on your web application.'
-      ),
-      link: 'https://docs.sentry.io/platforms/javascript/guides/svelte/session-replay/',
     },
   ],
 };

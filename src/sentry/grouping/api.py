@@ -26,7 +26,6 @@ from sentry.grouping.variants import (
     ComponentVariant,
     CustomFingerprintVariant,
     FallbackVariant,
-    KeyedVariants,
     SaltedComponentVariant,
 )
 from sentry.models.grouphash import GroupHash
@@ -43,13 +42,14 @@ HASH_RE = re.compile(r"^[0-9a-f]{32}$")
 @dataclass
 class GroupHashInfo:
     config: GroupingConfig
+    variants: dict[str, BaseVariant]
     hashes: list[str]
     grouphashes: list[GroupHash]
     existing_grouphash: GroupHash | None
 
 
 NULL_GROUPING_CONFIG: GroupingConfig = {"id": "", "enhancements": ""}
-NULL_GROUPHASH_INFO = GroupHashInfo(NULL_GROUPING_CONFIG, [], [], None)
+NULL_GROUPHASH_INFO = GroupHashInfo(NULL_GROUPING_CONFIG, {}, [], [], None)
 
 
 class GroupingConfigNotFound(LookupError):
@@ -370,18 +370,3 @@ def get_grouping_variants_for_event(
         rv["fallback"] = FallbackVariant()
 
     return rv
-
-
-def sort_grouping_variants(variants: dict[str, BaseVariant]) -> KeyedVariants:
-    """Sort a sequence of variants into flat variants"""
-
-    flat_variants = []
-
-    for name, variant in variants.items():
-        flat_variants.append((name, variant))
-
-    # Sort system variant to the back of the list to resolve ambiguities when
-    # choosing primary_hash for Snuba
-    flat_variants.sort(key=lambda name_and_variant: 1 if name_and_variant[0] == "system" else 0)
-
-    return flat_variants

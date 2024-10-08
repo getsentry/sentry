@@ -7,7 +7,6 @@ from datetime import datetime, timedelta, timezone
 from itertools import islice
 from typing import Any, DefaultDict, NamedTuple
 
-import sentry_sdk
 from django.db.models import OuterRef, Subquery
 
 from sentry import buffer, nodestore, options
@@ -359,12 +358,8 @@ def passes_comparison(
         query_values = [
             condition_group_results[unique_query][group_id] for unique_query in unique_queries
         ]
-    except KeyError as exception:
-        sentry_sdk.capture_exception(exception)
-        logger.exception(
-            "delayed_processing.missing_query_results",
-            extra={"exception": exception, "group_id": group_id, "project_id": project_id},
-        )
+    except KeyError:
+        metrics.incr("delayed_processing.missing_query_result")
         return False
 
     calculated_value = query_values[0]

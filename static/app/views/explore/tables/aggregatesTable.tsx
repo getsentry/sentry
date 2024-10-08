@@ -45,9 +45,8 @@ export function AggregatesTable({}: AggregatesTableProps) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const topEvents = useTopEvents();
-
   const [dataset] = useDataset();
-  const [groupBys] = useGroupBys();
+  const {groupBys} = useGroupBys();
   const [visualizes] = useVisualizes();
   const fields = useMemo(() => {
     return [...groupBys, ...visualizes.flatMap(visualize => visualize.yAxes)].filter(

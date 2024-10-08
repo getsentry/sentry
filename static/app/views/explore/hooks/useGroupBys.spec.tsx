@@ -1,11 +1,8 @@
-// biome-ignore lint/nursery/noRestrictedImports: Will be removed with react router 6
-import {createMemoryHistory, Route, Router, RouterContext} from 'react-router';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {act, render, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {useGroupBys} from 'sentry/views/explore/hooks/useGroupBys';
-import {RouteContext} from 'sentry/views/routeContext';
 
 import {SpanTagsProvider} from '../contexts/spanTagsContext';
 
@@ -31,27 +28,15 @@ describe('useGroupBys', function () {
     let groupBys, setGroupBys;
 
     function TestPage() {
-      [groupBys, setGroupBys] = useGroupBys();
+      ({groupBys, setGroupBys} = useGroupBys());
       return null;
     }
 
-    const memoryHistory = createMemoryHistory();
-
     render(
       <SpanTagsProvider>
-        <Router
-          history={memoryHistory}
-          render={props => {
-            return (
-              <RouteContext.Provider value={props}>
-                <RouterContext {...props} />
-              </RouteContext.Provider>
-            );
-          }}
-        >
-          <Route path="/" component={TestPage} />
-        </Router>
-      </SpanTagsProvider>
+        <TestPage />
+      </SpanTagsProvider>,
+      {disableRouterMocks: true}
     );
 
     await waitFor(() => expect(mockSpanTagsApiCall).toHaveBeenCalledTimes(1));
