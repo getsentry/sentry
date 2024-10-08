@@ -34,7 +34,6 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
-import useRouter from 'sentry/utils/useRouter';
 import {getTermHelp, PerformanceTerm} from 'sentry/views/performance/data';
 import {getTransactionMEPParamsIfApplicable} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
 
@@ -83,7 +82,6 @@ function SidebarCharts({
   transactionName,
 }: Props) {
   const location = useLocation();
-  const router = useRouter();
   const theme = useTheme();
 
   return (
@@ -129,7 +127,6 @@ function SidebarCharts({
       >
         {results => (
           <ChartZoom
-            router={router}
             period={statsPeriod}
             start={start}
             end={end}
@@ -211,7 +208,6 @@ function SidebarChartsContainer({
   transactionName,
 }: ContainerProps) {
   const location = useLocation();
-  const router = useRouter();
   const api = useApi();
   const theme = useTheme();
 
@@ -321,7 +317,6 @@ function SidebarChartsContainer({
 
   const contentCommonProps = {
     organization,
-    router,
     error,
     isLoading,
     start,

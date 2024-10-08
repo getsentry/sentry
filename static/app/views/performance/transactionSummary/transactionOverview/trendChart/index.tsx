@@ -24,7 +24,6 @@ import {useMetricsCardinalityContext} from 'sentry/utils/performance/contexts/me
 import TrendsDiscoverQuery from 'sentry/utils/performance/trends/trendsDiscoverQuery';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
-import useRouter from 'sentry/utils/useRouter';
 import type {TrendFunctionField, TrendView} from 'sentry/views/performance/trends/types';
 import {TrendChangeType} from 'sentry/views/performance/trends/types';
 import {modifyTrendView, normalizeTrends} from 'sentry/views/performance/trends/utils';
@@ -61,7 +60,6 @@ function TrendChart({
   end: propsEnd,
   projects,
 }: Props) {
-  const router = useRouter();
   const location = useLocation();
   const api = useApi();
   const theme = useTheme();
@@ -103,7 +101,6 @@ function TrendChart({
 
   const contentCommonProps = {
     theme,
-    router,
     start,
     end,
     utc,
