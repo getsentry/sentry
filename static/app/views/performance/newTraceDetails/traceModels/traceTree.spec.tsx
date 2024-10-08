@@ -416,6 +416,7 @@ describe('TraceTree', () => {
         traceMetadata
       );
 
+      // eslint-disable-next-line
       const _spans = TraceTree.FromSpans(
         tree.root.children[0],
         [makeSpan()],
@@ -516,6 +517,7 @@ describe('TraceTree', () => {
     it('expanding a parent autogroup node shows head to tail chain', () => {
       const tree = TraceTree.FromTrace(trace, traceMetadata);
 
+      // eslint-disable-next-line
       const _spans = TraceTree.FromSpans(
         tree.root.children[0].children[0],
         parentAutogroupSpansWithTailChildren,
@@ -535,6 +537,7 @@ describe('TraceTree', () => {
 
     it('collapsing a parent autogroup node shows tail chain', () => {
       const tree = TraceTree.FromTrace(trace, traceMetadata);
+      // eslint-disable-next-line
       const _spans = TraceTree.FromSpans(
         tree.root.children[0].children[0],
         parentAutogroupSpansWithTailChildren,
@@ -554,6 +557,7 @@ describe('TraceTree', () => {
 
     it('collapsing intermediary children is preserved', () => {
       const tree = TraceTree.FromTrace(trace, traceMetadata);
+      // eslint-disable-next-line
       const _spans = TraceTree.FromSpans(
         tree.root.children[0].children[0],
         parentAutogroupSpansWithTailChildren,
@@ -585,6 +589,7 @@ describe('TraceTree', () => {
 
     it('expanding a sibling autogroup node shows sibling span', () => {
       const tree = TraceTree.FromTrace(trace, traceMetadata);
+      // eslint-disable-next-line
       const _spans = TraceTree.FromSpans(
         tree.root.children[0].children[0],
         siblingAutogroupSpans,
@@ -605,6 +610,7 @@ describe('TraceTree', () => {
 
     it('collapsing a sibling autogroup node hides children', () => {
       const tree = TraceTree.FromTrace(trace, traceMetadata);
+      // eslint-disable-next-line
       const _spans = TraceTree.FromSpans(
         tree.root.children[0].children[0],
         siblingAutogroupSpans,
@@ -985,6 +991,7 @@ describe('TraceTree', () => {
           }),
           traceMetadata
         );
+        // eslint-disable-next-line
         const _spans = TraceTree.FromSpans(
           tree.root.children[0],
           [
