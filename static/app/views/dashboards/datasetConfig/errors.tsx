@@ -4,7 +4,7 @@ import {doEventsRequest} from 'sentry/actionCreators/events';
 import type {Client} from 'sentry/api';
 import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
-import {SavedSearchType, type TagCollection} from 'sentry/types/group';
+import type {TagCollection} from 'sentry/types/group';
 import type {
   EventsStats,
   MultiSeriesEventsStats,
@@ -69,9 +69,7 @@ export const ErrorsConfig: DatasetConfig<
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
   enableEquations: true,
   getCustomFieldRenderer: getCustomEventsFieldRenderer,
-  SearchBar: props => (
-    <EventsSearchBar savedSearchType={SavedSearchType.ERROR} {...props} />
-  ),
+  SearchBar: EventsSearchBar,
   filterSeriesSortOptions,
   filterYAxisAggregateParams,
   filterYAxisOptions,
