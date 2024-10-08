@@ -12,7 +12,7 @@ import useRouter from './useRouter';
  */
 function withSentryRouter<P extends Partial<WithRouterProps>>(
   WrappedComponent: React.ComponentType<P>
-): React.ComponentType<Omit<P, keyof WithRouterProps> & Partial<WithRouterProps>> {
+): React.ComponentType<Omit<P, keyof WithRouterProps>> {
   function WithSentryRouterWrapper(props: Omit<P, keyof WithRouterProps>) {
     const router = useRouter();
     const {location, params, routes} = router;
