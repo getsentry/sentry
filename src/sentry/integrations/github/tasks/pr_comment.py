@@ -222,7 +222,7 @@ def github_comment_workflow(pullrequest_id: int, project_id: int):
     github_copilot_actions = (
         [
             {
-                "name": f"Root cause issue {i} with Sentry",
+                "name": f"Root cause #{i + 1}",
                 "type": "copilot-chat",
                 "prompt": f"@sentry root cause issue {str(issue_id)} with PR URL https://github.com/{repo.name}/pull/{str(pullrequest_id)}",
             }
