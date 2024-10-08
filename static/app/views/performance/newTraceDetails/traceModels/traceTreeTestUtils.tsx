@@ -6,6 +6,7 @@ import type {
   TraceSplitResults,
 } from 'sentry/utils/performance/quickTrace/types';
 
+import type {TraceMetaQueryResults} from '../traceApi/useTraceMeta';
 import {
   isAutogroupedNode,
   isMissingInstrumentationNode,
@@ -95,6 +96,18 @@ export function makeTracePerformanceIssue(
     issue_short_id: 'issue short id',
     ...overrides,
   } as TracePerformanceIssue;
+}
+
+export function makeTraceMetaQueryResults(
+  overrides: Partial<TraceMetaQueryResults> = {}
+): TraceMetaQueryResults {
+  return {
+    data: undefined,
+    errors: [],
+    isLoading: false,
+    status: 'idle',
+    ...overrides,
+  } as TraceMetaQueryResults;
 }
 
 export function makeEventTransaction(
@@ -202,4 +215,18 @@ export function makeNodeMetadata(
     project_slug: undefined,
     ...overrides,
   };
+}
+
+export function mockSpansResponse(
+  spans: TraceTree.Span[],
+  project_slug: string,
+  event_id: string
+): jest.Mock<any, any> {
+  return MockApiClient.addMockResponse({
+    url: `/organizations/org-slug/events/${project_slug}:${event_id}/?averageColumn=span.self_time&averageColumn=span.duration`,
+    method: 'GET',
+    body: makeEventTransaction({
+      entries: [{type: EntryType.SPANS, data: spans}],
+    }),
+  });
 }

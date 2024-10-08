@@ -291,6 +291,14 @@ export class TraceTree extends TraceTreeEventDispatcher {
         event_id: value && 'event_id' in value ? value.event_id : undefined,
       });
 
+      if (isTransactionNode(node)) {
+        const spanChildrenCount =
+          options.meta?.data?.transactiontoSpanChildrenCount[node.value.event_id];
+
+        // We check for >1 events, as the first one is the transaction node itself
+        node.canFetch = spanChildrenCount === undefined ? true : spanChildrenCount > 1;
+      }
+
       if (!node.metadata.project_slug && !node.metadata.event_id) {
         const parentNodeMetadata = TraceTree.ParentTransaction(node)?.metadata;
         if (parentNodeMetadata) {
@@ -454,13 +462,17 @@ export class TraceTree extends TraceTreeEventDispatcher {
 
     // Reparent transactions under children spans
     for (const transaction of transactions) {
-      if (!transaction.value.parent_span_id) {
+      if (
+        !transaction.value.parent_span_id &&
+        transaction.parent &&
+        !isTransactionNode(transaction.parent)
+      ) {
         root.children.push(transaction);
         transaction.parent = root;
         continue;
       }
 
-      const parent = spanIdToNode.get(transaction.value.parent_span_id);
+      const parent = spanIdToNode.get(transaction.value.parent_span_id!);
 
       // If the parent span does not exist in the span tree, the transaction will remain under the current node
       if (!parent) {
@@ -1283,7 +1295,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
       organization: Organization;
     }
   ): Promise<Event | null> {
-    if (zoomedIn === node.zoomedIn) {
+    if (zoomedIn === node.zoomedIn || !node.canFetch) {
       return Promise.resolve(null);
     }
 

@@ -14,7 +14,8 @@ import useProjects from 'sentry/utils/useProjects';
 
 import {TraceDrawerComponents} from '../../traceDrawer/details/styles';
 import {isTransactionNode} from '../../traceGuards';
-import {TRACE_MEASUREMENT_LOOKUP, type TraceTree} from '../../traceModels/traceTree';
+import type {TraceTree} from '../../traceModels/traceTree';
+import {TRACE_MEASUREMENT_LOOKUP} from '../../traceModels/traceTree.measurements';
 
 interface TraceVitalsProps {
   trace: TraceTree;
