@@ -16,7 +16,6 @@ class DashboardPermissions(Model):
 
     __relocation_scope__ = RelocationScope.Organization
 
-    created_by_id = HybridCloudForeignKey("sentry.User", on_delete="CASCADE")
     is_creator_only_editable = models.BooleanField(default=False)
 
     class Meta:
