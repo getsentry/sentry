@@ -10,6 +10,10 @@ logger = logging.getLogger()
 
 
 class AuditLogPresenter(WebhookPresenter):
+    def __init__(self, source: str, dry_run: bool = False) -> None:
+        self.dry_run = dry_run
+        super().__init__(source)
+
     @staticmethod
     def is_webhook_enabled() -> bool:
         return (
@@ -18,6 +22,10 @@ class AuditLogPresenter(WebhookPresenter):
         )
 
     def flush(self) -> None:
+        if self.dry_run:
+            logger.warning("Dry run. Skipping audit-log process.")
+            return None
+
         if not self.is_webhook_enabled():
             logger.warning("Options audit log webhook is disabled.")
             return None
