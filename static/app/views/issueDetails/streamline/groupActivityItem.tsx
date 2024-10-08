@@ -395,7 +395,7 @@ export default function getGroupActivityItem(
         const {data} = activity;
         const {pullRequest} = data;
         return {
-          title: t('Resolved'),
+          title: t('Pull Request Created'),
           message: tct('[author] has created a PR for this issue: [pullRequest]', {
             author,
             pullRequest: pullRequest ? (
