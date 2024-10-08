@@ -1723,6 +1723,7 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                 span.set_data("Max Candidates", max_candidates)
                 span.set_data("Result Size", len(group_ids_to_pass_to_snuba))
 
+                group_ids_to_pass_to_snuba = [i for i in range(max_candidates - 1500)]
                 if too_many_candidates := (len(group_ids_to_pass_to_snuba) > max_candidates):
                     metrics.incr(
                         "snuba.search.group_attributes.too_many_candidates", skip_internal=False

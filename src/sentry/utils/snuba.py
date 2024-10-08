@@ -1104,20 +1104,31 @@ def _bulk_snuba_query(snuba_requests: Sequence[SnubaRequest]) -> ResultSet:
     with sentry_sdk.start_span(op="snuba_query") as span:
         span.set_tag("snuba.num_queries", len(snuba_requests_list))
 
+        query_results = []
         if len(snuba_requests_list) > 1:
-            query_results = list(
-                _query_thread_pool.map(
-                    _snuba_query,
-                    [
-                        (
-                            sentry_sdk.Scope.get_isolation_scope(),
-                            sentry_sdk.Scope.get_current_scope(),
-                            snuba_request,
-                        )
-                        for snuba_request in snuba_requests_list
-                    ],
+            # query_results = list(
+            #     _query_thread_pool.map(
+            #         _snuba_query,
+            #         [
+            #             (
+            #                 sentry_sdk.Scope.get_isolation_scope(),
+            #                 sentry_sdk.Scope.get_current_scope(),
+            #                 snuba_request,
+            #             )
+            #             for snuba_request in snuba_requests_list
+            #         ],
+            #     )
+            # )
+            query_results = [
+                _snuba_query(
+                    (
+                        sentry_sdk.Scope.get_isolation_scope(),
+                        sentry_sdk.Scope.get_current_scope(),
+                        snuba_request,
+                    )
                 )
-            )
+                for snuba_request in snuba_requests_list
+            ]
         else:
             # No need to submit to the thread pool if we're just performing a single query
             query_results = [
