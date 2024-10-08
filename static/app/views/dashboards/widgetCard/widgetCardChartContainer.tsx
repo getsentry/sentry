@@ -12,7 +12,6 @@ import type {Organization} from 'sentry/types/organization';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
-import useRouter from 'sentry/utils/useRouter';
 
 import type {DashboardFilters, Widget} from '../types';
 import {WidgetType} from '../types';
@@ -81,7 +80,6 @@ export function WidgetCardChartContainer({
   shouldResize,
 }: Props) {
   const location = useLocation();
-  const router = useRouter();
   if (widget.widgetType === WidgetType.ISSUE) {
     return (
       <IssueWidgetQueries
@@ -140,7 +138,6 @@ export function WidgetCardChartContainer({
                 location={location}
                 widget={widget}
                 selection={selection}
-                router={router}
                 organization={organization}
                 isMobile={isMobile}
                 windowWidth={windowWidth}
@@ -190,7 +187,6 @@ export function WidgetCardChartContainer({
               location={location}
               widget={widget}
               selection={selection}
-              router={router}
               organization={organization}
               isMobile={isMobile}
               windowWidth={windowWidth}

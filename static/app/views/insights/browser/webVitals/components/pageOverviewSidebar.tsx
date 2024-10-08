@@ -15,7 +15,6 @@ import type {SeriesDataUnit} from 'sentry/types/echarts';
 import {getPeriod} from 'sentry/utils/duration/getPeriod';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import useRouter from 'sentry/utils/useRouter';
 import {MiniAggregateWaterfall} from 'sentry/views/insights/browser/webVitals/components/miniAggregateWaterfall';
 import PerformanceScoreRingWithTooltips from 'sentry/views/insights/browser/webVitals/components/performanceScoreRingWithTooltips';
 import {useProjectRawWebVitalsValuesTimeseriesQuery} from 'sentry/views/insights/browser/webVitals/queries/rawWebVitalsQueries/useProjectRawWebVitalsValuesTimeseriesQuery';
@@ -44,7 +43,6 @@ export function PageOverviewSidebar({
   subregions,
 }: Props) {
   const theme = useTheme();
-  const router = useRouter();
   const pageFilters = usePageFilters();
   const {period, start, end, utc} = pageFilters.selection.datetime;
   const shouldDoublePeriod = shouldFetchPreviousPeriod({
@@ -176,7 +174,7 @@ export function PageOverviewSidebar({
           )}
         </ChartSubText>
       ) : null}
-      <ChartZoom router={router} period={period} start={start} end={end} utc={utc}>
+      <ChartZoom period={period} start={start} end={end} utc={utc}>
         {zoomRenderProps => (
           <LineChart
             {...zoomRenderProps}
@@ -218,7 +216,7 @@ export function PageOverviewSidebar({
           )}
         </ChartSubText>
       ) : null}
-      <ChartZoom router={router} period={period} start={start} end={end} utc={utc}>
+      <ChartZoom period={period} start={start} end={end} utc={utc}>
         {zoomRenderProps => (
           <LineChart
             {...zoomRenderProps}

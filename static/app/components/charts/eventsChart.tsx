@@ -646,7 +646,6 @@ class EventsChart extends Component<EventsChartProps> {
 
     return (
       <ChartZoom
-        router={router}
         period={period}
         start={start}
         end={end}

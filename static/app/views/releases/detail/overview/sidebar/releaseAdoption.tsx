@@ -22,7 +22,6 @@ import type {ReleaseProject, ReleaseWithHealth} from 'sentry/types/release';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {getAdoptionSeries, getCount, getCountAtIndex} from 'sentry/utils/sessions';
 import {useLocation} from 'sentry/utils/useLocation';
-import useRouter from 'sentry/utils/useRouter';
 
 import {
   ADOPTION_STAGE_LABELS,
@@ -61,7 +60,6 @@ function ReleaseAdoption({
   errored,
 }: Props) {
   const location = useLocation();
-  const router = useRouter();
   const theme = useTheme();
 
   const hasUsers = !!getCount(releaseSessions?.groups, SessionFieldWithOperation.USERS);
@@ -308,7 +306,6 @@ function ReleaseAdoption({
               <TransitionChart loading={loading} reloading={reloading} height="280px">
                 <TransparentLoadingMask visible={reloading} />
                 <ChartZoom
-                  router={router}
                   period={period ?? undefined}
                   utc={utc === 'true'}
                   start={start}

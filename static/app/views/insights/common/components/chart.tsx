@@ -54,7 +54,6 @@ import type {AggregationOutputType, RateUnit} from 'sentry/utils/discover/fields
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {MetricDisplayType} from 'sentry/utils/metrics/types';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import useRouter from 'sentry/utils/useRouter';
 
 const STARFISH_CHART_GROUP = 'starfish_chart_group';
 
@@ -146,7 +145,6 @@ function Chart({
    */
   legendFormatter = name => name,
 }: Props) {
-  const router = useRouter();
   const theme = useTheme();
   const pageFilters = usePageFilters();
   const {start, end, period, utc} = pageFilters.selection.datetime;
@@ -526,7 +524,6 @@ function Chart({
     // overlay additional series data such as releases and issues on top of the original insights chart
     return (
       <ChartZoom
-        router={router}
         saveOnZoom
         period={period}
         start={start}

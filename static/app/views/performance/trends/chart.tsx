@@ -20,7 +20,6 @@ import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {decodeList} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
-import useRouter from 'sentry/utils/useRouter';
 import generateTrendFunctionAsString from 'sentry/views/performance/trends/utils/generateTrendFunctionAsString';
 import transformEventStats from 'sentry/views/performance/trends/utils/transformEventStats';
 import {getIntervalLine} from 'sentry/views/performance/utils/getIntervalLine';
@@ -100,7 +99,6 @@ export function Chart({
   applyRegressionFormatToInterval = false,
 }: Props) {
   const location = useLocation();
-  const router = useRouter();
   const theme = useTheme();
 
   const handleLegendSelectChanged = legendChange => {
@@ -223,13 +221,7 @@ export function Chart({
   };
 
   return (
-    <ChartZoom
-      router={router}
-      period={statsPeriod}
-      start={start}
-      end={end}
-      utc={utc === 'true'}
-    >
+    <ChartZoom period={statsPeriod} start={start} end={end} utc={utc === 'true'}>
       {zoomRenderProps => {
         return (
           <TransitionChart loading={loading} reloading={reloading}>

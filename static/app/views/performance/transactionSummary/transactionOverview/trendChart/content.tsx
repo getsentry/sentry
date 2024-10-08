@@ -12,7 +12,6 @@ import Placeholder from 'sentry/components/placeholder';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
-import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import {
   axisLabelFormatter,
   getDurationUnit,
@@ -29,7 +28,6 @@ type Props = {
   loading: boolean;
   queryExtra: Query;
   reloading: boolean;
-  router: InjectedRouter;
   theme: Theme;
   series?: Series[];
   timeFrame?: {
@@ -56,7 +54,6 @@ function Content({
   legend,
   utc,
   queryExtra,
-  router,
   withBreakpoint,
   transaction,
   onLegendSelectChanged,
@@ -136,7 +133,7 @@ function Content({
     : [];
 
   return (
-    <ChartZoom router={router} period={period} start={start} end={end} utc={utc}>
+    <ChartZoom period={period} start={start} end={end} utc={utc}>
       {zoomRenderProps => (
         <ReleaseSeries
           start={start}

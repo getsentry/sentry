@@ -33,7 +33,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import useRouter from 'sentry/utils/useRouter';
 
 import {
   Accordion,
@@ -322,7 +321,6 @@ interface FunctionTrendsChartProps {
 
 function FunctionTrendsChart({func, trendFunction}: FunctionTrendsChartProps) {
   const {selection} = usePageFilters();
-  const router = useRouter();
   const theme = useTheme();
 
   const series: Series[] = useMemo(() => {
@@ -457,7 +455,7 @@ function FunctionTrendsChart({func, trendFunction}: FunctionTrendsChartProps) {
   }, [theme.chartLabel]);
 
   return (
-    <ChartZoom router={router} {...selection.datetime}>
+    <ChartZoom {...selection.datetime}>
       {zoomRenderProps => (
         <LineChart {...zoomRenderProps} {...chartOptions} series={series} />
       )}

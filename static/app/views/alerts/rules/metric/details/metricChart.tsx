@@ -364,7 +364,6 @@ class MetricChart extends PureComponent<Props, State> {
           {getDynamicText({
             value: (
               <ChartZoom
-                router={router}
                 start={start}
                 end={end}
                 onZoom={zoomArgs => this.handleZoom(zoomArgs.start, zoomArgs.end)}
