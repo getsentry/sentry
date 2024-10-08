@@ -48,9 +48,7 @@ export default function useBulkEditFeedbacks({deselectAll, selectedIds}: Props) 
   });
   const deleteFeedback = useDeleteFeedback(selectedIds, queryView.project);
 
-  const onDelete = () => {
-    deleteFeedback();
-  };
+  const onDelete = deleteFeedback;
 
   const onToggleResolved = useCallback(
     ({newMailbox, moveToInbox}: {newMailbox: GroupStatus; moveToInbox?: boolean}) => {
