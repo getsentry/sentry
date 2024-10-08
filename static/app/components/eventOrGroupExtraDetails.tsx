@@ -23,9 +23,36 @@ type Props = {
   data: Event | Group;
   organization: Organization;
   showAssignee?: boolean;
+  showLifetime?: boolean;
 };
 
-function EventOrGroupExtraDetails({data, showAssignee, organization}: Props) {
+function Lifetime({
+  firstSeen,
+  lastSeen,
+  lifetime,
+}: {
+  firstSeen: string;
+  lastSeen: string;
+  lifetime?: Group['lifetime'];
+}) {
+  if (!lifetime && !firstSeen && !lastSeen) {
+    return <Placeholder height="12px" width="100px" />;
+  }
+
+  return (
+    <TimesTag
+      lastSeen={lifetime?.lastSeen || lastSeen}
+      firstSeen={lifetime?.firstSeen || firstSeen}
+    />
+  );
+}
+
+function EventOrGroupExtraDetails({
+  data,
+  showAssignee,
+  organization,
+  showLifetime = true,
+}: Props) {
   const {
     id,
     lastSeen,
@@ -60,14 +87,9 @@ function EventOrGroupExtraDetails({data, showAssignee, organization}: Props) {
         />
       )}
       {isUnhandled && <UnhandledTag />}
-      {!lifetime && !firstSeen && !lastSeen ? (
-        <Placeholder height="12px" width="100px" />
-      ) : (
-        <TimesTag
-          lastSeen={lifetime?.lastSeen || lastSeen}
-          firstSeen={lifetime?.firstSeen || firstSeen}
-        />
-      )}
+      {showLifetime ? (
+        <Lifetime firstSeen={firstSeen} lastSeen={lastSeen} lifetime={lifetime} />
+      ) : null}
       {/* Always display comment count on inbox */}
       {numComments > 0 && (
         <CommentsLink to={`${issuesPath}${id}/activity/`} className="comments">
