@@ -54,7 +54,7 @@ def trace_func(**span_kwargs):
 
 
 def process_transaction_no_celery(
-    data: object, project_id: int, cache_key: str, start_time: float
+    data: MutableMapping[str, Any], project_id: int, cache_key: str, start_time: float
 ) -> None:
     manager = EventManager(data)
     # event.project.organization is populated after this statement.
