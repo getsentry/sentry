@@ -67,9 +67,6 @@
 //
 // [1]: https://sentry.io/careers/
 
-// TODO(__SENTRY_USING_REACT_ROUTER_SIX): Always on until we full remove 3
-window.__SENTRY_USING_REACT_ROUTER_SIX = true;
-
 async function app() {
   // We won't need initalizeMainImport until we complete bootstrapping.
   // Initaite the fetch, just don't await it until we need it.
