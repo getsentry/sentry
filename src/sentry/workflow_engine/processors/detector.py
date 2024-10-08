@@ -1,47 +1,10 @@
-import abc
-import dataclasses
 import logging
-from typing import Any, Generic, TypeVar
 
-from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.models import Detector
 from sentry.workflow_engine.models.data_source import DataPacket
-from sentry.workflow_engine.models.detector_state import DetectorStatus
-
-T = TypeVar("T")
+from sentry.workflow_engine.models.detector import DetectorEvaluationResult
 
 logger = logging.getLogger(__name__)
-
-
-@dataclasses.dataclass(frozen=True)
-class DetectorStateData:
-    group_key: str | None
-    active: bool
-    status: DetectorStatus
-    # Stateful detectors always process data packets in order. Once we confirm that a data packet has been fully
-    # processed and all workflows have been done, this value will be used by the stateful detector to prevent
-    # reprocessing
-    dedupe_value: int
-    # Stateful detectors allow various counts to be tracked. We need to update these after we process workflows, so
-    # include the updates in the state
-    counter_updates: dict[str, int]
-
-
-@dataclasses.dataclass(frozen=True)
-class DetectorEvaluationResult:
-    is_active: bool
-    priority: PriorityLevel
-    data: Any
-    state_update_data: DetectorStateData | None = None
-
-
-class DetectorHandler(abc.ABC, Generic[T]):
-    def __init__(self, detector: Detector):
-        self.detector = detector
-
-    @abc.abstractmethod
-    def evaluate(self, data_packet: T) -> list[DetectorEvaluationResult]:
-        pass
 
 
 def process_detectors(

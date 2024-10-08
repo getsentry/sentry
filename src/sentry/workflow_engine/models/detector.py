@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import abc
+import dataclasses
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
 from django.db import models
 from django.db.models import UniqueConstraint
@@ -10,10 +12,10 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo_model
 from sentry.issues import grouptype
 from sentry.models.owner_base import OwnerModel
-from sentry.workflow_engine.models.data_source_detector import DataSourceDetector
+from sentry.types.group import PriorityLevel
 
 if TYPE_CHECKING:
-    from sentry.workflow_engine.processors.detector import DetectorHandler
+    from sentry.workflow_engine.models.detector_state import DetectorStatus
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +28,9 @@ class Detector(DefaultFieldsModel, OwnerModel):
     name = models.CharField(max_length=200)
 
     # The data sources that the detector is watching
-    data_sources = models.ManyToManyField("workflow_engine.DataSource", through=DataSourceDetector)
+    data_sources = models.ManyToManyField(
+        "workflow_engine.DataSource", through="workflow_engine.DataSourceDetector"
+    )
 
     # The conditions that must be met for the detector to be considered 'active'
     # This will emit an event for the workflow to process
@@ -64,3 +68,37 @@ class Detector(DefaultFieldsModel, OwnerModel):
             )
             return None
         return group_type.detector_handler(self)
+
+
+@dataclasses.dataclass(frozen=True)
+class DetectorStateData:
+    group_key: str | None
+    active: bool
+    status: DetectorStatus
+    # Stateful detectors always process data packets in order. Once we confirm that a data packet has been fully
+    # processed and all workflows have been done, this value will be used by the stateful detector to prevent
+    # reprocessing
+    dedupe_value: int
+    # Stateful detectors allow various counts to be tracked. We need to update these after we process workflows, so
+    # include the updates in the state
+    counter_updates: dict[str, int]
+
+
+@dataclasses.dataclass(frozen=True)
+class DetectorEvaluationResult:
+    is_active: bool
+    priority: PriorityLevel
+    data: Any
+    state_update_data: DetectorStateData | None = None
+
+
+T = TypeVar("T")
+
+
+class DetectorHandler(abc.ABC, Generic[T]):
+    def __init__(self, detector: Detector):
+        self.detector = detector
+
+    @abc.abstractmethod
+    def evaluate(self, data_packet: T) -> list[DetectorEvaluationResult]:
+        pass
