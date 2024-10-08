@@ -6,7 +6,6 @@ from copy import deepcopy
 from datetime import timezone
 from typing import Any
 from unittest import mock
-from unittest.mock import patch
 
 import pytest
 from django.core.cache import cache
@@ -244,11 +243,11 @@ class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
         with pytest.raises(GroupAssignee.DoesNotExist):
             GroupAssignee.objects.get(group=group)
 
-    @patch(
+    @mock.patch(
         "sentry.issues.occurrence_consumer.ratelimiter.backend.is_limited",
         return_value=True,
     )
-    def test_rate_limit(self, is_limited) -> None:
+    def test_rate_limit(self, is_limited: bool) -> None:
         message = get_test_message(self.project.id)
         with self.feature("organizations:profile-file-io-main-thread-ingest"):
             result = _process_message(message)

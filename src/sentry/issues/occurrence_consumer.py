@@ -322,10 +322,10 @@ def process_occurrence_message(
 
     # Rate limit based on project and fingerprint
     rate_limit_key = f"occurrence_rate_limit:{occurrence_data['fingerprint']}"
-    if ratelimiter.is_limited(
+    if ratelimiter.backend.is_limited(
         rate_limit_key,
-        limit=10,
-        window=60,  # 10 occurrences per minute
+        limit=300,
+        window=60,  # 300 occurrences per minute
     ):
         metrics.incr(
             "occurrence_ingest.dropped_rate_limited",
