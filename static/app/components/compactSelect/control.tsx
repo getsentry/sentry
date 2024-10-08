@@ -121,7 +121,7 @@ export interface ControlProps
   /**
    * Message to be displayed when all options have been filtered out (via search).
    */
-  emptyMessage?: string;
+  emptyMessage?: React.ReactNode;
   /**
    * Whether to render a grid list rather than a list box.
    *
