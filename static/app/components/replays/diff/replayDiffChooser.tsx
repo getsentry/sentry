@@ -39,7 +39,9 @@ export default function ReplayDiffChooser({
         <TabList>
           <TabList.Item key={DiffType.SLIDER}>{t('Slider Diff')}</TabList.Item>
           <TabList.Item key={DiffType.VISUAL}>{t('Side By Side Diff')}</TabList.Item>
-          <TabList.Item key={DiffType.HTML}>{t('HTML Diff')}</TabList.Item>
+          <TabList.Item key={DiffType.HTML} hidden>
+            {t('HTML Diff')}
+          </TabList.Item>
         </TabList>
 
         <StyledTabPanels>
