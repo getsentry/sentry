@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import logging
+import time
 from collections.abc import Mapping, MutableSequence
 from datetime import timedelta
-from time import time
 
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.processing.strategies import (
@@ -13,6 +13,7 @@ from arroyo.processing.strategies import (
     Reduce,
     RunTask,
 )
+from arroyo.processing.strategies.abstract import MessageRejected
 from arroyo.processing.strategies.run_task_with_multiprocessing import MultiprocessingPool
 from arroyo.types import BaseValue, Commit, Message, Partition
 from django.utils import timezone
@@ -41,7 +42,7 @@ def process_message(message: Message[KafkaPayload]) -> InflightActivation:
         activation=activation,
         status=TASK_ACTIVATION_STATUS_PENDING,
         offset=offset,
-        added_at=Timestamp(seconds=int(time())),
+        added_at=Timestamp(seconds=int(time.time())),
         deadletter_at=Timestamp(seconds=int(deadletter_at.timestamp())),
         processing_deadline=None,
     )
@@ -66,6 +67,10 @@ class StrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         # after this time tasks should be deadlettered if they are followed
         # by completed records. Should come from CLI/options
         self.max_pending_timeout = 8 * 60
+
+        # Maximum number of pending inflight activations in the store before backpressure is emitted
+        self.max_inflight_activation_in_store = 1000  # make this configurable
+
         self.pending_task_store = PendingTaskStore()
 
     def create_with_partitions(
@@ -86,19 +91,33 @@ class StrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             return message
 
         def do_upkeep(
-            message: Message[MutableSequence[InflightActivation]],
-        ) -> Message[MutableSequence[InflightActivation]]:
+            message: Message[KafkaPayload],
+        ) -> KafkaPayload:
             self.pending_task_store.handle_processing_deadlines()
             self.pending_task_store.handle_retry_state_tasks()
             self.pending_task_store.handle_deadletter_at()
             self.pending_task_store.handle_failed_tasks()
             self.pending_task_store.remove_completed()
 
-            return message
+            return message.payload
 
-        upkeep_step = RunTask(
-            function=do_upkeep,
-            # TODO ideally we commit offsets for completed work
+        def limit_tasks(
+            message: Message[KafkaPayload],
+        ) -> KafkaPayload:
+            count = self.pending_task_store.count_pending_task()
+            if count >= self.max_inflight_activation_in_store:
+                # The number of pending inflight activations in the store exceeds the limit.
+                # Wait for workers to complete tasks before adding the next offset to the queue.
+                logger.info(
+                    "Number of inflight activation: %s exceeds the limit: %s. Retrying in 3 seconds",
+                    count,
+                    self.max_inflight_activation_in_store,
+                )
+                raise MessageRejected()
+            return message.payload
+
+        flush = RunTask(
+            function=flush_batch,
             next_step=CommitOffsets(commit),
         )
 
@@ -108,14 +127,23 @@ class StrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             max_batch_time=2,
             accumulator=accumulator,
             initial_value=list,
-            next_step=RunTask(
-                function=flush_batch,
-                next_step=upkeep_step,
-            ),
+            next_step=flush,
         )
-        return RunTask(
+
+        process = RunTask(
             function=process_message,
             next_step=collect,
+        )
+
+        limit = RunTask(
+            function=limit_tasks,
+            next_step=process,
+        )
+
+        return RunTask(
+            function=do_upkeep,
+            # TODO ideally we commit offsets for completed work
+            next_step=limit,
         )
 
     def shutdown(self):

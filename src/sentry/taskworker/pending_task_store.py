@@ -48,6 +48,17 @@ class PendingTaskStore:
             )
             return task.to_proto()
 
+    def count_pending_task(self) -> int:
+        from django.db import router, transaction
+
+        from sentry.taskworker.models import InflightActivationModel
+
+        with transaction.atomic(using=router.db_for_write(InflightActivationModel)):
+            query_set = InflightActivationModel.objects.filter(
+                status=InflightActivationModel.Status.PENDING
+            )
+            return query_set.count()
+
     def set_task_status(self, task_id: str, task_status: TaskActivationStatus.ValueType):
         from sentry.taskworker.models import InflightActivationModel
 
