@@ -2,22 +2,20 @@ import {PureComponent} from 'react';
 import color from 'color';
 import type {TooltipComponentFormatterCallbackParams} from 'echarts';
 import debounce from 'lodash/debounce';
-import moment from 'moment-timezone';
 
 import {extrapolatedAreaStyle} from 'sentry/components/alerts/onDemandMetricAlert';
-import {AreaChart, type AreaChartSeries} from 'sentry/components/charts/areaChart';
+import {AreaChart} from 'sentry/components/charts/areaChart';
 import Graphic from 'sentry/components/charts/components/graphic';
-import MarkLine from 'sentry/components/charts/components/markLine';
 import {defaultFormatAxisLabel} from 'sentry/components/charts/components/tooltip';
 import type {LineChartSeries} from 'sentry/components/charts/lineChart';
 import LineSeries from 'sentry/components/charts/series/lineSeries';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
-import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {ReactEchartsRef, Series} from 'sentry/types/echarts';
 import theme from 'sentry/utils/theme';
+import {getAnomalyMarkerSeries} from 'sentry/views/alerts/rules/metric/utils/anomalyChart';
 import type {Anomaly} from 'sentry/views/alerts/types';
 import {
   ALERT_CHART_MIN_MAX_BUFFER,
@@ -302,45 +300,6 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
     );
   };
 
-  getAnomalyMarkerSeries = (lineColor: string, timestamp: string): AreaChartSeries => {
-    const formatter = ({value}: any) => {
-      const time = formatTooltipDate(moment(value), 'MMM D, YYYY LT');
-      return [
-        `<div class="tooltip-series"><div>`,
-        `</div>Anomaly Detected</div>`,
-        `<div class="tooltip-footer">${time}</div>`,
-        '<div class="tooltip-arrow"></div>',
-      ].join('');
-    };
-
-    return {
-      seriesName: 'Anomaly Line',
-      type: 'line',
-      markLine: MarkLine({
-        silent: false,
-        lineStyle: {color: lineColor, type: 'dashed'},
-        label: {
-          silent: true,
-          show: false,
-        },
-        data: [
-          {
-            xAxis: timestamp,
-          },
-        ],
-        tooltip: {
-          formatter,
-        },
-      }),
-      data: [],
-      tooltip: {
-        trigger: 'item',
-        alwaysShowContent: true,
-        formatter,
-      },
-    };
-  };
-
   clampMaxValue(value: number) {
     // When we apply top buffer to the crash free percentage (99.7% * 1.03), it
     // can cross 100%, so we clamp it
@@ -480,7 +439,7 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
         series={[
           ...dataWithoutRecentBucket,
           ...comparisonMarkLines,
-          this.getAnomalyMarkerSeries('#f00', '1727386850000'),
+          ...getAnomalyMarkerSeries(this.props.anomalies),
         ]}
         additionalSeries={comparisonDataWithoutRecentBucket.map(
           ({data: _data, ...otherSeriesProps}) =>
@@ -503,11 +462,4 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
       />
     );
   }
-}
-
-function formatTooltipDate(date: moment.MomentInput, format: string): string {
-  const {
-    options: {timezone},
-  } = ConfigStore.get('user');
-  return moment.tz(date, timezone).format(format);
 }
