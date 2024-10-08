@@ -37,9 +37,8 @@ export default function useFeedbackActions({feedbackItem}: Props) {
   });
   const deleteFeedback = useDeleteFeedback([feedbackItem.id], projectId);
 
-  const hasDelete =
-    organization.access.includes('event:admin') &&
-    organization.features.includes('issue-platform-deletion-ui');
+  const hasDelete = organization.features.includes('issue-platform-deletion-ui');
+  const disableDelete = !organization.access.includes('event:admin');
   const onDelete = deleteFeedback;
 
   // reuse the issues ignored category for spam feedbacks
@@ -71,6 +70,7 @@ export default function useFeedbackActions({feedbackItem}: Props) {
   }, [hasSeen, markAsRead]);
 
   return {
+    disableDelete,
     hasDelete,
     onDelete,
     isResolved,

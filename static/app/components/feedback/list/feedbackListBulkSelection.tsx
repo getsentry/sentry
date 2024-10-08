@@ -39,8 +39,8 @@ export default function FeedbackListBulkSelection({
     mailbox === 'ignored' ? GroupStatus.UNRESOLVED : GroupStatus.IGNORED;
 
   const hasDelete =
-    organization.access.includes('event:admin') &&
-    organization.features.includes('issue-platform-deletion-ui');
+    organization.features.includes('issue-platform-deletion-ui') && selectedIds !== 'all';
+  const disableDelete = !organization.access.includes('event:admin');
 
   return (
     <Flex gap={space(1)} align="center" justify="space-between" flex="1 0 auto">
@@ -52,13 +52,6 @@ export default function FeedbackListBulkSelection({
         </strong>
       </span>
       <Flex gap={space(1)} justify="flex-end">
-        {selectedIds !== 'all' && (
-          <ErrorBoundary mini>
-            <Button size="xs" onClick={onDelete} disabled={!hasDelete}>
-              {t('Delete')}
-            </Button>
-          </ErrorBoundary>
-        )}
         <ErrorBoundary mini>
           <Button
             size="xs"
@@ -99,6 +92,14 @@ export default function FeedbackListBulkSelection({
                 key: 'mark unread',
                 label: t('Mark Unread'),
                 onAction: onMarkUnread,
+              },
+              {
+                key: 'delete',
+                priority: 'danger' as const,
+                label: t('Delete'),
+                hidden: !hasDelete,
+                disabled: disableDelete,
+                onAction: onDelete,
               },
             ]}
           />

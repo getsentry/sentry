@@ -49,6 +49,7 @@ export default function FeedbackActions({
 
 function LargeWidth({feedbackItem}: {feedbackItem: FeedbackIssue}) {
   const {
+    disableDelete,
     hasDelete,
     onDelete,
     isResolved,
@@ -61,9 +62,6 @@ function LargeWidth({feedbackItem}: {feedbackItem: FeedbackIssue}) {
 
   return (
     <Fragment>
-      <Button size="xs" onClick={onDelete} priority="danger" disabled={!hasDelete}>
-        {t('Delete')}
-      </Button>
       <Button
         size="xs"
         priority={isResolved ? 'danger' : 'primary'}
@@ -77,12 +75,18 @@ function LargeWidth({feedbackItem}: {feedbackItem: FeedbackIssue}) {
       <Button size="xs" onClick={onMarkAsReadClick}>
         {hasSeen ? t('Mark Unread') : t('Mark Read')}
       </Button>
+      {hasDelete && (
+        <Button size="xs" onClick={onDelete} disabled={disableDelete}>
+          {t('Delete')}
+        </Button>
+      )}
     </Fragment>
   );
 }
 
 function MediumWidth({feedbackItem}: {feedbackItem: FeedbackIssue}) {
   const {
+    disableDelete,
     hasDelete,
     onDelete,
     isResolved,
@@ -95,9 +99,6 @@ function MediumWidth({feedbackItem}: {feedbackItem: FeedbackIssue}) {
 
   return (
     <Fragment>
-      <Button size="xs" onClick={onDelete} priority={'danger'} disabled={!hasDelete}>
-        {t('Delete')}
-      </Button>
       <Button
         size="xs"
         priority={isResolved ? 'danger' : 'primary'}
@@ -125,6 +126,14 @@ function MediumWidth({feedbackItem}: {feedbackItem: FeedbackIssue}) {
             label: hasSeen ? t('Mark Unread') : t('Mark Read'),
             onAction: onMarkAsReadClick,
           },
+          {
+            key: 'delete',
+            priority: 'danger' as const,
+            label: t('Delete'),
+            hidden: !hasDelete,
+            disabled: disableDelete,
+            onAction: onDelete,
+          },
         ].filter(defined)}
       />
     </Fragment>
@@ -133,6 +142,7 @@ function MediumWidth({feedbackItem}: {feedbackItem: FeedbackIssue}) {
 
 function SmallWidth({feedbackItem}: {feedbackItem: FeedbackIssue}) {
   const {
+    disableDelete,
     hasDelete,
     onDelete,
     isResolved,
@@ -154,13 +164,6 @@ function SmallWidth({feedbackItem}: {feedbackItem: FeedbackIssue}) {
       }}
       items={[
         {
-          key: 'delete',
-          priority: 'danger' as const,
-          label: t('Delete'),
-          disabled: !hasDelete,
-          onAction: onDelete,
-        },
-        {
           key: 'resolve',
           label: isResolved ? t('Unresolve') : t('Resolve'),
           onAction: onResolveClick,
@@ -174,6 +177,14 @@ function SmallWidth({feedbackItem}: {feedbackItem: FeedbackIssue}) {
           key: 'read',
           label: hasSeen ? t('Mark Unread') : t('Mark Read'),
           onAction: onMarkAsReadClick,
+        },
+        {
+          key: 'delete',
+          priority: 'danger' as const,
+          label: t('Delete'),
+          hidden: !hasDelete,
+          disabled: disableDelete,
+          onAction: onDelete,
         },
       ].filter(defined)}
     />
