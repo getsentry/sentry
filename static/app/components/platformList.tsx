@@ -117,7 +117,7 @@ function getOverlapWidth(size: number) {
   return Math.round(size / 4);
 }
 
-const commonStyles = ({theme}: {theme: Theme}) => `
+const commonStyles = ({theme}: {theme: Theme}) => css`
   cursor: default;
   border-radius: ${theme.borderRadius};
   box-shadow: 0 0 0 1px ${theme.background};
