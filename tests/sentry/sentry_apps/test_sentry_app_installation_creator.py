@@ -87,7 +87,6 @@ class TestCreator(TestCase):
         ).exists()
 
     @responses.activate
-    # @patch("sentry.utils.sentry_apps.webhooks.send_and_save_webhook_request")
     def test_notifies_service(self):
 
         rpc_user = user_service.get_user(user_id=self.user.id)
