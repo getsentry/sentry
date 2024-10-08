@@ -429,6 +429,7 @@ module = [
     "sentry.hybridcloud.*",
     "sentry.ingest.slicing",
     "sentry.integrations.models.integration_feature",
+    "sentry.interfaces.contexts",
     "sentry.issues",
     "sentry.issues.analytics",
     "sentry.issues.apps",
