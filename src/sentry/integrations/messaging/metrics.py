@@ -14,7 +14,7 @@ from sentry.users.services.user import RpcUser
 class MessagingInteractionType(Enum):
     """A way in which a user can interact with Sentry through a messaging app."""
 
-    # General interactions
+    # Direct interactions with the user
     HELP = "HELP"
     LINK_IDENTITY = "LINK_IDENTITY"
     UNLINK_IDENTITY = "UNLINK_IDENTITY"
@@ -33,6 +33,10 @@ class MessagingInteractionType(Enum):
     UNRESOLVE = "UNRESOLVE"
     IGNORE = "IGNORE"
     MARK_ONGOING = "MARK_ONGOING"
+
+    # Automatic behaviors
+    UNFURL_ISSUES = "UNFURL_ISSUES"
+    UNFURL_METRIC_ALERTS = "UNFURL_METRIC_ALERTS"
 
     def __str__(self) -> str:
         return self.value.lower()
