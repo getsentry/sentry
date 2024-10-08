@@ -1742,6 +1742,7 @@ export const DISCOVER_FIELDS = [
   FieldKey.CULPRIT,
   FieldKey.LOCATION,
   FieldKey.MESSAGE,
+  FieldKey.PLATFORM,
   FieldKey.PLATFORM_NAME,
   FieldKey.ENVIRONMENT,
   FieldKey.RELEASE,
