@@ -150,9 +150,6 @@
     "/api/0/issues/{issue_id}/events/latest/": {
       "$ref": "paths/events/latest-event.json"
     },
-    "/api/0/issues/{issue_id}/events/": {
-      "$ref": "paths/events/issue-events.json"
-    },
     "/api/0/issues/{issue_id}/": {
       "$ref": "paths/events/issue-details.json"
     },
