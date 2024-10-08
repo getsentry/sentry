@@ -226,3 +226,19 @@ class _HttpRequestWithSubdomain(HttpRequest):
 
 def is_using_customer_domain(request: HttpRequest) -> TypeGuard[_HttpRequestWithSubdomain]:
     return bool(hasattr(request, "subdomain") and request.subdomain)
+
+
+def get_api_relative_path(request: Request, scope: str | None) -> str:
+    """
+    Gets a suffix of request.path without the /api/<version>/ prefix, or org/project scopes.
+    @param scope - either "organization", "project", or None. Group endpoints aren't supported.
+    """
+    path_segments = request.path.split("/")
+    idx = 0
+    if scope is None:
+        idx = 2
+    elif scope == "organization":
+        idx = 3
+    elif scope == "project":
+        idx = 4
+    return "/" + "/".join(path_segments[idx:]) + "/"

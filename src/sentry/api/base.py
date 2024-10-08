@@ -414,18 +414,6 @@ class Endpoint(APIView):
         if origin == "null":
             origin = None
 
-        # Dev Toolbar analytics
-        if request.headers.get("queryReferrer", "") == "devtoolbar":  # TODO: make this a constant?
-            analytics.record(
-                "devtoolbar.request",
-                path=request.path,
-                query=request.META.get("QUERY_STRING", ""),  # json.dumps(request.data),
-                origin=origin,
-                organization_id=0,
-                project_id=0,
-                user_id=request.user.id if request.user else None,
-            )
-
         try:
             with sentry_sdk.start_span(op="base.dispatch.request", name=type(self).__name__):
                 if origin:
