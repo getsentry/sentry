@@ -58,8 +58,7 @@ const childrenMissingInstrumentationSpans = [
 describe('missing instrumentation', () => {
   it('adds missing instrumentation between sibling spans', () => {
     const tree = TraceTree.FromTrace(singleTransactionTrace, traceMetadata);
-    // eslint-disable-next-line
-    const _spans = TraceTree.FromSpans(
+    TraceTree.FromSpans(
       tree.root.children[0].children[0],
       missingInstrumentationSpans,
       makeEventTransaction(),
@@ -73,8 +72,7 @@ describe('missing instrumentation', () => {
 
   it('adds missing instrumentation between children spans', () => {
     const tree = TraceTree.FromTrace(singleTransactionTrace, traceMetadata);
-    // eslint-disable-next-line
-    const _spans = TraceTree.FromSpans(
+    TraceTree.FromSpans(
       tree.root.children[0].children[0],
       childrenMissingInstrumentationSpans,
       makeEventTransaction(),
@@ -98,8 +96,7 @@ describe('missing instrumentation', () => {
       traceMetadata
     );
 
-    // eslint-disable-next-line
-    const _spans = TraceTree.FromSpans(
+    TraceTree.FromSpans(
       tree.root.children[0].children[0],
       [
         makeSpan({
@@ -138,8 +135,7 @@ describe('missing instrumentation', () => {
 
   it('does not add missing instrumentation for browser SDKs', () => {
     const tree = TraceTree.FromTrace(singleTransactionTrace, traceMetadata);
-    // eslint-disable-next-line
-    const _spans = TraceTree.FromSpans(
+    TraceTree.FromSpans(
       tree.root.children[0].children[0],
       missingInstrumentationSpans,
       makeEventTransaction(),
@@ -157,8 +153,7 @@ describe('missing instrumentation', () => {
     ['siblings', missingInstrumentationSpans],
   ])('idempotent - %s', (_type, setup) => {
     const tree = TraceTree.FromTrace(singleTransactionTrace, traceMetadata);
-    // eslint-disable-next-line
-    const _spans = TraceTree.FromSpans(
+    TraceTree.FromSpans(
       tree.root.children[0].children[0],
       setup,
       makeEventTransaction(),

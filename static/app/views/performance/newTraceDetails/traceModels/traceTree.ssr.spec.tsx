@@ -58,7 +58,7 @@ describe('server side rendering', () => {
   it('reparents server handler under browser request span', () => {
     const tree = TraceTree.FromTrace(ssrTrace, traceMetadata);
 
-    const _spans = TraceTree.FromSpans(
+    TraceTree.FromSpans(
       tree.root.children[0].children[0],
       ssrSpans,
       makeEventTransaction(),

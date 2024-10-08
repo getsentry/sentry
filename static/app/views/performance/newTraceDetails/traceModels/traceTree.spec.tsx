@@ -416,15 +416,9 @@ describe('TraceTree', () => {
         traceMetadata
       );
 
-      // eslint-disable-next-line
-      const _spans = TraceTree.FromSpans(
-        tree.root.children[0],
-        [makeSpan()],
-        makeEventTransaction(),
-        {
-          sdk: undefined,
-        }
-      );
+      TraceTree.FromSpans(tree.root.children[0], [makeSpan()], makeEventTransaction(), {
+        sdk: undefined,
+      });
 
       expect(tree.build().serialize()).toMatchSnapshot();
     });
@@ -517,8 +511,7 @@ describe('TraceTree', () => {
     it('expanding a parent autogroup node shows head to tail chain', () => {
       const tree = TraceTree.FromTrace(trace, traceMetadata);
 
-      // eslint-disable-next-line
-      const _spans = TraceTree.FromSpans(
+      TraceTree.FromSpans(
         tree.root.children[0].children[0],
         parentAutogroupSpansWithTailChildren,
         makeEventTransaction(),
@@ -537,8 +530,7 @@ describe('TraceTree', () => {
 
     it('collapsing a parent autogroup node shows tail chain', () => {
       const tree = TraceTree.FromTrace(trace, traceMetadata);
-      // eslint-disable-next-line
-      const _spans = TraceTree.FromSpans(
+      TraceTree.FromSpans(
         tree.root.children[0].children[0],
         parentAutogroupSpansWithTailChildren,
         makeEventTransaction(),
@@ -557,8 +549,7 @@ describe('TraceTree', () => {
 
     it('collapsing intermediary children is preserved', () => {
       const tree = TraceTree.FromTrace(trace, traceMetadata);
-      // eslint-disable-next-line
-      const _spans = TraceTree.FromSpans(
+      TraceTree.FromSpans(
         tree.root.children[0].children[0],
         parentAutogroupSpansWithTailChildren,
         makeEventTransaction(),
@@ -589,8 +580,7 @@ describe('TraceTree', () => {
 
     it('expanding a sibling autogroup node shows sibling span', () => {
       const tree = TraceTree.FromTrace(trace, traceMetadata);
-      // eslint-disable-next-line
-      const _spans = TraceTree.FromSpans(
+      TraceTree.FromSpans(
         tree.root.children[0].children[0],
         siblingAutogroupSpans,
         makeEventTransaction(),
@@ -610,8 +600,7 @@ describe('TraceTree', () => {
 
     it('collapsing a sibling autogroup node hides children', () => {
       const tree = TraceTree.FromTrace(trace, traceMetadata);
-      // eslint-disable-next-line
-      const _spans = TraceTree.FromSpans(
+      TraceTree.FromSpans(
         tree.root.children[0].children[0],
         siblingAutogroupSpans,
         makeEventTransaction(),
@@ -991,8 +980,7 @@ describe('TraceTree', () => {
           }),
           traceMetadata
         );
-        // eslint-disable-next-line
-        const _spans = TraceTree.FromSpans(
+        TraceTree.FromSpans(
           tree.root.children[0],
           [
             makeSpan({span_id: '0000'}),
