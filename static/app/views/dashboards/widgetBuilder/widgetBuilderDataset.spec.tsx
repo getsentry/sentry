@@ -1266,7 +1266,9 @@ describe('WidgetBuilder', function () {
         });
         await screen.findByText('transaction');
         await userEvent.click(screen.getAllByText('count()')[1]);
-        expect(screen.getByText('measurements.custom.measurement')).toBeInTheDocument();
+        expect(
+          await screen.findByText('measurements.custom.measurement')
+        ).toBeInTheDocument();
       });
 
       it('does not default to sorting by transaction when columns change', async function () {
