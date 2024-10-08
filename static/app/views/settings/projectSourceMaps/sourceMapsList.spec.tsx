@@ -8,7 +8,6 @@ import {
   screen,
   userEvent,
   waitFor,
-  within,
 } from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
@@ -64,140 +63,6 @@ function renderDebugIdBundlesMockRequests({
 }
 
 describe('ProjectSourceMaps', function () {
-  describe('Release Bundles', function () {
-    it('renders default state', async function () {
-      const {organization, project, router, routerProps} = initializeOrg({
-        router: {
-          location: {
-            query: {},
-            pathname: `/settings/${initializeOrg().organization.slug}/projects/${
-              initializeOrg().project.slug
-            }/source-maps/release-bundles/`,
-          },
-        },
-      });
-
-      const mockRequests = renderReleaseBundlesMockRequests({
-        orgSlug: organization.slug,
-        projectSlug: project.slug,
-      });
-
-      render(<SourceMapsList project={project} {...routerProps} />, {
-        router,
-        organization,
-      });
-
-      // Title
-      expect(screen.getByRole('heading', {name: 'Source Maps'})).toBeInTheDocument();
-
-      // Active tab
-      const tabs = screen.getAllByRole('listitem');
-      expect(tabs).toHaveLength(2);
-
-      // Tab 1
-      expect(tabs[0]).toHaveTextContent('Artifact Bundles');
-      expect(tabs[0]).not.toHaveClass('active');
-      expect(within(tabs[0]).getByRole('link')).toHaveAttribute(
-        'href',
-        '/settings/org-slug/projects/project-slug/source-maps/artifact-bundles/'
-      );
-
-      // Tab 2
-      expect(tabs[1]).toHaveTextContent('Release Bundles');
-      expect(tabs[1]).toHaveClass('active');
-      expect(within(tabs[0]).getByRole('link')).toHaveAttribute(
-        'href',
-        '/settings/org-slug/projects/project-slug/source-maps/artifact-bundles/'
-      );
-
-      // Search bar
-      expect(screen.getByPlaceholderText('Filter by Name')).toBeInTheDocument();
-
-      // Date Uploaded can be sorted
-      await userEvent.hover(screen.getByTestId('icon-arrow'));
-      expect(await screen.findByText('Switch to ascending order')).toBeInTheDocument();
-      await userEvent.click(screen.getByTestId('icon-arrow'));
-      await waitFor(() => {
-        expect(mockRequests.sourceMaps).toHaveBeenLastCalledWith(
-          '/projects/org-slug/project-slug/files/source-maps/',
-          expect.objectContaining({
-            query: expect.objectContaining({
-              sortBy: 'date_added',
-            }),
-          })
-        );
-      });
-
-      // Active tab contains correct link
-      expect(screen.getByRole('link', {name: /Release Bundles/})).toHaveAttribute(
-        'href',
-        '/settings/org-slug/projects/project-slug/source-maps/release-bundles/'
-      );
-
-      // Artifact Bundles Tab
-      expect(screen.getByRole('link', {name: /Artifact Bundles/})).toHaveAttribute(
-        'href',
-        '/settings/org-slug/projects/project-slug/source-maps/artifact-bundles/'
-      );
-
-      // Name
-      expect(await screen.findByRole('link', {name: '1234'})).toBeInTheDocument();
-      // Artifacts
-      expect(screen.getByText('0')).toBeInTheDocument();
-      // Date
-      expect(screen.getByText('May 6, 2020 1:41 PM UTC')).toBeInTheDocument();
-      // Delete buttons (this example renders 2 rows)
-      expect(screen.getAllByRole('button', {name: 'Remove All Artifacts'})).toHaveLength(
-        2
-      );
-      expect(
-        screen.getAllByRole('button', {name: 'Remove All Artifacts'})[0]
-      ).toBeEnabled();
-
-      renderGlobalModal();
-
-      // Delete item displays a confirmation modal
-      await userEvent.click(
-        screen.getAllByRole('button', {name: 'Remove All Artifacts'})[0]
-      );
-      expect(
-        await screen.findByText(
-          'Are you sure you want to remove all artifacts in this archive?'
-        )
-      ).toBeInTheDocument();
-      // Close modal
-      await userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
-    });
-
-    it('renders empty state', async function () {
-      const {organization, project, router, routerProps} = initializeOrg({
-        router: {
-          location: {
-            query: {},
-            pathname: `/settings/${initializeOrg().organization.slug}/projects/${
-              initializeOrg().project.slug
-            }/source-maps/release-bundles/`,
-          },
-        },
-      });
-
-      renderReleaseBundlesMockRequests({
-        orgSlug: organization.slug,
-        projectSlug: project.slug,
-        empty: true,
-      });
-
-      render(<SourceMapsList project={project} {...routerProps} />, {
-        router,
-        organization,
-      });
-
-      expect(
-        await screen.findByText('No release bundles found for this project.')
-      ).toBeInTheDocument();
-    });
-  });
-
   describe('Artifact Bundles', function () {
     it('renders default state', async function () {
       const {organization, project, router, routerProps} = initializeOrg({
@@ -206,9 +71,15 @@ describe('ProjectSourceMaps', function () {
             query: {},
             pathname: `/settings/${initializeOrg().organization.slug}/projects/${
               initializeOrg().project.slug
-            }/source-maps/artifact-bundles/`,
+            }/source-maps/`,
           },
         },
+      });
+
+      renderReleaseBundlesMockRequests({
+        orgSlug: organization.slug,
+        projectSlug: project.slug,
+        empty: true,
       });
 
       const mockRequests = renderDebugIdBundlesMockRequests({
@@ -223,72 +94,39 @@ describe('ProjectSourceMaps', function () {
       expect(mockRequests.artifactBundles).toHaveBeenCalledTimes(1);
 
       // Title
-      expect(screen.getByRole('heading', {name: 'Source Maps'})).toBeInTheDocument();
-
-      // Active tab
-      const tabs = screen.getAllByRole('listitem');
-      expect(tabs).toHaveLength(2);
-
-      // Tab 1
-      expect(tabs[0]).toHaveTextContent('Artifact Bundles');
-      expect(tabs[0]).toHaveClass('active');
-
-      // Tab 2
-      expect(tabs[1]).toHaveTextContent('Release Bundles');
-      expect(tabs[1]).not.toHaveClass('active');
+      expect(
+        screen.getByRole('heading', {name: 'Source Map Uploads'})
+      ).toBeInTheDocument();
 
       // Search bar
       expect(
-        screen.getByPlaceholderText('Filter by Bundle ID, Debug ID or Release')
+        screen.getByPlaceholderText('Filter by Debug ID or Upload ID')
       ).toBeInTheDocument();
 
       // Artifacts
-      expect(await screen.findByText('Artifacts')).toBeInTheDocument();
-      expect(await screen.findByText('39')).toBeInTheDocument();
+      expect(await screen.findByText('Upload ID')).toBeInTheDocument();
       // Release information
-      expect(await screen.findByText('Associated Releases')).toBeInTheDocument();
+      expect(await screen.findByText('Found in Releases')).toBeInTheDocument();
+      expect(await screen.findByText(textWithMarkupMatcher('v2.0'))).toBeInTheDocument();
       expect(
-        await screen.findByText(textWithMarkupMatcher('v2.0 (Dist: none)'))
+        await screen.findByText(textWithMarkupMatcher('2e318148eac9'))
       ).toBeInTheDocument();
       expect(
-        await screen.findByText(
-          textWithMarkupMatcher(
-            'frontend@2e318148eac9298ec04a662ae32b4b093b027f0a (Dist: android, iOS)'
-          )
-        )
+        await screen.findByText(textWithMarkupMatcher('(Dist: android, iOS)'))
       ).toBeInTheDocument();
       // Date Uploaded
-      expect(await screen.findByText('Date Uploaded')).toBeInTheDocument();
-      expect(screen.getByText('Mar 8, 2023 9:53 AM UTC')).toBeInTheDocument();
+      expect(screen.getByText('Mar 8, 2023 9:53 AM')).toBeInTheDocument();
+      expect(screen.getByText('(39 files)')).toBeInTheDocument();
+
       // Delete button
-      expect(screen.getByRole('button', {name: 'Delete Bundle'})).toBeEnabled();
-
-      // Click on release
-      await userEvent.click(
-        screen.getByRole('link', {
-          name: 'frontend@2e318148eac9298ec04a662ae32b4b093b027f0a',
-        })
-      );
-      expect(router.push).toHaveBeenLastCalledWith(
-        '/organizations/org-slug/releases/frontend@2e318148eac9298ec04a662ae32b4b093b027f0a/'
-      );
-
-      // Click on bundle id
-      await userEvent.click(
-        screen.getByRole('link', {
-          name: 'b916a646-2c6b-4e45-af4c-409830a44e0e',
-        })
-      );
-      expect(router.push).toHaveBeenLastCalledWith(
-        '/settings/org-slug/projects/project-slug/source-maps/artifact-bundles/b916a646-2c6b-4e45-af4c-409830a44e0e/'
-      );
+      expect(screen.getByRole('button', {name: 'Delete Source Maps'})).toBeEnabled();
 
       renderGlobalModal();
 
       // Delete item displays a confirmation modal
-      await userEvent.click(screen.getByRole('button', {name: 'Delete Bundle'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Delete Source Maps'}));
       expect(
-        await screen.findByText('Are you sure you want to delete this bundle?')
+        await screen.findByText('Are you sure you want to delete Source Maps?')
       ).toBeInTheDocument();
       // Close modal
       await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
@@ -316,6 +154,12 @@ describe('ProjectSourceMaps', function () {
         },
       });
 
+      renderReleaseBundlesMockRequests({
+        orgSlug: organization.slug,
+        projectSlug: project.slug,
+        empty: true,
+      });
+
       renderDebugIdBundlesMockRequests({
         orgSlug: organization.slug,
         projectSlug: project.slug,
@@ -327,9 +171,7 @@ describe('ProjectSourceMaps', function () {
         organization,
       });
 
-      expect(
-        await screen.findByText('No artifact bundles found for this project.')
-      ).toBeInTheDocument();
+      expect(await screen.findByText('No source map uploads found')).toBeInTheDocument();
     });
   });
 });

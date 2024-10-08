@@ -202,11 +202,6 @@ export function SourceMapUploadsList({
 
   const sourceMapUploadDetailLink = useCallback(
     (sourceMapUpload: SourceMapUpload) => {
-      // TODO(telemetry-experience): Simplify this routing later
-      if (sourceMapUpload.type === 'debugId') {
-        return `/settings/${organization.slug}/projects/${project.slug}/source-maps/${encodeURIComponent(sourceMapUpload.id)}/`;
-      }
-
       return `/settings/${organization.slug}/projects/${project.slug}/source-maps/${encodeURIComponent(sourceMapUpload.id)}/`;
     },
     [organization, project]
