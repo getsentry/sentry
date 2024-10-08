@@ -781,6 +781,7 @@ HEALTH_CHECK_GLOBS = [
     "*/ready",
     "*/readyz",
     "*/ping",
+    "*/up",
 ]
 
 
