@@ -25,7 +25,6 @@ const getSpanFieldSupportedTags = (
       .filter(v => !excludedTags.includes(v))
       .map(v => [v, {key: v, name: v}])
   );
-
   tags.has = getHasTag(tags);
   return tags;
 };

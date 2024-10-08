@@ -51,7 +51,7 @@ export function AggregatesTable({}: AggregatesTableProps) {
     );
   }, [groupBys, visualizes]);
   const [sorts] = useSorts({fields});
-  const [userQuery] = useUserQuery();
+  const [query] = useUserQuery();
 
   const eventView = useMemo(() => {
     const discoverQuery: NewQuery = {
@@ -59,13 +59,13 @@ export function AggregatesTable({}: AggregatesTableProps) {
       name: 'Explore - Span Aggregates',
       fields,
       orderby: sorts.map(formatSort),
-      query: userQuery,
+      query,
       version: 2,
       dataset,
     };
 
     return EventView.fromNewQueryWithPageFilters(discoverQuery, selection);
-  }, [dataset, fields, sorts, userQuery, selection]);
+  }, [dataset, fields, sorts, query, selection]);
 
   const result = useSpansQuery({
     eventView,

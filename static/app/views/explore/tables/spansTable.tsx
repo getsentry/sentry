@@ -35,7 +35,7 @@ export function SpansTable({}: SpansTableProps) {
   const [dataset] = useDataset();
   const [fields] = useSampleFields();
   const [sorts] = useSorts({fields});
-  const [userQuery] = useUserQuery();
+  const [query] = useUserQuery();
 
   const eventView = useMemo(() => {
     const queryFields = [
@@ -52,13 +52,13 @@ export function SpansTable({}: SpansTableProps) {
       name: 'Explore - Span Samples',
       fields: queryFields,
       orderby: sorts.map(sort => `${sort.kind === 'desc' ? '-' : ''}${sort.field}`),
-      query: userQuery,
+      query,
       version: 2,
       dataset,
     };
 
     return EventView.fromNewQueryWithPageFilters(discoverQuery, selection);
-  }, [dataset, fields, sorts, userQuery, selection]);
+  }, [dataset, fields, sorts, query, selection]);
 
   const result = useSpansQuery({
     eventView,
