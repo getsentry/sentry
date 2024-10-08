@@ -26,7 +26,7 @@ Required context variables:
         const referrer = '{{ referrer|escapejs }}';
         const state = '{{ state|escapejs }}';
         const logging = '{{ logging|escapejs }}';
-        const orgIdOrSlug = '{{ organization_slug|escapejs }}';
+        const organizationSlug = '{{ organization_slug|escapejs }}';
         const projectIdOrSlug = '{{ project_id_or_slug|escapejs }}';
 
         function log(...args) {
@@ -41,7 +41,7 @@ Required context variables:
           form.addEventListener('submit', submitEvent => {
             submitEvent.preventDefault();
             window.open(
-              `/toolbar/${orgIdOrSlug}/${projectIdOrSlug}/login-success/`,
+              `/toolbar/${organizationSlug}/${projectIdOrSlug}/login-success/`,
               'sentry-toolbar-auth-popup',
               'popup=true,innerWidth=800,innerHeight=550,noopener=false'
             );

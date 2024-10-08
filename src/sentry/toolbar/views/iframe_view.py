@@ -16,15 +16,6 @@ def _get_referrer(request) -> str | None:
     return request.META.get("HTTP_REFERER")
 
 
-def _add_frame_headers(request: HttpRequest, response: HttpResponseBase):
-    referrer = _get_referrer(request) or ""
-
-    # This is an alternative to @csp_replace - we need to use this pattern to access the referrer.
-    response._csp_replace = {"frame-ancestors": [referrer.strip("/") or "'none'"]}  # type: ignore[attr-defined]
-    response["X-Frame-Options"] = "DENY" if referrer == "" else "ALLOWALL"
-    return response
-
-
 @region_silo_view
 class IframeView(ProjectView):
     default_context = {}
@@ -61,18 +52,22 @@ class IframeView(ProjectView):
         return self._respond_with_state("invalid-domain")
 
     def _respond_with_state(self, state: str):
-        context = {
-            "referrer": _get_referrer(self.request) or "",
-            "state": state,
-            "logging": self.request.GET.get("logging", ""),
-            "organization_slug": self.organization_slug,
-            "project_id_or_slug": self.project_id_or_slug,
-        }
-        return _add_frame_headers(
-            self.request,
-            self.respond(
-                TEMPLATE,
-                status=200,  # always return 200 so the html will render inside the iframe
-                context=context,
-            ),
+        response = self.respond(
+            TEMPLATE,
+            status=200,  # always return 200 so the html will render inside the iframe
+            context={
+                "referrer": _get_referrer(self.request) or "",
+                "state": state,
+                "logging": self.request.GET.get("logging", ""),
+                "organization_slug": self.organization_slug,
+                "project_id_or_slug": self.project_id_or_slug,
+            },
         )
+
+        referrer = _get_referrer(self.request) or ""
+
+        # This is an alternative to @csp_replace - we need to use this pattern to access the referrer.
+        response._csp_replace = {"frame-ancestors": [referrer.strip("/") or "'none'"]}  # type: ignore[attr-defined]
+        response["X-Frame-Options"] = "DENY" if referrer == "" else "ALLOWALL"
+
+        return response

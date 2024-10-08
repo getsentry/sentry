@@ -39,7 +39,7 @@ def url_matches(source: ParseResult, target: str) -> bool:
     hostname = match.group("hostname")
     port = match.group("port")
 
-    if not hostname:
+    if not source.hostname or not hostname:
         return False
 
     is_wildcard_scheme = scheme == "://" or scheme is None
