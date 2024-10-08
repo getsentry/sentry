@@ -1,13 +1,12 @@
 import {useMemo} from 'react';
 import type {LocationDescriptor} from 'history';
 
-import {NODE_ENV} from 'sentry/constants';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
-import {useRouteContext} from 'sentry/utils/useRouteContext';
 
 import {useLocation} from './useLocation';
 import {useNavigate} from './useNavigate';
 import {useParams} from './useParams';
+import {useRouteContext} from './useRouteContext';
 import {useRoutes} from './useRoutes';
 
 /**
@@ -19,11 +18,10 @@ import {useRoutes} from './useRoutes';
 function useRouter(): InjectedRouter<any, any> {
   // When running in test mode we still read from the legacy route context to
   // keep test compatability while we fully migrate to react router 6
-  const useReactRouter6 = NODE_ENV !== 'test';
+  const legacyRouterContext = useRouteContext();
 
-  if (!useReactRouter6) {
-    // biome-ignore lint/correctness/useHookAtTopLevel: react-router 6 migration
-    return useRouteContext().router;
+  if (legacyRouterContext) {
+    return legacyRouterContext.router;
   }
 
   // biome-ignore lint/correctness/useHookAtTopLevel: react-router 6 migration

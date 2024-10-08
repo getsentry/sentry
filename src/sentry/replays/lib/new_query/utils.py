@@ -4,6 +4,7 @@ from __future__ import annotations
 from uuid import UUID
 
 from snuba_sdk import Condition, Function, Op
+from snuba_sdk.conditions import And, Or
 
 
 def to_uuid(value: UUID) -> Function:
@@ -29,7 +30,7 @@ def does_not_contain(condition: Condition) -> Condition:
 
 
 # Work-around for https://github.com/getsentry/snuba-sdk/issues/115
-def translate_condition_to_function(condition: Condition) -> Function:
+def translate_condition_to_function(condition: Condition | And | Or) -> Function:
     """Transforms infix operations to prefix operations."""
     if condition.op == Op.EQ:
         return Function("equals", parameters=[condition.lhs, condition.rhs])
