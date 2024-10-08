@@ -711,10 +711,10 @@ class ReleaseAnalyticsMixin:
 
 
 class DevtoolbarAnalyticsMixin:
-    # Must come before the base Endpoint in the inheritance chain. Ex: MyEndpoint(DevtoolbarAnalyticsMixin, Endpoint)
+    # Must come before the base Endpoint in the inheritance chain. Ex: MyEndpoint(DevtoolbarAnalyticsMixin, Endpoint). This allows us to
     def dispatch(self, request, *args, **kwargs):
         org_id, org_slug, project_id, project_slug = None, None, None, None
-        try:
+        try:  # Careful tweaking this try-catch, this is code shared by most/all public endpoints.
             if request.headers.get("queryReferrer") == "devtoolbar":
                 org_id_or_slug = kwargs.get(
                     "organization_id_or_slug", kwargs.get("organization_slug")
@@ -756,7 +756,7 @@ class DevtoolbarAnalyticsMixin:
                 extra={"org_slug": org_slug, "project_slug": project_slug},
             )
 
-        super().dispatch(*args, **kwargs)  # type: ignore[attr-defined]
+        super().dispatch(*args, **kwargs)
 
 
 class EndpointSiloLimit(SiloLimit):
