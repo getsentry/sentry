@@ -57,10 +57,10 @@ const useLastOrganization = (organizations: Organization[]) => {
 
 function useOrganizationProjects({
   organization,
-  search,
+  query,
 }: {
   organization?: Organization & {region: string};
-  search?: string;
+  query?: string;
 }) {
   const api = useApi();
   const regions = useMemo(() => ConfigStore.get('memberRegions'), []);
@@ -70,12 +70,12 @@ function useOrganizationProjects({
   );
 
   return useQuery<Project[]>({
-    queryKey: [`/organizations/${organization?.slug}/projects/`, {slug: search}],
+    queryKey: [`/organizations/${organization?.slug}/projects/`, {query: query}],
     queryFn: () => {
       return api.requestPromise(`/organizations/${organization?.slug}/projects/`, {
         host: orgRegion?.url,
         query: {
-          slug: search,
+          query: query,
         },
       });
     },
@@ -141,7 +141,7 @@ function ProjectSelection({hash, organizations = []}: Omit<Props, 'allowSelectio
 
   const orgProjectsRequest = useOrganizationProjects({
     organization: selectedOrg,
-    search: debouncedSearch,
+    query: debouncedSearch,
   });
 
   const selectedProject = useMemo(
