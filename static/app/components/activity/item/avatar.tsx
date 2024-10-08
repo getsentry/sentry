@@ -6,7 +6,7 @@ import {IconSentry} from 'sentry/icons';
 import type {AvatarUser} from 'sentry/types/user';
 
 type Props = {
-  type: 'system' | 'user';
+  type?: 'system' | 'user';
   className?: string;
   size?: number;
   user?: AvatarUser;

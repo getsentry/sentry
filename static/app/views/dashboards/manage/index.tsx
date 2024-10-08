@@ -69,6 +69,8 @@ type State = {
 } & DeprecatedAsyncView['state'];
 
 class ManageDashboards extends DeprecatedAsyncView<Props, State> {
+  shouldReload = true;
+
   constructor(props: Props, context: any) {
     super(props, context);
 
@@ -94,7 +96,14 @@ class ManageDashboards extends DeprecatedAsyncView<Props, State> {
     if (currentWidth !== this.state.windowWidth) {
       this.setState({windowWidth: currentWidth});
     }
-    this.fetchData();
+    if (
+      this.state.dashboards?.length &&
+      // TODO: check if there's more, probably with page links. If there aren't then we're
+      // on the last page and resizing shouldn't trigger a reload
+      this.getDashboardsPerPage() > this.state.dashboards.length
+    ) {
+      this.reloadData();
+    }
   }, 250);
 
   componentDidMount() {
@@ -246,8 +255,10 @@ class ManageDashboards extends DeprecatedAsyncView<Props, State> {
   }
 
   renderDashboards() {
-    const {dashboards, dashboardsPageLinks} = this.state;
+    const {reloading, dashboards, dashboardsPageLinks} = this.state;
     const {organization, location, api} = this.props;
+    // TODO: Handle loading for pagination, shouldReload means this
+    // doesn't show the spinner currently
     return (
       <DashboardList
         api={api}
@@ -256,6 +267,8 @@ class ManageDashboards extends DeprecatedAsyncView<Props, State> {
         pageLinks={dashboardsPageLinks}
         location={location}
         onDashboardsChange={() => this.onDashboardsChange()}
+        reloading={reloading}
+        limit={this.getDashboardsPerPage()}
       />
     );
   }

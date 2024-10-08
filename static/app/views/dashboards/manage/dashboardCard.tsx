@@ -67,6 +67,27 @@ function DashboardCard({
   );
 }
 
+export function SkeletonCard() {
+  return (
+    <StyledDashboardCard interactive>
+      <CardHeader>
+        <CardContent>
+          <SkeletonPulse />
+        </CardContent>
+        <AvatarWrapper>
+          <ActivityAvatar size={34} />
+        </AvatarWrapper>
+      </CardHeader>
+      <CardBody>
+        <SkeletonPulse />
+      </CardBody>
+      <CardFooter>
+        <SkeletonPulse />
+      </CardFooter>
+    </StyledDashboardCard>
+  );
+}
+
 const AvatarWrapper = styled('span')`
   border: 3px solid ${p => p.theme.border};
   border-radius: 50%;
@@ -136,6 +157,25 @@ const DateSelected = styled('div')`
 const DateStatus = styled('span')`
   color: ${p => p.theme.subText};
   padding-left: ${space(1)};
+`;
+
+const SkeletonPulse = styled('div')`
+  $from: #f5f5f5;
+  $to: scale-color($from, $lightness: -10%);
+
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(-90deg, #efefef 0%, #fcfcfc 50%, #efefef 100%);
+  background-size: 400% 400%;
+  animation: pulse 1.2s ease-in-out infinite;
+  @keyframes pulse {
+    0% {
+      background-position: 0% 0%;
+    }
+    100% {
+      background-position: -135% 0%;
+    }
+  }
 `;
 
 export default DashboardCard;

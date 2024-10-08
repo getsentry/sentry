@@ -27,7 +27,7 @@ import type {DashboardListItem} from 'sentry/views/dashboards/types';
 
 import {cloneDashboard} from '../utils';
 
-import DashboardCard from './dashboardCard';
+import DashboardCard, {SkeletonCard} from './dashboardCard';
 import GridPreview from './gridPreview';
 
 type Props = {
@@ -37,6 +37,8 @@ type Props = {
   onDashboardsChange: () => void;
   organization: Organization;
   pageLinks: string;
+  reloading: boolean;
+  limit: number;
 };
 
 function DashboardList({
@@ -46,6 +48,8 @@ function DashboardList({
   dashboards,
   pageLinks,
   onDashboardsChange,
+  reloading,
+  limit,
 }: Props) {
   function handleDelete(dashboard: DashboardListItem) {
     deleteDashboard(api, organization.slug, dashboard.id)
@@ -137,7 +141,8 @@ function DashboardList({
   };
 
   function renderMiniDashboards() {
-    return dashboards?.map((dashboard, index) => {
+    // If the number of dashboards we're showing has decreased, just render less.
+    return dashboards?.slice(0, limit).map((dashboard, index) => {
       return (
         <DashboardCard
           key={`${index}-${dashboard.id}`}
@@ -166,7 +171,17 @@ function DashboardList({
         </EmptyStateWarning>
       );
     }
-    return <DashboardGrid>{renderMiniDashboards()}</DashboardGrid>;
+    return (
+      <DashboardGrid>
+        {renderMiniDashboards()}
+        {/* Render the "rest" of the widgets as skeletons until they load in */}
+        {reloading &&
+          limit > dashboards.length &&
+          new Array(limit - dashboards.length)
+            .fill(0)
+            .map((_, index) => <SkeletonCard key={index} />)}
+      </DashboardGrid>
+    );
   }
 
   return (
