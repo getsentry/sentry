@@ -67,7 +67,7 @@ metadata = IntegrationMetadata(
 
 
 class PagerDutyIntegration(IntegrationInstallation):
-    def get_keyring_client(self, keyid: str) -> PagerDutyClient:
+    def get_keyring_client(self, keyid: int | str) -> PagerDutyClient:
         org_integration = self.org_integration
         assert org_integration, "Cannot get client without an organization integration"
 
