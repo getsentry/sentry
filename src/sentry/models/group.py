@@ -570,7 +570,7 @@ class Group(Model):
     active_at = models.DateTimeField(null=True, db_index=True)
     time_spent_total = BoundedIntegerField(default=0)
     time_spent_count = BoundedIntegerField(default=0)
-    score = BoundedIntegerField(default=0)
+    score = BoundedIntegerField(default=0, null=True)
     # deprecated, do not use. GroupShare has superseded
     is_public = models.BooleanField(default=False, null=True)
     data: models.Field[dict[str, Any] | None, dict[str, Any]] = GzippedDictField(
