@@ -45,14 +45,12 @@ export function WidgetFrame(props: Props) {
             <TitleText>{props.title}</TitleText>
           </Tooltip>
 
-          {props.description && (
-            <TooltipAligner>
-              <QuestionTooltip size="sm" title={props.description} />
-            </TooltipAligner>
-          )}
-
-          {actions && actions.length > 0 && (
+          {(props.description || (actions && actions.length > 0)) && (
             <TitleActions>
+              {props.description && (
+                <QuestionTooltip title={props.description} size="sm" icon="info" />
+              )}
+
               {actions.length === 1 ? (
                 actions[0].to ? (
                   <LinkButton size="xs" onClick={actions[0].onAction} to={actions[0].to}>
@@ -117,10 +115,12 @@ const Frame = styled('div')`
   }
 `;
 
+const HEADER_HEIGHT = 20;
+
 const Header = styled('div')`
   display: flex;
   flex-direction: column;
-  min-height: 20px;
+  min-height: ${HEADER_HEIGHT}px;
 `;
 
 const Title = styled('div')`
@@ -135,13 +135,10 @@ const TitleText = styled(HeaderTitle)`
 `;
 
 const TitleActions = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
   margin-left: auto;
-`;
-
-const TooltipAligner = styled('div')`
-  font-size: 0;
-  line-height: 1;
-  margin-bottom: 2px;
 `;
 
 const VisualizationWrapper = styled('div')`
