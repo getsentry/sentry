@@ -142,6 +142,7 @@ function TraceView(props: Props) {
                                       operationNameFilters={
                                         waterfallModel.operationNameFilters
                                       }
+                                      isEmbedded={!!isEmbedded}
                                     />
                                   )}
                                 </Observer>
