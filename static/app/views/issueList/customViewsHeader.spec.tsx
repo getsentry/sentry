@@ -2,7 +2,7 @@ import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import CustomViewsIssueListHeader from 'sentry/views/issueList/customViewsHeader';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
@@ -264,6 +264,57 @@ describe('CustomViewsHeader', () => {
           }),
         })
       );
+    });
+
+    it('initially selects a temporary tab if the viewId is a default viewId and the query is different', () => {
+      MockApiClient.clearMockResponses();
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/group-search-views/`,
+        method: 'GET',
+        body: [
+          {
+            name: 'Prioritized',
+            query: 'is:unresolved issue.priority:[high, medium]',
+            querySort: IssueSortOptions.DATE,
+          },
+        ],
+      });
+
+      const defaultDifferentQueryRouter = RouterFixture({
+        location: LocationFixture({
+          pathname: `/organizations/${organization.slug}/issues/`,
+          query: {
+            query: 'is:unresolved',
+            viewId: 'default0',
+          },
+        }),
+      });
+
+      render(
+        <CustomViewsIssueListHeader
+          {...defaultProps}
+          router={defaultDifferentQueryRouter}
+        />,
+        {
+          router: defaultDifferentQueryRouter,
+        }
+      );
+
+      waitFor(() => {
+        expect(screen.getByRole('tab', {name: 'Unsaved'})).toBeInTheDocument();
+        expect(screen.getByRole('tab', {name: 'Unsaved'})).toHaveAttribute(
+          'aria-selected',
+          'true'
+        );
+        expect(defaultDifferentQueryRouter.replace).toHaveBeenCalledWith(
+          expect.objectContaining({
+            query: expect.objectContaining({
+              query: 'is:unresolved',
+              viewId: undefined,
+            }),
+          })
+        );
+      });
     });
   });
 

@@ -163,7 +163,7 @@ function CustomViewsIssueListHeaderTabsContent({
 
   const getInitialTabKey = () => {
     if (draggableTabs[0].key.startsWith('default') || viewId?.startsWith('default')) {
-      if (query) {
+      if (query && query !== draggableTabs[0].query) {
         return TEMPORARY_TAB_KEY;
       }
       return draggableTabs[0].key;
@@ -243,6 +243,25 @@ function CustomViewsIssueListHeaderTabsContent({
     }
     // if a viewId is present, check if it exists in the existing views.
     if (viewId) {
+      if (viewId.startsWith('default') && query && query !== draggableTabs[0].query) {
+        navigate(
+          normalizeUrl({
+            ...location,
+            query: {
+              ...queryParamsWithPageFilters,
+              query: query,
+              sort: sort ?? IssueSortOptions.DATE,
+              viewId: undefined,
+            },
+          }),
+          {replace: true}
+        );
+        if (!tabListState?.selectionManager.isSelected(TEMPORARY_TAB_KEY)) {
+          tabListState?.setSelectedKey(TEMPORARY_TAB_KEY);
+        }
+        return;
+      }
+
       const selectedTab = draggableTabs.find(tab => tab.id === viewId);
       if (selectedTab) {
         const issueSortOption = Object.values(IssueSortOptions).includes(sort)
