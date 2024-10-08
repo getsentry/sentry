@@ -230,9 +230,7 @@ export function SourceMapsDetails({params, location, router, project}: Props) {
         emptyMessage={
           query
             ? t('No artifacts match your search query.')
-            : tabDebugIdBundlesActive
-              ? t('There are no artifacts in this bundle.')
-              : t('There are no artifacts in this archive.')
+            : t('There are no artifacts in this upload.')
         }
         isEmpty={
           (tabDebugIdBundlesActive

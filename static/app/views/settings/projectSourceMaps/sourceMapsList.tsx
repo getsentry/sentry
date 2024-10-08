@@ -284,7 +284,7 @@ export function SourceMapUploadDetails({
               ))}
             </ReleasesWrapper>
           ) : (
-            t('No releases associated with this bundle')
+            t('No releases associated with this upload.')
           ),
       },
     ];

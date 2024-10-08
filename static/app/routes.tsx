@@ -570,6 +570,8 @@ function buildRoutes() {
           path=":bundleId/"
           component={make(() => import('sentry/views/settings/projectSourceMaps'))}
         />
+        <Redirect from="source-maps/artifact-bundles/" to="source-maps/" />
+        <Redirect from="source-maps/release-bundles/" to="source-maps/" />
       </Route>
       <Route
         path="filters/"

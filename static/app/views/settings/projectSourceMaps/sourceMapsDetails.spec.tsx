@@ -80,7 +80,7 @@ function renderDebugIdBundlesMockRequests({
   return {artifactBundlesFiles, artifactBundlesDeletion};
 }
 
-describe('ProjectSourceMapsArtifacts', function () {
+describe('SourceMapsDetails', function () {
   beforeEach(function () {
     OrganizationStore.init();
   });
@@ -175,7 +175,7 @@ describe('ProjectSourceMapsArtifacts', function () {
       );
 
       expect(
-        await screen.findByText('There are no artifacts in this archive.')
+        await screen.findByText('There are no artifacts in this upload.')
       ).toBeInTheDocument();
     });
   });
@@ -190,7 +190,7 @@ describe('ProjectSourceMapsArtifacts', function () {
           location: {
             pathname: `/settings/${initializeOrg().organization.slug}/projects/${
               initializeOrg().project.slug
-            }/source-maps/artifact-bundles/7227e105-744e-4066-8c69-3e5e344723fc/`,
+            }/source-maps/7227e105-744e-4066-8c69-3e5e344723fc/`,
             query: {},
           },
           params: {},
@@ -264,9 +264,9 @@ describe('ProjectSourceMapsArtifacts', function () {
       renderGlobalModal();
 
       // Delete item displays a confirmation modal
-      await userEvent.click(screen.getByRole('button', {name: 'Delete Bundle'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Delete Source maps'}));
       expect(
-        await screen.findByText('Are you sure you want to delete this bundle?')
+        await screen.findByText('Are you sure you want to delete these source maps?')
       ).toBeInTheDocument();
       // Close modal
       await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
@@ -288,7 +288,7 @@ describe('ProjectSourceMapsArtifacts', function () {
           location: {
             pathname: `/settings/${initializeOrg().organization.slug}/projects/${
               initializeOrg().project.slug
-            }/source-maps/artifact-bundles/7227e105-744e-4066-8c69-3e5e344723fc/`,
+            }/source-maps/7227e105-744e-4066-8c69-3e5e344723fc/`,
             query: {},
           },
           params: {},
@@ -300,6 +300,11 @@ describe('ProjectSourceMapsArtifacts', function () {
         projectSlug: project.slug,
         empty: true,
       });
+
+      // renderReleaseBundlesMockRequests({
+      //   orgSlug: organization.slug,
+      //   projectSlug: project.slug,
+      // });
 
       render(
         <SourceMapsDetails
@@ -315,11 +320,11 @@ describe('ProjectSourceMapsArtifacts', function () {
       );
 
       expect(
-        await screen.findByText('There are no artifacts in this bundle.')
+        await screen.findByText('There are no artifacts in this upload.')
       ).toBeInTheDocument();
 
       expect(
-        screen.getByText('No releases associated with this bundle')
+        screen.getByText('No releases associated with this upload.')
       ).toBeInTheDocument();
     });
   });
