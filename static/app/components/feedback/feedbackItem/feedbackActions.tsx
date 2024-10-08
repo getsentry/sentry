@@ -1,7 +1,6 @@
 import type {CSSProperties} from 'react';
 import {Fragment} from 'react';
 
-import {type ModalRenderProps, openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import {Flex} from 'sentry/components/container/flex';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
@@ -62,11 +61,9 @@ function LargeWidth({feedbackItem}: {feedbackItem: FeedbackIssue}) {
 
   return (
     <Fragment>
-      {hasDelete && (
-        <Button size="xs" onClick={() => openDeleteModal(onDelete)} priority="danger">
-          {t('Delete')}
-        </Button>
-      )}
+      <Button size="xs" onClick={onDelete} priority="danger" disabled={!hasDelete}>
+        {t('Delete')}
+      </Button>
       <Button
         size="xs"
         priority={isResolved ? 'danger' : 'primary'}
@@ -98,11 +95,9 @@ function MediumWidth({feedbackItem}: {feedbackItem: FeedbackIssue}) {
 
   return (
     <Fragment>
-      {hasDelete && (
-        <Button size="xs" onClick={() => openDeleteModal(onDelete)} priority={'danger'}>
-          {t('Delete')}
-        </Button>
-      )}
+      <Button size="xs" onClick={onDelete} priority={'danger'} disabled={!hasDelete}>
+        {t('Delete')}
+      </Button>
       <Button
         size="xs"
         priority={isResolved ? 'danger' : 'primary'}
@@ -162,8 +157,8 @@ function SmallWidth({feedbackItem}: {feedbackItem: FeedbackIssue}) {
           key: 'delete',
           priority: 'danger' as const,
           label: t('Delete'),
-          hidden: !hasDelete,
-          onAction: () => openDeleteModal(onDelete),
+          disabled: !hasDelete,
+          onAction: onDelete,
         },
         {
           key: 'resolve',
@@ -184,22 +179,3 @@ function SmallWidth({feedbackItem}: {feedbackItem: FeedbackIssue}) {
     />
   );
 }
-
-const openDeleteModal = onDelete =>
-  openModal(({Body, Footer, closeModal}: ModalRenderProps) => (
-    <Fragment>
-      <Body>
-        {t('Deleting this feedback is permanent. Are you sure you wish to continue?')}
-      </Body>
-      <Footer>
-        <Button onClick={closeModal}>{t('Cancel')}</Button>
-        <Button
-          style={{marginLeft: space(1)}}
-          priority="primary"
-          onClick={() => onDelete(closeModal)}
-        >
-          {t('Delete')}
-        </Button>
-      </Footer>
-    </Fragment>
-  ));

@@ -9,6 +9,7 @@ import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {GroupStatus} from 'sentry/types/group';
+import useOrganization from 'sentry/utils/useOrganization';
 
 interface Props
   extends Pick<
@@ -24,7 +25,8 @@ export default function FeedbackListBulkSelection({
   selectedIds,
   deselectAll,
 }: Props) {
-  const {onToggleResovled, onMarkAsRead, onMarkUnread} = useBulkEditFeedbacks({
+  const organization = useOrganization();
+  const {onDelete, onToggleResolved, onMarkAsRead, onMarkUnread} = useBulkEditFeedbacks({
     selectedIds,
     deselectAll,
   });
@@ -36,6 +38,10 @@ export default function FeedbackListBulkSelection({
   const newMailboxSpam =
     mailbox === 'ignored' ? GroupStatus.UNRESOLVED : GroupStatus.IGNORED;
 
+  const hasDelete =
+    organization.access.includes('event:admin') &&
+    organization.features.includes('issue-platform-deletion-ui');
+
   return (
     <Flex gap={space(1)} align="center" justify="space-between" flex="1 0 auto">
       <span>
@@ -46,10 +52,17 @@ export default function FeedbackListBulkSelection({
         </strong>
       </span>
       <Flex gap={space(1)} justify="flex-end">
+        {selectedIds !== 'all' && (
+          <ErrorBoundary mini>
+            <Button size="xs" onClick={onDelete} disabled={!hasDelete}>
+              {t('Delete')}
+            </Button>
+          </ErrorBoundary>
+        )}
         <ErrorBoundary mini>
           <Button
             size="xs"
-            onClick={() => onToggleResovled({newMailbox: newMailboxResolve})}
+            onClick={() => onToggleResolved({newMailbox: newMailboxResolve})}
           >
             {mailbox === 'resolved' ? t('Unresolve') : t('Resolve')}
           </Button>
@@ -58,7 +71,7 @@ export default function FeedbackListBulkSelection({
           <Button
             size="xs"
             onClick={() =>
-              onToggleResovled({
+              onToggleResolved({
                 newMailbox: newMailboxSpam,
                 moveToInbox: mailbox === 'ignored',
               })
