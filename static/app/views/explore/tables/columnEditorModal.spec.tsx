@@ -1,9 +1,10 @@
 import {act, renderGlobalModal, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {openModal} from 'sentry/actionCreators/modal';
+import type {TagCollection} from 'sentry/types/group';
 import {ColumnEditorModal} from 'sentry/views/explore/tables/columnEditorModal';
 
-const stringTags = {
+const stringTags: TagCollection = {
   id: {
     key: 'id',
     name: 'id',
@@ -18,7 +19,7 @@ const stringTags = {
   },
 };
 
-const numberTags = {
+const numberTags: TagCollection = {
   'span.duration': {
     key: 'span.duration',
     name: 'span.duration',
