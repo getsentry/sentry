@@ -1697,7 +1697,7 @@ export const ISSUE_EVENT_PROPERTY_FIELDS: FieldKey[] = [
   FieldKey.MESSAGE,
   FieldKey.OS_BUILD,
   FieldKey.OS_KERNEL_VERSION,
-  FieldKey.PLATFORM,
+  FieldKey.PLATFORM_NAME,
   FieldKey.RELEASE_BUILD,
   FieldKey.RELEASE_PACKAGE,
   FieldKey.RELEASE_VERSION,
