@@ -251,7 +251,7 @@ class InflightTaskStoreSqlite:
 
     def ensure_schema(self):
         with self.connection() as connection:
-            cursor = connection.execute(f"PRAGMA table_info(inflight_taskactivations)")
+            cursor = connection.execute("PRAGMA table_info(inflight_taskactivations)")
             res = cursor.fetchone()
             if res:
                 return
@@ -402,20 +402,167 @@ class InflightTaskStoreSqlite:
 
     def handle_retry_state_tasks(self) -> None:
         # Move tasks with status=retry into new tasks and update status.
-        ...
+        from sentry.taskworker.config import taskregistry
+
+        with self.connection() as connection:
+            cursor = connection.execute(
+                "SELECT * FROM inflight_taskactivations WHERE status = ?", (Status.RETRY,)
+            )
+            ids = []
+            for item in cursor.fetchall():
+                activation = TaskActivation()
+                activation.ParseFromString(item["activation"])
+                activation.id = uuid4().hex
+                activation.retry_state.attempts += 1
+
+                task_ns = taskregistry.get(activation.namespace)
+                task_ns.retry_task(activation)
+                ids.append(item["id"])
+            cursor.close()
+
+            placeholders = ",".join(["?"] * len(ids))
+            connection.execute(
+                f"UPDATE inflight_taskactivations SET status = ? WHERE id IN ({placeholders})",
+                (Status.COMPLETE, *ids),
+            )
+            connection.commit()
 
     def handle_deadletter_at(self) -> None:
         # Do upkeep work related to expired deadletter_at values
-        ...
+        with self.connection() as connection:
+            max_complete_cursor = connection.execute(
+                """SELECT MAX("offset") AS max_offset FROM inflight_taskactivations WHERE status = ?""",
+                (Status.COMPLETE,),
+            )
+            max_complete_offset = max_complete_cursor.fetchone()["max_offset"]
+            max_complete_cursor.close()
+
+            expired_cursor = connection.execute(
+                """
+                UPDATE inflight_taskactivations
+                SET status= ?
+                WHERE deadletter_at < ? AND "offset" < ? AND status = ?
+                """,
+                (Status.FAILURE, timezone.now(), max_complete_offset, Status.PENDING),
+            )
+            updated = expired_cursor.rowcount
+            connection.commit()
+        if updated:
+            logger.info("task.deadletter_at", extra={"count": updated})
 
     def handle_processing_deadlines(self) -> None:
         # Do upkeep work related to expired processing_deadlines
-        ...
+        with self.connection() as connection:
+            past_deadline_cursor = connection.execute(
+                """
+                SELECT id, activation
+                FROM inflight_taskactivations
+                WHERE processing_deadline < ?
+                AND status != ?
+                """,
+                (
+                    timezone.now(),
+                    Status.COMPLETE,
+                ),
+            )
+            to_update = []
+            for row in past_deadline_cursor.fetchall():
+                activation = TaskActivation()
+                activation.ParseFromString(row["activation"])
+
+                retry_state = activation.retry_state
+
+                has_retries_remaining = False
+                if (
+                    retry_state.deadletter_after_attempt is not None
+                    and retry_state.attempts < retry_state.deadletter_after_attempt
+                ):
+                    has_retries_remaining = True
+                if (
+                    retry_state.discard_after_attempt is not None
+                    and retry_state.attempts < retry_state.discard_after_attempt
+                ):
+                    has_retries_remaining = True
+                if has_retries_remaining:
+                    to_update.append(row["id"])
+
+            placeholders = ",".join(["?"] * len(to_update))
+            cursor = connection.execute(
+                f"""
+                UPDATE inflight_taskactivations
+                SET status = ?, processing_deadline = null
+                WHERE id IN ({placeholders})
+                """,
+                (Status.PENDING, *to_update),
+            )
+            connection.commit()
+            if cursor.rowcount:
+                logger.info("task.processingdeadline", extra={"count": cursor.rowcount})
 
     def handle_failed_tasks(self) -> None:
         # Do upkeep work related to status=failed tasks
-        ...
+        with self.connection() as connection:
+            failed_cursor = connection.execute(
+                """
+                SELECT id, activation
+                FROM inflight_taskactivations
+                WHERE status = ?
+                """,
+                (Status.FAILURE,),
+            )
+            to_discard = []
+            to_deadletter = []
+            for row in failed_cursor.fetchall():
+                activation = TaskActivation()
+                activation.ParseFromString(row["activation"])
+                retry_state = activation.retry_state
+                if retry_state.discard_after_attempt is not None:
+                    to_discard.append(row["id"])
+                if retry_state.deadletter_after_attempt is not None:
+                    to_deadletter.append(row["id"])
+            failed_cursor.close()
+
+            if to_discard:
+                placeholders = ",".join(["?"] * len(to_discard))
+                connection.execute(
+                    f"""
+                    UPDATE inflight_taskactivations SET status = ? WHERE id IN ({placeholders})
+                    """,
+                    (Status.COMPLETE, *to_discard),
+                )
+
+            # TODO do deadletter delivery
+            if to_deadletter:
+                placeholders = ",".join(["?"] * len(to_deadletter))
+                connection.execute(
+                    f"""
+                    UPDATE inflight_taskactivations SET status = ? WHERE id IN ({placeholders})
+                    """,
+                    (Status.COMPLETE, *to_deadletter),
+                )
+            connection.commit()
 
     def remove_completed(self) -> None:
         # Do upkeep work related to status=completed tasks
-        ...
+        with self.connection() as connection:
+            lowest_cursor = connection.execute(
+                """
+                SELECT "offset"
+                FROM inflight_taskactivations
+                WHERE status != ?
+                ORDER BY "offset"
+                LIMIT 1
+                """,
+                (Status.COMPLETE,),
+            )
+            lowest_offset = lowest_cursor.fetchone()
+            if not lowest_offset:
+                return
+            connection.execute(
+                """
+                DELETE FROM inflight_taskactivations
+                WHERE status = ? AND "offset" < ?
+                """,
+                (Status.COMPLETE, lowest_offset["offset"]),
+            )
+            connection.commit()
