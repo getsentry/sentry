@@ -259,7 +259,7 @@ def process_resource_change_bound(
 @instrumented_task(name="sentry.tasks.sentry_apps.installation_webhook", **CONTROL_TASK_OPTIONS)
 @retry_decorator
 def installation_webhook(installation_id: int, user_id: int, *args: Any, **kwargs: Any) -> None:
-    from sentry.mediators.sentry_app_installations.installation_notifier import InstallationNotifier
+    from sentry.sentry_apps.installations import SentryAppInstallationNotifier
 
     extra = {"installation_id": installation_id, "user_id": user_id}
     try:
@@ -274,7 +274,9 @@ def installation_webhook(installation_id: int, user_id: int, *args: Any, **kwarg
         logger.info("installation_webhook.missing_user", extra=extra)
         return
 
-    InstallationNotifier.run(install=install, user=user, action="created")
+    SentryAppInstallationNotifier(
+        sentry_app_installation=install, user=user, action="created"
+    ).run()
 
 
 @instrumented_task(

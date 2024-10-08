@@ -416,7 +416,7 @@ class TestSendResourceChangeWebhook(TestCase):
 
 
 @control_silo_test
-@patch("sentry.mediators.sentry_app_installations.InstallationNotifier.run")
+@patch("sentry.sentry_apps.installations.SentryAppInstallationNotifier.run")
 class TestInstallationWebhook(TestCase):
     def setUp(self):
         self.project = self.create_project()

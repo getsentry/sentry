@@ -45,7 +45,7 @@ class SentryAppInstallationDetailsEndpoint(SentryAppInstallationBaseEndpoint):
         with transaction.atomic(using=router.db_for_write(SentryAppInstallation)):
             try:
                 SentryAppInstallationNotifier(
-                    install=installation, user=request.user, action="deleted"
+                    sentry_app_installation=installation, user=request.user, action="deleted"
                 ).run()
             # if the error is from a request exception, log the error and continue
             except RequestException as exc:
@@ -73,7 +73,7 @@ class SentryAppInstallationDetailsEndpoint(SentryAppInstallationBaseEndpoint):
             result = serializer.validated_data
 
             SentryAppInstallationUpdater(
-                user=request.user, sentry_app_installation=installation, status=result.get("status")
+                sentry_app_installation=installation, status=result.get("status")
             ).run()
 
             return Response(
