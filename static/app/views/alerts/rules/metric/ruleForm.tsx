@@ -105,6 +105,8 @@ type RuleTaskResponse = {
   error?: string;
 };
 
+type HistoricalDataset = ReturnType<typeof formatStatsToHistoricalDataset>;
+
 type Props = {
   organization: Organization;
   project: Project;
@@ -129,13 +131,13 @@ type State = {
   // `null` means loading
   availableActions: MetricActionTemplate[] | null;
   comparisonType: AlertRuleComparisonType;
-  currentData: any[];
+  currentData: HistoricalDataset;
   // Rule conditions form inputs
   // Needed for TriggersChart
   dataset: Dataset;
   environment: string | null;
   eventTypes: EventTypes[];
-  historicalData: any[];
+  historicalData: HistoricalDataset;
   isQueryValid: boolean;
   project: Project;
   query: string;
@@ -1030,7 +1032,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
 
   handleTimeSeriesDataFetched = (data: EventsStats | MultiSeriesEventsStats | null) => {
     const {isExtrapolatedData} = data ?? {};
-    const currentData = Array.isArray(data?.data) ? data.data ?? [] : [];
+    const currentData = formatStatsToHistoricalDataset(data);
 
     const newState: Partial<State> = {currentData};
     if (shouldShowOnDemandMetricAlertUI(this.props.organization)) {
@@ -1046,7 +1048,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
   handleHistoricalTimeSeriesDataFetched(
     data: EventsStats | MultiSeriesEventsStats | null
   ) {
-    const historicalData = Array.isArray(data?.data) ? data.data ?? [] : [];
+    const historicalData = formatStatsToHistoricalDataset(data);
     this.setState({historicalData}, () => this.fetchAnomalies());
   }
 
@@ -1426,6 +1428,16 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       </Main>
     );
   }
+}
+
+function formatStatsToHistoricalDataset(
+  data: EventsStats | MultiSeriesEventsStats | null
+): [number, {count: number}][] {
+  return Array.isArray(data?.data)
+    ? data.data.flatMap(([timestamp, entries]) =>
+        entries.map(entry => [timestamp, entry] as [number, {count: number}])
+      ) ?? []
+    : [];
 }
 
 const Main = styled(Layout.Main)`
