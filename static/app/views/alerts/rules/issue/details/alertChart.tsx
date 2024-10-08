@@ -15,7 +15,6 @@ import type {Project} from 'sentry/types/project';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
-import useRouter from 'sentry/utils/useRouter';
 import RouteError from 'sentry/views/routeError';
 
 interface IssueAlertDetailsProps extends DateTimeObject {
@@ -32,7 +31,6 @@ export function IssueAlertDetailsChart({
   rule,
 }: IssueAlertDetailsProps) {
   const organization = useOrganization();
-  const router = useRouter();
   const {
     data: ruleFireHistory,
     isPending,
@@ -70,14 +68,7 @@ export function IssueAlertDetailsChart({
           value: isPending ? (
             <Placeholder height="200px" />
           ) : (
-            <ChartZoom
-              router={router}
-              period={period}
-              start={start}
-              end={end}
-              utc={utc}
-              usePageDate
-            >
+            <ChartZoom period={period} start={start} end={end} utc={utc} usePageDate>
               {zoomRenderProps => (
                 <AreaChart
                   {...zoomRenderProps}
