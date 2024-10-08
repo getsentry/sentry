@@ -86,7 +86,7 @@ export default function FiltersBar({
         <FilterButtons>
           <ReleasesProvider organization={organization} selection={selection}>
             <ReleasesSelectControl
-              handleChangeFilter={(activeFilters) => {
+              handleChangeFilter={activeFilters => {
                 onDashboardFilterChange(activeFilters);
                 trackAnalytics('dashboards2.filter.change', {
                   organization,
