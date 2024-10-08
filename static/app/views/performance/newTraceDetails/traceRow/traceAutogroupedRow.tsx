@@ -3,8 +3,7 @@ import {t} from 'sentry/locale';
 import {TraceIcons} from '../traceIcons';
 import type {ParentAutogroupNode} from '../traceModels/parentAutogroupNode';
 import type {SiblingAutogroupNode} from '../traceModels/siblingAutogroupNode';
-import {makeTraceNodeBarColor} from '../traceModels/traceTreeNodeUtils';
-import {AutogroupedTraceBar} from '../traceRow/traceBar';
+import {AutogroupedTraceBar, makeTraceNodeBarColor} from '../traceRow/traceBar';
 import {
   maybeFocusTraceRow,
   TRACE_COUNT_FORMATTER,

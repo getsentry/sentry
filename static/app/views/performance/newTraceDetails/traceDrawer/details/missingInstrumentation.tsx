@@ -12,7 +12,7 @@ import {ProfilePreview} from '../../traceDrawer/details/profiling/profilePreview
 import type {TraceTreeNodeDetailsProps} from '../../traceDrawer/tabs/traceTreeNodeDetails';
 import type {MissingInstrumentationNode} from '../../traceModels/missingInstrumentationNode';
 import {TraceTree} from '../../traceModels/traceTree';
-import {makeTraceNodeBarColor} from '../../traceModels/traceTreeNodeUtils';
+import {makeTraceNodeBarColor} from '../../traceRow/traceBar';
 import {getTraceTabTitle} from '../../traceState/traceTabs';
 
 import {type SectionCardKeyValueList, TraceDrawerComponents} from './styles';

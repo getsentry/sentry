@@ -1,8 +1,7 @@
 import {TraceIcons} from '../traceIcons';
 import type {TraceTree} from '../traceModels/traceTree';
 import type {TraceTreeNode} from '../traceModels/traceTreeNode';
-import {makeTraceNodeBarColor} from '../traceModels/traceTreeNodeUtils';
-import {TraceBar} from '../traceRow/traceBar';
+import {makeTraceNodeBarColor, TraceBar} from '../traceRow/traceBar';
 import {
   maybeFocusTraceRow,
   TRACE_COUNT_FORMATTER,

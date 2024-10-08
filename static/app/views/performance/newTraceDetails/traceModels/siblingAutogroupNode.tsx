@@ -1,6 +1,6 @@
+import {computeCollapsedBarSpace} from './parentAutogroupNode';
 import type {TraceTree} from './traceTree';
 import {TraceTreeNode} from './traceTreeNode';
-import {computeAutogroupedBarSegments} from './traceTreeNodeUtils';
 
 export class SiblingAutogroupNode extends TraceTreeNode<TraceTree.SiblingAutogroup> {
   groupCount: number = 0;
@@ -22,7 +22,7 @@ export class SiblingAutogroupNode extends TraceTreeNode<TraceTree.SiblingAutogro
       return this._autogroupedSegments;
     }
 
-    this._autogroupedSegments = computeAutogroupedBarSegments(this.children);
+    this._autogroupedSegments = computeCollapsedBarSpace(this.children);
     return this._autogroupedSegments;
   }
 }

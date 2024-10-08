@@ -1224,6 +1224,7 @@ describe('trace view', () => {
         expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(2);
       });
     });
+
     it('clicking on a node replaces the previously selected tab', async () => {
       const {virtualizedContainer} = await simpleTestSetup();
       const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
