@@ -127,7 +127,7 @@ class Worker:
             result = self.__pool.apply_async(
                 func=worker_process._process_activation,
                 args=(
-                    self.options["namespace"],
+                    smainelf.options["namespace"],
                     activation.taskname,
                     task_data_parameters["args"],
                     task_data_parameters["kwargs"],

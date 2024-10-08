@@ -25,7 +25,7 @@ from sentry_protos.sentry.v1alpha.taskworker_pb2 import (
 )
 
 from sentry.conf.types.kafka_definition import Topic
-from sentry.taskworker.pending_task_store import PendingTaskStore
+from sentry.taskworker.pending_task_store import InflightTaskStoreSqlite, PendingTaskStore
 
 logger = logging.getLogger("sentry.taskworker.consumer")
 
@@ -71,7 +71,8 @@ class StrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         # Maximum number of pending inflight activations in the store before backpressure is emitted
         self.max_inflight_activation_in_store = 1000  # make this configurable
 
-        self.pending_task_store = PendingTaskStore()
+        # self.pending_task_store = PendingTaskStore()
+        self.pending_task_store = InflightTaskStoreSqlite("taskdemo-1")
 
     def create_with_partitions(
         self, commit: Commit, _: Mapping[Partition, int]

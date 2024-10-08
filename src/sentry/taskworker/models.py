@@ -152,6 +152,7 @@ class InflightActivationModel(Model):
     @classmethod
     def to_proto_status(cls, status: Status) -> TaskActivationStatus.ValueType:
         return {
+            "pending": TASK_ACTIVATION_STATUS_PENDING,
             "processing": TASK_ACTIVATION_STATUS_PROCESSING,
             "complete": TASK_ACTIVATION_STATUS_COMPLETE,
             "failure": TASK_ACTIVATION_STATUS_FAILURE,

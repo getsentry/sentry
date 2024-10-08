@@ -1,13 +1,27 @@
 import logging
+import sqlite3
 from collections.abc import Sequence
+from contextlib import contextmanager
 from datetime import datetime, timedelta
 from uuid import uuid4
 
 from django.conf import settings
-from django.db import router, transaction
+from django.db import models, router, transaction
 from django.db.models import Max
 from django.utils import timezone
-from sentry_protos.sentry.v1alpha.taskworker_pb2 import InflightActivation, TaskActivationStatus
+from google.protobuf.timestamp_pb2 import Timestamp
+from sentry_protos.sentry.v1alpha.taskworker_pb2 import (
+    TASK_ACTIVATION_STATUS_COMPLETE,
+    TASK_ACTIVATION_STATUS_FAILURE,
+    TASK_ACTIVATION_STATUS_PENDING,
+    TASK_ACTIVATION_STATUS_PROCESSING,
+    TASK_ACTIVATION_STATUS_RETRY,
+    InflightActivation,
+    TaskActivation,
+    TaskActivationStatus,
+)
+
+from sentry.utils.dates import parse_timestamp
 
 logger = logging.getLogger("sentry.taskworker.consumer")
 
@@ -198,3 +212,210 @@ class PendingTaskStore:
                 offset__lt=lowest_incomplete,
             )
             query.delete()
+
+
+CREATE_TABLE_SQL = """
+CREATE TABLE inflight_taskactivations (
+    id UUID NOT NULL PRIMARY KEY,
+    activation TEXT NOT NULL,
+    offset BIGINTEGER NOT NULL,
+    added_at DATETIME NOT NULL,
+    deadletter_at DATETIME,
+    processing_deadline DATETIME,
+    status VARCHAR NOT NULL
+);
+"""
+
+
+class Status(models.TextChoices):
+    PENDING = "pending"
+    PROCESSING = "processing"
+    COMPLETE = "complete"
+    FAILURE = "failure"
+    RETRY = "retry"
+
+
+class InflightTaskStoreSqlite:
+    def __init__(self, db_shard: str):
+        self.__db_shard = db_shard
+        self.ensure_schema()
+
+    @contextmanager
+    def connection(self):
+        connection = sqlite3.connect(f"./taskworker-storage-{self.__db_shard}.sqlite")
+        connection.row_factory = sqlite3.Row
+        try:
+            yield connection
+        finally:
+            connection.close()
+
+    def ensure_schema(self):
+        with self.connection() as connection:
+            cursor = connection.execute(f"PRAGMA table_info(inflight_taskactivations)")
+            res = cursor.fetchone()
+            if res:
+                return
+            connection.execute(CREATE_TABLE_SQL)
+
+    def store(self, batch: Sequence[InflightActivation]):
+        # Takes in a batch of pending tasks and stores them in some datastore
+        with self.connection() as connection:
+            rows = []
+            for item in batch:
+                deadletter_at = (
+                    datetime.fromtimestamp(item.deadletter_at.seconds)
+                    if item.deadletter_at
+                    else None
+                )
+                row = (
+                    item.activation.id,
+                    item.activation.SerializeToString(),
+                    item.offset,
+                    datetime.fromtimestamp(item.added_at.seconds),
+                    deadletter_at,
+                    # TODO use a map method.
+                    Status.PENDING,
+                )
+                rows.append(row)
+            connection.executemany(
+                """
+                INSERT INTO inflight_taskactivations
+                (id, activation, offset, added_at, deadletter_at, status)
+                VALUES (?, ?, ?, ?, ?, ?)
+                ON CONFLICT(id) DO NOTHING
+                """,
+                rows,
+            )
+            connection.commit()
+
+    def get_pending_task(self) -> InflightActivation | None:
+        # Get a single pending task from the store.
+        with self.connection() as connection:
+            cursor = connection.execute(
+                "SELECT id FROM inflight_taskactivations WHERE status = ? LIMIT 1",
+                (Status.PENDING,),
+            )
+            row = cursor.fetchone()
+            if not row:
+                return None
+            # TODO this duration should be a tasknamespace setting, or with an option
+            deadline = datetime.now() + timedelta(seconds=30)
+
+            connection.execute(
+                "UPDATE inflight_taskactivations SET status = ?, processing_deadline = ? WHERE id = ?",
+                (Status.PROCESSING, deadline.isoformat(), row["id"]),
+            )
+            connection.commit()
+
+            cursor = connection.execute(
+                "SELECT * FROM inflight_taskactivations WHERE id = ?", (row["id"],)
+            )
+            return self._row_to_proto(cursor.fetchone())
+
+    def _status_to_proto(self, status: str) -> TaskActivationStatus.ValueType:
+        return {
+            "pending": TASK_ACTIVATION_STATUS_PENDING,
+            "processing": TASK_ACTIVATION_STATUS_PROCESSING,
+            "complete": TASK_ACTIVATION_STATUS_COMPLETE,
+            "failure": TASK_ACTIVATION_STATUS_FAILURE,
+            "retry": TASK_ACTIVATION_STATUS_RETRY,
+        }[status]
+
+    def _status_to_model(self, status: TaskActivationStatus.ValueType) -> Status:
+        return {
+            TASK_ACTIVATION_STATUS_PENDING: Status.PENDING,
+            TASK_ACTIVATION_STATUS_PROCESSING: Status.PROCESSING,
+            TASK_ACTIVATION_STATUS_COMPLETE: Status.COMPLETE,
+            TASK_ACTIVATION_STATUS_FAILURE: Status.FAILURE,
+            TASK_ACTIVATION_STATUS_RETRY: Status.RETRY,
+        }[status]
+
+    def _row_to_proto(self, row: sqlite3.Row) -> InflightActivation:
+        activation = TaskActivation()
+        activation.ParseFromString(row["activation"])
+
+        added_at = parse_timestamp(row["added_at"])
+        assert added_at
+
+        processing_deadline = None
+        parsed_deadline = parse_timestamp(row["processing_deadline"])
+        if parsed_deadline:
+            processing_deadline = Timestamp(seconds=int(parsed_deadline.timestamp()))
+
+        data = InflightActivation(
+            activation=activation,
+            status=self._status_to_proto(row["status"]),
+            offset=row["offset"],
+            added_at=Timestamp(seconds=int(added_at.timestamp())),
+            processing_deadline=processing_deadline,
+        )
+        return data
+
+    def count_pending_task(self) -> int:
+        # Get the count of tasks with status=pending
+        with self.connection() as connection:
+            cursor = connection.execute(
+                "SELECT COUNT(*) FROM inflight_taskactivations WHERE status = ?", (Status.PENDING,)
+            )
+            return cursor.fetchone()[0]
+
+    def set_task_status(self, task_id: str, task_status: TaskActivationStatus.ValueType):
+        # Update the status for a task
+        model_status = self._status_to_model(task_status)
+        with self.connection() as connection:
+            cursor = connection.execute(
+                "SELECT * FROM inflight_taskactivations WHERE id = ?", (task_id,)
+            )
+            row = cursor.fetchone()
+            if not row:
+                raise ValueError(f"Invalid taskid of {task_id}")
+
+            # TODO do retry state update?
+            connection.execute(
+                "UPDATE inflight_taskactivations SET status = ? WHERE id = ?",
+                (model_status, task_id),
+            )
+            connection.commit()
+
+    def set_task_deadline(self, task_id: str, task_deadline: datetime | None):
+        # Set the deadline for a task
+        with self.connection() as connection:
+            cursor = connection.execute(
+                "SELECT * FROM inflight_taskactivations WHERE id = ?", (task_id,)
+            )
+            row = cursor.fetchone()
+            if not row:
+                raise ValueError(f"Invalid taskid of {task_id}")
+            deadline = None
+            if task_deadline:
+                deadline = task_deadline.isoformat()
+
+            connection.execute(
+                "UPDATE inflight_taskactivations SET deadline = ? WHERE id = ?", (deadline, task_id)
+            )
+            connection.commit()
+
+    def delete_task(self, task_id: str):
+        # Delete a task from the store
+        with self.connection() as connection:
+            connection.execute("DELETE FROM inflight_taskactivations WHERE id = ?", (task_id,))
+
+    def handle_retry_state_tasks(self) -> None:
+        # Move tasks with status=retry into new tasks and update status.
+        ...
+
+    def handle_deadletter_at(self) -> None:
+        # Do upkeep work related to expired deadletter_at values
+        ...
+
+    def handle_processing_deadlines(self) -> None:
+        # Do upkeep work related to expired processing_deadlines
+        ...
+
+    def handle_failed_tasks(self) -> None:
+        # Do upkeep work related to status=failed tasks
+        ...
+
+    def remove_completed(self) -> None:
+        # Do upkeep work related to status=completed tasks
+        ...

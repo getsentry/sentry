@@ -19,7 +19,7 @@ from sentry_protos.sentry.v1alpha.taskworker_pb2_grpc import (
 )
 from sentry_protos.sentry.v1alpha.taskworker_pb2_grpc import add_ConsumerServiceServicer_to_server
 
-from sentry.taskworker.pending_task_store import PendingTaskStore
+from sentry.taskworker.pending_task_store import InflightTaskStoreSqlite, PendingTaskStore
 
 logger = logging.getLogger("sentry.taskworker.grpc_server")
 
@@ -27,7 +27,8 @@ logger = logging.getLogger("sentry.taskworker.grpc_server")
 class ConsumerServicer(BaseConsumerServicer):
     def __init__(self) -> None:
         super().__init__()
-        self.pending_task_store = PendingTaskStore()
+        # self.pending_task_store = PendingTaskStore()
+        self.pending_task_store = InflightTaskStoreSqlite("taskdemo-1")
 
     def GetTask(self, request: GetTaskRequest, context) -> GetTaskResponse:
         inflight = self.pending_task_store.get_pending_task()
