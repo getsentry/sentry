@@ -76,8 +76,7 @@ function Headers({
 export default Headers;
 
 const GraphHeaderWrapper = styled('div')<{isSavedSearchesOpen?: boolean}>`
-  width: 160px;
-  margin-left: ${space(2)};
+  width: 200px;
   margin-right: ${space(2)};
 
   /* prettier-ignore */
@@ -89,6 +88,7 @@ const GraphHeaderWrapper = styled('div')<{isSavedSearchesOpen?: boolean}>`
 
 const GraphHeader = styled('div')`
   display: flex;
+  margin-right: ${space(1.5)};
 `;
 
 const StyledToolbarHeader = styled(ToolbarHeader)`
