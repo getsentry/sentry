@@ -203,12 +203,6 @@ export function ProjectPageFilter({
         organization,
         multi: allowMultiple,
       });
-      if (getRouteStringFromRoutes(routes).includes('dashboardsId')) {
-        trackAnalytics('dashboards2.filter.change', {
-          organization,
-          filter_type: 'project',
-        });
-      }
 
       // Wait for the menu to close before calling onChange
       await new Promise(resolve => setTimeout(resolve, 0));

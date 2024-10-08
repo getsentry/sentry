@@ -124,12 +124,6 @@ export function EnvironmentPageFilter({
         path: getRouteStringFromRoutes(router.routes),
         organization,
       });
-      if (getRouteStringFromRoutes(router.routes).includes('dashboardsId')) {
-        trackAnalytics('dashboards2.filter.change', {
-          organization,
-          filter_type: 'environment',
-        });
-      }
 
       // Wait for the menu to close before calling onChange
       await new Promise(resolve => setTimeout(resolve, 0));
