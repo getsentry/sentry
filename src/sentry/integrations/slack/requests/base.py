@@ -10,6 +10,7 @@ from rest_framework.request import Request
 from slack_sdk.signature import SignatureVerifier
 
 from sentry import options
+from sentry.constants import ObjectStatus
 from sentry.identity.services.identity import RpcIdentity, identity_service
 from sentry.identity.services.identity.model import RpcIdentityProvider
 from sentry.integrations.messaging.commands import CommandInput
@@ -225,7 +226,7 @@ class SlackRequest:
     def validate_integration(self) -> None:
         if not self._integration:
             self._integration = integration_service.get_integration(
-                provider="slack", external_id=self.team_id
+                provider="slack", external_id=self.team_id, status=ObjectStatus.ACTIVE
             )
 
         if not self._integration:

@@ -12,6 +12,7 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
+from sentry.constants import ObjectStatus
 from sentry.integrations.mixins.issues import IssueSyncIntegration
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.utils import sync_group_assignee_inbound
@@ -52,7 +53,7 @@ class WorkItemWebhook(Endpoint):
         # https://docs.microsoft.com/en-us/azure/devops/service-hooks/events?view=azure-devops#workitem.updated
         if event_type == "workitem.updated":
             integration = integration_service.get_integration(
-                provider=PROVIDER_KEY, external_id=external_id
+                provider=PROVIDER_KEY, external_id=external_id, status=ObjectStatus.ACTIVE
             )
             if integration is None:
                 logger.info(

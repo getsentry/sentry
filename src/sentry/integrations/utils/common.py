@@ -1,8 +1,8 @@
 import logging
 
+from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration import RpcIntegration, integration_service
 from sentry.integrations.types import ExternalProviderEnum
-from sentry.models.organization import OrganizationStatus
 
 _default_logger = logging.getLogger(__name__)
 
@@ -13,7 +13,7 @@ def get_active_integration_for_organization(
     try:
         return integration_service.get_integration(
             organization_id=organization_id,
-            status=OrganizationStatus.ACTIVE,
+            status=ObjectStatus.ACTIVE,
             provider=provider.value,
         )
     except Exception as err:

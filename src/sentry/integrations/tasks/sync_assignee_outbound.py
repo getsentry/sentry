@@ -1,6 +1,7 @@
 from typing import Any
 
 from sentry import analytics, features
+from sentry.constants import ObjectStatus
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.assignment_source import AssignmentSource
@@ -40,7 +41,9 @@ def sync_assignee_outbound(
     has_issue_sync = features.has("organizations:integrations-issue-sync", organization)
     if not has_issue_sync:
         return
-    integration = integration_service.get_integration(integration_id=external_issue.integration_id)
+    integration = integration_service.get_integration(
+        integration_id=external_issue.integration_id, status=ObjectStatus.ACTIVE
+    )
     if not integration:
         return
 

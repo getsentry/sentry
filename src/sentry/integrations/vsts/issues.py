@@ -6,6 +6,7 @@ from django.utils.translation import gettext as _
 from mistune import markdown
 from rest_framework.response import Response
 
+from sentry.constants import ObjectStatus
 from sentry.integrations.mixins import ResolveSyncAction
 from sentry.integrations.mixins.issues import IssueSyncIntegration
 from sentry.integrations.services.integration import integration_service
@@ -361,7 +362,7 @@ class VstsIssuesSpec(IssueSyncIntegration, SourceCodeIssueIntegration):
         client = self.get_client()
 
         integration = integration_service.get_integration(
-            integration_id=self.org_integration.integration_id
+            integration_id=self.org_integration.integration_id, status=ObjectStatus.ACTIVE
         )
         if not integration:
             raise IntegrationError("Azure DevOps integration not found")
