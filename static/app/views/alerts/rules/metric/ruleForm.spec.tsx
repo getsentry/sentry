@@ -105,6 +105,11 @@ describe('Incident Rules Form', () => {
       url: '/organizations/org-slug/recent-searches/',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      method: 'POST',
+      url: '/organizations/org-slug/events/anomalies/',
+      body: [],
+    });
   });
 
   afterEach(() => {
