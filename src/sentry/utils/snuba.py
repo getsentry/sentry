@@ -1106,29 +1106,19 @@ def _bulk_snuba_query(snuba_requests: Sequence[SnubaRequest]) -> ResultSet:
 
         query_results = []
         if len(snuba_requests_list) > 1:
-            # query_results = list(
-            #     _query_thread_pool.map(
-            #         _snuba_query,
-            #         [
-            #             (
-            #                 sentry_sdk.Scope.get_isolation_scope(),
-            #                 sentry_sdk.Scope.get_current_scope(),
-            #                 snuba_request,
-            #             )
-            #             for snuba_request in snuba_requests_list
-            #         ],
-            #     )
-            # )
-            query_results = [
-                _snuba_query(
-                    (
-                        sentry_sdk.Scope.get_isolation_scope(),
-                        sentry_sdk.Scope.get_current_scope(),
-                        snuba_request,
-                    )
+            params = []
+            for snuba_request in snuba_requests_list:
+                param = (
+                    sentry_sdk.Scope.get_isolation_scope(),
+                    sentry_sdk.Scope.get_current_scope(),
+                    deepcopy(snuba_request),
                 )
-                for snuba_request in snuba_requests_list
-            ]
+                params.append(param)
+
+            # parallel query
+            query_results = list(_query_thread_pool.map(_snuba_query, params))
+            # serial query
+            # query_results = [_snuba_query(param) for param in params]
         else:
             # No need to submit to the thread pool if we're just performing a single query
             query_results = [

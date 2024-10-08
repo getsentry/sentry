@@ -3150,6 +3150,28 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
                 assert len(response.data) == 1
                 assert int(response.data[0]["id"]) == event2.group.id
 
+    def test_snuba_large_query_unlinked(self, mock_query: MagicMock) -> None:
+        self.project = self.create_project(organization=self.organization)
+        for i in range(3500):
+            self.create_group(
+                project=self.project,
+                message=f"message-{i}",
+                status=GroupStatus.UNRESOLVED,
+                substatus=GroupSubStatus.NEW,
+            )
+
+        self.login_as(user=self.user)
+        # give time for consumers to run and propogate changes to clickhouse
+        sleep(1)
+
+        with override_options({"snuba.search.max-pre-snuba-candidates": 5000}):
+            response = self.get_success_response(
+                sort="new",
+                useGroupSnubaDataset=1,
+                query="is:unlinked",
+            )
+            assert len(response.data) == 3500
+
     def test_snuba_perf_issue(self, mock_query: MagicMock) -> None:
         self.project = self.create_project(organization=self.organization)
         # create a performance issue
