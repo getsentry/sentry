@@ -1,6 +1,7 @@
 import {Fragment, useMemo} from 'react';
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {VisuallyHidden} from '@react-aria/visually-hidden';
 
 import bannerStar from 'sentry-images/spot/banner-star.svg';
 
@@ -114,13 +115,14 @@ export function GroupPriorityBadge({
 }: GroupPriorityBadgeProps) {
   const bars =
     priority === PriorityLevel.HIGH ? 3 : priority === PriorityLevel.MEDIUM ? 2 : 1;
+  const label = PRIORITY_KEY_TO_LABEL[priority] ?? t('Unknown');
 
   return (
     <StyledTag
       type={variant === 'signal' ? 'default' : getTagTypeForPriority(priority)}
       icon={variant === 'signal' && <IconCellSignal bars={bars} />}
     >
-      {(showLabel && PRIORITY_KEY_TO_LABEL[priority]) ?? t('Unknown')}
+      {showLabel ? label : <VisuallyHidden>{label}</VisuallyHidden>}
       {children}
     </StyledTag>
   );
