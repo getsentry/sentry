@@ -337,6 +337,7 @@ class TriggersChart extends PureComponent<Props, State> {
       comparisonType,
       organization,
       showTotalCount,
+      anomalies,
     } = this.props;
     const {statsPeriod, totalCount} = this.state;
     const statsPeriodOptions = this.availableTimePeriods[timeWindow];
@@ -379,6 +380,7 @@ class TriggersChart extends PureComponent<Props, State> {
             comparisonMarkLines={comparisonMarkLines ?? []}
             hideThresholdLines={comparisonType !== AlertRuleComparisonType.COUNT}
             triggers={triggers}
+            anomalies={anomalies}
             resolveThreshold={resolveThreshold}
             thresholdType={thresholdType}
             aggregate={aggregate}
