@@ -189,11 +189,7 @@ export function PageOverview() {
             </TabList>
           </Layout.Header>
         )}
-        {isInDomainView && (
-          <Layout.Header>
-            <FrontendHeader module={ModuleName.VITAL} />
-          </Layout.Header>
-        )}
+        {isInDomainView && <FrontendHeader module={ModuleName.VITAL} />}
         {tab === LandingDisplayField.SPANS ? (
           <Layout.Body>
             <Layout.Main fullWidth>

@@ -89,7 +89,7 @@ describe('useParams', () => {
       let useParamsValue;
 
       function Component() {
-        const {params} = useRouteContext();
+        const {params} = useRouteContext()!;
         originalParams = params;
         useParamsValue = useParams();
         return (
@@ -127,7 +127,7 @@ describe('useParams', () => {
       let useParamsValue;
 
       function Component() {
-        const {params} = useRouteContext();
+        const {params} = useRouteContext()!;
         originalParams = params;
         useParamsValue = useParams();
         return (

@@ -6,6 +6,7 @@ from snuba_sdk.query_visitors import InvalidQueryError
 
 from sentry import features
 from sentry.constants import ObjectStatus
+from sentry.discover.arithmetic import ArithmeticParseError
 from sentry.discover.dataset_split import (
     SplitDataset,
     _dataset_split_decision_inferred_from_query,
@@ -137,7 +138,7 @@ def _get_and_save_split_decision_for_dashboard_widget(
             _save_split_decision_for_widget(
                 widget,
                 widget_dataset,
-                DatasetSourcesTypes.INFERRED,
+                DatasetSourcesTypes.SPLIT_VERSION_1,
             )
         return widget_dataset, False
 
@@ -146,7 +147,7 @@ def _get_and_save_split_decision_for_dashboard_widget(
         and not equations
     ):
         try:
-            metrics_query(
+            metrics_query_result = metrics_query(
                 selected_columns,
                 query,
                 snuba_dataclass,
@@ -157,25 +158,29 @@ def _get_and_save_split_decision_for_dashboard_widget(
                 referrer="tasks.performance.split_discover_dataset",
             )
 
-            if dry_run:
-                logger.info(
-                    "Split decision for %s: %s (inferred from running metrics query)",
-                    widget.id,
-                    DashboardWidgetTypes.TRANSACTION_LIKE,
-                )
-            else:
-                _save_split_decision_for_widget(
-                    widget,
-                    DashboardWidgetTypes.TRANSACTION_LIKE,
-                    DatasetSourcesTypes.INFERRED,
-                )
+            if metrics_query_result.get("data") and len(metrics_query_result["data"]) > 0:
+                if dry_run:
+                    logger.info(
+                        "Split decision for %s: %s (inferred from running metrics query)",
+                        widget.id,
+                        DashboardWidgetTypes.TRANSACTION_LIKE,
+                    )
+                else:
+                    _save_split_decision_for_widget(
+                        widget,
+                        DashboardWidgetTypes.TRANSACTION_LIKE,
+                        DatasetSourcesTypes.SPLIT_VERSION_1,
+                    )
 
-            return DashboardWidgetTypes.TRANSACTION_LIKE, True
+                return DashboardWidgetTypes.TRANSACTION_LIKE, True
         except (
             IncompatibleMetricsQuery,
             snuba.QueryIllegalTypeOfArgument,
             snuba.UnqualifiedQueryError,
             InvalidQueryError,
+            snuba.QueryExecutionError,
+            snuba.SnubaError,
+            ArithmeticParseError,
         ):
             pass
 
@@ -187,7 +192,14 @@ def _get_and_save_split_decision_for_dashboard_widget(
             )
         )
         has_errors = len(error_results["data"]) > 0
-    except (snuba.QueryIllegalTypeOfArgument, snuba.UnqualifiedQueryError, InvalidQueryError):
+    except (
+        snuba.QueryIllegalTypeOfArgument,
+        snuba.UnqualifiedQueryError,
+        InvalidQueryError,
+        snuba.QueryExecutionError,
+        snuba.SnubaError,
+        ArithmeticParseError,
+    ):
         pass
 
     if has_errors:
@@ -201,7 +213,7 @@ def _get_and_save_split_decision_for_dashboard_widget(
             _save_split_decision_for_widget(
                 widget,
                 DashboardWidgetTypes.ERROR_EVENTS,
-                DatasetSourcesTypes.INFERRED,
+                DatasetSourcesTypes.SPLIT_VERSION_1,
             )
         return DashboardWidgetTypes.ERROR_EVENTS, True
 
@@ -213,7 +225,14 @@ def _get_and_save_split_decision_for_dashboard_widget(
             )
         )
         has_transactions = len(transaction_results["data"]) > 0
-    except (snuba.QueryIllegalTypeOfArgument, snuba.UnqualifiedQueryError, InvalidQueryError):
+    except (
+        snuba.QueryIllegalTypeOfArgument,
+        snuba.UnqualifiedQueryError,
+        InvalidQueryError,
+        snuba.QueryExecutionError,
+        snuba.SnubaError,
+        ArithmeticParseError,
+    ):
         pass
 
     if has_transactions:
@@ -227,7 +246,7 @@ def _get_and_save_split_decision_for_dashboard_widget(
             _save_split_decision_for_widget(
                 widget,
                 DashboardWidgetTypes.TRANSACTION_LIKE,
-                DatasetSourcesTypes.INFERRED,
+                DatasetSourcesTypes.SPLIT_VERSION_1,
             )
 
         return DashboardWidgetTypes.TRANSACTION_LIKE, True

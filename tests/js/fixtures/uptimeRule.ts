@@ -9,6 +9,7 @@ export function UptimeRuleFixture(params: Partial<UptimeRule> = {}): UptimeRule 
     name: 'Uptime Rule',
     owner: ActorFixture(),
     projectSlug: 'project-slug',
+    environment: 'prod',
     status: UptimeMonitorStatus.OK,
     timeoutMs: 5000,
     url: 'https://sentry.io/',

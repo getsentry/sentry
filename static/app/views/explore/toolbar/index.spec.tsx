@@ -1,5 +1,3 @@
-// biome-ignore lint/nursery/noRestrictedImports: Will be removed with react router 6
-import {createMemoryHistory, Route, Router, RouterContext} from 'react-router';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
@@ -11,30 +9,8 @@ import {useSorts} from 'sentry/views/explore/hooks/useSorts';
 import {useVisualizes} from 'sentry/views/explore/hooks/useVisualizes';
 import {ExploreToolbar} from 'sentry/views/explore/toolbar';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
-import {RouteContext} from 'sentry/views/routeContext';
 
 import {SpanTagsProvider} from '../contexts/spanTagsContext';
-
-function renderWithRouter(component) {
-  const memoryHistory = createMemoryHistory();
-
-  render(
-    <SpanTagsProvider>
-      <Router
-        history={memoryHistory}
-        render={props => {
-          return (
-            <RouteContext.Provider value={props}>
-              <RouterContext {...props} />
-            </RouteContext.Provider>
-          );
-        }}
-      >
-        <Route path="/" component={component} />
-      </Router>
-    </SpanTagsProvider>
-  );
-}
 
 describe('ExploreToolbar', function () {
   const organization = OrganizationFixture();
@@ -60,7 +36,12 @@ describe('ExploreToolbar', function () {
       return <ExploreToolbar />;
     }
 
-    renderWithRouter(Component);
+    render(
+      <SpanTagsProvider>
+        <Component />
+      </SpanTagsProvider>,
+      {disableRouterMocks: true}
+    );
 
     const section = screen.getByTestId('section-result-mode');
     const samples = within(section).getByRole('radio', {name: 'Samples'});
@@ -115,7 +96,12 @@ describe('ExploreToolbar', function () {
       [visualizes] = useVisualizes();
       return <ExploreToolbar />;
     }
-    renderWithRouter(Component);
+    render(
+      <SpanTagsProvider>
+        <Component />
+      </SpanTagsProvider>,
+      {disableRouterMocks: true}
+    );
 
     const section = screen.getByTestId('section-visualizes');
 
@@ -184,7 +170,12 @@ describe('ExploreToolbar', function () {
       [sorts] = useSorts({fields: sampleFields});
       return <ExploreToolbar />;
     }
-    renderWithRouter(Component);
+    render(
+      <SpanTagsProvider>
+        <Component />
+      </SpanTagsProvider>,
+      {disableRouterMocks: true}
+    );
 
     const section = screen.getByTestId('section-sort-by');
 
@@ -236,7 +227,12 @@ describe('ExploreToolbar', function () {
       ({groupBys} = useGroupBys());
       return <ExploreToolbar />;
     }
-    renderWithRouter(Component);
+    render(
+      <SpanTagsProvider>
+        <Component />
+      </SpanTagsProvider>,
+      {disableRouterMocks: true}
+    );
 
     const section = screen.getByTestId('section-group-by');
 

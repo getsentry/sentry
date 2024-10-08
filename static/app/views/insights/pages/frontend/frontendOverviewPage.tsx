@@ -22,6 +22,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
+import {ViewTrendsButton} from 'sentry/views/insights/common/components/viewTrendsButton';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
 import {OVERVIEW_PAGE_TITLE} from 'sentry/views/insights/pages/settings';
@@ -39,14 +40,15 @@ import {
 } from 'sentry/views/performance/utils';
 
 export const FRONTEND_COLUMN_TITLES = [
-  'route',
-  'project',
+  'transaction',
   'operation',
+  'project',
   'tpm',
   'p50()',
   'p75()',
   'p95()',
   'users',
+  'user misery',
 ];
 
 function FrontendOverviewPage() {
@@ -68,12 +70,15 @@ function FrontendOverviewPage() {
   eventView.fields = [
     {field: 'team_key_transaction'},
     {field: 'transaction'},
-    {field: 'project'},
     {field: 'transaction.op'},
+    {field: 'project'},
     {field: 'tpm()'},
     {field: 'p50(transaction.duration)'},
     {field: 'p75(transaction.duration)'},
     {field: 'p95(transaction.duration)'},
+    {field: 'count_unique(user)'},
+    {field: 'count_miserable(user)'},
+    {field: 'user_misery()'},
   ].map(field => ({...field, width: COL_WIDTH_UNDEFINED}));
 
   const showOnboarding = onboardingProject !== undefined;
@@ -136,9 +141,7 @@ function FrontendOverviewPage() {
       organization={organization}
       renderDisabled={NoAccess}
     >
-      <Layout.Header>
-        <FrontendHeader />
-      </Layout.Header>
+      <FrontendHeader headerActions={<ViewTrendsButton />} />
       <Layout.Body>
         <Layout.Main fullWidth>
           <ModuleLayout.Layout>

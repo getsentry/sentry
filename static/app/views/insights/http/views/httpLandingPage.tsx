@@ -157,7 +157,10 @@ export function HTTPLandingPage() {
     Referrer.LANDING_DOMAINS_LIST
   );
 
-  useSynchronizeCharts([!isThroughputDataLoading && !isDurationDataLoading]);
+  useSynchronizeCharts(
+    3,
+    !isThroughputDataLoading && !isDurationDataLoading && !isResponseCodeDataLoading
+  );
 
   const crumbs = useModuleBreadcrumbs('http');
 
@@ -185,15 +188,11 @@ export function HTTPLandingPage() {
       )}
 
       {isInDomainView && view === FRONTEND_LANDING_SUB_PATH && (
-        <Layout.Header>
-          <FrontendHeader module={ModuleName.HTTP} />
-        </Layout.Header>
+        <FrontendHeader module={ModuleName.HTTP} />
       )}
 
       {isInDomainView && view === BACKEND_LANDING_SUB_PATH && (
-        <Layout.Header>
-          <BackendHeader module={ModuleName.HTTP} />
-        </Layout.Header>
+        <BackendHeader module={ModuleName.HTTP} />
       )}
 
       <Layout.Body>
