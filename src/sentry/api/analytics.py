@@ -33,6 +33,20 @@ class GroupSimilarIssuesEmbeddingsCountEvent(analytics.Event):
     )
 
 
+class DevToolbarRequestEvent(analytics.Event):
+    type = "devtoolbar.request"
+
+    attributes = (
+        analytics.Attribute("path"),  # path to endpoint
+        analytics.Attribute("query"),  # string or dict?
+        analytics.Attribute("origin"),
+        analytics.Attribute("organization_id"),
+        analytics.Attribute("project_id"),
+        analytics.Attribute("user_id"),  # needed to aggregate/send to amplitude(?)
+    )
+
+
 analytics.register(OrganizationSavedSearchCreatedEvent)
 analytics.register(OrganizationSavedSearchDeletedEvent)
 analytics.register(GroupSimilarIssuesEmbeddingsCountEvent)
+analytics.register(DevToolbarRequestEvent)
