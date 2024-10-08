@@ -120,6 +120,22 @@ function GroupCheckbox({
   );
 }
 
+function GroupTimestamp({date, label}: {date: string | null; label: string}) {
+  if (!date) {
+    return <Placeholder height="18px" width="40px" />;
+  }
+
+  return (
+    <TimeSince
+      aria-label={label}
+      tooltipPrefix={label}
+      date={date}
+      suffix=""
+      unitStyle="extraShort"
+    />
+  );
+}
+
 function BaseGroupRow({
   id,
   organization,
@@ -537,24 +553,12 @@ function BaseGroupRow({
         <Fragment>
           {withColumns.includes('firstSeen') && (
             <TimestampWrapper>
-              <TimeSince
-                date={group.firstSeen}
-                tooltipPrefix={t('First Seen')}
-                suffix=""
-                unitStyle="extraShort"
-                aria-label={t('First Seen')}
-              />
+              <GroupTimestamp date={group.firstSeen} label={t('First Seen')} />
             </TimestampWrapper>
           )}
           {withColumns.includes('lastSeen') && (
             <TimestampWrapper>
-              <TimeSince
-                date={group.lastSeen}
-                tooltipPrefix={t('Last Seen')}
-                suffix=""
-                unitStyle="extraShort"
-                aria-label={t('Last Seen')}
-              />
+              <GroupTimestamp date={group.lastSeen} label={t('Last Seen')} />
             </TimestampWrapper>
           )}
           {withColumns.includes('event') && issueTypeConfig.stats.enabled && (
