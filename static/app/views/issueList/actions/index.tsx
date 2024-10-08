@@ -507,6 +507,9 @@ const StickyActions = styled(Sticky)`
   &[data-stuck] > div {
     border-radius: 0;
   }
+  border-bottom: 1px solid ${p => p.theme.border};
+  border-top: none;
+  border-radius: ${p => p.theme.panelBorderRadius} ${p => p.theme.panelBorderRadius} 0 0;
 `;
 
 const ActionsBarContainer = styled('div')`
@@ -516,10 +519,7 @@ const ActionsBarContainer = styled('div')`
   padding-bottom: ${space(1)};
   align-items: center;
   background: ${p => p.theme.backgroundSecondary};
-  border: 1px solid ${p => p.theme.border};
-  border-top: none;
   border-radius: ${p => p.theme.panelBorderRadius} ${p => p.theme.panelBorderRadius} 0 0;
-  margin: 0 -1px -1px;
 `;
 
 const ActionsCheckbox = styled('div')<{isReprocessingQuery: boolean}>`
