@@ -38,6 +38,7 @@ from sentry.search.events.constants import (
     SEARCH_MAP,
     TAG_KEY_RE,
     TEAM_KEY_TRANSACTION_ALIAS,
+    TYPED_TAG_KEY_RE,
     USER_DISPLAY_ALIAS,
     VALID_FIELD_PATTERN,
 )
@@ -459,6 +460,16 @@ def format_column_arguments(column_args, arguments):
             column_args[i] = arguments[column_args[i].arg]
 
 
+def _lookback(columns, j, string):
+    """For parse_arguments, check that the current character is preceeded by string"""
+    if j < len(string):
+        return False
+    for i in range(len(string)):
+        if columns[i] != string[i]:
+            return False
+    return True
+
+
 def parse_arguments(function: str, columns: str) -> list[str]:
     """
     Some functions take a quoted string for their arguments that may contain commas,
@@ -466,27 +477,25 @@ def parse_arguments(function: str, columns: str) -> list[str]:
     This function attempts to be identical with the similarly named parse_arguments
     found in static/app/utils/discover/fields.tsx
     """
-    if (function != "to_other" and function != "count_if" and function != "spans_histogram") or len(
-        columns
-    ) == 0:
-        return [c.strip() for c in columns.split(",") if len(c.strip()) > 0]
-
     args = []
 
     quoted = False
+    in_tag = False
     escaped = False
 
     i, j = 0, 0
 
     while j < len(columns):
-        if i == j and columns[j] == '"':
+        if not in_tag and i == j and columns[j] == '"':
             # when we see a quote at the beginning of
             # an argument, then this is a quoted string
             quoted = True
+        elif not quoted and columns[j] == "[" and _lookback(columns, j, "tags"):
+            in_tag = True
         elif i == j and columns[j] == " ":
             # argument has leading spaces, skip over them
             i += 1
-        elif quoted and not escaped and columns[j] == "\\":
+        elif (quoted or in_tag) and not escaped and columns[j] == "\\":
             # when we see a slash inside a quoted string,
             # the next character is an escape character
             escaped = True
@@ -494,11 +503,15 @@ def parse_arguments(function: str, columns: str) -> list[str]:
             # when we see a non-escaped quote while inside
             # of a quoted string, we should end it
             quoted = False
-        elif quoted and escaped:
+        elif in_tag and not escaped and columns[j] == "]":
+            # when we see a non-escaped quote while inside
+            # of a quoted string, we should end it
+            in_tag = False
+        elif (quoted or in_tag) and escaped:
             # when we are inside a quoted string and have
             # begun an escape character, we should end it
             escaped = False
-        elif quoted and columns[j] == ",":
+        elif (quoted or in_tag) and columns[j] == ",":
             # when we are inside a quoted string and see
             # a comma, it should not be considered an
             # argument separator
@@ -1126,6 +1139,9 @@ class NumericColumn(ColumnArg):
         if not snuba_column and is_span_op_breakdown(value):
             return value
         if not snuba_column and is_mri(value):
+            return value
+        match = TYPED_TAG_KEY_RE.search(value)
+        if match and match.group("type") == "number":
             return value
         if not snuba_column:
             raise InvalidFunctionArgument(f"{value} is not a valid column")
