@@ -126,6 +126,56 @@ class IntegrationFeatures(Enum):
     DEPLOYMENT = "deployment"
 
 
+# Integration Types
+MESSAGING = "messaging"
+PROJECT_MANAGEMENT = "project_management"
+SOURCE_CODE_MANAGEMENT = "source_code_management"
+ON_CALL_SCHEDULING = "on_call_scheduling"
+
+
+class IntegrationProviderSlug(Enum):
+    SLACK = "slack"
+    DISCORD = "discord"
+    MSTeams = "msteams"
+    JIRA = "jira"
+    JIRA_SERVER = "jira_server"
+    AZURE_DEVOPS = "vsts"
+    GITHUB = "github"
+    GITHUB_ENTERPRISE = "github_enterprise"
+    GITLAB = "gitlab"
+    BITBUCKET = "bitbucket"
+    PAGERDUTY = "pagerduty"
+    OPSGENIE = "opsgenie"
+
+
+INTEGRATION_TYPE_TO_PROVIDER = {
+    MESSAGING: [
+        IntegrationProviderSlug.SLACK,
+        IntegrationProviderSlug.DISCORD,
+        IntegrationProviderSlug.MSTeams,
+    ],
+    PROJECT_MANAGEMENT: [
+        IntegrationProviderSlug.JIRA,
+        IntegrationProviderSlug.JIRA_SERVER,
+        IntegrationProviderSlug.GITHUB,
+        IntegrationProviderSlug.GITHUB_ENTERPRISE,
+        IntegrationProviderSlug.GITLAB,
+        IntegrationProviderSlug.AZURE_DEVOPS,
+    ],
+    SOURCE_CODE_MANAGEMENT: [
+        IntegrationProviderSlug.GITHUB,
+        IntegrationProviderSlug.GITHUB_ENTERPRISE,
+        IntegrationProviderSlug.GITLAB,
+        IntegrationProviderSlug.BITBUCKET,
+        IntegrationProviderSlug.AZURE_DEVOPS,
+    ],
+    ON_CALL_SCHEDULING: [
+        IntegrationProviderSlug.PAGERDUTY,
+        IntegrationProviderSlug.OPSGENIE,
+    ],
+}
+
+
 class IntegrationProvider(PipelineProvider, abc.ABC):
     """
     An integration provider describes a third party that can be registered within Sentry.
