@@ -62,7 +62,7 @@ export function ColumnEditorModal({
   const [nextId, setNextId] = useState(columns.length + 1);
 
   const tags: SelectOption<string>[] = useMemo(() => {
-    return [
+    const allTags = [
       ...Object.values(stringTags).map(tag => {
         return {
           label: tag.name,
@@ -80,6 +80,18 @@ export function ColumnEditorModal({
         };
       }),
     ];
+    allTags.sort((a, b) => {
+      if (a.label < b.label) {
+        return -1;
+      }
+
+      if (a.label > b.label) {
+        return 1;
+      }
+
+      return 0;
+    });
+    return allTags;
   }, [stringTags, numberTags]);
 
   function handleApply() {

@@ -148,19 +148,7 @@ function CompactSelect<Value extends SelectKey>({
             );
           }
 
-          return (
-            <Item {...item}>
-              {item.label}
-              {item.trailingItems &&
-                (typeof item.trailingItems === 'function'
-                  ? item.trailingItems({
-                      disabled: false,
-                      isFocused: false,
-                      isSelected: false,
-                    })
-                  : item.trailingItems)}
-            </Item>
-          );
+          return <Item {...item}>{item.label}</Item>;
         }}
       </List>
 
