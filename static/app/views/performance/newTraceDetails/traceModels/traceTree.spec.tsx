@@ -343,12 +343,12 @@ describe('TraceTree', () => {
   describe('FromTrace', () => {
     it('assembles tree from trace', () => {
       const tree = TraceTree.FromTrace(trace, traceMetadata);
-      expect(tree.serialize()).toMatchSnapshot();
+      expect(tree.build().serialize()).toMatchSnapshot();
     });
 
     it('sorts by start_timestamp', () => {
       const tree = TraceTree.FromTrace(outOfOrderTrace, traceMetadata);
-      expect(tree.serialize()).toMatchSnapshot();
+      expect(tree.build().serialize()).toMatchSnapshot();
     });
 
     it('inserts orphan error', () => {
@@ -356,7 +356,7 @@ describe('TraceTree', () => {
         meta: null,
         replayRecord: null,
       });
-      expect(tree.serialize()).toMatchSnapshot();
+      expect(tree.build().serialize()).toMatchSnapshot();
     });
     it('if parent span does not exist in span tree, the transaction stays under its previous parent', () => {
       const tree = TraceTree.FromTrace(
@@ -678,7 +678,7 @@ describe('TraceTree', () => {
     it('appends tree to end of current tree', () => {
       const tree = TraceTree.FromTrace(trace, {replayRecord: null, meta: null});
       tree.appendTree(TraceTree.FromTrace(trace, {replayRecord: null, meta: null}));
-      expect(tree.serialize()).toMatchSnapshot();
+      expect(tree.build().serialize()).toMatchSnapshot();
     });
 
     it('appending extends trace space', () => {
