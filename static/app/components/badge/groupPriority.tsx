@@ -36,7 +36,7 @@ type GroupPriorityBadgeProps = {
   priority: PriorityLevel;
   children?: React.ReactNode;
   showLabel?: boolean;
-  variant?: 'default' | 'streamlined';
+  variant?: 'default' | 'signal';
 };
 
 const PRIORITY_KEY_TO_LABEL: Record<PriorityLevel, string> = {
@@ -88,9 +88,9 @@ function useLastEditedBy({
 
 export function makeGroupPriorityDropdownOptions({
   onChange,
-  hasStreamlinedIssueStream,
+  hasIssueStreamTableLayout,
 }: {
-  hasStreamlinedIssueStream: boolean;
+  hasIssueStreamTableLayout: boolean;
   onChange: (value: PriorityLevel) => void;
 }) {
   return PRIORITY_OPTIONS.map(priority => ({
@@ -98,7 +98,7 @@ export function makeGroupPriorityDropdownOptions({
     key: priority,
     label: (
       <GroupPriorityBadge
-        variant={hasStreamlinedIssueStream ? 'streamlined' : 'default'}
+        variant={hasIssueStreamTableLayout ? 'signal' : 'default'}
         priority={priority}
       />
     ),
@@ -117,8 +117,8 @@ export function GroupPriorityBadge({
 
   return (
     <StyledTag
-      type={variant === 'streamlined' ? 'default' : getTagTypeForPriority(priority)}
-      icon={variant === 'streamlined' && <IconCellSignal bars={bars} />}
+      type={variant === 'signal' ? 'default' : getTagTypeForPriority(priority)}
+      icon={variant === 'signal' && <IconCellSignal bars={bars} />}
     >
       {(showLabel && PRIORITY_KEY_TO_LABEL[priority]) ?? t('Unknown')}
       {children}
@@ -209,13 +209,13 @@ export function GroupPriorityDropdown({
   lastEditedBy,
 }: GroupPriorityDropdownProps) {
   const organization = useOrganization();
-  const hasStreamlinedIssueStream = organization.features.includes(
+  const hasIssueStreamTableLayout = organization.features.includes(
     'issue-stream-table-layout'
   );
 
   const options: MenuItemProps[] = useMemo(
-    () => makeGroupPriorityDropdownOptions({onChange, hasStreamlinedIssueStream}),
-    [onChange, hasStreamlinedIssueStream]
+    () => makeGroupPriorityDropdownOptions({onChange, hasIssueStreamTableLayout}),
+    [onChange, hasIssueStreamTableLayout]
   );
 
   return (
@@ -234,8 +234,8 @@ export function GroupPriorityDropdown({
           size="zero"
         >
           <GroupPriorityBadge
-            showLabel={!hasStreamlinedIssueStream}
-            variant={hasStreamlinedIssueStream ? 'streamlined' : 'default'}
+            showLabel={!hasIssueStreamTableLayout}
+            variant={hasIssueStreamTableLayout ? 'signal' : 'default'}
             priority={value}
           >
             <Chevron light direction={isOpen ? 'up' : 'down'} size="small" />

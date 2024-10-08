@@ -234,7 +234,7 @@ function ActionSet({
               confirmText: label('reprioritize'),
             });
           },
-          hasStreamlinedIssueStream: organization.features.includes(
+          hasIssueStreamTableLayout: organization.features.includes(
             'issue-stream-table-layout'
           ),
         })}
