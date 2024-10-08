@@ -23,6 +23,7 @@ from sentry.usage_accountant import record
 from sentry.utils import metrics
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.dates import to_datetime
+from sentry.utils.sdk import set_current_event_project
 from sentry.utils.snuba import RateLimitExceeded
 
 logger = logging.getLogger(__name__)
@@ -56,6 +57,24 @@ def trace_func(**span_kwargs):
 def process_transaction_no_celery(
     data: MutableMapping[str, Any], project_id: int, cache_key: str, start_time: float
 ) -> None:
+
+    set_current_event_project(project_id)
+
+    event_type = data.get("type") or "none"
+
+    if killswitch_matches_context(
+        "store.load-shed-save-event-projects",
+        {
+            "project_id": project_id,
+            "event_type": event_type,
+            "platform": data.get("platform") or "none",
+        },
+    ):
+        # Delete the event payload from cache since it won't show up in post-processing.
+        if cache_key:
+            event_processing_store.delete_by_key(cache_key)
+        return
+
     manager = EventManager(data)
     # event.project.organization is populated after this statement.
     manager.save(
