@@ -1,4 +1,4 @@
-name: test-docker-compose-backend
+name: docker-compose-backend
 
 on:
   schedule:
@@ -246,7 +246,7 @@ jobs:
         docker-compose-migration,
         docker-compose-monolith-dbs,
       ]
-    name: Backend
+    name: Docker ComposeBackend
     # This is necessary since a failed/skipped dependent job would cause this job to be skipped
     if: always()
     runs-on: ubuntu-22.04

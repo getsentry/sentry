@@ -1,7 +1,7 @@
 # Also note that this name *MUST* match the filename because GHA
 # only provides the workflow name (https://docs.github.com/en/free-pro-team@latest/actions/reference/environment-variables#default-environment-variables)
 # and GH APIs only support querying by workflow *FILENAME* (https://developer.github.com/v3/actions/workflows/#get-a-workflow)
-name: docker-compose-acceptance
+name: test-docker-compose-acceptance
 on:
   schedule:
     - cron: '30,0 * * * *'
@@ -127,7 +127,7 @@ jobs:
   docker-compose-acceptance-required-checks:
     # this is a required check so we need this job to always run and report a status.
     if: always()
-    name: Acceptance
+    name: Docker Compose Acceptance
     needs: [docker-compose-acceptance]
     runs-on: ubuntu-22.04
     timeout-minutes: 3
