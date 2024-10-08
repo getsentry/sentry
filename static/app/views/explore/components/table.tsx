@@ -84,5 +84,5 @@ export const TableHeader = Header;
 export const TableHeaderActions = HeaderButtonContainer;
 export const TableHeaderTitle = HeaderTitle;
 export const TableHeadCell = styled(GridHeadCell)<{align?: Alignments}>`
-  justify-content: ${({align}) => (align ? align : 'right')};
+  ${p => p.align && `justify-content: ${p.align};`}
 `;
