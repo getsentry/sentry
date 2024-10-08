@@ -417,12 +417,9 @@ export class TraceTree extends TraceTreeEventDispatcher {
     options: {sdk: string | undefined} | undefined
   ): TraceTreeNode<TraceTree.NodeValue> {
     // collect transactions
-    const transactions: TraceTreeNode<TraceTree.Transaction>[] = [];
-    TraceTree.ForEachChild(root, c => {
-      if (isTransactionNode(c)) {
-        transactions.push(c);
-      }
-    });
+    const transactions = TraceTree.FindAll(root, n =>
+      isTransactionNode(n)
+    ) as TraceTreeNode<TraceTree.Transaction>[];
 
     // Create span nodes
     const spanNodes: TraceTreeNode<TraceTree.Span>[] = [];
@@ -449,29 +446,16 @@ export class TraceTree extends TraceTreeEventDispatcher {
     // Construct the span tree
     for (const span of spanNodes) {
       // If the span has no parent span id, nest it under the root
-      if (!span.value.parent_span_id) {
-        root.children.push(span);
-        span.parent = root;
-        continue;
-      }
+      const parent = span.value.parent_span_id
+        ? spanIdToNode.get(span.value.parent_span_id) ?? root
+        : root;
 
-      const parent = spanIdToNode.get(span.value.parent_span_id) ?? root;
       span.parent = parent;
       parent.children.push(span);
     }
 
     // Reparent transactions under children spans
     for (const transaction of transactions) {
-      if (
-        !transaction.value.parent_span_id &&
-        transaction.parent &&
-        !isTransactionNode(transaction.parent)
-      ) {
-        root.children.push(transaction);
-        transaction.parent = root;
-        continue;
-      }
-
       const parent = spanIdToNode.get(transaction.value.parent_span_id!);
 
       // If the parent span does not exist in the span tree, the transaction will remain under the current node
@@ -484,7 +468,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
         });
 
         if (transaction.parent?.children.indexOf(transaction) === -1) {
-          transaction.parent!.children.push(transaction);
+          transaction.parent.children.push(transaction);
         }
         continue;
       }
@@ -500,13 +484,11 @@ export class TraceTree extends TraceTreeEventDispatcher {
 
     TraceTree.ForEachChild(root, c => {
       c.invalidate();
-      // When reparenting transactions under spans, the children are not guaranteed to be in order
-      // so we need to sort them chronologically after the reparenting is complete
-
-      // Track the min and max space of the sub tree as spans have ms precision
+      //   // When reparenting transactions under spans, the children are not guaranteed to be in order
+      //   // so we need to sort them chronologically after the reparenting is complete
+      //   // Track the min and max space of the sub tree as spans have ms precision
       subTreeSpaceBounds[0] = Math.min(subTreeSpaceBounds[0], c.space[0]);
       subTreeSpaceBounds[1] = Math.max(subTreeSpaceBounds[1], c.space[1]);
-
       if (isSpanNode(c)) {
         for (const performanceIssue of getRelatedPerformanceIssuesFromTransaction(
           c.value,
@@ -514,16 +496,13 @@ export class TraceTree extends TraceTreeEventDispatcher {
         )) {
           c.performance_issues.add(performanceIssue);
         }
-
         for (const error of getRelatedSpanErrorsFromTransaction(c.value, root)) {
           c.errors.add(error);
         }
-
         if (isBrowserRequestSpan(c.value)) {
           const serverRequestHandler = c.parent?.children.find(n =>
             isServerRequestHandlerTransactionNode(n)
           );
-
           if (serverRequestHandler) {
             serverRequestHandler.parent!.children =
               serverRequestHandler.parent!.children.filter(
@@ -534,7 +513,6 @@ export class TraceTree extends TraceTreeEventDispatcher {
           }
         }
       }
-
       c.children.sort(traceChronologicalSort);
     });
 
@@ -553,7 +531,6 @@ export class TraceTree extends TraceTreeEventDispatcher {
     TraceTree.DetectMissingInstrumentation(root, 100, options?.sdk);
     TraceTree.AutogroupSiblingSpanNodes(root);
     TraceTree.AutogroupDirectChildrenSpanNodes(root);
-
     return root;
   }
 
@@ -786,6 +763,9 @@ export class TraceTree extends TraceTreeEventDispatcher {
         : node.parent.children;
 
       const index = children.indexOf(node);
+      if (index === -1) {
+        throw new Error('Node is not a child of its parent');
+      }
       children[index] = autoGroupedNode;
 
       autoGroupedNode.head.parent = autoGroupedNode;
@@ -825,7 +805,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
         }
       }
 
-      if (isAutogroupedNode(node)) {
+      if (isAutogroupedNode(node) || isMissingInstrumentationNode(node)) {
         continue;
       }
 
@@ -917,8 +897,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
             }
 
             autoGroupedNode.children.push(node.children[j]);
-            autoGroupedNode.children[autoGroupedNode.children.length - 1].parent =
-              autoGroupedNode;
+            node.children[j].parent = autoGroupedNode;
           }
 
           autoGroupedNode.space = [start_timestamp, timestamp - start_timestamp];
@@ -963,6 +942,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
 
     while (queue.length > 0) {
       const node = queue.pop()!;
+
       visibleChildren.push(node);
       // iterate in reverseto ensure nodes are processed in order
       if (node.expanded || isParentAutogroupedNode(node)) {
@@ -1025,8 +1005,12 @@ export class TraceTree extends TraceTreeEventDispatcher {
   ): void {
     const queue: TraceTreeNode<TraceTree.NodeValue>[] = [];
 
-    for (let i = root.children.length - 1; i >= 0; i--) {
-      queue.push(root.children[i]);
+    if (isParentAutogroupedNode(root)) {
+      queue.push(root.head);
+    } else {
+      for (let i = root.children.length - 1; i >= 0; i--) {
+        queue.push(root.children[i]);
+      }
     }
 
     while (queue.length > 0) {
@@ -1036,11 +1020,10 @@ export class TraceTree extends TraceTreeEventDispatcher {
       // Parent autogroup nodes have a head and tail pointer instead of children
       if (isParentAutogroupedNode(next)) {
         queue.push(next.head);
-        continue;
-      }
-
-      for (let i = next.children.length - 1; i >= 0; i--) {
-        queue.push(next.children[i]);
+      } else {
+        for (let i = next.children.length - 1; i >= 0; i--) {
+          queue.push(next.children[i]);
+        }
       }
     }
   }
@@ -1316,13 +1299,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
       node.zoomedIn = zoomedIn;
       // When transactions are zoomed out, they still render child transactions
       if (isTransactionNode(node)) {
-        const transactions: TraceTreeNode<TraceTree.Transaction>[] = [];
-
-        TraceTree.ForEachChild(node, c => {
-          if (isTransactionNode(c)) {
-            transactions.push(c);
-          }
-        });
+        const transactions = TraceTree.FindAll(node, c => isTransactionNode(c));
 
         for (const t of transactions) {
           // point transactions back to their parents

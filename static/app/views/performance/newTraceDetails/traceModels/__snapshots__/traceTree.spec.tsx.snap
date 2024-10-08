@@ -129,6 +129,15 @@ trace root
 "
 `;
 
+exports[`TraceTree zoom zooming out preserves spans of child zoomed in transaction 1`] = `
+"
+trace root
+  root - transaction.op
+    child - transaction.op
+      grandchild - transaction.op
+"
+`;
+
 exports[`TraceTree zoom zooms in on transaction node 1`] = `
 "
 trace root

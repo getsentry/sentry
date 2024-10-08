@@ -501,6 +501,7 @@ describe('TraceTree', () => {
   describe('expand', () => {
     it('expanding a parent autogroup node shows head to tail chain', () => {
       const tree = TraceTree.FromTrace(trace, traceMetadata);
+
       const _spans = TraceTree.FromSpans(
         tree.root.children[0].children[0],
         parentAutogroupSpansWithTailChildren,
@@ -509,10 +510,11 @@ describe('TraceTree', () => {
           sdk: undefined,
         }
       );
-      TraceTree.AutogroupDirectChildrenSpanNodes(tree.root);
+
       const parentAutogroupNode = TraceTree.Find(tree.root, n =>
         isParentAutogroupedNode(n)
       )!;
+
       tree.expand(parentAutogroupNode, true);
       expect(tree.build().serialize()).toMatchSnapshot();
     });
@@ -800,7 +802,7 @@ describe('TraceTree', () => {
 
     // @TODO This currently filters out all spans - we should preserve spans that are children of other
     // zoomed in transactions
-    it.skip('zooming out preserves spans of child zoomed in transaction', async () => {
+    it('zooming out preserves spans of child zoomed in transaction', async () => {
       const tree = TraceTree.FromTrace(
         makeTrace({
           transactions: [
@@ -960,97 +962,95 @@ describe('TraceTree', () => {
     });
 
     describe('span', () => {
-      const tree = TraceTree.FromTrace(
-        makeTrace({
-          transactions: [makeTransaction({children: [makeTransaction()]})],
-        }),
-        traceMetadata
-      );
-      const _spans = TraceTree.FromSpans(
-        tree.root.children[0],
-        [
-          makeSpan({span_id: '0000'}),
-          makeSpan({span_id: '0001', parent_span_id: '0000'}),
-        ],
-        makeEventTransaction(),
-        {
-          sdk: undefined,
-        }
-      );
-
-      const span = TraceTree.Find(
-        tree.root,
-        node => isSpanNode(node) && node.value.span_id === '0000'
-      )!;
-
       it.each([true, false])('%s when span has children and is expanded', expanded => {
+        const tree = TraceTree.FromTrace(
+          makeTrace({
+            transactions: [makeTransaction({children: [makeTransaction()]})],
+          }),
+          traceMetadata
+        );
+        const _spans = TraceTree.FromSpans(
+          tree.root.children[0],
+          [
+            makeSpan({span_id: '0000'}),
+            makeSpan({span_id: '0001', parent_span_id: '0000'}),
+          ],
+          makeEventTransaction(),
+          {
+            sdk: undefined,
+          }
+        );
+
+        const span = TraceTree.Find(
+          tree.root,
+          node => isSpanNode(node) && node.value.span_id === '0000'
+        )!;
+
         tree.expand(span, expanded);
         expect(TraceTree.HasVisibleChildren(span)).toBe(expanded);
       });
     });
 
     describe('sibling autogroup', () => {
-      const tree = TraceTree.FromTrace(trace, traceMetadata);
-
-      TraceTree.FromSpans(
-        tree.root.children[0],
-        siblingAutogroupSpans,
-        makeEventTransaction(),
-        {
-          sdk: undefined,
-        }
-      );
-
-      const siblingAutogroup = TraceTree.Find(tree.root, node =>
-        isSiblingAutogroupedNode(node)
-      );
-
       it.each([true, false])('%s when sibling autogroup is expanded', expanded => {
+        const tree = TraceTree.FromTrace(trace, traceMetadata);
+
+        TraceTree.FromSpans(
+          tree.root.children[0],
+          siblingAutogroupSpans,
+          makeEventTransaction(),
+          {
+            sdk: undefined,
+          }
+        );
+
+        const siblingAutogroup = TraceTree.Find(tree.root, node =>
+          isSiblingAutogroupedNode(node)
+        );
         tree.expand(siblingAutogroup!, expanded);
         expect(TraceTree.HasVisibleChildren(siblingAutogroup!)).toBe(expanded);
       });
     });
 
     describe('parent autogroup', () => {
-      const tree = TraceTree.FromTrace(trace, traceMetadata);
-
-      TraceTree.FromSpans(
-        tree.root.children[0],
-        parentAutogroupSpans,
-        makeEventTransaction(),
-        {
-          sdk: undefined,
-        }
-      );
-
-      const parentAutogroup = TraceTree.Find(tree.root, node =>
-        isParentAutogroupedNode(node)
-      );
-
       it.each([true, false])('%s when parent autogroup is expanded', expanded => {
+        const tree = TraceTree.FromTrace(trace, traceMetadata);
+
+        TraceTree.FromSpans(
+          tree.root.children[0],
+          parentAutogroupSpans,
+          makeEventTransaction(),
+          {
+            sdk: undefined,
+          }
+        );
+
+        const parentAutogroup = TraceTree.Find(tree.root, node =>
+          isParentAutogroupedNode(node)
+        );
+
         tree.expand(parentAutogroup!, expanded);
         expect(TraceTree.HasVisibleChildren(parentAutogroup!)).toBe(expanded);
       });
     });
 
     describe('parent autogroup when tail has children', () => {
-      const tree = TraceTree.FromTrace(trace, traceMetadata);
-
-      TraceTree.FromSpans(
-        tree.root.children[0],
-        parentAutogroupSpansWithTailChildren,
-        makeEventTransaction(),
-        {
-          sdk: undefined,
-        }
-      );
-
-      const parentAutogroup = TraceTree.Find(tree.root, node =>
-        isParentAutogroupedNode(node)
-      );
-
       // Always true because tail has children
       it.each([true, false])('%s when parent autogroup is expanded', expanded => {
+        const tree = TraceTree.FromTrace(trace, traceMetadata);
+
+        TraceTree.FromSpans(
+          tree.root.children[0],
+          parentAutogroupSpansWithTailChildren,
+          makeEventTransaction(),
+          {
+            sdk: undefined,
+          }
+        );
+
+        const parentAutogroup = TraceTree.Find(tree.root, node =>
+          isParentAutogroupedNode(node)
+        );
         tree.expand(parentAutogroup!, expanded);
         expect(TraceTree.HasVisibleChildren(parentAutogroup!)).toBe(true);
       });
