@@ -158,7 +158,7 @@ class DashboardWidgetDatasetSplitTestCase(BaseMetricsLayerTestCase, TestCase, Sn
         )
         assert queried_snuba
 
-    def test_metrics_compatible_query_blah(self):
+    def test_metrics_compatible_query_no_data_only_aggregates(self):
         metrics_widget = DashboardWidget.objects.create(
             dashboard=self.dashboard,
             order=0,
@@ -168,9 +168,12 @@ class DashboardWidgetDatasetSplitTestCase(BaseMetricsLayerTestCase, TestCase, Sn
             interval="1d",
             detail={"layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2}},
         )
+
+        # When only aggregates are requested, the response has a row but it's
+        # completely empty.
         metrics_query = DashboardWidgetQuery.objects.create(
             widget=metrics_widget,
-            fields=["count()"],
+            fields=["count()", "count_unique(user)"],
             columns=[],
             aggregates=[],
             conditions=f"project:[{self.project_2.slug}]",
