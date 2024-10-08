@@ -197,21 +197,9 @@ function DashboardList({
 
 const DashboardGrid = styled('div')`
   display: grid;
-  grid-template-columns: minmax(100px, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   grid-template-rows: repeat(3, max-content);
   gap: ${space(2)};
-
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
-    grid-template-columns: repeat(2, minmax(100px, 1fr));
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
-    grid-template-columns: repeat(3, minmax(100px, 1fr));
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
-    grid-template-columns: repeat(4, minmax(100px, 1fr));
-  }
 `;
 
 const PaginationRow = styled(Pagination)`
