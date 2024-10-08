@@ -502,7 +502,7 @@ SimpleEventSerializerResponse = TypedDict(
         "projectID": str,
         "message": str,
         "title": str,
-        "location": str,
+        "location": str | None,
         "culprit": str,
         "user": EventUserApiContext | None,
         "tags": list[SimpleEventTag],

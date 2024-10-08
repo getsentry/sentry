@@ -15,7 +15,6 @@ API_PUBLISH_STATUS_ALLOWLIST_DONT_MODIFY = {
     "/api/0/relays/{relay_id}/": {"DELETE"},
     "/api/0/{var}/{issue_id}/": {"DELETE", "GET", "PUT"},
     "/api/0/{var}/{issue_id}/activities/": {"GET"},
-    "/api/0/{var}/{issue_id}/events/": {"GET"},
     "/api/0/{var}/{issue_id}/events/{event_id}/": {"GET"},
     "/api/0/{var}/{issue_id}/{var}/": {"GET", "POST"},
     "/api/0/{var}/{issue_id}/{var}/{note_id}/": {"DELETE", "PUT"},
