@@ -407,14 +407,9 @@ class DashboardDetail extends Component<Props, State> {
   };
 
   handleChangeFilter = (activeFilters: DashboardFilters) => {
-    const {dashboard, location, organization} = this.props;
+    const {dashboard, location} = this.props;
     const {modifiedDashboard} = this.state;
     const newModifiedDashboard = modifiedDashboard || dashboard;
-
-    trackAnalytics('dashboards2.filter.change', {
-      organization,
-      filter_type: 'release',
-    });
 
     if (
       Object.keys(activeFilters).every(

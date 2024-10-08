@@ -86,7 +86,13 @@ export default function FiltersBar({
         <FilterButtons>
           <ReleasesProvider organization={organization} selection={selection}>
             <ReleasesSelectControl
-              handleChangeFilter={onDashboardFilterChange}
+              handleChangeFilter={() => {
+                onDashboardFilterChange;
+                trackAnalytics('dashboards2.filter.change', {
+                  organization,
+                  filter_type: 'release',
+                });
+              }}
               selectedReleases={selectedReleases}
               isDisabled={isEditingDashboard}
             />
