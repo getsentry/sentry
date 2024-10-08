@@ -21,6 +21,7 @@ from sentry.integrations.api.bases.organization_integrations import (
     OrganizationIntegrationBaseEndpoint,
 )
 from sentry.integrations.api.serializers.models.integration import OrganizationIntegrationResponse
+from sentry.integrations.base import INTEGRATION_TYPE_TO_PROVIDER
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.organizations.services.organization.model import (
@@ -93,6 +94,7 @@ class OrganizationIntegrationsEndpoint(OrganizationIntegrationBaseEndpoint):
         if provider_key is None:
             provider_key = request.GET.get("provider_key", "")
         include_config_raw = request.GET.get("includeConfig")
+        integration_type = request.GET.get("integrationType")
 
         # Include the configurations by default if includeConfig is not present.
         # TODO(mgaeta): HACK. We need a consistent way to get booleans from query parameters.
@@ -108,6 +110,18 @@ class OrganizationIntegrationsEndpoint(OrganizationIntegrationBaseEndpoint):
         )
         if provider_key:
             queryset = queryset.filter(integration__provider=provider_key.lower())
+
+        if integration_type:
+            if integration_type not in INTEGRATION_TYPE_TO_PROVIDER:
+                return Response(
+                    {"detail": "Invalid integration type"},
+                    status=400,
+                )
+            provider_slugs = [
+                provider.value
+                for provider in INTEGRATION_TYPE_TO_PROVIDER.get(integration_type, [])
+            ]
+            queryset = queryset.filter(integration__provider__in=provider_slugs)
 
         def on_results(results: Sequence[OrganizationIntegration]) -> Sequence[Mapping[str, Any]]:
             if feature_filters:
