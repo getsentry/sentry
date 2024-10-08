@@ -2,7 +2,7 @@ import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import CustomViewsIssueListHeader from 'sentry/views/issueList/customViewsHeader';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
@@ -266,7 +266,7 @@ describe('CustomViewsHeader', () => {
       );
     });
 
-    it('initially selects a temporary tab if the viewId is a default viewId and the query is different', () => {
+    it('updates the unsaved changes indicator for a default tab if the query is different', async () => {
       MockApiClient.clearMockResponses();
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/group-search-views/`,
@@ -280,7 +280,7 @@ describe('CustomViewsHeader', () => {
         ],
       });
 
-      const defaultDifferentQueryRouter = RouterFixture({
+      const defaultTabDifferentQueryRouter = RouterFixture({
         location: LocationFixture({
           pathname: `/organizations/${organization.slug}/issues/`,
           query: {
@@ -293,28 +293,24 @@ describe('CustomViewsHeader', () => {
       render(
         <CustomViewsIssueListHeader
           {...defaultProps}
-          router={defaultDifferentQueryRouter}
+          router={defaultTabDifferentQueryRouter}
         />,
         {
-          router: defaultDifferentQueryRouter,
+          router: defaultTabDifferentQueryRouter,
         }
       );
+      expect(await screen.findByRole('tab', {name: 'Prioritized'})).toBeInTheDocument();
+      expect(screen.getByTestId('unsaved-changes-indicator')).toBeInTheDocument();
+      expect(screen.queryByRole('tab', {name: 'Unsaved'})).not.toBeInTheDocument();
 
-      waitFor(() => {
-        expect(screen.getByRole('tab', {name: 'Unsaved'})).toBeInTheDocument();
-        expect(screen.getByRole('tab', {name: 'Unsaved'})).toHaveAttribute(
-          'aria-selected',
-          'true'
-        );
-        expect(defaultDifferentQueryRouter.replace).toHaveBeenCalledWith(
-          expect.objectContaining({
-            query: expect.objectContaining({
-              query: 'is:unresolved',
-              viewId: undefined,
-            }),
-          })
-        );
-      });
+      expect(defaultTabDifferentQueryRouter.replace).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({
+            query: 'is:unresolved',
+            viewId: 'default0',
+          }),
+        })
+      );
     });
   });
 
