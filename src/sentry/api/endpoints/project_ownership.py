@@ -21,8 +21,9 @@ from sentry.ownership.grammar import CODEOWNERS, create_schema_from_issue_owners
 from sentry.signals import ownership_rule_created
 from sentry.utils.audit import create_audit_entry
 
-MAX_RAW_LENGTH = 100_000
-HIGHER_MAX_RAW_LENGTH = 250_000
+DEFAULT_MAX_RAW_LENGTH = 100_000
+LARGE_MAX_RAW_LENGTH = 250_000
+XLARGE_MAX_RAW_LENGTH = 750_000
 
 
 class ProjectOwnershipRequestSerializer(serializers.Serializer):
@@ -62,11 +63,14 @@ class ProjectOwnershipRequestSerializer(serializers.Serializer):
                 )
 
     def get_max_length(self):
-        if features.has(
-            "organizations:higher-ownership-limit", self.context["ownership"].project.organization
+        organization = self.context["ownership"].project.organization
+        if features.has("organizations:ownership-size-limit-xlarge", organization):
+            return XLARGE_MAX_RAW_LENGTH
+        if features.has("organizations:ownership-size-limit-large", organization) or features.has(
+            "organizations:higher-ownership-limit", organization
         ):
-            return HIGHER_MAX_RAW_LENGTH
-        return MAX_RAW_LENGTH
+            return LARGE_MAX_RAW_LENGTH
+        return DEFAULT_MAX_RAW_LENGTH
 
     def validate_autoAssignment(self, value):
         if value not in [
