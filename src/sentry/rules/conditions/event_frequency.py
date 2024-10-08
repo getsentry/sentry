@@ -475,18 +475,6 @@ class EventUniqueUserFrequencyCondition(BaseEventFrequencyCondition):
     id = "sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyCondition"
     label = "The issue is seen by more than {value} users in {interval}"
 
-    # def __init__(
-    #     self,
-    #     # Data specifically takes on this typeddict form for the
-    #     # Event Frequency condition classes.
-    #     data: EventFrequencyConditionData | None = None,
-    #     *args: Any,
-    #     **kwargs: Any,
-    # ) -> None:
-    #     if kwargs.get("special_conditions"):
-    #         self.special_conditions = kwargs.pop("special_conditions")
-    #     super().__init__(data, *args, **kwargs)
-
     def query_hook(
         self, event: GroupEvent, start: datetime, end: datetime, environment_id: int
     ) -> int:
