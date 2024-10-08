@@ -5,6 +5,7 @@ import ToolbarHeader from 'sentry/components/toolbarHeader';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
+import useOrganization from 'sentry/utils/useOrganization';
 
 type Props = {
   isReprocessingQuery: boolean;
@@ -21,6 +22,8 @@ function Headers({
   isReprocessingQuery,
   isSavedSearchesOpen,
 }: Props) {
+  const organization = useOrganization();
+
   return (
     <Fragment>
       {isReprocessingQuery ? (
@@ -50,6 +53,12 @@ function Headers({
               </GraphToggle>
             </GraphHeader>
           </GraphHeaderWrapper>
+          {organization.features.includes('issue-stream-table-layout') ? (
+            <Fragment>
+              <TimestampLabel>{t('Age')}</TimestampLabel>
+              <TimestampLabel>{t('Seen')}</TimestampLabel>
+            </Fragment>
+          ) : null}
           <EventsOrUsersLabel>{t('Events')}</EventsOrUsersLabel>
           <EventsOrUsersLabel>{t('Users')}</EventsOrUsersLabel>
           <PriorityLabel isSavedSearchesOpen={isSavedSearchesOpen}>
@@ -96,6 +105,15 @@ const GraphToggle = styled('a')<{active: boolean}>`
   &:active {
     color: ${p => (p.active ? p.theme.textColor : p.theme.disabled)};
   }
+`;
+
+const TimestampLabel = styled(ToolbarHeader)`
+  display: inline-grid;
+  align-items: center;
+  justify-content: flex-start;
+  text-align: left;
+  width: 40px;
+  margin: 0 ${space(1)};
 `;
 
 const EventsOrUsersLabel = styled(ToolbarHeader)`

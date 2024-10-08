@@ -120,6 +120,22 @@ function GroupCheckbox({
   );
 }
 
+function GroupTimestamp({date, label}: {date: string | null; label: string}) {
+  if (!date) {
+    return <Placeholder height="18px" width="40px" />;
+  }
+
+  return (
+    <TimeSince
+      aria-label={label}
+      tooltipPrefix={label}
+      date={date}
+      suffix=""
+      unitStyle="extraShort"
+    />
+  );
+}
+
 function BaseGroupRow({
   id,
   organization,
@@ -508,12 +524,18 @@ function BaseGroupRow({
           query={query}
           source={referrer}
         />
-        <EventOrGroupExtraDetails data={group} />
+        <EventOrGroupExtraDetails
+          data={group}
+          showLifetime={!organization.features.includes('issue-stream-table-layout')}
+        />
       </GroupSummary>
       {hasGuideAnchor && issueStreamAnchor}
 
       {withChart && !displayReprocessingLayout && issueTypeConfig.stats.enabled && (
-        <ChartWrapper narrowGroups={narrowGroups}>
+        <ChartWrapper
+          narrowGroups={narrowGroups}
+          margin={withColumns.includes('firstSeen')}
+        >
           <GroupStatusChart
             hideZeros
             loading={!defined(groupStats)}
@@ -529,8 +551,22 @@ function BaseGroupRow({
         renderReprocessingColumns()
       ) : (
         <Fragment>
+          {withColumns.includes('firstSeen') && (
+            <TimestampWrapper>
+              <GroupTimestamp date={group.firstSeen} label={t('First Seen')} />
+            </TimestampWrapper>
+          )}
+          {withColumns.includes('lastSeen') && (
+            <TimestampWrapper>
+              <GroupTimestamp date={group.lastSeen} label={t('Last Seen')} />
+            </TimestampWrapper>
+          )}
           {withColumns.includes('event') && issueTypeConfig.stats.enabled && (
-            <EventCountsWrapper leftMargin="0px">{groupCount}</EventCountsWrapper>
+            <EventCountsWrapper
+              leftMargin={withColumns.includes('lastSeen') ? undefined : '0px'}
+            >
+              {groupCount}
+            </EventCountsWrapper>
           )}
           {withColumns.includes('users') && issueTypeConfig.stats.enabled && (
             <EventCountsWrapper>{groupUsersCount}</EventCountsWrapper>
@@ -670,15 +706,23 @@ const CountTooltipContent = styled('div')`
   }
 `;
 
-const ChartWrapper = styled('div')<{narrowGroups: boolean}>`
+const ChartWrapper = styled('div')<{margin: boolean; narrowGroups: boolean}>`
   width: 200px;
   align-self: center;
+  margin-right: ${p => (p.margin ? space(2) : 0)};
 
   /* prettier-ignore */
   @media (max-width: ${p =>
     p.narrowGroups ? p.theme.breakpoints.xlarge : p.theme.breakpoints.large}) {
     display: none;
   }
+`;
+
+const TimestampWrapper = styled('div')`
+  display: flex;
+  align-self: center;
+  width: 40px;
+  margin: 0 ${space(1)};
 `;
 
 const EventCountsWrapper = styled('div')<{leftMargin?: string}>`
