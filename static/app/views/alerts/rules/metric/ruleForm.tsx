@@ -1066,23 +1066,23 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     if (!(Array.isArray(currentData) && Array.isArray(historicalData))) {
       return;
     }
+    const direction =
+      thresholdType === AlertRuleThresholdType.ABOVE
+        ? 'up'
+        : thresholdType === AlertRuleThresholdType.BELOW
+          ? 'down'
+          : 'both';
     const params = {
       organization_id: organization.id,
       project_id: project.id,
       config: {
         time_period: timeWindow,
         sensitivity,
-        direction: thresholdType,
+        direction,
         expected_seasonality: seasonality,
       },
-      historical_data: historicalData.map(([ts]) => [
-        ts,
-        {count: Math.floor(Math.random() * 100)},
-      ]),
-      current_data: currentData.map(([ts]) => [
-        ts,
-        {count: Math.floor(Math.random() * 100)},
-      ]),
+      historical_data: historicalData,
+      current_data: currentData,
     };
     try {
       const response = await this.api.requestPromise(
