@@ -1,4 +1,5 @@
 import {CompactSelect} from 'sentry/components/compactSelect';
+import type {DropdownButtonProps} from 'sentry/components/dropdownButton';
 import {IconSort} from 'sentry/icons/iconSort';
 import {t} from 'sentry/locale';
 import {
@@ -11,9 +12,11 @@ type Props = {
   onSelect: (sort: string) => void;
   query: string;
   sort: string;
+  showIcon?: boolean;
+  triggerSize?: DropdownButtonProps['size'];
 };
 
-function getSortTooltip(key: IssueSortOptions) {
+export function getSortTooltip(key: IssueSortOptions) {
   switch (key) {
     case IssueSortOptions.INBOX:
       return t('When issue was flagged for review.');
@@ -31,7 +34,13 @@ function getSortTooltip(key: IssueSortOptions) {
   }
 }
 
-function IssueListSortOptions({onSelect, sort, query}: Props) {
+function IssueListSortOptions({
+  onSelect,
+  sort,
+  query,
+  triggerSize = 'xs',
+  showIcon = true,
+}: Props) {
   const sortKey = sort || IssueSortOptions.DATE;
   const sortKeys = [
     ...(FOR_REVIEW_QUERIES.includes(query || '') ? [IssueSortOptions.INBOX] : []),
@@ -44,7 +53,7 @@ function IssueListSortOptions({onSelect, sort, query}: Props) {
 
   return (
     <CompactSelect
-      size="sm"
+      size="md"
       onChange={opt => onSelect(opt.value)}
       options={sortKeys.map(key => ({
         value: key,
@@ -54,8 +63,8 @@ function IssueListSortOptions({onSelect, sort, query}: Props) {
       menuWidth={240}
       value={sortKey}
       triggerProps={{
-        size: 'xs',
-        icon: <IconSort />,
+        size: triggerSize,
+        icon: showIcon && <IconSort />,
       }}
     />
   );
