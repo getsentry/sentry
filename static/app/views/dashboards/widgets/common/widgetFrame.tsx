@@ -107,6 +107,14 @@ const Frame = styled('div')`
   border: 1px ${p => 'solid ' + p.theme.border};
 
   background: ${p => p.theme.background};
+
+  :hover {
+    background-color: ${p => p.theme.surface200};
+    transition:
+      background-color 100ms linear,
+      box-shadow 100ms linear;
+    box-shadow: ${p => p.theme.dropShadowLight};
+  }
 `;
 
 const Header = styled('div')`
