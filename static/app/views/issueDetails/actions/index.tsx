@@ -66,10 +66,10 @@ const isResolutionStatus = (data: UpdateData): data is GroupStatusResolution => 
 type Props = {
   api: Client;
   disabled: boolean;
+  event: Event | null;
   group: Group;
   organization: Organization;
   project: Project;
-  event?: Event;
   query?: Query;
 };
 
