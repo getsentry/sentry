@@ -57,10 +57,10 @@ const useLastOrganization = (organizations: Organization[]) => {
 
 function useOrganizationProjects({
   organization,
-  search,
+  query,
 }: {
   organization?: Organization & {region: string};
-  search?: string;
+  query?: string;
 }) {
   const api = useApi();
   const regions = useMemo(() => ConfigStore.get('memberRegions'), []);
@@ -70,12 +70,12 @@ function useOrganizationProjects({
   );
 
   return useQuery<Project[]>({
-    queryKey: [`/organizations/${organization?.slug}/projects/`, {slug: search}],
+    queryKey: [`/organizations/${organization?.slug}/projects/`, {query: query}],
     queryFn: () => {
       return api.requestPromise(`/organizations/${organization?.slug}/projects/`, {
         host: orgRegion?.url,
         query: {
-          slug: search,
+          query: query,
         },
       });
     },
@@ -141,7 +141,7 @@ function ProjectSelection({hash, organizations = []}: Omit<Props, 'allowSelectio
 
   const orgProjectsRequest = useOrganizationProjects({
     organization: selectedOrg,
-    search: debouncedSearch,
+    query: debouncedSearch,
   });
 
   const selectedProject = useMemo(
@@ -197,19 +197,24 @@ function ProjectSelection({hash, organizations = []}: Omit<Props, 'allowSelectio
 
   const projectOptions = useMemo(
     () =>
-      (orgProjectsRequest.data || [])
-        .toSorted(
-          (a, b) => new Date(b.dateCreated).getTime() - new Date(a.dateCreated).getTime()
-        )
-        .map(project => ({
-          value: project.id,
-          label: project.name,
-          leadingItems: <ProjectBadge avatarSize={16} project={project} hideName />,
-        })),
+      (orgProjectsRequest.data || []).map(project => ({
+        value: project.id,
+        label: project.name,
+        leadingItems: <ProjectBadge avatarSize={16} project={project} hideName />,
+      })),
     [orgProjectsRequest.data]
   );
 
   const {options: cachedProjectOptions} = useCompactSelectOptionsCache(projectOptions);
+
+  // As the cache hook sorts the options by value, we need to sort them afterwards
+  const sortedProjectOptions = useMemo(
+    () =>
+      cachedProjectOptions.sort((a, b) => {
+        return a.label.localeCompare(b.label);
+      }),
+    [cachedProjectOptions]
+  );
 
   const isFormValid = selectedOrg && selectedProject;
 
@@ -261,7 +266,7 @@ function ProjectSelection({hash, organizations = []}: Omit<Props, 'allowSelectio
             disabled={!selectedOrgId}
             value={selectedProjectId as string}
             searchable
-            options={cachedProjectOptions}
+            options={sortedProjectOptions}
             triggerProps={{
               icon: selectedProject ? (
                 <ProjectBadge avatarSize={16} project={selectedProject} hideName />
