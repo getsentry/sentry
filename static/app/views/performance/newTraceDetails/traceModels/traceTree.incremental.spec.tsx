@@ -6,7 +6,7 @@ import {waitFor} from 'sentry-test/reactTestingLibrary';
 import * as useOrganization from 'sentry/utils/useOrganization';
 
 import {TraceTree} from './traceTree';
-import {makeTrace, makeTransaction} from './traceTreeTestUtils.spec';
+import {makeTrace, makeTransaction} from './traceTreeTestUtils';
 
 describe('incremental trace fetch', () => {
   const organization = OrganizationFixture();

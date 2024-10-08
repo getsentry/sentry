@@ -14,7 +14,7 @@ import {
   makeSpan,
   makeTrace,
   makeTransaction,
-} from '../traceModels/traceTreeTestUtils.spec';
+} from '../traceModels/traceTreeTestUtils';
 
 function makeParentAutogroupSpans(): TraceTree.Span[] {
   return [

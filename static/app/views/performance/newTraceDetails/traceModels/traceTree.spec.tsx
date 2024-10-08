@@ -1,5 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
+import {EntryType} from 'sentry/types/event';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
 import {
@@ -18,8 +19,21 @@ import {
   makeTraceMetaQueryResults,
   makeTracePerformanceIssue,
   makeTransaction,
-  mockSpansResponse,
-} from './traceTreeTestUtils.spec';
+} from './traceTreeTestUtils';
+
+function mockSpansResponse(
+  spans: TraceTree.Span[],
+  project_slug: string,
+  event_id: string
+): jest.Mock<any, any> {
+  return MockApiClient.addMockResponse({
+    url: `/organizations/org-slug/events/${project_slug}:${event_id}/?averageColumn=span.self_time&averageColumn=span.duration`,
+    method: 'GET',
+    body: makeEventTransaction({
+      entries: [{type: EntryType.SPANS, data: spans}],
+    }),
+  });
+}
 
 const start = new Date('2024-02-29T00:00:00Z').getTime() / 1e3;
 const end = new Date('2024-02-29T00:00:00Z').getTime() / 1e3 + 5;
