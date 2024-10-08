@@ -65,6 +65,7 @@ describe('autogrouping', () => {
   describe('parent autogrouping', () => {
     it('groups parent chain with same op', () => {
       const tree = TraceTree.FromTrace(singleTransactionTrace, traceMetadata);
+      // eslint-disable-next-line
       const _spans = TraceTree.FromSpans(
         tree.root.children[0].children[0],
         parentAutogroupSpans,
@@ -79,6 +80,7 @@ describe('autogrouping', () => {
 
     it('assigns children to tail node', () => {
       const tree = TraceTree.FromTrace(singleTransactionTrace, traceMetadata);
+      // eslint-disable-next-line
       const _spans = TraceTree.FromSpans(
         tree.root.children[0].children[0],
         [
@@ -113,6 +115,7 @@ describe('autogrouping', () => {
 
     it('autogrouped chain points to tail', () => {
       const tree = TraceTree.FromTrace(singleTransactionTrace, traceMetadata);
+      // eslint-disable-next-line
       const _spans = TraceTree.FromSpans(
         tree.root.children[0].children[0],
         [
@@ -134,6 +137,7 @@ describe('autogrouping', () => {
 
     it('expanding parent autogroup renders head to tail chain', () => {
       const tree = TraceTree.FromTrace(singleTransactionTrace, traceMetadata);
+      // eslint-disable-next-line
       const _spans = TraceTree.FromSpans(
         tree.root.children[0].children[0],
         parentAutogroupSpans,
@@ -154,6 +158,7 @@ describe('autogrouping', () => {
 
     it('collapsing parent autogroup removes its children', () => {
       const tree = TraceTree.FromTrace(singleTransactionTrace, traceMetadata);
+      // eslint-disable-next-line
       const _spans = TraceTree.FromSpans(
         tree.root.children[0].children[0],
         parentAutogroupSpans,
@@ -182,6 +187,7 @@ describe('autogrouping', () => {
 
     it('can expand and collapse', () => {
       const tree = TraceTree.FromTrace(singleTransactionTrace, traceMetadata);
+      // eslint-disable-next-line
       const _spans = TraceTree.FromSpans(
         tree.root.children[0].children[0],
         [
@@ -234,6 +240,7 @@ describe('autogrouping', () => {
 
     it('autogroups siblings when they are children of a parent autogroup chain', () => {
       const tree = TraceTree.FromTrace(singleTransactionTrace, traceMetadata);
+      // eslint-disable-next-line
       const _spans = TraceTree.FromSpans(
         tree.root.children[0].children[0],
         [
@@ -262,6 +269,7 @@ describe('autogrouping', () => {
   describe('sibling autogrouping', () => {
     it('groups spans with the same op and description', () => {
       const tree = TraceTree.FromTrace(singleTransactionTrace, traceMetadata);
+      // eslint-disable-next-line
       const _spans = TraceTree.FromSpans(
         tree.root.children[0].children[0],
         siblingAutogroupSpans,
@@ -276,6 +284,7 @@ describe('autogrouping', () => {
 
     it('does not autogroup if count is less 5', () => {
       const tree = TraceTree.FromTrace(singleTransactionTrace, traceMetadata);
+      // eslint-disable-next-line
       const _spans = TraceTree.FromSpans(
         tree.root.children[0].children[0],
         siblingAutogroupSpans.slice(0, 4),
@@ -290,6 +299,7 @@ describe('autogrouping', () => {
 
     it('autogroups multiple consecutive groups', () => {
       const tree = TraceTree.FromTrace(singleTransactionTrace, traceMetadata);
+      // eslint-disable-next-line
       const _spans = TraceTree.FromSpans(
         tree.root.children[0].children[0],
         [
@@ -307,6 +317,7 @@ describe('autogrouping', () => {
 
     it('expanding sibling autogroup renders its children', () => {
       const tree = TraceTree.FromTrace(singleTransactionTrace, traceMetadata);
+      // eslint-disable-next-line
       const _spans = TraceTree.FromSpans(
         tree.root.children[0].children[0],
         siblingAutogroupSpans,
@@ -327,6 +338,7 @@ describe('autogrouping', () => {
 
     it('collapsing sibling autogroup removes its children', () => {
       const tree = TraceTree.FromTrace(singleTransactionTrace, traceMetadata);
+      // eslint-disable-next-line
       const _spans = TraceTree.FromSpans(
         tree.root.children[0].children[0],
         siblingAutogroupSpans,
