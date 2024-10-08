@@ -58,7 +58,7 @@ describe('IntegrationRepos', function () {
       await userEvent.click(screen.getByText('Add Repository'));
 
       expect(
-        await screen.findByText(/Please type to search for repositories/)
+        await screen.findByText(/Please enter a repository name/)
       ).toBeInTheDocument();
     });
   });

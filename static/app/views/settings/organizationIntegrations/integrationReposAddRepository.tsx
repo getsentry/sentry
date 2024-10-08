@@ -144,7 +144,7 @@ export function IntegrationReposAddRepository({
         items={dropdownItems}
         onSelect={addRepo}
         onChange={handleSearchRepositories}
-        emptyMessage={t('Please type to search for repositories')}
+        emptyMessage={t('Please enter a repository name')}
         noResultsMessage={t('No repositories found')}
         searchPlaceholder={t('Search Repositories')}
         busy={dropdownBusy}
