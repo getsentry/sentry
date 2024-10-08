@@ -14,20 +14,26 @@ const DATASET_TO_FIELDS = {
   [DiscoverDatasets.SPANS_METRICS]: SpanMetricsField,
 };
 
-const getSpanFieldSupportedTags = (
-  excludedTags,
+function useSpanFieldBaseTags(
+  excludedTags: string[],
   dataset: DiscoverDatasets.SPANS_INDEXED | DiscoverDatasets.SPANS_METRICS
-) => {
-  const fields = DATASET_TO_FIELDS[dataset];
+) {
+  const builtinTags = useMemo(() => {
+    const fields = DATASET_TO_FIELDS[dataset];
 
-  const tags: TagCollection = Object.fromEntries(
-    Object.values(fields)
-      .filter(v => !excludedTags.includes(v))
-      .map(v => [v, {key: v, name: v}])
-  );
-  tags.has = getHasTag(tags);
-  return tags;
-};
+    const tags: TagCollection = Object.fromEntries(
+      Object.values(fields)
+        .filter(v => !excludedTags.includes(v))
+        .map(v => [v, {key: v, name: v}])
+    );
+
+    tags.has = getHasTag(tags);
+
+    return tags;
+  }, [excludedTags, dataset]);
+
+  return builtinTags;
+}
 
 interface SpanFieldEntry {
   key: string;
@@ -54,7 +60,7 @@ export function useSpanMetricsFieldSupportedTags(options?: {excludedTags?: strin
   const {excludedTags = []} = options || {};
 
   // we do not yet support span field search by SPAN_AI_PIPELINE_GROUP
-  return getSpanFieldSupportedTags(
+  return useSpanFieldBaseTags(
     [SpanIndexedField.SPAN_AI_PIPELINE_GROUP, ...excludedTags],
     DiscoverDatasets.SPANS_METRICS
   );
@@ -89,21 +95,35 @@ export function useSpanFieldCustomTags(options?: {projects?: PageFilters['projec
   return {...rest, data: tags};
 }
 
-export function useSpanFieldSupportedTags(options?: {
+export function useSpanFieldStaticTags(options?: {
+  dataset?: DiscoverDatasets.SPANS_INDEXED | DiscoverDatasets.SPANS_METRICS;
   excludedTags?: string[];
-  projects?: PageFilters['projects'];
 }) {
-  const {excludedTags = [], projects} = options || {};
+  const {excludedTags = [], dataset = DiscoverDatasets.SPANS_INDEXED} = options || {};
   // we do not yet support span field search by SPAN_AI_PIPELINE_GROUP and SPAN_CATEGORY should not be surfaced to users
-  const staticTags: TagCollection = getSpanFieldSupportedTags(
+  const staticTags: TagCollection = useSpanFieldBaseTags(
     [
       SpanIndexedField.SPAN_AI_PIPELINE_GROUP,
       SpanIndexedField.SPAN_CATEGORY,
       SpanIndexedField.SPAN_GROUP,
       ...excludedTags,
     ],
-    DiscoverDatasets.SPANS_INDEXED
+    dataset
   );
+
+  return staticTags;
+}
+
+export function useSpanFieldSupportedTags(options?: {
+  excludedTags?: string[];
+  projects?: PageFilters['projects'];
+}) {
+  const {excludedTags = [], projects} = options || {};
+  // we do not yet support span field search by SPAN_AI_PIPELINE_GROUP and SPAN_CATEGORY should not be surfaced to users
+  const staticTags: TagCollection = useSpanFieldStaticTags({
+    excludedTags,
+    dataset: DiscoverDatasets.SPANS_INDEXED,
+  });
 
   const {data: customTags, ...rest} = useSpanFieldCustomTags({projects});
 
