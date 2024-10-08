@@ -5,8 +5,8 @@ import styled from '@emotion/styled';
 import {LinkButton} from 'sentry/components/button';
 import {BarChart, type BarChartSeries} from 'sentry/components/charts/barChart';
 import Legend from 'sentry/components/charts/components/legend';
+import {useChartZoom} from 'sentry/components/charts/useChartZoom';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconTelescope} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -16,6 +16,7 @@ import type {EventsStats, MultiSeriesEventsStats} from 'sentry/types/organizatio
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import useOrganization from 'sentry/utils/useOrganization';
+import useRouter from 'sentry/utils/useRouter';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import useFlagSeries from 'sentry/views/issueDetails/streamline/flagSeries';
 import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/useIssueDetailsDiscoverQuery';
@@ -55,6 +56,7 @@ export function EventGraph({group, groupStats, searchQuery}: EventGraphProps) {
   const [visibleSeries, setVisibleSeries] = useState<EventGraphSeries>(
     EventGraphSeries.EVENT
   );
+  const router = useRouter();
 
   const [isGraphHovered, setIsGraphHovered] = useState(false);
   const eventStats = groupStats['count()'];
@@ -74,9 +76,9 @@ export function EventGraph({group, groupStats, searchQuery}: EventGraphProps) {
     false,
     hasDatasetSelector(organization) ? SavedQueryDatasets.ERRORS : undefined
   );
-
-  const [legendSelected, setLegendSelected] = useState({
-    ['Feature Flags']: true,
+  const chartZoomProps = useChartZoom({
+    saveOnZoom: true,
+    router,
   });
 
   const flagSeries = useFlagSeries({
@@ -87,35 +89,44 @@ export function EventGraph({group, groupStats, searchQuery}: EventGraphProps) {
     },
   });
 
-  const series: BarChartSeries[] = [];
+  const series = useMemo((): BarChartSeries[] => {
+    const seriesData: BarChartSeries[] = [];
 
-  if (eventStats && visibleSeries === EventGraphSeries.USER) {
-    series.push({
-      seriesName: t('Users'),
-      itemStyle: {
-        borderRadius: [2, 2, 0, 0],
-        borderColor: theme.translucentGray200,
-        color: theme.purple200,
-      },
-      stack: 'stats',
-      data: userSeries,
-    });
-  }
-  if (eventStats && visibleSeries === EventGraphSeries.EVENT) {
-    series.push({
-      seriesName: t('Events'),
-      itemStyle: {
-        borderRadius: [2, 2, 0, 0],
-        borderColor: theme.translucentGray200,
-        color: theme.gray200,
-      },
-      stack: 'stats',
-      data: eventSeries,
-    });
-  }
-  if (flagSeries.markLine) {
-    series.push(flagSeries as BarChartSeries);
-  }
+    if (eventStats && visibleSeries === EventGraphSeries.USER) {
+      seriesData.push({
+        seriesName: t('Users'),
+        itemStyle: {
+          borderRadius: [2, 2, 0, 0],
+          borderColor: theme.translucentGray200,
+          color: theme.purple200,
+        },
+        stack: 'stats',
+        data: userSeries,
+      });
+    }
+    if (eventStats && visibleSeries === EventGraphSeries.EVENT) {
+      seriesData.push({
+        seriesName: t('Events'),
+        itemStyle: {
+          borderRadius: [2, 2, 0, 0],
+          borderColor: theme.translucentGray200,
+          color: theme.gray200,
+        },
+        stack: 'stats',
+        data: eventSeries,
+      });
+    }
+
+    if (flagSeries.markLine) {
+      seriesData.push(flagSeries as BarChartSeries);
+    }
+
+    return seriesData;
+  }, [eventStats, visibleSeries, userSeries, eventSeries, flagSeries, theme]);
+
+  const [legendSelected, setLegendSelected] = useState({
+    ['Feature Flags']: true,
+  });
 
   const legend = Legend({
     theme: theme,
@@ -179,7 +190,6 @@ export function EventGraph({group, groupStats, searchQuery}: EventGraphProps) {
           series={series}
           legend={legend}
           onLegendSelectChanged={onLegendSelectChanged}
-          isGroupedByDate
           showTimeInTooltip
           grid={{
             top: 28, // leave room for legend
@@ -190,20 +200,22 @@ export function EventGraph({group, groupStats, searchQuery}: EventGraphProps) {
           yAxis={{
             splitNumber: 2,
             axisLabel: {
-              formatter: value => formatAbbreviatedNumber(value),
+              formatter: (value: number) => {
+                return formatAbbreviatedNumber(value);
+              },
             },
           }}
+          {...chartZoomProps}
         />
         {discoverUrl && isGraphHovered && (
           <OpenInDiscoverButton>
-            <Tooltip title={t('Open in Discover')}>
-              <LinkButton
-                size="xs"
-                icon={<IconTelescope />}
-                to={discoverUrl}
-                aria-label={t('Open in Discover')}
-              />
-            </Tooltip>
+            <LinkButton
+              size="xs"
+              icon={<IconTelescope />}
+              to={discoverUrl}
+              aria-label={t('Open in Discover')}
+              title={t('Open in Discover')}
+            />
           </OpenInDiscoverButton>
         )}
       </ChartContainer>
