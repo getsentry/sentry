@@ -14,9 +14,14 @@ from sentry import features
 from sentry.incidents.charts import build_metric_alert_chart
 from sentry.incidents.models.alert_rule import AlertRule
 from sentry.incidents.models.incident import Incident
+from sentry.integrations.messaging.metrics import (
+    MessagingInteractionEvent,
+    MessagingInteractionType,
+)
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.slack.message_builder.metric_alerts import SlackMetricAlertMessageBuilder
+from sentry.integrations.slack.spec import SlackMessagingSpec
 from sentry.integrations.slack.unfurl.types import (
     Handler,
     UnfurlableUrl,
@@ -40,6 +45,18 @@ map_incident_args = make_type_coercer(
 
 def unfurl_metric_alerts(
     request: HttpRequest,
+    integration: Integration,
+    links: list[UnfurlableUrl],
+    user: User | None = None,
+) -> UnfurledUrl:
+    event = MessagingInteractionEvent(
+        MessagingInteractionType.UNFURL_METRIC_ALERTS, SlackMessagingSpec(), user=user
+    )
+    with event.capture():
+        return _unfurl_metric_alerts(integration, links, user)
+
+
+def _unfurl_metric_alerts(
     integration: Integration,
     links: list[UnfurlableUrl],
     user: User | None = None,
