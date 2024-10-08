@@ -112,7 +112,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         plugins.unregister(GitHubPlugin)
         super().tearDown()
 
-    def assert_failure_metric(mock_record, error_msg):
+    def assert_failure_metric(self, mock_record, error_msg):
         (event_failures,) = (
             call for call in mock_record.mock_calls if call.args[0] == EventLifecycleOutcome.FAILURE
         )
