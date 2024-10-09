@@ -19,6 +19,8 @@ from sentry.sentry_apps.installations import (
     SentryAppInstallationUpdater,
 )
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
+from sentry.users.models.user import User
+from sentry.users.services.user.model import RpcUser
 from sentry.utils.audit import create_audit_entry
 
 
@@ -41,28 +43,35 @@ class SentryAppInstallationDetailsEndpoint(SentryAppInstallationBaseEndpoint):
         )
 
     def delete(self, request: Request, installation) -> Response:
-        installation: SentryAppInstallation = SentryAppInstallation.objects.get(id=installation.id)
+        sentry_app_installation: SentryAppInstallation = SentryAppInstallation.objects.get(
+            id=installation.id
+        )
         with transaction.atomic(using=router.db_for_write(SentryAppInstallation)):
             try:
+                assert isinstance(
+                    request.user, (User, RpcUser)
+                ), "User must be a user or rpcuser to delete installation"
                 SentryAppInstallationNotifier(
-                    sentry_app_installation=installation, user=request.user, action="deleted"
+                    sentry_app_installation=sentry_app_installation,
+                    user=request.user,
+                    action="deleted",
                 ).run()
             # if the error is from a request exception, log the error and continue
             except RequestException as exc:
                 sentry_sdk.capture_exception(exc)
-            deletions.exec_sync(installation)
+            deletions.exec_sync(sentry_app_installation)
             create_audit_entry(
                 request=request,
-                organization_id=installation.organization_id,
-                target_object=installation.organization_id,
+                organization_id=sentry_app_installation.organization_id,
+                target_object=sentry_app_installation.organization_id,
                 event=audit_log.get_event_id("SENTRY_APP_UNINSTALL"),
-                data={"sentry_app": installation.sentry_app.name},
+                data={"sentry_app": sentry_app_installation.sentry_app.name},
             )
         analytics.record(
             "sentry_app.uninstalled",
             user_id=request.user.id,
-            organization_id=installation.organization_id,
-            sentry_app=installation.sentry_app.slug,
+            organization_id=sentry_app_installation.organization_id,
+            sentry_app=sentry_app_installation.sentry_app.slug,
         )
         return Response(status=204)
 

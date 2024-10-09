@@ -437,6 +437,7 @@ class TestInstallationWebhook(TestCase):
         response_body = json.loads(responses.calls[0].request.body)
         assert response_body.get("installation").get("uuid") == self.install.uuid
         assert response_body.get("action") == "created"
+        assert self.rpc_user, "User should exist in test to test installation webhook unless noted"
         assert response_body.get("actor")["id"] == self.rpc_user.id
 
     @responses.activate

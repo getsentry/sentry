@@ -107,6 +107,8 @@ class DeleteSentryAppInstallationDetailsTest(SentryAppInstallationDetailsTest):
         responses.add(url="https://example.com/webhook", method=responses.POST, body=b"")
         self.login_as(user=self.user)
         rpc_user = user_service.get_user(user_id=self.user.id)
+        assert rpc_user, "User should exist in test to delete sentry app installation unless noted"
+
         response = self.client.delete(self.url, format="json")
         assert AuditLogEntry.objects.filter(
             event=audit_log.get_event_id("SENTRY_APP_UNINSTALL")

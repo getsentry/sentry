@@ -469,7 +469,6 @@ module = [
     "sentry.issues.update_inbox",
     "sentry.lang.java.processing",
     "sentry.llm.*",
-    "sentry.mediators.sentry_app_installations.installation_notifier",
     "sentry.migrations.*",
     "sentry.models.event",
     "sentry.models.eventattachment",

@@ -188,7 +188,7 @@ class SentryAppInstallationCreator:
 @dataclasses.dataclass
 class SentryAppInstallationNotifier:
     sentry_app_installation: SentryAppInstallation
-    user: RpcUser
+    user: User | RpcUser
     action: str
 
     def run(self) -> None:
