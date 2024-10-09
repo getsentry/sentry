@@ -1,6 +1,7 @@
 import datetime
 import logging
 import uuid
+from collections import namedtuple
 from collections.abc import Sequence
 from copy import deepcopy
 from datetime import timezone
@@ -37,6 +38,7 @@ from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 logger = logging.getLogger(__name__)
+MockGranted = namedtuple("MockGranted", ["granted"])
 
 
 def get_test_message(
@@ -244,12 +246,15 @@ class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
             GroupAssignee.objects.get(group=group)
 
     @mock.patch(
-        "sentry.issues.occurrence_consumer.ratelimiter.backend.is_limited",
-        return_value=True,
+        "sentry.issues.occurrence_consumer.rate_limiter.check_and_use_quotas",
+        return_value=[MockGranted(granted=False)],
     )
     def test_rate_limit(self, is_limited: mock.MagicMock) -> None:
         message = get_test_message(self.project.id)
-        with self.feature("organizations:profile-file-io-main-thread-ingest"):
+        with (
+            self.feature("organizations:profile-file-io-main-thread-ingest"),
+            self.options({"issues.occurrence-consumer.rate-limit.enabled": True}),
+        ):
             result = _process_message(message)
         assert result is None
 
