@@ -945,7 +945,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
   handleComparisonTypeChange = (value: AlertRuleComparisonType) => {
     let updateState = {};
     switch (value) {
-      case AlertRuleComparisonType.DYNAMIC: {
+      case AlertRuleComparisonType.DYNAMIC:
         this.fetchAnomalies();
         updateState = {
           comparisonType: value,
@@ -956,7 +956,6 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
           seasonality: AlertRuleSeasonality.AUTO,
         };
         break;
-      }
       case AlertRuleComparisonType.CHANGE:
         updateState = {
           comparisonType: value,
