@@ -13,47 +13,47 @@ import type {
   Query,
 } from 'history';
 
-export interface Params {
+interface Params {
   [key: string]: string;
 }
 
-export type RoutePattern = string;
+type RoutePattern = string;
 export type RouteComponent = React.ComponentClass<any> | React.FunctionComponent<any>;
 
-export interface RouteComponents {
+interface RouteComponents {
   [name: string]: RouteComponent;
 }
 
-export interface RouterState<Q = any> {
+interface RouterState<Q = any> {
   components: RouteComponent[];
   location: Location<Q>;
   params: Params;
   routes: PlainRoute[];
 }
 
-export interface RedirectFunction {
+interface RedirectFunction {
   (location: LocationDescriptor): void;
   (state: LocationState, pathname: Pathname | Path, query?: Query): void;
 }
 
 type AnyFunction = (...args: any[]) => any;
 
-export type EnterHook = (
+type EnterHook = (
   nextState: RouterState,
   replace: RedirectFunction,
   callback?: AnyFunction
 ) => any;
 
-export type LeaveHook = (prevState: RouterState) => any;
+type LeaveHook = (prevState: RouterState) => any;
 
-export type ChangeHook = (
+type ChangeHook = (
   prevState: RouterState,
   nextState: RouterState,
   replace: RedirectFunction,
   callback?: AnyFunction
 ) => any;
 
-export type RouteHook = (nextLocation?: Location) => any;
+type RouteHook = (nextLocation?: Location) => any;
 
 type ComponentCallback = (err: any, component: RouteComponent) => any;
 type ComponentsCallback = (err: any, components: RouteComponents) => any;
