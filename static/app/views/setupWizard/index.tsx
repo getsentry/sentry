@@ -83,6 +83,7 @@ function useOrganizationProjects({
     },
     enabled: !!(orgRegion && organization),
     refetchOnWindowFocus: true,
+    retry: false,
   });
 }
 
