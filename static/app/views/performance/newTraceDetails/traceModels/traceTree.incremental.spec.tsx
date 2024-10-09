@@ -90,7 +90,7 @@ describe('incremental trace fetch', () => {
       organization,
       rerender: () => {},
       urlParams: {} as Location['query'],
-      metaResults: null,
+      meta: null,
     });
 
     await waitFor(() => expect(tree.root.children[0].fetchStatus).toBe('idle'));
@@ -163,7 +163,7 @@ describe('incremental trace fetch', () => {
       organization,
       rerender: () => {},
       urlParams: {} as Location['query'],
-      metaResults: null,
+      meta: null,
     });
 
     await waitFor(() => expect(tree.root.children[0].fetchStatus).toBe('idle'));
