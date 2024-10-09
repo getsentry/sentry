@@ -346,6 +346,7 @@ MIDDLEWARE: tuple[str, ...] = (
     "sentry.middleware.locale.SentryLocaleMiddleware",
     "sentry.middleware.ratelimit.RatelimitMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
+    "sentry.middleware.devtoolbar.AnalyticsMiddleware",
 )
 
 ROOT_URLCONF = "sentry.conf.urls"
