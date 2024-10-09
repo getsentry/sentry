@@ -129,6 +129,7 @@ def test_ingest_consumer_reads_from_topic_and_calls_celery_task(
             consumer._run_once()
             i += 1
 
+    assert transaction_message is not None
     # check that we got the messages
     assert transaction_message.data["event_id"] == event_id
     assert transaction_message.data["spans"] == []
