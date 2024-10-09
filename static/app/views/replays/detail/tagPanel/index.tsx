@@ -66,7 +66,7 @@ function TagPanel() {
       pathname: normalizeUrl(`/organizations/${organization.slug}/replays/`),
       query: {
         // The replay index endpoint treats unknown filters as tags, by default. Therefore we don't need the tags[] syntax, whether `name` is a tag or not.
-        query: `${name}:"${value}"`,
+        query: `"${name}":"${value}"`,
       },
     }),
     [organization.slug]
