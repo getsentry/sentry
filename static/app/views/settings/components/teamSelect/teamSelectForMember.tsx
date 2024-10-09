@@ -98,7 +98,6 @@ function TeamSelect({
     <Panel>
       <TeamPanelHeader hasButtons>
         <div>{t('Team')}</div>
-        <div />
         <div>
           <TeamRoleColumnLabel />
         </div>
