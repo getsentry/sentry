@@ -18,6 +18,7 @@ import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {useHotkeys} from 'sentry/utils/useHotkeys';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -163,23 +164,21 @@ export function DraggableTabBar({
     }
   }, [onSave, organization, setTabs, tabListState?.selectedKey, tabs]);
 
-  useEffect(() => {
-    const handleSave = (e: KeyboardEvent) => {
-      const originalTab = tabs.find(tab => tab.key === tabListState?.selectedKey);
-      if ((e.ctrlKey || e.metaKey) && e.code === 'KeyS') {
-        e.preventDefault();
-        if (originalTab?.unsavedChanges) {
-          handleOnSaveChanges();
-          addSuccessMessage('Changes saved to view');
-        }
-      }
-    };
-    window.addEventListener('keydown', handleSave);
-
-    return () => {
-      window.removeEventListener('keydown', handleSave);
-    };
-  }, [handleOnSaveChanges, tabListState?.selectedKey, tabs]);
+  useHotkeys(
+    [
+      {
+        match: ['command+s', 'ctrl+s'],
+        includeInputs: true,
+        callback: () => {
+          if (tabs.find(tab => tab.key === tabListState?.selectedKey)?.unsavedChanges) {
+            handleOnSaveChanges();
+            addSuccessMessage(t('Changes saved to view'));
+          }
+        },
+      },
+    ],
+    [handleOnSaveChanges, tabListState?.selectedKey, tabs]
+  );
 
   const handleOnDiscardChanges = () => {
     const originalTab = tabs.find(tab => tab.key === tabListState?.selectedKey);
