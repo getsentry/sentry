@@ -1,3 +1,3 @@
-from .creator import AlertRuleActionCreator
+from ...sentry_apps.creator import AlertRuleActionCreator
 
 __all__ = ("AlertRuleActionCreator",)
