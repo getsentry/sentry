@@ -60,6 +60,7 @@ export function useSelectCause({groupId, runId}: {groupId: string; runId: string
       params:
         | {
             causeId: string;
+            instruction?: string;
           }
         | {
             customRootCause: string;
@@ -81,6 +82,7 @@ export function useSelectCause({groupId, runId}: {groupId: string; runId: string
                 payload: {
                   type: 'select_root_cause',
                   cause_id: params.causeId,
+                  instruction: params.instruction,
                 },
               },
       });

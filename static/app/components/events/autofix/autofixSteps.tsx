@@ -141,8 +141,8 @@ export function AutofixSteps({data, groupId, runId, onRetry}: AutofixStepsProps)
   const stepsRef = useRef<(HTMLDivElement | null)[]>([]);
 
   const {mutate: handleSelectFix} = useSelectCause({groupId, runId});
-  const selectRootCause = (text: string) => {
-    if (text.length > 0) {
+  const selectRootCause = (text: string, isCustom?: boolean) => {
+    if (isCustom) {
       handleSelectFix({customRootCause: text});
     } else {
       if (!steps) {
@@ -154,7 +154,7 @@ export function AutofixSteps({data, groupId, runId, onRetry}: AutofixStepsProps)
       }
       const cause = step.causes[0];
       const id = cause.id;
-      handleSelectFix({causeId: id});
+      handleSelectFix({causeId: id, instruction: text});
     }
   };
 
@@ -214,11 +214,6 @@ export function AutofixSteps({data, groupId, runId, onRetry}: AutofixStepsProps)
       <AutofixMessageBox
         displayText={activeLog ?? ''}
         step={lastStep}
-        inputPlaceholder={
-          !isRootCauseSelectionStep
-            ? 'Say something...'
-            : 'Or propose your own root cause instead...'
-        }
         responseRequired={lastStep.status === 'WAITING_FOR_USER_RESPONSE'}
         onSend={!isRootCauseSelectionStep ? null : selectRootCause}
         actionText={!isRootCauseSelectionStep ? 'Send' : 'Find a Fix'}
@@ -227,12 +222,7 @@ export function AutofixSteps({data, groupId, runId, onRetry}: AutofixStepsProps)
         groupId={groupId}
         runId={runId}
         primaryAction={isRootCauseSelectionStep}
-        emptyInfoText={
-          !isRootCauseSelectionStep ? '' : 'Selected: suggested root cause above'
-        }
-        notEmptyInfoText={
-          !isRootCauseSelectionStep ? '' : 'Selected: your custom root cause below'
-        }
+        isRootCauseSelectionStep={isRootCauseSelectionStep}
         scrollIntoView={
           !lastStepVisible &&
           (lastStep.type === AutofixStepType.ROOT_CAUSE_ANALYSIS ||

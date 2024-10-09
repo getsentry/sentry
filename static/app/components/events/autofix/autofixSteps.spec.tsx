@@ -59,7 +59,7 @@ describe('AutofixSteps', () => {
 
     expect(screen.getByText('Root cause 1')).toBeInTheDocument();
     expect(
-      screen.getByPlaceholderText('Or propose your own root cause instead...')
+      screen.getByPlaceholderText('Provide any instructions for the fix...')
     ).toBeInTheDocument();
   });
 
@@ -72,9 +72,7 @@ describe('AutofixSteps', () => {
 
     render(<AutofixSteps {...defaultProps} />);
 
-    const input = screen.getByPlaceholderText(
-      'Or propose your own root cause instead...'
-    );
+    const input = screen.getByPlaceholderText('Provide any instructions for the fix...');
     await userEvent.type(input, 'Custom root cause');
     await userEvent.click(screen.getByRole('button', {name: 'Find a Fix'}));
 
@@ -143,7 +141,7 @@ describe('AutofixSteps', () => {
     render(<AutofixSteps {...defaultProps} />);
 
     const messageBox = screen.getByPlaceholderText(
-      'Or propose your own root cause instead...'
+      'Provide any instructions for the fix...'
     );
     expect(messageBox).toBeInTheDocument();
 

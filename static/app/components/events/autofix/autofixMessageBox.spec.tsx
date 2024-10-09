@@ -12,7 +12,6 @@ describe('AutofixMessageBox', () => {
     displayText: 'Test display text',
     groupId: '123',
     runId: '456',
-    inputPlaceholder: 'Test placeholder',
     actionText: 'Send',
     isDisabled: false,
     allowEmptyMessage: false,
@@ -31,7 +30,7 @@ describe('AutofixMessageBox', () => {
     render(<AutofixMessageBox {...defaultProps} />);
 
     expect(screen.getByText('Test display text')).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('Test placeholder')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Say something...')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Send'})).toBeInTheDocument();
   });
 
@@ -39,7 +38,7 @@ describe('AutofixMessageBox', () => {
     const onSendMock = jest.fn();
     render(<AutofixMessageBox {...defaultProps} onSend={onSendMock} />);
 
-    const input = screen.getByPlaceholderText('Test placeholder');
+    const input = screen.getByPlaceholderText('Say something...');
     await userEvent.type(input, 'Test message');
     await userEvent.click(screen.getByRole('button', {name: 'Send'}));
 
@@ -55,7 +54,7 @@ describe('AutofixMessageBox', () => {
 
     render(<AutofixMessageBox {...defaultProps} />);
 
-    const input = screen.getByPlaceholderText('Test placeholder');
+    const input = screen.getByPlaceholderText('Say something...');
     await userEvent.type(input, 'Test message');
     await userEvent.click(screen.getByRole('button', {name: 'Send'}));
 
@@ -78,7 +77,7 @@ describe('AutofixMessageBox', () => {
 
     render(<AutofixMessageBox {...defaultProps} />);
 
-    const input = screen.getByPlaceholderText('Test placeholder');
+    const input = screen.getByPlaceholderText('Say something...');
     await userEvent.type(input, 'Test message');
     await userEvent.click(screen.getByRole('button', {name: 'Send'}));
 
@@ -103,7 +102,7 @@ describe('AutofixMessageBox', () => {
   it('disables input and button when isDisabled is true', () => {
     render(<AutofixMessageBox {...defaultProps} isDisabled />);
 
-    expect(screen.getByPlaceholderText('Test placeholder')).toBeDisabled();
+    expect(screen.getByPlaceholderText('Say something...')).toBeDisabled();
     expect(screen.getByRole('button', {name: 'Send'})).toBeDisabled();
   });
 
@@ -113,5 +112,34 @@ describe('AutofixMessageBox', () => {
     expect(
       screen.getByPlaceholderText('Please answer to continue...')
     ).toBeInTheDocument();
+  });
+
+  it('handles suggested root cause selection correctly', async () => {
+    const onSendMock = jest.fn();
+    render(
+      <AutofixMessageBox {...defaultProps} onSend={onSendMock} isRootCauseSelectionStep />
+    );
+
+    // Test suggested root cause
+    const input = screen.getByPlaceholderText('Provide any instructions for the fix...');
+    await userEvent.type(input, 'Use this suggestion');
+    await userEvent.click(screen.getByRole('button', {name: 'Send'}));
+
+    expect(onSendMock).toHaveBeenCalledWith('Use this suggestion', false);
+  });
+
+  it('handles custom root cause selection correctly', async () => {
+    const onSendMock = jest.fn();
+    render(
+      <AutofixMessageBox {...defaultProps} onSend={onSendMock} isRootCauseSelectionStep />
+    );
+
+    // Test custom root cause
+    await userEvent.click(screen.getAllByText('Provide your own root cause')[0]);
+    const customInput = screen.getByPlaceholderText('Propose your own root cause...');
+    await userEvent.type(customInput, 'Custom root cause');
+    await userEvent.click(screen.getByRole('button', {name: 'Send'}));
+
+    expect(onSendMock).toHaveBeenCalledWith('Custom root cause', true);
   });
 });
