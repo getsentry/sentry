@@ -53,7 +53,7 @@ interface AutofixMessageBoxProps {
   displayText: string;
   groupId: string;
   isDisabled: boolean;
-  onSend: ((message: string, param?: boolean) => void) | null;
+  onSend: ((message: string, isCustom?: boolean) => void) | null;
   responseRequired: boolean;
   runId: string;
   step: AutofixStep | null;
