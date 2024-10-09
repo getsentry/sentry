@@ -236,8 +236,12 @@ def get_fingerprinting_config_for_project(
 def apply_server_fingerprinting(event, config, allow_custom_title=True):
     fingerprint_info = {}
 
-    client_fingerprint = event.get("fingerprint")
-    fingerprint_info["client_fingerprint"] = client_fingerprint
+    client_fingerprint = event.get("fingerprint", [])
+    client_fingerprint_is_default = len(client_fingerprint) == 1 and is_default_fingerprint_var(
+        client_fingerprint[0]
+    )
+    if client_fingerprint and not client_fingerprint_is_default:
+        fingerprint_info["client_fingerprint"] = client_fingerprint
 
     rv = config.get_fingerprint_values_for_event(event)
     if rv is not None:
