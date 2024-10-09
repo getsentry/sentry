@@ -1,3 +1,4 @@
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -16,7 +17,7 @@ from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallat
 @dataclass
 class AlertRuleActionCreator:
     install: SentryAppInstallation
-    fields: list[dict[str, Any]] = field(default_factory=list)
+    fields: list[Mapping[str, Any]] = field(default_factory=list)
 
     def run(self) -> AlertRuleActionResult:
         with transaction.atomic(router.db_for_write(SentryAppComponent)):
