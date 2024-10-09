@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from datetime import datetime, timezone
 
 from django.db import router
@@ -5,8 +6,6 @@ from django.utils.functional import cached_property
 
 from sentry import analytics
 from sentry.coreapi import APIUnauthorized
-from sentry.mediators.mediator import Mediator
-from sentry.mediators.param import Param
 from sentry.mediators.token_exchange.util import token_expiration
 from sentry.mediators.token_exchange.validator import Validator
 from sentry.models.apiapplication import ApiApplication
@@ -19,16 +18,16 @@ from sentry.silo.safety import unguarded_write
 from sentry.users.models.user import User
 
 
-class GrantExchanger(Mediator):
+@dataclass
+class GrantExchanger:
     """
     Exchanges a Grant Code for an Access Token
     """
 
-    install = Param(RpcSentryAppInstallation)
-    code = Param(str)
-    client_id = Param(str)
-    user = Param(User)
-    using = router.db_for_write(User)
+    install: RpcSentryAppInstallation
+    code: str
+    client_id: str
+    user: User
 
     def call(self):
         self._validate()
