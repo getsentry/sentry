@@ -35,14 +35,14 @@ class IssueLinkCreator:
             raise APIUnauthorized(f"Invalid action '{self.action}'")
 
     def _make_external_request(self) -> dict[str, Any]:
-        response = IssueLinkRequester.run(
+        response = IssueLinkRequester(
             install=self.install,
             uri=self.uri,
             group=self.group,
             fields=self.fields,
             user=self.user,
             action=self.action,
-        )
+        ).run()
         return response
 
     def _create_external_issue(self, response: dict[str, Any]) -> PlatformExternalIssue:

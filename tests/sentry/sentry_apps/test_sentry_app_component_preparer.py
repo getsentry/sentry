@@ -1,3 +1,5 @@
+from collections.abc import Mapping
+
 import responses
 
 from sentry.models.organization import Organization
@@ -180,7 +182,7 @@ class TestPreparerAlertRuleAction(TestCase):
     def test_prepares_components_requiring_requests(self):
 
         # these get passed as query params in the url as dependentData
-        dependent_data = [
+        dependent_data: list[Mapping[str, str]] = [
             {"name": "teamId", "value": "ecosystem"},
         ]
 
