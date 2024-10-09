@@ -119,7 +119,6 @@ export function SpansTable({}: SpansTableProps) {
                         column={columns[j]}
                         dataset={dataset}
                         data={row}
-                        field={field}
                         unit={meta?.units?.[field]}
                         meta={meta}
                       />

@@ -23,17 +23,17 @@ interface FieldProps {
   column: TableColumn<keyof TableDataRow>;
   data: EventData;
   dataset: DiscoverDatasets;
-  field: string;
   meta: MetaType;
   unit?: string;
 }
 
-export function FieldRenderer({data, dataset, field, meta, unit, column}: FieldProps) {
+export function FieldRenderer({data, dataset, meta, unit, column}: FieldProps) {
   const location = useLocation();
   const organization = useOrganization();
   const [userQuery, setUserQuery] = useUserQuery();
   const dateSelection = EventView.fromLocation(location).normalizeDateSelection(location);
   const query = new MutableSearch(userQuery);
+  const field = column.name;
 
   const renderer = getFieldRenderer(field, meta, false);
 
