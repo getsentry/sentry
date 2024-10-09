@@ -205,7 +205,8 @@ function ProjectSelection({hash, organizations = []}: Omit<Props, 'allowSelectio
     [orgProjectsRequest.data]
   );
 
-  const {options: cachedProjectOptions} = useCompactSelectOptionsCache(projectOptions);
+  const {options: cachedProjectOptions, clear: clearProjectOptions} =
+    useCompactSelectOptionsCache(projectOptions);
 
   // As the cache hook sorts the options by value, we need to sort them afterwards
   const sortedProjectOptions = useMemo(
@@ -246,6 +247,7 @@ function ProjectSelection({hash, organizations = []}: Omit<Props, 'allowSelectio
             if (value !== selectedOrgId) {
               setSelectedOrgId(value as string);
               setSelectedProjectId(null);
+              clearProjectOptions();
             }
           }}
         />
