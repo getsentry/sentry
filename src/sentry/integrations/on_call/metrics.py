@@ -23,7 +23,6 @@ class OnCallInteractionType(Enum):
     # Interacting with external alerts
     CREATE = "CREATE"  # create an alert in Opsgenie/Pagerduty
     RESOLVE = "RESOLVE"  # resolve an alert in Opsgenie/Pagerduty
-    SEND_NOTIFICATION = "SEND_NOTIFICATION"
 
     # Opsgenie only
     VERIFY_KEYS = "VERIFY_KEYS"

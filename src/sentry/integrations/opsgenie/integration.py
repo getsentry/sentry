@@ -217,13 +217,12 @@ class OpsgenieIntegration(IntegrationInstallation):
         return super().update_organization_config(data)
 
     def schedule_migrate_opsgenie_plugin(self):
-        with record_event(OnCallInteractionType.MIGRATE_PLUGIN).capture():
-            migrate_opsgenie_plugin.apply_async(
-                kwargs={
-                    "integration_id": self.model.id,
-                    "organization_id": self.organization_id,
-                }
-            )
+        migrate_opsgenie_plugin.apply_async(
+            kwargs={
+                "integration_id": self.model.id,
+                "organization_id": self.organization_id,
+            }
+        )
 
 
 class OpsgenieIntegrationProvider(IntegrationProvider):
