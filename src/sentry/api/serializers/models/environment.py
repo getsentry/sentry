@@ -1,5 +1,6 @@
 from collections import namedtuple
 from datetime import timedelta
+from typing import TypedDict
 
 from django.utils import timezone
 
@@ -11,15 +12,28 @@ from sentry.tsdb.base import TSDBModel
 StatsPeriod = namedtuple("StatsPeriod", ("segments", "interval"))
 
 
+class EnvironmentSerializerResponse(TypedDict):
+    id: str
+    name: str
+
+
+class EnvironmentProjectSerializerResponse(TypedDict):
+    id: str
+    name: str
+    isHidden: bool
+
+
 @register(Environment)
 class EnvironmentSerializer(Serializer):
-    def serialize(self, obj, attrs, user, **kwargs):
+    def serialize(self, obj: Environment, attrs, user, **kwargs) -> EnvironmentSerializerResponse:
         return {"id": str(obj.id), "name": obj.name}
 
 
 @register(EnvironmentProject)
 class EnvironmentProjectSerializer(Serializer):
-    def serialize(self, obj, attrs, user, **kwargs):
+    def serialize(
+        self, obj: EnvironmentProject, attrs, user, **kwargs
+    ) -> EnvironmentProjectSerializerResponse:
         return {
             "id": str(obj.id),
             "name": obj.environment.name,

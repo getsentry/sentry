@@ -96,6 +96,14 @@ class DatasetSourcesTypes(Enum):
      Was an ambiguous dataset forced to split (i.e. we picked a default)
     """
     FORCED = 3
+    """
+     Dataset inferred by split script, version 1
+    """
+    SPLIT_VERSION_1 = 4
+    """
+     Dataset inferred by split script, version 2
+    """
+    SPLIT_VERSION_2 = 5
 
     @classmethod
     def as_choices(cls):
