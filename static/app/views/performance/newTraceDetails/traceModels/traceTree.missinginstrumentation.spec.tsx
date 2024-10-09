@@ -141,7 +141,7 @@ describe('missing instrumentation', () => {
     TraceTree.FromSpans(
       tree.root.children[0].children[0],
       missingInstrumentationSpans,
-      makeEventTransaction()
+      makeEventTransaction({sdk: {name: 'sentry.javascript.browser', version: '1.0.0'}})
     );
 
     TraceTree.DetectMissingInstrumentation(
