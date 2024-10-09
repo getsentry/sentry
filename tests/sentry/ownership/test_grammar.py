@@ -125,19 +125,19 @@ def test_load_tag_schema() -> None:
 
 def test_matcher_test_url() -> None:
     data = {"request": {"url": "http://example.com/foo.js"}}
+    munged_data = Matcher.munge_if_needed(data)
 
-    assert Matcher("url", "*.js").test(data)
-    assert Matcher("url", "http://*.com/foo.js").test(data)
-    assert not Matcher("url", "*.py").test(data)
-    assert not Matcher("url", "*.jsx").test(data)
-    assert not Matcher("path", "*.js").test(data)
-    assert not Matcher("url", "*.js").test({})
+    assert Matcher("url", "*.js").test(data, munged_data)
+    assert Matcher("url", "http://*.com/foo.js").test(data, munged_data)
+    assert not Matcher("url", "*.py").test(data, munged_data)
+    assert not Matcher("url", "*.jsx").test(data, munged_data)
+    assert not Matcher("path", "*.js").test(data, munged_data)
+    assert not Matcher("url", "*.js").test({}, Matcher.munge_if_needed({}))
 
 
-def test_matcher_test_url_none() -> None:
-    assert not Matcher("url", "doesnt_matter").test({})
-    assert not Matcher("url", "doesnt_matter").test({"request": None})
-    assert not Matcher("url", "doesnt_matter").test({"request": {"url": None}})
+@pytest.mark.parametrize("data", [{}, {"request": None}, {"request": {"url": None}}])
+def test_matcher_test_url_none(data: Mapping[str, Any]) -> None:
+    assert not Matcher("url", "doesnt_matter").test(data, Matcher.munge_if_needed(data))
 
 
 def test_matcher_test_exception() -> None:
@@ -155,14 +155,15 @@ def test_matcher_test_exception() -> None:
             ]
         }
     }
+    munged_data = Matcher.munge_if_needed(data)
 
-    assert Matcher("path", "*.py").test(data)
-    assert Matcher("path", "foo/*.py").test(data)
-    assert Matcher("path", "/usr/local/src/*/app.py").test(data)
-    assert not Matcher("path", "*.js").test(data)
-    assert not Matcher("path", "*.jsx").test(data)
-    assert not Matcher("url", "*.py").test(data)
-    assert not Matcher("path", "*.py").test({})
+    assert Matcher("path", "*.py").test(data, munged_data)
+    assert Matcher("path", "foo/*.py").test(data, munged_data)
+    assert Matcher("path", "/usr/local/src/*/app.py").test(data, munged_data)
+    assert not Matcher("path", "*.js").test(data, munged_data)
+    assert not Matcher("path", "*.jsx").test(data, munged_data)
+    assert not Matcher("url", "*.py").test(data, munged_data)
+    assert not Matcher("path", "*.py").test({}, Matcher.munge_if_needed({}))
 
 
 def test_matcher_file_abs_path_same_frame() -> None:
@@ -179,9 +180,10 @@ def test_matcher_file_abs_path_same_frame() -> None:
             ]
         }
     }
+    munged_data = Matcher.munge_if_needed(data)
 
-    assert Matcher("path", "/usr/local/src/*/app.py").test(data)
-    assert Matcher("path", "*local/src/*").test(data)
+    assert Matcher("path", "/usr/local/src/*/app.py").test(data, munged_data)
+    assert Matcher("path", "*local/src/*").test(data, munged_data)
 
 
 def test_matcher_test_stacktrace() -> None:
@@ -190,14 +192,14 @@ def test_matcher_test_stacktrace() -> None:
             "frames": [{"filename": "foo/file.py"}, {"abs_path": "/usr/local/src/other/app.py"}]
         }
     }
+    munged_data = Matcher.munge_if_needed(data)
 
-    assert Matcher("path", "*.py").test(data)
-    assert Matcher("path", "foo/*.py").test(data)
-    assert Matcher("path", "/usr/local/src/*/app.py").test(data)
-    assert not Matcher("path", "*.js").test(data)
-    assert not Matcher("path", "*.jsx").test(data)
-    assert not Matcher("url", "*.py").test(data)
-    assert not Matcher("path", "*.py").test({})
+    assert Matcher("path", "*.py").test(data, munged_data)
+    assert Matcher("path", "foo/*.py").test(data, munged_data)
+    assert Matcher("path", "/usr/local/src/*/app.py").test(data, munged_data)
+    assert not Matcher("path", "*.js").test(data, munged_data)
+    assert not Matcher("path", "*.jsx").test(data, munged_data)
+    assert not Matcher("url", "*.py").test(data, munged_data)
 
 
 def test_matcher_test_threads() -> None:
@@ -215,17 +217,17 @@ def test_matcher_test_threads() -> None:
             ]
         }
     }
+    munged_data = Matcher.munge_if_needed(data)
 
-    assert Matcher("path", "*.py").test(data)
-    assert Matcher("path", "foo/*.py").test(data)
-    assert Matcher("path", "/usr/local/src/*/app.py").test(data)
-    assert Matcher("codeowners", "*.py").test(data)
-    assert Matcher("codeowners", "foo/*.py").test(data)
-    assert Matcher("codeowners", "/usr/local/src/*/app.py").test(data)
-    assert not Matcher("path", "*.js").test(data)
-    assert not Matcher("path", "*.jsx").test(data)
-    assert not Matcher("url", "*.py").test(data)
-    assert not Matcher("path", "*.py").test({})
+    assert Matcher("path", "*.py").test(data, munged_data)
+    assert Matcher("path", "foo/*.py").test(data, munged_data)
+    assert Matcher("path", "/usr/local/src/*/app.py").test(data, munged_data)
+    assert Matcher("codeowners", "*.py").test(data, munged_data)
+    assert Matcher("codeowners", "foo/*.py").test(data, munged_data)
+    assert Matcher("codeowners", "/usr/local/src/*/app.py").test(data, munged_data)
+    assert not Matcher("path", "*.js").test(data, munged_data)
+    assert not Matcher("path", "*.jsx").test(data, munged_data)
+    assert not Matcher("url", "*.py").test(data, munged_data)
 
 
 def test_matcher_test_platform_java_threads() -> None:
@@ -246,17 +248,19 @@ def test_matcher_test_platform_java_threads() -> None:
             ]
         },
     }
+    munged_data = Matcher.munge_if_needed(data)
 
-    assert Matcher("path", "*.java").test(data)
-    assert Matcher("path", "jdk/internal/reflect/*.java").test(data)
-    assert Matcher("path", "jdk/internal/*/NativeMethodAccessorImpl.java").test(data)
-    assert Matcher("codeowners", "*.java").test(data)
-    assert Matcher("codeowners", "jdk/internal/reflect/*.java").test(data)
-    assert Matcher("codeowners", "jdk/internal/*/NativeMethodAccessorImpl.java").test(data)
-    assert not Matcher("path", "*.js").test(data)
-    assert not Matcher("path", "*.jsx").test(data)
-    assert not Matcher("url", "*.py").test(data)
-    assert not Matcher("path", "*.py").test({})
+    assert Matcher("path", "*.java").test(data, munged_data)
+    assert Matcher("path", "jdk/internal/reflect/*.java").test(data, munged_data)
+    assert Matcher("path", "jdk/internal/*/NativeMethodAccessorImpl.java").test(data, munged_data)
+    assert Matcher("codeowners", "*.java").test(data, munged_data)
+    assert Matcher("codeowners", "jdk/internal/reflect/*.java").test(data, munged_data)
+    assert Matcher("codeowners", "jdk/internal/*/NativeMethodAccessorImpl.java").test(
+        data, munged_data
+    )
+    assert not Matcher("path", "*.js").test(data, munged_data)
+    assert not Matcher("path", "*.jsx").test(data, munged_data)
+    assert not Matcher("url", "*.py").test(data, munged_data)
 
 
 def test_matcher_test_platform_cocoa_threads() -> None:
@@ -278,24 +282,30 @@ def test_matcher_test_platform_cocoa_threads() -> None:
             ]
         },
     }
+    munged_data = Matcher.munge_if_needed(data)
 
-    assert Matcher("path", "*.swift").test(data)
-    assert Matcher("path", "SampleProject/Classes/App Delegate/AppDelegate.swift").test(data)
+    assert Matcher("path", "*.swift").test(data, munged_data)
+    assert Matcher("path", "SampleProject/Classes/App Delegate/AppDelegate.swift").test(
+        data, munged_data
+    )
     assert not Matcher(
         "path", "SwiftySampleProject/SampleProject/Classes/App Delegate/AppDelegate.swift"
-    ).test(data)
-    assert Matcher("path", "**/App Delegate/AppDelegate.swift").test(data)
-    assert Matcher("codeowners", "*.swift").test(data)
-    assert Matcher("codeowners", "SampleProject/Classes/App Delegate/*.swift").test(data)
-    assert Matcher("codeowners", "SampleProject/Classes/App Delegate/AppDelegate.swift").test(data)
+    ).test(data, munged_data)
+    assert Matcher("path", "**/App Delegate/AppDelegate.swift").test(data, munged_data)
+    assert Matcher("codeowners", "*.swift").test(data, munged_data)
+    assert Matcher("codeowners", "SampleProject/Classes/App Delegate/*.swift").test(
+        data, munged_data
+    )
+    assert Matcher("codeowners", "SampleProject/Classes/App Delegate/AppDelegate.swift").test(
+        data, munged_data
+    )
     assert not Matcher(
         "codeowners", "SwiftySampleProject/SampleProject/Classes/App Delegate/AppDelegate.swift"
-    ).test(data)
-    assert Matcher("codeowners", "**/App Delegate/AppDelegate.swift").test(data)
-    assert not Matcher("path", "*.js").test(data)
-    assert not Matcher("path", "*.jsx").test(data)
-    assert not Matcher("url", "*.py").test(data)
-    assert not Matcher("path", "*.py").test({})
+    ).test(data, munged_data)
+    assert Matcher("codeowners", "**/App Delegate/AppDelegate.swift").test(data, munged_data)
+    assert not Matcher("path", "*.js").test(data, munged_data)
+    assert not Matcher("path", "*.jsx").test(data, munged_data)
+    assert not Matcher("url", "*.py").test(data, munged_data)
 
 
 def test_matcher_test_platform_react_native() -> None:
@@ -338,21 +348,22 @@ def test_matcher_test_platform_react_native() -> None:
             ],
         },
     }
+    munged_data = Matcher.munge_if_needed(data)
 
-    assert Matcher("path", "src/screens/EndToEndTestsScreen.tsx").test(data)
-    assert Matcher("path", "src/*/EndToEndTestsScreen.tsx").test(data)
-    assert Matcher("path", "*/EndToEndTestsScreen.tsx").test(data)
-    assert Matcher("path", "**/EndToEndTestsScreen.tsx").test(data)
-    assert Matcher("path", "*.tsx").test(data)
-    assert Matcher("codeowners", "src/screens/EndToEndTestsScreen.tsx").test(data)
-    assert Matcher("codeowners", "*.tsx").test(data)
-    assert not Matcher("url", "*.tsx").test(data)
+    assert Matcher("path", "src/screens/EndToEndTestsScreen.tsx").test(data, munged_data)
+    assert Matcher("path", "src/*/EndToEndTestsScreen.tsx").test(data, munged_data)
+    assert Matcher("path", "*/EndToEndTestsScreen.tsx").test(data, munged_data)
+    assert Matcher("path", "**/EndToEndTestsScreen.tsx").test(data, munged_data)
+    assert Matcher("path", "*.tsx").test(data, munged_data)
+    assert Matcher("codeowners", "src/screens/EndToEndTestsScreen.tsx").test(data, munged_data)
+    assert Matcher("codeowners", "*.tsx").test(data, munged_data)
+    assert not Matcher("url", "*.tsx").test(data, munged_data)
 
     # external lib matching still works
-    assert Matcher("path", "**/Libraries/BatchedBridge/MessageQueue.js").test(data)
+    assert Matcher("path", "**/Libraries/BatchedBridge/MessageQueue.js").test(data, munged_data)
 
     # we search on filename and abs_path, if a user explicitly tests on the abs_path, we let them
-    assert Matcher("path", "app:///src/screens/EndToEndTestsScreen.tsx").test(data)
+    assert Matcher("path", "app:///src/screens/EndToEndTestsScreen.tsx").test(data, munged_data)
 
 
 def test_matcher_test_platform_other_flutter() -> None:
@@ -407,21 +418,22 @@ def test_matcher_test_platform_other_flutter() -> None:
             ]
         },
     }
+    munged_data = Matcher.munge_if_needed(data)
 
-    assert Matcher("path", "a/b/test.dart").test(data)
-    assert Matcher("path", "a/*/test.dart").test(data)
-    assert Matcher("path", "*/test.dart").test(data)
-    assert Matcher("path", "**/test.dart").test(data)
-    assert Matcher("path", "*.dart").test(data)
-    assert Matcher("codeowners", "a/b/test.dart").test(data)
-    assert Matcher("codeowners", "*.dart").test(data)
-    assert not Matcher("url", "*.dart").test(data)
+    assert Matcher("path", "a/b/test.dart").test(data, munged_data)
+    assert Matcher("path", "a/*/test.dart").test(data, munged_data)
+    assert Matcher("path", "*/test.dart").test(data, munged_data)
+    assert Matcher("path", "**/test.dart").test(data, munged_data)
+    assert Matcher("path", "*.dart").test(data, munged_data)
+    assert Matcher("codeowners", "a/b/test.dart").test(data, munged_data)
+    assert Matcher("codeowners", "*.dart").test(data, munged_data)
+    assert not Matcher("url", "*.dart").test(data, munged_data)
 
     # non in-app/user code still works here,
-    assert Matcher("path", "src/material/ink_well.dart").test(data)
+    assert Matcher("path", "src/material/ink_well.dart").test(data, munged_data)
 
     # we search on filename and abs_path, if a user explicitly tests on the abs_path, we let them
-    assert Matcher("path", "package:sentry_flutter_example/a/b/test.dart").test(data)
+    assert Matcher("path", "package:sentry_flutter_example/a/b/test.dart").test(data, munged_data)
 
 
 def test_matcher_test_platform_none_threads() -> None:
@@ -441,33 +453,38 @@ def test_matcher_test_platform_none_threads() -> None:
             ]
         },
     }
+    munged_data = Matcher.munge_if_needed(data)
 
     # since no platform, we won't be able to fully-qualify(filename munge) based off module and filename
     # matching will still work based on just the filename, but we won't be able to match on the src path
-    assert Matcher("path", "NativeMethodAccessorImpl.java").test(data)
-    assert Matcher("path", "*.java").test(data)
-    assert Matcher("codeowners", "NativeMethodAccessorImpl.java").test(data)
-    assert Matcher("codeowners", "*.java").test(data)
-    assert not Matcher("path", "jdk/internal/reflect/*.java").test(data)
-    assert not Matcher("path", "jdk/internal/*/NativeMethodAccessorImpl.java").test(data)
-    assert not Matcher("path", "*.js").test(data)
-    assert not Matcher("path", "*.jsx").test(data)
-    assert not Matcher("codeowners", "jdk/internal/reflect/*.java").test(data)
-    assert not Matcher("codeowners", "jdk/internal/*/NativeMethodAccessorImpl.java").test(data)
-    assert not Matcher("codeowners", "*.js").test(data)
-    assert not Matcher("codeowners", "*.jsx").test(data)
-    assert not Matcher("url", "*.py").test(data)
-    assert not Matcher("path", "*.py").test({})
+    assert Matcher("path", "NativeMethodAccessorImpl.java").test(data, munged_data)
+    assert Matcher("path", "*.java").test(data, munged_data)
+    assert Matcher("codeowners", "NativeMethodAccessorImpl.java").test(data, munged_data)
+    assert Matcher("codeowners", "*.java").test(data, munged_data)
+    assert not Matcher("path", "jdk/internal/reflect/*.java").test(data, munged_data)
+    assert not Matcher("path", "jdk/internal/*/NativeMethodAccessorImpl.java").test(
+        data, munged_data
+    )
+    assert not Matcher("path", "*.js").test(data, munged_data)
+    assert not Matcher("path", "*.jsx").test(data, munged_data)
+    assert not Matcher("codeowners", "jdk/internal/reflect/*.java").test(data, munged_data)
+    assert not Matcher("codeowners", "jdk/internal/*/NativeMethodAccessorImpl.java").test(
+        data, munged_data
+    )
+    assert not Matcher("codeowners", "*.js").test(data, munged_data)
+    assert not Matcher("codeowners", "*.jsx").test(data, munged_data)
+    assert not Matcher("url", "*.py").test(data, munged_data)
 
 
 def test_matcher_test_tags() -> None:
     data = {
         "tags": [["foo", "foo_value"], ["bar", "barval"]],
     }
+    munged_data = Matcher.munge_if_needed(data)
 
-    assert Matcher("tags.foo", "foo_value").test(data)
-    assert Matcher("tags.bar", "barval").test(data)
-    assert not Matcher("tags.barz", "barval").test(data)
+    assert Matcher("tags.foo", "foo_value").test(data, munged_data)
+    assert Matcher("tags.bar", "barval").test(data, munged_data)
+    assert not Matcher("tags.barz", "barval").test(data, munged_data)
 
 
 def test_matcher_test_module() -> None:
@@ -492,20 +509,25 @@ def test_matcher_test_module() -> None:
             ]
         },
     }
-    assert Matcher("module", "*os.Init").test(data)
-    assert Matcher("module", "*somethinginthemiddle*").test(data)
-    assert Matcher("module", "com.android.internal.os.RuntimeInit$MethodAndArgsCaller").test(data)
-    assert Matcher("module", "com.android*").test(data)
-    assert not Matcher("module", "com.android").test(data)
-    assert not Matcher("module", "os.Init").test(data)
-    assert not Matcher("module", "*somethingattheend").test(data)
-    assert not Matcher("module", "com.android.internal.os").test(data)
+    munged_data = Matcher.munge_if_needed(data)
+
+    assert Matcher("module", "*os.Init").test(data, munged_data)
+    assert Matcher("module", "*somethinginthemiddle*").test(data, munged_data)
+    assert Matcher("module", "com.android.internal.os.RuntimeInit$MethodAndArgsCaller").test(
+        data, munged_data
+    )
+    assert Matcher("module", "com.android*").test(data, munged_data)
+    assert not Matcher("module", "com.android").test(data, munged_data)
+    assert not Matcher("module", "os.Init").test(data, munged_data)
+    assert not Matcher("module", "*somethingattheend").test(data, munged_data)
+    assert not Matcher("module", "com.android.internal.os").test(data, munged_data)
 
 
 @pytest.mark.parametrize("data", [{}, {"tags": None}, {"tags": [None]}])
 def test_matcher_test_tags_without_tag_data(data: Mapping[str, Any]) -> None:
-    assert not Matcher("tags.foo", "foo_value").test(data)
-    assert not Matcher("tags.bar", "barval").test(data)
+    munged_data = Matcher.munge_if_needed(data)
+    assert not Matcher("tags.foo", "foo_value").test(data, munged_data)
+    assert not Matcher("tags.bar", "barval").test(data, munged_data)
 
 
 def _assert_matcher(
@@ -513,7 +535,7 @@ def _assert_matcher(
 ) -> None:
     """Helper function to reduce repeated code"""
     frames = {"stacktrace": {"frames": path_details}}
-    assert matcher.test(frames) == expected
+    assert matcher.test(frames, Matcher.munge_if_needed(frames)) == expected
 
 
 @pytest.mark.parametrize(
@@ -903,11 +925,12 @@ def test_codeowners_match_threads() -> None:
             ]
         }
     }
+    munged_data = Matcher.munge_if_needed(data)
 
-    assert Matcher("codeowners", "*.py").test(data)
-    assert Matcher("codeowners", "foo/file.py").test(data)
-    assert Matcher("codeowners", "/**/app.py").test(data)
-    assert Matcher("codeowners", "/usr/*/src/*/app.py").test(data)
+    assert Matcher("codeowners", "*.py").test(data, munged_data)
+    assert Matcher("codeowners", "foo/file.py").test(data, munged_data)
+    assert Matcher("codeowners", "/**/app.py").test(data, munged_data)
+    assert Matcher("codeowners", "/usr/*/src/*/app.py").test(data, munged_data)
 
 
 def test_parse_code_owners() -> None:
