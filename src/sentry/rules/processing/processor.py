@@ -306,7 +306,6 @@ class RuleProcessor:
         state = self.get_state()
         condition_list, filter_list = split_conditions_and_filters(rule.data.get("conditions", ()))
         fast_conditions, slow_conditions = self.group_conditions_by_speed(condition_list)
-        condition_list = fast_conditions
 
         # evaluate all filters and return if they fail, then do the enqueue logic for conditions
         if filter_list:
@@ -337,16 +336,15 @@ class RuleProcessor:
             return
 
         if slow_conditions or fast_conditions:
-            predicate_iter = (self.condition_matches(f, state, rule) for f in condition_list)
+            predicate_iter = (self.condition_matches(f, state, rule) for f in fast_conditions)
             result = False
             if predicate_func:
                 result = predicate_func(predicate_iter)
 
             if condition_match == "any":
-                if not result and slow_conditions:
-                    self.enqueue_rule(rule)
-                    return
-                elif not result:
+                if not result:
+                    if slow_conditions:
+                        self.enqueue_rule(rule)
                     return
 
             elif condition_match == "all":
