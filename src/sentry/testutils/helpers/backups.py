@@ -533,9 +533,7 @@ class ExhaustiveFixtures(Fixtures):
         )
 
         # Dashboard
-        permissions = DashboardPermissions.objects.create(
-            created_by_id=owner_id, is_creator_only_editable=False
-        )
+        permissions = DashboardPermissions.objects.create(is_creator_only_editable=False)
         dashboard = Dashboard.objects.create(
             title=f"Dashboard 1 for {slug}",
             created_by_id=owner_id,
