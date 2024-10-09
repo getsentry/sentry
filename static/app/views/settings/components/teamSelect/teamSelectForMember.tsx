@@ -150,7 +150,7 @@ function TeamRow({
         </Link>
       </div>
 
-      <div>
+      <div style={{whiteSpace: 'nowrap'}}>
         <TeamRoleSelect
           disabled={disabled}
           size="xs"
