@@ -5,6 +5,8 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconInfo, IconQuestion} from 'sentry/icons';
 import type {IconSize} from 'sentry/utils/theme';
 
+import {Button} from './button';
+
 interface QuestionProps
   extends Partial<
     Pick<
@@ -36,11 +38,13 @@ function QuestionTooltip({
   return (
     <QuestionIconContainer size={size} className={className}>
       <Tooltip title={title} {...tooltipProps}>
-        {icon === 'info' ? (
-          <IconInfo size={size} color="subText" data-test-id="more-information" />
-        ) : (
-          <IconQuestion size={size} color="subText" data-test-id="more-information" />
-        )}
+        <TooltipTriggerButton borderless size="xs">
+          {icon === 'info' ? (
+            <IconInfo size={size} color="subText" data-test-id="more-information" />
+          ) : (
+            <IconQuestion size={size} color="subText" data-test-id="more-information" />
+          )}
+        </TooltipTriggerButton>
       </Tooltip>
     </QuestionIconContainer>
   );
@@ -59,6 +63,13 @@ const QuestionIconContainer = styled('span')<Pick<QuestionProps, 'size' | 'class
       opacity: 1;
     }
   }
+`;
+
+const TooltipTriggerButton = styled(Button)`
+  padding: 0;
+  min-height: 0;
+  width: auto;
+  height: auto;
 `;
 
 export default QuestionTooltip;
