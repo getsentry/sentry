@@ -257,9 +257,6 @@ def apply_server_fingerprinting(event, config, allow_custom_title=True):
         # dictionary for later debugging.
         fingerprint_info["matched_rule"] = rule.to_json()
 
-        if rule.is_builtin:
-            fingerprint_info["is_builtin"] = True
-
     if fingerprint_info:
         event["_fingerprint_info"] = fingerprint_info
 
@@ -353,7 +350,7 @@ def get_grouping_variants_for_event(
             rv[key] = ComponentVariant(component, context.config)
 
         fingerprint = resolve_fingerprint_values(fingerprint, event.data)
-        if fingerprint_info and fingerprint_info.get("is_builtin", False):
+        if (fingerprint_info or {}).get("matched_rule", {}).get("is_builtin") is True:
             rv["built-in-fingerprint"] = BuiltInFingerprintVariant(fingerprint, fingerprint_info)
         else:
             rv["custom-fingerprint"] = CustomFingerprintVariant(fingerprint, fingerprint_info)
