@@ -129,7 +129,16 @@ function ProjectSelection({hash, organizations = []}: Omit<Props, 'allowSelectio
     if (organizations.length === 1) {
       return organizations[0].id;
     }
-    // Pre-fill the last used org if there are multiple
+
+    const urlParams = new URLSearchParams(location.search);
+    const orgSlug = urlParams.get('org_slug');
+    const orgMatchingSlug = orgSlug && organizations.find(org => org.slug === orgSlug);
+
+    if (orgMatchingSlug) {
+      return orgMatchingSlug.id;
+    }
+
+    // Pre-fill the last used org if there are multiple and no URL param
     if (lastOrganization) {
       return lastOrganization.id;
     }
