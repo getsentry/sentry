@@ -115,7 +115,7 @@ export function Exception({
               groupingCurrentLevel={groupingCurrentLevel}
               meta={meta}
             />
-            {hasStreamlinedUI && (
+            {hasStreamlinedUI && group && (
               <ErrorBoundary
                 mini
                 message={t('There was an error loading the suspect commits')}

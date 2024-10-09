@@ -354,7 +354,7 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
                 </ErrorBoundary>
               )}
               {renderContent(childrenProps)}
-              {hasStreamlinedUI && (
+              {hasStreamlinedUI && group && (
                 <ErrorBoundary
                   mini
                   message={t('There was an error loading the suspect commits')}
