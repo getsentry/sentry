@@ -103,6 +103,7 @@ class OrganizationAlertRuleAvailableActionIndexEndpointTest(APITestCase):
                 metadata={"services": SERVICES},
             )
             org_integration = integration.add_organization(self.organization, self.user)
+            assert org_integration is not None
             service = add_service(
                 org_integration,
                 service_name=service_name,

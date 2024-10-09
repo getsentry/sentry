@@ -424,7 +424,7 @@ class IntegrationInstallation(abc.ABC):
         """
         raise NotImplementedError
 
-    def get_keyring_client(self, keyid: str) -> Any:
+    def get_keyring_client(self, keyid: int | str) -> Any:
         """
         Return an API client with a scoped key based on the key_name.
 

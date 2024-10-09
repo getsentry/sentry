@@ -3146,7 +3146,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest):
             self.action,
             type,
             target_type,
-            target_identifier=target_identifier,
+            target_identifier=str(target_identifier),
             integration_id=integration.id,
         )
 

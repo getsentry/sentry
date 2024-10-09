@@ -312,7 +312,7 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
                 metadata={"services": [service_info]},
             )
             integration.add_organization(self.organization, self.user)
-            org_integration = integration.organizationintegration_set.first()
+            org_integration = integration.organizationintegration_set.get()
             service = add_service(
                 org_integration,
                 service_name=service_info["service_name"],
