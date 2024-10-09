@@ -156,7 +156,7 @@
     "react-lazyload": "^3.2.1",
     "react-mentions": "4.4.10",
     "react-popper": "^2.3.0",
-    "react-router-dom": "^6.23.0",
+    "react-router-dom": "^6.26.2",
     "react-select": "4.3.1",
     "react-sparklines": "1.7.0",
     "react-virtualized": "^9.22.5",
@@ -265,7 +265,9 @@
       "last 3 iOS major versions",
       "Firefox ESR"
     ],
-    "test": ["current node"]
+    "test": [
+      "current node"
+    ]
   },
   "volta": {
     "extends": ".volta.json"
