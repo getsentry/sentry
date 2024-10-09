@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import type {DataZoomComponentOption, LegendComponentOption} from 'echarts';
 import type {Location} from 'history';
@@ -6,7 +6,6 @@ import type {Location} from 'history';
 import type {Client} from 'sentry/api';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {WidgetViewerQueryField} from 'sentry/components/modals/widgetViewerModal/utils';
 import type {PageFilters} from 'sentry/types/core';
 import type {EChartEventHandler, Series} from 'sentry/types/echarts';
 import type {Organization} from 'sentry/types/organization';
@@ -17,17 +16,13 @@ import useRouter from 'sentry/utils/useRouter';
 
 import type {DashboardFilters, Widget} from '../types';
 import {WidgetType} from '../types';
-import {
-  formatSeriesNameForLegend,
-  getLegendUnselected,
-  updateLegendQueryParam,
-} from '../utils';
 
 import type {AugmentedEChartDataZoomHandler} from './chart';
 import WidgetCardChart from './chart';
 import {IssueWidgetCard} from './issueWidgetCard';
 import IssueWidgetQueries from './issueWidgetQueries';
 import ReleaseWidgetQueries from './releaseWidgetQueries';
+import WidgetLegendFunctions from './widgetLegendUtils';
 import WidgetQueries from './widgetQueries';
 
 type Props = {
@@ -61,6 +56,7 @@ type Props = {
   shouldResize?: boolean;
   showSlider?: boolean;
   tableItemLimit?: number;
+  widgets?: Widget[];
   windowWidth?: number;
 };
 
@@ -69,6 +65,7 @@ export function WidgetCardChartContainer({
   organization,
   selection,
   widget,
+  widgets,
   dashboardFilters,
   isMobile,
   renderErrorMessage,
@@ -89,10 +86,10 @@ export function WidgetCardChartContainer({
   const location = useLocation();
   const router = useRouter();
 
+  const legendFunctions = useMemo(() => new WidgetLegendFunctions(), []);
+
   const [disabledLegends, setDisabledLegends] = useState<{[key: string]: boolean}>(
-    location.query[WidgetViewerQueryField.LEGEND]
-      ? getLegendUnselected(location, widget)
-      : {}
+    legendFunctions.getLegendUnselected(location, widget, 'unselectedSeries')
   );
 
   if (widget.widgetType === WidgetType.ISSUE) {
@@ -135,7 +132,15 @@ export function WidgetCardChartContainer({
     type: 'legendselectchanged';
   }) {
     setDisabledLegends(selected);
-    updateLegendQueryParam(selected, location, widget, router);
+    legendFunctions.updateLegendQueryParam(
+      selected,
+      location,
+      widget,
+      router,
+      'unselectedSeries',
+      organization,
+      widgets
+    );
   }
 
   if (widget.widgetType === WidgetType.RELEASE) {
@@ -151,14 +156,12 @@ export function WidgetCardChartContainer({
       >
         {({tableResults, timeseriesResults, errorMessage, loading}) => {
           // Bind timeseries to widget for ability to control each widget's legend individually
-          const modifiedTimeseriesResults = timeseriesResults
-            ? timeseriesResults.map(series => {
-                return {
-                  ...series,
-                  seriesName: formatSeriesNameForLegend(series.seriesName, widget.id),
-                };
-              })
-            : undefined;
+          // NOTE: e-charts legends control all charts that have the same series name so attaching
+          // widget id will differentiate the charts allowing them to be controlled individually
+          const modifiedTimeseriesResults = legendFunctions.modifyTimeseriesNames(
+            widget,
+            timeseriesResults
+          );
           return (
             <Fragment>
               {typeof renderErrorMessage === 'function'
@@ -216,14 +219,10 @@ export function WidgetCardChartContainer({
         timeseriesResultsTypes,
       }) => {
         // Bind timeseries to widget for ability to control each widget's legend individually
-        const modifiedTimeseriesResults = timeseriesResults
-          ? timeseriesResults.map(series => {
-              return {
-                ...series,
-                seriesName: formatSeriesNameForLegend(series.seriesName, widget.id),
-              };
-            })
-          : undefined;
+        const modifiedTimeseriesResults = legendFunctions.modifyTimeseriesNames(
+          widget,
+          timeseriesResults
+        );
         return (
           <Fragment>
             {typeof renderErrorMessage === 'function'

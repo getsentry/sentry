@@ -53,10 +53,7 @@ import {
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import {
-  eventViewFromWidget,
-  formatSeriesNameForLegend,
-} from 'sentry/views/dashboards/utils';
+import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {AutoSizedText} from 'sentry/views/dashboards/widgetCard/autoSizedText';
 
 import {getFormatter} from '../../../components/charts/components/tooltip';
@@ -65,6 +62,7 @@ import type {Widget} from '../types';
 import {DisplayType} from '../types';
 
 import type {GenericWidgetQueriesChildrenProps} from './genericWidgetQueries';
+import WidgetLegendFunctions from './widgetLegendUtils';
 
 const OTHER = 'Other';
 const PERCENTAGE_DECIMAL_POINTS = 3;
@@ -356,12 +354,13 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
     const {start, end, period, utc} = selection.datetime;
     const {projects, environments} = selection;
 
+    const legendFunctions = new WidgetLegendFunctions();
     const legend = {
       left: 0,
       top: 0,
       selected: getSeriesSelection(location),
       formatter: (seriesName: string) => {
-        seriesName = seriesName.split(':')[0];
+        seriesName = legendFunctions.decodeSeriesNameForLegend(seriesName);
         const arg = getAggregateArg(seriesName);
         if (arg !== null) {
           const slug = getMeasurementSlug(arg);
@@ -549,17 +548,10 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
             >
               {({releaseSeries}) => {
                 // make series name into seriesName:widgetId form for individual widget legend control
-                const modifiedReleaseSeriesResults = releaseSeries
-                  ? releaseSeries.map(releases => {
-                      return {
-                        ...releases,
-                        seriesName: formatSeriesNameForLegend(
-                          releases.seriesName,
-                          widget.id
-                        ),
-                      };
-                    })
-                  : [];
+                // NOTE: e-charts legends control all charts that have the same series name so attaching
+                // widget id will differentiate the charts allowing them to be controlled individually
+                const modifiedReleaseSeriesResults =
+                  legendFunctions.modifyTimeseriesNames(widget, releaseSeries);
                 return (
                   <TransitionChart loading={loading} reloading={loading}>
                     <LoadingScreen loading={loading} />

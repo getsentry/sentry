@@ -97,6 +97,7 @@ type Props = WithRouterProps & {
   showContextMenu?: boolean;
   showStoredAlert?: boolean;
   tableItemLimit?: number;
+  widgets?: Widget[];
   windowWidth?: number;
 };
 
@@ -232,6 +233,7 @@ class WidgetCard extends Component<Props, State> {
       organization,
       selection,
       widget,
+      widgets,
       isMobile,
       renderErrorMessage,
       tableItemLimit,
@@ -358,6 +360,7 @@ class WidgetCard extends Component<Props, State> {
                     organization={organization}
                     selection={selection}
                     widget={widget}
+                    widgets={widgets}
                     isMobile={isMobile}
                     renderErrorMessage={renderErrorMessage}
                     tableItemLimit={tableItemLimit}
@@ -378,6 +381,7 @@ class WidgetCard extends Component<Props, State> {
                       organization={organization}
                       selection={selection}
                       widget={widget}
+                      widgets={widgets}
                       isMobile={isMobile}
                       renderErrorMessage={renderErrorMessage}
                       tableItemLimit={tableItemLimit}

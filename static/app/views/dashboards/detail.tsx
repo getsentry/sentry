@@ -45,7 +45,6 @@ import withProjects from 'sentry/utils/withProjects';
 import {defaultMetricWidget} from 'sentry/views/dashboards/metrics/utils';
 import {
   cloneDashboard,
-  formatLegendDefaultQuery,
   getCurrentPageFilters,
   getDashboardFiltersFromURL,
   hasUnsavedFilterChanges,
@@ -59,6 +58,7 @@ import {generatePerformanceEventView} from '../performance/data';
 import {MetricsDataSwitcher} from '../performance/landing/metricsDataSwitcher';
 import {DiscoverQueryPageSource} from '../performance/utils';
 
+import WidgetLegendFunctions from './widgetCard/widgetLegendUtils';
 import type {WidgetViewerContextProps} from './widgetViewer/widgetViewerContext';
 import {WidgetViewerContext} from './widgetViewer/widgetViewerContext';
 import Controls from './controls';
@@ -83,7 +83,6 @@ import {
   DashboardFilterKeys,
   DashboardState,
   DashboardWidgetSource,
-  DisplayType,
   MAX_WIDGETS,
   WidgetType,
 } from './types';
@@ -218,6 +217,7 @@ class DashboardDetail extends Component<Props, State> {
           tableData,
           pageLinks,
           totalIssuesCount,
+          widgets: dashboard.widgets,
           dashboardFilters: getDashboardFiltersFromURL(location) ?? dashboard.filters,
           onMetricWidgetEdit: (updatedWidget: Widget) => {
             const widgets = [...dashboard.widgets];
@@ -229,10 +229,7 @@ class DashboardDetail extends Component<Props, State> {
           },
           onClose: () => {
             // Filter out Widget Viewer Modal query params when exiting the Modal
-            const query = omit(
-              location.query,
-              Object.values(omit(WidgetViewerQueryField, 'LEGEND'))
-            );
+            const query = omit(location.query, Object.values(WidgetViewerQueryField));
             router.push({
               pathname: location.pathname.replace(/widget\/[0-9]+\/$/, ''),
               query,
@@ -451,6 +448,7 @@ class DashboardDetail extends Component<Props, State> {
   handleUpdateWidgetList = (widgets: Widget[]) => {
     const {organization, dashboard, api, onDashboardUpdate, location} = this.props;
     const {modifiedDashboard} = this.state;
+    const legendFunctions = new WidgetLegendFunctions();
 
     // Use the new widgets for calculating layout because widgets has
     // the most up to date information in edit state
@@ -475,26 +473,11 @@ class DashboardDetail extends Component<Props, State> {
             modifiedDashboard: null,
           });
         }
-        const legendQuery = organization.features.includes(
-          'dashboards-releases-on-charts'
-        )
-          ? newDashboard.widgets
-              .filter(
-                widget =>
-                  widget.displayType === DisplayType.LINE ||
-                  widget.displayType === DisplayType.AREA
-              )
-              .map(widget => {
-                const widgetRegex = new RegExp(`/^${widget.id}-.*`);
-                const widgetIdMatches = location.query.legend.filter(legend =>
-                  widgetRegex.test(legend)
-                );
-                if (widgetIdMatches.length) {
-                  return widgetIdMatches[0];
-                }
-                return formatLegendDefaultQuery(widget.id);
-              })
-          : location.query.legend;
+        const legendQuery = legendFunctions.updatedLegendQueryOnWidgetChange(
+          organization,
+          newDashboard,
+          location
+        );
 
         addSuccessMessage(t('Dashboard updated'));
         if (dashboard && newDashboard.id !== dashboard.id) {
@@ -503,7 +486,7 @@ class DashboardDetail extends Component<Props, State> {
               pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
               query: {
                 ...location.query,
-                legend: legendQuery,
+                unselectedSeries: legendQuery,
               },
             })
           );
@@ -513,7 +496,7 @@ class DashboardDetail extends Component<Props, State> {
               pathname: `/organizations/${organization.slug}/dashboard/${dashboard.id}/`,
               query: {
                 ...location.query,
-                legend: legendQuery,
+                unselectedSeries: legendQuery,
               },
             })
           );

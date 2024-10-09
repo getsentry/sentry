@@ -16,6 +16,7 @@ type Props = {
   onEdit: () => void;
   widget: Widget;
   widgetLimitReached: boolean;
+  widgets: Widget[];
   dashboardFilters?: DashboardFilters;
   isMobile?: boolean;
   isPreview?: boolean;
@@ -25,6 +26,7 @@ type Props = {
 function SortableWidget(props: Props) {
   const {
     widget,
+    widgets,
     isEditingDashboard,
     widgetLimitReached,
     onDelete,
@@ -39,6 +41,7 @@ function SortableWidget(props: Props) {
 
   const widgetProps: ComponentProps<typeof WidgetCard> = {
     widget,
+    widgets,
     isEditingDashboard,
     widgetLimitReached,
     onDelete,

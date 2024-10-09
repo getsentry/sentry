@@ -53,12 +53,8 @@ import {
 } from './layoutUtils';
 import SortableWidget from './sortableWidget';
 import type {DashboardDetails, Widget} from './types';
-import {DashboardWidgetSource, DisplayType, WidgetType} from './types';
-import {
-  connectDashboardCharts,
-  formatLegendDefaultQuery,
-  getDashboardFiltersFromURL,
-} from './utils';
+import {DashboardWidgetSource, WidgetType} from './types';
+import {connectDashboardCharts, getDashboardFiltersFromURL} from './utils';
 
 export const DRAG_HANDLE_CLASS = 'widget-drag';
 const DRAG_RESIZE_CLASS = 'widget-resize';
@@ -150,7 +146,7 @@ class Dashboard extends Component<Props, State> {
   }
 
   componentDidMount() {
-    const {newWidget, organization, dashboard, location, paramDashboardId} = this.props;
+    const {newWidget} = this.props;
     window.addEventListener('resize', this.debouncedHandleResize);
 
     // Always load organization tags on dashboards
@@ -164,29 +160,6 @@ class Dashboard extends Component<Props, State> {
     this.fetchMemberList();
 
     connectDashboardCharts(DASHBOARD_CHART_GROUP);
-
-    if (
-      organization.features.includes('dashboards-releases-on-charts') &&
-      !location.query.legend
-    ) {
-      const legendQuery = dashboard.widgets
-        .filter(
-          widget =>
-            widget.displayType === DisplayType.AREA ||
-            widget.displayType === DisplayType.LINE
-        )
-        .map(widget => formatLegendDefaultQuery(widget.id));
-
-      this.props.router.push(
-        normalizeUrl({
-          pathname: `/organizations/${organization.slug}/dashboard/${paramDashboardId}`,
-          query: {
-            ...location.query,
-            legend: legendQuery,
-          },
-        })
-      );
-    }
   }
 
   componentDidUpdate(prevProps: Props) {
@@ -408,13 +381,14 @@ class Dashboard extends Component<Props, State> {
     ];
   }
 
-  renderWidget(widget: Widget, index: number) {
+  renderWidget(widget: Widget, index: number, widgets: Widget[]) {
     const {isMobile, windowWidth} = this.state;
     const {isEditingDashboard, widgetLimitReached, isPreview, dashboard, location} =
       this.props;
 
     const widgetProps = {
       widget,
+      widgets,
       isEditingDashboard,
       widgetLimitReached,
       onDelete: this.handleDeleteWidget(widget),
@@ -581,7 +555,9 @@ class Dashboard extends Component<Props, State> {
         useCSSTransforms={false}
         isBounded
       >
-        {widgetsWithLayout.map((widget, index) => this.renderWidget(widget, index))}
+        {widgetsWithLayout.map((widget, index) =>
+          this.renderWidget(widget, index, widgetsWithLayout)
+        )}
         {(isEditingDashboard || displayInlineAddWidget) &&
           !widgetLimitReached &&
           !isPreview && (

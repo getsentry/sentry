@@ -72,6 +72,7 @@ import {
   DashboardsMEPConsumer,
   DashboardsMEPProvider,
 } from '../widgetCard/dashboardsMEPContext';
+import WidgetLegendFunctions from '../widgetCard/widgetLegendUtils';
 
 import {BuildStep} from './buildSteps/buildStep';
 import {ColumnsStep} from './buildSteps/columnsStep';
@@ -882,21 +883,14 @@ function WidgetBuilder({
         nextWidgetList[updateWidgetIndex] = nextWidgetData;
       }
 
-      const query =
-        organization.features.includes('dashboards-releases-on-charts') &&
-        (nextWidgetData.displayType === DisplayType.AREA ||
-          nextWidgetData.displayType === DisplayType.LINE)
-          ? {
-              ...location.query,
-              legend: location.query.legend.map(widgetLegend => {
-                if (widgetLegend.includes(nextWidgetData.id)) {
-                  // legend query param formatted as widgetId-seriesName-seriesName2-...
-                  return `${nextWidgetData.id}-Releases`;
-                }
-                return widgetLegend;
-              }),
-            }
-          : location.query;
+      const legendFunctions = new WidgetLegendFunctions();
+
+      const unselectedSeriesParam = legendFunctions.updatedLegendQueryOnWidgetChange(
+        organization,
+        {...dashboard, widgets: [...dashboard.widgets, nextWidgetData]},
+        location
+      );
+      const query = {...location.query, unselectedSeries: unselectedSeriesParam};
       onSave(nextWidgetList);
       addSuccessMessage(t('Updated widget.'));
       goToDashboards(dashboardId ?? NEW_DASHBOARD_ID, query);

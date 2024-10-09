@@ -62,14 +62,12 @@ import {
   eventViewFromWidget,
   getColoredWidgetIndicator,
   getFieldsFromEquations,
-  getLegendUnselected,
   getNumEquations,
   getWidgetDiscoverUrl,
   getWidgetIssueUrl,
   getWidgetMetricsUrl,
   getWidgetReleasesUrl,
   hasDatasetSelector,
-  updateLegendQueryParam,
 } from 'sentry/views/dashboards/utils';
 import {
   SESSION_DURATION_ALERT,
@@ -85,6 +83,7 @@ import type {GenericWidgetQueriesChildrenProps} from 'sentry/views/dashboards/wi
 import IssueWidgetQueries from 'sentry/views/dashboards/widgetCard/issueWidgetQueries';
 import ReleaseWidgetQueries from 'sentry/views/dashboards/widgetCard/releaseWidgetQueries';
 import {WidgetCardChartContainer} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
+import WidgetLegendFunctions from 'sentry/views/dashboards/widgetCard/widgetLegendUtils';
 import WidgetQueries from 'sentry/views/dashboards/widgetCard/widgetQueries';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
 import {OrganizationContext} from 'sentry/views/organizationContext';
@@ -109,6 +108,7 @@ export interface WidgetViewerModalOptions {
   seriesResultsType?: Record<string, AggregationOutputType>;
   tableData?: TableDataWithTitle[];
   totalIssuesCount?: string;
+  widgets?: Widget[];
 }
 
 interface Props extends ModalRenderProps, WidgetViewerModalOptions {
@@ -177,6 +177,7 @@ function WidgetViewerModal(props: Props) {
   const {
     organization,
     widget,
+    widgets,
     selection,
     Footer,
     Body,
@@ -245,12 +246,12 @@ function WidgetViewerModal(props: Props) {
     }
   }, [end, location, locationPageFilter, start]);
 
+  const legendFunctions = new WidgetLegendFunctions();
+
   // Get legends toggle settings from location
   // We use the legend query params for just the initial state
   const [disabledLegends, setDisabledLegends] = useState<{[key: string]: boolean}>(
-    location.query[WidgetViewerQueryField.LEGEND]
-      ? getLegendUnselected(location, widget)
-      : {}
+    legendFunctions.getLegendUnselected(location, widget, 'legend')
   );
   const [totalResults, setTotalResults] = useState<string | undefined>();
 
@@ -472,7 +473,15 @@ function WidgetViewerModal(props: Props) {
 
   function onLegendSelectChanged({selected}: {selected: Record<string, boolean>}) {
     setDisabledLegends(selected);
-    updateLegendQueryParam(selected, location, widget, router);
+    legendFunctions.updateLegendQueryParam(
+      selected,
+      location,
+      widget,
+      router,
+      'legend',
+      organization,
+      widgets
+    );
     trackAnalytics('dashboards_views.widget_viewer.toggle_legend', {
       organization,
       widget_type: widget.widgetType ?? WidgetType.DISCOVER,
