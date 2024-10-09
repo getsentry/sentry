@@ -6,6 +6,7 @@ import logging
 import time
 from abc import ABCMeta, abstractmethod
 from collections.abc import Mapping, Sequence
+from copy import deepcopy
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import Enum, auto
@@ -1775,7 +1776,7 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                         Condition(
                             Column("group_id", entity_with_group_id),
                             Op.IN,
-                            group_ids_to_pass_to_snuba,
+                            deepcopy(group_ids_to_pass_to_snuba),
                         )
                     )
 

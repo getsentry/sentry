@@ -25,6 +25,7 @@ from django.core.cache import cache
 from snuba_sdk import DeleteQuery, MetricsQuery, Request
 from snuba_sdk.legacy import json_to_snql
 
+from sentry.locks import locks
 from sentry.models.environment import Environment
 from sentry.models.group import Group
 from sentry.models.grouprelease import GroupRelease
@@ -40,6 +41,7 @@ from sentry.snuba.query_sources import QuerySource
 from sentry.snuba.referrer import validate_referrer
 from sentry.utils import json, metrics
 from sentry.utils.dates import outside_retention_with_modified_start
+from sentry.utils.locking import UnableToAcquireLock
 
 logger = logging.getLogger(__name__)
 
@@ -1319,7 +1321,13 @@ def _raw_snql_query(request: Request, headers: Mapping[str, str]) -> urllib3.res
     with timer("snql_query"):
         referrer = headers.get("referer", "<unknown>")
 
-        serialized_req = request.serialize()
+        lock = locks.get("snuba-query-lock", duration=10, name="snuba-query")
+        try:
+            with lock.blocking_acquire(1, 10):
+                serialized_req = request.serialize()
+        except UnableToAcquireLock:
+            return
+
         with sentry_sdk.start_span(op="snuba_snql.validation", name=referrer) as span:
             span.set_tag("snuba.referrer", referrer)
             body = serialized_req
