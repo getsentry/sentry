@@ -88,6 +88,16 @@ export function WidgetFrame(props: Props) {
   );
 }
 
+const TitleActions = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
+  margin-left: auto;
+
+  opacity: 1;
+  transition: opacity 0.1s;
+`;
+
 const Frame = styled('div')`
   position: relative;
   display: flex;
@@ -113,18 +123,26 @@ const Frame = styled('div')`
       box-shadow 100ms linear;
     box-shadow: ${p => p.theme.dropShadowLight};
   }
+
+  &:not(:hover):not(:focus-within) {
+    ${TitleActions} {
+      opacity: 0;
+      ${p => p.theme.visuallyHidden}
+    }
+  }
 `;
 
-const HEADER_HEIGHT = 20;
+const HEADER_HEIGHT = 26;
 
 const Header = styled('div')`
   display: flex;
-  flex-direction: column;
   min-height: ${HEADER_HEIGHT}px;
+  align-items: center;
 `;
 
 const Title = styled('div')`
-  display: inline-flex;
+  display: flex;
+  flex-grow: 1;
   align-items: center;
   gap: ${space(0.75)};
 `;
@@ -132,13 +150,6 @@ const Title = styled('div')`
 const TitleText = styled(HeaderTitle)`
   ${p => p.theme.overflowEllipsis};
   font-weight: ${p => p.theme.fontWeightBold};
-`;
-
-const TitleActions = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.5)};
-  margin-left: auto;
 `;
 
 const VisualizationWrapper = styled('div')`
