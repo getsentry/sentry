@@ -800,6 +800,38 @@ class SnubaTSDB(BaseTSDB):
             referrer_suffix=referrer_suffix,
         )
 
+    def get_distinct_counts_totals_with_conditions(
+        self,
+        model: TSDBModel,
+        keys: Sequence[int],
+        start: datetime,
+        end: datetime | None = None,
+        rollup: int | None = None,
+        environment_id: int | None = None,
+        use_cache: bool = False,
+        jitter_value: int | None = None,
+        tenant_ids: dict[str, int | str] | None = None,
+        referrer_suffix: str | None = None,
+        conditions: list[dict[str, Any]] | None = None,
+    ) -> dict[int, Any]:
+        """
+        Count distinct items during a time range with conditions.
+        """
+        return self.get_data(
+            model,
+            keys,
+            start,
+            end,
+            rollup,
+            [environment_id] if environment_id is not None else None,
+            aggregation="uniq",
+            use_cache=use_cache,
+            jitter_value=jitter_value,
+            tenant_ids=tenant_ids,
+            referrer_suffix=referrer_suffix,
+            conditions=conditions,
+        )
+
     def get_distinct_counts_union(
         self, model, keys, start, end=None, rollup=None, environment_id=None, tenant_ids=None
     ):

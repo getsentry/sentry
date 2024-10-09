@@ -122,6 +122,7 @@ class BaseTSDB(Service):
             "get_most_frequent_series",
             "get_frequency_series",
             "get_frequency_totals",
+            "get_distinct_counts_totals_with_conditions",
         ]
     )
 
@@ -551,6 +552,25 @@ class BaseTSDB(Service):
     ) -> dict[int, Any]:
         """
         Count distinct items during a time range.
+        """
+        raise NotImplementedError
+
+    def get_distinct_counts_totals_with_conditions(
+        self,
+        model: TSDBModel,
+        keys: Sequence[int],
+        start: datetime,
+        end: datetime | None = None,
+        rollup: int | None = None,
+        environment_id: int | None = None,
+        use_cache: bool = False,
+        jitter_value: int | None = None,
+        tenant_ids: dict[str, int | str] | None = None,
+        referrer_suffix: str | None = None,
+        conditions: list[dict[str, Any]] | None = None,
+    ) -> dict[int, Any]:
+        """
+        Count distinct items during a time range with conditions.
         """
         raise NotImplementedError
 
