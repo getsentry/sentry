@@ -624,9 +624,6 @@ class Group(Model):
             self.message = truncatechars(self.message.splitlines()[0], 255)
         if self.times_seen is None:
             self.times_seen = 1
-        self.score = type(self).calculate_score(
-            times_seen=self.times_seen, last_seen=self.last_seen
-        )
         super().save(*args, **kwargs)
 
     def get_absolute_url(
