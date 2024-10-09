@@ -120,7 +120,7 @@ class InstallationConfigView(PipelineView):
 
 
 class OpsgenieIntegration(IntegrationInstallation):
-    def get_keyring_client(self, keyid: str) -> OpsgenieClient:
+    def get_keyring_client(self, keyid: int | str) -> OpsgenieClient:
         org_integration = self.org_integration
         assert org_integration, "OrganizationIntegration is required"
         team = get_team(team_id=keyid, org_integration=org_integration)

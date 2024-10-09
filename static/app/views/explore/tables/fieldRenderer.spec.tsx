@@ -47,7 +47,6 @@ describe('FieldRenderer tests', function () {
         column={eventView.getColumns()[3]}
         data={mockedEventData}
         dataset={DiscoverDatasets.SPANS_INDEXED}
-        field="span.op"
         meta={{}}
       />,
       {organization}
@@ -62,7 +61,6 @@ describe('FieldRenderer tests', function () {
         column={eventView.getColumns()[0]}
         data={mockedEventData}
         dataset={DiscoverDatasets.SPANS_INDEXED}
-        field="id"
         meta={{}}
       />,
       {organization}
@@ -81,7 +79,6 @@ describe('FieldRenderer tests', function () {
         column={eventView.getColumns()[4]}
         data={mockedEventData}
         dataset={DiscoverDatasets.SPANS_INDEXED}
-        field="transaction.id"
         meta={{}}
       />,
       {organization}
@@ -100,7 +97,6 @@ describe('FieldRenderer tests', function () {
         column={eventView.getColumns()[2]}
         data={mockedEventData}
         dataset={DiscoverDatasets.SPANS_INDEXED}
-        field="trace"
         meta={{}}
       />,
       {organization}
@@ -119,7 +115,6 @@ describe('FieldRenderer tests', function () {
         column={eventView.getColumns()[1]}
         data={mockedEventData}
         dataset={DiscoverDatasets.SPANS_INDEXED}
-        field="timestamp"
         meta={{}}
       />,
       {organization}

@@ -397,7 +397,7 @@ class GroupManager(BaseManager["Group"]):
         self,
         integration: RpcIntegration,
         organizations: Iterable[Organization],
-        external_issue_key: str,
+        external_issue_key: str | None,
     ) -> QuerySet[Group]:
         from sentry.integrations.models.external_issue import ExternalIssue
         from sentry.integrations.services.integration import integration_service
