@@ -46,6 +46,7 @@ export function ToolbarVisualize({}: ToolbarVisualizeProps) {
       return {
         label: field,
         value: field,
+        textValue: field,
       };
     });
 
@@ -54,6 +55,7 @@ export function ToolbarVisualize({}: ToolbarVisualizeProps) {
       return {
         label: aggregate,
         value: aggregate,
+        textValue: aggregate,
       };
     });
 

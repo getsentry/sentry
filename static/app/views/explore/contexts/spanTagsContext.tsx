@@ -4,9 +4,11 @@ import {createContext, useContext, useMemo} from 'react';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import type {Tag, TagCollection} from 'sentry/types/group';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {FieldKind} from 'sentry/utils/fields';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {SpanIndexedField} from 'sentry/views/insights/types';
 import {
   useSpanFieldStaticTags,
   useSpanFieldSupportedTags,
@@ -25,6 +27,21 @@ interface SpanTagsProviderProps {
 }
 
 export function SpanTagsProvider({children, dataset}: SpanTagsProviderProps) {
+  const numericSpanFields: Set<string> = useMemo(() => {
+    return new Set([
+      SpanIndexedField.SPAN_DURATION,
+      SpanIndexedField.SPAN_SELF_TIME,
+      SpanIndexedField.INP,
+      SpanIndexedField.INP_SCORE,
+      SpanIndexedField.INP_SCORE_WEIGHT,
+      SpanIndexedField.TOTAL_SCORE,
+      SpanIndexedField.CACHE_ITEM_SIZE,
+      SpanIndexedField.MESSAGING_MESSAGE_BODY_SIZE,
+      SpanIndexedField.MESSAGING_MESSAGE_RECEIVE_LATENCY,
+      SpanIndexedField.MESSAGING_MESSAGE_RETRY_COUNT,
+    ]);
+  }, []);
+
   const supportedTags = useSpanFieldSupportedTags();
 
   const numberTags: TagCollection = useTypedSpanTags({
@@ -44,8 +61,15 @@ export function SpanTagsProvider({children, dataset}: SpanTagsProviderProps) {
       return {};
     }
 
-    return numberTags;
-  }, [dataset, numberTags]);
+    return {
+      ...numberTags,
+      ...Object.fromEntries(
+        Object.entries(staticTags)
+          .filter(([key, _]) => numericSpanFields.has(key))
+          .map(([key, tag]) => [key, {...tag, kind: FieldKind.MEASUREMENT}])
+      ),
+    };
+  }, [dataset, numberTags, numericSpanFields, staticTags]);
 
   const allStringTags = useMemo(() => {
     if (dataset === DiscoverDatasets.SPANS_INDEXED) {
@@ -54,9 +78,13 @@ export function SpanTagsProvider({children, dataset}: SpanTagsProviderProps) {
 
     return {
       ...stringTags,
-      ...staticTags,
+      ...Object.fromEntries(
+        Object.entries(staticTags)
+          .filter(([key, _]) => !numericSpanFields.has(key))
+          .map(([key, tag]) => [key, {...tag, kind: FieldKind.TAG}])
+      ),
     };
-  }, [dataset, supportedTags, stringTags, staticTags]);
+  }, [dataset, supportedTags, stringTags, staticTags, numericSpanFields]);
 
   const tags = {
     number: allNumberTags,
@@ -66,7 +94,7 @@ export function SpanTagsProvider({children, dataset}: SpanTagsProviderProps) {
   return <SpanTagsContext.Provider value={tags}>{children}</SpanTagsContext.Provider>;
 }
 
-export const useSpanTags = (type?: 'number' | 'string') => {
+export function useSpanTags(type?: 'number' | 'string') {
   const typedTags = useContext(SpanTagsContext);
 
   if (typedTags === undefined) {
@@ -77,7 +105,14 @@ export const useSpanTags = (type?: 'number' | 'string') => {
     return typedTags.number;
   }
   return typedTags.string;
-};
+}
+
+export function useSpanTag(key: string) {
+  const numberTags = useSpanTags('number');
+  const stringTags = useSpanTags('string');
+
+  return stringTags[key] ?? numberTags[key] ?? null;
+}
 
 function useTypedSpanTags({
   enabled,
@@ -123,14 +158,17 @@ function useTypedSpanTags({
         continue;
       }
 
-      allTags[tag.key] = {
-        key: tag.key,
-        name: tag.name,
+      const key = type === 'number' ? `tags[${tag.key},number]` : tag.key;
+
+      allTags[key] = {
+        key,
+        name: tag.key,
+        kind: type === 'number' ? FieldKind.MEASUREMENT : FieldKind.TAG,
       };
     }
 
     return allTags;
-  }, [result]);
+  }, [result, type]);
 
   return tags;
 }

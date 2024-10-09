@@ -25,6 +25,7 @@ import {
   TableStatus,
   useTableStyles,
 } from 'sentry/views/explore/components/table';
+import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {useDataset} from 'sentry/views/explore/hooks/useDataset';
 import {useSampleFields} from 'sentry/views/explore/hooks/useSampleFields';
 import {useSorts} from 'sentry/views/explore/hooks/useSorts';
@@ -82,16 +83,22 @@ export function SpansTable({}: SpansTableProps) {
 
   const meta = result.meta ?? {};
 
+  const numberTags = useSpanTags('number');
+  const stringTags = useSpanTags('string');
+
   return (
     <Fragment>
       <Table style={tableStyles}>
         <TableHead>
           <TableRow>
-            {fields.map((field, i) => (
-              <TableHeadCell key={i} isFirst={i === 0}>
-                {field}
-              </TableHeadCell>
-            ))}
+            {fields.map((field, i) => {
+              const tag = stringTags[field] ?? numberTags[field] ?? null;
+              return (
+                <TableHeadCell key={i} isFirst={i === 0}>
+                  {tag?.name ?? field}
+                </TableHeadCell>
+              );
+            })}
           </TableRow>
         </TableHead>
         <TableBody>

@@ -4,6 +4,8 @@ import type {SelectOption} from 'sentry/components/compactSelect';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {t} from 'sentry/locale';
 import type {Sort} from 'sentry/utils/discover/fields';
+import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
+import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import type {Field} from 'sentry/views/explore/hooks/useSampleFields';
 
 import {ToolbarHeader, ToolbarLabel, ToolbarRow, ToolbarSection} from './styles';
@@ -15,14 +17,20 @@ interface ToolbarSortByProps {
 }
 
 export function ToolbarSortBy({fields, setSorts, sorts}: ToolbarSortByProps) {
+  const numberTags = useSpanTags('number');
+  const stringTags = useSpanTags('string');
+
   const fieldOptions: SelectOption<Field>[] = useMemo(() => {
     return fields.map(field => {
+      const tag = stringTags[field] ?? numberTags[field] ?? null;
       return {
-        label: field,
-        value: field,
+        label: tag?.name ?? field,
+        value: tag?.key ?? field,
+        textValue: tag?.name ?? field,
+        trailingItems: <TypeBadge tag={tag} />,
       };
     });
-  }, [fields]);
+  }, [fields, numberTags, stringTags]);
 
   const setSortField = useCallback(
     (i: number, {value}: SelectOption<Field>) => {
@@ -43,10 +51,12 @@ export function ToolbarSortBy({fields, setSorts, sorts}: ToolbarSortByProps) {
       {
         label: 'Desc',
         value: 'desc',
+        textValue: t('Descending'),
       },
       {
         label: 'Asc',
         value: 'asc',
+        textValue: t('Ascending'),
       },
     ];
   }, []);

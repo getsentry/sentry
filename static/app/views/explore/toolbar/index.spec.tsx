@@ -54,7 +54,7 @@ describe('ExploreToolbar', function () {
 
     expect(sampleFields).toEqual([
       'project',
-      'id',
+      'span_id',
       'span.op',
       'span.description',
       'span.duration',
@@ -81,7 +81,7 @@ describe('ExploreToolbar', function () {
 
     expect(sampleFields).toEqual([
       'project',
-      'id',
+      'span_id',
       'span.op',
       'span.description',
       'span.duration',
@@ -188,7 +188,7 @@ describe('ExploreToolbar', function () {
     // check the default field options
     const fields = [
       'project',
-      'id',
+      'span_id',
       'span.op',
       'span.description',
       'span.duration',
