@@ -7,10 +7,6 @@ import {Button} from 'sentry/components/button';
 import Count from 'sentry/components/count';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import EventMessage from 'sentry/components/events/eventMessage';
-import {
-  AssigneeSelector,
-  useHandleAssigneeChange,
-} from 'sentry/components/group/assigneeSelector';
 import ParticipantList from 'sentry/components/group/streamlinedParticipantList';
 import Link from 'sentry/components/links/link';
 import Version from 'sentry/components/version';
@@ -30,6 +26,7 @@ import {useUser} from 'sentry/utils/useUser';
 import GroupActions from 'sentry/views/issueDetails/actions/index';
 import {Divider} from 'sentry/views/issueDetails/divider';
 import GroupPriority from 'sentry/views/issueDetails/groupPriority';
+import {GroupHeaderAssigneeSelector} from 'sentry/views/issueDetails/streamline/assigneeSelector';
 import {AttachmentsBadge} from 'sentry/views/issueDetails/streamline/attachmentsBadge';
 import {ReplayBadge} from 'sentry/views/issueDetails/streamline/replayBadge';
 import {UserFeedbackBadge} from 'sentry/views/issueDetails/streamline/userFeedbackBadge';
@@ -43,10 +40,10 @@ interface GroupRelease {
 
 interface GroupHeaderProps {
   baseUrl: string;
+  event: Event | null;
   group: Group;
   groupReprocessingStatus: ReprocessingStatus;
   project: Project;
-  event?: Event;
 }
 
 export default function StreamlinedGroupHeader({
@@ -71,11 +68,6 @@ export default function StreamlinedGroupHeader({
 
   const {count: eventCount, userCount} = group;
   const {firstRelease, lastRelease} = groupReleaseData || {};
-
-  const {handleAssigneeChange, assigneeLoading} = useHandleAssigneeChange({
-    organization,
-    group,
-  });
 
   const [sidebarOpen, setSidebarOpen] = useSyncedLocalStorageState(
     'issue-details-sidebar-open',
@@ -204,10 +196,10 @@ export default function StreamlinedGroupHeader({
             </Wrapper>
             <Wrapper>
               {t('Assignee')}
-              <AssigneeSelector
+              <GroupHeaderAssigneeSelector
                 group={group}
-                assigneeLoading={assigneeLoading}
-                handleAssigneeChange={handleAssigneeChange}
+                project={project}
+                event={event}
               />
             </Wrapper>
             {group.participants.length > 0 && (

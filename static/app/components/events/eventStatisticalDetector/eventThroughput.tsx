@@ -28,7 +28,6 @@ import {useRelativeDateTime} from 'sentry/utils/profiling/hooks/useRelativeDateT
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import useRouter from 'sentry/utils/useRouter';
 import transformEventStats from 'sentry/views/performance/trends/utils/transformEventStats';
 
 const BUCKET_SIZE = 6 * 60 * 60; // 6 hours in seconds;
@@ -54,7 +53,6 @@ export function EventThroughput({event, group}: EventThroughputProps) {
 
 function EventThroughputInner({event, group}: EventThroughputProps) {
   const theme = useTheme();
-  const router = useRouter();
 
   const evidenceData = event.occurrence!.evidenceData;
   const breakpoint = evidenceData.breakpoint;
@@ -183,7 +181,7 @@ function EventThroughputInner({event, group}: EventThroughputProps) {
       ) : (
         <CompareLabel>{'\u2014'}</CompareLabel>
       )}
-      <ChartZoom router={router} {...datetime}>
+      <ChartZoom {...datetime}>
         {zoomRenderProps => (
           <LineChart {...zoomRenderProps} {...chartOptions} series={series} />
         )}

@@ -867,7 +867,6 @@ function WidgetViewerModal(props: Props) {
                 location={location}
                 widget={widget}
                 selection={selection}
-                router={router}
                 organization={organization}
                 onZoom={onZoom}
                 onLegendSelectChanged={onLegendSelectChanged}
