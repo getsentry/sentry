@@ -908,21 +908,24 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
   };
 
   handleSensitivityChange = (sensitivity: AlertRuleSensitivity) => {
-    this.setState({sensitivity});
+    this.setState({sensitivity}, () => this.fetchAnomalies());
   };
 
   handleThresholdTypeChange = (thresholdType: AlertRuleThresholdType) => {
     const {triggers} = this.state;
 
     const triggerErrors = this.validateTriggers(triggers, thresholdType);
-    this.setState(state => ({
-      thresholdType,
-      triggerErrors: new Map([...triggerErrors, ...state.triggerErrors]),
-    }));
+    this.setState(
+      state => ({
+        thresholdType,
+        triggerErrors: new Map([...triggerErrors, ...state.triggerErrors]),
+      }),
+      () => this.fetchAnomalies()
+    );
   };
 
   handleThresholdPeriodChange = (value: number) => {
-    this.setState({thresholdPeriod: value});
+    this.setState({thresholdPeriod: value}, () => this.fetchAnomalies());
   };
 
   handleResolveThresholdChange = (
