@@ -71,6 +71,7 @@ class UptimeSubscription(BaseRemoteSubscription, DefaultFieldsModelExisting):
             models.UniqueConstraint(
                 "url",
                 "interval_seconds",
+                "timeout_ms",
                 "method",
                 MD5("headers"),
                 Coalesce(MD5("body"), Value("")),
