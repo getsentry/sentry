@@ -224,9 +224,9 @@ def github_comment_workflow(pullrequest_id: int, project_id: int):
             {
                 "name": f"Root cause #{i + 1}",
                 "type": "copilot-chat",
-                "prompt": f"@sentry root cause issue {str(issue_id)} with PR URL https://github.com/{repo.name}/pull/{str(pullrequest_id)}",
+                "prompt": f"@sentry root cause issue {str(issue_id)} with PR URL https://github.com/{repo.name}/pull/{str(pr_key)}",
             }
-            for i, issue_id in enumerate(top_24_issues)
+            for i, issue_id in enumerate(top_24_issues[:3])
         ]
         if enabled_copilot
         else None
