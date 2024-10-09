@@ -1076,6 +1076,12 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
         : thresholdType === AlertRuleThresholdType.BELOW
           ? 'down'
           : 'both';
+
+    // extract the earliest timestamp from the current dataset
+    const startOfCurrentTimeframe = currentData.reduce(
+      (value, [timestamp]) => (value < timestamp ? value : timestamp),
+      Infinity
+    );
     const params = {
       organization_id: organization.id,
       project_id: project.id,
@@ -1085,7 +1091,10 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
         direction,
         expected_seasonality: seasonality,
       },
-      historical_data: historicalData,
+      // remove historical data that overlaps with current dataset
+      historical_data: historicalData.filter(
+        ([timestamp]) => timestamp < startOfCurrentTimeframe
+      ),
       current_data: currentData,
     };
 
