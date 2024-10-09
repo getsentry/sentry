@@ -65,6 +65,7 @@ export function BigNumberWidget(props: Props) {
           maximumValue={props.maximumValue}
           preferredPolarity={props.preferredPolarity}
           meta={props.meta}
+          thresholds={props.thresholds}
         />
       </BigNumberResizeWrapper>
     </WidgetFrame>
