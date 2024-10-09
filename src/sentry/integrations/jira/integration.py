@@ -504,7 +504,7 @@ class JiraIntegration(IssueSyncIntegration):
                     if error_regex.match(message):
                         error_data[key] = [message]
 
-        if error_data:
+        if errors:
             for key, error in data.get("errors").items():
                 error_data[key] = [error]
 
