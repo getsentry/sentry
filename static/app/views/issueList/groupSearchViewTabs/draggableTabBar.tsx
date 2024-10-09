@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import type {Node} from '@react-types/shared';
 import {motion} from 'framer-motion';
 
+import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {
   DraggableTabList,
   TEMPORARY_TAB_KEY,
@@ -141,7 +142,7 @@ export function DraggableTabBar({
     });
   };
 
-  const handleOnSaveChanges = () => {
+  const handleOnSaveChanges = useCallback(() => {
     const originalTab = tabs.find(tab => tab.key === tabListState?.selectedKey);
     if (originalTab) {
       const newTabs: Tab[] = tabs.map(tab => {
@@ -160,7 +161,25 @@ export function DraggableTabBar({
         organization,
       });
     }
-  };
+  }, [onSave, organization, setTabs, tabListState?.selectedKey, tabs]);
+
+  useEffect(() => {
+    const handleSave = (e: KeyboardEvent) => {
+      const originalTab = tabs.find(tab => tab.key === tabListState?.selectedKey);
+      if ((e.ctrlKey || e.metaKey) && e.code === 'KeyS') {
+        e.preventDefault();
+        if (originalTab?.unsavedChanges) {
+          handleOnSaveChanges();
+          addSuccessMessage('Changes saved to view');
+        }
+      }
+    };
+    window.addEventListener('keydown', handleSave);
+
+    return () => {
+      window.removeEventListener('keydown', handleSave);
+    };
+  }, [handleOnSaveChanges, tabListState?.selectedKey, tabs]);
 
   const handleOnDiscardChanges = () => {
     const originalTab = tabs.find(tab => tab.key === tabListState?.selectedKey);
