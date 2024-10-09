@@ -58,7 +58,7 @@ class ChecksumVariant(BaseVariant):
 
 
 class FallbackVariant(BaseVariant):
-    id = "fallback"
+    type = "fallback"
     contributes = True
 
     def get_hash(self) -> str | None:
