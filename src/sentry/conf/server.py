@@ -826,6 +826,9 @@ CELERY_IMPORTS = (
 # tmp(michal): Default configuration for post_process* queues split
 SENTRY_POST_PROCESS_QUEUE_SPLIT_ROUTER: dict[str, Callable[[], str]] = {}
 
+# Enable split queue routing
+CELERY_ROUTES = ("sentry.queue.routers.SplitQueueTaskRouter",)
+
 # Mapping from task names to split queues. This can be used when the
 # task does not have to specify the queue and can rely on Celery to
 # do the routing.
