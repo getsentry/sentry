@@ -368,7 +368,7 @@ describe('IssueRuleEditor', function () {
       // Add the adopted release filter
       await selectEvent.select(
         screen.getByText('Add optional filter...'),
-        /The {oldest_or_newest} release associated/
+        /The {oldest_or_newest} adopted release associated/
       );
 
       const filtersContainer = await screen.findByTestId('rule-filters');
