@@ -1452,7 +1452,6 @@ class SnubaTestCase(BaseTestCase):
                 "last_seen",
                 "first_seen",
                 "data",
-                "score",
                 "project_id",
                 "time_spent_total",
                 "time_spent_count",
