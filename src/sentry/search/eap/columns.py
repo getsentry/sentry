@@ -32,33 +32,33 @@ class ResolvedColumn:
     def proto_definition(self) -> AttributeAggregation | AttributeKey:
         """The definition of this function as needed by the RPC"""
         # Placeholder to implement search for now
-        return AttributeKey(name=self.rpc_name, type=constants.TYPE_MAP[self.search_type])
+        return AttributeKey(name=self.internal_name, type=constants.TYPE_MAP[self.search_type])
 
 
 # Temporary, just doing enough of these for now so I can write some tests for resolve_query
 SPAN_COLUMN_DEFINITIONS = {
     "id": ResolvedColumn(
         public_alias="id",
-        rpc_name="span_id",
+        internal_name="span_id",
         search_type="string",
     ),
     "organization.id": ResolvedColumn(
-        public_alias="organization.id", rpc_name="organization_id", search_type="string"
+        public_alias="organization.id", internal_name="organization_id", search_type="string"
     ),
     "span.action": ResolvedColumn(
         public_alias="span.action",
-        rpc_name="action",
+        internal_name="action",
         search_type="string",
     ),
     "span.description": ResolvedColumn(
         public_alias="span.description",
-        rpc_name="name",
+        internal_name="name",
         search_type="string",
     ),
-    "span.op": ResolvedColumn(public_alias="span.op", rpc_name="op", search_type="string"),
+    "span.op": ResolvedColumn(public_alias="span.op", internal_name="op", search_type="string"),
     "ai.total_tokens.used": ResolvedColumn(
         public_alias="ai.total_tokens.used",
-        rpc_name="ai_total_tokens_used",
+        internal_name="ai_total_tokens_used",
         search_type="number",
     ),
 }
