@@ -12,5 +12,5 @@ remote_subscriptions: 0003_drop_remote_subscription
 replays: 0004_index_together
 sentry: 0773_make_group_score_nullable
 social_auth: 0002_default_auto_field
-uptime: 0016_translate_uptime_object_headers_to_lists
+uptime: 0017_unique_on_timeout
 workflow_engine: 0009_detector_type
