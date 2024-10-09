@@ -60,7 +60,7 @@ describe('Monitors Overview', function () {
     render(<Monitors />, {organization, router});
     expect(await screen.findByText('Cron Monitors')).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button', {name: 'Filter Owners'}));
+    await userEvent.click(screen.getByRole('button', {name: 'All Owners'}));
     await userEvent.click(screen.getByRole('option', {name: '#team-slug'}));
 
     expect(mockNavigate).toHaveBeenLastCalledWith(
