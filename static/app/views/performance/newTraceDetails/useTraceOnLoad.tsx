@@ -89,17 +89,30 @@ export function useTraceOnLoad(options: UseTraceScrollToEventOnLoadProps) {
       return undefined;
     }
 
-    if (trace.status === 'error') {
-      return undefined;
-    }
-
     let cancel = false;
     function cleanup() {
       cancel = true;
     }
 
-    if (trace.status === 'success' && trace.data && meta.status !== 'pending') {
+    if (trace.status === 'error' || meta.status === 'error') {
       initializedRef.current = true;
+      onTraceLoad(
+        TraceTree.Error({
+          event_id: '',
+          project_slug: '',
+        }),
+        null
+      );
+      return undefined;
+    }
+
+    if (trace.status === 'success' && meta.status === 'success') {
+      initializedRef.current = true;
+
+      if (!trace.data.transactions.length && !trace.data.orphan_errors.length) {
+        onTraceLoad(TraceTree.Empty(), null);
+        return undefined;
+      }
 
       const tree = TraceTree.FromTrace(trace.data, {
         meta: meta.data,
@@ -107,7 +120,6 @@ export function useTraceOnLoad(options: UseTraceScrollToEventOnLoadProps) {
       });
 
       tree.build();
-
       maybeAutoExpandTrace(
         tree,
         api,

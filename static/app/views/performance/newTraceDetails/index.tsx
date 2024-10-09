@@ -281,10 +281,25 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
     null
   );
 
-  const [tree, setTree] = useState<TraceTree>(TraceTree.Empty());
+  const isError = props.trace.status === 'error' || props.meta.status === 'error';
+  const isLoading = props.trace.status === 'pending' || props.meta.status === 'pending';
+
+  const [tree, setTree] = useState<TraceTree>(
+    TraceTree.Loading({
+      event_id: '',
+      project_slug: projects[0]?.slug,
+    })
+  );
+
+  const loadingTree = useMemo(() => {
+    return TraceTree.Loading({
+      event_id: '',
+      project_slug: projects[0]?.slug,
+    });
+  }, [projects]);
 
   useEffect(() => {
-    if (!props.replayTraces?.length || tree.type !== 'trace') {
+    if (!props.replayTraces?.length || tree?.type !== 'trace') {
       return undefined;
     }
 
@@ -937,7 +952,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
       </TraceToolbar>
       <TraceGrid layout={traceState.preferences.layout} ref={setTraceGridRef}>
         <Trace
-          trace={tree}
+          trace={isLoading ? loadingTree : tree}
           rerender={rerender}
           trace_id={props.traceSlug}
           onRowClick={onRowClick}
@@ -947,15 +962,15 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
           scheduler={traceScheduler}
           forceRerender={forceRender}
           isEmbedded={props.isEmbedded}
-          isLoading={tree.type === 'loading'}
+          isLoading={isLoading}
         />
 
-        {tree.type === 'error' ? (
+        {isLoading ? (
+          <TraceLoading />
+        ) : isError ? (
           <TraceError />
         ) : tree.type === 'empty' ? (
           <TraceEmpty />
-        ) : tree.type === 'loading' ? (
-          <TraceLoading />
         ) : null}
 
         <TraceDrawer

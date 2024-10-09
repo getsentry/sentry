@@ -641,8 +641,8 @@ export class TraceTree extends TraceTreeEventDispatcher {
         child &&
         isSpanNode(previous) &&
         isSpanNode(child) &&
-        shouldAddMissingInstrumentationSpan(child.event?.sdk?.name) &&
-        shouldAddMissingInstrumentationSpan(previous.event?.sdk?.name) &&
+        shouldAddMissingInstrumentationSpan(child.event?.sdk?.name ?? '') &&
+        shouldAddMissingInstrumentationSpan(previous.event?.sdk?.name ?? '') &&
         child.space[0] - previous.space[0] - previous.space[1] >= threshold
       ) {
         const node = new MissingInstrumentationNode(
