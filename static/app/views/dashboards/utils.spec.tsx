@@ -1,8 +1,5 @@
-import type {Location} from 'history';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-
-import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import type {DashboardDetails, Widget} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
@@ -12,14 +9,12 @@ import {
   flattenErrors,
   getDashboardsMEPQueryParams,
   getFieldsFromEquations,
-  getLegendUnselected,
   getNumEquations,
   getWidgetDiscoverUrl,
   getWidgetIssueUrl,
   hasUnsavedFilterChanges,
   isCustomMeasurementWidget,
   isWidgetUsingTransactionName,
-  updateLegendQueryParam,
 } from 'sentry/views/dashboards/utils';
 
 describe('Dashboards util', () => {
@@ -366,66 +361,6 @@ describe('Dashboards util', () => {
           },
         })
       ).toBe(false);
-    });
-  });
-
-  describe('legendChanges', function () {
-    let widget: Widget;
-    let location: Location;
-    beforeEach(() => {
-      widget = {
-        id: '12345',
-        title: 'Test Query',
-        displayType: DisplayType.AREA,
-        widgetType: WidgetType.ERRORS,
-        interval: '5m',
-        queries: [
-          {
-            name: '',
-            conditions: '',
-            fields: ['count()', 'Releases'],
-            aggregates: ['count()', 'Releases'],
-            columns: [],
-            orderby: '',
-          },
-        ],
-      };
-      location = {
-        ...LocationFixture(),
-        query: {
-          legend: ['12345-Releases'],
-        },
-      };
-    });
-
-    it('set initial unselected legend options', () => {
-      expect(getLegendUnselected(location, widget)).toEqual({'Releases:12345': false});
-    });
-
-    it('updates legend query param when legend option toggled', () => {
-      const data = initializeOrg({router: {location}});
-
-      updateLegendQueryParam({'Releases:12345': true}, location, widget, data.router);
-      expect(data.router.replace).toHaveBeenCalledWith({
-        pathname: location.pathname,
-        query: {legend: ['12345-']},
-      });
-    });
-
-    it('updates legend query param when legend option toggled but not in query params', () => {
-      location = {...location, query: {...location.query, legend: []}};
-      const data = initializeOrg({router: {location}});
-
-      updateLegendQueryParam(
-        {'Releases:12345': false, 'count():12345': true},
-        location,
-        widget,
-        data.router
-      );
-      expect(data.router.replace).toHaveBeenCalledWith({
-        pathname: location.pathname,
-        query: {legend: ['12345-Releases']},
-      });
     });
   });
 });
