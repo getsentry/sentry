@@ -19,8 +19,8 @@ from sentry.integrations.base import (
 )
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
-from sentry.integrations.on_call.metrics import OnCallInteractionEvent, OnCallInteractionType
-from sentry.integrations.opsgenie.spec import OpsgenieOnCallSpec
+from sentry.integrations.on_call.metrics import OnCallInteractionType
+from sentry.integrations.opsgenie.metrics import record_event
 from sentry.integrations.opsgenie.tasks import migrate_opsgenie_plugin
 from sentry.organizations.services.organization import RpcOrganizationSummary
 from sentry.pipeline import PipelineView
@@ -74,10 +74,6 @@ OPSGENIE_BASE_URL_TO_DOMAIN_NAME = {
     "https://api.opsgenie.com/": "app.opsgenie.com",
     "https://api.eu.opsgenie.com/": "app.eu.opsgenie.com",
 }
-
-
-def record_event(event: OnCallInteractionType):
-    return OnCallInteractionEvent(event, OpsgenieOnCallSpec())
 
 
 class InstallationForm(forms.Form):

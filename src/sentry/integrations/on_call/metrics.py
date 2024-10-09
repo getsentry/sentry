@@ -17,7 +17,6 @@ class OnCallInteractionType(Enum):
     A way in which a user can interact with Sentry through an on-call app.
     """
 
-    # TODO: add the interactions
     # General interactions
     ADD_KEY = "ADD_KEY"
     POST_INSTALL = "POST_INSTALL"

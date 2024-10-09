@@ -8,7 +8,7 @@ import sentry_sdk
 from sentry.integrations.on_call.metrics import OnCallInteractionType
 from sentry.integrations.opsgenie.actions import OpsgenieNotifyTeamForm
 from sentry.integrations.opsgenie.client import OPSGENIE_DEFAULT_PRIORITY, OpsgeniePriority
-from sentry.integrations.opsgenie.integration import record_event
+from sentry.integrations.opsgenie.metrics import record_event
 from sentry.integrations.opsgenie.utils import get_team
 from sentry.integrations.services.integration import integration_service
 from sentry.rules.actions import IntegrationEventAction

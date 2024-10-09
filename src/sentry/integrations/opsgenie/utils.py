@@ -7,7 +7,9 @@ from sentry.constants import ObjectStatus
 from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.integrations.metric_alerts import incident_attachment_info
+from sentry.integrations.on_call.metrics import OnCallInteractionType
 from sentry.integrations.opsgenie.client import OPSGENIE_DEFAULT_PRIORITY
+from sentry.integrations.opsgenie.metrics import record_event
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.integration.model import RpcOrganizationIntegration
 from sentry.shared_integrations.exceptions import ApiError
@@ -103,30 +105,31 @@ def send_incident_alert_notification(
     attachment = build_incident_attachment(incident, new_status, metric_value, notification_uuid)
     attachment = attach_custom_priority(attachment, action, new_status)
 
-    try:
-        resp = client.send_notification(attachment)
-        logger.info(
-            "rule.success.opsgenie_incident_alert",
-            extra={
-                "status_code": resp.status_code,
-                "organization_id": incident.organization_id,
-                "data": attachment,
-                "status": new_status.value,
-                "team_name": team["team"],
-                "team_id": team["id"],
-                "integration_id": action.integration_id,
-            },
-        )
-        return True
-    except ApiError as e:
-        logger.info(
-            "rule.fail.opsgenie_notification",
-            extra={
-                "error": str(e),
-                "data": attachment,
-                "team_name": team["team"],
-                "team_id": team["id"],
-                "integration_id": action.integration_id,
-            },
-        )
-        raise
+    with record_event(OnCallInteractionType.SEND_NOTIFICATION).capture():
+        try:
+            resp = client.send_notification(attachment)
+            logger.info(
+                "rule.success.opsgenie_incident_alert",
+                extra={
+                    "status_code": resp.status_code,
+                    "organization_id": incident.organization_id,
+                    "data": attachment,
+                    "status": new_status.value,
+                    "team_name": team["team"],
+                    "team_id": team["id"],
+                    "integration_id": action.integration_id,
+                },
+            )
+            return True
+        except ApiError as e:
+            logger.info(
+                "rule.fail.opsgenie_notification",
+                extra={
+                    "error": str(e),
+                    "data": attachment,
+                    "team_name": team["team"],
+                    "team_id": team["id"],
+                    "integration_id": action.integration_id,
+                },
+            )
+            raise

@@ -6,7 +6,7 @@ from sentry.eventstore.models import Event, GroupEvent
 from sentry.integrations.client import ApiClient
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.on_call.metrics import OnCallInteractionType
-from sentry.integrations.opsgenie.integration import record_event
+from sentry.integrations.opsgenie.metrics import record_event
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.models.group import Group
 from sentry.shared_integrations.client.base import BaseApiResponseX
