@@ -25,6 +25,7 @@ import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {ViewTrendsButton} from 'sentry/views/insights/common/components/viewTrendsButton';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
+import {OVERVIEW_PAGE_ALLOWED_OPS} from 'sentry/views/insights/pages/frontend/settings';
 import {OVERVIEW_PAGE_TITLE} from 'sentry/views/insights/pages/settings';
 import {generateFrontendOtherPerformanceEventView} from 'sentry/views/performance/data';
 import {
@@ -80,6 +81,12 @@ function FrontendOverviewPage() {
     {field: 'count_miserable(user)'},
     {field: 'user_misery()'},
   ].map(field => ({...field, width: COL_WIDTH_UNDEFINED}));
+
+  const doubleChartRowEventView = eventView.clone(); // some of the double chart rows rely on span metrics, so they can't be queried the same way
+
+  const existingQuery = new MutableSearch(eventView.query);
+  existingQuery.addDisjunctionFilterValues('transaction.op', OVERVIEW_PAGE_ALLOWED_OPS);
+  eventView.query = existingQuery.formatString();
 
   const showOnboarding = onboardingProject !== undefined;
 
@@ -170,7 +177,11 @@ function FrontendOverviewPage() {
                 <PerformanceDisplayProvider
                   value={{performanceType: ProjectPerformanceType.FRONTEND_OTHER}}
                 >
-                  <DoubleChartRow allowedCharts={doubleChartRowCharts} {...sharedProps} />
+                  <DoubleChartRow
+                    allowedCharts={doubleChartRowCharts}
+                    {...sharedProps}
+                    eventView={doubleChartRowEventView}
+                  />
                   <TripleChartRow allowedCharts={tripleChartRowCharts} {...sharedProps} />
                   <Table
                     projects={projects}
