@@ -1103,11 +1103,11 @@ export class VirtualizedViewManager {
     span_space: [number, number],
     text: string
   ): [number, number] {
-    const TEXT_PADDING = 2;
+    const TEXT_PADDING = 3;
 
     const icon_width_config_space = (18 * this.span_to_px[0]) / 2;
     const text_anchor_left =
-      span_space[0] > this.view.to_origin + this.view.trace_space.width * 0.8;
+      span_space[0] > this.view.to_origin + this.view.trace_space.width * 0.5;
     const text_width = this.text_measurer.measure(text);
 
     const timestamps = getIconTimestamps(node, span_space, icon_width_config_space);
