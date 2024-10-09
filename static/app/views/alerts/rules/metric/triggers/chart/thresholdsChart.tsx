@@ -30,7 +30,6 @@ import type {MetricRule, Trigger} from '../../types';
 import {AlertRuleThresholdType, AlertRuleTriggerType} from '../../types';
 
 type DefaultProps = {
-  anomalies: Anomaly[];
   comparisonData: Series[];
   comparisonMarkLines: LineChartSeries[];
   data: Series[];
@@ -42,6 +41,7 @@ type Props = DefaultProps & {
   resolveThreshold: MetricRule['resolveThreshold'];
   thresholdType: MetricRule['thresholdType'];
   triggers: Trigger[];
+  anomalies?: Anomaly[];
   comparisonSeriesName?: string;
   includePrevious?: boolean;
   isExtrapolatedData?: boolean;
@@ -78,7 +78,6 @@ const COLOR = {
 export default class ThresholdsChart extends PureComponent<Props, State> {
   static defaultProps: DefaultProps = {
     data: [],
-    anomalies: [],
     comparisonData: [],
     comparisonMarkLines: [],
   };
@@ -439,7 +438,7 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
         series={[
           ...dataWithoutRecentBucket,
           ...comparisonMarkLines,
-          ...getAnomalyMarkerSeries(this.props.anomalies),
+          ...getAnomalyMarkerSeries(this.props.anomalies ?? []),
         ]}
         additionalSeries={comparisonDataWithoutRecentBucket.map(
           ({data: _data, ...otherSeriesProps}) =>

@@ -66,7 +66,6 @@ import ThresholdsChart from './thresholdsChart';
 
 type Props = {
   aggregate: MetricRule['aggregate'];
-  anomalies: Anomaly[];
   api: Client;
   comparisonType: AlertRuleComparisonType;
   dataset: MetricRule['dataset'];
@@ -81,6 +80,7 @@ type Props = {
   thresholdType: MetricRule['thresholdType'];
   timeWindow: MetricRule['timeWindow'];
   triggers: Trigger[];
+  anomalies?: Anomaly[];
   comparisonDelta?: number;
   formattedAggregate?: string;
   header?: React.ReactNode;
@@ -337,7 +337,7 @@ class TriggersChart extends PureComponent<Props, State> {
       comparisonType,
       organization,
       showTotalCount,
-      anomalies,
+      anomalies = [],
     } = this.props;
     const {statsPeriod, totalCount} = this.state;
     const statsPeriodOptions = this.availableTimePeriods[timeWindow];
