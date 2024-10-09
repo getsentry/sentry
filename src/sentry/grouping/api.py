@@ -234,6 +234,8 @@ def get_fingerprinting_config_for_project(
 
 
 def apply_server_fingerprinting(event, config, allow_custom_title=True):
+    fingerprint_info = {}
+
     client_fingerprint = event.get("fingerprint")
     rv = config.get_fingerprint_values_for_event(event)
     if rv is not None:
@@ -247,13 +249,14 @@ def apply_server_fingerprinting(event, config, allow_custom_title=True):
 
         # Persist the rule that matched with the fingerprint in the event
         # dictionary for later debugging.
-        event["_fingerprint_info"] = {
-            "client_fingerprint": client_fingerprint,
-            "matched_rule": rule.to_json(),
-        }
+        fingerprint_info["client_fingerprint"] = client_fingerprint
+        fingerprint_info["matched_rule"] = rule.to_json()
 
         if rule.is_builtin:
-            event["_fingerprint_info"]["is_builtin"] = True
+            fingerprint_info["is_builtin"] = True
+
+    if fingerprint_info:
+        event["_fingerprint_info"] = fingerprint_info
 
 
 def _get_calculated_grouping_variants_for_event(
