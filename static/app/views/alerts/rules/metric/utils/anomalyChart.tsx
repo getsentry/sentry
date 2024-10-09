@@ -51,10 +51,10 @@ export function getAnomalyMarkerSeries(
       ) {
         if (!start) {
           // If this is the start of an anomaly, set start
-          start = new Date(timestamp).toISOString();
+          start = new Date(timestamp * 1000).toISOString();
         }
         // as long as we have an valid anomaly type - continue tracking until we've hit the end
-        end = new Date(timestamp).toISOString();
+        end = new Date(timestamp * 1000).toISOString();
       } else {
         if (start && end) {
           // If we've hit a non-anomaly type, push the block
