@@ -1,6 +1,7 @@
-import {useCallback, useMemo, useRef} from 'react';
+import {useCallback, useEffect, useMemo, useRef} from 'react';
 import type {
   DataZoomComponentOption,
+  ECharts,
   InsideDataZoomComponentOption,
   ToolboxComponentOption,
 } from 'echarts';
@@ -11,9 +12,15 @@ import DataZoomInside from 'sentry/components/charts/components/dataZoomInside';
 import DataZoomSlider from 'sentry/components/charts/components/dataZoomSlider';
 import ToolBox from 'sentry/components/charts/components/toolBox';
 import type {DateString} from 'sentry/types/core';
-import type {EChartDataZoomHandler, EChartFinishedHandler} from 'sentry/types/echarts';
-import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
+import type {
+  EChartChartReadyHandler,
+  EChartDataZoomHandler,
+  EChartFinishedHandler,
+} from 'sentry/types/echarts';
 import {getUtcDateString} from 'sentry/utils/dates';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import useRouter from 'sentry/utils/useRouter';
 
 // TODO: replace usages of ChartZoom with useChartZoom
 
@@ -28,6 +35,7 @@ const getQueryTime = (date: DateString | undefined) =>
 interface ZoomRenderProps {
   dataZoom: DataZoomComponentOption[];
   isGroupedByDate: boolean;
+  onChartReady: EChartChartReadyHandler;
   onDataZoom: EChartDataZoomHandler;
   onFinished: EChartFinishedHandler;
   toolBox: ToolboxComponentOption;
@@ -41,7 +49,6 @@ interface Props {
    */
   disabled?: boolean;
   onZoom?: (period: DateTimeUpdate) => void;
-  router?: InjectedRouter;
   /**
    * Use either `saveOnZoom` or `usePageDate` not both
    * Will persist zoom state to page filters
@@ -58,11 +65,72 @@ interface Props {
 }
 
 /**
+ * Adds listeners to the document to allow for cancelling the zoom action
+ */
+function useChartZoomCancel() {
+  const chartInstance = useRef<ECharts | null>(null);
+  const handleKeyDown = useCallback((evt: KeyboardEvent) => {
+    if (!chartInstance.current) {
+      return;
+    }
+
+    if (evt.key === 'Escape') {
+      evt.stopPropagation();
+      // Mark the component as currently cancelling a zoom selection. This allows
+      // us to prevent "restore" handlers from running
+      // "restore" removes the current chart zoom selection
+      chartInstance.current.dispatchAction({
+        type: 'restore',
+      });
+    }
+  }, []);
+
+  const handleMouseUp = useCallback(() => {
+    document.body.removeEventListener('mouseup', handleMouseUp);
+  }, []);
+
+  const handleMouseDown = useCallback(() => {
+    // Register `mouseup` and `keydown` listeners on mouse down
+    // This ensures that there is only one live listener at a time
+    // regardless of how many charts are rendered. NOTE: It's
+    // important to set `useCapture: true` in the `"keydown"` handler
+    // otherwise the Escape will close whatever modal or panel the
+    // chart is in. Those elements register their handlers _earlier_.
+    document.body.addEventListener('mouseup', handleMouseUp);
+    document.body.addEventListener('keydown', handleKeyDown, true);
+  }, [handleKeyDown, handleMouseUp]);
+
+  const handleChartReady = useCallback<EChartChartReadyHandler>(
+    chart => {
+      if (chartInstance.current) {
+        // remove listeners from previous chart if called multiple times
+        chartInstance.current.getDom()?.removeEventListener('mousedown', handleMouseDown);
+      }
+
+      chartInstance.current = chart;
+      const chartDom = chart.getDom();
+      chartDom.addEventListener('mousedown', handleMouseDown);
+    },
+    [handleMouseDown]
+  );
+
+  useEffect(() => {
+    return () => {
+      // Cleanup listeners on unmount
+      document.body.removeEventListener('mouseup', handleMouseUp);
+      document.body.removeEventListener('keydown', handleKeyDown);
+      chartInstance.current?.getDom()?.removeEventListener('mousedown', handleMouseDown);
+    };
+  }, [handleMouseDown, handleMouseUp, handleKeyDown]);
+
+  return {handleChartReady};
+}
+
+/**
  * This hook provides an alternative to using the `ChartZoom` component. It returns
  * the props that would be passed to the `BaseChart` as zoomRenderProps.
  */
 export function useChartZoom({
-  router,
   onZoom,
   usePageDate,
   saveOnZoom,
@@ -70,6 +138,11 @@ export function useChartZoom({
   showSlider,
   chartZoomOptions,
 }: Omit<Props, 'children'>): ZoomRenderProps {
+  const {handleChartReady} = useChartZoomCancel();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const router = useRouter();
+
   /**
    * Used to store the date update function so that we can call it after the chart
    * animation is complete
@@ -103,18 +176,18 @@ export function useChartZoom({
       });
 
       zooming.current = () => {
-        if (usePageDate && router) {
+        if (usePageDate) {
           const newQuery = {
-            ...router.location.query,
+            ...location.query,
             pageStart: startFormatted,
             pageEnd: endFormatted,
             pageStatsPeriod: newPeriod.period ?? undefined,
           };
 
           // Only push new location if query params has changed because this will cause a heavy re-render
-          if (qs.stringify(newQuery) !== qs.stringify(router.location.query)) {
-            router.push({
-              pathname: router.location.pathname,
+          if (qs.stringify(newQuery) !== qs.stringify(location.query)) {
+            navigate({
+              pathname: location.pathname,
               query: newQuery,
             });
           }
@@ -131,7 +204,7 @@ export function useChartZoom({
         }
       };
     },
-    [onZoom, router, saveOnZoom, usePageDate]
+    [onZoom, navigate, location, router, saveOnZoom, usePageDate]
   );
 
   const handleDataZoom = useCallback<EChartDataZoomHandler>(
@@ -218,6 +291,7 @@ export function useChartZoom({
     toolBox,
     onDataZoom: handleDataZoom,
     onFinished: handleChartFinished,
+    onChartReady: handleChartReady,
   };
 
   return renderProps;
