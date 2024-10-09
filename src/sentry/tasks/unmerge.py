@@ -124,6 +124,9 @@ backfill_fields = {
         else data.get("first_release", None)
     ),
     "times_seen": lambda caches, data, event: data["times_seen"] + 1,
+    "score": lambda caches, data, event: Group.calculate_score(
+        data["times_seen"] + 1, data["last_seen"]
+    ),
 }
 
 
