@@ -1474,7 +1474,6 @@ class SnubaTestCase(BaseTestCase):
                 self.to_snuba_time_format(group.last_seen),
                 self.to_snuba_time_format(group.first_seen),
                 group.data,
-                group.score,
                 group.project.id,
                 group.time_spent_total,
                 group.time_spent_count,
