@@ -1,6 +1,6 @@
 import responses
 
-from sentry.mediators.external_requests.alert_rule_action_requester import (
+from sentry.sentry_apps.external_requests.alert_rule_action_requester import (
     DEFAULT_ERROR_MESSAGE,
     DEFAULT_SUCCESS_MESSAGE,
     AlertRuleActionRequester,
@@ -51,11 +51,11 @@ class TestAlertRuleActionRequester(TestCase):
             status=200,
         )
 
-        result = AlertRuleActionRequester.run(
+        result = AlertRuleActionRequester(
             install=self.install,
             uri="/sentry/alert-rule",
             fields=self.fields,
-        )
+        ).run()
         assert result["success"]
         assert result["message"] == f"{self.sentry_app.name}: {DEFAULT_SUCCESS_MESSAGE}"
         request = responses.calls[0].request
@@ -94,11 +94,11 @@ class TestAlertRuleActionRequester(TestCase):
             json={"message": self.success_message},
         )
 
-        result = AlertRuleActionRequester.run(
+        result = AlertRuleActionRequester(
             install=self.install,
             uri="/sentry/alert-rule",
             fields=self.fields,
-        )
+        ).run()
         assert result["success"]
         assert result["message"] == f"{self.sentry_app.name}: {self.success_message}"
 
@@ -110,11 +110,11 @@ class TestAlertRuleActionRequester(TestCase):
             status=200,
             body=self.success_message.encode(),
         )
-        result = AlertRuleActionRequester.run(
+        result = AlertRuleActionRequester(
             install=self.install,
             uri="/sentry/alert-rule",
             fields=self.fields,
-        )
+        ).run()
         assert result["success"]
         assert result["message"] == f"{self.sentry_app.name}: {DEFAULT_SUCCESS_MESSAGE}"
 
@@ -127,11 +127,11 @@ class TestAlertRuleActionRequester(TestCase):
             status=401,
         )
 
-        result = AlertRuleActionRequester.run(
+        result = AlertRuleActionRequester(
             install=self.install,
             uri="/sentry/alert-rule",
             fields=self.fields,
-        )
+        ).run()
         assert not result["success"]
         assert result["message"] == f"{self.sentry_app.name}: {DEFAULT_ERROR_MESSAGE}"
         request = responses.calls[0].request
@@ -169,12 +169,11 @@ class TestAlertRuleActionRequester(TestCase):
             status=401,
             json={"message": self.error_message},
         )
-
-        result = AlertRuleActionRequester.run(
+        result = AlertRuleActionRequester(
             install=self.install,
             uri="/sentry/alert-rule",
             fields=self.fields,
-        )
+        ).run()
         assert not result["success"]
         assert result["message"] == f"{self.sentry_app.name}: {self.error_message}"
 
@@ -186,10 +185,10 @@ class TestAlertRuleActionRequester(TestCase):
             status=401,
             body=self.error_message.encode(),
         )
-        result = AlertRuleActionRequester.run(
+        result = AlertRuleActionRequester(
             install=self.install,
             uri="/sentry/alert-rule",
             fields=self.fields,
-        )
+        ).run()
         assert not result["success"]
         assert result["message"] == f"{self.sentry_app.name}: {DEFAULT_ERROR_MESSAGE}"

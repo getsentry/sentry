@@ -6,6 +6,7 @@ import type {Organization} from 'sentry/types/organization';
 import {getFormattedDate} from 'sentry/utils/dates';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 
 type RawFlag = {
   action: string;
@@ -70,6 +71,7 @@ export default function useFlagSeries({query = {}}: {query?: Record<string, any>
     isError,
     isPending,
   } = useOrganizationFlagLog({organization, query});
+  const {selection} = usePageFilters();
 
   if (!rawFlagData || isError || isPending) {
     return {
@@ -96,7 +98,9 @@ export default function useFlagSeries({query = {}}: {query?: Record<string, any>
     tooltip: {
       trigger: 'item',
       formatter: ({data}: any) => {
-        const time = getFormattedDate(data.xAxis, 'MMM D, YYYY LT z');
+        const time = getFormattedDate(data.xAxis, 'MMM D, YYYY LT z', {
+          local: !selection.datetime.utc,
+        });
         return [
           '<div class="tooltip-series">',
           `<div><span class="tooltip-label"><strong>${t(
