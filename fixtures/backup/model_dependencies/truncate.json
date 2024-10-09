@@ -11,6 +11,7 @@
   "sentry_controloption",
   "sentry_controloutbox",
   "sentry_controltombstone",
+  "sentry_dashboardpermissions",
   "sentry_deletedorganization",
   "sentry_docintegration",
   "sentry_docintegrationavatar",
