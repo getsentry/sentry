@@ -1,10 +1,7 @@
-from unittest.mock import call, patch
-
 import responses
 
 from sentry.models.organization import Organization
 from sentry.sentry_apps.components import SentryAppComponentPreparer
-from sentry.sentry_apps.services.app.serial import serialize_sentry_app_installation
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
@@ -31,8 +28,12 @@ class TestPreparerIssueLink(TestCase):
             component=self.component, install=self.install, project_slug=self.project.slug
         )
 
-    @patch("sentry.sentry_apps.external_requests.select_requester.SelectRequester.run")
-    def test_prepares_components_requiring_requests(self, run):
+    @responses.activate
+    def test_prepares_components_requiring_requests(self):
+
+        # the webhook uris that we'll contact to get field options
+        uris = ["sentry/foo", "sentry/beep", "sentry/bar"]
+
         self.component.schema = {
             "link": {
                 "required_fields": [
@@ -58,43 +59,33 @@ class TestPreparerIssueLink(TestCase):
             },
         }
 
+        responses.add(
+            method=responses.GET,
+            url=f"https://example.com/{uris[0]}?installationId={self.install.uuid}&projectSlug={self.project.slug}",
+            json=[{"label": "Skibidi", "value": "Toilet", "default": True}],
+            status=200,
+            content_type="application/json",
+        )
+        responses.add(
+            method=responses.GET,
+            url=f"https://example.com/{uris[1]}?installationId={self.install.uuid}&projectSlug={self.project.slug}",
+            json=[{"label": "Dentge", "value": "skateparkge"}],
+            status=200,
+            content_type="application/json",
+        )
+
+        responses.add(
+            method=responses.GET,
+            url=f"https://example.com/{uris[2]}?installationId={self.install.uuid}&projectSlug={self.project.slug}",
+            json=[{"label": "uhhhhh idk", "value": "great_idea"}],
+            status=200,
+            content_type="application/json",
+        )
+
         self.preparer.run()
 
-        install = serialize_sentry_app_installation(self.install, self.install.sentry_app)
-        assert (
-            call(
-                install=install,
-                project_slug=self.project.slug,
-                uri="/sentry/foo",
-                dependent_data=None,
-            )
-            in run.mock_calls
-        )
-
-        assert (
-            call(
-                install=install,
-                project_slug=self.project.slug,
-                uri="/sentry/beep",
-                dependent_data=None,
-            )
-            in run.mock_calls
-        )
-
-        assert (
-            call(
-                install=install,
-                project_slug=self.project.slug,
-                uri="/sentry/bar",
-                dependent_data=None,
-            )
-            in run.mock_calls
-        )
-
-        assert (
-            not call(install=install, project_slug=self.project.slug, uri="/sentry/baz")
-            in run.mock_calls
-        )
+        # check that we did not make a request for skip_on_load components
+        assert not any("/sentry/baz" in request.url for request, response in responses.calls)
 
 
 @control_silo_test
