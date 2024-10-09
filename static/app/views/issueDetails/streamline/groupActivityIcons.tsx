@@ -3,6 +3,7 @@ import {
   IconChat,
   IconCheckmark,
   IconClose,
+  IconCommit,
   IconDelete,
   IconEdit,
   IconFire,
@@ -40,7 +41,7 @@ export const groupActivityTypeIconMapping: Record<
     defaultProps: {},
   },
   [GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST]: {
-    Component: IconCheckmark,
+    Component: IconCommit,
     defaultProps: {},
   },
   [GroupActivityType.SET_UNRESOLVED]: {Component: IconClose, defaultProps: {}},
