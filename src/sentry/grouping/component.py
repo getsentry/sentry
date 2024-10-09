@@ -19,6 +19,7 @@ KNOWN_MAJOR_COMPONENT_NAMES = {
     "violation": "violation",
     "uri": "URL",
     "message": "message",
+    "template": "template",
 }
 
 
