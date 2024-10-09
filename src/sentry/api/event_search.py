@@ -571,13 +571,14 @@ class SearchConfig:
 class SearchVisitor(NodeVisitor):
     unwrapped_exceptions = (InvalidSearchQuery,)
 
-    def __init__(self, config=None, params=None, builder=None):
+    def __init__(self, config=None, params=None, builder=None, get_field_type=None):
         super().__init__()
 
         if config is None:
             config = SearchConfig()
         self.config = config
         self.params = params if params is not None else {}
+        self.get_field_type = get_field_type
         if builder is None:
             # Avoid circular import
             from sentry.search.events.builder.discover import UnresolvedQuery
@@ -590,6 +591,10 @@ class SearchVisitor(NodeVisitor):
             )
         else:
             self.builder = builder
+        if get_field_type is None:
+            self.get_field_type = self.builder.get_field_type
+        else:
+            self.get_field_type = get_field_type
 
     @cached_property
     def key_mappings_lookup(self):
@@ -604,7 +609,7 @@ class SearchVisitor(NodeVisitor):
             key in self.config.numeric_keys
             or is_measurement(key)
             or is_span_op_breakdown(key)
-            or self.builder.get_field_type(key) == "number"
+            or self.get_field_type(key) == "number"
             or self.is_duration_key(key)
         )
 
@@ -614,11 +619,11 @@ class SearchVisitor(NodeVisitor):
             key in self.config.duration_keys
             or is_duration_measurement(key)
             or is_span_op_breakdown(key)
-            or self.builder.get_field_type(key) in duration_types
+            or self.get_field_type(key) in duration_types
         )
 
     def is_size_key(self, key):
-        return self.builder.get_field_type(key) in SIZE_UNITS
+        return self.get_field_type(key) in SIZE_UNITS
 
     def is_date_key(self, key):
         return key in self.config.date_keys
@@ -1241,7 +1246,7 @@ QueryToken = Union[SearchFilter, QueryOp, ParenExpression]
 
 
 def parse_search_query(
-    query, config=None, params=None, builder=None, config_overrides=None
+    query, config=None, params=None, builder=None, config_overrides=None, get_field_type=None
 ) -> list[
     SearchFilter
 ]:  # TODO: use the `Sequence[QueryToken]` type and update the code that fails type checking.
@@ -1264,4 +1269,6 @@ def parse_search_query(
     if config_overrides:
         config = SearchConfig.create_from(config, **config_overrides)
 
-    return SearchVisitor(config, params=params, builder=builder).visit(tree)
+    return SearchVisitor(
+        config, params=params, builder=builder, get_field_type=get_field_type
+    ).visit(tree)
