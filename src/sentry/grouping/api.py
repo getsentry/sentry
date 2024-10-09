@@ -237,6 +237,8 @@ def apply_server_fingerprinting(event, config, allow_custom_title=True):
     fingerprint_info = {}
 
     client_fingerprint = event.get("fingerprint")
+    fingerprint_info["client_fingerprint"] = client_fingerprint
+
     rv = config.get_fingerprint_values_for_event(event)
     if rv is not None:
         rule, new_fingerprint, attributes = rv
@@ -249,7 +251,6 @@ def apply_server_fingerprinting(event, config, allow_custom_title=True):
 
         # Persist the rule that matched with the fingerprint in the event
         # dictionary for later debugging.
-        fingerprint_info["client_fingerprint"] = client_fingerprint
         fingerprint_info["matched_rule"] = rule.to_json()
 
         if rule.is_builtin:
