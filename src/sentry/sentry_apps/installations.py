@@ -8,11 +8,17 @@ from django.db import router, transaction
 from django.http.request import HttpRequest
 
 from sentry import analytics, audit_log
+from sentry.api.serializers import serialize
 from sentry.constants import INTERNAL_INTEGRATION_TOKEN_COUNT_MAX, SentryAppInstallationStatus
+from sentry.coreapi import APIUnauthorized
 from sentry.exceptions import ApiTokenLimitError
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.apigrant import ApiGrant
 from sentry.models.apitoken import ApiToken
+from sentry.sentry_apps.api.serializers.app_platform_event import AppPlatformEvent
+from sentry.sentry_apps.api.serializers.sentry_app_installation import (
+    SentryAppInstallationSerializer,
+)
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.models.sentry_app_installation_token import SentryAppInstallationToken
@@ -21,6 +27,9 @@ from sentry.sentry_apps.tasks.sentry_apps import installation_webhook
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.utils import metrics
+from sentry.utils.sentry_apps import send_and_save_webhook_request
+
+VALID_ACTIONS = ["created", "deleted"]
 
 
 @dataclasses.dataclass
@@ -174,3 +183,69 @@ class SentryAppInstallationCreator:
     @cached_property
     def sentry_app(self) -> SentryApp:
         return SentryApp.objects.get(slug=self.slug)
+
+
+@dataclasses.dataclass
+class SentryAppInstallationNotifier:
+    sentry_app_installation: SentryAppInstallation
+    user: User | RpcUser
+    action: str
+
+    def run(self) -> None:
+        if self.action not in VALID_ACTIONS:
+            raise APIUnauthorized(
+                f"Invalid action '{self.action} for installation notifier for {self.sentry_app}"
+            )
+
+        send_and_save_webhook_request(self.sentry_app, self.request)
+
+    @property
+    def request(self) -> AppPlatformEvent:
+        data = serialize(
+            self.sentry_app_installation,
+            user=self.user,
+            serializer=SentryAppInstallationSerializer(),
+            is_webhook=True,
+        )
+
+        return AppPlatformEvent(
+            resource="installation",
+            action=self.action,
+            install=self.sentry_app_installation,
+            data={"installation": data},
+            actor=self.user,
+        )
+
+    @cached_property
+    def sentry_app(self) -> SentryApp:
+        return self.sentry_app_installation.sentry_app
+
+    @cached_property
+    def api_grant(self) -> ApiGrant | None:
+        return self.sentry_app_installation.api_grant_id and self.sentry_app_installation.api_grant
+
+
+@dataclasses.dataclass
+class SentryAppInstallationUpdater:
+    sentry_app_installation: SentryAppInstallation
+    status: str | None = None
+
+    def run(self) -> SentryAppInstallation:
+        with transaction.atomic(router.db_for_write(SentryAppInstallation)):
+            self._update_status()
+            self.record_analytics()
+            return self.sentry_app_installation
+
+    def _update_status(self):
+        # convert from string to integer
+        if self.status == SentryAppInstallationStatus.INSTALLED_STR:
+            for install in SentryAppInstallation.objects.filter(id=self.sentry_app_installation.id):
+                install.update(status=SentryAppInstallationStatus.INSTALLED)
+
+    def record_analytics(self):
+        analytics.record(
+            "sentry_app_installation.updated",
+            sentry_app_installation_id=self.sentry_app_installation.id,
+            sentry_app_id=self.sentry_app_installation.sentry_app.id,
+            organization_id=self.sentry_app_installation.organization_id,
+        )

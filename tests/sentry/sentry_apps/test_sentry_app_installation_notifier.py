@@ -4,7 +4,7 @@ from unittest.mock import patch
 import pytest
 
 from sentry.coreapi import APIUnauthorized
-from sentry.mediators.sentry_app_installations.installation_notifier import InstallationNotifier
+from sentry.sentry_apps.installations import SentryAppInstallationNotifier
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.users.services.user.service import user_service
@@ -44,7 +44,10 @@ class TestInstallationNotifier(TestCase):
 
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
     def test_task_enqueued(self, safe_urlopen):
-        InstallationNotifier.run(install=self.install, user=self.rpc_user, action="created")
+        assert self.rpc_user, "Rpcuser should exist, unless explicitly noted in test"
+        SentryAppInstallationNotifier(
+            sentry_app_installation=self.install, user=self.rpc_user, action="created"
+        ).run()
 
         ((args, kwargs),) = safe_urlopen.call_args_list
 
@@ -73,7 +76,11 @@ class TestInstallationNotifier(TestCase):
 
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
     def test_uninstallation_enqueued(self, safe_urlopen):
-        InstallationNotifier.run(install=self.install, user=self.rpc_user, action="deleted")
+        assert self.rpc_user, "Rpcuser should exist, unless explicitly noted in test"
+
+        SentryAppInstallationNotifier(
+            sentry_app_installation=self.install, user=self.rpc_user, action="deleted"
+        ).run()
 
         ((args, kwargs),) = safe_urlopen.call_args_list
 
@@ -103,14 +110,22 @@ class TestInstallationNotifier(TestCase):
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
     def test_invalid_installation_action(self, safe_urlopen):
         with pytest.raises(APIUnauthorized):
-            InstallationNotifier.run(install=self.install, user=self.rpc_user, action="updated")
+            assert self.rpc_user, "Rpcuser should exist, unless explicitly noted in test"
+            SentryAppInstallationNotifier(
+                sentry_app_installation=self.install, user=self.rpc_user, action="updated"
+            ).run()
 
         assert not safe_urlopen.called
 
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
     def test_webhook_request_saved(self, safe_urlopen):
-        InstallationNotifier.run(install=self.install, user=self.rpc_user, action="created")
-        InstallationNotifier.run(install=self.install, user=self.rpc_user, action="deleted")
+        assert self.rpc_user, "Rpcuser should exist, unless explicitly noted in test"
+        SentryAppInstallationNotifier(
+            sentry_app_installation=self.install, user=self.rpc_user, action="created"
+        ).run()
+        SentryAppInstallationNotifier(
+            sentry_app_installation=self.install, user=self.rpc_user, action="deleted"
+        ).run()
 
         buffer = SentryAppWebhookRequestsBuffer(self.sentry_app)
         requests = buffer.get_requests()

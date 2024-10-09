@@ -12,6 +12,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.users.services.user.service import user_service
+from sentry.utils import json
 
 
 @control_silo_test
@@ -23,8 +24,6 @@ class TestCreator(TestCase):
 
         self.project1 = self.create_project(organization=self.org)
         self.project2 = self.create_project(organization=self.org)
-
-        responses.add(responses.POST, "https://example.com/webhook")
 
         self.sentry_app = self.create_sentry_app(
             name="nulldb",
@@ -88,13 +87,18 @@ class TestCreator(TestCase):
         ).exists()
 
     @responses.activate
-    @patch("sentry.mediators.sentry_app_installations.InstallationNotifier.run")
-    def test_notifies_service(self, run):
+    def test_notifies_service(self):
+
         rpc_user = user_service.get_user(user_id=self.user.id)
         with self.tasks():
             responses.add(responses.POST, "https://example.com/webhook")
             install = self.run_creator()
-            run.assert_called_once_with(install=install, user=rpc_user, action="created")
+            response_body = json.loads(responses.calls[0].request.body)
+
+            assert response_body.get("installation").get("uuid") == install.uuid
+            assert response_body.get("action") == "created"
+            assert rpc_user, "User should exist, unless explicitly noted in test"
+            assert response_body.get("actor").get("id") == rpc_user.id
 
     @responses.activate
     def test_associations(self):
