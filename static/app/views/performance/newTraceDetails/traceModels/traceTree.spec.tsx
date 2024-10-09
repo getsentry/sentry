@@ -16,7 +16,6 @@ import {
   makeSpan,
   makeTrace,
   makeTraceError,
-  makeTraceMetaQueryResults,
   makeTracePerformanceIssue,
   makeTransaction,
 } from './traceTreeTestUtils';
@@ -434,19 +433,17 @@ describe('TraceTree', () => {
           ],
         }),
         {
-          meta: makeTraceMetaQueryResults({
-            data: {
-              transactiontoSpanChildrenCount: {
-                transaction: 10,
-                'no-spans-transaction': 1,
-                // we have no data for child transaction
-              },
-              errors: 0,
-              performance_issues: 0,
-              projects: 0,
-              transactions: 0,
+          meta: {
+            transactiontoSpanChildrenCount: {
+              transaction: 10,
+              'no-spans-transaction': 1,
+              // we have no data for child transaction
             },
-          }),
+            errors: 0,
+            performance_issues: 0,
+            projects: 0,
+            transactions: 0,
+          },
           replayRecord: null,
         }
       );
@@ -615,12 +612,20 @@ describe('TraceTree', () => {
   });
 
   describe('zoom', () => {
+    const DEFAULT_ZOOM_CONFIGURATION = {
+      autogroup: {
+        parent: false,
+        sibling: false,
+      },
+      missing_instrumentation: false,
+    };
+
     it('does nothing if node cannot fetch', () => {
       const tree = TraceTree.FromTrace(traceWithEventId, traceMetadata);
       const request = mockSpansResponse([], 'project', 'event-id');
 
       tree.root.children[0].children[0].canFetch = false;
-      tree.zoom(tree.root.children[0].children[0], true, {
+      tree.zoom(tree.root.children[0].children[0], true, DEFAULT_ZOOM_CONFIGURATION, {
         api: new MockApiClient(),
         organization: OrganizationFixture(),
       });
@@ -632,12 +637,12 @@ describe('TraceTree', () => {
       const tree = TraceTree.FromTrace(traceWithEventId, traceMetadata);
       const request = mockSpansResponse([], 'project', 'event-id');
 
-      tree.zoom(tree.root.children[0].children[0], true, {
+      tree.zoom(tree.root.children[0].children[0], true, DEFAULT_ZOOM_CONFIGURATION, {
         api: new MockApiClient(),
         organization: OrganizationFixture(),
       });
 
-      tree.zoom(tree.root.children[0], true, {
+      tree.zoom(tree.root.children[0], true, DEFAULT_ZOOM_CONFIGURATION, {
         api: new MockApiClient(),
         organization: OrganizationFixture(),
       });
@@ -652,10 +657,15 @@ describe('TraceTree', () => {
       // Zoom mutates the list, so we need to build first
       tree.build();
 
-      await tree.zoom(tree.root.children[0].children[0].children[0], true, {
-        api: new MockApiClient(),
-        organization: OrganizationFixture(),
-      });
+      await tree.zoom(
+        tree.root.children[0].children[0].children[0],
+        true,
+        DEFAULT_ZOOM_CONFIGURATION,
+        {
+          api: new MockApiClient(),
+          organization: OrganizationFixture(),
+        }
+      );
 
       expect(tree.build().serialize()).toMatchSnapshot();
     });
@@ -666,17 +676,27 @@ describe('TraceTree', () => {
       tree.build();
       // Zoom in on child span
       mockSpansResponse([makeSpan()], 'project', 'child-event-id');
-      await tree.zoom(tree.root.children[0].children[0].children[0], true, {
-        api: new MockApiClient(),
-        organization: OrganizationFixture(),
-      });
+      await tree.zoom(
+        tree.root.children[0].children[0].children[0],
+        true,
+        DEFAULT_ZOOM_CONFIGURATION,
+        {
+          api: new MockApiClient(),
+          organization: OrganizationFixture(),
+        }
+      );
 
       // Then zoom in on a parent
       mockSpansResponse([makeSpan()], 'project', 'event-id');
-      await tree.zoom(tree.root.children[0].children[0], true, {
-        api: new MockApiClient(),
-        organization: OrganizationFixture(),
-      });
+      await tree.zoom(
+        tree.root.children[0].children[0],
+        true,
+        DEFAULT_ZOOM_CONFIGURATION,
+        {
+          api: new MockApiClient(),
+          organization: OrganizationFixture(),
+        }
+      );
 
       expect(tree.build().serialize()).toMatchSnapshot();
     });
@@ -707,16 +727,26 @@ describe('TraceTree', () => {
       tree.build();
 
       mockSpansResponse([makeSpan({span_id: '0001'})], 'project', 'child-event-id');
-      await tree.zoom(tree.root.children[0].children[0].children[0], true, {
-        api: new MockApiClient(),
-        organization: OrganizationFixture(),
-      });
+      await tree.zoom(
+        tree.root.children[0].children[0].children[0],
+        true,
+        DEFAULT_ZOOM_CONFIGURATION,
+        {
+          api: new MockApiClient(),
+          organization: OrganizationFixture(),
+        }
+      );
 
       mockSpansResponse([makeSpan({span_id: '0000'})], 'project', 'parent-event-id');
-      await tree.zoom(tree.root.children[0].children[0], true, {
-        api: new MockApiClient(),
-        organization: OrganizationFixture(),
-      });
+      await tree.zoom(
+        tree.root.children[0].children[0],
+        true,
+        DEFAULT_ZOOM_CONFIGURATION,
+        {
+          api: new MockApiClient(),
+          organization: OrganizationFixture(),
+        }
+      );
 
       expect(tree.build().serialize()).toMatchSnapshot();
     });
@@ -754,10 +784,15 @@ describe('TraceTree', () => {
       tree.build();
 
       mockSpansResponse([makeSpan({span_id: '0000'})], 'project', 'parent-event-id');
-      await tree.zoom(tree.root.children[0].children[0], true, {
-        api: new MockApiClient(),
-        organization: OrganizationFixture(),
-      });
+      await tree.zoom(
+        tree.root.children[0].children[0],
+        true,
+        DEFAULT_ZOOM_CONFIGURATION,
+        {
+          api: new MockApiClient(),
+          organization: OrganizationFixture(),
+        }
+      );
 
       const grandchild = findTransactionByEventId(tree, 'grandchild-event-id');
       const child = findTransactionByEventId(tree, 'child-event-id');
@@ -800,10 +835,15 @@ describe('TraceTree', () => {
 
       mockSpansResponse([makeSpan({span_id: '0000'})], 'project', 'parent-event-id');
       for (const bool of [true, false]) {
-        await tree.zoom(tree.root.children[0].children[0], bool, {
-          api: new MockApiClient(),
-          organization: OrganizationFixture(),
-        });
+        await tree.zoom(
+          tree.root.children[0].children[0],
+          bool,
+          DEFAULT_ZOOM_CONFIGURATION,
+          {
+            api: new MockApiClient(),
+            organization: OrganizationFixture(),
+          }
+        );
       }
 
       expect(tree.serialize()).toEqual(transactionTreeSnapshot);
@@ -850,7 +890,7 @@ describe('TraceTree', () => {
       );
 
       const child = findTransactionByEventId(tree, 'child-event-id');
-      await tree.zoom(child!, true, {
+      await tree.zoom(child!, true, DEFAULT_ZOOM_CONFIGURATION, {
         api: new MockApiClient(),
         organization: OrganizationFixture(),
       });
@@ -862,12 +902,12 @@ describe('TraceTree', () => {
       );
 
       const grandchild = findTransactionByEventId(tree, 'grandchild-event-id');
-      await tree.zoom(grandchild!, true, {
+      await tree.zoom(grandchild!, true, DEFAULT_ZOOM_CONFIGURATION, {
         api: new MockApiClient(),
         organization: OrganizationFixture(),
       });
 
-      await tree.zoom(child!, false, {
+      await tree.zoom(child!, false, DEFAULT_ZOOM_CONFIGURATION, {
         api: new MockApiClient(),
         organization: OrganizationFixture(),
       });
