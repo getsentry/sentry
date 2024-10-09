@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-import math
 import re
 import warnings
 from collections import defaultdict, namedtuple
@@ -765,9 +764,6 @@ class Group(Model):
             # Otherwise it has not been shared yet.
             return None
 
-    def get_score(self):
-        return type(self).calculate_score(self.times_seen, self.last_seen)
-
     def get_latest_event(self) -> GroupEvent | None:
         if not hasattr(self, "_latest_event"):
             self._latest_event = self.get_latest_event_for_environments()
@@ -917,10 +913,6 @@ class Group(Model):
             tenant_ids={"organization_id": self.project.organization_id},
             referrer=referrer,
         )[self.id]
-
-    @classmethod
-    def calculate_score(cls, times_seen, last_seen):
-        return math.log(float(times_seen or 1)) * 600 + float(last_seen.strftime("%s"))
 
     def get_assignee(self) -> Team | RpcUser | None:
         from sentry.models.groupassignee import GroupAssignee
