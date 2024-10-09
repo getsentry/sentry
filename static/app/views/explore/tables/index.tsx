@@ -42,7 +42,8 @@ function ExploreAggregatesTable() {
 function ExploreSamplesTable() {
   const [tab, setTab] = useState(Tab.SPAN);
   const [fields, setFields] = useSampleFields();
-  const tags = useSpanTags();
+  const numberTags = useSpanTags('number');
+  const stringTags = useSpanTags('string');
 
   const openColumnEditor = useCallback(() => {
     openModal(
@@ -51,12 +52,13 @@ function ExploreSamplesTable() {
           {...modalProps}
           columns={fields}
           onColumnsChange={setFields}
-          tags={tags}
+          stringTags={stringTags}
+          numberTags={numberTags}
         />
       ),
       {closeEvents: 'escape-key'}
     );
-  }, [fields, setFields, tags]);
+  }, [fields, setFields, stringTags, numberTags]);
 
   return (
     <Fragment>
@@ -68,12 +70,11 @@ function ExploreSamplesTable() {
           </TabList>
         </Tabs>
         <Button
-          size="sm"
           disabled={tab !== Tab.SPAN}
           onClick={openColumnEditor}
           icon={<IconTable />}
         >
-          {t('Columns')}
+          {t('Edit Table')}
         </Button>
       </SamplesTableHeader>
       {tab === Tab.SPAN && <SpansTable />}
@@ -86,5 +87,5 @@ const SamplesTableHeader = styled('div')`
   display: flex;
   flex-direction: row;
   justify-content: space-between;
-  margin-bottom: ${space(1)};
+  margin-bottom: ${space(2)};
 `;

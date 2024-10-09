@@ -17,6 +17,7 @@ import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -128,37 +129,39 @@ function CustomViewsIssueListHeaderTabsContent({
 
   const {query, sort, viewId, project, environment} = queryParams;
 
-  const queryParamsWithPageFilters = {
-    ...queryParams,
-    project: project ?? pageFilters.selection.projects,
-    environment: environment ?? pageFilters.selection.environments,
-    ...normalizeDateTimeParams(pageFilters.selection.datetime),
-  };
+  const queryParamsWithPageFilters = useMemo(() => {
+    return {
+      ...queryParams,
+      project: project ?? pageFilters.selection.projects,
+      environment: environment ?? pageFilters.selection.environments,
+      ...normalizeDateTimeParams(pageFilters.selection.datetime),
+    };
+  }, [
+    environment,
+    pageFilters.selection.datetime,
+    pageFilters.selection.environments,
+    pageFilters.selection.projects,
+    project,
+    queryParams,
+  ]);
 
-  const viewsToTabs = views.map(
-    ({id, name, query: viewQuery, querySort: viewQuerySort}, index): Tab => {
+  const [draggableTabs, setDraggableTabs] = useState<Tab[]>(
+    views.map(({id, name, query: viewQuery, querySort: viewQuerySort}, index): Tab => {
       const tabId = id ?? `default${index.toString()}`;
+
       return {
         id: tabId,
         key: tabId,
         label: name,
         query: viewQuery,
         querySort: viewQuerySort,
+        unsavedChanges: undefined,
+        isCommitted: true,
       };
-    }
+    })
   );
 
-  const [draggableTabs, setDraggableTabs] = useState<Tab[]>(viewsToTabs);
-
-  const {tabListState} = useContext(TabsContext);
-
   const getInitialTabKey = () => {
-    if (draggableTabs[0].key.startsWith('default')) {
-      return draggableTabs[0].key;
-    }
-    if (!query && !sort && !viewId) {
-      return draggableTabs[0].key;
-    }
     if (viewId && draggableTabs.find(tab => tab.id === viewId)) {
       return draggableTabs.find(tab => tab.id === viewId)!.key;
     }
@@ -167,6 +170,8 @@ function CustomViewsIssueListHeaderTabsContent({
     }
     return draggableTabs[0].key;
   };
+
+  const {tabListState} = useContext(TabsContext);
 
   // TODO: Try to remove this state if possible
   const [tempTab, setTempTab] = useState<Tab | undefined>(
@@ -177,6 +182,7 @@ function CustomViewsIssueListHeaderTabsContent({
           label: t('Unsaved'),
           query: query,
           querySort: sort ?? IssueSortOptions.DATE,
+          isCommitted: true,
         }
       : undefined
   );
@@ -189,14 +195,18 @@ function CustomViewsIssueListHeaderTabsContent({
         if (newTabs) {
           updateViews({
             orgSlug: organization.slug,
-            groupSearchViews: newTabs.map(tab => ({
-              // Do not send over an ID if it's a temporary or default tab so that
-              // the backend will save these and generate permanent Ids for them
-              ...(tab.id[0] !== '_' && !tab.id.startsWith('default') ? {id: tab.id} : {}),
-              name: tab.label,
-              query: tab.query,
-              querySort: tab.querySort,
-            })),
+            groupSearchViews: newTabs
+              .filter(tab => tab.isCommitted)
+              .map(tab => ({
+                // Do not send over an ID if it's a temporary or default tab so that
+                // the backend will save these and generate permanent Ids for them
+                ...(tab.id[0] !== '_' && !tab.id.startsWith('default')
+                  ? {id: tab.id}
+                  : {}),
+                name: tab.label,
+                query: tab.query,
+                querySort: tab.querySort,
+              })),
           });
         }
       }, 500),
@@ -225,46 +235,62 @@ function CustomViewsIssueListHeaderTabsContent({
     // if a viewId is present, check if it exists in the existing views.
     if (viewId) {
       const selectedTab = draggableTabs.find(tab => tab.id === viewId);
-      if (selectedTab && query && sort) {
+      if (selectedTab) {
         const issueSortOption = Object.values(IssueSortOptions).includes(sort)
           ? sort
           : IssueSortOptions.DATE;
 
-        const unsavedChanges: [string, IssueSortOptions] | undefined =
+        const newUnsavedChanges: [string, IssueSortOptions] | undefined =
           query === selectedTab.query && sort === selectedTab.querySort
             ? undefined
-            : [query as string, issueSortOption];
+            : [query ?? selectedTab.query, issueSortOption];
+        if (
+          (newUnsavedChanges && !selectedTab.unsavedChanges) ||
+          selectedTab.unsavedChanges?.[0] !== newUnsavedChanges?.[0] ||
+          selectedTab.unsavedChanges?.[1] !== newUnsavedChanges?.[1]
+        ) {
+          // If there were no unsaved changes before, or the existing unsaved changes
+          // don't match the new query and/or sort, update the unsaved changes
+          setDraggableTabs(
+            draggableTabs.map(tab =>
+              tab.key === selectedTab.key
+                ? {
+                    ...tab,
+                    unsavedChanges: newUnsavedChanges,
+                  }
+                : tab
+            )
+          );
+        } else if (!newUnsavedChanges && selectedTab.unsavedChanges) {
+          // If there are no longer unsaved changes but there were before, remove them
+          setDraggableTabs(
+            draggableTabs.map(tab =>
+              tab.key === selectedTab.key
+                ? {
+                    ...tab,
+                    unsavedChanges: undefined,
+                  }
+                : tab
+            )
+          );
+        }
 
-        setDraggableTabs(
-          draggableTabs.map(tab =>
-            tab.key === selectedTab.key
-              ? {
-                  ...tab,
-                  unsavedChanges,
-                }
-              : tab
-          )
-        );
-
-        tabListState?.setSelectedKey(selectedTab.key);
-        return;
-      }
-      if (selectedTab && query === undefined) {
-        navigate(
-          normalizeUrl({
-            ...location,
-            query: {
-              ...queryParamsWithPageFilters,
-              query: selectedTab.query,
-              sort: selectedTab.querySort,
-              viewId: selectedTab.id,
-            },
-          })
-        );
-        tabListState?.setSelectedKey(selectedTab.key);
-        return;
-      }
-      if (!selectedTab) {
+        if (!tabListState?.selectionManager.isSelected(selectedTab.key)) {
+          navigate(
+            normalizeUrl({
+              ...location,
+              query: {
+                ...queryParamsWithPageFilters,
+                query: newUnsavedChanges ? newUnsavedChanges[0] : selectedTab.query,
+                sort: newUnsavedChanges ? newUnsavedChanges[1] : selectedTab.querySort,
+                viewId: selectedTab.id,
+              },
+            }),
+            {replace: true}
+          );
+          tabListState?.setSelectedKey(selectedTab.key);
+        }
+      } else {
         // if a viewId does not exist, remove it from the query
         tabListState?.setSelectedKey(TEMPORARY_TAB_KEY);
         navigate(
@@ -274,59 +300,104 @@ function CustomViewsIssueListHeaderTabsContent({
               ...queryParamsWithPageFilters,
               viewId: undefined,
             },
-          })
+          }),
+          {replace: true}
         );
         trackAnalytics('issue_views.shared_view_opened', {
           organization,
           query,
         });
-        return;
       }
       return;
     }
     if (query) {
-      tabListState?.setSelectedKey(TEMPORARY_TAB_KEY);
-      return;
+      if (!tabListState?.selectionManager.isSelected(TEMPORARY_TAB_KEY)) {
+        tabListState?.setSelectedKey(TEMPORARY_TAB_KEY);
+        navigate(
+          normalizeUrl({
+            ...location,
+            query: {
+              ...queryParamsWithPageFilters,
+              viewId: undefined,
+            },
+          }),
+          {replace: true}
+        );
+        return;
+      }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [navigate, organization.slug, query, sort, viewId, tabListState]);
+  }, [
+    navigate,
+    organization.slug,
+    query,
+    sort,
+    viewId,
+    tabListState,
+    location,
+    queryParamsWithPageFilters,
+    draggableTabs,
+    organization,
+  ]);
 
   // Update local tabs when new views are received from mutation request
-  useEffect(() => {
-    setDraggableTabs(
-      draggableTabs.map(tab => {
+  useEffectAfterFirstRender(() => {
+    const newlyCreatedViews = views.filter(
+      view => !draggableTabs.find(tab => tab.id === view.id)
+    );
+    const currentView = draggableTabs.find(tab => tab.id === viewId);
+
+    setDraggableTabs(oldDraggableTabs => {
+      const assignedIds = new Set();
+      return oldDraggableTabs.map(tab => {
+        // Temp viewIds are prefixed with '_'
         if (tab.id && tab.id[0] === '_') {
-          // Temp viewIds are prefixed with '_'
-          views.forEach(view => {
-            if (
+          const matchingView = newlyCreatedViews.find(
+            view =>
               view.id &&
+              !assignedIds.has(view.id) &&
               tab.query === view.query &&
               tab.querySort === view.querySort &&
               tab.label === view.name
-            ) {
-              tab.id = view.id;
-            }
-          });
-          navigate(
-            normalizeUrl({
-              ...location,
-              query: {
-                ...queryParamsWithPageFilters,
-                viewId: tab.id,
-              },
-            }),
-            {replace: true}
           );
+          if (matchingView?.id) {
+            assignedIds.add(matchingView.id);
+            return {
+              ...tab,
+              id: matchingView.id,
+            };
+          }
         }
         return tab;
-      })
-    );
+      });
+    });
+
+    if (viewId?.startsWith('_') && currentView) {
+      const matchingView = newlyCreatedViews.find(
+        view =>
+          view.id &&
+          currentView.query === view.query &&
+          currentView.querySort === view.querySort &&
+          currentView.label === view.name
+      );
+      if (matchingView?.id) {
+        navigate(
+          normalizeUrl({
+            ...location,
+            query: {
+              ...queryParamsWithPageFilters,
+              viewId: matchingView.id,
+            },
+          }),
+          {replace: true}
+        );
+      }
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [views]);
 
   useEffect(() => {
     if (viewId?.startsWith('_')) {
-      if (draggableTabs.find(tab => tab.id === viewId)?.label.endsWith('(Copy)')) {
+      if (draggableTabs.find(tab => tab.id === viewId)?.isCommitted) {
         return;
       }
       // If the user types in query manually while the new view flow is showing,
@@ -339,6 +410,7 @@ function CustomViewsIssueListHeaderTabsContent({
             ? {
                 ...tab,
                 unsavedChanges: [query, sort ?? IssueSortOptions.DATE],
+                isCommitted: true,
               }
             : tab
         );

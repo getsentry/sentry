@@ -4,8 +4,7 @@ import orderBy from 'lodash/orderBy';
 import {fetchTagValues, useFetchOrganizationTags} from 'sentry/actionCreators/tags';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
-import SmartSearchBar from 'sentry/components/smartSearchBar';
-import {MAX_QUERY_LENGTH, NEGATION_OPERATOR, SEARCH_WILDCARD} from 'sentry/constants';
+import type SmartSearchBar from 'sentry/components/smartSearchBar';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Tag, TagCollection, TagValue} from 'sentry/types/group';
@@ -24,17 +23,6 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useApi from 'sentry/utils/useApi';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 
-const SEARCH_SPECIAL_CHARS_REGEXP = new RegExp(
-  `^${NEGATION_OPERATOR}|\\${SEARCH_WILDCARD}`,
-  'g'
-);
-
-/**
- * Prepare query string (e.g. strip special characters like negation operator)
- */
-function prepareQuery(searchQuery: string) {
-  return searchQuery.replace(SEARCH_SPECIAL_CHARS_REGEXP, '');
-}
 const getReplayFieldDefinition = (key: string) => getFieldDefinition(key, 'replay');
 
 function fieldDefinitionsToTagCollection(fieldKeys: string[]): TagCollection {
@@ -82,14 +70,7 @@ function getReplayFilterKeys(supportedTags: TagCollection): TagCollection {
   };
 }
 
-const getFilterKeySections = (
-  tags: TagCollection,
-  organization: Organization
-): FilterKeySection[] => {
-  if (!organization.features.includes('search-query-builder-replays')) {
-    return [];
-  }
-
+const getFilterKeySections = (tags: TagCollection): FilterKeySection[] => {
   const customTags: Tag[] = Object.values(tags).filter(
     tag =>
       !EXCLUDED_TAGS.includes(tag.key) &&
@@ -141,7 +122,7 @@ function ReplaySearchBar(props: Props) {
     {
       orgSlug: organization.slug,
       projectIds: projectIds.map(String),
-      dataset: Dataset.ISSUE_PLATFORM,
+      dataset: Dataset.REPLAYS,
       useCache: true,
       enabled: true,
       keepPreviousData: false,
@@ -151,7 +132,7 @@ function ReplaySearchBar(props: Props) {
     },
     {}
   );
-  const issuePlatformTags: TagCollection = useMemo(() => {
+  const customTags: TagCollection = useMemo(() => {
     return (tagQuery.data ?? []).reduce<TagCollection>((acc, tag) => {
       acc[tag.key] = {...tag, kind: FieldKind.TAG};
       return acc;
@@ -159,13 +140,10 @@ function ReplaySearchBar(props: Props) {
   }, [tagQuery]);
   // tagQuery.isLoading and tagQuery.isError are not used
 
-  const filterKeys = useMemo(
-    () => getReplayFilterKeys(issuePlatformTags),
-    [issuePlatformTags]
-  );
+  const filterKeys = useMemo(() => getReplayFilterKeys(customTags), [customTags]);
   const filterKeySections = useMemo(() => {
-    return getFilterKeySections(issuePlatformTags, organization);
-  }, [issuePlatformTags, organization]);
+    return getFilterKeySections(customTags);
+  }, [customTags]);
 
   const getTagValues = useCallback(
     (tag: Tag, searchQuery: string): Promise<string[]> => {
@@ -216,53 +194,25 @@ function ReplaySearchBar(props: Props) {
     [onSearch, organization]
   );
 
-  if (organization.features.includes('search-query-builder-replays')) {
-    return (
-      <SearchQueryBuilder
-        {...props}
-        onChange={undefined} // not implemented and different type from SmartSearchBar
-        disallowLogicalOperators={undefined} // ^
-        className={props.className}
-        fieldDefinitionGetter={getReplayFieldDefinition}
-        filterKeys={filterKeys}
-        filterKeySections={filterKeySections}
-        getTagValues={getTagValues}
-        initialQuery={props.query ?? props.defaultQuery ?? ''}
-        onSearch={onSearchWithAnalytics}
-        searchSource={props.searchSource ?? 'replay_index'}
-        placeholder={
-          props.placeholder ??
-          t('Search for users, duration, clicked elements, count_errors, and more')
-        }
-        recentSearches={SavedSearchType.REPLAY}
-        showUnsubmittedIndicator
-      />
-    );
-  }
-
   return (
-    <SmartSearchBar
+    <SearchQueryBuilder
       {...props}
-      onGetTagValues={getTagValues}
-      supportedTags={filterKeys}
+      onChange={undefined} // not implemented and different type from SmartSearchBar
+      disallowLogicalOperators={undefined} // ^
+      className={props.className}
+      fieldDefinitionGetter={getReplayFieldDefinition}
+      filterKeys={filterKeys}
+      filterKeySections={filterKeySections}
+      getTagValues={getTagValues}
+      initialQuery={props.query ?? props.defaultQuery ?? ''}
+      onSearch={onSearchWithAnalytics}
+      searchSource={props.searchSource ?? 'replay_index'}
       placeholder={
         props.placeholder ??
         t('Search for users, duration, clicked elements, count_errors, and more')
       }
-      prepareQuery={prepareQuery}
-      maxQueryLength={MAX_QUERY_LENGTH}
-      searchSource={props.searchSource ?? 'replay_index'}
-      savedSearchType={SavedSearchType.REPLAY}
-      maxMenuHeight={500}
-      hasRecentSearches
-      projectIds={projectIds}
-      fieldDefinitionGetter={getReplayFieldDefinition}
-      mergeSearchGroupWith={{
-        click: {
-          documentation: t('Search by click selector. (Requires SDK version >= 7.44.0)'),
-        },
-      }}
-      onSearch={onSearchWithAnalytics}
+      recentSearches={SavedSearchType.REPLAY}
+      showUnsubmittedIndicator
     />
   );
 }

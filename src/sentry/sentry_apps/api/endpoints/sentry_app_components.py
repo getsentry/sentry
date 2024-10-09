@@ -5,7 +5,6 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
-from sentry.api.bases import SentryAppBaseEndpoint, add_integration_platform_metric_tag
 from sentry.api.bases.organization import ControlSiloOrganizationEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
@@ -14,6 +13,11 @@ from sentry.organizations.services.organization.model import (
     RpcOrganization,
     RpcUserOrganizationContext,
 )
+from sentry.sentry_apps.api.bases.sentryapps import (
+    SentryAppBaseEndpoint,
+    add_integration_platform_metric_tag,
+)
+from sentry.sentry_apps.api.serializers.sentry_app_component import SentryAppComponentSerializer
 from sentry.sentry_apps.components import SentryAppComponentPreparer
 from sentry.sentry_apps.models.sentry_app_component import SentryAppComponent
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
@@ -34,7 +38,9 @@ class SentryAppComponentsEndpoint(SentryAppBaseEndpoint):
             request=request,
             queryset=sentry_app.components.all(),
             paginator_cls=OffsetPaginator,
-            on_results=lambda x: serialize(x, request.user, errors=[]),
+            on_results=lambda x: serialize(
+                x, request.user, errors=[], serializer=SentryAppComponentSerializer()
+            ),
         )
 
 
@@ -83,5 +89,7 @@ class OrganizationSentryAppComponentsEndpoint(ControlSiloOrganizationEndpoint):
             request=request,
             queryset=components,
             paginator_cls=OffsetPaginator,
-            on_results=lambda x: serialize(x, request.user, errors=errors),
+            on_results=lambda x: serialize(
+                x, request.user, serializer=SentryAppComponentSerializer(), errors=errors
+            ),
         )

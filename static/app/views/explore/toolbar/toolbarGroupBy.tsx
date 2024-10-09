@@ -3,6 +3,7 @@ import {useCallback, useMemo} from 'react';
 import {Button} from 'sentry/components/button';
 import type {SelectOption} from 'sentry/components/compactSelect';
 import {CompactSelect} from 'sentry/components/compactSelect';
+import {IconAdd} from 'sentry/icons/iconAdd';
 import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
 import {useGroupBys} from 'sentry/views/explore/hooks/useGroupBys';
@@ -13,7 +14,7 @@ import {useSpanTags} from '../contexts/spanTagsContext';
 import {
   ToolbarHeader,
   ToolbarHeaderButton,
-  ToolbarHeading,
+  ToolbarLabel,
   ToolbarRow,
   ToolbarSection,
 } from './styles';
@@ -25,20 +26,39 @@ interface ToolbarGroupByProps {
 export function ToolbarGroupBy({disabled}: ToolbarGroupByProps) {
   const tags = useSpanTags();
 
-  const [groupBys, setGroupBys] = useGroupBys();
+  const {groupBys, setGroupBys} = useGroupBys();
 
   const options: SelectOption<Field>[] = useMemo(() => {
+    // These options aren't known to exist on this project but it was inserted into
+    // the group bys somehow so it should be a valid options in the group bys.
+    //
+    // One place this may come from is when switching projects/environment/date range,
+    // a tag may disappear based on the selection.
+    const unknownOptions = groupBys
+      .filter(groupBy => groupBy && !tags.hasOwnProperty(groupBy))
+      .map(groupBy => {
+        return {
+          label: groupBy,
+          value: groupBy,
+          textValue: groupBy,
+        };
+      });
+
+    const knownOptions = Object.keys(tags).map(tagKey => {
+      return {
+        label: tagKey,
+        value: tagKey,
+        textValue: tagKey,
+      };
+    });
+
     return [
       // hard code in an empty option
-      {label: t('None'), value: ''},
-      ...Object.keys(tags).map(tagKey => {
-        return {
-          label: tagKey,
-          value: tagKey,
-        };
-      }),
+      {label: t('None'), value: '', textValue: t('none')},
+      ...unknownOptions,
+      ...knownOptions,
     ];
-  }, [tags]);
+  }, [groupBys, tags]);
 
   const addGroupBy = useCallback(() => {
     setGroupBys([...groupBys, '']);
@@ -64,15 +84,15 @@ export function ToolbarGroupBy({disabled}: ToolbarGroupByProps) {
   return (
     <ToolbarSection data-test-id="section-group-by">
       <ToolbarHeader>
-        <ToolbarHeading disabled={disabled}>{t('Group By')}</ToolbarHeading>
+        <ToolbarLabel disabled={disabled}>{t('Group By')}</ToolbarLabel>
         <ToolbarHeaderButton
           disabled={disabled}
-          size="xs"
+          size="zero"
           onClick={addGroupBy}
           borderless
-        >
-          {t('+Add Group By')}
-        </ToolbarHeaderButton>
+          aria-label={t('Add Group')}
+          icon={<IconAdd />}
+        />
       </ToolbarHeader>
       <div>
         {groupBys.map((groupBy, index) => (
@@ -80,7 +100,6 @@ export function ToolbarGroupBy({disabled}: ToolbarGroupByProps) {
             <CompactSelect
               searchable
               disabled={disabled}
-              size="sm"
               options={options}
               value={groupBy}
               onChange={newGroupBy => setGroupBy(index, newGroupBy)}
@@ -91,7 +110,7 @@ export function ToolbarGroupBy({disabled}: ToolbarGroupByProps) {
               size="zero"
               disabled={disabled || (groupBys.length <= 1 && groupBy === '')}
               onClick={() => deleteGroupBy(index)}
-              aria-label={t('Remove')}
+              aria-label={t('Remove Group')}
             />
           </ToolbarRow>
         ))}
