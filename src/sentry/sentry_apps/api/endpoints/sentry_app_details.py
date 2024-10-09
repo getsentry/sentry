@@ -162,9 +162,9 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
                 for install in sentry_app.installations.all():
                     try:
                         with transaction.atomic(using=router.db_for_write(SentryAppInstallation)):
-                            assert isinstance(
-                                request.user, (User, RpcUser)
-                            ), "User must be a user or rpcuser to delete installation"
+                            assert (
+                                request.user.is_authenticated
+                            ), "User must be authenticated to delete installation"
                             SentryAppInstallationNotifier(
                                 sentry_app_installation=install, user=request.user, action="deleted"
                             ).run()

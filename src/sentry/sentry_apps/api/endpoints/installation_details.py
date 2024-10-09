@@ -19,8 +19,6 @@ from sentry.sentry_apps.installations import (
     SentryAppInstallationUpdater,
 )
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
-from sentry.users.models.user import User
-from sentry.users.services.user.model import RpcUser
 from sentry.utils.audit import create_audit_entry
 
 
@@ -43,14 +41,12 @@ class SentryAppInstallationDetailsEndpoint(SentryAppInstallationBaseEndpoint):
         )
 
     def delete(self, request: Request, installation) -> Response:
-        sentry_app_installation: SentryAppInstallation = SentryAppInstallation.objects.get(
-            id=installation.id
-        )
+        sentry_app_installation = SentryAppInstallation.objects.get(id=installation.id)
         with transaction.atomic(using=router.db_for_write(SentryAppInstallation)):
             try:
-                assert isinstance(
-                    request.user, (User, RpcUser)
-                ), "User must be a user or rpcuser to delete installation"
+                assert (
+                    request.user.is_authenticated
+                ), "User must be authenticated to delete installation"
                 SentryAppInstallationNotifier(
                     sentry_app_installation=sentry_app_installation,
                     user=request.user,
