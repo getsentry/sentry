@@ -320,12 +320,12 @@ def process_occurrence_message(
         txn.set_tag("result", "dropped_feature_disabled")
         return None
 
-    # Rate limit based on project and fingerprint
+    # Rate limit based on fingerprint
     rate_limit_key = f"occurrence_rate_limit:{occurrence_data['fingerprint']}"
     if ratelimiter.backend.is_limited(
         rate_limit_key,
         limit=300,
-        window=60,  # 300 occurrences per minute
+        window=60,
     ):
         metrics.incr(
             "occurrence_ingest.dropped_rate_limited",
