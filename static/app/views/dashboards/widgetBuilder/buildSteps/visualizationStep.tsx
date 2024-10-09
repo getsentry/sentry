@@ -20,8 +20,9 @@ import usePrevious from 'sentry/utils/usePrevious';
 import type {DashboardFilters, Widget, WidgetType} from 'sentry/views/dashboards/types';
 import {DisplayType} from 'sentry/views/dashboards/types';
 
-import {formatSeriesNameForLegend, getDashboardFiltersFromURL} from '../../utils';
+import {getDashboardFiltersFromURL} from '../../utils';
 import WidgetCard, {WidgetCardPanel} from '../../widgetCard';
+import WidgetLegendFunctions from '../../widgetCard/widgetLegendUtils';
 import {displayTypes} from '../utils';
 
 import {BuildStep} from './buildStep';
@@ -90,8 +91,10 @@ export function VisualizationStep({
     value,
   }));
 
+  const legendFunctions = new WidgetLegendFunctions();
+
   const unselectedReleasesForCharts = {
-    [formatSeriesNameForLegend('Releases', debouncedWidget.id)]: false,
+    [legendFunctions.encodeSeriesNameForLegend('Releases', debouncedWidget.id)]: false,
   };
 
   return (
@@ -139,15 +142,13 @@ export function VisualizationStep({
           shouldResize={false}
           onLegendSelectChanged={
             organization.features.includes('dashboards-releases-on-charts') &&
-            (widget.displayType === DisplayType.AREA ||
-              widget.displayType === DisplayType.LINE)
+            legendFunctions.widgetRequiresLegendUnselection(widget)
               ? () => {}
               : undefined
           }
           legendOptions={
             organization.features.includes('dashboards-releases-on-charts') &&
-            (widget.displayType === DisplayType.AREA ||
-              widget.displayType === DisplayType.LINE)
+            legendFunctions.widgetRequiresLegendUnselection(widget)
               ? {selected: unselectedReleasesForCharts}
               : undefined
           }
