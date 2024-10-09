@@ -326,7 +326,6 @@ module = [
     "sentry.sentry_apps.installations",
     "sentry.sentry_metrics.indexer.postgres.postgres_v2",
     "sentry.shared_integrations.client.proxy",
-    "sentry.similarity.features",
     "sentry.snuba.errors",
     "sentry.snuba.issue_platform",
     "sentry.snuba.metrics.datasource",
