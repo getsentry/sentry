@@ -343,11 +343,14 @@ class RuleProcessor:
 
             if condition_match == "any":
                 if not result:
+                    # If fail all fast conditions we still need to enqueue slow
+                    # conditions to check them
                     if slow_conditions:
                         self.enqueue_rule(rule)
                     return
 
             elif condition_match == "all":
+                # Return if we fail any condition
                 if not result:
                     return
 
