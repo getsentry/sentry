@@ -353,19 +353,15 @@ async function simpleTestSetup() {
 
 const DRAWER_TABS_TEST_ID = 'trace-drawer-tab';
 const DRAWER_TABS_PIN_BUTTON_TEST_ID = 'trace-drawer-tab-pin-button';
-
-// @ts-expect-error ignore this line
-// eslint-disable-next-line
-const DRAWER_TABS_CONTAINER_TEST_ID = 'trace-drawer-tabs';
 const VISIBLE_TRACE_ROW_SELECTOR = '.TraceRow:not(.Hidden)';
 const ACTIVE_SEARCH_HIGHLIGHT_ROW = '.TraceRow.SearchResult.Highlight:not(.Hidden)';
+
 const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 const searchToUpdate = async (): Promise<void> => {
   await wait(500);
 };
-
 const scrollToEnd = async (): Promise<void> => {
-  await wait(1000);
+  await wait(500);
 };
 
 // @ts-expect-error ignore this line
@@ -426,19 +422,18 @@ function assertHighlightedRowAtIndex(virtualizedContainer: HTMLElement, index: n
   expect(r.indexOf(highlighted_row!)).toBe(index);
 }
 
+function mockQueryString(queryString: string) {
+  Object.defineProperty(window, 'location', {
+    value: {
+      search: queryString,
+    },
+  });
+}
+
 describe('trace view', () => {
   beforeEach(() => {
     globalThis.ResizeObserver = MockResizeObserver as any;
-
-    // We are having replay errors about invalid stylesheets, though the CSS seems valid
-    jest.spyOn(console, 'error').mockImplementation(() => {});
-
-    Object.defineProperty(window, 'location', {
-      value: {
-        search: '',
-      },
-    });
-
+    mockQueryString('');
     MockDate.reset();
   });
   afterEach(() => {
@@ -457,8 +452,23 @@ describe('trace view', () => {
     expect(await screen.findByText(/assembling the trace/i)).toBeInTheDocument();
   });
 
-  it('renders error state', async () => {
+  it('renders error state if trace fails to load', async () => {
     mockTraceResponse({statusCode: 404});
+    mockTraceMetaResponse({statusCode: 404});
+    mockTraceTagsResponse({statusCode: 404});
+
+    render(<TraceView />, {router});
+    expect(await screen.findByText(/we failed to load your trace/i)).toBeInTheDocument();
+  });
+
+  it('renders error state if meta fails to load', async () => {
+    mockTraceResponse({
+      statusCode: 200,
+      body: {
+        transactions: [makeTransaction()],
+        orphan_errors: [],
+      },
+    });
     mockTraceMetaResponse({statusCode: 404});
     mockTraceTagsResponse({statusCode: 404});
 
@@ -485,11 +495,7 @@ describe('trace view', () => {
   // biome-ignore lint/suspicious/noSkippedTests: Flaky suite times out waiting for `pageloadTestSetup()`
   describe.skip('pageload', () => {
     it('highlights row at load and sets it as focused', async () => {
-      Object.defineProperty(window, 'location', {
-        value: {
-          search: '?node=txn-5',
-        },
-      });
+      mockQueryString('?node=txn-5');
       const {virtualizedContainer} = await pageloadTestSetup();
 
       expect(await screen.findByTestId('trace-drawer-title')).toHaveTextContent(
@@ -499,12 +505,7 @@ describe('trace view', () => {
       expect(rows[6]).toHaveFocus();
     });
     it('scrolls at transaction span', async () => {
-      Object.defineProperty(window, 'location', {
-        value: {
-          search: '?node=span-5&node=txn-5',
-        },
-      });
-
+      mockQueryString('?node=span-5&node=txn-5');
       mockSpansResponse(
         '5',
         {},
@@ -519,7 +520,6 @@ describe('trace view', () => {
       );
 
       const {virtualizedContainer} = await pageloadTestSetup();
-
       expect(await screen.findByTestId('trace-drawer-title')).toHaveTextContent(
         'special-span'
       );
@@ -527,11 +527,7 @@ describe('trace view', () => {
       expect(rows[7]).toHaveFocus();
     });
     it('scrolls far down the list of transactions', async () => {
-      Object.defineProperty(window, 'location', {
-        value: {
-          search: '?node=txn-500',
-        },
-      });
+      mockQueryString('?node=txn-500');
 
       await pageloadTestSetup();
       expect(await screen.findByTestId('trace-drawer-title')).toHaveTextContent(
@@ -550,11 +546,7 @@ describe('trace view', () => {
       });
     });
     it('scrolls to event id query param and fetches its spans', async () => {
-      Object.defineProperty(window, 'location', {
-        value: {
-          search: '?eventId=500',
-        },
-      });
+      mockQueryString('?eventId=500');
 
       const spanRequest = mockSpansResponse(
         '500',
@@ -585,11 +577,8 @@ describe('trace view', () => {
       expect(await screen.findByText('special-span')).toBeInTheDocument();
     });
     it('logs if path is not found', async () => {
-      Object.defineProperty(window, 'location', {
-        value: {
-          search: '?eventId=bad_value',
-        },
-      });
+      mockQueryString('?eventId=bad_value');
+
       const sentrySpy = jest.spyOn(Sentry, 'captureMessage');
       await pageloadTestSetup();
       await waitFor(() => {
@@ -600,11 +589,7 @@ describe('trace view', () => {
     });
 
     it('triggers search on load', async () => {
-      Object.defineProperty(window, 'location', {
-        value: {
-          search: '?search=transaction-op-5',
-        },
-      });
+      mockQueryString('?search=transaction-op-5');
       await pageloadTestSetup();
 
       const searchInput = await screen.findByPlaceholderText('Search in trace');
@@ -617,11 +602,8 @@ describe('trace view', () => {
       });
     });
     it('triggers search on load but does not steal focus from node param', async () => {
-      Object.defineProperty(window, 'location', {
-        value: {
-          search: '?search=transaction-op-9999&node=txn-0',
-        },
-      });
+      mockQueryString('?search=transaction-op-9999&node=txn-0');
+
       const {container} = await pageloadTestSetup();
       const searchInput = await screen.findByPlaceholderText('Search in trace');
       expect(searchInput).toHaveValue('transaction-op-9999');
@@ -637,11 +619,7 @@ describe('trace view', () => {
     });
 
     it('if search on load does not match anything, it does not steal focus or highlight first result', async () => {
-      Object.defineProperty(window, 'location', {
-        value: {
-          search: '?search=dead&node=txn-5',
-        },
-      });
+      mockQueryString('?search=dead&node=txn-5');
       const {container} = await pageloadTestSetup();
       const searchInput = await screen.findByPlaceholderText('Search in trace');
       expect(searchInput).toHaveValue('dead');
@@ -655,6 +633,10 @@ describe('trace view', () => {
       const rows = container.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
       expect(rows[6]).toHaveFocus();
     });
+
+    it.todo('autogroups direct children spans on pageload');
+    it.todo('autogroups sibling spans spans on pageload');
+    it.todo('detects missing instrumentation on pageload');
   });
 
   describe('keyboard navigation', () => {

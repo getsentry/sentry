@@ -77,6 +77,40 @@ trace root
 "
 `;
 
+exports[`autogrouping parent autogrouping removes collapsed parent autogroup 1`] = `
+"
+trace root
+  transaction - transaction.op
+    db - redis
+      db - redis
+        db - redis
+          http - request
+"
+`;
+
+exports[`autogrouping parent autogrouping removes expanded parent autogroup 1`] = `
+"
+trace root
+  transaction - transaction.op
+    parent autogroup (db: 3)
+      db - redis
+        db - redis
+          db - redis
+            http - request
+"
+`;
+
+exports[`autogrouping parent autogrouping removes expanded parent autogroup 2`] = `
+"
+trace root
+  transaction - transaction.op
+    db - redis
+      db - redis
+        db - redis
+          http - request
+"
+`;
+
 exports[`autogrouping sibling autogrouping autogroups multiple consecutive groups 1`] = `
 "
 trace root
@@ -136,5 +170,17 @@ exports[`autogrouping sibling autogrouping groups spans with the same op and des
 trace root
   transaction - transaction.op
     sibling autogroup (db: 5)
+"
+`;
+
+exports[`autogrouping sibling autogrouping removes sibling autogroup 1`] = `
+"
+trace root
+  transaction - transaction.op
+    db - redis
+    db - redis
+    db - redis
+    db - redis
+    db - redis
 "
 `;
