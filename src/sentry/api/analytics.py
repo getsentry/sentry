@@ -45,7 +45,7 @@ class DevToolbarRequestEvent(analytics.Event):
         analytics.Attribute("project_id", required=False),
         analytics.Attribute("project_slug", required=False),
         analytics.Attribute("issue_id", required=False),
-        analytics.Attribute("user_id"),  # needed to aggregate/send to amplitude(?)
+        analytics.Attribute("user_id"),
     )
 
 
