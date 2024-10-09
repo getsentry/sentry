@@ -60,6 +60,8 @@ export function SpansTable({}: SpansTableProps) {
     return EventView.fromNewQueryWithPageFilters(discoverQuery, selection);
   }, [dataset, fields, sorts, query, selection]);
 
+  const columns = useMemo(() => eventView.getColumns(), [eventView]);
+
   const result = useSpansQuery({
     eventView,
     initialData: [],
@@ -114,9 +116,9 @@ export function SpansTable({}: SpansTableProps) {
                   return (
                     <TableBodyCell key={j}>
                       <FieldRenderer
+                        column={columns[j]}
                         dataset={dataset}
                         data={row}
-                        field={field}
                         unit={meta?.units?.[field]}
                         meta={meta}
                       />

@@ -67,6 +67,8 @@ export function AggregatesTable({}: AggregatesTableProps) {
     return EventView.fromNewQueryWithPageFilters(discoverQuery, selection);
   }, [dataset, fields, sorts, query, selection]);
 
+  const columns = useMemo(() => eventView.getColumns(), [eventView]);
+
   const result = useSpansQuery({
     eventView,
     initialData: [],
@@ -124,9 +126,9 @@ export function AggregatesTable({}: AggregatesTableProps) {
                         <TopResultsIndicator index={i} />
                       )}
                       <FieldRenderer
+                        column={columns[j]}
                         dataset={dataset}
                         data={row}
-                        field={field}
                         unit={meta?.units?.[field]}
                         meta={meta}
                       />

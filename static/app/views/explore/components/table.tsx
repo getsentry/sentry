@@ -16,6 +16,7 @@ import {
   HeaderButtonContainer,
   HeaderTitle,
 } from 'sentry/components/gridEditable/styles';
+import {Actions} from 'sentry/views/discover/table/cellAction';
 
 interface TableProps extends React.ComponentProps<typeof _TableWrapper> {}
 
@@ -38,6 +39,13 @@ export function TableStatus({children}: TableStatusProps) {
     </GridRow>
   );
 }
+
+export const ALLOWED_CELL_ACTIONS: Actions[] = [
+  Actions.ADD,
+  Actions.EXCLUDE,
+  Actions.SHOW_GREATER_THAN,
+  Actions.SHOW_LESS_THAN,
+];
 
 const MINIMUM_COLUMN_WIDTH = COL_WIDTH_MINIMUM;
 
