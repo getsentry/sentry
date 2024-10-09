@@ -97,6 +97,16 @@ def main(context: dict[str, str]) -> int:
 
         volta.install(reporoot)
 
+    # no more imports from devenv past this point! if the venv is recreated
+    # then we won't have access to devenv libs until it gets reinstalled
+
+    # venv's still needed for frontend because repo-local devenv and pre-commit
+    # exist inside it
+    venv_dir, python_version, requirements, editable_paths, bins = venv.get(reporoot, repo)
+    url, sha256 = config.get_python(reporoot, python_version)
+    print(f"ensuring {repo} venv at {venv_dir}...")
+    venv.ensure(venv_dir, python_version, url, sha256)
+
     if constants.DARWIN:
         colima.install(
             repo_config["colima"]["version"],
@@ -114,39 +124,6 @@ def main(context: dict[str, str]) -> int:
                 repo_config["lima"][f"{constants.SYSTEM_MACHINE}_sha256"],
                 reporoot,
             )
-
-    # no more imports from devenv past this point! if the venv is recreated
-    # then we won't have access to devenv libs until it gets reinstalled
-
-    # venv's still needed for frontend because repo-local devenv and pre-commit
-    # exist inside it
-    venv_dir, python_version, requirements, editable_paths, bins = venv.get(reporoot, repo)
-    url, sha256 = config.get_python(reporoot, python_version)
-    print(f"ensuring {repo} venv at {venv_dir}...")
-    venv.ensure(venv_dir, python_version, url, sha256)
-
-    if constants.DARWIN:
-        try:
-            colima.install(
-                repo_config["colima"]["version"],
-                repo_config["colima"][constants.SYSTEM_MACHINE],
-                repo_config["colima"][f"{constants.SYSTEM_MACHINE}_sha256"],
-                reporoot,
-            )
-        except TypeError:
-            # this is needed for devenv <=1.4.0,>1.2.3 to finish syncing and therefore update itself
-            colima.install(
-                repo_config["colima"]["version"],
-                repo_config["colima"][constants.SYSTEM_MACHINE],
-                repo_config["colima"][f"{constants.SYSTEM_MACHINE}_sha256"],
-            )
-
-        # TODO: move limactl version into per-repo config
-        try:
-            limactl.install(reporoot)
-        except TypeError:
-            # this is needed for devenv <=1.4.0,>1.2.3 to finish syncing and therefore update itself
-            limactl.install()
 
     if not run_procs(
         repo,
