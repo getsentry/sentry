@@ -136,6 +136,7 @@ SPAN_COLUMN_MAP = {
     "transaction": "segment_name",
     "transaction.id": "transaction_id",
     "segment.id": "segment_id",
+    "transaction.span_id": "segment_id",
     "transaction.op": "transaction_op",
     "user": "user",
     "user.id": "sentry_tags[user.id]",
@@ -198,7 +199,11 @@ SPAN_EAP_COLUMN_MAP = {
     "timestamp": "timestamp",
     "trace": "trace_id",
     "transaction": "segment_name",
+    # `transaction.id` and `segment.id` is going to be replaced by `transaction.span_id` please do not use
+    # transaction.id is "wrong", its pointing to segment_id to return something for the transistion, but represents the
+    # txn event id(32 char uuid). EAP will no longer be storing this.
     "transaction.id": "segment_id",
+    "transaction.span_id": "segment_id",
     "transaction.method": "attr_str[transaction.method]",
     "is_transaction": "is_segment",
     "segment.id": "segment_id",
