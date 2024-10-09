@@ -97,7 +97,8 @@ class TestCreator(TestCase):
 
             assert response_body.get("installation").get("uuid") == install.uuid
             assert response_body.get("action") == "created"
-            assert response_body.get("actor")["id"] == rpc_user.id
+            assert rpc_user, "User should exist, unless explicitly noted in test"
+            assert response_body.get("actor").get("id") == rpc_user.id
 
     @responses.activate
     def test_associations(self):
