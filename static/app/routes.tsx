@@ -1770,6 +1770,28 @@ function buildRoutes() {
             )}
           />
         </Route>
+        <Route path={`${MODULE_BASE_URLS[ModuleName.APP_START]}/`}>
+          <Route
+            path="spans/"
+            component={make(
+              () =>
+                import('sentry/views/insights/mobile/appStarts/views/screenSummaryPage')
+            )}
+          />
+        </Route>
+        <Route path={`${MODULE_BASE_URLS[ModuleName.MOBILE_UI]}/`}>
+          <IndexRoute
+            component={make(
+              () => import('sentry/views/insights/mobile/ui/views/uiLandingPage')
+            )}
+          />
+          <Route
+            path="spans/"
+            component={make(
+              () => import('sentry/views/insights/mobile/ui/views/screenSummaryPage')
+            )}
+          />
+        </Route>
       </Route>
       <Route path={`${AI_LANDING_SUB_PATH}/`}>
         <IndexRoute

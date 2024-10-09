@@ -873,4 +873,36 @@ describe('generateFieldOptions', function () {
       },
     });
   });
+
+  it('disambiguates tags that are also fields', function () {
+    expect(
+      generateFieldOptions({
+        organization: initializeOrg().organization,
+        tagKeys: ['environment'],
+        fieldKeys: ['environment'],
+        aggregations: {},
+      })
+    ).toEqual({
+      'field:environment': {
+        label: 'environment',
+        value: {
+          kind: 'field',
+          meta: {
+            dataType: 'string',
+            name: 'environment',
+          },
+        },
+      },
+      'tag:environment': {
+        label: 'environment',
+        value: {
+          kind: 'tag',
+          meta: {
+            dataType: 'string',
+            name: 'tags[environment]',
+          },
+        },
+      },
+    });
+  });
 });
