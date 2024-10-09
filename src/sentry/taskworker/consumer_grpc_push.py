@@ -17,14 +17,14 @@ from sentry_protos.sentry.v1alpha.taskworker_pb2 import (
 )
 from sentry_protos.sentry.v1alpha.taskworker_pb2_grpc import WorkerServiceStub
 
-from sentry.taskworker.pending_task_store import PendingTaskStore
+from sentry.taskworker.pending_task_store import InflightTaskStore, get_storage_backend
 
 logger = logging.getLogger("sentry.taskworker.grpc_server")
 
 
 class ConsumerGrpc:
-    def __init__(self, worker_addrs: Iterable[str]) -> None:
-        self.pending_task_store = PendingTaskStore()
+    def __init__(self, worker_addrs: Iterable[str], storage: InflightTaskStore) -> None:
+        self.pending_task_store = storage
         self.available_stubs = deque(
             [WorkerServiceStub(grpc.insecure_channel(worker_addr)) for worker_addr in worker_addrs]
         )
@@ -89,6 +89,7 @@ class ConsumerGrpc:
         return stub
 
 
-def start(worker_addrs: Iterable[str]):
-    consumer_grpc = ConsumerGrpc(worker_addrs)
+def start(worker_addrs: Iterable[str], storage: str):
+    storage_backend = get_storage_backend(storage)
+    consumer_grpc = ConsumerGrpc(worker_addrs, storage_backend)
     consumer_grpc.start()

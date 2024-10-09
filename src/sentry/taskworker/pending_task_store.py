@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 import logging
 import sqlite3
+from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from contextlib import contextmanager
 from datetime import datetime, timedelta
@@ -26,7 +29,62 @@ from sentry.utils.dates import parse_timestamp
 logger = logging.getLogger("sentry.taskworker.consumer")
 
 
-class PendingTaskStore:
+def get_storage_backend(name: str | None) -> InflightTaskStore:
+    if name == "postgres" or name is None:
+        return InflightTaskStorePostgres()
+    if name == "sqlite":
+        # TODO need a way to pass in the shard_id.
+        return InflightTaskStoreSqlite("taskdemo-1")
+    raise ValueError(f"Invalid storage backend {name}")
+
+
+class InflightTaskStore(ABC):
+    @abstractmethod
+    def store(self, batch: Sequence[InflightActivation]) -> None:
+        ...
+
+    @abstractmethod
+    def get_pending_task(self) -> InflightActivation | None:
+        ...
+
+    @abstractmethod
+    def count_pending_task(self) -> int:
+        ...
+
+    @abstractmethod
+    def set_task_status(self, task_id: str, task_status: TaskActivationStatus.ValueType):
+        ...
+
+    @abstractmethod
+    def set_task_deadline(self, task_id: str, task_deadline: datetime | None):
+        ...
+
+    @abstractmethod
+    def delete_task(self, task_id: str):
+        ...
+
+    @abstractmethod
+    def handle_retry_state_tasks(self) -> None:
+        ...
+
+    @abstractmethod
+    def handle_deadletter_at(self) -> None:
+        ...
+
+    @abstractmethod
+    def handle_processing_deadlines(self) -> None:
+        ...
+
+    @abstractmethod
+    def handle_failed_tasks(self) -> None:
+        ...
+
+    @abstractmethod
+    def remove_completed(self) -> None:
+        ...
+
+
+class InflightTaskStorePostgres(InflightTaskStore):
     def __init__(self):
         self.do_imports()
 
@@ -235,7 +293,7 @@ class Status(models.TextChoices):
     RETRY = "retry"
 
 
-class InflightTaskStoreSqlite:
+class InflightTaskStoreSqlite(InflightTaskStore):
     def __init__(self, db_shard: str):
         self.__db_shard = db_shard
         self.ensure_schema()

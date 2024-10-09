@@ -313,23 +313,33 @@ def taskworker_pull(**options: Any) -> None:
         "Example: -W 127.0.0.1:50051,127.0.0.1:50052"
     ),
 )
+@click.option(
+    "--storage",
+    help="The storage backend to use.",
+    default="postgres",
+)
 @log_options()
 @configuration
-def kafka_task_grpc_push(worker_addrs: str) -> None:
+def kafka_task_grpc_push(worker_addrs: str, storage: str) -> None:
     from sentry.taskworker.consumer_grpc_push import start
 
     with managed_bgtasks(role="taskworker"):
-        start(worker_addrs.split(","))
+        start(worker_addrs.split(","), storage)
 
 
 @run.command()
 @log_options()
 @configuration
-def kafka_task_grpc_pull(**options: Any) -> None:
+@click.option(
+    "--storage",
+    help="The storage backend to use.",
+    default="postgres",
+)
+def kafka_task_grpc_pull(storage: str, **options: Any) -> None:
     from sentry.taskworker.consumer_grpc_pull import serve
 
     with managed_bgtasks(role="taskworker"):
-        serve()
+        serve(storage=storage)
 
 
 @run.command()

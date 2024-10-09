@@ -19,16 +19,15 @@ from sentry_protos.sentry.v1alpha.taskworker_pb2_grpc import (
 )
 from sentry_protos.sentry.v1alpha.taskworker_pb2_grpc import add_ConsumerServiceServicer_to_server
 
-from sentry.taskworker.pending_task_store import InflightTaskStoreSqlite, PendingTaskStore
+from sentry.taskworker.pending_task_store import InflightTaskStore, get_storage_backend
 
 logger = logging.getLogger("sentry.taskworker.grpc_server")
 
 
 class ConsumerServicer(BaseConsumerServicer):
-    def __init__(self) -> None:
+    def __init__(self, storage: InflightTaskStore) -> None:
         super().__init__()
-        # self.pending_task_store = PendingTaskStore()
-        self.pending_task_store = InflightTaskStoreSqlite("taskdemo-1")
+        self.pending_task_store = storage
 
     def GetTask(self, request: GetTaskRequest, context) -> GetTaskResponse:
         inflight = self.pending_task_store.get_pending_task()
@@ -57,9 +56,10 @@ class ConsumerServicer(BaseConsumerServicer):
         return AddTaskResponse(ok=False, error="Not implemented")
 
 
-def serve():
+def serve(storage: str):
+    storage_backend = get_storage_backend(storage)
     server = grpc.server(ThreadPoolExecutor(max_workers=4))
-    add_ConsumerServiceServicer_to_server(ConsumerServicer(), server)
+    add_ConsumerServiceServicer_to_server(ConsumerServicer(storage_backend), server)
     server.add_insecure_port("[::]:50051")
     server.start()
     logger.info("grpc server started")
