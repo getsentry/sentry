@@ -3,8 +3,9 @@ import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
+import Alert from 'sentry/components/alert';
 import OrganizationAvatar from 'sentry/components/avatar/organizationAvatar';
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import LoadingError from 'sentry/components/loadingError';
@@ -24,6 +25,7 @@ import {
   useMutation,
   useQuery,
 } from 'sentry/utils/queryClient';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useCompactSelectOptionsCache} from 'sentry/views/insights/common/utils/useCompactSelectOptionsCache';
@@ -69,7 +71,7 @@ function useOrganizationProjects({
     [regions, organization?.region]
   );
 
-  return useQuery<Project[]>({
+  return useQuery<Project[], RequestError>({
     queryKey: [`/organizations/${organization?.slug}/projects/`, {query: query}],
     queryFn: () => {
       return api.requestPromise(`/organizations/${organization?.slug}/projects/`, {
@@ -81,6 +83,7 @@ function useOrganizationProjects({
     },
     enabled: !!(orgRegion && organization),
     refetchOnWindowFocus: true,
+    retry: false,
   });
 }
 
@@ -205,7 +208,8 @@ function ProjectSelection({hash, organizations = []}: Omit<Props, 'allowSelectio
     [orgProjectsRequest.data]
   );
 
-  const {options: cachedProjectOptions} = useCompactSelectOptionsCache(projectOptions);
+  const {options: cachedProjectOptions, clear: clearProjectOptions} =
+    useCompactSelectOptionsCache(projectOptions);
 
   // As the cache hook sorts the options by value, we need to sort them afterwards
   const sortedProjectOptions = useMemo(
@@ -246,16 +250,17 @@ function ProjectSelection({hash, organizations = []}: Omit<Props, 'allowSelectio
             if (value !== selectedOrgId) {
               setSelectedOrgId(value as string);
               setSelectedProjectId(null);
+              clearProjectOptions();
             }
           }}
         />
       </FieldWrapper>
       <FieldWrapper>
         <label>{t('Project')}</label>
-        {orgProjectsRequest.isError ? (
-          <LoadingError
-            message={t('Failed to load projects')}
-            onRetry={() => orgProjectsRequest.refetch()}
+        {orgProjectsRequest.error ? (
+          <ProjectLoadingError
+            error={orgProjectsRequest.error}
+            onRetry={orgProjectsRequest.refetch}
           />
         ) : (
           <StyledCompactSelect
@@ -306,6 +311,70 @@ function ProjectSelection({hash, organizations = []}: Omit<Props, 'allowSelectio
     </StyledForm>
   );
 }
+
+function getSsoLoginUrl(error: RequestError) {
+  const detail = error?.responseJSON?.detail as any;
+  const loginUrl = detail?.extra?.loginUrl;
+
+  if (!loginUrl || typeof loginUrl !== 'string') {
+    return null;
+  }
+
+  try {
+    // Pass a base param as the login may be absolute or relative
+    const url = new URL(loginUrl, location.origin);
+    // Pass the current URL as the next URL to redirect to after login
+    url.searchParams.set('next', location.href);
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
+
+function ProjectLoadingError({
+  error,
+  onRetry,
+}: {
+  error: RequestError;
+  onRetry: () => void;
+}) {
+  const detail = error?.responseJSON?.detail;
+  const code = typeof detail === 'string' ? undefined : detail?.code;
+  const ssoLoginUrl = getSsoLoginUrl(error);
+
+  if (code === 'sso-required' && ssoLoginUrl) {
+    return (
+      <AlertWithoutMargin
+        type="error"
+        showIcon
+        trailingItems={
+          <LinkButton href={ssoLoginUrl} size="xs">
+            {t('Log in')}
+          </LinkButton>
+        }
+      >
+        {t('This organization requires Single Sign-On.')}
+      </AlertWithoutMargin>
+    );
+  }
+
+  return (
+    <LoadingErrorWithoutMargin
+      message={t('Failed to load projects')}
+      onRetry={() => {
+        onRetry();
+      }}
+    />
+  );
+}
+
+const AlertWithoutMargin = styled(Alert)`
+  margin: 0;
+`;
+
+const LoadingErrorWithoutMargin = styled(LoadingError)`
+  margin: 0;
+`;
 
 const StyledForm = styled('form')`
   display: flex;

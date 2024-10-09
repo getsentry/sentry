@@ -23,6 +23,10 @@ exports[`autogrouping parent autogrouping autogroups siblings when they are chil
 trace root
   transaction - transaction.op
     parent autogroup (db: 3)
+<<<<<<< HEAD
+=======
+      missing_instrumentation
+>>>>>>> master
       sibling autogroup (db: 5)
 "
 `;
@@ -77,6 +81,7 @@ trace root
 "
 `;
 
+<<<<<<< HEAD
 exports[`autogrouping parent autogrouping removes collapsed parent autogroup 1`] = `
 "
 trace root
@@ -111,6 +116,8 @@ trace root
 "
 `;
 
+=======
+>>>>>>> master
 exports[`autogrouping sibling autogrouping autogroups multiple consecutive groups 1`] = `
 "
 trace root
@@ -172,6 +179,7 @@ trace root
     sibling autogroup (db: 5)
 "
 `;
+<<<<<<< HEAD
 
 exports[`autogrouping sibling autogrouping removes sibling autogroup 1`] = `
 "
@@ -184,3 +192,5 @@ trace root
     db - redis
 "
 `;
+=======
+>>>>>>> master
