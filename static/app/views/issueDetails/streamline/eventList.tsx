@@ -154,7 +154,7 @@ const EventListHeader = styled('div')`
   grid-template-columns: 1fr auto auto auto;
   gap: ${space(1.5)};
   align-items: center;
-  padding: ${space(0.75)} ${space(2)};
+  padding: ${space(1)} ${space(2)};
   background: ${p => p.theme.background};
   border-bottom: 1px solid ${p => p.theme.translucentBorder};
   position: sticky;
@@ -166,7 +166,7 @@ const EventListHeader = styled('div')`
 const EventListTitle = styled('div')`
   color: ${p => p.theme.textColor};
   font-weight: ${p => p.theme.fontWeightBold};
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSizeMedium};
 `;
 
 const EventListHeaderItem = styled('div')`
