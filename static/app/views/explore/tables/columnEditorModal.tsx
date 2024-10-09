@@ -30,6 +30,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
+import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 
 type Column = {
   column: string | undefined;
@@ -38,8 +39,9 @@ type Column = {
 
 interface ColumnEditorModalProps extends ModalRenderProps {
   columns: string[];
+  numberTags: TagCollection;
   onColumnsChange: (fields: string[]) => void;
-  tags: TagCollection;
+  stringTags: TagCollection;
 }
 
 export function ColumnEditorModal({
@@ -49,7 +51,8 @@ export function ColumnEditorModal({
   closeModal,
   columns,
   onColumnsChange,
-  tags,
+  numberTags,
+  stringTags,
 }: ColumnEditorModalProps) {
   const [editableColumns, setEditableColumns] = useState<Column[]>(
     // falsey ids are not draggable in dndkit
@@ -58,14 +61,38 @@ export function ColumnEditorModal({
 
   const [nextId, setNextId] = useState(columns.length + 1);
 
-  const tagOptions = useMemo(() => {
-    return Object.values(tags).map(tag => {
-      return {
-        label: tag.key,
-        value: tag.key,
-      };
+  const tags: SelectOption<string>[] = useMemo(() => {
+    const allTags = [
+      ...Object.values(stringTags).map(tag => {
+        return {
+          label: tag.name,
+          value: tag.key,
+          textValue: tag.name,
+          trailingItems: <TypeBadge tag={tag} />,
+        };
+      }),
+      ...Object.values(numberTags).map(tag => {
+        return {
+          label: tag.name,
+          value: tag.key,
+          textValue: tag.name,
+          trailingItems: <TypeBadge tag={tag} />,
+        };
+      }),
+    ];
+    allTags.sort((a, b) => {
+      if (a.label < b.label) {
+        return -1;
+      }
+
+      if (a.label > b.label) {
+        return 1;
+      }
+
+      return 0;
     });
-  }, [tags]);
+    return allTags;
+  }, [stringTags, numberTags]);
 
   function handleApply() {
     onColumnsChange(editableColumns.map(({column}) => column).filter(defined));
@@ -114,7 +141,7 @@ export function ColumnEditorModal({
           onColumnChange={updateColumnAtIndex}
           onColumnDelete={deleteColumnAtIndex}
           onColumnSwap={swapColumnsAtIndex}
-          tags={tagOptions}
+          tags={tags}
         />
         <RowContainer>
           <ButtonBar gap={1}>
@@ -224,6 +251,30 @@ function ColumnEditorRow({
     }
   }
 
+  // The compact select component uses the option label to render the current
+  // selection. This overrides it to render in a trailing item showing the type.
+  const label = useMemo(() => {
+    if (defined(column.column)) {
+      const tag = tags.find(option => option.value === column.column);
+      if (defined(tag)) {
+        return (
+          <TriggerLabel>
+            {tag.label}
+            {tag.trailingItems &&
+              (typeof tag.trailingItems === 'function'
+                ? tag.trailingItems({
+                    disabled: false,
+                    isFocused: false,
+                    isSelected: false,
+                  })
+                : tag.trailingItems)}
+          </TriggerLabel>
+        );
+      }
+    }
+    return <TriggerLabel>{column.column ?? t('None')}</TriggerLabel>;
+  }, [column.column, tags]);
+
   return (
     <RowContainer
       key={column.id}
@@ -244,6 +295,7 @@ function ColumnEditorRow({
       <StyledCompactSelect
         data-test-id="editor-column"
         options={tags}
+        triggerLabel={label}
         value={column.column ?? ''}
         onChange={handleColumnChange}
         searchable
@@ -276,4 +328,12 @@ const RowContainer = styled('div')`
 
 const StyledCompactSelect = styled(CompactSelect)`
   flex-grow: 1;
+`;
+
+const TriggerLabel = styled('span')`
+  ${p => p.theme.overflowEllipsis}
+  text-align: left;
+  line-height: normal;
+  display: flex;
+  justify-content: space-between;
 `;
