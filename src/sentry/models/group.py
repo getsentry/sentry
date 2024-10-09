@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import math
 import re
 import warnings
 from collections import defaultdict, namedtuple
@@ -569,6 +570,7 @@ class Group(Model):
     active_at = models.DateTimeField(null=True, db_index=True)
     time_spent_total = BoundedIntegerField(default=0)
     time_spent_count = BoundedIntegerField(default=0)
+    score = BoundedIntegerField(default=0, null=True)
     # deprecated, do not use. GroupShare has superseded
     is_public = models.BooleanField(default=False, null=True)
     data: models.Field[dict[str, Any] | None, dict[str, Any]] = GzippedDictField(
@@ -622,6 +624,9 @@ class Group(Model):
             self.message = truncatechars(self.message.splitlines()[0], 255)
         if self.times_seen is None:
             self.times_seen = 1
+        self.score = type(self).calculate_score(
+            times_seen=self.times_seen, last_seen=self.last_seen
+        )
         super().save(*args, **kwargs)
 
     def get_absolute_url(
@@ -763,6 +768,9 @@ class Group(Model):
         except IndexError:
             # Otherwise it has not been shared yet.
             return None
+
+    def get_score(self):
+        return type(self).calculate_score(self.times_seen, self.last_seen)
 
     def get_latest_event(self) -> GroupEvent | None:
         if not hasattr(self, "_latest_event"):
@@ -913,6 +921,10 @@ class Group(Model):
             tenant_ids={"organization_id": self.project.organization_id},
             referrer=referrer,
         )[self.id]
+
+    @classmethod
+    def calculate_score(cls, times_seen, last_seen):
+        return math.log(float(times_seen or 1)) * 600 + float(last_seen.strftime("%s"))
 
     def get_assignee(self) -> Team | RpcUser | None:
         from sentry.models.groupassignee import GroupAssignee
