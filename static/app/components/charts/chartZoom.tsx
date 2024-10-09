@@ -22,6 +22,7 @@ import type {
 } from 'sentry/types/echarts';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import {getUtcDateString, getUtcToLocalDateObject} from 'sentry/utils/dates';
+import withSentryRouter from 'sentry/utils/withSentryRouter';
 
 const getDate = date =>
   date ? moment.utc(date).format(moment.HTML5_FMT.DATETIME_LOCAL_SECONDS) : null;
@@ -398,4 +399,4 @@ class ChartZoom extends Component<Props> {
   }
 }
 
-export default ChartZoom;
+export default withSentryRouter(ChartZoom);

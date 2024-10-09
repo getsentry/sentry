@@ -24,7 +24,7 @@ interface ToolbarGroupByProps {
 }
 
 export function ToolbarGroupBy({disabled}: ToolbarGroupByProps) {
-  const {data: tags} = useSpanTags();
+  const tags = useSpanTags();
 
   const {groupBys, setGroupBys} = useGroupBys();
 

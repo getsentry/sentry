@@ -8,6 +8,7 @@ from urllib.parse import quote
 from requests import PreparedRequest
 from rest_framework.response import Response
 
+from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidIdentity
 from sentry.integrations.base import IntegrationFeatureNotImplementedError
 from sentry.integrations.client import ApiClient
@@ -207,7 +208,7 @@ class VstsApiClient(IntegrationProxyClient, VstsApiMixin, RepositoryClient):
             from sentry.integrations.vsts.integration import VstsIntegrationProvider
 
             integration = integration_service.get_integration(
-                organization_integration_id=self.org_integration_id
+                organization_integration_id=self.org_integration_id, status=ObjectStatus.ACTIVE
             )
             # check if integration has migrated to new identity provider
             migration_version = integration.metadata.get("integration_migration_version", 0)

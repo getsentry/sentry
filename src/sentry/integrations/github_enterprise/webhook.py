@@ -17,6 +17,7 @@ from django.views.decorators.csrf import csrf_exempt
 from sentry import options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.constants import ObjectStatus
 from sentry.integrations.github.webhook import (
     InstallationEventWebhook,
     PullRequestEventWebhook,
@@ -79,6 +80,7 @@ def get_installation_metadata(event, host):
     integration = integration_service.get_integration(
         external_id=external_id,
         provider="github_enterprise",
+        status=ObjectStatus.ACTIVE,
     )
     if integration is None:
         metrics.incr("integrations.github_enterprise.does_not_exist")

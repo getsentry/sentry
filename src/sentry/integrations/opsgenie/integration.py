@@ -10,6 +10,7 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework.request import Request
 from rest_framework.serializers import ValidationError
 
+from sentry.constants import ObjectStatus
 from sentry.integrations.base import (
     FeatureDescription,
     IntegrationFeatures,
@@ -119,7 +120,7 @@ class InstallationConfigView(PipelineView):
 
 
 class OpsgenieIntegration(IntegrationInstallation):
-    def get_keyring_client(self, keyid: str) -> OpsgenieClient:
+    def get_keyring_client(self, keyid: int | str) -> OpsgenieClient:
         org_integration = self.org_integration
         assert org_integration, "OrganizationIntegration is required"
         team = get_team(team_id=keyid, org_integration=org_integration)
@@ -169,7 +170,7 @@ class OpsgenieIntegration(IntegrationInstallation):
         }
 
         integration = integration_service.get_integration(
-            organization_integration_id=self.org_integration.id
+            organization_integration_id=self.org_integration.id, status=ObjectStatus.ACTIVE
         )
         if not integration:
             raise IntegrationError("Integration does not exist")

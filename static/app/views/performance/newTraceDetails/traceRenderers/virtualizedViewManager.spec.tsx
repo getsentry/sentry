@@ -1,8 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
-import {EntryType, type Event} from 'sentry/types/event';
-import type {TraceSplitResults} from 'sentry/utils/performance/quickTrace/types';
 import {TraceScheduler} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceScheduler';
 import {TraceView} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceView';
 import {
@@ -11,52 +9,14 @@ import {
 } from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
 
 import {TraceTree} from '../traceModels/traceTree';
+import {
+  makeEvent,
+  makeSpan,
+  makeTrace,
+  makeTransaction,
+} from '../traceModels/traceTreeTestUtils';
 
-function makeEvent(overrides: Partial<Event> = {}, spans: RawSpanType[] = []): Event {
-  return {
-    entries: [{type: EntryType.SPANS, data: spans}],
-    ...overrides,
-  } as Event;
-}
-
-function makeTrace(
-  overrides: Partial<TraceSplitResults<TraceTree.Transaction>>
-): TraceSplitResults<TraceTree.Transaction> {
-  return {
-    transactions: [],
-    orphan_errors: [],
-    ...overrides,
-  } as TraceSplitResults<TraceTree.Transaction>;
-}
-
-function makeTransaction(
-  overrides: Partial<TraceTree.Transaction> = {}
-): TraceTree.Transaction {
-  return {
-    children: [],
-    start_timestamp: 0,
-    timestamp: 1,
-    transaction: 'transaction',
-    'transaction.op': '',
-    'transaction.status': '',
-    errors: [],
-    performance_issues: [],
-    ...overrides,
-  } as TraceTree.Transaction;
-}
-
-function makeSpan(overrides: Partial<RawSpanType> = {}): RawSpanType {
-  return {
-    op: '',
-    description: '',
-    span_id: '',
-    start_timestamp: 0,
-    timestamp: 10,
-    ...overrides,
-  } as RawSpanType;
-}
-
-function makeParentAutogroupSpans(): RawSpanType[] {
+function makeParentAutogroupSpans(): TraceTree.Span[] {
   return [
     makeSpan({description: 'span', op: 'db', span_id: 'head_span'}),
     makeSpan({
@@ -95,8 +55,7 @@ function makeSingleTransactionTree(): TraceTree {
         }),
       ],
     }),
-    null,
-    null
+    {replayRecord: null, meta: null}
   );
 }
 
@@ -324,15 +283,22 @@ describe('VirtualizedViewManger', () => {
           transactions: [makeTransaction()],
           orphan_errors: [],
         }),
-        null,
-        null
+        {
+          replayRecord: null,
+          meta: null,
+        }
       );
 
       manager.list = makeList();
-      const result = await TraceTree.ExpandToPath(tree, tree.list[0].path, () => void 0, {
-        api: api,
-        organization,
-      });
+      const result = await TraceTree.ExpandToPath(
+        tree,
+        TraceTree.PathToNode(tree.list[0]),
+        () => void 0,
+        {
+          api: api,
+          organization,
+        }
+      );
 
       expect(result).toBe(tree.list[0]);
     });
@@ -348,8 +314,10 @@ describe('VirtualizedViewManger', () => {
             }),
           ],
         }),
-        null,
-        null
+        {
+          replayRecord: null,
+          meta: null,
+        }
       );
 
       manager.list = makeList();
@@ -382,13 +350,14 @@ describe('VirtualizedViewManger', () => {
             }),
           ],
         }),
-        null,
-        null
+        {
+          replayRecord: null,
+          meta: null,
+        }
       );
 
       manager.list = makeList();
-
-      expect(tree.list[tree.list.length - 1].path).toEqual([
+      expect(TraceTree.PathToNode(tree.list[tree.list.length - 1])).toEqual([
         'txn-event_id',
         'txn-child',
         'txn-root',
@@ -419,8 +388,10 @@ describe('VirtualizedViewManger', () => {
             }),
           ],
         }),
-        null,
-        null
+        {
+          replayRecord: null,
+          meta: null,
+        }
       );
 
       MockApiClient.addMockResponse({
@@ -462,8 +433,10 @@ describe('VirtualizedViewManger', () => {
             }),
           ],
         }),
-        null,
-        null
+        {
+          replayRecord: null,
+          meta: null,
+        }
       );
 
       MockApiClient.addMockResponse({
@@ -668,8 +641,10 @@ describe('VirtualizedViewManger', () => {
             },
           ],
         }),
-        null,
-        null
+        {
+          replayRecord: null,
+          meta: null,
+        }
       );
 
       const result = await TraceTree.ExpandToPath(tree, ['error-ded'], () => void 0, {
