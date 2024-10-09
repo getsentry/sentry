@@ -1,6 +1,6 @@
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Literal
+from typing import Any
 
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
     AttributeAggregation,
@@ -21,7 +21,7 @@ class ResolvedColumn:
     # The internal rpc alias for this column
     internal_name: str
     # The public type for this column
-    search_type: Literal["string", "number", "duration"]
+    search_type: str
     # The internal rpc type for this column, optional as it can mostly be inferred from search_type
     internal_type: AttributeKey.Type.ValueType | None = None
     # Processor is the function run in the post process step to transform a row into the final result

@@ -244,7 +244,7 @@ class SearchResolver:
         """Helper function to resolve a list of attributes instead of 1 attribute at a time"""
         raise NotImplementedError()
 
-    def resolve_attribute(self, column: str) -> tuple[ResolvedColumn, VirtualColumnContext]:
+    def resolve_attribute(self, column: str) -> tuple[ResolvedColumn, VirtualColumnContext | None]:
         """Attributes are columns that aren't 'functions' or 'aggregates', usually this means string or numeric
         attributes (aka. tags), but can also refer to fields like span.description"""
         if column in SPAN_COLUMN_DEFINITIONS:
@@ -259,7 +259,7 @@ class SearchResolver:
                 field_type = None
             field = tag_match.group("tag") if tag_match else None
             if field is None:
-                raise InvalidSearchQuery(f"could not parse {column}")
+                raise InvalidSearchQuery(f"Could not parse {column}")
             # Assume string if a type isn't passed. eg. tags[foo]
             if field_type is None:
                 field_type = tag_match.group("type") if tag_match else None
@@ -281,6 +281,8 @@ class SearchResolver:
 
         if column_definition:
             return column_definition, column_context
+        else:
+            raise InvalidSearchQuery(f"Could not parse {column}")
 
     def resolve_aggregates(
         self, column: list[str]
