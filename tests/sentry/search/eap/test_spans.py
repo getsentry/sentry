@@ -195,3 +195,7 @@ class SearchResolverQueryTest(TestCase):
                 ]
             )
         )
+
+    def test_empty_query(self):
+        query = self.resolver.resolve_query("")
+        assert query is None

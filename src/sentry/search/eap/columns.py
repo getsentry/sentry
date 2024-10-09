@@ -10,19 +10,19 @@ from sentry.search.eap import constants
 @dataclass(frozen=True)
 class ResolvedColumn:
     # The alias for this column
-    public_alias: str  # `p95() as foo` -> `foo` or `p95()` -> `p95()`
+    public_alias: str  # `p95() as foo` has the public alias `foo` and `p95()` has the public alias `p95()`
     # The internal rpc alias for this column
-    rpc_name: str
+    internal_name: str
     # The public type for this column
     search_type: Literal["string", "number", "duration"]
-    # Processor is the function run in the post process step to transform data into the final result
+    # Processor is the function run in the post process step to transform a row into the final result
     processor: Callable[[Any], Any] | None = None
     # Validator to check if the value in a query is correct
-    validator: Callable[[Any], None] | None = None
+    validator: Callable[[Any], bool] | None = None
 
     def process_column(row: Any) -> None:
         """Pull the column from row, then process it and mutate it"""
-        pass
+        raise NotImplementedError()
 
     def validate(self, value: Any) -> None:
         if self.validator is not None:

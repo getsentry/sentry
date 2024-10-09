@@ -132,7 +132,7 @@ class SearchResolver:
         else:
             return None
 
-    def _resolve_terms(self, terms: event_filter.ParsedTerms) -> TraceItemFilter:
+    def _resolve_terms(self, terms: event_filter.ParsedTerms) -> TraceItemFilter | None:
         parsed_terms = []
         for item in terms:
             if isinstance(item, event_search.SearchFilter):
@@ -157,10 +157,13 @@ class SearchResolver:
                     raise NotImplementedError("Can't filter on aggregates yet")
             else:
                 raise NotImplementedError()
+
         if len(parsed_terms) > 1:
             return TraceItemFilter(and_filter=AndFilter(filters=parsed_terms))
-        else:
+        elif len(parsed_terms) == 1:
             return parsed_terms[0]
+        else:
+            return None
 
     def _resolve_search_value(
         self,
