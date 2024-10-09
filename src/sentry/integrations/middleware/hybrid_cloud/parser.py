@@ -239,7 +239,9 @@ class BaseRequestParser:
             regions=regions, identifier=integration.id, integration_id=integration.id
         )
 
-    def get_mailbox_identifier(self, integration: RpcIntegration, data: Mapping[str, Any]) -> str:
+    def get_mailbox_identifier(
+        self, integration: RpcIntegration | Integration, data: Mapping[str, Any]
+    ) -> str:
         """
         Used by integrations with higher hook volumes to create smaller mailboxes
         that can be delivered in parallel. Requires the integration to implement

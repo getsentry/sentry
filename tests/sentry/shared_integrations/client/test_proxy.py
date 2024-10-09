@@ -76,11 +76,11 @@ class IntegrationProxyClientTest(TestCase):
             return prepared_request
 
         client = self.client_cls(org_integration_id=self.oi_id)
-        client.authorize_request = authorize_request
 
-        assert prepared_request.headers.get("Authorization") is None
-        client.authorize_request(prepared_request)
-        assert prepared_request.headers.get("Authorization") == "Bearer tkn"
+        with patch.object(client, "authorize_request", authorize_request):
+            assert prepared_request.headers.get("Authorization") is None
+            client.authorize_request(prepared_request)
+            assert prepared_request.headers.get("Authorization") == "Bearer tkn"
 
     @patch.object(IntegrationProxyClient, "authorize_request")
     def test_finalize_request_noop(self, mock_authorize):

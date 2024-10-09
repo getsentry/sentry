@@ -47,7 +47,7 @@ class PagerDutyClientTest(APITestCase):
             metadata={"services": SERVICES},
         )
         self.service = add_service(
-            self.integration.organizationintegration_set.first(),
+            self.integration.organizationintegration_set.get(),
             service_name=SERVICES[0]["service_name"],
             integration_key=SERVICES[0]["integration_key"],
         )
@@ -157,11 +157,7 @@ class PagerDutyClientTest(APITestCase):
             "https://events.pagerduty.com/v2/enqueue/",
             body=b"{}",
             match=[
-                matchers.header_matcher(
-                    {
-                        "Content-Type": "application/json",
-                    }
-                ),
+                matchers.header_matcher({"Content-Type": "application/json"}),
                 matchers.json_params_matcher(expected_data),
             ],
         )
