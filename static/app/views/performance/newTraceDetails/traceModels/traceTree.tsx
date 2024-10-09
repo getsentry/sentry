@@ -682,6 +682,14 @@ export class TraceTree extends TraceTreeEventDispatcher {
     });
   }
 
+  // We can just filter out the missing instrumentation
+  // nodes as they never have any children that require remapping
+  static RemoveMissingInstrumentationNodes(
+    root: TraceTreeNode<TraceTree.NodeValue>
+  ): void {
+    TraceTree.Filter(root, node => !isMissingInstrumentationNode(node));
+  }
+
   static AutogroupDirectChildrenSpanNodes(
     root: TraceTreeNode<TraceTree.NodeValue>
   ): void {
@@ -783,6 +791,28 @@ export class TraceTree extends TraceTreeEventDispatcher {
         queue.push(c);
       }
     }
+  }
+
+  static RemoveDirectChildrenAutogroupNodes(
+    root: TraceTreeNode<TraceTree.NodeValue>
+  ): void {
+    TraceTree.ForEachChild(root, node => {
+      if (isParentAutogroupedNode(node)) {
+        const index = node.parent?.children.indexOf(node) ?? -1;
+        if (!node.parent || index === -1) {
+          Sentry.captureException('Removing direct children autogroup nodes failed');
+          return;
+        }
+
+        node.parent.children[index] = node.head;
+        // Head of parent now points to the parent of autogrouped node
+        node.head.parent = node.parent;
+        // All children now point to the tail of the autogrouped node
+        for (const child of node.tail.children) {
+          child.parent = node.tail;
+        }
+      }
+    });
   }
 
   static AutogroupSiblingSpanNodes(root: TraceTreeNode<TraceTree.NodeValue>): void {
@@ -905,6 +935,24 @@ export class TraceTree extends TraceTreeEventDispatcher {
         }
       }
     }
+  }
+
+  static RemoveSiblingAutogroupNodes(root: TraceTreeNode<TraceTree.NodeValue>): void {
+    TraceTree.ForEachChild(root, node => {
+      if (isSiblingAutogroupedNode(node)) {
+        const index = node.parent?.children.indexOf(node) ?? -1;
+        if (!node.parent || index === -1) {
+          Sentry.captureException('Removing sibling autogroup nodes failed');
+          return;
+        }
+
+        node.parent.children.splice(index, 1, ...node.children);
+
+        for (const child of node.children) {
+          child.parent = node.parent;
+        }
+      }
+    });
   }
 
   static DirectVisibleChildren(

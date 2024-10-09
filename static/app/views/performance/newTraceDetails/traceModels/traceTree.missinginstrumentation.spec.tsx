@@ -136,6 +136,33 @@ describe('missing instrumentation', () => {
     expect(tree.build().serialize()).toMatchSnapshot();
   });
 
+  it('removes missing instrumentation nodes', () => {
+    const tree = TraceTree.FromTrace(singleTransactionTrace, traceMetadata);
+    TraceTree.FromSpans(
+      tree.root.children[0].children[0],
+      missingInstrumentationSpans,
+      makeEventTransaction()
+    );
+
+    const snapshot = tree.build().serialize();
+
+    TraceTree.DetectMissingInstrumentation(
+      tree.root,
+      TraceTree.MISSING_INSTRUMENTATION_THRESHOLD_MS
+    );
+
+    // Assert that missing instrumentation nodes exist
+    expect(
+      TraceTree.Find(tree.root, c => isMissingInstrumentationNode(c))
+    ).not.toBeNull();
+
+    // Remove it and assert that the tree is back to the original state
+    TraceTree.RemoveMissingInstrumentationNodes(tree.root);
+
+    expect(tree.build().serialize()).toEqual(snapshot);
+    expect(tree.build().serialize()).toMatchSnapshot();
+  });
+
   it('does not add missing instrumentation for browser SDKs', () => {
     const tree = TraceTree.FromTrace(singleTransactionTrace, traceMetadata);
     TraceTree.FromSpans(
