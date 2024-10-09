@@ -13,6 +13,7 @@ from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo
 from sentry.issues import grouptype
 from sentry.models.owner_base import OwnerModel
 from sentry.types.group import PriorityLevel
+from sentry.workflow_engine.models import DataPacket
 
 if TYPE_CHECKING:
     from sentry.workflow_engine.models.detector_state import DetectorStatus
@@ -57,14 +58,22 @@ class Detector(DefaultFieldsModel, OwnerModel):
         if not group_type:
             logger.error(
                 "No registered grouptype for detector",
-                extra={"group_type": group_type, "detector_id": self.id},
+                extra={
+                    "group_type": str(group_type),
+                    "detector_id": self.id,
+                    "detector_type": self.type,
+                },
             )
             return None
 
         if not group_type.detector_handler:
             logger.error(
                 "Registered grouptype for detector has no detector_handler",
-                extra={"group_type": group_type, "detector_id": self.id},
+                extra={
+                    "group_type": str(group_type),
+                    "detector_id": self.id,
+                    "detector_type": self.type,
+                },
             )
             return None
         return group_type.detector_handler(self)
@@ -100,5 +109,5 @@ class DetectorHandler(abc.ABC, Generic[T]):
         self.detector = detector
 
     @abc.abstractmethod
-    def evaluate(self, data_packet: T) -> list[DetectorEvaluationResult]:
+    def evaluate(self, data_packet: DataPacket[T]) -> list[DetectorEvaluationResult]:
         pass

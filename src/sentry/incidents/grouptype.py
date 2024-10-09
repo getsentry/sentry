@@ -4,12 +4,15 @@ from sentry.incidents.utils.types import QuerySubscriptionUpdate
 from sentry.issues.grouptype import GroupCategory, GroupType
 from sentry.ratelimits.sliding_windows import Quota
 from sentry.types.group import PriorityLevel
+from sentry.workflow_engine.models import DataPacket
 from sentry.workflow_engine.models.detector import DetectorEvaluationResult, DetectorHandler
 
 
 # TODO: This will be a stateful detector when we build that abstraction
 class MetricAlertDetectorHandler(DetectorHandler[QuerySubscriptionUpdate]):
-    def evaluate(self, data_packet: QuerySubscriptionUpdate) -> list[DetectorEvaluationResult]:
+    def evaluate(
+        self, data_packet: DataPacket[QuerySubscriptionUpdate]
+    ) -> list[DetectorEvaluationResult]:
         # TODO: Implement
         return []
 
