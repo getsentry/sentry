@@ -15,7 +15,7 @@ from django.db.models.enums import TextChoices
 from django.utils import timezone
 from snuba_sdk import Op
 
-from sentry import release_health, tsdb
+from sentry import features, release_health, tsdb
 from sentry.eventstore.models import GroupEvent
 from sentry.issues.constants import get_issue_tsdb_group_model, get_issue_tsdb_user_group_model
 from sentry.issues.grouptype import GroupCategory, get_group_type_by_type_id
@@ -548,6 +548,13 @@ class EventUniqueUserFrequencyConditionWithConditions(EventUniqueUserFrequencyCo
         self, group_ids: set[int], start: datetime, end: datetime, environment_id: int
     ) -> dict[int, int]:
         assert self.rule
+        if not features.has(
+            "organizations:event-unique-user-frequency-condition-with-conditions",
+            self.rule.project.organization,
+        ):
+            raise NotImplementedError(
+                "EventUniqueUserFrequencyConditionWithConditions is not enabled for this organization"
+            )
 
         if self.rule.data["filter_match"] == "any":
             raise NotImplementedError(
