@@ -34,7 +34,6 @@ import {
   isTraceErrorNode,
   isTraceNode,
   isTransactionNode,
-  shouldAddMissingInstrumentationSpan,
 } from '../traceGuards';
 
 import {makeExampleTrace} from './makeExampleTrace';
@@ -247,6 +246,8 @@ export class TraceTree extends TraceTreeEventDispatcher {
 
   private _spanPromises: Map<string, Promise<EventTransaction>> = new Map();
 
+  static MISSING_INSTRUMENTATION_THRESHOLD_MS = 100;
+
   static Empty() {
     const tree = new TraceTree().build();
     tree.type = 'empty';
@@ -267,7 +268,10 @@ export class TraceTree extends TraceTreeEventDispatcher {
 
   static FromTrace(
     trace: TraceTree.Trace,
-    options: {meta: TraceMetaQueryResults | null; replayRecord: ReplayRecord | null}
+    options: {
+      meta: TraceMetaQueryResults['data'] | null;
+      replayRecord: ReplayRecord | null;
+    }
   ): TraceTree {
     const tree = new TraceTree();
 
@@ -286,14 +290,14 @@ export class TraceTree extends TraceTreeEventDispatcher {
       tree.project_ids.add(value.project_id);
 
       const node = new TraceTreeNode(parent, value, {
-        spans: options.meta?.data?.transactiontoSpanChildrenCount[value.event_id] ?? 0,
+        spans: options.meta?.transactiontoSpanChildrenCount[value.event_id] ?? 0,
         project_slug: value && 'project_slug' in value ? value.project_slug : undefined,
         event_id: value && 'event_id' in value ? value.event_id : undefined,
       });
 
       if (isTransactionNode(node)) {
         const spanChildrenCount =
-          options.meta?.data?.transactiontoSpanChildrenCount[node.value.event_id];
+          options.meta?.transactiontoSpanChildrenCount[node.value.event_id];
 
         // We check for >1 events, as the first one is the transaction node itself
         node.canFetch = spanChildrenCount === undefined ? true : spanChildrenCount > 1;
@@ -626,13 +630,8 @@ export class TraceTree extends TraceTreeEventDispatcher {
 
   static DetectMissingInstrumentation(
     root: TraceTreeNode<TraceTree.NodeValue>,
-    threshold: number,
-    sdk: string | undefined
+    threshold: number
   ) {
-    if (sdk && !shouldAddMissingInstrumentationSpan(sdk)) {
-      return;
-    }
-
     let previous: TraceTreeNode<TraceTree.NodeValue> | null = null;
 
     TraceTree.ForEachChild(root, child => {
@@ -1265,6 +1264,13 @@ export class TraceTree extends TraceTreeEventDispatcher {
   zoom(
     node: TraceTreeNode<TraceTree.NodeValue>,
     zoomedIn: boolean,
+    configuration: {
+      autogroup: {
+        parent: boolean;
+        sibling: boolean;
+      };
+      missing_instrumentation: boolean;
+    },
     options: {
       api: Client;
       organization: Organization;
@@ -1294,7 +1300,6 @@ export class TraceTree extends TraceTreeEventDispatcher {
         // Find all transactions that are children of the current transaction
         // remove all non transaction events from current node and its children
         // point transactions back to their parents
-
         const transactions = TraceTree.FindAll(
           node,
           c => isTransactionNode(c) && c !== node
@@ -1389,6 +1394,19 @@ export class TraceTree extends TraceTreeEventDispatcher {
           this.dispatch('trace timeline change', this.root.space);
         }
 
+        if (configuration.missing_instrumentation) {
+          TraceTree.DetectMissingInstrumentation(
+            node,
+            TraceTree.MISSING_INSTRUMENTATION_THRESHOLD_MS
+          );
+        }
+        if (configuration.autogroup.sibling) {
+          TraceTree.AutogroupSiblingSpanNodes(node);
+        }
+        if (configuration.autogroup.parent) {
+          TraceTree.AutogroupDirectChildrenSpanNodes(node);
+        }
+
         this.list.splice(index + 1, 0, ...TraceTree.VisibleChildren(node));
         return data;
       })
@@ -1401,8 +1419,15 @@ export class TraceTree extends TraceTreeEventDispatcher {
   }
 
   static ExpandToEventID(
-    eventId: string,
     tree: TraceTree,
+    eventId: string,
+    configuration: {
+      autogroup: {
+        parent: boolean;
+        sibling: boolean;
+      };
+      missing_instrumentation: boolean;
+    },
     rerender: () => void,
     options: ViewManagerScrollToOptions
   ): Promise<TraceTreeNode<TraceTree.NodeValue> | null> {
@@ -1412,12 +1437,25 @@ export class TraceTree extends TraceTreeEventDispatcher {
       return Promise.resolve(null);
     }
 
-    return TraceTree.ExpandToPath(tree, TraceTree.PathToNode(node), rerender, options);
+    return TraceTree.ExpandToPath(
+      tree,
+      TraceTree.PathToNode(node),
+      configuration,
+      rerender,
+      options
+    );
   }
 
   static ExpandToPath(
     tree: TraceTree,
     scrollQueue: TraceTree.NodePath[],
+    configuration: {
+      autogroup: {
+        parent: boolean;
+        sibling: boolean;
+      };
+      missing_instrumentation: boolean;
+    },
     rerender: () => void,
     options: ViewManagerScrollToOptions
   ): Promise<TraceTreeNode<TraceTree.NodeValue> | null> {
@@ -1458,7 +1496,11 @@ export class TraceTree extends TraceTreeEventDispatcher {
           }
         }
 
+        // Certain segments like autogroup nodes are not rendered immediately.
         if (!current) {
+          if (path?.startsWith('ag-') && segments.length > 0) {
+            return recurseToRow();
+          }
           Sentry.captureMessage('Failed to scroll to node in trace tree');
           return null;
         }
@@ -1477,7 +1519,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
           nextSegment?.startsWith('ag-') ||
           nextSegment?.startsWith('ms-')
         ) {
-          await tree.zoom(current, true, options);
+          await tree.zoom(current, true, configuration, options);
           return recurseToRow();
         }
       }
@@ -1693,7 +1735,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
   fetchAdditionalTraces(options: {
     api: Client;
     filters: any;
-    metaResults: TraceMetaQueryResults | null;
+    meta: TraceMetaQueryResults | null;
     organization: Organization;
     replayTraces: ReplayTrace[];
     rerender: () => void;
@@ -1747,7 +1789,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
 
         this.appendTree(
           TraceTree.FromTrace(updatedData, {
-            meta: options.metaResults,
+            meta: options.meta?.data,
             replayRecord: null,
           })
         );

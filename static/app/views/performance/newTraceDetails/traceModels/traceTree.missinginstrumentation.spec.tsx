@@ -64,7 +64,10 @@ describe('missing instrumentation', () => {
       makeEventTransaction()
     );
 
-    TraceTree.DetectMissingInstrumentation(tree.root, 100, undefined);
+    TraceTree.DetectMissingInstrumentation(
+      tree.root,
+      TraceTree.MISSING_INSTRUMENTATION_THRESHOLD_MS
+    );
     expect(tree.build().serialize()).toMatchSnapshot();
   });
 
@@ -76,7 +79,10 @@ describe('missing instrumentation', () => {
       makeEventTransaction()
     );
 
-    TraceTree.DetectMissingInstrumentation(tree.root, 100, undefined);
+    TraceTree.DetectMissingInstrumentation(
+      tree.root,
+      TraceTree.MISSING_INSTRUMENTATION_THRESHOLD_MS
+    );
     expect(tree.build().serialize()).toMatchSnapshot();
   });
 
@@ -123,7 +129,10 @@ describe('missing instrumentation', () => {
       makeEventTransaction()
     );
 
-    TraceTree.DetectMissingInstrumentation(tree.root, 100, undefined);
+    TraceTree.DetectMissingInstrumentation(
+      tree.root,
+      TraceTree.MISSING_INSTRUMENTATION_THRESHOLD_MS
+    );
     expect(tree.build().serialize()).toMatchSnapshot();
   });
 
@@ -135,7 +144,10 @@ describe('missing instrumentation', () => {
       makeEventTransaction()
     );
 
-    TraceTree.DetectMissingInstrumentation(tree.root, 100, 'sentry.javascript.browser');
+    TraceTree.DetectMissingInstrumentation(
+      tree.root,
+      TraceTree.MISSING_INSTRUMENTATION_THRESHOLD_MS
+    );
 
     expect(TraceTree.Find(tree.root, c => isMissingInstrumentationNode(c))).toBeNull();
     expect(tree.build().serialize()).toMatchSnapshot();
@@ -148,7 +160,10 @@ describe('missing instrumentation', () => {
     const tree = TraceTree.FromTrace(singleTransactionTrace, traceMetadata);
     TraceTree.FromSpans(tree.root.children[0].children[0], setup, makeEventTransaction());
 
-    TraceTree.DetectMissingInstrumentation(tree.root, 100, undefined);
+    TraceTree.DetectMissingInstrumentation(
+      tree.root,
+      TraceTree.MISSING_INSTRUMENTATION_THRESHOLD_MS
+    );
     const initial = tree.build().serialize();
     expect(tree.build().serialize()).toMatchSnapshot();
     expect(tree.build().serialize()).toEqual(initial);

@@ -194,7 +194,7 @@ export function Trace({
       rerenderRef.current();
 
       treeRef.current
-        .zoom(node, value, {
+        .zoom(node, value, traceStateRef.current.preferences, {
           api,
           organization,
         })

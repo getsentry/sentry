@@ -34,7 +34,7 @@ import {
   cancelAnimationTimeout,
   requestAnimationTimeout,
 } from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
-import type {QueryStatus, UseApiQueryResult} from 'sentry/utils/queryClient';
+import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {capitalize} from 'sentry/utils/string/capitalize';
@@ -90,8 +90,8 @@ import {
   traceNodeAnalyticsName,
 } from './traceTreeAnalytics';
 import TraceTypeWarnings from './traceTypeWarnings';
+import {useTraceOnLoad} from './useTraceOnLoad';
 import {useTraceQueryParamStateSync} from './useTraceQueryParamStateSync';
-import {useTraceScrollToEventOnLoad} from './useTraceScrollToEventOnLoad';
 import {useTraceScrollToPath} from './useTraceScrollToPath';
 
 function logTraceMetadata(
@@ -113,21 +113,6 @@ function logTraceMetadata(
       Sentry.captureMessage('Unknown trace type');
     }
   }
-}
-
-export function getTraceViewQueryStatus(
-  traceQueryStatus: QueryStatus,
-  traceMetaQueryStatus: QueryStatus
-): QueryStatus {
-  if (traceQueryStatus === 'error' || traceMetaQueryStatus === 'error') {
-    return 'error';
-  }
-
-  if (traceQueryStatus === 'pending' || traceMetaQueryStatus === 'pending') {
-    return 'pending';
-  }
-
-  return 'success';
 }
 
 export function TraceView() {
@@ -221,12 +206,11 @@ export function TraceView() {
             <TraceInnerLayout>
               <TraceViewWaterfall
                 traceSlug={traceSlug}
-                trace={trace.data ?? null}
-                status={getTraceViewQueryStatus(trace.status, meta.status)}
+                trace={trace}
                 organization={organization}
                 rootEvent={rootEvent}
                 traceEventView={traceEventView}
-                metaResults={meta}
+                meta={meta}
                 replayRecord={null}
                 source="performance"
                 isEmbedded={false}
@@ -251,13 +235,12 @@ const VITALS_TAB: TraceReducerState['tabs']['tabs'][0] = {
 
 type TraceViewWaterfallProps = {
   isEmbedded: boolean;
-  metaResults: TraceMetaQueryResults;
+  meta: TraceMetaQueryResults;
   organization: Organization;
   replayRecord: ReplayRecord | null;
   rootEvent: UseApiQueryResult<EventTransaction, RequestError>;
   source: string;
-  status: UseApiQueryResult<any, any>['status'];
-  trace: TraceSplitResults<TraceTree.Transaction> | null;
+  trace: UseApiQueryResult<TraceSplitResults<TraceTree.Transaction>, RequestError>;
   traceEventView: EventView;
   traceSlug: string | undefined;
   replayTraces?: ReplayTrace[];
@@ -272,7 +255,6 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
   const api = useApi();
   const {projects} = useProjects();
   const organization = useOrganization();
-  const loadingTraceRef = useRef<TraceTree | null>(null);
   const [forceRender, rerender] = useReducer(x => (x + 1) % Number.MAX_SAFE_INTEGER, 0);
   const traceState = useTraceState();
   const traceDispatch = useTraceStateDispatch();
@@ -302,68 +284,6 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
   const [tree, setTree] = useState<TraceTree>(TraceTree.Empty());
 
   useEffect(() => {
-    if (props.status === 'error') {
-      const errorTree = TraceTree.Error({
-        project_slug: projects?.[0]?.slug ?? '',
-        event_id: props.traceSlug,
-      });
-      setTree(errorTree);
-      return;
-    }
-
-    if (
-      props.trace?.transactions.length === 0 &&
-      props.trace?.orphan_errors.length === 0
-    ) {
-      setTree(TraceTree.Empty());
-      return;
-    }
-
-    if (props.status === 'pending') {
-      const loadingTrace =
-        loadingTraceRef.current ??
-        TraceTree.Loading({
-          project_slug: projects?.[0]?.slug ?? '',
-          event_id: props.traceSlug,
-        });
-
-      loadingTraceRef.current = loadingTrace;
-      setTree(loadingTrace);
-      return;
-    }
-
-    if (props.trace && props.metaResults.data) {
-      const trace = TraceTree.FromTrace(props.trace, {
-        meta: props.metaResults,
-        replayRecord: props.replayRecord,
-      });
-
-      // Root frame + 2 nodes
-      const promises: Promise<void>[] = [];
-      if (trace.list.length <= 3) {
-        for (const c of trace.list) {
-          if (c.canFetch) {
-            promises.push(trace.zoom(c, true, {api, organization}).then(rerender));
-          }
-        }
-      }
-
-      Promise.allSettled(promises).finally(() => {
-        setTree(trace);
-      });
-    }
-  }, [
-    props.traceSlug,
-    props.trace,
-    props.status,
-    props.metaResults,
-    props.replayRecord,
-    projects,
-    api,
-    organization,
-  ]);
-
-  useEffect(() => {
     if (!props.replayTraces?.length || tree.type !== 'trace') {
       return undefined;
     }
@@ -375,7 +295,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
       organization: props.organization,
       urlParams: qs.parse(location.search),
       rerender: forceRerender,
-      metaResults: props.metaResults,
+      meta: props.meta,
     });
 
     return () => cleanup();
@@ -683,10 +603,16 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
 
       // We call expandToNode because we want to ensure that the node is
       // visible and may not have been collapsed/hidden by the user
-      TraceTree.ExpandToPath(tree, TraceTree.PathToNode(node), forceRerender, {
-        api,
-        organization: props.organization,
-      }).then(maybeNode => {
+      TraceTree.ExpandToPath(
+        tree,
+        TraceTree.PathToNode(node),
+        traceStateRef.current.preferences,
+        forceRerender,
+        {
+          api,
+          organization: props.organization,
+        }
+      ).then(maybeNode => {
         if (maybeNode) {
           previouslyFocusedNodeRef.current = null;
           const index = tree.list.findIndex(n => n === maybeNode);
@@ -737,10 +663,16 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
   // focused node, but rather scrolls the node into view and sets the roving index to the node.
   const onScrollToNode = useCallback(
     (node: TraceTreeNode<TraceTree.NodeValue>) => {
-      TraceTree.ExpandToPath(tree, TraceTree.PathToNode(node), forceRerender, {
-        api,
-        organization: props.organization,
-      }).then(maybeNode => {
+      TraceTree.ExpandToPath(
+        tree,
+        TraceTree.PathToNode(node),
+        traceStateRef.current.preferences,
+        forceRerender,
+        {
+          api,
+          organization: props.organization,
+        }
+      ).then(maybeNode => {
         if (maybeNode) {
           previouslyFocusedNodeRef.current = null;
           const index = tree.list.findIndex(n => n === maybeNode);
@@ -776,9 +708,29 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
   // that is when the trace tree data and any data that the trace depends on is loaded,
   // but the trace is not yet rendered in the view.
   const onTraceLoad = useCallback(
-    (_trace: TraceTree, nodeToScrollTo: TraceTreeNode<TraceTree.NodeValue> | null) => {
-      // @TODO indexof nodeToScrollTo
+    (trace: TraceTree, nodeToScrollTo: TraceTreeNode<TraceTree.NodeValue> | null) => {
+      if (traceStateRef.current.preferences.missing_instrumentation) {
+        TraceTree.DetectMissingInstrumentation(
+          trace.root,
+          TraceTree.MISSING_INSTRUMENTATION_THRESHOLD_MS
+        );
+      }
+      if (traceStateRef.current.preferences.autogroup.sibling) {
+        TraceTree.AutogroupSiblingSpanNodes(trace.root);
+      }
+      if (traceStateRef.current.preferences.autogroup.parent) {
+        TraceTree.AutogroupDirectChildrenSpanNodes(trace.root);
+      }
+
       const indexOfNodeToScrollTo = 0;
+      trace.build();
+      setTree(trace);
+
+      // If terminal node is a missing instrumentation and missing instrumentatioon is off, enable it
+      // if terminal node is a autogrouped node and autogrouping is off, enable it
+      // else look for node index
+      //  - if index > 0, node is visible so scroll to it
+      //  - walk up the parent chain and expand until node is visible
 
       const query = qs.parse(location.search);
 
@@ -958,20 +910,15 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
 
   const scrollQueueRef = useTraceScrollToPath(props.scrollToNode);
 
-  useTraceScrollToEventOnLoad({
+  useTraceOnLoad({
     rerender,
     onTraceLoad,
     scrollQueueRef,
-    manager: viewManager,
     scheduler: traceScheduler,
-    trace: tree,
+    trace: props.trace,
+    meta: props.meta,
+    replayRecord: props.replayRecord,
   });
-
-  const isLoading = !!(
-    tree.type === 'loading' ||
-    tree.type !== 'trace' ||
-    scrollQueueRef.current
-  );
 
   return (
     <Fragment>
@@ -1000,24 +947,24 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
           scheduler={traceScheduler}
           forceRerender={forceRender}
           isEmbedded={props.isEmbedded}
-          isLoading={isLoading}
+          isLoading={tree.type === 'loading'}
         />
 
         {tree.type === 'error' ? (
           <TraceError />
         ) : tree.type === 'empty' ? (
           <TraceEmpty />
-        ) : isLoading ? (
+        ) : tree.type === 'loading' ? (
           <TraceLoading />
         ) : null}
 
         <TraceDrawer
           replayRecord={props.replayRecord}
-          metaResults={props.metaResults}
+          meta={props.meta}
           traceType={shape}
           trace={tree}
           traceGridRef={traceGridRef}
-          traces={props.trace ?? null}
+          traces={props.trace.data ?? null}
           manager={viewManager}
           scheduler={traceScheduler}
           onTabScrollToNode={onTabScrollToNode}

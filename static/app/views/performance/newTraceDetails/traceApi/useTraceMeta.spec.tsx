@@ -34,7 +34,7 @@ describe('useTraceMeta', () => {
     jest.spyOn(useOrganization, 'default').mockReturnValue(organization);
   });
 
-  it('Returns merged metaResults', async () => {
+  it('Returns merged meta results', async () => {
     // Mock the API calls
     MockApiClient.addMockResponse({
       method: 'GET',

@@ -12,10 +12,7 @@ import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyti
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import {
-  getTraceViewQueryStatus,
-  TraceViewWaterfall,
-} from 'sentry/views/performance/newTraceDetails';
+import {TraceViewWaterfall} from 'sentry/views/performance/newTraceDetails';
 import {useReplayTraceMeta} from 'sentry/views/performance/newTraceDetails/traceApi/useReplayTraceMeta';
 import {useTrace} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
 import {useTraceRootEvent} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
@@ -93,6 +90,7 @@ const DEFAULT_REPLAY_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
     },
     layoutOptions: [],
   },
+  missing_instrumentation: true,
   autogroup: {
     parent: true,
     sibling: true,
@@ -167,7 +165,7 @@ export function NewTraceView({replayRecord}: {replayRecord: undefined | ReplayRe
     timestamp: firstTrace?.timestamp,
   });
   const rootEvent = useTraceRootEvent(trace.data ?? null);
-  const metaResults = useReplayTraceMeta(replayRecord);
+  const meta = useReplayTraceMeta(replayRecord);
 
   const preferences = useMemo(
     () =>
@@ -221,13 +219,12 @@ export function NewTraceView({replayRecord}: {replayRecord: undefined | ReplayRe
       <TraceViewWaterfallWrapper>
         <TraceViewWaterfall
           traceSlug={undefined}
-          trace={trace.data ?? null}
-          status={getTraceViewQueryStatus(trace.status, metaResults.status)}
+          trace={trace}
           rootEvent={rootEvent}
           replayTraces={otherReplayTraces}
           organization={organization}
           traceEventView={eventView}
-          metaResults={metaResults}
+          meta={meta}
           source="replay"
           replayRecord={replayRecord}
           // Replays might want to enable this in the future
