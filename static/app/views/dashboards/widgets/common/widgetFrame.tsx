@@ -106,7 +106,7 @@ const Frame = styled('div')`
   width: 100%;
   min-width: ${MIN_WIDTH}px;
 
-  padding: ${space(2)};
+  padding: ${space(1.5)} ${space(2)};
 
   border-radius: ${p => p.theme.panelBorderRadius};
   border: ${p => p.theme.border};
