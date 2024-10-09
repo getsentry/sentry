@@ -247,6 +247,76 @@ export default storyBook(BigNumberWidget, story => {
       </Fragment>
     );
   });
+
+  story('Thresholds', () => {
+    const meta = {
+      fields: {
+        'eps()': 'rate',
+      },
+      units: {
+        'eps()': '1/second',
+      },
+    };
+
+    const thresholds = {
+      max_values: {
+        max1: 20,
+        max2: 50,
+      },
+      unit: '1/second',
+    };
+
+    return (
+      <Fragment>
+        <p>
+          <JSXNode name="BigNumberWidget" /> supports a <code>thresholds</code> prop. If
+          specified, the value of the data in the widget will be evaluated against these
+          thresholds, and indicated using a colorful circle next to the value.
+        </p>
+
+        <SideBySide>
+          <NormalWidget>
+            <BigNumberWidget
+              title="eps()"
+              data={[
+                {
+                  'eps()': 7.1,
+                },
+              ]}
+              meta={meta}
+              thresholds={thresholds}
+            />
+          </NormalWidget>
+
+          <NormalWidget>
+            <BigNumberWidget
+              title="eps()"
+              data={[
+                {
+                  'eps()': 27.781,
+                },
+              ]}
+              meta={meta}
+              thresholds={thresholds}
+            />
+          </NormalWidget>
+
+          <NormalWidget>
+            <BigNumberWidget
+              title="eps()"
+              data={[
+                {
+                  'eps()': 78.1,
+                },
+              ]}
+              meta={meta}
+              thresholds={thresholds}
+            />
+          </NormalWidget>
+        </SideBySide>
+      </Fragment>
+    );
+  });
 });
 
 const SmallSizingWindow = styled(SizingWindow)`
