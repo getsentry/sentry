@@ -22,12 +22,12 @@ describe('anomalyChart', () => {
     const input: Anomaly[] = [
       {
         anomaly,
-        timestamp: d(-3).toISOString(),
+        timestamp: d(-3),
         value: 1,
       },
       {
         anomaly,
-        timestamp: d(-2).toISOString(),
+        timestamp: d(-2),
         value: 1,
       },
     ];
@@ -39,22 +39,22 @@ describe('anomalyChart', () => {
     const input: Anomaly[] = [
       {
         anomaly: anomaly_high,
-        timestamp: d(-3).toISOString(),
+        timestamp: d(-3),
         value: 1,
       },
       {
         anomaly: anomaly_high,
-        timestamp: d(-2).toISOString(),
+        timestamp: d(-2),
         value: 1,
       },
       {
         anomaly,
-        timestamp: d(-1).toISOString(),
+        timestamp: d(-1),
         value: 0,
       },
       {
         anomaly,
-        timestamp: d(-1).toISOString(),
+        timestamp: d(-1),
         value: 0,
       },
     ];
@@ -66,32 +66,32 @@ describe('anomalyChart', () => {
     const input: Anomaly[] = [
       {
         anomaly: anomaly_high,
-        timestamp: d(-3).toISOString(),
+        timestamp: d(-3),
         value: 1,
       },
       {
         anomaly: anomaly_high,
-        timestamp: d(-2).toISOString(),
+        timestamp: d(-2),
         value: 1,
       },
       {
         anomaly,
-        timestamp: d(-1).toISOString(),
+        timestamp: d(-1),
         value: 0,
       },
       {
         anomaly,
-        timestamp: d(-1).toISOString(),
+        timestamp: d(-1),
         value: 0,
       },
       {
         anomaly: anomaly_low,
-        timestamp: d(1).toISOString(),
+        timestamp: d(1),
         value: 2,
       },
       {
         anomaly: anomaly_low,
-        timestamp: d(2).toISOString(),
+        timestamp: d(2),
         value: 2,
       },
     ];
@@ -104,5 +104,5 @@ function d(offset: number) {
   const value = new Date();
   value.setHours(12);
   value.setDate(value.getDate() + offset);
-  return value;
+  return value.valueOf();
 }
