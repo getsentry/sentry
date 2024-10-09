@@ -5,19 +5,22 @@ import {HeaderTitle} from 'sentry/components/charts/styles';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconEllipsis} from 'sentry/icons';
+import {IconEllipsis, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
 import {ErrorPanel} from './errorPanel';
 import {MIN_HEIGHT, MIN_WIDTH} from './settings';
+import {TooltipIconTrigger} from './tooltipIconTrigger';
 import type {StateProps} from './types';
+import {WarningsList} from './warningsList';
 
 export interface Props extends StateProps {
   actions?: MenuItemProps[];
   children?: React.ReactNode;
   description?: string;
   title?: string;
+  warnings?: string[];
 }
 
 export function WidgetFrame(props: Props) {
@@ -40,6 +43,14 @@ export function WidgetFrame(props: Props) {
   return (
     <Frame>
       <Header>
+        {props.warnings && props.warnings.length > 0 && (
+          <Tooltip title={<WarningsList warnings={props.warnings} />} isHoverable>
+            <TooltipIconTrigger aria-label={t('Widget warnings')}>
+              <IconWarning color="warningText" />
+            </TooltipIconTrigger>
+          </Tooltip>
+        )}
+
         <Tooltip title={props.title} containerDisplayMode="grid" showOnlyOnOverflow>
           <TitleText>{props.title}</TitleText>
         </Tooltip>
