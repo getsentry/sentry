@@ -219,7 +219,8 @@ export function getMetricAlertChartOption({
       )
     : 0;
   const startDate = new Date(dataArr[0]?.name);
-  const endDate = new Date(dataArr[dataArr.length - 1]?.name);
+  const endDate =
+    dataArr.length > 1 ? new Date(dataArr[dataArr.length - 1]?.name) : new Date();
   const firstPoint = startDate.getTime();
   const lastPoint = endDate.getTime();
   const totalDuration = lastPoint - firstPoint;
