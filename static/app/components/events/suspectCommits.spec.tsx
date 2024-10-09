@@ -68,6 +68,10 @@ describe('SuspectCommits', function () {
           committers,
         },
       });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/projects/`,
+        body: [project],
+      });
     });
 
     it('Renders base commit row', async function () {
