@@ -13,9 +13,11 @@ import {INSIGHTS_METRICS_OPERATIONS} from 'sentry/views/alerts/rules/metric/util
 export const DEFAULT_MRI: MRI = 'c:custom/sentry_metric@none';
 export const DEFAULT_SPAN_MRI: MRI = 'c:custom/span_attribute_0@none';
 export const DEFAULT_INSIGHTS_MRI: MRI = 'd:spans/duration@millisecond';
+export const DEFAULT_EAP_FIELD = 'span.duration';
 // This is a workaround as the alert builder requires a valid aggregate to be set
 export const DEFAULT_METRIC_ALERT_FIELD = `sum(${DEFAULT_MRI})`;
 export const DEFAULT_INSIGHTS_METRICS_ALERT_FIELD = `sum(${DEFAULT_INSIGHTS_MRI})`;
+export const DEFAULT_EAP_METRICS_ALERT_FIELD = `count(${DEFAULT_EAP_FIELD})`;
 
 export function isMRI(mri?: unknown): mri is MRI {
   if (typeof mri !== 'string') {

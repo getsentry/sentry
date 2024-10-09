@@ -73,6 +73,8 @@ def process_message(
     from sentry.snuba.query_subscriptions.consumer import handle_message
     from sentry.utils import metrics
 
+    print(f"---Processing message for dataset: {dataset.value} {message.value.payload.value}")
+
     with (
         sentry_sdk.start_transaction(
             op="handle_message",

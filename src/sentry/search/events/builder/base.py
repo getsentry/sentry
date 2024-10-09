@@ -1497,17 +1497,19 @@ class BaseQueryBuilder:
         """
         return self.function_alias_map[function.alias].field
 
-    def _get_dataset_name(self) -> str:
+    def _get_entity_name(self) -> str:
         return self.dataset.value
 
     def get_snql_query(self) -> Request:
         self.validate_having_clause()
 
+        print(f"---dataset: {self.dataset.value} entity: {self._get_entity_name()}")
+
         return Request(
-            dataset=self._get_dataset_name(),
+            dataset=self.dataset.value,
             app_id="default",
             query=Query(
-                match=Entity(self.dataset.value, sample=self.sample_rate),
+                match=Entity(self._get_entity_name(), sample=self.sample_rate),
                 select=self.columns,
                 array_join=self.array_join,
                 where=self.where,

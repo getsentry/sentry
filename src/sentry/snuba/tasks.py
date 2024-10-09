@@ -232,6 +232,7 @@ def _create_in_snuba(subscription: QuerySubscription) -> str:
 # This indirection function only exists such that snql queries can be rewritten
 # by sentry.utils.pytest.metrics
 def _create_snql_in_snuba(subscription, snuba_query, snql_query, entity_subscription):
+    print(f"----snuba query {snuba_query}")
     body = {
         "project_id": subscription.project_id,
         "query": str(snql_query.query),
@@ -247,6 +248,8 @@ def _create_snql_in_snuba(subscription, snuba_query, snql_query, entity_subscrip
         )
 
     entity_key = get_entity_key_from_request(snql_query)
+
+    print(f"----snuba query {snuba_query}")
 
     post_body: str | bytes = orjson.dumps(body)
     response = _snuba_pool.urlopen(
