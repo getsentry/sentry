@@ -1,6 +1,3 @@
-// These are the icons used in the TraceDetails component - their SVGs path values have been copied
-// and removed from the emotion wrapper which is parsing and compiling unnecessary CSS as the
-// components rerended, which causes frame drops and performance issues that result in white
 import type {
   TraceError,
   TracePerformanceIssue,
@@ -8,6 +5,37 @@ import type {
 
 import type {TraceTree} from './traceModels/traceTree';
 
+interface EventTypeIconProps {
+  event: TracePerformanceIssue | TraceError | TraceTree.Profile;
+}
+
+function EventTypeIcon(props: EventTypeIconProps) {
+  if ('profile_id' in props.event || 'profiler_id' in props.event) {
+    return <Profile />;
+  }
+
+  switch (props.event.level) {
+    case 'error':
+    case 'fatal': {
+      return <Fire />;
+    }
+    default: {
+      return <Warning />;
+    }
+  }
+}
+
+export const TraceIcons = {
+  Icon: EventTypeIcon,
+  Chevron,
+  Fire,
+  Profile,
+  Warning,
+};
+
+// These are the icons used in the TraceDetails component - their SVGs path values have been copied
+// and removed from the emotion wrapper which is parsing and compiling unnecessary CSS as the
+// components rerended, which causes frame drops and performance issues that result in white
 // row flashes when scrolling.
 function Chevron(props: {direction: 'up' | 'down' | 'left'}) {
   return (
@@ -47,31 +75,3 @@ function Warning() {
     </svg>
   );
 }
-
-interface EventTypeIconProps {
-  event: TracePerformanceIssue | TraceError | TraceTree.Profile;
-}
-
-function EventTypeIcon(props: EventTypeIconProps) {
-  if ('profile_id' in props.event) {
-    return <Profile />;
-  }
-
-  switch (props.event.level) {
-    case 'error':
-    case 'fatal': {
-      return <Fire />;
-    }
-    default: {
-      return <Warning />;
-    }
-  }
-}
-
-export const TraceIcons = {
-  Icon: EventTypeIcon,
-  Chevron,
-  Fire,
-  Profile,
-  Warning,
-};

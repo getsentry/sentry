@@ -1,8 +1,9 @@
 import {makeCombinedReducers} from 'sentry/utils/useCombinedReducer';
-import {tracePreferencesReducer} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
-import {traceRovingTabIndexReducer} from 'sentry/views/performance/newTraceDetails/traceState/traceRovingTabIndex';
-import {traceSearchReducer} from 'sentry/views/performance/newTraceDetails/traceState/traceSearch';
-import {traceTabsReducer} from 'sentry/views/performance/newTraceDetails/traceState/traceTabs';
+
+import {tracePreferencesReducer} from '../traceState/tracePreferences';
+import {traceRovingTabIndexReducer} from '../traceState/traceRovingTabIndex';
+import {traceSearchReducer} from '../traceState/traceSearch';
+import {traceTabsReducer} from '../traceState/traceTabs';
 
 // Ensure that TS will throw an error if we forget to handle a reducer action case.
 // We do this because the reducer is combined with other reducers and we want to ensure

@@ -6,12 +6,10 @@ import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {resolveSpanModule} from 'sentry/views/insights/common/utils/resolveSpanModule';
 import {ModuleName} from 'sentry/views/insights/types';
-import type {
-  TraceTree,
-  TraceTreeNode,
-} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
 
+import type {TraceTree} from '../../../../traceModels/traceTree';
+import type {TraceTreeNode} from '../../../../traceModels/traceTreeNode';
 import {type SectionCardKeyValueList, TraceDrawerComponents} from '../../styles';
 
 import {getSpanAncestryAndGroupingItems} from './ancestry';
@@ -66,7 +64,6 @@ export function GeneralInfo(props: GeneralnfoProps) {
   let items: SectionCardKeyValueList = [];
 
   const span = props.node.value;
-  const {event} = span;
   const resolvedModule: ModuleName = resolveSpanModule(
     span.sentry_tags?.op,
     span.sentry_tags?.category
@@ -92,10 +89,10 @@ export function GeneralInfo(props: GeneralnfoProps) {
             value={span.description}
             linkTarget={spanDetailsRouteWithQuery({
               orgSlug: props.organization.slug,
-              transaction: event.title,
+              transaction: props.node.event?.title ?? '',
               query: props.location.query,
               spanSlug: {op: span.op, group: groupHash},
-              projectID: event.projectID,
+              projectID: props.node.event?.projectID,
             })}
             linkText={t('View Similar Spans')}
             onClick={() =>

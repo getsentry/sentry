@@ -1,10 +1,8 @@
-import {
-  MissingInstrumentationNode,
-  ParentAutogroupNode,
-  SiblingAutogroupNode,
-  type TraceTree,
-  type TraceTreeNode,
-} from './traceModels/traceTree';
+import {MissingInstrumentationNode} from './traceModels/missingInstrumentationNode';
+import {ParentAutogroupNode} from './traceModels/parentAutogroupNode';
+import {SiblingAutogroupNode} from './traceModels/siblingAutogroupNode';
+import type {TraceTree} from './traceModels/traceTree';
+import type {TraceTreeNode} from './traceModels/traceTreeNode';
 
 export function isMissingInstrumentationNode(
   node: TraceTreeNode<TraceTree.NodeValue>
@@ -17,6 +15,7 @@ export function isSpanNode(
 ): node is TraceTreeNode<TraceTree.Span> {
   return (
     !!(node.value && !('transaction' in node.value) && 'span_id' in node.value) &&
+    !isMissingInstrumentationNode(node) &&
     !isAutogroupedNode(node)
   );
 }
@@ -95,4 +94,45 @@ export function shouldAddMissingInstrumentationSpan(sdk: string | undefined): bo
     default:
       return true;
   }
+}
+
+export function isJavascriptSDKTransaction(transaction: TraceTree.Transaction): boolean {
+  return /javascript|angular|astro|backbone|ember|gatsby|nextjs|react|remix|svelte|vue/.test(
+    transaction.sdk_name
+  );
+}
+
+export function isPageloadTransactionNode(
+  node: TraceTreeNode<TraceTree.NodeValue>
+): boolean {
+  return isTransactionNode(node) && node.value['transaction.op'] === 'pageload';
+}
+
+export function isServerRequestHandlerTransactionNode(
+  node: TraceTreeNode<TraceTree.NodeValue>
+): boolean {
+  return isTransactionNode(node) && node.value['transaction.op'] === 'http.server';
+}
+
+export function isBrowserRequestSpan(value: TraceTree.Span): boolean {
+  return (
+    // Adjust for SDK changes in https://github.com/getsentry/sentry-javascript/pull/13527
+    value.op === 'browser.request' ||
+    (value.op === 'browser' && value.description === 'request')
+  );
+}
+
+export function getPageloadTransactionChildCount(
+  node: TraceTreeNode<TraceTree.NodeValue>
+): number {
+  if (!isTransactionNode(node)) {
+    return 0;
+  }
+  let count = 0;
+  for (const txn of node.value.children) {
+    if (txn && txn['transaction.op'] === 'pageload') {
+      count++;
+    }
+  }
+  return count;
 }

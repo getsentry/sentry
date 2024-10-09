@@ -5,16 +5,15 @@ import {t} from 'sentry/locale';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
 import useProjects from 'sentry/utils/useProjects';
-import {ProfilePreview} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/profiling/profilePreview';
-import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
-import {getTraceTabTitle} from 'sentry/views/performance/newTraceDetails/traceState/traceTabs';
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
 import {ProfileContext, ProfilesProvider} from 'sentry/views/profiling/profilesProvider';
 
-import {
-  makeTraceNodeBarColor,
-  type MissingInstrumentationNode,
-} from '../../traceModels/traceTree';
+import {ProfilePreview} from '../../traceDrawer/details/profiling/profilePreview';
+import type {TraceTreeNodeDetailsProps} from '../../traceDrawer/tabs/traceTreeNodeDetails';
+import type {MissingInstrumentationNode} from '../../traceModels/missingInstrumentationNode';
+import {TraceTree} from '../../traceModels/traceTree';
+import {makeTraceNodeBarColor} from '../../traceRow/traceBar';
+import {getTraceTabTitle} from '../../traceState/traceTabs';
 
 import {type SectionCardKeyValueList, TraceDrawerComponents} from './styles';
 
@@ -27,8 +26,8 @@ export function MissingInstrumentationNodeDetails({
   const theme = useTheme();
   const {projects} = useProjects();
 
-  const parentTransaction = node.parent_transaction;
-  const event = node.previous.value.event || node.next.value.event || null;
+  const parentTransaction = TraceTree.ParentTransaction(node);
+  const event = node.previous.event ?? node.next.event ?? null;
   const project = projects.find(proj => proj.slug === event?.projectSlug);
   const profileId = event?.contexts?.profile?.profile_id ?? null;
 
@@ -100,10 +99,10 @@ export function MissingInstrumentationNodeDetails({
         />
       </TraceDrawerComponents.HeaderContainer>
 
-      {event.projectSlug ? (
+      {node.event?.projectSlug ? (
         <ProfilesProvider
           orgSlug={organization.slug}
-          projectSlug={event.projectSlug}
+          projectSlug={node.event?.projectSlug ?? ''}
           profileId={profileId || ''}
         >
           <ProfileContext.Consumer>
@@ -113,7 +112,7 @@ export function MissingInstrumentationNodeDetails({
                 input={profiles?.type === 'resolved' ? profiles.data : null}
                 traceID={profileId || ''}
               >
-                <ProfilePreview event={event} node={node} />
+                <ProfilePreview event={node.event!} node={node} />
               </ProfileGroupProvider>
             )}
           </ProfileContext.Consumer>

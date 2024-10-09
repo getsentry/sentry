@@ -8,7 +8,8 @@ import {Button} from 'sentry/components/button';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
-import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
+
+import {traceAnalytics} from './traceAnalytics';
 
 export function TraceShortcuts() {
   const organization = useOrganization();

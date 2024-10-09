@@ -17,9 +17,10 @@ import type RequestError from 'sentry/utils/requestError/requestError';
 import {useParams} from 'sentry/utils/useParams';
 import {SpanTimeRenderer} from 'sentry/views/traces/fieldRenderers';
 
-import {isTraceNode} from '../../../guards';
 import type {TraceMetaQueryResults} from '../../../traceApi/useTraceMeta';
-import type {TraceTree, TraceTreeNode} from '../../../traceModels/traceTree';
+import {isTraceNode} from '../../../traceGuards';
+import type {TraceTree} from '../../../traceModels/traceTree';
+import type {TraceTreeNode} from '../../../traceModels/traceTreeNode';
 import {type SectionCardKeyValueList, TraceDrawerComponents} from '../../details/styles';
 
 type GeneralInfoProps = {
@@ -179,18 +180,20 @@ export function GeneralInfo(props: GeneralInfoProps) {
     {
       key: 'start_timestamp',
       subject: t('Start Timestamp'),
-      value: traceNode.space?.[1] ? (
-        <SpanTimeRenderer timestamp={traceNode.space?.[0]} tooltipShowSeconds />
-      ) : (
-        '\u2014'
-      ),
+      value:
+        traceNode.space[1] > 0 ? (
+          <SpanTimeRenderer timestamp={traceNode.space[0]} tooltipShowSeconds />
+        ) : (
+          '\u2014'
+        ),
     },
     {
       key: 'total_duration',
       subject: t('Total Duration'),
-      value: traceNode.space?.[1]
-        ? getDuration(traceNode.space[1] / 1000, 2, true)
-        : '\u2014',
+      value:
+        traceNode.space[1] > 0
+          ? getDuration(traceNode.space[1] / 1e3, 2, true)
+          : '\u2014',
     },
     {
       key: 'user',

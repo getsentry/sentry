@@ -21,36 +21,33 @@ import {replayPlayerTimestampEmitter} from 'sentry/utils/replays/replayPlayerTim
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import type {
-  TraceEvents,
-  TraceScheduler,
-} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceScheduler';
+
+import {TraceTree} from './traceModels/traceTree';
+import type {TraceTreeNode} from './traceModels/traceTreeNode';
+import type {TraceEvents, TraceScheduler} from './traceRenderers/traceScheduler';
 import {
   useVirtualizedList,
   type VirtualizedRow,
-} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceVirtualizedList';
-import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
-import {TraceAutogroupedRow} from 'sentry/views/performance/newTraceDetails/traceRow/traceAutogroupedRow';
-import {TraceErrorRow} from 'sentry/views/performance/newTraceDetails/traceRow/traceErrorRow';
-import {TraceLoadingRow} from 'sentry/views/performance/newTraceDetails/traceRow/traceLoadingRow';
-import {TraceMissingInstrumentationRow} from 'sentry/views/performance/newTraceDetails/traceRow/traceMissingInstrumentationRow';
-import {TraceRootRow} from 'sentry/views/performance/newTraceDetails/traceRow/traceRootNode';
+} from './traceRenderers/traceVirtualizedList';
+import type {VirtualizedViewManager} from './traceRenderers/virtualizedViewManager';
+import {TraceAutogroupedRow} from './traceRow/traceAutogroupedRow';
+import {TraceErrorRow} from './traceRow/traceErrorRow';
+import {TraceLoadingRow} from './traceRow/traceLoadingRow';
+import {TraceMissingInstrumentationRow} from './traceRow/traceMissingInstrumentationRow';
+import {TraceRootRow} from './traceRow/traceRootNode';
 import {
   TRACE_CHILDREN_COUNT_WRAPPER_CLASSNAME,
   TRACE_CHILDREN_COUNT_WRAPPER_ORPHANED_CLASSNAME,
   TRACE_RIGHT_COLUMN_EVEN_CLASSNAME,
   TRACE_RIGHT_COLUMN_ODD_CLASSNAME,
   type TraceRowProps,
-} from 'sentry/views/performance/newTraceDetails/traceRow/traceRow';
-import {TraceSpanRow} from 'sentry/views/performance/newTraceDetails/traceRow/traceSpanRow';
-import {TraceTransactionRow} from 'sentry/views/performance/newTraceDetails/traceRow/traceTransactionRow';
-import type {TraceReducerState} from 'sentry/views/performance/newTraceDetails/traceState';
+} from './traceRow/traceRow';
+import {TraceSpanRow} from './traceRow/traceSpanRow';
+import {TraceTransactionRow} from './traceRow/traceTransactionRow';
 import {
   getRovingIndexActionFromDOMEvent,
   type RovingTabIndexUserActions,
-} from 'sentry/views/performance/newTraceDetails/traceState/traceRovingTabIndex';
-
-import type {TraceTree, TraceTreeNode} from './traceModels/traceTree';
+} from './traceState/traceRovingTabIndex';
 import {useTraceState, useTraceStateDispatch} from './traceState/traceStateProvider';
 import {
   isAutogroupedNode,
@@ -59,7 +56,8 @@ import {
   isTraceErrorNode,
   isTraceNode,
   isTransactionNode,
-} from './guards';
+} from './traceGuards';
+import type {TraceReducerState} from './traceState';
 
 function computeNextIndexFromAction(
   current_index: number,
@@ -196,7 +194,7 @@ export function Trace({
       rerenderRef.current();
 
       treeRef.current
-        .zoomIn(node, value, {
+        .zoom(node, value, {
           api,
           organization,
         })
@@ -270,9 +268,7 @@ export function Trace({
           onNodeExpand(event, node, false);
         }
       } else if (event.key === 'ArrowRight') {
-        if (!node.expanded) {
-          onNodeExpand(event, node, true);
-        } else if (node.expanded && node.canFetch) {
+        if (node.canFetch) {
           onNodeZoomIn(event, node, true);
         }
       }
@@ -572,12 +568,12 @@ function RenderTraceRow(props: {
       ? TRACE_RIGHT_COLUMN_ODD_CLASSNAME
       : TRACE_RIGHT_COLUMN_EVEN_CLASSNAME;
 
-  const listColumnClassName = node.isOrphaned
+  const listColumnClassName = isTraceNode(node)
     ? TRACE_CHILDREN_COUNT_WRAPPER_ORPHANED_CLASSNAME
     : TRACE_CHILDREN_COUNT_WRAPPER_CLASSNAME;
 
   const listColumnStyle: React.CSSProperties = {
-    paddingLeft: node.depth * props.manager.row_depth_padding,
+    paddingLeft: TraceTree.Depth(node) * props.manager.row_depth_padding,
   };
 
   const rowProps: TraceRowProps<TraceTreeNode<TraceTree.NodeValue>> = {
