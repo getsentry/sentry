@@ -44,7 +44,11 @@ export function getAnomalyMarkerSeries(
     .forEach(item => {
       const {anomaly, timestamp} = item;
 
-      if ([AnomalyType.high, AnomalyType.low].includes(anomaly.anomaly_type as string)) {
+      if (
+        [AnomalyType.HIGH_CONFIDENCE, AnomalyType.LOW_CONFIDENCE].includes(
+          anomaly.anomaly_type
+        )
+      ) {
         if (!start) {
           // If this is the start of an anomaly, set start
           start = new Date(timestamp).toISOString();
