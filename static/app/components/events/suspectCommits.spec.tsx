@@ -73,7 +73,7 @@ describe('SuspectCommits', function () {
     it('Renders base commit row', async function () {
       render(
         <SuspectCommits
-          project={project}
+          projectSlug={project.slug}
           commitRow={CommitRow}
           eventId={event.id}
           group={group}
@@ -88,7 +88,7 @@ describe('SuspectCommits', function () {
     it('Renders quick context commit row', async function () {
       render(
         <SuspectCommits
-          project={project}
+          projectSlug={project.slug}
           commitRow={QuickContextCommitRow}
           eventId={event.id}
           group={group}
@@ -112,7 +112,7 @@ describe('SuspectCommits', function () {
 
       render(
         <SuspectCommits
-          project={project}
+          projectSlug={project.slug}
           commitRow={CommitRow}
           eventId={event.id}
           group={group}
@@ -126,7 +126,7 @@ describe('SuspectCommits', function () {
     it('expands', async function () {
       render(
         <SuspectCommits
-          project={project}
+          projectSlug={project.slug}
           commitRow={CommitRow}
           eventId={event.id}
           group={group}
@@ -165,7 +165,7 @@ describe('SuspectCommits', function () {
 
       render(
         <SuspectCommits
-          project={project}
+          projectSlug={project.slug}
           commitRow={CommitRow}
           eventId={event.id}
           group={group}
@@ -237,7 +237,7 @@ describe('SuspectCommits', function () {
     it('Renders base commit row', async function () {
       render(
         <SuspectCommits
-          project={project}
+          projectSlug={project.slug}
           commitRow={CommitRow}
           eventId={event.id}
           group={group}
@@ -253,7 +253,7 @@ describe('SuspectCommits', function () {
     it('Renders quick context commit row', async function () {
       render(
         <SuspectCommits
-          project={project}
+          projectSlug={project.slug}
           commitRow={QuickContextCommitRow}
           eventId={event.id}
           group={group}
@@ -275,7 +275,7 @@ describe('SuspectCommits', function () {
       });
       render(
         <SuspectCommits
-          project={project}
+          projectSlug={project.slug}
           commitRow={CommitRow}
           eventId={event.id}
           group={group}

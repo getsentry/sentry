@@ -160,7 +160,7 @@ export function EventDetailsContent({
         {!hasStreamlinedUI && <TraceDataSection event={event} />}
         {!hasStreamlinedUI && (
           <SuspectCommits
-            project={project}
+            projectSlug={project.slug}
             eventId={event.id}
             group={group}
             commitRow={CommitRow}
@@ -255,7 +255,8 @@ export function EventDetailsContent({
           <Exception
             event={event}
             data={eventEntries[EntryType.EXCEPTION].data}
-            projectSlug={projectSlug}
+            projectSlug={project.slug}
+            group={group}
             groupingCurrentLevel={groupingCurrentLevel}
           />
         </EntryErrorBoundary>
@@ -275,8 +276,9 @@ export function EventDetailsContent({
           <Threads
             event={event}
             data={eventEntries[EntryType.THREADS].data}
-            projectSlug={projectSlug}
+            projectSlug={project.slug}
             groupingCurrentLevel={groupingCurrentLevel}
+            group={group}
           />
         </EntryErrorBoundary>
       )}
