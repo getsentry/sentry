@@ -11,6 +11,7 @@ from sentry.sentry_apps.services.app import app_service
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.users.services.user.service import user_service
+from sentry.utils import json
 
 
 class SentryAppInstallationDetailsTest(APITestCase):
@@ -101,23 +102,29 @@ class GetSentryAppInstallationDetailsTest(SentryAppInstallationDetailsTest):
 @control_silo_test
 class DeleteSentryAppInstallationDetailsTest(SentryAppInstallationDetailsTest):
     @responses.activate
-    @patch("sentry.mediators.sentry_app_installations.InstallationNotifier.run")
     @patch("sentry.analytics.record")
-    def test_delete_install(self, record, run):
+    def test_delete_install(self, record):
         responses.add(url="https://example.com/webhook", method=responses.POST, body=b"")
         self.login_as(user=self.user)
         rpc_user = user_service.get_user(user_id=self.user.id)
+        assert rpc_user, "User should exist in test to delete sentry app installation unless noted"
+
         response = self.client.delete(self.url, format="json")
         assert AuditLogEntry.objects.filter(
             event=audit_log.get_event_id("SENTRY_APP_UNINSTALL")
         ).exists()
-        run.assert_called_once_with(install=self.orm_installation2, user=rpc_user, action="deleted")
         record.assert_called_with(
             "sentry_app.uninstalled",
             user_id=self.user.id,
             organization_id=self.org.id,
             sentry_app=self.orm_installation2.sentry_app.slug,
         )
+
+        response_body = json.loads(responses.calls[0].request.body)
+
+        assert response_body.get("installation").get("uuid") == self.orm_installation2.uuid
+        assert response_body.get("action") == "deleted"
+        assert response_body.get("actor")["id"] == rpc_user.id
 
         assert response.status_code == 204
 

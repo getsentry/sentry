@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from unittest.mock import ANY, patch
 
 import pytest
+import responses
 from celery import Task
 from django.core import mail
 from django.test import override_settings
@@ -416,7 +417,6 @@ class TestSendResourceChangeWebhook(TestCase):
 
 
 @control_silo_test
-@patch("sentry.mediators.sentry_app_installations.InstallationNotifier.run")
 class TestInstallationWebhook(TestCase):
     def setUp(self):
         self.project = self.create_project()
@@ -429,18 +429,30 @@ class TestInstallationWebhook(TestCase):
             organization=self.project.organization, slug=self.sentry_app.slug
         )
 
-    def test_sends_installation_notification(self, run):
+    @responses.activate
+    def test_sends_installation_notification(self):
+        responses.add(responses.POST, "https://example.com/webhook")
         installation_webhook(self.install.id, self.user.id)
 
-        run.assert_called_with(install=self.install, user=self.rpc_user, action="created")
+        response_body = json.loads(responses.calls[0].request.body)
+        assert response_body.get("installation").get("uuid") == self.install.uuid
+        assert response_body.get("action") == "created"
+        assert self.rpc_user, "User should exist in test to test installation webhook unless noted"
+        assert response_body.get("actor")["id"] == self.rpc_user.id
 
-    def test_gracefully_handles_missing_install(self, run):
+    @responses.activate
+    def test_gracefully_handles_missing_install(self):
+        responses.add(responses.POST, "https://example.com/webhook")
+
         installation_webhook(999, self.user.id)
-        assert len(run.mock_calls) == 0
+        assert len(responses.calls) == 0
 
-    def test_gracefully_handles_missing_user(self, run):
+    @responses.activate
+    def test_gracefully_handles_missing_user(self):
+        responses.add(responses.POST, "https://example.com/webhook")
+
         installation_webhook(self.install.id, 999)
-        assert len(run.mock_calls) == 0
+        assert len(responses.calls) == 0
 
 
 @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
