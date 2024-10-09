@@ -1,7 +1,6 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import CircleIndicator from 'sentry/components/circleIndicator';
 import type {Polarity} from 'sentry/components/percentChange';
 
 import {normalizeUnit} from '../../utils';
@@ -40,19 +39,20 @@ export function ThresholdsIndicator({
 
   const colorName = COLOR_NAME_FOR_STATE[state];
 
-  return (
-    <RigidCircleIndicator
-      role="status"
-      aria-label={state}
-      color={theme[colorName]}
-      size={12}
-    />
-  );
+  return <Circle role="status" aria-label={state} color={theme[colorName]} />;
 }
 
-const RigidCircleIndicator = styled(CircleIndicator)`
+const Circle = styled('div')<{color: string}>`
+  display: inline-block;
+  height: max(12px, 20cqh);
+  width: max(12px, 20cqh);
+
+  position: relative;
   align-self: center;
   flex-shrink: 0;
+
+  border-radius: 50%;
+  background: ${p => p.color};
 `;
 
 type ThresholdState = 'poor' | 'meh' | 'good';
