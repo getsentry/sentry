@@ -199,10 +199,6 @@ class OpsgenieIntegration(IntegrationInstallation):
                 try:
                     client.get_alerts()
                 except ApiError as e:
-                    logger.info(
-                        "opsgenie.authorization_error",
-                        extra={"error": str(e), "status_code": e.code},
-                    )
                     if e.code == 429:
                         raise ApiRateLimitedError(
                             "Too many requests. Please try updating one team/key at a time."
@@ -270,12 +266,12 @@ class OpsgenieIntegrationProvider(IntegrationProvider):
                 logger.exception("The Opsgenie post_install step failed.")
                 return
 
-        key = integration.metadata["api_key"]
-        team_table = []
-        if key:
-            team_name = "my-first-key"
-            team_id = f"{org_integration.id}-{team_name}"
-            team_table.append({"team": team_name, "id": team_id, "integration_key": key})
+            key = integration.metadata["api_key"]
+            team_table = []
+            if key:
+                team_name = "my-first-key"
+                team_id = f"{org_integration.id}-{team_name}"
+                team_table.append({"team": team_name, "id": team_id, "integration_key": key})
 
-        org_integration.config.update({"team_table": team_table})
-        org_integration.update(config=org_integration.config)
+            org_integration.config.update({"team_table": team_table})
+            org_integration.update(config=org_integration.config)

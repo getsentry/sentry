@@ -125,8 +125,6 @@ class OpsgenieClient(ApiClient):
                 return resp
             # this is a metric alert
             payload = data
-        with record_event(interaction_type).capture() as lifecycle:
+        with record_event(interaction_type).capture():
             resp = self.post("/alerts", data=payload, headers=headers)
-            if resp.status_code >= 400:
-                lifecycle.record_failure()
         return resp
