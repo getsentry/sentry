@@ -1087,16 +1087,11 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     };
 
     try {
-      const response = await this.api.requestPromise(
+      const [anomalies] = await this.api.requestPromise(
         `/organizations/${organization.slug}/events/anomalies/`,
         {method: 'POST', data: params}
       );
-      const {status, error, ...rest} = response;
-      if (status === 'failed') {
-        this.setState({chartError: true, chartErrorMessage: error});
-      } else if (status === 'success') {
-        this.setState(rest);
-      }
+      this.setState({anomalies});
     } catch (e) {
       let chartErrorMessage: string | undefined;
       if (e.responseJSON) {
