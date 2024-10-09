@@ -47,7 +47,7 @@ export const useDeleteFeedback = (feedbackIds, projectId) => {
         );
       },
       message: t('Deleting feedbacks is permanent. Are you sure you wish to continue?'),
-      confirmText: 'Delete',
+      confirmText: t('Delete'),
     });
   }, [api, feedbackIds, locationQuery, navigate, organization.slug, projectId]);
 };
