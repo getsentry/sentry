@@ -6,6 +6,7 @@ import {Observer} from 'mobx-react';
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import FieldWrapper from 'sentry/components/forms/fieldGroup/fieldWrapper';
+import HiddenField from 'sentry/components/forms/fields/hiddenField';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import SentryMemberTeamSelectorField from 'sentry/components/forms/fields/sentryMemberTeamSelectorField';
 import SentryProjectSelectorField from 'sentry/components/forms/fields/sentryProjectSelectorField';
@@ -268,6 +269,7 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
               border: 'none',
             }}
           />
+          <HiddenField name="timeoutMs" defaultValue={10000} />
         </FormRow>
       </List>
     </Form>
