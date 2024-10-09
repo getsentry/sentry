@@ -7,7 +7,7 @@ from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.base import DevtoolbarAnalyticsMixin, Endpoint
+from sentry.api.base import Endpoint
 from sentry.api.exceptions import ProjectMoved, ResourceDoesNotExist
 from sentry.api.helpers.environments import get_environments
 from sentry.api.permissions import StaffPermissionMixin
@@ -113,7 +113,7 @@ class ProjectMetricsExtractionRulesPermission(ProjectPermission):
     }
 
 
-class ProjectEndpoint(DevtoolbarAnalyticsMixin, Endpoint):
+class ProjectEndpoint(Endpoint):
     permission_classes: tuple[type[BasePermission], ...] = (ProjectPermission,)
 
     def convert_args(

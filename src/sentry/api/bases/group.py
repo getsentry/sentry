@@ -5,7 +5,7 @@ import logging
 from rest_framework.request import Request
 
 from sentry.api.api_owners import ApiOwner
-from sentry.api.base import DevtoolbarAnalyticsMixin, Endpoint
+from sentry.api.base import Endpoint
 from sentry.api.bases.project import ProjectPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.integrations.tasks import create_comment, update_comment
@@ -35,7 +35,7 @@ class GroupPermission(ProjectPermission):
         return super().has_object_permission(request, view, group.project)
 
 
-class GroupEndpoint(DevtoolbarAnalyticsMixin, Endpoint):
+class GroupEndpoint(Endpoint):
     owner = ApiOwner.ISSUES
     permission_classes = (GroupPermission,)
 
