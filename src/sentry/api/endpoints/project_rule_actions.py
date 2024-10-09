@@ -1,6 +1,7 @@
 import logging
 
 import sentry_sdk
+from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -62,8 +63,13 @@ class ProjectRuleActionsEndpoint(ProjectEndpoint):
         )
         rule = Rule(id=-1, project=project, data=data)
 
+        sample_event_fingerprint = f"sample_evt:{str(timezone.now())}"
         test_event = create_sample_event(
-            project, platform=project.platform, default="javascript", tagged=True
+            project,
+            platform=project.platform,
+            default="javascript",
+            tagged=True,
+            fingerprint=[sample_event_fingerprint],
         )
 
         if features.has(
