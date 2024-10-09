@@ -51,6 +51,8 @@ export const FRONTEND_COLUMN_TITLES = [
   'user misery',
 ];
 
+const allowedTransactionOps = ['pageload', 'navigation', 'ui.render', 'interaction'];
+
 function FrontendOverviewPage() {
   const organization = useOrganization();
   const location = useLocation();
@@ -80,6 +82,10 @@ function FrontendOverviewPage() {
     {field: 'count_miserable(user)'},
     {field: 'user_misery()'},
   ].map(field => ({...field, width: COL_WIDTH_UNDEFINED}));
+
+  const existingQuery = new MutableSearch(eventView.query);
+  existingQuery.addDisjunctionFilterValues('transaction.op', allowedTransactionOps);
+  eventView.query = existingQuery.formatString();
 
   const showOnboarding = onboardingProject !== undefined;
 
