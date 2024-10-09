@@ -48,7 +48,7 @@ class Command(makemigrations.Command):
                 "Please name your migrations using `-n <migration_name>`. "
                 "For example, `-n backfill_my_new_table`"
             )
-            return
+            sys.exit(1)
         super().handle(*app_labels, **options)
         loader = MigrationLoader(None, ignore_no_migrations=True)
 
