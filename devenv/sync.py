@@ -97,6 +97,24 @@ def main(context: dict[str, str]) -> int:
 
         volta.install(reporoot)
 
+    if constants.DARWIN:
+        colima.install(
+            repo_config["colima"]["version"],
+            repo_config["colima"][constants.SYSTEM_MACHINE],
+            repo_config["colima"][f"{constants.SYSTEM_MACHINE}_sha256"],
+            reporoot,
+        )
+        try:
+            limactl.install(reporoot)
+        except TypeError:
+            # again, it'll take 2 syncs to get here
+            limactl.install(
+                repo_config["lima"]["version"],
+                repo_config["lima"][constants.SYSTEM_MACHINE],
+                repo_config["lima"][f"{constants.SYSTEM_MACHINE}_sha256"],
+                reporoot,
+            )
+
     # no more imports from devenv past this point! if the venv is recreated
     # then we won't have access to devenv libs until it gets reinstalled
 
