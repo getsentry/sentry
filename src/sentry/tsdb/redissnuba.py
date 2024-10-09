@@ -30,6 +30,7 @@ method_specifications = {
     "get_sums": (READ, single_model_argument),
     "get_distinct_counts_series": (READ, single_model_argument),
     "get_distinct_counts_totals": (READ, single_model_argument),
+    "get_distinct_counts_totals_with_conditions": (READ, single_model_argument),
     "get_distinct_counts_union": (READ, single_model_argument),
     "get_most_frequent": (READ, single_model_argument),
     "get_most_frequent_series": (READ, single_model_argument),
