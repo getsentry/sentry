@@ -544,6 +544,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:webhooks-unresolved", OrganizationFeature, FeatureHandlerStrategy.OPTIONS, api_expose=True)
     # Enable new feature parsing code for Jira integrations
     manager.add("organizations:new-jira-transformers", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Enable EventUniqueUserFrequencyConditionWithConditions special alert condition
+    manager.add("organizations:event-unique-user-frequency-condition-with-conditions", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # NOTE: Don't add features down here! Add them to their specific group and sort
     #       them alphabetically! The order features are registered is not important.
 
