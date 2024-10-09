@@ -9,10 +9,7 @@ import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {NewQuery} from 'sentry/types/organization';
 import EventView from 'sentry/utils/discover/eventView';
-import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import {getAggregateAlias, type Sort} from 'sentry/utils/discover/fields';
-import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {fieldAlignment, getAggregateAlias, type Sort} from 'sentry/utils/discover/fields';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {
   Table,
@@ -33,6 +30,8 @@ import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery'
 
 import {TOP_EVENTS_LIMIT, useTopEvents} from '../hooks/useTopEvents';
 
+import {FieldRenderer} from './fieldRenderer';
+
 export function formatSort(sort: Sort): string {
   const direction = sort.kind === 'desc' ? '-' : '';
   return `${direction}${getAggregateAlias(sort.field)}`;
@@ -41,8 +40,6 @@ export function formatSort(sort: Sort): string {
 interface AggregatesTableProps {}
 
 export function AggregatesTable({}: AggregatesTableProps) {
-  const location = useLocation();
-  const organization = useOrganization();
   const {selection} = usePageFilters();
   const topEvents = useTopEvents();
   const [dataset] = useDataset();
@@ -70,6 +67,8 @@ export function AggregatesTable({}: AggregatesTableProps) {
     return EventView.fromNewQueryWithPageFilters(discoverQuery, selection);
   }, [dataset, fields, sorts, query, selection]);
 
+  const columns = useMemo(() => eventView.getColumns(), [eventView]);
+
   const result = useSpansQuery({
     eventView,
     initialData: [],
@@ -92,11 +91,20 @@ export function AggregatesTable({}: AggregatesTableProps) {
       <Table style={tableStyles}>
         <TableHead>
           <TableRow>
-            {fields.map((field, i) => (
-              <TableHeadCell key={i} isFirst={i === 0}>
-                {field}
-              </TableHeadCell>
-            ))}
+            {fields.map((field, i) => {
+              // Hide column names before alignment is determined
+              if (result.isPending) {
+                return <TableHeadCell key={i} isFirst={i === 0} />;
+              }
+
+              const fieldType = meta.fields?.[field];
+              const align = fieldAlignment(field, fieldType);
+              return (
+                <TableHeadCell align={align} key={i} isFirst={i === 0}>
+                  <span>{field}</span>
+                </TableHeadCell>
+              );
+            })}
           </TableRow>
         </TableHead>
         <TableBody>
@@ -112,17 +120,18 @@ export function AggregatesTable({}: AggregatesTableProps) {
             result.data?.map((row, i) => (
               <TableRow key={i}>
                 {fields.map((field, j) => {
-                  const renderer = getFieldRenderer(field, meta.fields, false);
                   return (
                     <TableBodyCell key={j}>
                       {topEvents && i < topEvents && j === 0 && (
                         <TopResultsIndicator index={i} />
                       )}
-                      {renderer(row, {
-                        location,
-                        organization,
-                        unit: meta?.units?.[field],
-                      })}
+                      <FieldRenderer
+                        column={columns[j]}
+                        dataset={dataset}
+                        data={row}
+                        unit={meta?.units?.[field]}
+                        meta={meta}
+                      />
                     </TableBodyCell>
                   );
                 })}

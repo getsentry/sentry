@@ -1,6 +1,8 @@
 import {useMemo} from 'react';
+import styled from '@emotion/styled';
 
 import {COL_WIDTH_MINIMUM} from 'sentry/components/gridEditable';
+import type {Alignments} from 'sentry/components/gridEditable/sortLink';
 import {
   Body as _TableWrapper,
   Grid as _Table,
@@ -14,6 +16,7 @@ import {
   HeaderButtonContainer,
   HeaderTitle,
 } from 'sentry/components/gridEditable/styles';
+import {Actions} from 'sentry/views/discover/table/cellAction';
 
 interface TableProps extends React.ComponentProps<typeof _TableWrapper> {}
 
@@ -36,6 +39,13 @@ export function TableStatus({children}: TableStatusProps) {
     </GridRow>
   );
 }
+
+export const ALLOWED_CELL_ACTIONS: Actions[] = [
+  Actions.ADD,
+  Actions.EXCLUDE,
+  Actions.SHOW_GREATER_THAN,
+  Actions.SHOW_LESS_THAN,
+];
 
 const MINIMUM_COLUMN_WIDTH = COL_WIDTH_MINIMUM;
 
@@ -74,10 +84,13 @@ export function useTableStyles({
 }
 
 export const TableBody = GridBody;
+export const TableRow = GridRow;
 export const TableBodyCell = GridBodyCell;
+
 export const TableHead = GridHead;
-export const TableHeadCell = GridHeadCell;
 export const TableHeader = Header;
 export const TableHeaderActions = HeaderButtonContainer;
 export const TableHeaderTitle = HeaderTitle;
-export const TableRow = GridRow;
+export const TableHeadCell = styled(GridHeadCell)<{align?: Alignments}>`
+  ${p => p.align && `justify-content: ${p.align};`}
+`;
