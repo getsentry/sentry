@@ -11,10 +11,7 @@ import EventView from 'sentry/utils/discover/eventView';
 import {useLocation} from 'sentry/utils/useLocation';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
-import {
-  getTraceViewQueryStatus,
-  TraceViewWaterfall,
-} from 'sentry/views/performance/newTraceDetails';
+import {TraceViewWaterfall} from 'sentry/views/performance/newTraceDetails';
 import {useTrace} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
 import {useTraceMeta} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
 import {useTraceRootEvent} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
@@ -36,6 +33,7 @@ const DEFAULT_ISSUE_DETAILS_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
     },
     layoutOptions: [],
   },
+  missing_instrumentation: true,
   autogroup: {
     parent: true,
     sibling: true,
@@ -109,12 +107,11 @@ function EventTraceViewInner({
         <TraceViewWaterfallWrapper>
           <TraceViewWaterfall
             traceSlug={undefined}
-            trace={trace.data ?? null}
-            status={getTraceViewQueryStatus(trace.status, meta.status)}
+            trace={trace}
             rootEvent={rootEvent}
             organization={organization}
             traceEventView={traceEventView}
-            metaResults={meta}
+            meta={meta}
             source="issues"
             replayRecord={null}
             scrollToNode={

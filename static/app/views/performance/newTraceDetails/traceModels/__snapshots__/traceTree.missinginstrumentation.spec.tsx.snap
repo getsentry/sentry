@@ -59,3 +59,12 @@ trace root
     db - redis
 "
 `;
+
+exports[`missing instrumentation removes missing instrumentation nodes 1`] = `
+"
+trace root
+  transaction - transaction.op
+    db - redis
+    db - redis
+"
+`;

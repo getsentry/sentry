@@ -65,7 +65,7 @@ async function fetchTraceMetaInBatches(
   filters: Partial<PageFilters> = {}
 ) {
   const clonedTraceIds = [...replayTraces];
-  const metaResults: TraceMeta = {
+  const meta: TraceMeta = {
     errors: 0,
     performance_issues: 0,
     projects: 0,
@@ -109,18 +109,17 @@ async function fetchTraceMetaInBatches(
         }
         return acc;
       },
-      {...metaResults}
+      {...meta}
     );
 
-    metaResults.errors = updatedData.errors;
-    metaResults.performance_issues = updatedData.performance_issues;
-    metaResults.projects = Math.max(updatedData.projects, metaResults.projects);
-    metaResults.transactions = updatedData.transactions;
-    metaResults.transactiontoSpanChildrenCount =
-      updatedData.transactiontoSpanChildrenCount;
+    meta.errors = updatedData.errors;
+    meta.performance_issues = updatedData.performance_issues;
+    meta.projects = Math.max(updatedData.projects, meta.projects);
+    meta.transactions = updatedData.transactions;
+    meta.transactiontoSpanChildrenCount = updatedData.transactiontoSpanChildrenCount;
   }
 
-  return {metaResults, apiErrors};
+  return {meta, apiErrors};
 }
 
 export type TraceMetaQueryResults = {
@@ -150,7 +149,7 @@ export function useTraceMeta(replayTraces: ReplayTrace[]): TraceMetaQueryResults
   const {data, isPending, status} = useQuery<
     {
       apiErrors: Error[];
-      metaResults: TraceMeta;
+      meta: TraceMeta;
     },
     Error
   >({
@@ -168,7 +167,7 @@ export function useTraceMeta(replayTraces: ReplayTrace[]): TraceMetaQueryResults
 
   const results = useMemo(() => {
     return {
-      data: data?.metaResults,
+      data: data?.meta,
       errors: data?.apiErrors || [],
       isLoading: isPending,
       status,
