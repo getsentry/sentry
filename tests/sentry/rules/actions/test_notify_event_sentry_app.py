@@ -4,8 +4,8 @@ import pytest
 from rest_framework import serializers
 
 from sentry.rules.actions.sentry_apps import NotifyEventSentryAppAction
+from sentry.sentry_apps.tasks.sentry_apps import notify_sentry_app
 from sentry.silo.base import SiloMode
-from sentry.tasks.sentry_apps import notify_sentry_app
 from sentry.testutils.cases import RuleTestCase
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
