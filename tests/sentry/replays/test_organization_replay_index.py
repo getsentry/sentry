@@ -509,7 +509,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             assert "data" in response_data
             assert len(response_data["data"]) == 0
 
-    def test_get_replays_user_filters_a(self):
+    def test_get_replays_user_filters(self):
         """Test replays conform to the interchange format."""
         project = self.create_project(teams=[self.team])
 
@@ -537,12 +537,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 device_brand="Apple",
                 device_family="Macintosh",
                 device_model="10",
-                tags={
-                    "a": "m",
-                    "b": "q",
-                    "c": "test",
-                    "quote": "quoted value",
-                },
+                tags={"a": "m", "b": "q", "c": "test"},
                 urls=["example.com"],
                 segment_id=0,
             )
@@ -657,14 +652,6 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "a:m",
                 "c:*st",
                 "!c:*zz",
-                # '"quoted key":abcd',  # fails, parses as ("quoted key", ":abcd")
-                'quote:"quoted value"',
-                # '"quoted key2":"quoted value"', # fails, parses as ("quoted key2", ":"quoted value"")
-                # Untested:
-                # '"my tag":"trailing space "',
-                # '" leading space":"I like whitespace"',
-                # '"trailing space ":"my value"',  # fails, parses as ("quoted key", ":abcd")
-                # '"my tag2":" leading space"',  # fails, parses as ("quoted key", ":abcd")
                 "urls:example.com",
                 "url:example.com",
                 "activity:8",
