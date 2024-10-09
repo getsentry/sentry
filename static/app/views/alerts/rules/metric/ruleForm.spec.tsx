@@ -32,7 +32,7 @@ jest.mock('sentry/utils/analytics', () => ({
 }));
 
 describe('Incident Rules Form', () => {
-  let organization, project, router, location;
+  let organization, project, router, location, anomalies;
   // create wrapper
   const createWrapper = props =>
     render(
@@ -105,7 +105,7 @@ describe('Incident Rules Form', () => {
       url: '/organizations/org-slug/recent-searches/',
       body: [],
     });
-    MockApiClient.addMockResponse({
+    anomalies = MockApiClient.addMockResponse({
       method: 'POST',
       url: '/organizations/org-slug/events/anomalies/',
       body: [],
@@ -396,6 +396,19 @@ describe('Incident Rules Form', () => {
       expect(
         await screen.findByRole('textbox', {name: 'Level of responsiveness'})
       ).toBeInTheDocument();
+      expect(anomalies).toHaveBeenLastCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            config: {
+              direction: 'up',
+              sensitivity: AlertRuleSensitivity.MEDIUM,
+              expected_seasonality: AlertRuleSeasonality.AUTO,
+              time_period: 60,
+            },
+          }),
+        })
+      );
       await userEvent.click(screen.getByLabelText('Save Rule'));
 
       expect(createRule).toHaveBeenLastCalledWith(
