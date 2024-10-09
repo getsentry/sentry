@@ -30,7 +30,7 @@ def make_split_task_queues(config: Mapping[str, SplitQueueTaskRoute]) -> list[Qu
     Generates the split queues definitions from the mapping between
     a task name and a config expressed as `SplitQueueTaskRoute`.
     """
-    ret: MutableSequence[Queue] = []
+    ret: list[Queue] = []
     for conf in config.values():
         if "queues_config" in conf:
             ret.extend(_build_queues(conf["default_queue"], conf["queues_config"]["total"]))
