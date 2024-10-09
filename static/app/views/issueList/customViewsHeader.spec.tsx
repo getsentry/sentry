@@ -265,6 +265,53 @@ describe('CustomViewsHeader', () => {
         })
       );
     });
+
+    it('updates the unsaved changes indicator for a default tab if the query is different', async () => {
+      MockApiClient.clearMockResponses();
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/group-search-views/`,
+        method: 'GET',
+        body: [
+          {
+            name: 'Prioritized',
+            query: 'is:unresolved issue.priority:[high, medium]',
+            querySort: IssueSortOptions.DATE,
+          },
+        ],
+      });
+
+      const defaultTabDifferentQueryRouter = RouterFixture({
+        location: LocationFixture({
+          pathname: `/organizations/${organization.slug}/issues/`,
+          query: {
+            query: 'is:unresolved',
+            viewId: 'default0',
+          },
+        }),
+      });
+
+      render(
+        <CustomViewsIssueListHeader
+          {...defaultProps}
+          router={defaultTabDifferentQueryRouter}
+        />,
+        {
+          router: defaultTabDifferentQueryRouter,
+        }
+      );
+      expect(await screen.findByRole('tab', {name: 'Prioritized'})).toBeInTheDocument();
+      expect(screen.getByTestId('unsaved-changes-indicator')).toBeInTheDocument();
+      expect(screen.queryByRole('tab', {name: 'Unsaved'})).not.toBeInTheDocument();
+
+      expect(defaultTabDifferentQueryRouter.replace).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({
+            query: 'is:unresolved',
+            viewId: 'default0',
+          }),
+        })
+      );
+    });
   });
 
   describe('CustomViewsHeader query behavior', () => {
