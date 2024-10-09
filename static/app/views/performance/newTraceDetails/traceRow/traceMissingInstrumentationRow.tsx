@@ -1,16 +1,17 @@
 import {t} from 'sentry/locale';
-import {TraceIcons} from 'sentry/views/performance/newTraceDetails/icons';
+
+import {TraceIcons} from '../traceIcons';
+import type {TraceTree} from '../traceModels/traceTree';
+import type {TraceTreeNode} from '../traceModels/traceTreeNode';
 import {
   makeTraceNodeBarColor,
-  type TraceTree,
-  type TraceTreeNode,
-} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import {MissingInstrumentationTraceBar} from 'sentry/views/performance/newTraceDetails/traceRow/traceBar';
+  MissingInstrumentationTraceBar,
+} from '../traceRow/traceBar';
 import {
   maybeFocusTraceRow,
   TraceRowConnectors,
   type TraceRowProps,
-} from 'sentry/views/performance/newTraceDetails/traceRow/traceRow';
+} from '../traceRow/traceRow';
 
 export function TraceMissingInstrumentationRow(
   props: TraceRowProps<TraceTreeNode<TraceTree.MissingInstrumentationSpan>>

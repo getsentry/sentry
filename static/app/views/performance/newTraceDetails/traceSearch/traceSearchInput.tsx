@@ -11,13 +11,11 @@ import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
-import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
-import type {
-  TraceTree,
-  TraceTreeNode,
-} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceSearchState} from 'sentry/views/performance/newTraceDetails/traceState/traceSearch';
 
+import {traceAnalytics} from '../traceAnalytics';
+import type {TraceTree} from '../traceModels/traceTree';
+import type {TraceTreeNode} from '../traceModels/traceTreeNode';
+import type {TraceSearchState} from '../traceState/traceSearch';
 import {useTraceState, useTraceStateDispatch} from '../traceState/traceStateProvider';
 
 interface TraceSearchInputProps {

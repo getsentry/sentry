@@ -10,14 +10,10 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import {
-  isSpanNode,
-  isTransactionNode,
-} from 'sentry/views/performance/newTraceDetails/guards';
-import type {
-  TraceTree,
-  TraceTreeNode,
-} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+
+import {isSpanNode, isTransactionNode} from '../../traceGuards';
+import type {TraceTree} from '../../traceModels/traceTree';
+import type {TraceTreeNode} from '../../traceModels/traceTreeNode';
 
 export function TraceProfiles({
   tree,
@@ -52,11 +48,17 @@ export function TraceProfiles({
       </ProfilesTableRow>
 
       {profiles.map((node, index) => {
+        const profile = node.profiles?.[0];
+        if (!profile || !('profile_id' in profile)) {
+          return null;
+        }
+
         const link = generateProfileFlamechartRouteWithQuery({
           orgSlug: organization.slug,
           projectSlug: node.metadata.project_slug as string,
-          profileId: node.profiles?.[0].profile_id as string,
+          profileId: profile.profile_id,
         });
+
         const onClick = () => {
           trackAnalytics('profiling_views.go_to_flamegraph', {
             organization,
@@ -78,7 +80,7 @@ export function TraceProfiles({
               </div>
               <div>
                 <Link to={link} onClick={onClick}>
-                  {node.profiles?.[0].profile_id?.substring(0, 8)}
+                  {profile.profile_id.substring(0, 8)}
                 </Link>
               </div>
             </ProfilesTableRow>
@@ -101,7 +103,7 @@ export function TraceProfiles({
               </div>
               <div>
                 <Link to={link} onClick={onClick}>
-                  {node.profiles?.[0].profile_id?.substring(0, 8)}
+                  {profile.profile_id.substring(0, 8)}
                 </Link>
               </div>
             </ProfilesTableRow>

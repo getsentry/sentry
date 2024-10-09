@@ -16,16 +16,15 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
-import {isSpanNode} from 'sentry/views/performance/newTraceDetails/guards';
+import {getPerformanceDuration} from 'sentry/views/performance/utils/getPerformanceDuration';
+
 import {
   type SectionCardKeyValueList,
   TraceDrawerComponents,
-} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
-import {
-  type TraceTree,
-  TraceTreeNode,
-} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import {getPerformanceDuration} from 'sentry/views/performance/utils/getPerformanceDuration';
+} from '../../../../traceDrawer/details/styles';
+import {isSpanNode} from '../../../../traceGuards';
+import {TraceTree} from '../../../../traceModels/traceTree';
+import type {TraceTreeNode} from '../../../../traceModels/traceTreeNode';
 
 const SIZE_DATA_KEYS = [
   'Encoded Body Size',
@@ -73,7 +72,7 @@ function getSpanAggregateMeasurements(node: TraceTreeNode<TraceTree.Span>) {
   }
 
   let sum = 0;
-  TraceTreeNode.ForEachChild(node, n => {
+  TraceTree.ForEachChild(node, n => {
     if (
       isSpanNode(n) &&
       typeof n?.value?.measurements?.ai_total_tokens_used?.value === 'number'
@@ -169,13 +168,11 @@ export function SpanKeys({node}: {node: TraceTreeNode<TraceTree.Span>}) {
     }
   });
   unknownKeys.forEach(key => {
-    if (key !== 'event' && key !== 'childTransactions') {
-      items.push({
-        key: key,
-        subject: key,
-        value: span[key],
-      });
-    }
+    items.push({
+      key: key,
+      subject: key,
+      value: span[key],
+    });
   });
   timingKeys.forEach(timing => {
     items.push({

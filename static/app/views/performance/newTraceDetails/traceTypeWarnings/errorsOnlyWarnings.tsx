@@ -17,7 +17,7 @@ import useProjects from 'sentry/utils/useProjects';
 
 import {traceAnalytics} from '../traceAnalytics';
 import type {TraceTree} from '../traceModels/traceTree';
-import {TraceType} from '../traceType';
+import {TraceShape} from '../traceModels/traceTree';
 
 import {TraceWarningComponents} from './styles';
 import {usePerformanceUsageStats} from './usePerformanceUsageStats';
@@ -246,7 +246,7 @@ export function ErrorsOnlyWarnings({
     return filterProjects(projects, tree);
   }, [projects, tree]);
 
-  if (tree.type !== 'trace' || tree.shape !== TraceType.ONLY_ERRORS) {
+  if (tree.type !== 'trace' || tree.shape !== TraceShape.ONLY_ERRORS) {
     return null;
   }
 

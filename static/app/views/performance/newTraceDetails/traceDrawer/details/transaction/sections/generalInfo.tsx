@@ -12,14 +12,12 @@ import {t} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import {useTraceAverageTransactionDuration} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceAverageTransactionDuration';
-import type {
-  TraceTree,
-  TraceTreeNode,
-} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import {getTraceTabTitle} from 'sentry/views/performance/newTraceDetails/traceState/traceTabs';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
+import {useTraceAverageTransactionDuration} from '../../../../traceApi/useTraceAverageTransactionDuration';
+import {TraceTree} from '../../../../traceModels/traceTree';
+import type {TraceTreeNode} from '../../../../traceModels/traceTreeNode';
+import {getTraceTabTitle} from '../../../../traceState/traceTabs';
 import {type SectionCardKeyValueList, TraceDrawerComponents} from '../../styles';
 
 import {OpsBreakdown} from './opsBreakDown';
@@ -51,14 +49,17 @@ function GeneralInfo({
     );
   }, [averageDurationQueryResult]);
 
-  const startTimestamp = Math.min(node.value.start_timestamp, node.value.timestamp);
-  const endTimestamp = Math.max(node.value.start_timestamp, node.value.timestamp);
-  const durationInSeconds = endTimestamp - startTimestamp;
+  const startTimestamp = node.space[0];
+  const endTimestamp = node.space[0] + node.space[1];
 
+  const durationInSeconds = (endTimestamp - startTimestamp) / 1e3;
   const {start: startTimeWithLeadingZero, end: endTimeWithLeadingZero} =
-    getFormattedTimeRangeWithLeadingAndTrailingZero(startTimestamp, endTimestamp);
+    getFormattedTimeRangeWithLeadingAndTrailingZero(
+      startTimestamp / 1e3,
+      endTimestamp / 1e3
+    );
 
-  const parentTransaction = node.parent_transaction;
+  const parentTransaction = TraceTree.ParentTransaction(node);
 
   const items: SectionCardKeyValueList = [
     {
@@ -83,7 +84,7 @@ function GeneralInfo({
           fixed: 'Mar 19, 2021 11:06:27 AM UTC',
           value: (
             <Fragment>
-              <DateTime date={startTimestamp * node.multiplier} />
+              <DateTime date={startTimestamp} />
               {` (${startTimeWithLeadingZero})`}
             </Fragment>
           ),
@@ -93,7 +94,7 @@ function GeneralInfo({
           fixed: 'Mar 19, 2021 11:06:28 AM UTC',
           value: (
             <Fragment>
-              <DateTime date={endTimestamp * node.multiplier} />
+              <DateTime date={endTimestamp} />
               {` (${endTimeWithLeadingZero})`}
             </Fragment>
           ),

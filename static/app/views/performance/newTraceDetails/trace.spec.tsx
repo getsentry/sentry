@@ -14,11 +14,13 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
-import {EntryType, type Event, type EventTransaction} from 'sentry/types/event';
+import {EntryType, type EventTransaction} from 'sentry/types/event';
 import type {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
 import {TraceView} from 'sentry/views/performance/newTraceDetails/index';
-import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {
+  makeSpan,
+  makeTransaction,
+} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeTestUtils';
 
 jest.mock('screenfull', () => ({
   enabled: true,
@@ -156,41 +158,11 @@ function mockSpansResponse(
   });
 }
 
-let sid = -1;
-let tid = -1;
-const span_id = () => `${++sid}`;
-const txn_id = () => `${++tid}`;
-
 const {router} = initializeOrg({
   router: {
     params: {orgId: 'org-slug', traceSlug: 'trace-id'},
   },
 });
-
-function makeTransaction(overrides: Partial<TraceFullDetailed> = {}): TraceFullDetailed {
-  const t = txn_id();
-  const s = span_id();
-  return {
-    children: [],
-    event_id: t,
-    parent_event_id: 'parent_event_id',
-    parent_span_id: 'parent_span_id',
-    start_timestamp: 0,
-    timestamp: 1,
-    generation: 0,
-    span_id: s,
-    sdk_name: 'sdk_name',
-    'transaction.duration': 1,
-    transaction: 'transaction-name' + t,
-    'transaction.op': 'transaction-op-' + t,
-    'transaction.status': '',
-    project_id: 0,
-    project_slug: 'project_slug',
-    errors: [],
-    performance_issues: [],
-    ...overrides,
-  };
-}
 
 function mockMetricsResponse() {
   MockApiClient.addMockResponse({
@@ -201,28 +173,6 @@ function mockMetricsResponse() {
       queries: [],
     },
   });
-}
-
-function makeEvent(overrides: Partial<Event> = {}, spans: RawSpanType[] = []): Event {
-  return {
-    entries: [{type: EntryType.SPANS, data: spans}],
-    ...overrides,
-  } as Event;
-}
-
-function makeSpan(overrides: Partial<RawSpanType> = {}): TraceTree.Span {
-  return {
-    span_id: '',
-    op: '',
-    description: '',
-    start_timestamp: 0,
-    timestamp: 10,
-    data: {},
-    trace_id: '',
-    childTransactions: [],
-    event: makeEvent() as EventTransaction,
-    ...overrides,
-  };
 }
 
 function getVirtualizedContainer(): HTMLElement {
@@ -253,6 +203,7 @@ async function keyboardNavigationTestSetup() {
         event_id: i + '',
         transaction: 'transaction-name' + i,
         'transaction.op': 'transaction-op-' + i,
+        project_slug: 'project_slug',
       })
     );
     mockTransactionDetailsResponse(i.toString());
@@ -298,6 +249,7 @@ async function pageloadTestSetup() {
         event_id: i + '',
         transaction: 'transaction-name' + i,
         'transaction.op': 'transaction-op-' + i,
+        project_slug: 'project_slug',
       })
     );
     mockTransactionDetailsResponse(i.toString());
@@ -332,6 +284,7 @@ async function searchTestSetup() {
         event_id: i + '',
         transaction: 'transaction-name' + i,
         'transaction.op': 'transaction-op-' + i,
+        project_slug: 'project_slug',
       })
     );
     mockTransactionDetailsResponse(i.toString());
@@ -366,6 +319,7 @@ async function simpleTestSetup() {
       event_id: i + '',
       transaction: 'transaction-name' + i,
       'transaction.op': 'transaction-op-' + i,
+      project_slug: 'project_slug',
     });
 
     if (parent) {
@@ -748,7 +702,7 @@ describe('trace view', () => {
       const {virtualizedContainer} = await keyboardNavigationTestSetup();
       const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
 
-      mockSpansResponse(
+      const request = mockSpansResponse(
         '0',
         {},
         {
@@ -761,6 +715,8 @@ describe('trace view', () => {
       await waitFor(() => expect(rows[1]).toHaveFocus());
 
       await userEvent.keyboard('{arrowright}');
+      expect(request).toHaveBeenCalledTimes(1);
+
       expect(await screen.findByText('special-span')).toBeInTheDocument();
       await userEvent.keyboard('{arrowleft}');
       expect(screen.queryByText('special-span')).not.toBeInTheDocument();
@@ -973,10 +929,7 @@ describe('trace view', () => {
         });
       }
     });
-    // @TODO I am torn on this because left-right
-    // should probably also move the input cursor...
-    // it.todo("supports expanding with arrowright")
-    // it.todo("supports collapsing with arrowleft")
+
     it('search roving updates the element in the drawer', async () => {
       await searchTestSetup();
 
@@ -1111,24 +1064,28 @@ describe('trace view', () => {
               event_id: '0',
               transaction: 'transaction-name-0',
               'transaction.op': 'transaction-op-0',
+              project_slug: 'project_slug',
             }),
             makeTransaction({
               span_id: '1',
               event_id: '1',
               transaction: 'transaction-name-1',
               'transaction.op': 'transaction-op-1',
+              project_slug: 'project_slug',
             }),
             makeTransaction({
               span_id: '2',
               event_id: '2',
               transaction: 'transaction-name-2',
               'transaction.op': 'transaction-op-2',
+              project_slug: 'project_slug',
             }),
             makeTransaction({
               span_id: '3',
               event_id: '3',
               transaction: 'transaction-name-3',
               'transaction.op': 'transaction-op-3',
+              project_slug: 'project_slug',
             }),
           ],
           orphan_errors: [],
@@ -1267,6 +1224,7 @@ describe('trace view', () => {
         expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(2);
       });
     });
+
     it('clicking on a node replaces the previously selected tab', async () => {
       const {virtualizedContainer} = await simpleTestSetup();
       const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);

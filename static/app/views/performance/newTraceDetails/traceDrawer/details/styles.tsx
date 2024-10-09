@@ -33,6 +33,11 @@ import type {ColorOrAlias} from 'sentry/utils/theme';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+
+import {traceAnalytics} from '../../traceAnalytics';
+import {useTransaction} from '../../traceApi/useTransaction';
+import {useDrawerContainerRef} from '../../traceDrawer/details/drawerContainerRefContext';
+import {makeTraceContinuousProfilingLink} from '../../traceDrawer/traceProfilingLink';
 import {
   isAutogroupedNode,
   isMissingInstrumentationNode,
@@ -40,18 +45,12 @@ import {
   isSpanNode,
   isTraceErrorNode,
   isTransactionNode,
-} from 'sentry/views/performance/newTraceDetails/guards';
-import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
-import {useTransaction} from 'sentry/views/performance/newTraceDetails/traceApi/useTransaction';
-import {useDrawerContainerRef} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/drawerContainerRefContext';
-import {makeTraceContinuousProfilingLink} from 'sentry/views/performance/newTraceDetails/traceDrawer/traceProfilingLink';
-import type {
-  MissingInstrumentationNode,
-  ParentAutogroupNode,
-  SiblingAutogroupNode,
-  TraceTree,
-  TraceTreeNode,
-} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+} from '../../traceGuards';
+import type {MissingInstrumentationNode} from '../../traceModels/missingInstrumentationNode';
+import type {ParentAutogroupNode} from '../../traceModels/parentAutogroupNode';
+import type {SiblingAutogroupNode} from '../../traceModels/siblingAutogroupNode';
+import {TraceTree} from '../../traceModels/traceTree';
+import type {TraceTreeNode} from '../../traceModels/traceTreeNode';
 
 const DetailContainer = styled('div')`
   display: flex;
@@ -453,10 +452,11 @@ function NodeActions(props: {
     };
 
     const eventId =
-      props.node.metadata.event_id ?? props.node.parent_transaction?.metadata.event_id;
+      props.node.metadata.event_id ??
+      TraceTree.ParentTransaction(props.node)?.metadata.event_id;
     const projectSlug =
       props.node.metadata.project_slug ??
-      props.node.parent_transaction?.metadata.project_slug;
+      TraceTree.ParentTransaction(props.node)?.metadata.project_slug;
 
     const eventSize = props.eventSize;
     const jsonDetails: MenuItemProps = {

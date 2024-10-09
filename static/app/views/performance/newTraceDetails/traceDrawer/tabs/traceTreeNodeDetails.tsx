@@ -1,5 +1,4 @@
 import type {Organization} from 'sentry/types/organization';
-import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
 import {
@@ -9,8 +8,10 @@ import {
   isSpanNode,
   isTraceErrorNode,
   isTransactionNode,
-} from '../../guards';
-import type {TraceTree, TraceTreeNode} from '../../traceModels/traceTree';
+} from '../../traceGuards';
+import type {TraceTree} from '../../traceModels/traceTree';
+import type {TraceTreeNode} from '../../traceModels/traceTreeNode';
+import type {VirtualizedViewManager} from '../../traceRenderers/virtualizedViewManager';
 import {ErrorNodeDetails} from '../details/error';
 import {MissingInstrumentationNodeDetails} from '../details/missingInstrumentation';
 import {ParentAutogroupNodeDetails} from '../details/parentAutogroup';
