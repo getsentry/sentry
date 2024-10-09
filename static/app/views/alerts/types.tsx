@@ -113,11 +113,9 @@ export type CombinedMetricIssueAlerts = IssueAlert | MetricAlert;
 
 export type CombinedAlerts = CombinedMetricIssueAlerts | UptimeAlert;
 
-// TODO: This is a placeholder type for now
-// Assume this is a timestamp of when the anomaly occurred and for how long
 export type Anomaly = {
   anomaly: {anomaly_score: number; anomaly_type: AnomalyType};
-  timestamp: string;
+  timestamp: number;
   value: number;
 };
 
