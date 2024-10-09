@@ -13,10 +13,8 @@ export default function SelectorList({frame}: {frame: ClickFrame}) {
   const organization = useOrganization();
 
   const componentName = frame.data.node?.attributes['data-sentry-component'];
-  const lastComponentIndex =
-    !frame.message || frame.message.lastIndexOf('>') === -1
-      ? 0
-      : frame.message.lastIndexOf('>') + 2;
+  const indexOfArrow = frame.message?.lastIndexOf('>') ?? -1;
+  const lastComponentIndex = indexOfArrow === -1 ? 0 : indexOfArrow + 2;
 
   return componentName ? (
     <Fragment>
