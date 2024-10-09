@@ -196,7 +196,6 @@ module = [
     "sentry.api.serializers.rest_framework.notification_action",
     "sentry.api.serializers.rest_framework.rule",
     "sentry.api.serializers.snuba",
-    "sentry.api.validators.email",
     "sentry.auth.helper",
     "sentry.auth.provider",
     "sentry.auth.system",
