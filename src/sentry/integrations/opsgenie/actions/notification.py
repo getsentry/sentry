@@ -5,10 +5,8 @@ from typing import cast
 
 import sentry_sdk
 
-from sentry.integrations.on_call.metrics import OnCallInteractionType
 from sentry.integrations.opsgenie.actions import OpsgenieNotifyTeamForm
 from sentry.integrations.opsgenie.client import OPSGENIE_DEFAULT_PRIORITY, OpsgeniePriority
-from sentry.integrations.opsgenie.metrics import record_event
 from sentry.integrations.opsgenie.utils import get_team
 from sentry.integrations.services.integration import integration_service
 from sentry.rules.actions import IntegrationEventAction
@@ -71,27 +69,26 @@ class OpsgenieNotifyTeamAction(IntegrationEventAction):
             except Exception as e:
                 sentry_sdk.capture_exception(e)
                 return
-            with record_event(OnCallInteractionType.SEND_NOTIFICATION).capture():
-                try:
-                    rules = [f.rule for f in futures]
-                    resp = client.send_notification(
-                        data=event,
-                        priority=priority,
-                        rules=rules,
-                        notification_uuid=notification_uuid,
-                    )
-                except ApiError as e:
-                    logger.info(
-                        "rule.fail.opsgenie_notification",
-                        extra={
-                            "error": str(e),
-                            "team_name": team["team"],
-                            "team_id": team["id"],
-                            "project_id": event.project_id,
-                            "event_id": event.event_id,
-                        },
-                    )
-                    raise
+            try:
+                rules = [f.rule for f in futures]
+                resp = client.send_notification(
+                    data=event,
+                    priority=priority,
+                    rules=rules,
+                    notification_uuid=notification_uuid,
+                )
+            except ApiError as e:
+                logger.info(
+                    "rule.fail.opsgenie_notification",
+                    extra={
+                        "error": str(e),
+                        "team_name": team["team"],
+                        "team_id": team["id"],
+                        "project_id": event.project_id,
+                        "event_id": event.event_id,
+                    },
+                )
+                raise
 
             logger.info(
                 "rule.success.opsgenie_notification",

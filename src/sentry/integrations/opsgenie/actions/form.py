@@ -102,7 +102,7 @@ class OpsgenieNotifyTeamForm(forms.Form):
                 code="invalid_integration",
                 params=params,
             )
-        with record_event(OnCallInteractionType.VERIFY_KEY).capture():
+        with record_event(OnCallInteractionType.VERIFY_KEYS).capture():
             team_status = self._get_team_status(
                 team_id=team_id, integration=integration, org_integration=org_integration
             )
