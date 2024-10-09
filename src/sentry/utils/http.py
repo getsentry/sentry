@@ -243,7 +243,7 @@ def get_api_path_from_request(request: HttpRequest, endpoint_scope: str | None) 
         segments[3] = "<project_id_or_slug>"
     elif endpoint_scope == "group":
         # segments[3] is either "issues" or "groups"
-        segments[4] = "<group_id>"
+        segments[4] = "<issue_id>"
 
     return "/" + "/".join(segments) + "/"
 
