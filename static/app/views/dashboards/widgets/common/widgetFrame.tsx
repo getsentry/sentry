@@ -40,45 +40,43 @@ export function WidgetFrame(props: Props) {
   return (
     <Frame>
       <Header>
-        <Title>
-          <Tooltip title={props.title} containerDisplayMode="grid" showOnlyOnOverflow>
-            <TitleText>{props.title}</TitleText>
-          </Tooltip>
+        <Tooltip title={props.title} containerDisplayMode="grid" showOnlyOnOverflow>
+          <TitleText>{props.title}</TitleText>
+        </Tooltip>
 
-          {(props.description || (actions && actions.length > 0)) && (
-            <TitleActions>
-              {props.description && (
-                <QuestionTooltip title={props.description} size="sm" icon="info" />
-              )}
+        {(props.description || (actions && actions.length > 0)) && (
+          <TitleActions>
+            {props.description && (
+              <QuestionTooltip title={props.description} size="sm" icon="info" />
+            )}
 
-              {actions.length === 1 ? (
-                actions[0].to ? (
-                  <LinkButton size="xs" onClick={actions[0].onAction} to={actions[0].to}>
-                    {actions[0].label}
-                  </LinkButton>
-                ) : (
-                  <Button size="xs" onClick={actions[0].onAction}>
-                    {actions[0].label}
-                  </Button>
-                )
-              ) : null}
+            {actions.length === 1 ? (
+              actions[0].to ? (
+                <LinkButton size="xs" onClick={actions[0].onAction} to={actions[0].to}>
+                  {actions[0].label}
+                </LinkButton>
+              ) : (
+                <Button size="xs" onClick={actions[0].onAction}>
+                  {actions[0].label}
+                </Button>
+              )
+            ) : null}
 
-              {actions.length > 1 ? (
-                <DropdownMenu
-                  items={actions}
-                  triggerProps={{
-                    'aria-label': t('Actions'),
-                    size: 'xs',
-                    borderless: true,
-                    showChevron: false,
-                    icon: <IconEllipsis direction="down" size="sm" />,
-                  }}
-                  position="bottom-end"
-                />
-              ) : null}
-            </TitleActions>
-          )}
-        </Title>
+            {actions.length > 1 ? (
+              <DropdownMenu
+                items={actions}
+                triggerProps={{
+                  'aria-label': t('Actions'),
+                  size: 'xs',
+                  borderless: true,
+                  showChevron: false,
+                  icon: <IconEllipsis direction="down" size="sm" />,
+                }}
+                position="bottom-end"
+              />
+            ) : null}
+          </TitleActions>
+        )}
       </Header>
 
       <VisualizationWrapper>
@@ -136,14 +134,8 @@ const HEADER_HEIGHT = 26;
 
 const Header = styled('div')`
   display: flex;
-  min-height: ${HEADER_HEIGHT}px;
   align-items: center;
-`;
-
-const Title = styled('div')`
-  display: flex;
-  flex-grow: 1;
-  align-items: center;
+  height: ${HEADER_HEIGHT}px;
   gap: ${space(0.75)};
 `;
 
