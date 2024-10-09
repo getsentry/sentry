@@ -113,4 +113,33 @@ describe('AutofixMessageBox', () => {
       screen.getByPlaceholderText('Please answer to continue...')
     ).toBeInTheDocument();
   });
+
+  it('handles suggested root cause selection correctly', async () => {
+    const onSendMock = jest.fn();
+    render(
+      <AutofixMessageBox {...defaultProps} onSend={onSendMock} isRootCauseSelectionStep />
+    );
+
+    // Test suggested root cause
+    const input = screen.getByPlaceholderText('Provide any instructions for the fix...');
+    await userEvent.type(input, 'Use this suggestion');
+    await userEvent.click(screen.getByRole('button', {name: 'Send'}));
+
+    expect(onSendMock).toHaveBeenCalledWith('Use this suggestion', false);
+  });
+
+  it('handles custom root cause selection correctly', async () => {
+    const onSendMock = jest.fn();
+    render(
+      <AutofixMessageBox {...defaultProps} onSend={onSendMock} isRootCauseSelectionStep />
+    );
+
+    // Test custom root cause
+    await userEvent.click(screen.getAllByText('Provide your own root cause')[0]);
+    const customInput = screen.getByPlaceholderText('Propose your own root cause...');
+    await userEvent.type(customInput, 'Custom root cause');
+    await userEvent.click(screen.getByRole('button', {name: 'Send'}));
+
+    expect(onSendMock).toHaveBeenCalledWith('Custom root cause', true);
+  });
 });
