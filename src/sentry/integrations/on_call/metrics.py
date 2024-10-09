@@ -1,6 +1,4 @@
-from collections.abc import Mapping
 from enum import Enum
-from typing import Any
 
 from attr import dataclass
 
@@ -52,9 +50,3 @@ class OnCallInteractionEvent(EventLifecycleMetric):
             interaction_type=str(self.interaction_type),
             outcome=outcome,
         )
-
-    def get_extras(self) -> Mapping[str, Any]:
-        return {
-            "user_id": (self.user.id if self.user else None),
-            "organization_id": (self.organization.id if self.organization else None),
-        }
