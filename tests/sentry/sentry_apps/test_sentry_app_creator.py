@@ -203,7 +203,7 @@ class TestInternalCreator(TestCase):
         sentry_app = self.run_creator(author="custom")
         assert sentry_app.author == "custom"
 
-    @patch("sentry.tasks.sentry_apps.installation_webhook.delay")
+    @patch("sentry.sentry_apps.tasks.sentry_apps.installation_webhook.delay")
     def test_does_not_notify_service(self, delay):
         self.run_creator()
         assert not len(delay.mock_calls)
