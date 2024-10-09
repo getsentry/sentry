@@ -6,9 +6,9 @@ from django.utils.functional import cached_property
 
 from sentry.coreapi import APIError
 from sentry.http import safe_urlread
-from sentry.mediators.external_requests.util import send_and_save_sentry_app_request, validate
 from sentry.mediators.mediator import Mediator
 from sentry.mediators.param import Param
+from sentry.sentry_apps.external_requests.utils import send_and_save_sentry_app_request, validate
 from sentry.sentry_apps.services.app import RpcSentryAppInstallation
 from sentry.utils import json
 
