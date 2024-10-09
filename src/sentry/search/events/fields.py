@@ -464,10 +464,7 @@ def _lookback(columns, j, string):
     """For parse_arguments, check that the current character is preceeded by string"""
     if j < len(string):
         return False
-    for i in range(len(string)):
-        if columns[i] != string[i]:
-            return False
-    return True
+    return columns[j - len(string) : j] == string
 
 
 def parse_arguments(function: str, columns: str) -> list[str]:
@@ -495,7 +492,7 @@ def parse_arguments(function: str, columns: str) -> list[str]:
         elif i == j and columns[j] == " ":
             # argument has leading spaces, skip over them
             i += 1
-        elif (quoted or in_tag) and not escaped and columns[j] == "\\":
+        elif quoted and not escaped and columns[j] == "\\":
             # when we see a slash inside a quoted string,
             # the next character is an escape character
             escaped = True
@@ -507,7 +504,7 @@ def parse_arguments(function: str, columns: str) -> list[str]:
             # when we see a non-escaped quote while inside
             # of a quoted string, we should end it
             in_tag = False
-        elif (quoted or in_tag) and escaped:
+        elif quoted and escaped:
             # when we are inside a quoted string and have
             # begun an escape character, we should end it
             escaped = False
