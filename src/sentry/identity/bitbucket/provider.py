@@ -1,11 +1,6 @@
 from django.http import HttpResponse
 
 from sentry.identity.base import Provider
-from sentry.integrations.base import IntegrationDomain
-from sentry.integrations.utils.metrics import (
-    IntegrationPipelineViewEvent,
-    IntegrationPipelineViewType,
-)
 from sentry.pipeline import PipelineView
 from sentry.utils.http import absolute_uri
 
@@ -23,6 +18,12 @@ from rest_framework.request import Request
 
 class BitbucketLoginView(PipelineView):
     def dispatch(self, request: Request, pipeline) -> HttpResponse:
+        from sentry.integrations.base import IntegrationDomain
+        from sentry.integrations.utils.metrics import (
+            IntegrationPipelineViewEvent,
+            IntegrationPipelineViewType,
+        )
+
         with IntegrationPipelineViewEvent(
             IntegrationPipelineViewType.IDENTITY_LINK,
             IntegrationDomain.SOURCE_CODE_MANAGEMENT,

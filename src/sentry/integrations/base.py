@@ -4,7 +4,7 @@ import abc
 import logging
 import sys
 from collections.abc import Mapping, MutableMapping, Sequence
-from enum import Enum
+from enum import Enum, StrEnum
 from functools import cached_property
 from typing import TYPE_CHECKING, Any, NamedTuple, NoReturn
 
@@ -127,7 +127,7 @@ class IntegrationFeatures(Enum):
 
 
 # Integration Types
-class IntegrationDomain(Enum):
+class IntegrationDomain(StrEnum):
     MESSAGING = "messaging"
     PROJECT_MANAGEMENT = "project_management"
     SOURCE_CODE_MANAGEMENT = "source_code_management"
@@ -135,7 +135,7 @@ class IntegrationDomain(Enum):
     IDENTITY = "identity"  # for identity pipelines
 
 
-class IntegrationProviderSlug(Enum):
+class IntegrationProviderSlug(StrEnum):
     SLACK = "slack"
     DISCORD = "discord"
     MSTeams = "msteams"
