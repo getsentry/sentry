@@ -51,6 +51,26 @@ def create_rate_limit_key(fingerprint: str) -> str:
     return rate_limit_key
 
 
+def is_rate_limited(
+    fingerprint: str,
+) -> bool:
+    rate_limit_enabled = options.get("issues.occurrence-consumer.rate-limit.enabled")
+    if rate_limit_enabled:
+        rate_limit_key = create_rate_limit_key(fingerprint)
+        rate_limit_quota = Quota(**options.get("issues.occurrence-consumer.rate-limit.quota"))
+        granted_quota = rate_limiter.check_and_use_quotas(
+            [
+                RequestedQuota(
+                    rate_limit_key,
+                    1,
+                    [rate_limit_quota],
+                )
+            ]
+        )[0]
+        return not granted_quota.granted
+    return False
+
+
 @sentry_sdk.tracing.trace
 def save_event_from_occurrence(
     data: dict[str, Any],
@@ -328,27 +348,14 @@ def process_occurrence_message(
         txn.set_tag("result", "dropped_feature_disabled")
         return None
 
-    rate_limit_enabled = options.get("issues.occurrence-consumer.rate-limit.enabled")
-    if rate_limit_enabled:
-        rate_limit_key = create_rate_limit_key(occurrence_data["fingerprint"][0])
-        rate_limit_quota = Quota(**options.get("issues.occurrence-consumer.rate-limit.quota"))
-        granted_quota = rate_limiter.check_and_use_quotas(
-            [
-                RequestedQuota(
-                    rate_limit_key,
-                    1,
-                    [rate_limit_quota],
-                )
-            ]
-        )[0]
-        if not granted_quota.granted:
-            metrics.incr(
-                "occurrence_ingest.dropped_rate_limited",
-                sample_rate=1.0,
-                tags=metric_tags,
-            )
-            txn.set_tag("result", "dropped_rate_limited")
-            return None
+    if is_rate_limited(fingerprint=occurrence_data["fingerprint"][0]):
+        metrics.incr(
+            "occurrence_ingest.dropped_rate_limited",
+            sample_rate=1.0,
+            tags=metric_tags,
+        )
+        txn.set_tag("result", "dropped_rate_limited")
+        return None
 
     if "event_data" in kwargs and is_buffered_spans:
         return create_event_and_issue_occurrence(kwargs["occurrence_data"], kwargs["event_data"])
