@@ -1,21 +1,16 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any, cast
+from typing import Any
 
 from django import forms
 from django.utils.translation import gettext_lazy as _
 
 from sentry.integrations.on_call.metrics import OnCallInteractionType
-from sentry.integrations.opsgenie.integration import OpsgenieIntegration
 from sentry.integrations.opsgenie.metrics import record_event
 from sentry.integrations.opsgenie.utils import get_team
 from sentry.integrations.services.integration import integration_service
-from sentry.integrations.services.integration.model import (
-    RpcIntegration,
-    RpcOrganizationIntegration,
-)
-from sentry.shared_integrations.exceptions import ApiError
+from sentry.integrations.services.integration.model import RpcOrganizationIntegration
 
 INVALID_TEAM = 1
 INVALID_KEY = 2
@@ -61,26 +56,11 @@ class OpsgenieNotifyTeamForm(forms.Form):
     def _get_team_status(
         self,
         team_id: str | None,
-        integration: RpcIntegration,
         org_integration: RpcOrganizationIntegration,
     ) -> int:
         team = get_team(team_id, org_integration)
         if not team or not team_id:
             return INVALID_TEAM
-
-        install = cast(
-            "OpsgenieIntegration",
-            integration.get_installation(organization_id=org_integration.organization_id),
-        )
-        client = install.get_keyring_client(keyid=team_id)
-        # the integration should be of type "sentry"
-        # there's no way to authenticate that a key is an integration key
-        # without specifying the type... even though the type is arbitrary
-        # and all integration keys do the same thing
-        try:
-            client.authorize_integration(type="sentry")
-        except ApiError:
-            return INVALID_KEY
 
         return VALID_TEAM
 
