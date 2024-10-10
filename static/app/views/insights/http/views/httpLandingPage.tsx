@@ -188,7 +188,7 @@ export function HTTPLandingPage() {
       )}
 
       {isInDomainView && view === FRONTEND_LANDING_SUB_PATH && (
-        <FrontendHeader module={ModuleName.HTTP} />
+        <FrontendHeader headerTitle={MODULE_TITLE} module={ModuleName.HTTP} />
       )}
 
       {isInDomainView && view === BACKEND_LANDING_SUB_PATH && (

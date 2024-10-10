@@ -38,6 +38,7 @@ export function MobileHeader({
   return (
     <DomainViewHeader
       domainBaseUrl={mobileBaseUrl}
+      domainTitle={MOBILE_LANDING_TITLE}
       headerTitle={headerTitle || MOBILE_LANDING_TITLE}
       modules={modules}
       selectedModule={module}

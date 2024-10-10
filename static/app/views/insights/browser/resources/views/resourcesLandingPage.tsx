@@ -63,7 +63,9 @@ function ResourcesLandingPage() {
           </Layout.Header>
         )}
 
-        {isInDomainView && <FrontendHeader module={ModuleName.RESOURCE} />}
+        {isInDomainView && (
+          <FrontendHeader headerTitle={MODULE_TITLE} module={ModuleName.RESOURCE} />
+        )}
         <Layout.Body>
           <Layout.Main fullWidth>
             <PageAlert />
