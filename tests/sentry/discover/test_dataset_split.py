@@ -46,7 +46,6 @@ class DiscoverSavedQueryDatasetSplitTestCase(TestCase, SnubaTestCase):
 
         self.nine_mins_ago = before_now(minutes=9)
         self.ten_mins_ago = before_now(minutes=10)
-        self.ten_mins_ago_iso = self.ten_mins_ago
         self.dry_run = False
 
     def test_errors_query(self):

@@ -50,7 +50,6 @@ class DashboardWidgetDatasetSplitTestCase(BaseMetricsLayerTestCase, TestCase, Sn
 
         self.nine_mins_ago = before_now(minutes=9)
         self.ten_mins_ago = before_now(minutes=10)
-        self.ten_mins_ago_iso = self.ten_mins_ago
         self.dry_run = False
 
         self.dashboard = Dashboard.objects.create(
