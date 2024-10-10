@@ -147,7 +147,7 @@ class ShouldCallSeerTest(TestCase):
             data={
                 **self.event_data,
                 "fingerprint": ["failedtofetcherror"],
-                "_fingerprint_info": {"is_builtin": True},
+                "_fingerprint_info": {"matched_rule": {"is_builtin": True}},
             },
         )
 
