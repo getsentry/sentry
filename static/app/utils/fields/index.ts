@@ -1727,6 +1727,67 @@ export const ISSUE_FIELDS: FieldKey[] = [
 ];
 
 /**
+ * These are valid filter keys in the issue search which are aliases for
+ * values in the event context. In cases where a user provides custom event
+ * tags with the same name, these may conflict and `tags[name]` should be
+ * used instead.
+ *
+ * Search locations are defined in sentry/snuba/events.py, anything that
+ * references a tag should not be defined here.
+ */
+export const ISSUE_EVENT_FIELDS_THAT_MAY_CONFLICT_WITH_TAGS: Set<FieldKey> = new Set([
+  FieldKey.APP_IN_FOREGROUND,
+  FieldKey.DEVICE_ARCH,
+  FieldKey.DEVICE_BRAND,
+  FieldKey.DEVICE_CLASS,
+  FieldKey.DEVICE_LOCALE,
+  FieldKey.DEVICE_LOCALE,
+  FieldKey.DEVICE_MODEL_ID,
+  FieldKey.DEVICE_ORIENTATION,
+  FieldKey.DEVICE_UUID,
+  FieldKey.ERROR_HANDLED,
+  FieldKey.ERROR_MAIN_THREAD,
+  FieldKey.ERROR_MECHANISM,
+  FieldKey.ERROR_TYPE,
+  FieldKey.ERROR_UNHANDLED,
+  FieldKey.ERROR_VALUE,
+  FieldKey.EVENT_TIMESTAMP,
+  FieldKey.EVENT_TYPE,
+  FieldKey.GEO_CITY,
+  FieldKey.GEO_COUNTRY_CODE,
+  FieldKey.GEO_REGION,
+  FieldKey.GEO_SUBDIVISION,
+  FieldKey.HTTP_METHOD,
+  FieldKey.HTTP_REFERER,
+  FieldKey.HTTP_URL,
+  FieldKey.ID,
+  FieldKey.LOCATION,
+  FieldKey.MESSAGE,
+  FieldKey.OS_BUILD,
+  FieldKey.OS_KERNEL_VERSION,
+  FieldKey.PLATFORM_NAME,
+  FieldKey.RELEASE_BUILD,
+  FieldKey.RELEASE_PACKAGE,
+  FieldKey.RELEASE_VERSION,
+  FieldKey.SDK_NAME,
+  FieldKey.SDK_VERSION,
+  FieldKey.STACK_ABS_PATH,
+  FieldKey.STACK_FILENAME,
+  FieldKey.STACK_FUNCTION,
+  FieldKey.STACK_MODULE,
+  FieldKey.STACK_PACKAGE,
+  FieldKey.STACK_STACK_LEVEL,
+  FieldKey.TIMESTAMP,
+  FieldKey.TITLE,
+  FieldKey.TRACE,
+  FieldKey.UNREAL_CRASH_TYPE,
+  FieldKey.USER_EMAIL,
+  FieldKey.USER_ID,
+  FieldKey.USER_IP,
+  FieldKey.USER_USERNAME,
+]);
+
+/**
  * Refer to src/sentry/snuba/events.py, search for Columns
  */
 export const DISCOVER_FIELDS = [
