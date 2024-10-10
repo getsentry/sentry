@@ -349,21 +349,29 @@ class InflightTaskStoreSqlite(InflightTaskStore):
     def get_pending_task(self) -> InflightActivation | None:
         # Get a single pending task from the store.
         with self.connection() as connection:
-            cursor = connection.execute(
-                "SELECT id FROM inflight_taskactivations WHERE status = ? LIMIT 1",
-                (Status.PENDING,),
-            )
-            row = cursor.fetchone()
-            if not row:
-                return None
-            # TODO this duration should be a tasknamespace setting, or with an option
             deadline = datetime.now() + timedelta(seconds=30)
 
-            connection.execute(
-                "UPDATE inflight_taskactivations SET status = ?, processing_deadline = ? WHERE id = ?",
-                (Status.PROCESSING, deadline.isoformat(), row["id"]),
+            # Use a single statement to get threadsafe updates.
+            cursor = connection.execute(
+                """
+                UPDATE inflight_taskactivations
+                SET processing_deadline = ?, status = ?
+                WHERE id = (
+                    SELECT id FROM inflight_taskactivations WHERE status = ? LIMIT 1
+                )
+                RETURNING id
+                """,
+                (
+                    deadline.isoformat(),
+                    Status.PROCESSING,
+                    Status.PENDING,
+                ),
             )
+            row = cursor.fetchone()
             connection.commit()
+
+            if not row:
+                return None
 
             cursor = connection.execute(
                 "SELECT * FROM inflight_taskactivations WHERE id = ?", (row["id"],)
@@ -421,13 +429,6 @@ class InflightTaskStoreSqlite(InflightTaskStore):
         # Update the status for a task
         model_status = self._status_to_model(task_status)
         with self.connection() as connection:
-            cursor = connection.execute(
-                "SELECT * FROM inflight_taskactivations WHERE id = ?", (task_id,)
-            )
-            row = cursor.fetchone()
-            if not row:
-                raise ValueError(f"Invalid taskid of {task_id}")
-
             # TODO do retry state update?
             connection.execute(
                 "UPDATE inflight_taskactivations SET status = ? WHERE id = ?",
@@ -438,12 +439,6 @@ class InflightTaskStoreSqlite(InflightTaskStore):
     def set_task_deadline(self, task_id: str, task_deadline: datetime | None):
         # Set the deadline for a task
         with self.connection() as connection:
-            cursor = connection.execute(
-                "SELECT * FROM inflight_taskactivations WHERE id = ?", (task_id,)
-            )
-            row = cursor.fetchone()
-            if not row:
-                raise ValueError(f"Invalid taskid of {task_id}")
             deadline = None
             if task_deadline:
                 deadline = task_deadline.isoformat()
