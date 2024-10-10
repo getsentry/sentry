@@ -49,22 +49,6 @@ class OpsgenieClientTest(APITestCase):
         assert client.integration_key == METADATA["api_key"]
 
     @responses.activate
-    def test_authorize_integration(self):
-        client = self.installation.get_keyring_client("team-123")
-
-        resp_data = {
-            "result": "Integration [sentry] is valid",
-            "took": 1,
-            "requestId": "hello-world",
-        }
-        responses.add(
-            responses.POST, url=f"{client.base_url}/integrations/authenticate", json=resp_data
-        )
-
-        resp = client.authorize_integration(type="sentry")
-        assert resp == resp_data
-
-    @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_send_notification(self, mock_record):
         resp_data = {
