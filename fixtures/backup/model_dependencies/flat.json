@@ -193,6 +193,9 @@
     "sentry.organization",
     "sentry.user"
   ],
+  "sentry.dashboardpermissions": [
+    "sentry.dashboard"
+  ],
   "sentry.dashboardproject": [
     "sentry.dashboard",
     "sentry.project"

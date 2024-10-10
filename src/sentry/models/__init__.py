@@ -20,6 +20,7 @@ from .commitauthor import *  # NOQA
 from .commitfilechange import CommitFileChange  # noqa
 from .counter import *  # NOQA
 from .dashboard import *  # NOQA
+from .dashboard_permissions import *  # NOQA
 from .dashboard_widget import *  # NOQA
 from .debugfile import *  # NOQA
 from .deletedentry import *  # NOQA
