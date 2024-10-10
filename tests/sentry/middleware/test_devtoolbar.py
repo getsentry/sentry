@@ -13,6 +13,7 @@ from sentry.utils.urls import parse_id_or_slug_param
 
 
 class DevToolbarAnalyticsMiddlewareUnitTest(TestCase):
+    middleware = cached_property(DevToolbarAnalyticsMiddleware)
     analytics_event_name = DevToolbarApiRequestEvent.type
 
     @cached_property
@@ -20,8 +21,9 @@ class DevToolbarAnalyticsMiddlewareUnitTest(TestCase):
         return RequestFactory()
 
     def setUp(self):
+        # Allows changing the get_response mock for each test.
         self.get_response = MagicMock(return_value=HttpResponse(status=200))
-        self.middleware = DevToolbarAnalyticsMiddleware(self.get_response)
+        self.middleware.get_response = self.get_response
 
     def make_toolbar_request(
         self,
@@ -31,7 +33,6 @@ class DevToolbarAnalyticsMiddlewareUnitTest(TestCase):
         incl_toolbar_header=True,
         resolver_match="mock",
     ):
-        """Convenience method."""
         headers = headers or {}
         if incl_toolbar_header:
             headers["queryReferrer"] = "devtoolbar"
@@ -85,10 +86,10 @@ class DevToolbarAnalyticsMiddlewareUnitTest(TestCase):
 
     @patch("sentry.analytics.record")
     def test_view_name_and_route(self, mock_record: MagicMock):
+        # Integration tests do a better job of testing these fields, since they involve route resolver.
         view_name = "my-endpoint"
         route = "/issues/(?P<issue_id>)/"
         request = self.make_toolbar_request(
-            path="https://sentry.io/issues/123/",  # not used
             resolver_match=MagicMock(view_name=view_name, route=route),
         )
         self.middleware(request)
@@ -125,6 +126,24 @@ class DevToolbarAnalyticsMiddlewareUnitTest(TestCase):
 
         mock_record.assert_called()
         assert mock_record.call_args[1].get("origin") == origin
+
+    @patch("sentry.analytics.record")
+    def test_response_status_code(self, mock_record: MagicMock):
+        request = self.make_toolbar_request()
+        self.get_response.return_value = HttpResponse(status=420)
+        self.middleware(request)
+
+        mock_record.assert_called()
+        assert mock_record.call_args[1].get("response_code") == 420
+
+    @patch("sentry.analytics.record")
+    def test_request_methods(self, mock_record: MagicMock):
+        for method in ["GET", "POST", "PUT", "DELETE"]:
+            request = self.make_toolbar_request(method=method)
+            self.middleware(request)
+
+            mock_record.assert_called()
+            assert mock_record.call_args[1].get("request_method") == method
 
 
 TEST_MIDDLEWARE = (
