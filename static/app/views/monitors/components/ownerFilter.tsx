@@ -1,5 +1,4 @@
 import {CompactSelect} from 'sentry/components/compactSelect';
-import {IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useOwnerOptions} from 'sentry/utils/useOwnerOptions';
 import {useOwners} from 'sentry/utils/useOwners';
@@ -50,8 +49,7 @@ export function OwnerFilter({selectedOwners, onChangeFilter}: OwnerFilterProps) 
         }
         return onChangeFilter(opts.map(opt => opt.value));
       }}
-      triggerLabel={!selectedOwners.length ? t('Filter Owners') : undefined}
-      triggerProps={{icon: <IconUser />}}
+      triggerLabel={!selectedOwners.length ? t('All Owners') : undefined}
     />
   );
 }

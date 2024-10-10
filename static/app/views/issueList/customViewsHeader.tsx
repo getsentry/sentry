@@ -162,15 +162,6 @@ function CustomViewsIssueListHeaderTabsContent({
   );
 
   const getInitialTabKey = () => {
-    if (draggableTabs[0].key.startsWith('default')) {
-      if (query) {
-        return TEMPORARY_TAB_KEY;
-      }
-      return draggableTabs[0].key;
-    }
-    if (!query && !sort && !viewId) {
-      return draggableTabs[0].key;
-    }
     if (viewId && draggableTabs.find(tab => tab.id === viewId)) {
       return draggableTabs.find(tab => tab.id === viewId)!.key;
     }
