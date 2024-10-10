@@ -63,7 +63,7 @@ h11==0.14.0
 hiredis==2.3.2
 httpcore==1.0.2
 httpx==0.25.2
-idna==2.10
+idna==3.7
 inflection==0.5.1
 iso3166==2.1.1
 isodate==0.6.1
