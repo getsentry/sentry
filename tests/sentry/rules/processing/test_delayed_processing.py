@@ -1564,10 +1564,10 @@ class DataAndGroupsTest(TestCase):
     """
 
     def test_repr(self):
-        condition = DataAndGroups(data=TEST_RULE_SLOW_CONDITION, group_ids={1, 2})
+        condition = DataAndGroups(data=TEST_RULE_SLOW_CONDITION, group_ids={1, 2}, rule_id=1)
         assert (
             repr(condition)
-            == "<DataAndGroups data: {'id': 'sentry.rules.conditions.event_frequency.EventFrequencyCondition', 'value': 1, 'interval': '1h'} group_ids: {1, 2}>"
+            == "<DataAndGroups data: {'id': 'sentry.rules.conditions.event_frequency.EventFrequencyCondition', 'value': 1, 'interval': '1h'} group_ids: {1, 2} rule_id: 1>"
         )
 
 
