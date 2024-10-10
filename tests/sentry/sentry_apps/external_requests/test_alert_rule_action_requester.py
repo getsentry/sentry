@@ -1,3 +1,5 @@
+from collections.abc import Mapping
+
 import responses
 
 from sentry.sentry_apps.external_requests.alert_rule_action_requester import (
@@ -34,7 +36,7 @@ class TestAlertRuleActionRequester(TestCase):
         self.install = self.create_sentry_app_installation(
             slug="foo", organization=self.org, user=self.user
         )
-        self.fields = [
+        self.fields: list[Mapping[str, str]] = [
             {"name": "title", "value": "An Alert"},
             {"name": "description", "value": "threshold reached"},
             {"name": "assignee_id", "value": "user-1"},
@@ -61,14 +63,7 @@ class TestAlertRuleActionRequester(TestCase):
         request = responses.calls[0].request
 
         data = {
-            "fields": [
-                {"name": "title", "value": "An Alert"},
-                {"name": "description", "value": "threshold reached"},
-                {
-                    "name": "assignee_id",
-                    "value": "user-1",
-                },
-            ],
+            "fields": self.fields,
             "installationId": self.install.uuid,
         }
         payload = json.loads(request.body)

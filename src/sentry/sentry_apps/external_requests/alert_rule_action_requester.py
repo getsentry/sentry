@@ -1,4 +1,5 @@
 import logging
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import TypedDict
 from urllib.parse import urlparse, urlunparse
@@ -29,7 +30,7 @@ class AlertRuleActionResult(TypedDict):
 class AlertRuleActionRequester:
     install: SentryAppInstallation | RpcSentryAppInstallation
     uri: str
-    fields: list[dict[str, str]] = field(default_factory=list)
+    fields: Sequence[Mapping[str, str]] = field(default_factory=list)
     http_method: str | None = "POST"
 
     def run(self) -> AlertRuleActionResult:
