@@ -1,27 +1,25 @@
-from __future__ import annotations
-
 import logging
+from dataclasses import dataclass
 from typing import Any
 from urllib.parse import urlparse
 from uuid import uuid4
 
-from django.db import router
 from django.utils.functional import cached_property
 
 from sentry.coreapi import APIError
 from sentry.http import safe_urlread
-from sentry.mediators.mediator import Mediator
-from sentry.mediators.param import Param
 from sentry.models.group import Group
 from sentry.sentry_apps.external_requests.utils import send_and_save_sentry_app_request, validate
 from sentry.sentry_apps.services.app import RpcSentryAppInstallation
 from sentry.users.services.user import RpcUser
 from sentry.utils import json
 
-logger = logging.getLogger("sentry.mediators.external-requests")
+logger = logging.getLogger("sentry.sentry_apps.external_requests")
+ACTION_TO_PAST_TENSE = {"create": "created", "link": "linked"}
 
 
-class IssueLinkRequester(Mediator):
+@dataclass
+class IssueLinkRequester:
     """
     1. Makes a POST request to another service with data used for creating or
     linking a Sentry issue to an issue in the other service.
@@ -51,36 +49,29 @@ class IssueLinkRequester(Mediator):
     issue in the UI (i.e. <project>#<identifier>)
     """
 
-    install = Param(RpcSentryAppInstallation)
-    uri = Param(str)
-    group = Param(Group)
-    fields = Param(dict)
-    user = Param(RpcUser)
-    action = Param(str)
-    using = router.db_for_write(Group)
+    install: RpcSentryAppInstallation
+    uri: str
+    group: Group
+    fields: dict[str, Any]
+    user: RpcUser
+    action: str
 
-    def call(self):
-        return self._make_request()
-
-    def _build_url(self):
-        urlparts = urlparse(self.sentry_app.webhook_url)
-        return f"{urlparts.scheme}://{urlparts.netloc}{self.uri}"
-
-    def _make_request(self):
-        action_to_past_tense = {"create": "created", "link": "linked"}
+    def run(self) -> dict[str, Any]:
+        response: dict[str, str] = {}
 
         try:
-            req = send_and_save_sentry_app_request(
+            request = send_and_save_sentry_app_request(
                 self._build_url(),
                 self.sentry_app,
                 self.install.organization_id,
-                f"external_issue.{action_to_past_tense[self.action]}",
+                f"external_issue.{ACTION_TO_PAST_TENSE[self.action]}",
                 headers=self._build_headers(),
                 method="POST",
                 data=self.body,
             )
-            body = safe_urlread(req)
+            body = safe_urlread(request)
             response = json.loads(body)
+
         except Exception as e:
             logger.info(
                 "issue-link-requester.error",
@@ -93,17 +84,22 @@ class IssueLinkRequester(Mediator):
                     "error_message": str(e),
                 },
             )
-            response = {}
 
         if not self._validate_response(response):
-            raise APIError()
+            raise APIError(
+                f"Invalid response format from sentry app {self.sentry_app} when linking issue"
+            )
 
         return response
 
-    def _validate_response(self, resp):
+    def _build_url(self) -> str:
+        urlparts = urlparse(self.sentry_app.webhook_url)
+        return f"{urlparts.scheme}://{urlparts.netloc}{self.uri}"
+
+    def _validate_response(self, resp: dict[str, str]) -> bool:
         return validate(instance=resp, schema_type="issue_link")
 
-    def _build_headers(self):
+    def _build_headers(self) -> dict[str, str]:
         request_uuid = uuid4().hex
 
         return {
@@ -114,16 +110,16 @@ class IssueLinkRequester(Mediator):
 
     @cached_property
     def body(self):
-        body: dict[str, Any] = {"fields": {}}
-        for name, value in self.fields.items():
-            body["fields"][name] = value
+        body: dict[str, Any] = {
+            "fields": {},
+            "issueId": self.group.id,
+            "installationId": self.install.uuid,
+            "webUrl": self.group.get_absolute_url(),
+            "project": {"slug": self.group.project.slug, "id": self.group.project.id},
+            "actor": {"type": "user", "id": self.user.id, "name": self.user.name},
+        }
+        body["fields"].update(self.fields)
 
-        body["issueId"] = self.group.id
-        body["installationId"] = self.install.uuid
-        body["webUrl"] = self.group.get_absolute_url()
-        project = self.group.project
-        body["project"] = {"slug": project.slug, "id": project.id}
-        body["actor"] = {"type": "user", "id": self.user.id, "name": self.user.name}
         return json.dumps(body)
 
     @cached_property

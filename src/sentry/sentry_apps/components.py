@@ -8,7 +8,7 @@ from urllib.parse import urlparse, urlunparse
 from django.utils.encoding import force_str
 from django.utils.http import urlencode
 
-from sentry.mediators.external_requests.select_requester import SelectRequester
+from sentry.sentry_apps.external_requests.select_requester import SelectRequester
 from sentry.sentry_apps.models.sentry_app_component import SentryAppComponent
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.services.app.model import RpcSentryAppComponent, RpcSentryAppInstallation
@@ -105,9 +105,9 @@ class SentryAppComponentPreparer:
         install = self.install
         if isinstance(install, SentryAppInstallation):
             install = serialize_sentry_app_installation(install, install.sentry_app)
-        return SelectRequester.run(
+        return SelectRequester(
             install=install,
             project_slug=self.project_slug,
             uri=uri,
             dependent_data=dependent_data,
-        )
+        ).run()
