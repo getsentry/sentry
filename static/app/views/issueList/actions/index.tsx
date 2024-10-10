@@ -534,7 +534,6 @@ const ActionsBarContainer = styled('div')<{narrowHeader: boolean}>`
   align-items: center;
   background: ${p => p.theme.backgroundSecondary};
   border-radius: ${p => p.theme.panelBorderRadius} ${p => p.theme.panelBorderRadius} 0 0;
-  line-height: 1.6;
 `;
 
 const ActionsCheckbox = styled('div')<{isReprocessingQuery: boolean}>`
