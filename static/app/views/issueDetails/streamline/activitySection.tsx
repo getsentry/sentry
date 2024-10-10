@@ -99,7 +99,7 @@ function StreamlinedActivitySection({group}: {group: Group}) {
         />
         <ActivityTimelineItem
           title={t('Last Seen')}
-          icon={<IconFlag />}
+          icon={<IconFlag size="xs" />}
           timestamp={<SmallTimestamp date={group.lastSeen} />}
         />
         {group.activity.map(item => {
