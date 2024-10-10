@@ -18,6 +18,7 @@ class OnCallInteractionType(Enum):
     # General interactions
     ADD_KEY = "ADD_KEY"
     POST_INSTALL = "POST_INSTALL"
+    VERIFY_TEAM = "VERIFY_TEAM"
     # Interacting with external alerts
     CREATE = "CREATE"  # create an alert in Opsgenie/Pagerduty
     RESOLVE = "RESOLVE"  # resolve an alert in Opsgenie/Pagerduty

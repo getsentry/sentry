@@ -38,11 +38,6 @@ class OpsgenieClient(ApiClient):
         path = f"/alerts?limit={limit}"
         return self.get(path=path, headers=self._get_auth_headers())
 
-    def authorize_integration(self, type: str) -> BaseApiResponseX:
-        body = {"type": type}
-        path = "/integrations/authenticate"
-        return self.post(path=path, headers=self._get_auth_headers(), data=body)
-
     def _get_rule_urls(self, group, rules):
         organization = group.project.organization
         rule_urls = []
