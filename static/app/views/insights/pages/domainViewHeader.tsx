@@ -93,19 +93,19 @@ export function DomainViewHeader({
 
   return (
     <Fragment>
-      <Tabs value={tabValue} onChange={handleTabChange}>
-        <Layout.Header>
-          <Layout.HeaderContent>
-            <Breadcrumbs crumbs={baseCrumbs} />
+      <Layout.Header>
+        <Layout.HeaderContent>
+          <Breadcrumbs crumbs={baseCrumbs} />
 
-            <Layout.Title>{headerTitle}</Layout.Title>
-          </Layout.HeaderContent>
-          <Layout.HeaderActions>
-            <ButtonBar gap={1}>
-              {additonalHeaderActions}
-              <FeedbackWidgetButton />
-            </ButtonBar>
-          </Layout.HeaderActions>
+          <Layout.Title>{headerTitle}</Layout.Title>
+        </Layout.HeaderContent>
+        <Layout.HeaderActions>
+          <ButtonBar gap={1}>
+            {additonalHeaderActions}
+            <FeedbackWidgetButton />
+          </ButtonBar>
+        </Layout.HeaderActions>
+        <Tabs value={tabValue} onChange={handleTabChange}>
           {!hideDefaultTabs && (
             <TabList hideBorder>
               {tabList.map(tab => (
@@ -114,8 +114,8 @@ export function DomainViewHeader({
             </TabList>
           )}
           {hideDefaultTabs && tabs && tabs.tabList}
-        </Layout.Header>
-      </Tabs>
+        </Tabs>
+      </Layout.Header>
     </Fragment>
   );
 }
