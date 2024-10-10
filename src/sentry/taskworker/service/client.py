@@ -11,7 +11,7 @@ from sentry_protos.sentry.v1alpha.taskworker_pb2 import (
 )
 from sentry_protos.sentry.v1alpha.taskworker_pb2_grpc import ConsumerServiceStub
 
-from sentry.taskworker.pending_task_store import PendingTaskStore
+from sentry.taskworker.pending_task_store import PostgresInflightActivationStore
 
 logger = logging.getLogger("sentry.taskworker")
 
@@ -26,7 +26,7 @@ class TaskClient:
     """
 
     def __init__(self):
-        self.pending_task_store = PendingTaskStore()
+        self.pending_task_store = PostgresInflightActivationStore()
         self.host = "localhost"
         self.server_port = 50051
         self.channel = grpc.insecure_channel(f"{self.host}:{self.server_port}")

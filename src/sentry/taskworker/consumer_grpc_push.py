@@ -17,14 +17,14 @@ from sentry_protos.sentry.v1alpha.taskworker_pb2 import (
 )
 from sentry_protos.sentry.v1alpha.taskworker_pb2_grpc import WorkerServiceStub
 
-from sentry.taskworker.pending_task_store import PendingTaskStore
+from sentry.taskworker.pending_task_store import PostgresInflightActivationStore
 
 logger = logging.getLogger("sentry.taskworker.grpc_server")
 
 
 class ConsumerGrpc:
     def __init__(self, worker_addrs: Iterable[str]) -> None:
-        self.pending_task_store = PendingTaskStore()
+        self.pending_task_store = PostgresInflightActivationStore()
         self.available_stubs = deque(
             [WorkerServiceStub(grpc.insecure_channel(worker_addr)) for worker_addr in worker_addrs]
         )
