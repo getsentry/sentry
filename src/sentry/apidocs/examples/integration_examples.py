@@ -55,3 +55,33 @@ class IntegrationExamples:
             response_only=True,
         )
     ]
+
+    EXTERNAL_USER_CREATE = [
+        OpenApiExample(
+            "Create an external user",
+            value={
+                "id": 123,
+                "provider": "github",
+                "external_name": "@billy",
+                "integration_id": 123,
+                "user_id": 123,
+            },
+            status_codes=["200", "201"],
+            response_only=True,
+        )
+    ]
+
+    EXTERNAL_TEAM_CREATE = [
+        OpenApiExample(
+            "Create an external team",
+            value={
+                "id": 123,
+                "provider": "github",
+                "external_name": "team-foo",
+                "integration_id": 123,
+                "team_id": 123,
+            },
+            status_codes=["200", "201"],
+            response_only=True,
+        )
+    ]
