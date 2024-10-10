@@ -25,12 +25,12 @@ def _build_queues(base: str, quantity: int) -> Sequence[Queue]:
     return [Queue(name=name, routing_key=name) for name in build_queue_names(base, quantity)]
 
 
-def make_split_task_queues(config: Mapping[str, SplitQueueTaskRoute]) -> Sequence[Queue]:
+def make_split_task_queues(config: Mapping[str, SplitQueueTaskRoute]) -> list[Queue]:
     """
     Generates the split queues definitions from the mapping between
     a task name and a config expressed as `SplitQueueTaskRoute`.
     """
-    ret: MutableSequence[Queue] = []
+    ret: list[Queue] = []
     for conf in config.values():
         if "queues_config" in conf:
             ret.extend(_build_queues(conf["default_queue"], conf["queues_config"]["total"]))
