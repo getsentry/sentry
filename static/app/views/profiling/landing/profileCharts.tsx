@@ -15,7 +15,6 @@ import type {Series} from 'sentry/types/echarts';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {useProfileEventsStats} from 'sentry/utils/profiling/hooks/useProfileEventsStats';
-import useRouter from 'sentry/utils/useRouter';
 
 // We want p99 to be before p75 because echarts renders the series in order.
 // So if p75 is before p99, p99 will be rendered on top of p75 which will
@@ -37,7 +36,6 @@ export function ProfilesChart({
   hideCount,
   compact = false,
 }: ProfilesChartProps) {
-  const router = useRouter();
   const theme = useTheme();
 
   const seriesOrder = useMemo(() => {
@@ -180,7 +178,7 @@ export function ProfilesChart({
   }, [compact, hideCount, series, seriesOrder, theme.chartLabel]);
 
   return (
-    <ChartZoom router={router} {...selection?.datetime}>
+    <ChartZoom {...selection?.datetime}>
       {zoomRenderProps => (
         <StyledPanel>
           <TitleContainer>

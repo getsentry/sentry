@@ -1,4 +1,5 @@
 import {GroupFixture} from 'sentry-fixture/group';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -30,6 +31,8 @@ describe('StreamGroup', function () {
         reason: 0,
         reason_details: null,
       },
+      firstSeen: '2017-10-10T02:41:20.000Z',
+      lastSeen: '2017-10-16T02:41:20.000Z',
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
@@ -161,5 +164,23 @@ describe('StreamGroup', function () {
     );
 
     expect(container).toBeEmptyDOMElement();
+  });
+
+  it('shows first and last seen columns', function () {
+    render(
+      <StreamGroup
+        id="1337"
+        query="is:unresolved is:for_review assigned_or_suggested:[me, none]"
+        withColumns={['firstSeen', 'lastSeen']}
+      />,
+      {
+        organization: OrganizationFixture({
+          features: ['issue-stream-table-layout'],
+        }),
+      }
+    );
+
+    expect(screen.getByRole('time', {name: 'First Seen'})).toHaveTextContent('1w');
+    expect(screen.getByRole('time', {name: 'Last Seen'})).toHaveTextContent('1d');
   });
 });

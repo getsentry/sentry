@@ -3,8 +3,9 @@ import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
+import Alert from 'sentry/components/alert';
 import OrganizationAvatar from 'sentry/components/avatar/organizationAvatar';
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import LoadingError from 'sentry/components/loadingError';
@@ -24,7 +25,10 @@ import {
   useMutation,
   useQuery,
 } from 'sentry/utils/queryClient';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
+import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
+import {useCompactSelectOptionsCache} from 'sentry/views/insights/common/utils/useCompactSelectOptionsCache';
 
 const queryClient = new QueryClient(DEFAULT_QUERY_CLIENT_CONFIG);
 
@@ -53,7 +57,13 @@ const useLastOrganization = (organizations: Organization[]) => {
   }, [organizations, lastOrgSlug]);
 };
 
-function useOrganizationProjects(organization?: Organization & {region: string}) {
+function useOrganizationProjects({
+  organization,
+  query,
+}: {
+  organization?: Organization & {region: string};
+  query?: string;
+}) {
   const api = useApi();
   const regions = useMemo(() => ConfigStore.get('memberRegions'), []);
   const orgRegion = useMemo(
@@ -61,15 +71,19 @@ function useOrganizationProjects(organization?: Organization & {region: string})
     [regions, organization?.region]
   );
 
-  return useQuery<Project[]>({
-    queryKey: [`/organizations/${organization?.slug}/projects/`],
+  return useQuery<Project[], RequestError>({
+    queryKey: [`/organizations/${organization?.slug}/projects/`, {query: query}],
     queryFn: () => {
       return api.requestPromise(`/organizations/${organization?.slug}/projects/`, {
         host: orgRegion?.url,
+        query: {
+          query: query,
+        },
       });
     },
     enabled: !!(orgRegion && organization),
     refetchOnWindowFocus: true,
+    retry: false,
   });
 }
 
@@ -108,11 +122,23 @@ const BASE_API_CLIENT = new Client({baseUrl: ''});
 function ProjectSelection({hash, organizations = []}: Omit<Props, 'allowSelection'>) {
   const baseApi = useApi({api: BASE_API_CLIENT});
   const lastOrganization = useLastOrganization(organizations);
+  const [search, setSearch] = useState('');
+  const debouncedSearch = useDebouncedValue(search, 300);
+  const isSearchStale = search !== debouncedSearch;
   const [selectedOrgId, setSelectedOrgId] = useState<string | null>(() => {
     if (organizations.length === 1) {
       return organizations[0].id;
     }
-    // Pre-fill the last used org if there are multiple
+
+    const urlParams = new URLSearchParams(location.search);
+    const orgSlug = urlParams.get('org_slug');
+    const orgMatchingSlug = orgSlug && organizations.find(org => org.slug === orgSlug);
+
+    if (orgMatchingSlug) {
+      return orgMatchingSlug.id;
+    }
+
+    // Pre-fill the last used org if there are multiple and no URL param
     if (lastOrganization) {
       return lastOrganization.id;
     }
@@ -125,7 +151,10 @@ function ProjectSelection({hash, organizations = []}: Omit<Props, 'allowSelectio
     [organizations, selectedOrgId]
   );
 
-  const orgProjectsRequest = useOrganizationProjects(selectedOrg);
+  const orgProjectsRequest = useOrganizationProjects({
+    organization: selectedOrg,
+    query: debouncedSearch,
+  });
 
   const selectedProject = useMemo(
     () => orgProjectsRequest.data?.find(org => org.id === selectedProjectId),
@@ -180,16 +209,24 @@ function ProjectSelection({hash, organizations = []}: Omit<Props, 'allowSelectio
 
   const projectOptions = useMemo(
     () =>
-      (orgProjectsRequest.data || [])
-        .toSorted(
-          (a, b) => new Date(b.dateCreated).getTime() - new Date(a.dateCreated).getTime()
-        )
-        .map(project => ({
-          value: project.id,
-          label: project.name,
-          leadingItems: <ProjectBadge avatarSize={16} project={project} hideName />,
-        })),
+      (orgProjectsRequest.data || []).map(project => ({
+        value: project.id,
+        label: project.name,
+        leadingItems: <ProjectBadge avatarSize={16} project={project} hideName />,
+      })),
     [orgProjectsRequest.data]
+  );
+
+  const {options: cachedProjectOptions, clear: clearProjectOptions} =
+    useCompactSelectOptionsCache(projectOptions);
+
+  // As the cache hook sorts the options by value, we need to sort them afterwards
+  const sortedProjectOptions = useMemo(
+    () =>
+      cachedProjectOptions.sort((a, b) => {
+        return a.label.localeCompare(b.label);
+      }),
+    [cachedProjectOptions]
   );
 
   const isFormValid = selectedOrg && selectedProject;
@@ -204,6 +241,7 @@ function ProjectSelection({hash, organizations = []}: Omit<Props, 'allowSelectio
       <FieldWrapper>
         <label>{t('Organization')}</label>
         <StyledCompactSelect
+          autoFocus
           value={selectedOrgId as string}
           searchable
           options={orgOptions}
@@ -222,26 +260,28 @@ function ProjectSelection({hash, organizations = []}: Omit<Props, 'allowSelectio
             if (value !== selectedOrgId) {
               setSelectedOrgId(value as string);
               setSelectedProjectId(null);
+              clearProjectOptions();
             }
           }}
         />
       </FieldWrapper>
       <FieldWrapper>
         <label>{t('Project')}</label>
-        {orgProjectsRequest.isError ? (
-          <LoadingError
-            message={t('Failed to load projects')}
-            onRetry={() => orgProjectsRequest.refetch()}
+        {orgProjectsRequest.error ? (
+          <ProjectLoadingError
+            error={orgProjectsRequest.error}
+            onRetry={orgProjectsRequest.refetch}
           />
         ) : (
           <StyledCompactSelect
             // Remount the component when the org changes to reset the component state
             // TODO(aknaus): investigate why the selection is not reset when the value changes to null
             key={selectedOrgId}
-            disabled={!selectedOrgId || orgProjectsRequest.isPending}
+            onSearch={setSearch}
+            disabled={!selectedOrgId}
             value={selectedProjectId as string}
             searchable
-            options={projectOptions}
+            options={sortedProjectOptions}
             triggerProps={{
               icon: selectedProject ? (
                 <ProjectBadge avatarSize={16} project={selectedProject} hideName />
@@ -255,16 +295,23 @@ function ProjectSelection({hash, organizations = []}: Omit<Props, 'allowSelectio
             onChange={({value}) => {
               setSelectedProjectId(value as string);
             }}
-            emptyMessage={tct('No projects found. [link:Create a project]', {
-              organization: selectedOrg?.name || selectedOrg?.slug || 'organization',
-              link: (
-                <a
-                  href={`/organizations/${selectedOrg?.slug}/projects/new`}
-                  target="_blank"
-                  rel="noreferrer"
-                />
-              ),
-            })}
+            emptyMessage={
+              orgProjectsRequest.isPending || isSearchStale
+                ? t('Loading...')
+                : search
+                  ? t('No projects matching search')
+                  : tct('No projects found. [link:Create a project]', {
+                      organization:
+                        selectedOrg?.name || selectedOrg?.slug || 'organization',
+                      link: (
+                        <a
+                          href={`/organizations/${selectedOrg?.slug}/projects/new`}
+                          target="_blank"
+                          rel="noreferrer"
+                        />
+                      ),
+                    })
+            }
           />
         )}
       </FieldWrapper>
@@ -274,6 +321,70 @@ function ProjectSelection({hash, organizations = []}: Omit<Props, 'allowSelectio
     </StyledForm>
   );
 }
+
+function getSsoLoginUrl(error: RequestError) {
+  const detail = error?.responseJSON?.detail as any;
+  const loginUrl = detail?.extra?.loginUrl;
+
+  if (!loginUrl || typeof loginUrl !== 'string') {
+    return null;
+  }
+
+  try {
+    // Pass a base param as the login may be absolute or relative
+    const url = new URL(loginUrl, location.origin);
+    // Pass the current URL as the next URL to redirect to after login
+    url.searchParams.set('next', location.href);
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
+
+function ProjectLoadingError({
+  error,
+  onRetry,
+}: {
+  error: RequestError;
+  onRetry: () => void;
+}) {
+  const detail = error?.responseJSON?.detail;
+  const code = typeof detail === 'string' ? undefined : detail?.code;
+  const ssoLoginUrl = getSsoLoginUrl(error);
+
+  if (code === 'sso-required' && ssoLoginUrl) {
+    return (
+      <AlertWithoutMargin
+        type="error"
+        showIcon
+        trailingItems={
+          <LinkButton href={ssoLoginUrl} size="xs">
+            {t('Log in')}
+          </LinkButton>
+        }
+      >
+        {t('This organization requires Single Sign-On.')}
+      </AlertWithoutMargin>
+    );
+  }
+
+  return (
+    <LoadingErrorWithoutMargin
+      message={t('Failed to load projects')}
+      onRetry={() => {
+        onRetry();
+      }}
+    />
+  );
+}
+
+const AlertWithoutMargin = styled(Alert)`
+  margin: 0;
+`;
+
+const LoadingErrorWithoutMargin = styled(LoadingError)`
+  margin: 0;
+`;
 
 const StyledForm = styled('form')`
   display: flex;

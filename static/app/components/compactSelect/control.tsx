@@ -215,6 +215,7 @@ export interface ControlProps
  */
 export function Control({
   // Control props
+  autoFocus,
   trigger,
   triggerLabel: triggerLabelProp,
   triggerProps,
@@ -394,6 +395,20 @@ export function Control({
     updateOverlay?.();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [menuBody, hideOptions]);
+
+  const wasRefAvailable = useRef(false);
+  useEffect(() => {
+    // Trigger ref is set by a setState in useOverlay, so we need to wait for it to be available
+    // We also need to make sure we only focus once
+    if (!triggerRef.current || wasRefAvailable.current) {
+      return;
+    }
+    wasRefAvailable.current = true;
+
+    if (autoFocus && !disabled) {
+      triggerRef.current.focus();
+    }
+  }, [autoFocus, disabled, triggerRef]);
 
   /**
    * The menu's full width, before any option has been filtered out. Used to maintain a

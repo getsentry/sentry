@@ -48,8 +48,17 @@ export default function FeedbackActions({
 }
 
 function LargeWidth({feedbackItem}: {feedbackItem: FeedbackIssue}) {
-  const {isResolved, onResolveClick, isSpam, onSpamClick, hasSeen, onMarkAsReadClick} =
-    useFeedbackActions({feedbackItem});
+  const {
+    disableDelete,
+    hasDelete,
+    onDelete,
+    isResolved,
+    onResolveClick,
+    isSpam,
+    onSpamClick,
+    hasSeen,
+    onMarkAsReadClick,
+  } = useFeedbackActions({feedbackItem});
 
   return (
     <Fragment>
@@ -66,13 +75,27 @@ function LargeWidth({feedbackItem}: {feedbackItem: FeedbackIssue}) {
       <Button size="xs" onClick={onMarkAsReadClick}>
         {hasSeen ? t('Mark Unread') : t('Mark Read')}
       </Button>
+      {hasDelete && (
+        <Button size="xs" onClick={onDelete} disabled={disableDelete}>
+          {t('Delete')}
+        </Button>
+      )}
     </Fragment>
   );
 }
 
 function MediumWidth({feedbackItem}: {feedbackItem: FeedbackIssue}) {
-  const {isResolved, onResolveClick, isSpam, onSpamClick, hasSeen, onMarkAsReadClick} =
-    useFeedbackActions({feedbackItem});
+  const {
+    disableDelete,
+    hasDelete,
+    onDelete,
+    isResolved,
+    onResolveClick,
+    isSpam,
+    onSpamClick,
+    hasSeen,
+    onMarkAsReadClick,
+  } = useFeedbackActions({feedbackItem});
 
   return (
     <Fragment>
@@ -103,6 +126,14 @@ function MediumWidth({feedbackItem}: {feedbackItem: FeedbackIssue}) {
             label: hasSeen ? t('Mark Unread') : t('Mark Read'),
             onAction: onMarkAsReadClick,
           },
+          {
+            key: 'delete',
+            priority: 'danger' as const,
+            label: t('Delete'),
+            hidden: !hasDelete,
+            disabled: disableDelete,
+            onAction: onDelete,
+          },
         ].filter(defined)}
       />
     </Fragment>
@@ -110,8 +141,17 @@ function MediumWidth({feedbackItem}: {feedbackItem: FeedbackIssue}) {
 }
 
 function SmallWidth({feedbackItem}: {feedbackItem: FeedbackIssue}) {
-  const {isResolved, onResolveClick, isSpam, onSpamClick, hasSeen, onMarkAsReadClick} =
-    useFeedbackActions({feedbackItem});
+  const {
+    disableDelete,
+    hasDelete,
+    onDelete,
+    isResolved,
+    onResolveClick,
+    isSpam,
+    onSpamClick,
+    hasSeen,
+    onMarkAsReadClick,
+  } = useFeedbackActions({feedbackItem});
 
   return (
     <DropdownMenu
@@ -137,6 +177,14 @@ function SmallWidth({feedbackItem}: {feedbackItem: FeedbackIssue}) {
           key: 'read',
           label: hasSeen ? t('Mark Unread') : t('Mark Read'),
           onAction: onMarkAsReadClick,
+        },
+        {
+          key: 'delete',
+          priority: 'danger' as const,
+          label: t('Delete'),
+          hidden: !hasDelete,
+          disabled: disableDelete,
+          onAction: onDelete,
         },
       ].filter(defined)}
     />
