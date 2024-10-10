@@ -3,12 +3,12 @@ from unittest.mock import patch
 import pytest
 
 from sentry.coreapi import APIUnauthorized
-from sentry.mediators.token_exchange.refresher import Refresher
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.apitoken import ApiToken
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.services.app import app_service
+from sentry.sentry_apps.token_exchange.refresher import Refresher
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 
