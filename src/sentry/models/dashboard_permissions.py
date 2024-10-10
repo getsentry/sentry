@@ -17,7 +17,7 @@ class DashboardPermissions(Model):
 
     is_creator_only_editable = models.BooleanField(default=False)
     dashboard = models.OneToOneField(
-        "sentry.Dashboard", null=True, blank=True, on_delete=models.CASCADE
+        "sentry.Dashboard", on_delete=models.CASCADE
     )
 
     class Meta:
