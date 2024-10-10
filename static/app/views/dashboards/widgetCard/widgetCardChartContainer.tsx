@@ -12,6 +12,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
+import useRouter from 'sentry/utils/useRouter';
 
 import type {DashboardFilters, Widget} from '../types';
 import {WidgetType} from '../types';
@@ -83,6 +84,7 @@ export function WidgetCardChartContainer({
   shouldResize,
 }: Props) {
   const location = useLocation();
+  const router = useRouter();
 
   const legendFunctions = useMemo(() => new WidgetLegendFunctions(), []);
 
