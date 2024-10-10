@@ -22,9 +22,16 @@ configure()
 @click.option("--seed", "-s", help="pseudo random number generator seed", default=None)
 @click.option("--workers", help="Number of worker processes", default=1)
 @click.option("--mode", help="The worker/consumer mode to use", default="pull")
+@click.option("--storage", help="The storage mode to use", default="postgres")
 @click.option("--report-only", help="Run report output only", is_flag=True, default=False)
 def main(
-    number: int, verbose: bool, workers: int, seed: float | None, mode: str, report_only: bool
+    number: int,
+    verbose: bool,
+    workers: int,
+    seed: float | None,
+    mode: str,
+    report_only: bool,
+    storage: str,
 ):
     from sentry.taskdemo import variable_time
 
@@ -57,7 +64,7 @@ def main(
         processes.append(
             {
                 "name": "grpc",
-                "cmd": ["sentry", "run", "kafka-task-grpc-pull"],
+                "cmd": ["sentry", "run", "kafka-task-grpc-pull", "--storage", storage],
             },
         )
         processes.append(
@@ -72,6 +79,9 @@ def main(
                     "taskworker-pull",
                     "--log-level",
                     "warning",
+                    "--",
+                    "--storage",
+                    storage,
                 ],
             }
         )
@@ -101,6 +111,8 @@ def main(
                     "kafka-task-grpc-push",
                     "--worker-addrs",
                     worker_addrs,
+                    "--storage",
+                    storage,
                 ],
             },
         )
@@ -116,6 +128,9 @@ def main(
                     "taskworker-pull",
                     "--log-level",
                     "warning",
+                    "--",
+                    "--storage",
+                    storage,
                 ],
             }
         )

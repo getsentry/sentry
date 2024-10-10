@@ -24,7 +24,7 @@ from sentry_protos.sentry.v1alpha.taskworker_pb2 import (
 )
 
 from sentry.conf.types.kafka_definition import Topic
-from sentry.taskworker.pending_task_store import RedisInflightActivationStore
+from sentry.taskworker.pending_task_store import get_storage_backend
 
 logger = logging.getLogger("sentry.taskworker.consumer")
 
@@ -55,6 +55,7 @@ class StrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         num_processes: int,
         input_block_size: int | None,
         output_block_size: int | None,
+        storage: str | None,
     ) -> None:
         super().__init__()
         self.pool = MultiprocessingPool(num_processes)
@@ -70,7 +71,7 @@ class StrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         # Maximum number of pending inflight activations in the store before backpressure is emitted
         self.max_inflight_activation_in_store = 1000  # make this configurable
 
-        self.pending_task_store = RedisInflightActivationStore()
+        self.pending_task_store = get_storage_backend(storage)
 
     def create_with_partitions(
         self, commit: Commit, _: Mapping[Partition, int]
