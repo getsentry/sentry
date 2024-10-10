@@ -54,11 +54,6 @@ def get_type_transformer_mappings(user_id_field: str) -> TransformerType:
 
 def get_custom_field_transformer_mappings() -> TransformerType:
     transformers = {
-        # TODO(Gabe): `select` type fields are broken in the UI, fix this.
-        # JIRA_CUSTOM_FIELD_TYPES["select"]: identity_transformer,
-        # TODO(Gabe): `epic` type fields don't currently appear in the issue
-        #  link dialog. Re-enable this if needed after testing.
-        # JIRA_CUSTOM_FIELD_TYPES["epic"]: identity_transformer,
         JIRA_CUSTOM_FIELD_TYPES["tempo_account"]: parse_number_field,
         JIRA_CUSTOM_FIELD_TYPES["sprint"]: parse_number_field,
         JIRA_CUSTOM_FIELD_TYPES["rank"]: id_obj_transformer,

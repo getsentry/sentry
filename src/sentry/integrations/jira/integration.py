@@ -129,7 +129,7 @@ class JiraIntegration(IssueSyncIntegration):
     def use_email_scope(cls):
         return settings.JIRA_USE_EMAIL_SCOPE
 
-    def get_organization_config(self):
+    def get_organization_config(self) -> dict[str, Any]:
         configuration = [
             {
                 "name": self.outbound_status_key,
@@ -823,100 +823,6 @@ class JiraIntegration(IssueSyncIntegration):
 
         return fields
 
-    def _old_clean_and_transform_issue_data(
-        self, data: dict[str, Any], issue_type_meta: dict[str, Any]
-    ) -> dict[str, Any]:
-        """
-        Get the (cached) "createmeta" from Jira to use as a "schema". Clean up
-        the Jira issue by removing all fields that aren't enumerated by this
-        schema. Send this cleaned data to Jira. Finally, make another API call
-        to Jira to make sure the issue was created and return basic issue details.
-
-        :param data: JiraCreateTicketAction object
-        :return: simple object with basic Jira issue details
-        """
-        client = self.get_client()
-        cleaned_data = {}
-        user_id_field = client.user_id_field()
-
-        fs = issue_type_meta["fields"]
-        for field in fs.keys():
-            f = fs[field]
-            if field == "description":
-                cleaned_data[field] = data[field]
-                continue
-            elif field == "summary":
-                cleaned_data["summary"] = data["title"]
-                continue
-            elif field == "labels" and "labels" in data:
-                labels = [label.strip() for label in data["labels"].split(",") if label.strip()]
-                cleaned_data["labels"] = labels
-                continue
-            if field in data.keys():
-                v = data.get(field)
-                if not v:
-                    continue
-
-                schema = f.get("schema")
-                if schema:
-                    if schema.get("type") == "string" and not schema.get("custom"):
-                        cleaned_data[field] = v
-                        continue
-                    if schema["type"] == "user" or schema.get("items") == "user":
-                        if schema.get("custom") == JIRA_CUSTOM_FIELD_TYPES.get("multiuserpicker"):
-                            # custom multi-picker
-                            v = [{user_id_field: user_id} for user_id in v]
-                        else:
-                            v = {user_id_field: v}
-                    elif schema["type"] == "issuelink":  # used by Parent field
-                        v = {"key": v}
-                    elif schema.get("custom") == JIRA_CUSTOM_FIELD_TYPES["epic"]:
-                        v = v
-                    elif schema.get("custom") == JIRA_CUSTOM_FIELD_TYPES["team"]:
-                        v = v
-                    elif schema.get("custom") == JIRA_CUSTOM_FIELD_TYPES["sprint"]:
-                        try:
-                            v = int(v)
-                        except ValueError:
-                            raise IntegrationError(f"Invalid sprint ({v}) specified")
-                    elif schema["type"] == "array" and schema.get("items") == "option":
-                        v = [{"value": vx} for vx in v]
-                    elif schema["type"] == "array" and schema.get("items") == "string":
-                        v = [v]
-                    elif schema["type"] == "array" and schema.get("items") != "string":
-                        v = [{"id": vx} for vx in v]
-                    elif schema["type"] == "option":
-                        v = {"value": v}
-                    elif schema.get("custom") == JIRA_CUSTOM_FIELD_TYPES.get("textarea"):
-                        v = v
-                    elif (
-                        schema["type"] == "number"
-                        or schema.get("custom") == JIRA_CUSTOM_FIELD_TYPES["tempo_account"]
-                    ):
-                        try:
-                            if "." in v:
-                                v = float(v)
-                            else:
-                                v = int(v)
-                        except ValueError:
-                            pass
-                    elif (
-                        schema.get("type") != "string"
-                        or (schema.get("items") and schema.get("items") != "string")
-                        or schema.get("custom") == JIRA_CUSTOM_FIELD_TYPES.get("select")
-                    ):
-                        v = {"id": v}
-                cleaned_data[field] = v
-
-        if not (isinstance(cleaned_data["issuetype"], dict) and "id" in cleaned_data["issuetype"]):
-            # something fishy is going on with this field, working on some Jira
-            # instances, and some not.
-            # testing against 5.1.5 and 5.1.4 does not convert (perhaps is no longer included
-            # in the projectmeta API call, and would normally be converted in the
-            # above clean method.)
-            cleaned_data["issuetype"] = {"id": cleaned_data["issuetype"]}
-        return cleaned_data
-
     def _clean_and_transform_issue_data(
         self, issue_metadata: JiraIssueTypeMetadata, data: dict[str, Any]
     ) -> Any:
@@ -942,12 +848,9 @@ class JiraIntegration(IssueSyncIntegration):
             raise IntegrationError("Could not fetch issue create configuration from Jira.")
 
         issue_type_meta = self.get_issue_type_meta(data["issuetype"], meta)
-        if features.has("organizations:new-jira-transformers", organization=self.organization):
-            cleaned_data = self._clean_and_transform_issue_data(
-                JiraIssueTypeMetadata.from_dict(issue_type_meta), data
-            )
-        else:
-            cleaned_data = self._old_clean_and_transform_issue_data(data, issue_type_meta)
+        cleaned_data = self._clean_and_transform_issue_data(
+            JiraIssueTypeMetadata.from_dict(issue_type_meta), data
+        )
 
         try:
             response = client.create_issue(cleaned_data)
