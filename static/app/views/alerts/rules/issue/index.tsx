@@ -34,6 +34,7 @@ import IdBadge from 'sentry/components/idBadge';
 import Input from 'sentry/components/input';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
+import Link from 'sentry/components/links/link';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import LoadingMask from 'sentry/components/loadingMask';
@@ -1144,6 +1145,28 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
     );
   }
 
+  renderFeedbackBanner() {
+    const filterSet = this.state.rule?.filters.filter(
+      r => r.id === IssueAlertFilterType.ISSUE_CATEGORY
+    );
+    if (!filterSet || !filterSet.length) {
+      return null;
+    }
+    const filterFeedback = filterSet.find(f => f.value === '6'); // category: feedback
+    return filterFeedback ? (
+      <StyledFeedbackAlert type="info">
+        {tct(
+          'This issue category condition is ONLY for feedbacks from the built-in widget. Crash-report feedback alerts can be enabled in [link:Project Settings.]',
+          {
+            link: (
+              <Link to={`/settings/projects/${this.state.project.slug}/user-feedback/`} />
+            ),
+          }
+        )}
+      </StyledFeedbackAlert>
+    ) : null;
+  }
+
   renderBody() {
     const {organization, members} = this.props;
     const {
@@ -1395,6 +1418,7 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
                             incompatibleFilters ? incompatibleFilters.at(-1) : null
                           }
                         />
+                        {this.renderFeedbackBanner()}
                       </StepContent>
                     </StepContainer>
                   </Step>
@@ -1761,4 +1785,8 @@ const AcknowledgeField = styled(FieldGroup)`
     flex: unset;
     gap: ${space(1)};
   }
+`;
+
+const StyledFeedbackAlert = styled(Alert)`
+  margin: ${space(1)} 0;
 `;
