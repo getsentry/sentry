@@ -43,10 +43,10 @@ class DevToolbarApiRequestEvent(analytics.Event):
         analytics.Attribute("origin"),
         analytics.Attribute("method"),
         analytics.Attribute("status_code", type=int),
-        analytics.Attribute("organization_id", type=int),
-        analytics.Attribute("organization_slug"),
-        analytics.Attribute("project_id", type=int),
-        analytics.Attribute("project_slug"),
+        analytics.Attribute("organization_id", type=int, required=False),
+        analytics.Attribute("organization_slug", required=False),
+        analytics.Attribute("project_id", type=int, required=False),
+        analytics.Attribute("project_slug", required=False),
         analytics.Attribute("user_id", type=int),
     )
 
