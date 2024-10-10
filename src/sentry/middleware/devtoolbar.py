@@ -31,6 +31,9 @@ def _record_api_request(request: HttpRequest, response: HttpResponse) -> None:
             return None
 
         resolver_match = request.resolver_match
+        if resolver_match is None:
+            raise ValueError(f"Request URL not resolved: {request.path_info}")
+
         kwargs, url_name, endpoint_name = (
             resolver_match.kwargs,
             resolver_match.url_name,
