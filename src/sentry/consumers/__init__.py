@@ -162,6 +162,19 @@ def ingest_events_options() -> list[click.Option]:
     return options
 
 
+def ingest_transactions_options() -> list[click.Option]:
+    options = ingest_events_options()
+    options.append(
+        click.Option(
+            ["--no-celery-mode", "no_celery_mode"],
+            default=False,
+            is_flag=True,
+            help="Save event directly in consumer without celery",
+        )
+    )
+    return options
+
+
 _METRICS_INDEXER_OPTIONS = [
     click.Option(["--input-block-size"], type=int, default=None),
     click.Option(["--output-block-size"], type=int, default=None),
@@ -312,11 +325,8 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
     },
     "ingest-transactions": {
         "topic": Topic.INGEST_TRANSACTIONS,
-        "strategy_factory": "sentry.ingest.consumer.factory.IngestStrategyFactory",
-        "click_options": ingest_events_options(),
-        "static_args": {
-            "consumer_type": ConsumerType.Transactions,
-        },
+        "strategy_factory": "sentry.ingest.consumer.factory.IngestTransactionsStrategyFactory",
+        "click_options": ingest_transactions_options(),
         "dlq_topic": Topic.INGEST_TRANSACTIONS_DLQ,
     },
     "ingest-metrics": {
