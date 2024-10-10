@@ -10,39 +10,67 @@ from sentry.testutils.cases import APITestCase, TestCase
 from sentry.utils.urls import parse_id_or_slug_param
 
 
-class DevToolbarAnalyticsMiddlewareTest(TestCase):
-    @cached_property
-    def middleware(self):
-        return DevToolbarAnalyticsMiddleware(lambda req: HttpResponse(status=200))
-
+class DevToolbarAnalyticsMiddlewareUnitTest(TestCase):
     @cached_property
     def factory(self):
         return RequestFactory()
 
-    # @patch("sentry.analytics.record")
-    # def test_records_event(self, mock_record):
-    #     request = self.factory.get("/", headers={"queryReferrer": "devtoolbar"})
-    #     # request._view_path = "/"
-    #     # response = Mock(status_code=200)
-    #
-    #     response = self.middleware(request)
-    #     print(response)
-    #
-    #     # assert response unchanged
-    #
-    #     mock_record.assert_called_with(
-    #         "devtoolbar.api_request",
-    #         # endpoint_name=endpoint_name,
-    #         # url_pattern=url_name,  # TODO: test
-    #         # query=query,
-    #         # origin=origin,
-    #         # response_code=response.status_code,
-    #         # organization_id=str(org_id) if org_id else None,
-    #         # organization_slug=org_slug,
-    #         # project_id=str(project_id) if project_id else None,
-    #         # project_slug=project_slug,
-    #         # user_id=str(request.user.id) if request.user else None,
-    #     )
+    def setUp(self):
+        self.get_response = MagicMock(return_value=HttpResponse(status=200))
+        self.middleware = DevToolbarAnalyticsMiddleware(self.get_response)
+
+    def make_toolbar_get_request(
+        self,
+        path,
+        headers="default",
+        resolver_match="mock",
+    ):
+        """Convenience method."""
+        if headers == "default":
+            headers = {"queryReferrer": "devtoolbar"}
+        request = self.factory.get(path, headers=headers)
+        request.resolver_match = MagicMock() if resolver_match == "mock" else resolver_match
+        return request
+
+    @patch("sentry.analytics.record")
+    def test_basic(self, mock_record: MagicMock):
+        request = self.make_toolbar_get_request("/")
+        self.middleware(request)
+        assert mock_record.call_count == 1
+
+    @patch("sentry.analytics.record")
+    def test_no_devtoolbar_header(self, mock_record: MagicMock):
+        request = self.make_toolbar_get_request("/", headers={})
+        self.middleware(request)
+        mock_record.assert_not_called()
+
+        request = self.make_toolbar_get_request("/", headers={"queryReferrer": "not-toolbar"})
+        self.middleware(request)
+        mock_record.assert_not_called()
+
+    @patch("sentry.middleware.devtoolbar.logger.exception")
+    @patch("sentry.analytics.record")
+    def test_request_not_resolved(self, mock_record: MagicMock, mock_logger: MagicMock):
+        request = self.make_toolbar_get_request("/")
+        request.resolver_match = None
+        self.middleware(request)
+
+        mock_record.assert_not_called()
+        mock_logger.assert_called()
+
+        # mock_record.assert_called_with(
+        #     "devtoolbar.api_request",
+        #     # endpoint_name=endpoint_name,
+        #     # url_pattern=url_name,  # TODO: test
+        #     # query=query,
+        #     # origin=origin,
+        #     # response_code=response.status_code,
+        #     # organization_id=str(org_id) if org_id else None,
+        #     # organization_slug=org_slug,
+        #     # project_id=str(project_id) if project_id else None,
+        #     # project_slug=project_slug,
+        #     # user_id=str(request.user.id) if request.user else None,
+        # )
 
 
 TEST_MIDDLEWARE = (
@@ -104,22 +132,3 @@ class DevToolbarAnalyticsMiddlewareIntegrationTest(APITestCase):
             "GET",
             {"organization_id_or_slug": str(self.organization.id)},
         )
-
-
-"""
-Unit: (just the middleware class, mock everything)
-test response unchanged
-test not called if missing header
-test not called if request.resolver_match = None (also logs exc)
-test exception raised from view_func (pass in get_response that raises)
-- logs exc
-- response_code 500
-
-test all request methods
-test all response status codes
-test referrer header instead of origin
-test no origin or referrer
-
-Integration:
-test endpoints w/org, project, group scopes (and maybe no scope?)
-"""
