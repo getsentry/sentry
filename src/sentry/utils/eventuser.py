@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from functools import cached_property
 from ipaddress import IPv4Address, IPv6Address, ip_address
-from typing import Any
+from typing import Any, TypedDict
 
 from django.db.models import QuerySet
 from snuba_sdk import (
@@ -85,6 +85,15 @@ def get_ip_address_conditions(ip_addresses: list[str]) -> list[Condition]:
     if len(ipv6_addresses) > 0:
         conditions.append(Condition(Column("ip_address_v6"), Op.IN, ipv6_addresses))
     return conditions
+
+
+class SerializedEventUser(TypedDict):
+    id: str
+    username: str | None
+    email: str | None
+    name: str | None
+    ipAddress: str | None
+    avatarUrl: str | None
 
 
 @dataclass
@@ -334,7 +343,7 @@ class EventUser:
         for key in KEYWORD_MAP.keys():
             yield key, getattr(self, key)
 
-    def serialize(self):
+    def serialize(self) -> SerializedEventUser:
         return {
             "id": str(self.id) if self.id else str(self.user_ident),
             "username": self.username,
