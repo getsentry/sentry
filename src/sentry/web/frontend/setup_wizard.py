@@ -10,7 +10,6 @@ from django.http import Http404, HttpRequest, HttpResponse, HttpResponseBadReque
 from django.http.response import HttpResponseBase
 from django.shortcuts import get_object_or_404
 
-from sentry import features
 from sentry.api.endpoints.setup_wizard import SETUP_WIZARD_CACHE_KEY, SETUP_WIZARD_CACHE_TIMEOUT
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.project import STATUS_LABELS
@@ -81,10 +80,6 @@ class SetupWizardView(BaseView):
             status=OrganizationStatus.ACTIVE,
         ).order_by("-date_created")
 
-        # TODO: Make wizard compatible with hybrid cloud. For now, we combine all region data for these
-        # responses, but project names/slugs aren't unique across regions which could confuse some users.
-        # Wizard should display region beside project/orgs or have a step to ask which region.
-
         # {'us': {'org_ids': [...], 'projects': [...], 'keys': [...]}}
         region_data_map = defaultdict(lambda: defaultdict(list))
 
@@ -96,67 +91,27 @@ class SetupWizardView(BaseView):
 
         context["organizations"] = list(org_mappings_map.values())
 
-        if features.has("users:new-setup-wizard-ui", user=request.user, actor=request.user):
-            # If org_slug and project_slug are provided, we will use them to select the project
-            # If the project is not found or the slugs are not provided, we will show the project selection
-            if org_slug is not None and project_slug is not None:
-                target_org_mapping = next(
-                    (mapping for mapping in org_mappings if mapping.slug == org_slug), None
+        # If org_slug and project_slug are provided, we will use them to select the project
+        # If the project is not found or the slugs are not provided, we will show the project selection
+        if org_slug is not None and project_slug is not None:
+            target_org_mapping = next(
+                (mapping for mapping in org_mappings if mapping.slug == org_slug), None
+            )
+            if target_org_mapping is not None:
+                target_project = project_service.get_by_slug(
+                    slug=project_slug, organization_id=target_org_mapping.organization_id
                 )
-                if target_org_mapping is not None:
-                    target_project = project_service.get_by_slug(
-                        slug=project_slug, organization_id=target_org_mapping.organization_id
+
+                if target_project is not None:
+                    cache_data = get_cache_data(
+                        mapping=target_org_mapping, project=target_project, user=request.user
                     )
+                    default_cache.set(cache_key, cache_data, SETUP_WIZARD_CACHE_TIMEOUT)
 
-                    if target_project is not None:
-                        cache_data = get_cache_data(
-                            mapping=target_org_mapping, project=target_project, user=request.user
-                        )
-                        default_cache.set(cache_key, cache_data, SETUP_WIZARD_CACHE_TIMEOUT)
+                    context["enableProjectSelection"] = False
+                    return render_to_response("sentry/setup-wizard.html", context, request)
 
-                        context["enableProjectSelection"] = False
-                        return render_to_response("sentry/setup-wizard.html", context, request)
-
-            context["enableProjectSelection"] = True
-            return render_to_response("sentry/setup-wizard.html", context, request)
-
-        for region_name, region_data in region_data_map.items():
-            org_ids = region_data["org_ids"]
-            projects = project_service.get_many_by_organizations(
-                region_name=region_name, organization_ids=org_ids
-            )
-            region_data["projects"] = projects
-
-        keys_map = defaultdict(list)
-        for region_name, region_data in region_data_map.items():
-            project_ids = [rpc_project.id for rpc_project in region_data["projects"]]
-            keys = project_key_service.get_project_keys_by_region(
-                region_name=region_name,
-                project_ids=project_ids,
-                role=ProjectKeyRole.store,
-            )
-            region_data["keys"] = keys
-            for key in region_data["keys"]:
-                serialized_key = serialize_project_key(key)
-                keys_map[key.project_id].append(serialized_key)
-
-        filled_projects = []
-        for region_name, region_data in region_data_map.items():
-            for project in region_data["projects"]:
-                enriched_project = serialize_project(
-                    project=project,
-                    # The wizard only reads the a few fields so serializing the mapping should work fine
-                    organization=org_mappings_map[project.organization_id],
-                    keys=keys_map[project.id],
-                )
-                filled_projects.append(enriched_project)
-
-        # Fetching or creating a token
-        serialized_token = get_token(org_mappings, request.user)
-
-        result = {"apiKeys": serialized_token, "projects": filled_projects}
-        default_cache.set(cache_key, result, SETUP_WIZARD_CACHE_TIMEOUT)
-
+        context["enableProjectSelection"] = True
         return render_to_response("sentry/setup-wizard.html", context, request)
 
     def post(self, request: HttpRequest, wizard_hash=None) -> HttpResponse:
