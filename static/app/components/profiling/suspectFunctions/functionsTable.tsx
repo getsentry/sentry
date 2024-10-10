@@ -167,16 +167,13 @@ function ProfilingFunctionsTableCell({
   }
 }
 
-const FIELDS = [
-  'function',
-  'package',
-  'count()',
-  'p75()',
-  'sum()',
-  'examples()',
-] as const;
-
-type TableColumnKey = (typeof FIELDS)[number];
+type TableColumnKey =
+  | 'function'
+  | 'package'
+  | 'count()'
+  | 'p75()'
+  | 'sum()'
+  | 'examples()';
 
 type TableDataRow = Record<TableColumnKey, any>;
 

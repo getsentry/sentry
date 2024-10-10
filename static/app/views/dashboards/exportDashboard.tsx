@@ -4,13 +4,7 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 
 import type {DashboardDetails} from './types';
 
-const deleteProperties = [
-  'createdBy',
-  'dateCreated',
-  'id',
-  'dashboardId',
-  'widgetId',
-] as const;
+type ExcludedProperties = 'createdBy' | 'dateCreated' | 'id' | 'dashboardId' | 'widgetId';
 
 async function exportDashboard() {
   try {
@@ -55,8 +49,8 @@ function getAPIParams(structure) {
 
 function normalizeData(
   source: DashboardDetails
-): Omit<DashboardDetails, (typeof deleteProperties)[number]> {
-  const payload: Omit<DashboardDetails, (typeof deleteProperties)[number]> = {
+): Omit<DashboardDetails, ExcludedProperties> {
+  const payload: Omit<DashboardDetails, ExcludedProperties> = {
     title: '',
     filters: {},
     projects: [],

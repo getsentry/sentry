@@ -33,16 +33,15 @@ type Period = {
   start: DateString;
 };
 
-const ZoomPropKeys = [
-  'period',
-  'xAxis',
-  'onChartReady',
-  'onDataZoom',
-  'onRestore',
-  'onFinished',
-] as const;
+type ZoomPropKeys =
+  | 'period'
+  | 'xAxis'
+  | 'onChartReady'
+  | 'onDataZoom'
+  | 'onRestore'
+  | 'onFinished';
 
-export interface ZoomRenderProps extends Pick<Props, (typeof ZoomPropKeys)[number]> {
+export interface ZoomRenderProps extends Pick<Props, ZoomPropKeys> {
   dataZoom?: DataZoomComponentOption[];
   end?: Date;
   isGroupedByDate?: boolean;
