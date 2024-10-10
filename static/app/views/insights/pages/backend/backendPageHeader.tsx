@@ -1,6 +1,9 @@
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOrganization from 'sentry/utils/useOrganization';
-import {BACKEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/backend/settings';
+import {
+  BACKEND_LANDING_SUB_PATH,
+  BACKEND_LANDING_TITLE,
+} from 'sentry/views/insights/pages/backend/settings';
 import {
   DomainViewHeader,
   type Props as HeaderProps,
@@ -27,6 +30,7 @@ export function BackendHeader({module, headerActions, headerTitle, breadcrumbs}:
   return (
     <DomainViewHeader
       domainBaseUrl={backendBaseUrl}
+      domainTitle={BACKEND_LANDING_TITLE}
       headerTitle={headerTitle}
       additonalHeaderActions={headerActions}
       modules={modules}
