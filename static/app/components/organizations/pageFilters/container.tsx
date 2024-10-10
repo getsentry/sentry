@@ -142,7 +142,7 @@ function PageFiltersContainer({
     // We may need to re-initialize the URL state if we completely clear
     // out the global selection URL state, for example by navigating with
     // the sidebar on the same view.
-    if (location.state?.source === SIDEBAR_NAVIGATION_SOURCE) {
+    if (location.query?.referrer === SIDEBAR_NAVIGATION_SOURCE) {
       doInitialization();
       lastQuery.current = location.query;
       return;
