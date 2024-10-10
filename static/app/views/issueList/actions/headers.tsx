@@ -134,9 +134,8 @@ const GraphHeaderWrapper = styled('div')<{isSavedSearchesOpen?: boolean}>`
   width: 200px;
   margin-right: ${space(2)};
 
-  /* prettier-ignore */
   @media (max-width: ${p =>
-    p.isSavedSearchesOpen ? p.theme.breakpoints.xlarge : p.theme.breakpoints.large}) {
+      p.isSavedSearchesOpen ? p.theme.breakpoints.xlarge : p.theme.breakpoints.large}) {
     display: none;
   }
 `;
@@ -210,9 +209,8 @@ const PriorityLabel = styled(ToolbarHeader)<{isSavedSearchesOpen?: boolean}>`
   width: 70px;
   margin: 0 ${space(2)};
 
-  /* prettier-ignore */
   @media (max-width: ${p =>
-    p.isSavedSearchesOpen ? p.theme.breakpoints.large : p.theme.breakpoints.medium}) {
+      p.isSavedSearchesOpen ? p.theme.breakpoints.large : p.theme.breakpoints.medium}) {
     display: none;
   }
 `;
@@ -222,7 +220,6 @@ const NarrowPriorityLabel = styled(IssueStreamHeaderLabel)`
   justify-content: space-between;
   width: 70px;
 
-  /* prettier-ignore */
   @media (max-width: ${p => p.theme.breakpoints.large}) {
     display: none;
   }
@@ -235,9 +232,8 @@ const AssigneeLabel = styled(ToolbarHeader)<{isSavedSearchesOpen?: boolean}>`
   margin-left: ${space(2)};
   margin-right: ${space(2)};
 
-  /* prettier-ignore */
   @media (max-width: ${p =>
-    p.isSavedSearchesOpen ? p.theme.breakpoints.large : p.theme.breakpoints.medium}) {
+      p.isSavedSearchesOpen ? p.theme.breakpoints.large : p.theme.breakpoints.medium}) {
     display: none;
   }
 `;
