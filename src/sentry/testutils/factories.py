@@ -75,7 +75,6 @@ from sentry.integrations.models.organization_integration import OrganizationInte
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.types import ExternalProviders
 from sentry.issues.grouptype import get_group_type_by_type_id
-from sentry.mediators.token_exchange.grant_exchanger import GrantExchanger
 from sentry.models.activity import Activity
 from sentry.models.apikey import ApiKey
 from sentry.models.apitoken import ApiToken
@@ -144,6 +143,7 @@ from sentry.sentry_apps.models.sentry_app_installation_for_provider import (
 from sentry.sentry_apps.models.servicehook import ServiceHook
 from sentry.sentry_apps.services.app.serial import serialize_sentry_app_installation
 from sentry.sentry_apps.services.hook import hook_service
+from sentry.sentry_apps.token_exchange.grant_exchanger import GrantExchanger
 from sentry.signals import project_created
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
@@ -1214,12 +1214,13 @@ class Factories:
             ):
                 assert install.api_grant is not None
                 assert install.sentry_app.application is not None
-                GrantExchanger.run(
+                assert install.sentry_app.proxy_user is not None
+                GrantExchanger(
                     install=rpc_install,
                     code=install.api_grant.code,
                     client_id=install.sentry_app.application.client_id,
                     user=install.sentry_app.proxy_user,
-                )
+                ).run()
                 install = SentryAppInstallation.objects.get(id=install.id)
         return install
 
