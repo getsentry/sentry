@@ -140,7 +140,7 @@ function EventOrGroupExtraDetails({
         }
 
         if (!hasNewLayout) {
-          return item;
+          return <Fragment key={i}>{item}</Fragment>;
         }
 
         return (
