@@ -177,7 +177,6 @@ class DevToolbarAnalyticsMiddlewareIntegrationTest(APITestCase):
             headers={
                 "queryReferrer": "devtoolbar",
                 "Origin": self.origin,
-                # TODO: could also set Referer header instead of Origin.
             },
         )
 
