@@ -11,7 +11,7 @@ import {
   isNavItemActive,
   isNonEmptyArray,
   isSubmenuItemActive,
-  makeLocationDescriptorFromTo,
+  makeLinkPropsFromTo,
   type NavSidebarItem,
   resolveNavItemTo,
 } from 'sentry/components/nav/utils';
@@ -95,7 +95,7 @@ function SidebarItem({item}: {item: NavSidebarItem}) {
   const isActive = isNavItemActive(item, location);
   const isSubmenuActive = isSubmenuItemActive(item, location);
   const _to = resolveNavItemTo(item);
-  const to = _to ? makeLocationDescriptorFromTo(_to) : '#';
+  const linkProps = _to ? makeLinkPropsFromTo(_to) : {to: '#'};
 
   const FeatureGuard = item.feature ? Feature : Fragment;
   const featureGuardProps: any = item.feature ?? {};
@@ -104,7 +104,7 @@ function SidebarItem({item}: {item: NavSidebarItem}) {
     <FeatureGuard {...featureGuardProps}>
       <SidebarItemWrapper>
         <Link
-          to={to}
+          {...linkProps}
           className={isActive || isSubmenuActive ? 'active' : undefined}
           aria-current={isActive ? 'page' : undefined}
         >
