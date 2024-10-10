@@ -5,7 +5,9 @@ from typing import Protocol, TypeVar
 import sentry_protos.snuba.v1alpha.request_common_pb2
 import sentry_sdk
 import sentry_sdk.scope
+from google.protobuf.message import DecodeError
 from google.protobuf.message import Message as ProtobufMessage
+from sentry_protos.snuba.v1.error_pb2 import Error as ErrorProto
 
 from sentry.utils.snuba import _snuba_pool
 
@@ -19,6 +21,12 @@ class SnubaRPCRequest(Protocol):
     @property
     def meta(self) -> sentry_protos.snuba.v1alpha.request_common_pb2.RequestMeta:
         ...
+
+
+class SnubaRPCException(Exception):
+    def __init__(self, status_code: int, message: str):
+        self.status_code = status_code
+        super().__init__(f"HTTP {status_code} while executing RPC call: {message}")
 
 
 def rpc(req: SnubaRPCRequest, resp_type: type[RPCResponseType]) -> RPCResponseType:
@@ -52,6 +60,8 @@ def rpc(req: SnubaRPCRequest, resp_type: type[RPCResponseType]) -> RPCResponseTy
         attribute_key_transform_context=AttributeKeyTransformContext(),
     )
     aggregate_resp = snuba.rpc(aggregate_req, AggregateBucketResponse)
+
+    Raises `SnubaRPCException` if the upstream encountered an error or couldn't be reached.
     """
     referrer = req.meta.referrer
     with sentry_sdk.start_span(op="snuba_rpc.run", name=req.__class__.__name__) as span:
@@ -69,6 +79,18 @@ def rpc(req: SnubaRPCRequest, resp_type: type[RPCResponseType]) -> RPCResponseTy
                 "referer": referrer,
             },
         )
+
+        if http_resp.status != 200:
+            try:
+                err_proto = ErrorProto()
+                err_proto.ParseFromString(http_resp.data)
+                raise SnubaRPCException(err_proto.code, err_proto.message)
+            except DecodeError:
+                # maybe a reverse-proxy failed or something like that
+                raise SnubaRPCException(
+                    http_resp.status, http_resp.data.decode("utf-8", errors="ignore")
+                )
+
         resp = resp_type()
         resp.ParseFromString(http_resp.data)
         return resp
