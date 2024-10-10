@@ -18,3 +18,14 @@ export interface StateProps {
   isLoading?: boolean;
   onRetry?: () => void;
 }
+
+export type MaxValues = {
+  max1: number;
+  max2: number;
+};
+
+// `max_values` is Snake Case to preserve compatibility with the current widget serializer. We _do_ want to change it to Camel Case!
+export interface Thresholds {
+  max_values: MaxValues;
+  unit: string;
+}
