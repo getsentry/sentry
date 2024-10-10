@@ -28,7 +28,7 @@ export function DebugIdBundleDeleteButton({
             disabled={!hasAccess}
           >
             <Button icon={<IconDelete size="xs" />} size={size} disabled={!hasAccess}>
-              {t('Delete Source maps')}
+              {t('Delete Source Maps')}
             </Button>
           </Confirm>
         </Tooltip>
