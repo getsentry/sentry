@@ -266,15 +266,15 @@ def handle_owner_assignment(job):
     ):
         # see ProjectOwnership.get_issue_owners
         issue_owners: Sequence[tuple[Rule, Sequence[Team | RpcUser], str]] = []
-        return
-
-    issue_owners = ProjectOwnership.get_issue_owners(project.id, event.data)
-    # Cache for 1 day after we calculated. We don't need to move that fast.
-    cache.set(
-        issue_owners_key,
-        True,
-        ISSUE_OWNERS_DEBOUNCE_DURATION,
-    )
+        handle_invalid_group_owners(group)
+    else:
+        issue_owners = ProjectOwnership.get_issue_owners(project.id, event.data)
+        # Cache for 1 day after we calculated. We don't need to move that fast.
+        cache.set(
+            issue_owners_key,
+            True,
+            ISSUE_OWNERS_DEBOUNCE_DURATION,
+        )
 
     if issue_owners:
         try:
