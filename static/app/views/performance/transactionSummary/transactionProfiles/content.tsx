@@ -100,9 +100,9 @@ function isEmpty(resp: Profiling.Schema) {
   return false;
 }
 
-function ProfileVisualization(props: TransactionProfilesContentProps) {
-  const {data, status} = useAggregateFlamegraphQuery({
-    query: props.query,
+function ProfileVisualization({query}: TransactionProfilesContentProps) {
+  const {data, isPending, isError} = useAggregateFlamegraphQuery({
+    query,
   });
 
   const [frameFilter, setFrameFilter] = useLocalStorageState<
@@ -115,10 +115,6 @@ function ProfileVisualization(props: TransactionProfilesContentProps) {
     },
     [setFrameFilter]
   );
-
-  const onResetFrameFilter = useCallback(() => {
-    setFrameFilter('all');
-  }, [setFrameFilter]);
 
   const flamegraphFrameFilter: ((frame: Frame) => boolean) | undefined = useMemo(() => {
     if (frameFilter === 'all') {
@@ -168,9 +164,6 @@ function ProfileVisualization(props: TransactionProfilesContentProps) {
               <FlamegraphContainer>
                 {visualization === 'flamegraph' ? (
                   <AggregateFlamegraph
-                    status={status}
-                    filter={frameFilter}
-                    onResetFilter={onResetFrameFilter}
                     canvasPoolManager={canvasPoolManager}
                     scheduler={scheduler}
                   />
@@ -184,11 +177,11 @@ function ProfileVisualization(props: TransactionProfilesContentProps) {
                   />
                 )}
               </FlamegraphContainer>
-              {status === 'pending' ? (
+              {isPending ? (
                 <RequestStateMessageContainer>
                   <LoadingIndicator />
                 </RequestStateMessageContainer>
-              ) : status === 'error' ? (
+              ) : isError ? (
                 <RequestStateMessageContainer>
                   {t('There was an error loading the flamegraph.')}
                 </RequestStateMessageContainer>
