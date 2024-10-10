@@ -127,10 +127,12 @@ class IntegrationFeatures(Enum):
 
 
 # Integration Types
-MESSAGING = "messaging"
-PROJECT_MANAGEMENT = "project_management"
-SOURCE_CODE_MANAGEMENT = "source_code_management"
-ON_CALL_SCHEDULING = "on_call_scheduling"
+class IntegrationDomain(Enum):
+    MESSAGING = "messaging"
+    PROJECT_MANAGEMENT = "project_management"
+    SOURCE_CODE_MANAGEMENT = "source_code_management"
+    ON_CALL_SCHEDULING = "on_call_scheduling"
+    IDENTITY = "identity"  # for identity pipelines
 
 
 class IntegrationProviderSlug(Enum):
@@ -149,12 +151,12 @@ class IntegrationProviderSlug(Enum):
 
 
 INTEGRATION_TYPE_TO_PROVIDER = {
-    MESSAGING: [
+    IntegrationDomain.MESSAGING: [
         IntegrationProviderSlug.SLACK,
         IntegrationProviderSlug.DISCORD,
         IntegrationProviderSlug.MSTeams,
     ],
-    PROJECT_MANAGEMENT: [
+    IntegrationDomain.PROJECT_MANAGEMENT: [
         IntegrationProviderSlug.JIRA,
         IntegrationProviderSlug.JIRA_SERVER,
         IntegrationProviderSlug.GITHUB,
@@ -162,14 +164,14 @@ INTEGRATION_TYPE_TO_PROVIDER = {
         IntegrationProviderSlug.GITLAB,
         IntegrationProviderSlug.AZURE_DEVOPS,
     ],
-    SOURCE_CODE_MANAGEMENT: [
+    IntegrationDomain.SOURCE_CODE_MANAGEMENT: [
         IntegrationProviderSlug.GITHUB,
         IntegrationProviderSlug.GITHUB_ENTERPRISE,
         IntegrationProviderSlug.GITLAB,
         IntegrationProviderSlug.BITBUCKET,
         IntegrationProviderSlug.AZURE_DEVOPS,
     ],
-    ON_CALL_SCHEDULING: [
+    IntegrationDomain.ON_CALL_SCHEDULING: [
         IntegrationProviderSlug.PAGERDUTY,
         IntegrationProviderSlug.OPSGENIE,
     ],
