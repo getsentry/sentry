@@ -3,19 +3,57 @@ from typing import Any
 
 from django.utils import timezone
 from django.utils.datastructures import MultiValueDict
+from rest_framework.exceptions import ParseError
 
 from sentry import release_health
+from sentry.api.bases.organization_events import resolve_axis_column
+from sentry.api.serializers.snuba import SnubaTSResultSerializer
 from sentry.incidents.models.alert_rule import AlertRule, AlertRuleThresholdType
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.search.events.types import SnubaParams
-from sentry.seer.anomaly_detection.types import TimeSeriesPoint
+from sentry.seer.anomaly_detection.types import AnomalyType, TimeSeriesPoint
 from sentry.snuba import metrics_performance
-from sentry.snuba.models import SnubaQuery
+from sentry.snuba.metrics.extraction import MetricSpecType
+from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.sessions_v2 import QueryDefinition
-from sentry.snuba.utils import get_dataset
+from sentry.snuba.utils import DATASET_OPTIONS, get_dataset
 from sentry.utils.snuba import SnubaTSResult
+
+NUM_DAYS = 28
+
+SNUBA_QUERY_EVENT_TYPE_TO_STRING = {
+    SnubaQueryEventType.EventType.ERROR: "error",
+    SnubaQueryEventType.EventType.DEFAULT: "default",
+    SnubaQueryEventType.EventType.TRANSACTION: "transaction",
+}
+
+
+def has_anomaly(anomaly: TimeSeriesPoint, label: str) -> bool:
+    """
+    Helper function to determine whether we care about an anomaly based on the
+    anomaly type and trigger type.
+
+    """
+    from sentry.incidents.logic import WARNING_TRIGGER_LABEL
+
+    anomaly_type = anomaly.get("anomaly", {}).get("anomaly_type")
+
+    if anomaly_type == AnomalyType.HIGH_CONFIDENCE.value or (
+        label == WARNING_TRIGGER_LABEL and anomaly_type == AnomalyType.LOW_CONFIDENCE.value
+    ):
+        return True
+    return False
+
+
+def anomaly_has_confidence(anomaly: TimeSeriesPoint) -> bool:
+    """
+    Helper function to determine whether we have the 7+ days of data necessary
+    to detect anomalies/send alerts for dynamic alert rules.
+    """
+    anomaly_type = anomaly.get("anomaly", {}).get("anomaly_type")
+    return anomaly_type != AnomalyType.NO_DATA.value
 
 
 def translate_direction(direction: int) -> str:
@@ -30,7 +68,39 @@ def translate_direction(direction: int) -> str:
     return direction_map[AlertRuleThresholdType(direction)]
 
 
-NUM_DAYS = 28
+def get_event_types(
+    snuba_query: SnubaQuery, event_types: list[SnubaQueryEventType.EventType] | None = None
+) -> list[SnubaQueryEventType.EventType]:
+    if not event_types:
+        event_types = snuba_query.event_types or []
+    return event_types
+
+
+def get_snuba_query_string(
+    snuba_query: SnubaQuery, event_types: list[SnubaQueryEventType.EventType] | None = None
+) -> str:
+    """
+    Generate a query string that matches what the OrganizationEventsStatsEndpoint does
+    """
+    event_types = get_event_types(snuba_query, event_types)
+    if len(snuba_query.event_types) > 1:
+        # e.g. '(is:unresolved) AND (event.type:[error, default])'
+        event_types_list = [
+            SNUBA_QUERY_EVENT_TYPE_TO_STRING[event_type] for event_type in event_types
+        ]
+        event_types_string = "(event.type:["
+        event_types_string += ", ".join(event_types_list)
+        event_types_string += "])"
+    else:
+        # e.g. '(is:unresolved) AND (event.type:error)'
+        snuba_query_event_type_string = SNUBA_QUERY_EVENT_TYPE_TO_STRING[event_types[0]]
+        event_types_string = f"(event.type:{snuba_query_event_type_string})"
+    if snuba_query.query:
+        snuba_query_string = f"({snuba_query.query}) AND {event_types_string}"
+    else:
+        snuba_query_string = event_types_string
+
+    return snuba_query_string
 
 
 def get_crash_free_historical_data(
@@ -75,58 +145,81 @@ def get_crash_free_historical_data(
     )
 
 
-def format_historical_data(data: SnubaTSResult, dataset: Any) -> list[TimeSeriesPoint]:
-    """
-    Format Snuba data into the format the Seer API expects.
-    For errors/transactions data:
-        If there are no results, it's just the timestamp
-        {'time': 1719012000}, {'time': 1719018000}, {'time': 1719024000}
-
-        If there are results, the aggregate is added
-        {'time': 1721300400, 'count': 2}
-
-    For metrics_performance dataset/sessions data:
-        The count is stored separately from the timestamps, if there is no data the count is 0
-    """
+def format_crash_free_data(data: SnubaTSResult) -> list[TimeSeriesPoint]:
     formatted_data: list[TimeSeriesPoint] = []
+
     nested_data = data.data.get("data", [])
+    groups = nested_data.get("groups")
+    if not len(groups):
+        return formatted_data
+    series = groups[0].get("series")
 
-    if dataset == metrics_performance:
-        groups = nested_data.get("groups")
-        if not len(groups):
-            return formatted_data
-        series = groups[0].get("series")
+    for time, count in zip(nested_data.get("intervals"), series.get("sum(session)", 0)):
+        date = datetime.strptime(time, "%Y-%m-%dT%H:%M:%SZ")
+        ts_point = TimeSeriesPoint(timestamp=date.timestamp(), value=count)
+        formatted_data.append(ts_point)
+    return formatted_data
 
-        for time, count in zip(nested_data.get("intervals"), series.get("sum(session)", 0)):
-            date = datetime.strptime(time, "%Y-%m-%dT%H:%M:%SZ")
-            ts_point = TimeSeriesPoint(timestamp=date.timestamp(), value=count)
-            formatted_data.append(ts_point)
-    else:
-        # we don't know what the aggregation key of the query is
-        # so we should see it when we see a data point that has a value
-        agg_key = ""
-        for datum in nested_data:
-            if len(datum) == 1:
-                # this data point has no value
-                ts_point = TimeSeriesPoint(timestamp=datum.get("time"), value=0)
-            else:
-                # if we don't know the aggregation key yet, we should set it
-                if not agg_key:
-                    for key in datum:  # only two keys in this dict
-                        if key != "time":
-                            agg_key = key
-                            break
-                ts_point = TimeSeriesPoint(timestamp=datum.get("time"), value=datum.get(agg_key, 0))
+
+def format_snuba_ts_data(
+    data: SnubaTSResult, query_columns: list[str], organization: Organization
+) -> list[TimeSeriesPoint]:
+    formatted_data: list[TimeSeriesPoint] = []
+
+    serializer = SnubaTSResultSerializer(organization=organization, lookup=None, user=None)
+    serialized_result = serializer.serialize(
+        data,
+        resolve_axis_column(query_columns[0]),
+        allow_partial_buckets=False,
+        zerofill_results=False,
+        extra_columns=None,
+    )
+
+    for data in serialized_result.get("data"):
+        if len(data) > 1:
+            count_data = data[1]
+            count = 0
+            if len(count_data):
+                # there are sometimes None values from snuba
+                count = count_data[0].get("count", 0) or 0
+            ts_point = TimeSeriesPoint(timestamp=data[0], value=count)
             formatted_data.append(ts_point)
     return formatted_data
+
+
+def format_historical_data(
+    data: SnubaTSResult, query_columns: list[str], dataset: Any, organization: Organization
+) -> list[TimeSeriesPoint]:
+    """
+    Format Snuba data into the format the Seer API expects.
+    """
+    if dataset == metrics_performance:
+        return format_crash_free_data(data)
+
+    return format_snuba_ts_data(data, query_columns, organization)
+
+
+def get_dataset_from_label(dataset_label: str):
+    if dataset_label == "events":
+        # DATASET_OPTIONS expects the name 'errors'
+        dataset_label = "errors"
+    elif dataset_label in ["generic_metrics", "transactions"]:
+        # XXX: performance alerts dataset differs locally vs in prod
+        dataset_label = "metricsEnhanced"
+    dataset = get_dataset(dataset_label)
+    if dataset is None:
+        raise ParseError(detail=f"dataset must be one of: {', '.join(DATASET_OPTIONS.keys())}")
+    return dataset
 
 
 def fetch_historical_data(
     alert_rule: AlertRule,
     snuba_query: SnubaQuery,
+    query_columns: list[str],
     project: Project,
     start: datetime | None = None,
     end: datetime | None = None,
+    event_types: list[SnubaQueryEventType.EventType] | None = None,
 ) -> SnubaTSResult | None:
     """
     Fetch 28 days of historical data from Snuba to pass to Seer to build the anomaly detection model
@@ -143,31 +236,42 @@ def fetch_historical_data(
     granularity = snuba_query.time_window
 
     dataset_label = snuba_query.dataset
+
     if dataset_label == "events":
         # DATASET_OPTIONS expects the name 'errors'
         dataset_label = "errors"
-    elif dataset_label == "generic_metrics":
-        dataset_label = "transactions"
-    dataset = get_dataset(dataset_label)
+    elif dataset_label in ["generic_metrics", "transactions"]:
+        # XXX: performance alerts dataset differs locally vs in prod
+        dataset_label = "metricsEnhanced"
+    dataset = get_dataset_from_label(dataset_label)
 
     if not project or not dataset or not alert_rule.organization:
         return None
+
+    environments = []
+    if snuba_query.environment:
+        environments = [snuba_query.environment]
+
+    snuba_params = SnubaParams(
+        organization=alert_rule.organization,
+        projects=[project],
+        start=start,
+        end=end,
+        stats_period=None,
+        environments=environments,
+    )
 
     if dataset == metrics_performance:
         return get_crash_free_historical_data(
             start, end, project, alert_rule.organization, granularity
         )
-
     else:
+        event_types = get_event_types(snuba_query, event_types)
+        snuba_query_string = get_snuba_query_string(snuba_query, event_types)
         historical_data = dataset.timeseries_query(
-            selected_columns=[snuba_query.aggregate],
-            query=snuba_query.query,
-            snuba_params=SnubaParams(
-                organization=alert_rule.organization,
-                projects=[project],
-                start=start,
-                end=end,
-            ),
+            selected_columns=query_columns,
+            query=snuba_query_string,
+            snuba_params=snuba_params,
             rollup=granularity,
             referrer=(
                 Referrer.ANOMALY_DETECTION_HISTORICAL_DATA_QUERY.value
@@ -175,5 +279,7 @@ def fetch_historical_data(
                 else Referrer.ANOMALY_DETECTION_RETURN_HISTORICAL_ANOMALIES.value
             ),
             zerofill_results=True,
+            allow_metric_aggregates=True,
+            on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY,
         )
     return historical_data

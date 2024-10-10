@@ -63,7 +63,7 @@ _OrganizationMemberFlags = TypedDict(
 
 class _TeamRole(TypedDict):
     teamSlug: str
-    role: str
+    role: str | None
 
 
 @extend_schema_serializer(exclude_fields=["role", "roleName"])

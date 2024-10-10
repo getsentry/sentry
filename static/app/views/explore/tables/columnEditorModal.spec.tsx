@@ -1,20 +1,28 @@
 import {act, renderGlobalModal, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {openModal} from 'sentry/actionCreators/modal';
+import type {TagCollection} from 'sentry/types/group';
 import {ColumnEditorModal} from 'sentry/views/explore/tables/columnEditorModal';
 
-const tagOptions = {
+const stringTags: TagCollection = {
   id: {
     key: 'id',
-    name: 'ID',
+    name: 'id',
   },
   project: {
     key: 'project',
-    name: 'Project',
+    name: 'project',
   },
   'span.op': {
     key: 'span.op',
-    name: 'Span OP',
+    name: 'span.op',
+  },
+};
+
+const numberTags: TagCollection = {
+  'span.duration': {
+    key: 'span.duration',
+    name: 'span.duration',
   },
 };
 
@@ -36,7 +44,8 @@ describe('ColumnEditorModal', function () {
             {...modalProps}
             columns={['id', 'project']}
             onColumnsChange={() => {}}
-            tags={tagOptions}
+            stringTags={stringTags}
+            numberTags={numberTags}
           />
         ),
         {onClose}
@@ -60,7 +69,8 @@ describe('ColumnEditorModal', function () {
             {...modalProps}
             columns={['id', 'project']}
             onColumnsChange={onColumnsChange}
-            tags={tagOptions}
+            stringTags={stringTags}
+            numberTags={numberTags}
           />
         ),
         {onClose: jest.fn()}
@@ -98,7 +108,8 @@ describe('ColumnEditorModal', function () {
             {...modalProps}
             columns={['id', 'project']}
             onColumnsChange={onColumnsChange}
-            tags={tagOptions}
+            stringTags={stringTags}
+            numberTags={numberTags}
           />
         ),
         {onClose: jest.fn()}
@@ -117,14 +128,14 @@ describe('ColumnEditorModal', function () {
       expect(column).toHaveTextContent(columns2[i]);
     });
 
-    const options = ['id', 'project', 'span.op'];
+    const options = ['id', 'project', 'span.duration', 'span.op'];
     await userEvent.click(screen.getByRole('button', {name: 'None'}));
     const columnOptions = await screen.findAllByRole('option');
     columnOptions.forEach((option, i) => {
       expect(option).toHaveTextContent(options[i]);
     });
 
-    await userEvent.click(columnOptions[2]);
+    await userEvent.click(columnOptions[3]);
     const columns3 = ['id', 'project', 'span.op'];
     screen.getAllByTestId('editor-column').forEach((column, i) => {
       expect(column).toHaveTextContent(columns3[i]);
@@ -146,7 +157,8 @@ describe('ColumnEditorModal', function () {
             {...modalProps}
             columns={['id', 'project']}
             onColumnsChange={onColumnsChange}
-            tags={tagOptions}
+            stringTags={stringTags}
+            numberTags={numberTags}
           />
         ),
         {onClose: jest.fn()}
@@ -158,14 +170,14 @@ describe('ColumnEditorModal', function () {
       expect(column).toHaveTextContent(columns1[i]);
     });
 
-    const options = ['id', 'project', 'span.op'];
+    const options = ['id', 'project', 'span.duration', 'span.op'];
     await userEvent.click(screen.getByRole('button', {name: 'project'}));
     const columnOptions = await screen.findAllByRole('option');
     columnOptions.forEach((option, i) => {
       expect(option).toHaveTextContent(options[i]);
     });
 
-    await userEvent.click(columnOptions[2]);
+    await userEvent.click(columnOptions[3]);
     const columns2 = ['id', 'span.op'];
     screen.getAllByTestId('editor-column').forEach((column, i) => {
       expect(column).toHaveTextContent(columns2[i]);

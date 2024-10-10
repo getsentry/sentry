@@ -1,7 +1,9 @@
 """Scalar query filtering configuration module."""
+
 from __future__ import annotations
 
 from collections.abc import Sequence
+from datetime import datetime, timezone
 
 from sentry.api.event_search import ParenExpression, SearchFilter
 from sentry.replays.lib.new_query.conditions import (
@@ -11,7 +13,12 @@ from sentry.replays.lib.new_query.conditions import (
     StringScalar,
     UUIDArray,
 )
-from sentry.replays.lib.new_query.fields import FieldProtocol, StringColumnField, UUIDColumnField
+from sentry.replays.lib.new_query.fields import (
+    FieldProtocol,
+    NullableStringColumnField,
+    StringColumnField,
+    UUIDColumnField,
+)
 from sentry.replays.lib.new_query.parsers import parse_ipv4, parse_str, parse_uuid
 from sentry.replays.lib.selector.parse import parse_selector
 from sentry.replays.usecases.query.conditions import (
@@ -20,7 +27,9 @@ from sentry.replays.usecases.query.conditions import (
     RageClickSelectorComposite,
 )
 from sentry.replays.usecases.query.conditions.event_ids import ErrorIdScalar
-from sentry.replays.usecases.query.fields import ComputedField
+from sentry.replays.usecases.query.conditions.tags import TagScalar
+from sentry.replays.usecases.query.configs.aggregate import search_config as aggregate_search_config
+from sentry.replays.usecases.query.fields import ComputedField, TagField
 
 
 def string_field(column_name: str) -> StringColumnField:
@@ -61,7 +70,7 @@ varying_search_config: dict[str, FieldProtocol] = {
     "urls": StringColumnField("urls", parse_str, StringArray),
     "user.email": StringColumnField("user_email", parse_str, NonEmptyStringScalar),
     "user.id": StringColumnField("user_id", parse_str, NonEmptyStringScalar),
-    "user.ip_address": StringColumnField("ip_address_v4", parse_ipv4, IPv4Scalar),
+    "user.ip_address": NullableStringColumnField("ip_address_v4", parse_ipv4, IPv4Scalar),
     "user.username": StringColumnField("user_name", parse_str, NonEmptyStringScalar),
 }
 
@@ -71,6 +80,7 @@ varying_search_config["trace_id"] = varying_search_config["trace_ids"]
 varying_search_config["trace"] = varying_search_config["trace_ids"]
 varying_search_config["url"] = varying_search_config["urls"]
 varying_search_config["user.ip"] = varying_search_config["user.ip_address"]
+varying_search_config["*"] = TagField(query=TagScalar)
 
 
 # Click Search Config
@@ -98,6 +108,7 @@ scalar_search_config = {**static_search_config, **varying_search_config}
 
 def can_scalar_search_subquery(
     search_filters: Sequence[ParenExpression | SearchFilter | str],
+    started_at: datetime,
 ) -> bool:
     """Return "True" if a scalar event search can be performed."""
     has_seen_varying_field = False
@@ -109,7 +120,7 @@ def can_scalar_search_subquery(
         # ParenExpressions are recursive.  So we recursively call our own function and return early
         # if any of the fields fail.
         elif isinstance(search_filter, ParenExpression):
-            is_ok = can_scalar_search_subquery(search_filter.children)
+            is_ok = can_scalar_search_subquery(search_filter.children, started_at)
             if not is_ok:
                 return False
         else:
@@ -117,7 +128,18 @@ def can_scalar_search_subquery(
 
             # If the search-filter does not exist in either configuration then return false.
             if name not in static_search_config and name not in varying_search_config:
-                return False
+                # If the field is not a tag or the query's start period is greater than the
+                # period when the new field was introduced then we can not apply the
+                # optimization.
+                #
+                # TODO(cmanallen): Remove date condition after 90 days (~12/17/2024).
+                if name in aggregate_search_config or started_at < datetime(
+                    2024, 9, 17, tzinfo=timezone.utc
+                ):
+                    return False
+                else:
+                    has_seen_varying_field = True
+                    continue
 
             if name in varying_search_config:
                 # If a varying field has been seen before then we can't use a row-based sub-query. We

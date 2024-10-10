@@ -55,6 +55,12 @@ const EXTRA_LANGUAGE_ALIASES: Record<string, string> = {
   bundle: 'javascript',
   vue: 'javascript',
   svelte: 'javascript',
+  'js?': 'javascript',
+
+  // Clojure
+  clj: 'clojure',
+  cljc: 'clojure',
+  cljs: 'clojure',
 };
 
 export const getPrismLanguage = (lang: string) => {

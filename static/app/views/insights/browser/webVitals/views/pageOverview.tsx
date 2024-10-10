@@ -38,8 +38,13 @@ import decodeBrowserTypes from 'sentry/views/insights/browser/webVitals/utils/qu
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
-import SubregionSelector from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
-import {SpanIndexedField, type SubregionCode} from 'sentry/views/insights/types';
+import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
+import {
+  ModuleName,
+  SpanIndexedField,
+  type SubregionCode,
+} from 'sentry/views/insights/types';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 export enum LandingDisplayField {
@@ -72,6 +77,7 @@ export function PageOverview() {
   const location = useLocation();
   const {projects} = useProjects();
   const router = useRouter();
+  const {isInDomainView} = useDomainViewFilters();
   const transaction = location.query.transaction
     ? Array.isArray(location.query.transaction)
       ? location.query.transaction[0]
@@ -147,40 +153,43 @@ export function PageOverview() {
           });
         }}
       >
-        <Layout.Header>
-          <Layout.HeaderContent>
-            <Breadcrumbs
-              crumbs={[...crumbs, ...(transaction ? [{label: 'Page Summary'}] : [])]}
-            />
-            <Layout.Title>
-              {transaction && project && <ProjectAvatar project={project} size={24} />}
-              {transaction ?? t('Page Loads')}
-            </Layout.Title>
-          </Layout.HeaderContent>
-          <Layout.HeaderActions>
-            <ButtonBar gap={1}>
-              <FeedbackWidgetButton />
-              {transactionSummaryTarget && (
-                <LinkButton
-                  to={transactionSummaryTarget}
-                  onClick={() => {
-                    trackAnalytics('insight.vital.overview.open_transaction_summary', {
-                      organization,
-                    });
-                  }}
-                  size="sm"
-                >
-                  {t('View Transaction Summary')}
-                </LinkButton>
-              )}
-            </ButtonBar>
-          </Layout.HeaderActions>
-          <TabList hideBorder>
-            {LANDING_DISPLAYS.map(({label, field}) => (
-              <TabList.Item key={field}>{label}</TabList.Item>
-            ))}
-          </TabList>
-        </Layout.Header>
+        {!isInDomainView && (
+          <Layout.Header>
+            <Layout.HeaderContent>
+              <Breadcrumbs
+                crumbs={[...crumbs, ...(transaction ? [{label: 'Page Summary'}] : [])]}
+              />
+              <Layout.Title>
+                {transaction && project && <ProjectAvatar project={project} size={24} />}
+                {transaction ?? t('Page Loads')}
+              </Layout.Title>
+            </Layout.HeaderContent>
+            <Layout.HeaderActions>
+              <ButtonBar gap={1}>
+                <FeedbackWidgetButton />
+                {transactionSummaryTarget && (
+                  <LinkButton
+                    to={transactionSummaryTarget}
+                    onClick={() => {
+                      trackAnalytics('insight.vital.overview.open_transaction_summary', {
+                        organization,
+                      });
+                    }}
+                    size="sm"
+                  >
+                    {t('View Transaction Summary')}
+                  </LinkButton>
+                )}
+              </ButtonBar>
+            </Layout.HeaderActions>
+            <TabList hideBorder>
+              {LANDING_DISPLAYS.map(({label, field}) => (
+                <TabList.Item key={field}>{label}</TabList.Item>
+              ))}
+            </TabList>
+          </Layout.Header>
+        )}
+        {isInDomainView && <FrontendHeader module={ModuleName.VITAL} />}
         {tab === LandingDisplayField.SPANS ? (
           <Layout.Body>
             <Layout.Main fullWidth>
@@ -197,7 +206,6 @@ export function PageOverview() {
                   <DatePageFilter />
                 </PageFilterBar>
                 <BrowserTypeSelector />
-                <SubregionSelector />
               </TopMenuContainer>
               <Flex>
                 <PerformanceScoreBreakdownChart

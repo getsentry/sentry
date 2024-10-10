@@ -260,6 +260,11 @@ class BaseQueryBuilder:
         self.prefixed_to_tag_map: dict[str, str] = {}
         self.tag_to_prefixed_map: dict[str, str] = {}
 
+        # Tags with their type in them can't be passed to clickhouse because of the space
+        # This map is so we can convert those back before the user sees the internal alias
+        self.typed_tag_to_alias_map: dict[str, str] = {}
+        self.alias_to_typed_tag_map: dict[str, str] = {}
+
         self.requires_other_aggregates = False
         self.limit = self.resolve_limit(limit)
         self.offset = None if offset is None else Offset(offset)
@@ -316,20 +321,20 @@ class BaseQueryBuilder:
         equations: list[str] | None = None,
         orderby: list[str] | str | None = None,
     ) -> None:
-        with sentry_sdk.start_span(op="QueryBuilder", description="resolve_query"):
-            with sentry_sdk.start_span(op="QueryBuilder", description="resolve_time_conditions"):
+        with sentry_sdk.start_span(op="QueryBuilder", name="resolve_query"):
+            with sentry_sdk.start_span(op="QueryBuilder", name="resolve_time_conditions"):
                 # Has to be done early, since other conditions depend on start and end
                 self.resolve_time_conditions()
-            with sentry_sdk.start_span(op="QueryBuilder", description="resolve_conditions"):
+            with sentry_sdk.start_span(op="QueryBuilder", name="resolve_conditions"):
                 self.where, self.having = self.resolve_conditions(query)
-            with sentry_sdk.start_span(op="QueryBuilder", description="resolve_params"):
+            with sentry_sdk.start_span(op="QueryBuilder", name="resolve_params"):
                 # params depends on parse_query, and conditions being resolved first since there may be projects in conditions
                 self.where += self.resolve_params()
-            with sentry_sdk.start_span(op="QueryBuilder", description="resolve_columns"):
+            with sentry_sdk.start_span(op="QueryBuilder", name="resolve_columns"):
                 self.columns = self.resolve_select(selected_columns, equations)
-            with sentry_sdk.start_span(op="QueryBuilder", description="resolve_orderby"):
+            with sentry_sdk.start_span(op="QueryBuilder", name="resolve_orderby"):
                 self.orderby = self.resolve_orderby(orderby)
-            with sentry_sdk.start_span(op="QueryBuilder", description="resolve_groupby"):
+            with sentry_sdk.start_span(op="QueryBuilder", name="resolve_groupby"):
                 self.groupby = self.resolve_groupby(groupby_columns)
 
     def parse_config(self) -> None:
@@ -850,6 +855,9 @@ class BaseQueryBuilder:
                 or isinstance(resolved_orderby, AliasedExpression)
             ):
                 bare_orderby = resolved_orderby.alias
+            # tags that are typed have a different alias because we can't pass commas down
+            elif bare_orderby in self.typed_tag_to_alias_map:
+                bare_orderby = self.typed_tag_to_alias_map[bare_orderby]
 
             for selected_column in self.columns:
                 if isinstance(selected_column, Column) and selected_column == resolved_orderby:
@@ -1282,8 +1290,11 @@ class BaseQueryBuilder:
         is_tag = isinstance(lhs, Column) and (
             lhs.subscriptable == "tags" or lhs.subscriptable == "sentry_tags"
         )
+        is_attr = isinstance(lhs, Column) and (
+            lhs.subscriptable == "attr_str" or lhs.subscriptable == "attr_num"
+        )
         is_context = isinstance(lhs, Column) and lhs.subscriptable == "contexts"
-        if is_tag:
+        if is_tag or is_attr:
             subscriptable = lhs.subscriptable
             if operator not in ["IN", "NOT IN"] and not isinstance(value, str):
                 sentry_sdk.set_tag("query.lhs", lhs)
@@ -1296,9 +1307,14 @@ class BaseQueryBuilder:
 
         # Handle checks for existence
         if search_filter.operator in ("=", "!=") and search_filter.value.value == "":
-            if is_tag or is_context or name in self.config.non_nullable_keys:
+            if is_tag or is_attr or is_context or name in self.config.non_nullable_keys:
                 return Condition(lhs, Op(search_filter.operator), value)
-            else:
+            elif is_measurement(name):
+                # Measurements can be a `Column` (e.g., `"lcp"`) or a `Function` (e.g., `"frames_frozen_rate"`). In either cause, since they are nullable, return a simple null check
+                return Condition(
+                    Function("isNull", [lhs]), Op.EQ, 1 if search_filter.operator == "=" else 0
+                )
+            elif isinstance(lhs, Column):
                 # If not a tag, we can just check that the column is null.
                 return Condition(Function("isNull", [lhs]), Op(search_filter.operator), 1)
 
@@ -1307,6 +1323,7 @@ class BaseQueryBuilder:
         if (
             search_filter.operator in ("!=", "NOT IN")
             and not search_filter.key.is_tag
+            and not is_attr
             and not is_tag
             and name not in self.config.non_nullable_keys
         ):
@@ -1523,14 +1540,16 @@ class BaseQueryBuilder:
         return raw_snql_query(self.get_snql_query(), referrer, use_cache, query_source)
 
     def process_results(self, results: Any) -> EventsResponse:
-        with sentry_sdk.start_span(op="QueryBuilder", description="process_results") as span:
+        with sentry_sdk.start_span(op="QueryBuilder", name="process_results") as span:
             span.set_data("result_count", len(results.get("data", [])))
-            translated_columns = {}
+            translated_columns = self.alias_to_typed_tag_map
             if self.builder_config.transform_alias_to_input_format:
-                translated_columns = {
-                    column: function_details.field
-                    for column, function_details in self.function_alias_map.items()
-                }
+                translated_columns.update(
+                    {
+                        column: function_details.field
+                        for column, function_details in self.function_alias_map.items()
+                    }
+                )
 
                 for column in list(self.function_alias_map):
                     translated_column = translated_columns.get(column, column)

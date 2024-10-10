@@ -1,7 +1,7 @@
 import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 
-import {Role} from 'sentry/components/acl/role';
+import {useRole} from 'sentry/components/acl/useRole';
 import Tag from 'sentry/components/badge/tag';
 import {LinkButton} from 'sentry/components/button';
 import FileSize from 'sentry/components/fileSize';
@@ -19,7 +19,7 @@ import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Project} from 'sentry/types/project';
 import type {Artifact} from 'sentry/types/release';
 import type {DebugIdBundleArtifact} from 'sentry/types/sourceMaps';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {keepPreviousData, useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
@@ -47,7 +47,6 @@ const debugIdBundleTypeLabels = {
 
 function ArtifactsTableRow({
   name,
-  downloadRole,
   downloadUrl,
   size,
   type,
@@ -55,13 +54,14 @@ function ArtifactsTableRow({
   artifactColumnDetails,
 }: {
   artifactColumnDetails: React.ReactNode;
-  downloadRole: string;
   downloadUrl: string;
   name: string;
   orgSlug: string;
   size: number;
   type?: string;
 }) {
+  const {hasRole, roleRequired: downloadRole} = useRole({role: 'debugFilesRole'});
+
   return (
     <Fragment>
       <ArtifactColumn>
@@ -73,33 +73,27 @@ function ArtifactsTableRow({
         <FileSize bytes={size} />
       </SizeColumn>
       <ActionsColumn>
-        <Role role={downloadRole}>
-          {({hasRole}) => {
-            return (
-              <Tooltip
-                title={tct(
-                  'Artifacts can only be downloaded by users with organization [downloadRole] role[orHigher]. This can be changed in [settingsLink:Debug Files Access] settings.',
-                  {
-                    downloadRole,
-                    orHigher: downloadRole !== 'owner' ? ` ${t('or higher')}` : '',
-                    settingsLink: <Link to={`/settings/${orgSlug}/#debugFilesRole`} />,
-                  }
-                )}
-                disabled={hasRole}
-                isHoverable
-              >
-                <LinkButton
-                  size="sm"
-                  icon={<IconDownload size="sm" />}
-                  disabled={!hasRole}
-                  href={downloadUrl}
-                  title={hasRole ? t('Download Artifact') : undefined}
-                  aria-label={t('Download Artifact')}
-                />
-              </Tooltip>
-            );
-          }}
-        </Role>
+        <Tooltip
+          title={tct(
+            'Artifacts can only be downloaded by users with organization [downloadRole] role[orHigher]. This can be changed in [settingsLink:Debug Files Access] settings.',
+            {
+              downloadRole,
+              orHigher: downloadRole !== 'owner' ? ` ${t('or higher')}` : '',
+              settingsLink: <Link to={`/settings/${orgSlug}/#debugFilesRole`} />,
+            }
+          )}
+          disabled={hasRole}
+          isHoverable
+        >
+          <LinkButton
+            size="sm"
+            icon={<IconDownload size="sm" />}
+            disabled={!hasRole}
+            href={downloadUrl}
+            title={hasRole ? t('Download Artifact') : undefined}
+            aria-label={t('Download Artifact')}
+          />
+        </Tooltip>
       </ActionsColumn>
     </Fragment>
   );
@@ -148,7 +142,7 @@ export function ProjectSourceMapsArtifacts({params, location, router, project}: 
     ],
     {
       staleTime: 0,
-      keepPreviousData: true,
+      placeholderData: keepPreviousData,
       enabled: !tabDebugIdBundlesActive,
     }
   );
@@ -166,7 +160,7 @@ export function ProjectSourceMapsArtifacts({params, location, router, project}: 
     ],
     {
       staleTime: 0,
-      keepPreviousData: true,
+      placeholderData: keepPreviousData,
       enabled: tabDebugIdBundlesActive,
     }
   );
@@ -266,7 +260,6 @@ export function ProjectSourceMapsArtifacts({params, location, router, project}: 
                   size={data.fileSize}
                   name={data.filePath}
                   type={debugIdBundleTypeLabels[data.fileType]}
-                  downloadRole={organization.debugFilesRole}
                   downloadUrl={downloadUrl}
                   orgSlug={organization.slug}
                   artifactColumnDetails={
@@ -298,7 +291,6 @@ export function ProjectSourceMapsArtifacts({params, location, router, project}: 
                   key={data.id}
                   size={data.size}
                   name={data.name}
-                  downloadRole={organization.debugFilesRole}
                   downloadUrl={downloadUrl}
                   orgSlug={organization.slug}
                   artifactColumnDetails={

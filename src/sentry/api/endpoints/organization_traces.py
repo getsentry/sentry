@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 from typing import Any, Literal, NotRequired, TypedDict
 
 import sentry_sdk
+from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.exceptions import ParseError, ValidationError
 from rest_framework.request import Request
@@ -123,6 +124,11 @@ class OrganizationTracesEndpoint(OrganizationTracesEndpointBase):
             snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:
             return Response(status=404)
+
+        buffer = options.get("performance.traces.trace-explorer-skip-recent-seconds")
+        now = timezone.now() - timedelta(seconds=buffer)
+        assert snuba_params.end is not None
+        snuba_params.end = min(snuba_params.end, now)
 
         serializer = OrganizationTracesSerializer(data=request.GET)
         if not serializer.is_valid():

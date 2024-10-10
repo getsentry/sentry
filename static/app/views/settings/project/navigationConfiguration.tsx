@@ -64,6 +64,11 @@ export default function getConfiguration({
           title: t('User Feedback'),
           show: () => !isSelfHostedErrorsOnly,
         },
+        {
+          path: `${pathPrefix}/toolbar/`,
+          title: t('Developer Toolbar'),
+          show: () => !!organization?.features?.includes('dev-toolbar-ui'),
+        },
       ],
     },
     {

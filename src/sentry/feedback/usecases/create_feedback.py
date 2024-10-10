@@ -8,7 +8,7 @@ from uuid import uuid4
 
 import jsonschema
 
-from sentry import features
+from sentry import features, options
 from sentry.constants import DataCategory
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.feedback.usecases.spam_detection import is_spam
@@ -353,6 +353,9 @@ def shim_to_feedback(
     User feedbacks are an event type, so we try and grab as much from the
     legacy user report and event to create the new feedback.
     """
+    if is_in_feedback_denylist(project.organization):
+        return
+
     try:
         feedback_event: dict[str, Any] = {
             "contexts": {
@@ -364,43 +367,26 @@ def shim_to_feedback(
             },
         }
 
-        if event:
-            feedback_event["contexts"]["feedback"]["associated_event_id"] = event.event_id
+        feedback_event["contexts"]["feedback"]["associated_event_id"] = event.event_id
 
-            if get_path(event.data, "contexts", "replay", "replay_id"):
-                feedback_event["contexts"]["replay"] = event.data["contexts"]["replay"]
-                feedback_event["contexts"]["feedback"]["replay_id"] = event.data["contexts"][
-                    "replay"
-                ]["replay_id"]
+        if get_path(event.data, "contexts", "replay", "replay_id"):
+            feedback_event["contexts"]["replay"] = event.data["contexts"]["replay"]
+            feedback_event["contexts"]["feedback"]["replay_id"] = event.data["contexts"]["replay"][
+                "replay_id"
+            ]
 
-            if get_path(event.data, "contexts", "trace", "trace_id"):
-                feedback_event["contexts"]["trace"] = event.data["contexts"]["trace"]
+        if get_path(event.data, "contexts", "trace", "trace_id"):
+            feedback_event["contexts"]["trace"] = event.data["contexts"]["trace"]
 
-            feedback_event["timestamp"] = event.datetime.timestamp()
-            feedback_event["platform"] = event.platform
-            feedback_event["level"] = event.data["level"]
-            feedback_event["environment"] = event.get_environment().name
-            feedback_event["tags"] = [list(item) for item in event.tags]
-
-        else:
-            metrics.incr(
-                "feedback.user_report.missing_event",
-                sample_rate=1.0,
-                tags={"referrer": source.value},
-            )
-
-            feedback_event["timestamp"] = datetime.utcnow().timestamp()
-            feedback_event["platform"] = "other"
-            feedback_event["level"] = report.get("level", "info")
-
-            if report.get("event_id"):
-                feedback_event["contexts"]["feedback"]["associated_event_id"] = report["event_id"]
+        feedback_event["timestamp"] = event.datetime.timestamp()
+        feedback_event["platform"] = event.platform
+        feedback_event["level"] = event.data["level"]
+        feedback_event["environment"] = event.get_environment().name
+        feedback_event["tags"] = [list(item) for item in event.tags]
 
         create_feedback_issue(feedback_event, project.id, source)
     except Exception:
-        logger.exception(
-            "Error attempting to create new User Feedback from Shiming old User Report"
-        )
+        logger.exception("Error attempting to create new user feedback by shimming a user report")
         metrics.incr("feedback.shim_to_feedback.failed", tags={"referrer": source.value})
 
 
@@ -416,3 +402,7 @@ def auto_ignore_spam_feedbacks(project, issue_fingerprint):
                 new_substatus=GroupSubStatus.FOREVER,
             ),
         )
+
+
+def is_in_feedback_denylist(organization):
+    return organization.slug in options.get("feedback.organizations.slug-denylist")

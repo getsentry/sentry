@@ -44,29 +44,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
-import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
-import {
-  TraceEventPriority,
-  type TraceEvents,
-  TraceScheduler,
-} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceScheduler';
-import {TraceView as TraceViewModel} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceView';
-import {
-  type ViewManagerScrollAnchor,
-  VirtualizedViewManager,
-} from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
-import {
-  searchInTraceTreeText,
-  searchInTraceTreeTokens,
-} from 'sentry/views/performance/newTraceDetails/traceSearch/traceSearchEvaluator';
-import {parseTraceSearch} from 'sentry/views/performance/newTraceDetails/traceSearch/traceTokenConverter';
-import {TraceShortcuts} from 'sentry/views/performance/newTraceDetails/traceShortcutsModal';
-import {
-  TraceStateProvider,
-  useTraceState,
-  useTraceStateDispatch,
-  useTraceStateEmitter,
-} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
 import type {ReplayTrace} from 'sentry/views/replays/detail/trace/useReplayTraces';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
@@ -74,36 +51,48 @@ import {useTrace} from './traceApi/useTrace';
 import {type TraceMetaQueryResults, useTraceMeta} from './traceApi/useTraceMeta';
 import {useTraceRootEvent} from './traceApi/useTraceRootEvent';
 import {TraceDrawer} from './traceDrawer/traceDrawer';
+import {TraceShape, TraceTree} from './traceModels/traceTree';
+import type {TraceTreeNode} from './traceModels/traceTreeNode';
 import {
-  traceNodeAdjacentAnalyticsProperties,
-  traceNodeAnalyticsName,
-  TraceTree,
-  type TraceTreeNode,
-} from './traceModels/traceTree';
+  TraceEventPriority,
+  type TraceEvents,
+  TraceScheduler,
+} from './traceRenderers/traceScheduler';
+import {TraceView as TraceViewModel} from './traceRenderers/traceView';
+import {
+  type ViewManagerScrollAnchor,
+  VirtualizedViewManager,
+} from './traceRenderers/virtualizedViewManager';
+import {
+  searchInTraceTreeText,
+  searchInTraceTreeTokens,
+} from './traceSearch/traceSearchEvaluator';
 import {TraceSearchInput} from './traceSearch/traceSearchInput';
+import {parseTraceSearch} from './traceSearch/traceTokenConverter';
 import {
   DEFAULT_TRACE_VIEW_PREFERENCES,
   loadTraceViewPreferences,
 } from './traceState/tracePreferences';
-import {isTraceNode} from './guards';
+import {
+  TraceStateProvider,
+  useTraceState,
+  useTraceStateDispatch,
+  useTraceStateEmitter,
+} from './traceState/traceStateProvider';
 import {Trace} from './trace';
+import {traceAnalytics} from './traceAnalytics';
+import {isTraceNode} from './traceGuards';
 import {TraceMetadataHeader} from './traceMetadataHeader';
+import {TraceShortcuts} from './traceShortcutsModal';
 import type {TraceReducer, TraceReducerState} from './traceState';
-import {TraceType} from './traceType';
+import {
+  traceNodeAdjacentAnalyticsProperties,
+  traceNodeAnalyticsName,
+} from './traceTreeAnalytics';
 import TraceTypeWarnings from './traceTypeWarnings';
 import {useTraceQueryParamStateSync} from './useTraceQueryParamStateSync';
-
-function decodeScrollQueue(maybePath: unknown): TraceTree.NodePath[] | null {
-  if (Array.isArray(maybePath)) {
-    return maybePath;
-  }
-
-  if (typeof maybePath === 'string') {
-    return [maybePath as TraceTree.NodePath];
-  }
-
-  return null;
-}
+import {useTraceScrollToEventOnLoad} from './useTraceScrollToEventOnLoad';
+import {useTraceScrollToPath} from './useTraceScrollToPath';
 
 function logTraceMetadata(
   tree: TraceTree,
@@ -111,13 +100,13 @@ function logTraceMetadata(
   organization: Organization
 ) {
   switch (tree.shape) {
-    case TraceType.BROKEN_SUBTRACES:
-    case TraceType.EMPTY_TRACE:
-    case TraceType.MULTIPLE_ROOTS:
-    case TraceType.ONE_ROOT:
-    case TraceType.NO_ROOT:
-    case TraceType.ONLY_ERRORS:
-    case TraceType.BROWSER_MULTIPLE_ROOTS:
+    case TraceShape.BROKEN_SUBTRACES:
+    case TraceShape.EMPTY_TRACE:
+    case TraceShape.MULTIPLE_ROOTS:
+    case TraceShape.ONE_ROOT:
+    case TraceShape.NO_ROOT:
+    case TraceShape.ONLY_ERRORS:
+    case TraceShape.BROWSER_MULTIPLE_ROOTS:
       traceAnalytics.trackTraceMetadata(tree, projects, organization);
       break;
     default: {
@@ -134,8 +123,8 @@ export function getTraceViewQueryStatus(
     return 'error';
   }
 
-  if (traceQueryStatus === 'loading' || traceMetaQueryStatus === 'loading') {
-    return 'loading';
+  if (traceQueryStatus === 'pending' || traceMetaQueryStatus === 'pending') {
+    return 'pending';
   }
 
   return 'success';
@@ -303,33 +292,6 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
     });
   }, [props.organization, props.source]);
 
-  const initializedRef = useRef(false);
-  const scrollQueueRef = useRef<
-    TraceViewWaterfallProps['scrollToNode'] | null | undefined
-  >(undefined);
-
-  if (scrollQueueRef.current === undefined) {
-    let scrollToNode: TraceViewWaterfallProps['scrollToNode'] = props.scrollToNode;
-    if (!props.scrollToNode) {
-      const queryParams = qs.parse(location.search);
-      scrollToNode = {
-        eventId: queryParams.eventId as string | undefined,
-        path: decodeScrollQueue(
-          queryParams.node
-        ) as TraceTreeNode<TraceTree.NodeValue>['path'],
-      };
-    }
-
-    if (scrollToNode && (scrollToNode.path || scrollToNode.eventId)) {
-      scrollQueueRef.current = {
-        eventId: scrollToNode.eventId as string,
-        path: scrollToNode.path,
-      };
-    } else {
-      scrollQueueRef.current = null;
-    }
-  }
-
   const previouslyFocusedNodeRef = useRef<TraceTreeNode<TraceTree.NodeValue> | null>(
     null
   );
@@ -341,13 +303,10 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
 
   useEffect(() => {
     if (props.status === 'error') {
-      const errorTree = TraceTree.Error(
-        {
-          project_slug: projects?.[0]?.slug ?? '',
-          event_id: props.traceSlug,
-        },
-        loadingTraceRef.current
-      );
+      const errorTree = TraceTree.Error({
+        project_slug: projects?.[0]?.slug ?? '',
+        event_id: props.traceSlug,
+      });
       setTree(errorTree);
       return;
     }
@@ -360,16 +319,13 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
       return;
     }
 
-    if (props.status === 'loading') {
+    if (props.status === 'pending') {
       const loadingTrace =
         loadingTraceRef.current ??
-        TraceTree.Loading(
-          {
-            project_slug: projects?.[0]?.slug ?? '',
-            event_id: props.traceSlug,
-          },
-          loadingTraceRef.current
-        );
+        TraceTree.Loading({
+          project_slug: projects?.[0]?.slug ?? '',
+          event_id: props.traceSlug,
+        });
 
       loadingTraceRef.current = loadingTrace;
       setTree(loadingTrace);
@@ -377,18 +333,17 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
     }
 
     if (props.trace && props.metaResults.data) {
-      const trace = TraceTree.FromTrace(
-        props.trace,
-        props.metaResults,
-        props.replayRecord
-      );
+      const trace = TraceTree.FromTrace(props.trace, {
+        meta: props.metaResults,
+        replayRecord: props.replayRecord,
+      });
 
       // Root frame + 2 nodes
       const promises: Promise<void>[] = [];
-      if (trace.list.length < 4) {
+      if (trace.list.length <= 3) {
         for (const c of trace.list) {
           if (c.canFetch) {
-            promises.push(trace.zoomIn(c, true, {api, organization}).then(rerender));
+            promises.push(trace.zoom(c, true, {api, organization}).then(rerender));
           }
         }
       }
@@ -617,7 +572,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
         }
         queryStringAnimationTimeoutRef.current = requestAnimationTimeout(() => {
           const currentQueryStringPath = qs.parse(location.search).node;
-          const nextNodePath = node.path;
+          const nextNodePath = TraceTree.PathToNode(node);
           // Updating the query string with the same path is problematic because it causes
           // the entire sentry app to rerender, which is enough to cause jank and drop frames
           if (JSON.stringify(currentQueryStringPath) === JSON.stringify(nextNodePath)) {
@@ -728,34 +683,38 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
 
       // We call expandToNode because we want to ensure that the node is
       // visible and may not have been collapsed/hidden by the user
-      TraceTree.ExpandToPath(tree, node.path, forceRerender, {
+      TraceTree.ExpandToPath(tree, TraceTree.PathToNode(node), forceRerender, {
         api,
         organization: props.organization,
       }).then(maybeNode => {
         if (maybeNode) {
           previouslyFocusedNodeRef.current = null;
-          scrollRowIntoView(maybeNode.node, maybeNode.index, 'center if outside', true);
+          const index = tree.list.findIndex(n => n === maybeNode);
+          if (index === -1) {
+            Sentry.captureMessage('Trace tree node is not visible in tree');
+            return;
+          }
+          scrollRowIntoView(maybeNode, index, 'center if outside', true);
           traceDispatch({
             type: 'set roving index',
-            node: maybeNode.node,
-            index: maybeNode.index,
+            node: maybeNode,
+            index: index,
             action_source: 'click',
           });
           setRowAsFocused(
-            maybeNode.node,
+            maybeNode,
             null,
             traceStateRef.current.search.resultsLookup,
             null,
             0
           );
 
-          if (traceStateRef.current.search.resultsLookup.has(maybeNode.node)) {
+          if (traceStateRef.current.search.resultsLookup.has(maybeNode)) {
             traceDispatch({
               type: 'set search iterator index',
-              resultIndex: maybeNode.index,
-              resultIteratorIndex: traceStateRef.current.search.resultsLookup.get(
-                maybeNode.node
-              )!,
+              resultIndex: index,
+              resultIteratorIndex:
+                traceStateRef.current.search.resultsLookup.get(maybeNode)!,
             });
           } else if (traceStateRef.current.search.resultIteratorIndex !== null) {
             traceDispatch({type: 'clear search iterator index'});
@@ -778,27 +737,31 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
   // focused node, but rather scrolls the node into view and sets the roving index to the node.
   const onScrollToNode = useCallback(
     (node: TraceTreeNode<TraceTree.NodeValue>) => {
-      TraceTree.ExpandToPath(tree, node.path, forceRerender, {
+      TraceTree.ExpandToPath(tree, TraceTree.PathToNode(node), forceRerender, {
         api,
         organization: props.organization,
       }).then(maybeNode => {
         if (maybeNode) {
           previouslyFocusedNodeRef.current = null;
-          scrollRowIntoView(maybeNode.node, maybeNode.index, 'center if outside', true);
+          const index = tree.list.findIndex(n => n === maybeNode);
+          if (index === -1) {
+            Sentry.captureMessage('Trace tree node is not visible in tree');
+            return;
+          }
+          scrollRowIntoView(maybeNode, index, 'center if outside', true);
           traceDispatch({
             type: 'set roving index',
-            node: maybeNode.node,
-            index: maybeNode.index,
+            node: maybeNode,
+            index: index,
             action_source: 'click',
           });
 
-          if (traceStateRef.current.search.resultsLookup.has(maybeNode.node)) {
+          if (traceStateRef.current.search.resultsLookup.has(maybeNode)) {
             traceDispatch({
               type: 'set search iterator index',
-              resultIndex: maybeNode.index,
-              resultIteratorIndex: traceStateRef.current.search.resultsLookup.get(
-                maybeNode.node
-              )!,
+              resultIndex: index,
+              resultIteratorIndex:
+                traceStateRef.current.search.resultsLookup.get(maybeNode)!,
             });
           } else if (traceStateRef.current.search.resultIteratorIndex !== null) {
             traceDispatch({type: 'clear search iterator index'});
@@ -818,7 +781,6 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
       nodeToScrollTo: TraceTreeNode<TraceTree.NodeValue> | null,
       indexOfNodeToScrollTo: number | null
     ) => {
-      scrollQueueRef.current = null;
       const query = qs.parse(location.search);
 
       if (query.fov && typeof query.fov === 'string') {
@@ -952,13 +914,6 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
     };
   }, [traceScheduler, traceDispatch]);
 
-  // Sync part of the state with the URL
-  const traceQueryStateSync = useMemo(() => {
-    return {search: traceState.search.query};
-  }, [traceState.search.query]);
-
-  useTraceQueryParamStateSync(traceQueryStateSync);
-
   const [traceGridRef, setTraceGridRef] = useState<HTMLElement | null>(null);
 
   // Memoized because it requires tree traversal
@@ -996,6 +951,29 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
     };
   }, [viewManager, traceScheduler, tree]);
 
+  // Sync part of the state with the URL
+  const traceQueryStateSync = useMemo(() => {
+    return {search: traceState.search.query};
+  }, [traceState.search.query]);
+  useTraceQueryParamStateSync(traceQueryStateSync);
+
+  const scrollQueueRef = useTraceScrollToPath(props.scrollToNode);
+
+  useTraceScrollToEventOnLoad({
+    rerender,
+    onTraceLoad,
+    scrollQueueRef,
+    manager: viewManager,
+    scheduler: traceScheduler,
+    trace: tree,
+  });
+
+  const isLoading = !!(
+    tree.type === 'loading' ||
+    tree.type !== 'trace' ||
+    scrollQueueRef.current
+  );
+
   return (
     <Fragment>
       <TraceTypeWarnings
@@ -1016,24 +994,21 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
           trace={tree}
           rerender={rerender}
           trace_id={props.traceSlug}
-          scrollQueueRef={scrollQueueRef}
-          initializedRef={initializedRef}
           onRowClick={onRowClick}
-          onTraceLoad={onTraceLoad}
           onTraceSearch={onTraceSearch}
           previouslyFocusedNodeRef={previouslyFocusedNodeRef}
           manager={viewManager}
           scheduler={traceScheduler}
           forceRerender={forceRender}
           isEmbedded={props.isEmbedded}
+          isLoading={isLoading}
         />
 
         {tree.type === 'error' ? (
           <TraceError />
         ) : tree.type === 'empty' ? (
           <TraceEmpty />
-        ) : tree.type === 'loading' ||
-          (scrollQueueRef.current && tree.type !== 'trace') ? (
+        ) : isLoading ? (
           <TraceLoading />
         ) : null}
 

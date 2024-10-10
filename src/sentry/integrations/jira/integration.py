@@ -42,7 +42,9 @@ from sentry.users.services.user.service import user_service
 from sentry.utils.strings import truncatechars
 
 from .client import JiraCloudClient
+from .models.create_issue_metadata import JIRA_CUSTOM_FIELD_TYPES
 from .utils import build_user_choice
+from .utils.create_issue_schema_transformers import transform_fields
 
 logger = logging.getLogger("sentry.integrations.jira")
 
@@ -104,20 +106,14 @@ metadata = IntegrationMetadata(
     aspects={"externalInstall": external_install},
 )
 
+# Some Jira errors for invalid field values don't actually provide the field
+# ID in an easily mappable way, so we have to manually map known error types
+# here to make it explicit to the user what failed.
+CUSTOM_ERROR_MESSAGE_MATCHERS = [(re.compile("Team with id '.*' not found.$"), "Team Field")]
+
 # Hide linked issues fields because we don't have the necessary UI for fully specifying
 # a valid link (e.g. "is blocked by ISSUE-1").
 HIDDEN_ISSUE_FIELDS = ["issuelinks"]
-
-# A list of common builtin custom field types for Jira for easy reference.
-JIRA_CUSTOM_FIELD_TYPES = {
-    "select": "com.atlassian.jira.plugin.system.customfieldtypes:select",
-    "textarea": "com.atlassian.jira.plugin.system.customfieldtypes:textarea",
-    "multiuserpicker": "com.atlassian.jira.plugin.system.customfieldtypes:multiuserpicker",
-    "tempo_account": "com.tempoplugin.tempo-accounts:accounts.customfield",
-    "sprint": "com.pyxis.greenhopper.jira:gh-sprint",
-    "epic": "com.pyxis.greenhopper.jira:gh-epic-link",
-    "team": "com.atlassian.jira.plugin.system.customfieldtypes:atlassian-team",
-}
 
 
 class JiraIntegration(IssueSyncIntegration):
@@ -494,10 +490,28 @@ class JiraIntegration(IssueSyncIntegration):
 
     def error_fields_from_json(self, data):
         errors = data.get("errors")
-        if not errors:
+        error_messages = data.get("errorMessages")
+
+        if not errors and not error_messages:
             return None
 
-        return {key: [error] for key, error in data.get("errors").items()}
+        error_data = {}
+        if error_messages:
+            # These may or may not contain field specific errors, so we manually
+            # map them
+            for message in error_messages:
+                for error_regex, key in CUSTOM_ERROR_MESSAGE_MATCHERS:
+                    if error_regex.match(message):
+                        error_data[key] = [message]
+
+        if errors:
+            for key, error in data.get("errors").items():
+                error_data[key] = [error]
+
+        if not error_data:
+            return None
+
+        return error_data
 
     def search_url(self, org_slug):
         """
@@ -524,7 +538,12 @@ class JiraIntegration(IssueSyncIntegration):
         elif (
             # Assignee and reporter fields
             field_meta.get("autoCompleteUrl")
-            and (schema.get("items") == "user" or schema["type"] == "user")
+            and (
+                schema.get("items") == "user"
+                or schema["type"] == "user"
+                or schema["type"] == "team"
+                or schema.get("items") == "team"
+            )
             # Sprint and "Epic Link" fields
             or schema.get("custom")
             in (JIRA_CUSTOM_FIELD_TYPES["sprint"], JIRA_CUSTOM_FIELD_TYPES["epic"])
@@ -804,7 +823,9 @@ class JiraIntegration(IssueSyncIntegration):
 
         return fields
 
-    def create_issue(self, data, **kwargs):
+    def _old_clean_and_transform_issue_data(
+        self, data: dict[str, Any], issue_type_meta: dict[str, Any]
+    ) -> dict[str, Any]:
         """
         Get the (cached) "createmeta" from Jira to use as a "schema". Clean up
         the Jira issue by removing all fields that aren't enumerated by this
@@ -812,25 +833,10 @@ class JiraIntegration(IssueSyncIntegration):
         to Jira to make sure the issue was created and return basic issue details.
 
         :param data: JiraCreateTicketAction object
-        :param kwargs: not used
         :return: simple object with basic Jira issue details
         """
         client = self.get_client()
         cleaned_data = {}
-        # protect against mis-configured integration submitting a form without an
-        # issuetype assigned.
-        if not data.get("issuetype"):
-            raise IntegrationFormError({"issuetype": ["Issue type is required."]})
-
-        jira_project = data.get("project")
-        if not jira_project:
-            raise IntegrationFormError({"project": ["Jira project is required"]})
-
-        meta = client.get_create_meta_for_project(jira_project)
-        if not meta:
-            raise IntegrationError("Could not fetch issue create configuration from Jira.")
-
-        issue_type_meta = self.get_issue_type_meta(data["issuetype"], meta)
         user_id_field = client.user_id_field()
 
         fs = issue_type_meta["fields"]
@@ -909,6 +915,39 @@ class JiraIntegration(IssueSyncIntegration):
             # in the projectmeta API call, and would normally be converted in the
             # above clean method.)
             cleaned_data["issuetype"] = {"id": cleaned_data["issuetype"]}
+        return cleaned_data
+
+    def _clean_and_transform_issue_data(
+        self, issue_metadata: JiraIssueTypeMetadata, data: dict[str, Any]
+    ) -> Any:
+        client = self.get_client()
+        transformed_data = transform_fields(
+            client.user_id_field(), issue_metadata.fields.values(), **data
+        )
+        return transformed_data
+
+    def create_issue(self, data, **kwargs):
+        client = self.get_client()
+        # protect against mis-configured integration submitting a form without an
+        # issuetype assigned.
+        if not data.get("issuetype"):
+            raise IntegrationFormError({"issuetype": ["Issue type is required."]})
+
+        jira_project = data.get("project")
+        if not jira_project:
+            raise IntegrationFormError({"project": ["Jira project is required"]})
+
+        meta = client.get_create_meta_for_project(jira_project)
+        if not meta:
+            raise IntegrationError("Could not fetch issue create configuration from Jira.")
+
+        issue_type_meta = self.get_issue_type_meta(data["issuetype"], meta)
+        if features.has("organizations:new-jira-transformers", organization=self.organization):
+            cleaned_data = self._clean_and_transform_issue_data(
+                JiraIssueTypeMetadata.from_dict(issue_type_meta), data
+            )
+        else:
+            cleaned_data = self._old_clean_and_transform_issue_data(data, issue_type_meta)
 
         try:
             response = client.create_issue(cleaned_data)

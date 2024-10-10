@@ -1,4 +1,5 @@
 import {useCallback, useMemo, useRef, useState} from 'react';
+import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
@@ -22,20 +23,13 @@ import {
   BreadcrumbSort,
 } from 'sentry/components/events/interfaces/breadcrumbs';
 import useDrawer from 'sentry/components/globalDrawer';
-import {
-  IconClock,
-  IconEllipsis,
-  IconMegaphone,
-  IconSearch,
-  IconTimer,
-} from 'sentry/icons';
+import {IconClock, IconEllipsis, IconSearch, IconTimer} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
@@ -54,7 +48,6 @@ export default function BreadcrumbsDataSection({
 }: BreadcrumbsDataSectionProps) {
   const viewAllButtonRef = useRef<HTMLButtonElement>(null);
   const [container, setContainer] = useState<HTMLDivElement | null>(null);
-  const openForm = useFeedbackForm();
   const {closeDrawer, isDrawerOpen, openDrawer} = useDrawer();
   const organization = useOrganization();
   const [timeDisplay, setTimeDisplay] = useLocalStorageState<BreadcrumbTimeDisplay>(
@@ -125,24 +118,6 @@ export default function BreadcrumbsDataSection({
 
   const actions = (
     <ButtonBar gap={1}>
-      {openForm && (
-        <Button
-          aria-label={t('Give Feedback')}
-          icon={<IconMegaphone />}
-          size={'xs'}
-          onClick={() =>
-            openForm({
-              messagePlaceholder: t('How can we make breadcrumbs more useful to you?'),
-              tags: {
-                ['feedback.source']: 'issue_details_breadcrumbs',
-                ['feedback.owner']: 'issues',
-              },
-            })
-          }
-        >
-          {t('Give Feedback')}
-        </Button>
-      )}
       <Button
         aria-label={t('Open Breadcrumb Search')}
         icon={<IconSearch size="xs" />}
@@ -177,7 +152,7 @@ export default function BreadcrumbsDataSection({
   const hasViewAll = summaryCrumbs.length !== enhancedCrumbs.length;
 
   return (
-    <GuideAnchor target="breadcrumbs" position="top">
+    <FullWidthGuideAnchor target="breadcrumbs" position="top">
       <InterimSection
         key="breadcrumbs"
         type={SectionKey.BREADCRUMBS}
@@ -218,7 +193,7 @@ export default function BreadcrumbsDataSection({
           )}
         </ErrorBoundary>
       </InterimSection>
-    </GuideAnchor>
+    </FullWidthGuideAnchor>
   );
 }
 
@@ -248,3 +223,18 @@ const VerticalEllipsis = styled(IconEllipsis)`
 const ViewAllButton = styled(Button)`
   padding: ${space(0.75)} ${space(1)};
 `;
+
+function FullWidthGuideAnchor(props: React.ComponentProps<typeof GuideAnchor>) {
+  return (
+    <ClassNames>
+      {({css: classNamesCss}) => (
+        <GuideAnchor
+          {...props}
+          containerClassName={classNamesCss`
+            width: 100%;
+          `}
+        />
+      )}
+    </ClassNames>
+  );
+}

@@ -19,8 +19,9 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
+import {Chevron} from 'sentry/components/chevron';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {IconChevron, IconClose} from 'sentry/icons';
+import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Choices, SelectValue} from 'sentry/types/core';
@@ -61,7 +62,7 @@ function DropdownIndicator(
 ) {
   return (
     <selectComponents.DropdownIndicator {...props}>
-      <IconChevron direction="down" size="sm" />
+      <Chevron light color="subText" direction="down" size="medium" />
     </selectComponents.DropdownIndicator>
   );
 }
@@ -224,6 +225,10 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
           cursor: 'pointer',
         }),
         ...omit(theme.form[size ?? 'md'], 'height'),
+        ...(state.isMulti && {
+          maxHeight: '20.8em', // 10 lines (1.8em * 10) + padding
+          overflow: 'hidden',
+        }),
       }),
 
       menu: provided => ({
@@ -260,7 +265,12 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
         paddingRight: space(0.5),
         // offset horizontal margin/padding from multiValue (space(0.25)) &
         // multiValueLabel (space(0.75))
-        ...(state.isMulti && {marginLeft: `-${space(1)}`}),
+        ...(state.isMulti && {
+          marginLeft: `-${space(1)}`,
+          maxHeight: 'inherit',
+          overflowY: 'auto',
+          scrollbarColor: `${theme.purple200} ${theme.background}`,
+        }),
       }),
       input: provided => ({
         ...provided,

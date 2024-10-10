@@ -24,36 +24,27 @@ import {useInfiniteApiQuery} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
-import {DrawerContainerRefContext} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/drawerContainerRefContext';
-import {TraceProfiles} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceProfiles';
-import {TraceVitals} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceVitals';
+import type {ReplayRecord} from 'sentry/views/replays/types';
+
+import {traceAnalytics} from '../traceAnalytics';
+import {getTraceQueryParams} from '../traceApi/useTrace';
+import type {TraceMetaQueryResults} from '../traceApi/useTraceMeta';
+import {DrawerContainerRefContext} from '../traceDrawer/details/drawerContainerRefContext';
+import {TraceProfiles} from '../traceDrawer/tabs/traceProfiles';
+import {TraceVitals} from '../traceDrawer/tabs/traceVitals';
 import {
   usePassiveResizableDrawer,
   type UsePassiveResizableDrawerOptions,
-} from 'sentry/views/performance/newTraceDetails/traceDrawer/usePassiveResizeableDrawer';
-import type {TraceScheduler} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceScheduler';
-import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
-import type {
-  TraceReducerAction,
-  TraceReducerState,
-} from 'sentry/views/performance/newTraceDetails/traceState';
-import {TRACE_DRAWER_DEFAULT_SIZES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
-import {
-  getTraceTabTitle,
-  type TraceTabsReducerState,
-} from 'sentry/views/performance/newTraceDetails/traceState/traceTabs';
-import type {ReplayRecord} from 'sentry/views/replays/types';
-
-import {getTraceQueryParams} from '../traceApi/useTrace';
-import type {TraceMetaQueryResults} from '../traceApi/useTraceMeta';
-import {
-  makeTraceNodeBarColor,
-  type TraceTree,
-  type TraceTreeNode,
-} from '../traceModels/traceTree';
+} from '../traceDrawer/usePassiveResizeableDrawer';
+import type {TraceShape, TraceTree} from '../traceModels/traceTree';
+import type {TraceTreeNode} from '../traceModels/traceTreeNode';
+import type {TraceScheduler} from '../traceRenderers/traceScheduler';
+import type {VirtualizedViewManager} from '../traceRenderers/virtualizedViewManager';
+import {makeTraceNodeBarColor} from '../traceRow/traceBar';
+import type {TraceReducerAction, TraceReducerState} from '../traceState';
+import {TRACE_DRAWER_DEFAULT_SIZES} from '../traceState/tracePreferences';
 import {useTraceState, useTraceStateDispatch} from '../traceState/traceStateProvider';
-import type {TraceType} from '../traceType';
+import {getTraceTabTitle, type TraceTabsReducerState} from '../traceState/traceTabs';
 
 import {TraceDetails} from './tabs/trace';
 import {TraceTreeNodeDetails} from './tabs/traceTreeNodeDetails';
@@ -69,7 +60,7 @@ type TraceDrawerProps = {
   trace: TraceTree;
   traceEventView: EventView;
   traceGridRef: HTMLElement | null;
-  traceType: TraceType;
+  traceType: TraceShape;
   traces: TraceSplitResults<TraceFullDetailed> | null;
 };
 
@@ -122,7 +113,9 @@ export function TraceDrawer(props: TraceDrawerProps) {
   const resizeEndRef = useRef<{id: number} | null>(null);
   const onResize = useCallback(
     (size: number, min: number, user?: boolean, minimized?: boolean) => {
-      if (!props.traceGridRef) return;
+      if (!props.traceGridRef) {
+        return;
+      }
 
       // When we resize the layout in x axis, we need to update the physical space
       // of the virtualized view manager to make sure a redrawing is correctly triggered.
@@ -159,7 +152,9 @@ export function TraceDrawer(props: TraceDrawerProps) {
       const drawerWidth = size / width;
       const drawerHeight = size / height;
 
-      if (resizeEndRef.current) cancelAnimationTimeout(resizeEndRef.current);
+      if (resizeEndRef.current) {
+        cancelAnimationTimeout(resizeEndRef.current);
+      }
       resizeEndRef.current = requestAnimationTimeout(() => {
         if (traceStateRef.current.preferences.drawer.minimized) {
           return;
@@ -318,7 +313,9 @@ export function TraceDrawer(props: TraceDrawerProps) {
 
   const initializedRef = useRef(false);
   useLayoutEffect(() => {
-    if (initializedRef.current) return;
+    if (initializedRef.current) {
+      return;
+    }
     if (traceState.preferences.drawer.minimized && props.traceGridRef) {
       if (traceStateRef.current.preferences.layout === 'drawer bottom') {
         props.traceGridRef.style.gridTemplateColumns = `1fr`;

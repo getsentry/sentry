@@ -26,7 +26,6 @@ import {getFormattedDate} from 'sentry/utils/dates';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {parseFunction} from 'sentry/utils/discover/fields';
-import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import {hasOnDemandMetricWidgetFeature} from 'sentry/utils/onDemandMetrics/features';
 import {ExtractedMetricsTag} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {
@@ -41,6 +40,7 @@ import withPageFilters from 'sentry/utils/withPageFilters';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
 import {DASHBOARD_CHART_GROUP} from 'sentry/views/dashboards/dashboard';
+import {DiscoverSplitAlert} from 'sentry/views/dashboards/discoverSplitAlert';
 import {MetricWidgetCard} from 'sentry/views/dashboards/metrics/widgetCard';
 import {Toolbar} from 'sentry/views/dashboards/widgetCard/toolbar';
 
@@ -169,25 +169,29 @@ class WidgetCard extends Component<Props, State> {
     }
 
     return (
-      <WidgetCardContextMenu
-        organization={organization}
-        widget={widget}
-        selection={selection}
-        showContextMenu={showContextMenu}
-        isPreview={isPreview}
-        widgetLimitReached={widgetLimitReached}
-        onDuplicate={onDuplicate}
-        onEdit={onEdit}
-        onDelete={onDelete}
-        router={router}
-        location={location}
-        index={index}
-        seriesData={seriesData}
-        seriesResultsType={seriesResultsType}
-        tableData={tableData}
-        pageLinks={pageLinks}
-        totalIssuesCount={totalIssuesCount}
-      />
+      <WidgetCardContextMenuContainer>
+        <WidgetCardContextMenu
+          organization={organization}
+          widget={widget}
+          selection={selection}
+          showContextMenu={showContextMenu}
+          isPreview={isPreview}
+          widgetLimitReached={widgetLimitReached}
+          onDuplicate={onDuplicate}
+          onEdit={onEdit}
+          onDelete={onDelete}
+          router={router}
+          location={location}
+          index={index}
+          seriesData={seriesData}
+          seriesResultsType={seriesResultsType}
+          tableData={tableData}
+          pageLinks={pageLinks}
+          totalIssuesCount={totalIssuesCount}
+          description={widget.description}
+          title={widget.title}
+        />
+      </WidgetCardContextMenuContainer>
     );
   }
 
@@ -277,25 +281,23 @@ class WidgetCard extends Component<Props, State> {
     );
 
     if (widget.widgetType === WidgetType.METRICS) {
-      if (hasCustomMetrics(organization)) {
-        return (
-          <MetricWidgetCard
-            index={this.props.index}
-            isEditingDashboard={this.props.isEditingDashboard}
-            onEdit={this.props.onEdit}
-            onDelete={this.props.onDelete}
-            onDuplicate={this.props.onDuplicate}
-            router={this.props.router}
-            location={this.props.location}
-            organization={organization}
-            selection={selection}
-            widget={widget}
-            dashboardFilters={dashboardFilters}
-            renderErrorMessage={renderErrorMessage}
-            showContextMenu={this.props.showContextMenu}
-          />
-        );
-      }
+      return (
+        <MetricWidgetCard
+          index={this.props.index}
+          isEditingDashboard={this.props.isEditingDashboard}
+          onEdit={this.props.onEdit}
+          onDelete={this.props.onDelete}
+          onDuplicate={this.props.onDuplicate}
+          router={this.props.router}
+          location={this.props.location}
+          organization={organization}
+          selection={selection}
+          widget={widget}
+          dashboardFilters={dashboardFilters}
+          renderErrorMessage={renderErrorMessage}
+          showContextMenu={this.props.showContextMenu}
+        />
+      );
     }
 
     return (
@@ -311,7 +313,7 @@ class WidgetCard extends Component<Props, State> {
               }
               disabled={Number(this.props.index) !== 0}
             >
-              <WidgetCardPanel isDragging={false}>
+              <WidgetCardPanel isDragging={false} aria-label={t('Widget panel')}>
                 <WidgetHeaderWrapper>
                   <WidgetHeaderDescription>
                     <WidgetTitleRow>
@@ -331,17 +333,8 @@ class WidgetCard extends Component<Props, State> {
                         )}
                       <ExtractedMetricsTag queryKey={widget} />
                       <DisplayOnDemandWarnings widget={widget} />
+                      <DiscoverSplitAlert widget={widget} />
                     </WidgetTitleRow>
-                    {widget.description && (
-                      <Tooltip
-                        title={widget.description}
-                        containerDisplayMode="grid"
-                        showOnlyOnOverflow
-                        isHoverable
-                      >
-                        <WidgetDescription>{widget.description}</WidgetDescription>
-                      </Tooltip>
-                    )}
                   </WidgetHeaderDescription>
                   {this.renderContextMenu()}
                 </WidgetHeaderWrapper>
@@ -497,6 +490,11 @@ const ErrorCard = styled(Placeholder)`
   margin-bottom: ${space(2)};
 `;
 
+export const WidgetCardContextMenuContainer = styled('div')`
+  opacity: 1;
+  transition: opacity 0.1s;
+`;
+
 export const WidgetCardPanel = styled(Panel, {
   shouldForwardProp: prop => prop !== 'isDragging',
 })<{
@@ -509,6 +507,27 @@ export const WidgetCardPanel = styled(Panel, {
   min-height: 96px;
   display: flex;
   flex-direction: column;
+
+  &:not(:hover):not(:focus-within) {
+    ${WidgetCardContextMenuContainer} {
+      opacity: 0;
+      clip: rect(0 0 0 0);
+      clip-path: inset(50%);
+      height: 1px;
+      overflow: hidden;
+      position: absolute;
+      white-space: nowrap;
+      width: 1px;
+    }
+  }
+
+  :hover {
+    background-color: ${p => p.theme.surface200};
+    transition:
+      background-color 100ms linear,
+      box-shadow 100ms linear;
+    box-shadow: ${p => p.theme.dropShadowLight};
+  }
 `;
 
 const StoredDataAlert = styled(Alert)`

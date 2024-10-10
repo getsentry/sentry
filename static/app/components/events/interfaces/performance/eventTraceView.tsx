@@ -36,6 +36,10 @@ const DEFAULT_ISSUE_DETAILS_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
     },
     layoutOptions: [],
   },
+  autogroup: {
+    parent: true,
+    sibling: true,
+  },
   layout: 'drawer bottom',
   list: {
     width: 0.5,
@@ -61,8 +65,12 @@ function EventTraceViewInner({
     traceSlug: traceId ? traceId : undefined,
     limit: 10000,
   });
-  const rootEvent = useTraceRootEvent(trace.data ?? null);
   const meta = useTraceMeta([{traceSlug: traceId, timestamp: undefined}]);
+
+  const hasNoTransactions = meta.data?.transactions === 0;
+  const shouldLoadTraceRoot = !trace.isPending && trace.data && !hasNoTransactions;
+
+  const rootEvent = useTraceRootEvent(shouldLoadTraceRoot ? trace.data! : null);
 
   const preferences = useMemo(
     () =>
@@ -87,12 +95,12 @@ function EventTraceViewInner({
     });
   }, [location.query.statsPeriod, traceId]);
 
-  if (trace.isPending || rootEvent.isPending || !rootEvent.data) {
+  if (trace.isPending || rootEvent.isPending || !rootEvent.data || hasNoTransactions) {
     return null;
   }
 
   return (
-    <InterimSection type={SectionKey.TRACE} title={t('Trace Preview')}>
+    <InterimSection type={SectionKey.TRACE_PREVIEW} title={t('Trace Preview')}>
       <SpanEvidenceKeyValueList event={rootEvent.data} projectSlug={projectSlug} />
       <TraceStateProvider
         initialPreferences={preferences}

@@ -183,9 +183,12 @@ class GroupSerializerBase(Serializer, ABC):
         for team in Team.objects.filter(id__in=all_team_ids.keys()):
             for group_id in all_team_ids[team.id]:
                 result[group_id] = team
-        for user in user_service.get_many_by_id(ids=list(all_user_ids.keys())):
-            for group_id in all_user_ids[user.id]:
-                result[group_id] = user
+
+        user_ids = list(all_user_ids.keys())
+        if user_ids:
+            for user in user_service.get_many_by_id(ids=user_ids):
+                for group_id in all_user_ids[user.id]:
+                    result[group_id] = user
 
         return result
 
@@ -645,7 +648,7 @@ class GroupSerializerBase(Serializer, ABC):
 
     @staticmethod
     def _resolve_external_issue_annotations(groups: Sequence[Group]) -> Mapping[int, Sequence[Any]]:
-        from sentry.models.platformexternalissue import PlatformExternalIssue
+        from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
 
         # find the external issues for sentry apps and add them in
         return (

@@ -26,6 +26,8 @@ import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import type {PlatformKey, Project, ProjectKey} from 'sentry/types/project';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
 const ProductSelectionAvailabilityHook = HookOrDefault({
@@ -55,8 +57,10 @@ export function OnboardingLayout({
   projectSlug,
   activeProductSelection = EMPTY_ARRAY,
   newOrg,
+  projectKeyId,
   configType = 'onboarding',
 }: OnboardingLayoutProps) {
+  const api = useApi();
   const organization = useOrganization();
   const {isPending: isLoadingRegistry, data: registryData} =
     useSourcePackageRegistries(organization);
@@ -71,10 +75,13 @@ export function OnboardingLayout({
     onPlatformOptionsChange,
     onProductSelectionChange,
     onPageLoad,
+    onProductSelectionLoad,
   } = useMemo(() => {
     const doc = docsConfig[configType] ?? docsConfig.onboarding;
 
     const docParams: DocsParams<any> = {
+      api,
+      projectKeyId,
       dsn,
       organization,
       platformKey,
@@ -107,6 +114,7 @@ export function OnboardingLayout({
       nextSteps: doc.nextSteps?.(docParams) || [],
       onPlatformOptionsChange: doc.onPlatformOptionsChange?.(docParams),
       onProductSelectionChange: doc.onProductSelectionChange?.(docParams),
+      onProductSelectionLoad: doc.onProductSelectionLoad?.(docParams),
       onPageLoad: doc.onPageLoad?.(docParams),
     };
   }, [
@@ -124,6 +132,8 @@ export function OnboardingLayout({
     configType,
     urlPrefix,
     isSelfHosted,
+    api,
+    projectKeyId,
   ]);
 
   useEffect(() => {
@@ -135,13 +145,13 @@ export function OnboardingLayout({
     <AuthTokenGeneratorProvider projectSlug={projectSlug}>
       <Wrapper>
         <Header>
-          {introduction && <div>{introduction}</div>}
+          {introduction && <Introduction>{introduction}</Introduction>}
           {configType === 'onboarding' && (
             <ProductSelectionAvailabilityHook
               organization={organization}
               platform={platformKey}
-              projectId={projectId}
               onChange={onProductSelectionChange}
+              onLoad={onProductSelectionLoad}
             />
           )}
           {platformOptions && !['customMetricsOnboarding'].includes(configType) ? (
@@ -160,13 +170,27 @@ export function OnboardingLayout({
         {nextSteps.length > 0 && (
           <Fragment>
             <Divider />
-            <h4>{t('Next Steps')}</h4>
+            <h4>{t('Additional Information')}</h4>
             <List symbol="bullet">
               {nextSteps
                 .filter((step): step is Exclude<typeof step, null> => step !== null)
                 .map(step => (
                   <ListItem key={step.name}>
-                    <ExternalLink href={step.link}>{step.name}</ExternalLink>
+                    <ExternalLink
+                      href={step.link}
+                      onClick={() =>
+                        trackAnalytics('onboarding.next_step_clicked', {
+                          organization,
+                          platform: platformKey,
+                          project_id: projectId,
+                          products: activeProductSelection,
+                          step: step.name,
+                          newOrg: newOrg ?? false,
+                        })
+                      }
+                    >
+                      {step.name}
+                    </ExternalLink>
                     {': '}
                     {step.description}
                   </ListItem>
@@ -210,5 +234,11 @@ const Wrapper = styled('div')`
     h5 {
       margin-bottom: 0;
     }
+  }
+`;
+
+const Introduction = styled('div')`
+  & > p:not(:last-child) {
+    margin-bottom: ${space(2)};
   }
 `;

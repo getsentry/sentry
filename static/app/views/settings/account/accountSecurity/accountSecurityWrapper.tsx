@@ -72,11 +72,11 @@ function AccountSecurityWrapper({children}: Props) {
   });
 
   if (
-    orgRequest.isLoading ||
+    orgRequest.isPending ||
     emailsRequest.isPending ||
     authenticatorsRequest.isPending ||
-    disableAuthenticatorMutation.isLoading ||
-    regenerateBackupCodesMutation.isLoading
+    disableAuthenticatorMutation.isPending ||
+    regenerateBackupCodesMutation.isPending
   ) {
     return <LoadingIndicator />;
   }

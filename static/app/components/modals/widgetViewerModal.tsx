@@ -130,7 +130,13 @@ const shouldWidgetCardChartMemo = (prevProps, props) => {
   );
   const isNotTopNWidget =
     props.widget.displayType !== DisplayType.TOP_N && !defined(props.widget.limit);
-  return selectionMatches && chartZoomOptionsMatches && (sortMatches || isNotTopNWidget);
+  const legendMatches = isEqual(props.legendOptions, prevProps.legendOptions);
+  return (
+    selectionMatches &&
+    chartZoomOptionsMatches &&
+    (sortMatches || isNotTopNWidget) &&
+    legendMatches
+  );
 };
 
 // WidgetCardChartContainer and WidgetCardChart rerenders if selection was changed.
@@ -861,7 +867,6 @@ function WidgetViewerModal(props: Props) {
                 location={location}
                 widget={widget}
                 selection={selection}
-                router={router}
                 organization={organization}
                 onZoom={onZoom}
                 onLegendSelectChanged={onLegendSelectChanged}

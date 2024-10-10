@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useState} from 'react';
+import {useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -24,13 +24,14 @@ import {
   NavigationCrumbs,
   SearchInput,
   ShortId,
-} from 'sentry/components/events/eventReplay/eventDrawer';
+} from 'sentry/components/events/eventDrawer';
 import {
   applyBreadcrumbSearch,
   BREADCRUMB_SORT_LOCALSTORAGE_KEY,
   BREADCRUMB_SORT_OPTIONS,
   BreadcrumbSort,
 } from 'sentry/components/events/interfaces/breadcrumbs';
+import useFocusControl from 'sentry/components/events/useFocusControl';
 import {InputGroup} from 'sentry/components/inputGroup';
 import {IconClock, IconFilter, IconSearch, IconSort, IconTimer} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -47,21 +48,6 @@ export const enum BreadcrumbControlOptions {
   SEARCH = 'search',
   FILTER = 'filter',
   SORT = 'sort',
-}
-
-function useFocusControl(initialFocusControl?: BreadcrumbControlOptions) {
-  const [focusControl, setFocusControl] = useState(initialFocusControl);
-  // If the focused control element is blurred, unset the state to remove styles
-  // This will allow us to simulate :focus-visible on the button elements.
-  const getFocusProps = useCallback(
-    (option: BreadcrumbControlOptions) => {
-      return option === focusControl
-        ? {autoFocus: true, onBlur: () => setFocusControl(undefined)}
-        : {};
-    },
-    [focusControl]
-  );
-  return {getFocusProps};
 }
 
 interface BreadcrumbsDrawerProps {

@@ -1,3 +1,4 @@
+import {ConfigFixture} from 'sentry-fixture/config';
 import {EventFixture} from 'sentry-fixture/event';
 import {EventAttachmentFixture} from 'sentry-fixture/eventAttachment';
 
@@ -12,6 +13,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {EventAttachments} from 'sentry/components/events/eventAttachments';
+import ConfigStore from 'sentry/stores/configStore';
 
 describe('EventAttachments', function () {
   const {router, organization, project} = initializeOrg({
@@ -20,17 +22,19 @@ describe('EventAttachments', function () {
       orgRole: 'member',
       attachmentsRole: 'member',
     },
-  } as any);
+  });
   const event = EventFixture({metadata: {stripped_crash: false}});
 
   const props = {
-    projectSlug: project.slug,
+    group: undefined,
+    project: project,
     event,
   };
 
   const attachmentsUrl = `/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/`;
 
   beforeEach(() => {
+    ConfigStore.loadInitialData(ConfigFixture());
     MockApiClient.clearMockResponses();
   });
 
@@ -56,7 +60,7 @@ describe('EventAttachments', function () {
 
     expect(screen.getByRole('link', {name: 'configure limit'})).toHaveAttribute(
       'href',
-      `/settings/org-slug/projects/${props.projectSlug}/security-and-privacy/`
+      `/settings/org-slug/projects/${project.slug}/security-and-privacy/`
     );
 
     expect(
@@ -93,7 +97,7 @@ describe('EventAttachments', function () {
         orgRole: 'member',
         attachmentsRole: 'admin',
       },
-    } as any);
+    });
     const attachment = EventAttachmentFixture({
       name: 'some_file.txt',
       headers: {
@@ -140,7 +144,7 @@ describe('EventAttachments', function () {
     });
 
     MockApiClient.addMockResponse({
-      url: '/projects/org-slug/project-slug/events/1/attachments/1/?download',
+      url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/1/?download`,
       body: 'file contents',
     });
 

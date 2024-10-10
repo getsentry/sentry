@@ -8,15 +8,19 @@ import type {
   TraceFullDetailed,
   TraceSplitResults,
 } from 'sentry/utils/performance/quickTrace/types';
-import type {UseApiQueryResult, UseInfiniteQueryResult} from 'sentry/utils/queryClient';
+import type {
+  InfiniteData,
+  UseApiQueryResult,
+  UseInfiniteQueryResult,
+} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import {isTraceNode} from '../../../guards';
 import type {TraceMetaQueryResults} from '../../../traceApi/useTraceMeta';
-import type {TraceTree, TraceTreeNode} from '../../../traceModels/traceTree';
-import type {TraceType} from '../../../traceType';
+import {isTraceNode} from '../../../traceGuards';
+import type {TraceShape, TraceTree} from '../../../traceModels/traceTree';
+import type {TraceTreeNode} from '../../../traceModels/traceTreeNode';
 import {IssueList} from '../../details/issues/issues';
 import {TraceDrawerComponents} from '../../details/styles';
 
@@ -27,9 +31,12 @@ type TraceDetailsProps = {
   metaResults: TraceMetaQueryResults;
   node: TraceTreeNode<TraceTree.NodeValue> | null;
   rootEventResults: UseApiQueryResult<EventTransaction, RequestError>;
-  tagsInfiniteQueryResults: UseInfiniteQueryResult<ApiResult<Tag[]>, unknown>;
+  tagsInfiniteQueryResults: UseInfiniteQueryResult<
+    InfiniteData<ApiResult<Tag[]>, unknown>,
+    Error
+  >;
   traceEventView: EventView;
-  traceType: TraceType;
+  traceType: TraceShape;
   traces: TraceSplitResults<TraceFullDetailed> | null;
   tree: TraceTree;
 };
