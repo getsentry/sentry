@@ -25,8 +25,8 @@ class SnubaRPCRequest(Protocol):
 
 class SnubaRPCException(Exception):
     def __init__(self, status_code: int, message: str):
-        self.status_code = status_code
         super().__init__(f"HTTP {status_code} while executing RPC call: {message}")
+        self.status_code = status_code
 
 
 def rpc(req: SnubaRPCRequest, resp_type: type[RPCResponseType]) -> RPCResponseType:
