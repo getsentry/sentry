@@ -24,6 +24,7 @@ import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {ViewTrendsButton} from 'sentry/views/insights/common/viewTrendsButton';
 import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
+import {OVERVIEW_PAGE_ALLOWED_OPS} from 'sentry/views/insights/pages/mobile/settings';
 import {OVERVIEW_PAGE_TITLE} from 'sentry/views/insights/pages/settings';
 import {
   generateGenericPerformanceEventView,
@@ -86,6 +87,12 @@ function MobileOverviewPage() {
   let columnTitles = checkIsReactNative(eventView)
     ? REACT_NATIVE_COLUMN_TITLES
     : MOBILE_COLUMN_TITLES;
+
+  const doubleChartRowEventView = eventView.clone(); // some of the double chart rows rely on span metrics, so they can't be queried the same way
+
+  const existingQuery = new MutableSearch(eventView.query);
+  existingQuery.addDisjunctionFilterValues('transaction.op', OVERVIEW_PAGE_ALLOWED_OPS);
+  eventView.query = existingQuery.formatString();
 
   const showOnboarding = onboardingProject !== undefined;
 
@@ -193,7 +200,11 @@ function MobileOverviewPage() {
                 <PerformanceDisplayProvider
                   value={{performanceType: ProjectPerformanceType.MOBILE}}
                 >
-                  <DoubleChartRow allowedCharts={doubleChartRowCharts} {...sharedProps} />
+                  <DoubleChartRow
+                    allowedCharts={doubleChartRowCharts}
+                    {...sharedProps}
+                    eventView={doubleChartRowEventView}
+                  />
                   <TripleChartRow allowedCharts={tripleChartRowCharts} {...sharedProps} />
                   <Table
                     projects={projects}
