@@ -1,11 +1,12 @@
 import type {ReactElement} from 'react';
-import {useEffect, useLayoutEffect, useMemo, useState} from 'react';
+import {Fragment, useEffect, useLayoutEffect, useMemo, useState} from 'react';
 import * as Sentry from '@sentry/react';
 import type {mat3} from 'gl-matrix';
 import {vec2} from 'gl-matrix';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {ContinuousFlamegraphContextMenu} from 'sentry/components/profiling/flamegraph/flamegraphContextMenu';
+import {FlamegraphWarnings} from 'sentry/components/profiling/flamegraph/flamegraphOverlays/FlamegraphWarnings';
 import {FlamegraphZoomView} from 'sentry/components/profiling/flamegraph/flamegraphZoomView';
 import {defined} from 'sentry/utils';
 import type {
@@ -28,12 +29,16 @@ import {
 import {FlamegraphRenderer2D} from 'sentry/utils/profiling/renderers/flamegraphRenderer2D';
 import {FlamegraphRendererWebGL} from 'sentry/utils/profiling/renderers/flamegraphRendererWebGL';
 import {Rect} from 'sentry/utils/profiling/speedscope';
+import type {QueryStatus} from 'sentry/utils/queryClient';
 import {useFlamegraph} from 'sentry/views/profiling/flamegraphProvider';
 import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
 
 interface AggregateFlamegraphProps {
   canvasPoolManager: CanvasPoolManager;
+  filter: 'application' | 'system' | 'all';
+  onResetFilter: () => void;
   scheduler: CanvasScheduler;
+  status: QueryStatus;
 }
 
 export function AggregateFlamegraph(props: AggregateFlamegraphProps): ReactElement {
@@ -220,22 +225,36 @@ export function AggregateFlamegraph(props: AggregateFlamegraphProps): ReactEleme
   }, [profileGroup, profiles.threadId, dispatch]);
 
   return (
-    <FlamegraphZoomView
-      profileGroup={profileGroup}
-      disableGrid
-      disableCallOrderSort
-      disableColorCoding
-      canvasBounds={flamegraphCanvasBounds}
-      canvasPoolManager={props.canvasPoolManager}
-      flamegraph={flamegraph}
-      flamegraphRenderer={flamegraphRenderer}
-      flamegraphCanvas={flamegraphCanvas}
-      flamegraphCanvasRef={flamegraphCanvasRef}
-      flamegraphOverlayCanvasRef={flamegraphOverlayCanvasRef}
-      flamegraphView={flamegraphView}
-      setFlamegraphCanvasRef={setFlamegraphCanvasRef}
-      setFlamegraphOverlayCanvasRef={setFlamegraphOverlayCanvasRef}
-      contextMenu={ContinuousFlamegraphContextMenu}
-    />
+    <Fragment>
+      <FlamegraphWarnings
+        flamegraph={flamegraph}
+        requestState={
+          props.status === 'pending'
+            ? {type: 'loading'}
+            : props.status === 'error'
+              ? {type: 'errored', error: 'error'}
+              : {type: 'resolved', data: null}
+        }
+        onResetFilter={props.onResetFilter}
+        filter={props.filter}
+      />
+      <FlamegraphZoomView
+        profileGroup={profileGroup}
+        disableGrid
+        disableCallOrderSort
+        disableColorCoding
+        canvasBounds={flamegraphCanvasBounds}
+        canvasPoolManager={props.canvasPoolManager}
+        flamegraph={flamegraph}
+        flamegraphRenderer={flamegraphRenderer}
+        flamegraphCanvas={flamegraphCanvas}
+        flamegraphCanvasRef={flamegraphCanvasRef}
+        flamegraphOverlayCanvasRef={flamegraphOverlayCanvasRef}
+        flamegraphView={flamegraphView}
+        setFlamegraphCanvasRef={setFlamegraphCanvasRef}
+        setFlamegraphOverlayCanvasRef={setFlamegraphOverlayCanvasRef}
+        contextMenu={ContinuousFlamegraphContextMenu}
+      />
+    </Fragment>
   );
 }
