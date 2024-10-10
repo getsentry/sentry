@@ -4,7 +4,6 @@ from django.urls import reverse
 from sentry.api.endpoints.setup_wizard import SETUP_WIZARD_CACHE_KEY
 from sentry.cache import default_cache
 from sentry.testutils.cases import PermissionTestCase
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import control_silo_test
 
 
@@ -106,7 +105,6 @@ class SetupWizard(PermissionTestCase):
 
         assert default_cache.get(key) == "test"
 
-    @with_feature("users:new-setup-wizard-ui")
     def test_renders_selection_when_given_org_and_project_slug_and_project_not_in_org(self):
         self.org = self.create_organization(owner=self.user)
         self.project = self.create_project()
