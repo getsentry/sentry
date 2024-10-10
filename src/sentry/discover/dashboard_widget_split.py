@@ -80,8 +80,12 @@ def _get_and_save_split_decision_for_dashboard_widget(
     # We use all projects for the clickhouse query but don't do anything
     # with the data returned other than check if data exists. So this
     # all projects query should be a safe operation.
-    projects = dashboard.projects.all() or Project.objects.filter(
-        organization_id=dashboard.organization.id, status=ObjectStatus.ACTIVE
+    projects = (
+        dashboard.projects.all()
+        if dashboard.projects.exists()
+        else Project.objects.filter(
+            organization_id=dashboard.organization.id, status=ObjectStatus.ACTIVE
+        )
     )
     snuba_dataclass = _get_snuba_dataclass_for_dashboard_widget(widget, list(projects))
 
