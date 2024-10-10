@@ -116,6 +116,7 @@ export default function StreamlinedGroupHeader({
           </TitleHeading>
           <MessageWrapper>
             <EventMessage
+              data={group}
               message={message}
               type={group.type}
               level={group.level}

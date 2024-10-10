@@ -49,6 +49,7 @@ import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useMutation} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import withOrganization from 'sentry/utils/withOrganization';
 import type {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
@@ -92,8 +93,10 @@ function GroupCheckbox({
   group: Group;
   displayReprocessingLayout?: boolean;
 }) {
+  const organization = useOrganization();
   const {records: selectedGroupMap} = useLegacyStore(SelectedGroupStore);
   const isSelected = selectedGroupMap.get(group.id) ?? false;
+  const hasNewLayout = organization.features.includes('issue-stream-table-layout');
 
   const onChange = useCallback(
     (evt: React.ChangeEvent<HTMLInputElement>) => {
@@ -109,7 +112,7 @@ function GroupCheckbox({
   );
 
   return (
-    <GroupCheckBoxWrapper>
+    <GroupCheckBoxWrapper hasNewLayout={hasNewLayout}>
       <Checkbox
         id={group.id}
         aria-label={t('Select Issue')}
@@ -165,6 +168,7 @@ function BaseGroupRow({
   );
   const originalInboxState = useRef(group?.inbox as InboxDetails | null);
   const {selection} = usePageFilters();
+  const hasNewLayout = organization.features.includes('issue-stream-table-layout');
 
   const referrer = source ? `${source}-issue-stream` : 'issue-stream';
 
@@ -510,6 +514,7 @@ function BaseGroupRow({
       onClick={displayReprocessingLayout || !canSelect ? undefined : wrapperToggle}
       reviewed={reviewed}
       useTintRow={useTintRow ?? true}
+      hasNewLayout={hasNewLayout}
     >
       {canSelect && (
         <GroupCheckbox
@@ -517,7 +522,7 @@ function BaseGroupRow({
           displayReprocessingLayout={displayReprocessingLayout}
         />
       )}
-      <GroupSummary canSelect={canSelect}>
+      <GroupSummary canSelect={canSelect} hasNewLayout={hasNewLayout}>
         <EventOrGroupHeader
           index={index}
           organization={organization}
@@ -647,12 +652,20 @@ export default StreamGroup;
 
 // Position for wrapper is relative for overlay actions
 const Wrapper = styled(PanelItem)<{
+  hasNewLayout: boolean;
   reviewed: boolean;
   useTintRow: boolean;
 }>`
   position: relative;
   padding: ${space(1.5)} 0;
   line-height: 1.1;
+
+  ${p =>
+    p.hasNewLayout &&
+    css`
+      padding: ${space(1)} 0;
+      min-height: 66px;
+    `}
 
   ${p =>
     p.useTintRow &&
@@ -690,24 +703,39 @@ const Wrapper = styled(PanelItem)<{
     `};
 `;
 
-const GroupSummary = styled('div')<{canSelect: boolean}>`
+const GroupSummary = styled('div')<{canSelect: boolean; hasNewLayout: boolean}>`
   overflow: hidden;
   margin-left: ${p => space(p.canSelect ? 1 : 2)};
   margin-right: ${space(1)};
   flex: 1;
   width: 66.66%;
 
+  ${p =>
+    p.hasNewLayout &&
+    css`
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      font-size: ${p.theme.fontSizeMedium};
+    `}
+
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
     width: 50%;
   }
 `;
 
-const GroupCheckBoxWrapper = styled('div')`
+const GroupCheckBoxWrapper = styled('div')<{hasNewLayout: boolean}>`
   margin-left: ${space(2)};
   align-self: flex-start;
   height: 15px;
   display: flex;
   align-items: center;
+
+  ${p =>
+    p.hasNewLayout &&
+    css`
+      padding-top: ${space(2)};
+    `}
 `;
 
 const primaryStatStyle = (theme: Theme) => css`
