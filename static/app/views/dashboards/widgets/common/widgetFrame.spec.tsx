@@ -14,6 +14,18 @@ describe('WidgetFrame', () => {
     });
   });
 
+  describe('Warnings', () => {
+    it('Shows the warnings in a tooltip', async () => {
+      render(<WidgetFrame title="count()" warnings={['This widget has stale data']} />);
+
+      expect(screen.queryByText('This widget has stale data')).not.toBeInTheDocument();
+
+      await userEvent.hover(screen.getByRole('button', {name: 'Widget warnings'}));
+
+      expect(await screen.findByText('This widget has stale data')).toBeInTheDocument();
+    });
+  });
+
   describe('Action Menu', () => {
     it('Renders a single action as a button', async () => {
       const onAction = jest.fn();

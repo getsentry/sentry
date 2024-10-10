@@ -40,6 +40,7 @@ export function ToolbarGroupBy({disabled}: ToolbarGroupByProps) {
         return {
           label: groupBy,
           value: groupBy,
+          textValue: groupBy,
         };
       });
 
@@ -47,12 +48,13 @@ export function ToolbarGroupBy({disabled}: ToolbarGroupByProps) {
       return {
         label: tagKey,
         value: tagKey,
+        textValue: tagKey,
       };
     });
 
     return [
       // hard code in an empty option
-      {label: t('None'), value: ''},
+      {label: t('None'), value: '', textValue: t('none')},
       ...unknownOptions,
       ...knownOptions,
     ];

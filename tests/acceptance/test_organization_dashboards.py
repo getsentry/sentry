@@ -24,6 +24,7 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import no_silo_test
 
 FEATURE_NAMES = [
+    "organizations:performance-view",
     "organizations:discover-basic",
     "organizations:discover-query",
     "organizations:dashboards-basic",

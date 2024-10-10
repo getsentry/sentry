@@ -70,6 +70,10 @@ describe('UpdatedGroupHeader', () => {
         url: `/organizations/${organization.slug}/issues/${group.id}/attachments/`,
         body: [],
       });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/users/`,
+        body: [],
+      });
     });
 
     it('shows all elements of header', async () => {
@@ -109,6 +113,7 @@ describe('UpdatedGroupHeader', () => {
           {...defaultProps}
           group={participantGroup}
           project={project}
+          event={null}
         />,
         {
           organization,
@@ -159,7 +164,12 @@ describe('UpdatedGroupHeader', () => {
         body: {firstRelease, lastRelease: firstRelease},
       });
       render(
-        <StreamlinedGroupHeader {...defaultProps} group={group} project={project} />,
+        <StreamlinedGroupHeader
+          {...defaultProps}
+          group={group}
+          project={project}
+          event={null}
+        />,
         {
           organization,
           router,
@@ -180,7 +190,12 @@ describe('UpdatedGroupHeader', () => {
         features: ['issue-details-streamline'],
       });
       render(
-        <StreamlinedGroupHeader {...defaultProps} group={group} project={project} />,
+        <StreamlinedGroupHeader
+          {...defaultProps}
+          group={group}
+          project={project}
+          event={null}
+        />,
         {
           organization: flaggedOrganization,
           router,

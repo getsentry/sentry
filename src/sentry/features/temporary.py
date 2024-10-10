@@ -98,6 +98,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:dashboards-import", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable metrics enhanced performance in dashboards
     manager.add("organizations:dashboards-mep", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable metrics enhanced performance for AM2+ customers as they transition from AM2 to AM3
+    manager.add("organizations:dashboards-metrics-transition", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("organizations:dashboards-span-metrics", OrganizationFeature, FeatureHandlerStrategy.OPTIONS, api_expose=False)
     # Enable releases overlay on dashboard chart widgets
     manager.add("organizations:dashboards-releases-on-charts", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
@@ -544,6 +546,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:webhooks-unresolved", OrganizationFeature, FeatureHandlerStrategy.OPTIONS, api_expose=True)
     # Enable new feature parsing code for Jira integrations
     manager.add("organizations:new-jira-transformers", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Enable EventUniqueUserFrequencyConditionWithConditions special alert condition
+    manager.add("organizations:event-unique-user-frequency-condition-with-conditions", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # NOTE: Don't add features down here! Add them to their specific group and sort
     #       them alphabetically! The order features are registered is not important.
 

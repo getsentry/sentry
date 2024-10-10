@@ -113,9 +113,14 @@ function StreamlinedActivitySection({group}: {group: Group}) {
               title={
                 <TitleWrapper>
                   {title}
-                  {item.type === GroupActivityType.NOTE && (
-                    <NoteDropdown onDelete={() => handleDelete(item)} user={item.user} />
-                  )}
+                  <NoteDropdownWrapper>
+                    {item.type === GroupActivityType.NOTE && (
+                      <NoteDropdown
+                        onDelete={() => handleDelete(item)}
+                        user={item.user}
+                      />
+                    )}
+                  </NoteDropdownWrapper>
                 </TitleWrapper>
               }
               timestamp={<SmallTimestamp date={item.dateCreated} />}
@@ -142,10 +147,13 @@ const Author = styled('span')`
   font-weight: ${p => p.theme.fontWeightBold};
 `;
 
+const NoteDropdownWrapper = styled('span')`
+  font-weight: normal;
+`;
+
 const TitleWrapper = styled('div')`
   display: flex;
   align-items: center;
-  font-weight: normal;
   gap: ${space(0.5)};
 `;
 
