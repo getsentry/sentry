@@ -7,7 +7,7 @@ from django.urls import reverse
 
 from sentry.snuba.metrics.naming_layer import TransactionMRI
 from sentry.testutils.cases import MetricsAPIBaseTestCase
-from sentry.testutils.helpers.datetime import freeze_time, iso_format
+from sentry.testutils.helpers.datetime import freeze_time
 
 pytestmark = pytest.mark.sentry_metrics
 
@@ -60,8 +60,8 @@ class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
             self.url,
             format="json",
             data={
-                "end": iso_format(self.now - timedelta(minutes=1)),
-                "start": iso_format(self.now - timedelta(hours=4)),
+                "end": self.now - timedelta(minutes=1),
+                "start": self.now - timedelta(hours=4),
                 "field": ["project", "transaction"],
                 "query": "event.type:transaction",
             },
@@ -75,8 +75,8 @@ class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
                 self.url,
                 format="json",
                 data={
-                    "end": iso_format(self.now - timedelta(minutes=1)),
-                    "start": iso_format(self.now - timedelta(hours=4)),
+                    "end": self.now - timedelta(minutes=1),
+                    "start": self.now - timedelta(hours=4),
                     "interval": "1h",
                     "field": ["project", "transaction"],
                     "query": "",
@@ -104,8 +104,8 @@ class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
                 self.url,
                 format="json",
                 data={
-                    "end": iso_format(self.now),
-                    "start": iso_format(self.now - timedelta(days=1)),
+                    "end": self.now,
+                    "start": self.now - timedelta(days=1),
                     "interval": "1h",
                     "field": ["project", "transaction"],
                     "query": "event.type:transaction",
@@ -134,8 +134,8 @@ class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
                 self.url,
                 format="json",
                 data={
-                    "end": iso_format(self.now),
-                    "start": iso_format(self.now - timedelta(days=1)),
+                    "end": self.now,
+                    "start": self.now - timedelta(days=1),
                     "interval": "1h",
                     "field": ["project", "transaction"],
                     "query": "event.type:transaction",
@@ -172,8 +172,8 @@ class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
                 self.url,
                 format="json",
                 data={
-                    "end": iso_format(self.now),
-                    "start": iso_format(self.now - timedelta(days=1)),
+                    "end": self.now,
+                    "start": self.now - timedelta(days=1),
                     "interval": "1h",
                     "field": ["project", "transaction"],
                     "query": "event.type:transaction transaction:foo",
@@ -205,8 +205,8 @@ class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
                 self.url,
                 format="json",
                 data={
-                    "end": iso_format(self.now),
-                    "start": iso_format(self.now - timedelta(days=1)),
+                    "end": self.now,
+                    "start": self.now - timedelta(days=1),
                     "interval": "1h",
                     "field": ["project", "transaction"],
                     "query": "event.type:transaction",
@@ -244,8 +244,8 @@ class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
                 self.url,
                 format="json",
                 data={
-                    "end": iso_format(self.now),
-                    "start": iso_format(self.now - timedelta(days=1)),
+                    "end": self.now,
+                    "start": self.now - timedelta(days=1),
                     "interval": "1h",
                     "field": ["project", "transaction"],
                     "query": "event.type:transaction",
@@ -282,8 +282,8 @@ class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
                 self.url,
                 format="json",
                 data={
-                    "end": iso_format(self.now),
-                    "start": iso_format(self.now - timedelta(days=1)),
+                    "end": self.now,
+                    "start": self.now - timedelta(days=1),
                     "interval": "1h",
                     "field": ["project", "transaction"],
                     "query": "event.type:transaction",
@@ -327,8 +327,8 @@ class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
                 self.url,
                 format="json",
                 data={
-                    "end": iso_format(self.now),
-                    "start": iso_format(self.now - timedelta(days=1)),
+                    "end": self.now,
+                    "start": self.now - timedelta(days=1),
                     "interval": "1h",
                     "field": ["project", "transaction"],
                     "query": "event.type:transaction",
@@ -394,8 +394,8 @@ class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
                 self.url,
                 format="json",
                 data={
-                    "end": iso_format(self.now),
-                    "start": iso_format(self.now - timedelta(days=1)),
+                    "end": self.now,
+                    "start": self.now - timedelta(days=1),
                     "interval": "1h",
                     "field": ["project", "transaction"],
                     "query": "event.type:transaction",

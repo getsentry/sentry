@@ -29,15 +29,15 @@ class OrganizationEventsMetaTest(APITestCase, SnubaTestCase, OccurrenceTestMixin
         event_id_b = "b" * 32
 
         event_a = self.store_event(
-            data={"event_id": event_id_a, "timestamp": iso_format(self.min_ago)},
+            data={"event_id": event_id_a, "timestamp": self.min_ago.timestamp()},
             project_id=self.project_1.id,
         )
         event_b = self.store_event(
-            data={"event_id": event_id_b, "timestamp": iso_format(self.min_ago)},
+            data={"event_id": event_id_b, "timestamp": self.min_ago.timestamp()},
             project_id=self.project_2.id,
         )
-        self.store_event(data={"timestamp": iso_format(self.min_ago)}, project_id=self.project_1.id)
-        self.store_event(data={"timestamp": iso_format(self.min_ago)}, project_id=self.project_1.id)
+        self.store_event(data={"timestamp": self.min_ago.timestamp()}, project_id=self.project_1.id)
+        self.store_event(data={"timestamp": self.min_ago.timestamp()}, project_id=self.project_1.id)
 
         query = {"query": f"id:[{event_id_a}, {event_id_b}]"}
         with self.feature(self.features):
@@ -84,8 +84,8 @@ class OrganizationEventsMetaTest(APITestCase, SnubaTestCase, OccurrenceTestMixin
             },
             event_data={
                 "platform": "javascript",
-                "timestamp": iso_format(self.min_ago),
-                "received": iso_format(self.min_ago),
+                "timestamp": self.min_ago.timestamp(),
+                "received": self.min_ago.timestamp(),
             },
         )
 

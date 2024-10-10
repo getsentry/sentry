@@ -42,7 +42,7 @@ from sentry.plugins.base import Notification
 from sentry.replays.testutils import mock_replay
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import PerformanceIssueTestCase, ReplaysSnubaTestCase, TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
@@ -663,7 +663,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             UserOption.objects.create(user=self.user, key="timezone", value="Europe/Vienna")
 
         event = self.store_event(
-            data={"message": "foobar", "level": "error", "timestamp": iso_format(timestamp)},
+            data={"message": "foobar", "level": "error", "timestamp": timestamp.timestamp()},
             project_id=self.project.id,
         )
 
@@ -725,7 +725,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             data={
                 "message": "Kaboom!",
                 "platform": "python",
-                "timestamp": iso_format(before_now(seconds=1)),
+                "timestamp": before_now(seconds=1).timestamp(),
                 "stacktrace": {
                     "frames": [
                         {
@@ -778,7 +778,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
                 "contexts": {"replay": {"replay_id": "46eb3948be25448abd53fe36b5891ff2"}},
                 "message": "Kaboom!",
                 "platform": "python",
-                "timestamp": iso_format(before_now(seconds=1)),
+                "timestamp": before_now(seconds=1).timestamp(),
                 "tags": [("level", "error")],
                 "request": {"url": "example.com"},
             },
@@ -1357,7 +1357,7 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
     @mock.patch.object(mail_adapter, "notify", side_effect=mail_adapter.notify, autospec=True)
     def test_notify_digest(self, notify):
         project = self.project
-        timestamp = iso_format(before_now(minutes=1))
+        timestamp = before_now(minutes=1).timestamp()
         event = self.store_event(
             data={"timestamp": timestamp, "fingerprint": ["group-1"]},
             project_id=project.id,
@@ -1396,7 +1396,7 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
         self.project.flags.has_replays = True
         self.project.save()
 
-        timestamp = iso_format(before_now(minutes=1))
+        timestamp = before_now(minutes=1).timestamp()
         replay1_id = "46eb3948be25448abd53fe36b5891ff2"
         event = self.store_event(
             data={
@@ -1451,7 +1451,7 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
     def test_dont_notify_digest_snoozed(self, notify):
         """Test that a digest for an alert snoozed by user is not sent."""
         project = self.project
-        timestamp = iso_format(before_now(minutes=1))
+        timestamp = before_now(minutes=1).timestamp()
         event = self.store_event(
             data={"timestamp": timestamp, "fingerprint": ["group-1"]},
             project_id=project.id,
@@ -1485,7 +1485,7 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
         user2 = self.create_user(email="baz@example.com", is_active=True)
         self.create_member(user=user2, organization=self.organization, teams=[self.team])
         project = self.project
-        timestamp = iso_format(before_now(minutes=1))
+        timestamp = before_now(minutes=1).timestamp()
         event = self.store_event(
             data={"timestamp": timestamp, "fingerprint": ["group-1"]},
             project_id=project.id,
@@ -1534,7 +1534,7 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
         user2 = self.create_user(email="baz@example.com", is_active=True)
         self.create_member(user=user2, organization=self.organization, teams=[self.team])
         project = self.project
-        timestamp = iso_format(before_now(minutes=1))
+        timestamp = before_now(minutes=1).timestamp()
         event = self.store_event(
             data={"timestamp": timestamp, "fingerprint": ["group-1"]},
             project_id=project.id,
@@ -1577,7 +1577,7 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
         user2 = self.create_user(email="baz@example.com", is_active=True)
         self.create_member(user=user2, organization=self.organization, teams=[self.team])
         project = self.project
-        timestamp = iso_format(before_now(minutes=1))
+        timestamp = before_now(minutes=1).timestamp()
         event = self.store_event(
             data={"timestamp": timestamp, "fingerprint": ["group-1"]},
             project_id=project.id,
@@ -1636,7 +1636,7 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
             project=self.project, key="mail:subject_prefix", value="[Example prefix] "
         )
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
-        timestamp = iso_format(before_now(minutes=1))
+        timestamp = before_now(minutes=1).timestamp()
         event = self.store_event(
             data={"timestamp": timestamp, "fingerprint": ["group-1"]},
             project_id=self.project.id,
@@ -1672,7 +1672,7 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
         no longer exists, we don't blow up when getting users in get_send_to
         """
         project = self.project
-        timestamp = iso_format(before_now(minutes=1))
+        timestamp = before_now(minutes=1).timestamp()
         event = self.store_event(
             data={"timestamp": timestamp, "fingerprint": ["group-1"]},
             project_id=project.id,

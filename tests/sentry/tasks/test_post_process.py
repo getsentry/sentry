@@ -67,7 +67,7 @@ from sentry.tasks.post_process import (
 )
 from sentry.testutils.cases import BaseTestCase, PerformanceIssueTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers import with_feature
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.eventprocessing import write_event_to_cache
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.helpers.redis import mock_redis_buffer
@@ -126,7 +126,7 @@ class CorePostProcessGroupTestMixin(BasePostProgressGroupMixin):
         mock_process_service_hook,
         mock_processor,
     ):
-        min_ago = iso_format(before_now(minutes=1))
+        min_ago = before_now(minutes=1).timestamp()
         event = self.store_event(
             data={
                 "type": "transaction",
@@ -661,7 +661,7 @@ class ResourceChangeBoundsTestMixin(BasePostProgressGroupMixin):
                 "message": "Foo bar",
                 "exception": {"type": "Foo", "value": "oh no"},
                 "level": "error",
-                "timestamp": iso_format(timezone.now()),
+                "timestamp": timezone.now().timestamp(),
             },
             project_id=self.project.id,
             assert_no_errors=False,
@@ -695,7 +695,7 @@ class ResourceChangeBoundsTestMixin(BasePostProgressGroupMixin):
             data={
                 "message": "Foo bar",
                 "level": "info",
-                "timestamp": iso_format(timezone.now()),
+                "timestamp": timezone.now().timestamp(),
             },
             project_id=self.project.id,
             assert_no_errors=False,
@@ -716,7 +716,7 @@ class ResourceChangeBoundsTestMixin(BasePostProgressGroupMixin):
             data={
                 "message": "Foo bar",
                 "level": "info",
-                "timestamp": iso_format(timezone.now()),
+                "timestamp": timezone.now().timestamp(),
             },
             project_id=self.project.id,
             assert_no_errors=False,
@@ -739,7 +739,7 @@ class ResourceChangeBoundsTestMixin(BasePostProgressGroupMixin):
                 "message": "Foo bar",
                 "level": "error",
                 "exception": {"type": "Foo", "value": "oh no"},
-                "timestamp": iso_format(timezone.now()),
+                "timestamp": timezone.now().timestamp(),
             },
             project_id=self.project.id,
             assert_no_errors=False,
@@ -1412,7 +1412,7 @@ class ProcessCommitsTestMixin(BasePostProgressGroupMixin):
             data={
                 "message": "Kaboom!",
                 "platform": "python",
-                "timestamp": iso_format(before_now(seconds=10)),
+                "timestamp": before_now(seconds=10).timestamp(),
                 "stacktrace": {
                     "frames": [
                         {
@@ -2452,7 +2452,7 @@ class PostProcessGroupErrorTest(
     def test_generic_metrics_backend_counter(
         self, metric_timer_mock, metric_incr_mock, generic_metrics_backend_mock
     ):
-        min_ago = iso_format(before_now(minutes=1))
+        min_ago = before_now(minutes=1).timestamp()
         event = self.create_event(
             data={
                 "exception": {

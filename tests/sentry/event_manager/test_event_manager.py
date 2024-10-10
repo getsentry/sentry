@@ -1924,7 +1924,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
                     }
                 },
                 spans=[],
-                timestamp=iso_format(before_now(minutes=5)),
+                timestamp=before_now(minutes=5).timestamp(),
                 start_timestamp=iso_format(before_now(minutes=5)),
                 type="transaction",
                 platform="python",
@@ -1961,7 +1961,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
                     }
                 },
                 spans=[],
-                timestamp=iso_format(before_now(minutes=5)),
+                timestamp=before_now(minutes=5).timestamp(),
                 start_timestamp=iso_format(before_now(minutes=5)),
                 type="transaction",
                 platform="python",
@@ -2024,7 +2024,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
                     }
                 },
                 spans=[],
-                timestamp=iso_format(before_now(minutes=5)),
+                timestamp=before_now(minutes=5).timestamp(),
                 start_timestamp=iso_format(before_now(minutes=5)),
                 type="transaction",
                 platform="python",

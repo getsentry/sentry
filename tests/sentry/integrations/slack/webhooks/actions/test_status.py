@@ -29,7 +29,7 @@ from sentry.models.team import Team
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import PerformanceIssueTestCase
-from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
@@ -728,8 +728,8 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         group_fingerprint = f"{PerformanceNPlusOneGroupType.type_id}-group1"
 
         event_data_2 = load_data("transaction-n-plus-one", fingerprint=[group_fingerprint])
-        event_data_2["timestamp"] = iso_format(before_now(seconds=20))
-        event_data_2["start_timestamp"] = iso_format(before_now(seconds=21))
+        event_data_2["timestamp"] = before_now(seconds=20).timestamp()
+        event_data_2["start_timestamp"] = before_now(seconds=21).timestamp()
         event_data_2["event_id"] = "f" * 32
 
         perf_issue = self.create_performance_issue(

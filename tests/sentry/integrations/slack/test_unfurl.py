@@ -19,7 +19,7 @@ from sentry.snuba import discover, errors, transactions
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import install_slack
-from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba, pytest.mark.sentry_metrics]
@@ -189,7 +189,7 @@ class UnfurlTest(TestCase):
         self.frozen_time.stop()
 
     def test_unfurl_issues(self):
-        min_ago = iso_format(before_now(minutes=1))
+        min_ago = before_now(minutes=1).timestamp()
         event = self.store_event(
             data={"fingerprint": ["group2"], "timestamp": min_ago}, project_id=self.project.id
         )
@@ -218,7 +218,7 @@ class UnfurlTest(TestCase):
         )
 
     def test_unfurl_issues_block_kit(self):
-        min_ago = iso_format(before_now(minutes=1))
+        min_ago = before_now(minutes=1).timestamp()
         event = self.store_event(
             data={"fingerprint": ["group2"], "timestamp": min_ago}, project_id=self.project.id
         )

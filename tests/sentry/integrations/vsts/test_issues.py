@@ -26,7 +26,7 @@ from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.silo.base import SiloMode
 from sentry.silo.util import PROXY_PATH
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.users.models.identity import Identity
@@ -474,7 +474,7 @@ class VstsIssueFormTest(VstsIssueBase):
                 "count": 2,
             },
         )
-        min_ago = iso_format(before_now(minutes=1))
+        min_ago = before_now(minutes=1).timestamp()
         event = self.store_event(
             data={"fingerprint": ["group1"], "timestamp": min_ago}, project_id=self.project.id
         )

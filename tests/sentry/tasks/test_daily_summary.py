@@ -29,7 +29,7 @@ from sentry.testutils.cases import (
     SnubaTestCase,
 )
 from sentry.testutils.factories import EventType
-from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
@@ -54,7 +54,7 @@ class DailySummaryTest(
         with self.options({"issues.group_attributes.send_kafka": True}):
             if category == DataCategory.ERROR:
                 data = {
-                    "timestamp": iso_format(timestamp),
+                    "timestamp": timestamp.timestamp(),
                     "fingerprint": [fingerprint],
                     "level": level,
                     "exception": {
@@ -735,7 +735,7 @@ class DailySummaryTest(
     def test_slack_notification_contents_newline(self):
         type_string = '"""\nTraceback (most recent call last):\nFile /\'/usr/hb/meow/\''
         data = {
-            "timestamp": iso_format(self.now),
+            "timestamp": self.now.timestamp(),
             "fingerprint": ["group-5"],
             "exception": {
                 "values": [
@@ -784,7 +784,7 @@ class DailySummaryTest(
 
     def test_slack_notification_contents_newline_no_attachment_text(self):
         data = {
-            "timestamp": iso_format(self.now),
+            "timestamp": self.now.timestamp(),
             "fingerprint": ["group-5"],
             "exception": {
                 "values": [
@@ -833,7 +833,7 @@ class DailySummaryTest(
 
     def test_slack_notification_contents_truncate_text(self):
         data = {
-            "timestamp": iso_format(self.now),
+            "timestamp": self.now.timestamp(),
             "fingerprint": ["group-5"],
             "exception": {
                 "values": [

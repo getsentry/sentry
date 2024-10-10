@@ -14,7 +14,7 @@ from sentry.models.projectownership import ProjectOwnership
 from sentry.models.rule import Rule
 from sentry.tasks.digests import deliver_digest
 from sentry.testutils.cases import PerformanceIssueTestCase, SlackActivityNotificationTest, TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.skips import requires_snuba
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
@@ -43,7 +43,7 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
             event = self.store_event(
                 data={
                     "message": "oh no",
-                    "timestamp": iso_format(before_now(days=1)),
+                    "timestamp": before_now(days=1).timestamp(),
                     "fingerprint": [fingerprint],
                 },
                 project_id=self.project.id,
@@ -165,7 +165,7 @@ class DigestSlackNotification(SlackActivityNotificationTest):
         digests.enabled.return_value = True
         timestamp_raw = before_now(days=1)
         timestamp_secs = int(timestamp_raw.timestamp())
-        timestamp = iso_format(timestamp_raw)
+        timestamp = timestamp_raw.timestamp()
         key = f"slack:p:{self.project.id}:IssueOwners::AllMembers"
         rule = Rule.objects.create(project=self.project, label="my rule")
         event1 = self.store_event(

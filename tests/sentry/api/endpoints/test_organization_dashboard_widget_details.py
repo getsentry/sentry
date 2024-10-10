@@ -12,7 +12,7 @@ from sentry.models.dashboard_widget import (
 )
 from sentry.snuba.metrics.extraction import OnDemandMetricSpecVersioning
 from sentry.testutils.cases import OrganizationDashboardWidgetTestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
@@ -397,7 +397,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
                 "event_id": "a" * 32,
                 "transaction": "/example",
                 "message": "how to make fast",
-                "timestamp": iso_format(before_now(minutes=2)),
+                "timestamp": before_now(minutes=2).timestamp(),
                 "fingerprint": ["group_1"],
             },
             project_id=self.project.id,
@@ -503,7 +503,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
             "queries": [
                 {
                     "name": "timestamp filter",
-                    "conditions": f"timestamp.to_day:<{iso_format(before_now(hours=1))}",
+                    "conditions": f"timestamp.to_day:<{before_now(hours=1)}",
                     "fields": [],
                 }
             ],
@@ -1066,7 +1066,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
                 "event_id": "a" * 32,
                 "transaction": "/example",
                 "message": "how to make fast",
-                "timestamp": iso_format(before_now(minutes=2)),
+                "timestamp": before_now(minutes=2).timestamp(),
                 "tags": {"sometag": "foo"},
             },
             project_id=self.project.id,

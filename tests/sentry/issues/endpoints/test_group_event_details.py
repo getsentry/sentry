@@ -5,7 +5,7 @@ from sentry.models.group import GroupStatus
 from sentry.models.release import Release
 from sentry.search.events.constants import SEMVER_ALIAS
 from sentry.testutils.cases import APITestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 
@@ -26,7 +26,7 @@ class GroupEventDetailsEndpointTestBase(APITestCase, SnubaTestCase):
             data={
                 "event_id": "a" * 32,
                 "environment": "development",
-                "timestamp": iso_format(before_now(days=1)),
+                "timestamp": before_now(days=1).timestamp(),
                 "fingerprint": ["group-1"],
                 "release": self.release_version,
             },
@@ -36,7 +36,7 @@ class GroupEventDetailsEndpointTestBase(APITestCase, SnubaTestCase):
             data={
                 "event_id": "b" * 32,
                 "environment": "production",
-                "timestamp": iso_format(before_now(minutes=5)),
+                "timestamp": before_now(minutes=5).timestamp(),
                 "fingerprint": ["group-1"],
                 "release": self.release_version,
             },
@@ -46,7 +46,7 @@ class GroupEventDetailsEndpointTestBase(APITestCase, SnubaTestCase):
             data={
                 "event_id": "c" * 32,
                 "environment": "staging",
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": before_now(minutes=1).timestamp(),
                 "fingerprint": ["group-1"],
                 "release": self.release_version,
             },
@@ -143,7 +143,7 @@ class GroupEventDetailsHelpfulEndpointTest(
             data={
                 "event_id": "d" * 32,
                 "environment": "staging",
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": before_now(minutes=1).timestamp(),
                 "fingerprint": ["group-1"],
                 "contexts": {
                     "replay": {"replay_id": uuid.uuid4().hex},
@@ -169,7 +169,7 @@ class GroupEventDetailsHelpfulEndpointTest(
         """
         When everything else is equal, the event_id should be used to break ties.
         """
-        timestamp = iso_format(before_now(minutes=1))
+        timestamp = before_now(minutes=1).timestamp()
 
         self.event_d = self.store_event(
             data={
@@ -211,7 +211,7 @@ class GroupEventDetailsHelpfulEndpointTest(
             data={
                 "event_id": "d" * 32,
                 "environment": "staging",
-                "timestamp": iso_format(before_now(minutes=3)),
+                "timestamp": before_now(minutes=3).timestamp(),
                 "fingerprint": ["group-order"],
                 "contexts": {
                     "replay": {"replay_id": replay_id_1},
@@ -223,7 +223,7 @@ class GroupEventDetailsHelpfulEndpointTest(
             data={
                 "event_id": "e" * 32,
                 "environment": "staging",
-                "timestamp": iso_format(before_now(minutes=2)),
+                "timestamp": before_now(minutes=2).timestamp(),
                 "fingerprint": ["group-order"],
                 "contexts": {
                     "replay": {"replay_id": replay_id_2},
@@ -235,7 +235,7 @@ class GroupEventDetailsHelpfulEndpointTest(
             data={
                 "event_id": "f" * 32,
                 "environment": "staging",
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": before_now(minutes=1).timestamp(),
                 "fingerprint": ["group-order"],
             },
             project_id=self.project_1.id,
@@ -281,7 +281,7 @@ class GroupEventDetailsHelpfulEndpointTest(
             data={
                 "event_id": "1" * 32,
                 "environment": "staging",
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": before_now(minutes=1).timestamp(),
                 "fingerprint": ["group-4"],
                 "release": "test@1.2.3",
             },
@@ -314,7 +314,7 @@ class GroupEventDetailsHelpfulEndpointTest(
             data={
                 "event_id": "e" * 32,
                 "environment": "staging",
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": before_now(minutes=1).timestamp(),
                 "fingerprint": ["group-4"],
                 "contexts": {
                     "replay": {"replay_id": uuid.uuid4().hex},
@@ -333,7 +333,7 @@ class GroupEventDetailsHelpfulEndpointTest(
             data={
                 "event_id": "f" * 32,
                 "environment": "staging",
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": before_now(minutes=1).timestamp(),
                 "fingerprint": ["group-4"],
             },
             project_id=self.project_1.id,
@@ -358,7 +358,7 @@ class GroupEventDetailsHelpfulEndpointTest(
             data={
                 "event_id": "e" * 32,
                 "environment": "staging",
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": before_now(minutes=1).timestamp(),
                 "fingerprint": ["group-title"],
                 "message": title,
             },

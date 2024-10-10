@@ -7,7 +7,7 @@ from sentry.api.serializers import serialize
 from sentry.incidents.logic import create_incident_activity
 from sentry.incidents.models.incident import IncidentActivityType
 from sentry.testutils.cases import SnubaTestCase, TestCase
-from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.users.services.user.service import user_service
 
 
@@ -59,7 +59,7 @@ class IncidentActivitySerializerTest(TestCase, SnubaTestCase):
                     data={
                         "event_id": uuid4().hex,
                         "fingerprint": ["group1"],
-                        "timestamp": iso_format(before_now(seconds=1)),
+                        "timestamp": before_now(seconds=1).timestamp(),
                     },
                     project_id=self.project.id,
                 )

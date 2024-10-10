@@ -19,7 +19,7 @@ from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils.committers import (
     _get_commit_file_changes,
@@ -689,7 +689,7 @@ class GetEventFileCommitters(CommitTestCase):
             data={
                 "message": "Kaboom!",
                 "platform": "python",
-                "timestamp": iso_format(before_now(seconds=1)),
+                "timestamp": before_now(seconds=1).timestamp(),
                 "stacktrace": {
                     "frames": [
                         {
@@ -763,7 +763,7 @@ class GetEventFileCommitters(CommitTestCase):
             data={
                 "message": "Kaboom!",
                 "platform": "python",
-                "timestamp": iso_format(before_now(seconds=1)),
+                "timestamp": before_now(seconds=1).timestamp(),
                 "stacktrace": {
                     "frames": frames,
                 },
@@ -807,7 +807,7 @@ class GetEventFileCommitters(CommitTestCase):
             data={
                 "message": "Kaboom!",
                 "platform": "python",
-                "timestamp": iso_format(before_now(seconds=1)),
+                "timestamp": before_now(seconds=1).timestamp(),
                 "stacktrace": {
                     "frames": [
                         {
@@ -948,7 +948,7 @@ class GetEventFileCommitters(CommitTestCase):
     def test_no_commits(self):
         event = self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=1)),
+                "timestamp": before_now(seconds=1).timestamp(),
                 "message": "Kaboom!",
                 "stacktrace": {
                     "frames": [
@@ -989,7 +989,7 @@ class GetEventFileCommitters(CommitTestCase):
             data={
                 "message": "Kaboom!",
                 "platform": "python",
-                "timestamp": iso_format(before_now(seconds=1)),
+                "timestamp": before_now(seconds=1).timestamp(),
                 "stacktrace": {
                     "frames": [
                         {

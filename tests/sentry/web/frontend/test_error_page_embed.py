@@ -9,7 +9,7 @@ from django.urls import reverse
 from sentry.models.environment import Environment
 from sentry.models.userreport import UserReport
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.types.region import get_local_region
 
 
@@ -211,7 +211,7 @@ class ErrorPageEmbedEnvironmentTest(TestCase):
         self.environment.add_project(self.project)
 
     def make_event(self, **kwargs):
-        min_ago = iso_format(before_now(minutes=1))
+        min_ago = before_now(minutes=1).timestamp()
         result = {
             "event_id": "a" * 32,
             "message": "foo",
