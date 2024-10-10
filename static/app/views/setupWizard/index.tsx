@@ -156,11 +156,6 @@ function ProjectSelection({hash, organizations = []}: Omit<Props, 'allowSelectio
     query: debouncedSearch,
   });
 
-  const selectedProject = useMemo(
-    () => orgProjectsRequest.data?.find(org => org.id === selectedProjectId),
-    [orgProjectsRequest.data, selectedProjectId]
-  );
-
   const {
     mutate: updateCache,
     isPending,
@@ -213,6 +208,7 @@ function ProjectSelection({hash, organizations = []}: Omit<Props, 'allowSelectio
         value: project.id,
         label: project.name,
         leadingItems: <ProjectBadge avatarSize={16} project={project} hideName />,
+        project,
       })),
     [orgProjectsRequest.data]
   );
@@ -227,6 +223,14 @@ function ProjectSelection({hash, organizations = []}: Omit<Props, 'allowSelectio
         return a.label.localeCompare(b.label);
       }),
     [cachedProjectOptions]
+  );
+
+  // Select the project from the cached options to avoid visually clearing the input
+  // when searching while having a selected project
+  const selectedProject = useMemo(
+    () =>
+      sortedProjectOptions?.find(option => option.value === selectedProjectId)?.project,
+    [selectedProjectId, sortedProjectOptions]
   );
 
   const isFormValid = selectedOrg && selectedProject;
@@ -278,6 +282,7 @@ function ProjectSelection({hash, organizations = []}: Omit<Props, 'allowSelectio
             // TODO(aknaus): investigate why the selection is not reset when the value changes to null
             key={selectedOrgId}
             onSearch={setSearch}
+            onClose={() => setSearch('')}
             disabled={!selectedOrgId}
             value={selectedProjectId as string}
             searchable
