@@ -76,7 +76,7 @@ class SetupWizardView(BaseView):
         member_org_ids = OrganizationMemberMapping.objects.filter(
             user_id=request.user.id
         ).values_list("organization_id", flat=True)
-        org_mappings: list[OrganizationMapping] = OrganizationMapping.objects.filter(
+        org_mappings = OrganizationMapping.objects.filter(
             organization_id__in=member_org_ids,
             status=OrganizationStatus.ACTIVE,
         ).order_by("-date_created")
