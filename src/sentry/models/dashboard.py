@@ -44,9 +44,6 @@ class Dashboard(Model):
     last_visited = models.DateTimeField(null=True, default=timezone.now)
     projects = models.ManyToManyField("sentry.Project", through=DashboardProject)
     filters: models.Field[dict[str, Any] | None, dict[str, Any] | None] = JSONField(null=True)
-    permissions = models.OneToOneField(
-        "sentry.DashboardPermissions", null=True, blank=True, on_delete=models.CASCADE
-    )
 
     MAX_WIDGETS = 30
 
