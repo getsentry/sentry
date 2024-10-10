@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {Fragment} from 'react';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -164,6 +164,13 @@ export function HTTPLandingPage() {
 
   const crumbs = useModuleBreadcrumbs('http');
 
+  const headerTitle = (
+    <Fragment>
+      {MODULE_TITLE}
+      <PageHeadingQuestionTooltip docsUrl={MODULE_DOC_LINK} title={MODULE_DESCRIPTION} />
+    </Fragment>
+  );
+
   return (
     <React.Fragment>
       {!isInDomainView && (
@@ -171,13 +178,7 @@ export function HTTPLandingPage() {
           <Layout.HeaderContent>
             <Breadcrumbs crumbs={crumbs} />
 
-            <Layout.Title>
-              {MODULE_TITLE}
-              <PageHeadingQuestionTooltip
-                docsUrl={MODULE_DOC_LINK}
-                title={MODULE_DESCRIPTION}
-              />
-            </Layout.Title>
+            <Layout.Title>{headerTitle}</Layout.Title>
           </Layout.HeaderContent>
           <Layout.HeaderActions>
             <ButtonBar gap={1}>
@@ -192,7 +193,7 @@ export function HTTPLandingPage() {
       )}
 
       {isInDomainView && view === BACKEND_LANDING_SUB_PATH && (
-        <BackendHeader module={ModuleName.HTTP} />
+        <BackendHeader headerTitle={headerTitle} module={ModuleName.HTTP} />
       )}
 
       <Layout.Body>
