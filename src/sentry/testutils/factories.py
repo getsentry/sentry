@@ -1214,6 +1214,7 @@ class Factories:
             ):
                 assert install.api_grant is not None
                 assert install.sentry_app.application is not None
+                assert install.sentry_app.proxy_user is not None
                 GrantExchanger(
                     install=rpc_install,
                     code=install.api_grant.code,
