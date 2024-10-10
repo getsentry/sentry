@@ -426,6 +426,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.hybridcloud",
     "sentry.remote_subscriptions.apps.Config",
     "sentry.data_secrecy",
+    "sentry.taskworker",
     "sentry.workflow_engine",
 )
 
@@ -1280,6 +1281,8 @@ for queue in CELERY_QUEUES:
 CELERY_TASK_SOFT_TIME_LIMIT = int(timedelta(hours=3).total_seconds())
 CELERY_TASK_TIME_LIMIT = int(timedelta(hours=3, seconds=15).total_seconds())
 
+TASKWORKER_IMPORTS = ("sentry.taskdemo",)
+
 # Queues that belong to the processing pipeline and need to be monitored
 # for backpressure management
 PROCESSING_QUEUES = [
@@ -1351,6 +1354,11 @@ LOGGING: LoggingConfig = {
             "filters": ["important_django_request"],
             "class": "sentry_sdk.integrations.logging.EventHandler",
         },
+        "taskworkerlog": {
+            "level": "INFO",
+            "class": "logging.FileHandler",
+            "filename": "./taskworker.log",
+        },
     },
     "filters": {
         "important_django_request": {
@@ -1396,6 +1404,11 @@ LOGGING: LoggingConfig = {
         "urllib3.connectionpool": {"level": "ERROR", "handlers": ["console"], "propagate": False},
         "boto3": {"level": "WARNING", "handlers": ["console"], "propagate": False},
         "botocore": {"level": "WARNING", "handlers": ["console"], "propagate": False},
+        "taskworker.results": {
+            "level": "INFO",
+            "handlers": ["console", "taskworkerlog"],
+            "propagate": False,
+        },
     },
 }
 
@@ -2916,6 +2929,8 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "shared-resources-usage": "default",
     "buffered-segments": "default",
     "buffered-segments-dlq": "default",
+    "hackweek": "default",
+    "hackweek-dlq": "default",
 }
 
 
