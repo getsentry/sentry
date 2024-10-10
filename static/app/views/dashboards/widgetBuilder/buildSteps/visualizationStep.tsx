@@ -22,6 +22,7 @@ import {DisplayType} from 'sentry/views/dashboards/types';
 
 import {getDashboardFiltersFromURL} from '../../utils';
 import WidgetCard, {WidgetCardPanel} from '../../widgetCard';
+import WidgetLegendFunctions from '../../widgetCard/widgetLegendUtils';
 import {displayTypes} from '../utils';
 
 import {BuildStep} from './buildStep';
@@ -90,6 +91,12 @@ export function VisualizationStep({
     value,
   }));
 
+  const legendFunctions = new WidgetLegendFunctions();
+
+  const unselectedReleasesForCharts = {
+    [legendFunctions.encodeSeriesNameForLegend('Releases', debouncedWidget.id)]: false,
+  };
+
   return (
     <StyledBuildStep
       title={t('Choose your visualization')}
@@ -133,6 +140,13 @@ export function VisualizationStep({
           onDataFetched={onDataFetched}
           onWidgetSplitDecision={onWidgetSplitDecision}
           shouldResize={false}
+          onLegendSelectChanged={() => {}}
+          legendOptions={
+            organization.features.includes('dashboards-releases-on-charts') &&
+            legendFunctions.widgetRequiresLegendUnselection(widget)
+              ? {selected: unselectedReleasesForCharts}
+              : undefined
+          }
         />
       </VisualizationWrapper>
     </StyledBuildStep>

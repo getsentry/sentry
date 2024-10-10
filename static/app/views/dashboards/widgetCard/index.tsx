@@ -1,6 +1,7 @@
 import {Component, Fragment} from 'react';
 import type {useSortable} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
+import type {LegendComponentOption} from 'echarts';
 import type {Location} from 'history';
 
 import type {Client} from 'sentry/api';
@@ -81,12 +82,14 @@ type Props = WithRouterProps & {
   isMobile?: boolean;
   isPreview?: boolean;
   isWidgetInvalid?: boolean;
+  legendOptions?: LegendComponentOption;
   noDashboardsMEPProvider?: boolean;
   noLazyLoad?: boolean;
   onDataFetched?: (results: TableDataWithTitle[]) => void;
   onDelete?: () => void;
   onDuplicate?: () => void;
   onEdit?: () => void;
+  onLegendSelectChanged?: () => void;
   onUpdate?: (widget: Widget | null) => void;
   onWidgetSplitDecision?: (splitDecision: WidgetType) => void;
   renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
@@ -94,6 +97,7 @@ type Props = WithRouterProps & {
   showContextMenu?: boolean;
   showStoredAlert?: boolean;
   tableItemLimit?: number;
+  widgets?: Widget[];
   windowWidth?: number;
 };
 
@@ -229,6 +233,7 @@ class WidgetCard extends Component<Props, State> {
       organization,
       selection,
       widget,
+      widgets,
       isMobile,
       renderErrorMessage,
       tableItemLimit,
@@ -241,6 +246,8 @@ class WidgetCard extends Component<Props, State> {
       location,
       onWidgetSplitDecision,
       shouldResize,
+      onLegendSelectChanged,
+      legendOptions,
     } = this.props;
 
     if (widget.displayType === DisplayType.TOP_N) {
@@ -353,6 +360,7 @@ class WidgetCard extends Component<Props, State> {
                     organization={organization}
                     selection={selection}
                     widget={widget}
+                    widgets={widgets}
                     isMobile={isMobile}
                     renderErrorMessage={renderErrorMessage}
                     tableItemLimit={tableItemLimit}
@@ -362,6 +370,8 @@ class WidgetCard extends Component<Props, State> {
                     chartGroup={DASHBOARD_CHART_GROUP}
                     onWidgetSplitDecision={onWidgetSplitDecision}
                     shouldResize={shouldResize}
+                    onLegendSelectChanged={onLegendSelectChanged}
+                    legendOptions={legendOptions}
                   />
                 ) : (
                   <LazyRender containerHeight={200} withoutContainer>
@@ -371,6 +381,7 @@ class WidgetCard extends Component<Props, State> {
                       organization={organization}
                       selection={selection}
                       widget={widget}
+                      widgets={widgets}
                       isMobile={isMobile}
                       renderErrorMessage={renderErrorMessage}
                       tableItemLimit={tableItemLimit}
@@ -380,6 +391,8 @@ class WidgetCard extends Component<Props, State> {
                       chartGroup={DASHBOARD_CHART_GROUP}
                       onWidgetSplitDecision={onWidgetSplitDecision}
                       shouldResize={shouldResize}
+                      onLegendSelectChanged={onLegendSelectChanged}
+                      legendOptions={legendOptions}
                     />
                   </LazyRender>
                 )}

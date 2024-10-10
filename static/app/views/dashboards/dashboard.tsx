@@ -381,13 +381,14 @@ class Dashboard extends Component<Props, State> {
     ];
   }
 
-  renderWidget(widget: Widget, index: number) {
+  renderWidget(widget: Widget, index: number, widgets: Widget[]) {
     const {isMobile, windowWidth} = this.state;
     const {isEditingDashboard, widgetLimitReached, isPreview, dashboard, location} =
       this.props;
 
     const widgetProps = {
       widget,
+      widgets,
       isEditingDashboard,
       widgetLimitReached,
       onDelete: this.handleDeleteWidget(widget),
@@ -554,7 +555,9 @@ class Dashboard extends Component<Props, State> {
         useCSSTransforms={false}
         isBounded
       >
-        {widgetsWithLayout.map((widget, index) => this.renderWidget(widget, index))}
+        {widgetsWithLayout.map((widget, index) =>
+          this.renderWidget(widget, index, widgetsWithLayout)
+        )}
         {(isEditingDashboard || displayInlineAddWidget) &&
           !widgetLimitReached &&
           !isPreview && (

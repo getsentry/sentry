@@ -61,6 +61,7 @@ import type {Widget} from '../types';
 import {DisplayType} from '../types';
 
 import type {GenericWidgetQueriesChildrenProps} from './genericWidgetQueries';
+import WidgetLegendFunctions from './widgetLegendUtils';
 
 const OTHER = 'Other';
 const PERCENTAGE_DECIMAL_POINTS = 3;
@@ -351,11 +352,13 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
     const {start, end, period, utc} = selection.datetime;
     const {projects, environments} = selection;
 
+    const legendFunctions = new WidgetLegendFunctions();
     const legend = {
       left: 0,
       top: 0,
       selected: getSeriesSelection(location),
       formatter: (seriesName: string) => {
+        seriesName = legendFunctions.decodeSeriesNameForLegend(seriesName);
         const arg = getAggregateArg(seriesName);
         if (arg !== null) {
           const slug = getMeasurementSlug(arg);
@@ -541,8 +544,11 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
               memoized
             >
               {({releaseSeries}) => {
-                legend.selected = {Releases: false, ...legend.selected};
-
+                // make series name into seriesName:widgetId form for individual widget legend control
+                // NOTE: e-charts legends control all charts that have the same series name so attaching
+                // widget id will differentiate the charts allowing them to be controlled individually
+                const modifiedReleaseSeriesResults =
+                  legendFunctions.modifyTimeseriesNames(widget, releaseSeries);
                 return (
                   <TransitionChart loading={loading} reloading={loading}>
                     <LoadingScreen loading={loading} />
@@ -565,7 +571,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
                               }
                             : {}),
                           legend,
-                          series: [...series, ...releaseSeries],
+                          series: [...series, ...modifiedReleaseSeriesResults],
                           onLegendSelectChanged,
                           forwardedRef,
                         }),

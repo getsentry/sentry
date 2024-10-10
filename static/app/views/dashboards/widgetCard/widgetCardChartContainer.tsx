@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import type {DataZoomComponentOption, LegendComponentOption} from 'echarts';
 import type {Location} from 'history';
@@ -12,6 +12,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
+import useRouter from 'sentry/utils/useRouter';
 
 import type {DashboardFilters, Widget} from '../types';
 import {WidgetType} from '../types';
@@ -21,6 +22,7 @@ import WidgetCardChart from './chart';
 import {IssueWidgetCard} from './issueWidgetCard';
 import IssueWidgetQueries from './issueWidgetQueries';
 import ReleaseWidgetQueries from './releaseWidgetQueries';
+import WidgetLegendFunctions from './widgetLegendUtils';
 import WidgetQueries from './widgetQueries';
 
 type Props = {
@@ -54,6 +56,7 @@ type Props = {
   shouldResize?: boolean;
   showSlider?: boolean;
   tableItemLimit?: number;
+  widgets?: Widget[];
   windowWidth?: number;
 };
 
@@ -62,6 +65,7 @@ export function WidgetCardChartContainer({
   organization,
   selection,
   widget,
+  widgets,
   dashboardFilters,
   isMobile,
   renderErrorMessage,
@@ -80,6 +84,14 @@ export function WidgetCardChartContainer({
   shouldResize,
 }: Props) {
   const location = useLocation();
+  const router = useRouter();
+
+  const legendFunctions = useMemo(() => new WidgetLegendFunctions(), []);
+
+  const [disabledLegends, setDisabledLegends] = useState<{[key: string]: boolean}>(
+    legendFunctions.getLegendUnselected(location, widget, 'unselectedSeries')
+  );
+
   if (widget.widgetType === WidgetType.ISSUE) {
     return (
       <IssueWidgetQueries
@@ -113,6 +125,24 @@ export function WidgetCardChartContainer({
     );
   }
 
+  function keepLegendState({
+    selected,
+  }: {
+    selected: Record<string, boolean>;
+    type: 'legendselectchanged';
+  }) {
+    setDisabledLegends(selected);
+    legendFunctions.updateLegendQueryParam(
+      selected,
+      location,
+      widget,
+      router,
+      'unselectedSeries',
+      organization,
+      widgets
+    );
+  }
+
   if (widget.widgetType === WidgetType.RELEASE) {
     return (
       <ReleaseWidgetQueries
@@ -125,13 +155,20 @@ export function WidgetCardChartContainer({
         dashboardFilters={dashboardFilters}
       >
         {({tableResults, timeseriesResults, errorMessage, loading}) => {
+          // Bind timeseries to widget for ability to control each widget's legend individually
+          // NOTE: e-charts legends control all charts that have the same series name so attaching
+          // widget id will differentiate the charts allowing them to be controlled individually
+          const modifiedTimeseriesResults = legendFunctions.modifyTimeseriesNames(
+            widget,
+            timeseriesResults
+          );
           return (
             <Fragment>
               {typeof renderErrorMessage === 'function'
                 ? renderErrorMessage(errorMessage)
                 : null}
               <WidgetCardChart
-                timeseriesResults={timeseriesResults}
+                timeseriesResults={modifiedTimeseriesResults}
                 tableResults={tableResults}
                 errorMessage={errorMessage}
                 loading={loading}
@@ -148,6 +185,12 @@ export function WidgetCardChartContainer({
                 chartZoomOptions={chartZoomOptions}
                 chartGroup={chartGroup}
                 shouldResize={shouldResize}
+                onLegendSelectChanged={
+                  onLegendSelectChanged ? onLegendSelectChanged : keepLegendState
+                }
+                legendOptions={
+                  legendOptions ? legendOptions : {selected: disabledLegends}
+                }
               />
             </Fragment>
           );
@@ -174,13 +217,18 @@ export function WidgetCardChartContainer({
         loading,
         timeseriesResultsTypes,
       }) => {
+        // Bind timeseries to widget for ability to control each widget's legend individually
+        const modifiedTimeseriesResults = legendFunctions.modifyTimeseriesNames(
+          widget,
+          timeseriesResults
+        );
         return (
           <Fragment>
             {typeof renderErrorMessage === 'function'
               ? renderErrorMessage(errorMessage)
               : null}
             <WidgetCardChart
-              timeseriesResults={timeseriesResults}
+              timeseriesResults={modifiedTimeseriesResults}
               tableResults={tableResults}
               errorMessage={errorMessage}
               loading={loading}
@@ -191,8 +239,10 @@ export function WidgetCardChartContainer({
               isMobile={isMobile}
               windowWidth={windowWidth}
               onZoom={onZoom}
-              onLegendSelectChanged={onLegendSelectChanged}
-              legendOptions={legendOptions}
+              onLegendSelectChanged={
+                onLegendSelectChanged ? onLegendSelectChanged : keepLegendState
+              }
+              legendOptions={legendOptions ? legendOptions : {selected: disabledLegends}}
               expandNumbers={expandNumbers}
               showSlider={showSlider}
               noPadding={noPadding}

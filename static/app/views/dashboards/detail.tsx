@@ -58,6 +58,7 @@ import {generatePerformanceEventView} from '../performance/data';
 import {MetricsDataSwitcher} from '../performance/landing/metricsDataSwitcher';
 import {DiscoverQueryPageSource} from '../performance/utils';
 
+import WidgetLegendFunctions from './widgetCard/widgetLegendUtils';
 import type {WidgetViewerContextProps} from './widgetViewer/widgetViewerContext';
 import {WidgetViewerContext} from './widgetViewer/widgetViewerContext';
 import Controls from './controls';
@@ -216,6 +217,7 @@ class DashboardDetail extends Component<Props, State> {
           tableData,
           pageLinks,
           totalIssuesCount,
+          widgets: dashboard.widgets,
           dashboardFilters: getDashboardFiltersFromURL(location) ?? dashboard.filters,
           onMetricWidgetEdit: (updatedWidget: Widget) => {
             const widgets = [...dashboard.widgets];
@@ -446,6 +448,7 @@ class DashboardDetail extends Component<Props, State> {
   handleUpdateWidgetList = (widgets: Widget[]) => {
     const {organization, dashboard, api, onDashboardUpdate, location} = this.props;
     const {modifiedDashboard} = this.state;
+    const legendFunctions = new WidgetLegendFunctions();
 
     // Use the new widgets for calculating layout because widgets has
     // the most up to date information in edit state
@@ -470,6 +473,12 @@ class DashboardDetail extends Component<Props, State> {
             modifiedDashboard: null,
           });
         }
+        const legendQuery = legendFunctions.updatedLegendQueryOnWidgetChange(
+          organization,
+          newDashboard,
+          location
+        );
+
         addSuccessMessage(t('Dashboard updated'));
         if (dashboard && newDashboard.id !== dashboard.id) {
           browserHistory.replace(
@@ -477,6 +486,17 @@ class DashboardDetail extends Component<Props, State> {
               pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
               query: {
                 ...location.query,
+                unselectedSeries: legendQuery,
+              },
+            })
+          );
+        } else {
+          browserHistory.replace(
+            normalizeUrl({
+              pathname: `/organizations/${organization.slug}/dashboard/${dashboard.id}/`,
+              query: {
+                ...location.query,
+                unselectedSeries: legendQuery,
               },
             })
           );
