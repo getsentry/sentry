@@ -1,5 +1,5 @@
 ---
-created: '2024-10-09T16:17:52.533076+00:00'
+created: '2024-10-10T17:25:58.149778+00:00'
 creator: sentry
 source: tests/sentry/backup/test_comparators.py
 ---
@@ -357,11 +357,11 @@ source: tests/sentry/backup/test_comparators.py
     fields:
     - created_by_id
     - organization
-    - permissions
   model_name: sentry.dashboard
 - comparators:
   - class: ForeignKeyComparator
-    fields: []
+    fields:
+    - dashboard
   model_name: sentry.dashboardpermissions
 - comparators:
   - class: ForeignKeyComparator

@@ -190,11 +190,12 @@
     "sentry.project"
   ],
   "sentry.dashboard": [
-    "sentry.dashboardpermissions",
     "sentry.organization",
     "sentry.user"
   ],
-  "sentry.dashboardpermissions": [],
+  "sentry.dashboardpermissions": [
+    "sentry.dashboard"
+  ],
   "sentry.dashboardproject": [
     "sentry.dashboard",
     "sentry.project"

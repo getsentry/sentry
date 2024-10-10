@@ -1391,11 +1391,6 @@
         "kind": "FlexibleForeignKey",
         "model": "sentry.organization",
         "nullable": false
-      },
-      "permissions": {
-        "kind": "DefaultOneToOneField",
-        "model": "sentry.dashboardpermissions",
-        "nullable": true
       }
     },
     "model": "sentry.dashboard",
@@ -1409,15 +1404,18 @@
       [
         "organization",
         "title"
-      ],
-      [
-        "permissions"
       ]
     ]
   },
   "sentry.dashboardpermissions": {
     "dangling": true,
-    "foreign_keys": {},
+    "foreign_keys": {
+      "dashboard": {
+        "kind": "DefaultOneToOneField",
+        "model": "sentry.dashboard",
+        "nullable": true
+      }
+    },
     "model": "sentry.dashboardpermissions",
     "relocation_dependencies": [],
     "relocation_scope": "Organization",
@@ -1425,7 +1423,11 @@
       "Region"
     ],
     "table_name": "sentry_dashboardpermissions",
-    "uniques": []
+    "uniques": [
+      [
+        "dashboard"
+      ]
+    ]
   },
   "sentry.dashboardproject": {
     "dangling": false,
