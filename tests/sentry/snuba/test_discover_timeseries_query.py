@@ -378,11 +378,11 @@ class DiscoverTimeseriesQueryTest(TimeseriesBase):
         project3 = self.create_project(organization=self.organization)
 
         self.store_event(
-            data={"message": "hello", "timestamp": iso_format(self.one_min_ago)},
+            data={"message": "hello", "timestamp": self.one_min_ago.timestamp()},
             project_id=project2.id,
         )
         self.store_event(
-            data={"message": "hello", "timestamp": iso_format(self.one_min_ago)},
+            data={"message": "hello", "timestamp": self.one_min_ago.timestamp()},
             project_id=project3.id,
         )
 
@@ -407,19 +407,19 @@ class DiscoverTimeseriesQueryTest(TimeseriesBase):
     def test_nested_conditional_filter(self):
         project2 = self.create_project(organization=self.organization)
         self.store_event(
-            data={"release": "a" * 32, "timestamp": iso_format(self.one_min_ago)},
+            data={"release": "a" * 32, "timestamp": self.one_min_ago.timestamp()},
             project_id=self.project.id,
         )
         self.event = self.store_event(
-            data={"release": "b" * 32, "timestamp": iso_format(self.one_min_ago)},
+            data={"release": "b" * 32, "timestamp": self.one_min_ago.timestamp()},
             project_id=self.project.id,
         )
         self.event = self.store_event(
-            data={"release": "c" * 32, "timestamp": iso_format(self.one_min_ago)},
+            data={"release": "c" * 32, "timestamp": self.one_min_ago.timestamp()},
             project_id=self.project.id,
         )
         self.event = self.store_event(
-            data={"release": "a" * 32, "timestamp": iso_format(self.one_min_ago)},
+            data={"release": "a" * 32, "timestamp": self.one_min_ago.timestamp()},
             project_id=project2.id,
         )
 
@@ -508,14 +508,14 @@ class TopEventsTimeseriesQueryTest(TimeseriesBase):
         top_events: EventsResponse = {
             "data": [
                 {
-                    "timestamp": iso_format(timestamp1),
-                    "timestamp.to_hour": iso_format(timestamp1.replace(minute=0, second=0)),
-                    "timestamp.to_day": iso_format(timestamp1.replace(hour=0, minute=0, second=0)),
+                    "timestamp": timestamp1,
+                    "timestamp.to_hour": timestamp1.replace(minute=0, second=0),
+                    "timestamp.to_day": timestamp1.replace(hour=0, minute=0, second=0),
                 },
                 {
-                    "timestamp": iso_format(timestamp2),
-                    "timestamp.to_hour": iso_format(timestamp2.replace(minute=0, second=0)),
-                    "timestamp.to_day": iso_format(timestamp2.replace(hour=0, minute=0, second=0)),
+                    "timestamp": timestamp2,
+                    "timestamp.to_hour": timestamp2.replace(minute=0, second=0),
+                    "timestamp.to_day": timestamp2.replace(hour=0, minute=0, second=0),
                 },
             ],
             "meta": {"fields": {}, "tips": {}},
@@ -541,24 +541,24 @@ class TopEventsTimeseriesQueryTest(TimeseriesBase):
                 # Each timestamp field should generated a nested condition.
                 # Within each, the conditions will be ORed together.
                 [
-                    ["timestamp", "=", iso_format(timestamp1)],
-                    ["timestamp", "=", iso_format(timestamp2)],
+                    ["timestamp", "=", timestamp1],
+                    ["timestamp", "=", timestamp2],
                 ],
                 [
                     [
                         to_day,
                         "=",
-                        iso_format(timestamp1.replace(hour=0, minute=0, second=0)),
+                        timestamp1.replace(hour=0, minute=0, second=0),
                     ],
                     [
                         to_day,
                         "=",
-                        iso_format(timestamp2.replace(hour=0, minute=0, second=0)),
+                        timestamp2.replace(hour=0, minute=0, second=0),
                     ],
                 ],
                 [
-                    [to_hour, "=", iso_format(timestamp1.replace(minute=0, second=0))],
-                    [to_hour, "=", iso_format(timestamp2.replace(minute=0, second=0))],
+                    [to_hour, "=", timestamp1.replace(minute=0, second=0)],
+                    [to_hour, "=", timestamp2.replace(minute=0, second=0)],
                 ],
             ],
             filter_keys={"project_id": [self.project.id]},

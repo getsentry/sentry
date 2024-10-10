@@ -9,7 +9,7 @@ from sentry.api.serializers import ExternalEventSerializer, serialize
 from sentry.integrations.pagerduty.utils import add_service
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import EventType
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import control_silo_test
 from sentry.testutils.skips import requires_snuba
 
@@ -53,7 +53,7 @@ class PagerDutyClientTest(APITestCase):
         )
 
         self.installation = self.integration.get_installation(self.organization.id)
-        self.min_ago = iso_format(before_now(minutes=1))
+        self.min_ago = before_now(minutes=1).timestamp()
 
         self.event = self.store_event(
             data={

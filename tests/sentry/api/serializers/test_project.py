@@ -29,7 +29,7 @@ from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.models.userreport import UserReport
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers import with_feature
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.samples import load_data
 
 TEAM_CONTRIBUTOR = settings.SENTRY_TEAM_ROLES[0]
@@ -600,7 +600,7 @@ class ProjectSummarySerializerTest(SnubaTestCase, TestCase):
     def test_stats_errors(self):
         two_min_ago = before_now(minutes=2)
         self.store_event(
-            data={"event_id": "d" * 32, "message": "oh no", "timestamp": iso_format(two_min_ago)},
+            data={"event_id": "d" * 32, "message": "oh no", "timestamp": two_min_ago.timestamp()},
             project_id=self.project.id,
         )
         serializer = ProjectSummarySerializer(stats_period="24h")
@@ -612,7 +612,7 @@ class ProjectSummarySerializerTest(SnubaTestCase, TestCase):
     def test_stats_with_transactions(self):
         two_min_ago = before_now(minutes=2)
         self.store_event(
-            data={"event_id": "d" * 32, "message": "oh no", "timestamp": iso_format(two_min_ago)},
+            data={"event_id": "d" * 32, "message": "oh no", "timestamp": two_min_ago.timestamp()},
             project_id=self.project.id,
         )
         transaction = load_data("transaction", timestamp=two_min_ago)

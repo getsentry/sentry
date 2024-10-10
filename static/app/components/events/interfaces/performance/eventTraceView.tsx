@@ -1,9 +1,10 @@
-import {useMemo} from 'react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import {type Group, IssueCategory} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
@@ -11,6 +12,7 @@ import EventView from 'sentry/utils/discover/eventView';
 import {useLocation} from 'sentry/utils/useLocation';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {TraceDataSection} from 'sentry/views/issueDetails/traceDataSection';
 import {
   getTraceViewQueryStatus,
   TraceViewWaterfall,
@@ -23,8 +25,6 @@ import {
   type TracePreferencesState,
 } from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
-
-import {SpanEvidenceKeyValueList} from './spanEvidenceKeyValueList';
 
 const DEFAULT_ISSUE_DETAILS_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
   drawer: {
@@ -49,14 +49,9 @@ const DEFAULT_ISSUE_DETAILS_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
 interface EventTraceViewInnerProps {
   event: Event;
   organization: Organization;
-  projectSlug: string;
 }
 
-function EventTraceViewInner({
-  event,
-  organization,
-  projectSlug,
-}: EventTraceViewInnerProps) {
+function EventTraceViewInner({event, organization}: EventTraceViewInnerProps) {
   // Assuming profile exists, should be checked in the parent component
   const traceId = event.contexts.trace!.trace_id!;
   const location = useLocation();
@@ -100,8 +95,7 @@ function EventTraceViewInner({
   }
 
   return (
-    <InterimSection type={SectionKey.TRACE_PREVIEW} title={t('Trace Preview')}>
-      <SpanEvidenceKeyValueList event={rootEvent.data} projectSlug={projectSlug} />
+    <Fragment>
       <TraceStateProvider
         initialPreferences={preferences}
         preferencesStorageKey="issue-details-view-preferences"
@@ -129,7 +123,7 @@ function EventTraceViewInner({
           />
         </TraceViewWaterfallWrapper>
       </TraceStateProvider>
-    </InterimSection>
+    </Fragment>
   );
 }
 
@@ -137,12 +131,7 @@ interface EventTraceViewProps extends EventTraceViewInnerProps {
   group: Group;
 }
 
-export function EventTraceView({
-  group,
-  event,
-  organization,
-  projectSlug,
-}: EventTraceViewProps) {
+export function EventTraceView({group, event, organization}: EventTraceViewProps) {
   // Check trace id exists
   if (!event || !event.contexts.trace?.trace_id) {
     return null;
@@ -152,9 +141,7 @@ export function EventTraceView({
   const hasIssueDetailsTrace = organization.features.includes(
     'issue-details-always-show-trace'
   );
-  if (!hasProfilingFeature || !hasIssueDetailsTrace) {
-    return null;
-  }
+  const hasTracePreviewFeature = hasProfilingFeature && hasIssueDetailsTrace;
 
   // Only display this for error or default events since performance events are handled elsewhere
   if (group.issueCategory === IssueCategory.PERFORMANCE) {
@@ -163,14 +150,25 @@ export function EventTraceView({
 
   return (
     <ErrorBoundary mini>
-      <EventTraceViewInner
-        event={event}
-        organization={organization}
-        projectSlug={projectSlug}
-      />
+      <InterimSection type={SectionKey.TRACE} title={t('Trace Connections')}>
+        <TraceContentWrapper>
+          <div>
+            <TraceDataSection event={event} />
+          </div>
+          {hasTracePreviewFeature && (
+            <EventTraceViewInner event={event} organization={organization} />
+          )}
+        </TraceContentWrapper>
+      </InterimSection>
     </ErrorBoundary>
   );
 }
+
+const TraceContentWrapper = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(1)};
+`;
 
 const TraceViewWaterfallWrapper = styled('div')`
   display: flex;

@@ -16,7 +16,7 @@ from sentry.models.dashboard_widget import (
 from sentry.models.dashboard_widget import DatasetSourcesTypes as DashboardDatasetSourcesTypes
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.testutils.cases import BaseMetricsLayerTestCase, SnubaTestCase, TestCase
-from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.users.models.user import User
 from sentry.utils.samples import load_data
@@ -50,7 +50,6 @@ class DashboardWidgetDatasetSplitTestCase(BaseMetricsLayerTestCase, TestCase, Sn
 
         self.nine_mins_ago = before_now(minutes=9)
         self.ten_mins_ago = before_now(minutes=10)
-        self.ten_mins_ago_iso = iso_format(self.ten_mins_ago)
         self.dry_run = False
 
         self.dashboard = Dashboard.objects.create(
