@@ -486,6 +486,9 @@ def emit_apple_symbol_stats(apple_symbol_stats, data):
     )
     os_version = get_path(data, "contexts", "os", "version")
 
+    if os_version:
+        os_version = os_version.split(".", 1)[0]
+
     if neither := apple_symbol_stats.get("neither"):
         metrics.incr(
             "apple_symbol_availability_v2",

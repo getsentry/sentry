@@ -26,17 +26,15 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import type {SpanMetricsQueryFilters} from 'sentry/views/insights/types';
-import {Referrer} from 'sentry/views/performance/newTraceDetails/referrers';
-import {useTransaction} from 'sentry/views/performance/newTraceDetails/traceApi/useTransaction';
-import {CacheMetrics} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/transaction/sections/cacheMetrics';
-import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
-import type {
-  TraceTree,
-  TraceTreeNode,
-} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 
+import {Referrer} from '../../../referrers';
 import {traceAnalytics} from '../../../traceAnalytics';
+import {useTransaction} from '../../../traceApi/useTransaction';
 import {getCustomInstrumentationLink} from '../../../traceConfigurations';
+import {CacheMetrics} from '../../../traceDrawer/details/transaction/sections/cacheMetrics';
+import type {TraceTreeNodeDetailsProps} from '../../../traceDrawer/tabs/traceTreeNodeDetails';
+import type {TraceTree} from '../../../traceModels/traceTree';
+import type {TraceTreeNode} from '../../../traceModels/traceTreeNode';
 import {IssueList} from '../issues/issues';
 import {TraceDrawerComponents} from '../styles';
 

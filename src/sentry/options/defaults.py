@@ -2722,6 +2722,11 @@ register(
     default=10000,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "celery_split_queue_task_rollout",
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 register(
     "grouping.grouphash_metadata.ingestion_writes_enabled",
@@ -2738,13 +2743,6 @@ register(
 register(
     "seer.api.use-nonce-signature",
     default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "ownership.munge_data_for_performance",
-    type=Bool,
-    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 

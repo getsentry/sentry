@@ -31,7 +31,6 @@ import type {
   ReactEchartsRef,
   Series,
 } from 'sentry/types/echarts';
-import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {
@@ -87,7 +86,6 @@ type WidgetCardChartProps = Pick<
 > & {
   location: Location;
   organization: Organization;
-  router: InjectedRouter;
   selection: PageFilters;
   theme: Theme;
   widget: Widget;
@@ -350,7 +348,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
       );
     }
 
-    const {location, router, selection, onLegendSelectChanged} = this.props;
+    const {location, selection, onLegendSelectChanged} = this.props;
     const {start, end, period, utc} = selection.datetime;
     const {projects, environments} = selection;
 
@@ -482,7 +480,6 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
 
     return (
       <ChartZoom
-        router={router}
         period={period}
         start={start}
         end={end}
