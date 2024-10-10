@@ -80,12 +80,13 @@ def check_minimum_version(minimum_devenv_version: str):
     if (major, minor, patch) < (min_major, min_minor, min_patch):
         raise SystemExit(
             f"""
+Your devenv version ({devenv_version}) is too old!
 
-Your devenv version is too old!
+Run the following to update your global devenv to the minimum,
+and use it to run this repo's sync.
 
-Run `{constants.root}/bin/devenv update {minimum_devenv_version}`
-then `{constants.root}/bin/devenv sync`.
-
+{constants.root}/bin/devenv update {minimum_devenv_version}
+{constants.root}/bin/devenv sync
 """
         )
 
