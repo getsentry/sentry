@@ -246,7 +246,7 @@ class OrganizationReleasesEndpoint(
             organization,
             project_ids=project_ids,
             project_slugs=project_slugs,
-            include_all_accessible="GET" != request.method,
+            include_all_accessible=False,
         )
 
     def get(self, request: Request, organization) -> Response:
