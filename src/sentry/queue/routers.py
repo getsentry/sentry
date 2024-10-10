@@ -9,7 +9,6 @@ from django.conf import settings
 from sentry import options
 from sentry.celery import app
 from sentry.conf.types.celery import SplitQueueSize
-from sentry.silo.base import SiloMode
 from sentry.utils.celery import build_queue_names
 
 logger = logging.getLogger(__name__)
@@ -76,12 +75,7 @@ class SplitQueueTaskRouter:
     def __init__(self) -> None:
         self.__task_routers = {}
 
-        if SiloMode.get_current_mode() == SiloMode.CONTROL:
-            split_task_routes = {}
-        else:
-            split_task_routes = settings.CELERY_SPLIT_QUEUE_TASK_ROUTES_REGION
-
-        for task, dest_config in split_task_routes.items():
+        for task, dest_config in settings.CELERY_SPLIT_QUEUE_TASK_ROUTES.items():
             default_destination = dest_config["default_queue"]
             destinations: Sequence[str] = []
             if "queues_config" in dest_config:
