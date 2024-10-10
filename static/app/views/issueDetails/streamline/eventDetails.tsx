@@ -4,9 +4,7 @@ import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
 import Alert from 'sentry/components/alert';
-import {CommitRow} from 'sentry/components/commitRow';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import {SuspectCommits} from 'sentry/components/events/suspectCommits';
 import {GroupSummary} from 'sentry/components/group/groupSummary';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
@@ -86,17 +84,6 @@ export function EventDetails({
       <Feature features={['organizations:ai-summary']}>
         <GroupSummary groupId={group.id} groupCategory={group.issueCategory} />
       </Feature>
-      <PageErrorBoundary
-        mini
-        message={t('There was an error loading the suspect commits')}
-      >
-        <SuspectCommits
-          project={project}
-          eventId={event.id}
-          group={group}
-          commitRow={CommitRow}
-        />
-      </PageErrorBoundary>
       <PageErrorBoundary mini message={t('There was an error loading the event filter')}>
         <FilterContainer>
           <EnvironmentPageFilter />

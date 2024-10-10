@@ -1,14 +1,17 @@
 import merge from 'lodash/merge';
 import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
+import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {RepositoryFixture} from 'sentry-fixture/repository';
 import {RepositoryProjectPathConfigFixture} from 'sentry-fixture/repositoryProjectPathConfig';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import {Threads} from 'sentry/components/events/interfaces/threads';
 import {displayOptions} from 'sentry/components/events/traceEventDataSection';
+import ConfigStore from 'sentry/stores/configStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import type {Event} from 'sentry/types/event';
 import {EntryType, EventOrGroupType} from 'sentry/types/event';
@@ -35,6 +38,7 @@ describe('Threads', function () {
       body: {config, sourceUrl: 'https://something.io', integrations: [integration]},
     });
     ProjectsStore.loadInitialData([project]);
+    ConfigStore.set('user', UserFixture());
   });
 
   describe('non native platform', function () {
@@ -218,6 +222,7 @@ describe('Threads', function () {
         event,
         groupingCurrentLevel: 0,
         projectSlug: project.slug,
+        group: undefined,
       };
 
       it('renders', async function () {
@@ -322,6 +327,41 @@ describe('Threads', function () {
         expect(
           await screen.findByText('Minified version not available')
         ).toBeInTheDocument();
+      });
+
+      it('renders suspect commits', async function () {
+        const user = UserFixture();
+        user.options.prefersIssueDetailsStreamlinedUI = true;
+        ConfigStore.set('user', user);
+        const group = GroupFixture();
+        const committers = [
+          {
+            author: {name: 'Max Bittker', id: '1'},
+            commits: [
+              {
+                message: 'feat: xyz',
+                score: 4,
+                id: 'ab2709293d0c9000829084ac7b1c9221fb18437c',
+                repository: RepositoryFixture(),
+                dateCreated: '2018-03-02T18:30:26Z',
+              },
+            ],
+          },
+        ];
+        MockApiClient.addMockResponse({
+          method: 'GET',
+          url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/committers/`,
+          body: {
+            committers,
+          },
+        });
+        render(<Threads {...props} group={group} />, {
+          organization,
+        });
+        expect(await screen.findByText('Stack Trace')).toBeInTheDocument();
+
+        // Suspect commits
+        expect(await screen.findByTestId('commit-row')).toBeInTheDocument();
       });
     });
   });
@@ -860,6 +900,7 @@ describe('Threads', function () {
         event,
         groupingCurrentLevel: 0,
         projectSlug: project.slug,
+        group: undefined,
       };
 
       it('renders', async function () {

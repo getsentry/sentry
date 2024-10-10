@@ -56,6 +56,10 @@ describe('Quick Context Content Issue Column', function () {
       method: 'GET',
       body: mockedGroup,
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/projects/`,
+      body: [ProjectFixture()],
+    });
   });
 
   afterEach(function () {
