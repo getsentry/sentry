@@ -40,47 +40,43 @@ export function WidgetFrame(props: Props) {
   return (
     <Frame>
       <Header>
-        <Title>
-          <Tooltip title={props.title} containerDisplayMode="grid" showOnlyOnOverflow>
-            <TitleText>{props.title}</TitleText>
-          </Tooltip>
+        <Tooltip title={props.title} containerDisplayMode="grid" showOnlyOnOverflow>
+          <TitleText>{props.title}</TitleText>
+        </Tooltip>
 
-          {props.description && (
-            <TooltipAligner>
-              <QuestionTooltip size="sm" title={props.description} />
-            </TooltipAligner>
-          )}
+        {(props.description || (actions && actions.length > 0)) && (
+          <TitleActions>
+            {props.description && (
+              <QuestionTooltip title={props.description} size="sm" icon="info" />
+            )}
 
-          {actions && actions.length > 0 && (
-            <TitleActions>
-              {actions.length === 1 ? (
-                actions[0].to ? (
-                  <LinkButton size="xs" onClick={actions[0].onAction} to={actions[0].to}>
-                    {actions[0].label}
-                  </LinkButton>
-                ) : (
-                  <Button size="xs" onClick={actions[0].onAction}>
-                    {actions[0].label}
-                  </Button>
-                )
-              ) : null}
+            {actions.length === 1 ? (
+              actions[0].to ? (
+                <LinkButton size="xs" onClick={actions[0].onAction} to={actions[0].to}>
+                  {actions[0].label}
+                </LinkButton>
+              ) : (
+                <Button size="xs" onClick={actions[0].onAction}>
+                  {actions[0].label}
+                </Button>
+              )
+            ) : null}
 
-              {actions.length > 1 ? (
-                <DropdownMenu
-                  items={actions}
-                  triggerProps={{
-                    'aria-label': t('Actions'),
-                    size: 'xs',
-                    borderless: true,
-                    showChevron: false,
-                    icon: <IconEllipsis direction="down" size="sm" />,
-                  }}
-                  position="bottom-end"
-                />
-              ) : null}
-            </TitleActions>
-          )}
-        </Title>
+            {actions.length > 1 ? (
+              <DropdownMenu
+                items={actions}
+                triggerProps={{
+                  'aria-label': t('Actions'),
+                  size: 'xs',
+                  borderless: true,
+                  showChevron: false,
+                  icon: <IconEllipsis direction="down" size="sm" />,
+                }}
+                position="bottom-end"
+              />
+            ) : null}
+          </TitleActions>
+        )}
       </Header>
 
       <VisualizationWrapper>
@@ -89,6 +85,16 @@ export function WidgetFrame(props: Props) {
     </Frame>
   );
 }
+
+const TitleActions = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
+  margin-left: auto;
+
+  opacity: 1;
+  transition: opacity 0.1s;
+`;
 
 const Frame = styled('div')`
   position: relative;
@@ -100,40 +106,42 @@ const Frame = styled('div')`
   width: 100%;
   min-width: ${MIN_WIDTH}px;
 
-  padding: ${space(2)};
+  padding: ${space(1.5)} ${space(2)};
 
   border-radius: ${p => p.theme.panelBorderRadius};
   border: ${p => p.theme.border};
   border: 1px ${p => 'solid ' + p.theme.border};
 
   background: ${p => p.theme.background};
+
+  :hover {
+    background-color: ${p => p.theme.surface200};
+    transition:
+      background-color 100ms linear,
+      box-shadow 100ms linear;
+    box-shadow: ${p => p.theme.dropShadowLight};
+  }
+
+  &:not(:hover):not(:focus-within) {
+    ${TitleActions} {
+      opacity: 0;
+      ${p => p.theme.visuallyHidden}
+    }
+  }
 `;
+
+const HEADER_HEIGHT = 26;
 
 const Header = styled('div')`
   display: flex;
-  flex-direction: column;
-  min-height: 20px;
-`;
-
-const Title = styled('div')`
-  display: inline-flex;
   align-items: center;
+  height: ${HEADER_HEIGHT}px;
   gap: ${space(0.75)};
 `;
 
 const TitleText = styled(HeaderTitle)`
   ${p => p.theme.overflowEllipsis};
   font-weight: ${p => p.theme.fontWeightBold};
-`;
-
-const TitleActions = styled('div')`
-  margin-left: auto;
-`;
-
-const TooltipAligner = styled('div')`
-  font-size: 0;
-  line-height: 1;
-  margin-bottom: 2px;
 `;
 
 const VisualizationWrapper = styled('div')`
