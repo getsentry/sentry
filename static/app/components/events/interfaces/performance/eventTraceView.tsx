@@ -13,13 +13,11 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {TraceDataSection} from 'sentry/views/issueDetails/traceDataSection';
-import {
-  getTraceViewQueryStatus,
-  TraceViewWaterfall,
-} from 'sentry/views/performance/newTraceDetails';
+import {TraceViewWaterfall} from 'sentry/views/performance/newTraceDetails';
 import {useTrace} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
 import {useTraceMeta} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
 import {useTraceRootEvent} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
+import {useTraceTree} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceTree';
 import {
   loadTraceViewPreferences,
   type TracePreferencesState,
@@ -56,16 +54,18 @@ function EventTraceViewInner({event, organization}: EventTraceViewInnerProps) {
   const traceId = event.contexts.trace!.trace_id!;
   const location = useLocation();
 
-  const trace = useTrace({
+  const traceResults = useTrace({
     traceSlug: traceId ? traceId : undefined,
     limit: 10000,
   });
-  const meta = useTraceMeta([{traceSlug: traceId, timestamp: undefined}]);
+  const metaResults = useTraceMeta([{traceSlug: traceId, timestamp: undefined}]);
+  const tree = useTraceTree({traceResults, metaResults, replayRecord: null});
 
-  const hasNoTransactions = meta.data?.transactions === 0;
-  const shouldLoadTraceRoot = !trace.isPending && trace.data && !hasNoTransactions;
+  const hasNoTransactions = metaResults.data?.transactions === 0;
+  const shouldLoadTraceRoot =
+    !traceResults.isPending && traceResults.data && !hasNoTransactions;
 
-  const rootEvent = useTraceRootEvent(shouldLoadTraceRoot ? trace.data! : null);
+  const rootEvent = useTraceRootEvent(shouldLoadTraceRoot ? traceResults.data! : null);
 
   const preferences = useMemo(
     () =>
@@ -90,7 +90,12 @@ function EventTraceViewInner({event, organization}: EventTraceViewInnerProps) {
     });
   }, [location.query.statsPeriod, traceId]);
 
-  if (trace.isPending || rootEvent.isPending || !rootEvent.data || hasNoTransactions) {
+  if (
+    traceResults.isPending ||
+    rootEvent.isPending ||
+    !rootEvent.data ||
+    hasNoTransactions
+  ) {
     return null;
   }
 
@@ -103,19 +108,18 @@ function EventTraceViewInner({event, organization}: EventTraceViewInnerProps) {
         <TraceViewWaterfallWrapper>
           <TraceViewWaterfall
             traceSlug={undefined}
-            trace={trace.data ?? null}
-            status={getTraceViewQueryStatus(trace.status, meta.status)}
+            tree={tree}
             rootEvent={rootEvent}
             organization={organization}
             traceEventView={traceEventView}
-            metaResults={meta}
+            metaResults={metaResults}
             source="issues"
             replayRecord={null}
             scrollToNode={
-              trace.data?.transactions[0]?.event_id
+              traceResults.data?.transactions[0]?.event_id
                 ? {
                     // Scroll/highlight the current transaction
-                    path: [`txn-${trace.data.transactions[0].event_id}`],
+                    path: [`txn-${traceResults.data.transactions[0].event_id}`],
                   }
                 : undefined
             }
