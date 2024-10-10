@@ -194,28 +194,30 @@ class ProjectOwnership(Model):
         # https://docs.sentry.io/product/issues/ownership-rules/#evaluation-flow
         rules_with_owners = []
 
-        ownership_rules = list(reversed(cls._matching_ownership_rules(ownership, data)))
-        hydrated_ownership_rules = cls._hydrate_rules(
-            project_id, ownership_rules, OwnerRuleType.OWNERSHIP_RULE.value
-        )
-        for item in hydrated_ownership_rules:
-            if item[1]:  # actors
-                rules_with_owners.append(item)
-                if len(rules_with_owners) == limit:
-                    return rules_with_owners
+        with metrics.timer("projectownership.get_issue_owners_ownership_rules"):
+            ownership_rules = list(reversed(cls._matching_ownership_rules(ownership, data)))
+            hydrated_ownership_rules = cls._hydrate_rules(
+                project_id, ownership_rules, OwnerRuleType.OWNERSHIP_RULE.value
+            )
+            for item in hydrated_ownership_rules:
+                if item[1]:  # actors
+                    rules_with_owners.append(item)
+                    if len(rules_with_owners) == limit:
+                        return rules_with_owners
 
         if not codeowners:
             return rules_with_owners
 
-        codeowners_rules = list(reversed(cls._matching_ownership_rules(codeowners, data)))
-        hydrated_codeowners_rules = cls._hydrate_rules(
-            project_id, codeowners_rules, OwnerRuleType.CODEOWNERS.value
-        )
-        for item in hydrated_codeowners_rules:
-            if item[1]:  # actors
-                rules_with_owners.append(item)
-                if len(rules_with_owners) == limit:
-                    return rules_with_owners
+        with metrics.timer("projectownership.get_issue_owners_codeowners_rules"):
+            codeowners_rules = list(reversed(cls._matching_ownership_rules(codeowners, data)))
+            hydrated_codeowners_rules = cls._hydrate_rules(
+                project_id, codeowners_rules, OwnerRuleType.CODEOWNERS.value
+            )
+            for item in hydrated_codeowners_rules:
+                if item[1]:  # actors
+                    rules_with_owners.append(item)
+                    if len(rules_with_owners) == limit:
+                        return rules_with_owners
 
         return rules_with_owners
 
