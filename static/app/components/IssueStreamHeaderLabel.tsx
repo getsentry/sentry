@@ -11,7 +11,7 @@ const IssueStreamHeaderLabel = styled('div')<{breakpoint?: string}>`
   font-weight: ${p => p.theme.fontWeightBold};
   color: ${p => p.theme.subText};
 
-  ${p => p.breakpoint && `@media (max-width: ${p.breakpoint}) { display: none; }`}
+  ${p => p.breakpoint && css`@media (max-width: ${p.breakpoint}) { display: none; }`}
 `;
 
 export default IssueStreamHeaderLabel;
