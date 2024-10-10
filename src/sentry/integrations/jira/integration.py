@@ -110,6 +110,8 @@ metadata = IntegrationMetadata(
 # a valid link (e.g. "is blocked by ISSUE-1").
 HIDDEN_ISSUE_FIELDS = ["issuelinks"]
 
+JIRA_PROJECT_SIZE_LOGGING_THRESHOLD = 5
+
 
 class JiraIntegration(IssueSyncIntegration):
     comment_key = "sync_comments"
@@ -210,16 +212,36 @@ class JiraIntegration(IssueSyncIntegration):
             projects = [{"value": p["id"], "label": p["name"]} for p in client.get_projects_list()]
             configuration[0]["addDropdown"]["items"] = projects
 
+            # We need to monitor if we're getting a large volume of requests
+            # with a significant number of projects. Issuing 5 requests or more
+            # per configuration load is something we may need to address via
+            # a bulk query.
+
+            # Jira's API supports querying all available statuses, along with
+            # their project and workflow usages, but this is paginated and may
+            # have many of the same query concerns depending on how many
+            # statuses are defined within the Jira organization.
+            if len(projects) > JIRA_PROJECT_SIZE_LOGGING_THRESHOLD:
+                logger.info(
+                    "excessive_project_status_requests",
+                    extra={
+                        "num_projects": projects,
+                        "org_integration": self.org_integration.id
+                        if self.org_integration
+                        else None,
+                    },
+                )
             # Each project can have a different set of statuses assignable for
             # issues, so we need to create per-project mappings.
             for proj in projects:
-                project_statuses = client.get_project_statuses(proj["value"]).get("values")
+                project_id = proj["value"]
+                project_statuses = client.get_project_statuses(project_id).get("values")
                 if not project_statuses:
                     continue
 
                 statuses_for_project = [(c["id"], c["name"]) for c in project_statuses]
 
-                configuration[0]["mappedSelectors"][str(proj["value"])] = {
+                configuration[0]["mappedSelectors"][project_id] = {
                     "on_resolve": {
                         "choices": statuses_for_project,
                         "placeholder": _("Select a status"),
