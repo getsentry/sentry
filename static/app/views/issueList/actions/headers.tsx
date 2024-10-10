@@ -39,23 +39,25 @@ function Headers({
         <Fragment>
           {organization.features.includes('issue-stream-table-layout') ? (
             <NarrowGraphLabel breakpoint={COLUMN_BREAKPOINTS.TREND}>
-              {t('Trend')}
-              <NarrowGraphToggles>
-                {selection.datetime.period !== '24h' && (
+              <NarrowGraphLabelContents>
+                {t('Trend')}
+                <NarrowGraphToggles>
+                  {selection.datetime.period !== '24h' && (
+                    <GraphToggle
+                      active={statsPeriod === '24h'}
+                      onClick={() => onSelectStatsPeriod('24h')}
+                    >
+                      {t('24h')}
+                    </GraphToggle>
+                  )}
                   <GraphToggle
-                    active={statsPeriod === '24h'}
-                    onClick={() => onSelectStatsPeriod('24h')}
+                    active={statsPeriod === 'auto'}
+                    onClick={() => onSelectStatsPeriod('auto')}
                   >
-                    {t('24h')}
+                    {selection.datetime.period || t('Custom')}
                   </GraphToggle>
-                )}
-                <GraphToggle
-                  active={statsPeriod === 'auto'}
-                  onClick={() => onSelectStatsPeriod('auto')}
-                >
-                  {selection.datetime.period || t('Custom')}
-                </GraphToggle>
-              </NarrowGraphToggles>
+                </NarrowGraphToggles>
+              </NarrowGraphLabelContents>
               <HeaderDivider />
             </NarrowGraphLabel>
           ) : (
@@ -145,6 +147,17 @@ const NarrowGraphLabel = styled(IssueStreamHeaderLabel)`
   flex: 1;
   display: flex;
   justify-content: space-between;
+`;
+
+const NarrowGraphLabelContents = styled('div')`
+  display: flex;
+  flex: 1;
+  justify-content: space-between;
+`;
+
+const NarrowGraphToggles = styled('div')`
+  font-weight: ${p => p.theme.fontWeightNormal};
+  margin-right: ${space(2)};
 `;
 
 const GraphHeader = styled('div')`
@@ -242,10 +255,6 @@ const NarrowAssigneeLabel = styled(IssueStreamHeaderLabel)`
   justify-content: flex-end;
   text-align: right;
   width: 60px;
-`;
-
-const NarrowGraphToggles = styled('div')`
-  font-weight: ${p => p.theme.fontWeightNormal};
 `;
 
 // Reprocessing
