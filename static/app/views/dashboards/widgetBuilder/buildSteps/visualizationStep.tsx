@@ -140,12 +140,7 @@ export function VisualizationStep({
           onDataFetched={onDataFetched}
           onWidgetSplitDecision={onWidgetSplitDecision}
           shouldResize={false}
-          onLegendSelectChanged={
-            organization.features.includes('dashboards-releases-on-charts') &&
-            legendFunctions.widgetRequiresLegendUnselection(widget)
-              ? () => {}
-              : undefined
-          }
+          onLegendSelectChanged={() => {}}
           legendOptions={
             organization.features.includes('dashboards-releases-on-charts') &&
             legendFunctions.widgetRequiresLegendUnselection(widget)
