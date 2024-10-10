@@ -15,8 +15,9 @@ import {OVERVIEW_PAGE_TITLE} from 'sentry/views/insights/pages/settings';
 import {MODULE_TITLES} from 'sentry/views/insights/settings';
 import type {ModuleName} from 'sentry/views/insights/types';
 
-type Props = {
+export type Props = {
   domainBaseUrl: string;
+  domainTitle: string;
   headerTitle: React.ReactNode;
   modules: ModuleName[];
   selectedModule: ModuleName | undefined;
@@ -34,6 +35,7 @@ type Tab = {
 export function DomainViewHeader({
   modules,
   headerTitle,
+  domainTitle,
   selectedModule,
   hideDefaultTabs,
   additonalHeaderActions,
@@ -51,7 +53,7 @@ export function DomainViewHeader({
       preservePageFilters: true,
     },
     {
-      label: headerTitle,
+      label: domainTitle,
       to: domainBaseUrl,
       preservePageFilters: true,
     },
