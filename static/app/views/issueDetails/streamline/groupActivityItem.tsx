@@ -580,7 +580,6 @@ export default function getGroupActivityItem(
           return {
             title: t('First Seen'),
             message: tct('Marked as [priority] priority', {
-              author,
               priority: activity.data.priority,
             }),
           };
