@@ -344,7 +344,7 @@ class ReleasesDetailContainer extends DeprecatedAsyncComponent<
   }
 
   renderBody() {
-    const {organization, params, router} = this.props;
+    const {organization, params} = this.props;
     const {releaseMeta} = this.state;
 
     if (!releaseMeta) {
@@ -360,7 +360,6 @@ class ReleasesDetailContainer extends DeprecatedAsyncComponent<
             id: String(id),
             slug,
           }))}
-          router={router}
           nextPath={{
             pathname: `/organizations/${organization.slug}/releases/${encodeURIComponent(
               params.release

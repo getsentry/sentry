@@ -17,8 +17,8 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useMedia from 'sentry/utils/useMedia';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOnClickOutside from 'sentry/utils/useOnClickOutside';
-import useRouter from 'sentry/utils/useRouter';
 
 import type {SidebarItemProps} from './sidebarItem';
 import SidebarItem, {isItemActive} from './sidebarItem';
@@ -42,7 +42,7 @@ function SidebarAccordion({
     useContext(ExpandedContext);
   const theme = useTheme();
   const horizontal = useMedia(`(max-width: ${theme.breakpoints.medium})`);
-  const router = useRouter();
+  const navigate = useNavigate();
   const [expanded, setExpanded] = useLocalStorageState(
     `sidebar-accordion-${id}:expanded`,
     initiallyExpanded ?? true
@@ -107,7 +107,7 @@ function SidebarAccordion({
     e: React.MouseEvent<HTMLAnchorElement>
   ) => void = () => {
     if (itemProps.to) {
-      router.push(itemProps.to);
+      navigate(itemProps.to);
       setExpandedItemId(null);
     }
   };

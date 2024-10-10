@@ -36,7 +36,7 @@ import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import useRouter from 'sentry/utils/useRouter';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import Tags from 'sentry/views/discover/tags';
 import Breadcrumb from 'sentry/views/performance/breadcrumb';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
@@ -70,7 +70,7 @@ export type EventDetail = {
 };
 
 function NewTraceDetailsContent(props: Props) {
-  const router = useRouter();
+  const navigate = useNavigate();
   const [detail, setDetail] = useState<EventDetail | SpanDetailProps | undefined>(
     undefined
   );
@@ -402,13 +402,16 @@ function NewTraceDetailsContent(props: Props) {
         <TraceViewDetailPanel
           detail={detail}
           onClose={() => {
-            router.replace({
-              ...location,
-              hash: undefined,
-              query: {
-                ...omit(location.query, 'openPanel'),
+            navigate(
+              {
+                ...location,
+                hash: undefined,
+                query: {
+                  ...omit(location.query, 'openPanel'),
+                },
               },
-            });
+              {replace: true}
+            );
             setDetail(undefined);
           }}
         />
