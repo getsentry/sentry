@@ -62,11 +62,11 @@ class DevToolbarAnalyticsMiddlewareIntegrationTest(APITestCase):
     @override_settings(MIDDLEWARE=TEST_MIDDLEWARE)
     @patch("sentry.analytics.record")
     def _test_records_event(
-        self, endpoint_name: str, url_params: dict[str, str], mock_record: MagicMock
+        self, endpoint_name: str, method: str, url_params: dict[str, str], mock_record: MagicMock
     ):
         url = reverse(endpoint_name, kwargs=url_params)
-        # print(url)
-        response = self.client.get(
+        get_response = getattr(self.client, method.lower())
+        response: HttpResponse = get_response(
             url,
             headers={
                 "queryReferrer": "devtoolbar",
@@ -84,7 +84,7 @@ class DevToolbarAnalyticsMiddlewareIntegrationTest(APITestCase):
             route="^api/0/organizations/(?P<organization_id_or_slug>[^\\/]+)/replays/$",
             query_string="",
             origin=self.origin,
-            request_method="GET",
+            request_method=method,
             response_code=response.status_code,
             organization_id=org_id,
             organization_slug=org_slug,
@@ -96,17 +96,25 @@ class DevToolbarAnalyticsMiddlewareIntegrationTest(APITestCase):
     def test_records_event(self):
         self._test_records_event(
             "sentry-api-0-organization-replay-index",
+            "GET",
             {"organization_id_or_slug": self.organization.slug},
+        )
+        self._test_records_event(
+            "sentry-api-0-organization-replay-index",
+            "GET",
+            {"organization_id_or_slug": str(self.organization.id)},
         )
 
 
 """
 Unit: (just the middleware class, mock everything)
+test response unchanged
 test not called if missing header
 test not called if request.resolver_match = None (also logs exc)
 test exception raised from view_func (pass in get_response that raises)
 - logs exc
 - response_code 500
+
 test all request methods
 test all response status codes
 test referrer header instead of origin
