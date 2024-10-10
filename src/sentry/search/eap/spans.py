@@ -218,10 +218,13 @@ class SearchResolver:
 
         This function will also dedupe the virtual column contexts if necessary
         """
-        raise NotImplementedError()
-        # go from public alias -> rpc
-        # p = Procssors(parsed_column_name)
-        # return [ResolvedColumn()]
+        resolved_columns = []
+        resolved_contexts = []
+        for column in selected_columns:
+            resolved_column, context = self.resolve_column(column)
+            resolved_columns.append(resolved_column)
+            resolved_contexts.append(context)
+        return resolved_columns, resolved_contexts
 
     def resolve_column(self, column: str) -> tuple[ResolvedColumn, VirtualColumnContext | None]:
         """Column is either an attribute or an aggregate, this function will determine which it is and call the relevant

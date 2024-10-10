@@ -58,6 +58,10 @@ class ResolvedColumn:
                 else constants.TYPE_MAP[self.search_type],
             )
 
+    @property
+    def is_aggregate(self) -> bool:
+        return isinstance(self.internal_name, Function.ValueType)
+
 
 @dataclass
 class ArgumentDefinition:
