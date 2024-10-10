@@ -7,6 +7,7 @@ import {NoteInputWithStorage} from 'sentry/components/activity/note/inputWithSto
 import useMutateActivity from 'sentry/components/feedback/useMutateActivity';
 import Timeline from 'sentry/components/timeline';
 import TimeSince from 'sentry/components/timeSince';
+import {IconFlag} from 'sentry/icons/iconFlag';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {space} from 'sentry/styles/space';
@@ -95,6 +96,11 @@ function StreamlinedActivitySection({group}: {group: Group}) {
           }}
           source="issue-details"
           {...noteProps}
+        />
+        <ActivityTimelineItem
+          title={t('Last Seen')}
+          icon={<IconFlag />}
+          timestamp={<SmallTimestamp date={group.lastSeen} />}
         />
         {group.activity.map(item => {
           const authorName = item.user ? item.user.name : 'Sentry';
