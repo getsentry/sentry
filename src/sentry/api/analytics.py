@@ -37,15 +37,16 @@ class DevToolbarRequestEvent(analytics.Event):
     type = "devtoolbar.request"
 
     attributes = (
-        analytics.Attribute("path"),  # path to endpoint
+        analytics.Attribute("endpoint_name"),
+        analytics.Attribute("url_pattern"),
         analytics.Attribute("query"),  # string or dict?
         analytics.Attribute("origin"),
-        analytics.Attribute("organization_id", required=False),
+        analytics.Attribute("response_code", type=int),
+        analytics.Attribute("organization_id", type=int, required=False),
         analytics.Attribute("organization_slug", required=False),
-        analytics.Attribute("project_id", required=False),
+        analytics.Attribute("project_id", type=int, required=False),
         analytics.Attribute("project_slug", required=False),
-        analytics.Attribute("issue_id", required=False),
-        analytics.Attribute("user_id"),
+        analytics.Attribute("user_id", type=int),
     )
 
 
