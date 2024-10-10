@@ -31,9 +31,6 @@ class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
         can_create_tickets = features.has(
             "organizations:integrations-ticket-rules", project.organization
         )
-        has_latest_adopted_release = features.has(
-            "organizations:latest-adopted-release-filter", project.organization
-        )
 
         # TODO: conditions need to be based on actions
         for rule_type, rule_cls in rules:
@@ -76,12 +73,6 @@ class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
             if rule_type.startswith("condition/"):
                 condition_list.append(context)
             elif rule_type.startswith("filter/"):
-                if (
-                    context["id"]
-                    == "sentry.rules.filters.latest_adopted_release_filter.LatestAdoptedReleaseFilter"
-                    and not has_latest_adopted_release
-                ):
-                    continue
                 filter_list.append(context)
             elif rule_type.startswith("action/"):
                 action_list.append(context)
