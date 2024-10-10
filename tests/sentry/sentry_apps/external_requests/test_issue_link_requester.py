@@ -2,7 +2,7 @@ import pytest
 import responses
 
 from sentry.coreapi import APIError
-from sentry.mediators.external_requests.issue_link_requester import IssueLinkRequester
+from sentry.sentry_apps.external_requests.issue_link_requester import IssueLinkRequester
 from sentry.sentry_apps.services.app import app_service
 from sentry.testutils.cases import TestCase
 from sentry.users.services.user.serial import serialize_rpc_user
@@ -45,15 +45,14 @@ class TestIssueLinkRequester(TestCase):
             content_type="application/json",
         )
 
-        result = IssueLinkRequester.run(
+        result = IssueLinkRequester(
             install=self.install,
-            project=self.project,
             group=self.group,
             uri="/link-issue",
             fields=fields,
             user=self.user,
             action="create",
-        )
+        ).run()
         assert result == {
             "project": "ProjectName",
             "webUrl": "https://example.com/project/issue-id",
@@ -96,15 +95,14 @@ class TestIssueLinkRequester(TestCase):
             content_type="application/json",
         )
         with pytest.raises(APIError):
-            IssueLinkRequester.run(
+            IssueLinkRequester(
                 install=self.install,
-                project=self.project,
                 group=self.group,
                 uri="/link-issue",
                 fields={},
                 user=self.user,
                 action="create",
-            )
+            ).run()
 
     @responses.activate
     def test_500_response(self):
@@ -116,15 +114,14 @@ class TestIssueLinkRequester(TestCase):
         )
 
         with pytest.raises(APIError):
-            IssueLinkRequester.run(
+            IssueLinkRequester(
                 install=self.install,
-                project=self.project,
                 group=self.group,
                 uri="/link-issue",
                 fields={},
                 user=self.user,
                 action="create",
-            )
+            ).run()
 
         buffer = SentryAppWebhookRequestsBuffer(self.sentry_app)
         requests = buffer.get_requests()
