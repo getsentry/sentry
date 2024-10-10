@@ -33,14 +33,15 @@ class GroupSimilarIssuesEmbeddingsCountEvent(analytics.Event):
     )
 
 
-class DevToolbarRequestEvent(analytics.Event):
-    type = "devtoolbar.request"
+class DevToolbarApiRequestEvent(analytics.Event):
+    type = "devtoolbar.api_request"
 
     attributes = (
         analytics.Attribute("endpoint_name"),
-        analytics.Attribute("url_pattern"),
-        analytics.Attribute("query"),  # string or dict?
+        analytics.Attribute("route"),
+        analytics.Attribute("query_string"),
         analytics.Attribute("origin"),
+        analytics.Attribute("request_method"),
         analytics.Attribute("response_code", type=int),
         analytics.Attribute("organization_id", type=int, required=False),
         analytics.Attribute("organization_slug", required=False),
@@ -53,4 +54,4 @@ class DevToolbarRequestEvent(analytics.Event):
 analytics.register(OrganizationSavedSearchCreatedEvent)
 analytics.register(OrganizationSavedSearchDeletedEvent)
 analytics.register(GroupSimilarIssuesEmbeddingsCountEvent)
-analytics.register(DevToolbarRequestEvent)
+analytics.register(DevToolbarApiRequestEvent)
