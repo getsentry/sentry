@@ -35,7 +35,7 @@ from sentry.tasks.commit_context import (
     queue_comment_task_if_needed,
 )
 from sentry.testutils.cases import IntegrationTestCase, TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.committers import get_frame_paths
@@ -73,7 +73,7 @@ class TestCommitContextIntegration(TestCase):
             data={
                 "message": "Kaboom!",
                 "platform": "python",
-                "timestamp": iso_format(before_now(seconds=10)),
+                "timestamp": before_now(seconds=10).timestamp(),
                 "stacktrace": {
                     "frames": [
                         {
@@ -423,7 +423,7 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
             data={
                 "message": "Kaboom!",
                 "platform": "python",
-                "timestamp": iso_format(before_now(seconds=10)),
+                "timestamp": before_now(seconds=10).timestamp(),
                 "stacktrace": {
                     "frames": [
                         {

@@ -6,7 +6,7 @@ from sentry.models.projectownership import ProjectOwnership
 from sentry.models.repository import Repository
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema, resolve_actors
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.testutils.skips import requires_snuba
 from sentry.types.actor import Actor, ActorType
@@ -43,7 +43,7 @@ class ProjectOwnershipTestCase(TestCase):
         return {
             "message": "Kaboom!",
             "platform": "python",
-            "timestamp": iso_format(before_now(seconds=10)),
+            "timestamp": before_now(seconds=10).timestamp(),
             "stacktrace": {
                 "frames": [
                     {

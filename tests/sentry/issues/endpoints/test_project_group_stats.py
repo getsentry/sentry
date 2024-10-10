@@ -1,5 +1,5 @@
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
@@ -13,7 +13,7 @@ class ProjectGroupStatsTest(APITestCase):
         group1 = self.store_event(
             data={
                 "fingerprint": ["group1"],
-                "timestamp": iso_format(before_now(minutes=5)),
+                "timestamp": before_now(minutes=5).timestamp(),
             },
             project_id=self.project.id,
         ).group
@@ -21,7 +21,7 @@ class ProjectGroupStatsTest(APITestCase):
         group2 = self.store_event(
             data={
                 "fingerprint": ["group2"],
-                "timestamp": iso_format(before_now(minutes=5)),
+                "timestamp": before_now(minutes=5).timestamp(),
             },
             project_id=self.project.id,
         ).group
@@ -32,7 +32,7 @@ class ProjectGroupStatsTest(APITestCase):
                 self.store_event(
                     data={
                         "fingerprint": [fingerprint],
-                        "timestamp": iso_format(before_now(minutes=5)),
+                        "timestamp": before_now(minutes=5).timestamp(),
                     },
                     project_id=self.project.id,
                 )

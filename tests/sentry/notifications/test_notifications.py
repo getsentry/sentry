@@ -24,7 +24,7 @@ from sentry.notifications.notifications.activity.regression import RegressionAct
 from sentry.silo.base import SiloMode
 from sentry.tasks.post_process import post_process_group
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.eventprocessing import write_event_to_cache
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.testutils.skips import requires_snuba
@@ -531,7 +531,7 @@ class ActivityNotificationTest(APITestCase):
                     "actions": [action_data],
                 },
             )
-            min_ago = iso_format(before_now(minutes=1))
+            min_ago = before_now(minutes=1).timestamp()
             event = self.store_event(
                 data={
                     "message": "Hello world",

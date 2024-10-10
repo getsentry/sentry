@@ -42,7 +42,7 @@ class TransactionQueryIntegrationTest(SnubaTestCase, TestCase):
         self.event_time = self.one_min_ago
         # error event
         data = load_data("javascript")
-        data["timestamp"] = iso_format(before_now(minutes=10))
+        data["timestamp"] = before_now(minutes=10).timestamp()
         self.store_event(data=data, project_id=self.project.id)
 
         # transaction event
@@ -2543,7 +2543,7 @@ class TransactionQueryIntegrationTest(SnubaTestCase, TestCase):
     def test_conditions_with_special_columns(self):
         for val in ["b", "c", "d"]:
             data = load_data("transaction")
-            data["timestamp"] = iso_format(self.one_min_ago)
+            data["timestamp"] = self.one_min_ago.timestamp()
             data["transaction"] = val * 32
             data["logentry"] = {"formatted": val * 32}
             data["tags"] = {"sub_customer.is-Enterprise-42": val * 32}
@@ -2591,7 +2591,7 @@ class TransactionQueryIntegrationTest(SnubaTestCase, TestCase):
             val = ev[0] * 32
             for i in range(ev[1]):
                 data = load_data("transaction")
-                data["timestamp"] = iso_format(self.one_min_ago)
+                data["timestamp"] = self.one_min_ago.timestamp()
                 data["transaction"] = f"{val}-{i}"
                 data["logentry"] = {"formatted": val}
                 data["tags"] = {"trek": val}
@@ -2623,7 +2623,7 @@ class TransactionQueryIntegrationTest(SnubaTestCase, TestCase):
             val = ev[0] * 32
             for i in range(ev[1]):
                 data = load_data("transaction")
-                data["timestamp"] = iso_format(self.one_min_ago)
+                data["timestamp"] = self.one_min_ago.timestamp()
                 data["transaction"] = f"{val}-{i}"
                 data["logentry"] = {"formatted": val}
                 data["tags"] = {"trek": val}

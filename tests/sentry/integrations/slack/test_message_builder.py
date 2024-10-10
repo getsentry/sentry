@@ -53,7 +53,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import PerformanceIssueTestCase, TestCase
 from sentry.testutils.factories import EventType
 from sentry.testutils.helpers import with_feature
-from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.actor import Actor
@@ -300,7 +300,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             data={
                 "event_id": "a" * 32,
                 "tags": {"escape": "`room`", "foo": "bar"},
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": before_now(minutes=1).timestamp(),
                 "logentry": {"formatted": "bar"},
                 "_meta": {"logentry": {"formatted": {"": {"err": ["some error"]}}}},
                 "release": release.version,
@@ -494,7 +494,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         event = self.store_event(
             data={
                 "fingerprint": ["group1"],
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": before_now(minutes=1).timestamp(),
                 "logentry": {"formatted": "bar"},
                 "_meta": {"logentry": {"formatted": {"": {"err": ["some error"]}}}},
             },
@@ -559,7 +559,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         event = self.store_event(
             data={
                 "fingerprint": ["group1"],
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": before_now(minutes=1).timestamp(),
                 "logentry": {"formatted": "bar"},
                 "_meta": {"logentry": {"formatted": {"": {"err": ["some error"]}}}},
             },
@@ -983,7 +983,7 @@ class BuildGroupAttachmentReplaysTest(TestCase):
                 "message": "Hello world",
                 "level": "error",
                 "contexts": {"replay": {"replay_id": replay1_id}},
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": before_now(minutes=1).timestamp(),
             },
             project_id=self.project.id,
         )

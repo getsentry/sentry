@@ -29,7 +29,7 @@ from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.receivers import create_default_projects
 from sentry.testutils.cases import SnubaTestCase, TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import apply_feature_flag_on_cls, with_feature
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.types.group import PriorityLevel
@@ -256,8 +256,8 @@ class IssueOccurrenceLookupEventIdTest(IssueOccurrenceTestBase):
         from sentry.event_manager import EventManager
 
         event_data = load_data("transaction")
-        event_data["timestamp"] = iso_format(before_now(minutes=1))
-        event_data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=1))
+        event_data["timestamp"] = before_now(minutes=1).timestamp()
+        event_data["start_timestamp"] = before_now(minutes=1, seconds=1).timestamp()
         event_data["event_id"] = "d" * 32
 
         manager = EventManager(data=event_data)
@@ -557,7 +557,7 @@ class ParseEventPayloadTest(IssueOccurrenceTestBase):
             data={
                 "event_id": "a" * 32,
                 "message": "oh no",
-                "timestamp": iso_format(datetime.datetime.now()),
+                "timestamp": datetime.datetime.now().timestamp(),
                 "fingerprint": ["group-1"],
             },
             project_id=self.project.id,

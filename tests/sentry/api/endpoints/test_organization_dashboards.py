@@ -545,8 +545,8 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert response.status_code == 403
 
     def test_post_dashboard_with_invalid_start_end_filter(self):
-        start = iso_format(datetime.now())
-        end = iso_format(datetime.now() - timedelta(seconds=10))
+        start = datetime.now()
+        end = datetime.now() - timedelta(seconds=10)
         response = self.do_request(
             "post",
             self.url,

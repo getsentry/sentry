@@ -21,7 +21,7 @@ from sentry.models.group import GroupStatus
 from sentry.models.release import Release
 from sentry.shared_integrations.exceptions import ApiTimeoutError
 from sentry.testutils.cases import RuleTestCase, TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
@@ -48,7 +48,7 @@ class DiscordIssueAlertTest(RuleTestCase):
             data={
                 "event_id": "a" * 32,
                 "message": "Event message",
-                "timestamp": iso_format(before_now(seconds=1)),
+                "timestamp": before_now(seconds=1).timestamp(),
             },
             project_id=self.project.id,
         )

@@ -34,7 +34,7 @@ from sentry.ownership import grammar
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.slack import link_team
 from sentry.testutils.silo import assume_test_silo_mode
@@ -663,7 +663,7 @@ class GetOwnersCase(_ParticipantsTest):
             data={
                 "event_id": "0" * 32,
                 "environment": "development",
-                "timestamp": iso_format(before_now(days=1)),
+                "timestamp": before_now(days=1).timestamp(),
                 "fingerprint": ["part-1"],
                 "stacktrace": {"frames": [{"filename": "flow/spice.js"}]},
             },

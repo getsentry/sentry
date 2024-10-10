@@ -1,6 +1,6 @@
 from sentry.models.groupshare import GroupShare
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
@@ -21,7 +21,7 @@ class SharedGroupDetailsTest(APITestCase):
     def test_simple(self):
         self.login_as(user=self.user)
 
-        min_ago = iso_format(before_now(minutes=1))
+        min_ago = before_now(minutes=1).timestamp()
         event = self.store_event(data={"timestamp": min_ago}, project_id=self.project.id)
         assert event.group is not None
         group = event.group
@@ -47,7 +47,7 @@ class SharedGroupDetailsTest(APITestCase):
     def test_does_not_leak_assigned_to(self):
         self.login_as(user=self.user)
 
-        min_ago = iso_format(before_now(minutes=1))
+        min_ago = before_now(minutes=1).timestamp()
         event = self.store_event(data={"timestamp": min_ago}, project_id=self.project.id)
         assert event.group is not None
         group = event.group

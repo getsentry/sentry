@@ -5,7 +5,7 @@ from sentry.attachments.base import CachedAttachment
 from sentry.models.activity import Activity
 from sentry.models.eventattachment import EventAttachment
 from sentry.testutils.cases import APITestCase, PermissionTestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.helpers.response import close_streaming_response
@@ -21,7 +21,7 @@ class CreateAttachmentMixin:
     def create_attachment(self, content: bytes | None = None, group_id: int | None = None):
         self.project = self.create_project()
         self.release = self.create_release(self.project, self.user)
-        min_ago = iso_format(before_now(minutes=1))
+        min_ago = before_now(minutes=1).timestamp()
         self.event = self.store_event(
             data={
                 "fingerprint": ["group1"],

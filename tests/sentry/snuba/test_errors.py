@@ -40,7 +40,7 @@ class ErrorsQueryIntegrationTest(SnubaTestCase, TestCase):
                 "environment": "prod",
                 "platform": "python",
                 "user": {"id": "99", "email": "bruce@example.com", "username": "brucew"},
-                "timestamp": iso_format(self.event_time),
+                "timestamp": self.event_time.timestamp(),
                 "tags": [["key1", "value1"]],
             },
             project_id=self.project.id,
@@ -77,7 +77,7 @@ class ErrorsQueryIntegrationTest(SnubaTestCase, TestCase):
         other_project = self.create_project(organization=self.organization)
         self.snuba_params.projects = [other_project]
         self.store_event(
-            data={"message": "hello", "timestamp": iso_format(self.one_min_ago)},
+            data={"message": "hello", "timestamp": self.one_min_ago.timestamp()},
             project_id=other_project.id,
         )
 
@@ -143,7 +143,7 @@ class ErrorsQueryIntegrationTest(SnubaTestCase, TestCase):
                 "environment": "prod",
                 "platform": "python",
                 "user": {"id": "99", "email": "bruce@example.com", "username": "brucew"},
-                "timestamp": iso_format(self.event_time),
+                "timestamp": self.event_time.timestamp(),
                 "tags": [["key1", "value2"]],
             },
             project_id=self.project.id,
@@ -176,7 +176,7 @@ class ErrorsQueryIntegrationTest(SnubaTestCase, TestCase):
                 "environment": "prod",
                 "platform": "python",
                 "user": {"id": "99", "email": "bruce@example.com", "username": "brucew"},
-                "timestamp": iso_format(self.event_time),
+                "timestamp": self.event_time.timestamp(),
                 "tags": [["key1", "value2"]],
             },
             project_id=self.project.id,
@@ -224,7 +224,7 @@ class ErrorsQueryIntegrationTest(SnubaTestCase, TestCase):
                 "environment": "prod",
                 "platform": "python",
                 "user": {"id": "99", "email": "bruce@example.com", "username": "brucew"},
-                "timestamp": iso_format(self.event_time),
+                "timestamp": self.event_time.timestamp(),
                 "tags": [["id", "new"]],
             },
             project_id=self.project.id,
@@ -257,7 +257,7 @@ class ErrorsQueryIntegrationTest(SnubaTestCase, TestCase):
                 "environment": "prod",
                 "platform": "python",
                 "user": {"id": "99", "email": "bruce@example.com", "username": "brucew"},
-                "timestamp": iso_format(self.event_time),
+                "timestamp": self.event_time.timestamp(),
             },
             project_id=self.project.id,
         )
@@ -312,7 +312,7 @@ class ErrorsQueryIntegrationTest(SnubaTestCase, TestCase):
                 "environment": "prod",
                 "platform": "python",
                 "user": {"id": "99", "email": "bruce@example.com", "username": "brucew"},
-                "timestamp": iso_format(two_day_ago),
+                "timestamp": two_day_ago.timestamp(),
             },
             project_id=self.project.id,
         )
@@ -340,7 +340,7 @@ class ErrorsQueryIntegrationTest(SnubaTestCase, TestCase):
                 "environment": "prod",
                 "platform": "python",
                 "user": {"username": "brucew", "id": "1234", "ip": "127.0.0.1"},
-                "timestamp": iso_format(self.event_time),
+                "timestamp": self.event_time.timestamp(),
             },
             project_id=self.project.id,
         )
@@ -353,7 +353,7 @@ class ErrorsQueryIntegrationTest(SnubaTestCase, TestCase):
                 "environment": "prod",
                 "platform": "python",
                 "user": {"id": "1234", "ip": "127.0.0.1"},
-                "timestamp": iso_format(self.event_time),
+                "timestamp": self.event_time.timestamp(),
             },
             project_id=self.project.id,
         )
@@ -366,7 +366,7 @@ class ErrorsQueryIntegrationTest(SnubaTestCase, TestCase):
                 "environment": "prod",
                 "platform": "python",
                 "user": {"ip_address": "127.0.0.1"},
-                "timestamp": iso_format(self.event_time),
+                "timestamp": self.event_time.timestamp(),
             },
             project_id=self.project.id,
         )
@@ -395,7 +395,7 @@ class ErrorsQueryIntegrationTest(SnubaTestCase, TestCase):
                 "environment": "prod",
                 "platform": "python",
                 "user": {"username": "brucew", "ip": "127.0.0.1"},
-                "timestamp": iso_format(self.event_time),
+                "timestamp": self.event_time.timestamp(),
             },
             project_id=self.project.id,
         )
@@ -418,7 +418,7 @@ class ErrorsQueryIntegrationTest(SnubaTestCase, TestCase):
                 "environment": "prod",
                 "platform": "python",
                 "user": {"id": "99", "email": "bruce@example.com", "username": "brucew"},
-                "timestamp": iso_format(self.event_time),
+                "timestamp": self.event_time.timestamp(),
             },
             project_id=self.project.id,
         )
@@ -449,7 +449,7 @@ class ErrorsQueryIntegrationTest(SnubaTestCase, TestCase):
                 "environment": "prod",
                 "platform": "python",
                 "user": {"id": "99", "email": "bruce@example.com", "username": "brucew"},
-                "timestamp": iso_format(self.event_time),
+                "timestamp": self.event_time.timestamp(),
             },
             project_id=self.project.id,
         )
@@ -884,7 +884,7 @@ class ErrorsQueryIntegrationTest(SnubaTestCase, TestCase):
 
     def test_array_fields(self):
         data = load_data("javascript")
-        data["timestamp"] = iso_format(before_now(minutes=10))
+        data["timestamp"] = before_now(minutes=10).timestamp()
         self.store_event(data=data, project_id=self.project.id)
 
         expected_filenames = [
@@ -1152,27 +1152,27 @@ class ErrorsQueryIntegrationTest(SnubaTestCase, TestCase):
         release_3 = self.create_release(version="test@1.2.5")
 
         release_1_e_1 = self.store_event(
-            data={"release": release_1.version, "timestamp": iso_format(self.one_min_ago)},
+            data={"release": release_1.version, "timestamp": self.one_min_ago.timestamp()},
             project_id=self.project.id,
         ).event_id
         release_1_e_2 = self.store_event(
-            data={"release": release_1.version, "timestamp": iso_format(self.one_min_ago)},
+            data={"release": release_1.version, "timestamp": self.one_min_ago.timestamp()},
             project_id=self.project.id,
         ).event_id
         release_2_e_1 = self.store_event(
-            data={"release": release_2.version, "timestamp": iso_format(self.one_min_ago)},
+            data={"release": release_2.version, "timestamp": self.one_min_ago.timestamp()},
             project_id=self.project.id,
         ).event_id
         release_2_e_2 = self.store_event(
-            data={"release": release_2.version, "timestamp": iso_format(self.one_min_ago)},
+            data={"release": release_2.version, "timestamp": self.one_min_ago.timestamp()},
             project_id=self.project.id,
         ).event_id
         release_3_e_1 = self.store_event(
-            data={"release": release_3.version, "timestamp": iso_format(self.one_min_ago)},
+            data={"release": release_3.version, "timestamp": self.one_min_ago.timestamp()},
             project_id=self.project.id,
         ).event_id
         release_3_e_2 = self.store_event(
-            data={"release": release_3.version, "timestamp": iso_format(self.one_min_ago)},
+            data={"release": release_3.version, "timestamp": self.one_min_ago.timestamp()},
             project_id=self.project.id,
         ).event_id
 
@@ -1241,7 +1241,7 @@ class ErrorsQueryIntegrationTest(SnubaTestCase, TestCase):
             data={
                 "release": adopted_release.version,
                 "environment": self.environment.name,
-                "timestamp": iso_format(self.one_min_ago),
+                "timestamp": self.one_min_ago.timestamp(),
             },
             project_id=self.project.id,
         ).event_id
@@ -1249,7 +1249,7 @@ class ErrorsQueryIntegrationTest(SnubaTestCase, TestCase):
             data={
                 "release": adopted_release.version,
                 "environment": self.environment.name,
-                "timestamp": iso_format(self.one_min_ago),
+                "timestamp": self.one_min_ago.timestamp(),
             },
             project_id=self.project.id,
         ).event_id
@@ -1257,7 +1257,7 @@ class ErrorsQueryIntegrationTest(SnubaTestCase, TestCase):
             data={
                 "release": replaced_release.version,
                 "environment": self.environment.name,
-                "timestamp": iso_format(self.one_min_ago),
+                "timestamp": self.one_min_ago.timestamp(),
             },
             project_id=self.project.id,
         ).event_id
@@ -1265,7 +1265,7 @@ class ErrorsQueryIntegrationTest(SnubaTestCase, TestCase):
             data={
                 "release": replaced_release.version,
                 "environment": self.environment.name,
-                "timestamp": iso_format(self.one_min_ago),
+                "timestamp": self.one_min_ago.timestamp(),
             },
             project_id=self.project.id,
         ).event_id
@@ -1313,15 +1313,15 @@ class ErrorsQueryIntegrationTest(SnubaTestCase, TestCase):
         release_2 = self.create_release(version="test2@1.2.4")
 
         release_1_e_1 = self.store_event(
-            data={"release": release_1.version, "timestamp": iso_format(self.one_min_ago)},
+            data={"release": release_1.version, "timestamp": self.one_min_ago.timestamp()},
             project_id=self.project.id,
         ).event_id
         release_1_e_2 = self.store_event(
-            data={"release": release_1.version, "timestamp": iso_format(self.one_min_ago)},
+            data={"release": release_1.version, "timestamp": self.one_min_ago.timestamp()},
             project_id=self.project.id,
         ).event_id
         release_2_e_1 = self.store_event(
-            data={"release": release_2.version, "timestamp": iso_format(self.one_min_ago)},
+            data={"release": release_2.version, "timestamp": self.one_min_ago.timestamp()},
             project_id=self.project.id,
         ).event_id
 
@@ -1350,15 +1350,15 @@ class ErrorsQueryIntegrationTest(SnubaTestCase, TestCase):
         release_2 = self.create_release(version="test2@1.2.4+124")
 
         release_1_e_1 = self.store_event(
-            data={"release": release_1.version, "timestamp": iso_format(self.one_min_ago)},
+            data={"release": release_1.version, "timestamp": self.one_min_ago.timestamp()},
             project_id=self.project.id,
         ).event_id
         release_1_e_2 = self.store_event(
-            data={"release": release_1.version, "timestamp": iso_format(self.one_min_ago)},
+            data={"release": release_1.version, "timestamp": self.one_min_ago.timestamp()},
             project_id=self.project.id,
         ).event_id
         release_2_e_1 = self.store_event(
-            data={"release": release_2.version, "timestamp": iso_format(self.one_min_ago)},
+            data={"release": release_2.version, "timestamp": self.one_min_ago.timestamp()},
             project_id=self.project.id,
         ).event_id
 
@@ -1427,11 +1427,11 @@ class ErrorsQueryIntegrationTest(SnubaTestCase, TestCase):
         project3 = self.create_project(organization=self.organization)
 
         self.store_event(
-            data={"message": "aaaaa", "timestamp": iso_format(self.one_min_ago)},
+            data={"message": "aaaaa", "timestamp": self.one_min_ago.timestamp()},
             project_id=project2.id,
         )
         self.store_event(
-            data={"message": "bbbbb", "timestamp": iso_format(self.one_min_ago)},
+            data={"message": "bbbbb", "timestamp": self.one_min_ago.timestamp()},
             project_id=project3.id,
         )
 
@@ -1455,19 +1455,19 @@ class ErrorsQueryIntegrationTest(SnubaTestCase, TestCase):
     def test_nested_conditional_filter(self):
         project2 = self.create_project(organization=self.organization)
         self.store_event(
-            data={"release": "a" * 32, "timestamp": iso_format(self.one_min_ago)},
+            data={"release": "a" * 32, "timestamp": self.one_min_ago.timestamp()},
             project_id=self.project.id,
         )
         self.event = self.store_event(
-            data={"release": "b" * 32, "timestamp": iso_format(self.one_min_ago)},
+            data={"release": "b" * 32, "timestamp": self.one_min_ago.timestamp()},
             project_id=self.project.id,
         )
         self.event = self.store_event(
-            data={"release": "c" * 32, "timestamp": iso_format(self.one_min_ago)},
+            data={"release": "c" * 32, "timestamp": self.one_min_ago.timestamp()},
             project_id=self.project.id,
         )
         self.event = self.store_event(
-            data={"release": "a" * 32, "timestamp": iso_format(self.one_min_ago)},
+            data={"release": "a" * 32, "timestamp": self.one_min_ago.timestamp()},
             project_id=project2.id,
         )
 
@@ -1493,7 +1493,7 @@ class ErrorsQueryIntegrationTest(SnubaTestCase, TestCase):
     def test_conditions_with_special_columns(self):
         for val in ["a", "b", "c"]:
             data = load_data("javascript")
-            data["timestamp"] = iso_format(self.one_min_ago)
+            data["timestamp"] = self.one_min_ago.timestamp()
             data["transaction"] = val * 32
             data["logentry"] = {"formatted": val * 32}
             data["tags"] = {"sub_customer.is-Enterprise-42": val * 32}
@@ -1541,7 +1541,7 @@ class ErrorsQueryIntegrationTest(SnubaTestCase, TestCase):
             val = ev[0] * 32
             for i in range(ev[1]):
                 data = load_data("javascript")
-                data["timestamp"] = iso_format(self.one_min_ago)
+                data["timestamp"] = self.one_min_ago.timestamp()
                 data["transaction"] = f"{val}-{i}"
                 data["logentry"] = {"formatted": val}
                 data["tags"] = {"trek": val}
@@ -1726,11 +1726,11 @@ class ErrorsQueryIntegrationTest(SnubaTestCase, TestCase):
 
     def test_offsets(self):
         self.store_event(
-            data={"message": "hello1", "timestamp": iso_format(self.one_min_ago)},
+            data={"message": "hello1", "timestamp": self.one_min_ago.timestamp()},
             project_id=self.project.id,
         )
         self.store_event(
-            data={"message": "hello2", "timestamp": iso_format(self.one_min_ago)},
+            data={"message": "hello2", "timestamp": self.one_min_ago.timestamp()},
             project_id=self.project.id,
         )
 

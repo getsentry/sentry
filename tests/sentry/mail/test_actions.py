@@ -10,7 +10,7 @@ from sentry.models.rule import Rule
 from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
 from sentry.tasks.post_process import post_process_group
 from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase, TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.eventprocessing import write_event_to_cache
 from sentry.testutils.skips import requires_snuba
 
@@ -132,7 +132,7 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase):
         assert len(results) == 1
 
     def test_full_integration(self):
-        one_min_ago = iso_format(before_now(minutes=1))
+        one_min_ago = before_now(minutes=1).timestamp()
         event = self.store_event(
             data={
                 "message": "hello",
@@ -171,7 +171,7 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase):
         assert "uh oh" in sent.subject
 
     def test_full_integration_fallthrough(self):
-        one_min_ago = iso_format(before_now(minutes=1))
+        one_min_ago = before_now(minutes=1).timestamp()
         event = self.store_event(
             data={
                 "message": "hello",
@@ -209,7 +209,7 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase):
         assert "uh oh" in sent.subject
 
     def test_full_integration_fallthrough_not_provided(self):
-        one_min_ago = iso_format(before_now(minutes=1))
+        one_min_ago = before_now(minutes=1).timestamp()
         event = self.store_event(
             data={
                 "message": "hello",
@@ -285,7 +285,7 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase):
             organization=self.organization, members=[gil_workflow, dan_workflow]
         )
         self.project.add_team(team_workflow)
-        one_min_ago = iso_format(before_now(minutes=1))
+        one_min_ago = before_now(minutes=1).timestamp()
         event = self.store_event(
             data={
                 "message": "hello",

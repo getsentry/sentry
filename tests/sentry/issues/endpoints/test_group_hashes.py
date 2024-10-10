@@ -4,15 +4,15 @@ from urllib.parse import urlencode
 from sentry.eventstream.snuba import SnubaEventStream
 from sentry.models.grouphash import GroupHash
 from sentry.testutils.cases import APITestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 
 
 class GroupHashesTest(APITestCase, SnubaTestCase):
     def test_only_return_latest_event(self):
         self.login_as(user=self.user)
 
-        min_ago = iso_format(before_now(minutes=1))
-        two_min_ago = iso_format(before_now(minutes=2))
+        min_ago = before_now(minutes=1).timestamp()
+        two_min_ago = before_now(minutes=2).timestamp()
         new_event_id = "b" * 32
 
         old_event = self.store_event(
@@ -47,8 +47,8 @@ class GroupHashesTest(APITestCase, SnubaTestCase):
     def test_return_multiple_hashes(self):
         self.login_as(user=self.user)
 
-        min_ago = iso_format(before_now(minutes=1))
-        two_min_ago = iso_format(before_now(minutes=2))
+        min_ago = before_now(minutes=1).timestamp()
+        two_min_ago = before_now(minutes=2).timestamp()
 
         event1 = self.store_event(
             data={
