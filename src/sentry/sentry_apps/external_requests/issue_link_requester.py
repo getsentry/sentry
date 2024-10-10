@@ -4,7 +4,6 @@ from typing import Any
 from urllib.parse import urlparse
 from uuid import uuid4
 
-from django.db import router, transaction
 from django.utils.functional import cached_property
 
 from sentry.coreapi import APIError
@@ -58,41 +57,40 @@ class IssueLinkRequester:
     action: str
 
     def run(self) -> dict[str, Any]:
-        with transaction.atomic(router.db_for_write(Group)):
-            response: dict[str, str] = {}
+        response: dict[str, str] = {}
 
-            try:
-                request = send_and_save_sentry_app_request(
-                    self._build_url(),
-                    self.sentry_app,
-                    self.install.organization_id,
-                    f"external_issue.{ACTION_TO_PAST_TENSE[self.action]}",
-                    headers=self._build_headers(),
-                    method="POST",
-                    data=self.body,
-                )
-                body = safe_urlread(request)
-                response = json.loads(body)
+        try:
+            request = send_and_save_sentry_app_request(
+                self._build_url(),
+                self.sentry_app,
+                self.install.organization_id,
+                f"external_issue.{ACTION_TO_PAST_TENSE[self.action]}",
+                headers=self._build_headers(),
+                method="POST",
+                data=self.body,
+            )
+            body = safe_urlread(request)
+            response = json.loads(body)
 
-            except Exception as e:
-                logger.info(
-                    "issue-link-requester.error",
-                    extra={
-                        "sentry_app": self.sentry_app.slug,
-                        "install": self.install.uuid,
-                        "project": self.group.project.slug,
-                        "group": self.group.id,
-                        "uri": self.uri,
-                        "error_message": str(e),
-                    },
-                )
+        except Exception as e:
+            logger.info(
+                "issue-link-requester.error",
+                extra={
+                    "sentry_app": self.sentry_app.slug,
+                    "install": self.install.uuid,
+                    "project": self.group.project.slug,
+                    "group": self.group.id,
+                    "uri": self.uri,
+                    "error_message": str(e),
+                },
+            )
 
-            if not self._validate_response(response):
-                raise APIError(
-                    f"Invalid response format from sentry app {self.sentry_app} when linking issue"
-                )
+        if not self._validate_response(response):
+            raise APIError(
+                f"Invalid response format from sentry app {self.sentry_app} when linking issue"
+            )
 
-            return response
+        return response
 
     def _build_url(self) -> str:
         urlparts = urlparse(self.sentry_app.webhook_url)
