@@ -72,7 +72,10 @@ class OpsgenieNotifyTeamAction(IntegrationEventAction):
             try:
                 rules = [f.rule for f in futures]
                 resp = client.send_notification(
-                    data=event, priority=priority, rules=rules, notification_uuid=notification_uuid
+                    data=event,
+                    priority=priority,
+                    rules=rules,
+                    notification_uuid=notification_uuid,
                 )
             except ApiError as e:
                 logger.info(

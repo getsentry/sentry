@@ -6,6 +6,7 @@ import responses
 
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.opsgenie.actions import OpsgenieNotifyTeamAction
+from sentry.integrations.utils.metrics import EventLifecycleOutcome
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase
@@ -228,7 +229,8 @@ class OpsgenieNotifyTeamTest(RuleTestCase, PerformanceIssueTestCase):
         assert len(form.errors) == 1
 
     @responses.activate
-    def test_bad_integration_key(self):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_bad_integration_key(self, mock_record):
         resp_data = {
             "message": "API Key does not belong to a [sentry] integration.",
             "took": 1,
@@ -243,6 +245,10 @@ class OpsgenieNotifyTeamTest(RuleTestCase, PerformanceIssueTestCase):
         rule = self.get_rule(data={"account": self.integration.id, "team": self.team1["id"]})
         form = rule.get_form_instance()
         assert not form.is_valid()
+        assert len(mock_record.mock_calls) == 2
+        start, halt = mock_record.mock_calls
+        assert start.args[0] == EventLifecycleOutcome.STARTED
+        assert halt.args[0] == EventLifecycleOutcome.FAILURE
 
     @patch("sentry.integrations.opsgenie.actions.notification.logger")
     def test_team_deleted(self, mock_logger: MagicMock):
@@ -290,8 +296,9 @@ class OpsgenieNotifyTeamTest(RuleTestCase, PerformanceIssueTestCase):
         )
 
     @patch("sentry.integrations.opsgenie.actions.notification.logger")
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @responses.activate
-    def test_api_error(self, mock_logger: MagicMock):
+    def test_api_error(self, mock_record, mock_logger: MagicMock):
         event = self.get_event()
         rule = self.get_rule(data={"account": self.integration.id, "team": self.team1["id"]})
         results = list(rule.after(event=event))
@@ -306,3 +313,7 @@ class OpsgenieNotifyTeamTest(RuleTestCase, PerformanceIssueTestCase):
         with pytest.raises(ApiError):
             results[0].callback(event, futures=[])
         assert mock_logger.info.call_args.args[0] == "rule.fail.opsgenie_notification"
+        assert len(mock_record.mock_calls) == 2
+        start, halt = mock_record.mock_calls
+        assert start.args[0] == EventLifecycleOutcome.STARTED
+        assert halt.args[0] == EventLifecycleOutcome.FAILURE

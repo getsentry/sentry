@@ -1,7 +1,10 @@
+from unittest.mock import patch
+
 import orjson
 import pytest
 import responses
 
+from sentry.integrations.utils.metrics import EventLifecycleOutcome
 from sentry.models.rule import Rule
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.skips import requires_snuba
@@ -62,7 +65,8 @@ class OpsgenieClientTest(APITestCase):
         assert resp == resp_data
 
     @responses.activate
-    def test_send_notification(self):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_send_notification(self, mock_record):
         resp_data = {
             "result": "Request will be processed",
             "took": 1,
@@ -110,3 +114,7 @@ class OpsgenieClientTest(APITestCase):
             "message": "Hello world",
             "source": "Sentry",
         }
+        assert len(mock_record.mock_calls) == 2
+        start, halt = mock_record.mock_calls
+        assert start.args[0] == EventLifecycleOutcome.STARTED
+        assert halt.args[0] == EventLifecycleOutcome.SUCCESS

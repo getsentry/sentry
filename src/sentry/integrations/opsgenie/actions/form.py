@@ -6,7 +6,9 @@ from typing import Any, cast
 from django import forms
 from django.utils.translation import gettext_lazy as _
 
+from sentry.integrations.on_call.metrics import OnCallInteractionType
 from sentry.integrations.opsgenie.integration import OpsgenieIntegration
+from sentry.integrations.opsgenie.metrics import record_event
 from sentry.integrations.opsgenie.utils import get_team
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.integration.model import (
@@ -100,24 +102,25 @@ class OpsgenieNotifyTeamForm(forms.Form):
                 code="invalid_integration",
                 params=params,
             )
-        team_status = self._get_team_status(
-            team_id=team_id, integration=integration, org_integration=org_integration
-        )
-        if team_status == INVALID_TEAM:
-            raise forms.ValidationError(
-                _('The team "%(team)s" does not belong to the %(account)s Opsgenie account.'),
-                code="invalid_team",
-                params=params,
+        with record_event(OnCallInteractionType.VERIFY_KEYS).capture():
+            team_status = self._get_team_status(
+                team_id=team_id, integration=integration, org_integration=org_integration
             )
-        elif team_status == INVALID_KEY:
-            raise forms.ValidationError(
-                _(
-                    'The provided API key is invalid. Please make sure that the Opsgenie API \
-                  key is an integration key of type "Sentry" that has configuration access.'
-                ),
-                code="invalid_key",
-                params=params,
-            )
+            if team_status == INVALID_TEAM:
+                raise forms.ValidationError(
+                    _('The team "%(team)s" does not belong to the %(account)s Opsgenie account.'),
+                    code="invalid_team",
+                    params=params,
+                )
+            elif team_status == INVALID_KEY:
+                raise forms.ValidationError(
+                    _(
+                        'The provided API key is invalid. Please make sure that the Opsgenie API \
+                    key is an integration key of type "Sentry" that has configuration access.'
+                    ),
+                    code="invalid_key",
+                    params=params,
+                )
 
     def clean(self) -> dict[str, Any] | None:
         cleaned_data = super().clean()
