@@ -451,6 +451,36 @@ class DashboardWidgetDatasetSplitTestCase(BaseMetricsLayerTestCase, TestCase, Sn
         if not self.dry_run:
             assert error_widget.dataset_source == DashboardDatasetSourcesTypes.FORCED.value
 
+    def test_dashboard_projects_empty(self):
+        self.dashboard.projects.clear()
+        error_widget = DashboardWidget.objects.create(
+            dashboard=self.dashboard,
+            order=0,
+            title="error widget",
+            display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+            widget_type=DashboardWidgetTypes.DISCOVER,
+            interval="1d",
+            detail={"layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2}},
+        )
+        errors_widget_query = DashboardWidgetQuery.objects.create(
+            widget=error_widget,
+            fields=["title", "issue", "project", "release", "count()", "count_unique(user)"],
+            columns=[],
+            aggregates=["count_unique(user)"],
+            conditions="(error.unhandled:true message:testing) OR message:test",
+            order=0,
+        )
+
+        _get_and_save_split_decision_for_dashboard_widget(errors_widget_query, self.dry_run)
+        error_widget.refresh_from_db()
+        assert (
+            error_widget.discover_widget_split is None
+            if self.dry_run
+            else error_widget.discover_widget_split == 100
+        )
+        if not self.dry_run:
+            assert error_widget.dataset_source == DashboardDatasetSourcesTypes.FORCED.value
+
 
 class DashboardWidgetDatasetSplitDryRunTestCase(DashboardWidgetDatasetSplitTestCase):
     def setUp(self):
