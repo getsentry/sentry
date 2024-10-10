@@ -78,7 +78,7 @@ class DevToolbarAnalyticsMiddlewareUnitTest(TestCase):
 
         mock_record.assert_called()
         assert mock_record.call_args[0][0] == self.analytics_event_name
-        assert mock_record.call_args[1].get("response_code") == 500
+        assert mock_record.call_args[1].get("status_code") == 500
 
     #################
     # Attribute tests
@@ -134,16 +134,16 @@ class DevToolbarAnalyticsMiddlewareUnitTest(TestCase):
         self.middleware(request)
 
         mock_record.assert_called()
-        assert mock_record.call_args[1].get("response_code") == 420
+        assert mock_record.call_args[1].get("status_code") == 420
 
     @patch("sentry.analytics.record")
-    def test_request_methods(self, mock_record: MagicMock):
+    def test_methods(self, mock_record: MagicMock):
         for method in ["GET", "POST", "PUT", "DELETE"]:
             request = self.make_toolbar_request(method=method)
             self.middleware(request)
 
             mock_record.assert_called()
-            assert mock_record.call_args[1].get("request_method") == method
+            assert mock_record.call_args[1].get("method") == method
 
 
 TEST_MIDDLEWARE = (
@@ -184,8 +184,8 @@ class DevToolbarAnalyticsMiddlewareIntegrationTest(APITestCase):
             route="^api/0/organizations/(?P<organization_id_or_slug>[^\\/]+)/replays/$",
             query_string="",
             origin=self.origin,
-            request_method=method,
-            response_code=response.status_code,
+            method=method,
+            status_code=response.status_code,
             organization_id=org_id,
             organization_slug=org_slug,
             project_id=proj_id,

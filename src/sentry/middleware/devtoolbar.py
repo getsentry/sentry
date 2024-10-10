@@ -55,8 +55,8 @@ def _record_api_request(request: HttpRequest, response: HttpResponse) -> None:
             route=route,
             query_string=query_string,
             origin=origin,
-            request_method=request.method,
-            response_code=response.status_code,
+            method=request.method,
+            status_code=response.status_code,
             organization_id=org_id or None,  # TODO: make sure you can pass in ints
             organization_slug=org_slug,
             project_id=project_id or None,
