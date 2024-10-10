@@ -301,11 +301,6 @@ describe('SourceMapsDetails', function () {
         empty: true,
       });
 
-      // renderReleaseBundlesMockRequests({
-      //   orgSlug: organization.slug,
-      //   projectSlug: project.slug,
-      // });
-
       render(
         <SourceMapsDetails
           {...routerProps}
