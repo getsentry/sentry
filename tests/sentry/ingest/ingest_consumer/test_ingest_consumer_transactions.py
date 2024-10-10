@@ -1,5 +1,4 @@
 import datetime
-import logging
 import random
 import time
 import uuid
@@ -19,8 +18,6 @@ from sentry.utils.batching_kafka_consumer import create_topics
 from sentry.utils.kafka_config import get_topic_definition
 
 pytestmark = [requires_snuba, requires_kafka]
-
-logger = logging.getLogger(__name__)
 
 # Poll this amount of times (for 0.1 sec each) at most to wait for messages
 MAX_POLL_ITERATIONS = 100
@@ -74,7 +71,7 @@ def random_group_id():
 
 @django_db_all(transaction=True)
 @pytest.mark.parametrize("no_celery_mode", [True, False])
-def test_ingest_consumer_reads_from_topic_and_calls_celery_task(
+def test_ingest_consumer_reads_from_topic_and_saves_event(
     no_celery_mode,
     task_runner,
     kafka_producer,
