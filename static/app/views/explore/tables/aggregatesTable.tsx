@@ -54,10 +54,19 @@ export function AggregatesTable({}: AggregatesTableProps) {
   const [query] = useUserQuery();
 
   const eventView = useMemo(() => {
+    // We need timestamp and transaction.span_id to be
+    // able to scroll to the specific span in the trace view.
+    const eventViewFields = [...fields];
+    if (fields.includes('span_id') || fields.includes('id')) {
+      eventViewFields.push('transaction.span_id');
+      eventViewFields.push('timestamp');
+      eventViewFields.push('trace');
+    }
+
     const discoverQuery: NewQuery = {
       id: undefined,
       name: 'Explore - Span Aggregates',
-      fields,
+      fields: eventViewFields,
       orderby: sorts.map(formatSort),
       query,
       version: 2,
@@ -127,7 +136,6 @@ export function AggregatesTable({}: AggregatesTableProps) {
                       )}
                       <FieldRenderer
                         column={columns[j]}
-                        dataset={dataset}
                         data={row}
                         unit={meta?.units?.[field]}
                         meta={meta}

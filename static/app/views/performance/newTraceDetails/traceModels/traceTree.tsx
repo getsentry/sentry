@@ -1113,7 +1113,9 @@ export class TraceTree extends TraceTreeEventDispatcher {
 
     return TraceTree.Find(start, node => {
       if (type === 'txn' && isTransactionNode(node)) {
-        return node.value.event_id === id;
+        // A transaction itself is a span and we are starting to treat it as such.
+        // Hence we check for both event_id and span_id.
+        return node.value.event_id === id || node.value.span_id === id;
       }
       if (type === 'span' && isSpanNode(node)) {
         return node.value.span_id === id;
