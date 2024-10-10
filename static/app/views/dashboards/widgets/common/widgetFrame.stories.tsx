@@ -19,19 +19,49 @@ export default storyBook(WidgetFrame, story => {
       </Fragment>
     );
   });
-  story('Action Menu', () => {
+
+  story('Layout', () => {
     return (
       <Fragment>
         <p>
-          <JSXNode name="WidgetFrame" /> supports an action menu. If only one action is
-          passed, the single action is rendered as a small button. If multiple actions are
-          passed, they are grouped into a dropdown menu.
+          <JSXNode name="WidgetFrame" /> supports a few basic props that control its
+          content. This includes a title, a description, and the <code>children</code>.
+          The title is automatically wrapped in a tooltip if it does not fit.
         </p>
 
         <SideBySide>
           <NormalWidget>
             <WidgetFrame
               title="Count"
+              description="This counts up the amount of something that happens."
+            />
+          </NormalWidget>
+          <NormalWidget>
+            <WidgetFrame
+              title="p95(measurements.lcp) / p95(measurements.inp)"
+              description="This is a tough formula to reason about"
+            />
+          </NormalWidget>
+        </SideBySide>
+      </Fragment>
+    );
+  });
+
+  story('Action Menu', () => {
+    return (
+      <Fragment>
+        <p>
+          <JSXNode name="WidgetFrame" /> supports an action menu. If only one action is
+          passed, the single action is rendered as a small button. If multiple actions are
+          passed, they are grouped into a dropdown menu. Menu actions appear on hover or
+          keyboard focus.
+        </p>
+
+        <SideBySide>
+          <NormalWidget>
+            <WidgetFrame
+              title="Count"
+              description="This counts up the amount of something that happens."
               actions={[
                 {
                   key: 'see-more',
@@ -48,6 +78,7 @@ export default storyBook(WidgetFrame, story => {
           <NormalWidget>
             <WidgetFrame
               title="Count"
+              description="This is a tough formula to reason about"
               actions={[
                 {
                   key: 'see-more',
