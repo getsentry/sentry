@@ -3,6 +3,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
+import Tag from 'sentry/components/badge/tag';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import CrashReportSection from 'sentry/components/feedback/feedbackItem/crashReportSection';
 import FeedbackActivitySection from 'sentry/components/feedback/feedbackItem/feedbackActivitySection';
@@ -12,11 +13,13 @@ import FeedbackReplay from 'sentry/components/feedback/feedbackItem/feedbackRepl
 import MessageSection from 'sentry/components/feedback/feedbackItem/messageSection';
 import TagsSection from 'sentry/components/feedback/feedbackItem/tagsSection';
 import TraceDataSection from 'sentry/components/feedback/feedbackItem/traceDataSection';
+import ExternalLink from 'sentry/components/links/externalLink';
 import PanelItem from 'sentry/components/panels/panelItem';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import TextCopyInput from 'sentry/components/textCopyInput';
-import {IconChat, IconFire, IconLink, IconTag} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {Tooltip} from 'sentry/components/tooltip';
+import {IconChat, IconFire, IconInfo, IconLink, IconTag} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -36,6 +39,7 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
     eventData?.tags?.find(tag => tag.key === 'url')?.value;
   const crashReportId = eventData?.contexts?.feedback?.associated_event_id;
   const theme = useTheme();
+  const isSpam = eventData?.occurrence?.evidenceData.isSpam;
 
   const overflowRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -126,6 +130,27 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
             <FeedbackActivitySection feedbackItem={feedbackItem as unknown as Group} />
           </Section>
         ) : null}
+
+        {isSpam ? (
+          <Section icon={<IconInfo size="xs" />} title={t('Classification')}>
+            <StyledTag key="spam" type="error">
+              <Tooltip
+                isHoverable
+                position="right"
+                title={tct(
+                  'This feedback was automatically marked as spam. Learn more by [link:reading our docs.]',
+                  {
+                    link: (
+                      <ExternalLink href="https://docs.sentry.io/product/user-feedback/#spam-detection-for-user-feedback" />
+                    ),
+                  }
+                )}
+              >
+                {t('spam')}
+              </Tooltip>
+            </StyledTag>
+          </Section>
+        ) : null}
       </OverflowPanelItem>
     </Fragment>
   );
@@ -139,4 +164,8 @@ const OverflowPanelItem = styled(PanelItem)`
   flex-grow: 1;
   gap: ${space(2)};
   padding: ${space(2)} ${space(2)} 0 ${space(2)};
+`;
+
+const StyledTag = styled(Tag)`
+  margin-bottom: ${space(3)};
 `;
