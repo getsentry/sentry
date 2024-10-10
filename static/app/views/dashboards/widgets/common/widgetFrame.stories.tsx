@@ -71,6 +71,33 @@ export default storyBook(WidgetFrame, story => {
     );
   });
 
+  story('Badge', () => {
+    return (
+      <Fragment>
+        <p>
+          <JSXNode name="WidgetFrame" /> supports a <code>badge</code> prop. If passed, a
+          <code>Badge</code> component with the relevant props appears in the header.
+        </p>
+
+        <SideBySide>
+          <NormalWidget>
+            <WidgetFrame
+              title="count()"
+              badge={{
+                text: 'Sampled',
+                type: 'default',
+              }}
+              warnings={[
+                'We have automatically converted this widget to use sampled data.',
+                'Data for this metrics has not been extracted yet',
+              ]}
+            />
+          </NormalWidget>
+        </SideBySide>
+      </Fragment>
+    );
+  });
+
   story('Action Menu', () => {
     return (
       <Fragment>
