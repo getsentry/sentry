@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import type {Node} from '@react-types/shared';
 import {motion} from 'framer-motion';
 
+import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {
   DraggableTabList,
   TEMPORARY_TAB_KEY,
@@ -17,6 +18,7 @@ import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {useHotkeys} from 'sentry/utils/useHotkeys';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -141,7 +143,7 @@ export function DraggableTabBar({
     });
   };
 
-  const handleOnSaveChanges = () => {
+  const handleOnSaveChanges = useCallback(() => {
     const originalTab = tabs.find(tab => tab.key === tabListState?.selectedKey);
     if (originalTab) {
       const newTabs: Tab[] = tabs.map(tab => {
@@ -160,7 +162,23 @@ export function DraggableTabBar({
         organization,
       });
     }
-  };
+  }, [onSave, organization, setTabs, tabListState?.selectedKey, tabs]);
+
+  useHotkeys(
+    [
+      {
+        match: ['command+s', 'ctrl+s'],
+        includeInputs: true,
+        callback: () => {
+          if (tabs.find(tab => tab.key === tabListState?.selectedKey)?.unsavedChanges) {
+            handleOnSaveChanges();
+            addSuccessMessage(t('Changes saved to view'));
+          }
+        },
+      },
+    ],
+    [handleOnSaveChanges, tabListState?.selectedKey, tabs]
+  );
 
   const handleOnDiscardChanges = () => {
     const originalTab = tabs.find(tab => tab.key === tabListState?.selectedKey);
