@@ -36,14 +36,9 @@ class DatabaseBackedProjectService(ProjectService):
         return None
 
     def get_by_slug(self, *, organization_id: int, slug: str) -> RpcProject | None:
-        try:
-            project: Project | None = Project.objects.get_from_cache(
-                slug=slug, organization=organization_id
-            )
-        except ValueError:
-            project = Project.objects.filter(slug=slug, organization=organization_id).first()
-        except Project.DoesNotExist:
-            return None
+        project: Project | None = Project.objects.filter(
+            slug=slug, organization=organization_id
+        ).first()
         if project:
             return serialize_project(project)
         return None

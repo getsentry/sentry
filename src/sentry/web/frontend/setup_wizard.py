@@ -66,8 +66,8 @@ class SetupWizardView(BaseView):
         context = {"hash": wizard_hash, "enableProjectSelection": False}
         cache_key = f"{SETUP_WIZARD_CACHE_KEY}{wizard_hash}"
 
-        org_slug = request.GET.get("org_slug", None)
-        project_slug = request.GET.get("project_slug", None)
+        org_slug = request.GET.get("org_slug")
+        project_slug = request.GET.get("project_slug")
 
         wizard_data = default_cache.get(cache_key)
         if wizard_data is None:
