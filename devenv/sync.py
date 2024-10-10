@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import importlib
 import os
 import shlex
 import subprocess
@@ -71,29 +70,7 @@ failed command (code {p.returncode}):
     return all_good
 
 
-def check_minimum_version(minimum_devenv_version: str):
-    devenv_version = importlib.metadata.version("sentry-devenv")
-
-    min_major, min_minor, min_patch = map(int, minimum_devenv_version.split("."))
-    major, minor, patch = map(int, devenv_version.split("."))
-
-    if (major, minor, patch) < (min_major, min_minor, min_patch):
-        raise SystemExit(
-            f"""
-Your devenv version ({devenv_version}) is too old!
-
-Run the following to update your global devenv to the minimum,
-and use it to run this repo's sync.
-
-{constants.root}/bin/devenv update {minimum_devenv_version}
-{constants.root}/bin/devenv sync
-"""
-        )
-
-
 def main(context: dict[str, str]) -> int:
-    check_minimum_version("1.10.2")
-
     repo = context["repo"]
     reporoot = context["reporoot"]
     repo_config = config.get_config(f"{reporoot}/devenv/config.ini")
