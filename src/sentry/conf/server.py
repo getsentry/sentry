@@ -26,7 +26,7 @@ from sentry.conf.types.logging_config import LoggingConfig
 from sentry.conf.types.role_dict import RoleDict
 from sentry.conf.types.sdk_config import ServerSdkConfig
 from sentry.utils import json  # NOQA (used in getsentry config)
-from sentry.utils.celery import crontab_with_minute_jitter, make_split_task_queues
+from sentry.utils.celery import crontab_with_minute_jitter
 from sentry.utils.types import Type, type_from_value
 
 
@@ -835,16 +835,7 @@ CELERY_ROUTES = ("sentry.queue.routers.SplitQueueTaskRouter",)
 # Each route has a task name as key and a tuple containing a list of queues
 # and a default one as destination. The default one is used when the
 # rollout option is not active.
-CELERY_SPLIT_QUEUE_TASK_ROUTES: Mapping[str, SplitQueueTaskRoute] = {
-    "events.save_event_transaction": {
-        "default_queue": "events.save_event_transaction",
-        "queues_config": {
-            "total": 3,
-            "in_use": 3,
-        },
-    }
-}
-SPLIT_TASK_QUEUES = make_split_task_queues(CELERY_SPLIT_QUEUE_TASK_ROUTES)
+CELERY_SPLIT_QUEUE_TASK_ROUTES: Mapping[str, SplitQueueTaskRoute] = {}
 
 # Mapping from queue name to split queues to be used by SplitQueueRouter.
 # This is meant to be used in those case where we have to specify the
@@ -1275,12 +1266,12 @@ if SILO_MODE == "CONTROL":
 elif SILO_MODE == "REGION":
     CELERYBEAT_SCHEDULE_FILENAME = os.path.join(tempfile.gettempdir(), "sentry-celerybeat-region")
     CELERYBEAT_SCHEDULE = CELERYBEAT_SCHEDULE_REGION
-    CELERY_QUEUES = CELERY_QUEUES_REGION + SPLIT_TASK_QUEUES
+    CELERY_QUEUES = CELERY_QUEUES_REGION
 
 else:
     CELERYBEAT_SCHEDULE = {**CELERYBEAT_SCHEDULE_CONTROL, **CELERYBEAT_SCHEDULE_REGION}
     CELERYBEAT_SCHEDULE_FILENAME = os.path.join(tempfile.gettempdir(), "sentry-celerybeat")
-    CELERY_QUEUES = CELERY_QUEUES_REGION + CELERY_QUEUES_CONTROL + SPLIT_TASK_QUEUES
+    CELERY_QUEUES = CELERY_QUEUES_REGION + CELERY_QUEUES_CONTROL
 
 for queue in CELERY_QUEUES:
     queue.durable = False
