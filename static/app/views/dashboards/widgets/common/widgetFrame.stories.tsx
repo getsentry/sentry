@@ -47,6 +47,30 @@ export default storyBook(WidgetFrame, story => {
     );
   });
 
+  story('Warnings', () => {
+    return (
+      <Fragment>
+        <p>
+          <JSXNode name="WidgetFrame" /> supports a <code>warnings</code> prop. If
+          supplied, it shows a small warning icon next to the title. Hovering over the
+          icon shows the warnings.
+        </p>
+
+        <SideBySide>
+          <NormalWidget>
+            <WidgetFrame
+              title="count()"
+              warnings={[
+                'We have automatically converted this widget to use sampled data.',
+                'Data for this metrics has not been extracted yet',
+              ]}
+            />
+          </NormalWidget>
+        </SideBySide>
+      </Fragment>
+    );
+  });
+
   story('Action Menu', () => {
     return (
       <Fragment>
