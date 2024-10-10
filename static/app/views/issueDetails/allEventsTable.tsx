@@ -168,19 +168,19 @@ export const useEventColumns = (group: Group, organization: Organization): Colum
     ];
 
     const columnTitles: string[] = [
-      t('event id'),
-      t('transaction'),
-      t('title'),
-      t('trace'),
-      t('timestamp'),
-      t('release'),
-      t('environment'),
-      t('user'),
-      t('device'),
-      t('os'),
+      t('Event ID'),
+      t('Transaction'),
+      t('Title'),
+      t('Trace'),
+      t('Timestamp'),
+      t('Release'),
+      t('Environment'),
+      t('User'),
+      t('Device'),
+      t('OS'),
       ...platformSpecificColumnTitles,
-      ...(isPerfIssue ? [t('total duration')] : []),
-      t('minidump'),
+      ...(isPerfIssue ? [t('Total Duration')] : []),
+      t('Minidump'),
     ];
 
     return {
@@ -196,7 +196,7 @@ const getPlatformColumns = (
 ): ColumnInfo => {
   const backendServerlessColumnInfo = {
     fields: ['url', 'runtime'],
-    columnTitles: [t('url'), t('runtime')],
+    columnTitles: [t('URL'), t('Runtime')],
   };
 
   const categoryToColumnMap: Record<PlatformCategory, ColumnInfo> = {
@@ -204,11 +204,11 @@ const getPlatformColumns = (
     [PlatformCategory.SERVERLESS]: backendServerlessColumnInfo,
     [PlatformCategory.FRONTEND]: {
       fields: ['url', 'browser'],
-      columnTitles: [t('url'), t('browser')],
+      columnTitles: [t('URL'), t('Browser')],
     },
     [PlatformCategory.MOBILE]: {
       fields: ['url'],
-      columnTitles: [t('url')],
+      columnTitles: [t('URL')],
     },
     [PlatformCategory.DESKTOP]: {
       fields: [],
@@ -225,11 +225,11 @@ const getPlatformColumns = (
 
   if (options.isReplayEnabled) {
     platformColumns.fields.push('replayId');
-    platformColumns.columnTitles.push(t('replay'));
+    platformColumns.columnTitles.push(t('Replay'));
   }
 
   if (options.isProfilingEnabled && platform && PROFILING_PLATFORMS.includes(platform)) {
-    platformColumns.columnTitles.push(t('profile'));
+    platformColumns.columnTitles.push(t('Profile'));
     platformColumns.fields.push('profile.id');
   }
 
