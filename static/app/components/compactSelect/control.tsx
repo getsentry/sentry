@@ -298,6 +298,11 @@ export function Control({
           ?.focus();
       }
 
+      // Prevent form submissions on Enter key press in search box
+      if (e.key === 'Enter') {
+        e.preventDefault();
+      }
+
       // Continue propagation, otherwise the overlay won't close on Esc key press
       e.continuePropagation();
     },
@@ -553,8 +558,6 @@ export function Control({
                   value={searchInputValue}
                   onFocus={onSearchFocus}
                   onBlur={onSearchBlur}
-                  // Prevent form submissions on Enter key press in search box
-                  onKeyDown={e => e.key === 'Enter' && e.preventDefault()}
                   onChange={e => updateSearch(e.target.value)}
                   visualSize={size}
                   {...searchKeyboardProps}
