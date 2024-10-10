@@ -432,7 +432,6 @@ def test_builtinfingerprinting_rules_from_config_structure_overrides_is_builtin(
                     "is_builtin": is_builtin,
                 },
             ],
-            "version": 1,
         },
         bases=[],
     )
@@ -452,7 +451,6 @@ def test_fingerprinting_rules_from_config_structure_preserves_is_builtin(is_buil
                     "is_builtin": is_builtin,
                 },
             ],
-            "version": 1,
         },
         bases=[],
     )
