@@ -6,6 +6,7 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -102,7 +103,10 @@ class SlackCommandsEndpoint(SlackDMEndpoint):
 
         has_valid_role = False
         for organization_membership in organization_memberships:
-            if is_team_linked_to_channel(organization_membership.organization, slack_request):
+            if not features.has(
+                "organizations:slack-multiple-team-single-channel-linking",
+                organization_membership.organization,
+            ) and is_team_linked_to_channel(organization_membership.organization, slack_request):
                 return self.reply(slack_request, CHANNEL_ALREADY_LINKED_MESSAGE)
 
             if is_valid_role(organization_membership) or is_team_admin(organization_membership):
