@@ -4,7 +4,6 @@ import {GroupFixture} from 'sentry-fixture/group';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
-import {RepositoryFixture} from 'sentry-fixture/repository';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {TagsFixture} from 'sentry-fixture/tags';
 
@@ -36,21 +35,9 @@ describe('EventDetails', function () {
   const project = ProjectFixture();
   const group = GroupFixture();
   const event = EventFixture({id: 'event-id'});
-  const committer = {
-    author: {name: 'Butter the Dog', id: '2021'},
-    commits: [
-      {
-        message: 'fix(training): Adjust noise level for meeting other dogs (#2024)',
-        id: 'ab2709293d0c9000829084ac7b1c9221fb18437c',
-        dateCreated: '2024-09-09T04:15:12',
-        repository: RepositoryFixture(),
-      },
-    ],
-  };
   const defaultProps = {project, group, event};
 
   let mockActionableItems: jest.Mock;
-  let mockCommitters: jest.Mock;
   let mockTags: jest.Mock;
   let mockStats: jest.Mock;
   let mockList: jest.Mock;
@@ -71,11 +58,6 @@ describe('EventDetails', function () {
     mockActionableItems = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/actionable-items/`,
       body: {errors: []},
-      method: 'GET',
-    });
-    mockCommitters = MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/committers/`,
-      body: {committers: [committer]},
       method: 'GET',
     });
     mockTags = MockApiClient.addMockResponse({
@@ -129,10 +111,6 @@ describe('EventDetails', function () {
     render(<EventDetails {...defaultProps} />, {organization});
     await screen.findByText(event.id);
 
-    // Suspect Commits
-    expect(mockCommitters).toHaveBeenCalled();
-    expect(screen.getByText('Suspect Commit')).toBeInTheDocument();
-    expect(screen.getByText(committer.author.name)).toBeInTheDocument();
     // Filtering
     expect(mockTags).toHaveBeenCalled();
     expect(screen.getByTestId('page-filter-environment-selector')).toBeInTheDocument();

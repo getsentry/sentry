@@ -82,7 +82,7 @@ function EventEntries({
       )}
       {!isShare && isNotSharedOrganization(organization) && (
         <SuspectCommits
-          project={project}
+          projectSlug={project.slug}
           eventId={event.id}
           group={group}
           commitRow={CommitRow}
