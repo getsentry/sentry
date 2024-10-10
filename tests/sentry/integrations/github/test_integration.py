@@ -19,6 +19,7 @@ from sentry.integrations.github import client
 from sentry.integrations.github.client import MINIMUM_REQUESTS
 from sentry.integrations.github.integration import (
     API_ERRORS,
+    GitHubInstallationError,
     GitHubIntegration,
     GitHubIntegrationProvider,
 )
@@ -30,6 +31,7 @@ from sentry.integrations.source_code_management.commit_context import (
     SourceLineInfo,
 )
 from sentry.integrations.utils.code_mapping import Repo, RepoTree
+from sentry.integrations.utils.metrics import EventLifecycleOutcome
 from sentry.models.project import Project
 from sentry.models.repository import Repository
 from sentry.organizations.absolute_url import generate_organization_url
@@ -109,6 +111,12 @@ class GitHubIntegrationTest(IntegrationTestCase):
         responses.reset()
         plugins.unregister(GitHubPlugin)
         super().tearDown()
+
+    def assert_failure_metric(self, mock_record, error_msg):
+        (event_failures,) = (
+            call for call in mock_record.mock_calls if call.args[0] == EventLifecycleOutcome.FAILURE
+        )
+        assert event_failures.args[1]["failure_reason"] == error_msg
 
     @pytest.fixture(autouse=True)
     def stub_get_jwt(self):
@@ -321,7 +329,8 @@ class GitHubIntegrationTest(IntegrationTestCase):
         assert oi.config == {}
 
     @responses.activate
-    def test_github_installed_on_another_org(self):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_github_installed_on_another_org(self, mock_record):
         self._stub_github()
         # First installation should be successful
         self.assert_setup_flow()
@@ -345,6 +354,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
                 {"code": "12345678901234567890", "state": "9cae5e88803f35ed7970fc131e6e65d3"}
             ),
         )
+        mock_record.reset_mock()
         with self.feature({"system:multi-region": True}):
             resp = self.client.get(self.init_path_2)
             resp = self.client.get(self.setup_path_2)
@@ -362,6 +372,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
                 f', "{generate_organization_url(self.organization_2.slug)}");'.encode()
                 in resp.content
             )
+            self.assert_failure_metric(mock_record, GitHubInstallationError.INSTALLATION_EXISTS)
 
         # Delete the Integration
         integration = Integration.objects.get(external_id=self.installation_id)
@@ -383,7 +394,8 @@ class GitHubIntegrationTest(IntegrationTestCase):
         ).exists()
 
     @responses.activate
-    def test_installation_not_found(self):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_installation_not_found(self, mock_record):
         # Add a 404 for an org to responses
         responses.replace(
             responses.GET, self.base_url + f"/app/installations/{self.installation_id}", status=404
@@ -401,10 +413,12 @@ class GitHubIntegrationTest(IntegrationTestCase):
             )
         )
         assert b"Invalid state" in resp.content
+        self.assert_failure_metric(mock_record, GitHubInstallationError.INVALID_STATE)
 
     @responses.activate
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @override_options({"github-app.webhook-secret": ""})
-    def test_github_user_mismatch(self):
+    def test_github_user_mismatch(self, mock_record):
         self._stub_github()
 
         # Emulate GitHub installation
@@ -460,6 +474,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             assert resp.status_code == 200
             assert b'window.opener.postMessage({"success":false' in resp.content
             assert b"Authenticated user is not the same as who installed the app" in resp.content
+            self.assert_failure_metric(mock_record, GitHubInstallationError.USER_MISMATCH)
 
     @responses.activate
     def test_disable_plugin_when_fully_migrated(self):
@@ -701,7 +716,8 @@ class GitHubIntegrationTest(IntegrationTestCase):
         )
 
     @responses.activate
-    def test_github_prevent_install_until_pending_deletion_is_complete(self):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_github_prevent_install_until_pending_deletion_is_complete(self, mock_record):
         self._stub_github()
         # First installation should be successful
         self.assert_setup_flow()
@@ -718,6 +734,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
         self._stub_github()
 
+        mock_record.reset_mock()
         with self.feature({"system:multi-region": True}):
             resp = self.client.get(
                 "{}?{}".format(self.init_path, urlencode({"installation_id": self.installation_id}))
@@ -745,6 +762,8 @@ class GitHubIntegrationTest(IntegrationTestCase):
             b'{"success":false,"data":{"error":"GitHub installation pending deletion."}}'
             in resp.content
         )
+
+        self.assert_failure_metric(mock_record, GitHubInstallationError.PENDING_DELETION)
 
         # Delete the original Integration
         oi.delete()
