@@ -353,7 +353,9 @@ export function EventDetailsContent({
           />
         </EntryErrorBoundary>
       ) : null}
-      <EventTraceView group={group} event={event} organization={organization} />
+      {hasStreamlinedUI && (
+        <EventTraceView group={group} event={event} organization={organization} />
+      )}
       {!showPossibleSolutionsHigher && (
         <ResourcesAndPossibleSolutionsIssueDetailsContent
           event={event}
