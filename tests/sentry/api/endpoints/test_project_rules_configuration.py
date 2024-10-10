@@ -34,7 +34,7 @@ class ProjectRuleConfigurationTest(APITestCase):
         response = self.get_success_response(self.organization.slug, project1.slug)
         assert len(response.data["actions"]) == 12
         assert len(response.data["conditions"]) == 9
-        assert len(response.data["filters"]) == 8
+        assert len(response.data["filters"]) == 9
 
     @property
     def rules(self):
@@ -149,7 +149,7 @@ class ProjectRuleConfigurationTest(APITestCase):
             },
         } in response.data["actions"]
         assert len(response.data["conditions"]) == 9
-        assert len(response.data["filters"]) == 8
+        assert len(response.data["filters"]) == 9
 
     @patch("sentry.sentry_apps.components.SentryAppComponentPreparer.run")
     def test_sentry_app_alert_rules(self, mock_sentry_app_components_preparer):
@@ -180,13 +180,13 @@ class ProjectRuleConfigurationTest(APITestCase):
             "sentryAppInstallationUuid": str(install.uuid),
         } in response.data["actions"]
         assert len(response.data["conditions"]) == 9
-        assert len(response.data["filters"]) == 8
+        assert len(response.data["filters"]) == 9
 
     def test_issue_type_and_category_filter_feature(self):
         response = self.get_success_response(self.organization.slug, self.project.slug)
         assert len(response.data["actions"]) == 12
         assert len(response.data["conditions"]) == 9
-        assert len(response.data["filters"]) == 8
+        assert len(response.data["filters"]) == 9
 
         filter_ids = {f["id"] for f in response.data["filters"]}
         assert IssueCategoryFilter.id in filter_ids
