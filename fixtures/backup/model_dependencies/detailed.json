@@ -1408,12 +1408,12 @@
     ]
   },
   "sentry.dashboardpermissions": {
-    "dangling": true,
+    "dangling": false,
     "foreign_keys": {
       "dashboard": {
         "kind": "DefaultOneToOneField",
         "model": "sentry.dashboard",
-        "nullable": true
+        "nullable": false
       }
     },
     "model": "sentry.dashboardpermissions",
