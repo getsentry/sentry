@@ -108,27 +108,22 @@ def main(context: dict[str, str]) -> int:
     venv.ensure(venv_dir, python_version, url, sha256)
 
     if constants.DARWIN:
-        try:
-            colima.install(
-                repo_config["colima"]["version"],
-                repo_config["colima"][constants.SYSTEM_MACHINE],
-                repo_config["colima"][f"{constants.SYSTEM_MACHINE}_sha256"],
-                reporoot,
-            )
-        except TypeError:
-            # this is needed for devenv <=1.4.0,>1.2.3 to finish syncing and therefore update itself
-            colima.install(
-                repo_config["colima"]["version"],
-                repo_config["colima"][constants.SYSTEM_MACHINE],
-                repo_config["colima"][f"{constants.SYSTEM_MACHINE}_sha256"],
-            )
-
-        # TODO: move limactl version into per-repo config
+        colima.install(
+            repo_config["colima"]["version"],
+            repo_config["colima"][constants.SYSTEM_MACHINE],
+            repo_config["colima"][f"{constants.SYSTEM_MACHINE}_sha256"],
+            reporoot,
+        )
         try:
             limactl.install(reporoot)
         except TypeError:
-            # this is needed for devenv <=1.4.0,>1.2.3 to finish syncing and therefore update itself
-            limactl.install()
+            # again, it'll take 2 syncs to get here
+            limactl.install(
+                repo_config["lima"]["version"],
+                repo_config["lima"][constants.SYSTEM_MACHINE],
+                repo_config["lima"][f"{constants.SYSTEM_MACHINE}_sha256"],
+                reporoot,
+            )
 
     if not run_procs(
         repo,
