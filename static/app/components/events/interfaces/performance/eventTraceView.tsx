@@ -154,7 +154,7 @@ export function EventTraceView({group, event, organization}: EventTraceViewProps
 
   return (
     <ErrorBoundary mini>
-      <InterimSection type={SectionKey.TRACE} title={t('Trace Connections')}>
+      <InterimSection type={SectionKey.TRACE} title={t('Trace')}>
         <TraceContentWrapper>
           <div>
             <TraceDataSection event={event} />
