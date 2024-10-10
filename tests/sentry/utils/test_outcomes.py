@@ -425,9 +425,8 @@ def test_track_outcome_publisher_initialization_different_cluster(settings, setu
     outcomes.billing_publisher = None
 
     # Simulate different clusters for 'outcomes' and 'outcomes-billing' topics
-    with mock.patch.dict(
-        settings.KAFKA_TOPIC_TO_CLUSTER, {"outcomes-billing": "different_cluster"}
-    ):
+    cluster_patch = {"outcomes-billing": "different_cluster", "outcomes": "default_cluster"}
+    with mock.patch.dict(settings.KAFKA_TOPIC_TO_CLUSTER, cluster_patch):
         # Trigger track_outcome to initialize the publisher
         track_outcome(
             org_id=1,
@@ -438,7 +437,7 @@ def test_track_outcome_publisher_initialization_different_cluster(settings, setu
 
         # Since outcome is billing and clusters are different, billing_publisher should be initialized
         assert outcomes.billing_publisher is not None
-        assert outcomes.outcomes_publisher is None
+        assert outcomes.outcomes_publisher is None  # type: ignore[unreachable]
 
         # Reset publishers
         outcomes.outcomes_publisher = None
