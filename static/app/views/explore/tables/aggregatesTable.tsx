@@ -54,8 +54,7 @@ export function AggregatesTable({}: AggregatesTableProps) {
   const [query] = useUserQuery();
 
   const eventView = useMemo(() => {
-    // We need timestamp and transaction.span_id to be
-    // able to scroll to the specific span in the trace view.
+    // We need the three fields to be able to scroll to a specific span in the trace view
     const eventViewFields = [...fields];
     if (fields.includes('span_id') || fields.includes('id')) {
       eventViewFields.push('transaction.span_id');
