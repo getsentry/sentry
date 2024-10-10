@@ -163,7 +163,7 @@ describe('Performance > TransactionSummary', function () {
     });
 
     // Breadcrumb
-    expect(screen.getByRole('link', {name: 'Performance'})).toHaveAttribute(
+    expect(await screen.findByRole('link', {name: 'Performance'})).toHaveAttribute(
       'href',
       '/organizations/org-slug/performance/?project=1&transactionCursor=1%3A0%3A0'
     );
@@ -175,7 +175,7 @@ describe('Performance > TransactionSummary', function () {
       await screen.findByRole('textbox', {name: 'Search events'})
     ).toBeInTheDocument();
 
-    expect(screen.getByRole('button', {name: 'Next'})).toBeInTheDocument();
+    expect(await screen.findByRole('button', {name: 'Next'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Previous'})).toBeInTheDocument();
 
     expect(screen.getByRole('table')).toBeInTheDocument();

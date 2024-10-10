@@ -64,10 +64,10 @@ function ProjectReleaseDetails({release, releaseMeta, projectSlug}: Props) {
               <Link
                 to={
                   isArtifactBundle
-                    ? `/settings/${orgSlug}/projects/${projectSlug}/source-maps/artifact-bundles/?query=${encodeURIComponent(
+                    ? `/settings/${orgSlug}/projects/${projectSlug}/source-maps/?query=${encodeURIComponent(
                         version
                       )}`
-                    : `/settings/${orgSlug}/projects/${projectSlug}/source-maps/release-bundles/${encodeURIComponent(
+                    : `/settings/${orgSlug}/projects/${projectSlug}/source-maps/${encodeURIComponent(
                         version
                       )}/`
                 }
