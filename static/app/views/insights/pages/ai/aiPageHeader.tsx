@@ -27,6 +27,7 @@ export function AiHeader({module, headerActions}: Props) {
     <DomainViewHeader
       domainBaseUrl={aiBaseUrl}
       headerTitle={AI_LANDING_TITLE}
+      domainTitle={AI_LANDING_TITLE}
       modules={modules}
       selectedModule={module}
       additonalHeaderActions={headerActions}
