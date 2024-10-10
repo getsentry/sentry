@@ -36,7 +36,7 @@ def _record_api_request(request: HttpRequest, response: HttpResponse) -> None:
         if resolver_match is None:
             raise ValueError(f"Request URL not resolved: {request.path_info}")
 
-        kwargs, route, endpoint_name = (
+        kwargs, route, view_name = (
             resolver_match.kwargs,
             resolver_match.route,
             resolver_match.view_name,
@@ -51,7 +51,7 @@ def _record_api_request(request: HttpRequest, response: HttpResponse) -> None:
         query_string: str = get_query_string(request)  # starts with '?'
         analytics.record(
             "devtoolbar.api_request",
-            endpoint_name=endpoint_name,
+            view_name=view_name,
             route=route,
             query_string=query_string,
             origin=origin,

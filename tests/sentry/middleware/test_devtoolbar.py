@@ -84,17 +84,17 @@ class DevToolbarAnalyticsMiddlewareUnitTest(TestCase):
     #################
 
     @patch("sentry.analytics.record")
-    def test_endpoint_name_and_route(self, mock_record: MagicMock):
-        endpoint_name = "my-endpoint"
+    def test_view_name_and_route(self, mock_record: MagicMock):
+        view_name = "my-endpoint"
         route = "/issues/(?P<issue_id>)/"
         request = self.make_toolbar_request(
             path="https://sentry.io/issues/123/",  # not used
-            resolver_match=MagicMock(view_name=endpoint_name, route=route),
+            resolver_match=MagicMock(view_name=view_name, route=route),
         )
         self.middleware(request)
 
         mock_record.assert_called()
-        assert mock_record.call_args[1].get("endpoint_name") == endpoint_name
+        assert mock_record.call_args[1].get("view_name") == view_name
         assert mock_record.call_args[1].get("route") == route
 
     @patch("sentry.analytics.record")
@@ -144,9 +144,9 @@ class DevToolbarAnalyticsMiddlewareIntegrationTest(APITestCase):
     @override_settings(MIDDLEWARE=TEST_MIDDLEWARE)
     @patch("sentry.analytics.record")
     def _test_records_event(
-        self, endpoint_name: str, method: str, url_params: dict[str, str], mock_record: MagicMock
+        self, view_name: str, method: str, url_params: dict[str, str], mock_record: MagicMock
     ):
-        url = reverse(endpoint_name, kwargs=url_params)
+        url = reverse(view_name, kwargs=url_params)
         response: HttpResponse = getattr(self.client, method.lower())(
             url,
             headers={
@@ -161,7 +161,7 @@ class DevToolbarAnalyticsMiddlewareIntegrationTest(APITestCase):
 
         mock_record.assert_called_with(
             "devtoolbar.api_request",
-            endpoint_name=endpoint_name,
+            view_name=view_name,
             route="^api/0/organizations/(?P<organization_id_or_slug>[^\\/]+)/replays/$",
             query_string="",
             origin=self.origin,

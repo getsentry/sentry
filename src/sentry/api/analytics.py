@@ -37,7 +37,7 @@ class DevToolbarApiRequestEvent(analytics.Event):
     type = "devtoolbar.api_request"
 
     attributes = (
-        analytics.Attribute("endpoint_name"),
+        analytics.Attribute("view_name"),
         analytics.Attribute("route"),
         analytics.Attribute("query_string"),
         analytics.Attribute("origin"),
