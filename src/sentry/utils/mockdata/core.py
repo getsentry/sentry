@@ -393,8 +393,8 @@ def create_access_request(member: OrganizationMember, team: Team) -> None:
     OrganizationAccessRequest.objects.create_or_update(member=member, team=team)
 
 
-def generate_projects(organization: Organization) -> Mapping[str, Any]:
-    mocks = (
+def generate_projects(organization: Organization, mocks=None) -> Mapping[str, Any]:
+    mocks = mocks or (
         ("Massive Dynamic", ("Ludic Science",)),
         ("Captain Planet", ("Earth", "Fire", "Wind", "Water", "Heart")),
     )
