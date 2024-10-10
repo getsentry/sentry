@@ -3,7 +3,8 @@ import logging
 from django.http import HttpRequest, HttpResponse
 
 from sentry import analytics
-from sentry.utils.http import origin_from_request, parse_id_or_slug_param, query_string
+from sentry.utils.http import origin_from_request, query_string
+from sentry.utils.urls import parse_id_or_slug_param
 
 logger = logging.getLogger(__name__)
 

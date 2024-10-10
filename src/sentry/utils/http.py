@@ -226,12 +226,3 @@ class _HttpRequestWithSubdomain(HttpRequest):
 
 def is_using_customer_domain(request: HttpRequest) -> TypeGuard[_HttpRequestWithSubdomain]:
     return bool(hasattr(request, "subdomain") and request.subdomain)
-
-
-def parse_id_or_slug_param(id_or_slug: str | None) -> tuple[int | None, str | None]:
-    if not id_or_slug:
-        return None, None
-
-    if id_or_slug.isnumeric():
-        return int(id_or_slug), None
-    return None, id_or_slug
