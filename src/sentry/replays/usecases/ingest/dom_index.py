@@ -8,6 +8,7 @@ from collections.abc import Generator
 from hashlib import md5
 from typing import Any, Literal, TypedDict
 
+from sentry import features
 from sentry.conf.types.kafka_definition import Topic
 from sentry.models.project import Project
 from sentry.replays.usecases.ingest.issue_creation import (
@@ -301,7 +302,14 @@ def _should_report_hydration_error_issue(project: Project) -> bool:
     """
     Checks the project option, controlled by a project owner.
     """
-    return project.get_option("sentry:replay_hydration_error_issues")
+
+    # Killswitch
+    has_feature = features.has(
+        "organizations:session-replay-rage-click-issue-creation",
+        project.organization,
+    )
+
+    return has_feature and project.get_option("sentry:replay_hydration_error_issues")
 
 
 def _should_report_rage_click_issue(project: Project) -> bool:
