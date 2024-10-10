@@ -74,9 +74,7 @@ class FingerprintInput:
     def create_event(self, grouping_config=None):
         input = dict(self.data)
 
-        config = FingerprintingRules.from_json(
-            {"rules": input.pop("_fingerprinting_rules"), "version": 1}
-        )
+        config = FingerprintingRules.from_json({"rules": input.pop("_fingerprinting_rules")})
         mgr = EventManager(data=input, grouping_config=grouping_config)
         mgr.normalize()
         data = mgr.get_data()
