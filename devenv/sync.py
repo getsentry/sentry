@@ -93,7 +93,7 @@ def main(context: dict[str, str]) -> int:
         )
         node.install_yarn(repo_config["node"]["yarn_version"], reporoot)
     except ImportError:
-        from devenv.lib import volta
+        from devenv.lib import volta  # type: ignore[attr-defined]
 
         volta.install(reporoot)
 
@@ -115,7 +115,7 @@ def main(context: dict[str, str]) -> int:
             reporoot,
         )
         try:
-            limactl.install(reporoot)
+            limactl.install(reporoot)  # type: ignore[call-arg]
         except TypeError:
             # again, it'll take 2 syncs to get here
             limactl.install(
