@@ -7,11 +7,7 @@ import {t, tn} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import getDuration from 'sentry/utils/duration/getDuration';
-import type {
-  TraceErrorOrIssue,
-  TraceFullDetailed,
-  TraceSplitResults,
-} from 'sentry/utils/performance/quickTrace/types';
+import type {TraceErrorOrIssue} from 'sentry/utils/performance/quickTrace/types';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {useParams} from 'sentry/utils/useParams';
@@ -28,7 +24,6 @@ type GeneralInfoProps = {
   node: TraceTreeNode<TraceTree.NodeValue>;
   organization: Organization;
   rootEventResults: UseApiQueryResult<EventTransaction, RequestError>;
-  traces: TraceSplitResults<TraceFullDetailed> | null;
   tree: TraceTree;
 };
 
@@ -113,10 +108,7 @@ export function GeneralInfo(props: GeneralInfoProps) {
     throw new Error('Expected a trace node');
   }
 
-  if (
-    props.traces?.transactions.length === 0 &&
-    props.traces.orphan_errors.length === 0
-  ) {
+  if (props.tree.eventsCount === 0) {
     return null;
   }
 
