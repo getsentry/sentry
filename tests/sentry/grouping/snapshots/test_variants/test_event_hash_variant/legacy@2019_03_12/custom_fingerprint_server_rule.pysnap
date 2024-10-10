@@ -1,12 +1,12 @@
 ---
-created: '2020-12-08T17:25:06.286676Z'
+created: '2024-10-10T15:18:08.004371+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: null
+  hash: "ecbcced60b5f2b2181c723e1d27068b4"
   component:
-    app (custom fingerprint takes precedence)
+    app*
       exception*
         stacktrace*
           frame*
@@ -201,15 +201,10 @@ app:
         value (stacktrace and type take precedence)
           "SoftTimeLimitExceeded()"
 --------------------------------------------------------------------------
-custom-fingerprint:
-  hash: "f30afa00b85f5cac5ee0bce01b31f08d"
-  info: null
-  values: ["celery","SoftTimeLimitExceeded","sentry.tasks.store.process_event"]
---------------------------------------------------------------------------
 system:
-  hash: null
+  hash: "170c099efaabaa2c022f7715328214af"
   component:
-    system (custom fingerprint takes precedence)
+    system*
       exception*
         stacktrace*
           frame*

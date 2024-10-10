@@ -1,12 +1,12 @@
 ---
-created: '2020-12-08T17:25:08.371225Z'
+created: '2024-10-10T15:18:48.204467+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: null
+  hash: "8b7562d89f377f87756e18c8005b32bc"
   component:
-    app (custom fingerprint takes precedence)
+    app*
       exception*
         stacktrace*
           frame*
@@ -117,7 +117,7 @@ app:
               "_prefetch"
             context-line*
               "exe.submit(fetch_file, idx.offset, idx.blob.getfile)"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (path:**/site-packages/** -app))
             module*
               "concurrent.futures._base"
             filename (module takes precedence)
@@ -126,7 +126,7 @@ app:
               "__exit__"
             context-line*
               "self.shutdown(wait=True)"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (path:**/site-packages/** -app))
             module*
               "concurrent.futures.thread"
             filename (module takes precedence)
@@ -153,7 +153,7 @@ app:
               "wait"
             context-line*
               "_sleep(delay)"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (path:**/site-packages/** -app))
             module*
               "billiard.pool"
             filename (module takes precedence)
@@ -167,15 +167,10 @@ app:
         value (ignored because stacktrace takes precedence)
           "SoftTimeLimitExceeded()"
 --------------------------------------------------------------------------
-custom-fingerprint:
-  hash: "f30afa00b85f5cac5ee0bce01b31f08d"
-  info: null
-  values: ["celery","SoftTimeLimitExceeded","sentry.tasks.store.process_event"]
---------------------------------------------------------------------------
 system:
-  hash: null
+  hash: "230c61ce94218874c6833f3ceee5f080"
   component:
-    system (custom fingerprint takes precedence)
+    system*
       exception*
         stacktrace*
           frame*
