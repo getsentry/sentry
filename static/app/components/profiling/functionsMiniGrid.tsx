@@ -14,15 +14,7 @@ import {defined} from 'sentry/utils';
 import type {EventsResults} from 'sentry/utils/profiling/hooks/types';
 import {generateProfileFlamechartRouteWithHighlightFrame} from 'sentry/utils/profiling/routes';
 
-const functionsFields = [
-  'package',
-  'function',
-  'count()',
-  'sum()',
-  'examples()',
-] as const;
-
-type FunctionsField = (typeof functionsFields)[number];
+type FunctionsField = 'package' | 'function' | 'count()' | 'sum()' | 'examples()';
 
 interface FunctionsMiniGridProps {
   functions: EventsResults<FunctionsField>['data'];

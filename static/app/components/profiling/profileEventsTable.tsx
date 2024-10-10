@@ -316,43 +316,40 @@ function getProjectForRow<F extends FieldType>(
   return project ?? null;
 }
 
-const FIELDS = [
-  'id',
-  'profile.id',
-  'profiler.id',
-  'thread.id',
-  'trace.transaction',
-  'trace',
-  'transaction',
-  'transaction.duration',
-  'precise.start_ts',
-  'precise.finish_ts',
-  'profile.duration',
-  'project',
-  'project.id',
-  'project.name',
-  'environment',
-  'timestamp',
-  'release',
-  'platform.name',
-  'device.arch',
-  'device.classification',
-  'device.locale',
-  'device.manufacturer',
-  'device.model',
-  'os.build',
-  'os.name',
-  'os.version',
-  'last_seen()',
-  'p50()',
-  'p75()',
-  'p95()',
-  'p99()',
-  'count()',
-  'user_misery()',
-] as const;
-
-type FieldType = (typeof FIELDS)[number];
+type FieldType =
+  | 'id'
+  | 'profile.id'
+  | 'profiler.id'
+  | 'thread.id'
+  | 'trace.transaction'
+  | 'trace'
+  | 'transaction'
+  | 'transaction.duration'
+  | 'precise.start_ts'
+  | 'precise.finish_ts'
+  | 'profile.duration'
+  | 'project'
+  | 'project.id'
+  | 'project.name'
+  | 'environment'
+  | 'timestamp'
+  | 'release'
+  | 'platform.name'
+  | 'device.arch'
+  | 'device.classification'
+  | 'device.locale'
+  | 'device.manufacturer'
+  | 'device.model'
+  | 'os.build'
+  | 'os.name'
+  | 'os.version'
+  | 'last_seen()'
+  | 'p50()'
+  | 'p75()'
+  | 'p95()'
+  | 'p99()'
+  | 'count()'
+  | 'user_misery()';
 
 const RIGHT_ALIGNED_FIELDS = new Set<FieldType>([
   'transaction.duration',
