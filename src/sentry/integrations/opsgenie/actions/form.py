@@ -85,24 +85,25 @@ class OpsgenieNotifyTeamForm(forms.Form):
         return VALID_TEAM
 
     def _validate_team(self, team_id: str | None, integration_id: int | None) -> None:
-        params = {
-            "account": dict(self.fields["account"].choices).get(integration_id),
-            "team": dict(self.fields["team"].choices).get(team_id),
-        }
-        integration = integration_service.get_integration(
-            integration_id=integration_id, provider="opsgenie"
-        )
-        org_integration = integration_service.get_organization_integration(
-            integration_id=integration_id,
-            organization_id=self.org_id,
-        )
-        if integration is None or org_integration is None:
-            raise forms.ValidationError(
-                _("The Opsgenie integration does not exist."),
-                code="invalid_integration",
-                params=params,
+        with record_event(OnCallInteractionType.VERIFY_TEAM).capture():
+            params = {
+                "account": dict(self.fields["account"].choices).get(integration_id),
+                "team": dict(self.fields["team"].choices).get(team_id),
+            }
+            integration = integration_service.get_integration(
+                integration_id=integration_id, provider="opsgenie"
             )
-        with record_event(OnCallInteractionType.VERIFY_KEYS).capture():
+            org_integration = integration_service.get_organization_integration(
+                integration_id=integration_id,
+                organization_id=self.org_id,
+            )
+            if integration is None or org_integration is None:
+                raise forms.ValidationError(
+                    _("The Opsgenie integration does not exist."),
+                    code="invalid_integration",
+                    params=params,
+                )
+
             team_status = self._get_team_status(
                 team_id=team_id, integration=integration, org_integration=org_integration
             )
@@ -110,15 +111,6 @@ class OpsgenieNotifyTeamForm(forms.Form):
                 raise forms.ValidationError(
                     _('The team "%(team)s" does not belong to the %(account)s Opsgenie account.'),
                     code="invalid_team",
-                    params=params,
-                )
-            elif team_status == INVALID_KEY:
-                raise forms.ValidationError(
-                    _(
-                        'The provided API key is invalid. Please make sure that the Opsgenie API \
-                    key is an integration key of type "Sentry" that has configuration access.'
-                    ),
-                    code="invalid_key",
                     params=params,
                 )
 
