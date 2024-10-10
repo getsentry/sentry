@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {Fragment} from 'react';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -188,7 +188,18 @@ export function HTTPLandingPage() {
       )}
 
       {isInDomainView && view === FRONTEND_LANDING_SUB_PATH && (
-        <FrontendHeader headerTitle={MODULE_TITLE} module={ModuleName.HTTP} />
+        <FrontendHeader
+          headerTitle={
+            <Fragment>
+              {MODULE_TITLE}
+              <PageHeadingQuestionTooltip
+                docsUrl={MODULE_DOC_LINK}
+                title={MODULE_DESCRIPTION}
+              />
+            </Fragment>
+          }
+          module={ModuleName.HTTP}
+        />
       )}
 
       {isInDomainView && view === BACKEND_LANDING_SUB_PATH && (
