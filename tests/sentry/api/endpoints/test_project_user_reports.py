@@ -8,7 +8,7 @@ from sentry.models.group import GroupStatus
 from sentry.models.project import Project
 from sentry.models.userreport import UserReport
 from sentry.testutils.cases import APITestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 
 
 def _make_url(project: Project):
@@ -18,7 +18,7 @@ def _make_url(project: Project):
 class ProjectUserReportListTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
-        self.min_ago = iso_format(before_now(minutes=1))
+        self.min_ago = before_now(minutes=1).timestamp()
         self.environment = self.create_environment(project=self.project, name="production")
         self.event = self.store_event(
             data={
@@ -217,7 +217,7 @@ class ProjectUserReportListTest(APITestCase, SnubaTestCase):
         old_event = self.store_event(
             data={
                 "event_id": "f" * 32,
-                "timestamp": iso_format(before_now(days=retention_days + 1)),
+                "timestamp": before_now(days=retention_days + 1).timestamp(),
                 "environment": self.environment.name,
             },
             project_id=self.project.id,
@@ -237,8 +237,8 @@ class ProjectUserReportListTest(APITestCase, SnubaTestCase):
 class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
-        self.min_ago = iso_format(before_now(minutes=1))
-        self.hour_ago = iso_format(before_now(minutes=60))
+        self.min_ago = before_now(minutes=1).timestamp()
+        self.hour_ago = before_now(minutes=60).timestamp()
 
         self.project = self.create_project()
         self.environment = self.create_environment(project=self.project)

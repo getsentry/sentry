@@ -34,7 +34,7 @@ from sentry.shared_integrations.exceptions import ClientError
 from sentry.tasks.post_process import post_process_group
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
-from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.eventprocessing import write_event_to_cache
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode_of, control_silo_test
@@ -292,7 +292,7 @@ class TestProcessResourceChange(TestCase):
             organization=self.project.organization, slug=sentry_app.slug
         )
 
-        one_min_ago = iso_format(before_now(minutes=1))
+        one_min_ago = before_now(minutes=1).timestamp()
         event = self.store_event(
             data={
                 "message": "Foo bar",
@@ -340,7 +340,7 @@ class TestProcessResourceChange(TestCase):
             organization=self.project.organization, slug=sentry_app.slug
         )
 
-        one_min_ago = iso_format(before_now(minutes=1))
+        one_min_ago = before_now(minutes=1)
         event = self.store_event(
             data={
                 "message": "Foo bar",
@@ -388,7 +388,7 @@ class TestSendResourceChangeWebhook(TestCase):
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponse404)
     @with_feature("organizations:integrations-event-hooks")
     def test_sends_webhooks_to_all_installs(self, safe_urlopen):
-        one_min_ago = iso_format(before_now(minutes=1))
+        one_min_ago = before_now(minutes=1).timestamp()
         event = self.store_event(
             data={
                 "message": "Foo bar",
