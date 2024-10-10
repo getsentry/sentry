@@ -8,7 +8,7 @@ const IssueStreamHeaderLabel = styled('div')<{breakpoint?: string}>`
   display: inline-block;
   margin-right: ${space(2)};
   justify-content: space-between;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: 13px;
   font-weight: ${p => p.theme.fontWeightBold};
   color: ${p => p.theme.subText};
 
