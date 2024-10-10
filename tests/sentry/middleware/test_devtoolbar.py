@@ -162,10 +162,16 @@ class DevToolbarAnalyticsMiddlewareIntegrationTest(APITestCase):
 
     @override_settings(MIDDLEWARE=TEST_MIDDLEWARE)
     @patch("sentry.analytics.record")
-    def _test_records_event(
-        self, view_name: str, method: str, url_params: dict[str, str], mock_record: MagicMock
+    def _test_e2e(
+        self,
+        view_name: str,
+        method: str,
+        url_params: dict[str, str],
+        query_string: str,
+        mock_record: MagicMock,
     ):
         url = reverse(view_name, kwargs=url_params)
+        url += query_string
         response: HttpResponse = getattr(self.client, method.lower())(
             url,
             headers={
@@ -182,7 +188,7 @@ class DevToolbarAnalyticsMiddlewareIntegrationTest(APITestCase):
             "devtoolbar.api_request",
             view_name=view_name,
             route="^api/0/organizations/(?P<organization_id_or_slug>[^\\/]+)/replays/$",
-            query_string="",
+            query_string=query_string,
             origin=self.origin,
             method=method,
             status_code=response.status_code,
@@ -193,14 +199,16 @@ class DevToolbarAnalyticsMiddlewareIntegrationTest(APITestCase):
             user_id=self.user.id,
         )
 
-    def test_records_event(self):
-        self._test_records_event(
+    def test_e2e_replays(self):
+        self._test_e2e(
             "sentry-api-0-organization-replay-index",
             "GET",
             {"organization_id_or_slug": self.organization.slug},
+            "?field=id",
         )
-        self._test_records_event(
+        self._test_e2e(
             "sentry-api-0-organization-replay-index",
             "GET",
             {"organization_id_or_slug": str(self.organization.id)},
+            "?field=id",
         )
