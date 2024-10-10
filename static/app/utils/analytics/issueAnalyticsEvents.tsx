@@ -241,6 +241,10 @@ export type IssueEventParameters = {
   'issue_views.renamed_view': {};
   'issue_views.reordered_views': {};
   'issue_views.saved_changes': {};
+  'issue_views.shared_view': {
+    query: string;
+    viewName?: string;
+  };
   'issue_views.shared_view_opened': {
     query: string;
   };
@@ -381,6 +385,7 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_views.discarded_changes': 'Issue Views: Discarded Changes',
   'issue_views.renamed_view': 'Issue Views: Renamed View',
   'issue_views.duplicated_view': 'Issue Views: Duplicated View',
+  'issue_views.shared_view': 'Issue Views: Shared View',
   'issue_views.deleted_view': 'Issue Views: Deleted View',
   'issue_views.reordered_views': 'Issue Views: Views Reordered',
   'issue_views.add_view.clicked': 'Issue Views: Add View Clicked',
