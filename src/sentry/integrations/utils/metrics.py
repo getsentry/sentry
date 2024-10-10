@@ -210,7 +210,8 @@ class IntegrationPipelineViewType(Enum):
     """A specific step in an integration's pipeline that is not a static page."""
 
     # IdentityProviderPipeline
-    IDENTITY_PROVIDER = "IDENTITY_PROVIDER"
+    IDENTITY_LOGIN = "IDENTITY_LOGIN"
+    IDENTITY_LINK = "IDENTITY_LINK"
 
     # GitHub
     OAUTH_LOGIN = "OAUTH_LOGIN"

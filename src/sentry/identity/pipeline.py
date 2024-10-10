@@ -59,7 +59,7 @@ class IdentityProviderPipeline(Pipeline):
 
     def finish_pipeline(self):
         with IntegrationPipelineViewEvent(
-            IntegrationPipelineViewType.IDENTITY_PROVIDER,
+            IntegrationPipelineViewType.IDENTITY_LINK,
             IntegrationDomain.IDENTITY,
             self.provider.key,
         ).capture():
