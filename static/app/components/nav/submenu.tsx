@@ -10,7 +10,7 @@ import type {NavSubmenuItem} from 'sentry/components/nav/utils';
 import {
   isNavItemActive,
   isNonEmptyArray,
-  makeLocationDescriptorFromTo,
+  makeLinkPropsFromTo,
 } from 'sentry/components/nav/utils';
 import {space} from 'sentry/styles/space';
 import theme from 'sentry/utils/theme';
@@ -57,7 +57,7 @@ const SubmenuWrapper = styled(motion.div)`
 function SubmenuItem({item}: {item: NavSubmenuItem}) {
   const location = useLocation();
   const isActive = isNavItemActive(item, location);
-  const to = makeLocationDescriptorFromTo(item.to);
+  const linkProps = makeLinkPropsFromTo(item.to);
 
   const FeatureGuard = item.feature ? Feature : Fragment;
   const featureGuardProps: any = item.feature ?? {};
@@ -66,7 +66,7 @@ function SubmenuItem({item}: {item: NavSubmenuItem}) {
     <FeatureGuard {...featureGuardProps}>
       <SubmenuItemWrapper>
         <Link
-          to={to}
+          {...linkProps}
           className={isActive ? 'active' : undefined}
           aria-current={isActive ? 'page' : undefined}
         >
