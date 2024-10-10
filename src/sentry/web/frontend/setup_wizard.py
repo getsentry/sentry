@@ -64,9 +64,12 @@ class SetupWizardView(BaseView):
         Redirects to organization whenever cache has been deleted
         """
         context = {"hash": wizard_hash, "enableProjectSelection": False}
-        key = f"{SETUP_WIZARD_CACHE_KEY}{wizard_hash}"
+        cache_key = f"{SETUP_WIZARD_CACHE_KEY}{wizard_hash}"
 
-        wizard_data = default_cache.get(key)
+        org_slug = request.GET.get("org_slug")
+        project_slug = request.GET.get("project_slug")
+
+        wizard_data = default_cache.get(cache_key)
         if wizard_data is None:
             return self.redirect_to_org(request)
 
@@ -94,6 +97,26 @@ class SetupWizardView(BaseView):
         context["organizations"] = list(org_mappings_map.values())
 
         if features.has("users:new-setup-wizard-ui", user=request.user, actor=request.user):
+            # If org_slug and project_slug are provided, we will use them to select the project
+            # If the project is not found or the slugs are not provided, we will show the project selection
+            if org_slug is not None and project_slug is not None:
+                target_org_mapping = next(
+                    (mapping for mapping in org_mappings if mapping.slug == org_slug), None
+                )
+                if target_org_mapping is not None:
+                    target_project = project_service.get_by_slug(
+                        slug=project_slug, organization_id=target_org_mapping.organization_id
+                    )
+
+                    if target_project is not None:
+                        cache_data = get_cache_data(
+                            mapping=target_org_mapping, project=target_project, user=request.user
+                        )
+                        default_cache.set(cache_key, cache_data, SETUP_WIZARD_CACHE_TIMEOUT)
+
+                        context["enableProjectSelection"] = False
+                        return render_to_response("sentry/setup-wizard.html", context, request)
+
             context["enableProjectSelection"] = True
             return render_to_response("sentry/setup-wizard.html", context, request)
 
@@ -132,9 +155,7 @@ class SetupWizardView(BaseView):
         serialized_token = get_token(org_mappings, request.user)
 
         result = {"apiKeys": serialized_token, "projects": filled_projects}
-
-        key = f"{SETUP_WIZARD_CACHE_KEY}{wizard_hash}"
-        default_cache.set(key, result, SETUP_WIZARD_CACHE_TIMEOUT)
+        default_cache.set(cache_key, result, SETUP_WIZARD_CACHE_TIMEOUT)
 
         return render_to_response("sentry/setup-wizard.html", context, request)
 
@@ -162,24 +183,7 @@ class SetupWizardView(BaseView):
         if project is None:
             raise Http404()
 
-        project_key = project_key_service.get_project_key(
-            organization_id=mapping.organization_id,
-            project_id=project.id,
-            role=ProjectKeyRole.store,
-        )
-        if project_key is None:
-            raise Http404()
-
-        serialized_token = get_org_token(mapping, request.user)
-
-        enriched_project = serialize_project(
-            project=project,
-            # The wizard only reads the a few fields so serializing the mapping should work fine
-            organization=serialize_org_mapping(mapping),
-            keys=[serialize_project_key(project_key)],
-        )
-
-        cache_data = {"apiKeys": serialized_token, "projects": [enriched_project]}
+        cache_data = get_cache_data(mapping=mapping, project=project, user=request.user)
 
         key = f"{SETUP_WIZARD_CACHE_KEY}{wizard_hash}"
         default_cache.set(key, cache_data, SETUP_WIZARD_CACHE_TIMEOUT)
@@ -214,6 +218,27 @@ def serialize_project(project: RpcProject, organization: dict, keys: list[dict])
         "organization": organization,
         "keys": keys,
     }
+
+
+def get_cache_data(mapping: OrganizationMapping, project: RpcProject, user: RpcUser):
+    project_key = project_key_service.get_project_key(
+        organization_id=mapping.organization_id,
+        project_id=project.id,
+        role=ProjectKeyRole.store,
+    )
+    if project_key is None:
+        raise Http404()
+
+    enriched_project = serialize_project(
+        project=project,
+        # The wizard only reads the a few fields so serializing the mapping should work fine
+        organization=serialize_org_mapping(mapping),
+        keys=[serialize_project_key(project_key)],
+    )
+
+    serialized_token = get_org_token(mapping, user)
+
+    return {"apiKeys": serialized_token, "projects": [enriched_project]}
 
 
 def get_token(mappings: list[OrganizationMapping], user: RpcUser):
