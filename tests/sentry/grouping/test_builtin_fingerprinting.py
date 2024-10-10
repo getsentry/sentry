@@ -677,7 +677,6 @@ class BuiltInFingerprintingTest(TestCase):
 
         assert "built-in-fingerprint" not in variants
         assert event_transaction_no_tx.data["fingerprint"] == ["my-route", "{{ default }}"]
-        assert event_transaction_no_tx.data.get("_fingerprint_info") is None
 
     def test_hydration_rule_w_family_matcher(self):
         """

@@ -1,5 +1,5 @@
 ---
-created: '2024-01-10T17:07:19.931277Z'
+created: '2024-10-09T13:43:00.978539+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_fingerprinting.py
 # Shows that the custom fingerprinting rule is not applied when type matches, but SDK does not
@@ -21,6 +21,9 @@ fingerprint:
 title: 'DatabaseUnavailable: For some reason the database went away'
 variants:
   app:
+    client_values:
+    - my-route
+    - '{{ default }}'
     component:
       contributes: false
       hint: exception of system takes precedence
@@ -29,6 +32,9 @@ variants:
     - my-route
     - '{{ default }}'
   system:
+    client_values:
+    - my-route
+    - '{{ default }}'
     component:
       contributes: true
       hint: null
