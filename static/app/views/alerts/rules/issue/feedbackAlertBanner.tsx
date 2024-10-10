@@ -21,7 +21,7 @@ export default function FeedbackAlertBanner({
   return filterFeedback ? (
     <StyledFeedbackAlert showIcon type="info">
       {tct(
-        'This issue category condition is ONLY for feedbacks from the built-in widget. Crash-report feedback alerts can be enabled in [link:Project Settings.]',
+        'This issue category condition is ONLY for feedbacks from the [built-in widget](https://docs.sentry.io/platforms/javascript/user-feedback/#user-feedback-widget). [Crash-report Modal](https://docs.sentry.io/platforms/javascript/user-feedback/#crash-report-modal) alerts can be enabled in [link:Project Settings.]',
         {
           link: <Link to={`/settings/projects/${projectSlug}/user-feedback/`} />,
         }
