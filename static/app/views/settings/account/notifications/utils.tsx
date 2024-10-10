@@ -60,8 +60,7 @@ export function getDocsLinkForEventType(
     case 'monitorSeat':
       return 'https://docs.sentry.io/product/crons/';
     case 'profileDuration':
-      // TODO: Update this link when documentation for continuous profiles are released
-      return 'https://docs.sentry.io/product/continuous-profiles/';
+      return 'https://docs.sentry.io/product/explore/profiling/';
     default:
       return 'https://docs.sentry.io/product/accounts/quotas/manage-event-stream-guide/#common-workflows-for-managing-your-event-stream';
   }
