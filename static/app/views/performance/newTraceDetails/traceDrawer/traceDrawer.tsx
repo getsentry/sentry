@@ -11,10 +11,6 @@ import {space} from 'sentry/styles/space';
 import type {EventTransaction} from 'sentry/types/event';
 import type EventView from 'sentry/utils/discover/eventView';
 import {PERFORMANCE_URL_PARAM} from 'sentry/utils/performance/constants';
-import type {
-  TraceFullDetailed,
-  TraceSplitResults,
-} from 'sentry/utils/performance/quickTrace/types';
 import {
   cancelAnimationTimeout,
   requestAnimationTimeout,
@@ -61,7 +57,6 @@ type TraceDrawerProps = {
   traceEventView: EventView;
   traceGridRef: HTMLElement | null;
   traceType: TraceShape;
-  traces: TraceSplitResults<TraceFullDetailed> | null;
 };
 
 export function TraceDrawer(props: TraceDrawerProps) {
@@ -436,7 +431,6 @@ export function TraceDrawer(props: TraceDrawerProps) {
                     tree={props.trace}
                     node={props.trace.root.children[0]}
                     rootEventResults={props.rootEventResults}
-                    traces={props.traces}
                     tagsInfiniteQueryResults={tagsInfiniteQueryResults}
                     traceEventView={props.traceEventView}
                   />
