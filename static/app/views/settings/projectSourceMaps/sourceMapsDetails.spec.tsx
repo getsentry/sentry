@@ -264,7 +264,7 @@ describe('SourceMapsDetails', function () {
       renderGlobalModal();
 
       // Delete item displays a confirmation modal
-      await userEvent.click(screen.getByRole('button', {name: 'Delete Source maps'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Delete Source Maps'}));
       expect(
         await screen.findByText('Are you sure you want to delete these source maps?')
       ).toBeInTheDocument();
