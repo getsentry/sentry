@@ -73,6 +73,8 @@ class FunctionDefinition:
     internal_function: Function.ValueType
     # the search_type the argument should be
     arguments: list[ArgumentDefinition]
+    # The public type for this column
+    search_type: str
 
     @property
     def required_arguments(self) -> list[ArgumentDefinition]:
@@ -219,6 +221,7 @@ VIRTUAL_CONTEXTS = {
 SPAN_FUNCTION_DEFINITIONS = {
     "sum": FunctionDefinition(
         internal_function=Function.FUNCTION_SUM,
+        search_type="duration",
         arguments=[
             ArgumentDefinition(
                 argument_type="duration",
@@ -228,37 +231,47 @@ SPAN_FUNCTION_DEFINITIONS = {
     ),
     "avg": FunctionDefinition(
         internal_function=Function.FUNCTION_AVERAGE,
+        search_type="duration",
         arguments=[ArgumentDefinition(argument_type="duration", default_arg="span.duration")],
     ),
     "count": FunctionDefinition(
-        internal_function=Function.FUNCTION_COUNT, arguments=[ArgumentDefinition(ignored=True)]
+        internal_function=Function.FUNCTION_COUNT,
+        search_type="number",
+        arguments=[ArgumentDefinition(ignored=True)],
     ),
     "p50": FunctionDefinition(
         internal_function=Function.FUNCTION_P50,
+        search_type="duration",
         arguments=[ArgumentDefinition(argument_type="duration", default_arg="span.duration")],
     ),
     "p90": FunctionDefinition(
         internal_function=Function.FUNCTION_P90,
+        search_type="duration",
         arguments=[ArgumentDefinition(argument_type="duration", default_arg="span.duration")],
     ),
     "p95": FunctionDefinition(
         internal_function=Function.FUNCTION_P95,
+        search_type="duration",
         arguments=[ArgumentDefinition(argument_type="duration", default_arg="span.duration")],
     ),
     "p99": FunctionDefinition(
         internal_function=Function.FUNCTION_P99,
+        search_type="duration",
         arguments=[ArgumentDefinition(argument_type="duration", default_arg="span.duration")],
     ),
     "max": FunctionDefinition(
         internal_function=Function.FUNCTION_MAX,
+        search_type="duration",
         arguments=[ArgumentDefinition(argument_type="duration", default_arg="span.duration")],
     ),
     "min": FunctionDefinition(
         internal_function=Function.FUNCTION_MIN,
+        search_type="duration",
         arguments=[ArgumentDefinition(argument_type="duration", default_arg="span.duration")],
     ),
     "count_unique": FunctionDefinition(
         internal_function=Function.FUNCTION_UNIQ,
+        search_type="duration",
         arguments=[
             ArgumentDefinition(
                 argument_type="string",

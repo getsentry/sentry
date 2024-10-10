@@ -367,7 +367,7 @@ class SearchResolver:
             ResolvedColumn(
                 public_alias=alias,
                 internal_name=function_definition.internal_function,
-                search_type="number",
+                search_type=function_definition.search_type,
                 argument=resolved_argument,
             ),
             None,
