@@ -95,6 +95,7 @@ class DevToolbarAnalyticsMiddlewareUnitTest(TestCase):
         self.middleware(request)
 
         mock_record.assert_called()
+        assert mock_record.call_args[0][0] == self.analytics_event_name
         assert mock_record.call_args[1].get("view_name") == view_name
         assert mock_record.call_args[1].get("route") == route
 
@@ -107,6 +108,7 @@ class DevToolbarAnalyticsMiddlewareUnitTest(TestCase):
         self.middleware(request)
 
         mock_record.assert_called()
+        assert mock_record.call_args[0][0] == self.analytics_event_name
         assert mock_record.call_args[1].get("query_string") == query
 
     @patch("sentry.analytics.record")
@@ -116,6 +118,7 @@ class DevToolbarAnalyticsMiddlewareUnitTest(TestCase):
         self.middleware(request)
 
         mock_record.assert_called()
+        assert mock_record.call_args[0][0] == self.analytics_event_name
         assert mock_record.call_args[1].get("origin") == origin
 
     @patch("sentry.analytics.record")
@@ -125,6 +128,7 @@ class DevToolbarAnalyticsMiddlewareUnitTest(TestCase):
         self.middleware(request)
 
         mock_record.assert_called()
+        assert mock_record.call_args[0][0] == self.analytics_event_name
         assert mock_record.call_args[1].get("origin") == origin
 
     @patch("sentry.analytics.record")
@@ -134,6 +138,7 @@ class DevToolbarAnalyticsMiddlewareUnitTest(TestCase):
         self.middleware(request)
 
         mock_record.assert_called()
+        assert mock_record.call_args[0][0] == self.analytics_event_name
         assert mock_record.call_args[1].get("status_code") == 420
 
     @patch("sentry.analytics.record")
@@ -143,6 +148,7 @@ class DevToolbarAnalyticsMiddlewareUnitTest(TestCase):
             self.middleware(request)
 
             mock_record.assert_called()
+            assert mock_record.call_args[0][0] == self.analytics_event_name
             assert mock_record.call_args[1].get("method") == method
 
 
