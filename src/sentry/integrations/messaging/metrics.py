@@ -37,6 +37,7 @@ class MessagingInteractionType(Enum):
     # Automatic behaviors
     UNFURL_ISSUES = "UNFURL_ISSUES"
     UNFURL_METRIC_ALERTS = "UNFURL_METRIC_ALERTS"
+    UNFURL_DISCOVER = "UNFURL_DISCOVER"
 
     def __str__(self) -> str:
         return self.value.lower()
