@@ -553,6 +553,8 @@ export function Control({
                   value={searchInputValue}
                   onFocus={onSearchFocus}
                   onBlur={onSearchBlur}
+                  // Prevent form submissions on Enter key press in search box
+                  onKeyDown={e => e.key === 'Enter' && e.preventDefault()}
                   onChange={e => updateSearch(e.target.value)}
                   visualSize={size}
                   {...searchKeyboardProps}
