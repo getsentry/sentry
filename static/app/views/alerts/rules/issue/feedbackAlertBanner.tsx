@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
 import Alert from 'sentry/components/alert';
+import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import {tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -21,9 +22,15 @@ export default function FeedbackAlertBanner({
   return filterFeedback ? (
     <StyledFeedbackAlert showIcon type="info">
       {tct(
-        'This issue category condition is ONLY for feedbacks from the built-in widget. Crash-report feedback alerts can be enabled in [link:Project Settings.]',
+        'This issue category condition is ONLY for feedbacks from the [linkWidget:built-in widget]. [linkModal: Crash-report modal] alerts can be enabled in [link:Project Settings].',
         {
           link: <Link to={`/settings/projects/${projectSlug}/user-feedback/`} />,
+          linkWidget: (
+            <ExternalLink href="https://docs.sentry.io/platforms/javascript/user-feedback/#user-feedback-widget" />
+          ),
+          linkModal: (
+            <ExternalLink href="https://docs.sentry.io/platforms/javascript/user-feedback/#crash-report-modal" />
+          ),
         }
       )}
     </StyledFeedbackAlert>
