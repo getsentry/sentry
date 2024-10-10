@@ -157,6 +157,83 @@ class SetupWizard(PermissionTestCase):
 
         assert cached == "test"
 
+    @with_feature("users:new-setup-wizard-ui")
+    def test_populates_cache_when_given_org_and_project_slug(self):
+        self.org = self.create_organization(owner=self.user)
+        self.team = self.create_team(organization=self.org, name="Mariachi Band")
+        self.project = self.create_project(organization=self.org, teams=[self.team], name="Bengal")
+
+        self.login_as(self.user)
+
+        key = f"{SETUP_WIZARD_CACHE_KEY}abc"
+        default_cache.set(key, "test", 600)
+
+        url = reverse("sentry-project-wizard-fetch", kwargs={"wizard_hash": "abc"})
+        resp = self.client.get(f"{url}?org_slug={self.org.slug}&project_slug={self.project.slug}")
+
+        assert resp.status_code == 200
+        self.assertTemplateUsed(resp, "sentry/setup-wizard.html")
+        cached = default_cache.get(key)
+
+        assert len(cached.get("projects")) == 1
+        cached_project = cached.get("projects")[0]
+        assert cached_project.get("id") == self.project.id
+
+    @with_feature("users:new-setup-wizard-ui")
+    def test_does_not_populate_cache_when_given_only_org_slug(self):
+        self.org = self.create_organization(owner=self.user)
+        self.team = self.create_team(organization=self.org, name="Mariachi Band")
+        self.project = self.create_project(organization=self.org, teams=[self.team], name="Bengal")
+
+        self.login_as(self.user)
+
+        key = f"{SETUP_WIZARD_CACHE_KEY}abc"
+        default_cache.set(key, "test", 600)
+
+        url = reverse("sentry-project-wizard-fetch", kwargs={"wizard_hash": "abc"})
+        resp = self.client.get(f"{url}?org_slug={self.org.slug}")
+
+        assert resp.status_code == 200
+        self.assertTemplateUsed(resp, "sentry/setup-wizard.html")
+
+        assert default_cache.get(key) == "test"
+
+    @with_feature("users:new-setup-wizard-ui")
+    def test_does_not_populate_cache_when_given_org_and_project_slug_and_project_not_in_org(self):
+        self.org = self.create_organization(owner=self.user)
+        self.project = self.create_project()
+
+        self.login_as(self.user)
+
+        key = f"{SETUP_WIZARD_CACHE_KEY}abc"
+        default_cache.set(key, "test", 600)
+
+        url = reverse("sentry-project-wizard-fetch", kwargs={"wizard_hash": "abc"})
+        resp = self.client.get(f"{url}?org_slug={self.org.slug}&project_slug={self.project.slug}")
+
+        assert resp.status_code == 200
+        self.assertTemplateUsed(resp, "sentry/setup-wizard.html")
+
+        assert default_cache.get(key) == "test"
+
+    @with_feature("users:new-setup-wizard-ui")
+    def test_does_not_populate_cache_when_org_slug_cannot_be_found(self):
+        self.org = self.create_organization(owner=self.user)
+        self.project = self.create_project(organization=self.org)
+
+        self.login_as(self.user)
+
+        key = f"{SETUP_WIZARD_CACHE_KEY}abc"
+        default_cache.set(key, "test", 600)
+
+        url = reverse("sentry-project-wizard-fetch", kwargs={"wizard_hash": "abc"})
+        resp = self.client.get(f"{url}?org_slug=bad-slug&project_slug={self.project.slug}")
+
+        assert resp.status_code == 200
+        self.assertTemplateUsed(resp, "sentry/setup-wizard.html")
+
+        assert default_cache.get(key) == "test"
+
     @override_settings(SENTRY_SIGNUP_URL="https://sentry.io/signup/")
     def test_redirect_to_signup(self):
         self.create_organization(owner=self.user)
