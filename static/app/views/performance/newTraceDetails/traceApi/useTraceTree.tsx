@@ -105,13 +105,14 @@ export function useTraceTree({
         setTree(trace);
       });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     api,
     organization,
     projects,
     replayRecord,
     status,
-    metaResults,
+    metaResults.data,
     traceResults.data,
     traceSlug,
   ]);

@@ -40,6 +40,7 @@ const organization = OrganizationFixture();
 
 describe('useTraceTree', () => {
   beforeEach(function () {
+    jest.restoreAllMocks();
     const api = new MockApiClient();
     jest.spyOn(useApi, 'default').mockReturnValue(api);
     jest.spyOn(useOrganization, 'default').mockReturnValue(organization);
