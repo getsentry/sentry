@@ -74,7 +74,6 @@ class SplitQueueTaskRouter:
 
     def __init__(self) -> None:
         self.__task_routers = {}
-
         for task, dest_config in settings.CELERY_SPLIT_QUEUE_TASK_ROUTES.items():
             default_destination = dest_config["default_queue"]
             destinations: Sequence[str] = []
