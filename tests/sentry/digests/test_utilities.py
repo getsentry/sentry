@@ -20,9 +20,6 @@ from sentry.types.actor import ActorType
 
 
 class UtilitiesHelpersTestCase(TestCase, SnubaTestCase):
-    def create_event(self, project_id):
-        return (self.store_event(data={"timestamp": before_now(minutes=1)}, project_id=project_id),)
-
     def test_get_event_from_groups_in_digest(self):
         project = self.create_project(fire_project_created=True)
         rule = project.rule_set.all()[0]
