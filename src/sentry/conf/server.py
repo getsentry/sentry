@@ -835,7 +835,7 @@ CELERY_ROUTES = ("sentry.queue.routers.SplitQueueTaskRouter",)
 # Each route has a task name as key and a tuple containing a list of queues
 # and a default one as destination. The default one is used when the
 # rollout option is not active.
-CELERY_SPLIT_QUEUE_TASK_ROUTES: Mapping[str, SplitQueueTaskRoute] = {
+CELERY_SPLIT_QUEUE_TASK_ROUTES_REGION: Mapping[str, SplitQueueTaskRoute] = {
     "events.save_event_transaction": {
         "default_queue": "events.save_event_transaction",
         "queues_config": {
@@ -844,7 +844,7 @@ CELERY_SPLIT_QUEUE_TASK_ROUTES: Mapping[str, SplitQueueTaskRoute] = {
         },
     }
 }
-SPLIT_TASK_QUEUES = make_split_task_queues(CELERY_SPLIT_QUEUE_TASK_ROUTES)
+SPLIT_TASK_QUEUES_REGION = make_split_task_queues(CELERY_SPLIT_QUEUE_TASK_ROUTES_REGION)
 
 # Mapping from queue name to split queues to be used by SplitQueueRouter.
 # This is meant to be used in those case where we have to specify the
@@ -1275,12 +1275,12 @@ if SILO_MODE == "CONTROL":
 elif SILO_MODE == "REGION":
     CELERYBEAT_SCHEDULE_FILENAME = os.path.join(tempfile.gettempdir(), "sentry-celerybeat-region")
     CELERYBEAT_SCHEDULE = CELERYBEAT_SCHEDULE_REGION
-    CELERY_QUEUES = CELERY_QUEUES_REGION + SPLIT_TASK_QUEUES
+    CELERY_QUEUES = CELERY_QUEUES_REGION + SPLIT_TASK_QUEUES_REGION
 
 else:
     CELERYBEAT_SCHEDULE = {**CELERYBEAT_SCHEDULE_CONTROL, **CELERYBEAT_SCHEDULE_REGION}
     CELERYBEAT_SCHEDULE_FILENAME = os.path.join(tempfile.gettempdir(), "sentry-celerybeat")
-    CELERY_QUEUES = CELERY_QUEUES_REGION + CELERY_QUEUES_CONTROL + SPLIT_TASK_QUEUES
+    CELERY_QUEUES = CELERY_QUEUES_REGION + CELERY_QUEUES_CONTROL + SPLIT_TASK_QUEUES_REGION
 
 for queue in CELERY_QUEUES:
     queue.durable = False
