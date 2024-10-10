@@ -89,6 +89,7 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
                     "tags": {
                         "foo": "bar",
                         "baz": "quux",
+                        "region": ["US", "EU"][(r // 7200) % 3],
                         # Switch every 2 hours
                         "environment": [env1, None][(r // 7200) % 3],
                         "sentry:user": f"id:user{r // 3300}",
@@ -146,6 +147,7 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
                         "foo": "bar",
                         "baz": "quux",
                         # Switch every 2 hours
+                        "region": "US",
                         "environment": [env1, None][(r // 7200) % 3],
                         "sentry:user": f"id:user{r // 3300}",
                     },
@@ -395,7 +397,7 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
             == {}
         )
 
-    def get_distinct_counts_totals_users(self):
+    def test_get_distinct_counts_totals_users(self):
         assert self.db.get_distinct_counts_totals(
             TSDBModel.users_affected_by_group,
             [self.proj1group1.id],
@@ -404,7 +406,7 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
             rollup=3600,
             tenant_ids={"referrer": "r", "organization_id": 1234},
         ) == {
-            self.proj1group1.id: 2  # 2 unique users overall
+            self.proj1group1.id: 5  # 5 unique users overall
         }
 
         assert self.db.get_distinct_counts_totals(
@@ -425,10 +427,54 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
             self.now + timedelta(hours=4),
             rollup=3600,
             tenant_ids={"referrer": "r", "organization_id": 1234},
-        ) == {self.proj1.id: 2}
+        ) == {self.proj1.id: 5}
 
         assert (
             self.db.get_distinct_counts_totals(
+                TSDBModel.users_affected_by_group,
+                [],
+                self.now,
+                self.now + timedelta(hours=4),
+                rollup=3600,
+                tenant_ids={"referrer": "r", "organization_id": 1234},
+            )
+            == {}
+        )
+
+    def test_get_distinct_counts_totals_users_with_conditions(self):
+        assert self.db.get_distinct_counts_totals_with_conditions(
+            TSDBModel.users_affected_by_group,
+            [self.proj1group1.id],
+            self.now,
+            self.now + timedelta(hours=4),
+            rollup=3600,
+            tenant_ids={"referrer": "r", "organization_id": 1234},
+            conditions=[("tags[region]", "=", "US")],
+        ) == {
+            self.proj1group1.id: 2  # 5 unique users with US tag
+        }
+        assert self.db.get_distinct_counts_totals_with_conditions(
+            TSDBModel.users_affected_by_group,
+            [self.proj1group1.id],
+            self.now,
+            self.now + timedelta(hours=4),
+            rollup=3600,
+            tenant_ids={"referrer": "r", "organization_id": 1234},
+            conditions=[("tags[region]", "=", "EU")],
+        ) == {
+            self.proj1group1.id: 3  # 3 unique users with EU tag
+        }
+        assert self.db.get_distinct_counts_totals_with_conditions(
+            TSDBModel.users_affected_by_group,
+            [self.proj1group1.id],
+            self.now,
+            self.now + timedelta(hours=4),
+            rollup=3600,
+            tenant_ids={"referrer": "r", "organization_id": 1234},
+            conditions=[("tags[region]", "=", "MARS")],
+        ) == {self.proj1group1.id: 0}
+        assert (
+            self.db.get_distinct_counts_totals_with_conditions(
                 TSDBModel.users_affected_by_group,
                 [],
                 self.now,
