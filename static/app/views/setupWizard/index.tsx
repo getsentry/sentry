@@ -241,6 +241,7 @@ function ProjectSelection({hash, organizations = []}: Omit<Props, 'allowSelectio
       <FieldWrapper>
         <label>{t('Organization')}</label>
         <StyledCompactSelect
+          autoFocus
           value={selectedOrgId as string}
           searchable
           options={orgOptions}
