@@ -150,7 +150,6 @@ export function EventDetailsContent({
       {hasActionableItems && !hasStreamlinedUI && (
         <ActionableItems event={event} project={project} isShare={false} />
       )}
-      {hasStreamlinedUI && <TraceDataSection event={event} />}
       <StyledDataSection>
         {!hasStreamlinedUI && (
           <Feature features={['organizations:ai-summary']}>
@@ -354,12 +353,9 @@ export function EventDetailsContent({
           />
         </EntryErrorBoundary>
       ) : null}
-      <EventTraceView
-        group={group}
-        event={event}
-        organization={organization}
-        projectSlug={project.slug}
-      />
+      {hasStreamlinedUI && (
+        <EventTraceView group={group} event={event} organization={organization} />
+      )}
       {!showPossibleSolutionsHigher && (
         <ResourcesAndPossibleSolutionsIssueDetailsContent
           event={event}
