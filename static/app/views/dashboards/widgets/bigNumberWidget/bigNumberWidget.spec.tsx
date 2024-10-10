@@ -216,4 +216,94 @@ describe('BigNumberWidget', () => {
       expect(screen.getByText('3.05%')).toBeInTheDocument();
     });
   });
+
+  describe('Thresholds', () => {
+    it('Evaluates the current value against a threshold', () => {
+      render(
+        <BigNumberWidget
+          data={[
+            {
+              'eps()': 14.227123,
+            },
+          ]}
+          meta={{
+            fields: {
+              'eps()': 'rate',
+            },
+            units: {
+              'eps()': '1/second',
+            },
+          }}
+          thresholds={{
+            max_values: {
+              max1: 10,
+              max2: 20,
+            },
+            unit: '1/second',
+          }}
+        />
+      );
+
+      expect(screen.getByRole('status')).toHaveAttribute('aria-label', 'meh');
+    });
+
+    it('Normalizes the units', () => {
+      render(
+        <BigNumberWidget
+          data={[
+            {
+              'mystery_error_rate()': 135, //  2.25/s
+            },
+          ]}
+          meta={{
+            fields: {
+              'mystery_error_rate()': 'rate',
+            },
+            units: {
+              'mystery_error_rate()': '1/minute',
+            },
+          }}
+          thresholds={{
+            max_values: {
+              max1: 2,
+              max2: 5,
+            },
+            unit: '1/second',
+          }}
+        />
+      );
+
+      expect(screen.getByRole('status')).toHaveAttribute('aria-label', 'meh');
+    });
+
+    it('Respects the preferred polarity', () => {
+      render(
+        <BigNumberWidget
+          data={[
+            {
+              'mystery_error_rate()': 135,
+            },
+          ]}
+          meta={{
+            fields: {
+              'mystery_error_rate()': 'rate',
+            },
+            units: {
+              'mystery_error_rate()': '1/second',
+            },
+          }}
+          thresholds={{
+            max_values: {
+              max1: 200,
+              max2: 500,
+            },
+            unit: '1/second',
+          }}
+          preferredPolarity="-"
+        />
+      );
+
+      expect(screen.getByRole('status')).toHaveAttribute('aria-label', 'good');
+    });
+  });
 });
