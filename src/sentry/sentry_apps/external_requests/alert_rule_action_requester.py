@@ -5,7 +5,6 @@ from typing import TypedDict
 from urllib.parse import urlparse, urlunparse
 from uuid import uuid4
 
-from django.db import router, transaction
 from django.utils.functional import cached_property
 from requests import RequestException
 from requests.models import Response
@@ -35,16 +34,15 @@ class AlertRuleActionRequester:
 
     def run(self) -> AlertRuleActionResult:
         try:
-            with transaction.atomic(router.db_for_write(SentryAppInstallation)):
-                response = send_and_save_sentry_app_request(
-                    url=self._build_url(),
-                    sentry_app=self.sentry_app,
-                    org_id=self.install.organization_id,
-                    event="alert_rule_action.requested",
-                    headers=self._build_headers(),
-                    method=self.http_method,
-                    data=self.body,
-                )
+            response = send_and_save_sentry_app_request(
+                url=self._build_url(),
+                sentry_app=self.sentry_app,
+                org_id=self.install.organization_id,
+                event="alert_rule_action.requested",
+                headers=self._build_headers(),
+                method=self.http_method,
+                data=self.body,
+            )
 
         except RequestException as e:
             logger.info(

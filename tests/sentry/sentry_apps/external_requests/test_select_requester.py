@@ -2,7 +2,7 @@ import pytest
 import responses
 
 from sentry.coreapi import APIError
-from sentry.mediators.external_requests.select_requester import SelectRequester
+from sentry.sentry_apps.external_requests.select_requester import SelectRequester
 from sentry.sentry_apps.services.app import app_service
 from sentry.testutils.cases import TestCase
 from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
@@ -39,9 +39,9 @@ class TestSelectRequester(TestCase):
             content_type="application/json",
         )
 
-        result = SelectRequester.run(
+        result = SelectRequester(
             install=self.install, project_slug=self.project.slug, uri="/get-issues"
-        )
+        ).run()
 
         assert result == {
             "choices": [["123", "An Issue"], ["456", "Another Issue"]],
@@ -70,13 +70,11 @@ class TestSelectRequester(TestCase):
         )
 
         with pytest.raises(APIError):
-            SelectRequester.run(
+            SelectRequester(
                 install=self.install,
                 project_slug=self.project.slug,
-                group=self.group,
                 uri="/get-issues",
-                fields={},
-            )
+            ).run()
 
     @responses.activate
     def test_invalid_response_missing_value(self):
@@ -93,13 +91,11 @@ class TestSelectRequester(TestCase):
         )
 
         with pytest.raises(APIError):
-            SelectRequester.run(
+            SelectRequester(
                 install=self.install,
                 project_slug=self.project.slug,
-                group=self.group,
                 uri="/get-issues",
-                fields={},
-            )
+            ).run()
 
     @responses.activate
     def test_500_response(self):
@@ -111,13 +107,11 @@ class TestSelectRequester(TestCase):
         )
 
         with pytest.raises(APIError):
-            SelectRequester.run(
+            SelectRequester(
                 install=self.install,
                 project_slug=self.project.slug,
-                group=self.group,
                 uri="/get-issues",
-                fields={},
-            )
+            ).run()
 
         buffer = SentryAppWebhookRequestsBuffer(self.sentry_app)
         requests = buffer.get_requests()

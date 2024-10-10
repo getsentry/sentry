@@ -4,9 +4,9 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.mediators.external_requests.select_requester import SelectRequester
 from sentry.models.project import Project
 from sentry.sentry_apps.api.bases.sentryapps import SentryAppInstallationBaseEndpoint
+from sentry.sentry_apps.external_requests.select_requester import SelectRequester
 
 
 @region_silo_endpoint
@@ -35,7 +35,7 @@ class SentryAppInstallationExternalRequestsEndpoint(SentryAppInstallationBaseEnd
             kwargs.update({"project_slug": project.slug})
 
         try:
-            choices = SelectRequester.run(**kwargs)
+            choices = SelectRequester(**kwargs).run()
         except Exception:
             return Response({"error": "Error communicating with Sentry App service"}, status=400)
 
