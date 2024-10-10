@@ -812,39 +812,40 @@ export function parseFunction(field: string): ParsedFunction | null {
   if (results && results.length === 3) {
     return {
       name: results[1],
-      arguments: parseArguments(results[1], results[2]),
+      arguments: parseArguments(results[2]),
     };
   }
 
   return null;
 }
 
-export function parseArguments(functionText: string, columnText: string): string[] {
-  // Some functions take a quoted string for their arguments that may contain commas
-  // This function attempts to be identical with the similarly named parse_arguments
-  // found in src/sentry/search/events/fields.py
-  if (
-    (functionText !== 'to_other' &&
-      functionText !== 'count_if' &&
-      functionText !== 'spans_histogram') ||
-    columnText?.length === 0
-  ) {
-    return columnText ? columnText.split(',').map(result => result.trim()) : [];
+function _lookback(columnText: string, j: number, str: string) {
+  // For parse_arguments, check that the current character is preceeded by string
+  if (j < str.length) {
+    return false;
   }
+  return columnText.substring(j - str.length, j) === str;
+}
 
+export function parseArguments(columnText: string): string[] {
   const args: string[] = [];
 
   let quoted = false;
+  let inTag = false;
   let escaped = false;
 
   let i: number = 0;
   let j: number = 0;
 
   while (j < columnText?.length) {
-    if (i === j && columnText[j] === '"') {
+    if (!inTag && i === j && columnText[j] === '"') {
       // when we see a quote at the beginning of
       // an argument, then this is a quoted string
       quoted = true;
+    } else if (!quoted && columnText[j] === '[' && _lookback(columnText, j, 'tags')) {
+      // when the argument begins with tags[,
+      // then this is the beginning of the tag that may contain commas
+      inTag = true;
     } else if (i === j && columnText[j] === ' ') {
       // argument has leading spaces, skip over them
       i += 1;
@@ -856,12 +857,16 @@ export function parseArguments(functionText: string, columnText: string): string
       // when we see a non-escaped quote while inside
       // of a quoted string, we should end it
       quoted = false;
+    } else if (inTag && !escaped && columnText[j] === ']') {
+      // when we see a non-escaped quote while inside
+      // of a quoted string, we should end it
+      inTag = false;
     } else if (quoted && escaped) {
       // when we are inside a quoted string and have
       // begun an escape character, we should end it
       escaped = false;
-    } else if (quoted && columnText[j] === ',') {
-      // when we are inside a quoted string and see
+    } else if ((quoted || inTag) && columnText[j] === ',') {
+      // when we are inside a quoted string or tag and see
       // a comma, it should not be considered an
       // argument separator
     } else if (columnText[j] === ',') {
@@ -1616,3 +1621,13 @@ export const COMBINED_DATASET_FILTER_KEY_SECTIONS: FilterKeySection[] = [
 // export const PLATFORM_KEY_TO_FILTER_SECTIONS
 // will take in a project platform key, and output only the relevant filter key sections.
 // This way, users will not be suggested mobile fields for a backend transaction, for example.
+
+export const TYPED_TAG_KEY_RE = /tags\[(.*),(.*)\]/;
+
+export function formatParsedFunction(func: ParsedFunction) {
+  const args = func.arguments.map(arg => {
+    const result = arg.match(TYPED_TAG_KEY_RE);
+    return result?.[1] ?? arg;
+  });
+  return `${func.name}(${args.join(',')})`;
+}
