@@ -32,7 +32,7 @@ export function FlamegraphWarnings(props: FlamegraphWarningProps) {
 
   if (props.requestState.type === 'errored') {
     return (
-      <Overlay>
+      <Overlay data-test-id="flamegraph-warning-overlay">
         <p>{props.requestState.error || t('Failed to load profile')}</p>
       </Overlay>
     );
@@ -44,36 +44,9 @@ export function FlamegraphWarnings(props: FlamegraphWarningProps) {
     return null;
   }
 
-  if ('filter' in props && !props.flamegraph.frames.length) {
-    if (props.filter === 'all') {
-      return (
-        <Overlay>
-          <p>{t('Empty flamegraph')}</p>
-        </Overlay>
-      );
-    }
-
-    return (
-      <Overlay>
-        <p>
-          {tct(`No frames match the [filter] frame filter`, {
-            filter: props.filter,
-          })}
-        </p>
-        {props.onResetFilter ? (
-          <div>
-            <Button size="sm" onClick={props.onResetFilter}>
-              {t('Reset Filter')}
-            </Button>
-          </div>
-        ) : null}
-      </Overlay>
-    );
-  }
-
   if (props.flamegraph.profile.samples.length === 0) {
     return (
-      <Overlay>
+      <Overlay data-test-id="flamegraph-warning-overlay">
         <p>{t('This flamegraph has no data.')}</p>
         <div>
           <ExportProfileButton
@@ -88,6 +61,33 @@ export function FlamegraphWarnings(props: FlamegraphWarningProps) {
             {t('Export Raw Profile')}
           </ExportProfileButton>
         </div>
+      </Overlay>
+    );
+  }
+
+  if ('filter' in props && props.flamegraph.frames.length > 0) {
+    if (props.filter === 'all') {
+      return (
+        <Overlay data-test-id="flamegraph-warning-overlay">
+          <p>{t('This flamegraph has no data.')}</p>
+        </Overlay>
+      );
+    }
+
+    return (
+      <Overlay data-test-id="flamegraph-warning-overlay">
+        <p>
+          {tct(`No frames match the [filter] frame filter`, {
+            filter: props.filter,
+          })}
+        </p>
+        {props.onResetFilter ? (
+          <div>
+            <Button size="sm" onClick={props.onResetFilter}>
+              {t('Reset Filter')}
+            </Button>
+          </div>
+        ) : null}
       </Overlay>
     );
   }
