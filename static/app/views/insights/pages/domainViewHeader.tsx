@@ -15,7 +15,7 @@ import {OVERVIEW_PAGE_TITLE} from 'sentry/views/insights/pages/settings';
 import {MODULE_TITLES} from 'sentry/views/insights/settings';
 import type {ModuleName} from 'sentry/views/insights/types';
 
-type Props = {
+export type Props = {
   domainBaseUrl: string;
   headerTitle: React.ReactNode;
   modules: ModuleName[];
