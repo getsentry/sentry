@@ -84,9 +84,7 @@ class OpsgenieNotifyTeamForm(forms.Form):
                     params=params,
                 )
 
-            team_status = self._get_team_status(
-                team_id=team_id, integration=integration, org_integration=org_integration
-            )
+            team_status = self._get_team_status(team_id=team_id, org_integration=org_integration)
             if team_status == INVALID_TEAM:
                 raise forms.ValidationError(
                     _('The team "%(team)s" does not belong to the %(account)s Opsgenie account.'),
