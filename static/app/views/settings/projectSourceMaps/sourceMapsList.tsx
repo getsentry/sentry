@@ -119,7 +119,7 @@ function useSourceMapUploads({organization, project, query, cursor}) {
   };
 }
 
-export function ProjectSourceMapsUploads({location, router, project}: Props) {
+export function SourceMapsList({location, router, project}: Props) {
   const organization = useOrganization();
   const query = decodeScalar(location.query.query);
 
@@ -202,12 +202,7 @@ export function SourceMapUploadsList({
 
   const sourceMapUploadDetailLink = useCallback(
     (sourceMapUpload: SourceMapUpload) => {
-      // TODO(telemetry-experience): Simplify this routing later
-      if (sourceMapUpload.type === 'debugId') {
-        return `/settings/${organization.slug}/projects/${project.slug}/source-maps/artifact-bundles/${encodeURIComponent(sourceMapUpload.id)}/`;
-      }
-
-      return `/settings/${organization.slug}/projects/${project.slug}/source-maps/release-bundles/${encodeURIComponent(sourceMapUpload.id)}/`;
+      return `/settings/${organization.slug}/projects/${project.slug}/source-maps/${encodeURIComponent(sourceMapUpload.id)}/`;
     },
     [organization, project]
   );
@@ -284,7 +279,7 @@ export function SourceMapUploadDetails({
               ))}
             </ReleasesWrapper>
           ) : (
-            t('No releases associated with this bundle')
+            t('No releases associated with this upload.')
           ),
       },
     ];
