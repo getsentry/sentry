@@ -69,6 +69,7 @@ import routeTitleGen from 'sentry/utils/routeTitle';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import withOrganization from 'sentry/utils/withOrganization';
 import withProjects from 'sentry/utils/withProjects';
+import FeedbackAlertBanner from 'sentry/views/alerts/rules/issue/feedbackAlertBanner';
 import {PreviewIssues} from 'sentry/views/alerts/rules/issue/previewIssues';
 import SetupMessagingIntegrationButton, {
   MessagingIntegrationAnalyticsView,
@@ -1394,6 +1395,10 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
                           incompatibleBanner={
                             incompatibleFilters ? incompatibleFilters.at(-1) : null
                           }
+                        />
+                        <FeedbackAlertBanner
+                          filters={this.state.rule?.filters}
+                          projectSlug={this.state.project.slug}
                         />
                       </StepContent>
                     </StepContainer>
