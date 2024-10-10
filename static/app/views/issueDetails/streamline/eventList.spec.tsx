@@ -150,7 +150,7 @@ describe('EventList', () => {
     ).toBeInTheDocument();
 
     // Returns minidump column, but we omit it as a custom column
-    const columns = result.current.columnTitles.filter(t => t !== 'minidump');
+    const columns = result.current.columnTitles.filter(t => t !== 'Minidump');
     for (const title of columns) {
       expect(screen.getByRole('columnheader', {name: title})).toBeInTheDocument();
     }
