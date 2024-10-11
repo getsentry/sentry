@@ -532,6 +532,7 @@ module = [
     "sentry.utils.uwsgi",
     "sentry.utils.zip",
     "sentry.web.frontend.auth_provider_login",
+    "sentry.web.frontend.cli",
     "sentry.web.frontend.csv",
     "sentry_plugins.base",
     "tests.sentry.deletions.test_group",
@@ -572,6 +573,7 @@ module = [
     "tests.sentry.tasks.test_on_demand_metrics",
     "tests.sentry.types.test_actor",
     "tests.sentry.types.test_region",
+    "tests.sentry.web.frontend.test_cli",
     "tools.*",
 ]
 disallow_any_generics = true
