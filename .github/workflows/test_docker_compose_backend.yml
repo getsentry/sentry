@@ -46,7 +46,7 @@ jobs:
         if: failure()
         run: |
           docker compose ps
-          docker compose logs
+          docker compose logs --tail 1000
 
   docker-compose-backend-test:
     name: backend test
@@ -109,7 +109,7 @@ jobs:
         if: failure()
         run: |
           docker compose ps
-          docker compose logs
+          docker compose logs --tail 1000
 
   docker-compose-backend-migration-tests:
     name: backend migration tests
@@ -148,7 +148,7 @@ jobs:
         if: failure()
         run: |
           docker compose ps
-          docker compose logs
+          docker compose logs --tail 1000
 
   docker-compose-cli:
     name: cli test
@@ -186,7 +186,7 @@ jobs:
         if: failure()
         run: |
           docker compose ps
-          docker compose logs
+          docker compose logs --tail 1000
 
   docker-compose-migration:
     name: check migration
@@ -219,7 +219,7 @@ jobs:
         if: failure()
         run: |
           docker compose ps
-          docker compose logs
+          docker compose logs --tail 1000
 
   docker-compose-monolith-dbs:
     name: monolith-dbs test
@@ -267,7 +267,7 @@ jobs:
         if: failure()
         run: |
           docker compose ps
-          docker compose logs
+          docker compose logs --tail 1000
 
   # This check runs once all dependent jobs have passed
   # It symbolizes that all required Backend checks have succesfully passed (Or skipped)

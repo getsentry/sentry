@@ -128,7 +128,7 @@ jobs:
         if: failure()
         run: |
           docker compose ps
-          docker compose logs
+          docker compose logs --tail 1000
 
   docker-compose-acceptance-required-checks:
     # this is a required check so we need this job to always run and report a status.
