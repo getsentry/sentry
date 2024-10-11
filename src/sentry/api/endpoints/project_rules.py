@@ -205,7 +205,7 @@ class DuplicateRuleEvaluator:
             raw_left = {k: v for k, v in left.items() if k not in keys_to_ignore}
             raw_right = {k: v for k, v in right.items() if k not in keys_to_ignore}
 
-            # TODO (Yash): This code commented below is the corrected logic which accounts for bad key values.
+            # TODO: (Yash): This code commented below is the corrected logic which accounts for bad key values.
             # clean_left = cls._get_clean_actions_dict(raw_left)
             # clean_right = cls._get_clean_actions_dict(raw_right)
             # if clean_left != clean_right:
