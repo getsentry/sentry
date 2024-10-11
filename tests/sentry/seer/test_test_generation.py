@@ -11,7 +11,7 @@ from sentry.testutils.silo import control_silo_test
 @patch("sentry.seer.services.test_generation.impl.requests.post")
 @django_db_all
 @control_silo_test
-def test_uses_shared_secret(posts_mock):
+def test_start_unit_test_generation(posts_mock):
     response_object: requests.Response = requests.Response()
     response_object.json = Mock(method="json", return_value={})
     response_object.status_code = 200
