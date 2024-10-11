@@ -247,11 +247,6 @@ export const EventNavigation = forwardRef<HTMLDivElement, EventNavigationProps>(
                 trigger={(triggerProps, isOpen) => (
                   <DropdownButton
                     {...triggerProps}
-                    title={event.id}
-                    tooltipProps={{
-                      delay: 500,
-                      overlayStyle: {maxWidth: 'max-content'},
-                    }}
                     aria-label={t('Event actions')}
                     size="zero"
                     borderless
@@ -430,6 +425,7 @@ const EventIdInfo = styled('span')`
   display: flex;
   align-items: center;
   gap: ${space(0.25)};
+  line-height: 1.2;
 `;
 
 const EventTitle = styled('div')`
