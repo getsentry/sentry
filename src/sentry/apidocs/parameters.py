@@ -180,6 +180,14 @@ Valid fields include:
         description="The ID of the external user object. This is returned when creating an external user.",
     )
 
+    EXTERNAL_TEAM_ID = OpenApiParameter(
+        name="external_team_id",
+        location="path",
+        required=True,
+        type=int,
+        description="The ID of the external team object. This is returned when creating an external team.",
+    )
+
 
 class ReleaseParams:
     VERSION = OpenApiParameter(
