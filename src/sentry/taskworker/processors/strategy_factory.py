@@ -72,7 +72,7 @@ class StrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         # Maximum number of pending inflight activations in the store before backpressure is emitted
         self.max_inflight_activation_in_store = 1000  # make this configurable
 
-        self.pending_task_store = get_storage_backend("redis")
+        self.pending_task_store = get_storage_backend(storage)
 
     def create_with_partitions(
         self, commit: Commit, _: Mapping[Partition, int]
@@ -96,9 +96,9 @@ class StrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         ) -> KafkaPayload:
             self.pending_task_store.handle_processing_deadlines()
             self.pending_task_store.handle_retry_state_tasks()
-            # self.pending_task_store.handle_deadletter_at()
-            # self.pending_task_store.handle_failed_tasks()
-            # self.pending_task_store.remove_completed()
+            self.pending_task_store.handle_deadletter_at()
+            self.pending_task_store.handle_failed_tasks()
+            self.pending_task_store.remove_completed()
 
             return message.payload
 

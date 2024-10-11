@@ -386,7 +386,7 @@ class InflightTaskStoreRedis(InflightTaskStore):
         inflight_dict = self._get_all_inflight_activation_fields(task_id)
         inflight_proto = ParseDict(inflight_dict, InflightActivation())
         inflight_proto.activation.CopyFrom(task_proto)
-        return
+        return inflight_proto
 
     def store(self, batch: Sequence[InflightActivation]):
         for inflight in batch:
@@ -404,7 +404,6 @@ class InflightTaskStoreRedis(InflightTaskStore):
             ]  # remove the activation field as it is stored in a separate key
             self._set_inflight_activation_attributes(task_id, inflight_dict)
             self._set_inflight_activations(status, offset, task_id)
-        self.handle_processing_deadlines()
 
     def get_pending_task(self) -> InflightActivation | None:
         # TODO: can maybe use zpopmin instead here?
@@ -427,7 +426,6 @@ class InflightTaskStoreRedis(InflightTaskStore):
                 "processing_deadline": formatted_deadline,
             },
         )
-
         return self._compose_inflight_activation_proto(task_id)
 
     def count_pending_task(self) -> int:
