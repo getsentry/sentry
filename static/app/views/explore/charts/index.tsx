@@ -8,7 +8,11 @@ import {IconClock, IconGraph} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
-import {aggregateOutputType} from 'sentry/utils/discover/fields';
+import {
+  aggregateOutputType,
+  formatParsedFunction,
+  parseFunction,
+} from 'sentry/utils/discover/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
@@ -128,6 +132,14 @@ export function ExploreCharts({query}: ExploreChartsProps) {
     <Fragment>
       {visualizes.map((visualize, index) => {
         const dedupedYAxes = dedupeArray(visualize.yAxes);
+
+        const formattedYAxes = dedupedYAxes
+          .map(yaxis => {
+            const func = parseFunction(yaxis);
+            return func ? formatParsedFunction(func) : undefined;
+          })
+          .filter(Boolean);
+
         const {chartType} = visualize;
         const chartIcon =
           chartType === ChartType.LINE
@@ -140,7 +152,7 @@ export function ExploreCharts({query}: ExploreChartsProps) {
           <ChartContainer key={index}>
             <ChartPanel>
               <ChartHeader>
-                <ChartTitle>{dedupedYAxes.join(',')}</ChartTitle>
+                <ChartTitle>{formattedYAxes.join(',')}</ChartTitle>
                 <ChartSettingsContainer>
                   <CompactSelect
                     triggerLabel=""

@@ -9,7 +9,13 @@ import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {NewQuery} from 'sentry/types/organization';
 import EventView from 'sentry/utils/discover/eventView';
-import {fieldAlignment, getAggregateAlias, type Sort} from 'sentry/utils/discover/fields';
+import type {Sort} from 'sentry/utils/discover/fields';
+import {
+  fieldAlignment,
+  formatParsedFunction,
+  getAggregateAlias,
+  parseFunction,
+} from 'sentry/utils/discover/fields';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {
   Table,
@@ -21,6 +27,7 @@ import {
   TableStatus,
   useTableStyles,
 } from 'sentry/views/explore/components/table';
+import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {useDataset} from 'sentry/views/explore/hooks/useDataset';
 import {useGroupBys} from 'sentry/views/explore/hooks/useGroupBys';
 import {useSorts} from 'sentry/views/explore/hooks/useSorts';
@@ -86,6 +93,9 @@ export function AggregatesTable({}: AggregatesTableProps) {
 
   const meta = result.meta ?? {};
 
+  const numberTags = useSpanTags('number');
+  const stringTags = useSpanTags('string');
+
   return (
     <Fragment>
       <Table style={tableStyles}>
@@ -97,11 +107,23 @@ export function AggregatesTable({}: AggregatesTableProps) {
                 return <TableHeadCell key={i} isFirst={i === 0} />;
               }
 
+              let label = field;
+
               const fieldType = meta.fields?.[field];
               const align = fieldAlignment(field, fieldType);
+              const tag = stringTags[field] ?? numberTags[field] ?? null;
+              if (tag) {
+                label = tag.name;
+              }
+
+              const func = parseFunction(field);
+              if (func) {
+                label = formatParsedFunction(func);
+              }
+
               return (
                 <TableHeadCell align={align} key={i} isFirst={i === 0}>
-                  <span>{field}</span>
+                  <span>{label}</span>
                 </TableHeadCell>
               );
             })}
