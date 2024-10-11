@@ -245,15 +245,23 @@ export const EventNavigation = forwardRef<HTMLDivElement, EventNavigationProps>(
               <EventTitle>{t('Event')}</EventTitle>
               <DropdownMenu
                 trigger={(triggerProps, isOpen) => (
-                  <DropdownButton
-                    {...triggerProps}
-                    aria-label={t('Event actions')}
-                    size="zero"
-                    borderless
-                    isOpen={isOpen}
+                  // Tooltip split from button to prevent re-opening w/ focus event on close
+                  <Tooltip
+                    title={event.id}
+                    delay={500}
+                    overlayStyle={{maxWidth: 'max-content'}}
+                    disabled={isOpen}
                   >
-                    {getShortEventId(event.id)}
-                  </DropdownButton>
+                    <DropdownButton
+                      {...triggerProps}
+                      aria-label={t('Event actions')}
+                      size="zero"
+                      borderless
+                      isOpen={isOpen}
+                    >
+                      {getShortEventId(event.id)}
+                    </DropdownButton>
+                  </Tooltip>
                 )}
                 position="bottom"
                 size="xs"
