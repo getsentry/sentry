@@ -1,5 +1,4 @@
 import {Fragment, useCallback, useMemo, useRef} from 'react';
-import type {Theme} from '@emotion/react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
@@ -443,9 +442,15 @@ function BaseGroupRow({
           </CountTooltipContent>
         }
       >
-        <PrimaryCount value={primaryCount} />
+        <PrimaryCount
+          value={primaryCount}
+          hasNewLayout={organization.features.includes('issue-stream-table-layout')}
+        />
         {secondaryCount !== undefined && useFilteredStats && (
-          <SecondaryCount value={secondaryCount} />
+          <SecondaryCount
+            value={secondaryCount}
+            hasNewLayout={organization.features.includes('issue-stream-table-layout')}
+          />
         )}
       </Tooltip>
     </GuideAnchor>
@@ -483,9 +488,16 @@ function BaseGroupRow({
         </CountTooltipContent>
       }
     >
-      <PrimaryCount value={primaryUserCount} />
+      <PrimaryCount
+        value={primaryUserCount}
+        hasNewLayout={organization.features.includes('issue-stream-table-layout')}
+      />
       {secondaryUserCount !== undefined && useFilteredStats && (
-        <SecondaryCount dark value={secondaryUserCount} />
+        <SecondaryCount
+          dark
+          value={secondaryUserCount}
+          hasNewLayout={organization.features.includes('issue-stream-table-layout')}
+        />
       )}
     </Tooltip>
   );
@@ -586,7 +598,7 @@ function BaseGroupRow({
           issueTypeConfig.stats.enabled &&
           organization.features.includes('issue-stream-table-layout') ? (
             <NarrowEventsOrUsersCountsWrapper breakpoint={COLUMN_BREAKPOINTS.EVENTS}>
-              <div style={{marginRight: space(2)}}>{groupCount}</div>
+              <InnerCountsWrapper>{groupCount}</InnerCountsWrapper>
             </NarrowEventsOrUsersCountsWrapper>
           ) : (
             <EventCountsWrapper
@@ -599,7 +611,7 @@ function BaseGroupRow({
           issueTypeConfig.stats.enabled &&
           organization.features.includes('issue-stream-table-layout') ? (
             <NarrowEventsOrUsersCountsWrapper breakpoint={COLUMN_BREAKPOINTS.USERS}>
-              <div style={{marginRight: space(2)}}>{groupUsersCount}</div>
+              <InnerCountsWrapper>{groupUsersCount}</InnerCountsWrapper>
             </NarrowEventsOrUsersCountsWrapper>
           ) : (
             <EventCountsWrapper>{groupUsersCount}</EventCountsWrapper>
@@ -738,29 +750,23 @@ const GroupCheckBoxWrapper = styled('div')<{hasNewLayout: boolean}>`
     `}
 `;
 
-const primaryStatStyle = (theme: Theme) => css`
-  font-size: ${theme.fontSizeLarge};
+const PrimaryCount = styled(Count)<{hasNewLayout: boolean}>`
+  font-size: ${p => (p.hasNewLayout ? p.theme.fontSizeMedium : p.theme.fontSizeLarge)};
   font-variant-numeric: tabular-nums;
 `;
 
-const PrimaryCount = styled(Count)`
-  ${p => primaryStatStyle(p.theme)};
-`;
-
-const secondaryStatStyle = (theme: Theme) => css`
-  font-size: ${theme.fontSizeLarge};
+const SecondaryCount = styled(({value, ...p}) => <Count {...p} value={value} />)<{
+  hasNewLayout: boolean;
+}>`
+  font-size: ${p => (p.hasNewLayout ? p.theme.fontSizeMedium : p.theme.fontSizeLarge)};
   font-variant-numeric: tabular-nums;
 
   :before {
     content: '/';
     padding-left: ${space(0.25)};
     padding-right: 2px;
-    color: ${theme.gray300};
+    color: ${p => p.theme.gray300};
   }
-`;
-
-const SecondaryCount = styled(({value, ...p}) => <Count {...p} value={value} />)`
-  ${p => secondaryStatStyle(p.theme)}
 `;
 
 const CountTooltipContent = styled('div')`
@@ -822,6 +828,10 @@ const NarrowEventsOrUsersCountsWrapper = styled('div')<{breakpoint: string}>`
   @media (max-width: ${p => p.breakpoint}) {
     display: none;
   }
+`;
+
+const InnerCountsWrapper = styled('div')`
+  margin-right: ${space(2)};
 `;
 
 const EventCountsWrapper = styled('div')<{leftMargin?: string}>`
