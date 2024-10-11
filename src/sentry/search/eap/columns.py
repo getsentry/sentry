@@ -5,6 +5,7 @@ from typing import Any
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
     AttributeAggregation,
     AttributeKey,
+    Function,
     VirtualColumnContext,
 )
 
@@ -19,11 +20,13 @@ class ResolvedColumn:
     # The alias for this column
     public_alias: str  # `p95() as foo` has the public alias `foo` and `p95()` has the public alias `p95()`
     # The internal rpc alias for this column
-    internal_name: str
+    internal_name: str | Function.ValueType
     # The public type for this column
     search_type: str
     # The internal rpc type for this column, optional as it can mostly be inferred from search_type
     internal_type: AttributeKey.Type.ValueType | None = None
+    # Only for aggregates, we only support functions with 1 argument right now
+    argument: AttributeKey | None = None
     # Processor is the function run in the post process step to transform a row into the final result
     processor: Callable[[Any], Any] | None = None
     # Validator to check if the value in a query is correct
@@ -41,13 +44,41 @@ class ResolvedColumn:
     @property
     def proto_definition(self) -> AttributeAggregation | AttributeKey:
         """The definition of this function as needed by the RPC"""
-        # Placeholder to implement search for now
-        return AttributeKey(
-            name=self.internal_name,
-            type=self.internal_type
-            if self.internal_type is not None
-            else constants.TYPE_MAP[self.search_type],
-        )
+        if isinstance(self.internal_name, Function.ValueType):
+            return AttributeAggregation(
+                aggregate=self.internal_name,
+                key=self.argument,
+                label=self.public_alias,
+            )
+        else:
+            return AttributeKey(
+                name=self.internal_name,
+                type=self.internal_type
+                if self.internal_type is not None
+                else constants.TYPE_MAP[self.search_type],
+            )
+
+
+@dataclass
+class ArgumentDefinition:
+    argument_type: str | None = None
+    # The public alias for the default arg, the SearchResolver will resolve this value
+    default_arg: str | None = None
+    # Whether this argument is completely ignored, used for `count()`
+    ignored: bool = False
+
+
+@dataclass
+class FunctionDefinition:
+    internal_function: Function.ValueType
+    # the search_type the argument should be
+    arguments: list[ArgumentDefinition]
+    # The public type for this column
+    search_type: str
+
+    @property
+    def required_arguments(self) -> list[ArgumentDefinition]:
+        return [arg for arg in self.arguments if arg.default_arg is None and not arg.ignored]
 
 
 SPAN_COLUMN_DEFINITIONS = {
@@ -95,6 +126,9 @@ SPAN_COLUMN_DEFINITIONS = {
         ),
         ResolvedColumn(
             public_alias="span.self_time", internal_name="exclusive_time_ms", search_type="duration"
+        ),
+        ResolvedColumn(
+            public_alias="span.duration", internal_name="duration_ms", search_type="duration"
         ),
         ResolvedColumn(
             public_alias="span.status", internal_name="attr_str[status]", search_type="string"
@@ -181,6 +215,69 @@ def project_context_constructor(column_name: str) -> Callable[[SnubaParams], Vir
 VIRTUAL_CONTEXTS = {
     "project": project_context_constructor("project"),
     "project.slug": project_context_constructor("project.slug"),
+}
+
+
+SPAN_FUNCTION_DEFINITIONS = {
+    "sum": FunctionDefinition(
+        internal_function=Function.FUNCTION_SUM,
+        search_type="duration",
+        arguments=[
+            ArgumentDefinition(
+                argument_type="duration",
+                default_arg="span.duration",
+            )
+        ],
+    ),
+    "avg": FunctionDefinition(
+        internal_function=Function.FUNCTION_AVERAGE,
+        search_type="duration",
+        arguments=[ArgumentDefinition(argument_type="duration", default_arg="span.duration")],
+    ),
+    "count": FunctionDefinition(
+        internal_function=Function.FUNCTION_COUNT,
+        search_type="number",
+        arguments=[ArgumentDefinition(ignored=True)],
+    ),
+    "p50": FunctionDefinition(
+        internal_function=Function.FUNCTION_P50,
+        search_type="duration",
+        arguments=[ArgumentDefinition(argument_type="duration", default_arg="span.duration")],
+    ),
+    "p90": FunctionDefinition(
+        internal_function=Function.FUNCTION_P90,
+        search_type="duration",
+        arguments=[ArgumentDefinition(argument_type="duration", default_arg="span.duration")],
+    ),
+    "p95": FunctionDefinition(
+        internal_function=Function.FUNCTION_P95,
+        search_type="duration",
+        arguments=[ArgumentDefinition(argument_type="duration", default_arg="span.duration")],
+    ),
+    "p99": FunctionDefinition(
+        internal_function=Function.FUNCTION_P99,
+        search_type="duration",
+        arguments=[ArgumentDefinition(argument_type="duration", default_arg="span.duration")],
+    ),
+    "max": FunctionDefinition(
+        internal_function=Function.FUNCTION_MAX,
+        search_type="duration",
+        arguments=[ArgumentDefinition(argument_type="duration", default_arg="span.duration")],
+    ),
+    "min": FunctionDefinition(
+        internal_function=Function.FUNCTION_MIN,
+        search_type="duration",
+        arguments=[ArgumentDefinition(argument_type="duration", default_arg="span.duration")],
+    ),
+    "count_unique": FunctionDefinition(
+        internal_function=Function.FUNCTION_UNIQ,
+        search_type="duration",
+        arguments=[
+            ArgumentDefinition(
+                argument_type="string",
+            )
+        ],
+    ),
 }
 
 
