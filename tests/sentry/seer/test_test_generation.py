@@ -13,7 +13,7 @@ from sentry.testutils.silo import control_silo_test
 @control_silo_test
 def test_start_unit_test_generation(posts_mock):
     response_object: requests.Response = requests.Response()
-    response_object.json = Mock(method="json", return_value={})
+    response_object.json = Mock(method="json", return_value={})  # type: ignore[method-assign]
     response_object.status_code = 200
     posts_mock.return_value = response_object
     response = test_generation_service.start_unit_test_generation(

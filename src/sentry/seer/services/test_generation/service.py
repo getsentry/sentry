@@ -4,7 +4,6 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 import abc
-from typing import cast
 
 from sentry.hybridcloud.rpc.resolvers import ByRegionName
 from sentry.hybridcloud.rpc.service import RpcService, regional_rpc_method
@@ -34,4 +33,4 @@ class TestGenerationService(RpcService):
         pass
 
 
-test_generation_service = cast(TestGenerationService, TestGenerationService.create_delegation())
+test_generation_service = TestGenerationService.create_delegation()
