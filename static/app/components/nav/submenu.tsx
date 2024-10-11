@@ -13,7 +13,6 @@ import {
   makeLinkPropsFromTo,
 } from 'sentry/components/nav/utils';
 import {space} from 'sentry/styles/space';
-import theme from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
 
 function Submenu() {
@@ -44,14 +43,14 @@ export default Submenu;
 
 const SubmenuWrapper = styled(motion.div)`
   position: relative;
-  border-right: 1px solid ${theme.translucentGray200};
-  background: ${theme.surface300};
+  border-right: 1px solid ${p => p.theme.translucentGray200};
+  background: ${p => p.theme.surface300};
   display: flex;
   align-items: stretch;
   justify-content: space-between;
   flex-direction: column;
   width: 150px;
-  z-index: ${theme.zIndex.sidebarPanel};
+  z-index: ${p => p.theme.zIndex.sidebarPanel};
 `;
 
 function SubmenuItem({item}: {item: NavSubmenuItem}) {
@@ -85,7 +84,7 @@ const SubmenuItemList = styled('ul')`
   display: flex;
   flex-direction: column;
   width: 100%;
-  color: ${theme.gray400};
+  color: ${p => p.theme.gray400};
 `;
 
 const SubmenuItemWrapper = styled('li')`
@@ -95,22 +94,22 @@ const SubmenuItemWrapper = styled('li')`
     height: 32px;
     align-items: center;
     color: inherit;
-    font-size: ${theme.fontSizeMedium};
-    font-weight: ${theme.fontWeightNormal};
+    font-size: ${p => p.theme.fontSizeMedium};
+    font-weight: ${p => p.theme.fontWeightNormal};
     line-height: 177.75%;
     margin-inline: ${space(1)};
     border: 1px solid transparent;
-    border-radius: ${theme.borderRadius};
+    border-radius: ${p => p.theme.borderRadius};
 
     &:hover {
-      color: ${theme.gray500};
+      color: ${p => p.theme.gray500};
       /* background: rgba(62, 52, 70, 0.09); */
     }
 
     &.active {
-      color: ${theme.gray500};
+      color: ${p => p.theme.gray500};
       background: rgba(62, 52, 70, 0.09);
-      border: 1px solid ${theme.translucentGray100};
+      border: 1px solid ${p => p.theme.translucentGray100};
     }
   }
 `;
@@ -123,14 +122,14 @@ const SubmenuIndicator = styled(motion.span)`
   pointer-events: none;
   margin-inline: ${space(1)};
   height: 32px;
-  background: rgba(62, 52, 70, 0.09);
-  border-radius: ${theme.borderRadius};
+  background: ${p => p.theme.translucentGray100};
+  border-radius: ${p => p.theme.borderRadius};
 `;
 
 const SubmenuFooterWrapper = styled('div')`
   position: relative;
-  border-top: 1px solid ${theme.translucentGray200};
-  background: ${theme.surface300};
+  border-top: 1px solid ${p => p.theme.translucentGray200};
+  background: ${p => p.theme.surface300};
   display: flex;
   flex-direction: row;
   align-items: stretch;
