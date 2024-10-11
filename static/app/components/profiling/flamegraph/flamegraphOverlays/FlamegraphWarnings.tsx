@@ -65,7 +65,7 @@ export function FlamegraphWarnings(props: FlamegraphWarningProps) {
     );
   }
 
-  if ('filter' in props && props.flamegraph.frames.length > 0) {
+  if ('filter' in props && !props.flamegraph.frames.length) {
     if (props.filter === 'all') {
       return (
         <Overlay data-test-id="flamegraph-warning-overlay">
