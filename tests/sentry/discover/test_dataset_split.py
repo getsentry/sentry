@@ -553,6 +553,30 @@ class DiscoverSavedQueryDatasetSplitTestCase(TestCase, SnubaTestCase):
         if not self.dry_run:
             assert errors_query.dataset_source == DatasetSourcesTypes.FORCED.value
 
+    def test_saved_query_org_with_no_projects(self):
+        # An org with no projects
+        self.organization = self.create_organization()
+
+        errors_query = DiscoverSavedQuery.objects.create(
+            organization_id=self.organization.id,
+            name="",
+            query={
+                "environment": [],
+                "query": "stack.filename:'../../sentry/scripts/views.js'",
+                "fields": ["title", "issue", "project", "release", "count()", "count_unique(user)"],
+                "range": "90d",
+                "orderby": "-count",
+            },
+            version=2,
+            dataset=0,
+            dataset_source=0,
+            is_homepage=True,
+        )
+
+        _get_and_save_split_decision_for_query(errors_query, self.dry_run)
+        saved_query = DiscoverSavedQuery.objects.get(id=errors_query.id)
+        assert saved_query.dataset == 0 if self.dry_run else saved_query.dataset == 1
+
 
 class DiscoverSavedQueryDatasetSplitDryRunTestCase(DiscoverSavedQueryDatasetSplitTestCase):
     def setUp(self):
