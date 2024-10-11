@@ -188,8 +188,8 @@ class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase, SearchIssueTest
                     self.url,
                     format="json",
                     data={
-                        "start": before_now(days=20),
-                        "end": before_now(days=15),
+                        "start": before_now(days=20).isoformat(),
+                        "end": before_now(days=15).isoformat(),
                     },
                 )
         assert response.status_code == 400
@@ -217,8 +217,8 @@ class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase, SearchIssueTest
                 self.url,
                 format="json",
                 data={
-                    "start": before_now(days=20),
-                    "end": before_now(days=15),
+                    "start": before_now(days=20).isoformat(),
+                    "end": before_now(days=15).isoformat(),
                     "query": "",
                     "field": ["id", "timestamp"],
                 },

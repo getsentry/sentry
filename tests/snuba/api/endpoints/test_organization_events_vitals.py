@@ -18,9 +18,9 @@ class OrganizationEventsVitalsEndpointTest(APITestCase, SnubaTestCase):
         self.end = self.start + timedelta(hours=6)
 
         self.transaction_data = load_data("transaction", timestamp=self.start)
-        self.query = {
-            "start": self.start,
-            "end": self.end,
+        self.query: dict[str, str | list[str]] = {
+            "start": self.start.isoformat(),
+            "end": self.end.isoformat(),
         }
         self.features = {}
 
@@ -308,9 +308,9 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         self.start = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
         self.end = self.start + timedelta(hours=6)
 
-        self.query = {
-            "start": self.start,
-            "end": self.end,
+        self.query: dict[str, str | list[str]] = {
+            "start": self.start.isoformat(),
+            "end": self.end.isoformat(),
         }
         self.features = {"organizations:performance-use-metrics": True}
 
