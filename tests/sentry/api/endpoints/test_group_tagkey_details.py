@@ -10,7 +10,7 @@ class GroupTagDetailsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
                 data={
                     "tags": {"foo": "bar"},
                     "fingerprint": ["group1"],
-                    "timestamp": before_now(seconds=1).timestamp(),
+                    "timestamp": before_now(seconds=1).isoformat(),
                 },
                 project_id=self.project.id,
             )

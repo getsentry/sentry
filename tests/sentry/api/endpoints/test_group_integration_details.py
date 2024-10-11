@@ -23,7 +23,7 @@ class GroupIntegrationDetailsTest(APITestCase):
         self.event = self.store_event(
             data={
                 "event_id": "a" * 32,
-                "timestamp": self.min_ago.timestamp(),
+                "timestamp": self.min_ago.isoformat(),
                 "message": "message",
             },
             project_id=self.project.id,
@@ -384,7 +384,7 @@ class GroupIntegrationDetailsTest(APITestCase):
         self.login_as(user=self.user)
         org = self.organization
         event = self.store_event(
-            data={"event_id": "b" * 32, "timestamp": self.min_ago.timestamp()},
+            data={"event_id": "b" * 32, "timestamp": self.min_ago.isoformat()},
             project_id=self.project.id,
         )
         assert event.group is not None
