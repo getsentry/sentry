@@ -48,12 +48,51 @@ class InvalidProvider(Exception):
     ...
 
 
+"""
+LaunchDarkly has a lot more flag actions than what's in our
+ACTION_MAP. The "updated" action is the catch-all for actions
+that don't fit in the other buckets.
+"""
+
+
+def handle_launchdarkly_actions(action: str) -> int:
+    if action == "createFlag":
+        return ACTION_MAP["created"]
+    if action == "deleteFlag":
+        return ACTION_MAP["deleted"]
+    if action == "cloneFlag":
+        return ACTION_MAP["cloned"]
+    else:
+        return ACTION_MAP["updated"]
+
+
+def handle_launchdarkly_event(request_data: dict[str, Any], organization_id: int) -> None:
+    write(
+        [
+            {
+                "action": handle_launchdarkly_actions(request_data["accesses"][0]["action"]),
+                "created_at": datetime.datetime.fromtimestamp(
+                    request_data["date"] / 1000.0, datetime.UTC
+                ).isoformat(),
+                "created_by": request_data["member"]["email"],
+                "created_by_type": CREATED_BY_TYPE_MAP["email"],
+                "flag": request_data["name"],
+                "organization_id": organization_id,
+                "tags": {},
+            }
+        ]
+    )
+
+
 def handle_provider_event(
     provider: str,
     request_data: dict[str, Any],
     organization_id: int,
-) -> list[FlagAuditLogRow]:
-    raise InvalidProvider(provider)
+) -> None:
+    if provider == "launchdarkly":
+        handle_launchdarkly_event(request_data, organization_id)
+    else:
+        raise InvalidProvider(provider)
 
 
 """Internal flag-pole provider.
