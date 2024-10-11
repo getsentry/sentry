@@ -8,7 +8,7 @@ from django.utils import timezone
 from rest_framework.exceptions import ParseError
 
 from sentry.testutils.cases import APITestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 
 
 class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
@@ -23,7 +23,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
             "sentry-api-0-organization-events-facets",
             kwargs={"organization_id_or_slug": self.project.organization.slug},
         )
-        self.min_ago_iso = iso_format(self.min_ago)
+        self.min_ago_iso = self.min_ago.isoformat()
         self.features = {"organizations:discover-basic": True, "organizations:global-views": True}
 
     def assert_facet(self, response, key, expected):
@@ -245,7 +245,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
         self.store_event(
             data={
                 "event_id": uuid4().hex,
-                "timestamp": iso_format(two_days_ago),
+                "timestamp": two_days_ago.isoformat(),
                 "tags": {"color": "red"},
             },
             project_id=self.project.id,
@@ -253,7 +253,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
         self.store_event(
             data={
                 "event_id": uuid4().hex,
-                "timestamp": iso_format(hour_ago),
+                "timestamp": hour_ago.isoformat(),
                 "tags": {"color": "red"},
             },
             project_id=self.project.id,
@@ -261,7 +261,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
         self.store_event(
             data={
                 "event_id": uuid4().hex,
-                "timestamp": iso_format(two_hours_ago),
+                "timestamp": two_hours_ago.isoformat(),
                 "tags": {"color": "red"},
             },
             project_id=self.project.id,
@@ -269,7 +269,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
         self.store_event(
             data={
                 "event_id": uuid4().hex,
-                "timestamp": iso_format(timezone.now()),
+                "timestamp": timezone.now().isoformat(),
                 "tags": {"color": "red"},
             },
             project_id=self.project2.id,
@@ -278,7 +278,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
         with self.feature(self.features):
             response = self.client.get(
                 self.url,
-                {"start": iso_format(self.day_ago), "end": iso_format(self.min_ago)},
+                {"start": self.day_ago.isoformat(), "end": self.min_ago.isoformat()},
                 format="json",
             )
 
@@ -292,7 +292,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
         self.store_event(
             data={
                 "event_id": uuid4().hex,
-                "timestamp": iso_format(self.day_ago),
+                "timestamp": self.day_ago.isoformat(),
                 "message": "very bad",
                 "tags": {"sentry:user": self.user.email},
             },
@@ -301,7 +301,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
         self.store_event(
             data={
                 "event_id": uuid4().hex,
-                "timestamp": iso_format(self.day_ago),
+                "timestamp": self.day_ago.isoformat(),
                 "message": "very bad",
                 "tags": {"sentry:user": self.user2.email},
             },
@@ -310,7 +310,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
         self.store_event(
             data={
                 "event_id": uuid4().hex,
-                "timestamp": iso_format(self.day_ago),
+                "timestamp": self.day_ago.isoformat(),
                 "message": "very bad",
                 "tags": {"sentry:user": self.user2.email},
             },
@@ -592,8 +592,8 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
                     self.url,
                     format="json",
                     data={
-                        "start": iso_format(before_now(days=20)),
-                        "end": iso_format(before_now(days=15)),
+                        "start": before_now(days=20).isoformat(),
+                        "end": before_now(days=15).isoformat(),
                     },
                 )
         assert response.status_code == 400
@@ -613,8 +613,8 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
                 self.url,
                 format="json",
                 data={
-                    "start": iso_format(before_now(days=20)),
-                    "end": iso_format(before_now(days=15)),
+                    "start": before_now(days=20).isoformat(),
+                    "end": before_now(days=15).isoformat(),
                     "query": "",
                     "field": ["id", "timestamp"],
                 },

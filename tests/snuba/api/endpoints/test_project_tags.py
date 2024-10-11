@@ -1,6 +1,6 @@
 from sentry.constants import DS_DENYLIST
 from sentry.testutils.cases import APITestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 
 
 class ProjectTagsTest(APITestCase, SnubaTestCase):
@@ -14,12 +14,12 @@ class ProjectTagsTest(APITestCase, SnubaTestCase):
         self.store_event(
             data={
                 "tags": {"foo": "oof", "bar": "rab"},
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": before_now(minutes=1).isoformat(),
             },
             project_id=self.project.id,
         )
         self.store_event(
-            data={"tags": {"bar": "rab2"}, "timestamp": iso_format(before_now(minutes=1))},
+            data={"tags": {"bar": "rab2"}, "timestamp": before_now(minutes=1).isoformat()},
             project_id=self.project.id,
         )
 
@@ -38,12 +38,12 @@ class ProjectTagsTest(APITestCase, SnubaTestCase):
             data={
                 # "browser" and "sentry:dist" are in denylist sentry.constants.DS_DENYLIST
                 "tags": {"browser": "chrome", "bar": "rab", "sentry:dist": "test_dist"},
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": before_now(minutes=1).isoformat(),
             },
             project_id=self.project.id,
         )
         self.store_event(
-            data={"tags": {"bar": "rab2"}, "timestamp": iso_format(before_now(minutes=1))},
+            data={"tags": {"bar": "rab2"}, "timestamp": before_now(minutes=1).isoformat()},
             project_id=self.project.id,
         )
 
@@ -61,7 +61,7 @@ class ProjectTagsTest(APITestCase, SnubaTestCase):
         self.store_event(
             data={
                 "tags": {deny_tag: "value_{deny_tag}" for deny_tag in DS_DENYLIST},
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": before_now(minutes=1).isoformat(),
             },
             project_id=self.project.id,
         )

@@ -1,7 +1,7 @@
 from django.urls import reverse
 
 from sentry.testutils.cases import APITestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 
 
 class ProjectEventsTest(APITestCase, SnubaTestCase):
@@ -10,10 +10,10 @@ class ProjectEventsTest(APITestCase, SnubaTestCase):
 
         project = self.create_project()
         event_1 = self.store_event(
-            data={"timestamp": iso_format(before_now(minutes=1))}, project_id=project.id
+            data={"timestamp": before_now(minutes=1).isoformat()}, project_id=project.id
         )
         event_2 = self.store_event(
-            data={"timestamp": iso_format(before_now(minutes=1))}, project_id=project.id
+            data={"timestamp": before_now(minutes=1).isoformat()}, project_id=project.id
         )
 
         url = reverse(
@@ -36,11 +36,11 @@ class ProjectEventsTest(APITestCase, SnubaTestCase):
 
         project = self.create_project()
         self.store_event(
-            data={"message": "how to make fast", "timestamp": iso_format(before_now(minutes=1))},
+            data={"message": "how to make fast", "timestamp": before_now(minutes=1).isoformat()},
             project_id=project.id,
         )
         event_2 = self.store_event(
-            data={"message": "Delet the Data", "timestamp": iso_format(before_now(minutes=1))},
+            data={"message": "Delet the Data", "timestamp": before_now(minutes=1).isoformat()},
             project_id=project.id,
         )
 
@@ -62,9 +62,9 @@ class ProjectEventsTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
 
         project = self.create_project()
-        self.store_event(data={"timestamp": iso_format(before_now(days=2))}, project_id=project.id)
+        self.store_event(data={"timestamp": before_now(days=2).isoformat()}, project_id=project.id)
         event_2 = self.store_event(
-            data={"timestamp": iso_format(before_now(minutes=1))}, project_id=project.id
+            data={"timestamp": before_now(minutes=1).isoformat()}, project_id=project.id
         )
 
         with self.options({"system.event-retention-days": 1}):
@@ -86,9 +86,9 @@ class ProjectEventsTest(APITestCase, SnubaTestCase):
 
         project = self.create_project()
         event = self.store_event(
-            data={"timestamp": iso_format(before_now(days=2))}, project_id=project.id
+            data={"timestamp": before_now(days=2).isoformat()}, project_id=project.id
         )
-        self.store_event(data={"timestamp": iso_format(before_now(days=8))}, project_id=project.id)
+        self.store_event(data={"timestamp": before_now(days=8).isoformat()}, project_id=project.id)
 
         url = reverse(
             "sentry-api-0-project-events",
@@ -109,10 +109,10 @@ class ProjectEventsTest(APITestCase, SnubaTestCase):
 
         project = self.create_project()
         event_1 = self.store_event(
-            data={"timestamp": iso_format(before_now(minutes=1))}, project_id=project.id
+            data={"timestamp": before_now(minutes=1).isoformat()}, project_id=project.id
         )
         event_2 = self.store_event(
-            data={"timestamp": iso_format(before_now(minutes=1))}, project_id=project.id
+            data={"timestamp": before_now(minutes=1).isoformat()}, project_id=project.id
         )
 
         url = reverse(
