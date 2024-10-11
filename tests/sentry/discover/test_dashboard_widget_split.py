@@ -452,7 +452,13 @@ class DashboardWidgetDatasetSplitTestCase(BaseMetricsLayerTestCase, TestCase, Sn
             assert error_widget.dataset_source == DashboardDatasetSourcesTypes.FORCED.value
 
     def test_dashboard_projects_empty(self):
-        self.dashboard.projects.clear()
+        # Dashboard belonging to an org with no projects
+        self.organization = self.create_organization()
+        self.dashboard = Dashboard.objects.create(
+            title="Dashboard With Split Widgets",
+            created_by_id=self.user.id,
+            organization=self.organization,
+        )
         error_widget = DashboardWidget.objects.create(
             dashboard=self.dashboard,
             order=0,

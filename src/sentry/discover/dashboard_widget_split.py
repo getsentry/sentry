@@ -80,13 +80,33 @@ def _get_and_save_split_decision_for_dashboard_widget(
     # We use all projects for the clickhouse query but don't do anything
     # with the data returned other than check if data exists. So this
     # all projects query should be a safe operation.
-    projects = (
-        dashboard.projects.all()
-        if dashboard.projects.exists()
-        else Project.objects.filter(
-            organization_id=dashboard.organization.id, status=ObjectStatus.ACTIVE
-        )
+    projects = dashboard.projects.all() or Project.objects.filter(
+        organization_id=dashboard.organization.id, status=ObjectStatus.ACTIVE
     )
+
+    # Handle cases where the organization has no projects at all.
+    # No projects means a downstream check will fail and we can default
+    # to the errors dataset.
+    if not projects.exists():
+        if not dry_run:
+            sentry_sdk.set_context(
+                "dashboard",
+                {
+                    "dashboard_id": dashboard.id,
+                    "widget_id": widget.id,
+                    "org_slug": dashboard.organization.slug,
+                },
+            )
+            sentry_sdk.capture_message(
+                "No projects found in organization for dashboard, defaulting to errors dataset"
+            )
+            _save_split_decision_for_widget(
+                widget,
+                DashboardWidgetTypes.ERROR_EVENTS,
+                DatasetSourcesTypes.FORCED,
+            )
+        return DashboardWidgetTypes.ERROR_EVENTS, False
+
     snuba_dataclass = _get_snuba_dataclass_for_dashboard_widget(widget, list(projects))
 
     selected_columns = _get_field_list(widget_query.fields or [])
