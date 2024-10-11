@@ -189,11 +189,11 @@ def _process_resource_change(
         # messages.
         node_id = Event.generate_node_id(project_id, str(instance_id))
         nodedata = nodestore.backend.get(node_id)
-        event = Event(
+        node_event = Event(
             project_id=project_id, group_id=group_id, event_id=str(instance_id), data=nodedata
         )
 
-        kwargs["instance"] = event
+        kwargs["instance"] = node_event
         name = sender.lower()
     else:
         # The Event model has different hooks for the different event types. The sender
