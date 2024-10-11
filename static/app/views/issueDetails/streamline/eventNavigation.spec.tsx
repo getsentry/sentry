@@ -27,10 +27,9 @@ describe('EventNavigation', () => {
     previousEventID: 'prev-event-id',
     nextEventID: 'next-event-id',
   });
-  const defaultProps = {
+  const defaultProps: React.ComponentProps<typeof EventNavigation> = {
     event: testEvent,
     group: GroupFixture({id: 'group-id'}),
-    onViewAllEvents: jest.fn(),
   };
 
   beforeEach(() => {
@@ -107,15 +106,6 @@ describe('EventNavigation', () => {
     });
   });
 
-  it('can runs callback on view all events click', async () => {
-    render(<EventNavigation {...defaultProps} />);
-    expect(defaultProps.onViewAllEvents).not.toHaveBeenCalled();
-    const viewAllButton = screen.getByRole('button', {name: 'View All Events'});
-    expect(viewAllButton).toBeInTheDocument();
-    await userEvent.click(viewAllButton);
-    expect(defaultProps.onViewAllEvents).toHaveBeenCalled();
-  });
-
   it('can navigate next/previous events', () => {
     render(<EventNavigation {...defaultProps} />);
 
@@ -152,7 +142,8 @@ describe('EventNavigation', () => {
   it('can copy event ID', async () => {
     render(<EventNavigation {...defaultProps} />);
 
-    await userEvent.click(screen.getByText(testEvent.id));
+    await userEvent.click(screen.getByRole('button', {name: 'Event actions'}));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Copy Event ID'}));
 
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith(testEvent.id);
   });

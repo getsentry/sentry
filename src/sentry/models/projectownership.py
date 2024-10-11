@@ -5,6 +5,7 @@ import logging
 from collections.abc import Mapping, Sequence
 from typing import TYPE_CHECKING, Any
 
+import sentry_sdk
 from django.db import models
 from django.db.models.signals import post_delete, post_save
 from django.utils import timezone
@@ -61,7 +62,7 @@ class ProjectOwnership(Model):
     __repr__ = sane_repr("project_id", "is_active")
 
     @classmethod
-    def get_cache_key(self, project_id):
+    def get_cache_key(self, project_id) -> str:
         return f"projectownership_project_id:1:{project_id}"
 
     @classmethod
@@ -134,17 +135,21 @@ class ProjectOwnership(Model):
 
         owners = {o for rule in rules for o in rule.owners}
         owners_to_actors = resolve_actors(owners, project_id)
-        ordered_actors = []
+        ordered_actors: list[Actor] = []
         for rule in rules:
             for o in rule.owners:
-                if o in owners and owners_to_actors.get(o) is not None:
-                    ordered_actors.append(owners_to_actors[o])
-                    owners.remove(o)
+                if o in owners:
+                    actor = owners_to_actors.get(o)
+                    if actor is not None:
+                        ordered_actors.append(actor)
+                        owners.remove(o)
 
         return ordered_actors, rules
 
     @classmethod
-    def _hydrate_rules(cls, project_id, rules, type: str = OwnerRuleType.OWNERSHIP_RULE.value):
+    def _hydrate_rules(
+        cls, project_id: int, rules: Sequence[Rule], type: str = OwnerRuleType.OWNERSHIP_RULE.value
+    ):
         """
         Get the last matching rule to take the most precedence.
         """
@@ -165,8 +170,10 @@ class ProjectOwnership(Model):
         return result
 
     @classmethod
+    @metrics.wraps("projectownership.get_issue_owners")
+    @sentry_sdk.trace
     def get_issue_owners(
-        cls, project_id, data, limit=2
+        cls, project_id: int, data: Mapping[str, Any], limit: int = 2
     ) -> Sequence[tuple[Rule, Sequence[Team | RpcUser], str]]:
         """
         Get the issue owners for a project if there are any.
@@ -177,41 +184,44 @@ class ProjectOwnership(Model):
         """
         from sentry.models.projectcodeowners import ProjectCodeOwners
 
-        with metrics.timer("projectownership.get_autoassign_owners"):
-            ownership = cls.get_ownership_cached(project_id)
-            codeowners = ProjectCodeOwners.get_codeowners_cached(project_id)
-            if not (ownership or codeowners):
-                return []
+        ownership = cls.get_ownership_cached(project_id)
+        codeowners = ProjectCodeOwners.get_codeowners_cached(project_id)
+        if not (ownership or codeowners):
+            return []
 
-            if not ownership:
-                ownership = cls(project_id=project_id)
+        if not ownership:
+            ownership = cls(project_id=project_id)
 
-            ownership_rules = cls._matching_ownership_rules(ownership, data)
-            codeowners_rules = cls._matching_ownership_rules(codeowners, data) if codeowners else []
+        # rules_with_owners is ordered by priority, descending, see also:
+        # https://docs.sentry.io/product/issues/ownership-rules/#evaluation-flow
+        rules_with_owners = []
 
-            if not (codeowners_rules or ownership_rules):
-                return []
-
+        with metrics.timer("projectownership.get_issue_owners_ownership_rules"):
+            ownership_rules = list(reversed(cls._matching_ownership_rules(ownership, data)))
             hydrated_ownership_rules = cls._hydrate_rules(
                 project_id, ownership_rules, OwnerRuleType.OWNERSHIP_RULE.value
             )
+            for item in hydrated_ownership_rules:
+                if item[1]:  # actors
+                    rules_with_owners.append(item)
+                    if len(rules_with_owners) == limit:
+                        return rules_with_owners
+
+        if not codeowners:
+            return rules_with_owners
+
+        with metrics.timer("projectownership.get_issue_owners_codeowners_rules"):
+            codeowners_rules = list(reversed(cls._matching_ownership_rules(codeowners, data)))
             hydrated_codeowners_rules = cls._hydrate_rules(
                 project_id, codeowners_rules, OwnerRuleType.CODEOWNERS.value
             )
+            for item in hydrated_codeowners_rules:
+                if item[1]:  # actors
+                    rules_with_owners.append(item)
+                    if len(rules_with_owners) == limit:
+                        return rules_with_owners
 
-            rules_in_evaluation_order = [
-                *hydrated_ownership_rules[::-1],
-                *hydrated_codeowners_rules[::-1],
-            ]
-
-            rules_with_owners = list(
-                filter(
-                    lambda item: len(item[1]) > 0,
-                    rules_in_evaluation_order,
-                )
-            )
-
-            return rules_with_owners[:limit]
+        return rules_with_owners
 
     @classmethod
     def _get_autoassignment_types(cls, ownership):
@@ -236,7 +246,7 @@ class ProjectOwnership(Model):
         organization_id: int | None = None,
         force_autoassign: bool = False,
         logging_extra: dict[str, str | bool | int] | None = None,
-    ):
+    ) -> None:
         """
         Get the auto-assign owner for a project if there are any.
         We combine the schemas from IssueOwners and CodeOwners.
@@ -358,12 +368,10 @@ class ProjectOwnership(Model):
         cls,
         ownership: ProjectOwnership | ProjectCodeOwners,
         data: Mapping[str, Any],
-    ) -> Sequence[Rule]:
+    ) -> list[Rule]:
         rules = []
         if ownership.schema is not None:
-            munged_data = None
-            if options.get("ownership.munge_data_for_performance"):
-                munged_data = Matcher.munge_if_needed(data)
+            munged_data = Matcher.munge_if_needed(data)
             for rule in load_schema(ownership.schema):
                 if rule.test(data, munged_data):
                     rules.append(rule)

@@ -11,10 +11,6 @@ import {space} from 'sentry/styles/space';
 import type {EventTransaction} from 'sentry/types/event';
 import type EventView from 'sentry/utils/discover/eventView';
 import {PERFORMANCE_URL_PARAM} from 'sentry/utils/performance/constants';
-import type {
-  TraceFullDetailed,
-  TraceSplitResults,
-} from 'sentry/utils/performance/quickTrace/types';
 import {
   cancelAnimationTimeout,
   requestAnimationTimeout,
@@ -24,36 +20,27 @@ import {useInfiniteApiQuery} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
-import {DrawerContainerRefContext} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/drawerContainerRefContext';
-import {TraceProfiles} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceProfiles';
-import {TraceVitals} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceVitals';
+import type {ReplayRecord} from 'sentry/views/replays/types';
+
+import {traceAnalytics} from '../traceAnalytics';
+import {getTraceQueryParams} from '../traceApi/useTrace';
+import type {TraceMetaQueryResults} from '../traceApi/useTraceMeta';
+import {DrawerContainerRefContext} from '../traceDrawer/details/drawerContainerRefContext';
+import {TraceProfiles} from '../traceDrawer/tabs/traceProfiles';
+import {TraceVitals} from '../traceDrawer/tabs/traceVitals';
 import {
   usePassiveResizableDrawer,
   type UsePassiveResizableDrawerOptions,
-} from 'sentry/views/performance/newTraceDetails/traceDrawer/usePassiveResizeableDrawer';
-import type {TraceScheduler} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceScheduler';
-import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
-import type {
-  TraceReducerAction,
-  TraceReducerState,
-} from 'sentry/views/performance/newTraceDetails/traceState';
-import {TRACE_DRAWER_DEFAULT_SIZES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
-import {
-  getTraceTabTitle,
-  type TraceTabsReducerState,
-} from 'sentry/views/performance/newTraceDetails/traceState/traceTabs';
-import type {ReplayRecord} from 'sentry/views/replays/types';
-
-import {getTraceQueryParams} from '../traceApi/useTrace';
-import type {TraceMetaQueryResults} from '../traceApi/useTraceMeta';
-import {
-  makeTraceNodeBarColor,
-  type TraceTree,
-  type TraceTreeNode,
-} from '../traceModels/traceTree';
+} from '../traceDrawer/usePassiveResizeableDrawer';
+import type {TraceShape, TraceTree} from '../traceModels/traceTree';
+import type {TraceTreeNode} from '../traceModels/traceTreeNode';
+import type {TraceScheduler} from '../traceRenderers/traceScheduler';
+import type {VirtualizedViewManager} from '../traceRenderers/virtualizedViewManager';
+import {makeTraceNodeBarColor} from '../traceRow/traceBar';
+import type {TraceReducerAction, TraceReducerState} from '../traceState';
+import {TRACE_DRAWER_DEFAULT_SIZES} from '../traceState/tracePreferences';
 import {useTraceState, useTraceStateDispatch} from '../traceState/traceStateProvider';
-import type {TraceType} from '../traceType';
+import {getTraceTabTitle, type TraceTabsReducerState} from '../traceState/traceTabs';
 
 import {TraceDetails} from './tabs/trace';
 import {TraceTreeNodeDetails} from './tabs/traceTreeNodeDetails';
@@ -69,8 +56,7 @@ type TraceDrawerProps = {
   trace: TraceTree;
   traceEventView: EventView;
   traceGridRef: HTMLElement | null;
-  traceType: TraceType;
-  traces: TraceSplitResults<TraceFullDetailed> | null;
+  traceType: TraceShape;
 };
 
 export function TraceDrawer(props: TraceDrawerProps) {
@@ -445,7 +431,6 @@ export function TraceDrawer(props: TraceDrawerProps) {
                     tree={props.trace}
                     node={props.trace.root.children[0]}
                     rootEventResults={props.rootEventResults}
-                    traces={props.traces}
                     tagsInfiniteQueryResults={tagsInfiniteQueryResults}
                     traceEventView={props.traceEventView}
                   />

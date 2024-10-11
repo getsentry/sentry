@@ -2,7 +2,7 @@ import {useState} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button, LinkButton} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {
   GridBodyCell,
@@ -24,15 +24,15 @@ import {useRoutes} from 'sentry/utils/useRoutes';
 import {useEventColumns} from 'sentry/views/issueDetails/allEventsTable';
 import {ALL_EVENTS_EXCLUDED_TAGS} from 'sentry/views/issueDetails/groupEvents';
 import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/useIssueDetailsDiscoverQuery';
+import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 import EventsTable from 'sentry/views/performance/transactionSummary/transactionEvents/eventsTable';
 
 interface EventListProps {
   group: Group;
   project: Project;
-  onClose?: (e: React.MouseEvent) => void;
 }
 
-export function EventList({group, onClose}: EventListProps) {
+export function EventList({group}: EventListProps) {
   const referrer = 'issue_details.streamline_list';
   const theme = useTheme();
   const location = useLocation();
@@ -41,6 +41,7 @@ export function EventList({group, onClose}: EventListProps) {
   const [_error, setError] = useState('');
   const {fields, columnTitles} = useEventColumns(group, organization);
   const eventView = useIssueDetailsEventView({group, queryProps: {fields}});
+  const {baseUrl} = useGroupDetailsRoute();
 
   const grayText = css`
     color: ${theme.subText};
@@ -87,9 +88,9 @@ export function EventList({group, onClose}: EventListProps) {
                 {isPending
                   ? null
                   : tct('Showing [start]-[end] of [count]', {
-                      start: start,
-                      end: start + pageEventsCount,
-                      count: totalEventsCount,
+                      start: start.toLocaleString(),
+                      end: (start + pageEventsCount).toLocaleString(),
+                      count: (totalEventsCount ?? 0).toLocaleString(),
                     })}
               </EventListHeaderItem>
               <EventListHeaderItem>
@@ -126,13 +127,20 @@ export function EventList({group, onClose}: EventListProps) {
                   />
                 </ButtonBar>
               </EventListHeaderItem>
-              {onClose && (
-                <EventListHeaderItem>
-                  <Button borderless size="xs" css={grayText} onClick={onClose}>
-                    {t('Close')}
-                  </Button>
-                </EventListHeaderItem>
-              )}
+
+              <EventListHeaderItem>
+                <LinkButton
+                  borderless
+                  size="xs"
+                  css={grayText}
+                  to={{
+                    pathname: baseUrl,
+                    query: location.query,
+                  }}
+                >
+                  {t('Close')}
+                </LinkButton>
+              </EventListHeaderItem>
             </EventListHeader>
           );
         }}
@@ -146,7 +154,7 @@ const EventListHeader = styled('div')`
   grid-template-columns: 1fr auto auto auto;
   gap: ${space(1.5)};
   align-items: center;
-  padding: ${space(0.75)} ${space(2)};
+  padding: ${space(1)} ${space(2)};
   background: ${p => p.theme.background};
   border-bottom: 1px solid ${p => p.theme.translucentBorder};
   position: sticky;
@@ -158,7 +166,7 @@ const EventListHeader = styled('div')`
 const EventListTitle = styled('div')`
   color: ${p => p.theme.textColor};
   font-weight: ${p => p.theme.fontWeightBold};
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSizeMedium};
 `;
 
 const EventListHeaderItem = styled('div')`
@@ -185,7 +193,7 @@ const StreamlineEventsTable = styled('div')`
     padding: 0 ${space(1.5)};
     white-space: nowrap;
     text-overflow: ellipsis;
-    text-transform: capitalize;
+    text-transform: none;
     border-width: 0 1px 0 0;
     border-style: solid;
     border-image: linear-gradient(

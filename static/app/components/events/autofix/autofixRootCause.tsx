@@ -60,6 +60,7 @@ export function useSelectCause({groupId, runId}: {groupId: string; runId: string
       params:
         | {
             causeId: string;
+            instruction?: string;
           }
         | {
             customRootCause: string;
@@ -81,6 +82,7 @@ export function useSelectCause({groupId, runId}: {groupId: string; runId: string
                 payload: {
                   type: 'select_root_cause',
                   cause_id: params.causeId,
+                  instruction: params.instruction,
                 },
               },
       });
@@ -513,7 +515,7 @@ const CausesContainer = styled('div')`
   border: 1px solid ${p => p.theme.innerBorder};
   border-radius: ${p => p.theme.borderRadius};
   overflow: hidden;
-  box-shadow: ${p => p.theme.dropShadowHeavy};
+  box-shadow: ${p => p.theme.dropShadowMedium};
 `;
 
 const PotentialCausesContainer = styled(CausesContainer)`

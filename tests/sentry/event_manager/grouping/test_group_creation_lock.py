@@ -5,7 +5,7 @@ from unittest.mock import patch
 
 import pytest
 
-from sentry.event_manager import GroupInfo, _save_aggregate_new
+from sentry.event_manager import GroupInfo, assign_event_to_group
 from sentry.eventstore.models import Event
 from sentry.testutils.pytest.fixtures import django_db_all
 
@@ -26,7 +26,7 @@ def save_event(project_id: int, return_values: list[GroupInfo]) -> None:
         data={"timestamp": time.time()},
     )
 
-    group_info = _save_aggregate_new(
+    group_info = assign_event_to_group(
         event=event,
         job={"event_metadata": {}, "release": "dogpark", "event": event, "data": {}},
         metric_tags={},
@@ -67,7 +67,7 @@ def test_group_creation_race(monkeypatch, default_project, lock_disabled):
     with (
         patch(
             "sentry.grouping.ingest.hashing._calculate_event_grouping",
-            return_value=["pound sign", "octothorpe"],
+            return_value=(["pound sign", "octothorpe"], {}),
         ),
         patch(
             "sentry.event_manager._get_group_processing_kwargs",

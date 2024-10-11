@@ -410,7 +410,7 @@ class OrganizationSpansAggregationEndpoint(OrganizationEventsEndpointBase):
                 )
 
             with sentry_sdk.start_span(
-                op="span.aggregation", description="AggregateIndexedSpans.build_aggregate_span_tree"
+                op="span.aggregation", name="AggregateIndexedSpans.build_aggregate_span_tree"
             ):
                 aggregated_tree = AggregateIndexedSpans().build_aggregate_span_tree(results)
 
@@ -442,7 +442,7 @@ class OrganizationSpansAggregationEndpoint(OrganizationEventsEndpointBase):
         )
 
         with sentry_sdk.start_span(
-            op="span.aggregation", description="AggregateNodestoreSpans.build_aggregate_span_tree"
+            op="span.aggregation", name="AggregateNodestoreSpans.build_aggregate_span_tree"
         ):
             aggregated_tree = AggregateNodestoreSpans().build_aggregate_span_tree(events)
 

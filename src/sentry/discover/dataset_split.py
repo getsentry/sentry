@@ -19,7 +19,7 @@ from snuba_sdk.query_visitors import InvalidQueryError
 
 from sentry.api.utils import get_date_range_from_stats_period
 from sentry.constants import ObjectStatus
-from sentry.discover.arithmetic import is_equation, strip_equation
+from sentry.discover.arithmetic import ArithmeticParseError, is_equation, strip_equation
 from sentry.discover.models import DatasetSourcesTypes, DiscoverSavedQuery, DiscoverSavedQueryTypes
 from sentry.exceptions import InvalidParams, InvalidSearchQuery
 from sentry.models.environment import Environment
@@ -391,6 +391,29 @@ def _get_and_save_split_decision_for_query(
     projects = saved_query.projects.all() or Project.objects.filter(
         organization_id=saved_query.organization.id, status=ObjectStatus.ACTIVE
     )
+
+    # Handle cases where the organization has no projects at all.
+    # No projects means a downstream check will fail and we can default
+    # to the errors dataset.
+    if not projects.exists():
+        if not dry_run:
+            sentry_sdk.set_context(
+                "query",
+                {
+                    "saved_query_id": saved_query.id,
+                    "org_slug": saved_query.organization.slug,
+                },
+            )
+            sentry_sdk.capture_message(
+                "No projects found in organization for saved query, defaulting to errors dataset"
+            )
+            _save_split_decision_for_query(
+                saved_query,
+                DiscoverSavedQueryTypes.ERROR_EVENTS,
+                DatasetSourcesTypes.FORCED,
+            )
+        return DiscoverSavedQueryTypes.ERROR_EVENTS, False
+
     snuba_dataclass = _get_snuba_dataclass_for_saved_query(saved_query, list(projects))
     selected_columns = _get_field_list(saved_query.query.get("fields", []))
     equations = _get_equation_list(saved_query.query.get("fields", []))
@@ -458,7 +481,14 @@ def _get_and_save_split_decision_for_query(
             )
         )
         has_errors = len(error_results["data"]) > 0
-    except (snuba.QueryIllegalTypeOfArgument, snuba.UnqualifiedQueryError, InvalidQueryError):
+    except (
+        snuba.QueryIllegalTypeOfArgument,
+        snuba.UnqualifiedQueryError,
+        InvalidQueryError,
+        snuba.QueryExecutionError,
+        snuba.SnubaError,
+        ArithmeticParseError,
+    ):
         pass
 
     if has_errors:
@@ -484,7 +514,14 @@ def _get_and_save_split_decision_for_query(
             )
         )
         has_transactions = len(transaction_results["data"]) > 0
-    except (snuba.QueryIllegalTypeOfArgument, snuba.UnqualifiedQueryError, InvalidQueryError):
+    except (
+        snuba.QueryIllegalTypeOfArgument,
+        snuba.UnqualifiedQueryError,
+        InvalidQueryError,
+        snuba.QueryExecutionError,
+        snuba.SnubaError,
+        ArithmeticParseError,
+    ):
         pass
 
     if has_transactions:

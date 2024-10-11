@@ -1,9 +1,10 @@
 import {EventFixture} from 'sentry-fixture/event';
 import {EventsStatsFixture} from 'sentry-fixture/events';
 import {GroupFixture} from 'sentry-fixture/group';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
-import {RepositoryFixture} from 'sentry-fixture/repository';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {TagsFixture} from 'sentry-fixture/tags';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -34,21 +35,9 @@ describe('EventDetails', function () {
   const project = ProjectFixture();
   const group = GroupFixture();
   const event = EventFixture({id: 'event-id'});
-  const committer = {
-    author: {name: 'Butter the Dog', id: '2021'},
-    commits: [
-      {
-        message: 'fix(training): Adjust noise level for meeting other dogs (#2024)',
-        id: 'ab2709293d0c9000829084ac7b1c9221fb18437c',
-        dateCreated: '2024-09-09T04:15:12',
-        repository: RepositoryFixture(),
-      },
-    ],
-  };
   const defaultProps = {project, group, event};
 
   let mockActionableItems: jest.Mock;
-  let mockCommitters: jest.Mock;
   let mockTags: jest.Mock;
   let mockStats: jest.Mock;
   let mockList: jest.Mock;
@@ -69,11 +58,6 @@ describe('EventDetails', function () {
     mockActionableItems = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/actionable-items/`,
       body: {errors: []},
-      method: 'GET',
-    });
-    mockCommitters = MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/committers/`,
-      body: {committers: [committer]},
       method: 'GET',
     });
     mockTags = MockApiClient.addMockResponse({
@@ -127,10 +111,6 @@ describe('EventDetails', function () {
     render(<EventDetails {...defaultProps} />, {organization});
     await screen.findByText(event.id);
 
-    // Suspect Commits
-    expect(mockCommitters).toHaveBeenCalled();
-    expect(screen.getByText('Suspect Commit')).toBeInTheDocument();
-    expect(screen.getByText(committer.author.name)).toBeInTheDocument();
     // Filtering
     expect(mockTags).toHaveBeenCalled();
     expect(screen.getByTestId('page-filter-environment-selector')).toBeInTheDocument();
@@ -151,22 +131,20 @@ describe('EventDetails', function () {
     expect(mockListMeta).not.toHaveBeenCalled();
   });
 
-  it('allows toggling between event and list views', async function () {
-    render(<EventDetails {...defaultProps} />, {organization});
-    await screen.findByText(event.id);
+  it('should display the events list', async function () {
+    const router = RouterFixture({
+      location: LocationFixture({
+        pathname: `/organizations/${organization.slug}/issues/${group.id}/events/`,
+      }),
+      routes: [{name: '', path: 'events/'}],
+    });
+    render(<EventDetails {...defaultProps} />, {organization, router});
 
-    const listButton = screen.getByRole('button', {name: 'View All Events'});
-    await userEvent.click(listButton);
-
-    expect(listButton).not.toBeInTheDocument();
+    expect(await screen.findByRole('button', {name: 'Close'})).toBeInTheDocument();
     expect(screen.getByText('All Events')).toBeInTheDocument();
+
     expect(mockList).toHaveBeenCalled();
     expect(mockListMeta).toHaveBeenCalled();
-    const closeButton = screen.getByRole('button', {name: 'Close'});
-    await userEvent.click(closeButton);
-
-    expect(closeButton).not.toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'View All Events'})).toBeInTheDocument();
   });
 
   it('displays error messages from bad queries', async function () {

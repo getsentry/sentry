@@ -23,7 +23,6 @@ import getDynamicText from 'sentry/utils/getDynamicText';
 import type {SpanSlug} from 'sentry/utils/performance/suspectSpans/types';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
-import useRouter from 'sentry/utils/useRouter';
 
 import {getExclusiveTimeDisplayedValue} from '../utils';
 
@@ -36,7 +35,6 @@ type Props = {
 
 export default function ExclusiveTimeTimeSeries(props: Props) {
   const location = useLocation();
-  const router = useRouter();
   const {organization, eventView, spanSlug, withoutZerofill} = props;
 
   const api = useApi();
@@ -86,13 +84,7 @@ export default function ExclusiveTimeTimeSeries(props: Props) {
           )}
         />
       </HeaderTitleLegend>
-      <ChartZoom
-        router={router}
-        period={period}
-        start={start}
-        end={end}
-        utc={utc === 'true'}
-      >
+      <ChartZoom period={period} start={start} end={end} utc={utc === 'true'}>
         {zoomRenderProps => (
           <EventsRequest
             api={api}

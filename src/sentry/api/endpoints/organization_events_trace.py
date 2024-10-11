@@ -38,7 +38,7 @@ from sentry.utils.iterators import chunked
 from sentry.utils.numbers import base32_encode, format_grouped_length
 from sentry.utils.sdk import set_measurement
 from sentry.utils.snuba import bulk_snuba_queries
-from sentry.utils.validators import INVALID_ID_DETAILS, is_event_id
+from sentry.utils.validators import INVALID_ID_DETAILS, is_event_id, is_span_id
 
 logger: logging.Logger = logging.getLogger(__name__)
 MAX_TRACE_SIZE: int = 100
@@ -218,7 +218,7 @@ class TraceEvent:
     @property
     def nodestore_event(self) -> Event | GroupEvent | None:
         if self._nodestore_event is None and not self.fetched_nodestore:
-            with sentry_sdk.start_span(op="nodestore", description="get_event_by_id"):
+            with sentry_sdk.start_span(op="nodestore", name="get_event_by_id"):
                 self.fetched_nodestore = True
                 self._nodestore_event = eventstore.backend.get_event_by_id(
                     self.event["project.id"], self.event["id"]
@@ -618,7 +618,11 @@ def query_trace_data(
     # id is just for consistent results
     transaction_orderby = ["-root", "timestamp", "id"]
     if event_id is not None:
-        transaction_columns.append(f'to_other(id, "{event_id}", 0, 1) AS target')
+        # Already validated to be one of the two
+        if is_event_id(event_id):
+            transaction_columns.append(f'to_other(id, "{event_id}", 0, 1) AS target')
+        else:
+            transaction_columns.append(f'to_other(trace.span, "{event_id}", 0, 1) AS target')
         # Target is the event_id the frontend plans to render, we try to sort it to the top so it loads even if its not
         # within the query limit, needs to be the first orderby cause it takes precedence over finding the root
         transaction_orderby.insert(0, "-target")
@@ -790,7 +794,7 @@ def augment_transactions_with_spans(
     query_source: QuerySource | None = QuerySource.SENTRY_BACKEND,
 ) -> Sequence[SnubaTransaction]:
     """Augment the list of transactions with parent, error and problem data"""
-    with sentry_sdk.start_span(op="augment.transactions", description="setup"):
+    with sentry_sdk.start_span(op="augment.transactions", name="setup"):
         trace_parent_spans = set()  # parent span ids of segment spans
         transaction_problem_map: dict[str, SnubaTransaction] = {}
         problem_project_map: dict[int, list[str]] = {}
@@ -819,7 +823,7 @@ def augment_transactions_with_spans(
         else:
             sentry_sdk.set_tag("trace_view.missing_timestamp_constraints", True)
 
-    with sentry_sdk.start_span(op="augment.transactions", description="get transaction span ids"):
+    with sentry_sdk.start_span(op="augment.transactions", name="get transaction span ids"):
         for index, transaction in enumerate(transactions):
             transaction["occurrence_spans"] = []
             transaction["issue_occurrences"] = []
@@ -839,7 +843,7 @@ def augment_transactions_with_spans(
             # parent span ids of the segment spans
             trace_parent_spans.add(transaction["trace.parent_span"])
 
-    with sentry_sdk.start_span(op="augment.transactions", description="get perf issue span ids"):
+    with sentry_sdk.start_span(op="augment.transactions", name="get perf issue span ids"):
         for problem_project, occurrences in problem_project_map.items():
             if occurrences:
                 issue_occurrences.extend(
@@ -855,7 +859,7 @@ def augment_transactions_with_spans(
                 set(problem.evidence_data["offender_span_ids"])
             )
 
-    with sentry_sdk.start_span(op="augment.transactions", description="create query params"):
+    with sentry_sdk.start_span(op="augment.transactions", name="create query params"):
         query_spans = {*trace_parent_spans, *error_spans, *occurrence_spans}
         if "" in query_spans:
             query_spans.remove("")
@@ -920,7 +924,7 @@ def augment_transactions_with_spans(
             parent["span_id"] = pad_span_id(parent["span_id"])
             parent_map[parent["span_id"]] = parent
 
-    with sentry_sdk.start_span(op="augment.transactions", description="linking transactions"):
+    with sentry_sdk.start_span(op="augment.transactions", name="linking transactions"):
         for transaction in transactions:
             # For a given transaction, if parent span id exists in the tranaction (so this is
             # not a root span), see if the indexed spans data can tell us what the parent
@@ -929,7 +933,7 @@ def augment_transactions_with_spans(
                 parent = parent_map.get(transaction["trace.parent_span"])
                 if parent is not None:
                     transaction["trace.parent_transaction"] = parent["transaction.id"]
-    with sentry_sdk.start_span(op="augment.transactions", description="linking perf issues"):
+    with sentry_sdk.start_span(op="augment.transactions", name="linking perf issues"):
         for problem in issue_occurrences:
             for span_id in problem.evidence_data["offender_span_ids"]:
                 parent = parent_map.get(span_id)
@@ -938,7 +942,7 @@ def augment_transactions_with_spans(
                     occurrence = parent.copy()
                     occurrence["problem"] = problem
                     transaction_problem["occurrence_spans"].append(occurrence)
-    with sentry_sdk.start_span(op="augment.transactions", description="linking errors"):
+    with sentry_sdk.start_span(op="augment.transactions", name="linking errors"):
         for error in errors:
             parent = parent_map.get(error["trace.span"])
             error["trace.transaction"] = parent["transaction.id"] if parent is not None else None
@@ -1062,10 +1066,12 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
         if detailed and use_spans:
             raise ParseError("Cannot return a detailed response while using spans")
         limit = min(int(request.GET.get("limit", MAX_TRACE_SIZE)), 10_000)
-        event_id = request.GET.get("event_id") or request.GET.get("eventId")
+        event_id = (
+            request.GET.get("targetId") or request.GET.get("event_id") or request.GET.get("eventId")
+        )
 
         # Only need to validate event_id as trace_id is validated in the URL
-        if event_id and not is_event_id(event_id):
+        if event_id and not (is_event_id(event_id) or is_span_id(event_id)):
             return Response({"detail": INVALID_ID_DETAILS.format("Event ID")}, status=400)
 
         query_source = self.get_request_source(request)
@@ -1233,7 +1239,7 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
         current_generation: int | None = None
         root_id: str | None = None
 
-        with sentry_sdk.start_span(op="building.trace", description="light trace"):
+        with sentry_sdk.start_span(op="building.trace", name="light trace"):
             # Check if the event is an orphan_error
             if not snuba_event or not nodestore_event:
                 orphan_error = find_event(
@@ -1438,7 +1444,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
             to_check.append(root)
 
         iteration = 0
-        with sentry_sdk.start_span(op="building.trace", description="full trace"):
+        with sentry_sdk.start_span(op="building.trace", name="full trace"):
             has_orphans = False
 
             while parent_map or to_check:
@@ -1613,7 +1619,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
         if detailed:
             raise ParseError("Cannot return a detailed response using Spans")
 
-        with sentry_sdk.start_span(op="serialize", description="create parent map"):
+        with sentry_sdk.start_span(op="serialize", name="create parent map"):
             parent_to_children_event_map = defaultdict(list)
             serialized_transactions: list[TraceEvent] = []
             for transaction in transactions:
@@ -1642,7 +1648,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
             else:
                 orphan_errors.append(error)
 
-        with sentry_sdk.start_span(op="serialize", description="associate children"):
+        with sentry_sdk.start_span(op="serialize", name="associate children"):
             for trace_event in serialized_transactions:
                 event_id = trace_event.event["id"]
                 if event_id in parent_to_children_event_map:
@@ -1653,7 +1659,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
                         parent_error_map.pop(event_id), key=lambda k: k["timestamp"]
                     )
 
-        with sentry_sdk.start_span(op="serialize", description="more orphans"):
+        with sentry_sdk.start_span(op="serialize", name="more orphans"):
             visited_transactions_ids: set[str] = {
                 root_trace.event["id"] for root_trace in root_traces
             }
@@ -1666,7 +1672,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
                     for child in serialized_transaction.children:
                         visited_transactions_ids.add(child.event["id"])
 
-        with sentry_sdk.start_span(op="serialize", description="sort"):
+        with sentry_sdk.start_span(op="serialize", name="sort"):
             # Sort the results so they're consistent
             orphan_errors.sort(key=lambda k: k["timestamp"])
             root_traces.sort(key=child_sort_key)
@@ -1688,7 +1694,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
             if serialized_orphan is not None:
                 result_transactions.append(serialized_orphan)
 
-        with sentry_sdk.start_span(op="serialize", description="to dict"):
+        with sentry_sdk.start_span(op="serialize", name="to dict"):
             return {
                 "transactions": result_transactions,
                 "orphan_errors": [self.serialize_error(error) for error in orphan_errors],

@@ -4,9 +4,7 @@ import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
 import Alert from 'sentry/components/alert';
-import {CommitRow} from 'sentry/components/commitRow';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import {SuspectCommits} from 'sentry/components/events/suspectCommits';
 import {GroupSummary} from 'sentry/components/group/groupSummary';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
@@ -38,11 +36,8 @@ import {
   useIssueDetailsDiscoverQuery,
   useIssueDetailsEventView,
 } from 'sentry/views/issueDetails/streamline/useIssueDetailsDiscoverQuery';
-
-const enum EventPageContent {
-  EVENT = 'event',
-  LIST = 'list',
-}
+import {Tab} from 'sentry/views/issueDetails/types';
+import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
 export function EventDetails({
   group,
@@ -61,10 +56,7 @@ export function EventDetails({
 
   const searchQuery = useEventQuery({group});
   const eventView = useIssueDetailsEventView({group});
-
-  const [pageContent, setPageContent] = useState<EventPageContent>(
-    EventPageContent.EVENT
-  );
+  const {currentTab} = useGroupDetailsRoute();
 
   const {
     data: groupStats,
@@ -92,17 +84,6 @@ export function EventDetails({
       <Feature features={['organizations:ai-summary']}>
         <GroupSummary groupId={group.id} groupCategory={group.issueCategory} />
       </Feature>
-      <PageErrorBoundary
-        mini
-        message={t('There was an error loading the suspect commits')}
-      >
-        <SuspectCommits
-          project={project}
-          eventId={event.id}
-          group={group}
-          commitRow={CommitRow}
-        />
-      </PageErrorBoundary>
       <PageErrorBoundary mini message={t('There was an error loading the event filter')}>
         <FilterContainer>
           <EnvironmentPageFilter />
@@ -139,18 +120,15 @@ export function EventDetails({
           )}
         </PageErrorBoundary>
       )}
-      {pageContent === EventPageContent.LIST && (
+      {/* TODO(issues): We should use the router for this */}
+      {currentTab === Tab.EVENTS && (
         <PageErrorBoundary mini message={t('There was an error loading the event list')}>
           <GroupContent>
-            <EventList
-              group={group}
-              project={project}
-              onClose={() => setPageContent(EventPageContent.EVENT)}
-            />
+            <EventList group={group} project={project} />
           </GroupContent>
         </PageErrorBoundary>
       )}
-      {pageContent === EventPageContent.EVENT && (
+      {currentTab !== Tab.EVENTS && (
         <PageErrorBoundary
           mini
           message={t('There was an error loading the event content')}
@@ -161,7 +139,6 @@ export function EventDetails({
               group={group}
               ref={setNav}
               query={searchQuery}
-              onViewAllEvents={() => setPageContent(EventPageContent.LIST)}
               data-stuck={isStuck}
             />
             <ContentPadding>

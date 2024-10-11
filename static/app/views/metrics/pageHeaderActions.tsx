@@ -19,7 +19,7 @@ import {
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isCustomMeasurement} from 'sentry/utils/metrics';
-import {hasMetricsNewInputs} from 'sentry/utils/metrics/features';
+import {hasCustomMetrics, hasMetricsNewInputs} from 'sentry/utils/metrics/features';
 import {formatMRI} from 'sentry/utils/metrics/mri';
 import {MetricExpressionType, type MetricsQueryWidget} from 'sentry/utils/metrics/types';
 import {middleEllipsis} from 'sentry/utils/string/middleEllipsis';
@@ -65,44 +65,47 @@ export function PageHeaderActions({showAddMetricButton, addCustomMetric}: Props)
     }
   }, [isDefaultQuery, organization, router.location.query, setDefaultQuery]);
 
-  const items = useMemo(
-    () => [
-      {
-        leadingItems: [<IconDashboard key="icon" />],
-        key: 'add-dashboard',
-        label: (
-          <Feature
-            organization={organization}
-            hookName="feature-disabled:dashboards-edit"
-            features="dashboards-edit"
-          >
-            {({hasFeature}) => (
-              <AddToDashboardItem disabled={!hasFeature}>
-                {t('Add to Dashboard')}
-              </AddToDashboardItem>
-            )}
-          </Feature>
-        ),
-        onAction: () => {
-          if (!organization.features.includes('dashboards-edit')) {
-            return;
-          }
-          trackAnalytics('ddm.add-to-dashboard', {
-            organization,
-            source: 'global',
-          });
-          createDashboard();
-        },
+  const items = useMemo(() => {
+    const createDashboardItem = {
+      leadingItems: [<IconDashboard key="icon" />],
+      key: 'add-dashboard',
+      label: (
+        <Feature
+          organization={organization}
+          hookName="feature-disabled:dashboards-edit"
+          features="dashboards-edit"
+        >
+          {({hasFeature}) => (
+            <AddToDashboardItem disabled={!hasFeature}>
+              {t('Add to Dashboard')}
+            </AddToDashboardItem>
+          )}
+        </Feature>
+      ),
+      onAction: () => {
+        if (!organization.features.includes('dashboards-edit')) {
+          return;
+        }
+        trackAnalytics('ddm.add-to-dashboard', {
+          organization,
+          source: 'global',
+        });
+        createDashboard();
       },
-      {
-        leadingItems: [<IconSettings key="icon" />],
-        key: 'Metrics Settings',
-        label: t('Metrics Settings'),
-        onAction: () => navigateTo(`/settings/projects/:projectId/metrics/`, router),
-      },
-    ],
-    [createDashboard, organization, router]
-  );
+    };
+
+    const settingsItem = {
+      leadingItems: [<IconSettings key="icon" />],
+      key: 'Metrics Settings',
+      label: t('Metrics Settings'),
+      onAction: () => navigateTo(`/settings/projects/:projectId/metrics/`, router),
+    };
+
+    if (hasCustomMetrics(organization)) {
+      return [createDashboardItem, settingsItem];
+    }
+    return [settingsItem];
+  }, [createDashboard, organization, router]);
 
   const alertItems = useMemo(
     () =>
@@ -139,7 +142,7 @@ export function PageHeaderActions({showAddMetricButton, addCustomMetric}: Props)
 
   return (
     <ButtonBar gap={1}>
-      {showAddMetricButton && (
+      {showAddMetricButton && hasCustomMetrics(organization) && (
         <Button priority="primary" onClick={() => addCustomMetric()} size="sm">
           {t('Add Custom Metrics')}
         </Button>
@@ -151,32 +154,34 @@ export function PageHeaderActions({showAddMetricButton, addCustomMetric}: Props)
       >
         {isDefaultQuery ? t('Remove Default') : t('Save as default')}
       </Button>
-      <CreateMetricAlertFeature>
-        {({hasFeature}) =>
-          alertItems.length === 1 ? (
-            <Button
-              size="sm"
-              icon={<IconSiren />}
-              disabled={!alertItems[0].onAction || !hasFeature}
-              onClick={alertItems[0].onAction}
-            >
-              {t('Create Alert')}
-            </Button>
-          ) : (
-            <DropdownMenu
-              items={alertItems}
-              triggerLabel={t('Create Alert')}
-              isDisabled={!hasFeature}
-              triggerProps={{
-                size: 'sm',
-                showChevron: false,
-                icon: <IconSiren direction="down" size="sm" />,
-              }}
-              position="bottom-end"
-            />
-          )
-        }
-      </CreateMetricAlertFeature>
+      {hasCustomMetrics(organization) && (
+        <CreateMetricAlertFeature>
+          {({hasFeature}) =>
+            alertItems.length === 1 ? (
+              <Button
+                size="sm"
+                icon={<IconSiren />}
+                disabled={!alertItems[0].onAction || !hasFeature}
+                onClick={alertItems[0].onAction}
+              >
+                {t('Create Alert')}
+              </Button>
+            ) : (
+              <DropdownMenu
+                items={alertItems}
+                triggerLabel={t('Create Alert')}
+                isDisabled={!hasFeature}
+                triggerProps={{
+                  size: 'sm',
+                  showChevron: false,
+                  icon: <IconSiren direction="down" size="sm" />,
+                }}
+                position="bottom-end"
+              />
+            )
+          }
+        </CreateMetricAlertFeature>
+      )}
       <DropdownMenu
         items={items}
         triggerProps={{

@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from rest_framework.response import Response
 
 from sentry.integrations.discord.requests.base import DiscordRequest
+from sentry.integrations.discord.spec import DiscordMessagingSpec
 from sentry.integrations.discord.utils import logger
 from sentry.integrations.discord.views.link_identity import build_linking_url
 from sentry.integrations.discord.views.unlink_identity import build_unlinking_url
@@ -15,6 +16,7 @@ from sentry.integrations.messaging.commands import (
     MessagingIntegrationCommand,
     MessagingIntegrationCommandDispatcher,
 )
+from sentry.integrations.messaging.spec import MessagingIntegrationSpec
 
 LINK_USER_MESSAGE = "[Click here]({url}) to link your Discord account to your Sentry account."
 ALREADY_LINKED_MESSAGE = "You are already linked to the Sentry account with email: `{email}`."
@@ -58,6 +60,10 @@ class DiscordCommandHandler(DiscordInteractionHandler):
 @dataclass(frozen=True)
 class DiscordCommandDispatcher(MessagingIntegrationCommandDispatcher[str]):
     request: DiscordRequest
+
+    @property
+    def integration_spec(self) -> MessagingIntegrationSpec:
+        return DiscordMessagingSpec()
 
     @property
     def command_handlers(

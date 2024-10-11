@@ -1,17 +1,16 @@
 import {type CSSProperties, forwardRef, Fragment, useMemo} from 'react';
 import {css, type SerializedStyles, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import color from 'color';
 
 import {Button, LinkButton} from 'sentry/components/button';
-import {Chevron} from 'sentry/components/chevron';
+import DropdownButton from 'sentry/components/dropdownButton';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {useActionableItems} from 'sentry/components/events/interfaces/crashContent/exception/useActionableItems';
 import {ScrollCarousel} from 'sentry/components/scrollCarousel';
 import {TabList, Tabs} from 'sentry/components/tabs';
 import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconChevron, IconCopy, IconWarning} from 'sentry/icons';
+import {IconChevron, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
@@ -37,6 +36,8 @@ import {
   useEventDetails,
 } from 'sentry/views/issueDetails/streamline/context';
 import {getFoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
+import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 import {useDefaultIssueEvent} from 'sentry/views/issueDetails/utils';
 
 export const MIN_NAV_HEIGHT = 44;
@@ -44,7 +45,6 @@ export const MIN_NAV_HEIGHT = 44;
 type EventNavigationProps = {
   event: Event;
   group: Group;
-  onViewAllEvents: (e: React.MouseEvent) => void;
   className?: string;
   /**
    * Data property to help style the component when it's sticky
@@ -78,7 +78,7 @@ const EventNavOrder = [
 const sectionLabels = {
   [SectionKey.HIGHLIGHTS]: t('Event Highlights'),
   [SectionKey.STACKTRACE]: t('Stack Trace'),
-  [SectionKey.TRACE_PREVIEW]: t('Trace'),
+  [SectionKey.TRACE]: t('Trace'),
   [SectionKey.EXCEPTION]: t('Stack Trace'),
   [SectionKey.BREADCRUMBS]: t('Breadcrumbs'),
   [SectionKey.TAGS]: t('Tags'),
@@ -89,7 +89,7 @@ const sectionLabels = {
 };
 
 export const EventNavigation = forwardRef<HTMLDivElement, EventNavigationProps>(
-  function EventNavigation({event, group, query, onViewAllEvents, ...props}, ref) {
+  function EventNavigation({event, group, query, ...props}, ref) {
     const location = useLocation();
     const organization = useOrganization();
     const theme = useTheme();
@@ -104,6 +104,7 @@ export const EventNavigation = forwardRef<HTMLDivElement, EventNavigationProps>(
       true
     );
     const isMobile = useMedia(`(max-width: ${theme.breakpoints.small})`);
+    const {baseUrl} = useGroupDetailsRoute();
 
     const {data: actionableItems} = useActionableItems({
       eventId: event.id,
@@ -196,7 +197,7 @@ export const EventNavigation = forwardRef<HTMLDivElement, EventNavigationProps>(
           </Tabs>
           <NavigationWrapper>
             <Navigation>
-              <Tooltip title={t('Previous Event')}>
+              <Tooltip title={t('Previous Event')} skipWrapper>
                 <LinkButton
                   aria-label={t('Previous Event')}
                   borderless
@@ -210,7 +211,7 @@ export const EventNavigation = forwardRef<HTMLDivElement, EventNavigationProps>(
                   css={grayText}
                 />
               </Tooltip>
-              <Tooltip title={t('Next Event')}>
+              <Tooltip title={t('Next Event')} skipWrapper>
                 <LinkButton
                   aria-label={t('Next Event')}
                   borderless
@@ -225,39 +226,43 @@ export const EventNavigation = forwardRef<HTMLDivElement, EventNavigationProps>(
                 />
               </Tooltip>
             </Navigation>
-            <Button onClick={onViewAllEvents} borderless size="xs" css={grayText}>
+            <LinkButton
+              to={{
+                pathname: `${baseUrl}${TabPaths[Tab.EVENTS]}`,
+                query: location.query,
+              }}
+              borderless
+              size="xs"
+              css={grayText}
+            >
               {isMobile ? '' : t('View')} {t('All Events')}
-            </Button>
+            </LinkButton>
           </NavigationWrapper>
         </EventNavigationWrapper>
         <EventInfoJumpToWrapper>
           <EventInfo>
             <EventIdInfo>
               <EventTitle>{t('Event')}</EventTitle>
-              <Button
-                aria-label={t('Copy')}
-                borderless
-                onClick={copyEventId}
-                size="zero"
-                title={event.id}
-                tooltipProps={{overlayStyle: {maxWidth: 'max-content'}}}
-                translucentBorder
-              >
-                <EventId>
-                  {getShortEventId(event.id)}
-                  <CopyIconContainer>
-                    <IconCopy size="xs" />
-                  </CopyIconContainer>
-                </EventId>
-              </Button>
               <DropdownMenu
-                triggerProps={{
-                  'aria-label': t('Event actions'),
-                  icon: <Chevron direction="down" color={theme.subText} />,
-                  size: 'zero',
-                  borderless: true,
-                  showChevron: false,
-                }}
+                trigger={(triggerProps, isOpen) => (
+                  // Tooltip split from button to prevent re-opening w/ focus event on close
+                  <Tooltip
+                    title={event.id}
+                    delay={500}
+                    overlayStyle={{maxWidth: 'max-content'}}
+                    disabled={isOpen}
+                  >
+                    <DropdownButton
+                      {...triggerProps}
+                      aria-label={t('Event actions')}
+                      size="zero"
+                      borderless
+                      isOpen={isOpen}
+                    >
+                      {getShortEventId(event.id)}
+                    </DropdownButton>
+                  </Tooltip>
+                )}
                 position="bottom"
                 size="xs"
                 items={[
@@ -377,6 +382,7 @@ const NavigationWrapper = styled('div')`
 
 const Navigation = styled('div')`
   display: flex;
+  padding-right: ${space(0.25)};
   border-right: 1px solid ${p => p.theme.gray100};
 `;
 
@@ -427,29 +433,7 @@ const EventIdInfo = styled('span')`
   display: flex;
   align-items: center;
   gap: ${space(0.25)};
-`;
-
-const EventId = styled('span')`
-  position: relative;
-  font-weight: ${p => p.theme.fontWeightBold};
-  text-decoration: underline;
-  text-decoration-color: ${p => color(p.theme.gray200).alpha(0.5).string()};
-  &:hover {
-    > span {
-      display: flex;
-    }
-  }
-`;
-
-const CopyIconContainer = styled('span')`
-  display: none;
-  align-items: center;
-  padding: ${space(0.25)};
-  background: ${p => p.theme.background};
-  position: absolute;
-  right: 0;
-  top: 50%;
-  transform: translateY(-50%);
+  line-height: 1.2;
 `;
 
 const EventTitle = styled('div')`

@@ -24,22 +24,41 @@ interface ToolbarGroupByProps {
 }
 
 export function ToolbarGroupBy({disabled}: ToolbarGroupByProps) {
-  const {data: tags} = useSpanTags();
+  const tags = useSpanTags();
 
   const {groupBys, setGroupBys} = useGroupBys();
 
   const options: SelectOption<Field>[] = useMemo(() => {
+    // These options aren't known to exist on this project but it was inserted into
+    // the group bys somehow so it should be a valid options in the group bys.
+    //
+    // One place this may come from is when switching projects/environment/date range,
+    // a tag may disappear based on the selection.
+    const unknownOptions = groupBys
+      .filter(groupBy => groupBy && !tags.hasOwnProperty(groupBy))
+      .map(groupBy => {
+        return {
+          label: groupBy,
+          value: groupBy,
+          textValue: groupBy,
+        };
+      });
+
+    const knownOptions = Object.keys(tags).map(tagKey => {
+      return {
+        label: tagKey,
+        value: tagKey,
+        textValue: tagKey,
+      };
+    });
+
     return [
       // hard code in an empty option
-      {label: t('None'), value: ''},
-      ...Object.keys(tags).map(tagKey => {
-        return {
-          label: tagKey,
-          value: tagKey,
-        };
-      }),
+      {label: t('None'), value: '', textValue: t('none')},
+      ...unknownOptions,
+      ...knownOptions,
     ];
-  }, [tags]);
+  }, [groupBys, tags]);
 
   const addGroupBy = useCallback(() => {
     setGroupBys([...groupBys, '']);
