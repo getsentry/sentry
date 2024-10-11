@@ -279,12 +279,75 @@ class InflightTaskStorePostgres(InflightTaskStore):
 
 class InflightTaskStoreRedis(InflightTaskStore):
     """
-    KEY STRUCTURE:
-    TODO: Add key structure here
-    TODO: namespace by partition and topic
+    The InflightTaskStoreRedis is a Redis backed store for inflight task activations.
+    All keys are namespaced under the "taskworker" namespace.
+    Keys are further divided into 3 subspaces:
+        1) inflight_activation:<task_id> - Contains a hash of all the fields of a inflight activation
+        2) inflight_activation:task:<task_id> - Contains the serialized task activation (JSON)
+        3) inflight_activations:<task_id> - Contains a sorted set of task_ids ordered by their offsets
 
-    operations are not atomic
 
+    Example 1):
+    ------------------------------------------------------------------------
+    # Set InflightActivation attributes in hash
+    > HMSET inflight-activations:7bab0860-8526-4548-867a-a83241f160fb status "pending" offset "5" added_at "1728483460"
+    deadletter_at "1728485600" processing_deadline "1728484100"
+    (integer) 5
+
+    # Get all attributes of InflightActivation hash given a task_id
+    > HGETALL inflight-activations:7bab0860-8526-4548-867a-a83241f160fb
+    {'status': '1', 'offset': '230', 'addedAt': '2024-10-10T15:29:07Z', 'deadletterAt': '2024-10-10T15:39:07Z'}
+    ------------------------------------------------------------------------
+
+    Example 2):
+    ------------------------------------------------------------------------
+    # Set serialized TaskActivation protobuf in a key
+    > SET inflight-activation:7bab0860-8526-4548-867a-a83241f160fb "{\"id\":\"86744761837344e4a2ddb7c202be3d0a\",\"namespace\":\"demos\",
+    \"taskname\":\"demos.say_hello\",\"parameters\":\"{\\\"args\\\":[\\\"new task\\\"],\\\"kwargs\\\":{}}\",
+    \"receivedAt\":\"2024-10-10T14:45:03Z\",\"retryState\":{\"attempts\":\"0\",\"kind\":\"sentry.taskworker.retry.Retry\",
+    \"discardAfterAttempt\":\"0\",\"deadletterAfterAttempt\":\"3\"}}"
+
+    # Get serialized TaskActivation protobuf given its task_id
+    > GET inflight-activation:7bab0860-8526-4548-867a-a83241f160fb
+    "{
+    "id": "86744761837344e4a2ddb7c202be3d0a",
+    "namespace": "demos",
+    "taskname": "demos.say_hello",
+    "parameters": "{\"args\":[\"new task\"],\"kwargs\":{}}",
+    "receivedAt": "2024-10-10T14:45:03Z",
+    "retryState": {
+        "attempts": "0"
+        "kind": "sentry.taskworker.retry.Retry",
+        "discardAfterAttempt": "0",
+        "deadletterAfterAttempt": "3"
+    }
+    }"
+    ------------------------------------------------------------------------
+
+    Example 3):
+    ------------------------------------------------------------------------
+    # Set a task_id and its offset in sorted set
+    > ZADD taskworker:inflight-activations:1 12 "task2" 11 "task1" 13 "task3"
+
+    # Get tasks sorted by their offsets given a status
+    > ZRANGE inflight-activations:1 0 -1
+    1) "task1"
+    2) "task2"
+    3) "task3"
+    ------------------------------------------------------------------------
+
+    Pros:
+    - Constant time read operations for getting the task_id with the earliest or latest offset
+    - TasksActivations are serialized as JSON to reduce the number of keys stored in Redis
+    Cons:
+    - Updating or filtering by attributes in the TasksActivations (e.g. retry state, namespace) requires deserializing and re-serializing the JSON
+    - Deletion of an inflight activation requires multiple keys or hashes to be deleted
+    - Many filtering queries requires loading all tasks of a certain status into memory
+
+    Next steps:
+    - Performance benchmark the store and iterate on key design based on results
+    - Namespace by topic and parition
+    - Operations are not atomic. If the consumer dies, it could lead to either stale data or data loss.
     """
 
     def __init__(self):
