@@ -19,7 +19,7 @@ class DevToolbarAnalyticsMiddleware:
         try:
             if (
                 options.get("devtoolbar.analytics.enabled")
-                and request.headers.get("queryReferrer") != "devtoolbar"
+                and request.headers.get("queryReferrer") == "devtoolbar"
             ):
                 _record_api_request(request, response)
         except Exception:
