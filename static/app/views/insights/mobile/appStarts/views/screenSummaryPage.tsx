@@ -82,7 +82,9 @@ export function ScreenSummary() {
         {isInDomainView && (
           <MobileHeader
             hideDefaultTabs={isMobileScreensEnabled}
-            module={ModuleName.APP_START}
+            module={
+              isMobileScreensEnabled ? ModuleName.MOBILE_SCREENS : ModuleName.APP_START
+            }
             headerTitle={transactionName}
             breadcrumbs={[
               {
