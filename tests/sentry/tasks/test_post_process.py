@@ -685,6 +685,7 @@ class ResourceChangeBoundsTestMixin(BasePostProgressGroupMixin):
             action="created",
             sender="Error",
             instance_id=event.event_id,
+            project_id=event.project_id,
             instance=EventMatcher(event),
         )
 
