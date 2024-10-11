@@ -609,6 +609,7 @@ def save_event(
 
 @instrumented_task(
     name="sentry.tasks.store.save_event_transaction",
+    queue="events.save_event_transaction",
     time_limit=65,
     soft_time_limit=60,
     silo_mode=SiloMode.REGION,
