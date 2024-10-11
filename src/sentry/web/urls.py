@@ -28,6 +28,7 @@ from sentry.web.frontend.auth_login import AuthLoginView
 from sentry.web.frontend.auth_logout import AuthLogoutView
 from sentry.web.frontend.auth_organization_login import AuthOrganizationLoginView
 from sentry.web.frontend.auth_provider_login import AuthProviderLoginView
+from sentry.web.frontend.cli import get_cli, get_cli_download_url
 from sentry.web.frontend.disabled_member_view import DisabledMemberView
 from sentry.web.frontend.error_page_embed import ErrorPageEmbedView
 from sentry.web.frontend.group_event_json import GroupEventJsonView
@@ -135,6 +136,13 @@ urlpatterns += [
         r"^js-sdk-loader/(?P<public_key>[^/\.]+)(?:(?P<minified>\.min))?\.js$",
         JavaScriptSdkLoader.as_view(),
         name="sentry-js-sdk-loader",
+    ),
+    # docs reference this for acquiring the sentry cli
+    re_path(r"^get-cli/$", get_cli, name="get_cli_script"),
+    re_path(
+        r"^get-cli/(?P<platform>[^/]+)/(?P<arch>[^/]+)/?$",
+        get_cli_download_url,
+        name="get_cli_download_url",
     ),
     # Versioned API
     re_path(
