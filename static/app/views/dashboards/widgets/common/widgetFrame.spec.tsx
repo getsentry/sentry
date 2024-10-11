@@ -83,4 +83,25 @@ describe('WidgetFrame', () => {
       expect(onAction2).toHaveBeenCalledTimes(1);
     });
   });
+
+  describe('Full Screen View Button', () => {
+    it('Renders a full screen view button', async () => {
+      const onFullScreenViewClick = jest.fn();
+      const {rerender} = render(<WidgetFrame title="count()" />);
+
+      expect(
+        screen.queryByRole('button', {name: 'Open Full-Screen View'})
+      ).not.toBeInTheDocument();
+
+      rerender(
+        <WidgetFrame title="count()" onFullScreenViewClick={onFullScreenViewClick} />
+      );
+
+      const $button = screen.getByRole('button', {name: 'Open Full-Screen View'});
+      expect($button).toBeInTheDocument();
+      await userEvent.click($button);
+
+      expect(onFullScreenViewClick).toHaveBeenCalledTimes(1);
+    });
+  });
 });
