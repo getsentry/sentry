@@ -493,7 +493,7 @@ class ParseQueryTest(APITestCase, SnubaTestCase):
                     "username": "foobar",
                     "ip_address": "127.0.0.1",
                 },
-                "timestamp": before_now(seconds=10).timestamp(),
+                "timestamp": before_now(seconds=10).isoformat(),
             },
             project_id=self.project.id,
         )
@@ -516,7 +516,7 @@ class ParseQueryTest(APITestCase, SnubaTestCase):
                     "username": "foobar",
                     "ip_address": "127.0.0.1",
                 },
-                "timestamp": before_now(seconds=10).timestamp(),
+                "timestamp": before_now(seconds=10).isoformat(),
             },
             project_id=self.project.id,
         )

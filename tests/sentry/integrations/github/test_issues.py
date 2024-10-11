@@ -107,7 +107,7 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
         )
         install = self.integration.get_installation(self.organization.id)
         self.install = cast(GitHubIntegration, install)
-        self.min_ago = before_now(minutes=1).timestamp()
+        self.min_ago = before_now(minutes=1).isoformat()
         self.repo = "getsentry/sentry"
 
     @fixture(autouse=True)
@@ -251,7 +251,7 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
             data={
                 "event_id": "a" * 32,
                 "message": "oh no",
-                "timestamp": before_now(minutes=1).timestamp(),
+                "timestamp": before_now(minutes=1).isoformat(),
             },
             project_id=self.project.id,
         )
@@ -271,7 +271,7 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
             data={
                 "event_id": "a" * 32,
                 "message": "oh no",
-                "timestamp": before_now(minutes=1).timestamp(),
+                "timestamp": before_now(minutes=1).isoformat(),
             },
             project_id=self.project.id,
         )

@@ -56,7 +56,7 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
             data={
                 "event_id": "a" * 32,
                 "message": "ohhhhhh noooooo",
-                "timestamp": event_time.timestamp(),
+                "timestamp": event_time.isoformat(),
                 "fingerprint": ["group-1"],
             },
             project_id=self.project.id,
@@ -142,7 +142,7 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         event = self.store_event(
             data={
                 "event_id": "a" * 32,
-                "timestamp": before_now(minutes=1).timestamp(),
+                "timestamp": before_now(minutes=1).isoformat(),
             },
             project_id=self.project.id,
         )

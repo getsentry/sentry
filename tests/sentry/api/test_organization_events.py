@@ -29,7 +29,7 @@ class OrganizationEventsEndpointTest(APITestCase):
     def setUp(self):
         super().setUp()
         self.ten_mins_ago = before_now(minutes=10)
-        self.ten_mins_ago_iso = self.ten_mins_ago.timestamp()
+        self.ten_mins_ago_iso = self.ten_mins_ago.isoformat()
         self.features = {}
 
     def client_get(self, *args, **kwargs):

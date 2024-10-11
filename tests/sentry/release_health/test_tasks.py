@@ -77,7 +77,7 @@ class BaseTestReleaseMonitor(TestCase, BaseMetricsTestCase):
             data={
                 "message": "Kaboom!",
                 "platform": "python",
-                "timestamp": before_now(seconds=10).timestamp(),
+                "timestamp": before_now(seconds=10).isoformat(),
                 "stacktrace": {
                     "frames": [
                         {

@@ -44,7 +44,7 @@ def get_client():
 class JiraServerIntegrationBaseTest(APITestCase):
     def setUp(self):
         super().setUp()
-        self.min_ago = before_now(minutes=1).timestamp()
+        self.min_ago = before_now(minutes=1).isoformat()
         (
             self.integration,
             self.org_integration,

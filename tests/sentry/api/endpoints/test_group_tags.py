@@ -9,7 +9,7 @@ class GroupTagsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
                 "fingerprint": ["group-1"],
                 "tags": {"foo": "bar", "biz": "baz"},
                 "release": "releaseme",
-                "timestamp": before_now(minutes=1).timestamp(),
+                "timestamp": before_now(minutes=1).isoformat(),
             },
             project_id=self.project.id,
         )
@@ -18,7 +18,7 @@ class GroupTagsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
                 "fingerprint": ["group-1"],
                 "tags": {"foo": "quux"},
                 "release": "releaseme",
-                "timestamp": before_now(minutes=1).timestamp(),
+                "timestamp": before_now(minutes=1).isoformat(),
             },
             project_id=self.project.id,
         )
@@ -27,7 +27,7 @@ class GroupTagsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
             data={
                 "fingerprint": ["group-2"],
                 "tags": {"abc": "xyz"},
-                "timestamp": before_now(minutes=1).timestamp(),
+                "timestamp": before_now(minutes=1).isoformat(),
             },
             project_id=self.project.id,
         )
@@ -129,7 +129,7 @@ class GroupTagsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
             data={
                 "tags": {"foo": "bar", "biz": "baz"},
                 "environment": "prod",
-                "timestamp": before_now(minutes=1).timestamp(),
+                "timestamp": before_now(minutes=1).isoformat(),
             },
             project_id=self.project.id,
         )
@@ -149,7 +149,7 @@ class GroupTagsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
         self.store_event(
             data={
                 "fingerprint": ["put-me-in-group1"],
-                "timestamp": min_ago.timestamp(),
+                "timestamp": min_ago.isoformat(),
                 "environment": env.name,
                 "tags": {"foo": "bar"},
             },
@@ -158,7 +158,7 @@ class GroupTagsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
         event2 = self.store_event(
             data={
                 "fingerprint": ["put-me-in-group1"],
-                "timestamp": min_ago.timestamp(),
+                "timestamp": min_ago.isoformat(),
                 "environment": env2.name,
                 "tags": {"biz": "baz"},
             },
@@ -178,7 +178,7 @@ class GroupTagsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
             data={
                 "fingerprint": ["group-1"],
                 "tags": {"device": "SM-G9910"},
-                "timestamp": before_now(minutes=1).timestamp(),
+                "timestamp": before_now(minutes=1).isoformat(),
             },
             project_id=self.project.id,
         )
@@ -186,7 +186,7 @@ class GroupTagsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
             data={
                 "fingerprint": ["group-1"],
                 "tags": {"device": "iPhone14,3"},
-                "timestamp": before_now(minutes=1).timestamp(),
+                "timestamp": before_now(minutes=1).isoformat(),
             },
             project_id=self.project.id,
         )
@@ -194,7 +194,7 @@ class GroupTagsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
             data={
                 "fingerprint": ["group-1"],
                 "tags": {"device": "random-model"},
-                "timestamp": before_now(minutes=1).timestamp(),
+                "timestamp": before_now(minutes=1).isoformat(),
             },
             project_id=self.project.id,
         )
@@ -223,7 +223,7 @@ class GroupTagsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
                 data={
                     "fingerprint": ["group-1"],
                     "tags": {"os": "iOS"},
-                    "timestamp": before_now(minutes=1).timestamp(),
+                    "timestamp": before_now(minutes=1).isoformat(),
                 },
                 project_id=self.project.id,
             )
@@ -232,7 +232,7 @@ class GroupTagsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
                 data={
                     "fingerprint": ["group-1"],
                     "tags": {"os": "android"},
-                    "timestamp": before_now(minutes=1).timestamp(),
+                    "timestamp": before_now(minutes=1).isoformat(),
                 },
                 project_id=self.project.id,
             )
@@ -240,7 +240,7 @@ class GroupTagsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
             data={
                 "fingerprint": ["group-1"],
                 "tags": {"os": "windows"},
-                "timestamp": before_now(minutes=1).timestamp(),
+                "timestamp": before_now(minutes=1).isoformat(),
             },
             project_id=self.project.id,
         )
@@ -266,7 +266,7 @@ class GroupTagsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
                 data={
                     "fingerprint": ["group-1"],
                     "tags": {"device.class": "1"},
-                    "timestamp": before_now(minutes=1).timestamp(),
+                    "timestamp": before_now(minutes=1).isoformat(),
                 },
                 project_id=self.project.id,
             )
@@ -275,7 +275,7 @@ class GroupTagsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
                 data={
                     "fingerprint": ["group-1"],
                     "tags": {"device.class": "2"},
-                    "timestamp": before_now(minutes=1).timestamp(),
+                    "timestamp": before_now(minutes=1).isoformat(),
                 },
                 project_id=self.project.id,
             )
@@ -283,7 +283,7 @@ class GroupTagsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
             data={
                 "fingerprint": ["group-1"],
                 "tags": {"device.class": "3"},
-                "timestamp": before_now(minutes=1).timestamp(),
+                "timestamp": before_now(minutes=1).isoformat(),
             },
             project_id=self.project.id,
         )

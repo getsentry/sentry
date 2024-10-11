@@ -58,7 +58,7 @@ class CalculateThresholdMetTest(TestCase):
                 self.store_event(
                     data={
                         "fingerprint": [f"group-{weeks}-{i}"],
-                        "timestamp": before_now(days=7 * weeks).timestamp(),
+                        "timestamp": before_now(days=7 * weeks).isoformat(),
                     },
                     project_id=self.project.id,
                 )
@@ -71,7 +71,7 @@ class CalculateThresholdMetTest(TestCase):
                 self.store_event(
                     data={
                         "fingerprint": [f"group-{weeks}-{i}"],
-                        "timestamp": before_now(days=7 * weeks).timestamp(),
+                        "timestamp": before_now(days=7 * weeks).isoformat(),
                     },
                     project_id=self.project.id,
                 )

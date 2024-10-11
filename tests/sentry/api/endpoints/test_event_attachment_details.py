@@ -21,7 +21,7 @@ class CreateAttachmentMixin:
     def create_attachment(self, content: bytes | None = None, group_id: int | None = None):
         self.project = self.create_project()
         self.release = self.create_release(self.project, self.user)
-        min_ago = before_now(minutes=1).timestamp()
+        min_ago = before_now(minutes=1).isoformat()
         self.event = self.store_event(
             data={
                 "fingerprint": ["group1"],

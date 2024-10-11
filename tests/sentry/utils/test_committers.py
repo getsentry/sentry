@@ -689,7 +689,7 @@ class GetEventFileCommitters(CommitTestCase):
             data={
                 "message": "Kaboom!",
                 "platform": "python",
-                "timestamp": before_now(seconds=1).timestamp(),
+                "timestamp": before_now(seconds=1).isoformat(),
                 "stacktrace": {
                     "frames": [
                         {
@@ -763,7 +763,7 @@ class GetEventFileCommitters(CommitTestCase):
             data={
                 "message": "Kaboom!",
                 "platform": "python",
-                "timestamp": before_now(seconds=1).timestamp(),
+                "timestamp": before_now(seconds=1).isoformat(),
                 "stacktrace": {
                     "frames": frames,
                 },
@@ -807,7 +807,7 @@ class GetEventFileCommitters(CommitTestCase):
             data={
                 "message": "Kaboom!",
                 "platform": "python",
-                "timestamp": before_now(seconds=1).timestamp(),
+                "timestamp": before_now(seconds=1).isoformat(),
                 "stacktrace": {
                     "frames": [
                         {
@@ -948,7 +948,7 @@ class GetEventFileCommitters(CommitTestCase):
     def test_no_commits(self):
         event = self.store_event(
             data={
-                "timestamp": before_now(seconds=1).timestamp(),
+                "timestamp": before_now(seconds=1).isoformat(),
                 "message": "Kaboom!",
                 "stacktrace": {
                     "frames": [
@@ -989,7 +989,7 @@ class GetEventFileCommitters(CommitTestCase):
             data={
                 "message": "Kaboom!",
                 "platform": "python",
-                "timestamp": before_now(seconds=1).timestamp(),
+                "timestamp": before_now(seconds=1).isoformat(),
                 "stacktrace": {
                     "frames": [
                         {

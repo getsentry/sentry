@@ -292,7 +292,7 @@ class TestProcessResourceChange(TestCase):
             organization=self.project.organization, slug=sentry_app.slug
         )
 
-        one_min_ago = before_now(minutes=1).timestamp()
+        one_min_ago = before_now(minutes=1).isoformat()
         event = self.store_event(
             data={
                 "message": "Foo bar",
@@ -388,7 +388,7 @@ class TestSendResourceChangeWebhook(TestCase):
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponse404)
     @with_feature("organizations:integrations-event-hooks")
     def test_sends_webhooks_to_all_installs(self, safe_urlopen):
-        one_min_ago = before_now(minutes=1).timestamp()
+        one_min_ago = before_now(minutes=1).isoformat()
         event = self.store_event(
             data={
                 "message": "Foo bar",

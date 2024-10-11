@@ -13,8 +13,8 @@ from sentry.utils.samples import load_data
 class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
     def setUp(self):
         super().setUp()
-        self.min_ago = before_now(minutes=1).timestamp()
-        self.two_min_ago = before_now(minutes=2).timestamp()
+        self.min_ago = before_now(minutes=1).isoformat()
+        self.two_min_ago = before_now(minutes=2).isoformat()
         self.project1 = self.create_project()
         self.project2 = self.create_project()
 
@@ -53,8 +53,8 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
         )
 
         event_data = load_data("transaction")
-        event_data["timestamp"] = before_now(minutes=1).timestamp()
-        event_data["start_timestamp"] = before_now(minutes=1, seconds=1).timestamp()
+        event_data["timestamp"] = before_now(minutes=1).isoformat()
+        event_data["start_timestamp"] = before_now(minutes=1, seconds=1).isoformat()
         event_data["event_id"] = "d" * 32
 
         self.transaction_event = self.store_event(data=event_data, project_id=self.project1.id)
@@ -63,8 +63,8 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
             platform="transaction-n-plus-one",
             fingerprint=[f"{PerformanceNPlusOneGroupType.type_id}-group3"],
         )
-        event_data_2["timestamp"] = before_now(seconds=30).timestamp()
-        event_data_2["start_timestamp"] = before_now(seconds=31).timestamp()
+        event_data_2["timestamp"] = before_now(seconds=30).isoformat()
+        event_data_2["start_timestamp"] = before_now(seconds=31).isoformat()
         event_data_2["event_id"] = "e" * 32
 
         self.transaction_event_2 = self.create_performance_issue(
@@ -74,8 +74,8 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
         event_data_3 = load_data(
             "transaction-n-plus-one", fingerprint=[f"{PerformanceNPlusOneGroupType.type_id}-group3"]
         )
-        event_data_3["timestamp"] = before_now(seconds=30).timestamp()
-        event_data_3["start_timestamp"] = before_now(seconds=31).timestamp()
+        event_data_3["timestamp"] = before_now(seconds=30).isoformat()
+        event_data_3["start_timestamp"] = before_now(seconds=31).isoformat()
         event_data_3["event_id"] = "f" * 32
 
         self.transaction_event_3 = self.create_performance_issue(
@@ -212,7 +212,7 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
                 "type": "default",
                 "platform": "python",
                 "fingerprint": ["group2"],
-                "timestamp": before_now(days=14).timestamp(),
+                "timestamp": before_now(days=14).isoformat(),
                 "tags": {"foo": "1"},
             },
             project_id=self.project2.id,

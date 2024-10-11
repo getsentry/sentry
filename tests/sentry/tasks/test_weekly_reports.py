@@ -93,7 +93,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
         with self.options({"issues.group_attributes.send_kafka": True}):
             self.store_event(
                 data={
-                    "timestamp": before_now(days=1).timestamp(),
+                    "timestamp": before_now(days=1).isoformat(),
                 },
                 project_id=project.id,
             )
@@ -114,7 +114,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
         )
         with self.options({"issues.group_attributes.send_kafka": True}):
             self.store_event(
-                data={"timestamp": before_now(days=1).timestamp()}, project_id=project.id
+                data={"timestamp": before_now(days=1).isoformat()}, project_id=project.id
             )
         member_set = set(project.teams.get().member_set.all())
         for member in member_set:
@@ -144,7 +144,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
         with self.options({"issues.group_attributes.send_kafka": True}):
             self.store_event(
                 data={
-                    "timestamp": before_now(days=1).timestamp(),
+                    "timestamp": before_now(days=1).isoformat(),
                 },
                 project_id=project.id,
             )
@@ -363,7 +363,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
                 data={
                     "event_id": "a" * 32,
                     "message": "message",
-                    "timestamp": self.three_days_ago.timestamp(),
+                    "timestamp": self.three_days_ago.isoformat(),
                     "fingerprint": ["group-1"],
                 },
                 project_id=self.project.id,
@@ -374,7 +374,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
                 data={
                     "event_id": "b" * 32,
                     "message": "message",
-                    "timestamp": self.three_days_ago.timestamp(),
+                    "timestamp": self.three_days_ago.isoformat(),
                     "fingerprint": ["group-2"],
                 },
                 project_id=self.project.id,
@@ -461,7 +461,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
                 data={
                     "event_id": "a" * 32,
                     "message": "message",
-                    "timestamp": self.three_days_ago.timestamp(),
+                    "timestamp": self.three_days_ago.isoformat(),
                     "fingerprint": ["group-1"],
                 },
                 project_id=self.project.id,
@@ -472,7 +472,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
                 data={
                     "event_id": "b" * 32,
                     "message": "message",
-                    "timestamp": self.three_days_ago.timestamp(),
+                    "timestamp": self.three_days_ago.isoformat(),
                     "fingerprint": ["group-2"],
                 },
                 project_id=self.project.id,
@@ -539,7 +539,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
                 data={
                     "event_id": "a" * 32,
                     "message": "message",
-                    "timestamp": self.three_days_ago.timestamp(),
+                    "timestamp": self.three_days_ago.isoformat(),
                     "fingerprint": ["group-1"],
                     "level": "info",
                 },
@@ -551,7 +551,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
                 data={
                     "event_id": "b" * 32,
                     "message": "message",
-                    "timestamp": self.three_days_ago.timestamp(),
+                    "timestamp": self.three_days_ago.isoformat(),
                     "fingerprint": ["group-2"],
                     "level": "error",
                 },
@@ -600,7 +600,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
                 data={
                     "event_id": "a" * 32,
                     "message": "message",
-                    "timestamp": self.three_days_ago.timestamp(),
+                    "timestamp": self.three_days_ago.isoformat(),
                     "fingerprint": ["group-1"],
                 },
                 project_id=self.project.id,
@@ -611,7 +611,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
                 data={
                     "event_id": "b" * 32,
                     "message": "message",
-                    "timestamp": self.three_days_ago.timestamp(),
+                    "timestamp": self.three_days_ago.isoformat(),
                     "fingerprint": ["group-2"],
                 },
                 project_id=self.project.id,
@@ -710,7 +710,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
             data={
                 "event_id": "a" * 32,
                 "message": "message",
-                "timestamp": self.three_days_ago.timestamp(),
+                "timestamp": self.three_days_ago.isoformat(),
                 "fingerprint": ["group-1"],
             },
             project_id=self.project.id,
@@ -724,7 +724,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
             data={
                 "event_id": "b" * 32,
                 "message": "message",
-                "timestamp": self.three_days_ago.timestamp(),
+                "timestamp": self.three_days_ago.isoformat(),
                 "fingerprint": ["group-2"],
             },
             project_id=self.project.id,
@@ -777,7 +777,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
             data={
                 "event_id": "a" * 32,
                 "message": "message",
-                "timestamp": self.three_days_ago.timestamp(),
+                "timestamp": self.three_days_ago.isoformat(),
                 "fingerprint": ["group-1"],
             },
             project_id=self.project.id,
@@ -824,7 +824,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
             data={
                 "event_id": "a" * 32,
                 "message": "message",
-                "timestamp": ten_days_ago.timestamp(),
+                "timestamp": ten_days_ago.isoformat(),
                 "fingerprint": ["group-1"],
             },
             project_id=self.project.id,

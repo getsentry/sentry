@@ -59,7 +59,7 @@ class IncidentActivitySerializerTest(TestCase, SnubaTestCase):
                     data={
                         "event_id": uuid4().hex,
                         "fingerprint": ["group1"],
-                        "timestamp": before_now(seconds=1).timestamp(),
+                        "timestamp": before_now(seconds=1).isoformat(),
                     },
                     project_id=self.project.id,
                 )

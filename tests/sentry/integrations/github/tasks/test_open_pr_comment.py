@@ -46,7 +46,7 @@ class CreateEventTestCase(TestCase):
         if culprit is None:
             culprit = "issue0"
         if timestamp is None:
-            timestamp = before_now(seconds=5).timestamp()
+            timestamp = before_now(seconds=5).isoformat()
         if filenames is None:
             filenames = ["foo.py", "baz.py"]
         if function_names is None:
@@ -529,7 +529,7 @@ class TestGetCommentIssues(CreateEventTestCase):
 
     def test_event_too_old(self):
         group_id = self._create_event(
-            timestamp=before_now(days=15).timestamp(), filenames=["bar.py", "baz.py"]
+            timestamp=before_now(days=15).isoformat(), filenames=["bar.py", "baz.py"]
         ).group.id
 
         top_5_issues = get_top_5_issues_by_count_for_file([self.project], ["baz.py"], ["world"])

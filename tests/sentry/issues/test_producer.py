@@ -156,7 +156,7 @@ class TestProduceOccurrenceForStatusChange(TestCase, OccurrenceTestMixin):
             data={
                 "event_id": "a" * 32,
                 "message": "oh no",
-                "timestamp": datetime.now().timestamp(),
+                "timestamp": datetime.now().isoformat(),
                 "fingerprint": self.fingerprint,
             },
             project_id=self.project.id,
@@ -337,7 +337,7 @@ class TestProduceOccurrenceForStatusChange(TestCase, OccurrenceTestMixin):
             data={
                 "event_id": "a" * 32,
                 "message": "oh no",
-                "timestamp": datetime.now().timestamp(),
+                "timestamp": datetime.now().isoformat(),
                 "fingerprint": ["group-2"],
             },
             project_id=self.project.id,

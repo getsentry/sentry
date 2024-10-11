@@ -236,21 +236,21 @@ class TestTop5IssuesByCount(TestCase, SnubaTestCase):
     def test_simple(self):
         group1 = [
             self.store_event(
-                {"fingerprint": ["group-1"], "timestamp": before_now(days=1).timestamp()},
+                {"fingerprint": ["group-1"], "timestamp": before_now(days=1).isoformat()},
                 project_id=self.project.id,
             )
             for _ in range(3)
         ][0].group.id
         group2 = [
             self.store_event(
-                {"fingerprint": ["group-2"], "timestamp": before_now(days=1).timestamp()},
+                {"fingerprint": ["group-2"], "timestamp": before_now(days=1).isoformat()},
                 project_id=self.project.id,
             )
             for _ in range(6)
         ][0].group.id
         group3 = [
             self.store_event(
-                {"fingerprint": ["group-3"], "timestamp": before_now(days=1).timestamp()},
+                {"fingerprint": ["group-3"], "timestamp": before_now(days=1).isoformat()},
                 project_id=self.project.id,
             )
             for _ in range(4)
@@ -261,7 +261,7 @@ class TestTop5IssuesByCount(TestCase, SnubaTestCase):
     def test_over_5_issues(self):
         issue_ids = [
             self.store_event(
-                {"fingerprint": [f"group-{idx}"], "timestamp": before_now(days=1).timestamp()},
+                {"fingerprint": [f"group-{idx}"], "timestamp": before_now(days=1).isoformat()},
                 project_id=self.project.id,
             ).group.id
             for idx in range(6)
@@ -274,7 +274,7 @@ class TestTop5IssuesByCount(TestCase, SnubaTestCase):
             self.store_event(
                 {
                     "fingerprint": ["group-1"],
-                    "timestamp": before_now(days=1).timestamp(),
+                    "timestamp": before_now(days=1).isoformat(),
                     "level": logging.INFO,
                 },
                 project_id=self.project.id,
@@ -283,7 +283,7 @@ class TestTop5IssuesByCount(TestCase, SnubaTestCase):
         ][0].group.id
         group2 = [
             self.store_event(
-                {"fingerprint": ["group-2"], "timestamp": before_now(days=1).timestamp()},
+                {"fingerprint": ["group-2"], "timestamp": before_now(days=1).isoformat()},
                 project_id=self.project.id,
             )
             for _ in range(6)
@@ -292,7 +292,7 @@ class TestTop5IssuesByCount(TestCase, SnubaTestCase):
             self.store_event(
                 {
                     "fingerprint": ["group-3"],
-                    "timestamp": before_now(days=1).timestamp(),
+                    "timestamp": before_now(days=1).isoformat(),
                     "level": logging.INFO,
                 },
                 project_id=self.project.id,
@@ -307,7 +307,7 @@ class TestTop5IssuesByCount(TestCase, SnubaTestCase):
             self.store_event(
                 {
                     "fingerprint": ["group-1"],
-                    "timestamp": before_now(days=1).timestamp(),
+                    "timestamp": before_now(days=1).isoformat(),
                     "level": logging.ERROR,
                 },
                 project_id=self.project.id,
@@ -318,7 +318,7 @@ class TestTop5IssuesByCount(TestCase, SnubaTestCase):
             self.store_event(
                 {
                     "fingerprint": ["group-2"],
-                    "timestamp": before_now(days=1).timestamp(),
+                    "timestamp": before_now(days=1).isoformat(),
                     "level": logging.INFO,
                 },
                 project_id=self.project.id,
@@ -329,7 +329,7 @@ class TestTop5IssuesByCount(TestCase, SnubaTestCase):
             self.store_event(
                 {
                     "fingerprint": ["group-3"],
-                    "timestamp": before_now(days=1).timestamp(),
+                    "timestamp": before_now(days=1).isoformat(),
                     "level": logging.DEBUG,
                 },
                 project_id=self.project.id,

@@ -27,11 +27,11 @@ class DeliverDigestTest(TestCase):
             rule = Rule.objects.create(project=self.project, label="Test Rule", data={})
             ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
             event = self.store_event(
-                data={"timestamp": before_now(days=1).timestamp(), "fingerprint": ["group-1"]},
+                data={"timestamp": before_now(days=1).isoformat(), "fingerprint": ["group-1"]},
                 project_id=self.project.id,
             )
             event_2 = self.store_event(
-                data={"timestamp": before_now(days=1).timestamp(), "fingerprint": ["group-2"]},
+                data={"timestamp": before_now(days=1).isoformat(), "fingerprint": ["group-2"]},
                 project_id=self.project.id,
             )
             notification_uuid = str(uuid.uuid4())

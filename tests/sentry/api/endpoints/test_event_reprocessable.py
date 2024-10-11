@@ -11,7 +11,7 @@ class EventReprocessableEndpointTest(APITestCase):
         self.login_as(self.user)
 
     def test_simple(self):
-        min_ago = before_now(minutes=1).timestamp()
+        min_ago = before_now(minutes=1).isoformat()
         event1 = self.store_event(
             data={"fingerprint": ["group1"], "timestamp": min_ago}, project_id=self.project.id
         )

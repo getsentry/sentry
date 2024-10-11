@@ -22,7 +22,7 @@ class TeamStatsTest(APITestCase):
             for _ in range(count):
                 self.store_event(
                     data={
-                        "timestamp": before_now(minutes=5).timestamp(),
+                        "timestamp": before_now(minutes=5).isoformat(),
                     },
                     project_id=project.id,
                 )

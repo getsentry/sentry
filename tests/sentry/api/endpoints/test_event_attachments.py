@@ -13,7 +13,7 @@ class EventAttachmentsTest(APITestCase):
     def test_simple(self):
         self.login_as(user=self.user)
 
-        min_ago = before_now(minutes=1).timestamp()
+        min_ago = before_now(minutes=1).isoformat()
         event1 = self.store_event(
             data={"fingerprint": ["group1"], "timestamp": min_ago}, project_id=self.project.id
         )
@@ -77,7 +77,7 @@ class EventAttachmentsTest(APITestCase):
     def test_is_screenshot(self):
         self.login_as(user=self.user)
 
-        min_ago = before_now(minutes=1).timestamp()
+        min_ago = before_now(minutes=1).isoformat()
         event1 = self.store_event(
             data={"fingerprint": ["group1"], "timestamp": min_ago}, project_id=self.project.id
         )

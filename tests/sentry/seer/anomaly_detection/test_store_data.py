@@ -119,7 +119,7 @@ class AnomalyDetectionStoreDataTest(AlertRuleBase, BaseMetricsTestCase, Performa
                 data={
                     "event_id": "a" * 32,
                     "message": "super duper bad",
-                    "timestamp": self.time_1_dt.timestamp(),
+                    "timestamp": self.time_1_dt.isoformat(),
                     "fingerprint": ["group1"],
                     "tags": {"sentry:user": self.user.email},
                     "exception": [{"value": "BadError"}],
@@ -130,7 +130,7 @@ class AnomalyDetectionStoreDataTest(AlertRuleBase, BaseMetricsTestCase, Performa
                 data={
                     "event_id": "b" * 32,
                     "message": "super bad",
-                    "timestamp": self.time_2_dt.timestamp(),
+                    "timestamp": self.time_2_dt.isoformat(),
                     "fingerprint": ["group2"],
                     "tags": {"sentry:user": self.user.email},
                     "exception": [{"value": "BadError"}],
@@ -153,7 +153,7 @@ class AnomalyDetectionStoreDataTest(AlertRuleBase, BaseMetricsTestCase, Performa
                 data={
                     "event_id": "a" * 32,
                     "message": "super duper bad",
-                    "timestamp": self.time_1_dt.timestamp(),
+                    "timestamp": self.time_1_dt.isoformat(),
                     "fingerprint": ["group1"],
                     "tags": {"sentry:user": self.user.email},
                     "exception": [{"value": "BadError"}],
@@ -164,7 +164,7 @@ class AnomalyDetectionStoreDataTest(AlertRuleBase, BaseMetricsTestCase, Performa
                 data={
                     "event_id": "b" * 32,
                     "message": "super bad",
-                    "timestamp": self.time_2_dt.timestamp(),
+                    "timestamp": self.time_2_dt.isoformat(),
                     "fingerprint": ["group2"],
                     "tags": {"sentry:user": self.user.email},
                     "exception": [{"value": "BadError"}],

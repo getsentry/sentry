@@ -187,7 +187,7 @@ class EventTest(TestCase, PerformanceIssueTestCase):
         assert event.ip_address is None
 
     def test_issueless_event(self):
-        min_ago = before_now(minutes=1).timestamp()
+        min_ago = before_now(minutes=1).isoformat()
 
         event = self.store_event(
             data={
@@ -287,7 +287,7 @@ class EventTest(TestCase, PerformanceIssueTestCase):
                 "culprit": "app/components/events/eventEntries in map",
                 "type": "transaction",
                 "timestamp": iso_format(before_now(minutes=1)),
-                "start_timestamp": before_now(minutes=1, seconds=5).timestamp(),
+                "start_timestamp": before_now(minutes=1, seconds=5).isoformat(),
                 "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
             },
             project_id=self.project.id,
@@ -656,7 +656,7 @@ class EventNodeStoreTest(TestCase):
         invalid_event = self.store_event(
             data={
                 "event_id": "a" * 32,
-                "timestamp": before_now(minutes=1).timestamp(),
+                "timestamp": before_now(minutes=1).isoformat(),
                 "fingerprint": ["group-1"],
             },
             project_id=project1.id,
@@ -664,7 +664,7 @@ class EventNodeStoreTest(TestCase):
         event = self.store_event(
             data={
                 "event_id": "b" * 32,
-                "timestamp": before_now(minutes=1).timestamp(),
+                "timestamp": before_now(minutes=1).isoformat(),
                 "fingerprint": ["group-2"],
             },
             project_id=project2.id,
