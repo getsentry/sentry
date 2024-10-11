@@ -113,7 +113,7 @@ class TestUpdatesPriority(TestCase):
         assert GroupHistory.objects.filter(group=self.group).count() == 0
 
     @patch("sentry.issues.attributes.send_snapshot_values")
-    def test_priority_update_sends_snapshot(self, mock_send_snapshot_values) -> None:
+    def test_priority_update_sends_snapshot(self, mock_send_snapshot_values: MagicMock) -> None:
         self.group = self.create_group(
             status=GroupStatus.UNRESOLVED,
             substatus=GroupSubStatus.ONGOING,
