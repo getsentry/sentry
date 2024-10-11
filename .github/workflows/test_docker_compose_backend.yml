@@ -42,6 +42,12 @@ jobs:
         run: |
           yarn add ts-node && make test-api-docs
 
+      - name: Inspect failure
+        if: failure()
+        run: |
+          docker compose ps
+          docker compose logs --tail 1000
+
   docker-compose-backend-test:
     name: backend test
     runs-on: ubuntu-22.04
@@ -99,6 +105,12 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           commit_sha: ${{ github.event.pull_request.head.sha }}
 
+      - name: Inspect failure
+        if: failure()
+        run: |
+          docker compose ps
+          docker compose logs --tail 1000
+
   docker-compose-backend-migration-tests:
     name: backend migration tests
     runs-on: ubuntu-22.04
@@ -132,6 +144,12 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           commit_sha: ${{ github.event.pull_request.head.sha }}
 
+      - name: Inspect failure
+        if: failure()
+        run: |
+          docker compose ps
+          docker compose logs --tail 1000
+
   docker-compose-cli:
     name: cli test
     runs-on: ubuntu-22.04
@@ -164,6 +182,12 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           commit_sha: ${{ github.event.pull_request.head.sha }}
 
+      - name: Inspect failure
+        if: failure()
+        run: |
+          docker compose ps
+          docker compose logs --tail 1000
+
   docker-compose-migration:
     name: check migration
     runs-on: ubuntu-22.04
@@ -190,6 +214,12 @@ jobs:
           PGPASSWORD: postgres
         run: |
           ./.github/workflows/scripts/migration-check.sh
+
+      - name: Inspect failure
+        if: failure()
+        run: |
+          docker compose ps
+          docker compose logs --tail 1000
 
   docker-compose-monolith-dbs:
     name: monolith-dbs test
@@ -232,6 +262,12 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           commit_sha: ${{ github.event.pull_request.head.sha }}
+
+      - name: Inspect failure
+        if: failure()
+        run: |
+          docker compose ps
+          docker compose logs --tail 1000
 
   # This check runs once all dependent jobs have passed
   # It symbolizes that all required Backend checks have succesfully passed (Or skipped)
