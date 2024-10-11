@@ -64,6 +64,8 @@ import {
 } from 'sentry/views/dashboards/types';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 
+import type DashboardLegendEncoderDecoder from '../dashboardLegendUtils';
+// import WidgetLegendFunctions from '../dashboardLegendUtils';
 import {DEFAULT_STATS_PERIOD} from '../data';
 import {getDatasetConfig} from '../datasetConfig/base';
 import {useValidateWidgetQuery} from '../hooks/useValidateWidget';
@@ -72,7 +74,6 @@ import {
   DashboardsMEPConsumer,
   DashboardsMEPProvider,
 } from '../widgetCard/dashboardsMEPContext';
-import WidgetLegendFunctions from '../widgetCard/widgetLegendUtils';
 
 import {BuildStep} from './buildSteps/buildStep';
 import {ColumnsStep} from './buildSteps/columnsStep';
@@ -138,6 +139,7 @@ interface QueryData {
 
 interface Props extends RouteComponentProps<RouteParams, {}> {
   dashboard: DashboardDetails;
+  dashboardLegendUtils: DashboardLegendEncoderDecoder;
   onSave: (widgets: Widget[]) => void;
   organization: Organization;
   selection: PageFilters;
@@ -184,6 +186,7 @@ function WidgetBuilder({
   router,
   tags,
   updateDashboardSplitDecision,
+  dashboardLegendUtils,
 }: Props) {
   const {widgetIndex, orgId, dashboardId} = params;
   const {source, displayType, defaultTitle, limit, dataset} = location.query;
@@ -883,12 +886,8 @@ function WidgetBuilder({
         nextWidgetList[updateWidgetIndex] = nextWidgetData;
       }
 
-      const legendFunctions = new WidgetLegendFunctions();
-
-      const unselectedSeriesParam = legendFunctions.updatedLegendQueryOnWidgetChange(
-        organization,
-        {...dashboard, widgets: [...dashboard.widgets, nextWidgetData]},
-        location
+      const unselectedSeriesParam = dashboardLegendUtils.updatedLegendQueryOnWidgetChange(
+        {...dashboard, widgets: [...dashboard.widgets, nextWidgetData]}
       );
       const query = {...location.query, unselectedSeries: unselectedSeriesParam};
       onSave(nextWidgetList);
@@ -1225,6 +1224,7 @@ function WidgetBuilder({
                                     onWidgetSplitDecision={
                                       handleUpdateWidgetSplitDecision
                                     }
+                                    dashboardLegendUtils={dashboardLegendUtils}
                                   />
                                   <DataSetStep
                                     dataSet={state.dataSet}

@@ -1,4 +1,4 @@
-import {Fragment, useMemo, useState} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import type {DataZoomComponentOption, LegendComponentOption} from 'echarts';
 import type {Location} from 'history';
@@ -12,8 +12,8 @@ import type {Organization} from 'sentry/types/organization';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
-import useRouter from 'sentry/utils/useRouter';
 
+import type DashboardLegendEncoderDecoder from '../dashboardLegendUtils';
 import type {DashboardFilters, Widget} from '../types';
 import {WidgetType} from '../types';
 
@@ -22,11 +22,11 @@ import WidgetCardChart from './chart';
 import {IssueWidgetCard} from './issueWidgetCard';
 import IssueWidgetQueries from './issueWidgetQueries';
 import ReleaseWidgetQueries from './releaseWidgetQueries';
-import WidgetLegendFunctions from './widgetLegendUtils';
 import WidgetQueries from './widgetQueries';
 
 type Props = {
   api: Client;
+  dashboardLegendUtils: DashboardLegendEncoderDecoder;
   location: Location;
   organization: Organization;
   selection: PageFilters;
@@ -56,7 +56,6 @@ type Props = {
   shouldResize?: boolean;
   showSlider?: boolean;
   tableItemLimit?: number;
-  widgets?: Widget[];
   windowWidth?: number;
 };
 
@@ -65,7 +64,6 @@ export function WidgetCardChartContainer({
   organization,
   selection,
   widget,
-  widgets,
   dashboardFilters,
   isMobile,
   renderErrorMessage,
@@ -82,14 +80,12 @@ export function WidgetCardChartContainer({
   onWidgetSplitDecision,
   chartGroup,
   shouldResize,
+  dashboardLegendUtils,
 }: Props) {
   const location = useLocation();
-  const router = useRouter();
-
-  const legendFunctions = useMemo(() => new WidgetLegendFunctions(), []);
 
   const [disabledLegends, setDisabledLegends] = useState<{[key: string]: boolean}>(
-    legendFunctions.getLegendUnselected(location, widget, 'unselectedSeries')
+    dashboardLegendUtils.getLegendUnselected(widget)
   );
 
   if (widget.widgetType === WidgetType.ISSUE) {
@@ -132,15 +128,7 @@ export function WidgetCardChartContainer({
     type: 'legendselectchanged';
   }) {
     setDisabledLegends(selected);
-    legendFunctions.updateLegendQueryParam(
-      selected,
-      location,
-      widget,
-      router,
-      'unselectedSeries',
-      organization,
-      widgets
-    );
+    dashboardLegendUtils.updateLegendQueryParam(selected, widget);
   }
 
   if (widget.widgetType === WidgetType.RELEASE) {
@@ -158,7 +146,7 @@ export function WidgetCardChartContainer({
           // Bind timeseries to widget for ability to control each widget's legend individually
           // NOTE: e-charts legends control all charts that have the same series name so attaching
           // widget id will differentiate the charts allowing them to be controlled individually
-          const modifiedTimeseriesResults = legendFunctions.modifyTimeseriesNames(
+          const modifiedTimeseriesResults = dashboardLegendUtils.modifyTimeseriesNames(
             widget,
             timeseriesResults
           );
@@ -191,6 +179,7 @@ export function WidgetCardChartContainer({
                 legendOptions={
                   legendOptions ? legendOptions : {selected: disabledLegends}
                 }
+                dashboardLegendUtils={dashboardLegendUtils}
               />
             </Fragment>
           );
@@ -218,7 +207,7 @@ export function WidgetCardChartContainer({
         timeseriesResultsTypes,
       }) => {
         // Bind timeseries to widget for ability to control each widget's legend individually
-        const modifiedTimeseriesResults = legendFunctions.modifyTimeseriesNames(
+        const modifiedTimeseriesResults = dashboardLegendUtils.modifyTimeseriesNames(
           widget,
           timeseriesResults
         );
@@ -250,6 +239,7 @@ export function WidgetCardChartContainer({
               timeseriesResultsTypes={timeseriesResultsTypes}
               chartGroup={chartGroup}
               shouldResize={shouldResize}
+              dashboardLegendUtils={dashboardLegendUtils}
             />
           </Fragment>
         );

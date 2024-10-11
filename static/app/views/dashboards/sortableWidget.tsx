@@ -4,11 +4,13 @@ import styled from '@emotion/styled';
 import PanelAlert from 'sentry/components/panels/panelAlert';
 import WidgetCard from 'sentry/views/dashboards/widgetCard';
 
+import type DashboardLegendEncoderDecoder from './dashboardLegendUtils';
 import type {DashboardFilters, Widget} from './types';
 
 const TABLE_ITEM_LIMIT = 20;
 
 type Props = {
+  dashboardLegendUtils: DashboardLegendEncoderDecoder;
   index: string;
   isEditingDashboard: boolean;
   onDelete: () => void;
@@ -16,7 +18,6 @@ type Props = {
   onEdit: () => void;
   widget: Widget;
   widgetLimitReached: boolean;
-  widgets: Widget[];
   dashboardFilters?: DashboardFilters;
   isMobile?: boolean;
   isPreview?: boolean;
@@ -26,7 +27,6 @@ type Props = {
 function SortableWidget(props: Props) {
   const {
     widget,
-    widgets,
     isEditingDashboard,
     widgetLimitReached,
     onDelete,
@@ -37,11 +37,11 @@ function SortableWidget(props: Props) {
     windowWidth,
     index,
     dashboardFilters,
+    dashboardLegendUtils,
   } = props;
 
   const widgetProps: ComponentProps<typeof WidgetCard> = {
     widget,
-    widgets,
     isEditingDashboard,
     widgetLimitReached,
     onDelete,
@@ -51,6 +51,7 @@ function SortableWidget(props: Props) {
     isPreview,
     index,
     dashboardFilters,
+    dashboardLegendUtils,
     renderErrorMessage: errorMessage => {
       return (
         typeof errorMessage === 'string' && (

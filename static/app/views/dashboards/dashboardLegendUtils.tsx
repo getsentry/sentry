@@ -5,21 +5,40 @@ import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {decodeList} from 'sentry/utils/queryString';
 
-import {type DashboardDetails, DisplayType, type Widget} from '../types';
+import {type DashboardDetails, DisplayType, type Widget} from './types';
 
-class WidgetLegendFunctions {
+type Props = {
+  dashboard: DashboardDetails | null;
+  location: Location;
+  organization: Organization;
+  router: InjectedRouter;
+};
+
+class DashboardLegendEncoderDecoder {
+  dashboard: DashboardDetails | null;
+  location: Location;
+  organization: Organization;
+  router: InjectedRouter;
+
+  constructor(props: Props) {
+    this.dashboard = props.dashboard;
+    this.location = props.location;
+    this.organization = props.organization;
+    this.router = props.router;
+  }
+
   // Updates legend param when a legend selection has been changed
-  updateLegendQueryParam(
-    selected: Record<string, boolean>,
-    location: Location,
-    widget: Widget,
-    router: InjectedRouter,
-    queryField: string,
-    organization: Organization,
-    widgets?: Widget[]
-  ) {
+  updateLegendQueryParam(selected: Record<string, boolean>, widget: Widget) {
+    const [dashboard, location, organization, router] = [
+      this.dashboard,
+      this.location,
+      this.organization,
+      this.router,
+    ];
+    const widgets = dashboard ? dashboard.widgets : [];
+
     let newLegendQuery: string[];
-    if (!location.query[queryField] && widgets && queryField === 'unselectedSeries') {
+    if (!location.query.unselectedSeries && widgets) {
       newLegendQuery = widgets
         .filter(dashboardWidget => this.widgetRequiresLegendUnselection(dashboardWidget))
         .map(dashboardWidget => {
@@ -31,23 +50,15 @@ class WidgetLegendFunctions {
         });
 
       router.replace({
-        pathname: location.pathname,
+        // pathname: location.pathname,
         query: {
           ...location.query,
-          [queryField]: newLegendQuery,
+          unselectedSeries: newLegendQuery,
         },
       });
-    } else if (!location.query[queryField] && queryField === 'legend') {
-      router.replace({
-        pathname: location.pathname,
-        query: {
-          ...location.query,
-          [queryField]: this.encodeLegendQueryParam(widget, selected),
-        },
-      });
-    } else if (Array.isArray(location.query[queryField])) {
+    } else if (Array.isArray(location.query.unselectedSeries)) {
       let isInQuery = false;
-      newLegendQuery = location.query[queryField].map(widgetLegend => {
+      newLegendQuery = location.query.unselectedSeries.map(widgetLegend => {
         if (widgetLegend.includes(widget.id!)) {
           isInQuery = true;
           // names of legend options are stored as seriesName:widgetId and are stored in
@@ -59,29 +70,29 @@ class WidgetLegendFunctions {
 
       !isInQuery
         ? router.replace({
-            pathname: location.pathname,
+            // pathname: location.pathname,
             query: {
               ...location.query,
-              [queryField]: [
-                ...location.query[queryField],
+              unselectedSeries: [
+                ...location.query.unselectedSeries,
                 this.encodeLegendQueryParam(widget, selected),
               ],
             },
           })
         : router.replace({
-            pathname: location.pathname,
+            // pathname: location.pathname,
             query: {
               ...location.query,
-              [queryField]: newLegendQuery,
+              unselectedSeries: newLegendQuery,
             },
           });
     } else {
       router.replace({
-        pathname: location.pathname,
+        // pathname: location.pathname,
         query: {
           ...location.query,
-          [queryField]: [
-            location.query[queryField],
+          unselectedSeries: [
+            location.query.unselectedSeries,
             this.encodeLegendQueryParam(widget, selected),
           ],
         },
@@ -90,10 +101,13 @@ class WidgetLegendFunctions {
   }
 
   // sets unselected legend options by the legend query param
-  getLegendUnselected(location: Location, widget: Widget, queryField: string) {
-    return location.query[queryField]
-      ? this.decodeLegendQueryParam(location, widget, queryField)
-      : this.widgetRequiresLegendUnselection(widget)
+  getLegendUnselected(widget: Widget) {
+    const location = this.location;
+
+    return location.query.unselectedSeries
+      ? this.decodeLegendQueryParam(widget)
+      : this.widgetRequiresLegendUnselection(widget) &&
+          this.organization.features.includes('dashboards-releases-on-charts')
         ? {[this.encodeSeriesNameForLegend('Releases', widget.id)]: false}
         : {};
   }
@@ -121,8 +135,9 @@ class WidgetLegendFunctions {
   }
 
   // going from query param to selected
-  decodeLegendQueryParam(location: Location, widget: Widget, queryField: string) {
-    return decodeList(location.query[queryField]).reduce((acc, legend) => {
+  decodeLegendQueryParam(widget: Widget) {
+    const location = this.location;
+    return decodeList(location.query.unselectedSeries).reduce((acc, legend) => {
       const legendValues = legend.split('-');
       const widgetId = legendValues[0];
       const seriesNames = legendValues.splice(1);
@@ -158,11 +173,8 @@ class WidgetLegendFunctions {
   }
 
   // when a widget has been changed/added/deleted update legend to incorporate that
-  updatedLegendQueryOnWidgetChange(
-    organization: Organization,
-    newDashboard: DashboardDetails,
-    location: Location
-  ) {
+  updatedLegendQueryOnWidgetChange(newDashboard: DashboardDetails) {
+    const [organization, location] = [this.organization, this.location];
     if (
       organization.features.includes('dashboards-releases-on-charts') &&
       !location.query.unselectedSeries
@@ -189,4 +201,4 @@ class WidgetLegendFunctions {
   }
 }
 
-export default WidgetLegendFunctions;
+export default DashboardLegendEncoderDecoder;

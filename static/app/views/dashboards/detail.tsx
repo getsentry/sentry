@@ -58,11 +58,11 @@ import {generatePerformanceEventView} from '../performance/data';
 import {MetricsDataSwitcher} from '../performance/landing/metricsDataSwitcher';
 import {DiscoverQueryPageSource} from '../performance/utils';
 
-import WidgetLegendFunctions from './widgetCard/widgetLegendUtils';
 import type {WidgetViewerContextProps} from './widgetViewer/widgetViewerContext';
 import {WidgetViewerContext} from './widgetViewer/widgetViewerContext';
 import Controls from './controls';
 import Dashboard from './dashboard';
+import DashboardLegendEncoderDecoder from './dashboardLegendUtils';
 import {DEFAULT_STATS_PERIOD} from './data';
 import FiltersBar from './filtersBar';
 import {
@@ -118,6 +118,7 @@ type Props = RouteComponentProps<RouteParams, {}> & {
 };
 
 type State = {
+  dashboardLegendUtils: DashboardLegendEncoderDecoder;
   dashboardState: DashboardState;
   modifiedDashboard: DashboardDetails | null;
   widgetLimitReached: boolean;
@@ -173,6 +174,12 @@ class DashboardDetail extends Component<Props, State> {
     setData: data => {
       this.setState(data);
     },
+    dashboardLegendUtils: new DashboardLegendEncoderDecoder({
+      dashboard: this.props.dashboard,
+      organization: this.props.organization,
+      location: this.props.location,
+      router: this.props.router,
+    }),
   };
 
   componentDidMount() {
@@ -185,6 +192,22 @@ class DashboardDetail extends Component<Props, State> {
     if (prevProps.initialState !== this.props.initialState) {
       // Widget builder can toggle Edit state when saving
       this.setState({dashboardState: this.props.initialState});
+    }
+
+    if (
+      prevProps.organization !== this.props.organization ||
+      prevProps.location !== this.props.location ||
+      prevProps.router !== this.props.router ||
+      prevProps.dashboard !== this.props.dashboard
+    ) {
+      this.setState({
+        dashboardLegendUtils: new DashboardLegendEncoderDecoder({
+          organization: this.props.organization,
+          location: this.props.location,
+          router: this.props.router,
+          dashboard: this.props.dashboard,
+        }),
+      });
     }
   }
 
@@ -209,6 +232,7 @@ class DashboardDetail extends Component<Props, State> {
         }) ??
           dashboard.widgets[widgetId]);
       if (widget) {
+        // this.setState({widgetViewerOpened: true});
         openWidgetViewerModal({
           organization,
           widget,
@@ -217,7 +241,7 @@ class DashboardDetail extends Component<Props, State> {
           tableData,
           pageLinks,
           totalIssuesCount,
-          widgets: dashboard.widgets,
+          dashboardLegendUtils: this.state.dashboardLegendUtils,
           dashboardFilters: getDashboardFiltersFromURL(location) ?? dashboard.filters,
           onMetricWidgetEdit: (updatedWidget: Widget) => {
             const widgets = [...dashboard.widgets];
@@ -448,7 +472,6 @@ class DashboardDetail extends Component<Props, State> {
   handleUpdateWidgetList = (widgets: Widget[]) => {
     const {organization, dashboard, api, onDashboardUpdate, location} = this.props;
     const {modifiedDashboard} = this.state;
-    const legendFunctions = new WidgetLegendFunctions();
 
     // Use the new widgets for calculating layout because widgets has
     // the most up to date information in edit state
@@ -473,11 +496,8 @@ class DashboardDetail extends Component<Props, State> {
             modifiedDashboard: null,
           });
         }
-        const legendQuery = legendFunctions.updatedLegendQueryOnWidgetChange(
-          organization,
-          newDashboard,
-          location
-        );
+        const legendQuery =
+          this.state.dashboardLegendUtils.updatedLegendQueryOnWidgetChange(newDashboard);
 
         addSuccessMessage(t('Dashboard updated'));
         if (dashboard && newDashboard.id !== dashboard.id) {
@@ -527,6 +547,7 @@ class DashboardDetail extends Component<Props, State> {
     openWidgetViewerModal({
       organization: this.props.organization,
       widget: widgetCopy,
+      dashboardLegendUtils: this.state.dashboardLegendUtils,
       onMetricWidgetEdit: widget => {
         const nextList = generateWidgetsAfterCompaction([...currentWidgets, widget]);
         this.onUpdateWidget(nextList);
@@ -805,6 +826,7 @@ class DashboardDetail extends Component<Props, State> {
                           isPreview={this.isPreview}
                           router={router}
                           location={location}
+                          dashboardLegendUtils={this.state.dashboardLegendUtils}
                         />
                       </MEPSettingProvider>
                     )}
@@ -1031,6 +1053,7 @@ class DashboardDetail extends Component<Props, State> {
                                   newWidget={newWidget}
                                   onSetNewWidget={onSetNewWidget}
                                   isPreview={this.isPreview}
+                                  dashboardLegendUtils={this.state.dashboardLegendUtils}
                                 />
                               </WidgetViewerContext.Provider>
                             </MEPSettingProvider>

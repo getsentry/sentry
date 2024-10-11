@@ -2,27 +2,28 @@ import type {Location} from 'history';
 import {DashboardFixture} from 'sentry-fixture/dashboard';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
-
+import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {DashboardDetails, Widget} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 
-import WidgetLegendFunctions from './widgetLegendUtils';
+import DashboardLegendEncoderDecoder from './dashboardLegendUtils';
 
 describe('WidgetLegend functions util', () => {
-  let legendFunctions: WidgetLegendFunctions;
+  let legendFunctions: DashboardLegendEncoderDecoder;
 
-  beforeEach(() => {
-    legendFunctions = new WidgetLegendFunctions();
-  });
+  // beforeEach(() => {
+  //   legendFunctions = new WidgetLegendFunctions();
+  // });
 
   describe('legendChanges', function () {
     let widget: Widget;
     let location: Location;
     let organization: Organization;
     let dashboard: DashboardDetails;
+    let router: InjectedRouter;
     beforeEach(() => {
       widget = {
         id: '12345',
@@ -55,64 +56,54 @@ describe('WidgetLegend functions util', () => {
       dashboard = {
         ...DashboardFixture([widget, {...widget, id: '23456'}]),
       };
+
+      router = {
+        ...RouterFixture({location}),
+      };
+
+      legendFunctions = new DashboardLegendEncoderDecoder({
+        dashboard,
+        location,
+        organization,
+        router,
+      });
     });
 
     it('set initial unselected legend options', () => {
-      expect(
-        legendFunctions.getLegendUnselected(location, widget, 'unselectedSeries')
-      ).toEqual({'Releases:12345': false});
+      expect(legendFunctions.getLegendUnselected(widget)).toEqual({
+        'Releases:12345': false,
+      });
     });
 
     it('updates legend query param when legend option toggled', () => {
-      const data = initializeOrg({router: {location}});
-
-      legendFunctions.updateLegendQueryParam(
-        {'Releases:12345': true},
-        location,
-        widget,
-        data.router,
-        'unselectedSeries',
-        organization,
-        [widget]
-      );
-      expect(data.router.replace).toHaveBeenCalledWith({
-        pathname: location.pathname,
+      legendFunctions.updateLegendQueryParam({'Releases:12345': true}, widget);
+      expect(router.replace).toHaveBeenCalledWith({
         query: {unselectedSeries: ['12345-']},
       });
     });
 
     it('updates legend query param when legend option toggled but not in query params', () => {
       location = {...location, query: {...location.query, unselectedSeries: []}};
-      const data = initializeOrg({router: {location}});
 
       legendFunctions.updateLegendQueryParam(
         {'Releases:12345': false, 'count():12345': true},
-        location,
-        widget,
-        data.router,
-        'unselectedSeries',
-        organization
+        widget
       );
-      expect(data.router.replace).toHaveBeenCalledWith({
-        pathname: location.pathname,
+      expect(router.replace).toHaveBeenCalledWith({
         query: {unselectedSeries: ['12345-Releases']},
       });
     });
 
     it('gives updated query param when widget change submitted', () => {
-      expect(
-        legendFunctions.updatedLegendQueryOnWidgetChange(
-          organization,
-          dashboard,
-          location
-        )
-      ).toEqual(['12345-Releases', '23456-Releases']);
+      expect(legendFunctions.updatedLegendQueryOnWidgetChange(dashboard)).toEqual([
+        '12345-Releases',
+        '23456-Releases',
+      ]);
     });
   });
 
   describe('legend naming', function () {
     let widget: Widget;
-    let location: Location;
     beforeEach(() => {
       widget = {
         id: '12345',
@@ -131,12 +122,6 @@ describe('WidgetLegend functions util', () => {
           },
         ],
       };
-      location = {
-        ...LocationFixture(),
-        query: {
-          unselectedSeries: ['12345-Releases'],
-        },
-      };
     });
 
     it('formats to query param format from selected', () => {
@@ -146,9 +131,9 @@ describe('WidgetLegend functions util', () => {
     });
 
     it('formats to selected format from query param', () => {
-      expect(
-        legendFunctions.decodeLegendQueryParam(location, widget, 'unselectedSeries')
-      ).toEqual({[`Releases:${widget.id}`]: false});
+      expect(legendFunctions.decodeLegendQueryParam(widget)).toEqual({
+        [`Releases:${widget.id}`]: false,
+      });
     });
   });
 });

@@ -1,4 +1,5 @@
 import {urlEncode} from '@sentry/utils';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {MetricsFieldFixture} from 'sentry-fixture/metrics';
 import {SessionsFieldFixture} from 'sentry-fixture/sessions';
 import {TagsFixture} from 'sentry-fixture/tags';
@@ -25,6 +26,8 @@ import {
 } from 'sentry/views/dashboards/types';
 import type {WidgetBuilderProps} from 'sentry/views/dashboards/widgetBuilder';
 import WidgetBuilder from 'sentry/views/dashboards/widgetBuilder';
+
+import DashboardLegendEncoderDecoder from '../dashboardLegendUtils';
 
 const defaultOrgFeatures = [
   'performance-view',
@@ -75,6 +78,22 @@ function renderTestComponent({
 
   ProjectsStore.loadInitialData(projects);
 
+  const dashboardLegendUtils = new DashboardLegendEncoderDecoder({
+    location: LocationFixture(),
+    dashboard: {
+      id: 'new',
+      title: 'Dashboard',
+      createdBy: undefined,
+      dateCreated: '2020-01-01T00:00:00.000Z',
+      widgets: [],
+      projects: [],
+      filters: {},
+      ...dashboard,
+    },
+    organization,
+    router,
+  });
+
   render(
     <WidgetBuilder
       route={{}}
@@ -98,6 +117,7 @@ function renderTestComponent({
         dashboardId: dashboard?.id ?? 'new',
         ...params,
       }}
+      dashboardLegendUtils={dashboardLegendUtils}
     />,
     {
       router,

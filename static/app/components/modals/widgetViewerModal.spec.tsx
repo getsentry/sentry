@@ -15,6 +15,7 @@ import {space} from 'sentry/styles/space';
 import type {Series} from 'sentry/types/echarts';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
+import DashboardLegendEncoderDecoder from 'sentry/views/dashboards/dashboardLegendUtils';
 import type {DashboardFilters, Widget, WidgetQuery} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 
@@ -51,6 +52,20 @@ async function renderModal({
   seriesResultsType?: Record<string, AggregationOutputType>;
   tableData?: TableDataWithTitle[];
 }) {
+  const dashboardLegendUtils = new DashboardLegendEncoderDecoder({
+    location: router.location,
+    dashboard: {
+      id: 'new',
+      title: 'Dashboard',
+      createdBy: undefined,
+      dateCreated: '2020-01-01T00:00:00.000Z',
+      widgets: [widget],
+      projects: [],
+      filters: {},
+    },
+    organization,
+    router,
+  });
   const rendered = render(
     <div style={{padding: space(4)}}>
       <WidgetViewerModal
@@ -67,6 +82,7 @@ async function renderModal({
         pageLinks={pageLinks}
         seriesResultsType={seriesResultsType}
         dashboardFilters={dashboardFilters}
+        dashboardLegendUtils={dashboardLegendUtils}
       />
     </div>,
     {
@@ -341,6 +357,20 @@ describe('Modals -> WidgetViewerModal', function () {
         );
         // Need to manually set the new router location and rerender to simulate the dropdown selection click
         initialData.router.location.query = {query: ['1']};
+        const dashboardLegendUtils = new DashboardLegendEncoderDecoder({
+          location: initialData.router.location,
+          dashboard: {
+            id: 'new',
+            title: 'Dashboard',
+            createdBy: undefined,
+            dateCreated: '2020-01-01T00:00:00.000Z',
+            widgets: [mockWidget],
+            projects: [],
+            filters: {},
+          },
+          organization: initialData.organization,
+          router: initialData.router,
+        });
         rerender(
           <WidgetViewerModal
             Header={stubEl}
@@ -351,6 +381,7 @@ describe('Modals -> WidgetViewerModal', function () {
             organization={initialData.organization}
             widget={mockWidget}
             onEdit={() => undefined}
+            dashboardLegendUtils={dashboardLegendUtils}
           />
         );
         await waitForMetaToHaveBeenCalled();
@@ -370,7 +401,9 @@ describe('Modals -> WidgetViewerModal', function () {
       it('renders with first legend disabled by default', async function () {
         mockEvents();
         // Rerender with first legend disabled
-        initialData.router.location.query = {legend: [`${mockWidget.id}-Query Name`]};
+        initialData.router.location.query = {
+          unselectedSeries: [`${mockWidget.id}-Query Name`],
+        };
         await renderModal({initialData, widget: mockWidget});
         expect(ReactEchartsCore).toHaveBeenLastCalledWith(
           expect.objectContaining({
@@ -758,6 +791,20 @@ describe('Modals -> WidgetViewerModal', function () {
         );
         // Need to manually set the new router location and rerender to simulate the sortable column click
         initialData.router.location.query = {sort: '-count()'};
+        const dashboardLegendUtils = new DashboardLegendEncoderDecoder({
+          location: initialData.router.location,
+          dashboard: {
+            id: 'new',
+            title: 'Dashboard',
+            createdBy: undefined,
+            dateCreated: '2020-01-01T00:00:00.000Z',
+            widgets: [mockWidget],
+            projects: [],
+            filters: {},
+          },
+          organization: initialData.organization,
+          router: initialData.router,
+        });
         rerender(
           <WidgetViewerModal
             Header={stubEl}
@@ -768,6 +815,7 @@ describe('Modals -> WidgetViewerModal', function () {
             organization={initialData.organization}
             widget={mockWidget}
             onEdit={() => undefined}
+            dashboardLegendUtils={dashboardLegendUtils}
           />
         );
         await waitForMetaToHaveBeenCalled();
@@ -834,6 +882,21 @@ describe('Modals -> WidgetViewerModal', function () {
         );
         // Need to manually set the new router location and rerender to simulate the next page click
         initialData.router.location.query = {cursor: ['0:10:0']};
+        const dashboardLegendUtils = new DashboardLegendEncoderDecoder({
+          location: initialData.router.location,
+          dashboard: {
+            id: 'new',
+            title: 'Dashboard',
+            createdBy: undefined,
+            dateCreated: '2020-01-01T00:00:00.000Z',
+            widgets: [mockWidget],
+            projects: [],
+            filters: {},
+          },
+          organization: initialData.organization,
+          router: initialData.router,
+        });
+
         rerender(
           <WidgetViewerModal
             Header={stubEl}
@@ -844,6 +907,7 @@ describe('Modals -> WidgetViewerModal', function () {
             organization={initialData.organization}
             widget={mockWidget}
             onEdit={() => undefined}
+            dashboardLegendUtils={dashboardLegendUtils}
           />
         );
         await waitForMetaToHaveBeenCalled();
@@ -1188,6 +1252,20 @@ describe('Modals -> WidgetViewerModal', function () {
       );
       // Need to manually set the new router location and rerender to simulate the sortable column click
       initialData.router.location.query = {sort: ['freq']};
+      const dashboardLegendUtils = new DashboardLegendEncoderDecoder({
+        location: initialData.router.location,
+        dashboard: {
+          id: 'new',
+          title: 'Dashboard',
+          createdBy: undefined,
+          dateCreated: '2020-01-01T00:00:00.000Z',
+          widgets: [mockWidget],
+          projects: [],
+          filters: {},
+        },
+        organization: initialData.organization,
+        router: initialData.router,
+      });
       rerender(
         <WidgetViewerModal
           Header={stubEl}
@@ -1198,6 +1276,7 @@ describe('Modals -> WidgetViewerModal', function () {
           organization={initialData.organization}
           widget={mockWidget}
           onEdit={() => undefined}
+          dashboardLegendUtils={dashboardLegendUtils}
         />
       );
       await waitFor(() =>
@@ -1237,6 +1316,20 @@ describe('Modals -> WidgetViewerModal', function () {
       );
       // Need to manually set the new router location and rerender to simulate the next page click
       initialData.router.location.query = {cursor: ['0:10:0']};
+      const dashboardLegendUtils = new DashboardLegendEncoderDecoder({
+        location: initialData.router.location,
+        dashboard: {
+          id: 'new',
+          title: 'Dashboard',
+          createdBy: undefined,
+          dateCreated: '2020-01-01T00:00:00.000Z',
+          widgets: [mockWidget],
+          projects: [],
+          filters: {},
+        },
+        organization: initialData.organization,
+        router: initialData.router,
+      });
       rerender(
         <WidgetViewerModal
           Header={stubEl}
@@ -1247,6 +1340,7 @@ describe('Modals -> WidgetViewerModal', function () {
           organization={initialData.organization}
           widget={mockWidget}
           onEdit={() => undefined}
+          dashboardLegendUtils={dashboardLegendUtils}
         />
       );
       expect(await screen.findByText('Another Error: Failed')).toBeInTheDocument();
@@ -1393,6 +1487,20 @@ describe('Modals -> WidgetViewerModal', function () {
       );
       // Need to manually set the new router location and rerender to simulate the sortable column click
       initialData.router.location.query = {sort: '-sum(session)'};
+      const dashboardLegendUtils = new DashboardLegendEncoderDecoder({
+        location: initialData.router.location,
+        dashboard: {
+          id: 'new',
+          title: 'Dashboard',
+          createdBy: undefined,
+          dateCreated: '2020-01-01T00:00:00.000Z',
+          widgets: [mockWidget],
+          projects: [],
+          filters: {},
+        },
+        organization: initialData.organization,
+        router: initialData.router,
+      });
       rerender(
         <WidgetViewerModal
           Header={stubEl}
@@ -1405,6 +1513,7 @@ describe('Modals -> WidgetViewerModal', function () {
           onEdit={() => undefined}
           seriesData={[]}
           tableData={[]}
+          dashboardLegendUtils={dashboardLegendUtils}
         />
       );
       await waitFor(() => {

@@ -45,6 +45,7 @@ import {DiscoverSplitAlert} from 'sentry/views/dashboards/discoverSplitAlert';
 import {MetricWidgetCard} from 'sentry/views/dashboards/metrics/widgetCard';
 import {Toolbar} from 'sentry/views/dashboards/widgetCard/toolbar';
 
+import type DashboardLegendEncoderDecoder from '../dashboardLegendUtils';
 import type {DashboardFilters, Widget} from '../types';
 import {DisplayType, OnDemandExtractionState, WidgetType} from '../types';
 import {getColoredWidgetIndicator, hasThresholdMaxValue} from '../utils';
@@ -68,6 +69,7 @@ type DraggableProps = Pick<ReturnType<typeof useSortable>, 'attributes' | 'liste
 
 type Props = WithRouterProps & {
   api: Client;
+  dashboardLegendUtils: DashboardLegendEncoderDecoder;
   isEditingDashboard: boolean;
   location: Location;
   organization: Organization;
@@ -97,7 +99,6 @@ type Props = WithRouterProps & {
   showContextMenu?: boolean;
   showStoredAlert?: boolean;
   tableItemLimit?: number;
-  widgets?: Widget[];
   windowWidth?: number;
 };
 
@@ -233,7 +234,6 @@ class WidgetCard extends Component<Props, State> {
       organization,
       selection,
       widget,
-      widgets,
       isMobile,
       renderErrorMessage,
       tableItemLimit,
@@ -248,6 +248,7 @@ class WidgetCard extends Component<Props, State> {
       shouldResize,
       onLegendSelectChanged,
       legendOptions,
+      dashboardLegendUtils,
     } = this.props;
 
     if (widget.displayType === DisplayType.TOP_N) {
@@ -360,7 +361,6 @@ class WidgetCard extends Component<Props, State> {
                     organization={organization}
                     selection={selection}
                     widget={widget}
-                    widgets={widgets}
                     isMobile={isMobile}
                     renderErrorMessage={renderErrorMessage}
                     tableItemLimit={tableItemLimit}
@@ -372,6 +372,7 @@ class WidgetCard extends Component<Props, State> {
                     shouldResize={shouldResize}
                     onLegendSelectChanged={onLegendSelectChanged}
                     legendOptions={legendOptions}
+                    dashboardLegendUtils={dashboardLegendUtils}
                   />
                 ) : (
                   <LazyRender containerHeight={200} withoutContainer>
@@ -381,7 +382,6 @@ class WidgetCard extends Component<Props, State> {
                       organization={organization}
                       selection={selection}
                       widget={widget}
-                      widgets={widgets}
                       isMobile={isMobile}
                       renderErrorMessage={renderErrorMessage}
                       tableItemLimit={tableItemLimit}
@@ -393,6 +393,7 @@ class WidgetCard extends Component<Props, State> {
                       shouldResize={shouldResize}
                       onLegendSelectChanged={onLegendSelectChanged}
                       legendOptions={legendOptions}
+                      dashboardLegendUtils={dashboardLegendUtils}
                     />
                   </LazyRender>
                 )}

@@ -33,6 +33,7 @@ import withPageFilters from 'sentry/utils/withPageFilters';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 
 import AddWidget, {ADD_WIDGET_BUTTON_DRAG_ID} from './addWidget';
+import type DashboardLegendEncoderDecoder from './dashboardLegendUtils';
 import type {Position} from './layoutUtils';
 import {
   assignDefaultLayout,
@@ -76,6 +77,7 @@ export const DASHBOARD_CHART_GROUP = 'dashboard-group';
 type Props = {
   api: Client;
   dashboard: DashboardDetails;
+  dashboardLegendUtils: DashboardLegendEncoderDecoder;
   handleAddCustomWidget: (widget: Widget) => void;
   handleUpdateWidgetList: (widgets: Widget[]) => void;
   isEditingDashboard: boolean;
@@ -381,14 +383,14 @@ class Dashboard extends Component<Props, State> {
     ];
   }
 
-  renderWidget(widget: Widget, index: number, widgets: Widget[]) {
+  renderWidget(widget: Widget, index: number) {
     const {isMobile, windowWidth} = this.state;
     const {isEditingDashboard, widgetLimitReached, isPreview, dashboard, location} =
       this.props;
 
     const widgetProps = {
       widget,
-      widgets,
+      dashboardLegendUtils: this.props.dashboardLegendUtils,
       isEditingDashboard,
       widgetLimitReached,
       onDelete: this.handleDeleteWidget(widget),
@@ -555,9 +557,7 @@ class Dashboard extends Component<Props, State> {
         useCSSTransforms={false}
         isBounded
       >
-        {widgetsWithLayout.map((widget, index) =>
-          this.renderWidget(widget, index, widgetsWithLayout)
-        )}
+        {widgetsWithLayout.map((widget, index) => this.renderWidget(widget, index))}
         {(isEditingDashboard || displayInlineAddWidget) &&
           !widgetLimitReached &&
           !isPreview && (

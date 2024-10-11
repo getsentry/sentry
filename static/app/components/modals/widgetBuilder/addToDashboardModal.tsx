@@ -22,6 +22,7 @@ import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metr
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
+import DashboardLegendEncoderDecoder from 'sentry/views/dashboards/dashboardLegendUtils';
 import type {
   DashboardDetails,
   DashboardListItem,
@@ -287,6 +288,14 @@ function AddToDashboardModal({
                   widget={widget}
                   showStoredAlert
                   shouldResize={false}
+                  dashboardLegendUtils={
+                    new DashboardLegendEncoderDecoder({
+                      location,
+                      router,
+                      organization,
+                      dashboard: selectedDashboard,
+                    })
+                  }
                 />
               </MEPSettingProvider>
             )}

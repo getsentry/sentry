@@ -56,12 +56,12 @@ import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {AutoSizedText} from 'sentry/views/dashboards/widgetCard/autoSizedText';
 
 import {getFormatter} from '../../../components/charts/components/tooltip';
+import type DashboardLegendEncoderDecoder from '../dashboardLegendUtils';
 import {getDatasetConfig} from '../datasetConfig/base';
 import type {Widget} from '../types';
 import {DisplayType} from '../types';
 
 import type {GenericWidgetQueriesChildrenProps} from './genericWidgetQueries';
-import WidgetLegendFunctions from './widgetLegendUtils';
 
 const OTHER = 'Other';
 const PERCENTAGE_DECIMAL_POINTS = 3;
@@ -84,6 +84,7 @@ type WidgetCardChartProps = Pick<
   GenericWidgetQueriesChildrenProps,
   'timeseriesResults' | 'tableResults' | 'errorMessage' | 'loading'
 > & {
+  dashboardLegendUtils: DashboardLegendEncoderDecoder;
   location: Location;
   organization: Organization;
   selection: PageFilters;
@@ -348,17 +349,16 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
       );
     }
 
-    const {location, selection, onLegendSelectChanged} = this.props;
+    const {location, selection, onLegendSelectChanged, dashboardLegendUtils} = this.props;
     const {start, end, period, utc} = selection.datetime;
     const {projects, environments} = selection;
 
-    const legendFunctions = new WidgetLegendFunctions();
     const legend = {
       left: 0,
       top: 0,
       selected: getSeriesSelection(location),
       formatter: (seriesName: string) => {
-        seriesName = legendFunctions.decodeSeriesNameForLegend(seriesName);
+        seriesName = dashboardLegendUtils.decodeSeriesNameForLegend(seriesName);
         const arg = getAggregateArg(seriesName);
         if (arg !== null) {
           const slug = getMeasurementSlug(arg);
@@ -548,7 +548,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
                 // NOTE: e-charts legends control all charts that have the same series name so attaching
                 // widget id will differentiate the charts allowing them to be controlled individually
                 const modifiedReleaseSeriesResults =
-                  legendFunctions.modifyTimeseriesNames(widget, releaseSeries);
+                  dashboardLegendUtils.modifyTimeseriesNames(widget, releaseSeries);
                 return (
                   <TransitionChart loading={loading} reloading={loading}>
                     <LoadingScreen loading={loading} />

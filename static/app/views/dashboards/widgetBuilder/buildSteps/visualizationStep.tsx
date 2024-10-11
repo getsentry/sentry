@@ -20,14 +20,15 @@ import usePrevious from 'sentry/utils/usePrevious';
 import type {DashboardFilters, Widget, WidgetType} from 'sentry/views/dashboards/types';
 import {DisplayType} from 'sentry/views/dashboards/types';
 
+import type DashboardLegendEncoderDecoder from '../../dashboardLegendUtils';
 import {getDashboardFiltersFromURL} from '../../utils';
 import WidgetCard, {WidgetCardPanel} from '../../widgetCard';
-import WidgetLegendFunctions from '../../widgetCard/widgetLegendUtils';
 import {displayTypes} from '../utils';
 
 import {BuildStep} from './buildStep';
 
 interface Props {
+  dashboardLegendUtils: DashboardLegendEncoderDecoder;
   displayType: DisplayType;
   isWidgetInvalid: boolean;
   location: Location;
@@ -55,6 +56,7 @@ export function VisualizationStep({
   location,
   isWidgetInvalid,
   onWidgetSplitDecision,
+  dashboardLegendUtils,
 }: Props) {
   const [debouncedWidget, setDebouncedWidget] = useState(widget);
 
@@ -91,10 +93,9 @@ export function VisualizationStep({
     value,
   }));
 
-  const legendFunctions = new WidgetLegendFunctions();
-
   const unselectedReleasesForCharts = {
-    [legendFunctions.encodeSeriesNameForLegend('Releases', debouncedWidget.id)]: false,
+    [dashboardLegendUtils.encodeSeriesNameForLegend('Releases', debouncedWidget.id)]:
+      false,
   };
 
   return (
@@ -143,10 +144,11 @@ export function VisualizationStep({
           onLegendSelectChanged={() => {}}
           legendOptions={
             organization.features.includes('dashboards-releases-on-charts') &&
-            legendFunctions.widgetRequiresLegendUnselection(widget)
+            dashboardLegendUtils.widgetRequiresLegendUnselection(widget)
               ? {selected: unselectedReleasesForCharts}
               : undefined
           }
+          dashboardLegendUtils={dashboardLegendUtils}
         />
       </VisualizationWrapper>
     </StyledBuildStep>
