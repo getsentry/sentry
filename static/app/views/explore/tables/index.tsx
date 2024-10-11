@@ -9,7 +9,8 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useResultMode} from 'sentry/views/explore/hooks/useResultsMode';
 import {useSampleFields} from 'sentry/views/explore/hooks/useSampleFields';
-import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
+
+import {useSpanTags} from '../contexts/spanTagsContext';
 
 import {TracesTable} from './tracesTable/index';
 import {AggregatesTable} from './aggregatesTable';
@@ -40,10 +41,9 @@ function ExploreAggregatesTable() {
 
 function ExploreSamplesTable() {
   const [tab, setTab] = useState(Tab.SPAN);
-
   const [fields, setFields] = useSampleFields();
-  // TODO: This should be loaded from context to avoid loading tags twice.
-  const tags = useSpanFieldSupportedTags();
+  const numberTags = useSpanTags('number');
+  const stringTags = useSpanTags('string');
 
   const openColumnEditor = useCallback(() => {
     openModal(
@@ -52,12 +52,13 @@ function ExploreSamplesTable() {
           {...modalProps}
           columns={fields}
           onColumnsChange={setFields}
-          tags={tags}
+          stringTags={stringTags}
+          numberTags={numberTags}
         />
       ),
       {closeEvents: 'escape-key'}
     );
-  }, [fields, setFields, tags]);
+  }, [fields, setFields, stringTags, numberTags]);
 
   return (
     <Fragment>
@@ -69,12 +70,11 @@ function ExploreSamplesTable() {
           </TabList>
         </Tabs>
         <Button
-          size="sm"
           disabled={tab !== Tab.SPAN}
           onClick={openColumnEditor}
           icon={<IconTable />}
         >
-          {t('Columns')}
+          {t('Edit Table')}
         </Button>
       </SamplesTableHeader>
       {tab === Tab.SPAN && <SpansTable />}
@@ -87,5 +87,5 @@ const SamplesTableHeader = styled('div')`
   display: flex;
   flex-direction: row;
   justify-content: space-between;
-  margin-bottom: ${space(1)};
+  margin-bottom: ${space(2)};
 `;

@@ -15,11 +15,11 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
+from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.hybridcloud.rpc import coerce_id_from
 from sentry.integrations.services.integration import integration_service
 from sentry.models.commit import Commit
 from sentry.models.repository import Repository
-from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.tasks.repository import repository_cascade_delete_on_hide
 
 
@@ -74,7 +74,9 @@ class OrganizationRepositoryDetailsEndpoint(OrganizationEndpoint):
                 raise NotImplementedError
         if result.get("integrationId"):
             integration = integration_service.get_integration(
-                integration_id=result["integrationId"], organization_id=coerce_id_from(organization)
+                integration_id=result["integrationId"],
+                organization_id=coerce_id_from(organization),
+                status=ObjectStatus.ACTIVE,
             )
             if integration is None:
                 return Response({"detail": "Invalid integration id"}, status=400)

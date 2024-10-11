@@ -19,12 +19,12 @@ import Text from 'sentry/components/text';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useUser} from 'sentry/utils/useUser';
 import {QuickContextHovercard} from 'sentry/views/discover/table/quickContext/quickContextHovercard';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
 import type {CheckIn, Monitor, MonitorEnvironment} from 'sentry/views/monitors/types';
@@ -49,6 +49,7 @@ export const checkStatusToIndicatorStatus: Record<
 };
 
 function MonitorCheckIns({monitor, monitorEnvs, orgSlug}: Props) {
+  const user = useUser();
   const location = useLocation();
   const organization = useOrganization();
   const queryKey = [
@@ -95,8 +96,7 @@ function MonitorCheckIns({monitor, monitorEnvs, orgSlug}: Props) {
   ];
 
   const customTimezone =
-    monitor.config.timezone &&
-    monitor.config.timezone !== ConfigStore.get('user').options.timezone;
+    monitor.config.timezone && monitor.config.timezone !== user.options.timezone;
 
   return (
     <Fragment>

@@ -82,7 +82,7 @@ function EventEntries({
       )}
       {!isShare && isNotSharedOrganization(organization) && (
         <SuspectCommits
-          project={project}
+          projectSlug={project.slug}
           eventId={event.id}
           group={group}
           commitRow={CommitRow}
@@ -117,7 +117,7 @@ function EventEntries({
       <EventPackageData event={event} />
       <EventDevice event={event} />
       {!isShare && <EventViewHierarchy event={event} project={project} />}
-      {!isShare && <EventAttachments event={event} projectSlug={projectSlug} />}
+      {!isShare && <EventAttachments event={event} project={project} group={group} />}
       <EventSdk sdk={event.sdk} meta={event._meta?.sdk} />
       {event.type === EventOrGroupType.TRANSACTION && event._metrics_summary && (
         <CustomMetricsEventData

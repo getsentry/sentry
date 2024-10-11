@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Access from 'sentry/components/acl/access';
-import {Role} from 'sentry/components/acl/role';
+import {useRole} from 'sentry/components/acl/useRole';
 import MenuItemActionLink from 'sentry/components/actions/menuItemActionLink';
 import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -45,6 +45,7 @@ function Actions({
 }: Props) {
   const {download, location: debugFileId} = candidate;
   const {status} = download;
+  const {hasRole} = useRole({role: 'debugFilesRole'});
 
   if (!debugFileId || !isInternalSource) {
     return null;
@@ -54,82 +55,78 @@ function Actions({
   const downloadUrl = `${baseUrl}/projects/${organization.slug}/${projSlug}/files/dsyms/?id=${debugFileId}`;
 
   const actions = (
-    <Role role={organization.debugFilesRole} organization={organization}>
-      {({hasRole}) => (
-        <Access access={['project:write']}>
-          {({hasAccess}) => (
-            <Fragment>
-              <StyledDropdownLink
-                caret={false}
-                customTitle={
-                  <Button
-                    size="xs"
-                    aria-label={t('Actions')}
-                    disabled={deleted}
-                    icon={<IconEllipsis />}
-                  />
-                }
-                anchorRight
+    <Access access={['project:write']}>
+      {({hasAccess}) => (
+        <Fragment>
+          <StyledDropdownLink
+            caret={false}
+            customTitle={
+              <Button
+                size="xs"
+                aria-label={t('Actions')}
+                disabled={deleted}
+                icon={<IconEllipsis />}
+              />
+            }
+            anchorRight
+          >
+            <Tooltip disabled={hasRole} title={noPermissionToDownloadDebugFilesInfo}>
+              <MenuItemActionLink
+                shouldConfirm={false}
+                icon={<IconDownload size="xs" />}
+                href={downloadUrl}
+                onClick={event => {
+                  if (deleted) {
+                    event.preventDefault();
+                  }
+                }}
+                disabled={!hasRole || deleted}
               >
-                <Tooltip disabled={hasRole} title={noPermissionToDownloadDebugFilesInfo}>
-                  <MenuItemActionLink
-                    shouldConfirm={false}
-                    icon={<IconDownload size="xs" />}
-                    href={downloadUrl}
-                    onClick={event => {
-                      if (deleted) {
-                        event.preventDefault();
-                      }
-                    }}
-                    disabled={!hasRole || deleted}
-                  >
-                    {t('Download')}
-                  </MenuItemActionLink>
-                </Tooltip>
-                <Tooltip disabled={hasAccess} title={noPermissionToDeleteDebugFilesInfo}>
-                  <MenuItemActionLink
-                    onAction={() => onDelete(debugFileId)}
-                    message={debugFileDeleteConfirmationInfo}
-                    disabled={!hasAccess || deleted}
-                    shouldConfirm
-                  >
-                    {t('Delete')}
-                  </MenuItemActionLink>
-                </Tooltip>
-              </StyledDropdownLink>
-              <StyledButtonBar gap={1}>
-                <Tooltip disabled={hasRole} title={noPermissionToDownloadDebugFilesInfo}>
-                  <LinkButton
-                    size="xs"
-                    icon={<IconDownload />}
-                    href={downloadUrl}
-                    disabled={!hasRole}
-                  >
-                    {t('Download')}
-                  </LinkButton>
-                </Tooltip>
-                <Tooltip disabled={hasAccess} title={noPermissionToDeleteDebugFilesInfo}>
-                  <Confirm
-                    confirmText={t('Delete')}
-                    message={debugFileDeleteConfirmationInfo}
-                    onConfirm={() => onDelete(debugFileId)}
-                    disabled={!hasAccess}
-                  >
-                    <Button
-                      priority="danger"
-                      icon={<IconDelete />}
-                      size="xs"
-                      disabled={!hasAccess}
-                      aria-label={t('Delete')}
-                    />
-                  </Confirm>
-                </Tooltip>
-              </StyledButtonBar>
-            </Fragment>
-          )}
-        </Access>
+                {t('Download')}
+              </MenuItemActionLink>
+            </Tooltip>
+            <Tooltip disabled={hasAccess} title={noPermissionToDeleteDebugFilesInfo}>
+              <MenuItemActionLink
+                onAction={() => onDelete(debugFileId)}
+                message={debugFileDeleteConfirmationInfo}
+                disabled={!hasAccess || deleted}
+                shouldConfirm
+              >
+                {t('Delete')}
+              </MenuItemActionLink>
+            </Tooltip>
+          </StyledDropdownLink>
+          <StyledButtonBar gap={1}>
+            <Tooltip disabled={hasRole} title={noPermissionToDownloadDebugFilesInfo}>
+              <LinkButton
+                size="xs"
+                icon={<IconDownload />}
+                href={downloadUrl}
+                disabled={!hasRole}
+              >
+                {t('Download')}
+              </LinkButton>
+            </Tooltip>
+            <Tooltip disabled={hasAccess} title={noPermissionToDeleteDebugFilesInfo}>
+              <Confirm
+                confirmText={t('Delete')}
+                message={debugFileDeleteConfirmationInfo}
+                onConfirm={() => onDelete(debugFileId)}
+                disabled={!hasAccess}
+              >
+                <Button
+                  priority="danger"
+                  icon={<IconDelete />}
+                  size="xs"
+                  disabled={!hasAccess}
+                  aria-label={t('Delete')}
+                />
+              </Confirm>
+            </Tooltip>
+          </StyledButtonBar>
+        </Fragment>
       )}
-    </Role>
+    </Access>
   );
 
   if (!deleted) {

@@ -1,7 +1,7 @@
 from sentry import audit_log
 from sentry.audit_log.services.log.service import log_rpc_service
+from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.models.deletedteam import DeletedTeam
-from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.models.team import Team, TeamStatus
 from sentry.slug.errors import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.testutils.cases import APITestCase
@@ -203,6 +203,15 @@ class TeamUpdateTest(TeamDetailsTestBase):
         assert team.name == "foo"
         assert team.slug == "bar"
 
+    def test_cannot_modify_idp_provisioned_teams(self):
+        org = self.create_organization(owner=self.user)
+        idp_team = self.create_team(organization=org, idp_provisioned=True)
+
+        self.login_as(self.user)
+        self.get_error_response(
+            idp_team.organization.slug, idp_team.slug, name="foo", slug="bar", status_code=403
+        )
+
 
 class TeamDeleteTest(TeamDetailsTestBase):
     method = "delete"
@@ -320,3 +329,14 @@ class TeamDeleteTest(TeamDetailsTestBase):
 
         team.refresh_from_db()
         self.assert_team_deleted(team.id)
+
+    def test_cannot_delete_idp_provisioned_teams(self):
+        org = self.create_organization(owner=self.user)
+        idp_team = self.create_team(organization=org, idp_provisioned=True)
+
+        self.login_as(self.user)
+        with outbox_runner():
+            self.get_error_response(
+                idp_team.organization.slug, idp_team.slug, name="foo", slug="bar", status_code=403
+            )
+        self.assert_team_not_deleted(idp_team.id)

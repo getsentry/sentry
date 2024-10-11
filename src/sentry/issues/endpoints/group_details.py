@@ -22,7 +22,6 @@ from sentry.api.helpers.group_index import (
 )
 from sentry.api.serializers import GroupSerializer, GroupSerializerSnuba, serialize
 from sentry.api.serializers.models.group_stream import get_actions, get_available_issue_plugins
-from sentry.api.serializers.models.platformexternalissue import PlatformExternalIssueSerializer
 from sentry.api.serializers.models.plugin import PluginSerializer
 from sentry.api.serializers.models.team import TeamSerializer
 from sentry.integrations.api.serializers.models.external_issue import ExternalIssueSerializer
@@ -38,10 +37,13 @@ from sentry.models.grouplink import GroupLink
 from sentry.models.groupowner import get_owner_details
 from sentry.models.groupseen import GroupSeen
 from sentry.models.groupsubscription import GroupSubscriptionManager
-from sentry.models.platformexternalissue import PlatformExternalIssue
 from sentry.models.team import Team
 from sentry.models.userreport import UserReport
 from sentry.plugins.base import plugins
+from sentry.sentry_apps.api.serializers.platform_external_issue import (
+    PlatformExternalIssueSerializer,
+)
+from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
 from sentry.tasks.post_process import fetch_buffered_group_stats
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.users.services.user.service import user_service
@@ -382,7 +384,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             )
             return Response(e.body, status=e.status_code)
 
-    def delete(self, request: Request, group) -> Response:
+    def delete(self, request: Request, group: Group) -> Response:
         """
         Remove an Issue
         ```````````````
@@ -394,7 +396,11 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         """
         from sentry.utils import snuba
 
-        if group.issue_category != GroupCategory.ERROR:
+        issue_platform_deletion_allowed = features.has(
+            "organizations:issue-platform-deletion", group.project.organization, actor=request.user
+        )
+
+        if group.issue_category != GroupCategory.ERROR and not issue_platform_deletion_allowed:
             raise ValidationError(detail="Only error issues can be deleted.")
 
         try:

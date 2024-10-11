@@ -30,7 +30,7 @@ def process_pending() -> None:
 
     try:
         with lock.acquire():
-            buffer.process_pending()
+            buffer.backend.process_pending()
     except UnableToAcquireLock as error:
         logger.warning("process_pending.fail", extra={"error": error})
 
@@ -48,7 +48,7 @@ def process_pending_batch() -> None:
 
     try:
         with lock.acquire():
-            buffer.process_batch()
+            buffer.backend.process_batch()
     except UnableToAcquireLock as error:
         logger.warning("process_pending_batch.fail", extra={"error": error})
 
@@ -62,14 +62,15 @@ def process_incr(**kwargs):
 
     sentry_sdk.set_tag("model", kwargs.get("model", "Unknown"))
 
-    buffer.process(**kwargs)
+    buffer.backend.process(**kwargs)
 
 
 def buffer_incr(model, *args, **kwargs):
     """
-    Call `buffer.incr` task, resolving the model name first.
+    Call `buffer.incr` as a task on the given model, either directly or via celery depending on
+    `settings.SENTRY_BUFFER_INCR_AS_CELERY_TASK`.
 
-    `model_name` must be in form `app_label.model_name` e.g. `sentry.group`.
+    See `Buffer.incr` for an explanation of the args and kwargs to pass here.
     """
     (buffer_incr_task.delay if settings.SENTRY_BUFFER_INCR_AS_CELERY_TASK else buffer_incr_task)(
         app_label=model._meta.app_label, model_name=model._meta.model_name, args=args, kwargs=kwargs
@@ -83,9 +84,11 @@ def buffer_incr(model, *args, **kwargs):
 def buffer_incr_task(app_label, model_name, args, kwargs):
     """
     Call `buffer.incr`, resolving the model first.
+
+    `model_name` must be in form `app_label.model_name` e.g. `sentry.group`.
     """
     from sentry import buffer
 
     sentry_sdk.set_tag("model", model_name)
 
-    buffer.incr(apps.get_model(app_label=app_label, model_name=model_name), *args, **kwargs)
+    buffer.backend.incr(apps.get_model(app_label=app_label, model_name=model_name), *args, **kwargs)

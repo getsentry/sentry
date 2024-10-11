@@ -1,6 +1,7 @@
-import {Fragment, useMemo, useRef} from 'react';
+import {Fragment, useMemo} from 'react';
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {VisuallyHidden} from '@react-aria/visually-hidden';
 
 import bannerStar from 'sentry-images/spot/banner-star.svg';
 
@@ -11,11 +12,11 @@ import {Chevron} from 'sentry/components/chevron';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {DropdownMenuFooter} from 'sentry/components/dropdownMenu/footer';
-import useFeedbackWidget from 'sentry/components/feedback/widget/useFeedbackWidget';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import Placeholder from 'sentry/components/placeholder';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconClose} from 'sentry/icons';
+import {IconCellSignal} from 'sentry/icons/iconCellSignal';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Activity} from 'sentry/types/group';
@@ -35,6 +36,8 @@ type GroupPriorityDropdownProps = {
 type GroupPriorityBadgeProps = {
   priority: PriorityLevel;
   children?: React.ReactNode;
+  showLabel?: boolean;
+  variant?: 'default' | 'signal';
 };
 
 const PRIORITY_KEY_TO_LABEL: Record<PriorityLevel, string> = {
@@ -86,21 +89,40 @@ function useLastEditedBy({
 
 export function makeGroupPriorityDropdownOptions({
   onChange,
+  hasIssueStreamTableLayout,
 }: {
+  hasIssueStreamTableLayout: boolean;
   onChange: (value: PriorityLevel) => void;
 }) {
   return PRIORITY_OPTIONS.map(priority => ({
     textValue: PRIORITY_KEY_TO_LABEL[priority],
     key: priority,
-    label: <GroupPriorityBadge priority={priority} />,
+    label: (
+      <GroupPriorityBadge
+        variant={hasIssueStreamTableLayout ? 'signal' : 'default'}
+        priority={priority}
+      />
+    ),
     onAction: () => onChange(priority),
   }));
 }
 
-export function GroupPriorityBadge({priority, children}: GroupPriorityBadgeProps) {
+export function GroupPriorityBadge({
+  priority,
+  showLabel = true,
+  variant = 'default',
+  children,
+}: GroupPriorityBadgeProps) {
+  const bars =
+    priority === PriorityLevel.HIGH ? 3 : priority === PriorityLevel.MEDIUM ? 2 : 1;
+  const label = PRIORITY_KEY_TO_LABEL[priority] ?? t('Unknown');
+
   return (
-    <StyledTag type={getTagTypeForPriority(priority)}>
-      {PRIORITY_KEY_TO_LABEL[priority] ?? t('Unknown')}
+    <StyledTag
+      type={variant === 'signal' ? 'default' : getTagTypeForPriority(priority)}
+      icon={variant === 'signal' && <IconCellSignal bars={bars} />}
+    >
+      {showLabel ? label : <VisuallyHidden>{label}</VisuallyHidden>}
       {children}
     </StyledTag>
   );
@@ -124,29 +146,6 @@ function PriorityChangeActor({
     <Tooltip skipWrapper title={resolvedLastEditedBy.name}>
       <span>{resolvedLastEditedBy.name}</span>
     </Tooltip>
-  );
-}
-
-function GroupPriorityFeedback() {
-  const buttonRef = useRef<HTMLButtonElement>(null);
-  const feedback = useFeedbackWidget({
-    buttonRef,
-    messagePlaceholder: t('How can we make priority better for you?'),
-  });
-
-  if (!feedback) {
-    return null;
-  }
-
-  return (
-    <StyledButton
-      ref={buttonRef}
-      size="zero"
-      borderless
-      onClick={e => e.stopPropagation()}
-    >
-      {t('Give Feedback')}
-    </StyledButton>
   );
 }
 
@@ -179,9 +178,13 @@ function GroupPriorityLearnMore() {
         <strong>{t('Time to prioritize!')}</strong>
       </p>
       <p>
-        {t(
-          'Use priority to make your issue stream more actionable. Sentry will automatically assign a priority score to new issues and filter low priority issues from the default view.'
-        )}
+        {organization.features.includes('issue-stream-custom-views')
+          ? t(
+              'Use priority to make your issue stream more actionable. Sentry will automatically assign a priority score to new issues.'
+            )
+          : t(
+              'Use priority to make your issue stream more actionable. Sentry will automatically assign a priority score to new issues and filter low priority issues from the default view.'
+            )}
       </p>
       <LinkButton
         href="https://docs.sentry.io/product/issues/issue-priority/"
@@ -207,9 +210,14 @@ export function GroupPriorityDropdown({
   onChange,
   lastEditedBy,
 }: GroupPriorityDropdownProps) {
+  const organization = useOrganization();
+  const hasIssueStreamTableLayout = organization.features.includes(
+    'issue-stream-table-layout'
+  );
+
   const options: MenuItemProps[] = useMemo(
-    () => makeGroupPriorityDropdownOptions({onChange}),
-    [onChange]
+    () => makeGroupPriorityDropdownOptions({onChange, hasIssueStreamTableLayout}),
+    [onChange, hasIssueStreamTableLayout]
   );
 
   return (
@@ -218,7 +226,6 @@ export function GroupPriorityDropdown({
       menuTitle={
         <MenuTitleContainer>
           <div>{t('Set Priority')}</div>
-          <GroupPriorityFeedback />
         </MenuTitleContainer>
       }
       minMenuWidth={230}
@@ -228,8 +235,12 @@ export function GroupPriorityDropdown({
           aria-label={t('Modify issue priority')}
           size="zero"
         >
-          <GroupPriorityBadge priority={value}>
-            <Chevron direction={isOpen ? 'up' : 'down'} size="small" />
+          <GroupPriorityBadge
+            showLabel={!hasIssueStreamTableLayout}
+            variant={hasIssueStreamTableLayout ? 'signal' : 'default'}
+            priority={value}
+          >
+            <Chevron light direction={isOpen ? 'up' : 'down'} size="small" />
           </GroupPriorityBadge>
         </DropdownButton>
       )}
@@ -287,18 +298,6 @@ const MenuTitleContainer = styled('div')`
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-`;
-
-const StyledButton = styled(Button)`
-  font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.subText};
-  font-weight: ${p => p.theme.fontWeightNormal};
-  padding: 0;
-  border: none;
-
-  &:hover {
-    color: ${p => p.theme.subText};
-  }
 `;
 
 const StyledFooter = styled(DropdownMenuFooter)`

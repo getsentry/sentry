@@ -370,7 +370,7 @@ def generate_incident_trigger_email_context(
     threshold: None | str | float = None
     if alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC:
         threshold_prefix_string = alert_rule.detection_type.title()
-        threshold = f"({alert_rule.sensitivity} sensitivity)"
+        threshold = f"({alert_rule.sensitivity} responsiveness)"
         alert_link_params["type"] = "anomaly_detection"
     else:
         threshold_prefix_string = ">" if show_greater_than_string else "<"

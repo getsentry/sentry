@@ -11,7 +11,12 @@ interface Options {
   navigate: ReturnType<typeof useNavigate>;
 }
 
-export function useGroupBys(): [Field[], (fields: Field[]) => void] {
+type GroupBysResult = {
+  groupBys: Field[];
+  setGroupBys: (fields: Field[]) => void;
+};
+
+export function useGroupBys(): GroupBysResult {
   const location = useLocation();
   const navigate = useNavigate();
   const options = {location, navigate};
@@ -19,10 +24,7 @@ export function useGroupBys(): [Field[], (fields: Field[]) => void] {
   return useGroupBysImpl(options);
 }
 
-function useGroupBysImpl({
-  location,
-  navigate,
-}: Options): [Field[], (fields: Field[]) => void] {
+function useGroupBysImpl({location, navigate}: Options): GroupBysResult {
   const groupBys = useMemo(() => {
     const rawGroupBys = decodeList(location.query.groupBy);
 
@@ -46,5 +48,8 @@ function useGroupBysImpl({
     [location, navigate]
   );
 
-  return [groupBys, setGroupBys];
+  return {
+    groupBys,
+    setGroupBys,
+  };
 }

@@ -35,6 +35,14 @@ class DatabaseBackedProjectService(ProjectService):
             return serialize_project(project)
         return None
 
+    def get_by_slug(self, *, organization_id: int, slug: str) -> RpcProject | None:
+        project: Project | None = Project.objects.filter(
+            slug=slug, organization=organization_id
+        ).first()
+        if project:
+            return serialize_project(project)
+        return None
+
     def get_many_by_organizations(
         self,
         *,

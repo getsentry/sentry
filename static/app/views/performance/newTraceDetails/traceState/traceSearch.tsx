@@ -1,9 +1,7 @@
-import type {
-  TraceTree,
-  TraceTreeNode,
-} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceSearchResult} from 'sentry/views/performance/newTraceDetails/traceSearch/traceSearchEvaluator';
-import {traceReducerExhaustiveActionCheck} from 'sentry/views/performance/newTraceDetails/traceState';
+import type {TraceTree} from '../traceModels/traceTree';
+import type {TraceTreeNode} from '../traceModels/traceTreeNode';
+import type {TraceSearchResult} from '../traceSearch/traceSearchEvaluator';
+import {traceReducerExhaustiveActionCheck} from '../traceState';
 
 export type TraceSearchAction =
   | {query: string | undefined; type: 'set query'}
@@ -100,7 +98,9 @@ export function traceSearchReducer(
           node: state.results[0].value,
         };
       }
-      if (!state.results) return state;
+      if (!state.results) {
+        return state;
+      }
 
       let next = state.resultIteratorIndex + 1;
       if (next > state.results.length - 1) {
@@ -127,7 +127,9 @@ export function traceSearchReducer(
           node: state.results[state.results.length - 1].value,
         };
       }
-      if (!state.results) return state;
+      if (!state.results) {
+        return state;
+      }
 
       let previous = state.resultIteratorIndex - 1;
       if (previous < 0) {

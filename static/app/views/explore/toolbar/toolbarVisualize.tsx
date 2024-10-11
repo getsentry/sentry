@@ -2,29 +2,27 @@ import {Fragment, useCallback, useMemo} from 'react';
 
 import {Button} from 'sentry/components/button';
 import {CompactSelect, type SelectOption} from 'sentry/components/compactSelect';
+import {IconAdd} from 'sentry/icons';
 import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import type {ParsedFunction} from 'sentry/utils/discover/fields';
 import {parseFunction} from 'sentry/utils/discover/fields';
-import {
-  ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
-  ALLOWED_EXPLORE_VISUALIZE_FIELDS,
-} from 'sentry/utils/fields';
+import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
+import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import type {Visualize} from 'sentry/views/explore/hooks/useVisualizes';
 import {
   DEFAULT_VISUALIZATION,
   useVisualizes,
 } from 'sentry/views/explore/hooks/useVisualizes';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
-import type {SpanIndexedField} from 'sentry/views/insights/types';
 
 import {
   ToolbarFooter,
   ToolbarFooterButton,
   ToolbarHeader,
   ToolbarHeaderButton,
-  ToolbarHeading,
+  ToolbarLabel,
   ToolbarRow,
   ToolbarSection,
 } from './styles';
@@ -34,27 +32,47 @@ interface ToolbarVisualizeProps {}
 export function ToolbarVisualize({}: ToolbarVisualizeProps) {
   const [visualizes, setVisualizes] = useVisualizes();
 
+  const numberTags = useSpanTags('number');
+
   const parsedVisualizeGroups: ParsedFunction[][] = useMemo(() => {
     return visualizes.map(visualize =>
       visualize.yAxes.map(parseFunction).filter(defined)
     );
   }, [visualizes]);
 
-  const fieldOptions: SelectOption<SpanIndexedField>[] =
-    ALLOWED_EXPLORE_VISUALIZE_FIELDS.map(field => {
+  const fieldOptions: SelectOption<string>[] = useMemo(() => {
+    const options = Object.values(numberTags).map(tag => {
       return {
-        label: field,
-        value: field,
+        label: tag.name,
+        value: tag.key,
+        textValue: tag.name,
       };
     });
 
-  const aggregateOptions: SelectOption<string>[] =
-    ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.map(aggregate => {
+    options.sort((a, b) => {
+      if (a.label < b.label) {
+        return -1;
+      }
+
+      if (a.label > b.label) {
+        return 1;
+      }
+
+      return 0;
+    });
+
+    return options;
+  }, [numberTags]);
+
+  const aggregateOptions: SelectOption<string>[] = useMemo(() => {
+    return ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.map(aggregate => {
       return {
         label: aggregate,
         value: aggregate,
+        textValue: aggregate,
       };
     });
+  }, []);
 
   const addChart = useCallback(() => {
     setVisualizes([
@@ -119,10 +137,14 @@ export function ToolbarVisualize({}: ToolbarVisualizeProps) {
   return (
     <ToolbarSection data-test-id="section-visualizes">
       <ToolbarHeader>
-        <ToolbarHeading>{t('Visualize')}</ToolbarHeading>
-        <ToolbarHeaderButton size="xs" onClick={addChart} borderless>
-          {t('+Add Chart')}
-        </ToolbarHeaderButton>
+        <ToolbarLabel>{t('Visualize')}</ToolbarLabel>
+        <ToolbarHeaderButton
+          size="zero"
+          icon={<IconAdd />}
+          onClick={addChart}
+          aria-label={t('Add Chart')}
+          borderless
+        />
       </ToolbarHeader>
       <div>
         {parsedVisualizeGroups.map((parsedVisualizeGroup, group) => {
@@ -131,13 +153,12 @@ export function ToolbarVisualize({}: ToolbarVisualizeProps) {
               {parsedVisualizeGroup.map((parsedVisualize, index) => (
                 <ToolbarRow key={index}>
                   <CompactSelect
-                    size="sm"
+                    searchable
                     options={fieldOptions}
                     value={parsedVisualize.arguments[0]}
                     onChange={newField => setChartField(group, index, newField)}
                   />
                   <CompactSelect
-                    size="sm"
                     options={aggregateOptions}
                     value={parsedVisualize?.name}
                     onChange={newAggregate =>
@@ -150,17 +171,20 @@ export function ToolbarVisualize({}: ToolbarVisualizeProps) {
                     size="zero"
                     disabled={lastVisualization}
                     onClick={() => deleteOverlay(group, index)}
-                    aria-label={t('Remove')}
+                    aria-label={t('Remove Overlay')}
                   />
                 </ToolbarRow>
               ))}
               <ToolbarFooter>
                 <ToolbarFooterButton
-                  size="xs"
-                  onClick={() => addOverlay(group)}
                   borderless
+                  size="zero"
+                  icon={<IconAdd />}
+                  onClick={() => addOverlay(group)}
+                  priority="link"
+                  aria-label={t('Add Overlay')}
                 >
-                  {t('+Add Overlay')}
+                  {t('Add Overlay')}
                 </ToolbarFooterButton>
               </ToolbarFooter>
             </Fragment>

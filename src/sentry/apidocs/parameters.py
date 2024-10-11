@@ -95,7 +95,8 @@ class EnvironmentParams:
         location="query",
         required=False,
         type=str,
-        description="""The visibility of the environments to filter by. The options are: `all`, `hidden`, `visible`. Defaults to `visible`.""",
+        description="""The visibility of the environments to filter by. Defaults to `visible`.""",
+        enum=["all", "hidden", "visible"],
     )
 
 
@@ -250,6 +251,23 @@ class SCIMParams:
         required=True,
         type=int,
         description="The ID of the team you'd like to query / update.",
+    )
+
+
+class IssueParams:
+    ISSUES_OR_GROUPS = OpenApiParameter(
+        name="var",
+        location="path",
+        required=False,
+        type=str,
+        description="Issue URLs may be accessed with either `issues` or `groups`. This parameter is will be removed when building the API docs.",
+    )
+    ISSUE_ID = OpenApiParameter(
+        name="issue_id",
+        location="path",
+        required=True,
+        type=int,
+        description="The ID of the issue you'd like to query.",
     )
 
 

@@ -1,9 +1,11 @@
 import {useContext, useEffect, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {motion} from 'framer-motion';
 
 import {GrowingInput} from 'sentry/components/growingInput';
 import {TabsContext} from 'sentry/components/tabs';
+import {Tooltip} from 'sentry/components/tooltip';
 
 interface EditableTabTitleProps {
   isEditing: boolean;
@@ -74,6 +76,7 @@ function EditableTabTitle({
     if (isEditing) {
       requestAnimationFrame(() => {
         inputRef.current?.focus();
+        inputRef.current?.select();
       });
     } else {
       inputRef.current?.blur();
@@ -84,42 +87,84 @@ function EditableTabTitle({
     setInputValue(e.target.value);
   };
 
-  return isSelected ? (
-    <StyledGrowingInput
-      value={inputValue}
-      onChange={handleOnChange}
-      onKeyDown={handleOnKeyDown}
-      onDoubleClick={() => isSelected && setIsEditing(true)}
-      onBlur={handleOnBlur}
-      ref={inputRef}
-      style={memoizedStyles}
-      isEditing={isEditing}
-      onFocus={e => e.target.select()}
-      onPointerDown={e => {
-        e.stopPropagation();
-      }}
-      onMouseDown={e => {
-        e.stopPropagation();
-      }}
-    />
-  ) : (
-    <div style={{height: '20px'}}>{label}</div>
+  return (
+    <Tooltip title={label} disabled={isEditing} showOnlyOnOverflow skipWrapper>
+      <motion.div layout="position" transition={{duration: 0.2}}>
+        {isSelected && isEditing ? (
+          <StyledGrowingInput
+            value={inputValue}
+            onChange={handleOnChange}
+            onKeyDown={handleOnKeyDown}
+            onBlur={handleOnBlur}
+            ref={inputRef}
+            style={memoizedStyles}
+            isEditing={isEditing}
+            maxLength={128}
+            onPointerDown={e => {
+              e.stopPropagation();
+              if (!isEditing) {
+                e.preventDefault();
+              }
+            }}
+            onMouseDown={e => {
+              e.stopPropagation();
+              if (!isEditing) {
+                e.preventDefault();
+              }
+            }}
+          />
+        ) : (
+          <UnselectedTabTitle
+            onDoubleClick={() => setIsEditing(true)}
+            onPointerDown={e => {
+              if (isSelected) {
+                e.stopPropagation();
+                e.preventDefault();
+              }
+            }}
+            onMouseDown={e => {
+              if (isSelected) {
+                e.stopPropagation();
+                e.preventDefault();
+              }
+            }}
+            isSelected={isSelected}
+          >
+            {label}
+          </UnselectedTabTitle>
+        )}
+      </motion.div>
+    </Tooltip>
   );
 }
 
 export default EditableTabTitle;
+
+const UnselectedTabTitle = styled('div')<{isSelected: boolean}>`
+  height: 20px;
+  max-width: ${p => (p.isSelected ? '325px' : '310px')};
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding-right: 1px;
+  cursor: pointer;
+  font-weight: ${p => (p.isSelected ? 'bold' : 'normal')};
+`;
 
 const StyledGrowingInput = styled(GrowingInput)<{
   isEditing: boolean;
 }>`
   position: relative;
   border: none;
+  margin: 0;
   padding: 0;
   background: transparent;
   min-height: 0px;
   height: 20px;
   border-radius: 0px;
-  cursor: ${p => (p.isEditing ? 'text' : 'pointer')};
+  text-overflow: ellipsis;
+  cursor: text;
+  max-width: 325px;
 
   &,
   &:focus,

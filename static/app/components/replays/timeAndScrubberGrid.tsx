@@ -19,10 +19,11 @@ import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPref
 
 type TimeAndScrubberGridProps = {
   isCompact?: boolean;
+  isLoading?: boolean;
   showZoom?: boolean;
 };
 
-function TimelineSizeBar() {
+function TimelineSizeBar({isLoading}: {isLoading?: boolean}) {
   const {replay} = useReplayContext();
   const [timelineScale, setTimelineScale] = useTimelineScale();
   const durationMs = replay?.getDurationMs();
@@ -37,7 +38,7 @@ function TimelineSizeBar() {
         borderless
         onClick={() => setTimelineScale(Math.max(timelineScale - 1, 1))}
         aria-label={t('Zoom out')}
-        disabled={timelineScale === 1}
+        disabled={timelineScale === 1 || isLoading}
       />
       <Numeric>
         {timelineScale}
@@ -50,7 +51,7 @@ function TimelineSizeBar() {
         borderless
         onClick={() => setTimelineScale(Math.min(timelineScale + 1, maxScale))}
         aria-label={t('Zoom in')}
-        disabled={timelineScale === maxScale}
+        disabled={timelineScale === maxScale || isLoading}
       />
     </ButtonBar>
   );
@@ -59,6 +60,7 @@ function TimelineSizeBar() {
 export default function TimeAndScrubberGrid({
   isCompact = false,
   showZoom = false,
+  isLoading,
 }: TimeAndScrubberGridProps) {
   const {currentTime, replay} = useReplayContext();
   const [prefs] = useReplayPrefs();
@@ -83,7 +85,7 @@ export default function TimeAndScrubberGrid({
           <ReplayTimeline />
         </div>
         <TimelineSize style={{gridArea: 'timelineSize'}}>
-          {showZoom ? <TimelineSizeBar /> : null}
+          {showZoom ? <TimelineSizeBar isLoading={isLoading} /> : null}
         </TimelineSize>
         <StyledScrubber style={{gridArea: 'scrubber'}} ref={elem} {...mouseTrackingProps}>
           <PlayerScrubber showZoomIndicators={showZoom} />

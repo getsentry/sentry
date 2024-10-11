@@ -88,7 +88,7 @@ export default function FeedbackListPage({}: Props) {
                     <Container style={{gridArea: 'list'}}>
                       <FeedbackList />
                     </Container>
-                    <FeedbackSearch style={{gridArea: 'search'}} />
+                    <FeedbackSearch />
                     <Container style={{gridArea: 'details'}}>
                       <FeedbackItemLoader />
                     </Container>

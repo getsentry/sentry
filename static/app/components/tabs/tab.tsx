@@ -1,5 +1,5 @@
 import {forwardRef, useCallback} from 'react';
-import type {Theme} from '@emotion/react';
+import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {AriaTabProps} from '@react-aria/tabs';
 import {useTab} from '@react-aria/tabs';
@@ -288,27 +288,26 @@ const innerWrapStyles = ({
 }: {
   orientation: Orientation;
   theme: Theme;
-}) => `
+}) => css`
   display: flex;
   align-items: center;
   position: relative;
   height: calc(
-    ${theme.form.sm.height}px +
-      ${orientation === 'horizontal' ? space(0.75) : '0px'}
+    ${theme.form.sm.height}px + ${orientation === 'horizontal' ? space(0.75) : '0px'}
   );
   border-radius: ${theme.borderRadius};
   transform: translateY(1px);
 
-  ${
-    orientation === 'horizontal'
-      ? `
+  ${orientation === 'horizontal'
+    ? css`
         /* Extra padding + negative margin trick, to expand click area */
         padding: ${space(0.75)} ${space(1)} ${space(1.5)};
         margin-left: -${space(1)};
         margin-right: -${space(1)};
       `
-      : `padding: ${space(0.75)} ${space(2)};`
-  };
+    : css`
+        padding: ${space(0.75)} ${space(2)};
+      `};
 `;
 
 const TabLink = styled(Link)<{orientation: Orientation}>`

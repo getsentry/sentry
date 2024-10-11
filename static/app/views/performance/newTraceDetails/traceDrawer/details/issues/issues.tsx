@@ -23,11 +23,9 @@ import type {
   TracePerformanceIssue,
 } from 'sentry/utils/performance/quickTrace/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import type {
-  TraceTree,
-  TraceTreeNode,
-} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 
+import type {TraceTree} from '../../../traceModels/traceTree';
+import type {TraceTreeNode} from '../../../traceModels/traceTreeNode';
 import {TraceDrawerComponents} from '../styles';
 
 import {IssueSummary} from './issueSummary';
@@ -69,6 +67,7 @@ function Issue(props: IssueProps) {
     isPending,
     data: fetchedIssue,
     isError,
+    error,
   } = useApiQuery<Group>(
     [
       `/issues/${props.issue.issue_id}/`,
@@ -135,7 +134,11 @@ function Issue(props: IssueProps) {
       </AssineeWrapper>
     </StyledPanelItem>
   ) : isError ? (
-    <LoadingError message={t('Failed to fetch issue')} />
+    <LoadingError
+      message={
+        error.status === 404 ? t('This issue was deleted') : t('Failed to fetch issue')
+      }
+    />
   ) : null;
 }
 

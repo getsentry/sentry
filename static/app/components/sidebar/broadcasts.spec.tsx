@@ -4,7 +4,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {BROADCAST_CATEGORIES} from 'sentry/components/sidebar/broadcastPanelItem';
-import Broadcasts from 'sentry/components/sidebar/broadcasts';
+import {Broadcasts} from 'sentry/components/sidebar/broadcasts';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import type {Broadcast} from 'sentry/types/system';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -43,7 +43,6 @@ describe('Broadcasts', function () {
         currentPanel={SidebarPanelKey.BROADCASTS}
         onShowPanel={() => jest.fn()}
         hidePanel={jest.fn()}
-        organization={organization}
       />
     );
 
@@ -51,7 +50,7 @@ describe('Broadcasts', function () {
   });
 
   it('renders a broadcast item with media content correctly', async function () {
-    const organization = OrganizationFixture({features: ['what-is-new-revamp']});
+    const organization = OrganizationFixture();
     const broadcast = BroadcastFixture({
       mediaUrl:
         'https://images.ctfassets.net/em6l9zw4tzag/2vWdw7ZaApWxygugalbyOC/285525e5b7c9fbfa8fb814a69ab214cd/PerformancePageSketches_hero.jpg?w=2520&h=945&q=50&fm=webp',
@@ -67,7 +66,6 @@ describe('Broadcasts', function () {
         currentPanel={SidebarPanelKey.BROADCASTS}
         onShowPanel={() => jest.fn()}
         hidePanel={jest.fn()}
-        organization={organization}
       />
     );
 
@@ -86,25 +84,5 @@ describe('Broadcasts', function () {
         category,
       })
     );
-  });
-
-  it('renders deprecated broadcast experience', async function () {
-    const organization = OrganizationFixture();
-    const broadcast = BroadcastFixture();
-
-    renderMockRequests({orgSlug: organization.slug, broadcastsResponse: [broadcast]});
-
-    render(
-      <Broadcasts
-        orientation="left"
-        collapsed={false}
-        currentPanel={SidebarPanelKey.BROADCASTS}
-        onShowPanel={() => jest.fn()}
-        hidePanel={jest.fn()}
-        organization={organization}
-      />
-    );
-
-    expect(await screen.findByRole('link', {name: broadcast.cta})).toBeInTheDocument();
   });
 });

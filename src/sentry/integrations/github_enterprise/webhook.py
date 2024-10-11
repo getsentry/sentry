@@ -17,6 +17,7 @@ from django.views.decorators.csrf import csrf_exempt
 from sentry import options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.constants import ObjectStatus
 from sentry.integrations.github.webhook import (
     InstallationEventWebhook,
     PullRequestEventWebhook,
@@ -79,6 +80,7 @@ def get_installation_metadata(event, host):
     integration = integration_service.get_integration(
         external_id=external_id,
         provider="github_enterprise",
+        status=ObjectStatus.ACTIVE,
     )
     if integration is None:
         metrics.incr("integrations.github_enterprise.does_not_exist")
@@ -173,7 +175,7 @@ class GitHubEnterpriseWebhookBase(Endpoint):
             sentry_sdk.capture_exception(e)
             return HttpResponse(MISSING_GITHUB_ENTERPRISE_HOST_ERROR, status=400)
 
-        extra = {"host": host}
+        extra: dict[str, str | None] = {"host": host}
         # If we do tag the host early we can't even investigate
         scope.set_tag("host", host)
 
@@ -282,7 +284,12 @@ class GitHubEnterpriseWebhookBase(Endpoint):
             else:
                 # the host is allowed to skip signature verification
                 # log it, and continue on.
+                extra["github_enterprise_version"] = request.headers.get(
+                    "x-github-enterprise-version"
+                )
+                extra["ip_address"] = request.headers.get("x-real-ip")
                 logger.info("github_enterprise.webhook.allowed-missing-signature", extra=extra)
+                sentry_sdk.capture_message("Allowed missing signature")
 
         except (MalformedSignatureError, IndexError) as e:
             logger.warning("github_enterprise.webhook.malformed-signature", extra=extra)

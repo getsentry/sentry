@@ -28,9 +28,11 @@ import {IconAdd, IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
-import {browserHistory} from 'sentry/utils/browserHistory';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useDimensionsMultiple} from 'sentry/utils/useDimensionsMultiple';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import type {DraggableTabListItemProps} from './item';
 import {Item} from './item';
@@ -130,6 +132,7 @@ function Tabs({
   hoveringKey,
   setHoveringKey,
   tempTabActive,
+  editingTabKey,
 }: {
   ariaProps: AriaTabListOptions<DraggableTabListItemProps>;
   hoveringKey: Key | 'addView' | null;
@@ -143,6 +146,7 @@ function Tabs({
   tempTabActive: boolean;
   className?: string;
   disabled?: boolean;
+  editingTabKey?: string;
   onChange?: (key: string | number) => void;
   tabVariant?: BaseTabProps['variant'];
   value?: string | number;
@@ -226,8 +230,8 @@ function Tabs({
               dragConstraints={dragConstraints} // dragConstraints are the bounds that the tab can be dragged within
               dragElastic={0} // Prevents the tab from being dragged outside of the dragConstraints (w/o this you can drag it outside but it'll spring back)
               dragTransition={{bounceStiffness: 400, bounceDamping: 40}} // Recovers spring behavior thats lost when using dragElastic=0
-              transition={{delay: -0.1}} // Skips the first few frames of the animation that make the tab appear to shrink before growing
               layout
+              drag={item.key !== editingTabKey} // Disable dragging if the tab is being edited
               onDrag={() => setIsDragging(true)}
               onDragEnd={() => setIsDragging(false)}
               onHoverStart={() => setHoveringKey(item.key)}
@@ -260,8 +264,10 @@ function BaseDraggableTabList({
   tabVariant = 'filled',
   ...props
 }: BaseDraggableTabListProps) {
+  const navigate = useNavigate();
   const [hoveringKey, setHoveringKey] = useState<Key | null>(null);
   const {rootProps, setTabListState} = useContext(TabsContext);
+  const organization = useOrganization();
   const {
     value,
     defaultValue,
@@ -284,7 +290,12 @@ function BaseDraggableTabList({
       if (!linkTo) {
         return;
       }
-      browserHistory.push(linkTo);
+
+      trackAnalytics('issue_views.switched_views', {
+        organization,
+      });
+
+      navigate(linkTo);
     },
     isDisabled: disabled,
     keyboardActivation,
@@ -323,13 +334,20 @@ function BaseDraggableTabList({
         hoveringKey={hoveringKey}
         setHoveringKey={setHoveringKey}
         tempTabActive={!!tempTab}
+        editingTabKey={props.editingTabKey}
       />
       <AddViewTempTabWrap ref={addViewTempTabRef}>
         <AddViewMotionWrapper
           onHoverStart={() => setHoveringKey('addView')}
           onHoverEnd={() => setHoveringKey(null)}
         >
-          <AddViewButton borderless size="zero" onClick={onAddView}>
+          <AddViewButton
+            borderless
+            size="zero"
+            onClick={onAddView}
+            analyticsEventName="Issue Views: Add View Clicked"
+            analyticsEventKey="issue_views.add_view.clicked"
+          >
             <StyledIconAdd size="xs" />
             {t('Add View')}
           </AddViewButton>
@@ -375,6 +393,7 @@ export interface DraggableTabListProps
     TabListStateOptions<DraggableTabListItemProps> {
   onReorder: (newOrder: Node<DraggableTabListItemProps>[]) => void;
   className?: string;
+  editingTabKey?: string;
   hideBorder?: boolean;
   onAddView?: React.MouseEventHandler;
   outerWrapStyles?: React.CSSProperties;
@@ -494,10 +513,10 @@ const AddViewButton = styled(Button)`
   display: flex;
   color: ${p => p.theme.gray300};
   font-weight: normal;
-  padding: ${space(0.5)} ${space(1)};
-  margin-bottom: 1px;
-  border: none;
-  bottom: -1px;
+  border-radius: ${p => `${p.theme.borderRadius} ${p.theme.borderRadius} 0 0`};
+  padding: ${space(1)} ${space(1)};
+  height: 31px;
+  line-height: 1.4;
 `;
 
 const StyledIconAdd = styled(IconAdd)`
