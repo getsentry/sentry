@@ -209,6 +209,14 @@ const AnnotationNoMargin = styled(EventAnnotation)<{hasNewLayout: boolean}>`
   border-left: none;
 
   ${p =>
+    !p.hasNewLayout &&
+    css`
+      & > a {
+        color: ${p.theme.textColor};
+      }
+    `}
+
+  ${p =>
     p.hasNewLayout &&
     css`
       & > a:hover {
