@@ -78,8 +78,6 @@ class SafePostgresDatabaseSchemaEditor(DatabaseSchemaEditorMixin, PostgresDataba
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-
-        # Get settings with defaults
         self.LOCK_TIMEOUT_FORCE = getattr(
             settings, "ZERO_DOWNTIME_MIGRATIONS_LOCK_TIMEOUT_FORCE", False
         )
