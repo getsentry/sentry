@@ -32,6 +32,7 @@ from sentry.organizations.services.organization.service import organization_serv
 from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiHostError,
+    ApiRateLimitedError,
     ApiUnauthorized,
     IntegrationError,
     IntegrationFormError,
@@ -41,6 +42,7 @@ from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils.strings import truncatechars
 
+from ...api.exceptions import ResourceDoesNotExist
 from .client import JiraCloudClient
 from .models.create_issue_metadata import JIRA_CUSTOM_FIELD_TYPES
 from .utils import build_user_choice
@@ -208,6 +210,14 @@ class JiraIntegration(IssueSyncIntegration):
 
         client = self.get_client()
 
+        logging_context: dict[str, Any] = {}
+
+        if not self.org_integration:
+            raise ResourceDoesNotExist()
+
+        logging_context["org_integration_id"] = self.org_integration.id
+        logging_context["integration_id"] = self.org_integration.integration_id
+
         try:
             projects = [{"value": p["id"], "label": p["name"]} for p in client.get_projects_list()]
             configuration[0]["addDropdown"]["items"] = projects
@@ -221,14 +231,13 @@ class JiraIntegration(IssueSyncIntegration):
             # their project and workflow usages, but this is paginated and may
             # have many of the same query concerns depending on how many
             # statuses are defined within the Jira organization.
+
+            logging_context["num_projects"] = len(projects)
             if len(projects) > JIRA_PROJECT_SIZE_LOGGING_THRESHOLD:
                 logger.info(
                     "excessive_project_status_requests",
                     extra={
-                        "num_projects": projects,
-                        "org_integration": self.org_integration.id
-                        if self.org_integration
-                        else None,
+                        **logging_context,
                     },
                 )
             # Each project can have a different set of statuses assignable for
@@ -251,7 +260,9 @@ class JiraIntegration(IssueSyncIntegration):
                         "placeholder": _("Select a status"),
                     },
                 }
-
+        except ApiRateLimitedError:
+            logger.warning("config_query_rate_limited", extra={**logging_context})
+            raise
         except ApiError:
             configuration[0]["disabled"] = True
             configuration[0]["disabledReason"] = _(
