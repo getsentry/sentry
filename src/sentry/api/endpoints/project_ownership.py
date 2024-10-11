@@ -66,9 +66,7 @@ class ProjectOwnershipRequestSerializer(serializers.Serializer):
         organization = self.context["ownership"].project.organization
         if features.has("organizations:ownership-size-limit-xlarge", organization):
             return XLARGE_MAX_RAW_LENGTH
-        if features.has("organizations:ownership-size-limit-large", organization) or features.has(
-            "organizations:higher-ownership-limit", organization
-        ):
+        if features.has("organizations:ownership-size-limit-large", organization):
             return LARGE_MAX_RAW_LENGTH
         return DEFAULT_MAX_RAW_LENGTH
 
