@@ -210,6 +210,7 @@ declare const __LOADER__IS_LAZY__: any;
         _window.sentryOnLoad = undefined;
       }
     } catch (o_O) {
+      console.error('Error while calling `sentryOnLoad` handler:');
       console.error(o_O);
     }
 
