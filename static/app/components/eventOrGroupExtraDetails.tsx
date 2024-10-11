@@ -1,5 +1,7 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {ErrorLevelText} from 'sentry/components/events/errorLevelText';
 import EventAnnotation from 'sentry/components/events/eventAnnotation';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import InboxShortId from 'sentry/components/group/inboxBadges/shortId';
@@ -16,6 +18,8 @@ import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
+import {defined} from 'sentry/utils';
+import {getTitle} from 'sentry/utils/events';
 import {projectCanLinkToReplay} from 'sentry/utils/replays/projectSupportsReplay';
 import withOrganization from 'sentry/utils/withOrganization';
 
@@ -74,66 +78,86 @@ function EventOrGroupExtraDetails({
     organization.features.includes('session-replay') &&
     projectCanLinkToReplay(organization, project);
 
-  return (
-    <GroupExtra>
-      {shortId && (
-        <InboxShortId
-          shortId={shortId}
-          avatar={
-            project && (
-              <ShadowlessProjectBadge project={project} avatarSize={12} hideName />
-            )
-          }
-        />
-      )}
-      {isUnhandled && <UnhandledTag />}
-      {showLifetime ? (
-        <Lifetime firstSeen={firstSeen} lastSeen={lastSeen} lifetime={lifetime} />
-      ) : null}
-      {/* Always display comment count on inbox */}
-      {numComments > 0 && (
-        <CommentsLink to={`${issuesPath}${id}/activity/`} className="comments">
-          <IconChat
-            size="xs"
-            color={
-              subscriptionDetails?.reason === 'mentioned' ? 'successText' : undefined
-            }
-          />
-          <span>{numComments}</span>
-        </CommentsLink>
-      )}
-      {showReplayCount && <IssueReplayCount group={data as Group} />}
-      {logger && (
-        <LoggerAnnotation>
-          <GlobalSelectionLink
-            to={{
-              pathname: issuesPath,
-              query: {
-                query: `logger:${logger}`,
-              },
-            }}
-          >
-            {logger}
-          </GlobalSelectionLink>
-        </LoggerAnnotation>
-      )}
-      {annotations?.map((annotation, key) => (
-        <AnnotationNoMargin key={key}>
-          <ExternalLink href={annotation.url}>{annotation.displayName}</ExternalLink>
-        </AnnotationNoMargin>
-      ))}
+  const hasNewLayout = organization.features.includes('issue-stream-table-layout');
+  const {subtitle} = getTitle(data);
 
-      {showAssignee && assignedTo && (
-        <div>{tct('Assigned to [name]', {name: assignedTo.name})}</div>
-      )}
+  const level = 'level' in data ? data.level : null;
+
+  const items = [
+    shortId ? (
+      <InboxShortId
+        shortId={shortId}
+        avatar={
+          project && <ShadowlessProjectBadge project={project} avatarSize={12} hideName />
+        }
+      />
+    ) : null,
+    hasNewLayout && level ? <ErrorLevelText level={level} /> : null,
+    isUnhandled ? <UnhandledTag /> : null,
+    showLifetime ? (
+      <Lifetime firstSeen={firstSeen} lastSeen={lastSeen} lifetime={lifetime} />
+    ) : null,
+    hasNewLayout && subtitle ? <Location>{subtitle}</Location> : null,
+    numComments > 0 ? (
+      <CommentsLink to={`${issuesPath}${id}/activity/`} className="comments">
+        <IconChat
+          size="xs"
+          color={subscriptionDetails?.reason === 'mentioned' ? 'successText' : undefined}
+        />
+        <span>{numComments}</span>
+      </CommentsLink>
+    ) : null,
+    showReplayCount ? <IssueReplayCount group={data as Group} /> : null,
+    logger ? (
+      <LoggerAnnotation>
+        <GlobalSelectionLink
+          to={{
+            pathname: issuesPath,
+            query: {
+              query: `logger:${logger}`,
+            },
+          }}
+        >
+          {logger}
+        </GlobalSelectionLink>
+      </LoggerAnnotation>
+    ) : null,
+    ...(annotations?.map((annotation, key) => (
+      <AnnotationNoMargin key={key}>
+        <ExternalLink href={annotation.url}>{annotation.displayName}</ExternalLink>
+      </AnnotationNoMargin>
+    )) ?? []),
+    showAssignee && assignedTo ? (
+      <div>{tct('Assigned to [name]', {name: assignedTo.name})}</div>
+    ) : null,
+  ].filter(defined);
+
+  return (
+    <GroupExtra hasNewLayout={hasNewLayout}>
+      {items.map((item, i) => {
+        if (!item) {
+          return null;
+        }
+
+        if (!hasNewLayout) {
+          return <Fragment key={i}>{item}</Fragment>;
+        }
+
+        return (
+          <Fragment key={i}>
+            {item}
+            {i < items.length - 1 ? <Separator /> : null}
+          </Fragment>
+        );
+      })}
     </GroupExtra>
   );
 }
 
-const GroupExtra = styled('div')`
+const GroupExtra = styled('div')<{hasNewLayout: boolean}>`
   display: inline-grid;
   grid-auto-flow: column dense;
-  gap: ${space(1.5)};
+  gap: ${p => (p.hasNewLayout ? space(0.75) : space(1.5))};
   justify-content: start;
   align-items: center;
   color: ${p => p.theme.textColor};
@@ -150,6 +174,13 @@ const GroupExtra = styled('div')`
   @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
     line-height: 1;
   }
+`;
+
+const Separator = styled('div')`
+  height: 10px;
+  width: 1px;
+  background-color: ${p => p.theme.innerBorder};
+  border-radius: 1px;
 `;
 
 const ShadowlessProjectBadge = styled(ProjectBadge)`
@@ -177,6 +208,11 @@ const AnnotationNoMargin = styled(EventAnnotation)`
 
 const LoggerAnnotation = styled(AnnotationNoMargin)`
   color: ${p => p.theme.textColor};
+`;
+
+const Location = styled('div')`
+  font-size: ${p => p.theme.fontSizeSmall};
+  color: ${p => p.theme.subText};
 `;
 
 export default withOrganization(EventOrGroupExtraDetails);

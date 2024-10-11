@@ -91,6 +91,7 @@ export function IssueSummary({data, event_id}: EventOrGroupHeaderProps) {
       </Title>
       {eventLocation ? <Location>{eventLocation}</Location> : null}
       <StyledEventMessage
+        data={data}
         level={'level' in data ? data.level : undefined}
         message={getMessage(data)}
         type={data.type}

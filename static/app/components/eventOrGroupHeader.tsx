@@ -46,6 +46,8 @@ function EventOrGroupHeader({
 }: EventOrGroupHeaderProps) {
   const location = useLocation();
 
+  const hasNewLayout = organization.features.includes('issue-stream-table-layout');
+
   function getTitleChildren() {
     const {isBookmarked, hasSeen} = data as Group;
     return (
@@ -120,13 +122,16 @@ function EventOrGroupHeader({
   return (
     <div data-test-id="event-issue-header">
       <Title>{getTitle()}</Title>
-      {eventLocation && <Location>{eventLocation}</Location>}
-      <StyledEventMessage
-        level={'level' in data ? data.level : undefined}
-        message={getMessage(data)}
-        type={data.type}
-        levelIndicatorSize="9px"
-      />
+      {eventLocation && !hasNewLayout ? <Location>{eventLocation}</Location> : null}
+      {!hasNewLayout ? (
+        <StyledEventMessage
+          data={data}
+          level={'level' in data ? data.level : undefined}
+          message={getMessage(data)}
+          type={data.type}
+          levelIndicatorSize="9px"
+        />
+      ) : null}
     </div>
   );
 }
@@ -140,6 +145,7 @@ const truncateStyles = css`
 
 const Title = styled('div')`
   margin-bottom: ${space(0.25)};
+  font-size: ${p => p.theme.fontSizeLarge};
   & em {
     font-size: ${p => p.theme.fontSizeMedium};
     font-style: normal;
@@ -174,6 +180,7 @@ function Location(props) {
 const StyledEventMessage = styled(EventMessage)`
   margin: 0 0 5px;
   gap: ${space(0.5)};
+  font-size: inherit;
 `;
 
 const IconWrapper = styled('span')`

@@ -248,6 +248,7 @@ function GroupHeader({
               />
             </TitleHeading>
             <EventMessage
+              data={group}
               message={message}
               level={group.level}
               levelIndicatorSize="11px"
