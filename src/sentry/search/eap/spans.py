@@ -21,8 +21,10 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
 from sentry.api import event_search
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap import constants
-from sentry.search.eap.columns import SPAN_COLUMN_DEFINITIONS, ResolvedColumn
+from sentry.search.eap.columns import SPAN_COLUMN_DEFINITIONS, VIRTUAL_CONTEXTS, ResolvedColumn
 from sentry.search.eap.types import SearchResolverConfig
+from sentry.search.events import constants as qb_constants
+from sentry.search.events import fields
 from sentry.search.events import filter as event_filter
 from sentry.search.events.types import SnubaParams
 
@@ -218,17 +220,19 @@ class SearchResolver:
     def resolve_column(self, column: str) -> tuple[ResolvedColumn, VirtualColumnContext | None]:
         """Column is either an attribute or an aggregate, this function will determine which it is and call the relevant
         resolve function"""
-        # Temporary, this is just to make testing resolve_query easier
-        return SPAN_COLUMN_DEFINITIONS[column], None
+        match = fields.is_function(column)
+        if match:
+            return self.resolve_aggregate(column)
+        else:
+            return self.resolve_attribute(column)
         # Check if column is an aggregate if so
         # self.resolve_aggregate(column)
         # else
         # self.resolve_attribute(column)
 
-        # Cache the column
+        # TODO: Cache the column
         # self.resolved_coluumn[alias] = ResolvedColumn()
         # return ResolvedColumn()
-        raise NotImplementedError()
 
     def get_field_type(self, column: str) -> str:
         resolved_column, _ = self.resolve_column(column)
@@ -240,10 +244,45 @@ class SearchResolver:
         """Helper function to resolve a list of attributes instead of 1 attribute at a time"""
         raise NotImplementedError()
 
-    def resolve_attribute(self, column: str) -> tuple[ResolvedColumn, VirtualColumnContext]:
+    def resolve_attribute(self, column: str) -> tuple[ResolvedColumn, VirtualColumnContext | None]:
         """Attributes are columns that aren't 'functions' or 'aggregates', usually this means string or numeric
         attributes (aka. tags), but can also refer to fields like span.description"""
-        raise NotImplementedError()
+        if column in SPAN_COLUMN_DEFINITIONS:
+            column_definition = SPAN_COLUMN_DEFINITIONS[column]
+        else:
+            # If the column isn't predefined handle it as a tag
+            tag_match = qb_constants.TYPED_TAG_KEY_RE.search(column)
+            if tag_match is None:
+                tag_match = qb_constants.TAG_KEY_RE.search(column)
+                field_type = "string"
+            else:
+                field_type = None
+            field = tag_match.group("tag") if tag_match else None
+            if field is None:
+                raise InvalidSearchQuery(f"Could not parse {column}")
+            # Assume string if a type isn't passed. eg. tags[foo]
+            if field_type is None:
+                field_type = tag_match.group("type") if tag_match else None
+
+            if field_type not in constants.TYPE_MAP:
+                raise InvalidSearchQuery(f"Unsupported type {field_type} in {column}")
+            internal_name = f"attr_str[{field}]" if field_type == "string" else f"attr_num[{field}]"
+            return (
+                ResolvedColumn(
+                    public_alias=column, internal_name=internal_name, search_type=field_type
+                ),
+                None,
+            )
+
+        if column in VIRTUAL_CONTEXTS:
+            column_context = VIRTUAL_CONTEXTS[column](self.params)
+        else:
+            column_context = None
+
+        if column_definition:
+            return column_definition, column_context
+        else:
+            raise InvalidSearchQuery(f"Could not parse {column}")
 
     def resolve_aggregates(
         self, column: list[str]
