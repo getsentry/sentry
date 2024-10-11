@@ -213,6 +213,9 @@ export function AutofixSteps({data, groupId, runId, onRetry}: AutofixStepsProps)
           const twoInsightStepsInARow =
             nextStep?.type === AutofixStepType.DEFAULT &&
             step.type === AutofixStepType.DEFAULT;
+          const twoNonDefaultStepsInARow =
+            nextStep?.type !== AutofixStepType.DEFAULT &&
+            step.type !== AutofixStepType.DEFAULT;
           return (
             <div ref={el => (stepsRef.current[index] = el)} key={step.id}>
               <Step
@@ -225,6 +228,7 @@ export function AutofixSteps({data, groupId, runId, onRetry}: AutofixStepsProps)
                 repos={repos}
                 hasErroredStepBefore={previousStepErrored}
               />
+              {twoNonDefaultStepsInARow && <StepSeparator />}
             </div>
           );
         })}
@@ -294,3 +298,8 @@ const ContentWrapper = styled(motion.div)`
 `;
 
 const AnimationWrapper = styled(motion.div)``;
+
+const StepSeparator = styled('div')`
+  height: 1px;
+  margin: ${space(1)} 0;
+`;
