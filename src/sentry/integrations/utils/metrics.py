@@ -85,10 +85,6 @@ class EventLifecycleMetric(ABC):
         return EventLifecycle(self, assume_success)
 
 
-class EventLifecycleStateError(Exception):
-    pass
-
-
 class EventLifecycle:
     """Context object that measures an event that may succeed or fail.
 
@@ -133,13 +129,17 @@ class EventLifecycle:
         if outcome == EventLifecycleOutcome.FAILURE:
             logger.error(key, extra=self._extra, exc_info=exc)
 
+    @staticmethod
+    def _report_flow_error(message) -> None:
+        logger.error("EventLifecycle flow error: %s", message)
+
     def _terminate(
         self, new_state: EventLifecycleOutcome, exc: BaseException | None = None
     ) -> None:
         if self._state is None:
-            raise EventLifecycleStateError("The lifecycle has not yet been entered")
+            self._report_flow_error("The lifecycle has not yet been entered")
         if self._state != EventLifecycleOutcome.STARTED:
-            raise EventLifecycleStateError("The lifecycle has already been exited")
+            self._report_flow_error("The lifecycle has already been exited")
         self._state = new_state
         self.record_event(new_state, exc)
 
@@ -175,7 +175,7 @@ class EventLifecycle:
 
     def __enter__(self) -> Self:
         if self._state is not None:
-            raise EventLifecycleStateError("The lifecycle has already been entered")
+            self._report_flow_error("The lifecycle has already been entered")
         self._state = EventLifecycleOutcome.STARTED
         self.record_event(EventLifecycleOutcome.STARTED)
         return self
