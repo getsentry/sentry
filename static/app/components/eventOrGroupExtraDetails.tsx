@@ -80,7 +80,7 @@ function EventOrGroupExtraDetails({
     organization.features.includes('session-replay') &&
     projectCanLinkToReplay(organization, project) &&
     data.issueCategory &&
-    getReplayCountForIssue(data.id, data.issueCategory);
+    !!getReplayCountForIssue(data.id, data.issueCategory);
 
   const hasNewLayout = organization.features.includes('issue-stream-table-layout');
   const {subtitle} = getTitle(data);
