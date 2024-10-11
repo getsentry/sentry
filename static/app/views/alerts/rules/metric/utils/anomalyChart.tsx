@@ -51,10 +51,10 @@ export function getAnomalyMarkerSeries(
       ) {
         if (!start) {
           // If this is the start of an anomaly, set start
-          start = new Date(timestamp * 1000).toISOString();
+          start = getDateForTimestamp(timestamp).toISOString();
         }
         // as long as we have an valid anomaly type - continue tracking until we've hit the end
-        end = new Date(timestamp * 1000).toISOString();
+        end = getDateForTimestamp(timestamp).toISOString();
       } else {
         if (start && end) {
           // If we've hit a non-anomaly type, push the block
@@ -148,6 +148,10 @@ function createAnomalyMarkerSeries(
       formatter,
     },
   };
+}
+
+function getDateForTimestamp(timestamp: string | number): Date {
+  return new Date(typeof timestamp === 'string' ? timestamp : timestamp * 1000);
 }
 
 function formatTooltipDate(date: moment.MomentInput, format: string): string {
