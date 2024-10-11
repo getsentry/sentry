@@ -66,14 +66,14 @@ def handle_launchdarkly_actions(action: str) -> int:
         return ACTION_MAP["updated"]
 
 
-def handle_launchdarkly_event(request_data: dict[str, Any], organization_id: int) -> None:
+def handle_launchdarkly_event(request_data: dict[str, Any], organization_id: int):
     write(
         [
             {
                 "action": handle_launchdarkly_actions(request_data["accesses"][0]["action"]),
                 "created_at": datetime.datetime.fromtimestamp(
                     request_data["date"] / 1000.0, datetime.UTC
-                ).isoformat(),
+                ),
                 "created_by": request_data["member"]["email"],
                 "created_by_type": CREATED_BY_TYPE_MAP["email"],
                 "flag": request_data["name"],
@@ -88,7 +88,7 @@ def handle_provider_event(
     provider: str,
     request_data: dict[str, Any],
     organization_id: int,
-) -> None:
+):
     if provider == "launchdarkly":
         handle_launchdarkly_event(request_data, organization_id)
     else:
