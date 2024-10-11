@@ -5,7 +5,7 @@ from django.urls import reverse
 
 from sentry.models.transaction_threshold import ProjectTransactionThreshold, TransactionMetric
 from sentry.testutils.cases import APITestCase, MetricsEnhancedPerformanceTestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.samples import load_data
 
 pytestmark = pytest.mark.sentry_metrics
@@ -18,9 +18,9 @@ class OrganizationEventsVitalsEndpointTest(APITestCase, SnubaTestCase):
         self.end = self.start + timedelta(hours=6)
 
         self.transaction_data = load_data("transaction", timestamp=self.start)
-        self.query = {
-            "start": iso_format(self.start),
-            "end": iso_format(self.end),
+        self.query: dict[str, str | list[str]] = {
+            "start": self.start.isoformat(),
+            "end": self.end.isoformat(),
         }
         self.features = {}
 
@@ -308,9 +308,9 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         self.start = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
         self.end = self.start + timedelta(hours=6)
 
-        self.query = {
-            "start": iso_format(self.start),
-            "end": iso_format(self.end),
+        self.query: dict[str, str | list[str]] = {
+            "start": self.start.isoformat(),
+            "end": self.end.isoformat(),
         }
         self.features = {"organizations:performance-use-metrics": True}
 

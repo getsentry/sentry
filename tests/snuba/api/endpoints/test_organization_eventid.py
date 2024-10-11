@@ -3,13 +3,13 @@ from django.test import override_settings
 from django.urls import NoReverseMatch, reverse
 
 from sentry.testutils.cases import APITestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 
 
 class EventIdLookupEndpointTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
-        min_ago = iso_format(before_now(minutes=1))
+        min_ago = before_now(minutes=1).isoformat()
         self.org = self.create_organization(owner=self.user)
         self.project = self.create_project(organization=self.org)
 

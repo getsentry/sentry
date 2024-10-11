@@ -25,7 +25,7 @@ from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.snuba.metrics.naming_layer.public import TransactionMetricKey
 from sentry.snuba.utils import DATASET_OPTIONS
 from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.discover import user_misery_formula
 from sentry.testutils.helpers.on_demand import create_widget
 from sentry.utils.samples import load_data
@@ -104,8 +104,8 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
                 "field": ["id", "timestamp"],
                 "orderby": ["-timestamp", "-id"],
                 "query": "event.type:transaction",
-                "start": iso_format(before_now(days=20)),
-                "end": iso_format(before_now(days=15)),
+                "start": before_now(days=20),
+                "end": before_now(days=15),
                 "dataset": "metricsEnhanced",
             }
             response = self.do_request(query)

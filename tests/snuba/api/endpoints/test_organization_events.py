@@ -57,7 +57,7 @@ class OrganizationEventsEndpointTestBase(APITransactionTestCase, SnubaTestCase, 
         self.ten_mins_ago = before_now(minutes=10)
         self.ten_mins_ago_iso = iso_format(self.ten_mins_ago)
         self.eleven_mins_ago = before_now(minutes=11)
-        self.eleven_mins_ago_iso = iso_format(self.eleven_mins_ago)
+        self.eleven_mins_ago_iso = self.eleven_mins_ago.isoformat()
         self.transaction_data = load_data("transaction", timestamp=self.ten_mins_ago)
         self.features = {}
 
@@ -353,8 +353,8 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             query = {
                 "field": ["id", "timestamp"],
                 "orderby": ["-timestamp", "-id"],
-                "start": iso_format(before_now(days=20)),
-                "end": iso_format(before_now(days=15)),
+                "start": before_now(days=20),
+                "end": before_now(days=15),
             }
             response = self.do_request(query)
         assert response.status_code == 400, response.content
@@ -764,7 +764,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
 
     def test_comparison_operators_on_numeric_field(self):
         event = self.store_event(
-            {"timestamp": iso_format(before_now(minutes=1))}, project_id=self.project.id
+            {"timestamp": before_now(minutes=1).isoformat()}, project_id=self.project.id
         )
 
         query = {"field": ["issue"], "query": f"issue.id:>{event.group.id - 1}"}
@@ -2458,7 +2458,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             "query": "event.type:transaction",
             "orderby": ["transaction"],
             "start": self.eleven_mins_ago_iso,
-            "end": iso_format(self.nine_mins_ago),
+            "end": self.nine_mins_ago,
         }
         response = self.do_request(query)
 
@@ -3017,7 +3017,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
                 "event_id": "a" * 32,
                 "transaction": "/example",
                 "message": "how to make fast",
-                "timestamp": iso_format(day_ago),
+                "timestamp": day_ago.isoformat(),
                 "user": {"email": "cathy@example.com"},
             },
             project_id=self.project.id,
@@ -3050,9 +3050,9 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
                 "event_id": "a" * 32,
                 "transaction": "/example",
                 "message": "how to make fast",
-                "timestamp": iso_format(
+                "timestamp": (
                     before_now(days=1).replace(hour=10, minute=11, second=12, microsecond=13)
-                ),
+                ).isoformat(),
                 "user": {"email": "cathy@example.com"},
             },
             project_id=self.project.id,
@@ -3712,7 +3712,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
 
         query = {
             "field": ["id", "last_seen()"],
-            "query": f"last_seen():>{iso_format(before_now(days=30))}",
+            "query": f"last_seen():>{before_now(days=30).isoformat()}",
         }
         features = {"organizations:discover-basic": True, "organizations:global-views": True}
         response = self.do_request(query, features=features)
@@ -3990,8 +3990,8 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         event_data["contexts"]["trace"] = transaction_data["contexts"]["trace"]
         event_data["type"] = "transaction"
         event_data["transaction"] = "/failure_rate/1"
-        event_data["timestamp"] = iso_format(self.ten_mins_ago)
-        event_data["start_timestamp"] = iso_format(before_now(minutes=10, seconds=5))
+        event_data["timestamp"] = self.ten_mins_ago.isoformat()
+        event_data["start_timestamp"] = before_now(minutes=10, seconds=5).isoformat()
         event_data["user"]["geo"] = {"country_code": "US", "region": "CA", "city": "San Francisco"}
         self.store_event(event_data, project_id=self.project.id)
         event_data["type"] = "error"
@@ -4039,8 +4039,8 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         event_data["contexts"]["trace"] = transaction_data["contexts"]["trace"]
         event_data["type"] = "transaction"
         event_data["transaction"] = "/failure_rate/1"
-        event_data["timestamp"] = iso_format(self.ten_mins_ago)
-        event_data["start_timestamp"] = iso_format(before_now(minutes=10, seconds=5))
+        event_data["timestamp"] = self.ten_mins_ago.isoformat()
+        event_data["start_timestamp"] = before_now(minutes=10, seconds=5).isoformat()
         event_data["user"]["geo"] = {"country_code": "US", "region": "CA", "city": "San Francisco"}
         event_data["request"] = transaction_data["request"]
         self.store_event(event_data, project_id=self.project.id)
@@ -4108,8 +4108,8 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         # Don't quantize absolute date periods
         self.do_request(query)
         query = {
-            "start": iso_format(before_now(days=20)),
-            "end": iso_format(before_now(days=15)),
+            "start": before_now(days=20).isoformat(),
+            "end": before_now(days=15).isoformat(),
             "query": "",
             "field": ["id", "timestamp"],
         }
@@ -5081,8 +5081,8 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert response.data["data"][0]["project.name"] == self.project.slug
 
     def test_timestamp_different_from_params(self):
-        fifteen_days_ago = iso_format(before_now(days=15))
-        fifteen_days_later = iso_format(before_now(days=-15))
+        fifteen_days_ago = before_now(days=15)
+        fifteen_days_later = before_now(days=-15)
 
         for query_text in [
             f"timestamp:<{fifteen_days_ago}",
@@ -5666,7 +5666,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             "query": "event.type:transaction",
             "orderby": ["transaction"],
             "start": self.eleven_mins_ago_iso,
-            "end": iso_format(self.nine_mins_ago),
+            "end": self.nine_mins_ago,
         }
         response = self.do_request(query)
 
@@ -5691,7 +5691,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             "query": "event.type:transaction",
             "orderby": ["transaction"],
             "start": self.eleven_mins_ago_iso,
-            "end": iso_format(self.nine_mins_ago),
+            "end": self.nine_mins_ago,
         }
         response = self.do_request(query)
 

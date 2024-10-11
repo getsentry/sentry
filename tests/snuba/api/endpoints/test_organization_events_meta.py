@@ -7,7 +7,7 @@ from rest_framework.exceptions import ParseError
 from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import override_options
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
 pytestmark = pytest.mark.sentry_metrics
@@ -27,7 +27,7 @@ class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase, SearchIssueTest
 
     def test_simple(self):
 
-        self.store_event(data={"timestamp": iso_format(self.min_ago)}, project_id=self.project.id)
+        self.store_event(data={"timestamp": self.min_ago.isoformat()}, project_id=self.project.id)
 
         with self.feature(self.features):
             response = self.client.get(self.url, format="json")
@@ -38,8 +38,8 @@ class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase, SearchIssueTest
     def test_multiple_projects(self):
         project2 = self.create_project()
 
-        self.store_event(data={"timestamp": iso_format(self.min_ago)}, project_id=self.project.id)
-        self.store_event(data={"timestamp": iso_format(self.min_ago)}, project_id=project2.id)
+        self.store_event(data={"timestamp": self.min_ago.isoformat()}, project_id=self.project.id)
+        self.store_event(data={"timestamp": self.min_ago.isoformat()}, project_id=project2.id)
 
         response = self.client.get(self.url, format="json")
 
@@ -54,11 +54,11 @@ class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase, SearchIssueTest
 
     def test_search(self):
         self.store_event(
-            data={"timestamp": iso_format(self.min_ago), "message": "how to make fast"},
+            data={"timestamp": self.min_ago.isoformat(), "message": "how to make fast"},
             project_id=self.project.id,
         )
         self.store_event(
-            data={"timestamp": iso_format(self.min_ago), "message": "Delete the Data"},
+            data={"timestamp": self.min_ago.isoformat(), "message": "Delete the Data"},
             project_id=self.project.id,
         )
 
@@ -97,8 +97,8 @@ class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase, SearchIssueTest
             "spans": [],
             "contexts": {"trace": {"op": "foobar", "trace_id": "a" * 32, "span_id": "a" * 16}},
             "tags": {"important": "yes"},
-            "timestamp": iso_format(before_now(minutes=1)),
-            "start_timestamp": iso_format(before_now(minutes=1, seconds=3)),
+            "timestamp": before_now(minutes=1).isoformat(),
+            "start_timestamp": before_now(minutes=1, seconds=3).isoformat(),
         }
         self.store_event(data=data, project_id=self.project.id)
         url = reverse(
@@ -142,7 +142,7 @@ class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase, SearchIssueTest
         """Test that the errors dataset returns data for an issue's short ID"""
         with self.options({"issues.group_attributes.send_kafka": True}):
             group_1 = self.store_event(
-                data={"timestamp": iso_format(self.min_ago)}, project_id=self.project.id
+                data={"timestamp": self.min_ago.isoformat()}, project_id=self.project.id
             ).group
         url = reverse(
             "sentry-api-0-organization-events-meta",
@@ -169,8 +169,8 @@ class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase, SearchIssueTest
             "spans": [],
             "contexts": {"trace": {"op": "foobar", "trace_id": "a" * 32, "span_id": "a" * 16}},
             "tags": {"important": "yes"},
-            "timestamp": iso_format(before_now(minutes=1)),
-            "start_timestamp": iso_format(before_now(minutes=1, seconds=3)),
+            "timestamp": before_now(minutes=1).isoformat(),
+            "start_timestamp": before_now(minutes=1, seconds=3).isoformat(),
         }
         self.store_event(data=data, project_id=self.project.id)
         with self.feature(self.features):
@@ -188,8 +188,8 @@ class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase, SearchIssueTest
                     self.url,
                     format="json",
                     data={
-                        "start": iso_format(before_now(days=20)),
-                        "end": iso_format(before_now(days=15)),
+                        "start": before_now(days=20).isoformat(),
+                        "end": before_now(days=15).isoformat(),
                     },
                 )
         assert response.status_code == 400
@@ -217,8 +217,8 @@ class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase, SearchIssueTest
                 self.url,
                 format="json",
                 data={
-                    "start": iso_format(before_now(days=20)),
-                    "end": iso_format(before_now(days=15)),
+                    "start": before_now(days=20).isoformat(),
+                    "end": before_now(days=15).isoformat(),
                     "query": "",
                     "field": ["id", "timestamp"],
                 },
@@ -245,7 +245,7 @@ class OrganizationEventsRelatedIssuesEndpoint(APITestCase, SnubaTestCase):
 
         project = self.create_project()
         event1 = self.store_event(
-            data={"timestamp": iso_format(before_now(minutes=1)), "transaction": "/beth/sanchez"},
+            data={"timestamp": before_now(minutes=1).isoformat(), "transaction": "/beth/sanchez"},
             project_id=project.id,
         )
 
@@ -265,7 +265,7 @@ class OrganizationEventsRelatedIssuesEndpoint(APITestCase, SnubaTestCase):
 
         project = self.create_project()
         self.store_event(
-            data={"timestamp": iso_format(before_now(minutes=1)), "transaction": "/beth/sanchez"},
+            data={"timestamp": before_now(minutes=1).isoformat(), "transaction": "/beth/sanchez"},
             project_id=project.id,
         )
 
@@ -286,7 +286,7 @@ class OrganizationEventsRelatedIssuesEndpoint(APITestCase, SnubaTestCase):
 
         project = self.create_project()
         self.store_event(
-            data={"timestamp": iso_format(before_now(minutes=1)), "transaction": "/beth/sanchez"},
+            data={"timestamp": before_now(minutes=1).isoformat(), "transaction": "/beth/sanchez"},
             project_id=project.id,
         )
 
@@ -306,7 +306,7 @@ class OrganizationEventsRelatedIssuesEndpoint(APITestCase, SnubaTestCase):
         self.store_event(
             data={
                 "event_id": "a" * 32,
-                "timestamp": iso_format(before_now(days=2)),
+                "timestamp": before_now(days=2).isoformat(),
                 "transaction": "/beth/sanchez",
             },
             project_id=project.id,
@@ -314,7 +314,7 @@ class OrganizationEventsRelatedIssuesEndpoint(APITestCase, SnubaTestCase):
         event2 = self.store_event(
             data={
                 "event_id": "b" * 32,
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": before_now(minutes=1).isoformat(),
                 "transaction": "/beth/sanchez",
             },
             project_id=project.id,
@@ -341,7 +341,7 @@ class OrganizationEventsRelatedIssuesEndpoint(APITestCase, SnubaTestCase):
         event1 = self.store_event(
             data={
                 "event_id": "a" * 32,
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": before_now(minutes=1).isoformat(),
                 "transaction": "/beth/sanchez",
             },
             project_id=project1.id,
@@ -349,7 +349,7 @@ class OrganizationEventsRelatedIssuesEndpoint(APITestCase, SnubaTestCase):
         self.store_event(
             data={
                 "event_id": "b" * 32,
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": before_now(minutes=1).isoformat(),
                 "transaction": "/beth/sanchez",
             },
             project_id=project2.id,
@@ -377,7 +377,7 @@ class OrganizationEventsRelatedIssuesEndpoint(APITestCase, SnubaTestCase):
         event = self.store_event(
             data={
                 "event_id": "a" * 32,
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": before_now(minutes=1).isoformat(),
                 "transaction": '/beth/"sanchez"',
             },
             project_id=project.id,
