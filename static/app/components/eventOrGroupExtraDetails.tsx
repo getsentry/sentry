@@ -20,6 +20,7 @@ import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {getTitle} from 'sentry/utils/events';
+import useReplayCountForIssues from 'sentry/utils/replayCount/useReplayCountForIssues';
 import {projectCanLinkToReplay} from 'sentry/utils/replays/projectSupportsReplay';
 import withOrganization from 'sentry/utils/withOrganization';
 
@@ -73,10 +74,13 @@ function EventOrGroupExtraDetails({
   } = data as Group;
 
   const issuesPath = `/organizations/${organization.slug}/issues/`;
+  const {getReplayCountForIssue} = useReplayCountForIssues();
 
   const showReplayCount =
     organization.features.includes('session-replay') &&
-    projectCanLinkToReplay(organization, project);
+    projectCanLinkToReplay(organization, project) &&
+    data.issueCategory &&
+    getReplayCountForIssue(data.id, data.issueCategory);
 
   const hasNewLayout = organization.features.includes('issue-stream-table-layout');
   const {subtitle} = getTitle(data);
