@@ -1717,7 +1717,13 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 response = self.client.get(self.url + f"?field=id&query={query}")
                 assert response.status_code == 400
 
-    def test_query_null_email(self):
+    def _test_query_null_user_fields(self, query_key, field, null_value, nonnull_value):
+        """
+        @param query_key       name of field in URL query string, ex user.email.
+        @param field           name of kwarg used for testutils.mock_replay, ex user_email.
+        @param null_value      null value for this field, stored by Snuba processor (ex: null user_email is translated to "").
+        @param nonnull_value   a non-null value for this field.
+        """
         project = self.create_project(teams=[self.team])
 
         replay1_id = uuid.uuid4().hex
@@ -1725,74 +1731,39 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
         seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=22)
         seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=5)
 
-        self.store_replays(mock_replay(seq1_timestamp, project.id, replay1_id, user_email=None))
-        self.store_replays(mock_replay(seq2_timestamp, project.id, replay1_id, user_email=None))
-        self.store_replays(mock_replay(seq1_timestamp, project.id, replay2_id, user_email=None))
         self.store_replays(
-            mock_replay(seq2_timestamp, project.id, replay2_id, user_email="andrew@gmail.com")
+            mock_replay(seq1_timestamp, project.id, replay1_id, **{field: null_value})
+        )
+        self.store_replays(
+            mock_replay(seq2_timestamp, project.id, replay1_id, **{field: nonnull_value})
+        )
+
+        self.store_replays(
+            mock_replay(seq1_timestamp, project.id, replay2_id, **{field: null_value})
+        )
+        self.store_replays(
+            mock_replay(seq2_timestamp, project.id, replay2_id, **{field: null_value})
         )
 
         with self.feature(self.features):
-            # Returns both replays
-            null_email_query = 'user.email:""'
-            response = self.client.get(self.url + f"?field=id&query={null_email_query}")
-            assert response.status_code == 200
-            data = response.json()["data"]
-            # print(data)
-            assert len(data) == 1
-            assert data[0]["id"] == replay1_id
-
-            # Returns no data
-            # negated_query = "!" + null_email_query
-            # response = self.client.get(self.url + f"?field=id&query={negated_query}")
-            # assert response.status_code == 200
-            # data = response.json()["data"]
-            # assert len(data) == 1
-            # assert data[0]["id"] == replay2_id
-
-    def test_query_null_ipv4(self):
-        project = self.create_project(teams=[self.team])
-
-        replay1_id = uuid.uuid4().hex
-        replay2_id = uuid.uuid4().hex
-        seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=22)
-        seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=5)
-
-        self.store_replays(mock_replay(seq1_timestamp, project.id, replay1_id, ipv4="127.1.42.0"))
-        self.store_replays(mock_replay(seq2_timestamp, project.id, replay1_id, ipv4="127.1.42.0"))
-        self.store_replays(mock_replay(seq1_timestamp, project.id, replay2_id, ipv4=None))
-        self.store_replays(mock_replay(seq2_timestamp, project.id, replay2_id, ipv4=None))
-
-        with self.feature(self.features):
-            null_ip_query = 'user.ip:""'
-            response = self.client.get(self.url + f"?field=id&query={null_ip_query}")
+            null_query = f'{query_key}:""'
+            response = self.client.get(self.url + f"?field=id&query={null_query}")
             assert response.status_code == 200
             data = response.json()["data"]
             assert len(data) == 1
             assert data[0]["id"] == replay2_id
 
-            negated_query = "!" + null_ip_query
-            response = self.client.get(self.url + f"?field=id&query={negated_query}")
+            non_null_query = "!" + null_query
+            response = self.client.get(self.url + f"?field=id&query={non_null_query}")
             assert response.status_code == 200
             data = response.json()["data"]
             assert len(data) == 1
             assert data[0]["id"] == replay1_id
 
-    def test_query_contains_null_ipv4(self):
-        project = self.create_project(teams=[self.team])
-
-        replay1_id = uuid.uuid4().hex
-        replay2_id = uuid.uuid4().hex
-        seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=22)
-        seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=5)
-
-        self.store_replays(mock_replay(seq1_timestamp, project.id, replay1_id, ipv4="127.1.42.0"))
-        self.store_replays(mock_replay(seq2_timestamp, project.id, replay1_id, ipv4="127.1.42.0"))
-        self.store_replays(mock_replay(seq1_timestamp, project.id, replay2_id, ipv4=None))
-        self.store_replays(mock_replay(seq2_timestamp, project.id, replay2_id, ipv4=None))
-
-        with self.feature(self.features):
-            list_queries = ['user.ip:[127.1.42.0, ""]', 'user.ip:["127.1.42.0", ""]']
+            list_queries = [
+                f'{query_key}:[{nonnull_value}, ""]',
+                f'{query_key}:["{nonnull_value}", ""]',
+            ]
             for query in list_queries:
                 response = self.client.get(self.url + f"?field=id&query={query}")
                 assert response.status_code == 200
@@ -1800,12 +1771,23 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 assert len(data) == 2
                 assert {item["id"] for item in data} == {replay1_id, replay2_id}
 
-            negated_queries = ["!" + query for query in list_queries]
-            for query in negated_queries:
+            for query in ["!" + query for query in list_queries]:
                 response = self.client.get(self.url + f"?field=id&query={query}")
                 assert response.status_code == 200
                 data = response.json()["data"]
                 assert len(data) == 0
+
+    def test_query_null_email(self):
+        self._test_query_null_user_fields("user.email", "user_email", "", "andrew@example.com")
+
+    def test_query_null_ipv4(self):
+        self._test_query_null_user_fields("user.ip", "ipv4", None, "127.0.0.1")
+
+    def test_query_null_username(self):
+        self._test_query_null_user_fields("user.username", "user_name", "", "andrew1")
+
+    def test_query_null_user_id(self):
+        self._test_query_null_user_fields("user.id", "user_id", "", "12ef6")
 
     def test_query_branches_computed_activity_conditions(self):
         project = self.create_project(teams=[self.team])
