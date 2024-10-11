@@ -1842,6 +1842,22 @@ INSIGHTS_FUNCTION_VALID_ARGS_MAP = {
         "measurements.score.total",
     ],
 }
+EAP_COLUMNS = [
+    "span.duration",
+    "span.self_time",
+]
+EAP_FUNCTIONS = [
+    "count",
+    "avg",
+    "p50",
+    "p75",
+    "p90",
+    "p95",
+    "p99",
+    "p100",
+    "max",
+    "min",
+]
 
 
 def get_column_from_aggregate(aggregate: str, allow_mri: bool) -> str | None:
@@ -1854,6 +1870,11 @@ def get_column_from_aggregate(aggregate: str, allow_mri: bool) -> str | None:
         or match.group("function") in METRICS_LAYER_UNSUPPORTED_TRANSACTION_METRICS_FUNCTIONS
     ):
         return None if match.group("columns") == "" else match.group("columns")
+
+    # Skip additional validation for EAP queries. They don't exist in the old logic.
+    if match and match.group("function") in EAP_FUNCTIONS and match.group("columns") in EAP_COLUMNS:
+        return match.group("columns")
+
     if allow_mri:
         mri_column = _get_column_from_aggregate_with_mri(aggregate)
         # Only if the column was allowed, we return it, otherwise we fallback to the old logic.
@@ -1886,7 +1907,9 @@ def _get_column_from_aggregate_with_mri(aggregate: str) -> str | None:
     return columns
 
 
-def check_aggregate_column_support(aggregate: str, allow_mri: bool = False) -> bool:
+def check_aggregate_column_support(
+    aggregate: str, allow_mri: bool = False, allow_eap: bool = False
+) -> bool:
     # TODO(ddm): remove `allow_mri` once the experimental feature flag is removed.
     column = get_column_from_aggregate(aggregate, allow_mri)
     match = is_function(aggregate)
@@ -1901,6 +1924,7 @@ def check_aggregate_column_support(aggregate: str, allow_mri: bool = False) -> b
             isinstance(function, str)
             and column in INSIGHTS_FUNCTION_VALID_ARGS_MAP.get(function, [])
         )
+        or (column in EAP_COLUMNS and allow_eap)
     )
 
 
