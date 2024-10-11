@@ -4,20 +4,38 @@ import logging
 from abc import ABC, abstractmethod
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
-from django.utils import timezone
+import sentry_sdk
 
 from sentry import analytics
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
-from sentry.models.pullrequest import CommentType, PullRequestComment
+from sentry.locks import locks
+from sentry.models.commit import Commit
+from sentry.models.group import Group
+from sentry.models.groupowner import GroupOwner
+from sentry.models.options.organization_option import OrganizationOption
+from sentry.models.project import Project
+from sentry.models.pullrequest import (
+    CommentType,
+    PullRequest,
+    PullRequestComment,
+    PullRequestCommit,
+)
 from sentry.models.repository import Repository
 from sentry.users.models.identity import Identity
 from sentry.utils import metrics
+from sentry.utils.cache import cache
 
 logger = logging.getLogger(__name__)
+
+
+DEBOUNCE_PR_COMMENT_CACHE_KEY = lambda pullrequest_id: f"pr-comment-{pullrequest_id}"
+DEBOUNCE_PR_COMMENT_LOCK_KEY = lambda pullrequest_id: f"queue_comment_task:{pullrequest_id}"
+PR_COMMENT_TASK_TTL = timedelta(minutes=5).total_seconds()
+PR_COMMENT_WINDOW = 14  # days
 
 
 @dataclass
@@ -83,6 +101,112 @@ class CommitContextIntegration(ABC):
         Given a list of source files and line numbers,returns the commit info for the most recent commit.
         """
         return self.get_blame_for_files(files, extra)
+
+    def queue_comment_task_if_needed(
+        self,
+        project: Project,
+        commit: Commit,
+        group_owner: GroupOwner,
+        group_id: int,
+    ) -> None:
+        if not OrganizationOption.objects.get_value(
+            organization=project.organization,
+            key="sentry:github_pr_bot",
+            default=True,
+        ):
+            logger.info(
+                "github.pr_comment.disabled",
+                extra={"organization_id": project.organization_id},
+            )
+            return
+
+        repo = Repository.objects.filter(id=commit.repository_id).order_by("-date_added")
+        group = Group.objects.get_from_cache(id=group_id)
+        if not (
+            group.level is not logging.INFO and repo.exists()
+        ):  # Don't comment on info level issues
+            logger.info(
+                "github.pr_comment.incorrect_repo_config",
+                extra={"organization_id": project.organization_id},
+            )
+            return
+
+        repo = repo.get()
+
+        logger.info(
+            "github.pr_comment.queue_comment_check",
+            extra={"organization_id": commit.organization_id, "merge_commit_sha": commit.key},
+        )
+        from sentry.integrations.github.tasks.pr_comment import github_comment_workflow
+
+        # client will raise an Exception if the request is not successful
+        try:
+            client = self.get_client()
+            merge_commit_sha = client.get_merge_commit_sha_from_commit(
+                repo=repo.name, sha=commit.key
+            )
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+            return
+
+        if merge_commit_sha is None:
+            logger.info(
+                "github.pr_comment.queue_comment_check.commit_not_in_default_branch",
+                extra={
+                    "organization_id": commit.organization_id,
+                    "repository_id": repo.id,
+                    "commit_sha": commit.key,
+                },
+            )
+            return
+
+        pr_query = PullRequest.objects.filter(
+            organization_id=commit.organization_id,
+            repository_id=commit.repository_id,
+            merge_commit_sha=merge_commit_sha,
+        )
+        if not pr_query.exists():
+            logger.info(
+                "github.pr_comment.queue_comment_check.missing_pr",
+                extra={
+                    "organization_id": commit.organization_id,
+                    "repository_id": repo.id,
+                    "commit_sha": commit.key,
+                },
+            )
+            return
+
+        pr = pr_query.first()
+        assert pr is not None
+        # need to query explicitly for merged PR comments since we can have multiple comments per PR
+        merged_pr_comment_query = PullRequestComment.objects.filter(
+            pull_request_id=pr.id, comment_type=CommentType.MERGED_PR
+        )
+        if pr.date_added >= datetime.now(tz=timezone.utc) - timedelta(days=PR_COMMENT_WINDOW) and (
+            not merged_pr_comment_query.exists()
+            or group_owner.group_id not in merged_pr_comment_query[0].group_ids
+        ):
+            lock = locks.get(
+                DEBOUNCE_PR_COMMENT_LOCK_KEY(pr.id), duration=10, name="queue_comment_task"
+            )
+            with lock.acquire():
+                cache_key = DEBOUNCE_PR_COMMENT_CACHE_KEY(pullrequest_id=pr.id)
+                if cache.get(cache_key) is not None:
+                    return
+
+                # create PR commit row for suspect commit and PR
+                PullRequestCommit.objects.get_or_create(commit=commit, pull_request=pr)
+
+                logger.info(
+                    "github.pr_comment.queue_comment_workflow",
+                    extra={"pullrequest_id": pr.id, "project_id": group_owner.project_id},
+                )
+
+                cache.set(cache_key, True, PR_COMMENT_TASK_TTL)
+
+                github_comment_workflow.delay(
+                    pullrequest_id=pr.id, project_id=group_owner.project_id
+                )
 
     def create_or_update_comment(
         self,
@@ -185,4 +309,8 @@ class CommitContextClient(ABC):
     def update_comment(
         self, repo: str, issue_id: str, comment_id: str, data: Mapping[str, Any]
     ) -> Any:
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_merge_commit_sha_from_commit(self, repo: str, sha: str) -> str | None:
         raise NotImplementedError
