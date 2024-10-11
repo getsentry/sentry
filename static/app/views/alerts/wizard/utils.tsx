@@ -52,6 +52,10 @@ export function getAlertTypeFromAggregateDataset({
 }: Pick<WizardRuleTemplate, 'aggregate' | 'dataset'>): MetricAlertType {
   const {mri: mri} = parseField(aggregate) ?? {};
 
+  if (dataset === Dataset.EVENTS_ANALYTICS_PLATFORM) {
+    return 'eap_metrics';
+  }
+
   if (isInsightsMetricAlert(aggregate)) {
     return 'insights_metrics';
   }
