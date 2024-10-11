@@ -1,3 +1,5 @@
+import urllib.parse
+
 from django.urls import reverse
 
 from sentry.testutils.cases import APITestCase, SnubaTestCase
@@ -107,8 +109,13 @@ class ProjectTagKeyValuesTest(APITestCase, SnubaTestCase):
 
         response = self.client.get(
             url
-            + "?query=bar&start={}&end={}".format(
-                before_now(days=14).isoformat(), before_now(seconds=1).isoformat()
+            + "?"
+            + urllib.parse.urlencode(
+                {
+                    "query": "bar",
+                    "start": before_now(days=14).isoformat(),
+                    "end": before_now(seconds=1).isoformat(),
+                }
             )
         )
 
@@ -117,8 +124,13 @@ class ProjectTagKeyValuesTest(APITestCase, SnubaTestCase):
 
         response = self.client.get(
             url
-            + "?query=bar&start={}&end={}".format(
-                before_now(days=16).isoformat(), before_now(days=14).isoformat()
+            + "?"
+            + urllib.parse.urlencode(
+                {
+                    "query": "bar",
+                    "start": before_now(days=16).isoformat(),
+                    "end": before_now(days=14).isoformat(),
+                }
             )
         )
 
