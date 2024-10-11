@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import importlib
 import os
 import shlex
 import subprocess
@@ -70,7 +71,31 @@ failed command (code {p.returncode}):
     return all_good
 
 
+# Temporary, see https://github.com/getsentry/sentry/pull/78881
+def check_minimum_version(minimum_version: str):
+    version = importlib.metadata.version("sentry-devenv")
+
+    parsed_version = tuple(map(int, version.split(".")))
+    parsed_minimum_version = tuple(map(int, minimum_version.split(".")))
+
+    if parsed_version < parsed_minimum_version:
+        raise SystemExit(
+            f"""
+Your devenv version ({version}) doesn't meet the
+minimum version ({minimum_version}) defined in the repo config.
+
+Run the following to update your global devenv to the minimum,
+and use it to run this repo's sync.
+
+{constants.root}/bin/devenv update {minimum_version}
+{constants.root}/bin/devenv sync
+"""
+        )
+
+
 def main(context: dict[str, str]) -> int:
+    check_minimum_version("1.11.0")
+
     repo = context["repo"]
     reporoot = context["reporoot"]
     repo_config = config.get_config(f"{reporoot}/devenv/config.ini")
