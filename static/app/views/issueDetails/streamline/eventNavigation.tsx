@@ -1,17 +1,16 @@
 import {type CSSProperties, forwardRef, Fragment, useMemo} from 'react';
 import {css, type SerializedStyles, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import color from 'color';
 
 import {Button, LinkButton} from 'sentry/components/button';
-import {Chevron} from 'sentry/components/chevron';
+import DropdownButton from 'sentry/components/dropdownButton';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {useActionableItems} from 'sentry/components/events/interfaces/crashContent/exception/useActionableItems';
 import {ScrollCarousel} from 'sentry/components/scrollCarousel';
 import {TabList, Tabs} from 'sentry/components/tabs';
 import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconChevron, IconCopy, IconWarning} from 'sentry/icons';
+import {IconChevron, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
@@ -244,30 +243,26 @@ export const EventNavigation = forwardRef<HTMLDivElement, EventNavigationProps>(
           <EventInfo>
             <EventIdInfo>
               <EventTitle>{t('Event')}</EventTitle>
-              <Button
-                aria-label={t('Copy')}
-                borderless
-                onClick={copyEventId}
-                size="zero"
-                title={event.id}
-                tooltipProps={{overlayStyle: {maxWidth: 'max-content'}}}
-                translucentBorder
-              >
-                <EventId>
-                  {getShortEventId(event.id)}
-                  <CopyIconContainer>
-                    <IconCopy size="xs" />
-                  </CopyIconContainer>
-                </EventId>
-              </Button>
               <DropdownMenu
-                triggerProps={{
-                  'aria-label': t('Event actions'),
-                  icon: <Chevron direction="down" color={theme.subText} />,
-                  size: 'zero',
-                  borderless: true,
-                  showChevron: false,
-                }}
+                trigger={(triggerProps, isOpen) => (
+                  // Tooltip split from button to prevent re-opening w/ focus event on close
+                  <Tooltip
+                    title={event.id}
+                    delay={500}
+                    overlayStyle={{maxWidth: 'max-content'}}
+                    disabled={isOpen}
+                  >
+                    <DropdownButton
+                      {...triggerProps}
+                      aria-label={t('Event actions')}
+                      size="zero"
+                      borderless
+                      isOpen={isOpen}
+                    >
+                      {getShortEventId(event.id)}
+                    </DropdownButton>
+                  </Tooltip>
+                )}
                 position="bottom"
                 size="xs"
                 items={[
@@ -438,29 +433,7 @@ const EventIdInfo = styled('span')`
   display: flex;
   align-items: center;
   gap: ${space(0.25)};
-`;
-
-const EventId = styled('span')`
-  position: relative;
-  font-weight: ${p => p.theme.fontWeightBold};
-  text-decoration: underline;
-  text-decoration-color: ${p => color(p.theme.gray200).alpha(0.5).string()};
-  &:hover {
-    > span {
-      display: flex;
-    }
-  }
-`;
-
-const CopyIconContainer = styled('span')`
-  display: none;
-  align-items: center;
-  padding: ${space(0.25)};
-  background: ${p => p.theme.background};
-  position: absolute;
-  right: 0;
-  top: 50%;
-  transform: translateY(-50%);
+  line-height: 1.2;
 `;
 
 const EventTitle = styled('div')`
