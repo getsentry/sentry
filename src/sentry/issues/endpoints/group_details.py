@@ -384,7 +384,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             )
             return Response(e.body, status=e.status_code)
 
-    def delete(self, request: Request, group) -> Response:
+    def delete(self, request: Request, group: Group) -> Response:
         """
         Remove an Issue
         ```````````````
@@ -396,7 +396,11 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         """
         from sentry.utils import snuba
 
-        if group.issue_category != GroupCategory.ERROR:
+        issue_platform_deletion_allowed = features.has(
+            "organizations:issue-platform-deletion", group.project.organization, actor=request.user
+        )
+
+        if group.issue_category != GroupCategory.ERROR and not issue_platform_deletion_allowed:
             raise ValidationError(detail="Only error issues can be deleted.")
 
         try:

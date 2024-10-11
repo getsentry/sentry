@@ -4,13 +4,15 @@ from rest_framework.exceptions import ErrorDetail
 
 from sentry import tsdb
 from sentry.issues.forecasts import generate_and_save_forecasts
+from sentry.issues.grouptype import PerformanceSlowDBQueryGroupType
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
-from sentry.models.group import GroupStatus
+from sentry.models.group import Group, GroupStatus
 from sentry.models.groupinbox import GroupInboxReason, add_group_to_inbox, remove_group_from_inbox
 from sentry.models.groupowner import GROUP_OWNER_TYPE, GroupOwner, GroupOwnerType
 from sentry.models.release import Release
 from sentry.testutils.cases import APITestCase, SnubaTestCase
+from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.types.activity import ActivityType
 from sentry.types.group import PriorityLevel
@@ -315,3 +317,24 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         assert int(response.data["id"]) == event.group.id
         assert response.data["issueType"] == "error"
         assert response.data["issueCategory"] == "error"
+
+    def test_delete_issue_platform_deletion(self):
+        """Test that a user cannot delete an issue if issue platform deletion is not allowed"""
+        self.login_as(user=self.user)
+
+        group = self.create_group(
+            status=GroupStatus.RESOLVED,
+            project=self.project,
+            type=PerformanceSlowDBQueryGroupType.type_id,
+        )
+
+        url = f"/api/0/issues/{group.id}/"
+        response = self.client.delete(url, format="json")
+        assert response.status_code == 400
+        assert response.json() == ["Only error issues can be deleted."]
+
+        # We are allowed to delete the groups with the feature flag enabled
+        with Feature({"organizations:issue-platform-deletion": True}), self.tasks():
+            response = self.client.delete(url, format="json")
+            assert response.status_code == 202
+            assert not Group.objects.filter(id=group.id).exists()
