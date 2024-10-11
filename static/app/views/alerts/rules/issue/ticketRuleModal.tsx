@@ -183,16 +183,16 @@ class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
           return field;
         }
 
-        let should_default_choice = true;
+        let shouldDefaultChoice = true;
 
         if (field.choices) {
-          should_default_choice = !!(Array.isArray(prevChoice)
+          shouldDefaultChoice = !!(Array.isArray(prevChoice)
             ? prevChoice.every(value => field.choices?.some(tuple => tuple[0] === value))
             : // Single-select fields have a single value, eg: 'a'
               field.choices?.some(item => item[0] === prevChoice));
         }
 
-        if (should_default_choice) {
+        if (shouldDefaultChoice) {
           field.default = prevChoice;
         }
 
