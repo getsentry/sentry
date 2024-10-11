@@ -72,7 +72,7 @@ export function getTraceDetailsUrl({
       query: {
         ...queryParams,
         timestamp: getTimeStampFromTableDateField(timestamp),
-        eventId: targetId ?? eventId,
+        eventId,
         targetId,
         demo,
         source,
