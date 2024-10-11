@@ -23,12 +23,15 @@ export default function FeedbackItemLoader() {
 
   useEffect(() => {
     if (issueResult.isError) {
-      trackAnalytics('feedback.feedback-item-render-error', {organization, feedbackId});
+      trackAnalytics('feedback.feedback-item-not-found', {organization, feedbackId});
     }
+  }, [organization, issueResult.isError, feedbackId]);
+
+  useEffect(() => {
     if (issueData) {
       trackAnalytics('feedback.feedback-item-rendered', {organization});
     }
-  }, [organization, issueData, issueResult.isError, feedbackId]);
+  }, [issueData, organization]);
 
   // There is a case where we are done loading, but we're fetching updates
   // This happens when the user has seen a feedback, clicks around a bit, then
