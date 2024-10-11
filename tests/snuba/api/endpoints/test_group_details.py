@@ -11,7 +11,7 @@ from sentry.models.groupinbox import GroupInboxReason, add_group_to_inbox, remov
 from sentry.models.groupowner import GROUP_OWNER_TYPE, GroupOwner, GroupOwnerType
 from sentry.models.release import Release
 from sentry.testutils.cases import APITestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.types.activity import ActivityType
 from sentry.types.group import PriorityLevel
 
@@ -54,16 +54,16 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
 
         for timestamp in first_release.values():
             self.store_event(
-                data={"release": "1.0", "timestamp": iso_format(timestamp)},
+                data={"release": "1.0", "timestamp": timestamp.timestamp()},
                 project_id=self.project.id,
             )
         self.store_event(
-            data={"release": "1.1", "timestamp": iso_format(before_now(minutes=2))},
+            data={"release": "1.1", "timestamp": before_now(minutes=2).timestamp()},
             project_id=self.project.id,
         )
         event = [
             self.store_event(
-                data={"release": "1.0a", "timestamp": iso_format(timestamp)},
+                data={"release": "1.0a", "timestamp": timestamp.timestamp()},
                 project_id=self.project.id,
             )
             for timestamp in last_release.values()
@@ -88,11 +88,11 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
 
         event = self.store_event(
-            data={"release": "1.0", "timestamp": iso_format(before_now(days=3))},
+            data={"release": "1.0", "timestamp": before_now(days=3).timestamp()},
             project_id=self.project.id,
         )
         self.store_event(
-            data={"release": "1.1", "timestamp": iso_format(before_now(minutes=3))},
+            data={"release": "1.1", "timestamp": before_now(minutes=3).timestamp()},
             project_id=self.project.id,
         )
 
@@ -111,11 +111,11 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         first_event = before_now(days=3)
 
         self.store_event(
-            data={"release": "1.0", "timestamp": iso_format(first_event)},
+            data={"release": "1.0", "timestamp": first_event.timestamp()},
             project_id=self.project.id,
         )
         event = self.store_event(
-            data={"release": "1.1", "timestamp": iso_format(before_now(days=1))},
+            data={"release": "1.1", "timestamp": before_now(days=1).timestamp()},
             project_id=self.project.id,
         )
         # Forcibly remove one of the releases
@@ -140,7 +140,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
 
         event = self.store_event(
-            data={"timestamp": iso_format(before_now(minutes=3))},
+            data={"timestamp": before_now(minutes=3).timestamp()},
             project_id=self.project.id,
         )
         group = event.group
@@ -161,7 +161,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
     def test_group_expand_owners(self):
         self.login_as(user=self.user)
         event = self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            data={"timestamp": before_now(seconds=500).timestamp(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
         group = event.group
@@ -191,7 +191,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
     def test_group_expand_forecasts(self):
         self.login_as(user=self.user)
         event = self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            data={"timestamp": before_now(seconds=500).timestamp(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
         group = event.group
@@ -251,7 +251,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
     def test_assigned_to_unknown(self):
         self.login_as(user=self.user)
         event = self.store_event(
-            data={"timestamp": iso_format(before_now(minutes=3))},
+            data={"timestamp": before_now(minutes=3).timestamp()},
             project_id=self.project.id,
         )
         group = event.group
@@ -283,7 +283,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
 
         event = self.store_event(
-            data={"timestamp": iso_format(before_now(minutes=3))},
+            data={"timestamp": before_now(minutes=3).timestamp()},
             project_id=self.project.id,
         )
         group = event.group
@@ -305,7 +305,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
 
         event = self.store_event(
-            data={"timestamp": iso_format(before_now(minutes=3))},
+            data={"timestamp": before_now(minutes=3).timestamp()},
             project_id=self.project.id,
         )
 
