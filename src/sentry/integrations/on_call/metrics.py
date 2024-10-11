@@ -2,8 +2,8 @@ from enum import Enum
 
 from attr import dataclass
 
-from sentry.integrations.on_call.spec import OnCallSpec
 from sentry.integrations.base import IntegrationDomain
+from sentry.integrations.on_call.spec import OnCallSpec
 from sentry.integrations.utils.metrics import EventLifecycleMetric, EventLifecycleOutcome
 from sentry.models.organization import Organization
 from sentry.organizations.services.organization import RpcOrganization
