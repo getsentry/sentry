@@ -474,7 +474,7 @@ class VstsIssueFormTest(VstsIssueBase):
                 "count": 2,
             },
         )
-        min_ago = before_now(minutes=1).timestamp()
+        min_ago = before_now(minutes=1).isoformat()
         event = self.store_event(
             data={"fingerprint": ["group1"], "timestamp": min_ago}, project_id=self.project.id
         )
