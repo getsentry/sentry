@@ -39,6 +39,9 @@ const alertTypeIdentifiers: Record<
     crash_free_sessions: SessionsAggregate.CRASH_FREE_SESSIONS,
     crash_free_users: SessionsAggregate.CRASH_FREE_USERS,
   },
+  [Dataset.EVENTS_ANALYTICS_PLATFORM]: {
+    throughput: 'count(span.duration)',
+  },
 };
 
 /**
