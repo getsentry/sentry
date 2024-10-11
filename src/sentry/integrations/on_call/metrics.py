@@ -2,7 +2,7 @@ from enum import Enum
 
 from attr import dataclass
 
-from sentry.integrations.opsgenie.spec import OpsgenieOnCallSpec
+from sentry.integrations.on_call.spec import OnCallSpec
 from sentry.integrations.utils.metrics import EventLifecycleMetric, EventLifecycleOutcome
 from sentry.models.organization import Organization
 from sentry.organizations.services.organization import RpcOrganization
@@ -38,7 +38,7 @@ class OnCallInteractionEvent(EventLifecycleMetric):
     """
 
     interaction_type: OnCallInteractionType
-    spec: OpsgenieOnCallSpec  # TODO: also add pagerduty oncall spec, or make a common spec class to inherit
+    spec: OnCallSpec
 
     # Optional attributes to populate extras
     user: User | RpcUser | None = None
