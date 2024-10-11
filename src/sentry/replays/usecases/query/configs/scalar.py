@@ -68,7 +68,7 @@ varying_search_config: dict[str, FieldProtocol] = {
     "error_ids": ComputedField(parse_uuid, ErrorIdScalar),
     "trace_ids": UUIDColumnField("trace_ids", parse_uuid, UUIDArray),
     "urls": StringColumnField("urls", parse_str, StringArray),
-    "user.email": StringColumnField("user_email", parse_str, NonEmptyStringScalar),
+    # "user.email": StringColumnField("user_email", parse_str, NonEmptyStringScalar),
     "user.id": StringColumnField("user_id", parse_str, NonEmptyStringScalar),
     "user.ip_address": NullableStringColumnField("ip_address_v4", parse_ipv4, IPv4Scalar),
     "user.username": StringColumnField("user_name", parse_str, NonEmptyStringScalar),
