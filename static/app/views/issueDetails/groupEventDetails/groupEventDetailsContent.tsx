@@ -235,7 +235,9 @@ export function EventDetailsContent({
           project={project}
         />
       )}
-      <HighlightsDataSection event={event} project={project} viewAllRef={tagsRef} />
+      {!hasStreamlinedUI && (
+        <HighlightsDataSection event={event} project={project} viewAllRef={tagsRef} />
+      )}
       {showPossibleSolutionsHigher && (
         <ResourcesAndPossibleSolutionsIssueDetailsContent
           event={event}
@@ -381,7 +383,10 @@ export function EventDetailsContent({
         </EntryErrorBoundary>
       )}
       {hasStreamlinedUI ? (
-        <EventTagsDataSection event={event} projectSlug={project.slug} ref={tagsRef} />
+        <Fragment>
+          <HighlightsDataSection event={event} project={project} viewAllRef={tagsRef} />
+          <EventTagsDataSection event={event} projectSlug={project.slug} ref={tagsRef} />
+        </Fragment>
       ) : (
         <div ref={tagsRef}>
           <EventTagsAndScreenshot event={event} projectSlug={project.slug} />
