@@ -443,7 +443,10 @@ function BaseGroupRow({
           </CountTooltipContent>
         }
       >
-        <PrimaryCount value={primaryCount} />
+        <PrimaryCount
+          value={primaryCount}
+          smallFont={organization.features.includes('issue-stream-table-layout')}
+        />
         {secondaryCount !== undefined && useFilteredStats && (
           <SecondaryCount value={secondaryCount} />
         )}
@@ -483,7 +486,10 @@ function BaseGroupRow({
         </CountTooltipContent>
       }
     >
-      <PrimaryCount value={primaryUserCount} />
+      <PrimaryCount
+        value={primaryUserCount}
+        smallFont={organization.features.includes('issue-stream-table-layout')}
+      />
       {secondaryUserCount !== undefined && useFilteredStats && (
         <SecondaryCount dark value={secondaryUserCount} />
       )}
@@ -586,7 +592,7 @@ function BaseGroupRow({
           issueTypeConfig.stats.enabled &&
           organization.features.includes('issue-stream-table-layout') ? (
             <NarrowEventsOrUsersCountsWrapper breakpoint={COLUMN_BREAKPOINTS.EVENTS}>
-              <div style={{marginRight: space(2)}}>{groupCount}</div>
+              <InnerCountsWrapper>{groupCount}</InnerCountsWrapper>
             </NarrowEventsOrUsersCountsWrapper>
           ) : (
             <EventCountsWrapper
@@ -599,7 +605,7 @@ function BaseGroupRow({
           issueTypeConfig.stats.enabled &&
           organization.features.includes('issue-stream-table-layout') ? (
             <NarrowEventsOrUsersCountsWrapper breakpoint={COLUMN_BREAKPOINTS.USERS}>
-              <div style={{marginRight: space(2)}}>{groupUsersCount}</div>
+              <InnerCountsWrapper>{groupUsersCount}</InnerCountsWrapper>
             </NarrowEventsOrUsersCountsWrapper>
           ) : (
             <EventCountsWrapper>{groupUsersCount}</EventCountsWrapper>
@@ -738,13 +744,9 @@ const GroupCheckBoxWrapper = styled('div')<{hasNewLayout: boolean}>`
     `}
 `;
 
-const primaryStatStyle = (theme: Theme) => css`
-  font-size: ${theme.fontSizeLarge};
+const PrimaryCount = styled(Count)<{smallFont: boolean}>`
+  font-size: ${p => (p.smallFont ? p.theme.fontSizeMedium : p.theme.fontSizeLarge)};
   font-variant-numeric: tabular-nums;
-`;
-
-const PrimaryCount = styled(Count)`
-  ${p => primaryStatStyle(p.theme)};
 `;
 
 const secondaryStatStyle = (theme: Theme) => css`
@@ -822,6 +824,10 @@ const NarrowEventsOrUsersCountsWrapper = styled('div')<{breakpoint: string}>`
   @media (max-width: ${p => p.breakpoint}) {
     display: none;
   }
+`;
+
+const InnerCountsWrapper = styled('div')`
+  margin-right: ${space(2)};
 `;
 
 const EventCountsWrapper = styled('div')<{leftMargin?: string}>`
