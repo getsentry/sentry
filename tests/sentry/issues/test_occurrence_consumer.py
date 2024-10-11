@@ -256,8 +256,8 @@ class IssueOccurrenceLookupEventIdTest(IssueOccurrenceTestBase):
         from sentry.event_manager import EventManager
 
         event_data = load_data("transaction")
-        event_data["timestamp"] = before_now(minutes=1).timestamp()
-        event_data["start_timestamp"] = before_now(minutes=1, seconds=1).timestamp()
+        event_data["timestamp"] = before_now(minutes=1).isoformat()
+        event_data["start_timestamp"] = before_now(minutes=1, seconds=1).isoformat()
         event_data["event_id"] = "d" * 32
 
         manager = EventManager(data=event_data)
@@ -557,7 +557,7 @@ class ParseEventPayloadTest(IssueOccurrenceTestBase):
             data={
                 "event_id": "a" * 32,
                 "message": "oh no",
-                "timestamp": datetime.datetime.now().timestamp(),
+                "timestamp": datetime.datetime.now().isoformat(),
                 "fingerprint": ["group-1"],
             },
             project_id=self.project.id,

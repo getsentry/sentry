@@ -11,8 +11,8 @@ class GroupHashesTest(APITestCase, SnubaTestCase):
     def test_only_return_latest_event(self):
         self.login_as(user=self.user)
 
-        min_ago = before_now(minutes=1).timestamp()
-        two_min_ago = before_now(minutes=2).timestamp()
+        min_ago = before_now(minutes=1).isoformat()
+        two_min_ago = before_now(minutes=2).isoformat()
         new_event_id = "b" * 32
 
         old_event = self.store_event(
@@ -47,8 +47,8 @@ class GroupHashesTest(APITestCase, SnubaTestCase):
     def test_return_multiple_hashes(self):
         self.login_as(user=self.user)
 
-        min_ago = before_now(minutes=1).timestamp()
-        two_min_ago = before_now(minutes=2).timestamp()
+        min_ago = before_now(minutes=1).isoformat()
+        two_min_ago = before_now(minutes=2).isoformat()
 
         event1 = self.store_event(
             data={

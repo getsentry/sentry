@@ -29,7 +29,7 @@ class EventUserTestCase(APITestCase, SnubaTestCase):
                     "username": "foobar",
                     "ip_address": "127.0.0.1",
                 },
-                "timestamp": before_now(seconds=10).timestamp(),
+                "timestamp": before_now(seconds=10).isoformat(),
             },
             project_id=self.project.id,
         )
@@ -42,7 +42,7 @@ class EventUserTestCase(APITestCase, SnubaTestCase):
                     "username": "nisanthan",
                     "ip_address": "1.1.1.1",
                 },
-                "timestamp": before_now(seconds=20).timestamp(),
+                "timestamp": before_now(seconds=20).isoformat(),
             },
             project_id=self.project.id,
         )
@@ -55,7 +55,7 @@ class EventUserTestCase(APITestCase, SnubaTestCase):
                     "username": "minion",
                     "ip_address": "8.8.8.8",
                 },
-                "timestamp": before_now(seconds=30).timestamp(),
+                "timestamp": before_now(seconds=30).isoformat(),
             },
             project_id=self.project.id,
         )
@@ -145,7 +145,7 @@ class EventUserTestCase(APITestCase, SnubaTestCase):
                         "username": "nisanthan",
                         "ip_address": f"1.1.1.{i}",
                     },
-                    "timestamp": before_now(seconds=30 + i).timestamp(),
+                    "timestamp": before_now(seconds=30 + i).isoformat(),
                 },
                 project_id=self.project.id,
             )
@@ -170,7 +170,7 @@ class EventUserTestCase(APITestCase, SnubaTestCase):
                         "username": "nisanthan",
                         "ip_address": f"1.1.1.{i}",
                     },
-                    "timestamp": before_now(seconds=30 + i).timestamp(),
+                    "timestamp": before_now(seconds=30 + i).isoformat(),
                 },
                 project_id=self.project.id,
             )
@@ -182,7 +182,7 @@ class EventUserTestCase(APITestCase, SnubaTestCase):
                         "username": "minion",
                         "ip_address": f"8.8.8.{i}",
                     },
-                    "timestamp": before_now(seconds=40 + i).timestamp(),
+                    "timestamp": before_now(seconds=40 + i).isoformat(),
                 },
                 project_id=self.project.id,
             )
@@ -194,7 +194,7 @@ class EventUserTestCase(APITestCase, SnubaTestCase):
                         "username": "gru",
                         "ip_address": f"2001:0db8:0000:85a3:0000:0000:ac1f:800{i}",
                     },
-                    "timestamp": before_now(seconds=50 + i).timestamp(),
+                    "timestamp": before_now(seconds=50 + i).isoformat(),
                 },
                 project_id=self.project.id,
             )
@@ -206,7 +206,7 @@ class EventUserTestCase(APITestCase, SnubaTestCase):
                         "username": "scarlet",
                         "ip_address": f"2001:db8:0:85a3::ac1f:{i}008",
                     },
-                    "timestamp": before_now(seconds=60 + i).timestamp(),
+                    "timestamp": before_now(seconds=60 + i).isoformat(),
                 },
                 project_id=self.project.id,
             )
@@ -246,7 +246,7 @@ class EventUserTestCase(APITestCase, SnubaTestCase):
                         "username": "nisanthan",
                         "ip_address": f"1.1.1.{i}",
                     },
-                    "timestamp": before_now(seconds=30 + i).timestamp(),
+                    "timestamp": before_now(seconds=30 + i).isoformat(),
                 },
                 project_id=self.project.id,
             )
@@ -258,7 +258,7 @@ class EventUserTestCase(APITestCase, SnubaTestCase):
                         "username": "minion",
                         "ip_address": f"2001:0db8:0000:85a3:0000:0000:ac1f:800{i}",
                     },
-                    "timestamp": before_now(seconds=40 + i).timestamp(),
+                    "timestamp": before_now(seconds=40 + i).isoformat(),
                 },
                 project_id=self.project.id,
             )
@@ -322,7 +322,7 @@ class EventUserTestCase(APITestCase, SnubaTestCase):
                         "username": "test",
                         "ip_address": f"1.1.1.{i}",
                     },
-                    "timestamp": before_now(seconds=30 + i).timestamp(),
+                    "timestamp": before_now(seconds=30 + i).isoformat(),
                 },
                 project_id=self.project.id,
             )
@@ -337,7 +337,7 @@ class EventUserTestCase(APITestCase, SnubaTestCase):
                         "username": "test2",
                         "ip_address": f"2001:0db8:0000:85a3:0000:0000:ac1f:800{i}",
                     },
-                    "timestamp": before_now(minutes=60 + i).timestamp(),
+                    "timestamp": before_now(minutes=60 + i).isoformat(),
                 },
                 project_id=self.project.id,
             )
@@ -420,7 +420,7 @@ class EventUserTestCase(APITestCase, SnubaTestCase):
                     "username": "cocoa",
                     "ip_address": "8.8.8.8",
                 },
-                "timestamp": before_now(seconds=30).timestamp(),
+                "timestamp": before_now(seconds=30).isoformat(),
             },
             project_id=self.project.id,
         )
@@ -438,7 +438,7 @@ class EventUserTestCase(APITestCase, SnubaTestCase):
                     "username": None,
                     "ip_address": "8.8.8.8",
                 },
-                "timestamp": before_now(seconds=30).timestamp(),
+                "timestamp": before_now(seconds=30).isoformat(),
             },
             project_id=self.project.id,
         )
@@ -459,7 +459,7 @@ class EventUserTestCase(APITestCase, SnubaTestCase):
                     "username": None,
                     "ip_address": "8.8.8.1",
                 },
-                "timestamp": before_now(seconds=30).timestamp(),
+                "timestamp": before_now(seconds=30).isoformat(),
             },
             project_id=self.project.id,
         )

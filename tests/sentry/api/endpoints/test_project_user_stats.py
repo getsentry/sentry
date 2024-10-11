@@ -30,21 +30,21 @@ class ProjectUserDetailsTest(APITestCase):
         with freeze_time(now):
             self.store_event(
                 data={
-                    "timestamp": before_now(minutes=10).timestamp(),
+                    "timestamp": before_now(minutes=10).isoformat(),
                     "tags": {"sentry:user": "user_1"},
                 },
                 project_id=self.project.id,
             )
             self.store_event(
                 data={
-                    "timestamp": before_now(minutes=10).timestamp(),
+                    "timestamp": before_now(minutes=10).isoformat(),
                     "tags": {"sentry:user": "user_1"},
                 },
                 project_id=self.project.id,
             )
             self.store_event(
                 data={
-                    "timestamp": before_now(minutes=10).timestamp(),
+                    "timestamp": before_now(minutes=10).isoformat(),
                     "tags": {"sentry:user": "user_2"},
                 },
                 project_id=self.project.id,

@@ -126,7 +126,7 @@ class CorePostProcessGroupTestMixin(BasePostProgressGroupMixin):
         mock_process_service_hook,
         mock_processor,
     ):
-        min_ago = before_now(minutes=1).timestamp()
+        min_ago = before_now(minutes=1).isoformat()
         event = self.store_event(
             data={
                 "type": "transaction",
@@ -661,7 +661,7 @@ class ResourceChangeBoundsTestMixin(BasePostProgressGroupMixin):
                 "message": "Foo bar",
                 "exception": {"type": "Foo", "value": "oh no"},
                 "level": "error",
-                "timestamp": timezone.now().timestamp(),
+                "timestamp": timezone.now().isoformat(),
             },
             project_id=self.project.id,
             assert_no_errors=False,
@@ -695,7 +695,7 @@ class ResourceChangeBoundsTestMixin(BasePostProgressGroupMixin):
             data={
                 "message": "Foo bar",
                 "level": "info",
-                "timestamp": timezone.now().timestamp(),
+                "timestamp": timezone.now().isoformat(),
             },
             project_id=self.project.id,
             assert_no_errors=False,
@@ -716,7 +716,7 @@ class ResourceChangeBoundsTestMixin(BasePostProgressGroupMixin):
             data={
                 "message": "Foo bar",
                 "level": "info",
-                "timestamp": timezone.now().timestamp(),
+                "timestamp": timezone.now().isoformat(),
             },
             project_id=self.project.id,
             assert_no_errors=False,
@@ -739,7 +739,7 @@ class ResourceChangeBoundsTestMixin(BasePostProgressGroupMixin):
                 "message": "Foo bar",
                 "level": "error",
                 "exception": {"type": "Foo", "value": "oh no"},
-                "timestamp": timezone.now().timestamp(),
+                "timestamp": timezone.now().isoformat(),
             },
             project_id=self.project.id,
             assert_no_errors=False,
@@ -1412,7 +1412,7 @@ class ProcessCommitsTestMixin(BasePostProgressGroupMixin):
             data={
                 "message": "Kaboom!",
                 "platform": "python",
-                "timestamp": before_now(seconds=10).timestamp(),
+                "timestamp": before_now(seconds=10).isoformat(),
                 "stacktrace": {
                     "frames": [
                         {
@@ -2452,7 +2452,7 @@ class PostProcessGroupErrorTest(
     def test_generic_metrics_backend_counter(
         self, metric_timer_mock, metric_incr_mock, generic_metrics_backend_mock
     ):
-        min_ago = before_now(minutes=1).timestamp()
+        min_ago = before_now(minutes=1).isoformat()
         event = self.create_event(
             data={
                 "exception": {

@@ -28,7 +28,7 @@ class DeleteGroupTest(TestCase):
         event = self.store_event(
             data={
                 "event_id": event_id,
-                "timestamp": before_now(minutes=1).timestamp(),
+                "timestamp": before_now(minutes=1).isoformat(),
                 "fingerprint": ["group1"],
             },
             project_id=project.id,
@@ -37,7 +37,7 @@ class DeleteGroupTest(TestCase):
         self.store_event(
             data={
                 "event_id": event_id_2,
-                "timestamp": before_now(minutes=1).timestamp(),
+                "timestamp": before_now(minutes=1).isoformat(),
                 "fingerprint": ["group1"],
             },
             project_id=project.id,

@@ -27,7 +27,7 @@ class EventStorageTest(TestCase):
         """
         Test that bind_nodes populates _node_data
         """
-        min_ago = before_now(minutes=1).timestamp()
+        min_ago = before_now(minutes=1).isoformat()
         self.store_event(
             data={"event_id": "a" * 32, "timestamp": min_ago, "user": {"id": "user1"}},
             project_id=self.project.id,

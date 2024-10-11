@@ -211,7 +211,7 @@ class ErrorPageEmbedEnvironmentTest(TestCase):
         self.environment.add_project(self.project)
 
     def make_event(self, **kwargs):
-        min_ago = before_now(minutes=1).timestamp()
+        min_ago = before_now(minutes=1).isoformat()
         result = {
             "event_id": "a" * 32,
             "message": "foo",

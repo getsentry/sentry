@@ -25,7 +25,7 @@ class EventSerializerTest(TestCase, OccurrenceTestMixin):
     def test_simple(self):
         event_id = "a" * 32
         event = self.store_event(
-            data={"event_id": event_id, "timestamp": before_now(minutes=1).timestamp()},
+            data={"event_id": event_id, "timestamp": before_now(minutes=1).isoformat()},
             project_id=self.project.id,
         )
         result = serialize(event)
@@ -37,7 +37,7 @@ class EventSerializerTest(TestCase, OccurrenceTestMixin):
         event = self.store_event(
             data={
                 "event_id": "a" * 32,
-                "timestamp": before_now(minutes=1).timestamp(),
+                "timestamp": before_now(minutes=1).isoformat(),
                 "stacktrace": ["ü"],
             },
             project_id=self.project.id,
@@ -60,7 +60,7 @@ class EventSerializerTest(TestCase, OccurrenceTestMixin):
         event = self.store_event(
             data={
                 "event_id": "a" * 32,
-                "timestamp": before_now(minutes=1).timestamp(),
+                "timestamp": before_now(minutes=1).isoformat(),
                 "breadcrumbs": ["ü"],
             },
             project_id=self.project.id,
@@ -75,7 +75,7 @@ class EventSerializerTest(TestCase, OccurrenceTestMixin):
         event = self.store_event(
             data={
                 "event_id": "a" * 32,
-                "timestamp": before_now(minutes=1).timestamp(),
+                "timestamp": before_now(minutes=1).isoformat(),
                 "extra": {"extra": True},
                 "modules": {"modules": "foobar"},
                 "_meta": {
@@ -97,7 +97,7 @@ class EventSerializerTest(TestCase, OccurrenceTestMixin):
         event = self.store_event(
             data={
                 "event_id": "a" * 32,
-                "timestamp": before_now(minutes=1).timestamp(),
+                "timestamp": before_now(minutes=1).isoformat(),
                 "logentry": {"formatted": "bar"},
                 "_meta": {"logentry": {"formatted": {"": {"err": ["some error"]}}}},
             },
@@ -113,7 +113,7 @@ class EventSerializerTest(TestCase, OccurrenceTestMixin):
         event = self.store_event(
             data={
                 "event_id": "a" * 32,
-                "timestamp": before_now(minutes=1).timestamp(),
+                "timestamp": before_now(minutes=1).isoformat(),
                 "logentry": {"formatted": "baz"},
                 "_meta": {"logentry": {"formatted": {"": {"err": ["some error"]}}}},
             },
@@ -129,7 +129,7 @@ class EventSerializerTest(TestCase, OccurrenceTestMixin):
         event = self.store_event(
             data={
                 "event_id": "a" * 32,
-                "timestamp": before_now(minutes=1).timestamp(),
+                "timestamp": before_now(minutes=1).isoformat(),
                 "exception": {
                     "values": [
                         {
@@ -189,7 +189,7 @@ class EventSerializerTest(TestCase, OccurrenceTestMixin):
             data={
                 "event_id": "a" * 32,
                 "level": "error",  # creates a derived tag.
-                "timestamp": before_now(minutes=1).timestamp(),
+                "timestamp": before_now(minutes=1).isoformat(),
                 "tags": [["foo", "foo"], ["bar", "bar"], ["last", "tag"], None],
                 "_meta": {
                     "tags": {
@@ -218,7 +218,7 @@ class EventSerializerTest(TestCase, OccurrenceTestMixin):
         event = self.store_event(
             data={
                 "event_id": "a" * 32,
-                "timestamp": before_now(minutes=1).timestamp(),
+                "timestamp": before_now(minutes=1).isoformat(),
                 "tags": {"foo": "foo", "bar": "bar", "last": "tag"},
                 "_meta": {
                     "tags": {
@@ -242,7 +242,7 @@ class EventSerializerTest(TestCase, OccurrenceTestMixin):
         event = self.store_event(
             data={
                 "event_id": "a" * 32,
-                "timestamp": before_now(minutes=1).timestamp(),
+                "timestamp": before_now(minutes=1).isoformat(),
                 "breadcrumbs": None,
                 "exception": None,
                 "logentry": None,
@@ -328,7 +328,7 @@ class EventSerializerTest(TestCase, OccurrenceTestMixin):
 class SharedEventSerializerTest(TestCase):
     def test_simple(self):
         event = self.store_event(
-            data={"event_id": "a" * 32, "timestamp": before_now(minutes=1).timestamp()},
+            data={"event_id": "a" * 32, "timestamp": before_now(minutes=1).isoformat()},
             project_id=self.project.id,
         )
 
@@ -353,7 +353,7 @@ class SimpleEventSerializerTest(TestCase):
         event = self.store_event(
             data={
                 "event_id": "a" * 32,
-                "timestamp": before_now(minutes=1).timestamp(),
+                "timestamp": before_now(minutes=1).isoformat(),
                 "user": {"email": "test@test.com"},
             },
             project_id=self.project.id,
@@ -385,8 +385,8 @@ class SimpleEventSerializerTest(TestCase):
         event = self.store_event(
             data={
                 "event_id": "a" * 32,
-                "start_timestamp": before_now(minutes=1, seconds=5).timestamp(),
-                "timestamp": before_now(minutes=1).timestamp(),
+                "start_timestamp": before_now(minutes=1, seconds=5).isoformat(),
+                "timestamp": before_now(minutes=1).isoformat(),
                 "user": {"email": "test@test.com"},
                 "type": "transaction",
                 "transaction": "api.issue.delete",
@@ -406,7 +406,7 @@ class IssueEventSerializerTest(TestCase):
         return_value=SdkIndexState(sdk_versions={"example.sdk": "2.0.0"}),
     )
     def test_update_on_major(self, mock_index_state):
-        min_ago = before_now(minutes=1).timestamp()
+        min_ago = before_now(minutes=1).isoformat()
         event = self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -435,7 +435,7 @@ class IssueEventSerializerTest(TestCase):
         return_value=SdkIndexState(sdk_versions={"example.sdk": "1.1.0"}),
     )
     def test_update_on_minor(self, mock_index_state):
-        min_ago = before_now(minutes=1).timestamp()
+        min_ago = before_now(minutes=1).isoformat()
         event = self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -464,7 +464,7 @@ class IssueEventSerializerTest(TestCase):
         return_value=SdkIndexState(sdk_versions={"example.sdk": "1.0.1"}),
     )
     def test_ignores_patch(self, mock_index_state):
-        min_ago = before_now(minutes=1).timestamp()
+        min_ago = before_now(minutes=1).isoformat()
         event = self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -587,8 +587,8 @@ class SqlFormatEventSerializerTest(TestCase):
             data={
                 "type": "transaction",
                 "transaction": "/organizations/:orgId/performance/:eventSlug/",
-                "start_timestamp": before_now(minutes=1, milliseconds=500).timestamp(),
-                "timestamp": before_now(minutes=1).timestamp(),
+                "start_timestamp": before_now(minutes=1, milliseconds=500).isoformat(),
+                "timestamp": before_now(minutes=1).isoformat(),
                 "contexts": {
                     "trace": {
                         "trace_id": "ff62a8b040f340bda5d830223def1d81",

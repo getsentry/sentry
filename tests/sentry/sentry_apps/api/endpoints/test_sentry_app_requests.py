@@ -202,7 +202,7 @@ class SentryAppRequestsGetTest(APITestCase):
         self.login_as(user=self.user)
 
         event = self.store_event(
-            data={"event_id": self.event_id, "timestamp": before_now(minutes=1).timestamp()},
+            data={"event_id": self.event_id, "timestamp": before_now(minutes=1).isoformat()},
             project_id=self.project.id,
         )
 
@@ -230,7 +230,7 @@ class SentryAppRequestsGetTest(APITestCase):
         self.login_as(user=self.user)
 
         self.store_event(
-            data={"event_id": self.event_id, "timestamp": before_now(minutes=1).timestamp()},
+            data={"event_id": self.event_id, "timestamp": before_now(minutes=1).isoformat()},
             project_id=self.project.id,
         )
 

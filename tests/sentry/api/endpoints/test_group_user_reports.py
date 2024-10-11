@@ -34,7 +34,7 @@ class GroupUserReport(APITestCase, SnubaTestCase):
                 data={
                     "fingerprint": ["group-1"],
                     "tags": {"environment": environment.name},
-                    "timestamp": before_now(seconds=1).timestamp(),
+                    "timestamp": before_now(seconds=1).isoformat(),
                 },
                 project_id=self.project.id,
             )

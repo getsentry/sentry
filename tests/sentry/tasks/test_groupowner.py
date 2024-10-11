@@ -37,7 +37,7 @@ class TestGroupOwners(TestCase):
             data={
                 "message": "Kaboom!",
                 "platform": "python",
-                "timestamp": before_now(seconds=10).timestamp(),
+                "timestamp": before_now(seconds=10).isoformat(),
                 "stacktrace": {
                     "frames": [
                         {
@@ -181,7 +181,7 @@ class TestGroupOwners(TestCase):
             data={
                 "message": "BANG!",
                 "platform": "python",
-                "timestamp": before_now(seconds=1).timestamp(),
+                "timestamp": before_now(seconds=1).isoformat(),
                 "stacktrace": {
                     "frames": [
                         {
@@ -203,7 +203,7 @@ class TestGroupOwners(TestCase):
             data={
                 "message": "BOP!",
                 "platform": "python",
-                "timestamp": before_now(seconds=1).timestamp(),
+                "timestamp": before_now(seconds=1).isoformat(),
                 "stacktrace": {
                     "frames": [
                         {
@@ -328,7 +328,7 @@ class TestGroupOwners(TestCase):
             data={
                 "message": "BOOM!",
                 "platform": "python",
-                "timestamp": before_now(seconds=1).timestamp(),
+                "timestamp": before_now(seconds=1).isoformat(),
                 "stacktrace": {
                     "frames": [
                         {

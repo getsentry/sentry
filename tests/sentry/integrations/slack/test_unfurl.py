@@ -189,7 +189,7 @@ class UnfurlTest(TestCase):
         self.frozen_time.stop()
 
     def test_unfurl_issues(self):
-        min_ago = before_now(minutes=1).timestamp()
+        min_ago = before_now(minutes=1).isoformat()
         event = self.store_event(
             data={"fingerprint": ["group2"], "timestamp": min_ago}, project_id=self.project.id
         )
@@ -218,7 +218,7 @@ class UnfurlTest(TestCase):
         )
 
     def test_unfurl_issues_block_kit(self):
-        min_ago = before_now(minutes=1).timestamp()
+        min_ago = before_now(minutes=1).isoformat()
         event = self.store_event(
             data={"fingerprint": ["group2"], "timestamp": min_ago}, project_id=self.project.id
         )

@@ -13,7 +13,7 @@ class ProjectGroupStatsTest(APITestCase):
         group1 = self.store_event(
             data={
                 "fingerprint": ["group1"],
-                "timestamp": before_now(minutes=5).timestamp(),
+                "timestamp": before_now(minutes=5).isoformat(),
             },
             project_id=self.project.id,
         ).group
@@ -21,7 +21,7 @@ class ProjectGroupStatsTest(APITestCase):
         group2 = self.store_event(
             data={
                 "fingerprint": ["group2"],
-                "timestamp": before_now(minutes=5).timestamp(),
+                "timestamp": before_now(minutes=5).isoformat(),
             },
             project_id=self.project.id,
         ).group
@@ -32,7 +32,7 @@ class ProjectGroupStatsTest(APITestCase):
                 self.store_event(
                     data={
                         "fingerprint": [fingerprint],
-                        "timestamp": before_now(minutes=5).timestamp(),
+                        "timestamp": before_now(minutes=5).isoformat(),
                     },
                     project_id=self.project.id,
                 )

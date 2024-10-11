@@ -40,7 +40,7 @@ def get_client():
 class RegionJiraIntegrationTest(APITestCase):
     def setUp(self):
         super().setUp()
-        self.min_ago = before_now(minutes=1).timestamp()
+        self.min_ago = before_now(minutes=1).isoformat()
         self.integration = self.create_integration(
             organization=self.organization,
             external_id="jira:1",

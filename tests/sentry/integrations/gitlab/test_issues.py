@@ -16,7 +16,7 @@ pytestmark = [requires_snuba]
 class GitlabIssuesTest(GitLabTestCase):
     def setUp(self):
         super().setUp()
-        min_ago = before_now(minutes=1).timestamp()
+        min_ago = before_now(minutes=1).isoformat()
         event = self.store_event(
             data={
                 "event_id": "a" * 32,

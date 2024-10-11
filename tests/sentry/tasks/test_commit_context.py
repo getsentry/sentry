@@ -73,7 +73,7 @@ class TestCommitContextIntegration(TestCase):
             data={
                 "message": "Kaboom!",
                 "platform": "python",
-                "timestamp": before_now(seconds=10).timestamp(),
+                "timestamp": before_now(seconds=10).isoformat(),
                 "stacktrace": {
                     "frames": [
                         {
@@ -423,7 +423,7 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
             data={
                 "message": "Kaboom!",
                 "platform": "python",
-                "timestamp": before_now(seconds=10).timestamp(),
+                "timestamp": before_now(seconds=10).isoformat(),
                 "stacktrace": {
                     "frames": [
                         {

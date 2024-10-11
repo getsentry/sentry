@@ -18,7 +18,7 @@ class UpdateUserReportTest(TestCase):
     ):
         event_dt = event_dt or timezone.now()
         report_dt = report_dt or timezone.now()
-        event = self.store_event(data={"timestamp": event_dt.timestamp()}, project_id=project_id)
+        event = self.store_event(data={"timestamp": event_dt.isoformat()}, project_id=project_id)
         report = UserReport.objects.create(
             project_id=project_id, event_id=event.event_id, date_added=report_dt
         )

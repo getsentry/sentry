@@ -33,7 +33,7 @@ class BitbucketIssueTest(APITestCase):
         )
         assert org_integration is not None
         self.org_integration = org_integration
-        min_ago = before_now(minutes=1).timestamp()
+        min_ago = before_now(minutes=1).isoformat()
         event = self.store_event(
             data={
                 "event_id": "a" * 32,
