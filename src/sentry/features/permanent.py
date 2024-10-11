@@ -115,8 +115,6 @@ def register_permanent_features(manager: FeatureManager):
         "organizations:sentry-pride-logo-footer": False,
         # Enable priority calculations using Seer's severity endpoint
         "organizations:seer-based-priority": False,
-        # Use spans instead of transactions for dynamic sampling calculations
-        "organizations:dynamic-sampling-spans": False,
     }
 
     permanent_project_features = {
