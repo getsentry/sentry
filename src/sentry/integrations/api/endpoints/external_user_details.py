@@ -20,6 +20,7 @@ from sentry.integrations.api.bases.external_actor import (
     ExternalActorEndpointMixin,
     ExternalUserSerializer,
 )
+from sentry.integrations.api.serializers.models.external_actor import ExternalActorSerializer
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.models.organization import Organization
 
@@ -54,7 +55,7 @@ class ExternalUserDetailsEndpoint(OrganizationEndpoint, ExternalActorEndpointMix
         parameters=[GlobalParams.ORG_ID_OR_SLUG, OrganizationParams.EXTERNAL_USER_ID],
         request=ExternalUserSerializer,
         responses={
-            200: ExternalUserSerializer,
+            200: ExternalActorSerializer,
             400: RESPONSE_BAD_REQUEST,
             403: RESPONSE_FORBIDDEN,
         },

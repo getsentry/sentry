@@ -17,6 +17,7 @@ from sentry.integrations.api.bases.external_actor import (
     ExternalActorEndpointMixin,
     ExternalUserSerializer,
 )
+from sentry.integrations.api.serializers.models.external_actor import ExternalActorSerializer
 from sentry.models.organization import Organization
 
 logger = logging.getLogger(__name__)
@@ -35,8 +36,8 @@ class ExternalUserEndpoint(OrganizationEndpoint, ExternalActorEndpointMixin):
         parameters=[GlobalParams.ORG_ID_OR_SLUG],
         request=ExternalUserSerializer,
         responses={
-            200: ExternalUserSerializer,
-            201: ExternalUserSerializer,
+            200: ExternalActorSerializer,
+            201: ExternalActorSerializer,
             400: RESPONSE_BAD_REQUEST,
             403: RESPONSE_FORBIDDEN,
         },

@@ -17,6 +17,7 @@ from sentry.integrations.api.bases.external_actor import (
     ExternalActorEndpointMixin,
     ExternalTeamSerializer,
 )
+from sentry.integrations.api.serializers.models.external_actor import ExternalActorSerializer
 from sentry.models.team import Team
 
 logger = logging.getLogger(__name__)
@@ -35,8 +36,8 @@ class ExternalTeamEndpoint(TeamEndpoint, ExternalActorEndpointMixin):
         parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.TEAM_ID_OR_SLUG],
         request=ExternalTeamSerializer,
         responses={
-            200: ExternalTeamSerializer,
-            201: ExternalTeamSerializer,
+            200: ExternalActorSerializer,
+            201: ExternalActorSerializer,
             400: RESPONSE_BAD_REQUEST,
             403: RESPONSE_FORBIDDEN,
         },

@@ -18,6 +18,7 @@ from sentry.integrations.api.bases.external_actor import (
     ExternalActorEndpointMixin,
     ExternalTeamSerializer,
 )
+from sentry.integrations.api.serializers.models.external_actor import ExternalActorSerializer
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.models.team import Team
 
@@ -59,7 +60,7 @@ class ExternalTeamDetailsEndpoint(TeamEndpoint, ExternalActorEndpointMixin):
         ],
         request=ExternalTeamSerializer,
         responses={
-            200: ExternalTeamSerializer,
+            200: ExternalActorSerializer,
             400: RESPONSE_BAD_REQUEST,
             403: RESPONSE_FORBIDDEN,
         },

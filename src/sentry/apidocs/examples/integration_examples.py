@@ -60,11 +60,11 @@ class IntegrationExamples:
         OpenApiExample(
             "Create an external user",
             value={
-                "id": 123,
+                "externalName": "@Billybob",
                 "provider": "github",
-                "external_name": "@billy",
-                "integration_id": 123,
-                "user_id": 123,
+                "userId": "1",
+                "integrationId": "1",
+                "id": "1",
             },
             status_codes=["200", "201"],
             response_only=True,
@@ -75,11 +75,12 @@ class IntegrationExamples:
         OpenApiExample(
             "Create an external team",
             value={
-                "id": 123,
-                "provider": "github",
-                "external_name": "team-foo",
-                "integration_id": 123,
-                "team_id": 123,
+                "externalId": "asdf",
+                "externalName": "@team-foo",
+                "provider": "slack",
+                "integrationId": "1",
+                "id": "1",
+                "teamId": "2",
             },
             status_codes=["200", "201"],
             response_only=True,
