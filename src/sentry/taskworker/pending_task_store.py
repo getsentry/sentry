@@ -38,6 +38,8 @@ def get_storage_backend(name: str | None) -> InflightTaskStore:
     if name == "sqlite":
         # TODO need a way to pass in the shard_id.
         return InflightTaskStoreSqlite("taskdemo-1")
+    if name == "redis":
+        return InflightTaskStoreRedis()
     raise ValueError(f"Invalid storage backend {name}")
 
 
@@ -275,11 +277,13 @@ class InflightTaskStorePostgres(InflightTaskStore):
             query.delete()
 
 
-class RedisInflightActivationStore(InflightTaskStore):
+class InflightTaskStoreRedis(InflightTaskStore):
     """
     KEY STRUCTURE:
     TODO: Add key structure here
     TODO: namespace by partition and topic
+
+    operations are not atomic
 
     """
 
@@ -330,21 +334,42 @@ class RedisInflightActivationStore(InflightTaskStore):
         key = self._build_inflight_activation_key(task_id)
         return self.client.hgetall(key)
 
-    def _get_lowest_offset_activation(self, status: int) -> str | None:
+    def _get_min_offset_activation(self, status: int) -> str | None:
         status_key = self._build_inflight_activations_key(status)
-        earliest_tasks = self.client.zrange(status_key, 0, 0)
-        if not earliest_tasks:
+        task_ids = self.client.zrange(status_key, 0, 0)
+        if not task_ids:
             return None
-        return earliest_tasks[0]
+        return task_ids[0]
+
+    def _get_max_offset_activation(self, status: int) -> str | None:
+        status_key = self._build_inflight_activations_key(status)
+        task_ids = self.client.zrevrange(status_key, 0, 0)
+        if not task_ids:
+            return None
+        return task_ids[0]
+
+    def _get_all_tasks_with_status(self, status: int) -> list[str]:
+        status_key = self._build_inflight_activations_key(status)
+        tasks = self.client.zrange(status_key, 0, -1)
+        return tasks
+
+    def _get_score(self, status: int, task_id: str) -> int | None:
+        status_key = self._build_inflight_activations_key(status)
+        return int(self.client.zscore(status_key, task_id))
 
     def _count_all_offset_activations(self, status: int) -> int:
         key = self._build_inflight_activations_key(status)
-        return self.client.zcount(key, "-inf", "+inf")
+        return self.client.zcard(key)
 
     def _remove_inflight_activation(self, task_id: str) -> None:
         # TODO: is there a better way to do this?
-        key = self._build_inflight_activation_key(task_id)
         fields = list(self._get_all_inflight_activation_fields(task_id).keys())
+        if not fields:
+            return
+        self._remove_inflight_activation_field(task_id, *fields)
+
+    def _remove_inflight_activation_field(self, task_id: str, *fields) -> None:
+        key = self._build_inflight_activation_key(task_id)
         self.client.hdel(key, *fields)
 
     def _remove_inflight_activations(self, status: int, task_id: str) -> None:
@@ -361,25 +386,29 @@ class RedisInflightActivationStore(InflightTaskStore):
         inflight_dict = self._get_all_inflight_activation_fields(task_id)
         inflight_proto = ParseDict(inflight_dict, InflightActivation())
         inflight_proto.activation.CopyFrom(task_proto)
-        return inflight_proto
+        return
 
     def store(self, batch: Sequence[InflightActivation]):
         for inflight in batch:
             task_id = inflight.activation.id
             status = inflight.status  # status is an integer
             offset = inflight.offset
-            inflight_dict = MessageToDict(inflight, use_integers_for_enums=True)
+            inflight_dict = MessageToDict(
+                inflight, use_integers_for_enums=True, preserving_proto_field_name=True
+            )
             task_json = MessageToJson(inflight.activation)
 
             self._set_task(task_id, task_json)
             del inflight_dict[
                 "activation"
-            ]  # remove the activation field as it is stored separately
+            ]  # remove the activation field as it is stored in a separate key
             self._set_inflight_activation_attributes(task_id, inflight_dict)
             self._set_inflight_activations(status, offset, task_id)
+        self.handle_processing_deadlines()
 
     def get_pending_task(self) -> InflightActivation | None:
-        task_id = self._get_lowest_offset_activation(TASK_ACTIVATION_STATUS_PENDING)
+        # TODO: can maybe use zpopmin instead here?
+        task_id = self._get_min_offset_activation(TASK_ACTIVATION_STATUS_PENDING)
         if task_id is None:
             return None
 
@@ -388,7 +417,7 @@ class RedisInflightActivationStore(InflightTaskStore):
         deadline = datetime.now() + timedelta(seconds=30)
         formatted_deadline = (
             deadline.isoformat() + "Z"
-        )  # timestamps in task JSON are encoded as a string in RGC 3339 format "{year}-{month}-{day}T{hour}:{min}:{sec}[.{frac_sec}]Z"
+        )  # TODO: timestamps in task JSON are encoded as a string in RGC 3339 format "{year}-{month}-{day}T{hour}:{min}:{sec}[.{frac_sec}]Z"
         self._remove_inflight_activations(TASK_ACTIVATION_STATUS_PENDING, task_id)
         self._set_inflight_activations(TASK_ACTIVATION_STATUS_PROCESSING, offset, task_id)
         self._set_inflight_activation_attributes(
@@ -446,121 +475,172 @@ class RedisInflightActivationStore(InflightTaskStore):
         self._remove_task(task_id)
 
     def handle_retry_state_tasks(self) -> None:
-        # from sentry.taskworker.config import taskregistry
-        # from sentry.taskworker.models import InflightActivationModel
+        from sentry.taskworker.config import taskregistry
 
-        # with transaction.atomic(using=router.db_for_write(InflightActivationModel)):
-        #     retry_qs = InflightActivationModel.objects.filter(
-        #         status=InflightActivationModel.Status.RETRY
-        #     )
-        #     for item in retry_qs:
-        #         task_ns = taskregistry.get(item.namespace)
-        #         task_proto = item.to_proto()
-        #         task_proto.activation.id = uuid4().hex
-        #         task_ns.retry_task(task_proto.activation)
+        task_ids = self._get_all_tasks_with_status(TASK_ACTIVATION_STATUS_RETRY)
+        for task_id in task_ids:
+            task_json = self._get_task(task_id)
+            task_proto = Parse(task_json, TaskActivation())
+            task_ns = taskregistry.get(task_proto.namespace)
+            task_proto.id = uuid4().hex
+            task_ns.retry_task(task_proto)
 
-        #     # With retries scheduled, the tasks are complete now.
-        #     retry_qs.update(status=InflightActivationModel.Status.COMPLETE)
-        pass
+            # With retries scheduled, the tasks are complete now.
+            self._set_inflight_activation_attributes(
+                task_id, {"status": TASK_ACTIVATION_STATUS_COMPLETE}
+            )
+            self._remove_inflight_activations(TASK_ACTIVATION_STATUS_RETRY, task_id)
+            offset = self._get_inflight_activation_field(task_id, "offset")
+            self._set_inflight_activations(TASK_ACTIVATION_STATUS_COMPLETE, offset, task_id)
 
     def handle_deadletter_at(self) -> None:
-        # from sentry.taskworker.models import InflightActivationModel
+        task_id = self._get_max_offset_activation(TASK_ACTIVATION_STATUS_COMPLETE)
+        if not task_id:
+            return
+        max_completed_id = self._get_score(TASK_ACTIVATION_STATUS_COMPLETE, task_id) or 0
 
-        # with transaction.atomic(using=router.db_for_write(InflightActivationModel)):
-        #     # Require a completed task with a higher offset to be present
-        #     max_completed_id = (
-        #         InflightActivationModel.objects.filter(
-        #             status=InflightActivationModel.Status.COMPLETE
-        #         ).aggregate(max_offset=Max("offset"))["max_offset"]
-        #         or 0
-        #     )
-        #     expired_qs = InflightActivationModel.objects.filter(
-        #         deadletter_at__lt=timezone.now(),
-        #         offset__lt=max_completed_id,
-        #         status=InflightActivationModel.Status.PENDING,
-        #     )
-        #     # Messages that are still pending and exceeded their deadletter_at are failures
-        #     updated = expired_qs.update(status=InflightActivationModel.Status.FAILURE)
-        # if updated:
-        #     logger.info("task.deadletter_at", extra={"count": updated})
-        pass
+        task_ids = self._get_all_tasks_with_status(TASK_ACTIVATION_STATUS_PENDING)
+        for id in task_ids:
+            offset = self._get_inflight_activation_field(id, "offset")
+            deadletter_at_field = self._get_inflight_activation_field(id, "deadletter_at")
+
+            deadletter_at = Timestamp()
+            deadletter_at.FromJsonString(deadletter_at_field)
+
+            if deadletter_at.ToDatetime() < datetime.now() and offset < max_completed_id:
+                self._remove_inflight_activations(TASK_ACTIVATION_STATUS_PENDING, id)
+                self._set_inflight_activations(TASK_ACTIVATION_STATUS_FAILURE, offset, id)
+                self._set_inflight_activation_attributes(
+                    id, {"status": TASK_ACTIVATION_STATUS_FAILURE}
+                )
 
     def handle_processing_deadlines(self) -> None:
-        # from sentry.taskworker.models import InflightActivationModel
+        def has_retries_remaining(task_id: str) -> bool:
+            task_json = self._get_task(task_id)
+            task_proto = Parse(task_json, TaskActivation())
+            if (
+                task_proto.retry_state.deadletter_after_attempt is not None
+                and task_proto.retry_state.attempts
+                < task_proto.retry_state.deadletter_after_attempt
+            ):
+                return True
+            if (
+                task_proto.retry_state.discard_after_attempt is not None
+                and task_proto.retry_state.attempts
+                < task_proto.retry_state.deadletter_after_attempt
+            ):
+                return True
+            return False
 
-        # with transaction.atomic(using=router.db_for_write(InflightActivationModel)):
-        #     past_deadline = InflightActivationModel.objects.filter(
-        #         processing_deadline__lt=timezone.now(),
-        #     ).exclude(status=InflightActivationModel.Status.COMPLETE)
-        #     to_update = []
-        #     for item in past_deadline:
-        #         if item.has_retries_remaining():
-        #             to_update.append(item.id)
+        all_task_ids = []
+        for status in [
+            TASK_ACTIVATION_STATUS_PENDING,
+            TASK_ACTIVATION_STATUS_PROCESSING,
+            TASK_ACTIVATION_STATUS_FAILURE,
+            TASK_ACTIVATION_STATUS_RETRY,
+        ]:
+            all_task_ids.extend(self._get_all_tasks_with_status(status))
 
-        #     # Move processing deadline tasks back to pending
-        #     InflightActivationModel.objects.filter(id__in=to_update).update(
-        #         status=InflightActivationModel.Status.PENDING,
-        #         processing_deadline=None,
-        #     )
-        # if len(to_update):
-        #     logger.info("task.processingdeadline", extra={"count": len(to_update)})
-        pass
+        past_deadline = []
+        for task_id in all_task_ids:
+            processing_deadline_field = self._get_inflight_activation_field(
+                task_id, "processing_deadline"
+            )
+            if not processing_deadline_field:
+                continue
+
+            processing_deadline = Timestamp()
+            processing_deadline.FromJsonString(processing_deadline_field)
+            if processing_deadline.ToDatetime() < datetime.now():
+                past_deadline.append(task_id)
+
+        to_update = []
+        for task_id in past_deadline:
+            if has_retries_remaining(task_id):
+                to_update.append(task_id)
+
+        # Move processing deadline tasks back to pending
+        for task_id in to_update:
+            current_state = self._get_inflight_activation_field(task_id, "status")
+            offset = self._get_inflight_activation_field(task_id, "offset")
+
+            if current_state != TASK_ACTIVATION_STATUS_PENDING:
+                self._remove_inflight_activations(current_state, task_id)
+                self._set_inflight_activations(TASK_ACTIVATION_STATUS_PENDING, offset, task_id)
+            self._set_inflight_activation_attributes(
+                task_id, {"status": TASK_ACTIVATION_STATUS_PENDING}
+            )
+            self._remove_inflight_activation_field(task_id, "processing_deadline")
+
+        if len(to_update):
+            logger.info("task.processingdeadline", extra={"count": len(to_update)})
 
     def handle_failed_tasks(self) -> None:
-        # from sentry.taskworker.models import InflightActivationModel
+        failed = self._get_all_tasks_with_status(TASK_ACTIVATION_STATUS_FAILURE)
+        to_discard = []
+        to_deadletter = []
+        for task_id in failed:
+            task_json = self._get_task(task_id)
+            task_proto = Parse(task_json, TaskActivation())
+            if task_proto.retry_state.discard_after_attempt is not None:
+                to_discard.append(task_id)
+            if task_proto.retry_state.deadletter_after_attempt is not None:
+                to_deadletter.append(task_id)
 
-        # with transaction.atomic(using=router.db_for_write(InflightActivationModel)):
-        #     failed = InflightActivationModel.objects.filter(
-        #         status=InflightActivationModel.Status.FAILURE
-        #     )
-        #     to_discard = []
-        #     to_deadletter = []
-        #     for item in failed:
-        #         if item.discard_after_attempt is not None:
-        #             to_discard.append(item.id)
-        #         if item.deadletter_after_attempt is not None:
-        #             to_deadletter.append(item.id)
+        # Discard messages are simply acked and never processed again
+        for task_id in to_discard:
+            offset = self._get_inflight_activation_field(task_id, "offset")
+            self._remove_inflight_activations(TASK_ACTIVATION_STATUS_FAILURE, task_id)
+            self._set_inflight_activations(TASK_ACTIVATION_STATUS_COMPLETE, offset, task_id)
+            self._set_inflight_activation_attributes(
+                task_id, {"status": TASK_ACTIVATION_STATUS_COMPLETE}
+            )
 
-        #     # Discard messages are simply acked and never processed again
-        #     InflightActivationModel.objects.filter(id__in=to_discard).update(
-        #         status=InflightActivationModel.Status.COMPLETE
-        #     )
-        #     # TODO do deadletter delivery
-        #     InflightActivationModel.objects.filter(id__in=to_deadletter).update(
-        #         status=InflightActivationModel.Status.COMPLETE
-        #     )
+        # TODO do deadletter delivery
+        for task_id in to_deadletter:
+            offset = self._get_inflight_activation_field(task_id, "offset")
+            self._remove_inflight_activations(TASK_ACTIVATION_STATUS_FAILURE, task_id)
+            self._set_inflight_activations(TASK_ACTIVATION_STATUS_COMPLETE, offset, task_id)
+            self._set_inflight_activation_attributes(
+                task_id, {"status": TASK_ACTIVATION_STATUS_COMPLETE}
+            )
 
-        # if len(to_discard):
-        #     logger.info("task.failed.discarded", extra={"count": len(to_discard)})
-        # if len(to_deadletter):
-        #     logger.info("task.failed.deadletter", extra={"count": len(to_deadletter)})
-        pass
+        if len(to_discard):
+            logger.info("task.failed.discarded", extra={"count": len(to_discard)})
+        if len(to_deadletter):
+            logger.info("task.failed.deadletter", extra={"count": len(to_deadletter)})
 
     def remove_completed(self) -> None:
-        # from sentry.taskworker.models import InflightActivationModel
+        lowest_incomplete = None
+        for status in [
+            TASK_ACTIVATION_STATUS_PENDING,
+            TASK_ACTIVATION_STATUS_PROCESSING,
+            TASK_ACTIVATION_STATUS_FAILURE,
+            TASK_ACTIVATION_STATUS_RETRY,
+        ]:
+            task_id = self._get_min_offset_activation(status)
+            if not task_id:
+                continue
+            score = self._get_score(status, task_id)
+            if score and not lowest_incomplete:
+                lowest_incomplete = score
+            else:
+                lowest_incomplete = min(lowest_incomplete, score)
 
-        # with transaction.atomic(using=router.db_for_write(InflightActivationModel)):
-        #     lowest_incomplete = (
-        #         InflightActivationModel.objects.exclude(
-        #             status=InflightActivationModel.Status.COMPLETE,
-        #         )
-        #         .order_by("-offset")
-        #         .values_list("offset", flat=True)
-        #         .first()
-        #     )
-        #     if not lowest_incomplete:
-        #         return
+        if not lowest_incomplete:
+            return
 
-        #     # Only remove completed records that have lower offsets than the lowest
-        #     # incomplete offset. We don't want to remove completed tasks that have
-        #     # incomplete tasks with lower offsets as it can lead to dataloss due to worker
-        #     # exhaustion.
-        #     query = InflightActivationModel.objects.filter(
-        #         status=InflightActivationModel.Status.COMPLETE,
-        #         offset__lt=lowest_incomplete,
-        #     )
-        #     query.delete()
-        pass
+        # Only remove completed records that have lower offsets than the lowest
+        # incomplete offset. We don't want to remove completed tasks that have
+        # incomplete tasks with lower offsets as it can lead to dataloss due to worker
+        # exhaustion.
+        completed_task_ids = self._get_all_tasks_with_status(TASK_ACTIVATION_STATUS_COMPLETE)
+        for task_id in completed_task_ids:
+            offset = int(self._get_inflight_activation_field(task_id, "offset"))
+            if offset < lowest_incomplete:
+                self._remove_inflight_activations(TASK_ACTIVATION_STATUS_COMPLETE, task_id)
+                self._remove_inflight_activation(task_id)
+                self._remove_task(task_id)
 
 
 CREATE_TABLE_SQL = """

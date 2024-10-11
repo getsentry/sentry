@@ -13,6 +13,7 @@ from arroyo.processing.strategies import (
     Reduce,
     RunTask,
 )
+from arroyo.processing.strategies.abstract import MessageRejected
 from arroyo.processing.strategies.run_task_with_multiprocessing import MultiprocessingPool
 from arroyo.types import BaseValue, Commit, Message, Partition
 from django.utils import timezone
@@ -71,7 +72,7 @@ class StrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         # Maximum number of pending inflight activations in the store before backpressure is emitted
         self.max_inflight_activation_in_store = 1000  # make this configurable
 
-        self.pending_task_store = get_storage_backend(storage)
+        self.pending_task_store = get_storage_backend("redis")
 
     def create_with_partitions(
         self, commit: Commit, _: Mapping[Partition, int]
@@ -93,8 +94,8 @@ class StrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         def do_upkeep(
             message: Message[KafkaPayload],
         ) -> KafkaPayload:
-            # self.pending_task_store.handle_processing_deadlines()
-            # self.pending_task_store.handle_retry_state_tasks()
+            self.pending_task_store.handle_processing_deadlines()
+            self.pending_task_store.handle_retry_state_tasks()
             # self.pending_task_store.handle_deadletter_at()
             # self.pending_task_store.handle_failed_tasks()
             # self.pending_task_store.remove_completed()
@@ -104,16 +105,16 @@ class StrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         def limit_tasks(
             message: Message[KafkaPayload],
         ) -> KafkaPayload:
-            # count = self.pending_task_store.count_pending_task()
-            # if count >= self.max_inflight_activation_in_store:
-            #     # The number of pending inflight activations in the store exceeds the limit.
-            #     # Wait for workers to complete tasks before adding the next offset to the queue.
-            #     logger.info(
-            #         "Number of inflight activation: %s exceeds the limit: %s. Retrying in 3 seconds",
-            #         count,
-            #         self.max_inflight_activation_in_store,
-            #     )
-            #     raise MessageRejected()
+            count = self.pending_task_store.count_pending_task()
+            if count >= self.max_inflight_activation_in_store:
+                # The number of pending inflight activations in the store exceeds the limit.
+                # Wait for workers to complete tasks before adding the next offset to the queue.
+                logger.info(
+                    "Number of inflight activation: %s exceeds the limit: %s. Retrying in 3 seconds",
+                    count,
+                    self.max_inflight_activation_in_store,
+                )
+                raise MessageRejected()
             return message.payload
 
         flush = RunTask(
