@@ -1,4 +1,6 @@
 import logging
+from dataclasses import dataclass, field
+from typing import Any
 from urllib.parse import urlencode, urlparse, urlunparse
 from uuid import uuid4
 
@@ -6,16 +8,16 @@ from django.utils.functional import cached_property
 
 from sentry.coreapi import APIError
 from sentry.http import safe_urlread
-from sentry.mediators.mediator import Mediator
-from sentry.mediators.param import Param
 from sentry.sentry_apps.external_requests.utils import send_and_save_sentry_app_request, validate
 from sentry.sentry_apps.services.app import RpcSentryAppInstallation
+from sentry.sentry_apps.services.app.model import RpcSentryApp
 from sentry.utils import json
 
-logger = logging.getLogger("sentry.mediators.external-requests")
+logger = logging.getLogger("sentry.sentry_apps.external_requests")
 
 
-class SelectRequester(Mediator):
+@dataclass
+class SelectRequester:
     """
     1. Makes a GET request to another service to fetch data needed to populate
     the SelectField dropdown in the UI.
@@ -25,35 +27,14 @@ class SelectRequester(Mediator):
     2. Validates and formats the response.
     """
 
-    install = Param(RpcSentryAppInstallation)
-    project_slug = Param(str, required=False)
-    uri = Param(str)
-    query = Param(str, required=False)
-    dependent_data = Param(str, required=False)
-    using = None
+    install: RpcSentryAppInstallation
+    uri: str
+    project_slug: str | None = field(default=None)
+    query: str | None = field(default=None)
+    dependent_data: str | None = field(default=None)
 
-    def call(self):
-        return self._make_request()
-
-    def _build_url(self):
-        urlparts = list(urlparse(self.sentry_app.webhook_url))
-        urlparts[2] = self.uri
-
-        query = {"installationId": self.install.uuid}
-
-        if self.project_slug:
-            query["projectSlug"] = self.project_slug
-
-        if self.query:
-            query["query"] = self.query
-
-        if self.dependent_data:
-            query["dependentData"] = self.dependent_data
-
-        urlparts[4] = urlencode(query)
-        return urlunparse(urlparts)
-
-    def _make_request(self):
+    def run(self) -> dict[str, Any]:
+        response: list[dict[str, str]] = []
         try:
             body = safe_urlread(
                 send_and_save_sentry_app_request(
@@ -77,34 +58,54 @@ class SelectRequester(Mediator):
                     "error_message": str(e),
                 },
             )
-            response = {}
-        if not self._validate_response(response):
-            raise APIError()
 
+        if not self._validate_response(response) or not response:
+            raise APIError(
+                f"Invalid response format for SelectField in {self.sentry_app} from uri: {self.uri}"
+            )
         return self._format_response(response)
 
-    def _validate_response(self, resp):
+    def _build_url(self) -> str:
+        urlparts: list[str] = [url_part for url_part in urlparse(self.sentry_app.webhook_url)]
+        urlparts[2] = self.uri
+
+        query = {"installationId": self.install.uuid}
+
+        if self.project_slug:
+            query["projectSlug"] = self.project_slug
+
+        if self.query:
+            query["query"] = self.query
+
+        if self.dependent_data:
+            query["dependentData"] = self.dependent_data
+
+        urlparts[4] = urlencode(query)
+        return str(urlunparse(urlparts))
+
+    def _validate_response(self, resp: list[dict[str, Any]]) -> bool:
         return validate(instance=resp, schema_type="select")
 
-    def _format_response(self, resp):
+    def _format_response(self, resp: list[dict[str, Any]]) -> dict[str, Any]:
         # the UI expects the following form:
         # choices: [[label, value]]
         # default: [label, value]
-        response = {}
-        choices = []
+        response: dict[str, Any] = {}
+        choices: list[list[str]] = []
 
         for option in resp:
             if not ("value" in option and "label" in option):
-                raise APIError("Missing `value` or `label` in option data")
+                raise APIError("Missing `value` or `label` in option data for SelectField")
 
             choices.append([option["value"], option["label"]])
+
             if option.get("default"):
                 response["defaultValue"] = option["value"]
 
         response["choices"] = choices
         return response
 
-    def _build_headers(self):
+    def _build_headers(self) -> dict[str, str]:
         request_uuid = uuid4().hex
 
         return {
@@ -114,5 +115,5 @@ class SelectRequester(Mediator):
         }
 
     @cached_property
-    def sentry_app(self):
+    def sentry_app(self) -> RpcSentryApp:
         return self.install.sentry_app

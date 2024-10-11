@@ -13,7 +13,7 @@ from django.db.models.signals import post_save
 from django.utils import timezone
 from google.api_core.exceptions import ServiceUnavailable
 
-from sentry import features, projectoptions
+from sentry import features, options, projectoptions
 from sentry.exceptions import PluginError
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
@@ -1184,9 +1184,21 @@ def process_resource_change_bounds(job: PostProcessJob) -> None:
     event, is_new = job["event"], job["group_state"]["is_new"]
 
     if event.get_event_type() == "error" and _should_send_error_created_hooks(event.project):
-        process_resource_change_bound.delay(
-            action="created", sender="Error", instance_id=event.event_id, instance=event
-        )
+        if options.get("sentryapps.process-resource-change.use-eventid"):
+            process_resource_change_bound.delay(
+                action="created",
+                sender="Error",
+                instance_id=event.event_id,
+                project_id=event.project_id,
+            )
+        else:
+            process_resource_change_bound.delay(
+                action="created",
+                sender="Error",
+                instance_id=event.event_id,
+                project_id=event.project_id,
+                instance=event,
+            )
     if is_new:
         process_resource_change_bound.delay(
             action="created", sender="Group", instance_id=event.group_id

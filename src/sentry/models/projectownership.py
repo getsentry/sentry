@@ -169,7 +169,7 @@ class ProjectOwnership(Model):
         return result
 
     @classmethod
-    @metrics.wraps("projectownership.get_autoassign_owners")
+    @metrics.wraps("projectownership.get_issue_owners")
     def get_issue_owners(
         cls, project_id: int, data: Mapping[str, Any], limit: int = 2
     ) -> Sequence[tuple[Rule, Sequence[Team | RpcUser], str]]:

@@ -7,7 +7,7 @@ from sentry.models.grouplink import GroupLink
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import EventType
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.users.services.user_option import get_option_from_list, user_option_service
@@ -23,7 +23,7 @@ class GroupIntegrationDetailsTest(APITestCase):
         self.event = self.store_event(
             data={
                 "event_id": "a" * 32,
-                "timestamp": iso_format(self.min_ago),
+                "timestamp": self.min_ago.timestamp(),
                 "message": "message",
             },
             project_id=self.project.id,
@@ -384,7 +384,7 @@ class GroupIntegrationDetailsTest(APITestCase):
         self.login_as(user=self.user)
         org = self.organization
         event = self.store_event(
-            data={"event_id": "b" * 32, "timestamp": iso_format(self.min_ago)},
+            data={"event_id": "b" * 32, "timestamp": self.min_ago.timestamp()},
             project_id=self.project.id,
         )
         assert event.group is not None

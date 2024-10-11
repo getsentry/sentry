@@ -15,7 +15,7 @@ from sentry.models.activity import Activity
 from sentry.models.group import GroupStatus
 from sentry.models.grouphistory import STRING_TO_STATUS_LOOKUP, GroupHistory, GroupHistoryStatus
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import apply_feature_flag_on_cls
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
@@ -156,7 +156,7 @@ class TestProduceOccurrenceForStatusChange(TestCase, OccurrenceTestMixin):
             data={
                 "event_id": "a" * 32,
                 "message": "oh no",
-                "timestamp": iso_format(datetime.now()),
+                "timestamp": datetime.now().timestamp(),
                 "fingerprint": self.fingerprint,
             },
             project_id=self.project.id,
@@ -337,7 +337,7 @@ class TestProduceOccurrenceForStatusChange(TestCase, OccurrenceTestMixin):
             data={
                 "event_id": "a" * 32,
                 "message": "oh no",
-                "timestamp": iso_format(datetime.now()),
+                "timestamp": datetime.now().timestamp(),
                 "fingerprint": ["group-2"],
             },
             project_id=self.project.id,

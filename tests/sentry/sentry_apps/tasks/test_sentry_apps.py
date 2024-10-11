@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from unittest.mock import ANY, patch
 
 import pytest
+import responses
 from celery import Task
 from django.core import mail
 from django.test import override_settings
@@ -33,8 +34,9 @@ from sentry.shared_integrations.exceptions import ClientError
 from sentry.tasks.post_process import post_process_group
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
-from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.eventprocessing import write_event_to_cache
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode_of, control_silo_test
 from sentry.testutils.skips import requires_snuba
@@ -291,7 +293,54 @@ class TestProcessResourceChange(TestCase):
             organization=self.project.organization, slug=sentry_app.slug
         )
 
-        one_min_ago = iso_format(before_now(minutes=1))
+        one_min_ago = before_now(minutes=1).timestamp()
+        event = self.store_event(
+            data={
+                "message": "Foo bar",
+                "exception": {"type": "Foo", "value": "oh no"},
+                "level": "error",
+                "timestamp": one_min_ago,
+            },
+            project_id=self.project.id,
+            assert_no_errors=False,
+        )
+
+        with self.tasks():
+            post_process_group(
+                is_new=False,
+                is_regression=False,
+                is_new_group_environment=False,
+                cache_key=write_event_to_cache(event),
+                group_id=event.group_id,
+                project_id=self.project.id,
+            )
+
+        ((args, kwargs),) = safe_urlopen.call_args_list
+        data = json.loads(kwargs["data"])
+
+        assert data["action"] == "created"
+        assert data["installation"]["uuid"] == install.uuid
+        assert data["data"]["error"]["event_id"] == event.event_id
+        assert data["data"]["error"]["issue_id"] == str(event.group_id)
+        assert kwargs["headers"].keys() >= {
+            "Content-Type",
+            "Request-ID",
+            "Sentry-Hook-Resource",
+            "Sentry-Hook-Timestamp",
+            "Sentry-Hook-Signature",
+        }
+
+    @with_feature("organizations:integrations-event-hooks")
+    @override_options({"sentryapps.process-resource-change.use-eventid": True})
+    def test_error_created_sends_webhook_no_event_payload_eventid_only(self, safe_urlopen):
+        sentry_app = self.create_sentry_app(
+            organization=self.project.organization, events=["error.created"]
+        )
+        install = self.create_sentry_app_installation(
+            organization=self.project.organization, slug=sentry_app.slug
+        )
+
+        one_min_ago = before_now(minutes=1).timestamp()
         event = self.store_event(
             data={
                 "message": "Foo bar",
@@ -339,7 +388,7 @@ class TestProcessResourceChange(TestCase):
             organization=self.project.organization, slug=sentry_app.slug
         )
 
-        one_min_ago = iso_format(before_now(minutes=1))
+        one_min_ago = before_now(minutes=1)
         event = self.store_event(
             data={
                 "message": "Foo bar",
@@ -387,7 +436,7 @@ class TestSendResourceChangeWebhook(TestCase):
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponse404)
     @with_feature("organizations:integrations-event-hooks")
     def test_sends_webhooks_to_all_installs(self, safe_urlopen):
-        one_min_ago = iso_format(before_now(minutes=1))
+        one_min_ago = before_now(minutes=1).timestamp()
         event = self.store_event(
             data={
                 "message": "Foo bar",
@@ -416,7 +465,6 @@ class TestSendResourceChangeWebhook(TestCase):
 
 
 @control_silo_test
-@patch("sentry.mediators.sentry_app_installations.InstallationNotifier.run")
 class TestInstallationWebhook(TestCase):
     def setUp(self):
         self.project = self.create_project()
@@ -429,18 +477,30 @@ class TestInstallationWebhook(TestCase):
             organization=self.project.organization, slug=self.sentry_app.slug
         )
 
-    def test_sends_installation_notification(self, run):
+    @responses.activate
+    def test_sends_installation_notification(self):
+        responses.add(responses.POST, "https://example.com/webhook")
         installation_webhook(self.install.id, self.user.id)
 
-        run.assert_called_with(install=self.install, user=self.rpc_user, action="created")
+        response_body = json.loads(responses.calls[0].request.body)
+        assert response_body.get("installation").get("uuid") == self.install.uuid
+        assert response_body.get("action") == "created"
+        assert self.rpc_user, "User should exist in test to test installation webhook unless noted"
+        assert response_body.get("actor")["id"] == self.rpc_user.id
 
-    def test_gracefully_handles_missing_install(self, run):
+    @responses.activate
+    def test_gracefully_handles_missing_install(self):
+        responses.add(responses.POST, "https://example.com/webhook")
+
         installation_webhook(999, self.user.id)
-        assert len(run.mock_calls) == 0
+        assert len(responses.calls) == 0
 
-    def test_gracefully_handles_missing_user(self, run):
+    @responses.activate
+    def test_gracefully_handles_missing_user(self):
+        responses.add(responses.POST, "https://example.com/webhook")
+
         installation_webhook(self.install.id, 999)
-        assert len(run.mock_calls) == 0
+        assert len(responses.calls) == 0
 
 
 @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
