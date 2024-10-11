@@ -54,7 +54,7 @@ class BaseSafeMigrationTest(TestCase):
             target = (app_label, migration_name)
             executor = MigrationExecutor(connection)
             plan = [(executor.loader.graph.nodes[target], None)]
-            sql_statements = executor.loader.collect_sql(plan)
+            sql_statements = executor.loader.collect_sql(plan)  # type: ignore[attr-defined]
             return "\n".join(sql_statements)
 
 
