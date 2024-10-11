@@ -1,5 +1,6 @@
 import logging
 
+from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -9,35 +10,42 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.team import TeamEndpoint
 from sentry.api.serializers import serialize
+from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN
+from sentry.apidocs.examples.integration_examples import IntegrationExamples
+from sentry.apidocs.parameters import GlobalParams
 from sentry.integrations.api.bases.external_actor import (
     ExternalActorEndpointMixin,
     ExternalTeamSerializer,
 )
+from sentry.integrations.api.serializers.models.external_actor import ExternalActorSerializer
 from sentry.models.team import Team
 
 logger = logging.getLogger(__name__)
 
 
 @region_silo_endpoint
+@extend_schema(tags=["Integrations"])
 class ExternalTeamEndpoint(TeamEndpoint, ExternalActorEndpointMixin):
     publish_status = {
-        "POST": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.PUBLIC,
     }
     owner = ApiOwner.ENTERPRISE
 
+    @extend_schema(
+        operation_id="Create an External Team",
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.TEAM_ID_OR_SLUG],
+        request=ExternalTeamSerializer,
+        responses={
+            200: ExternalActorSerializer,
+            201: ExternalActorSerializer,
+            400: RESPONSE_BAD_REQUEST,
+            403: RESPONSE_FORBIDDEN,
+        },
+        examples=IntegrationExamples.EXTERNAL_TEAM_CREATE,
+    )
     def post(self, request: Request, team: Team) -> Response:
         """
-        Create an External Team
-        `````````````
-
-        :pparam string organization_id_or_slug: the id or slug of the organization the
-                                          team belongs to.
-        :pparam string team_id_or_slug: the team_id_or_slug of the team to get.
-        :param required string provider: enum("github", "gitlab")
-        :param required string external_name: the associated Github/Gitlab team name.
-        :param optional string integration_id: the id of the integration if it exists.
-        :param string external_id: the associated user ID for this provider
-        :auth: required
+        Link a team from an external provider to a Sentry team.
         """
         self.assert_has_feature(request, team.organization)
 
