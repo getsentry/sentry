@@ -21,7 +21,7 @@ class SharedGroupDetailsTest(APITestCase):
     def test_simple(self):
         self.login_as(user=self.user)
 
-        min_ago = before_now(minutes=1).timestamp()
+        min_ago = before_now(minutes=1).isoformat()
         event = self.store_event(data={"timestamp": min_ago}, project_id=self.project.id)
         assert event.group is not None
         group = event.group
@@ -47,7 +47,7 @@ class SharedGroupDetailsTest(APITestCase):
     def test_does_not_leak_assigned_to(self):
         self.login_as(user=self.user)
 
-        min_ago = before_now(minutes=1).timestamp()
+        min_ago = before_now(minutes=1).isoformat()
         event = self.store_event(data={"timestamp": min_ago}, project_id=self.project.id)
         assert event.group is not None
         group = event.group

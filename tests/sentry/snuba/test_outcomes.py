@@ -141,7 +141,7 @@ class OutcomesQueryDefinitionTests(TestCase):
         start = timezone.now()
         end = start + timedelta(days=1)
         query = _make_query(
-            f"groupBy=category&field=sum(quantity)&start={start.timestamp()}&end={end.timestamp()}",
+            f"groupBy=category&field=sum(quantity)&start={start.isoformat()}&end={end.isoformat()}",
             {"organization_id": 1},
         )
         assert query.start

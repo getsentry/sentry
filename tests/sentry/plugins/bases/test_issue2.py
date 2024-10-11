@@ -77,7 +77,7 @@ class IssuePlugin2GroupActionTest(TestCase):
         super().setUp()
         self.project = self.create_project()
         self.plugin_instance = plugins.get(slug="issuetrackingplugin2")
-        min_ago = before_now(minutes=1).timestamp()
+        min_ago = before_now(minutes=1).isoformat()
         self.event = self.store_event(
             data={"timestamp": min_ago, "fingerprint": ["group-1"]}, project_id=self.project.id
         )
