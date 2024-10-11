@@ -51,7 +51,8 @@ def update_priority(
         return
 
     previous_priority = PriorityLevel(group.priority) if group.priority is not None else None
-    group.update(priority=priority)
+    group.priority = priority
+    group.save()
     Activity.objects.create_group_activity(
         group=group,
         type=ActivityType.SET_PRIORITY,
