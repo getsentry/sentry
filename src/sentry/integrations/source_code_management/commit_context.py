@@ -8,6 +8,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 
 import sentry_sdk
+from django.utils import timezone as django_timezone
 
 from sentry import analytics
 from sentry.auth.exceptions import IdentityNotValid
@@ -36,6 +37,8 @@ DEBOUNCE_PR_COMMENT_CACHE_KEY = lambda pullrequest_id: f"pr-comment-{pullrequest
 DEBOUNCE_PR_COMMENT_LOCK_KEY = lambda pullrequest_id: f"queue_comment_task:{pullrequest_id}"
 PR_COMMENT_TASK_TTL = timedelta(minutes=5).total_seconds()
 PR_COMMENT_WINDOW = 14  # days
+
+PR_COMMENT_LOG = "{integration_name}.pr_comment.{suffix}"
 
 
 @dataclass
@@ -115,26 +118,30 @@ class CommitContextIntegration(ABC):
             default=True,
         ):
             logger.info(
-                "github.pr_comment.disabled",
+                PR_COMMENT_LOG.format(integration_name=self.integration_name, suffix="disabled"),
                 extra={"organization_id": project.organization_id},
             )
             return
 
-        repo = Repository.objects.filter(id=commit.repository_id).order_by("-date_added")
+        repo_query = Repository.objects.filter(id=commit.repository_id).order_by("-date_added")
         group = Group.objects.get_from_cache(id=group_id)
         if not (
-            group.level is not logging.INFO and repo.exists()
+            group.level is not logging.INFO and repo_query.exists()
         ):  # Don't comment on info level issues
             logger.info(
-                "github.pr_comment.incorrect_repo_config",
+                PR_COMMENT_LOG.format(
+                    integration_name=self.integration_name, suffix="incorrect_repo_config"
+                ),
                 extra={"organization_id": project.organization_id},
             )
             return
 
-        repo = repo.get()
+        repo: Repository = repo_query.get()
 
         logger.info(
-            "github.pr_comment.queue_comment_check",
+            PR_COMMENT_LOG.format(
+                integration_name=self.integration_name, suffix="queue_comment_check"
+            ),
             extra={"organization_id": commit.organization_id, "merge_commit_sha": commit.key},
         )
         from sentry.integrations.github.tasks.pr_comment import github_comment_workflow
@@ -151,7 +158,10 @@ class CommitContextIntegration(ABC):
 
         if merge_commit_sha is None:
             logger.info(
-                "github.pr_comment.queue_comment_check.commit_not_in_default_branch",
+                PR_COMMENT_LOG.format(
+                    integration_name=self.integration_name,
+                    suffix="queue_comment_workflow.commit_not_in_default_branch",
+                ),
                 extra={
                     "organization_id": commit.organization_id,
                     "repository_id": repo.id,
@@ -167,7 +177,10 @@ class CommitContextIntegration(ABC):
         )
         if not pr_query.exists():
             logger.info(
-                "github.pr_comment.queue_comment_check.missing_pr",
+                PR_COMMENT_LOG.format(
+                    integration_name=self.integration_name,
+                    suffix="queue_comment_workflow.missing_pr",
+                ),
                 extra={
                     "organization_id": commit.organization_id,
                     "repository_id": repo.id,
@@ -198,7 +211,9 @@ class CommitContextIntegration(ABC):
                 PullRequestCommit.objects.get_or_create(commit=commit, pull_request=pr)
 
                 logger.info(
-                    "github.pr_comment.queue_comment_workflow",
+                    PR_COMMENT_LOG.format(
+                        integration_name=self.integration_name, suffix="queue_comment_workflow"
+                    ),
                     extra={"pullrequest_id": pr.id, "project_id": group_owner.project_id},
                 )
 
@@ -242,7 +257,7 @@ class CommitContextIntegration(ABC):
                 ),
             )
 
-            current_time = timezone.now()
+            current_time = django_timezone.now()
             comment = PullRequestComment.objects.create(
                 external_id=resp.body["id"],
                 pull_request_id=pullrequest_id,
@@ -280,7 +295,7 @@ class CommitContextIntegration(ABC):
             metrics.incr(
                 metrics_base.format(integration=self.integration_name, key="comment_updated")
             )
-            pr_comment.updated_at = timezone.now()
+            pr_comment.updated_at = django_timezone.now()
             pr_comment.group_ids = issue_list
             pr_comment.save()
 
