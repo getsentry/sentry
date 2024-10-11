@@ -405,7 +405,7 @@ def _get_and_save_split_decision_for_query(
                 },
             )
             sentry_sdk.capture_message(
-                "No projects found for dashboard, defaulting to errors dataset"
+                "No projects found in organization for saved query, defaulting to errors dataset"
             )
             _save_split_decision_for_query(
                 saved_query,
