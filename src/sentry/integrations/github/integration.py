@@ -19,6 +19,7 @@ from sentry.http import safe_urlopen, safe_urlread
 from sentry.identity.github import GitHubIdentityProvider, get_user_info
 from sentry.integrations.base import (
     FeatureDescription,
+    IntegrationDomain,
     IntegrationFeatures,
     IntegrationMetadata,
     IntegrationProvider,
@@ -415,7 +416,9 @@ class GitHubInstallationError(StrEnum):
 
 
 def record_event(event: IntegrationPipelineViewType):
-    return IntegrationPipelineViewEvent(event, "source_code", GitHubIntegrationProvider.key)
+    return IntegrationPipelineViewEvent(
+        event, IntegrationDomain.SOURCE_CODE_MANAGEMENT, GitHubIntegrationProvider.key
+    )
 
 
 class OAuthLoginView(PipelineView):
