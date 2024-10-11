@@ -1,5 +1,4 @@
 import {Fragment, useCallback, useMemo, useRef} from 'react';
-import type {Theme} from '@emotion/react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
@@ -445,10 +444,13 @@ function BaseGroupRow({
       >
         <PrimaryCount
           value={primaryCount}
-          smallFont={organization.features.includes('issue-stream-table-layout')}
+          hasNewLayout={organization.features.includes('issue-stream-table-layout')}
         />
         {secondaryCount !== undefined && useFilteredStats && (
-          <SecondaryCount value={secondaryCount} />
+          <SecondaryCount
+            value={secondaryCount}
+            hasNewLayout={organization.features.includes('issue-stream-table-layout')}
+          />
         )}
       </Tooltip>
     </GuideAnchor>
@@ -488,10 +490,14 @@ function BaseGroupRow({
     >
       <PrimaryCount
         value={primaryUserCount}
-        smallFont={organization.features.includes('issue-stream-table-layout')}
+        hasNewLayout={organization.features.includes('issue-stream-table-layout')}
       />
       {secondaryUserCount !== undefined && useFilteredStats && (
-        <SecondaryCount dark value={secondaryUserCount} />
+        <SecondaryCount
+          dark
+          value={secondaryUserCount}
+          hasNewLayout={organization.features.includes('issue-stream-table-layout')}
+        />
       )}
     </Tooltip>
   );
@@ -744,25 +750,23 @@ const GroupCheckBoxWrapper = styled('div')<{hasNewLayout: boolean}>`
     `}
 `;
 
-const PrimaryCount = styled(Count)<{smallFont: boolean}>`
-  font-size: ${p => (p.smallFont ? p.theme.fontSizeMedium : p.theme.fontSizeLarge)};
+const PrimaryCount = styled(Count)<{hasNewLayout: boolean}>`
+  font-size: ${p => (p.hasNewLayout ? p.theme.fontSizeMedium : p.theme.fontSizeLarge)};
   font-variant-numeric: tabular-nums;
 `;
 
-const secondaryStatStyle = (theme: Theme) => css`
-  font-size: ${theme.fontSizeLarge};
+const SecondaryCount = styled(({value, ...p}) => <Count {...p} value={value} />)<{
+  hasNewLayout: boolean;
+}>`
+  font-size: ${p => (p.hasNewLayout ? p.theme.fontSizeMedium : p.theme.fontSizeLarge)};
   font-variant-numeric: tabular-nums;
 
   :before {
     content: '/';
     padding-left: ${space(0.25)};
     padding-right: 2px;
-    color: ${theme.gray300};
+    color: ${p => p.theme.gray300};
   }
-`;
-
-const SecondaryCount = styled(({value, ...p}) => <Count {...p} value={value} />)`
-  ${p => secondaryStatStyle(p.theme)}
 `;
 
 const CountTooltipContent = styled('div')`
