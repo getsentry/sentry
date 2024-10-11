@@ -1,7 +1,9 @@
 import pytest
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
+    AttributeAggregation,
     AttributeKey,
     AttributeValue,
+    Function,
     IntArray,
     StrArray,
     VirtualColumnContext,
@@ -283,5 +285,62 @@ class SearchResolverColumnTest(TestCase):
         resolved_column, virtual_context = self.resolver.resolve_column("tags[foo, number]")
         assert resolved_column.proto_definition == AttributeKey(
             name="attr_num[foo]", type=AttributeKey.Type.TYPE_INT
+        )
+        assert virtual_context is None
+
+    def test_sum_function(self):
+        resolved_column, virtual_context = self.resolver.resolve_column("sum(span.self_time)")
+        assert resolved_column.proto_definition == AttributeAggregation(
+            aggregate=Function.FUNCTION_SUM,
+            key=AttributeKey(name="exclusive_time_ms", type=AttributeKey.Type.TYPE_INT),
+            label="sum(span.self_time)",
+        )
+        assert virtual_context is None
+
+    def test_sum_default_argument(self):
+        resolved_column, virtual_context = self.resolver.resolve_column("sum()")
+        assert resolved_column.proto_definition == AttributeAggregation(
+            aggregate=Function.FUNCTION_SUM,
+            key=AttributeKey(name="duration_ms", type=AttributeKey.Type.TYPE_INT),
+            label="sum()",
+        )
+        assert virtual_context is None
+
+    def test_function_alias(self):
+        resolved_column, virtual_context = self.resolver.resolve_column("sum() as test")
+        assert resolved_column.proto_definition == AttributeAggregation(
+            aggregate=Function.FUNCTION_SUM,
+            key=AttributeKey(name="duration_ms", type=AttributeKey.Type.TYPE_INT),
+            label="test",
+        )
+        assert virtual_context is None
+
+    def test_count(self):
+        resolved_column, virtual_context = self.resolver.resolve_column("count()")
+        assert resolved_column.proto_definition == AttributeAggregation(
+            aggregate=Function.FUNCTION_COUNT, key=None, label="count()"
+        )
+        assert virtual_context is None
+        resolved_column, virtual_context = self.resolver.resolve_column("count(span.duration)")
+        assert resolved_column.proto_definition == AttributeAggregation(
+            aggregate=Function.FUNCTION_COUNT, key=None, label="count(span.duration)"
+        )
+        assert virtual_context is None
+
+    def test_p50(self):
+        resolved_column, virtual_context = self.resolver.resolve_column("p50()")
+        assert resolved_column.proto_definition == AttributeAggregation(
+            aggregate=Function.FUNCTION_P50,
+            key=AttributeKey(name="duration_ms", type=AttributeKey.Type.TYPE_INT),
+            label="p50()",
+        )
+        assert virtual_context is None
+
+    def test_count_unique(self):
+        resolved_column, virtual_context = self.resolver.resolve_column("count_unique(span.action)")
+        assert resolved_column.proto_definition == AttributeAggregation(
+            aggregate=Function.FUNCTION_UNIQ,
+            key=AttributeKey(name="action", type=AttributeKey.Type.TYPE_STRING),
+            label="count_unique(span.action)",
         )
         assert virtual_context is None
