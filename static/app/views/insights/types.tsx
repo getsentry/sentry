@@ -134,8 +134,7 @@ export const SPAN_FUNCTIONS = [
   'sum',
 ] as const;
 
-const BREAKPOINT_CONDITIONS = ['less', 'greater'] as const;
-type BreakpointCondition = (typeof BREAKPOINT_CONDITIONS)[number];
+type BreakpointCondition = 'less' | 'greater';
 
 type RegressionFunctions = [
   `regression_score(${string},${string})`,

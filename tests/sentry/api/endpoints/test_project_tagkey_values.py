@@ -1,14 +1,14 @@
 from django.urls import reverse
 
 from sentry.testutils.cases import APITestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 
 
 class ProjectTagKeyValuesTest(APITestCase, SnubaTestCase):
     def test_simple(self):
         project = self.create_project()
         self.store_event(
-            data={"tags": {"foo": "bar"}, "timestamp": iso_format(before_now(seconds=1))},
+            data={"tags": {"foo": "bar"}, "timestamp": before_now(seconds=1).timestamp()},
             project_id=project.id,
         )
 
@@ -33,7 +33,7 @@ class ProjectTagKeyValuesTest(APITestCase, SnubaTestCase):
     def test_query(self):
         project = self.create_project()
         self.store_event(
-            data={"tags": {"foo": "bar"}, "timestamp": iso_format(before_now(seconds=1))},
+            data={"tags": {"foo": "bar"}, "timestamp": before_now(seconds=1).timestamp()},
             project_id=project.id,
         )
 
@@ -62,7 +62,7 @@ class ProjectTagKeyValuesTest(APITestCase, SnubaTestCase):
     def test_statperiod_query(self):
         project = self.create_project()
         self.store_event(
-            data={"tags": {"foo": "bar"}, "timestamp": iso_format(before_now(days=15))},
+            data={"tags": {"foo": "bar"}, "timestamp": before_now(days=15).timestamp()},
             project_id=project.id,
         )
 
@@ -90,7 +90,7 @@ class ProjectTagKeyValuesTest(APITestCase, SnubaTestCase):
     def test_start_end_query(self):
         project = self.create_project()
         self.store_event(
-            data={"tags": {"foo": "bar"}, "timestamp": iso_format(before_now(days=15))},
+            data={"tags": {"foo": "bar"}, "timestamp": before_now(days=15).timestamp()},
             project_id=project.id,
         )
 
@@ -108,7 +108,7 @@ class ProjectTagKeyValuesTest(APITestCase, SnubaTestCase):
         response = self.client.get(
             url
             + "?query=bar&start={}&end={}".format(
-                iso_format(before_now(days=14)), iso_format(before_now(seconds=1))
+                before_now(days=14).timestamp(), before_now(seconds=1).timestamp()
             )
         )
 
@@ -118,7 +118,7 @@ class ProjectTagKeyValuesTest(APITestCase, SnubaTestCase):
         response = self.client.get(
             url
             + "?query=bar&start={}&end={}".format(
-                iso_format(before_now(days=16)), iso_format(before_now(days=14))
+                before_now(days=16).timestamp(), before_now(days=14).timestamp()
             )
         )
 

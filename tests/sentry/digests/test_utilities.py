@@ -15,45 +15,38 @@ from sentry.models.projectownership import ProjectOwnership
 from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.testutils.cases import SnubaTestCase, TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.types.actor import ActorType
 
 
 class UtilitiesHelpersTestCase(TestCase, SnubaTestCase):
-    def create_event(self, project_id):
-        return (
-            self.store_event(
-                data={"timestamp": iso_format(before_now(minutes=1))}, project_id=project_id
-            ),
-        )
-
     def test_get_event_from_groups_in_digest(self):
         project = self.create_project(fire_project_created=True)
         rule = project.rule_set.all()[0]
 
         events = [
             self.store_event(
-                data={"fingerprint": ["group1"], "timestamp": iso_format(before_now(minutes=2))},
+                data={"fingerprint": ["group1"], "timestamp": before_now(minutes=2).timestamp()},
                 project_id=project.id,
             ),
             self.store_event(
-                data={"fingerprint": ["group1"], "timestamp": iso_format(before_now(minutes=1))},
+                data={"fingerprint": ["group1"], "timestamp": before_now(minutes=1).timestamp()},
                 project_id=project.id,
             ),
             self.store_event(
-                data={"fingerprint": ["group2"], "timestamp": iso_format(before_now(minutes=1))},
+                data={"fingerprint": ["group2"], "timestamp": before_now(minutes=1).timestamp()},
                 project_id=project.id,
             ),
             self.store_event(
-                data={"fingerprint": ["group3"], "timestamp": iso_format(before_now(minutes=1))},
+                data={"fingerprint": ["group3"], "timestamp": before_now(minutes=1).timestamp()},
                 project_id=project.id,
             ),
             self.store_event(
-                data={"fingerprint": ["group4"], "timestamp": iso_format(before_now(minutes=1))},
+                data={"fingerprint": ["group4"], "timestamp": before_now(minutes=1).timestamp()},
                 project_id=project.id,
             ),
             self.store_event(
-                data={"fingerprint": ["group5"], "timestamp": iso_format(before_now(minutes=1))},
+                data={"fingerprint": ["group5"], "timestamp": before_now(minutes=1).timestamp()},
                 project_id=project.id,
             ),
         ]
@@ -131,7 +124,7 @@ class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
                 data={
                     "stacktrace": {"frames": [{"lineno": 1, "filename": "foo.bar"}]},
                     "request": {"url": "helloworld.org"},
-                    "timestamp": iso_format(before_now(minutes=1)),
+                    "timestamp": before_now(minutes=1).timestamp(),
                     "fingerprint": ["user4group1"],
                 },
                 project_id=self.project.id,
@@ -140,7 +133,7 @@ class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
                 data={
                     "stacktrace": {"frames": [{"lineno": 1, "filename": "bar.foo"}]},
                     "request": {"url": "helloworld.org"},
-                    "timestamp": iso_format(before_now(minutes=1)),
+                    "timestamp": before_now(minutes=1).timestamp(),
                     "fingerprint": ["user4group2"],
                 },
                 project_id=self.project.id,
@@ -173,7 +166,7 @@ class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
                 data={
                     "stacktrace": {"frames": [{"filename": label}]},
                     "fingerprint": [label],
-                    "timestamp": iso_format(before_now(minutes=1)),
+                    "timestamp": before_now(minutes=1).timestamp(),
                 },
                 project_id=project.id,
                 assert_no_errors=False,
