@@ -706,7 +706,7 @@ const Wrapper = styled(PanelItem)<{
 const GroupSummary = styled('div')<{canSelect: boolean; hasNewLayout: boolean}>`
   overflow: hidden;
   margin-left: ${p => space(p.canSelect ? 1 : 2)};
-  margin-right: ${space(1)};
+  margin-right: ${p => (p.hasNewLayout ? space(2) : space(1))};
   flex: 1;
   width: 66.66%;
 
