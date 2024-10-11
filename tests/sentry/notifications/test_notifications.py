@@ -531,7 +531,7 @@ class ActivityNotificationTest(APITestCase):
                     "actions": [action_data],
                 },
             )
-            min_ago = before_now(minutes=1).timestamp()
+            min_ago = before_now(minutes=1).isoformat()
             event = self.store_event(
                 data={
                     "message": "Hello world",
