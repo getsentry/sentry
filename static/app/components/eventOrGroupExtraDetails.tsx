@@ -1,10 +1,11 @@
 import {Fragment} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {ErrorLevelText} from 'sentry/components/events/errorLevelText';
 import EventAnnotation from 'sentry/components/events/eventAnnotation';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
-import InboxShortId from 'sentry/components/group/inboxBadges/shortId';
+import ShortId from 'sentry/components/group/inboxBadges/shortId';
 import TimesTag from 'sentry/components/group/inboxBadges/timesTag';
 import UnhandledTag from 'sentry/components/group/inboxBadges/unhandledTag';
 import IssueReplayCount from 'sentry/components/group/issueReplayCount';
@@ -85,7 +86,7 @@ function EventOrGroupExtraDetails({
 
   const items = [
     shortId ? (
-      <InboxShortId
+      <ShortId
         shortId={shortId}
         avatar={
           project && <ShadowlessProjectBadge project={project} avatarSize={12} hideName />
@@ -109,7 +110,7 @@ function EventOrGroupExtraDetails({
     ) : null,
     showReplayCount ? <IssueReplayCount group={data as Group} /> : null,
     logger ? (
-      <LoggerAnnotation>
+      <LoggerAnnotation hasNewLayout={hasNewLayout}>
         <GlobalSelectionLink
           to={{
             pathname: issuesPath,
@@ -123,7 +124,7 @@ function EventOrGroupExtraDetails({
       </LoggerAnnotation>
     ) : null,
     ...(annotations?.map((annotation, key) => (
-      <AnnotationNoMargin key={key}>
+      <AnnotationNoMargin key={key} hasNewLayout={hasNewLayout}>
         <ExternalLink href={annotation.url}>{annotation.displayName}</ExternalLink>
       </AnnotationNoMargin>
     )) ?? []),
@@ -167,9 +168,14 @@ const GroupExtra = styled('div')<{hasNewLayout: boolean}>`
   white-space: nowrap;
   line-height: 1.2;
 
-  a {
-    color: inherit;
-  }
+  ${p =>
+    p.hasNewLayout &&
+    css`
+      color: ${p.theme.subText};
+      & > a {
+        color: ${p.theme.subText};
+      }
+    `}
 
   @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
     line-height: 1;
@@ -197,13 +203,26 @@ const CommentsLink = styled(Link)`
   color: ${p => p.theme.textColor};
 `;
 
-const AnnotationNoMargin = styled(EventAnnotation)`
+const AnnotationNoMargin = styled(EventAnnotation)<{hasNewLayout: boolean}>`
   margin-left: 0;
   padding-left: 0;
   border-left: none;
-  & > a {
-    color: ${p => p.theme.textColor};
-  }
+
+  ${p =>
+    !p.hasNewLayout &&
+    css`
+      & > a {
+        color: ${p.theme.textColor};
+      }
+    `}
+
+  ${p =>
+    p.hasNewLayout &&
+    css`
+      & > a:hover {
+        color: ${p.theme.linkHoverColor};
+      }
+    `}
 `;
 
 const LoggerAnnotation = styled(AnnotationNoMargin)`
