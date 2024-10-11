@@ -32,8 +32,8 @@ function useSampleFieldsImpl({
     }
 
     return [
-      'project',
       'span_id',
+      'project',
       'span.op',
       'span.description',
       'span.duration',
