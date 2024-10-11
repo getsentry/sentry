@@ -1,5 +1,5 @@
 from sentry.integrations.on_call.metrics import OnCallInteractionEvent, OnCallInteractionType
-from sentry.integrations.opsgenie.spec import PagerDutyOnCallSpec
+from sentry.integrations.pagerduty.spec import PagerDutyOnCallSpec
 
 
 def record_event(event: OnCallInteractionType):
