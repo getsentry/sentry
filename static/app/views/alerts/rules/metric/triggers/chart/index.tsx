@@ -362,7 +362,7 @@ class TriggersChart extends PureComponent<Props, State> {
             comparisonData={comparisonData ?? []}
             comparisonSeriesName={this.comparisonSeriesName}
             comparisonMarkLines={comparisonMarkLines ?? []}
-            hideThresholdLines={comparisonType === AlertRuleComparisonType.CHANGE}
+            hideThresholdLines={comparisonType !== AlertRuleComparisonType.COUNT}
             triggers={triggers}
             resolveThreshold={resolveThreshold}
             thresholdType={thresholdType}
