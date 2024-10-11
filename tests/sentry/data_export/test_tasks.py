@@ -38,7 +38,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
             data={
                 "tags": {"foo": "bar"},
                 "fingerprint": ["group-1"],
-                "timestamp": before_now(minutes=3).timestamp(),
+                "timestamp": before_now(minutes=3).isoformat(),
                 "environment": "dev",
             },
             project_id=self.project.id,
@@ -47,7 +47,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
             data={
                 "tags": {"foo": "bar2"},
                 "fingerprint": ["group-1"],
-                "timestamp": before_now(minutes=2).timestamp(),
+                "timestamp": before_now(minutes=2).isoformat(),
                 "environment": "prod",
             },
             project_id=self.project.id,
@@ -56,7 +56,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
             data={
                 "tags": {"foo": "bar2"},
                 "fingerprint": ["group-1"],
-                "timestamp": before_now(minutes=1).timestamp(),
+                "timestamp": before_now(minutes=1).isoformat(),
                 "environment": "prod",
             },
             project_id=self.project.id,
@@ -632,8 +632,8 @@ class AssembleDownloadLargeTest(TestCase, SnubaTestCase):
             event.update(
                 {
                     "transaction": f"/event/{i:03d}/",
-                    "timestamp": before_now(minutes=1, seconds=i).timestamp(),
-                    "start_timestamp": before_now(minutes=1, seconds=i + 1).timestamp(),
+                    "timestamp": before_now(minutes=1, seconds=i).isoformat(),
+                    "start_timestamp": before_now(minutes=1, seconds=i + 1).isoformat(),
                 }
             )
             self.store_event(event, project_id=self.project.id)
@@ -663,8 +663,8 @@ class AssembleDownloadLargeTest(TestCase, SnubaTestCase):
             event.update(
                 {
                     "transaction": string,
-                    "timestamp": before_now(minutes=1, seconds=0).timestamp(),
-                    "start_timestamp": before_now(minutes=1, seconds=1).timestamp(),
+                    "timestamp": before_now(minutes=1, seconds=0).isoformat(),
+                    "start_timestamp": before_now(minutes=1, seconds=1).isoformat(),
                 }
             )
             self.store_event(event, project_id=self.project.id)

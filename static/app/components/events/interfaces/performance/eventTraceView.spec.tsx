@@ -100,7 +100,7 @@ describe('EventTraceView', () => {
 
     render(<EventTraceView group={group} event={event} organization={organization} />);
 
-    expect(await screen.findByText('Trace Connections')).toBeInTheDocument();
+    expect(await screen.findByText('Trace')).toBeInTheDocument();
     expect(await screen.findByText('transaction')).toBeInTheDocument();
   });
 
@@ -126,7 +126,7 @@ describe('EventTraceView', () => {
 
     render(<EventTraceView group={group} event={event} organization={organization} />);
 
-    expect(await screen.findByText('Trace Connections')).toBeInTheDocument();
+    expect(await screen.findByText('Trace')).toBeInTheDocument();
     expect(
       await screen.findByRole('link', {name: 'View Full Trace'})
     ).toBeInTheDocument();

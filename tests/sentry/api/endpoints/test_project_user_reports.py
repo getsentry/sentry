@@ -18,7 +18,7 @@ def _make_url(project: Project):
 class ProjectUserReportListTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
-        self.min_ago = before_now(minutes=1).timestamp()
+        self.min_ago = before_now(minutes=1).isoformat()
         self.environment = self.create_environment(project=self.project, name="production")
         self.event = self.store_event(
             data={
@@ -217,7 +217,7 @@ class ProjectUserReportListTest(APITestCase, SnubaTestCase):
         old_event = self.store_event(
             data={
                 "event_id": "f" * 32,
-                "timestamp": before_now(days=retention_days + 1).timestamp(),
+                "timestamp": before_now(days=retention_days + 1).isoformat(),
                 "environment": self.environment.name,
             },
             project_id=self.project.id,
@@ -237,8 +237,8 @@ class ProjectUserReportListTest(APITestCase, SnubaTestCase):
 class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
-        self.min_ago = before_now(minutes=1).timestamp()
-        self.hour_ago = before_now(minutes=60).timestamp()
+        self.min_ago = before_now(minutes=1).isoformat()
+        self.hour_ago = before_now(minutes=60).isoformat()
 
         self.project = self.create_project()
         self.environment = self.create_environment(project=self.project)

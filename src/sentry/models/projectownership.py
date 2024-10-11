@@ -5,6 +5,7 @@ import logging
 from collections.abc import Mapping, Sequence
 from typing import TYPE_CHECKING, Any
 
+import sentry_sdk
 from django.db import models
 from django.db.models.signals import post_delete, post_save
 from django.utils import timezone
@@ -168,6 +169,7 @@ class ProjectOwnership(Model):
 
     @classmethod
     @metrics.wraps("projectownership.get_issue_owners")
+    @sentry_sdk.trace
     def get_issue_owners(
         cls, project_id, data, limit=2
     ) -> Sequence[tuple[Rule, Sequence[Team | RpcUser], str]]:
