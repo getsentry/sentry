@@ -1,12 +1,11 @@
+from dataclasses import dataclass
 from datetime import datetime, timezone
 
-from django.db import router
+from django.db import router, transaction
 from django.utils.functional import cached_property
 
 from sentry import analytics
 from sentry.coreapi import APIUnauthorized
-from sentry.mediators.mediator import Mediator
-from sentry.mediators.param import Param
 from sentry.mediators.token_exchange.util import token_expiration
 from sentry.mediators.token_exchange.validator import Validator
 from sentry.models.apiapplication import ApiApplication
@@ -19,71 +18,75 @@ from sentry.silo.safety import unguarded_write
 from sentry.users.models.user import User
 
 
-class GrantExchanger(Mediator):
+@dataclass
+class GrantExchanger:
     """
     Exchanges a Grant Code for an Access Token
     """
 
-    install = Param(RpcSentryAppInstallation)
-    code = Param(str)
-    client_id = Param(str)
-    user = Param(User)
-    using = router.db_for_write(User)
+    install: RpcSentryAppInstallation
+    code: str
+    client_id: str
+    user: User
 
-    def call(self):
-        self._validate()
-        self._create_token()
+    def run(self):
+        with transaction.atomic(using=router.db_for_write(ApiToken)):
+            self._validate()
+            token = self._create_token()
 
-        # Once it's exchanged it's no longer valid and should not be
-        # exchangeable, so we delete it.
-        self._delete_grant()
+            # Once it's exchanged it's no longer valid and should not be
+            # exchangeable, so we delete it.
+            self._delete_grant()
+            self.record_analytics()
 
-        return self.token
+            return token
 
-    def record_analytics(self):
+    def record_analytics(self) -> None:
         analytics.record(
             "sentry_app.token_exchanged",
             sentry_app_installation_id=self.install.id,
             exchange_type="authorization",
         )
 
-    def _validate(self):
+    def _validate(self) -> None:
         Validator.run(install=self.install, client_id=self.client_id, user=self.user)
 
         if not self._grant_belongs_to_install() or not self._sentry_app_user_owns_grant():
-            raise APIUnauthorized
+            raise APIUnauthorized("Forbidden grant")
 
         if not self._grant_is_active():
             raise APIUnauthorized("Grant has already expired.")
 
-    def _grant_belongs_to_install(self):
+    def _grant_belongs_to_install(self) -> bool:
         return self.grant.sentry_app_installation.id == self.install.id
 
-    def _sentry_app_user_owns_grant(self):
+    def _sentry_app_user_owns_grant(self) -> bool:
         return self.grant.application.owner == self.user
 
-    def _grant_is_active(self):
+    def _grant_is_active(self) -> bool:
         return self.grant.expires_at > datetime.now(timezone.utc)
 
-    def _delete_grant(self):
+    def _delete_grant(self) -> None:
         # This will cause a set null to trigger which does not need to cascade an outbox
         with unguarded_write(router.db_for_write(ApiGrant)):
             self.grant.delete()
 
-    def _create_token(self):
-        self.token = ApiToken.objects.create(
+    def _create_token(self) -> ApiToken:
+        token = ApiToken.objects.create(
             user=self.user,
             application=self.application,
             scope_list=self.sentry_app.scope_list,
             expires_at=token_expiration(),
         )
         try:
-            SentryAppInstallation.objects.get(id=self.install.id).update(api_token=self.token)
+            SentryAppInstallation.objects.get(id=self.install.id).update(api_token=token)
         except SentryAppInstallation.DoesNotExist:
             pass
 
+        return token
+
     @cached_property
-    def grant(self):
+    def grant(self) -> ApiGrant:
         try:
             return (
                 ApiGrant.objects.select_related("sentry_app_installation")
@@ -92,18 +95,18 @@ class GrantExchanger(Mediator):
                 .get(code=self.code)
             )
         except ApiGrant.DoesNotExist:
-            raise APIUnauthorized
+            raise APIUnauthorized("Could not find grant")
 
     @property
-    def application(self):
+    def application(self) -> ApiApplication:
         try:
             return self.grant.application
         except ApiApplication.DoesNotExist:
-            raise APIUnauthorized
+            raise APIUnauthorized("Could not find application")
 
     @property
-    def sentry_app(self):
+    def sentry_app(self) -> SentryApp:
         try:
             return self.application.sentry_app
         except SentryApp.DoesNotExist:
-            raise APIUnauthorized
+            raise APIUnauthorized("Could not find sentry app")

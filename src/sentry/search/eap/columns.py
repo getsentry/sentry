@@ -23,10 +23,10 @@ class ResolvedColumn:
     internal_name: str | Function.ValueType
     # The public type for this column
     search_type: str
-    # Only for aggregates, we only support functions with 1 argument right now
-    argument: AttributeKey | None = None
     # The internal rpc type for this column, optional as it can mostly be inferred from search_type
     internal_type: AttributeKey.Type.ValueType | None = None
+    # Only for aggregates, we only support functions with 1 argument right now
+    argument: AttributeKey | None = None
     # Processor is the function run in the post process step to transform a row into the final result
     processor: Callable[[Any], Any] | None = None
     # Validator to check if the value in a query is correct

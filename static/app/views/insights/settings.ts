@@ -51,6 +51,7 @@ import {
   DATA_TYPE as MOBILE_SCREENS_DATA_TYPE,
   DATA_TYPE_PLURAL as MOBILE_SCREENS_DATA_TYPE_PLURAL,
   MODULE_DOC_LINK as MODULE_SCREENS_DOC_LINK,
+  MODULE_FEATURE as MOBILE_SCREENS_MODULE_FEATURE,
   MODULE_TITLE as MOBILE_SCREENS_MODULE_TITLE,
 } from 'sentry/views/insights/mobile/screens/settings';
 import {
@@ -128,4 +129,18 @@ export const MODULE_PRODUCT_DOC_LINKS: Record<ModuleName, string> = {
   [ModuleName.MOBILE_UI]: MODULE_UI_DOC_LINK,
   [ModuleName.MOBILE_SCREENS]: MODULE_SCREENS_DOC_LINK,
   [ModuleName.OTHER]: '',
+};
+
+export const MODULE_FEATURE_MAP: Partial<Record<ModuleName, string[]>> = {
+  [ModuleName.DB]: ['insights-initial-modules'],
+  [ModuleName.APP_START]: ['insights-initial-modules'],
+  [ModuleName.HTTP]: ['insights-initial-modules'],
+  [ModuleName.RESOURCE]: ['insights-initial-modules'],
+  [ModuleName.VITAL]: ['insights-initial-modules'],
+  [ModuleName.CACHE]: ['insights-addon-modules'],
+  [ModuleName.QUEUE]: ['insights-addon-modules'],
+  [ModuleName.AI]: ['insights-addon-modules'],
+  [ModuleName.SCREEN_LOAD]: ['insights-initial-modules'],
+  [ModuleName.MOBILE_UI]: ['insights-addon-modules', 'starfish-mobile-ui-module'],
+  [ModuleName.MOBILE_SCREENS]: [MOBILE_SCREENS_MODULE_FEATURE],
 };

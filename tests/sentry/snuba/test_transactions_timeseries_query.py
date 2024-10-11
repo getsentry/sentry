@@ -508,14 +508,14 @@ class TopEventsTimeseriesQueryTest(TimeseriesBase):
         top_events: EventsResponse = {
             "data": [
                 {
-                    "timestamp": iso_format(timestamp1),
-                    "timestamp.to_hour": iso_format(timestamp1.replace(minute=0, second=0)),
-                    "timestamp.to_day": iso_format(timestamp1.replace(hour=0, minute=0, second=0)),
+                    "timestamp": timestamp1,
+                    "timestamp.to_hour": timestamp1.replace(minute=0, second=0),
+                    "timestamp.to_day": timestamp1.replace(hour=0, minute=0, second=0),
                 },
                 {
-                    "timestamp": iso_format(timestamp2),
-                    "timestamp.to_hour": iso_format(timestamp2.replace(minute=0, second=0)),
-                    "timestamp.to_day": iso_format(timestamp2.replace(hour=0, minute=0, second=0)),
+                    "timestamp": timestamp2,
+                    "timestamp.to_hour": timestamp2.replace(minute=0, second=0),
+                    "timestamp.to_day": timestamp2.replace(hour=0, minute=0, second=0),
                 },
             ],
             "meta": {"fields": {}, "tips": {}},
@@ -545,24 +545,24 @@ class TopEventsTimeseriesQueryTest(TimeseriesBase):
                 # Each timestamp field should generated a nested condition.
                 # Within each, the conditions will be ORed together.
                 [
-                    ["timestamp", "=", iso_format(timestamp1)],
-                    ["timestamp", "=", iso_format(timestamp2)],
+                    ["timestamp", "=", timestamp1],
+                    ["timestamp", "=", timestamp2],
                 ],
                 [
                     [
                         to_day,
                         "=",
-                        iso_format(timestamp1.replace(hour=0, minute=0, second=0)),
+                        timestamp1.replace(hour=0, minute=0, second=0),
                     ],
                     [
                         to_day,
                         "=",
-                        iso_format(timestamp2.replace(hour=0, minute=0, second=0)),
+                        timestamp2.replace(hour=0, minute=0, second=0),
                     ],
                 ],
                 [
-                    [to_hour, "=", iso_format(timestamp1.replace(minute=0, second=0))],
-                    [to_hour, "=", iso_format(timestamp2.replace(minute=0, second=0))],
+                    [to_hour, "=", timestamp1.replace(minute=0, second=0)],
+                    [to_hour, "=", timestamp2.replace(minute=0, second=0)],
                 ],
             ],
             filter_keys={"project_id": [self.project.id]},

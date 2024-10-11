@@ -2,6 +2,7 @@ import itertools
 import logging
 from abc import ABC, abstractmethod
 from collections.abc import Mapping
+from dataclasses import dataclass
 from enum import Enum
 from types import TracebackType
 from typing import Any, Self
@@ -152,8 +153,11 @@ class EventLifecycle:
 
         self._terminate(EventLifecycleOutcome.SUCCESS)
 
-    def record_failure(self, exc: BaseException | None = None) -> None:
-        """Record that the event halted in failure.
+    def record_failure(
+        self, exc: BaseException | None = None, extra: dict[str, Any] | None = None
+    ) -> None:
+        """Record that the event halted in failure. Additional data may be passed
+        to be logged.
 
         There is no need to call this method directly if an exception is raised from
         inside the context. It will be called automatically when exiting the context
@@ -165,6 +169,8 @@ class EventLifecycle:
         `record_failure` on the context object.
         """
 
+        if extra:
+            self._extra.update(extra)
         self._terminate(EventLifecycleOutcome.FAILURE, exc)
 
     def __enter__(self) -> Self:
@@ -197,3 +203,48 @@ class EventLifecycle:
                 if self.assume_success
                 else EventLifecycleOutcome.HALTED
             )
+
+
+class IntegrationPipelineViewType(Enum):
+    """A specific step in an integration's pipeline that is not a static page."""
+
+    # IdentityProviderPipeline
+    IDENTITY_PROVIDER = "IDENTITY_PROVIDER"
+
+    # GitHub
+    OAUTH_LOGIN = "OAUTH_LOGIN"
+    GITHUB_INSTALLATION = "GITHUB_INSTALLATION"
+
+    # Bitbucket
+    VERIFY_INSTALLATION = "VERIFY_INSTALLATION"
+
+    # Bitbucket Server
+    # OAUTH_LOGIN = "OAUTH_LOGIN"
+    OAUTH_CALLBACK = "OAUTH_CALLBACK"
+
+    # Azure DevOps
+    ACCOUNT_CONFIG = "ACCOUNT_CONFIG"
+
+    def __str__(self) -> str:
+        return self.value.lower()
+
+
+@dataclass
+class IntegrationPipelineViewEvent(EventLifecycleMetric):
+    """An instance to be recorded of a user going through an integration pipeline view (step)."""
+
+    interaction_type: IntegrationPipelineViewType
+    domain: str
+    provider_key: str
+
+    def get_key(self, outcome: EventLifecycleOutcome) -> str:
+        # not reporting as SLOs
+        root_tokens = ("sentry", "integrations", "installation")
+        specific_tokens = (
+            self.domain,
+            self.provider_key,
+            str(self.interaction_type),
+            str(outcome),
+        )
+
+        return ".".join(itertools.chain(root_tokens, specific_tokens))

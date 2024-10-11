@@ -10,7 +10,7 @@ from sentry.snuba import errors, metrics_performance
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery
 from sentry.testutils.cases import BaseMetricsTestCase, PerformanceIssueTestCase
-from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.performance_issues.event_generators import get_event
 from sentry.utils.snuba import SnubaTSResult
 from tests.sentry.incidents.endpoints.test_organization_alert_rule_index import AlertRuleBase
@@ -119,7 +119,7 @@ class AnomalyDetectionStoreDataTest(AlertRuleBase, BaseMetricsTestCase, Performa
                 data={
                     "event_id": "a" * 32,
                     "message": "super duper bad",
-                    "timestamp": iso_format(self.time_1_dt),
+                    "timestamp": self.time_1_dt.timestamp(),
                     "fingerprint": ["group1"],
                     "tags": {"sentry:user": self.user.email},
                     "exception": [{"value": "BadError"}],
@@ -130,7 +130,7 @@ class AnomalyDetectionStoreDataTest(AlertRuleBase, BaseMetricsTestCase, Performa
                 data={
                     "event_id": "b" * 32,
                     "message": "super bad",
-                    "timestamp": iso_format(self.time_2_dt),
+                    "timestamp": self.time_2_dt.timestamp(),
                     "fingerprint": ["group2"],
                     "tags": {"sentry:user": self.user.email},
                     "exception": [{"value": "BadError"}],
@@ -153,7 +153,7 @@ class AnomalyDetectionStoreDataTest(AlertRuleBase, BaseMetricsTestCase, Performa
                 data={
                     "event_id": "a" * 32,
                     "message": "super duper bad",
-                    "timestamp": iso_format(self.time_1_dt),
+                    "timestamp": self.time_1_dt.timestamp(),
                     "fingerprint": ["group1"],
                     "tags": {"sentry:user": self.user.email},
                     "exception": [{"value": "BadError"}],
@@ -164,7 +164,7 @@ class AnomalyDetectionStoreDataTest(AlertRuleBase, BaseMetricsTestCase, Performa
                 data={
                     "event_id": "b" * 32,
                     "message": "super bad",
-                    "timestamp": iso_format(self.time_2_dt),
+                    "timestamp": self.time_2_dt.timestamp(),
                     "fingerprint": ["group2"],
                     "tags": {"sentry:user": self.user.email},
                     "exception": [{"value": "BadError"}],

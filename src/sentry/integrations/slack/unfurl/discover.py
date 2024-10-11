@@ -15,9 +15,14 @@ from sentry.api import client
 from sentry.charts import backend as charts
 from sentry.charts.types import ChartType
 from sentry.discover.arithmetic import is_equation
+from sentry.integrations.messaging.metrics import (
+    MessagingInteractionEvent,
+    MessagingInteractionType,
+)
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.slack.message_builder.discover import SlackDiscoverMessageBuilder
+from sentry.integrations.slack.spec import SlackMessagingSpec
 from sentry.integrations.slack.unfurl.types import Handler, UnfurlableUrl, UnfurledUrl
 from sentry.models.apikey import ApiKey
 from sentry.models.organization import Organization
@@ -112,6 +117,18 @@ def is_aggregate(field: str) -> bool:
 
 def unfurl_discover(
     request: HttpRequest,
+    integration: Integration,
+    links: list[UnfurlableUrl],
+    user: User | None = None,
+) -> UnfurledUrl:
+    event = MessagingInteractionEvent(
+        MessagingInteractionType.UNFURL_DISCOVER, SlackMessagingSpec(), user=user
+    )
+    with event.capture():
+        return _unfurl_discover(integration, links, user)
+
+
+def _unfurl_discover(
     integration: Integration,
     links: list[UnfurlableUrl],
     user: User | None = None,
