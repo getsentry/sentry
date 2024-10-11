@@ -467,7 +467,7 @@ def _lookback(columns, j, string):
     return columns[j - len(string) : j] == string
 
 
-def parse_arguments(function: str, columns: str) -> list[str]:
+def parse_arguments(_function: str, columns: str) -> list[str]:
     """
     Some functions take a quoted string for their arguments that may contain commas,
     which requires special handling.
@@ -488,6 +488,8 @@ def parse_arguments(function: str, columns: str) -> list[str]:
             # an argument, then this is a quoted string
             quoted = True
         elif not quoted and columns[j] == "[" and _lookback(columns, j, "tags"):
+            # when the argument begins with tags[,
+            # then this is the beginning of the tag that may contain commas
             in_tag = True
         elif i == j and columns[j] == " ":
             # argument has leading spaces, skip over them
@@ -509,7 +511,7 @@ def parse_arguments(function: str, columns: str) -> list[str]:
             # begun an escape character, we should end it
             escaped = False
         elif (quoted or in_tag) and columns[j] == ",":
-            # when we are inside a quoted string and see
+            # when we are inside a quoted string or tag and see
             # a comma, it should not be considered an
             # argument separator
             pass
