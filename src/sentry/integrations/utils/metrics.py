@@ -9,6 +9,7 @@ from typing import Any, Self
 
 from django.conf import settings
 
+from sentry.integrations.base import IntegrationDomain
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -209,7 +210,8 @@ class IntegrationPipelineViewType(Enum):
     """A specific step in an integration's pipeline that is not a static page."""
 
     # IdentityProviderPipeline
-    IDENTITY_PROVIDER = "IDENTITY_PROVIDER"
+    IDENTITY_LOGIN = "IDENTITY_LOGIN"
+    IDENTITY_LINK = "IDENTITY_LINK"
 
     # GitHub
     OAUTH_LOGIN = "OAUTH_LOGIN"
@@ -234,7 +236,7 @@ class IntegrationPipelineViewEvent(EventLifecycleMetric):
     """An instance to be recorded of a user going through an integration pipeline view (step)."""
 
     interaction_type: IntegrationPipelineViewType
-    domain: str
+    domain: IntegrationDomain
     provider_key: str
 
     def get_key(self, outcome: EventLifecycleOutcome) -> str:
