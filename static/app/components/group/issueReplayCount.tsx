@@ -54,6 +54,10 @@ const ReplayCountLink = styled(Link)`
   color: ${p => p.theme.gray400};
   font-size: ${p => p.theme.fontSizeSmall};
   gap: 0 ${space(0.5)};
+
+  &:hover {
+    color: ${p => p.theme.linkHoverColor};
+  }
 `;
 
 export default IssueReplayCount;
