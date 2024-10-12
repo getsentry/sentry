@@ -315,7 +315,7 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
             },
         )
 
-        assert response.status_code == 400, response.content
+        assert response.status_code == 401, response.content
 
     def test_already_present(self):
         self.login_as(user=self.user)
