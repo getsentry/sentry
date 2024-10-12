@@ -460,13 +460,6 @@ export class TraceTree extends TraceTreeEventDispatcher {
 
       // If the parent span does not exist in the span tree, the transaction will remain under the current node
       if (!parent) {
-        Sentry.withScope(scope => {
-          scope.setFingerprint(['trace-span-parent']);
-          scope.captureMessage(
-            'A transaction was found to have a span parent that does not exist in the span list'
-          );
-        });
-
         if (transaction.parent?.children.indexOf(transaction) === -1) {
           transaction.parent.children.push(transaction);
         }
