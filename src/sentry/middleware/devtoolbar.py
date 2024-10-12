@@ -17,10 +17,9 @@ class DevToolbarAnalyticsMiddleware:
     def __call__(self, request):
         response = self.get_response(request)
         try:
-            if (
-                options.get("devtoolbar.analytics.enabled")
-                and request.headers.get("queryReferrer") == "devtoolbar"
-            ):
+            if request.headers.get("queryReferrer") == "devtoolbar" and options.get(
+                "devtoolbar.analytics.enabled"
+            ):  # note ordering to avoid extra option queries
                 _record_api_request(request, response)
         except Exception:
             logger.exception("devtoolbar: exception while recording api analytics event.")
