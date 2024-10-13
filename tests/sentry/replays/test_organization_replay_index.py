@@ -1717,7 +1717,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 response = self.client.get(self.url + f"?field=id&query={query}")
                 assert response.status_code == 400
 
-    def _test_null_filter(self, query_key, field, null_value, nonnull_value):
+    def _test_null_filters(self, query_key, field, null_value, nonnull_value):
         """
         Tests filters on a nullable field such as user.email:"", !user.email:"", user.email:["", ...].
         On the backend, null fields are stored as @param `null_value` - either "" or python None. These queries are
