@@ -62,14 +62,14 @@ class SumOfIPv4Scalar(GenericBase):
     @staticmethod
     def visit_eq(expression: Expression, value: str | None) -> Condition:
         if value is None:
-            # "All rows in aggregation set are empty."
+            # "All rows in aggregation set are null."
             return does_not_contain(IPv4Scalar.visit_neq(expression, None))
         return contains(IPv4Scalar.visit_eq(expression, value))
 
     @staticmethod
     def visit_neq(expression: Expression, value: str | None) -> Condition:
         if value is None:
-            # "1+ rows in aggregation set are non-empty."
+            # "1+ rows in aggregation set are non-null."
             return contains(IPv4Scalar.visit_neq(expression, None))
         return does_not_contain(IPv4Scalar.visit_eq(expression, value))
 
@@ -98,29 +98,27 @@ class SumOfStringScalar(GenericBase):
     @staticmethod
     def visit_eq(expression: Expression, value: str) -> Condition:
         if value == "":
-            # "All rows in aggregation set are empty."
+            # "All rows in aggregation set are null."
             return does_not_contain(StringScalar.visit_neq(expression, ""))
         return contains(StringScalar.visit_eq(expression, value))
 
     @staticmethod
     def visit_neq(expression: Expression, value: str) -> Condition:
         if value == "":
-            # "1+ rows in aggregation set are non-empty."
+            # "1+ rows in aggregation set are non-null."
             return contains(StringScalar.visit_neq(expression, ""))
         return does_not_contain(StringScalar.visit_eq(expression, value))
 
     @staticmethod
     def visit_match(expression: Expression, value: str) -> Condition:
         if value == "":
-            # "All rows in aggregation set are empty."
-            return does_not_contain(StringScalar.visit_neq(expression, ""))
+            return SumOfStringScalar.visit_eq(expression, value)
         return contains(StringScalar.visit_match(expression, value))
 
     @staticmethod
     def visit_not_match(expression: Expression, value: str) -> Condition:
         if value == "":
-            # "1+ rows in aggregation set are non-empty."
-            return contains(StringScalar.visit_neq(expression, ""))
+            return SumOfStringScalar.visit_neq(expression, value)
         return does_not_contain(StringScalar.visit_match(expression, value))
 
     @staticmethod

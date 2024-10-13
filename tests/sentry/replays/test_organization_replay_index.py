@@ -1717,12 +1717,16 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 response = self.client.get(self.url + f"?field=id&query={query}")
                 assert response.status_code == 400
 
-    def _test_query_null_user_fields(self, query_key, field, null_value, nonnull_value):
+    def _test_null_filter(self, query_key, field, null_value, nonnull_value):
         """
-        @param query_key       name of field in URL query string, ex user.email.
-        @param field           name of kwarg used for testutils.mock_replay, ex user_email.
+        Tests filters on a nullable field such as user.email:"", !user.email:"", user.email:["", ...].
+        On the backend, null fields are stored as @param `null_value` - either "" or python None. These queries are
+        handled as a special case which needs testing.
+
+        @param query_key       name of field in URL query string, ex `user.email`.
+        @param field           name of kwarg used for testutils.mock_replay, ex `user_email`.
         @param null_value      null value for this field, stored by Snuba processor (ex: null user_email is translated to "").
-        @param nonnull_value   a non-null value for this field.
+        @param nonnull_value   a non-null value to use for testing.
         """
         project = self.create_project(teams=[self.team])
 
@@ -1778,16 +1782,16 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 assert len(data) == 0
 
     def test_query_null_email(self):
-        self._test_query_null_user_fields("user.email", "user_email", "", "andrew@example.com")
+        self._test_null_filter("user.email", "user_email", "", "andrew@example.com")
 
     def test_query_null_ipv4(self):
-        self._test_query_null_user_fields("user.ip", "ipv4", None, "127.0.0.1")
+        self._test_null_filter("user.ip", "ipv4", None, "127.0.0.1")
 
     def test_query_null_username(self):
-        self._test_query_null_user_fields("user.username", "user_name", "", "andrew1")
+        self._test_null_filter("user.username", "user_name", "", "andrew1")
 
     def test_query_null_user_id(self):
-        self._test_query_null_user_fields("user.id", "user_id", "", "12ef6")
+        self._test_null_filter("user.id", "user_id", "", "12ef6")
 
     def test_query_branches_computed_activity_conditions(self):
         project = self.create_project(teams=[self.team])
