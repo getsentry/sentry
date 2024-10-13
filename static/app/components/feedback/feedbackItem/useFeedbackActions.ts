@@ -5,6 +5,7 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
+import {useDeleteFeedback} from 'sentry/components/feedback/useDeleteFeedback';
 import useMutateFeedback from 'sentry/components/feedback/useMutateFeedback';
 import {t} from 'sentry/locale';
 import {GroupStatus} from 'sentry/types/group';
@@ -27,12 +28,18 @@ const mutationOptions = {
 
 export default function useFeedbackActions({feedbackItem}: Props) {
   const organization = useOrganization();
+  const projectId = feedbackItem.project?.id;
 
   const {markAsRead, resolve} = useMutateFeedback({
     feedbackIds: [feedbackItem.id],
     organization,
     projectIds: feedbackItem.project ? [feedbackItem.project.id] : [],
   });
+  const deleteFeedback = useDeleteFeedback([feedbackItem.id], projectId);
+
+  const hasDelete = organization.features.includes('issue-platform-deletion-ui');
+  const disableDelete = !organization.access.includes('event:admin');
+  const onDelete = deleteFeedback;
 
   // reuse the issues ignored category for spam feedbacks
   const isResolved = feedbackItem.status === GroupStatus.RESOLVED;
@@ -63,6 +70,9 @@ export default function useFeedbackActions({feedbackItem}: Props) {
   }, [hasSeen, markAsRead]);
 
   return {
+    disableDelete,
+    hasDelete,
+    onDelete,
     isResolved,
     onResolveClick,
     isSpam,

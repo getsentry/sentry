@@ -22,7 +22,6 @@ import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {EChartEventHandler, Series} from 'sentry/types/echarts';
-import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {MINUTES_THRESHOLD_TO_DISPLAY_SECONDS} from 'sentry/utils/sessions';
@@ -45,7 +44,6 @@ type Props = {
     | DisplayModes.STABILITY;
   onTotalValuesChange: (value: number | null) => void;
   organization: Organization;
-  router: InjectedRouter;
   selection: PageFilters;
   title: string;
   disablePrevious?: boolean;
@@ -56,7 +54,6 @@ type Props = {
 function ProjectBaseSessionsChart({
   title,
   organization,
-  router,
   selection,
   api,
   onTotalValuesChange,
@@ -80,7 +77,7 @@ function ProjectBaseSessionsChart({
     <Fragment>
       {getDynamicText({
         value: (
-          <ChartZoom router={router} period={period} start={start} end={end} utc={utc}>
+          <ChartZoom period={period} start={start} end={end} utc={utc}>
             {zoomRenderProps => (
               <Request
                 api={api}

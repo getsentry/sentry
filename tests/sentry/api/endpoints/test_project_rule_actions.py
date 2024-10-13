@@ -1,5 +1,7 @@
 from unittest import mock
 
+import sentry_sdk
+
 from sentry.integrations.jira.integration import JiraIntegration
 from sentry.rules.actions.notify_event import NotifyEventAction
 from sentry.shared_integrations.exceptions import IntegrationFormError
@@ -32,12 +34,13 @@ class ProjectRuleActionsEndpointTest(APITestCase):
         assert action.called
 
     @mock.patch.object(JiraIntegration, "create_issue")
+    @mock.patch.object(sentry_sdk, "capture_exception")
     @with_feature(
         {
             "projects:verbose-test-alert-reporting": True,
         }
     )
-    def test_sample_event_raises_exceptions(self, mock_create_issue):
+    def test_sample_event_raises_exceptions(self, mock_sdk_capture, mock_create_issue):
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.jira_integration = self.create_provider_integration(
                 provider="jira", name="Jira", external_id="jira:1"
@@ -46,6 +49,7 @@ class ProjectRuleActionsEndpointTest(APITestCase):
 
         form_errors = {"broken": "something went wrong"}
         mock_create_issue.side_effect = IntegrationFormError(form_errors)
+        mock_sdk_capture.return_value = "abc-1234"
         action_data = [
             {
                 "id": "sentry.integrations.jira.notify_action.JiraCreateTicketAction",
@@ -62,14 +66,13 @@ class ProjectRuleActionsEndpointTest(APITestCase):
         assert mock_create_issue.call_count == 1
         assert response.data == {"actions": [str(form_errors)]}
 
-        # TODO(Gabe): look into changing this and returning 500 errors.
-        # Unexpected exceptions shouldn't be buried for the user
         mock_create_issue.side_effect = Exception("Something went wrong")
-        response = self.get_success_response(
+        response = self.get_error_response(
             self.organization.slug, self.project.slug, actions=action_data
         )
-        assert response.status_code == 200
-        assert response.data is None
+        actions = response.data.get("actions")
+        assert actions is not None
+        assert actions == ["An unexpected error occurred. Error ID: 'abc-1234'"]
 
     @mock.patch.object(JiraIntegration, "create_issue")
     def test_success_response_when_client_raises(self, mock_create_issue):

@@ -32,7 +32,10 @@ import type {
   TraceFullDetailed,
   TraceMeta,
 } from 'sentry/utils/performance/quickTrace/types';
-import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {
+  TraceShape,
+  TraceTree,
+} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {
   TraceDetailBody,
   TraceViewContainer,
@@ -47,7 +50,7 @@ import {
 } from 'sentry/views/performance/traceDetails/utils';
 
 import LimitExceededMessage from './limitExceededMessage';
-import type {EventDetail, TraceType} from './newTraceDetailsContent';
+import type {EventDetail} from './newTraceDetailsContent';
 import TraceNotFound from './traceNotFound';
 
 type AccType = {
@@ -63,7 +66,7 @@ type Props = Pick<RouteComponentProps<{}, {}>, 'location'> & {
   rootEvent: EventTransaction | undefined;
   traceEventView: EventView;
   traceSlug: string;
-  traceType: TraceType;
+  traceType: TraceShape;
   traces: TraceTree.Transaction[];
   filteredEventIds?: Set<string>;
   handleLimitChange?: (newLimit: number) => void;

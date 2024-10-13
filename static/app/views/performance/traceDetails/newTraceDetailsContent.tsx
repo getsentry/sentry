@@ -40,6 +40,7 @@ import useRouter from 'sentry/utils/useRouter';
 import Tags from 'sentry/views/discover/tags';
 import Breadcrumb from 'sentry/views/performance/breadcrumb';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {TraceShape} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {MetaData} from 'sentry/views/performance/transactionDetails/styles';
 
 import {BrowserDisplay} from '../transactionDetails/eventMetas';
@@ -61,15 +62,6 @@ type Props = Pick<RouteComponentProps<{traceSlug: string}, {}>, 'params' | 'loca
   handleLimitChange?: (newLimit: number) => void;
   orphanErrors?: TraceError[];
 };
-
-export enum TraceType {
-  ONE_ROOT = 'one_root',
-  NO_ROOT = 'no_root',
-  MULTIPLE_ROOTS = 'multiple_roots',
-  BROKEN_SUBTRACES = 'broken_subtraces',
-  ONLY_ERRORS = 'only_errors',
-  EMPTY_TRACE = 'empty_trace',
-}
 
 export type EventDetail = {
   event: EventTransaction | undefined;
@@ -209,7 +201,7 @@ function NewTraceDetailsContent(props: Props) {
     );
   };
 
-  const getTraceType = (): TraceType => {
+  const getTraceType = (): TraceShape => {
     const {traces, orphanErrors} = props;
 
     const {roots, orphans} = (traces ?? []).reduce(
@@ -225,27 +217,27 @@ function NewTraceDetailsContent(props: Props) {
     );
 
     if (roots === 0 && orphans > 0) {
-      return TraceType.NO_ROOT;
+      return TraceShape.NO_ROOT;
     }
 
     if (roots === 1 && orphans > 0) {
-      return TraceType.BROKEN_SUBTRACES;
+      return TraceShape.BROKEN_SUBTRACES;
     }
 
     if (roots > 1) {
-      return TraceType.MULTIPLE_ROOTS;
+      return TraceShape.MULTIPLE_ROOTS;
     }
 
     if (orphanErrors && orphanErrors.length > 1) {
-      return TraceType.ONLY_ERRORS;
+      return TraceShape.ONLY_ERRORS;
     }
 
     if (roots === 1) {
-      return TraceType.ONE_ROOT;
+      return TraceShape.ONE_ROOT;
     }
 
     if (roots === 0 && orphans === 0) {
-      return TraceType.EMPTY_TRACE;
+      return TraceShape.EMPTY_TRACE;
     }
 
     throw new Error('Unknown trace type');
@@ -256,7 +248,7 @@ function NewTraceDetailsContent(props: Props) {
     const traceType = getTraceType();
 
     switch (traceType) {
-      case TraceType.NO_ROOT:
+      case TraceShape.NO_ROOT:
         warning = (
           <Alert type="info" showIcon>
             <ExternalLink href="https://docs.sentry.io/concepts/key-terms/tracing/trace-view/#orphan-traces-and-broken-subtraces">
@@ -267,7 +259,7 @@ function NewTraceDetailsContent(props: Props) {
           </Alert>
         );
         break;
-      case TraceType.BROKEN_SUBTRACES:
+      case TraceShape.BROKEN_SUBTRACES:
         warning = (
           <Alert type="info" showIcon>
             <ExternalLink href="https://docs.sentry.io/concepts/key-terms/tracing/trace-view/#orphan-traces-and-broken-subtraces">
@@ -278,7 +270,7 @@ function NewTraceDetailsContent(props: Props) {
           </Alert>
         );
         break;
-      case TraceType.MULTIPLE_ROOTS:
+      case TraceShape.MULTIPLE_ROOTS:
         warning = (
           <Alert type="info" showIcon>
             <ExternalLink href="https://docs.sentry.io/concepts/key-terms/tracing/trace-view/#multiple-roots">
@@ -287,7 +279,7 @@ function NewTraceDetailsContent(props: Props) {
           </Alert>
         );
         break;
-      case TraceType.ONLY_ERRORS:
+      case TraceShape.ONLY_ERRORS:
         warning = (
           <Alert type="info" showIcon>
             {tct(

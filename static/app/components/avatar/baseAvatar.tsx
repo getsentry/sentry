@@ -13,9 +13,8 @@ import Gravatar from './gravatar';
 import type {ImageStyleProps} from './styles';
 import {imageStyle} from './styles';
 
-type AllowedSize = (typeof ALLOWED_SIZES)[number];
+type AllowedSize = 20 | 32 | 36 | 48 | 52 | 64 | 80 | 96 | 120;
 
-const ALLOWED_SIZES = [20, 32, 36, 48, 52, 64, 80, 96, 120] as const;
 const DEFAULT_REMOTE_SIZE = 120 satisfies AllowedSize;
 
 interface BaseAvatarProps extends React.HTMLAttributes<HTMLSpanElement> {
