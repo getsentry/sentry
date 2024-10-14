@@ -25,7 +25,7 @@ from sentry.utils import json
 #
 # NOTE TO FUTURE EDITORS: please keep the `DELETED_FIELDS` dict, and the subsequent `if` clause,
 # around even if the dict is empty, to ensure that there is a ready place to pop shims into. For
-# each entry in this dict, please leave a TODO: comment pointed to a github issue for removing
+# each entry in this dict, please leave a TODO comment pointed to a github issue for removing
 # the shim, noting in the comment which self-hosted release will trigger the removal.
 DELETED_FIELDS: dict[str, set[str]] = {
     # TODO(mark): Safe to remove after july 2024 after self-hosted 24.6.0 is released
@@ -43,7 +43,7 @@ DELETED_FIELDS: dict[str, set[str]] = {
 #
 # NOTE TO FUTURE EDITORS: please keep the `DELETED_MODELS` set, and the subsequent `if` clause,
 # around even if the set is empty, to ensure that there is a ready place to pop shims into. For
-# each entry in this set, please leave a TODO: comment pointed to a github issue for removing
+# each entry in this set, please leave a TODO comment pointed to a github issue for removing
 # the shim, noting in the comment which self-hosted release will trigger the removal.
 DELETED_MODELS = {
     # TODO(mark): Safe to remove after july 2024 after self-hosted 24.6.0 is released
