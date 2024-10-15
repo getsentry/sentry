@@ -20,6 +20,7 @@ from sentry.eventstore.models import GroupEvent
 from sentry.issues.constants import get_issue_tsdb_group_model, get_issue_tsdb_user_group_model
 from sentry.issues.grouptype import GroupCategory, get_group_type_by_type_id
 from sentry.models.group import Group
+from sentry.models.project import Project
 from sentry.rules import EventState
 from sentry.rules.conditions.base import EventCondition, GenericCondition
 from sentry.tsdb.base import TSDBModel
@@ -540,8 +541,42 @@ class EventUniqueUserFrequencyConditionWithConditions(EventUniqueUserFrequencyCo
     def query_hook(
         self, event: GroupEvent, start: datetime, end: datetime, environment_id: int
     ) -> int:
-        raise NotImplementedError()
-        # TODO: what does this do? where is it used?
+        assert self.rule
+        if not features.has(
+            "organizations:event-unique-user-frequency-condition-with-conditions",
+            Project.objects.get(id=self.rule.project_id).organization,
+        ):
+            raise NotImplementedError(
+                "EventUniqueUserFrequencyConditionWithConditions is not enabled for this organization"
+            )
+
+        if self.rule.data["filter_match"] == "any":
+            raise NotImplementedError(
+                "EventUniqueUserFrequencyConditionWithConditions does not support filter_match == any"
+            )
+
+        conditions = []
+
+        for condition in self.rule.data["conditions"]:
+            if condition["id"] == self.id:
+                continue
+
+            snuba_condition = self.convert_rule_condition_to_snuba_condition(condition)
+            if snuba_condition:
+                conditions.append(snuba_condition)
+
+        total = self.get_chunked_result(
+            tsdb_function=self.tsdb.get_distinct_counts_totals_with_conditions,
+            model=get_issue_tsdb_user_group_model(GroupCategory.ERROR),
+            organization_id=event.group.project.organization_id,
+            group_ids=[event.group.id],
+            start=start,
+            end=end,
+            environment_id=environment_id,
+            referrer_suffix="batch_alert_event_uniq_user_frequency",
+            conditions=conditions,
+        )
+        return total[event.group.id]
 
     def batch_query_hook(
         self, group_ids: set[int], start: datetime, end: datetime, environment_id: int
