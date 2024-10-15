@@ -89,7 +89,7 @@ function EventOrGroupExtraDetails({
   const level = 'level' in data ? data.level : null;
 
   const items = [
-    hasNewLayout && level ? <ErrorLevel level={level} size={'8px'} /> : null,
+    hasNewLayout && level ? <ErrorLevel level={level} size={'10px'} /> : null,
     shortId ? (
       <ShortId
         shortId={shortId}
