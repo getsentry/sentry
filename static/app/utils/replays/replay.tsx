@@ -8,6 +8,7 @@ export type NetworkMetaWarning =
   | 'INVALID_JSON'
   | 'URL_SKIPPED'
   | 'BODY_PARSE_ERROR'
+  | 'BODY_PARSE_TIMEOUT'
   | 'UNPARSEABLE_BODY_TYPE';
 
 interface NetworkMeta {
