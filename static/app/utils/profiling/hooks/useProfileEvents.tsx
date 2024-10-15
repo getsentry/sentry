@@ -89,30 +89,27 @@ export function formatError(error: any): string | null {
   return t('An unknown error occurred.');
 }
 
-const ALL_FIELDS = [
-  'id',
-  'trace',
-  'profile.id',
-  'profiler.id',
-  'thread.id',
-  'precise.start_ts',
-  'precise.finish_ts',
-  'project.name',
-  'timestamp',
-  'release',
-  'device.model',
-  'device.classification',
-  'device.arch',
-  'transaction.duration',
-  'p50()',
-  'p75()',
-  'p95()',
-  'p99()',
-  'count()',
-  'last_seen()',
-] as const;
-
-export type ProfilingFieldType = (typeof ALL_FIELDS)[number];
+export type ProfilingFieldType =
+  | 'id'
+  | 'trace'
+  | 'profile.id'
+  | 'profiler.id'
+  | 'thread.id'
+  | 'precise.start_ts'
+  | 'precise.finish_ts'
+  | 'project.name'
+  | 'timestamp'
+  | 'release'
+  | 'device.model'
+  | 'device.classification'
+  | 'device.arch'
+  | 'transaction.duration'
+  | 'p50()'
+  | 'p75()'
+  | 'p95()'
+  | 'p99()'
+  | 'count()'
+  | 'last_seen()';
 
 export function getProfilesTableFields(platform: Project['platform']) {
   if (mobile.includes(platform as any)) {

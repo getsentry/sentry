@@ -4,14 +4,16 @@ from rest_framework.exceptions import ErrorDetail
 
 from sentry import tsdb
 from sentry.issues.forecasts import generate_and_save_forecasts
+from sentry.issues.grouptype import PerformanceSlowDBQueryGroupType
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
-from sentry.models.group import GroupStatus
+from sentry.models.group import Group, GroupStatus
 from sentry.models.groupinbox import GroupInboxReason, add_group_to_inbox, remove_group_from_inbox
 from sentry.models.groupowner import GROUP_OWNER_TYPE, GroupOwner, GroupOwnerType
 from sentry.models.release import Release
 from sentry.testutils.cases import APITestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers import Feature
+from sentry.testutils.helpers.datetime import before_now
 from sentry.types.activity import ActivityType
 from sentry.types.group import PriorityLevel
 
@@ -54,16 +56,16 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
 
         for timestamp in first_release.values():
             self.store_event(
-                data={"release": "1.0", "timestamp": iso_format(timestamp)},
+                data={"release": "1.0", "timestamp": timestamp.isoformat()},
                 project_id=self.project.id,
             )
         self.store_event(
-            data={"release": "1.1", "timestamp": iso_format(before_now(minutes=2))},
+            data={"release": "1.1", "timestamp": before_now(minutes=2).isoformat()},
             project_id=self.project.id,
         )
         event = [
             self.store_event(
-                data={"release": "1.0a", "timestamp": iso_format(timestamp)},
+                data={"release": "1.0a", "timestamp": timestamp.isoformat()},
                 project_id=self.project.id,
             )
             for timestamp in last_release.values()
@@ -88,11 +90,11 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
 
         event = self.store_event(
-            data={"release": "1.0", "timestamp": iso_format(before_now(days=3))},
+            data={"release": "1.0", "timestamp": before_now(days=3).isoformat()},
             project_id=self.project.id,
         )
         self.store_event(
-            data={"release": "1.1", "timestamp": iso_format(before_now(minutes=3))},
+            data={"release": "1.1", "timestamp": before_now(minutes=3).isoformat()},
             project_id=self.project.id,
         )
 
@@ -111,11 +113,11 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         first_event = before_now(days=3)
 
         self.store_event(
-            data={"release": "1.0", "timestamp": iso_format(first_event)},
+            data={"release": "1.0", "timestamp": first_event.isoformat()},
             project_id=self.project.id,
         )
         event = self.store_event(
-            data={"release": "1.1", "timestamp": iso_format(before_now(days=1))},
+            data={"release": "1.1", "timestamp": before_now(days=1).isoformat()},
             project_id=self.project.id,
         )
         # Forcibly remove one of the releases
@@ -140,7 +142,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
 
         event = self.store_event(
-            data={"timestamp": iso_format(before_now(minutes=3))},
+            data={"timestamp": before_now(minutes=3).isoformat()},
             project_id=self.project.id,
         )
         group = event.group
@@ -161,7 +163,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
     def test_group_expand_owners(self):
         self.login_as(user=self.user)
         event = self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
         group = event.group
@@ -191,7 +193,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
     def test_group_expand_forecasts(self):
         self.login_as(user=self.user)
         event = self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
         group = event.group
@@ -251,7 +253,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
     def test_assigned_to_unknown(self):
         self.login_as(user=self.user)
         event = self.store_event(
-            data={"timestamp": iso_format(before_now(minutes=3))},
+            data={"timestamp": before_now(minutes=3).isoformat()},
             project_id=self.project.id,
         )
         group = event.group
@@ -283,7 +285,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
 
         event = self.store_event(
-            data={"timestamp": iso_format(before_now(minutes=3))},
+            data={"timestamp": before_now(minutes=3).isoformat()},
             project_id=self.project.id,
         )
         group = event.group
@@ -305,7 +307,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
 
         event = self.store_event(
-            data={"timestamp": iso_format(before_now(minutes=3))},
+            data={"timestamp": before_now(minutes=3).isoformat()},
             project_id=self.project.id,
         )
 
@@ -315,3 +317,24 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         assert int(response.data["id"]) == event.group.id
         assert response.data["issueType"] == "error"
         assert response.data["issueCategory"] == "error"
+
+    def test_delete_issue_platform_deletion(self):
+        """Test that a user cannot delete an issue if issue platform deletion is not allowed"""
+        self.login_as(user=self.user)
+
+        group = self.create_group(
+            status=GroupStatus.RESOLVED,
+            project=self.project,
+            type=PerformanceSlowDBQueryGroupType.type_id,
+        )
+
+        url = f"/api/0/issues/{group.id}/"
+        response = self.client.delete(url, format="json")
+        assert response.status_code == 400
+        assert response.json() == ["Only error issues can be deleted."]
+
+        # We are allowed to delete the groups with the feature flag enabled
+        with Feature({"organizations:issue-platform-deletion": True}), self.tasks():
+            response = self.client.delete(url, format="json")
+            assert response.status_code == 202
+            assert not Group.objects.filter(id=group.id).exists()

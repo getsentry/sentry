@@ -33,7 +33,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
             data={
                 "event_id": "a" * 32,
                 "fingerprint": ["1"],
-                "timestamp": self.min_ago.timestamp(),
+                "timestamp": self.min_ago.isoformat(),
             },
             project_id=self.project.id,
         )
@@ -41,7 +41,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
             data={
                 "event_id": "b" * 32,
                 "fingerprint": ["1"],
-                "timestamp": self.min_ago.timestamp(),
+                "timestamp": self.min_ago.isoformat(),
             },
             project_id=self.project.id,
         )
@@ -65,7 +65,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
             data={
                 "event_id": "a" * 32,
                 "fingerprint": ["1"],
-                "timestamp": self.min_ago.timestamp(),
+                "timestamp": self.min_ago.isoformat(),
             },
             project_id=self.project.id,
         )
@@ -73,7 +73,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
             data={
                 "event_id": "b" * 32,
                 "fingerprint": ["1"],
-                "timestamp": self.min_ago.timestamp(),
+                "timestamp": self.min_ago.isoformat(),
             },
             project_id=self.project.id,
         )
@@ -96,7 +96,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
             data={
                 "event_id": "a" * 32,
                 "fingerprint": ["1"],
-                "timestamp": self.min_ago.timestamp(),
+                "timestamp": self.min_ago.isoformat(),
             },
             project_id=self.project.id,
         )
@@ -104,7 +104,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
             data={
                 "event_id": "b" * 32,
                 "fingerprint": ["1"],
-                "timestamp": self.min_ago.timestamp(),
+                "timestamp": self.min_ago.isoformat(),
             },
             project_id=self.project.id,
         )
@@ -125,7 +125,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
                 "event_id": "a" * 32,
                 "fingerprint": ["1"],
                 "tags": {"foo": "baz", "bar": "buz"},
-                "timestamp": self.min_ago.timestamp(),
+                "timestamp": self.min_ago.isoformat(),
             },
             project_id=self.project.id,
         )
@@ -134,7 +134,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
                 "event_id": "b" * 32,
                 "fingerprint": ["1"],
                 "tags": {"bar": "biz"},
-                "timestamp": before_now(seconds=61).timestamp(),
+                "timestamp": before_now(seconds=61).isoformat(),
             },
             project_id=self.project.id,
         )
@@ -190,7 +190,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
             data={
                 "event_id": "a" * 32,
                 "fingerprint": ["group-1"],
-                "timestamp": self.min_ago.timestamp(),
+                "timestamp": self.min_ago.isoformat(),
             },
             project_id=self.project.id,
         )
@@ -198,7 +198,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
             data={
                 "event_id": "b" * 32,
                 "fingerprint": ["group-1"],
-                "timestamp": self.min_ago.timestamp(),
+                "timestamp": self.min_ago.isoformat(),
             },
             project_id=self.project.id,
         )
@@ -217,7 +217,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
                 "event_id": "a" * 32,
                 "fingerprint": ["group-1"],
                 "message": "foo bar hello world",
-                "timestamp": self.min_ago.timestamp(),
+                "timestamp": self.min_ago.isoformat(),
             },
             project_id=self.project.id,
         )
@@ -227,7 +227,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
                 "event_id": "b" * 32,
                 "fingerprint": ["group-1"],
                 "message": "this bar hello world",
-                "timestamp": self.min_ago.timestamp(),
+                "timestamp": self.min_ago.isoformat(),
             },
             project_id=self.project.id,
         )
@@ -261,7 +261,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
             data={
                 "event_id": "a" * 32,
                 "fingerprint": ["group-1"],
-                "timestamp": self.min_ago.timestamp(),
+                "timestamp": self.min_ago.isoformat(),
                 "release": "first-release",
             },
             project_id=self.project.id,
@@ -281,7 +281,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
             events[name] = self.store_event(
                 data={
                     "fingerprint": ["put-me-in-group1"],
-                    "timestamp": self.min_ago.timestamp(),
+                    "timestamp": self.min_ago.isoformat(),
                     "environment": name,
                 },
                 project_id=self.project.id,
@@ -321,11 +321,11 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
     def test_filters_based_on_retention(self) -> None:
         self.login_as(user=self.user)
         self.store_event(
-            data={"fingerprint": ["group_1"], "timestamp": before_now(days=2).timestamp()},
+            data={"fingerprint": ["group_1"], "timestamp": before_now(days=2).isoformat()},
             project_id=self.project.id,
         )
         event_2 = self.store_event(
-            data={"fingerprint": ["group_1"], "timestamp": self.min_ago.timestamp()},
+            data={"fingerprint": ["group_1"], "timestamp": self.min_ago.isoformat()},
             project_id=self.project.id,
         )
         group = event_2.group
@@ -341,7 +341,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
         self.login_as(user=self.user)
         event = self.store_event(
             data={
-                "timestamp": self.min_ago.timestamp(),
+                "timestamp": self.min_ago.isoformat(),
                 "message": "foo",
                 "tags": {"logger": "python"},
             },
@@ -358,11 +358,11 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
     def test_date_filters(self) -> None:
         self.login_as(user=self.user)
         event_1 = self.store_event(
-            data={"timestamp": before_now(days=5).timestamp(), "fingerprint": ["group-1"]},
+            data={"timestamp": before_now(days=5).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
         event_2 = self.store_event(
-            data={"timestamp": before_now(days=1).timestamp(), "fingerprint": ["group-1"]},
+            data={"timestamp": before_now(days=1).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
         group = event_1.group
@@ -407,7 +407,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
                 "fingerprint": ["group_1"],
                 "event_id": "a" * 32,
                 "message": "foo",
-                "timestamp": self.min_ago.timestamp(),
+                "timestamp": self.min_ago.isoformat(),
             },
             project_id=self.project.id,
         )
@@ -416,7 +416,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
                 "fingerprint": ["group_2"],
                 "event_id": "b" * 32,
                 "message": "group2",
-                "timestamp": self.min_ago.timestamp(),
+                "timestamp": self.min_ago.isoformat(),
             },
             project_id=self.project.id,
         )
@@ -437,7 +437,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
                     "fingerprint": ["group_1"],
                     "event_id": "a" * 32,
                     "message": "foo",
-                    "timestamp": self.min_ago.timestamp(),
+                    "timestamp": self.min_ago.isoformat(),
                 },
                 project_id=self.project.id,
             )
@@ -458,7 +458,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
                 "fingerprint": ["group_1"],
                 "event_id": "a" * 32,
                 "message": "foo",
-                "timestamp": self.min_ago.timestamp(),
+                "timestamp": self.min_ago.isoformat(),
             },
             project_id=self.project.id,
         )
@@ -467,7 +467,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
                 "fingerprint": ["group_1"],
                 "event_id": "b" * 32,
                 "message": "foo",
-                "timestamp": self.two_min_ago.timestamp(),
+                "timestamp": self.two_min_ago.isoformat(),
             },
             project_id=self.project.id,
         )
@@ -528,7 +528,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
                 "fingerprint": ["group_1"],
                 "event_id": "a" * 32,
                 "message": "foo",
-                "timestamp": self.min_ago.timestamp(),
+                "timestamp": self.min_ago.isoformat(),
             },
             project_id=self.project.id,
         )
@@ -537,7 +537,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
                 "fingerprint": ["group_1"],
                 "event_id": "b" * 32,
                 "message": "foo",
-                "timestamp": self.two_min_ago.timestamp(),
+                "timestamp": self.two_min_ago.isoformat(),
             },
             project_id=self.project.id,
         )

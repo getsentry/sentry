@@ -53,7 +53,7 @@ class PagerDutyClientTest(APITestCase):
         )
 
         self.installation = self.integration.get_installation(self.organization.id)
-        self.min_ago = before_now(minutes=1).timestamp()
+        self.min_ago = before_now(minutes=1).isoformat()
 
         self.event = self.store_event(
             data={

@@ -290,7 +290,7 @@ DATASETS: dict[Dataset, dict[str, str]] = {
     Dataset.MetricsSummaries: METRICS_SUMMARIES_COLUMN_MAP,
     Dataset.PerformanceMetrics: METRICS_COLUMN_MAP,
     Dataset.SpansIndexed: SPAN_COLUMN_MAP,
-    Dataset.SpansEAP: SPAN_EAP_COLUMN_MAP,
+    Dataset.EventsAnalyticsPlatform: SPAN_EAP_COLUMN_MAP,
     Dataset.IssuePlatform: ISSUE_PLATFORM_MAP,
     Dataset.Replays: {},
 }
@@ -305,7 +305,7 @@ DATASET_FIELDS = {
     Dataset.Sessions: SESSIONS_FIELD_LIST,
     Dataset.IssuePlatform: list(ISSUE_PLATFORM_MAP.values()),
     Dataset.SpansIndexed: list(SPAN_COLUMN_MAP.values()),
-    Dataset.SpansEAP: list(SPAN_EAP_COLUMN_MAP.values()),
+    Dataset.EventsAnalyticsPlatform: list(SPAN_EAP_COLUMN_MAP.values()),
     Dataset.MetricsSummaries: list(METRICS_SUMMARIES_COLUMN_MAP.values()),
 }
 
@@ -1422,7 +1422,7 @@ def resolve_column(dataset) -> Callable:
         if isinstance(col, int) or isinstance(col, float):
             return col
         if (
-            dataset != Dataset.SpansEAP
+            dataset != Dataset.EventsAnalyticsPlatform
             and isinstance(col, str)
             and (col.startswith("tags[") or QUOTED_LITERAL_RE.match(col))
         ):
@@ -1433,7 +1433,7 @@ def resolve_column(dataset) -> Callable:
 
             if isinstance(col, (list, tuple)) or col in ("project_id", "group_id"):
                 return col
-        elif dataset == Dataset.SpansEAP:
+        elif dataset == Dataset.EventsAnalyticsPlatform:
             if isinstance(col, str) and col.startswith("sentry_tags["):
                 # Replace the first instance of sentry tags with attr str instead
                 return col.replace("sentry_tags", "attr_str", 1)
@@ -1465,7 +1465,7 @@ def resolve_column(dataset) -> Callable:
         span_op_breakdown_name = get_span_op_breakdown_name(col)
         if "span_op_breakdowns_key" in DATASETS[dataset] and span_op_breakdown_name:
             return f"span_op_breakdowns[{span_op_breakdown_name}]"
-        if dataset == Dataset.SpansEAP:
+        if dataset == Dataset.EventsAnalyticsPlatform:
             return f"attr_str[{col}]"
         return f"tags[{col}]"
 

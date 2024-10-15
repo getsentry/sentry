@@ -148,16 +148,6 @@ class OpsgenieNotifyTeamTest(RuleTestCase, PerformanceIssueTestCase):
 
     @responses.activate
     def test_valid_team_selected(self):
-        resp_data = {
-            "result": "Integration [sentry] is valid",
-            "took": 1,
-            "requestId": "hello-world",
-        }
-        responses.add(
-            responses.POST,
-            url="https://api.opsgenie.com/v2/integrations/authenticate",
-            json=resp_data,
-        )
         rule = self.get_rule(data={"account": self.integration.id, "team": self.team1["id"]})
         form = rule.get_form_instance()
         assert form.is_valid()
@@ -179,17 +169,6 @@ class OpsgenieNotifyTeamTest(RuleTestCase, PerformanceIssueTestCase):
             org_integration.save()
         self.installation = integration.get_installation(self.organization.id)
         event = self.get_event()
-
-        resp_data = {
-            "result": "Integration [sentry] is valid",
-            "took": 1,
-            "requestId": "hello-world",
-        }
-        responses.add(
-            responses.POST,
-            url="https://api.opsgenie.com/v2/integrations/authenticate",
-            json=resp_data,
-        )
 
         rule = self.get_rule(data={"account": integration.id, "team": team2["id"]})
 
@@ -227,28 +206,6 @@ class OpsgenieNotifyTeamTest(RuleTestCase, PerformanceIssueTestCase):
         form = rule.get_form_instance()
         assert not form.is_valid()
         assert len(form.errors) == 1
-
-    @responses.activate
-    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_bad_integration_key(self, mock_record):
-        resp_data = {
-            "message": "API Key does not belong to a [sentry] integration.",
-            "took": 1,
-            "requestId": "goodbye-world",
-        }
-        responses.add(
-            responses.POST,
-            url="https://api.opsgenie.com/v2/integrations/authenticate",
-            json=resp_data,
-            status=403,
-        )
-        rule = self.get_rule(data={"account": self.integration.id, "team": self.team1["id"]})
-        form = rule.get_form_instance()
-        assert not form.is_valid()
-        assert len(mock_record.mock_calls) == 2
-        start, halt = mock_record.mock_calls
-        assert start.args[0] == EventLifecycleOutcome.STARTED
-        assert halt.args[0] == EventLifecycleOutcome.FAILURE
 
     @patch("sentry.integrations.opsgenie.actions.notification.logger")
     def test_team_deleted(self, mock_logger: MagicMock):
