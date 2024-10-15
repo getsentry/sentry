@@ -92,6 +92,7 @@ const StyledIssueListSearchBarWithButton = styled(IssueListSearchBar)<{
 }>`
   flex: 1;
   min-width: 0;
+  border-radius: ${p => p.theme.borderRadius};
 
   ${p =>
     !p.roundCorners &&
