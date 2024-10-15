@@ -6,6 +6,7 @@ from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
+from sentry.api.bases.organization import OrganizationAlertRulePermission
 from sentry.api.bases.organization_events import OrganizationEventsV2EndpointBase
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
@@ -32,6 +33,7 @@ class OrganizationEventsAnomaliesEndpoint(OrganizationEventsV2EndpointBase):
     publish_status = {
         "POST": ApiPublishStatus.EXPERIMENTAL,
     }
+    permission_classes = (OrganizationAlertRulePermission,)
 
     @extend_schema(
         operation_id="Identify anomalies in historical data",
