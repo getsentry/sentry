@@ -1,4 +1,4 @@
-import type {ComponentProps} from 'react';
+import type {ComponentProps, LazyExoticComponent, ReactElement} from 'react';
 import type {LocationDescriptor} from 'history';
 
 import type Feature from 'sentry/components/acl/feature';
@@ -24,7 +24,9 @@ export interface NavItemLayout<Item extends NavSidebarItem | NavSubmenuItem> {
 /** SidebarItem is a top-level NavItem which is always displayed in the app sidebar */
 export interface NavSidebarItem extends NavItem {
   /** The icon to render in the sidebar */
-  icon: JSX.Element;
+  icon: ReactElement;
+  /** if te items to display when this SidebarItem is active */
+  overlay?: LazyExoticComponent<any>;
   /** Optionally, the submenu items to display when this SidebarItem is active */
   submenu?: NavSubmenuItem[] | NavItemLayout<NavSubmenuItem>;
   /**
@@ -102,12 +104,14 @@ export function makeLinkPropsFromTo(to: string): {
   state: object;
   to: LocationDescriptor;
 } {
-  const [pathname, search] = to.split('?');
+  const [rawPathname, search] = to.split('?');
+  const [pathname, hash] = rawPathname.split('#');
 
   return {
     to: {
       pathname,
       search: search ? `?${search}` : undefined,
+      hash: hash ? `#${hash}` : undefined,
     },
     state: {source: SIDEBAR_NAVIGATION_SOURCE},
   };
@@ -123,6 +127,9 @@ export function resolveNavItemTo(
 ): string | undefined {
   if (item.to) {
     return item.to;
+  }
+  if (isSidebarItem(item) && item.overlay) {
+    return undefined;
   }
   if (isSidebarItem(item) && isNonEmptyArray(item.submenu)) {
     return item.submenu[0].to;

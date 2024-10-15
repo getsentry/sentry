@@ -1,5 +1,6 @@
-import {Fragment} from 'react';
+import {Fragment, type PropsWithChildren, Suspense} from 'react';
 import styled from '@emotion/styled';
+import { AnimatePresence } from 'framer-motion'
 
 import Feature from 'sentry/components/acl/feature';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
@@ -14,10 +15,12 @@ import {
   type NavSidebarItem,
   resolveNavItemTo,
 } from 'sentry/components/nav/utils';
+import {Overlay} from 'sentry/components/overlay';
 import SidebarDropdown from 'sentry/components/sidebar/sidebarDropdown';
 import {space} from 'sentry/styles/space';
 import theme from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOverlay from 'sentry/utils/useOverlay';
 
 function Sidebar() {
   return (
@@ -89,12 +92,13 @@ const SidebarItemList = styled('ul')`
   }
 `;
 
-function SidebarItem({item}: {item: NavSidebarItem}) {
-  const location = useLocation();
-  const isActive = isNavItemActive(item, location);
-  const isSubmenuActive = isSubmenuItemActive(item, location);
-  const _to = resolveNavItemTo(item);
-  const linkProps = _to ? makeLinkPropsFromTo(_to) : {to: '#'};
+interface SidebarItemProps {
+  item: NavSidebarItem;
+}
+
+function SidebarItem({item}: SidebarItemProps) {
+  const to = resolveNavItemTo(item);
+  const Component = to ? SidebarLink : SidebarOverlay;
 
   const FeatureGuard = item.feature ? Feature : Fragment;
   const featureGuardProps: any = item.feature ?? {};
@@ -102,23 +106,68 @@ function SidebarItem({item}: {item: NavSidebarItem}) {
   return (
     <FeatureGuard {...featureGuardProps}>
       <SidebarItemWrapper>
-        <SidebarLink
-          {...linkProps}
-          aria-current={isActive ? 'page' : undefined}
-          aria-selected={isActive || isSubmenuActive}
-        >
-          <InteractionStateLayer hasSelectedBackground={isActive || isSubmenuActive} />
+        <Component item={item}>
           {item.icon}
           <span>{item.label}</span>
-        </SidebarLink>
+        </Component>
       </SidebarItemWrapper>
     </FeatureGuard>
   );
 }
 
-const SidebarLink = styled(Link)`
+const StyledLink = styled(Link)`
   position: relative;
 `;
+
+function SidebarLink({children, item}: PropsWithChildren<SidebarItemProps>) {
+  const location = useLocation();
+  const isActive = isNavItemActive(item, location);
+  const isSubmenuActive = isSubmenuItemActive(item, location);
+  const to = resolveNavItemTo(item);
+  const linkProps = makeLinkPropsFromTo(to!);
+
+  return (
+    <StyledLink
+      {...linkProps}
+      className={isActive || isSubmenuActive ? 'active' : undefined}
+      aria-current={isActive ? 'page' : undefined}
+    >
+      <InteractionStateLayer hasSelectedBackground={isActive || isSubmenuActive} />
+      {children}
+    </StyledLink>
+  );
+}
+
+function SidebarOverlay({children, item}: PropsWithChildren<SidebarItemProps>) {
+  const {isOpen, triggerProps, overlayProps} = useOverlay({
+    defaultOpen: false,
+    position: 'auto-end',
+  });
+
+  if (!item.overlay) {
+    return null;
+  }
+
+  return (
+    <Fragment>
+      <button {...triggerProps} className={isOpen ? 'active' : undefined}>
+        {children}
+      </button>
+      <AnimatePresence>
+        {isOpen && (
+          <Overlay
+            overlayStyle={{color: theme.black, fontSize: '1rem'}}
+            {...(overlayProps as any)}
+          >
+            <Suspense fallback={null}>
+              <item.overlay />
+            </Suspense>
+          </Overlay>
+        )}
+      </AnimatePresence>
+    </Fragment>
+  );
+}
 
 const SidebarItemWrapper = styled('li')`
   svg {
@@ -131,7 +180,12 @@ const SidebarItemWrapper = styled('li')`
       padding-top: ${space(0.5)};
     }
   }
-  a {
+  button {
+    background: transparent;
+    min-width: 58px;
+  }
+  a,
+  button {
     display: flex;
     flex-direction: row;
     height: 32px;
