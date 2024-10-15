@@ -40,6 +40,14 @@ from sentry.replays.lib.new_query.conditions import (
 from sentry.replays.lib.new_query.utils import contains, does_not_contain
 
 
+def _nonempty_str(expression: Expression) -> Condition:
+    return StringScalar.visit_neq(expression, "")
+
+
+def _nonempty_ipv4(expression: Expression) -> Condition:
+    return IPv4Scalar.visit_neq(expression, None)
+
+
 class SumOfIntegerIdScalar(GenericBase):
     @staticmethod
     def visit_eq(expression: Expression, value: int) -> Condition:
@@ -62,51 +70,45 @@ class SumOfIPv4Scalar(GenericBase):
     @staticmethod
     def visit_eq(expression: Expression, value: str | None) -> Condition:
         if value is None:
-            # "All rows in aggregation set are null."
-            return does_not_contain(IPv4Scalar.visit_neq(expression, None))
+            return does_not_contain(_nonempty_ipv4(expression))
         return contains(IPv4Scalar.visit_eq(expression, value))
 
     @staticmethod
     def visit_neq(expression: Expression, value: str | None) -> Condition:
         if value is None:
-            # "1+ rows in aggregation set are non-null."
-            return contains(IPv4Scalar.visit_neq(expression, None))
+            return contains(_nonempty_ipv4(expression))
         return does_not_contain(IPv4Scalar.visit_eq(expression, value))
 
     @staticmethod
     def visit_in(expression: Expression, value_list: list[str | None]) -> Condition:
-        nonnull_contains = contains(
+        nonempty_case = contains(
             IPv4Scalar.visit_in(expression, [v for v in value_list if v is not None])
         )
         if None in value_list:
-            return Or(conditions=[SumOfIPv4Scalar.visit_eq(expression, None), nonnull_contains])
-        return nonnull_contains
+            return Or(conditions=[SumOfIPv4Scalar.visit_eq(expression, None), nonempty_case])
+        return nonempty_case
 
     @staticmethod
     def visit_not_in(expression: Expression, value_list: list[str | None]) -> Condition:
-        nonnull_does_not_contain = does_not_contain(
+        nonempty_case = does_not_contain(
             IPv4Scalar.visit_in(expression, [v for v in value_list if v is not None])
         )
         if None in value_list:
-            return And(
-                conditions=[SumOfIPv4Scalar.visit_neq(expression, None), nonnull_does_not_contain]
-            )
-        return nonnull_does_not_contain
+            return And(conditions=[SumOfIPv4Scalar.visit_neq(expression, None), nonempty_case])
+        return nonempty_case
 
 
 class SumOfStringScalar(GenericBase):
     @staticmethod
     def visit_eq(expression: Expression, value: str) -> Condition:
         if value == "":
-            # "All rows in aggregation set are null."
-            return does_not_contain(StringScalar.visit_neq(expression, ""))
+            return does_not_contain(_nonempty_str(expression))
         return contains(StringScalar.visit_eq(expression, value))
 
     @staticmethod
     def visit_neq(expression: Expression, value: str) -> Condition:
         if value == "":
-            # "1+ rows in aggregation set are non-null."
-            return contains(StringScalar.visit_neq(expression, ""))
+            return contains(_nonempty_str(expression))
         return does_not_contain(StringScalar.visit_eq(expression, value))
 
     @staticmethod
@@ -123,23 +125,21 @@ class SumOfStringScalar(GenericBase):
 
     @staticmethod
     def visit_in(expression: Expression, value_list: list[str]) -> Condition:
-        nonnull_contains = contains(
+        nonempty_case = contains(
             StringScalar.visit_in(expression, [v for v in value_list if v != ""])
         )
         if "" in value_list:
-            return Or(conditions=[SumOfStringScalar.visit_eq(expression, ""), nonnull_contains])
-        return nonnull_contains
+            return Or(conditions=[SumOfStringScalar.visit_eq(expression, ""), nonempty_case])
+        return nonempty_case
 
     @staticmethod
     def visit_not_in(expression: Expression, value_list: list[str]) -> Condition:
-        nonnull_does_not_contain = does_not_contain(
+        nonempty_case = does_not_contain(
             StringScalar.visit_in(expression, [v for v in value_list if v != ""])
         )
         if "" in value_list:
-            return And(
-                conditions=[SumOfStringScalar.visit_neq(expression, ""), nonnull_does_not_contain]
-            )
-        return nonnull_does_not_contain
+            return And(conditions=[SumOfStringScalar.visit_neq(expression, ""), nonempty_case])
+        return nonempty_case
 
 
 class SumOfStringArray(GenericBase):

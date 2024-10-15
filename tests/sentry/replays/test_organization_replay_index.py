@@ -1717,7 +1717,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 response = self.client.get(self.url + f"?field=id&query={query}")
                 assert response.status_code == 400
 
-    def _test_null_filters(self, query_key, field, null_value, nonnull_value):
+    def _test_empty_filters(self, query_key, field, null_value, nonnull_value):
         """
         Tests filters on a nullable field such as user.email:"", !user.email:"", user.email:["", ...].
         Due to clickhouse aggregations, these queries are handled as a special case which needs testing.
@@ -1780,17 +1780,17 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 data = response.json()["data"]
                 assert len(data) == 0
 
-    def test_query_null_email(self):
-        self._test_null_filters("user.email", "user_email", "", "andrew@example.com")
+    def test_query_empty_email(self):
+        self._test_empty_filters("user.email", "user_email", "", "andrew@example.com")
 
-    def test_query_null_ipv4(self):
-        self._test_null_filters("user.ip", "ipv4", None, "127.0.0.1")
+    def test_query_empty_ipv4(self):
+        self._test_empty_filters("user.ip", "ipv4", None, "127.0.0.1")
 
-    def test_query_null_username(self):
-        self._test_null_filters("user.username", "user_name", "", "andrew1")
+    def test_query_empty_username(self):
+        self._test_empty_filters("user.username", "user_name", "", "andrew1")
 
-    def test_query_null_user_id(self):
-        self._test_null_filters("user.id", "user_id", "", "12ef6")
+    def test_query_empty_user_id(self):
+        self._test_empty_filters("user.id", "user_id", "", "12ef6")
 
     def test_query_branches_computed_activity_conditions(self):
         project = self.create_project(teams=[self.team])
