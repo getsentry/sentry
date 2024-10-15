@@ -50,8 +50,8 @@ describe('AttachmentsBadge', () => {
 
     render(<AttachmentsBadge group={group} />);
 
-    expect(
-      await screen.findByRole('button', {name: '50+ Attachments'})
-    ).toBeInTheDocument();
+    const button = await screen.findByRole('button', {name: '50+ Attachments'});
+    expect(button).toBeInTheDocument();
+    expect(button).toHaveAttribute('href', expect.stringContaining('/attachments/'));
   });
 });
