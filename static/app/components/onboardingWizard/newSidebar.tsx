@@ -38,7 +38,7 @@ function Task({title, description, status}: TaskProps) {
     return (
       <TaskWrapper completed>
         <strong>{title}</strong>
-        <IconCheckmark color="successText" isCircled />
+        <IconCheckmark color="green300" isCircled />
       </TaskWrapper>
     );
   }
@@ -49,7 +49,7 @@ function Task({title, description, status}: TaskProps) {
         <InteractionStateLayer />
         <div>
           <strong>{title}</strong>
-          <div>{description}</div>
+          <p>{description}</p>
         </div>
         <Tooltip title={t('Waiting for event')}>
           <PulsingIndicator />
@@ -63,7 +63,7 @@ function Task({title, description, status}: TaskProps) {
       <InteractionStateLayer />
       <div>
         <strong>{title}</strong>
-        <div>{description}</div>
+        <p>{description}</p>
       </div>
     </TaskWrapper>
   );
@@ -91,7 +91,7 @@ function TaskGroup({
         <InteractionStateLayer />
         <span>
           <strong>{title}</strong>
-          <div>{description}</div>
+          <p>{description}</p>
         </span>
         <Chevron
           direction={isExpanded ? 'up' : 'down'}
@@ -115,12 +115,12 @@ function TaskGroup({
                 barWidth={2}
               />
             </TaskGroupProgress>
-            <Task title="Test" description="description" status="waiting" />
-            <Task title="Test" description="description" />
-            <Task title="Test" description="description" />
+            <Task title="Title" description="Description" status="waiting" />
+            <Task title="Title" description="Description" />
+            <Task title="Title" description="Description" />
             <TaskGroupProgress completed>{t('Completed')}</TaskGroupProgress>
-            <Task title="Test" description="description" status="completed" />
-            <Task title="Test" description="description" status="completed" />
+            <Task title="Title" description="Description" status="completed" />
+            <Task title="Title" description="Description" status="completed" />
           </TaskGroupBody>
         </Fragment>
       )}
@@ -146,23 +146,23 @@ export function NewOnboardingSidebar({onClose, orientation, collapsed}: NewSideb
       <Content>
         <p>{description}</p>
         <TaskGroup
-          title="Test"
-          description="description"
+          title="Title"
+          description="Description"
           totalCompletedTasks={3}
-          totalTasks={10}
+          totalTasks={8}
           expanded
         />
         <TaskGroup
-          title="Test"
-          description="description"
+          title="Title"
+          description="Description"
           totalCompletedTasks={3}
-          totalTasks={10}
+          totalTasks={8}
         />
         <TaskGroup
-          title="Test"
-          description="description"
+          title="Title"
+          description="Description"
           totalCompletedTasks={3}
-          totalTasks={10}
+          totalTasks={8}
         />
       </Content>
     </Wrapper>
@@ -170,7 +170,10 @@ export function NewOnboardingSidebar({onClose, orientation, collapsed}: NewSideb
 }
 
 const Wrapper = styled(SidebarPanel)`
-  width: 450px;
+  width: 100%;
+  @media (min-width: ${p => p.theme.breakpoints.xsmall}) {
+    width: 450px;
+  }
 `;
 
 const Content = styled('div')`
@@ -204,6 +207,12 @@ const TaskGroupHeader = styled('div')`
   position: relative;
   border-radius: ${p => p.theme.borderRadius};
   align-items: center;
+
+  p {
+    margin: 0;
+    font-size: ${p => p.theme.fontSizeSmall};
+    color: ${p => p.theme.subText};
+  }
 `;
 
 const TaskGroupBody = styled('div')`
@@ -217,7 +226,7 @@ const TaskGroupProgress = styled('div')<{completed?: boolean}>`
   ${p =>
     p.completed
       ? css`
-          color: ${p.theme.successText};
+          color: ${p.theme.green300};
         `
       : css`
           color: ${p.theme.subText};
@@ -235,6 +244,12 @@ const TaskWrapper = styled('div')<{completed?: boolean}>`
   grid-template-columns: 1fr max-content;
   align-items: center;
   gap: ${space(1)};
+
+  p {
+    margin: 0;
+    font-size: ${p => p.theme.fontSizeSmall};
+    color: ${p => p.theme.subText};
+  }
 
   ${p =>
     p.completed
