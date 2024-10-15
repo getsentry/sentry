@@ -66,7 +66,7 @@ export default function FeedbackShortId({className, feedbackItem, style}: Props)
 
   const {onClick: handleCopyMarkdown} = useCopyToClipboard({
     text: `[${feedbackItem.shortId}](${feedbackUrl})`,
-    successMessage: t('Copied Markdown Link to clipboard'),
+    successMessage: t('Copied Markdown Feedback Link to clipboard'),
   });
 
   return (
