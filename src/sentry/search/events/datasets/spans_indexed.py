@@ -643,6 +643,24 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
             function.name: function
             for function in [
                 SnQLFunction(
+                    "eps",
+                    snql_aggregate=lambda args, alias: Function(
+                        "divide", [Function("count", []), args["interval"]], alias
+                    ),
+                    optional_args=[IntervalDefault("interval", 1, None)],
+                    default_result_type="rate",
+                ),
+                SnQLFunction(
+                    "epm",
+                    snql_aggregate=lambda args, alias: Function(
+                        "divide",
+                        [Function("count", []), Function("divide", [args["interval"], 60])],
+                        alias,
+                    ),
+                    optional_args=[IntervalDefault("interval", 1, None)],
+                    default_result_type="rate",
+                ),
+                SnQLFunction(
                     "count",
                     optional_args=[
                         with_default("span.duration", NumericColumn("column", spans=True)),
@@ -899,6 +917,10 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
                 ),
             ]
         }
+
+        for alias, name in constants.SPAN_FUNCTION_ALIASES.items():
+            if name in function_converter:
+                function_converter[alias] = function_converter[name].alias_as(alias)
 
         return function_converter
 
