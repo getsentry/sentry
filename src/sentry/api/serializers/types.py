@@ -66,9 +66,26 @@ class ReleaseSerializerResponse(ReleaseSerializerResponseOptional):
     newGroups: int
     status: str
     shortVersion: str
-    versionInfo: VersionInfo
+    versionInfo: VersionInfo | None
     data: dict[str, Any]
     commitCount: int
     deployCount: int
     authors: list[Author]
     projects: list[Project]
+
+
+class GroupEventReleaseSerializerResponse(TypedDict, total=False):
+    id: int
+    commitCount: int
+    data: dict[str, Any]
+    dateCreated: datetime
+    dateReleased: datetime | None
+    deployCount: int
+    ref: str | None
+    lastCommit: dict[str, Any] | None
+    lastDeploy: LastDeploy | None
+    status: str
+    url: str | None
+    userAgent: str | None
+    version: str | None
+    versionInfo: VersionInfo | None
