@@ -330,7 +330,7 @@ class SpanTreeModel {
 
     const groupedDescendants: DescendantGroup[] = [];
     // Used to number sibling groups in case there are multiple groups with the same op and description
-    const siblingGroupOccurrenceMap = {};
+    const siblingGroupOccurrenceMap: Record<string, number> = {};
 
     const addGroupToMap = (prevSpanModel: SpanTreeModel, group: SpanTreeModel[]) => {
       if (!group.length) {

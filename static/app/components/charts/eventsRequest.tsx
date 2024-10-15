@@ -189,7 +189,7 @@ type EventsRequestPartialProps = {
   /**
    * Extra query parameters to be added.
    */
-  queryExtras?: Record<string, string>;
+  queryExtras?: Record<string, string | boolean | number>;
   /**
    * A unique name for what's triggering this request, see organization_events_stats for an allowlist
    */

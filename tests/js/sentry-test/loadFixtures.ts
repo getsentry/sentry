@@ -18,7 +18,7 @@ export function loadFixtures(dir: string, opts: Options = {}) {
   const from = path.join(FIXTURES_ROOT, dir);
   const files = fs.readdirSync(from);
 
-  const fixtures = {};
+  const fixtures: Record<string, any> = {};
 
   for (const file of files) {
     const filePath = path.join(from, file);
@@ -32,7 +32,7 @@ export function loadFixtures(dir: string, opts: Options = {}) {
   }
 
   if (opts.flatten) {
-    const flattenedFixtures = {};
+    const flattenedFixtures: Record<string, any> = {};
 
     for (const moduleKey in fixtures) {
       for (const moduleExport in fixtures[moduleKey]) {
