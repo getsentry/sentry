@@ -67,10 +67,11 @@ def parse_and_emit_replay_actions(
     retention_days: int,
     segment_data: list[dict[str, Any]],
     replay_event: dict[str, Any] | None,
+    org_id: int | None = None,
 ) -> None:
     with metrics.timer("replays.usecases.ingest.dom_index.parse_and_emit_replay_actions"):
         message = parse_replay_actions(
-            project, replay_id, retention_days, segment_data, replay_event
+            project, replay_id, retention_days, segment_data, replay_event, org_id=org_id
         )
         if message is not None:
             emit_replay_actions(message)
