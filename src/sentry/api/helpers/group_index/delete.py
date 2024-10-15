@@ -34,7 +34,6 @@ def delete_group_list(
     project: Project,
     group_list: list[Group],
     delete_type: Literal["delete", "discard"],
-    countdown: int | None = 3600,
 ) -> None:
     """Deletes a list of groups which belong to a single project.
 
@@ -46,10 +45,24 @@ def delete_group_list(
     if not group_list:
         return
 
+    issue_platform_deletion_allowed = features.has(
+        "organizations:issue-platform-deletion", project.organization, actor=request.user
+    )
+
     # deterministic sort for sanity, and for very large deletions we'll
     # delete the "smaller" groups first
     group_list.sort(key=lambda g: (g.times_seen, g.id))
-    group_ids = [g.id for g in group_list]
+    group_ids = []
+    non_error_group_found = False
+    for g in group_list:
+        group_ids.append(g.id)
+        if not non_error_group_found and g.issue_category != GroupCategory.ERROR:
+            non_error_group_found = True
+
+    countdown = 3600
+    # With ClickHouse light deletes we want to get rid of the long delay
+    if issue_platform_deletion_allowed and non_error_group_found:
+        countdown = 0
 
     Group.objects.filter(id__in=group_ids).exclude(
         status__in=[GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS]
@@ -147,10 +160,6 @@ def delete_groups(
         "organizations:issue-platform-deletion", org, actor=request.user
     )
     non_error_group_found = any(group.issue_category != GroupCategory.ERROR for group in group_list)
-    countdown = 3600
-    # With ClickHouse light deletes we want to get rid of the long delay
-    if issue_platform_deletion_allowed and non_error_group_found:
-        countdown = 0
     if not issue_platform_deletion_allowed and non_error_group_found:
         raise rest_framework.exceptions.ValidationError(detail="Only error issues can be deleted.")
 
@@ -160,11 +169,7 @@ def delete_groups(
 
     for project in projects:
         delete_group_list(
-            request,
-            project,
-            groups_by_project_id.get(project.id, []),
-            delete_type="delete",
-            countdown=countdown,
+            request, project, groups_by_project_id.get(project.id, []), delete_type="delete"
         )
 
     return Response(status=204)
