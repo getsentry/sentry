@@ -286,15 +286,15 @@ export function SearchQueryBuilder({
 
   return (
     <SearchQueryBuilderContext.Provider value={contextValue}>
-      <PanelProvider>
-        <Wrapper
-          className={className}
-          onBlur={() =>
-            onBlur?.(state.query, {parsedQuery, queryIsValid: queryIsValid(parsedQuery)})
-          }
-          ref={wrapperRef}
-          aria-disabled={disabled}
-        >
+      <Wrapper
+        className={className}
+        onBlur={() =>
+          onBlur?.(state.query, {parsedQuery, queryIsValid: queryIsValid(parsedQuery)})
+        }
+        ref={wrapperRef}
+        aria-disabled={disabled}
+      >
+        <PanelProvider>
           <SearchIndicator
             initialQuery={initialQuery}
             showUnsubmittedIndicator={showUnsubmittedIndicator}
@@ -307,8 +307,8 @@ export function SearchQueryBuilder({
           {size !== 'small' && (
             <ActionButtons ref={actionBarRef} trailingItems={trailingItems} />
           )}
-        </Wrapper>
-      </PanelProvider>
+        </PanelProvider>
+      </Wrapper>
     </SearchQueryBuilderContext.Provider>
   );
 }
