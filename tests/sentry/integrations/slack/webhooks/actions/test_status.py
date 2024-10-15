@@ -255,10 +255,9 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert "via" not in blocks[4]["elements"][0]["text"]
         assert ":white_circle:" in blocks[0]["text"]["text"]
 
-        assert len(mock_record.mock_calls) == 2
-        start, halt = mock_record.mock_calls
-        assert start.args[0] == EventLifecycleOutcome.STARTED
-        assert halt.args[0] == EventLifecycleOutcome.SUCCESS
+        assert len(mock_record.mock_calls) == 6
+        states = [call.args[0] for call in mock_record.mock_calls]
+        assert states == [EventLifecycleOutcome.STARTED, EventLifecycleOutcome.SUCCESS] * 3
 
     @patch("sentry.integrations.slack.message_builder.issues.get_tags", return_value=[])
     def test_archive_issue_until_escalating_through_unfurl(self, mock_tags):
