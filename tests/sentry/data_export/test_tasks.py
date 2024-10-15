@@ -9,7 +9,7 @@ from sentry.exceptions import InvalidSearchQuery
 from sentry.models.files.file import File
 from sentry.search.events.constants import TIMEOUT_ERROR_MESSAGE
 from sentry.testutils.cases import SnubaTestCase, TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.samples import load_data
 from sentry.utils.snuba import (
     DatasetSelectionError,
@@ -38,7 +38,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
             data={
                 "tags": {"foo": "bar"},
                 "fingerprint": ["group-1"],
-                "timestamp": iso_format(before_now(minutes=3)),
+                "timestamp": before_now(minutes=3).isoformat(),
                 "environment": "dev",
             },
             project_id=self.project.id,
@@ -47,7 +47,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
             data={
                 "tags": {"foo": "bar2"},
                 "fingerprint": ["group-1"],
-                "timestamp": iso_format(before_now(minutes=2)),
+                "timestamp": before_now(minutes=2).isoformat(),
                 "environment": "prod",
             },
             project_id=self.project.id,
@@ -56,7 +56,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
             data={
                 "tags": {"foo": "bar2"},
                 "fingerprint": ["group-1"],
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": before_now(minutes=1).isoformat(),
                 "environment": "prod",
             },
             project_id=self.project.id,
@@ -632,8 +632,8 @@ class AssembleDownloadLargeTest(TestCase, SnubaTestCase):
             event.update(
                 {
                     "transaction": f"/event/{i:03d}/",
-                    "timestamp": iso_format(before_now(minutes=1, seconds=i)),
-                    "start_timestamp": iso_format(before_now(minutes=1, seconds=i + 1)),
+                    "timestamp": before_now(minutes=1, seconds=i).isoformat(),
+                    "start_timestamp": before_now(minutes=1, seconds=i + 1).isoformat(),
                 }
             )
             self.store_event(event, project_id=self.project.id)
@@ -663,8 +663,8 @@ class AssembleDownloadLargeTest(TestCase, SnubaTestCase):
             event.update(
                 {
                     "transaction": string,
-                    "timestamp": iso_format(before_now(minutes=1, seconds=0)),
-                    "start_timestamp": iso_format(before_now(minutes=1, seconds=1)),
+                    "timestamp": before_now(minutes=1, seconds=0).isoformat(),
+                    "start_timestamp": before_now(minutes=1, seconds=1).isoformat(),
                 }
             )
             self.store_event(event, project_id=self.project.id)

@@ -142,7 +142,8 @@ describe('EventNavigation', () => {
   it('can copy event ID', async () => {
     render(<EventNavigation {...defaultProps} />);
 
-    await userEvent.click(screen.getByText(testEvent.id));
+    await userEvent.click(screen.getByRole('button', {name: 'Event actions'}));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Copy Event ID'}));
 
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith(testEvent.id);
   });
