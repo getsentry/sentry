@@ -30,6 +30,10 @@ describe('Incident Rules Create', function () {
       body: EventsStatsFixture(),
     });
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/anomalies/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/alert-rules/available-actions/',
       body: [
         {
