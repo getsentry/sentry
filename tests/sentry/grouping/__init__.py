@@ -77,11 +77,11 @@ class FingerprintInput:
         with open(os.path.join(_fingerprint_fixture_path, self.filename)) as f:
             return json.load(f)
 
-    def create_event(self, grouping_config=None):
+    def create_event(self):
         config = FingerprintingRules.from_json(
             {"rules": self.data.get("_fingerprinting_rules", [])},
         )
-        mgr = EventManager(data=self.data, grouping_config=grouping_config)
+        mgr = EventManager(data=self.data)
         mgr.normalize()
         data = mgr.get_data()
 
