@@ -22,6 +22,11 @@ from sentry.integrations.messaging.message_builder import (
     format_actor_options_slack,
     get_title_link,
 )
+from sentry.integrations.messaging.metrics import (
+    MessagingInteractionEvent,
+    MessagingInteractionType,
+)
+from sentry.integrations.slack import SlackMessagingSpec
 from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
 from sentry.integrations.slack.message_builder.image_block_builder import ImageBlockBuilder
 from sentry.integrations.slack.message_builder.types import (
@@ -448,6 +453,13 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         self.skip_fallback = skip_fallback
         self.notes = notes
 
+    def _mark_event(self, interaction_type: MessagingInteractionType) -> MessagingInteractionEvent:
+        return MessagingInteractionEvent(
+            interaction_type,
+            SlackMessagingSpec(),
+            organization=self.group.project.organization,
+        )
+
     @property
     def escape_text(self) -> bool:
         """
@@ -455,7 +467,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         """
         return True
 
-    def get_title_block(
+    def _get_title_block(
         self,
         event_or_group: Event | GroupEvent | Group,
         has_action: bool,
@@ -475,31 +487,35 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         title = build_attachment_title(event_or_group)
 
         is_error_issue = self.group.issue_category == GroupCategory.ERROR
-        title_emoji = None
-        if has_action:
-            # if issue is resolved, archived, or assigned, replace circle emojis with white circle
-            title_emoji = (
-                ACTION_EMOJI
-                if is_error_issue
-                else ACTIONED_CATEGORY_TO_EMOJI.get(self.group.issue_category)
-            )
-        elif is_error_issue:
-            level_text = LOG_LEVELS[self.group.level]
-            title_emoji = LEVEL_TO_EMOJI.get(level_text)
-        else:
-            title_emoji = CATEGORY_TO_EMOJI.get(self.group.issue_category)
+
+        with self._mark_event(MessagingInteractionType.ISSUE_ALERT_EMOJI).capture():
+            title_emoji = self._get_title_emoji(has_action, is_error_issue)
 
         title_emoji = title_emoji + " " if title_emoji else ""
         title_text = title_emoji + f"<{title_link}|*{escape_slack_text(title)}*>"
 
         return self.get_markdown_block(title_text)
 
-    def get_culprit_block(self, event_or_group: Event | GroupEvent | Group) -> SlackBlock | None:
+    def _get_title_emoji(self, has_action, is_error_issue) -> str:
+        if has_action:
+            # if issue is resolved, archived, or assigned, replace circle emojis with white circle
+            return (
+                ACTION_EMOJI
+                if is_error_issue
+                else ACTIONED_CATEGORY_TO_EMOJI.get(self.group.issue_category)
+            )
+        elif is_error_issue:
+            level_text = LOG_LEVELS[self.group.level]
+            return LEVEL_TO_EMOJI.get(level_text)
+        else:
+            return CATEGORY_TO_EMOJI.get(self.group.issue_category)
+
+    def _get_culprit_block(self, event_or_group: Event | GroupEvent | Group) -> SlackBlock | None:
         if event_or_group.culprit and isinstance(event_or_group.culprit, str):
             return self.get_context_block(event_or_group.culprit)
         return None
 
-    def get_text_block(self, text) -> SlackBlock:
+    def _get_text_block(self, text) -> SlackBlock:
         if self.group.issue_category == GroupCategory.FEEDBACK:
             max_block_text_length = USER_FEEDBACK_MAX_BLOCK_TEXT_LENGTH
         else:
@@ -507,13 +523,13 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
 
         return self.get_markdown_quote_block(text, max_block_text_length)
 
-    def get_suggested_assignees_block(self, suggested_assignees: list[str]) -> SlackBlock:
+    def _get_suggested_assignees_block(self, suggested_assignees: list[str]) -> SlackBlock:
         suggested_assignee_text = "Suggested Assignees: "
         for assignee in suggested_assignees:
             suggested_assignee_text += assignee + ", "
         return self.get_context_block(suggested_assignee_text[:-2])  # get rid of comma at the end
 
-    def get_footer(self) -> SlackBlock:
+    def _get_footer(self) -> SlackBlock:
         # This link does not contain user input (it's a static label and a url), must not escape it.
         replay_link = build_attachment_replay_link(self.group, self.event)
 
@@ -584,16 +600,16 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             action_text = get_action_text(self.actions, self.identity)
             has_action = True
 
-        blocks = [self.get_title_block(event_or_group, has_action, rule_id, notification_uuid)]
+        blocks = [self._get_title_block(event_or_group, has_action, rule_id, notification_uuid)]
 
-        if culprit_block := self.get_culprit_block(event_or_group):
+        if culprit_block := self._get_culprit_block(event_or_group):
             blocks.append(culprit_block)
 
         # build up text block
         text = text.lstrip(" ")
         # XXX(CEO): sometimes text is " " and slack will error if we pass an empty string (now "")
         if text:
-            blocks.append(self.get_text_block(text))
+            blocks.append(self._get_text_block(text))
 
         if self.actions:
             blocks.append(self.get_markdown_block(action_text))
@@ -604,7 +620,8 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             block_id["rule"] = rule_id
 
         # build tags block
-        tags = get_tags(event_for_tags=event_for_tags, tags=self.tags)
+        with self._mark_event(MessagingInteractionType.ISSUE_ALERT_TAGS).capture():
+            tags = get_tags(event_for_tags=event_for_tags, tags=self.tags)
         if tags:
             blocks.append(self.get_tags_block(tags, block_id))
 
@@ -645,7 +662,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
                 self.group.project, event_for_tags, assignee
             )
         if len(suggested_assignees) > 0:
-            blocks.append(self.get_suggested_assignees_block(suggested_assignees))
+            blocks.append(self._get_suggested_assignees_block(suggested_assignees))
 
         # add suspect commit info
         suspect_commit_text = get_suspect_commit_text(self.group)
@@ -654,11 +671,12 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
 
         # add notes
         if self.notes:
-            notes_text = f"notes: {self.notes}"
-            blocks.append(self.get_markdown_block(notes_text))
+            with self._mark_event(MessagingInteractionType.ISSUE_ALERT_NOTES).capture():
+                notes_text = f"notes: {self.notes}"
+                blocks.append(self.get_markdown_block(notes_text))
 
         # build footer block
-        blocks.append(self.get_footer())
+        blocks.append(self._get_footer())
         blocks.append(self.get_divider())
 
         chart_block = ImageBlockBuilder(group=self.group).build_image_block()
