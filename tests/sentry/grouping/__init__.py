@@ -19,7 +19,7 @@ from sentry.utils import json
 
 
 class GroupingInput:
-    def __init__(self, inputs_dir, filename):
+    def __init__(self, inputs_dir: str, filename: str):
         self.filename = filename  # Necessary for test naming
         with open(os.path.join(inputs_dir, self.filename)) as f:
             self.data = json.load(f)
@@ -38,7 +38,7 @@ class GroupingInput:
 
         return eventstore.backend.create_event(data=data)
 
-    def create_event(self, config_name):
+    def create_event(self, config_name: str) -> Event:
         grouping_config = get_default_grouping_config_dict(config_name)
 
         # Add in any extra grouping configuration from the input data
@@ -52,7 +52,7 @@ class GroupingInput:
         return event
 
 
-def with_grouping_inputs(name, inputs_dir):
+def with_grouping_inputs(name: str, inputs_dir: str) -> pytest.MarkDecorator:
     grouping_input = list(
         GroupingInput(inputs_dir, filename)
         for filename in sorted(os.listdir(inputs_dir))
