@@ -6,76 +6,71 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import PluginIcon from 'sentry/plugins/components/pluginIcon';
 import {space} from 'sentry/styles/space';
-import type {IntegrationProvider} from 'sentry/types/integrations';
-import type {Project} from 'sentry/types/project';
+import type {
+  IntegrationProvider,
+  OrganizationIntegration,
+} from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getIntegrationFeatureGate} from 'sentry/utils/integrationUtil';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {useApiQueries, useApiQuery} from 'sentry/utils/queryClient';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import useOrganization from 'sentry/utils/useOrganization';
 import MessagingIntegrationModal from 'sentry/views/alerts/rules/issue/messagingIntegrationModal';
 
-interface ProjectWithAlertIntegrationInfo extends Project {
-  hasAlertIntegrationInstalled: boolean;
-}
-
 export enum MessagingIntegrationAnalyticsView {
   ALERT_RULE_CREATION = 'alert_rule_creation',
+  PROJECT_CREATION = 'project_creation',
 }
 
 type Props = {
-  projectSlug: string;
   refetchConfigs: () => void;
   analyticsParams?: {
     view: MessagingIntegrationAnalyticsView;
   };
+  projectId?: string;
 };
 
 function SetupMessagingIntegrationButton({
-  projectSlug,
   refetchConfigs,
   analyticsParams,
+  projectId,
 }: Props) {
   const providerKeys = ['slack', 'discord', 'msteams'];
   const organization = useOrganization();
 
   const onAddIntegration = () => {
-    projectQuery.refetch();
+    messagingIntegrationsQuery.refetch();
     refetchConfigs();
   };
 
-  const projectQuery = useApiQuery<ProjectWithAlertIntegrationInfo>(
-    [
-      `/projects/${organization.slug}/${projectSlug}/`,
-      {query: {expand: 'hasAlertIntegration'}},
-    ],
+  const messagingIntegrationsQuery = useApiQuery<OrganizationIntegration[]>(
+    [`/organizations/${organization.slug}/integrations/?integrationType=messaging`],
     {staleTime: Infinity}
   );
 
-  // Only need to fetch the first provider to check if the feature is enabled, as all providers will return the same response
-  const integrationQuery = useApiQuery<{providers: IntegrationProvider[]}>(
-    [
-      `/organizations/${organization.slug}/config/integrations/?provider_key=${providerKeys[0]}`,
-    ],
+  const integrationProvidersQuery = useApiQueries<{providers: IntegrationProvider[]}>(
+    providerKeys.map((providerKey: string) => [
+      `/organizations/${organization.slug}/config/integrations/?provider_key=${providerKey}`,
+    ]),
     {staleTime: Infinity}
   );
 
   const {IntegrationFeatures} = getIntegrationFeatureGate();
 
-  const shouldRenderSetupButton =
-    projectQuery.data != null &&
-    !projectQuery.data.hasAlertIntegrationInstalled &&
-    integrationQuery.data != null;
+  const shouldRenderSetupButton = messagingIntegrationsQuery.data?.every(
+    integration => integration.status !== 'active'
+  );
 
   useRouteAnalyticsParams({
     setup_message_integration_button_shown: shouldRenderSetupButton,
   });
 
   if (
-    projectQuery.isPending ||
-    projectQuery.isError ||
-    integrationQuery.isPending ||
-    integrationQuery.isError
+    messagingIntegrationsQuery.isPending ||
+    messagingIntegrationsQuery.isError ||
+    integrationProvidersQuery.some(({isPending}) => isPending) ||
+    integrationProvidersQuery.some(({isError}) => isError) ||
+    integrationProvidersQuery[0].data == null
   ) {
     return null;
   }
@@ -87,7 +82,7 @@ function SetupMessagingIntegrationButton({
   return (
     <IntegrationFeatures
       organization={organization}
-      features={integrationQuery.data.providers[0].metadata.features}
+      features={integrationProvidersQuery[0].data.providers[0]?.metadata?.features}
     >
       {({disabled, disabledReason}) => (
         <Tooltip
@@ -114,9 +109,14 @@ function SetupMessagingIntegrationButton({
                     {...deps}
                     headerContent={t('Connect with a messaging tool')}
                     bodyContent={t('Receive alerts and digests right where you work.')}
-                    providerKeys={providerKeys}
-                    project={projectQuery.data}
+                    providers={integrationProvidersQuery
+                      .map(result => result.data?.providers[0])
+                      .filter(
+                        (provider): provider is IntegrationProvider =>
+                          provider !== undefined
+                      )}
                     onAddIntegration={onAddIntegration}
+                    {...(projectId && {modalParams: {projectId: projectId}})}
                   />
                 ),
                 {
@@ -124,7 +124,6 @@ function SetupMessagingIntegrationButton({
                 }
               );
               trackAnalytics('onboarding.messaging_integration_modal_rendered', {
-                project_id: projectQuery.data.id,
                 organization,
                 ...analyticsParams,
               });
