@@ -458,7 +458,7 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
 
 class DashboardPermissionsSerializer(CamelSnakeSerializer[Dashboard]):
     is_creator_only_editable = serializers.BooleanField(
-        help_text="Whether the dashboard is editabloe only by the creator.",
+        help_text="Whether the dashboard is editable only by the creator.",
     )
 
 
