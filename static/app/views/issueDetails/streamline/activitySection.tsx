@@ -110,7 +110,8 @@ function StreamlinedActivitySection({group}: {group: Group}) {
 
       return dateB - dateA;
     });
-  }, [group.activity, group.lastSeen, group.project]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [group.activity.length, group.lastSeen, group.project]);
 
   return (
     <Fragment>
