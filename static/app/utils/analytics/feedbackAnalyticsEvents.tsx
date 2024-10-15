@@ -2,6 +2,7 @@ export type FeedbackEventParameters = {
   'feedback.details-integration-issue-clicked': {
     integration_key: string;
   };
+  'feedback.feedback-item-not-found': {feedbackId: string};
   'feedback.feedback-item-rendered': {};
   'feedback.index-setup-viewed': {};
   'feedback.list-item-selected': {};
@@ -17,6 +18,7 @@ export type FeedbackEventParameters = {
 export type FeedbackEventKey = keyof FeedbackEventParameters;
 
 export const feedbackEventMap: Record<FeedbackEventKey, string | null> = {
+  'feedback.feedback-item-not-found': 'Feedback item not found',
   'feedback.feedback-item-rendered': 'Loaded and rendered a feedback item',
   'feedback.index-setup-viewed': 'Viewed Feedback Onboarding Setup',
   'feedback.list-item-selected': 'Selected Item in Feedback List',
