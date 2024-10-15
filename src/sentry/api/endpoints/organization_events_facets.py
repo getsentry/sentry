@@ -32,7 +32,7 @@ class OrganizationEventsFacetsEndpoint(OrganizationEventsV2EndpointBase):
         update_snuba_params_with_timestamp(request, snuba_params, timestamp_key="traceTimestamp")
 
         def data_fn(offset, limit):
-            with sentry_sdk.start_span(op="discover.endpoint", description="discover_query"):
+            with sentry_sdk.start_span(op="discover.endpoint", name="discover_query"):
                 with handle_query_errors():
                     facets = discover.get_facets(
                         query=request.GET.get("query"),
@@ -42,9 +42,7 @@ class OrganizationEventsFacetsEndpoint(OrganizationEventsV2EndpointBase):
                         cursor=offset,
                     )
 
-            with sentry_sdk.start_span(
-                op="discover.endpoint", description="populate_results"
-            ) as span:
+            with sentry_sdk.start_span(op="discover.endpoint", name="populate_results") as span:
                 span.set_data("facet_count", len(facets or []))
                 resp = defaultdict(lambda: {"key": "", "topValues": []})
                 for row in facets:

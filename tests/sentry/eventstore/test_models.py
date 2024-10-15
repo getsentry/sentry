@@ -8,7 +8,6 @@ from sentry.db.models.fields.node import NodeData, NodeIntegrityFailure
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.grouping.api import GroupingConfig, get_grouping_variants_for_event
 from sentry.grouping.enhancer import Enhancements
-from sentry.grouping.result import CalculatedHashes
 from sentry.grouping.utils import hash_from_values
 from sentry.grouping.variants import ComponentVariant
 from sentry.interfaces.user import User
@@ -188,7 +187,7 @@ class EventTest(TestCase, PerformanceIssueTestCase):
         assert event.ip_address is None
 
     def test_issueless_event(self):
-        min_ago = iso_format(before_now(minutes=1))
+        min_ago = before_now(minutes=1).isoformat()
 
         event = self.store_event(
             data={
@@ -288,7 +287,7 @@ class EventTest(TestCase, PerformanceIssueTestCase):
                 "culprit": "app/components/events/eventEntries in map",
                 "type": "transaction",
                 "timestamp": iso_format(before_now(minutes=1)),
-                "start_timestamp": iso_format(before_now(minutes=1, seconds=5)),
+                "start_timestamp": before_now(minutes=1, seconds=5).isoformat(),
                 "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
             },
             project_id=self.project.id,
@@ -410,7 +409,7 @@ class EventTest(TestCase, PerformanceIssueTestCase):
             project_id=self.project.id,
         )
 
-        assert event.get_hashes() == CalculatedHashes(hashes)
+        assert event.get_hashes() == hashes
 
     def test_get_hashes_gets_hashes_and_variants_if_none_on_event(self):
         self.project.update_option("sentry:grouping_config", NEWSTYLE_GROUPING_CONFIG)
@@ -420,13 +419,13 @@ class EventTest(TestCase, PerformanceIssueTestCase):
             project_id=self.project.id,
         )
 
-        calculated_hashes = event.get_hashes()
+        hashes = event.get_hashes()
         expected_hash_values = [hash_from_values(["Dogs are great!"])]
         expected_variants = get_grouping_variants_for_event(event)
 
         variants = event.get_grouping_variants()
 
-        assert calculated_hashes.hashes == expected_hash_values
+        assert hashes == expected_hash_values
         assert expected_variants == expected_variants
 
         # Since the `variants` dictionaries are equal, it suffices to only check the values in one
@@ -657,7 +656,7 @@ class EventNodeStoreTest(TestCase):
         invalid_event = self.store_event(
             data={
                 "event_id": "a" * 32,
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": before_now(minutes=1).isoformat(),
                 "fingerprint": ["group-1"],
             },
             project_id=project1.id,
@@ -665,7 +664,7 @@ class EventNodeStoreTest(TestCase):
         event = self.store_event(
             data={
                 "event_id": "b" * 32,
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": before_now(minutes=1).isoformat(),
                 "fingerprint": ["group-2"],
             },
             project_id=project2.id,

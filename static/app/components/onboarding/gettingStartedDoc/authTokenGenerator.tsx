@@ -36,7 +36,7 @@ export function AuthTokenGeneratorProvider({
   const organization = useOrganization();
   const [authToken, setAuthToken] = useState<string>();
 
-  const {mutate: generateAuthToken, isLoading} = useMutation<
+  const {mutate: generateAuthToken, isPending} = useMutation<
     OrgAuthTokenWithToken,
     RequestError
   >({
@@ -62,7 +62,9 @@ export function AuthTokenGeneratorProvider({
   });
 
   return (
-    <AuthTokenGeneratorContext.Provider value={{authToken, isLoading, generateAuthToken}}>
+    <AuthTokenGeneratorContext.Provider
+      value={{authToken, isLoading: isPending, generateAuthToken}}
+    >
       {children}
     </AuthTokenGeneratorContext.Provider>
   );

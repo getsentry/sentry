@@ -7,7 +7,6 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.constants import MIGRATED_CONDITIONS, SENTRY_APP_ACTIONS, TICKET_ACTIONS
-from sentry.receivers.rules import has_high_priority_issue_alerts
 from sentry.rules import rules
 
 
@@ -31,9 +30,6 @@ class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
         project_has_filters = features.has("projects:alert-filters", project)
         can_create_tickets = features.has(
             "organizations:integrations-ticket-rules", project.organization
-        )
-        has_latest_adopted_release = features.has(
-            "organizations:latest-adopted-release-filter", project.organization
         )
 
         # TODO: conditions need to be based on actions
@@ -75,19 +71,8 @@ class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
                 continue
 
             if rule_type.startswith("condition/"):
-                if not has_high_priority_issue_alerts(project=project) and context["id"] in (
-                    "sentry.rules.conditions.high_priority_issue.NewHighPriorityIssueCondition",
-                    "sentry.rules.conditions.high_priority_issue.ExistingHighPriorityIssueCondition",
-                ):
-                    continue
                 condition_list.append(context)
             elif rule_type.startswith("filter/"):
-                if (
-                    context["id"]
-                    == "sentry.rules.filters.latest_adopted_release_filter.LatestAdoptedReleaseFilter"
-                    and not has_latest_adopted_release
-                ):
-                    continue
                 filter_list.append(context)
             elif rule_type.startswith("action/"):
                 action_list.append(context)

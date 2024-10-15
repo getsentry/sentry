@@ -29,7 +29,7 @@ export function getInstallSnippet({
   additionalPackages = [],
   basePackage = '@sentry/node',
 }: {
-  packageManager: 'npm' | 'yarn';
+  packageManager: 'npm' | 'yarn' | 'pnpm';
   params: DocsParams;
   additionalPackages?: string[];
   basePackage?: string;
@@ -40,9 +40,15 @@ export function getInstallSnippet({
   }
   packages = packages.concat(additionalPackages);
 
-  return packageManager === 'yarn'
-    ? `yarn add ${packages.join(' ')}`
-    : `npm install --save ${packages.join(' ')}`;
+  if (packageManager === 'yarn') {
+    return `yarn add ${packages.join(' ')}`;
+  }
+
+  if (packageManager === 'pnpm') {
+    return `pnpm add ${packages.join(' ')}`;
+  }
+
+  return `npm install ${packages.join(' ')} --save`;
 }
 
 export function getInstallConfig(
@@ -77,6 +83,17 @@ export function getInstallConfig(
             params,
             additionalPackages,
             packageManager: 'yarn',
+            basePackage,
+          }),
+        },
+        {
+          label: 'pnpm',
+          value: 'pnpm',
+          language: 'bash',
+          code: getInstallSnippet({
+            params,
+            additionalPackages,
+            packageManager: 'pnpm',
             basePackage,
           }),
         },
@@ -133,14 +150,19 @@ export function getDefaultNodeImports({
   return imports;
 }
 
-export function getImportInstrumentSnippet(defaultMode?: 'esm' | 'cjs'): string {
+export function getImportInstrumentSnippet(
+  defaultMode?: 'esm' | 'cjs',
+  fileExtension: string = 'js'
+): string {
+  const filename = `instrument.${fileExtension}`;
+
   return defaultMode === 'esm'
-    ? `// IMPORTANT: Make sure to import \`instrument.js\` at the top of your file.
-  // If you're using CommonJS (CJS) syntax, use \`require("./instrument.js");\`
-  import "./instrument.js";`
-    : `// IMPORTANT: Make sure to import \`instrument.js\` at the top of your file.
-  // If you're using ECMAScript Modules (ESM) syntax, use \`import "./instrument.js";\`
-  require("./instrument.js");`;
+    ? `// IMPORTANT: Make sure to import \`${filename}\` at the top of your file.
+// If you're using CommonJS (CJS) syntax, use \`require("./${filename}");\`
+import "./${filename}";`
+    : `// IMPORTANT: Make sure to import \`${filename}\` at the top of your file.
+// If you're using ECMAScript Modules (ESM) syntax, use \`import "./${filename}";\`
+require("./${filename}");`;
 }
 
 /**

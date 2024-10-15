@@ -33,13 +33,16 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 
 type Params = DocsParams;
 
-const getInstallConfig = ({isSelfHosted, urlPrefix}: Params) => {
-  const urlParam = !isSelfHosted && urlPrefix ? `--url ${urlPrefix}` : '';
+const getInstallSnippet = ({isSelfHosted, organization, projectSlug}: Params) => {
+  const urlParam = isSelfHosted ? '' : '--saas';
+  return `npx @sentry/wizard@latest -i nextjs ${urlParam} --org ${organization.slug} --project ${projectSlug}`;
+};
 
+const getInstallConfig = (params: Params) => {
   return [
     {
       description: tct(
-        'Configure your app automatically with the [wizardLink:Sentry wizard].',
+        'Configure your app automatically by running the [wizardLink:Sentry wizard] in the root of your project.',
         {
           wizardLink: (
             <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/nextjs/#install" />
@@ -47,7 +50,7 @@ const getInstallConfig = ({isSelfHosted, urlPrefix}: Params) => {
         }
       ),
       language: 'bash',
-      code: `npx @sentry/wizard@latest -i nextjs ${urlParam}`,
+      code: getInstallSnippet(params),
     },
   ];
 };
@@ -75,63 +78,111 @@ const getManualInstallConfig = () => [
 const onboarding: OnboardingConfig = {
   install: (params: Params) => [
     {
-      type: StepType.INSTALL,
+      title: t('Automatic Configuration (Recommended)'),
       configurations: getInstallConfig(params),
-      additionalInfo: (
+    },
+  ],
+  configure: () => [
+    {
+      title: t('Manual Configuration'),
+      collapsible: true,
+      configurations: [
+        {
+          description: (
+            <Fragment>
+              <p>
+                {tct(
+                  'Alternatively, you can also [manualSetupLink:set up the SDK manually], by following these steps:',
+                  {
+                    manualSetupLink: (
+                      <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/" />
+                    ),
+                  }
+                )}
+              </p>
+              <List symbol="bullet">
+                <ListItem>
+                  {tct(
+                    'Create [code:sentry.server.config.js], [code:sentry.client.config.js] and [code:sentry.edge.config.js] with the default [code:Sentry.init].',
+                    {
+                      code: <code />,
+                    }
+                  )}
+                </ListItem>
+                <ListItem>
+                  {tct(
+                    'Create or update the Next.js instrumentation file [instrumentationCode:instrumentation.ts] to initialize the SDK with the configuration files added in the previous step.',
+                    {
+                      instrumentationCode: <code />,
+                    }
+                  )}
+                </ListItem>
+                <ListItem>
+                  {tct(
+                    'Create or update your Next.js config [nextConfig:next.config.js] with the default Sentry configuration.',
+                    {
+                      nextConfig: <code />,
+                    }
+                  )}
+                </ListItem>
+                <ListItem>
+                  {tct(
+                    'Create a [bundlerPluginsEnv:.env.sentry-build-plugin] with an auth token (which is used to upload source maps when building the application).',
+                    {
+                      bundlerPluginsEnv: <code />,
+                    }
+                  )}
+                </ListItem>
+                <ListItem>
+                  {t('Add an example page to your app to verify your Sentry setup.')}
+                </ListItem>
+              </List>
+            </Fragment>
+          ),
+        },
+      ],
+    },
+  ],
+  verify: (params: Params) => [
+    {
+      type: StepType.VERIFY,
+      description: (
         <Fragment>
-          {t(
-            'The Sentry wizard will automatically patch your application to configure the Sentry SDK:'
-          )}
-          <List symbol="bullet">
-            <ListItem>
-              {tct(
-                'Create [code:sentry.server.config.js], [code:sentry.client.config.js] and [code:sentry.edge.config.js] with the default [code:Sentry.init].',
-                {
-                  code: <code />,
-                }
-              )}
-            </ListItem>
-            <ListItem>
-              {tct(
-                'Create or update the Next.js instrumentation file [instrumentationCode:instrumentation.ts] to initialize the SDK with the configuration files added in the previous step.',
-                {
-                  instrumentationCode: <code />,
-                }
-              )}
-            </ListItem>
-            <ListItem>
-              {tct(
-                'Create or update your Next.js config [nextConfig:next.config.js] with the default Sentry configuration.',
-                {
-                  nextConfig: <code />,
-                }
-              )}
-            </ListItem>
-            <ListItem>
-              {tct(
-                'Create a [bundlerPluginsEnv:.env.sentry-build-plugin] with an auth token (which is used to upload source maps when building the application).',
-                {
-                  bundlerPluginsEnv: <code />,
-                }
-              )}
-            </ListItem>
-            <ListItem>
-              {t('Add an example page to your app to verify your Sentry setup.')}
-            </ListItem>
-          </List>
-          <br />
-          <ManualSetupTitle>{t('Manual Setup')}</ManualSetupTitle>
           <p>
             {tct(
-              'Alternatively, you can also [manualSetupLink:set up the SDK manually].',
+              'Start your development server and visit [code:/sentry-example-page] if you have set it up. Click the button to trigger a test error.',
               {
-                manualSetupLink: (
-                  <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/" />
-                ),
+                code: <code />,
               }
             )}
           </p>
-          <br />
+          <p>
+            {t(
+              'Or, trigger a sample error by calling a function that does not exist somewhere in your application.'
+            )}
+          </p>
+        </Fragment>
+      ),
+      configurations: [
+        {
+          code: [
+            {
+              label: 'Javascript',
+              value: 'javascript',
+              language: 'javascript',
+              code: `myUndefinedFunction();`,
+            },
+          ],
+        },
+      ],
+      additionalInfo: (
+        <Fragment>
+          <p>
+            {t(
+              'If you see an issue in your Sentry dashboard, you have successfully set up Sentry with Next.js.'
+            )}
+          </p>
+          <Divider />
           <DSNText>
             <p>
               {tct(
@@ -157,8 +208,6 @@ const onboarding: OnboardingConfig = {
       ),
     },
   ],
-  configure: () => [],
-  verify: () => [],
 };
 
 const replayOnboarding: OnboardingConfig = {
@@ -284,6 +333,88 @@ const crashReportOnboarding: OnboardingConfig = {
   nextSteps: () => [],
 };
 
+const performanceOnboarding: OnboardingConfig = {
+  introduction: () =>
+    t(
+      "Adding Performance to your React project is simple. Make sure you've got these basics down."
+    ),
+  install: params => [
+    {
+      type: StepType.INSTALL,
+      description: t('Install the Next.js SDK using our installation wizard:'),
+      configurations: [
+        {
+          language: 'bash',
+          code: getInstallSnippet(params),
+        },
+      ],
+    },
+  ],
+  configure: params => [
+    {
+      type: StepType.CONFIGURE,
+      description: tct(
+        'To configure, set [code:tracesSampleRate] in your config files, [code:sentry.server.config.js], [code:sentry.client.config.js], and [code:sentry.edge.config.js]:',
+        {code: <code />}
+      ),
+      configurations: [
+        {
+          language: 'javascript',
+          code: `
+import * as Sentry from "@sentry/nextjs";
+
+Sentry.init({
+  dsn: "${params.dsn.public}",
+
+  // Set tracesSampleRate to 1.0 to capture 100%
+  // of transactions for performance monitoring.
+  // We recommend adjusting this value in production
+  tracesSampleRate: 1.0,
+});
+`,
+          additionalInfo: tct(
+            'We recommend adjusting the value of [code:tracesSampleRate] in production. Learn more about tracing [linkTracingOptions:options], how to use the [linkTracesSampler:traces_sampler] function, or how to [linkSampleTransactions:sample transactions].',
+            {
+              code: <code />,
+              linkTracingOptions: (
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/nextjs/configuration/options/#tracing-options" />
+              ),
+              linkTracesSampler: (
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/nextjs/configuration/sampling/" />
+              ),
+              linkSampleTransactions: (
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/nextjs/configuration/sampling/" />
+              ),
+            }
+          ),
+        },
+      ],
+    },
+  ],
+  verify: () => [
+    {
+      type: StepType.VERIFY,
+      description: tct(
+        'Verify that performance monitoring is working correctly with our [link:automatic instrumentation] by simply using your NextJS application.',
+        {
+          link: (
+            <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/nextjs/tracing/instrumentation/automatic-instrumentation/" />
+          ),
+        }
+      ),
+      additionalInfo: tct(
+        'You have the option to manually construct a transaction using [link:custom instrumentation].',
+        {
+          link: (
+            <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/nextjs/tracing/instrumentation/custom-instrumentation/" />
+          ),
+        }
+      ),
+    },
+  ],
+  nextSteps: () => [],
+};
+
 const docs: Docs = {
   onboarding,
   feedbackOnboardingNpm: feedbackOnboarding,
@@ -291,6 +422,7 @@ const docs: Docs = {
   customMetricsOnboarding: getJSMetricsOnboarding({
     getInstallConfig: getManualInstallConfig,
   }),
+  performanceOnboarding,
   crashReportOnboarding,
 };
 
@@ -300,13 +432,17 @@ const DSNText = styled('div')`
   margin-bottom: ${space(0.5)};
 `;
 
-const ManualSetupTitle = styled('p')`
-  font-size: ${p => p.theme.fontSizeLarge};
-  font-weight: ${p => p.theme.fontWeightBold};
-`;
-
 const AdditionalInfoWrapper = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(2)};
+`;
+
+const Divider = styled('hr')`
+  height: 1px;
+  width: 100%;
+  background: ${p => p.theme.border};
+  border: none;
+  margin-top: ${space(1)};
+  margin-bottom: ${space(2)};
 `;

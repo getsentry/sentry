@@ -160,6 +160,8 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer[Dashboard]):
     on_demand_extraction = DashboardWidgetQueryOnDemandSerializer(many=False, required=False)
     on_demand_extraction_disabled = serializers.BooleanField(required=False)
 
+    selected_aggregate = serializers.IntegerField(required=False, allow_null=True)
+
     required_for_create = {"fields", "conditions"}
 
     validate_id = validate_id
@@ -341,7 +343,8 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
 
                 if (
                     ondemand_feature
-                    and data.get("widget_type") == DashboardWidgetTypes.DISCOVER
+                    and data.get("widget_type")
+                    in [DashboardWidgetTypes.DISCOVER, DashboardWidgetTypes.TRANSACTION_LIKE]
                     and not query.get("on_demand_extraction_disabled", False)
                 ):
                     if query.get("columns"):
@@ -646,12 +649,16 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
                     orderby=query.get("orderby", ""),
                     order=i,
                     is_hidden=query.get("is_hidden", False),
+                    selected_aggregate=query.get("selected_aggregate"),
                 )
             )
 
         DashboardWidgetQuery.objects.bulk_create(new_queries)
 
-        if widget.widget_type == DashboardWidgetTypes.DISCOVER:
+        if widget.widget_type in [
+            DashboardWidgetTypes.DISCOVER,
+            DashboardWidgetTypes.TRANSACTION_LIKE,
+        ]:
             self._check_query_cardinality(new_queries)
 
     def _check_query_cardinality(self, new_queries: Sequence[DashboardWidgetQuery]):
@@ -724,13 +731,17 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
                         is_hidden=query_data.get("is_hidden", False),
                         orderby=query_data.get("orderby", ""),
                         order=next_order + i,
+                        selected_aggregate=query_data.get("selected_aggregate"),
                     )
                 )
             else:
                 raise serializers.ValidationError("You cannot use a query not owned by this widget")
         DashboardWidgetQuery.objects.bulk_create(new_queries)
 
-        if widget.widget_type == DashboardWidgetTypes.DISCOVER:
+        if widget.widget_type in [
+            DashboardWidgetTypes.DISCOVER,
+            DashboardWidgetTypes.TRANSACTION_LIKE,
+        ]:
             self._check_query_cardinality(new_queries + update_queries)
 
     def update_widget_query(self, query, data, order):
@@ -742,6 +753,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
         query.columns = data.get("columns", query.columns)
         query.field_aliases = data.get("field_aliases", query.field_aliases)
         query.is_hidden = data.get("is_hidden", query.is_hidden)
+        query.selected_aggregate = data.get("selected_aggregate", query.selected_aggregate)
 
         query.order = order
         query.save()

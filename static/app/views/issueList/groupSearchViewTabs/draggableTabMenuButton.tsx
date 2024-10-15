@@ -30,7 +30,12 @@ export function DraggableTabMenuButton({
           icon: (
             <ButtonWrapper>
               <IconEllipsis compact />
-              {hasUnsavedChanges && <UnsavedChangesIndicator role="presentation" />}
+              {hasUnsavedChanges && (
+                <UnsavedChangesIndicator
+                  role="presentation"
+                  data-test-id="unsaved-changes-indicator"
+                />
+              )}
             </ButtonWrapper>
           ),
           style: {width: '18px', height: '16px', borderRadius: '4px'},

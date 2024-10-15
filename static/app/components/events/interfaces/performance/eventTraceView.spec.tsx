@@ -5,6 +5,7 @@ import {initializeData} from 'sentry-test/performance/initializePerformanceData'
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {EntryType} from 'sentry/types/event';
+import type {TraceEventResponse} from 'sentry/views/issueDetails/traceTimeline/useTraceTimelineEvents';
 
 import {EventTraceView} from './eventTraceView';
 
@@ -25,8 +26,6 @@ jest.mock('screenfull', () => ({
   off: jest.fn(),
 }));
 
-// We are having replay errors about invalid stylesheets, though the CSS seems valid
-
 describe('EventTraceView', () => {
   const traceId = 'this-is-a-good-trace-id';
   const {organization, project} = initializeData({
@@ -39,6 +38,17 @@ describe('EventTraceView', () => {
         trace_id: traceId,
       },
     },
+  });
+  const issuePlatformBody: TraceEventResponse = {
+    data: [],
+    meta: {fields: {}, units: {}},
+  };
+
+  beforeEach(() => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: issuePlatformBody,
+    });
   });
 
   it('renders a trace', async () => {
@@ -88,16 +98,37 @@ describe('EventTraceView', () => {
       body: {},
     });
 
-    render(
-      <EventTraceView
-        group={group}
-        event={event}
-        organization={organization}
-        projectSlug={project.slug}
-      />
-    );
+    render(<EventTraceView group={group} event={event} organization={organization} />);
 
-    expect(await screen.findByText('Trace Preview')).toBeInTheDocument();
+    expect(await screen.findByText('Trace')).toBeInTheDocument();
     expect(await screen.findByText('transaction')).toBeInTheDocument();
+  });
+
+  it('does not render the trace preview if it has no transactions', async () => {
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/${organization.slug}/events-trace-meta/${traceId}/`,
+      body: {
+        errors: 0,
+        performance_issues: 0,
+        projects: 0,
+        transactions: 0,
+        transaction_child_count_map: [{'transaction.id': '1', count: 1}],
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-trace/${traceId}/`,
+      body: {
+        transactions: [],
+        orphan_errors: [],
+      },
+    });
+
+    render(<EventTraceView group={group} event={event} organization={organization} />);
+
+    expect(await screen.findByText('Trace')).toBeInTheDocument();
+    expect(
+      await screen.findByRole('link', {name: 'View Full Trace'})
+    ).toBeInTheDocument();
   });
 });

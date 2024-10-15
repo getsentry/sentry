@@ -15,8 +15,11 @@ from snuba_sdk import Column, Condition, Entity, Limit, Op, Query, Request
 from urllib3.response import HTTPResponse
 
 from sentry import options
+from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.conf.server import SEER_SIMILARITY_MODEL_VERSION
 from sentry.eventstore.models import Event
+from sentry.grouping.api import GroupingConfigNotFound
+from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
 from sentry.issues.occurrence_consumer import EventLookupError
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphash import GroupHash
@@ -35,7 +38,7 @@ from sentry.tasks.embeddings_grouping.utils import (
     lookup_group_data_stacktrace_bulk,
 )
 from sentry.testutils.cases import SnubaTestCase, TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.helpers.task_runner import TaskRunner
@@ -107,7 +110,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 "exception": self.create_exception_values(
                     function_names[i], type_names[i], value_names[i]
                 ),
-                "timestamp": iso_format(before_now(seconds=10)),
+                "timestamp": before_now(seconds=10).isoformat(),
                 "title": "title",
             }
             event = self.store_event(data=data, project_id=self.project.id, assert_no_errors=False)
@@ -140,7 +143,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             data={
                 "exception": EXCEPTION,
                 "title": "title",
-                "timestamp": iso_format(before_now(seconds=10)),
+                "timestamp": before_now(seconds=10).isoformat(),
             },
             project_id=self.project.id,
             assert_no_errors=False,
@@ -180,7 +183,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 group_id=event.group.id,
                 hash=self.group_hashes[event.group.id],
                 project_id=self.project.id,
-                message=event.title,
                 exception_type=get_path(event.data, "exception", "values", -1, "type"),
             )
             for event in events
@@ -209,7 +211,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 group_id=event.group.id,
                 hash=self.group_hashes[event.group.id],
                 project_id=self.project.id,
-                message=event.title,
                 exception_type=get_path(event.data, "exception", "values", -1, "type"),
             )
             for event in events
@@ -279,7 +280,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 group_id=event.group.id,
                 hash=hashes[event.group.id],
                 project_id=self.project.id,
-                message=event.title,
                 exception_type=get_path(event.data, "exception", "values", -1, "type"),
             )
             for event in events
@@ -314,7 +314,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 group_id=event.group.id,
                 hash=hashes[event.group.id],
                 project_id=self.project.id,
-                message=event.title,
                 exception_type=get_path(event.data, "exception", "values", -1, "type"),
             )
             for event in events
@@ -342,7 +341,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 group_id=event.group.id,
                 hash=hashes[event.group.id],
                 project_id=self.project.id,
-                message=event.title,
                 exception_type=get_path(event.data, "exception", "values", -1, "type"),
             )
             for event in events
@@ -380,7 +378,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 group_id=event.group.id,
                 hash=hashes[event.group.id],
                 project_id=self.project.id,
-                message=event.title,
                 exception_type=get_path(event.data, "exception", "values", -1, "type"),
             )
             for event in events
@@ -415,7 +412,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 group_id=event.group.id,
                 hash=hashes[event.group.id],
                 project_id=self.project.id,
-                message=event.title,
                 exception_type=get_path(event.data, "exception", "values", -1, "type"),
             )
             for event in events
@@ -448,11 +444,14 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         for group_id in group_ids_last_seen:
             assert group_id in group_ids_results
 
+    @patch("time.sleep", return_value=None)
     @patch("sentry.tasks.embeddings_grouping.utils.logger")
     @patch(
         "sentry.tasks.embeddings_grouping.utils.bulk_snuba_queries", side_effect=RateLimitExceeded
     )
-    def test_get_data_from_snuba_rate_limit_exception(self, mock_bulk_snuba_queries, mock_logger):
+    def test_get_data_from_snuba_rate_limit_exception(
+        self, mock_bulk_snuba_queries, mock_logger, mock_sleep
+    ):
         group_ids_last_seen = {
             group.id: group.last_seen for group in Group.objects.filter(project_id=self.project.id)
         }
@@ -467,13 +466,14 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             },
         )
 
+    @patch("time.sleep", return_value=None)
     @patch("sentry.tasks.embeddings_grouping.utils.logger")
     @patch(
         "sentry.tasks.embeddings_grouping.utils.bulk_snuba_queries",
         side_effect=QueryTooManySimultaneous,
     )
     def test_get_data_from_snuba_too_many_simultaneous_exception(
-        self, mock_bulk_snuba_queries, mock_logger
+        self, mock_bulk_snuba_queries, mock_logger, mock_sleep
     ):
         group_ids_last_seen = {
             group.id: group.last_seen for group in Group.objects.filter(project_id=self.project.id)
@@ -526,7 +526,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             data={
                 "exception": EXCEPTION,
                 "title": "title",
-                "timestamp": iso_format(before_now(seconds=10)),
+                "timestamp": before_now(seconds=10).isoformat(),
             },
             project_id=project2.id,
             assert_no_errors=False,
@@ -568,6 +568,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "only_delete": False,
                     "skip_processed_projects": False,
                     "skip_project_ids": None,
+                    "worker_number": None,
                 },
             ),
             call(
@@ -580,6 +581,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "only_delete": False,
                     "skip_processed_projects": False,
                     "skip_project_ids": None,
+                    "worker_number": None,
                 },
             ),
             call(
@@ -592,6 +594,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "only_delete": False,
                     "skip_processed_projects": False,
                     "skip_project_ids": None,
+                    "worker_number": None,
                 },
             ),
             call(
@@ -604,6 +607,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "only_delete": False,
                     "skip_processed_projects": False,
                     "skip_project_ids": None,
+                    "worker_number": None,
                 },
             ),
             call(
@@ -653,6 +657,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "only_delete": False,
                     "skip_processed_projects": False,
                     "skip_project_ids": None,
+                    "worker_number": None,
                 },
             ),
             call(
@@ -669,6 +674,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "only_delete": False,
                     "skip_processed_projects": False,
                     "skip_project_ids": None,
+                    "worker_number": None,
                 },
             ),
             call(
@@ -681,6 +687,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "only_delete": False,
                     "skip_processed_projects": False,
                     "skip_project_ids": None,
+                    "worker_number": None,
                 },
             ),
             call(
@@ -709,7 +716,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             data={
                 "exception": EXCEPTION,
                 "title": "title",
-                "timestamp": iso_format(before_now(seconds=10)),
+                "timestamp": before_now(seconds=10).isoformat(),
             },
             project_id=project2.id,
             assert_no_errors=False,
@@ -756,6 +763,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "only_delete": False,
                     "skip_processed_projects": False,
                     "skip_project_ids": None,
+                    "worker_number": None,
                 },
             ),
             call(
@@ -768,6 +776,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "only_delete": False,
                     "skip_processed_projects": False,
                     "skip_project_ids": None,
+                    "worker_number": None,
                 },
             ),
             call(
@@ -780,6 +789,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "only_delete": False,
                     "skip_processed_projects": False,
                     "skip_project_ids": None,
+                    "worker_number": None,
                 },
             ),
             call(
@@ -792,6 +802,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "only_delete": False,
                     "skip_processed_projects": False,
                     "skip_project_ids": None,
+                    "worker_number": None,
                 },
             ),
             call(
@@ -857,7 +868,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     function_names[i], type_names[i], value_names[i]
                 ),
                 "title": "title",
-                "timestamp": iso_format(before_now(seconds=10)),
+                "timestamp": before_now(seconds=10).isoformat(),
             }
             event = self.store_event(data=data, project_id=self.project.id, assert_no_errors=False)
             groups_seen_once.append(event.group)
@@ -901,7 +912,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     function_names[i], type_names[i], value_names[i]
                 ),
                 "title": "title",
-                "timestamp": iso_format(before_now(seconds=10)),
+                "timestamp": before_now(seconds=10),
             }
             event = self.store_event(data=data, project_id=self.project.id, assert_no_errors=False)
             event.group.times_seen = 2
@@ -966,7 +977,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 "another_function!", "AnotherError!", "error with value"
             ),
             "title": "title",
-            "timestamp": iso_format(before_now(seconds=10)),
+            "timestamp": before_now(seconds=10).isoformat(),
         }
         event = self.store_event(data=data, project_id=self.project.id, assert_no_errors=False)
         event.group.times_seen = 2
@@ -1028,7 +1039,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     function_names[i], type_names[i], value_names[i]
                 ),
                 "title": "title",
-                "timestamp": iso_format(before_now(seconds=10)),
+                "timestamp": before_now(seconds=10).isoformat(),
             }
             event = self.store_event(data=data, project_id=self.project.id, assert_no_errors=False)
             event.group.times_seen = 2
@@ -1062,6 +1073,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "only_delete": False,
                     "skip_processed_projects": True,
                     "skip_project_ids": None,
+                    "worker_number": None,
                 },
             ),
             call(
@@ -1074,6 +1086,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "only_delete": False,
                     "skip_processed_projects": True,
                     "skip_project_ids": None,
+                    "worker_number": None,
                 },
             ),
             call(
@@ -1086,6 +1099,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "only_delete": False,
                     "skip_processed_projects": True,
                     "skip_project_ids": None,
+                    "worker_number": None,
                 },
             ),
             call("backfill finished, no cohort", extra={"project_id": self.project.id}),
@@ -1169,7 +1183,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     function_names[i], type_names[i], value_names[i]
                 ),
                 "title": "title",
-                "timestamp": iso_format(before_now(seconds=10)),
+                "timestamp": before_now(seconds=10).isoformat(),
             }
             event = self.store_event(data=data, project_id=self.project.id, assert_no_errors=False)
             event.group.times_seen = 2
@@ -1205,7 +1219,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             data={
                 "exception": EXCEPTION,
                 "title": "title",
-                "timestamp": iso_format(before_now(seconds=10)),
+                "timestamp": before_now(seconds=10).isoformat(),
             },
             project_id=project2.id,
             assert_no_errors=False,
@@ -1235,6 +1249,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "only_delete": True,
                     "skip_processed_projects": False,
                     "skip_project_ids": None,
+                    "worker_number": None,
                 },
             ),
             call(
@@ -1251,6 +1266,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "only_delete": True,
                     "skip_processed_projects": False,
                     "skip_project_ids": None,
+                    "worker_number": None,
                 },
             ),
             call(
@@ -1281,7 +1297,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         data = {
             "exception": self.create_exception_values("function name!", "type!", "value!"),
             "title": "title",
-            "timestamp": iso_format(before_now(seconds=10)),
+            "timestamp": before_now(seconds=10).isoformat(),
         }
         event = self.store_event(data=data, project_id=self.project.id, assert_no_errors=False)
         event.group.times_seen = 2
@@ -1293,7 +1309,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         data = {
             "exception": self.create_exception_values("function name?", "type?", "value?"),
             "title": "title",
-            "timestamp": iso_format(before_now(seconds=10)),
+            "timestamp": before_now(seconds=10).isoformat(),
         }
         event = self.store_event(data=data, project_id=self.project.id, assert_no_errors=False)
         event.group.times_seen = 2
@@ -1408,7 +1424,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         data = {
             "exception": self.create_exception_values("function name!", "type!", "value!"),
             "title": "title",
-            "timestamp": iso_format(before_now(seconds=10)),
+            "timestamp": before_now(seconds=10).isoformat(),
         }
         event = self.store_event(data=data, project_id=self.project.id, assert_no_errors=False)
         event.group.times_seen = 2
@@ -1466,6 +1482,39 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             skip_project_ids=None,
             worker_number=None,
         )
+
+    @with_feature("projects:similarity-embeddings-backfill")
+    @patch("sentry.tasks.embeddings_grouping.utils.logger")
+    @patch("sentry.tasks.embeddings_grouping.utils.lookup_group_data_stacktrace_bulk")
+    @patch(
+        "sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project.call_next_backfill"
+    )
+    def test_backfill_seer_grouping_records_nodestore_grouping_config_not_found(
+        self,
+        mock_call_next_backfill,
+        mock_lookup_group_data_stacktrace_bulk,
+        mock_logger,
+    ):
+        exceptions = (GroupingConfigNotFound(), ResourceDoesNotExist(), InvalidEnhancerConfig())
+
+        for exception in exceptions:
+            mock_lookup_group_data_stacktrace_bulk.side_effect = exception
+
+            with TaskRunner():
+                backfill_seer_grouping_records_for_project(self.project.id, None)
+
+            groups = Group.objects.all()
+            group_ids_sorted = sorted([group.id for group in groups], reverse=True)
+            mock_call_next_backfill.assert_called_with(
+                last_processed_group_id=group_ids_sorted[-1],
+                project_id=self.project.id,
+                last_processed_project_index=0,
+                cohort=None,
+                enable_ingestion=False,
+                skip_processed_projects=False,
+                skip_project_ids=None,
+                worker_number=None,
+            )
 
     @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.embeddings_grouping.utils.logger")
@@ -1588,6 +1637,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "only_delete": False,
                     "skip_processed_projects": True,
                     "skip_project_ids": None,
+                    "worker_number": None,
                 },
             ),
             call(
@@ -1631,6 +1681,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "only_delete": False,
                     "skip_processed_projects": False,
                     "skip_project_ids": None,
+                    "worker_number": None,
                 },
             ),
             call(
@@ -1643,6 +1694,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "only_delete": False,
                     "skip_processed_projects": False,
                     "skip_project_ids": None,
+                    "worker_number": None,
                 },
             ),
             call("backfill finished, no cohort", extra={"project_id": self.project.id}),
@@ -1671,6 +1723,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "only_delete": False,
                     "skip_processed_projects": False,
                     "skip_project_ids": [self.project.id],
+                    "worker_number": None,
                 },
             ),
             call(
@@ -1710,7 +1763,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     function_names[i], type_names[i], value_names[i]
                 ),
                 "title": "title",
-                "timestamp": iso_format(before_now(seconds=10)),
+                "timestamp": before_now(seconds=10).isoformat(),
             }
             event = self.store_event(
                 data=data, project_id=project_invalid_batch.id, assert_no_errors=False
@@ -1732,7 +1785,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     function_names[i], type_names[i], value_names[i]
                 ),
                 "title": "title",
-                "timestamp": iso_format(before_now(seconds=10)),
+                "timestamp": before_now(seconds=10).isoformat(),
             }
             event = self.store_event(
                 data=data, project_id=project_invalid_batch.id, assert_no_errors=False
@@ -1814,7 +1867,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         data = {
             "exception": self.create_exception_values("function name!", "type!", "value!"),
             "title": "title",
-            "timestamp": iso_format(before_now(seconds=10)),
+            "timestamp": before_now(seconds=10).isoformat(),
         }
         event = self.store_event(data=data, project_id=self.project.id, assert_no_errors=False)
         event.group.times_seen = 2
@@ -1861,6 +1914,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "only_delete": False,
                     "skip_processed_projects": False,
                     "skip_project_ids": None,
+                    "worker_number": None,
                 },
             ),
             call(
@@ -1882,6 +1936,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "only_delete": False,
                     "skip_processed_projects": False,
                     "skip_project_ids": None,
+                    "worker_number": None,
                 },
             ),
             call("backfill finished, no cohort", extra={"project_id": self.project.id}),
@@ -1915,6 +1970,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "only_delete": False,
                     "skip_processed_projects": False,
                     "skip_project_ids": None,
+                    "worker_number": None,
                 },
             ),
             call(
@@ -1956,7 +2012,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             data={
                 "exception": EXCEPTION,
                 "title": "title",
-                "timestamp": iso_format(before_now(seconds=10)),
+                "timestamp": before_now(seconds=10).isoformat(),
             },
             project_id=project_same_cohort.id,
             assert_no_errors=False,
@@ -1993,6 +2049,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "only_delete": False,
                     "skip_processed_projects": False,
                     "skip_project_ids": None,
+                    "worker_number": worker_number,
                 },
             ),
             call(
@@ -2005,6 +2062,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "only_delete": False,
                     "skip_processed_projects": False,
                     "skip_project_ids": None,
+                    "worker_number": worker_number,
                 },
             ),
             call(
@@ -2017,6 +2075,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "only_delete": False,
                     "skip_processed_projects": False,
                     "skip_project_ids": None,
+                    "worker_number": worker_number,
                 },
             ),
             call(
@@ -2029,6 +2088,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "only_delete": False,
                     "skip_processed_projects": False,
                     "skip_project_ids": None,
+                    "worker_number": worker_number,
                 },
             ),
             call(
@@ -2064,7 +2124,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             data={
                 "exception": EXCEPTION,
                 "title": "title",
-                "timestamp": iso_format(before_now(seconds=10)),
+                "timestamp": before_now(seconds=10).isoformat(),
             },
             project_id=project_same_cohort_not_eligible.id,
             assert_no_errors=False,
@@ -2099,6 +2159,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "only_delete": False,
                     "skip_processed_projects": False,
                     "skip_project_ids": None,
+                    "worker_number": worker_number,
                 },
             ),
             call(
@@ -2111,6 +2172,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "only_delete": False,
                     "skip_processed_projects": False,
                     "skip_project_ids": None,
+                    "worker_number": worker_number,
                 },
             ),
             call(
@@ -2123,6 +2185,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "only_delete": False,
                     "skip_processed_projects": False,
                     "skip_project_ids": None,
+                    "worker_number": worker_number,
                 },
             ),
             call(
@@ -2162,7 +2225,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             data={
                 "exception": EXCEPTION,
                 "title": "title",
-                "timestamp": iso_format(before_now(seconds=10)),
+                "timestamp": before_now(seconds=10).isoformat(),
             },
             project_id=project_same_worker.id,
             assert_no_errors=False,
@@ -2198,6 +2261,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "only_delete": False,
                     "skip_processed_projects": False,
                     "skip_project_ids": None,
+                    "worker_number": worker_number,
                 },
             ),
             call(
@@ -2210,6 +2274,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "only_delete": False,
                     "skip_processed_projects": False,
                     "skip_project_ids": None,
+                    "worker_number": worker_number,
                 },
             ),
             call(
@@ -2222,6 +2287,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "only_delete": False,
                     "skip_processed_projects": False,
                     "skip_project_ids": None,
+                    "worker_number": worker_number,
                 },
             ),
             call(
@@ -2234,6 +2300,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "only_delete": False,
                     "skip_processed_projects": False,
                     "skip_project_ids": None,
+                    "worker_number": worker_number,
                 },
             ),
             call(

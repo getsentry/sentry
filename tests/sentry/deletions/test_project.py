@@ -18,7 +18,6 @@ from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.repository import Repository
 from sentry.models.rulesnooze import RuleSnooze
-from sentry.models.servicehook import ServiceHook
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
@@ -27,9 +26,10 @@ from sentry.monitors.models import (
     MonitorType,
     ScheduleType,
 )
+from sentry.sentry_apps.models.servicehook import ServiceHook
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.testutils.cases import APITestCase, TransactionTestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.skips import requires_snuba
 
@@ -169,7 +169,7 @@ class DeleteProjectTest(APITestCase, TransactionTestCase, HybridCloudTestMixin):
         project = self.create_project(name="test")
         event = self.store_event(
             data={
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": before_now(minutes=1).isoformat(),
                 "message": "oh no",
             },
             project_id=project.id,

@@ -1,6 +1,6 @@
 import functools
 import logging
-from collections.abc import Mapping
+from collections.abc import Mapping, MutableMapping
 from typing import Any
 
 import orjson
@@ -13,7 +13,7 @@ from sentry import eventstore, features
 from sentry.attachments import CachedAttachment, attachment_cache
 from sentry.event_manager import save_attachment
 from sentry.eventstore.processing import event_processing_store
-from sentry.feedback.usecases.create_feedback import FeedbackCreationSource
+from sentry.feedback.usecases.create_feedback import FeedbackCreationSource, is_in_feedback_denylist
 from sentry.ingest.userreport import Conflict, save_userreport
 from sentry.killswitches import killswitch_matches_context
 from sentry.models.project import Project
@@ -88,37 +88,42 @@ def process_event(
     # This code has been ripped from the old python store endpoint. We're
     # keeping it around because it does provide some protection against
     # reprocessing good events if a single consumer is in a restart loop.
-    deduplication_key = f"ev:{project_id}:{event_id}"
+    with sentry_sdk.start_span(op="deduplication_check"):
+        deduplication_key = f"ev:{project_id}:{event_id}"
 
-    try:
-        cached_value = cache.get(deduplication_key)
-    except Exception as exc:
-        raise Retriable(exc)
+        try:
+            cached_value = cache.get(deduplication_key)
+        except Exception as exc:
+            raise Retriable(exc)
 
-    if cached_value is not None:
-        logger.warning(
-            "pre-process-forwarder detected a duplicated event" " with id:%s for project:%s.",
-            event_id,
-            project_id,
-        )
-        return  # message already processed do not reprocess
+        if cached_value is not None:
+            logger.warning(
+                "pre-process-forwarder detected a duplicated event" " with id:%s for project:%s.",
+                event_id,
+                project_id,
+            )
+            return  # message already processed do not reprocess
 
-    if killswitch_matches_context(
-        "store.load-shed-pipeline-projects",
-        {
-            "project_id": project_id,
-            "event_id": event_id,
-            "has_attachments": bool(attachments),
-        },
+    with sentry_sdk.start_span(
+        op="killswitch_matches_context", name="store.load-shed-pipeline-projects"
     ):
-        # This killswitch is for the worst of scenarios and should probably not
-        # cause additional load on our logging infrastructure
-        return
+        if killswitch_matches_context(
+            "store.load-shed-pipeline-projects",
+            {
+                "project_id": project_id,
+                "event_id": event_id,
+                "has_attachments": bool(attachments),
+            },
+        ):
+            # This killswitch is for the worst of scenarios and should probably not
+            # cause additional load on our logging infrastructure
+            return
 
     # Parse the JSON payload. This is required to compute the cache key and
     # call process_event. The payload will be put into Kafka raw, to avoid
     # serializing it again.
-    data = orjson.loads(payload)
+    with sentry_sdk.start_span(op="orjson.loads"):
+        data = orjson.loads(payload)
 
     if project_id == settings.SENTRY_PROJECT:
         metrics.incr(
@@ -126,17 +131,20 @@ def process_event(
             tags={"event_type": data.get("type") or "null"},
         )
 
-    if killswitch_matches_context(
-        "store.load-shed-parsed-pipeline-projects",
-        {
-            "organization_id": project.organization_id,
-            "project_id": project.id,
-            "event_type": data.get("type") or "null",
-            "has_attachments": bool(attachments),
-            "event_id": event_id,
-        },
+    with sentry_sdk.start_span(
+        op="killswitch_matches_context", name="store.load-shed-parsed-pipeline-projects"
     ):
-        return
+        if killswitch_matches_context(
+            "store.load-shed-parsed-pipeline-projects",
+            {
+                "organization_id": project.organization_id,
+                "project_id": project.id,
+                "event_type": data.get("type") or "null",
+                "has_attachments": bool(attachments),
+                "event_id": event_id,
+            },
+        ):
+            return
 
     # Raise the retriable exception and skip DLQ if anything below this point fails as it may be caused by
     # intermittent network issue
@@ -144,8 +152,10 @@ def process_event(
         # If we only want to reprocess "stuck" events, we check if this event is already in the
         # `processing_store`. We only continue here if the event *is* present, as that will eventually
         # process and consume the event from the `processing_store`, whereby getting it "unstuck".
-        if reprocess_only_stuck_events and not event_processing_store.exists(data):
-            return
+        if reprocess_only_stuck_events:
+            with sentry_sdk.start_span(op="event_processing_store.exists"):
+                if not event_processing_store.exists(data):
+                    return
 
         with metrics.timer("ingest_consumer._store_event"):
             cache_key = event_processing_store.store(data)
@@ -187,8 +197,13 @@ def process_event(
                 event_id=event_id,
                 project_id=project_id,
             )
+
+            try:
+                collect_span_metrics(project, data)
+            except Exception:
+                pass
         elif data.get("type") == "feedback":
-            if features.has("organizations:user-feedback-ingest", project.organization, actor=None):
+            if not is_in_feedback_denylist(project.organization):
                 save_event_feedback.delay(
                     cache_key=None,  # no need to cache as volume is low
                     data=data,
@@ -196,6 +211,8 @@ def process_event(
                     event_id=event_id,
                     project_id=project_id,
                 )
+            else:
+                metrics.incr("feedback.ingest.filtered", tags={"reason": "org.denylist"})
         else:
             # Preprocess this event, which spawns either process_event or
             # save_event. Pass data explicitly to avoid fetching it again from the
@@ -324,3 +341,20 @@ def process_userreport(message: IngestMessage, project: Project) -> bool:
         # If you want to remove this make sure to have triaged all errors in Sentry
         logger.exception("userreport.save.crash")
         return False
+
+
+def collect_span_metrics(
+    project: Project,
+    data: MutableMapping[str, Any],
+):
+    if not features.has("organizations:am3-tier", project.organization) and not features.has(
+        "organizations:dynamic-sampling", project.organization
+    ):
+        amount = (
+            len(data.get("spans", [])) + 1
+        )  # Segment spans also get added to the total span count.
+        metrics.incr(
+            "event.save_event.unsampled.spans.count",
+            amount=amount,
+            tags={"organization": project.organization.slug},
+        )

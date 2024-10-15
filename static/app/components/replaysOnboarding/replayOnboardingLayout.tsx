@@ -11,6 +11,7 @@ import ReplayConfigToggle from 'sentry/components/replaysOnboarding/replayConfig
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
+import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
 export function ReplayOnboardingLayout({
@@ -20,9 +21,11 @@ export function ReplayOnboardingLayout({
   projectId,
   projectSlug,
   newOrg,
+  projectKeyId,
   configType = 'onboarding',
   hideMaskBlockToggles,
 }: OnboardingLayoutProps & {hideMaskBlockToggles?: boolean}) {
+  const api = useApi();
   const organization = useOrganization();
   const {isPending: isLoadingRegistry, data: registryData} =
     useSourcePackageRegistries(organization);
@@ -35,6 +38,8 @@ export function ReplayOnboardingLayout({
     const doc = docsConfig[configType] ?? docsConfig.onboarding;
 
     const docParams: DocsParams<any> = {
+      api,
+      projectKeyId,
       dsn,
       organization,
       platformKey,
@@ -83,6 +88,8 @@ export function ReplayOnboardingLayout({
     block,
     urlPrefix,
     isSelfHosted,
+    api,
+    projectKeyId,
   ]);
 
   return (

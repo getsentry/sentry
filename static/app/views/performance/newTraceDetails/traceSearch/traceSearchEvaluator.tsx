@@ -10,16 +10,15 @@ import {
   Token,
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
+
 import {
   isAutogroupedNode,
   isSpanNode,
   isTraceErrorNode,
   isTransactionNode,
-} from 'sentry/views/performance/newTraceDetails/guards';
-import type {
-  TraceTree,
-  TraceTreeNode,
-} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+} from '../traceGuards';
+import type {TraceTree} from '../traceModels/traceTree';
+import type {TraceTreeNode} from '../traceModels/traceTreeNode';
 
 export type TraceSearchResult = {
   index: number;
@@ -365,7 +364,9 @@ function evaluateValueDate<T extends Token.VALUE_ISO_8601_DATE>(
 
   if (typeof value === 'string') {
     value = new Date(value).getTime();
-    if (isNaN(value)) return false;
+    if (isNaN(value)) {
+      return false;
+    }
   }
 
   const query = token.parsed.value.getTime();

@@ -8,6 +8,9 @@ import {
 } from 'react';
 
 export const enum SectionKey {
+  /**
+   * Trace timeline or linked error
+   */
   TRACE = 'trace',
 
   USER_FEEDBACK = 'user-feedback',
@@ -43,6 +46,7 @@ export const enum SectionKey {
 
   TAGS = 'tags',
   SCREENSHOT = 'screenshot',
+  FEATURE_FLAGS = 'feature-flags',
 
   CONTEXTS = 'contexts',
   EXTRA = 'extra',
@@ -54,6 +58,9 @@ export const enum SectionKey {
   GROUPING_INFO = 'grouping-info',
   PROCESSING_ERROR = 'processing-error',
   RRWEB = 'rrweb', // Legacy integration prior to replays
+
+  MERGED_ISSUES = 'merged',
+  SIMILAR_ISSUES = 'similar',
 
   REGRESSION_SUMMARY = 'regression-summary',
   REGRESSION_BREAKPOINT_CHART = 'regression-breakpoint-chart',

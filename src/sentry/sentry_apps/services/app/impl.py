@@ -6,19 +6,22 @@ from typing import Any
 
 from django.db.models import Q, QuerySet
 
-from sentry.api.serializers import SentryAppAlertRuleActionSerializer, Serializer, serialize
+from sentry.api.serializers import Serializer, serialize
 from sentry.auth.services.auth import AuthenticationContext
 from sentry.constants import SentryAppInstallationStatus, SentryAppStatus
 from sentry.hybridcloud.rpc.filter_query import FilterQueryDatabaseImpl, OpaqueSerializedResponse
-from sentry.mediators import alert_rule_actions
-from sentry.models.integrations.sentry_app import SentryApp
-from sentry.models.integrations.sentry_app_component import SentryAppComponent
-from sentry.models.integrations.sentry_app_installation import (
+from sentry.sentry_apps.alert_rule_action_creator import AlertRuleActionCreator
+from sentry.sentry_apps.api.serializers.sentry_app_component import (
+    SentryAppAlertRuleActionSerializer,
+)
+from sentry.sentry_apps.logic import SentryAppCreator
+from sentry.sentry_apps.models.sentry_app import SentryApp
+from sentry.sentry_apps.models.sentry_app_component import SentryAppComponent
+from sentry.sentry_apps.models.sentry_app_installation import (
     SentryAppInstallation,
     prepare_sentry_app_components,
 )
-from sentry.models.integrations.sentry_app_installation_token import SentryAppInstallationToken
-from sentry.sentry_apps.apps import SentryAppCreator
+from sentry.sentry_apps.models.sentry_app_installation_token import SentryAppInstallationToken
 from sentry.sentry_apps.services.app import (
     AppService,
     RpcAlertRuleActionResult,
@@ -252,7 +255,7 @@ class DatabaseBackedAppService(AppService):
             install = SentryAppInstallation.objects.get(uuid=install_uuid)
         except SentryAppInstallation.DoesNotExist:
             return RpcAlertRuleActionResult(success=False, message="Installation does not exist")
-        result = alert_rule_actions.AlertRuleActionCreator.run(install=install, fields=fields)
+        result = AlertRuleActionCreator(install=install, fields=fields).run()
         return RpcAlertRuleActionResult(success=result["success"], message=result["message"])
 
     def find_service_hook_sentry_app(self, *, api_application_id: int) -> RpcSentryApp | None:
@@ -307,7 +310,7 @@ class DatabaseBackedAppService(AppService):
     def prepare_sentry_app_components(
         self, *, installation_id: int, component_type: str, project_slug: str | None = None
     ) -> RpcSentryAppComponent | None:
-        from sentry.models.integrations.sentry_app_installation import prepare_sentry_app_components
+        from sentry.sentry_apps.models.sentry_app_installation import prepare_sentry_app_components
 
         installation = SentryAppInstallation.objects.get(id=installation_id)
         component = prepare_sentry_app_components(installation, component_type, project_slug)

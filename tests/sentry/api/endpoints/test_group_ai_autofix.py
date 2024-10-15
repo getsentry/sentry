@@ -132,6 +132,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             ANY,
             "Yes",
             TIMEOUT_SECONDS,
+            None,
         )
 
         actual_group_arg = mock_call.call_args[0][1]
@@ -193,6 +194,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             ANY,
             "Yes",
             TIMEOUT_SECONDS,
+            None,
         )
 
         actual_group_arg = mock_call.call_args[0][1]
@@ -257,6 +259,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             ANY,
             "Yes",
             TIMEOUT_SECONDS,
+            None,
         )
 
         actual_group_arg = mock_call.call_args[0][1]

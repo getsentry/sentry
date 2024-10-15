@@ -6,10 +6,10 @@ from sentry import audit_log
 from sentry.integrations.models.integration_feature import IntegrationFeature, IntegrationTypes
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.auditlogentry import AuditLogEntry
-from sentry.models.integrations.sentry_app import SentryApp
-from sentry.models.integrations.sentry_app_component import SentryAppComponent
-from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
-from sentry.sentry_apps.apps import SentryAppCreator
+from sentry.sentry_apps.logic import SentryAppCreator
+from sentry.sentry_apps.models.sentry_app import SentryApp
+from sentry.sentry_apps.models.sentry_app_component import SentryAppComponent
+from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.users.models.user import User
@@ -203,7 +203,7 @@ class TestInternalCreator(TestCase):
         sentry_app = self.run_creator(author="custom")
         assert sentry_app.author == "custom"
 
-    @patch("sentry.tasks.sentry_apps.installation_webhook.delay")
+    @patch("sentry.sentry_apps.tasks.sentry_apps.installation_webhook.delay")
     def test_does_not_notify_service(self, delay):
         self.run_creator()
         assert not len(delay.mock_calls)

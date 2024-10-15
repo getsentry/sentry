@@ -26,6 +26,7 @@ from sentry.auth.access import OrganizationGlobalAccess
 from sentry.conf.server import SEER_ANOMALY_DETECTION_STORE_DATA_URL
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.incidents.endpoints.serializers.alert_rule import DetailedAlertRuleSerializer
+from sentry.incidents.logic import INVALID_TIME_WINDOW
 from sentry.incidents.models.alert_rule import (
     AlertRule,
     AlertRuleDetectionType,
@@ -228,6 +229,7 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
         assert rule.description == resp.data.get("description")
 
     @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
     @with_feature("organizations:incidents")
     def test_static_detection_type(self):
         self.create_team(organization=self.organization, members=[self.user])
@@ -262,6 +264,7 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
             self.create_alert_rule(threshold_type=AlertRuleThresholdType.ABOVE_AND_BELOW)
 
     @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
     @with_feature("organizations:incidents")
     def test_percent_detection_type(self):
         self.create_team(organization=self.organization, members=[self.user])
@@ -302,6 +305,7 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
             )
 
     @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
     @with_feature("organizations:incidents")
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
@@ -369,6 +373,7 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
             )
 
     @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
     @with_feature("organizations:incidents")
     def test_missing_threshold(self):
         """Test that we throw a validation error when the trigger is missing alertThreshold"""
@@ -826,6 +831,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         assert description == resp.data.get("description")
 
     @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
     @with_feature("organizations:incidents")
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
@@ -848,6 +854,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         assert mock_seer_request.call_count == 1
 
     @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
     @with_feature("organizations:incidents")
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
@@ -873,6 +880,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         assert mock_seer_request.call_count == 1
 
     @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
     @with_feature("organizations:incidents")
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
@@ -900,6 +908,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         assert mock_seer_request.call_count == 1
 
     @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
     @with_feature("organizations:incidents")
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
@@ -918,10 +927,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
             status_code=400,
             **data,
         )
-        assert (
-            resp.data[0]
-            == "Invalid time window for dynamic alert (valid windows are 60, 30, 15 minutes)"
-        )
+        assert resp.data[0] == INVALID_TIME_WINDOW
         # We don't call send_historical_data_to_seer if we encounter a validation error.
         assert mock_seer_request.call_count == 0
 

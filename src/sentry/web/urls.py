@@ -9,12 +9,14 @@ from django.urls import URLPattern, URLResolver, re_path
 from django.views.generic import RedirectView
 
 from sentry.api.endpoints.oauth_userinfo import OAuthUserInfoEndpoint
+from sentry.api.endpoints.warmup import WarmupEndpoint
 from sentry.auth.providers.saml2.provider import SAML2AcceptACSView, SAML2MetadataView, SAML2SLSView
 from sentry.charts.endpoints import serve_chartcuterie_config
 from sentry.integrations.web.doc_integration_avatar import DocIntegrationAvatarPhotoView
 from sentry.integrations.web.organization_integration_setup import OrganizationIntegrationSetupView
-from sentry.toolbar.iframe_view import IframeView
-from sentry.toolbar.login_success_view import LoginSuccessView
+from sentry.sentry_apps.web.sentryapp_avatar import SentryAppAvatarPhotoView
+from sentry.toolbar.views.iframe_view import IframeView
+from sentry.toolbar.views.login_success_view import LoginSuccessView
 from sentry.users.web import accounts
 from sentry.users.web.account_identity import AccountIdentityAssociateView
 from sentry.users.web.user_avatar import UserAvatarPhotoView
@@ -26,6 +28,7 @@ from sentry.web.frontend.auth_login import AuthLoginView
 from sentry.web.frontend.auth_logout import AuthLogoutView
 from sentry.web.frontend.auth_organization_login import AuthOrganizationLoginView
 from sentry.web.frontend.auth_provider_login import AuthProviderLoginView
+from sentry.web.frontend.cli import get_cli, get_cli_download_url
 from sentry.web.frontend.disabled_member_view import DisabledMemberView
 from sentry.web.frontend.error_page_embed import ErrorPageEmbedView
 from sentry.web.frontend.group_event_json import GroupEventJsonView
@@ -46,7 +49,6 @@ from sentry.web.frontend.project_event import ProjectEventRedirect
 from sentry.web.frontend.react_page import GenericReactPageView, ReactPageView
 from sentry.web.frontend.reactivate_account import ReactivateAccountView
 from sentry.web.frontend.release_webhook import ReleaseWebhookView
-from sentry.web.frontend.sentryapp_avatar import SentryAppAvatarPhotoView
 from sentry.web.frontend.setup_wizard import SetupWizardView
 from sentry.web.frontend.shared_group_details import SharedGroupDetailsView
 from sentry.web.frontend.sudo import SudoView
@@ -92,6 +94,13 @@ if settings.DEBUG:
     ]
 
 urlpatterns += [
+    # warmup, used to initialize any connections / pre-load
+    # the application so that user initiated requests are faster
+    re_path(
+        r"^_warmup/$",
+        WarmupEndpoint.as_view(),
+        name="sentry-warmup",
+    ),
     re_path(
         r"^api/(?P<project_id>[\w_-]+)/crossdomain\.xml$",
         api.crossdomain_xml,
@@ -127,6 +136,13 @@ urlpatterns += [
         r"^js-sdk-loader/(?P<public_key>[^/\.]+)(?:(?P<minified>\.min))?\.js$",
         JavaScriptSdkLoader.as_view(),
         name="sentry-js-sdk-loader",
+    ),
+    # docs reference this for acquiring the sentry cli
+    re_path(r"^get-cli/$", get_cli, name="get_cli_script"),
+    re_path(
+        r"^get-cli/(?P<platform>[^/]+)/(?P<arch>[^/]+)/?$",
+        get_cli_download_url,
+        name="get_cli_download_url",
     ),
     # Versioned API
     re_path(

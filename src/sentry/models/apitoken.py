@@ -16,6 +16,7 @@ from sentry.backup.sanitize import SanitizableField, Sanitizer
 from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.constants import SentryAppStatus
 from sentry.db.models import FlexibleForeignKey, control_silo_model, sane_repr
+from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.hybridcloud.outbox.base import ControlOutboxProducingManager, ReplicatedControlModel
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.models.apigrant import ApiGrant
@@ -109,6 +110,14 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
     # users can generate tokens without being application-bound
     application = FlexibleForeignKey("sentry.ApiApplication", null=True)
     user = FlexibleForeignKey("sentry.User")
+    # Tokens can be scoped to only access a single organization.
+    #
+    # Failure to restrict access by the scoping organization id could enable
+    # cross-organization access for untrusted third-party clients. The scoping
+    # organization key should only be unset for trusted clients.
+    scoping_organization_id = HybridCloudForeignKey(
+        "sentry.Organization", null=True, on_delete="CASCADE"
+    )
     name = models.CharField(max_length=255, null=True)
     token = models.CharField(max_length=71, unique=True, default=generate_token)
     hashed_token = models.CharField(max_length=128, unique=True, null=True)
@@ -351,11 +360,13 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
 
     @property
     def organization_id(self) -> int | None:
-        from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
-        from sentry.models.integrations.sentry_app_installation_token import (
+        from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
+        from sentry.sentry_apps.models.sentry_app_installation_token import (
             SentryAppInstallationToken,
         )
 
+        if self.scoping_organization_id:
+            return self.scoping_organization_id
         try:
             installation = SentryAppInstallation.objects.get_by_api_token(self.id).get()
         except SentryAppInstallation.DoesNotExist:

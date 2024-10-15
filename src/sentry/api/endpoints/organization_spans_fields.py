@@ -1,6 +1,19 @@
+from datetime import timedelta
+
 import sentry_sdk
+from google.protobuf.timestamp_pb2 import Timestamp
+from rest_framework import serializers
+from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_protos.snuba.v1alpha.endpoint_tags_list_pb2 import (
+    AttributeValuesRequest,
+    AttributeValuesResponse,
+    TraceItemAttributesRequest,
+    TraceItemAttributesResponse,
+)
+from sentry_protos.snuba.v1alpha.request_common_pb2 import RequestMeta, TraceItemName
+from sentry_protos.snuba.v1alpha.trace_item_attribute_pb2 import AttributeKey
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 from snuba_sdk import Condition, Op
 
@@ -9,6 +22,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
+from sentry.api.event_search import translate_escape_sequences
 from sentry.api.paginator import ChainPaginator
 from sentry.api.serializers import serialize
 from sentry.api.utils import handle_query_errors
@@ -18,6 +32,17 @@ from sentry.search.events.types import QueryBuilderConfig, SnubaParams
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.tagstore.types import TagKey, TagValue
+from sentry.utils import snuba_rpc
+
+# This causes problems if a user sends an attribute with any of these values
+# but the meta table currently can't handle that anyways
+# More users will see the 3 of these since they're on everything so lets try to make
+# the common usecase more reasonable
+TAG_NAME_MAPPING = {
+    "segment_name": "transaction",
+    "name": "span.description",
+    "service": "project",
+}
 
 
 class OrganizationSpansFieldsEndpointBase(OrganizationEventsV2EndpointBase):
@@ -25,6 +50,25 @@ class OrganizationSpansFieldsEndpointBase(OrganizationEventsV2EndpointBase):
         "GET": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.PERFORMANCE
+
+
+class OrganizationSpansFieldsEndpointSerializer(serializers.Serializer):
+    dataset = serializers.ChoiceField(
+        ["spans", "spansIndexed"], required=False, default="spansIndexed"
+    )
+    type = serializers.ChoiceField(["string", "number"], required=False)
+
+    def validate_type(self, value):
+        if value == "string":
+            return AttributeKey.Type.TYPE_STRING
+        if value == "number":
+            return AttributeKey.Type.TYPE_FLOAT
+        raise NotImplementedError
+
+    def validate(self, attrs):
+        if attrs["dataset"] == "spans" and attrs.get("type") is None:
+            raise ParseError(detail='type is required when using dataset="spans"')
+        return attrs
 
 
 @region_silo_endpoint
@@ -45,7 +89,61 @@ class OrganizationSpansFieldsEndpoint(OrganizationSpansFieldsEndpointBase):
                 paginator=ChainPaginator([]),
             )
 
+        serializer = OrganizationSpansFieldsEndpointSerializer(data=request.GET)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
+        serialized = serializer.validated_data
+
         max_span_tags = options.get("performance.spans-tags-key.max")
+
+        if serialized["dataset"] == "spans" and features.has(
+            "organizations:visibility-explore-dataset", organization, actor=request.user
+        ):
+            start_timestamp = Timestamp()
+            start_timestamp.FromDatetime(
+                snuba_params.start_date.replace(hour=0, minute=0, second=0, microsecond=0)
+            )
+
+            end_timestamp = Timestamp()
+            end_timestamp.FromDatetime(
+                snuba_params.end_date.replace(hour=0, minute=0, second=0, microsecond=0)
+                + timedelta(days=1)
+            )
+
+            rpc_request = TraceItemAttributesRequest(
+                meta=RequestMeta(
+                    organization_id=organization.id,
+                    cogs_category="performance",
+                    referrer=Referrer.API_SPANS_TAG_KEYS_RPC.value,
+                    project_ids=snuba_params.project_ids,
+                    start_timestamp=start_timestamp,
+                    end_timestamp=end_timestamp,
+                    trace_item_name=TraceItemName.TRACE_ITEM_NAME_EAP_SPANS,
+                ),
+                limit=max_span_tags,
+                offset=0,
+                type=serialized["type"],
+            )
+            rpc_response = snuba_rpc.rpc(rpc_request, TraceItemAttributesResponse)
+
+            paginator = ChainPaginator(
+                [
+                    [
+                        TagKey(TAG_NAME_MAPPING.get(tag.name, tag.name))
+                        for tag in rpc_response.tags
+                        if tag.name
+                    ],
+                ],
+                max_limit=max_span_tags,
+            )
+
+            return self.paginate(
+                request=request,
+                paginator=paginator,
+                on_results=lambda results: serialize(results, request.user),
+                default_per_page=max_span_tags,
+                max_per_page=max_span_tags,
+            )
 
         with handle_query_errors():
             # This has the limitations that we cannot paginate and
@@ -106,6 +204,68 @@ class OrganizationSpansFieldValuesEndpoint(OrganizationSpansFieldsEndpointBase):
         sentry_sdk.set_tag("query.tag_key", key)
 
         max_span_tag_values = options.get("performance.spans-tags-values.max")
+
+        serializer = OrganizationSpansFieldsEndpointSerializer(data=request.GET)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
+        serialized = serializer.validated_data
+
+        if serialized["dataset"] == "spans" and features.has(
+            "organizations:visibility-explore-dataset", organization, actor=request.user
+        ):
+            start_timestamp = Timestamp()
+            start_timestamp.FromDatetime(
+                snuba_params.start_date.replace(hour=0, minute=0, second=0, microsecond=0)
+            )
+
+            end_timestamp = Timestamp()
+            end_timestamp.FromDatetime(
+                snuba_params.end_date.replace(hour=0, minute=0, second=0, microsecond=0)
+                + timedelta(days=1)
+            )
+
+            query = translate_escape_sequences(request.GET.get("query", ""))
+            rpc_request = AttributeValuesRequest(
+                meta=RequestMeta(
+                    organization_id=organization.id,
+                    cogs_category="performance",
+                    referrer=Referrer.API_SPANS_TAG_VALUES_RPC.value,
+                    project_ids=snuba_params.project_ids,
+                    start_timestamp=start_timestamp,
+                    end_timestamp=end_timestamp,
+                    trace_item_name=TraceItemName.TRACE_ITEM_NAME_EAP_SPANS,
+                ),
+                name=key,
+                value_substring_match=query,
+                limit=max_span_tag_values,
+                offset=0,
+            )
+            rpc_response = snuba_rpc.rpc(rpc_request, AttributeValuesResponse)
+
+            paginator = ChainPaginator(
+                [
+                    [
+                        TagValue(
+                            key=key,
+                            value=tag_value,
+                            times_seen=None,
+                            first_seen=None,
+                            last_seen=None,
+                        )
+                        for tag_value in rpc_response.values
+                        if tag_value
+                    ]
+                ],
+                max_limit=max_span_tag_values,
+            )
+
+            return self.paginate(
+                request=request,
+                paginator=paginator,
+                on_results=lambda results: serialize(results, request.user),
+                default_per_page=max_span_tag_values,
+                max_per_page=max_span_tag_values,
+            )
 
         executor = SpanFieldValuesAutocompletionExecutor(
             snuba_params=snuba_params,
@@ -251,7 +411,7 @@ class SpanFieldValuesAutocompletionExecutor:
 
     def get_autocomplete_results(self, query: BaseQueryBuilder) -> list[TagValue]:
         with handle_query_errors():
-            results = query.process_results(query.run_query(Referrer.API_SPANS_TAG_KEYS.value))
+            results = query.process_results(query.run_query(Referrer.API_SPANS_TAG_VALUES.value))
 
         return [
             TagValue(

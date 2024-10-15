@@ -19,7 +19,6 @@ from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
 from sentry.conf.types import kafka_definition
 from sentry.issues.grouptype import UptimeDomainCheckFailure
 from sentry.models.group import Group, GroupStatus
-from sentry.testutils.cases import UptimeTestCase
 from sentry.testutils.helpers.options import override_options
 from sentry.uptime.consumers.results_consumer import (
     AUTO_DETECTED_ACTIVE_SUBSCRIPTION_INTERVAL,
@@ -39,7 +38,7 @@ from sentry.uptime.models import (
 from tests.sentry.uptime.subscriptions.test_tasks import ProducerTestMixin
 
 
-class ProcessResultTest(UptimeTestCase, ProducerTestMixin):
+class ProcessResultTest(ProducerTestMixin):
     def setUp(self):
         super().setUp()
         self.partition = Partition(Topic("test"), 0)
@@ -47,7 +46,8 @@ class ProcessResultTest(UptimeTestCase, ProducerTestMixin):
             subscription_id=uuid.uuid4().hex, interval_seconds=300
         )
         self.project_subscription = self.create_project_uptime_subscription(
-            uptime_subscription=self.subscription
+            uptime_subscription=self.subscription,
+            owner=self.user,
         )
 
     def send_result(self, result: CheckResult):
@@ -123,6 +123,8 @@ class ProcessResultTest(UptimeTestCase, ProducerTestMixin):
         hashed_fingerprint = md5(str(self.project_subscription.id).encode("utf-8")).hexdigest()
         group = Group.objects.get(grouphash__hash=hashed_fingerprint)
         assert group.issue_type == UptimeDomainCheckFailure
+        assignee = group.get_assignee()
+        assert assignee and (assignee.id == self.user.id)
         self.project_subscription.refresh_from_db()
         assert self.project_subscription.uptime_status == UptimeStatus.FAILED
 

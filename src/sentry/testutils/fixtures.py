@@ -14,6 +14,7 @@ from sentry.incidents.models.incident import IncidentActivityType
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.models.activity import Activity
+from sentry.models.environment import Environment
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
@@ -43,6 +44,7 @@ from sentry.uptime.models import (
 from sentry.users.models.identity import Identity, IdentityProvider
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
+from sentry.workflow_engine.models import DataSource, Detector, Workflow
 
 
 class Fixtures:
@@ -633,20 +635,42 @@ class Fixtures:
     def create_dashboard_widget_query(self, *args, **kwargs):
         return Factories.create_dashboard_widget_query(*args, **kwargs)
 
-    def create_workflow(self, *args, **kwargs):
+    def create_workflow_action(self, *args, **kwargs) -> Workflow:
+        return Factories.create_workflow_action(*args, **kwargs)
+
+    def create_workflow(self, *args, **kwargs) -> Workflow:
         return Factories.create_workflow(*args, **kwargs)
 
-    def create_workflowaction(self, *args, **kwargs):
-        return Factories.create_workflowaction(*args, **kwargs)
-
-    def create_data_source(self, *args, **kwargs):
+    def create_data_source(self, *args, **kwargs) -> DataSource:
         return Factories.create_data_source(*args, **kwargs)
 
-    def create_detector(self, *args, **kwargs):
+    def create_data_condition(self, *args, **kwargs):
+        return Factories.create_data_condition(*args, **kwargs)
+
+    def create_detector(self, *args, **kwargs) -> Detector:
         return Factories.create_detector(*args, **kwargs)
+
+    def create_detector_state(self, *args, **kwargs) -> Detector:
+        return Factories.create_detector_state(*args, **kwargs)
 
     def create_data_source_detector(self, *args, **kwargs):
         return Factories.create_data_source_detector(*args, **kwargs)
+
+    def create_data_condition_group(self, *args, **kwargs):
+        return Factories.create_data_condition_group(*args, **kwargs)
+
+    def create_data_condition_group_action(self, *args, **kwargs):
+        return Factories.create_data_condition_group_action(*args, **kwargs)
+
+    def create_detector_workflow(self, *args, **kwargs):
+        return Factories.create_detector_workflow(*args, **kwargs)
+
+    def create_workflow_data_condition_group(self, *args, **kwargs):
+        return Factories.create_workflow_data_condition_group(*args, **kwargs)
+
+    # workflow_engine action
+    def create_action(self, *args, **kwargs):
+        return Factories.create_action(*args, **kwargs)
 
     def create_uptime_subscription(
         self,
@@ -659,10 +683,15 @@ class Fixtures:
         url_domain_suffix="io",
         interval_seconds=60,
         timeout_ms=100,
+        method="GET",
+        headers=None,
+        body=None,
         date_updated: None | datetime = None,
     ) -> UptimeSubscription:
         if date_updated is None:
             date_updated = timezone.now()
+        if headers is None:
+            headers = []
 
         return Factories.create_uptime_subscription(
             type=type,
@@ -675,11 +704,15 @@ class Fixtures:
             interval_seconds=interval_seconds,
             timeout_ms=timeout_ms,
             date_updated=date_updated,
+            method=method,
+            headers=headers,
+            body=body,
         )
 
     def create_project_uptime_subscription(
         self,
         project: Project | None = None,
+        env: Environment | None = None,
         uptime_subscription: UptimeSubscription | None = None,
         mode=ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE,
         name="Test Name",
@@ -688,11 +721,14 @@ class Fixtures:
     ) -> ProjectUptimeSubscription:
         if project is None:
             project = self.project
+        if env is None:
+            env = self.environment
 
         if uptime_subscription is None:
             uptime_subscription = self.create_uptime_subscription()
         return Factories.create_project_uptime_subscription(
             project,
+            env,
             uptime_subscription,
             mode,
             name,

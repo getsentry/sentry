@@ -1,9 +1,9 @@
-import type {ButtonProps} from 'sentry/components/button';
+import type {LinkButtonProps} from 'sentry/components/button';
 import {LinkButton} from 'sentry/components/button';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
-export function NewMonitorButton(props: ButtonProps) {
+export function NewMonitorButton(props: Omit<LinkButtonProps, 'to' | 'external'>) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
 

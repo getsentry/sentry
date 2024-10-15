@@ -1,8 +1,7 @@
-import type {ComponentProps} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/alert';
-import type {LinkButton} from 'sentry/components/button';
+import type {LinkButtonProps} from 'sentry/components/button';
 import {Flex} from 'sentry/components/container/flex';
 import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
 import {
@@ -31,7 +30,7 @@ interface ReplayClipPreviewPlayerProps {
   orgSlug: string;
   replayReaderResult: ReturnType<typeof useReplayReader>;
   focusTab?: TabKey;
-  fullReplayButtonProps?: Partial<ComponentProps<typeof LinkButton>>;
+  fullReplayButtonProps?: Partial<Omit<LinkButtonProps, 'external'>>;
   handleBackClick?: () => void;
   handleForwardClick?: () => void;
   isLarge?: boolean;

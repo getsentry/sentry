@@ -46,6 +46,8 @@ import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnbo
 import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
+import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {ModuleName, SpanFunction, SpanMetricsField} from 'sentry/views/insights/types';
 
 const {CACHE_MISS_RATE} = SpanFunction;
@@ -65,6 +67,7 @@ const SDK_UPDATE_ALERT = (
 const CACHE_ERROR_MESSAGE = 'Column cache.hit was not found in metrics indexer';
 
 export function CacheLandingPage() {
+  const {isInDomainView} = useDomainViewFilters();
   const location = useLocation();
   const {setPageInfo, pageAlert} = usePageAlert();
 
@@ -181,24 +184,28 @@ export function CacheLandingPage() {
 
   return (
     <React.Fragment>
-      <Layout.Header>
-        <Layout.HeaderContent>
-          <Breadcrumbs crumbs={crumbs} />
+      {!isInDomainView && (
+        <Layout.Header>
+          <Layout.HeaderContent>
+            <Breadcrumbs crumbs={crumbs} />
 
-          <Layout.Title>
-            {MODULE_TITLE}
-            <PageHeadingQuestionTooltip
-              docsUrl={MODULE_DOC_LINK}
-              title={MODULE_DESCRIPTION}
-            />
-          </Layout.Title>
-        </Layout.HeaderContent>
-        <Layout.HeaderActions>
-          <ButtonBar gap={1}>
-            <FeedbackWidgetButton />
-          </ButtonBar>
-        </Layout.HeaderActions>
-      </Layout.Header>
+            <Layout.Title>
+              {MODULE_TITLE}
+              <PageHeadingQuestionTooltip
+                docsUrl={MODULE_DOC_LINK}
+                title={MODULE_DESCRIPTION}
+              />
+            </Layout.Title>
+          </Layout.HeaderContent>
+          <Layout.HeaderActions>
+            <ButtonBar gap={1}>
+              <FeedbackWidgetButton />
+            </ButtonBar>
+          </Layout.HeaderActions>
+        </Layout.Header>
+      )}
+
+      {isInDomainView && <BackendHeader module={ModuleName.CACHE} />}
 
       <Layout.Body>
         <Layout.Main fullWidth>

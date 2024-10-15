@@ -65,6 +65,7 @@ from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.models.counter import Counter
 from sentry.models.dashboard import Dashboard, DashboardTombstone
+from sentry.models.dashboard_permissions import DashboardPermissions
 from sentry.models.dashboard_widget import (
     DashboardWidget,
     DashboardWidgetQuery,
@@ -78,7 +79,6 @@ from sentry.models.groupsearchview import GroupSearchView
 from sentry.models.groupseen import GroupSeen
 from sentry.models.groupshare import GroupShare
 from sentry.models.groupsubscription import GroupSubscription
-from sentry.models.integrations.sentry_app import SentryApp
 from sentry.models.options.option import ControlOption, Option
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.options.project_template_option import ProjectTemplateOption
@@ -97,7 +97,8 @@ from sentry.models.savedsearch import SavedSearch, Visibility
 from sentry.models.search_common import SearchType
 from sentry.monitors.models import Monitor, MonitorType, ScheduleType
 from sentry.nodestore.django.models import Node
-from sentry.sentry_apps.apps import SentryAppUpdater
+from sentry.sentry_apps.logic import SentryAppUpdater
+from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import TestCase, TransactionTestCase
@@ -111,6 +112,7 @@ from sentry.users.models.user_option import UserOption
 from sentry.users.models.userip import UserIP
 from sentry.users.models.userrole import UserRole, UserRoleUser
 from sentry.utils import json
+from sentry.workflow_engine.models import Action, DataConditionGroup
 
 __all__ = [
     "export_to_file",
@@ -532,8 +534,11 @@ class ExhaustiveFixtures(Fixtures):
 
         # Dashboard
         dashboard = Dashboard.objects.create(
-            title=f"Dashboard 1 for {slug}", created_by_id=owner_id, organization=org
+            title=f"Dashboard 1 for {slug}",
+            created_by_id=owner_id,
+            organization=org,
         )
+        DashboardPermissions.objects.create(is_creator_only_editable=False, dashboard=dashboard)
         widget = DashboardWidget.objects.create(
             dashboard=dashboard,
             order=1,
@@ -608,13 +613,57 @@ class ExhaustiveFixtures(Fixtures):
             access_end=timezone.now() + timedelta(days=1),
         )
 
+        # Setup a test 'Issue Rule' and 'Automation'
         workflow = self.create_workflow(organization=org)
-        self.create_workflowaction(workflow=workflow)
-        self.create_workflow(organization=org)
-        self.create_data_source_detector(
-            self.create_data_source(organization=org),
-            self.create_detector(organization=org),
+        detector = self.create_detector(organization=org)
+        self.create_detector_workflow(detector=detector, workflow=workflow)
+        self.create_detector_state(detector=detector)
+
+        notification_condition_group = self.create_data_condition_group(
+            logic_type=DataConditionGroup.Type.ANY,
+            organization=org,
         )
+
+        send_notification_action = self.create_action(type=Action.Type.Notification, data="")
+        self.create_data_condition_group_action(
+            action=send_notification_action,
+            condition_group=notification_condition_group,
+        )
+
+        # TODO @saponifi3d: Update comparison to be DetectorState.Critical
+        self.create_data_condition(
+            condition="eq",
+            comparison="critical",
+            type="WorkflowCondition",
+            condition_result="True",
+            condition_group=notification_condition_group,
+        )
+
+        self.create_workflow_data_condition_group(
+            workflow=workflow, condition_group=notification_condition_group
+        )
+
+        data_source = self.create_data_source(organization=org)
+
+        self.create_data_source_detector(data_source, detector)
+        detector_conditions = self.create_data_condition_group(
+            logic_type=DataConditionGroup.Type.ALL,
+            organization=org,
+        )
+
+        # TODO @saponifi3d: Create or define trigger workflow action type
+        trigger_workflows_action = self.create_action(type=Action.Type.TriggerWorkflow, data="")
+        self.create_data_condition_group_action(
+            action=trigger_workflows_action, condition_group=detector_conditions
+        )
+        self.create_data_condition(
+            condition="eq",
+            comparison="critical",
+            type="DetectorCondition",
+            condition_result="True",
+            condition_group=detector_conditions,
+        )
+        detector.workflow_condition_group = detector_conditions
 
         return org
 

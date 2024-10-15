@@ -45,6 +45,24 @@ class DetectAnomaliesRequest(TypedDict):
     context: AlertInSeer | list[TimeSeriesPoint]
 
 
+class DetectHistoricalAnomaliesContext(TypedDict):
+    history: list[TimeSeriesPoint]
+    current: list[TimeSeriesPoint]
+
+
+class DetectHistoricalAnomaliesRequest(TypedDict):
+    organization_id: int
+    project_id: int
+    config: AnomalyDetectionConfig
+    context: DetectHistoricalAnomaliesContext
+
+
+class DeleteAlertDataRequest(TypedDict):
+    organization_id: int
+    project_id: NotRequired[int]
+    alert: AlertInSeer
+
+
 class DetectAnomaliesResponse(TypedDict):
     success: bool
     message: NotRequired[str]

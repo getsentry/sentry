@@ -8,15 +8,13 @@ import {
   cancelAnimationTimeout,
   requestAnimationTimeout,
 } from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
-import type {
-  TraceTree,
-  TraceTreeNode,
-} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import {TraceRowWidthMeasurer} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceRowWidthMeasurer';
-import {TraceTextMeasurer} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceTextMeasurer';
-import type {TraceView} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceView';
 
-import {isMissingInstrumentationNode} from '../guards';
+import {isMissingInstrumentationNode} from '../traceGuards';
+import {TraceTree} from '../traceModels/traceTree';
+import type {TraceTreeNode} from '../traceModels/traceTreeNode';
+import {TraceRowWidthMeasurer} from '../traceRenderers/traceRowWidthMeasurer';
+import {TraceTextMeasurer} from '../traceRenderers/traceTextMeasurer';
+import type {TraceView} from '../traceRenderers/traceView';
 
 import type {TraceScheduler} from './traceScheduler';
 
@@ -701,7 +699,9 @@ export class VirtualizedViewManager {
   }
 
   syncResetZoomButton() {
-    if (!this.reset_zoom_button) return;
+    if (!this.reset_zoom_button) {
+      return;
+    }
     this.reset_zoom_button.disabled =
       this.view.trace_view.width === this.view.trace_space.width;
   }
@@ -931,7 +931,9 @@ export class VirtualizedViewManager {
       min = Math.min(min, width);
       max = Math.max(max, width);
       innerMostNode =
-        !innerMostNode || this.columns.list.column_nodes[i].depth < innerMostNode.depth
+        !innerMostNode ||
+        TraceTree.Depth(this.columns.list.column_nodes[i]) <
+          TraceTree.Depth(innerMostNode)
           ? this.columns.list.column_nodes[i]
           : innerMostNode;
     }
@@ -940,7 +942,7 @@ export class VirtualizedViewManager {
       if (translation + max < 0) {
         this.scrollRowIntoViewHorizontally(innerMostNode);
       } else if (
-        translation + innerMostNode.depth * this.row_depth_padding >
+        translation + TraceTree.Depth(innerMostNode) * this.row_depth_padding >
         this.columns.list.width * this.view.trace_container_physical_space.width
       ) {
         this.scrollRowIntoViewHorizontally(innerMostNode);
@@ -958,8 +960,8 @@ export class VirtualizedViewManager {
     const translation = this.columns.list.translate[0];
 
     return (
-      translation + node.depth * this.row_depth_padding < 0 ||
-      translation + node.depth * this.row_depth_padding >
+      translation + TraceTree.Depth(node) * this.row_depth_padding < 0 ||
+      translation + TraceTree.Depth(node) * this.row_depth_padding >
         (this.columns.list.width * this.view.trace_container_physical_space.width) / 2
     );
   }
@@ -970,7 +972,7 @@ export class VirtualizedViewManager {
     offset_px: number = 0,
     position: 'exact' | 'measured' = 'measured'
   ) {
-    const depth_px = -node.depth * this.row_depth_padding + offset_px;
+    const depth_px = -TraceTree.Depth(node) * this.row_depth_padding + offset_px;
     const newTransform =
       position === 'exact' ? depth_px : this.clampRowTransform(depth_px);
 
@@ -1372,14 +1374,18 @@ export class VirtualizedViewManager {
   }
 
   hideSpanArrow(span_arrow: this['span_arrows'][0]) {
-    if (!span_arrow) return;
+    if (!span_arrow) {
+      return;
+    }
     span_arrow.ref.className = 'TraceArrow';
     span_arrow.visible = false;
     span_arrow.ref.style.opacity = '0';
   }
 
   drawSpanBar(span_bar: this['span_bars'][0]) {
-    if (!span_bar) return;
+    if (!span_bar) {
+      return;
+    }
 
     const span_transform = this.computeSpanCSSMatrixTransform(span_bar?.space);
     span_bar.ref.style.transform = `matrix(${span_transform.join(',')}`;
@@ -1392,7 +1398,9 @@ export class VirtualizedViewManager {
   }
 
   drawSpanText(span_text: this['span_text'][0], node: TraceTreeNode<any> | undefined) {
-    if (!span_text) return;
+    if (!span_text) {
+      return;
+    }
 
     const [inside, text_transform] = this.computeSpanTextPlacement(
       node!,
@@ -1412,7 +1420,9 @@ export class VirtualizedViewManager {
   }
 
   drawSpanArrow(span_arrow: this['span_arrows'][0], visible: boolean, position: 0 | 1) {
-    if (!span_arrow) return;
+    if (!span_arrow) {
+      return;
+    }
 
     if (visible !== span_arrow.visible) {
       span_arrow.visible = visible;
@@ -1521,7 +1531,9 @@ export class VirtualizedViewManager {
     container: HTMLElement | null,
     options: {list_width: number; span_list_width: number}
   ) {
-    if (!container) return;
+    if (!container) {
+      return;
+    }
 
     if (this.last_list_column_width !== options.list_width) {
       container.style.setProperty(
@@ -1747,8 +1759,12 @@ export class VirtualizedList {
 // Jest does not implement scroll updates, however since we have the
 // middleware to handle scroll updates, we can dispatch a scroll event ourselves
 function dispatchJestScrollUpdate(container: HTMLElement) {
-  if (!container) return;
-  if (process.env.NODE_ENV !== 'test') return;
+  if (!container) {
+    return;
+  }
+  if (process.env.NODE_ENV !== 'test') {
+    return;
+  }
   // since we do not tightly control how browsers handle event dispatching, dispatch it async
   window.requestAnimationFrame(() => {
     container.dispatchEvent(new CustomEvent('scroll'));

@@ -12,18 +12,15 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 
-const ALL_FIELDS = [
-  'profile.id',
-  'timestamp',
-  'transaction.duration',
-  'release',
-  'environment',
-  'trace',
-  'trace.transaction',
-  'id',
-] as const;
-
-type FieldType = (typeof ALL_FIELDS)[number];
+type FieldType =
+  | 'profile.id'
+  | 'timestamp'
+  | 'transaction.duration'
+  | 'release'
+  | 'environment'
+  | 'trace'
+  | 'trace.transaction'
+  | 'id';
 
 const FIELDS = [
   'profile.id',
@@ -113,7 +110,7 @@ export function ProfilesTable() {
           sort={sort}
           data={profiles.status === 'success' ? data : null}
           error={profiles.status === 'error' ? t('Unable to load profiles') : null}
-          isLoading={profiles.status === 'loading'}
+          isLoading={profiles.status === 'pending'}
           {...eventsTableProps}
         />
       </ProfileEventsTableContainer>

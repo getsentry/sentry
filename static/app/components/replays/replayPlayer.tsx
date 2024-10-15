@@ -14,12 +14,26 @@ import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import PlayerDOMAlert from './playerDOMAlert';
+import UnmaskAlert from './unmaskAlert';
 
 type Dimensions = ReturnType<typeof useReplayContext>['dimensions'];
 
 interface Props {
   className?: string;
+  /**
+   * When the player is "inspectable" it'll capture the mouse and things like
+   * css :hover properties will be applied.
+   * This makes it easier to Right-Click > Inspect Dom Element
+   * But it also makes it harder to have sliders or mouse interactions that overlay
+   * on top of the player.
+   *
+   * Therefore, in cases where the replay is in a debugging/video context it
+   * should be interactable.
+   * But when the player is used for things like static rendering or hydration
+   * diffs, people interact with the
+   *
+   */
+  inspectable?: boolean;
   /**
    * Use when the player is shown in an embedded preview context.
    */
@@ -65,7 +79,12 @@ function useVideoSizeLogger({
   }, [organization, windowDimensions, videoDimensions, didLog, analyticsContext]);
 }
 
-function BasePlayerRoot({className, overlayContent, isPreview = false}: Props) {
+function BasePlayerRoot({
+  className,
+  overlayContent,
+  isPreview = false,
+  inspectable,
+}: Props) {
   const {
     dimensions: videoDimensions,
     fastForwardSpeed,
@@ -75,7 +94,16 @@ function BasePlayerRoot({className, overlayContent, isPreview = false}: Props) {
     isFetching,
     isFinished,
     isVideoReplay,
+    replay,
   } = useReplayContext();
+
+  const sdkOptions = replay?.getSDKOptions();
+
+  const hasDefaultMaskSettings = sdkOptions
+    ? Boolean(
+        sdkOptions.maskAllInputs && sdkOptions.maskAllText && sdkOptions.blockAllMedia
+      )
+    : true;
 
   const windowEl = useRef<HTMLDivElement>(null);
   const viewEl = useRef<HTMLDivElement>(null);
@@ -154,10 +182,12 @@ function BasePlayerRoot({className, overlayContent, isPreview = false}: Props) {
         </Overlay>
       )}
       <StyledNegativeSpaceContainer ref={windowEl} className="sentry-block">
-        <div ref={viewEl} className={className} />
+        <div ref={viewEl} className={className} data-inspectable={inspectable} />
         {fastForwardSpeed ? <PositionedFastForward speed={fastForwardSpeed} /> : null}
         {isBuffering || isVideoBuffering ? <PositionedBuffering /> : null}
-        {isPreview || isVideoReplay || isFetching ? null : <PlayerDOMAlert />}
+        {isPreview || isVideoReplay || isFetching || !hasDefaultMaskSettings ? null : (
+          <UnmaskAlert />
+        )}
         {isFetching ? <PositionedLoadingIndicator /> : null}
       </StyledNegativeSpaceContainer>
     </Fragment>
@@ -182,13 +212,10 @@ const PositionedLoadingIndicator = styled(LoadingIndicator)`
   position: absolute;
 `;
 
-// Base styles, to make the Replayer instance work
-const PlayerRoot = styled(BasePlayerRoot)`
+const SentryPlayerRoot = styled(BasePlayerRoot)`
+  /* Base styles, to make the Replayer instance work */
   ${baseReplayerCss}
-`;
-
-// Sentry-specific styles for the player.
-const SentryPlayerRoot = styled(PlayerRoot)`
+  /* Sentry-specific styles for the player */
   ${p => sentryReplayerCss(p.theme)}
 `;
 

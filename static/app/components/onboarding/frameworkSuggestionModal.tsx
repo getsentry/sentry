@@ -46,6 +46,7 @@ export const topJavascriptFrameworks: PlatformKey[] = [
   'javascript-nextjs',
   'javascript-react',
   'javascript-vue',
+  'javascript-nuxt',
   'javascript-angular',
   'javascript-solid',
   'javascript-solidstart',
@@ -209,15 +210,7 @@ export function FrameworkSuggestionModal({
     );
 
     onConfigure(selectedFramework);
-    closeModal();
-  }, [
-    selectedPlatform,
-    selectedFramework,
-    organization,
-    onConfigure,
-    closeModal,
-    newOrg,
-  ]);
+  }, [selectedPlatform, selectedFramework, organization, onConfigure, newOrg]);
 
   const handleSkip = useCallback(() => {
     trackAnalytics(
@@ -230,8 +223,7 @@ export function FrameworkSuggestionModal({
       }
     );
     onSkip();
-    closeModal();
-  }, [selectedPlatform, organization, closeModal, onSkip, newOrg]);
+  }, [selectedPlatform, organization, onSkip, newOrg]);
 
   const listEntries = [...topFrameworksOrdered, ...otherFrameworksSortedAlphabetically];
 

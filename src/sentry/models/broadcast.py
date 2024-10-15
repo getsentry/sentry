@@ -34,6 +34,7 @@ class Broadcast(Model):
     cta = models.CharField(max_length=256, null=True, blank=True)
     media_url = models.URLField(null=True, blank=True)
     category = models.CharField(choices=BROADCAST_CATEGORIES, max_length=32, null=True, blank=True)
+    created_by_id = FlexibleForeignKey("sentry.User", null=True, on_delete=models.SET_NULL)
 
     class Meta:
         app_label = "sentry"

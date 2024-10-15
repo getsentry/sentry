@@ -32,7 +32,7 @@ function Issue({data}: {data: Group}) {
   return (
     <StyledPanelItem as="tr">
       <IssueSummaryWrapper>
-        <IssueSummary data={data} organization={organization} event_id={'0'} />
+        <IssueSummary data={data} organization={organization} />
         <EventOrGroupExtraDetails data={data} />
       </IssueSummaryWrapper>
       <ChartWrapper>
