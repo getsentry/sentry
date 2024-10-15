@@ -11,7 +11,6 @@ from sentry.search.events.datasets.spans_indexed import (
 )
 from sentry.search.events.fields import custom_time_processor
 from sentry.search.events.types import SelectType
-from sentry.snuba.dataset import Dataset
 
 SPAN_UUID_FIELDS = {
     "trace",
@@ -68,11 +67,6 @@ class SpansEAPQueryBuilder(SpansIndexedQueryBuilderMixin, BaseQueryBuilder):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-
-    def _get_dataset_name(self) -> str:
-        if self.dataset == Dataset.SpansEAP:
-            return "events_analytics_platform"
-        return self.dataset.value
 
     def resolve_field(self, raw_field: str, alias: bool = False) -> Column:
         # try the typed regex first
