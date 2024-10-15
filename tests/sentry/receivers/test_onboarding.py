@@ -398,7 +398,8 @@ class OrganizationOnboardingTaskTest(TestCase):
         )
         assert task is not None
 
-    def test_onboarding_complete(self):
+    @patch("sentry.analytics.record")
+    def test_onboarding_complete(self, record_analytics):
         now = timezone.now()
         user = self.create_user(email="test@example.org")
         project = self.create_project(first_event=now)
@@ -503,6 +504,13 @@ class OrganizationOnboardingTaskTest(TestCase):
                 organization=self.organization, key="onboarding:complete"
             ).count()
             == 1
+        )
+
+        record_analytics.assert_called_with(
+            "onboarding.complete",
+            user_id=self.organization.default_owner_id,
+            organization_id=self.organization.id,
+            referrer="onboarding_tasks",
         )
 
     @patch("sentry.analytics.record")
