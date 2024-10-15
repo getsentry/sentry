@@ -117,7 +117,9 @@ def find_channel_id_for_rule(
                 conditions=kwargs.get("conditions"),
                 frequency=kwargs.get("frequency"),
                 environment=kwargs.get("environment"),
+                owner=kwargs.get("owner"),
                 filter_match=kwargs.get("filter_match"),
+                request=kwargs.get("request"),
             ).run()
             if user_id:
                 RuleActivity.objects.create(
