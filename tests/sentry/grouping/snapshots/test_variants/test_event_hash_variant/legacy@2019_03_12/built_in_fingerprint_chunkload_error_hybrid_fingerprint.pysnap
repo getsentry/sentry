@@ -1,5 +1,5 @@
 ---
-created: '2024-10-15T17:06:33.392969+00:00'
+created: '2024-10-15T17:23:20.437594+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -22,7 +22,7 @@ app:
           "ChunkLoadError"
         value (stacktrace and type take precedence)
           "ChunkLoadError: something else..."
-  info: null
+  info: {"client_fingerprint":["{{ default }}","dogs are great"]}
   values: ["{{ default }}","dogs are great"]
 --------------------------------------------------------------------------
 system:
@@ -44,5 +44,5 @@ system:
           "ChunkLoadError"
         value (stacktrace and type take precedence)
           "ChunkLoadError: something else..."
-  info: null
+  info: {"client_fingerprint":["{{ default }}","dogs are great"]}
   values: ["{{ default }}","dogs are great"]
