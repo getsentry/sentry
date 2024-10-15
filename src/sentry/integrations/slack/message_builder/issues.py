@@ -26,7 +26,6 @@ from sentry.integrations.messaging.metrics import (
     MessagingInteractionEvent,
     MessagingInteractionType,
 )
-from sentry.integrations.slack import SlackMessagingSpec
 from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
 from sentry.integrations.slack.message_builder.image_block_builder import ImageBlockBuilder
 from sentry.integrations.slack.message_builder.types import (
@@ -37,6 +36,7 @@ from sentry.integrations.slack.message_builder.types import (
     SLACK_URL_FORMAT,
     SlackBlock,
 )
+from sentry.integrations.slack.spec import SlackMessagingSpec
 from sentry.integrations.slack.utils.escape import escape_slack_markdown_text, escape_slack_text
 from sentry.integrations.time_utils import get_approx_start_time, time_since
 from sentry.integrations.types import ExternalProviders
@@ -496,7 +496,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
 
         return self.get_markdown_block(title_text)
 
-    def _get_title_emoji(self, has_action, is_error_issue) -> str:
+    def _get_title_emoji(self, has_action, is_error_issue) -> str | None:
         if has_action:
             # if issue is resolved, archived, or assigned, replace circle emojis with white circle
             return (
