@@ -2,7 +2,6 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {CommitRow} from 'sentry/components/commitRow';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -22,6 +21,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
+import {ReleaseCommit} from 'sentry/views/releases/detail/commitsAndFiles/releaseCommit';
 
 import {getCommitsByRepository, getQuery, getReposToRender} from '../utils';
 
@@ -93,7 +93,7 @@ function Commits({activeReleaseRepo, releaseRepos, projectSlug}: CommitsProps) {
               <PanelHeader>{activeRepoName}</PanelHeader>
               <PanelBody>
                 {commitsByRepository[activeRepoName]?.map(commit => (
-                  <CommitRow key={commit.id} commit={commit} />
+                  <ReleaseCommit key={commit.id} commit={commit} />
                 ))}
               </PanelBody>
             </Panel>
