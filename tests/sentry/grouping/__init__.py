@@ -52,14 +52,14 @@ class GroupingInput:
         return event
 
 
-def with_grouping_inputs(name: str, inputs_dir: str) -> pytest.MarkDecorator:
+def with_grouping_inputs(test_param_name: str, inputs_dir: str) -> pytest.MarkDecorator:
     grouping_input = list(
         GroupingInput(inputs_dir, filename)
         for filename in sorted(os.listdir(inputs_dir))
         if filename.endswith(".json")
     )
     return pytest.mark.parametrize(
-        name, grouping_input, ids=lambda x: x.filename[:-5].replace("-", "_")
+        test_param_name, grouping_input, ids=lambda x: x.filename[:-5].replace("-", "_")
     )
 
 
