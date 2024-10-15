@@ -360,26 +360,14 @@ def update_issue_alert_rule(
                 }
             )
 
-        kwargs = {
-            "project": project,
-            "actions": data.get("actions", []),
-            "environment": data.get("environment", None),
-            "name": f"Monitor Alert: {monitor.name}"[:64],
-            "conditions": conditions,
-        }
-
         updated_rule = ProjectRuleUpdater(
             rule=issue_alert_rule,
             request=request,
-            project=kwargs.get("project"),
-            name=kwargs.get("name"),
-            owner=kwargs.get("owner"),
-            environment=kwargs.get("environment"),
-            action_match=kwargs.get("action_match"),
-            filter_match=kwargs.get("filter_match"),
-            actions=kwargs.get("actions"),
-            conditions=kwargs.get("conditions"),
-            frequency=kwargs.get("frequency"),
+            project=project,
+            name=f"Monitor Alert: {monitor.name}"[:64],
+            environment=data.get("environment", None),
+            actions=data.get("actions", []),
+            conditions=conditions,
         ).run()
 
         RuleActivity.objects.create(

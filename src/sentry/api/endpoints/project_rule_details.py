@@ -289,15 +289,15 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
 
             updated_rule = ProjectRuleUpdater(
                 rule=rule,
-                project=kwargs.get("project"),
-                name=kwargs.get("name"),
-                owner=kwargs.get("owner"),
-                environment=kwargs.get("environment"),
-                action_match=kwargs.get("action_match"),
-                filter_match=kwargs.get("filter_match"),
-                actions=kwargs.get("actions"),
-                conditions=kwargs.get("conditions"),
-                frequency=kwargs.get("frequency"),
+                project=project,
+                name=kwargs["name"],
+                owner=owner,
+                environment=kwargs["environment"],
+                action_match=kwargs["action_match"],
+                filter_match=kwargs["filter_match"],
+                actions=kwargs["actions"],
+                conditions=conditions,
+                frequency=kwargs["frequency"],
                 request=request,
             ).run()
 
