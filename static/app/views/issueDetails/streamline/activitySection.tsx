@@ -83,13 +83,13 @@ function StreamlinedActivitySection({group}: {group: Group}) {
   );
 
   const activities = useMemo(() => {
-    const lastSeenActivity = {
+    const lastSeenActivity: GroupActivity = {
       type: GroupActivityType.LAST_SEEN,
       id: uniqueId(),
       dateCreated: group.lastSeen,
       project: group.project,
       data: {},
-    } as GroupActivity;
+    };
 
     const groupActivities = [...group.activity, lastSeenActivity];
     return groupActivities.sort((a, b) => {
