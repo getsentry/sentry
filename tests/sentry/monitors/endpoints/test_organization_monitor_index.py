@@ -30,13 +30,13 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
         ]
 
     def check_valid_environments_response(self, response, monitor, expected_environments):
-        assert {
+        assert [
             monitor_environment.get_environment().name
             for monitor_environment in expected_environments
-        } == {
+        ] == [
             monitor_environment_resp["name"]
             for monitor_environment_resp in monitor.get("environments", [])
-        }
+        ]
 
     def test_simple(self):
         monitor = self._create_monitor()
@@ -209,6 +209,45 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
             self.organization.slug, sort="muted", environment=["prod"], asc="0"
         )
         self.check_valid_response(response, expected)
+
+    def test_environments_sorted(self):
+        last_checkin = datetime.now(UTC) - timedelta(minutes=1)
+
+        monitor = self._create_monitor(
+            status=ObjectStatus.ACTIVE,
+            name="A monitor",
+        )
+        env_error = self._create_monitor_environment(
+            monitor,
+            name="jungle",
+            last_checkin=last_checkin - timedelta(seconds=30),
+            status=MonitorStatus.ERROR,
+        )
+        env_muted = self._create_monitor_environment(
+            monitor,
+            name="tree",
+            last_checkin=last_checkin - timedelta(seconds=45),
+            status=MonitorStatus.OK,
+            is_muted=True,
+        )
+        env_ok_older = self._create_monitor_environment(
+            monitor,
+            name="vines",
+            last_checkin=last_checkin - timedelta(seconds=20),
+            status=MonitorStatus.OK,
+        )
+        env_ok_newer = self._create_monitor_environment(
+            monitor,
+            name="volcano",
+            last_checkin=last_checkin - timedelta(seconds=15),
+            status=MonitorStatus.OK,
+        )
+
+        response = self.get_success_response(self.organization.slug)
+        self.check_valid_response(response, [monitor])
+        self.check_valid_environments_response(
+            response, response.data[0], [env_error, env_ok_newer, env_ok_older, env_muted]
+        )
 
     def test_filter_owners(self):
         user_1 = self.create_user()
