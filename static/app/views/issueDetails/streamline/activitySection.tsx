@@ -13,8 +13,10 @@ import {space} from 'sentry/styles/space';
 import type {NoteType} from 'sentry/types/alerts';
 import type {Group, GroupActivity} from 'sentry/types/group';
 import {GroupActivityType} from 'sentry/types/group';
+import type {Release} from 'sentry/types/release';
 import type {User} from 'sentry/types/user';
 import {uniqueId} from 'sentry/utils/guid';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
 import {useUser} from 'sentry/utils/useUser';
@@ -22,9 +24,21 @@ import {groupActivityTypeIconMapping} from 'sentry/views/issueDetails/streamline
 import getGroupActivityItem from 'sentry/views/issueDetails/streamline/groupActivityItem';
 import {NoteDropdown} from 'sentry/views/issueDetails/streamline/noteDropdown';
 
+export interface GroupRelease {
+  firstRelease: Release;
+  lastRelease: Release;
+}
 function StreamlinedActivitySection({group}: {group: Group}) {
   const organization = useOrganization();
   const {teams} = useTeamsById();
+
+  const {data: groupReleaseData} = useApiQuery<GroupRelease>(
+    [`/organizations/${organization.slug}/issues/${group.id}/first-last-release/`],
+    {
+      staleTime: 30000,
+      gcTime: 30000,
+    }
+  );
 
   const [inputId, setInputId] = useState(uniqueId());
 
@@ -134,7 +148,8 @@ function StreamlinedActivitySection({group}: {group: Group}) {
             organization,
             group.project.id,
             <Author>{authorName}</Author>,
-            teams
+            teams,
+            groupReleaseData
           );
 
           const Icon = groupActivityTypeIconMapping[item.type]?.Component ?? null;
