@@ -3,6 +3,7 @@ import type {Location} from 'history';
 
 import type {Client} from 'sentry/api';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
+import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type EventView from 'sentry/utils/discover/eventView';
 import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
@@ -24,6 +25,7 @@ type Props = {
   eventView: EventView;
   location: Location;
   organization: Organization;
+  selection: PageFilters;
   perPage?: number;
   queryReferrer?: ReplayListQueryReferrer;
 };
@@ -35,6 +37,7 @@ async function fetchReplayList({
   eventView,
   queryReferrer,
   perPage,
+  selection,
 }: Props): Promise<Result> {
   try {
     const path = `/organizations/${organization.slug}/replays/`;
@@ -60,9 +63,11 @@ async function fetchReplayList({
         // we also require a project param otherwise we won't yield results
         queryReferrer,
         project:
-          queryReferrer === 'issueReplays' || queryReferrer === 'transactionReplays'
+          queryReferrer === 'issueReplays'
             ? ALL_ACCESS_PROJECTS
-            : payload.project,
+            : queryReferrer === 'transactionReplays'
+              ? selection.projects
+              : payload.project,
       },
     });
 
