@@ -320,8 +320,8 @@ def _should_report_rage_click_issue(project: Project) -> bool:
 def _get_rage_click_timeout(org_id: int | None) -> int | float:
     """Returns the rage click timeout in milliseconds. Queries Sentry options if org_id is not None."""
     default_timeout = 7000
-    if org_id and org_id in options.get("replay.rage-click.reduced-timeout.org-list"):
-        return options.get("replay.rage-click.reduced-timeout.milliseconds")
+    if org_id and org_id in options.get("replay.rage-click.experimental-timeout.org-id-list"):
+        return options.get("replay.rage-click.experimental-timeout.milliseconds")
     return default_timeout
 
 

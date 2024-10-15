@@ -480,13 +480,13 @@ register(
 )
 # Used for internal dogfooding of a reduced timeout on rage/dead clicks.
 register(
-    "replay.rage-click.reduced-timeout.org-list",
+    "replay.rage-click.experimental-timeout.org-id-list",
     type=Sequence,
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "replay.rage-click.reduced-timeout.milliseconds",
+    "replay.rage-click.experimental-timeout.milliseconds",
     type=Int,
     default=5000,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
