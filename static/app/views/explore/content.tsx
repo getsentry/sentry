@@ -20,13 +20,13 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-
-import {SpanTagsProvider} from './contexts/spanTagsContext';
-import {useResultMode} from './hooks/useResultsMode';
-import {useUserQuery} from './hooks/useUserQuery';
-import {ExploreCharts} from './charts';
-import {ExploreTables} from './tables';
-import {ExploreToolbar} from './toolbar';
+import {ExploreCharts} from 'sentry/views/explore/charts';
+import {SpanTagsProvider} from 'sentry/views/explore/contexts/spanTagsContext';
+import {useDataset} from 'sentry/views/explore/hooks/useDataset';
+import {useResultMode} from 'sentry/views/explore/hooks/useResultsMode';
+import {useUserQuery} from 'sentry/views/explore/hooks/useUserQuery';
+import {ExploreTables} from 'sentry/views/explore/tables';
+import {ExploreToolbar} from 'sentry/views/explore/toolbar';
 
 interface ExploreContentProps {
   location: Location;
@@ -102,8 +102,10 @@ function ExploreContentImpl({}: ExploreContentProps) {
 }
 
 export function ExploreContent(props: ExploreContentProps) {
+  const [dataset] = useDataset();
+
   return (
-    <SpanTagsProvider>
+    <SpanTagsProvider dataset={dataset}>
       <ExploreContentImpl {...props} />
     </SpanTagsProvider>
   );

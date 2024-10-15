@@ -26,7 +26,7 @@ from sentry.conf.types.logging_config import LoggingConfig
 from sentry.conf.types.role_dict import RoleDict
 from sentry.conf.types.sdk_config import ServerSdkConfig
 from sentry.utils import json  # NOQA (used in getsentry config)
-from sentry.utils.celery import crontab_with_minute_jitter
+from sentry.utils.celery import crontab_with_minute_jitter, make_split_task_queues
 from sentry.utils.types import Type, type_from_value
 
 
@@ -346,6 +346,7 @@ MIDDLEWARE: tuple[str, ...] = (
     "sentry.middleware.locale.SentryLocaleMiddleware",
     "sentry.middleware.ratelimit.RatelimitMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
+    "sentry.middleware.devtoolbar.DevToolbarAnalyticsMiddleware",
 )
 
 ROOT_URLCONF = "sentry.conf.urls"
@@ -826,13 +827,25 @@ CELERY_IMPORTS = (
 # tmp(michal): Default configuration for post_process* queues split
 SENTRY_POST_PROCESS_QUEUE_SPLIT_ROUTER: dict[str, Callable[[], str]] = {}
 
+# Enable split queue routing
+CELERY_ROUTES = ("sentry.queue.routers.SplitQueueTaskRouter",)
+
 # Mapping from task names to split queues. This can be used when the
 # task does not have to specify the queue and can rely on Celery to
 # do the routing.
 # Each route has a task name as key and a tuple containing a list of queues
 # and a default one as destination. The default one is used when the
 # rollout option is not active.
-CELERY_SPLIT_QUEUE_TASK_ROUTES: Mapping[str, SplitQueueTaskRoute] = {}
+CELERY_SPLIT_QUEUE_TASK_ROUTES_REGION: Mapping[str, SplitQueueTaskRoute] = {
+    "events.save_event_transaction": {
+        "default_queue": "events.save_event_transaction",
+        "queues_config": {
+            "total": 3,
+            "in_use": 3,
+        },
+    }
+}
+CELERY_SPLIT_TASK_QUEUES_REGION = make_split_task_queues(CELERY_SPLIT_QUEUE_TASK_ROUTES_REGION)
 
 # Mapping from queue name to split queues to be used by SplitQueueRouter.
 # This is meant to be used in those case where we have to specify the
@@ -1259,16 +1272,19 @@ if SILO_MODE == "CONTROL":
     CELERYBEAT_SCHEDULE_FILENAME = os.path.join(tempfile.gettempdir(), "sentry-celerybeat-control")
     CELERYBEAT_SCHEDULE = CELERYBEAT_SCHEDULE_CONTROL
     CELERY_QUEUES = CELERY_QUEUES_CONTROL
+    CELERY_SPLIT_QUEUE_TASK_ROUTES: Mapping[str, SplitQueueTaskRoute] = {}
 
 elif SILO_MODE == "REGION":
     CELERYBEAT_SCHEDULE_FILENAME = os.path.join(tempfile.gettempdir(), "sentry-celerybeat-region")
     CELERYBEAT_SCHEDULE = CELERYBEAT_SCHEDULE_REGION
-    CELERY_QUEUES = CELERY_QUEUES_REGION
+    CELERY_QUEUES = CELERY_QUEUES_REGION + CELERY_SPLIT_TASK_QUEUES_REGION
+    CELERY_SPLIT_QUEUE_TASK_ROUTES = CELERY_SPLIT_QUEUE_TASK_ROUTES_REGION
 
 else:
     CELERYBEAT_SCHEDULE = {**CELERYBEAT_SCHEDULE_CONTROL, **CELERYBEAT_SCHEDULE_REGION}
     CELERYBEAT_SCHEDULE_FILENAME = os.path.join(tempfile.gettempdir(), "sentry-celerybeat")
-    CELERY_QUEUES = CELERY_QUEUES_REGION + CELERY_QUEUES_CONTROL
+    CELERY_QUEUES = CELERY_QUEUES_REGION + CELERY_QUEUES_CONTROL + CELERY_SPLIT_TASK_QUEUES_REGION
+    CELERY_SPLIT_QUEUE_TASK_ROUTES = CELERY_SPLIT_QUEUE_TASK_ROUTES_REGION
 
 for queue in CELERY_QUEUES:
     queue.durable = False
@@ -3135,6 +3151,7 @@ PG_VERSION: str = os.getenv("PG_VERSION") or "14"
 ZERO_DOWNTIME_MIGRATIONS_RAISE_FOR_UNSAFE = True
 ZERO_DOWNTIME_MIGRATIONS_LOCK_TIMEOUT = None
 ZERO_DOWNTIME_MIGRATIONS_STATEMENT_TIMEOUT = None
+ZERO_DOWNTIME_MIGRATIONS_LOCK_TIMEOUT_FORCE = False
 
 if int(PG_VERSION.split(".", maxsplit=1)[0]) < 12:
     # In v0.6 of django-pg-zero-downtime-migrations this settings is deprecated for PostreSQLv12+

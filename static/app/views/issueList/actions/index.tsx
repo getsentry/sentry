@@ -10,6 +10,7 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {Alert} from 'sentry/components/alert';
 import Checkbox from 'sentry/components/checkbox';
+import IssueStreamHeaderLabel from 'sentry/components/IssueStreamHeaderLabel';
 import {Sticky} from 'sentry/components/sticky';
 import {t, tct, tn} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
@@ -22,6 +23,7 @@ import type {Group} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {uniq} from 'sentry/utils/array/uniq';
+import {useBreakpoints} from 'sentry/utils/metrics/useBreakpoints';
 import {useQueryClient} from 'sentry/utils/queryClient';
 import theme from 'sentry/utils/theme';
 import useApi from 'sentry/utils/useApi';
@@ -99,10 +101,14 @@ function ActionsBarPriority({
   sort: string;
   statsPeriod: string;
 }) {
+  const organization = useOrganization();
   const shouldDisplayActions = anySelected && !narrowViewport;
+  const screen = useBreakpoints();
 
   return (
-    <ActionsBarContainer>
+    <ActionsBarContainer
+      narrowHeader={organization.features.includes('issue-stream-table-layout')}
+    >
       {!narrowViewport && (
         <ActionsCheckbox isReprocessingQuery={displayReprocessingActions}>
           <Checkbox
@@ -115,7 +121,7 @@ function ActionsBarPriority({
       )}
       {!displayReprocessingActions && (
         <AnimatePresence initial={false} mode="wait">
-          {shouldDisplayActions && (
+          {shouldDisplayActions ? (
             <HeaderButtonsWrapper key="actions" {...animationProps}>
               <ActionSet
                 queryCount={queryCount}
@@ -133,8 +139,13 @@ function ActionsBarPriority({
                 onUpdate={handleUpdate}
               />
             </HeaderButtonsWrapper>
-          )}
-          {!anySelected && (
+          ) : organization.features.includes('issue-stream-table-layout') ? (
+            <NarrowHeaderButtonsWrapper>
+              <IssueStreamHeaderLabel>{t('Issue')}</IssueStreamHeaderLabel>
+              {/* Ideally we could use a smaller option, xxsmall */}
+              {screen.xsmall && <HeaderDivider />}
+            </NarrowHeaderButtonsWrapper>
+          ) : (
             <HeaderButtonsWrapper key="sort" {...animationProps}>
               <IssueListSortOptions sort={sort} query={query} onSelect={onSortChange} />
             </HeaderButtonsWrapper>
@@ -153,11 +164,13 @@ function ActionsBarPriority({
             />
           </AnimatedHeaderItemsContainer>
         ) : (
-          <motion.div key="sort" {...animationProps}>
-            <SortDropdownMargin>
-              <IssueListSortOptions sort={sort} query={query} onSelect={onSortChange} />
-            </SortDropdownMargin>
-          </motion.div>
+          !organization.features.includes('issue-stream-table-layout') && (
+            <motion.div key="sort" {...animationProps}>
+              <SortDropdownMargin>
+                <IssueListSortOptions sort={sort} query={query} onSelect={onSortChange} />
+              </SortDropdownMargin>
+            </motion.div>
+          )
         )}
       </AnimatePresence>
     </ActionsBarContainer>
@@ -390,7 +403,7 @@ function IssueListActions({
         onSelectStatsPeriod={onSelectStatsPeriod}
       />
       {!allResultsVisible && pageSelected && (
-        <Alert type="warning" system>
+        <StyledAlert type="warning" system>
           <SelectAllNotice data-test-id="issue-list-select-all-notice">
             {allInQuerySelected ? (
               queryCount >= BULK_LIMIT ? (
@@ -430,7 +443,7 @@ function IssueListActions({
               </Fragment>
             )}
           </SelectAllNotice>
-        </Alert>
+        </StyledAlert>
       )}
     </StickyActions>
   );
@@ -493,6 +506,12 @@ function shouldConfirm(
   }
 }
 
+export const HeaderDivider = styled(motion.div)`
+  background-color: ${p => p.theme.gray200};
+  width: 1px;
+  border-radius: ${p => p.theme.borderRadius};
+`;
+
 const StickyActions = styled(Sticky)`
   z-index: ${p => p.theme.zIndex.issuesList.stickyHeader};
 
@@ -501,19 +520,20 @@ const StickyActions = styled(Sticky)`
   &[data-stuck] > div {
     border-radius: 0;
   }
-`;
 
-const ActionsBarContainer = styled('div')`
-  display: flex;
-  min-height: 45px;
-  padding-top: ${space(1)};
-  padding-bottom: ${space(1)};
-  align-items: center;
-  background: ${p => p.theme.backgroundSecondary};
-  border: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.border};
   border-top: none;
   border-radius: ${p => p.theme.panelBorderRadius} ${p => p.theme.panelBorderRadius} 0 0;
-  margin: 0 -1px -1px;
+`;
+
+const ActionsBarContainer = styled('div')<{narrowHeader: boolean}>`
+  display: flex;
+  min-height: ${p => (p.narrowHeader ? '36px' : '45px')};
+  padding-top: ${p => (p.narrowHeader ? space(0.5) : space(1))};
+  padding-bottom: ${p => (p.narrowHeader ? space(0.5) : space(1))};
+  align-items: center;
+  background: ${p => p.theme.backgroundSecondary};
+  border-radius: ${p => p.theme.panelBorderRadius} ${p => p.theme.panelBorderRadius} 0 0;
 `;
 
 const ActionsCheckbox = styled('div')<{isReprocessingQuery: boolean}>`
@@ -534,6 +554,20 @@ const HeaderButtonsWrapper = styled(motion.div)`
   gap: ${space(0.5)};
   grid-auto-flow: column;
   justify-content: flex-start;
+  white-space: nowrap;
+`;
+
+const NarrowHeaderButtonsWrapper = styled(motion.div)`
+  @media (min-width: ${p => p.theme.breakpoints.large}) {
+    width: 50%;
+  }
+  flex: 1;
+  margin-left: ${space(1)};
+  margin-right: ${space(2)};
+  display: grid;
+  gap: ${space(0.5)};
+  grid-auto-flow: column;
+  justify-content: space-between;
   white-space: nowrap;
 `;
 
@@ -559,6 +593,12 @@ const SortDropdownMargin = styled('div')`
 const AnimatedHeaderItemsContainer = styled(motion.div)`
   display: flex;
   align-items: center;
+  line-height: 1.6;
+`;
+
+const StyledAlert = styled(Alert)`
+  margin-bottom: 0;
+  border-bottom: none;
 `;
 
 export {IssueListActions};

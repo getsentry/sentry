@@ -1217,7 +1217,12 @@ class IssueListOverview extends Component<Props, State> {
           <StyledBody>
             <StyledMain>
               <IssuesDataConsentBanner source="issues" />
-              <IssueListFilters query={query} onSearch={this.onSearch} />
+              <IssueListFilters
+                query={query}
+                sort={this.getSort()}
+                onSortChange={this.onSortChange}
+                onSearch={this.onSearch}
+              />
               <IssueListTable
                 selection={selection}
                 query={query}

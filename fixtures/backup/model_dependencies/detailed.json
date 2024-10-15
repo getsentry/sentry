@@ -1407,6 +1407,28 @@
       ]
     ]
   },
+  "sentry.dashboardpermissions": {
+    "dangling": false,
+    "foreign_keys": {
+      "dashboard": {
+        "kind": "DefaultOneToOneField",
+        "model": "sentry.dashboard",
+        "nullable": false
+      }
+    },
+    "model": "sentry.dashboardpermissions",
+    "relocation_dependencies": [],
+    "relocation_scope": "Organization",
+    "silos": [
+      "Region"
+    ],
+    "table_name": "sentry_dashboardpermissions",
+    "uniques": [
+      [
+        "dashboard"
+      ]
+    ]
+  },
   "sentry.dashboardproject": {
     "dangling": false,
     "foreign_keys": {

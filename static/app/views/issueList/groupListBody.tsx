@@ -1,4 +1,5 @@
 import type {IndexedMembersByProject} from 'sentry/actionCreators/members';
+import type {GroupListColumn} from 'sentry/components/issues/groupList';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PanelBody from 'sentry/components/panels/panelBody';
@@ -92,6 +93,7 @@ function GroupList({
   groupStatsPeriod,
   onActionTaken,
 }: GroupListProps) {
+  const organization = useOrganization();
   const [isSavedSearchesOpen] = useSyncedLocalStorageState(
     SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY,
     false
@@ -102,6 +104,18 @@ function GroupList({
       isSavedSearchesOpen ? theme.breakpoints.xlarge : theme.breakpoints.medium
     })`
   );
+
+  const columns: GroupListColumn[] = [
+    'graph',
+    ...(organization.features.includes('issue-stream-table-layout')
+      ? ['firstSeen' as const, 'lastSeen' as const]
+      : []),
+    'event',
+    'users',
+    'priority',
+    'assignee',
+    'lastTriggered',
+  ];
 
   return (
     <PanelBody>
@@ -123,6 +137,7 @@ function GroupList({
             canSelect={canSelect}
             narrowGroups={isSavedSearchesOpen}
             onPriorityChange={priority => onActionTaken([id], {priority})}
+            withColumns={columns}
           />
         );
       })}

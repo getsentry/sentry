@@ -2,6 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {act, render} from 'sentry-test/reactTestingLibrary';
 
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useGroupBys} from 'sentry/views/explore/hooks/useGroupBys';
 import {useResultMode} from 'sentry/views/explore/hooks/useResultsMode';
 import {useSampleFields} from 'sentry/views/explore/hooks/useSampleFields';
@@ -30,7 +31,7 @@ describe('useResultMode', function () {
     }
 
     render(
-      <SpanTagsProvider>
+      <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP}>
         <TestPage />
       </SpanTagsProvider>,
       {disableRouterMocks: true}
@@ -38,8 +39,8 @@ describe('useResultMode', function () {
 
     expect(resultMode).toEqual('samples'); // default
     expect(sampleFields).toEqual([
+      'span_id',
       'project',
-      'id',
       'span.op',
       'span.description',
       'span.duration',
@@ -55,8 +56,8 @@ describe('useResultMode', function () {
     expect(resultMode).toEqual('samples');
 
     expect(sampleFields).toEqual([
+      'span_id',
       'project',
-      'id',
       'span.op',
       'span.description',
       'span.duration',

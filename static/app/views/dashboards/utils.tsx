@@ -137,7 +137,7 @@ export function hasThresholdMaxValue(thresholdsConfig: ThresholdsConfig): boolea
   return Object.keys(thresholdsConfig.max_values).length > 0;
 }
 
-function normalizeUnit(value: number, unit: string, dataType: string): number {
+export function normalizeUnit(value: number, unit: string, dataType: string): number {
   const multiplier =
     dataType === 'rate'
       ? RATE_UNIT_MULTIPLIERS[unit]

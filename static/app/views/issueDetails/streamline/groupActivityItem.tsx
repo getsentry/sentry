@@ -395,8 +395,8 @@ export default function getGroupActivityItem(
         const {data} = activity;
         const {pullRequest} = data;
         return {
-          title: t('Resolved'),
-          message: tct('[author] has created a PR for this issue: [pullRequest]', {
+          title: t('Pull Request Created'),
+          message: tct(' by [author]: [pullRequest]', {
             author,
             pullRequest: pullRequest ? (
               <PullRequestLink
@@ -580,7 +580,6 @@ export default function getGroupActivityItem(
           return {
             title: t('First Seen'),
             message: tct('Marked as [priority] priority', {
-              author,
               priority: activity.data.priority,
             }),
           };
