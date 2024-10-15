@@ -478,6 +478,19 @@ register(
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Used for internal dogfooding of a reduced timeout on rage/dead clicks.
+register(
+    "replay.rage-click.reduced-timeout.org-list",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "replay.rage-click.reduced-timeout.milliseconds",
+    type=Int,
+    default=5000,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # User Feedback Options
 register(
