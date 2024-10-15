@@ -1,3 +1,5 @@
+import pytest
+
 from sentry.models.rule import Rule
 from sentry.projects.project_rules.creator import ProjectRuleCreator
 from sentry.testutils.cases import TestCase
@@ -61,3 +63,7 @@ class TestProjectRuleCreator(TestCase):
             "filter_match": "any",
             "frequency": 5,
         }
+
+    def test_error_missing_fields(self):
+        with pytest.raises(TypeError):
+            ProjectRuleCreator(frequency=2).run()
