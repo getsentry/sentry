@@ -4,7 +4,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext';
-import {NewSidebar} from 'sentry/components/onboardingWizard/newSidebar';
+import {NewOnboardingSidebar} from 'sentry/components/onboardingWizard/newSidebar';
 import OnboardingSidebar from 'sentry/components/onboardingWizard/sidebar';
 import {getMergedTasks} from 'sentry/components/onboardingWizard/taskConfig';
 import {hasQuickStartUpdatesFeature} from 'sentry/components/onboardingWizard/utils';
@@ -129,7 +129,7 @@ export default function OnboardingStatus({
       </Container>
       {isActive &&
         (hasQuickStartUpdatesFeature(org) ? (
-          <NewSidebar
+          <NewOnboardingSidebar
             orientation={orientation}
             collapsed={collapsed}
             onClose={hidePanel}

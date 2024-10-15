@@ -132,7 +132,7 @@ interface NewSidebarProps extends Pick<CommonSidebarProps, 'orientation' | 'coll
   onClose: () => void;
 }
 
-export function NewSidebar({onClose, orientation, collapsed}: NewSidebarProps) {
+export function NewOnboardingSidebar({onClose, orientation, collapsed}: NewSidebarProps) {
   const walkthrough = isDemoWalkthrough();
   const {title, description} = getPanelDescription(walkthrough);
 
