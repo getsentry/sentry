@@ -1,7 +1,7 @@
 import type {Flags} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 
-const DEFAULT_BUFFER_SIZE = 10;
+const DEFAULT_BUFFER_SIZE = 100;
 let __SINGLETON: FeatureObserver | null = null;
 
 export default class FeatureObserver {
