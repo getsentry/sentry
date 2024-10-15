@@ -65,6 +65,8 @@ export function OverviewRow({
     ? monitor.environments
     : monitor.environments.slice(0, MAX_SHOWN_ENVIRONMENTS);
 
+  environments.sort((a, b) => a.name.localeCompare(b.name));
+
   const isDisabled = monitor.status === 'disabled';
 
   const monitorDetails = singleMonitorView ? null : (
