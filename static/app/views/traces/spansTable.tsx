@@ -78,7 +78,7 @@ export function SpanTable({
     metricsQuery: hasMetric ? metricsQuery : undefined,
   });
 
-  const isLoading = spansQuery.isFetching;
+  const isLoading = spansQuery.isPending;
   const isError = !isLoading && spansQuery.isError;
   const hasData = !isLoading && !isError && (spansQuery?.data?.data?.length ?? 0) > 0;
   const spans = spansQuery.data?.data ?? [];

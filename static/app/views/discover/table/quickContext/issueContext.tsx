@@ -159,7 +159,7 @@ function IssueContext(props: BaseContextProps) {
     issue && (
       <SuspectCommitsContainer data-test-id="quick-context-suspect-commits-container">
         <SuspectCommits
-          project={issue.project}
+          projectSlug={issue.project.slug}
           eventId={event.eventID}
           commitRow={QuickContextCommitRow}
         />

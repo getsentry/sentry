@@ -23,6 +23,7 @@ import {
   FieldKey,
   FieldKind,
   IsFieldValues,
+  ISSUE_EVENT_FIELDS_THAT_MAY_CONFLICT_WITH_TAGS,
   ISSUE_EVENT_PROPERTY_FIELDS,
   ISSUE_FIELDS,
   ISSUE_PROPERTY_FIELDS,
@@ -53,6 +54,29 @@ const PREDEFINED_FIELDS = {
 
 // "environment" is excluded because it should be handled by the environment page filter
 const EXCLUDED_TAGS = ['environment'];
+
+/**
+ * Certain field keys may conflict with custom tags. In this case, the tag will be
+ * renamed, e.g. `platform` -> `tags[platform]`
+ */
+const renameConflictingTags = (tags: TagCollection): TagCollection => {
+  const renamedTags: TagCollection = {};
+
+  for (const [key, tag] of Object.entries(tags)) {
+    if (ISSUE_EVENT_FIELDS_THAT_MAY_CONFLICT_WITH_TAGS.has(key as FieldKey)) {
+      const newKey = `tags[${key}]`;
+      renamedTags[newKey] = {
+        ...tag,
+        key: newKey,
+        name: newKey,
+      };
+    } else {
+      renamedTags[key] = tag;
+    }
+  }
+
+  return renamedTags;
+};
 
 /**
  * Fetches the tags from both the Errors and IssuePlatform dataset
@@ -146,13 +170,15 @@ export const useFetchIssueTags = ({
       delete allTagsCollection[excludedTag];
     }
 
-    const additionalTags = builtInIssuesFields(allTagsCollection, assignedValues, [
+    const renamedTags = renameConflictingTags(allTagsCollection);
+
+    const additionalTags = builtInIssuesFields(renamedTags, assignedValues, [
       'me',
       ...usernames,
     ]);
 
     return {
-      ...allTagsCollection,
+      ...renamedTags,
       ...additionalTags,
     };
   }, [eventsTagsQuery.data, issuePlatformTagsQuery.data, members, teams]);
