@@ -41,12 +41,12 @@ class SentryAppAuthorizationsEndpoint(SentryAppAuthorizationsBaseEndpoint):
                     user=promote_request_api_user(request),
                 )
             elif request.json_body.get("grant_type") == GrantTypes.REFRESH:
-                token = Refresher.run(
+                token = Refresher(
                     install=installation,
                     refresh_token=request.json_body.get("refresh_token"),
                     client_id=request.json_body.get("client_id"),
                     user=promote_request_api_user(request),
-                )
+                ).run()
             else:
                 return Response({"error": "Invalid grant_type"}, status=403)
         except APIUnauthorized as e:

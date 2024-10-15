@@ -1,4 +1,3 @@
-from ...sentry_apps.token_exchange.refresher import Refresher  # NOQA
 from .grant_exchanger import GrantExchanger  # NOQA
 from .util import AUTHORIZATION, REFRESH, GrantTypes, token_expiration  # NOQA
 from .validator import Validator  # NOQA
