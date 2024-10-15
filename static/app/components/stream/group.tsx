@@ -734,9 +734,22 @@ const Wrapper = styled(PanelItem)<{
       padding: ${space(1)} 0;
       min-height: 66px;
 
+      /* Adds underline to issue title when active  */
+      &:hover {
+        [data-issue-title-primary] {
+          text-decoration: underline;
+        }
+      }
+
       /* Disables the hover effect when hovering over dropdown buttons and checkboxes */
-      &:has(button:hover, input:hover, [data-overlay]:hover) [data-layer] {
-        display: none;
+      &:has(button:hover, input:hover, [data-overlay]:hover) {
+        [data-layer] {
+          display: none;
+        }
+
+        [data-issue-title-primary] {
+          text-decoration: none;
+        }
       }
     `}
 
