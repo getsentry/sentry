@@ -11,7 +11,7 @@ import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {space} from 'sentry/styles/space';
 import type {NoteType} from 'sentry/types/alerts';
-import type {Group, GroupActivity, GroupActivityLastSeen} from 'sentry/types/group';
+import type {Group, GroupActivity} from 'sentry/types/group';
 import {GroupActivityType} from 'sentry/types/group';
 import type {User} from 'sentry/types/user';
 import {uniqueId} from 'sentry/utils/guid';
@@ -87,9 +87,12 @@ function StreamlinedActivitySection({group}: {group: Group}) {
       type: GroupActivityType.LAST_SEEN,
       id: uniqueId(),
       dateCreated: group.lastSeen,
-    } as GroupActivityLastSeen;
+      project: group.project,
+      data: {},
+    } as GroupActivity;
 
-    return [...group.activity, lastSeenActivity].sort((a, b) => {
+    const groupActivities = [...group.activity, lastSeenActivity];
+    return groupActivities.sort((a, b) => {
       const dateA = new Date(a.dateCreated).getTime();
       const dateB = new Date(b.dateCreated).getTime();
       if (
@@ -107,7 +110,7 @@ function StreamlinedActivitySection({group}: {group: Group}) {
 
       return dateB - dateA;
     });
-  }, [group.activity, group.lastSeen]);
+  }, [group.activity, group.lastSeen, group.project]);
 
   return (
     <Fragment>

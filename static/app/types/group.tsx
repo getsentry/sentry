@@ -485,7 +485,8 @@ interface GroupActivityFirstSeen extends GroupActivityBase {
   type: GroupActivityType.FIRST_SEEN;
 }
 
-export interface GroupActivityLastSeen extends GroupActivityBase {
+interface GroupActivityLastSeen extends GroupActivityBase {
+  data: Record<string, any>;
   type: GroupActivityType.LAST_SEEN;
 }
 
