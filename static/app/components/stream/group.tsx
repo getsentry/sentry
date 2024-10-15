@@ -1,5 +1,4 @@
 import {Fragment, useCallback, useMemo, useRef} from 'react';
-import type {Theme} from '@emotion/react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
@@ -49,6 +48,7 @@ import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useMutation} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import withOrganization from 'sentry/utils/withOrganization';
 import type {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
@@ -92,8 +92,10 @@ function GroupCheckbox({
   group: Group;
   displayReprocessingLayout?: boolean;
 }) {
+  const organization = useOrganization();
   const {records: selectedGroupMap} = useLegacyStore(SelectedGroupStore);
   const isSelected = selectedGroupMap.get(group.id) ?? false;
+  const hasNewLayout = organization.features.includes('issue-stream-table-layout');
 
   const onChange = useCallback(
     (evt: React.ChangeEvent<HTMLInputElement>) => {
@@ -109,7 +111,7 @@ function GroupCheckbox({
   );
 
   return (
-    <GroupCheckBoxWrapper>
+    <GroupCheckBoxWrapper hasNewLayout={hasNewLayout}>
       <Checkbox
         id={group.id}
         aria-label={t('Select Issue')}
@@ -165,6 +167,7 @@ function BaseGroupRow({
   );
   const originalInboxState = useRef(group?.inbox as InboxDetails | null);
   const {selection} = usePageFilters();
+  const hasNewLayout = organization.features.includes('issue-stream-table-layout');
 
   const referrer = source ? `${source}-issue-stream` : 'issue-stream';
 
@@ -439,9 +442,20 @@ function BaseGroupRow({
           </CountTooltipContent>
         }
       >
-        <PrimaryCount value={primaryCount} />
-        {secondaryCount !== undefined && useFilteredStats && (
-          <SecondaryCount value={secondaryCount} />
+        {hasNewLayout ? (
+          <CountsWrapper>
+            <PrimaryCount value={primaryCount} hasNewLayout={hasNewLayout} />
+            {secondaryCount !== undefined && useFilteredStats && (
+              <SecondaryCount value={secondaryCount} hasNewLayout={hasNewLayout} />
+            )}
+          </CountsWrapper>
+        ) : (
+          <Fragment>
+            <PrimaryCount value={primaryCount} />
+            {secondaryCount !== undefined && useFilteredStats && (
+              <SecondaryCount value={secondaryCount} />
+            )}
+          </Fragment>
         )}
       </Tooltip>
     </GuideAnchor>
@@ -479,9 +493,20 @@ function BaseGroupRow({
         </CountTooltipContent>
       }
     >
-      <PrimaryCount value={primaryUserCount} />
-      {secondaryUserCount !== undefined && useFilteredStats && (
-        <SecondaryCount dark value={secondaryUserCount} />
+      {hasNewLayout ? (
+        <CountsWrapper>
+          <PrimaryCount value={primaryUserCount} hasNewLayout={hasNewLayout} />
+          {secondaryUserCount !== undefined && useFilteredStats && (
+            <SecondaryCount value={secondaryUserCount} hasNewLayout={hasNewLayout} />
+          )}
+        </CountsWrapper>
+      ) : (
+        <Fragment>
+          <PrimaryCount value={primaryUserCount} />
+          {secondaryUserCount !== undefined && useFilteredStats && (
+            <SecondaryCount value={secondaryUserCount} />
+          )}
+        </Fragment>
       )}
     </Tooltip>
   );
@@ -510,6 +535,7 @@ function BaseGroupRow({
       onClick={displayReprocessingLayout || !canSelect ? undefined : wrapperToggle}
       reviewed={reviewed}
       useTintRow={useTintRow ?? true}
+      hasNewLayout={hasNewLayout}
     >
       {canSelect && (
         <GroupCheckbox
@@ -517,7 +543,7 @@ function BaseGroupRow({
           displayReprocessingLayout={displayReprocessingLayout}
         />
       )}
-      <GroupSummary canSelect={canSelect}>
+      <GroupSummary canSelect={canSelect} hasNewLayout={hasNewLayout}>
         <EventOrGroupHeader
           index={index}
           organization={organization}
@@ -525,17 +551,14 @@ function BaseGroupRow({
           query={query}
           source={referrer}
         />
-        <EventOrGroupExtraDetails
-          data={group}
-          showLifetime={!organization.features.includes('issue-stream-table-layout')}
-        />
+        <EventOrGroupExtraDetails data={group} showLifetime={!hasNewLayout} />
       </GroupSummary>
       {hasGuideAnchor && issueStreamAnchor}
 
       {withChart &&
       !displayReprocessingLayout &&
       issueTypeConfig.stats.enabled &&
-      organization.features.includes('issue-stream-table-layout') ? (
+      hasNewLayout ? (
         <NarrowChartWrapper breakpoint={COLUMN_BREAKPOINTS.TREND}>
           <GroupStatusChart
             hideZeros
@@ -579,9 +602,9 @@ function BaseGroupRow({
           )}
           {withColumns.includes('event') &&
           issueTypeConfig.stats.enabled &&
-          organization.features.includes('issue-stream-table-layout') ? (
+          hasNewLayout ? (
             <NarrowEventsOrUsersCountsWrapper breakpoint={COLUMN_BREAKPOINTS.EVENTS}>
-              <div style={{marginRight: space(2)}}>{groupCount}</div>
+              <InnerCountsWrapper>{groupCount}</InnerCountsWrapper>
             </NarrowEventsOrUsersCountsWrapper>
           ) : (
             <EventCountsWrapper
@@ -592,15 +615,15 @@ function BaseGroupRow({
           )}
           {withColumns.includes('users') &&
           issueTypeConfig.stats.enabled &&
-          organization.features.includes('issue-stream-table-layout') ? (
+          hasNewLayout ? (
             <NarrowEventsOrUsersCountsWrapper breakpoint={COLUMN_BREAKPOINTS.USERS}>
-              <div style={{marginRight: space(2)}}>{groupUsersCount}</div>
+              <InnerCountsWrapper>{groupUsersCount}</InnerCountsWrapper>
             </NarrowEventsOrUsersCountsWrapper>
           ) : (
             <EventCountsWrapper>{groupUsersCount}</EventCountsWrapper>
           )}
           {withColumns.includes('priority') ? (
-            organization.features.includes('issue-stream-table-layout') ? (
+            hasNewLayout ? (
               <NarrowPriorityWrapper breakpoint={COLUMN_BREAKPOINTS.PRIORITY}>
                 {group.priority ? (
                   <GroupPriority group={group} onChange={onPriorityChange} />
@@ -615,7 +638,7 @@ function BaseGroupRow({
             )
           ) : null}
           {withColumns.includes('assignee') &&
-            (organization.features.includes('issue-stream-table-layout') ? (
+            (hasNewLayout ? (
               <NarrowAssigneeWrapper breakpoint={COLUMN_BREAKPOINTS.ASSIGNEE}>
                 <AssigneeSelector
                   group={group}
@@ -647,12 +670,20 @@ export default StreamGroup;
 
 // Position for wrapper is relative for overlay actions
 const Wrapper = styled(PanelItem)<{
+  hasNewLayout: boolean;
   reviewed: boolean;
   useTintRow: boolean;
 }>`
   position: relative;
   padding: ${space(1.5)} 0;
   line-height: 1.1;
+
+  ${p =>
+    p.hasNewLayout &&
+    css`
+      padding: ${space(1)} 0;
+      min-height: 66px;
+    `}
 
   ${p =>
     p.useTintRow &&
@@ -690,49 +721,78 @@ const Wrapper = styled(PanelItem)<{
     `};
 `;
 
-const GroupSummary = styled('div')<{canSelect: boolean}>`
+const GroupSummary = styled('div')<{canSelect: boolean; hasNewLayout: boolean}>`
   overflow: hidden;
   margin-left: ${p => space(p.canSelect ? 1 : 2)};
-  margin-right: ${space(1)};
+  margin-right: ${p => (p.hasNewLayout ? space(2) : space(1))};
   flex: 1;
   width: 66.66%;
+
+  ${p =>
+    p.hasNewLayout &&
+    css`
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      font-size: ${p.theme.fontSizeMedium};
+    `}
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
     width: 50%;
   }
 `;
 
-const GroupCheckBoxWrapper = styled('div')`
+const GroupCheckBoxWrapper = styled('div')<{hasNewLayout: boolean}>`
   margin-left: ${space(2)};
   align-self: flex-start;
   height: 15px;
   display: flex;
   align-items: center;
+
+  ${p =>
+    p.hasNewLayout &&
+    css`
+      padding-top: ${space(2)};
+    `}
 `;
 
-const primaryStatStyle = (theme: Theme) => css`
-  font-size: ${theme.fontSizeLarge};
+const CountsWrapper = styled('div')`
+  display: flex;
+  flex-direction: column;
+`;
+
+const PrimaryCount = styled(Count)<{hasNewLayout?: boolean}>`
+  font-size: ${p => (p.hasNewLayout ? p.theme.fontSizeMedium : p.theme.fontSizeLarge)};
+  ${p =>
+    p.hasNewLayout &&
+    `
+    display: flex;
+    justify-content: right;
+    margin-bottom: ${space(0.25)};
+  `}
   font-variant-numeric: tabular-nums;
 `;
 
-const PrimaryCount = styled(Count)`
-  ${p => primaryStatStyle(p.theme)};
-`;
+const SecondaryCount = styled(({value, ...p}) => <Count {...p} value={value} />)<{
+  hasNewLayout?: boolean;
+}>`
+  font-size: ${p => (p.hasNewLayout ? p.theme.fontSizeSmall : p.theme.fontSizeLarge)};
+  ${p =>
+    p.hasNewLayout &&
+    css`
+      display: flex;
+      justify-content: right;
+      color: ${p.theme.subText};
+    `}
 
-const secondaryStatStyle = (theme: Theme) => css`
-  font-size: ${theme.fontSizeLarge};
   font-variant-numeric: tabular-nums;
 
   :before {
     content: '/';
     padding-left: ${space(0.25)};
     padding-right: 2px;
-    color: ${theme.gray300};
+    color: ${p => p.theme.gray300};
   }
-`;
-
-const SecondaryCount = styled(({value, ...p}) => <Count {...p} value={value} />)`
-  ${p => secondaryStatStyle(p.theme)}
 `;
 
 const CountTooltipContent = styled('div')`
@@ -794,6 +854,10 @@ const NarrowEventsOrUsersCountsWrapper = styled('div')<{breakpoint: string}>`
   @media (max-width: ${p => p.breakpoint}) {
     display: none;
   }
+`;
+
+const InnerCountsWrapper = styled('div')`
+  margin-right: ${space(2)};
 `;
 
 const EventCountsWrapper = styled('div')<{leftMargin?: string}>`

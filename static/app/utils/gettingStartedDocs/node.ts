@@ -29,7 +29,7 @@ export function getInstallSnippet({
   additionalPackages = [],
   basePackage = '@sentry/node',
 }: {
-  packageManager: 'npm' | 'yarn';
+  packageManager: 'npm' | 'yarn' | 'pnpm';
   params: DocsParams;
   additionalPackages?: string[];
   basePackage?: string;
@@ -40,9 +40,15 @@ export function getInstallSnippet({
   }
   packages = packages.concat(additionalPackages);
 
-  return packageManager === 'yarn'
-    ? `yarn add ${packages.join(' ')}`
-    : `npm install --save ${packages.join(' ')}`;
+  if (packageManager === 'yarn') {
+    return `yarn add ${packages.join(' ')}`;
+  }
+
+  if (packageManager === 'pnpm') {
+    return `pnpm add ${packages.join(' ')}`;
+  }
+
+  return `npm install ${packages.join(' ')} --save`;
 }
 
 export function getInstallConfig(
@@ -77,6 +83,17 @@ export function getInstallConfig(
             params,
             additionalPackages,
             packageManager: 'yarn',
+            basePackage,
+          }),
+        },
+        {
+          label: 'pnpm',
+          value: 'pnpm',
+          language: 'bash',
+          code: getInstallSnippet({
+            params,
+            additionalPackages,
+            packageManager: 'pnpm',
             basePackage,
           }),
         },

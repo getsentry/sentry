@@ -32,6 +32,7 @@ from sentry.organizations.services.organization.service import organization_serv
 from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiHostError,
+    ApiRateLimitedError,
     ApiUnauthorized,
     IntegrationError,
     IntegrationFormError,
@@ -41,6 +42,7 @@ from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils.strings import truncatechars
 
+from ...api.exceptions import ResourceDoesNotExist
 from .client import JiraCloudClient
 from .models.create_issue_metadata import JIRA_CUSTOM_FIELD_TYPES
 from .utils import build_user_choice
@@ -115,6 +117,8 @@ CUSTOM_ERROR_MESSAGE_MATCHERS = [(re.compile("Team with id '.*' not found.$"), "
 # a valid link (e.g. "is blocked by ISSUE-1").
 HIDDEN_ISSUE_FIELDS = ["issuelinks"]
 
+JIRA_PROJECT_SIZE_LOGGING_THRESHOLD = 5
+
 
 class JiraIntegration(IssueSyncIntegration):
     comment_key = "sync_comments"
@@ -145,8 +149,7 @@ class JiraIntegration(IssueSyncIntegration):
                     "items": [],  # Populated with projects
                 },
                 "mappedSelectors": {
-                    "on_resolve": {"choices": [], "placeholder": _("Select a status")},
-                    "on_unresolve": {"choices": [], "placeholder": _("Select a status")},
+                    # Populated on a per-project basis below
                 },
                 "columnLabels": {
                     "on_resolve": _("When resolved"),
@@ -154,6 +157,7 @@ class JiraIntegration(IssueSyncIntegration):
                 },
                 "mappedColumnLabel": _("Jira Project"),
                 "formatMessageValue": False,
+                "perItemMapping": True,
             },
             {
                 "name": self.outbound_assignee_key,
@@ -211,13 +215,59 @@ class JiraIntegration(IssueSyncIntegration):
 
         client = self.get_client()
 
-        try:
-            statuses = [(c["id"], c["name"]) for c in client.get_valid_statuses()]
-            configuration[0]["mappedSelectors"]["on_resolve"]["choices"] = statuses
-            configuration[0]["mappedSelectors"]["on_unresolve"]["choices"] = statuses
+        logging_context: dict[str, Any] = {}
 
+        if not self.org_integration:
+            raise ResourceDoesNotExist()
+
+        logging_context["org_integration_id"] = self.org_integration.id
+        logging_context["integration_id"] = self.org_integration.integration_id
+
+        try:
             projects = [{"value": p["id"], "label": p["name"]} for p in client.get_projects_list()]
             configuration[0]["addDropdown"]["items"] = projects
+
+            # We need to monitor if we're getting a large volume of requests
+            # with a significant number of projects. Issuing 5 requests or more
+            # per configuration load is something we may need to address via
+            # a bulk query.
+
+            # Jira's API supports querying all available statuses, along with
+            # their project and workflow usages, but this is paginated and may
+            # have many of the same query concerns depending on how many
+            # statuses are defined within the Jira organization.
+
+            logging_context["num_projects"] = len(projects)
+            if len(projects) > JIRA_PROJECT_SIZE_LOGGING_THRESHOLD:
+                logger.info(
+                    "excessive_project_status_requests",
+                    extra={
+                        **logging_context,
+                    },
+                )
+            # Each project can have a different set of statuses assignable for
+            # issues, so we need to create per-project mappings.
+            for proj in projects:
+                project_id = proj["value"]
+                project_statuses = client.get_project_statuses(project_id).get("values")
+                if not project_statuses:
+                    continue
+
+                statuses_for_project = [(c["id"], c["name"]) for c in project_statuses]
+
+                configuration[0]["mappedSelectors"][project_id] = {
+                    "on_resolve": {
+                        "choices": statuses_for_project,
+                        "placeholder": _("Select a status"),
+                    },
+                    "on_unresolve": {
+                        "choices": statuses_for_project,
+                        "placeholder": _("Select a status"),
+                    },
+                }
+        except ApiRateLimitedError:
+            logger.warning("config_query_rate_limited", extra={**logging_context})
+            raise
         except ApiError:
             configuration[0]["disabled"] = True
             configuration[0]["disabledReason"] = _(
