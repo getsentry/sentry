@@ -3,48 +3,56 @@ import {
   DATA_TYPE as RESOURCE_DATA_TYPE,
   DATA_TYPE_PLURAL as RESOURCE_DATA_TYPE_PLURAL,
   MODULE_DOC_LINK as RESOURCES_MODULE_DOC_LINK,
+  MODULE_FEATURES as RESOURCE_MODULE_FEATURES,
   MODULE_TITLE as RESOURCES_MODULE_TITLE,
 } from 'sentry/views/insights/browser/resources/settings';
 import {
   DATA_TYPE as WEB_VITALS_DATA_TYPE,
   DATA_TYPE_PLURAL as WEB_VITALS_DATA_TYPE_PLURAL,
   MODULE_DOC_LINK as VITALS_MODULE_DOC_LINK,
+  MODULE_FEATURES as VITALS_MODULE_FEATURES,
   MODULE_TITLE as VITALS_MODULE_TITLE,
 } from 'sentry/views/insights/browser/webVitals/settings';
 import {
   DATA_TYPE as CACHE_DATA_TYPE,
   DATA_TYPE_PLURAL as CACHE_DATA_TYPE_PLURAL,
   MODULE_DOC_LINK as CACHE_MODULE_DOC_LINK,
+  MODULE_FEATURES as CACHE_MODULE_FEATURES,
   MODULE_TITLE as CACHE_MODULE_TITLE,
 } from 'sentry/views/insights/cache/settings';
 import {
   DATA_TYPE as DB_DATA_TYPE,
   DATA_TYPE_PLURAL as DB_DATA_TYPE_PLURAL,
   MODULE_DOC_LINK as DB_MODULE_DOC_LINK,
+  MODULE_FEATURES as DB_MODULE_FEATURES,
   MODULE_TITLE as DB_MODULE_TITLE,
 } from 'sentry/views/insights/database/settings';
 import {
   DATA_TYPE as HTTP_DATA_TYPE,
   DATA_TYPE_PLURAL as HTTP_DATA_TYPE_PLURAL,
   MODULE_DOC_LINK as HTTP_MODULE_DOC_LINK,
+  MODULE_FEATURES as HTTP_MODULE_FEATURES,
   MODULE_TITLE as HTTP_MODULE_TITLE,
 } from 'sentry/views/insights/http/settings';
 import {
   DATA_TYPE as AI_DATA_TYPE,
   DATA_TYPE_PLURAL as AI_DATA_TYPE_PLURAL,
   MODULE_DOC_LINK as AI_MODULE_DOC_LINK,
+  MODULE_FEATURES as AI_MODULE_FEATURES,
   MODULE_TITLE as AI_MODULE_TITLE,
 } from 'sentry/views/insights/llmMonitoring/settings';
 import {
   DATA_TYPE as APP_STARTS_DATA_TYPE,
   DATA_TYPE_PLURAL as APP_STARTS_DATA_TYPE_PLURAL,
   MODULE_DOC_LINK as APP_STARTS_MODULE_DOC_LINK,
+  MODULE_FEATURES as APP_STARTS_MODULE_FEATURES,
   MODULE_TITLE as APP_STARTS_MODULE_TITLE,
 } from 'sentry/views/insights/mobile/appStarts/settings';
 import {
   DATA_TYPE as SCREEN_LOAD_DATA_TYPE,
   DATA_TYPE_PLURAL as SCREEN_LOAD_DATA_TYPE_PLURAL,
   MODULE_DOC_LINK as SCREEN_LOADS_MODULE_DOC_LINK,
+  MODULE_FEATURES as SCREEN_LOADS_MODULE_FEATURES,
   MODULE_TITLE as SCREEN_LOADS_MODULE_TITLE,
 } from 'sentry/views/insights/mobile/screenload/settings';
 import {
@@ -56,12 +64,14 @@ import {
 } from 'sentry/views/insights/mobile/screens/settings';
 import {
   MODULE_DOC_LINK as MODULE_UI_DOC_LINK,
+  MODULE_FEATURES as MOBILE_UI_MODULE_FEATURES,
   MODULE_TITLE as MOBILE_UI_MODULE_TITLE,
 } from 'sentry/views/insights/mobile/ui/settings';
 import {
   DATA_TYPE as QUEUE_DATA_TYPE,
   DATA_TYPE_PLURAL as QUEUE_DATA_TYPE_PLURAL,
   MODULE_DOC_LINK as QUEUE_MODULE_DOC_LINK,
+  MODULE_FEATURES as QUEUE_MODULE_FEATURES,
   MODULE_TITLE as QUEUE_MODULE_TITLE,
 } from 'sentry/views/insights/queues/settings';
 import {ModuleName} from 'sentry/views/insights/types';
@@ -132,15 +142,15 @@ export const MODULE_PRODUCT_DOC_LINKS: Record<ModuleName, string> = {
 };
 
 export const MODULE_FEATURE_MAP: Partial<Record<ModuleName, string[]>> = {
-  [ModuleName.DB]: ['insights-initial-modules'],
-  [ModuleName.APP_START]: ['insights-initial-modules'],
-  [ModuleName.HTTP]: ['insights-initial-modules'],
-  [ModuleName.RESOURCE]: ['insights-initial-modules'],
-  [ModuleName.VITAL]: ['insights-initial-modules'],
-  [ModuleName.CACHE]: ['insights-addon-modules'],
-  [ModuleName.QUEUE]: ['insights-addon-modules'],
-  [ModuleName.AI]: ['insights-addon-modules'],
-  [ModuleName.SCREEN_LOAD]: ['insights-initial-modules'],
-  [ModuleName.MOBILE_UI]: ['insights-addon-modules', 'starfish-mobile-ui-module'],
+  [ModuleName.DB]: DB_MODULE_FEATURES,
+  [ModuleName.APP_START]: APP_STARTS_MODULE_FEATURES,
+  [ModuleName.HTTP]: HTTP_MODULE_FEATURES,
+  [ModuleName.RESOURCE]: RESOURCE_MODULE_FEATURES,
+  [ModuleName.VITAL]: VITALS_MODULE_FEATURES,
+  [ModuleName.CACHE]: CACHE_MODULE_FEATURES,
+  [ModuleName.QUEUE]: QUEUE_MODULE_FEATURES,
+  [ModuleName.AI]: AI_MODULE_FEATURES,
+  [ModuleName.SCREEN_LOAD]: SCREEN_LOADS_MODULE_FEATURES,
+  [ModuleName.MOBILE_UI]: MOBILE_UI_MODULE_FEATURES,
   [ModuleName.MOBILE_SCREENS]: [MOBILE_SCREENS_MODULE_FEATURE],
 };

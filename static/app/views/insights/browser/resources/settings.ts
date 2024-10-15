@@ -20,3 +20,5 @@ export const DEFAULT_RESOURCE_TYPES = [
 ];
 
 export const MODULE_DOC_LINK = 'https://docs.sentry.io/product/insights/assets/';
+
+export const MODULE_FEATURES = ['insights-initial-modules'];
