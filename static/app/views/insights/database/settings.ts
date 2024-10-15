@@ -60,3 +60,5 @@ export const MODULE_DESCRIPTION = t(
   'Investigate the performance of database queries and get the information necessary to improve them.'
 );
 export const MODULE_DOC_LINK = 'https://docs.sentry.io/product/insights/queries/';
+
+export const MODULE_FEATURES = ['insights-initial-modules'];
