@@ -16,6 +16,7 @@ from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.models.groupinbox import GroupInboxRemoveAction, remove_group_from_inbox
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
+from sentry.signals import issue_resolved
 from sentry.silo.base import SiloMode
 from sentry.tasks.auto_ongoing_issues import log_error_if_queue_has_items
 from sentry.tasks.base import instrumented_task
@@ -125,6 +126,17 @@ def auto_resolve_project_issues(project_id, cutoff=None, chunk_size=1000, **kwar
                 group_id=group.id,
                 issue_type=group.issue_type.slug,
                 issue_category=group.issue_category.name.lower(),
+            )
+            # auto-resolve is a kind of resolve and this signal makes
+            # sure all things that need to happen after resolve are triggered
+            # examples are analytics and webhooks
+            issue_resolved.send_robust(
+                organization_id=project.organization_id,
+                user=None,
+                group=group,
+                project=project,
+                resolution_type="autoresolve",
+                sender="auto_resolve_issues",
             )
 
     if might_have_more:
