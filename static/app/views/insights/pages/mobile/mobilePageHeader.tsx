@@ -7,6 +7,7 @@ import {
   MOBILE_LANDING_TITLE,
 } from 'sentry/views/insights/pages/mobile/settings';
 import {DOMAIN_VIEW_BASE_URL} from 'sentry/views/insights/pages/settings';
+import {isModuleEnabled} from 'sentry/views/insights/pages/utils';
 import {ModuleName} from 'sentry/views/insights/types';
 
 type Props = {
@@ -27,13 +28,17 @@ export function MobileHeader({
   tabs,
   breadcrumbs,
 }: Props) {
-  const {slug} = useOrganization();
+  const organization = useOrganization();
 
   const mobileBaseUrl = normalizeUrl(
-    `/organizations/${slug}/${DOMAIN_VIEW_BASE_URL}/${MOBILE_LANDING_SUB_PATH}/`
+    `/organizations/${organization.slug}/${DOMAIN_VIEW_BASE_URL}/${MOBILE_LANDING_SUB_PATH}/`
   );
 
-  const modules = [ModuleName.MOBILE_SCREENS];
+  const hasMobileScreens = isModuleEnabled(ModuleName.MOBILE_SCREENS, organization);
+
+  const modules = hasMobileScreens
+    ? [ModuleName.MOBILE_SCREENS]
+    : [ModuleName.APP_START, ModuleName.SCREEN_LOAD, ModuleName.MOBILE_UI];
 
   return (
     <DomainViewHeader
