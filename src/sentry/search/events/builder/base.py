@@ -56,7 +56,7 @@ from sentry.search.events.types import (
     SnubaParams,
     WhereType,
 )
-from sentry.snuba.dataset import Dataset
+from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics.utils import MetricMeta
 from sentry.snuba.query_sources import QuerySource
 from sentry.users.services.user.service import user_service
@@ -74,6 +74,12 @@ from sentry.utils.snuba import (
     resolve_column,
 )
 from sentry.utils.validators import INVALID_ID_DETAILS, INVALID_SPAN_ID, WILDCARD_NOT_ALLOWED
+
+DATASET_TO_ENTITY_MAP: Mapping[Dataset, EntityKey] = {
+    Dataset.Events: EntityKey.Events,
+    Dataset.Transactions: EntityKey.Transactions,
+    Dataset.EventsAnalyticsPlatform: EntityKey.EAPSpans,
+}
 
 
 class BaseQueryBuilder:
@@ -1498,6 +1504,8 @@ class BaseQueryBuilder:
         return self.function_alias_map[function.alias].field
 
     def _get_entity_name(self) -> str:
+        if self.dataset in DATASET_TO_ENTITY_MAP:
+            return DATASET_TO_ENTITY_MAP[self.dataset]
         return self.dataset.value
 
     def get_snql_query(self) -> Request:
