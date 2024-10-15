@@ -110,12 +110,12 @@ def find_channel_id_for_rule(
             rule = Updater.run(rule=rule, pending_save=False, **kwargs)
         else:
             rule = ProjectRuleCreator(
-                name=kwargs.get("name"),
-                project=kwargs.get("project"),
-                action_match=kwargs.get("action_match"),
-                actions=kwargs.get("actions"),
-                conditions=kwargs.get("conditions"),
-                frequency=kwargs.get("frequency"),
+                name=kwargs["name"],
+                project=project,
+                action_match=kwargs["action_match"],
+                actions=actions,
+                conditions=kwargs["conditions"],
+                frequency=kwargs["frequency"],
                 environment=kwargs.get("environment"),
                 owner=kwargs.get("owner"),
                 filter_match=kwargs.get("filter_match"),

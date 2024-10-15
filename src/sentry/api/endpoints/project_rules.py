@@ -845,15 +845,15 @@ class ProjectRulesEndpoint(ProjectEndpoint):
             kwargs["actions"]
         )
         rule = ProjectRuleCreator(
-            name=kwargs.get("name"),
-            project=kwargs.get("project"),
-            action_match=kwargs.get("action_match"),
-            actions=kwargs.get("actions"),
-            conditions=kwargs.get("conditions"),
-            frequency=kwargs.get("frequency"),
-            environment=kwargs.get("environment"),
-            owner=kwargs.get("owner"),
-            filter_match=kwargs.get("filter_match"),
+            name=kwargs["name"],
+            project=project,
+            action_match=kwargs["action_match"],
+            actions=kwargs["actions"],
+            conditions=conditions,
+            frequency=kwargs["frequency"],
+            environment=kwargs["environment"],
+            owner=owner,
+            filter_match=kwargs["filter_match"],
             request=request,
         ).run()
 

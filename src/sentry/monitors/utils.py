@@ -231,27 +231,15 @@ def create_issue_alert_rule(
     if "filters" in data:
         conditions.extend(data["filters"])
 
-    kwargs = {
-        "name": data["name"],
-        "environment": data.get("environment"),
-        "project": project,
-        "action_match": data["actionMatch"],
-        "filter_match": data.get("filterMatch"),
-        "conditions": conditions,
-        "actions": data.get("actions", []),
-        "frequency": data.get("frequency"),
-        "user_id": request.user.id,
-    }
     rule = ProjectRuleCreator(
-        name=kwargs.get("name"),
-        project=kwargs.get("project"),
-        action_match=kwargs.get("action_match"),
-        actions=kwargs.get("actions"),
-        conditions=kwargs.get("conditions"),
-        frequency=kwargs.get("frequency"),
-        environment=kwargs.get("environment"),
-        owner=kwargs.get("owner"),
-        filter_match=kwargs.get("filter_match"),
+        name=data["name"],
+        project=project,
+        action_match=data["actionMatch"],
+        actions=data.get("actions", []),
+        conditions=conditions,
+        frequency=data.get("frequency"),
+        environment=data.get("environment"),
+        filter_match=data.get("filterMatch"),
         request=request,
     ).run()
     rule.update(source=RuleSource.CRON_MONITOR)
