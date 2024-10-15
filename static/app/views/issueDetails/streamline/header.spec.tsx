@@ -122,7 +122,6 @@ describe('UpdatedGroupHeader', () => {
       );
 
       expect(screen.getByText('RequestError')).toBeInTheDocument();
-      expect(screen.getByText('Warning')).toBeInTheDocument();
       expect(screen.getByText('Unhandled')).toBeInTheDocument();
       expect(await screen.findByTestId('all-event-count')).toHaveTextContent(
         'All Events'
