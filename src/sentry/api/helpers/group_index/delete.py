@@ -34,6 +34,7 @@ def delete_group_list(
     project: Project,
     group_list: list[Group],
     delete_type: Literal["delete", "discard"],
+    countdown: int | None = 3600,
 ) -> None:
     """Deletes a list of groups which belong to a single project.
 
@@ -74,7 +75,7 @@ def delete_group_list(
             "transaction_id": transaction_id,
             "eventstream_state": eventstream_state,
         },
-        countdown=3600,
+        countdown=countdown,
     )
 
     for group in group_list:
@@ -146,6 +147,10 @@ def delete_groups(
         "organizations:issue-platform-deletion", org, actor=request.user
     )
     non_error_group_found = any(group.issue_category != GroupCategory.ERROR for group in group_list)
+    countdown = 3600
+    # With ClickHouse light deletes we want to get rid of the long delay
+    if issue_platform_deletion_allowed and non_error_group_found:
+        countdown = 0
     if not issue_platform_deletion_allowed and non_error_group_found:
         raise rest_framework.exceptions.ValidationError(detail="Only error issues can be deleted.")
 
@@ -155,7 +160,11 @@ def delete_groups(
 
     for project in projects:
         delete_group_list(
-            request, project, groups_by_project_id.get(project.id, []), delete_type="delete"
+            request,
+            project,
+            groups_by_project_id.get(project.id, []),
+            delete_type="delete",
+            countdown=countdown,
         )
 
     return Response(status=204)
