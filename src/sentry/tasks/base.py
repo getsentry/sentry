@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import resource
 from collections.abc import Callable, Iterable
 from contextlib import contextmanager
@@ -8,15 +9,14 @@ from functools import wraps
 from typing import Any, TypeVar
 
 from celery import current_task
+from django.conf import settings
 from django.db.models import Model
 
 from sentry.celery import app
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.utils import metrics
 from sentry.utils.sdk import Scope, capture_exception
-from django.conf import settings
 
-import logging
 ModelT = TypeVar("ModelT", bound=Model)
 
 logger = logging.getLogger(__name__)
@@ -94,6 +94,7 @@ def instrumented_task(name, stat_suffix=None, silo_mode=None, record_timing=Fals
     - hybrid cloud silo restrictions
     - disabling of result collection.
     """
+
     def wrapped(func):
         @wraps(func)
         def _wrapped(*args, **kwargs):
@@ -137,7 +138,9 @@ def instrumented_task(name, stat_suffix=None, silo_mode=None, record_timing=Fals
         if name in settings.CELERY_SPLIT_QUEUE_TASK_ROUTES:
             q = kwargs.pop("queue")
             if q:
-                logger.warning("ignoring queue: %s, using value from CELERY_SPLIT_QUEUE_TASK_ROUTES", q)
+                logger.warning(
+                    "ignoring queue: %s, using value from CELERY_SPLIT_QUEUE_TASK_ROUTES", q
+                )
 
         # We never use result backends in Celery. Leaving `trail=True` means that if we schedule
         # many tasks from a parent task, each task leaks memory. This can lead to the scheduler
