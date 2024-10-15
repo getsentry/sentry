@@ -3263,7 +3263,7 @@ class MonitorTestCase(APITestCase):
             name="New Cool Rule",
             project=self.project,
             conditions=conditions,
-            filterMatch="all",
+            filter_match="all",
             action_match="any",
             actions=actions,
             frequency=5,
