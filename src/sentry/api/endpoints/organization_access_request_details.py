@@ -79,8 +79,6 @@ class OrganizationAccessRequestDetailsEndpoint(OrganizationEndpoint):
         Get a list of requests to join org/team.
         If any requests are outdated, take this opportunity to prune them.
         """
-        OrganizationAccessRequest.objects.prune_outdated_team_requests(organization=organization)
-
         if request.access.has_scope("org:write"):
             access_requests = list(
                 OrganizationAccessRequest.objects.filter(
