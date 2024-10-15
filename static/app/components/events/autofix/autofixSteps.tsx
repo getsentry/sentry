@@ -247,7 +247,6 @@ export function AutofixSteps({data, groupId, runId, onRetry}: AutofixStepsProps)
         }
         actionText={!isRootCauseSelectionStep ? 'Send' : 'Find a Fix'}
         allowEmptyMessage={!isRootCauseSelectionStep ? false : true}
-        isDisabled={false}
         groupId={groupId}
         runId={runId}
         primaryAction={isRootCauseSelectionStep}
