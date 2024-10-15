@@ -1769,6 +1769,33 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         )
         assert response.status_code == 200, response.data
 
+
+class OrganizationDashboardDetailsOnDemandTest(OrganizationDashboardDetailsTestCase):
+    widget_type = DashboardWidgetTypes.DISCOVER
+
+    def setUp(self):
+        super().setUp()
+        self.project = self.create_project()
+        self.create_user_member_role()
+        self.widget_3 = DashboardWidget.objects.create(
+            dashboard=self.dashboard,
+            order=2,
+            title="Widget 3",
+            display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+            widget_type=self.widget_type,
+        )
+        self.widget_4 = DashboardWidget.objects.create(
+            dashboard=self.dashboard,
+            order=3,
+            title="Widget 4",
+            display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+            widget_type=self.widget_type,
+        )
+        self.widget_ids = [self.widget_1.id, self.widget_2.id, self.widget_3.id, self.widget_4.id]
+
+    def get_widget_queries(self, widget):
+        return DashboardWidgetQuery.objects.filter(widget=widget).order_by("order")
+
     def test_ondemand_without_flags(self):
         data: dict[str, Any] = {
             "title": "First dashboard",
@@ -1777,6 +1804,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                     "title": "Errors per project",
                     "displayType": "table",
                     "interval": "5m",
+                    "widgetType": DashboardWidgetTypes.get_type_name(self.widget_type),
                     "queries": [
                         {
                             "name": "Errors",
@@ -1813,6 +1841,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                     "title": "Errors per project",
                     "displayType": "table",
                     "interval": "5m",
+                    "widgetType": DashboardWidgetTypes.get_type_name(self.widget_type),
                     "queries": [
                         {
                             "name": "Errors",
@@ -1850,6 +1879,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                     "title": "Errors per project",
                     "displayType": "table",
                     "interval": "5m",
+                    "widgetType": DashboardWidgetTypes.get_type_name(self.widget_type),
                     "queries": [
                         {
                             "name": "Errors",
@@ -1888,6 +1918,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                     "title": "Errors per project",
                     "displayType": "table",
                     "interval": "5m",
+                    "widgetType": DashboardWidgetTypes.get_type_name(self.widget_type),
                     "queries": [
                         {
                             "name": "Errors",
@@ -1932,6 +1963,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                     "title": "errors per project",
                     "displayType": "table",
                     "interval": "5m",
+                    "widgetType": DashboardWidgetTypes.get_type_name(self.widget_type),
                     "queries": [
                         {
                             "name": "errors",
@@ -1973,6 +2005,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                     "title": "errors per project",
                     "displayType": "table",
                     "interval": "5m",
+                    "widgetType": DashboardWidgetTypes.get_type_name(self.widget_type),
                     "queries": [
                         {
                             "name": "errors",
@@ -2009,6 +2042,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                     "title": "errors per project",
                     "displayType": "table",
                     "interval": "5m",
+                    "widgetType": DashboardWidgetTypes.get_type_name(self.widget_type),
                     "queries": [
                         {
                             "id": str(queries[0].id),
@@ -2055,6 +2089,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                     "title": "errors per project",
                     "displayType": "table",
                     "interval": "5m",
+                    "widgetType": DashboardWidgetTypes.get_type_name(self.widget_type),
                     "queries": [
                         {
                             "name": "errors",
@@ -2091,6 +2126,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                     "title": "errors per project",
                     "displayType": "table",
                     "interval": "5m",
+                    "widgetType": DashboardWidgetTypes.get_type_name(self.widget_type),
                     "queries": [
                         {
                             # without id here we'll make a new query and delete the old one
@@ -2137,6 +2173,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                     "title": "errors per project",
                     "displayType": "table",
                     "interval": "5m",
+                    "widgetType": DashboardWidgetTypes.get_type_name(self.widget_type),
                     "queries": [
                         {
                             "name": "errors",
@@ -2265,6 +2302,13 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
 
         assert widgets[2].widget_type == DashboardWidgetTypes.get_id_for_type_name("issue")
         assert widgets[2].discover_widget_split is None
+
+
+class OrganizationDashboardDetailsOnDemandTransactionLikeTest(
+    OrganizationDashboardDetailsOnDemandTest
+):
+    # Re-run the on-demand tests with the transaction-like widget type
+    widget_type = DashboardWidgetTypes.TRANSACTION_LIKE
 
 
 class OrganizationDashboardVisitTest(OrganizationDashboardDetailsTestCase):
