@@ -14,6 +14,8 @@ from sentry.grouping.api import (
 )
 from sentry.grouping.enhancer import Enhancements
 from sentry.grouping.fingerprinting import FingerprintingRules
+from sentry.grouping.strategies.configurations import CONFIGURATIONS
+from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG
 from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
 from sentry.utils import json
 
@@ -80,6 +82,7 @@ class FingerprintInput:
     def create_event(self):
         config = FingerprintingRules.from_json(
             {"rules": self.data.get("_fingerprinting_rules", [])},
+            bases=CONFIGURATIONS[DEFAULT_GROUPING_CONFIG].fingerprinting_bases,
         )
         mgr = EventManager(data=self.data)
         mgr.normalize()
