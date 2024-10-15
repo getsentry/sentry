@@ -77,7 +77,7 @@ class OrganizationAccessRequestDetailsEndpoint(OrganizationEndpoint):
     def get(self, request: Request, organization) -> Response:
         """
         Get a list of requests to join org/team.
-        If any requests are outdated, take this opportunity to prune them.
+        If any requests are redundant (user already joined the team), they are not returned.
         """
         if request.access.has_scope("org:write"):
             access_requests = list(
