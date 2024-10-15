@@ -19,14 +19,17 @@ class OnCallInteractionType(Enum):
     # General interactions
     ADD_KEY = "ADD_KEY"
     POST_INSTALL = "POST_INSTALL"
-    VERIFY_TEAM = "VERIFY_TEAM"
     # Interacting with external alerts
     CREATE = "CREATE"  # create an alert in Opsgenie/Pagerduty
     RESOLVE = "RESOLVE"  # resolve an alert in Opsgenie/Pagerduty
 
     # Opsgenie only
     VERIFY_KEYS = "VERIFY_KEYS"
+    VERIFY_TEAM = "VERIFY_TEAM"
     MIGRATE_PLUGIN = "MIGRATE_PLUGIN"
+
+    # PagerDuty only
+    VALIDATE_SERVICE = "VALIDATE_SERVICE"
 
     def __str__(self) -> str:
         return self.value.lower()

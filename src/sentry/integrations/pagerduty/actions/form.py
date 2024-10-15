@@ -47,7 +47,7 @@ class PagerDutyNotifyServiceForm(forms.Form):
         self.fields["service"].widget.choices = self.fields["service"].choices
 
     def _validate_service(self, service_id: int, integration_id: int) -> None:
-        with record_event(OnCallInteractionType.VERIFY_KEYS).capture():
+        with record_event(OnCallInteractionType.VALIDATE_SERVICE).capture():
             params = {
                 "account": dict(self.fields["account"].choices).get(integration_id),
                 "service": dict(self.fields["service"].choices).get(service_id),

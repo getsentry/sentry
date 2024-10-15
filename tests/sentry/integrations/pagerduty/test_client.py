@@ -1,5 +1,5 @@
 from unittest import mock
-from unittest.mock import call
+from unittest.mock import call, patch
 
 import pytest
 import responses
@@ -7,6 +7,7 @@ from responses import matchers
 
 from sentry.api.serializers import ExternalEventSerializer, serialize
 from sentry.integrations.pagerduty.utils import add_service
+from sentry.integrations.utils.metrics import EventLifecycleOutcome
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import EventType
 from sentry.testutils.helpers.datetime import before_now
@@ -71,7 +72,8 @@ class PagerDutyClientTest(APITestCase):
         self.group = self.event.group
 
     @responses.activate
-    def test_send_trigger(self):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_send_trigger(self, mock_record):
         expected_data = {
             "client": "sentry",
             "client_url": self.group.get_absolute_url(params={"referrer": "pagerduty_integration"}),
@@ -126,6 +128,10 @@ class PagerDutyClientTest(APITestCase):
             )
         ]
         assert self.metrics.incr.mock_calls == calls
+        assert len(mock_record.mock_calls) == 2
+        start, halt = mock_record.mock_calls
+        assert start.args[0] == EventLifecycleOutcome.STARTED
+        assert halt.args[0] == EventLifecycleOutcome.SUCCESS
 
     @responses.activate
     def test_send_trigger_custom_severity(self):
