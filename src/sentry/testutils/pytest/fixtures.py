@@ -206,7 +206,8 @@ class InstaSnapshotter(Protocol):
         reference_file: str | None = None,
         subname: str | None = None,
         inequality_comparator: InequalityComparator = lambda refval, output: refval != output,
-    ): ...
+    ):
+        ...
 
 
 @pytest.fixture
