@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from os import path
 
 import pytest
 
@@ -57,11 +58,11 @@ def test_event_hash_variant(config_name, grouping_input, insta_snapshot):
     # break stuff later on.
     event.project = None
 
-    _assert_and_snapshot_results(event, config_name, insta_snapshot)
+    _assert_and_snapshot_results(event, config_name, grouping_input.filename, insta_snapshot)
 
 
 def _assert_and_snapshot_results(
-    event: Event, config_name: str, insta_snapshot: Callable[[str], None]
+    event: Event, config_name: str, input_file: str, insta_snapshot: Callable[[str], None]
 ) -> None:
     # Make sure the event was annotated with the grouping config
     assert event.get_grouping_config()["id"] == config_name
@@ -75,4 +76,15 @@ def _assert_and_snapshot_results(
         dump_variant(variant, lines, 1)
     output = "\n".join(lines)
 
-    insta_snapshot(output)
+    insta_snapshot(
+        output,
+        reference_file=path.join(
+            path.dirname(__file__),
+            "snapshots",
+            path.basename(__file__).replace(".py", ""),
+            "test_event_hash_variant",
+            # Turn "newstyle:2012-11-21" into "newstyle@2012_11_21"
+            config_name.replace("-", "_").replace(":", "@"),
+            input_file.replace("-", "_").replace(".json", ".pysnap"),
+        ),
+    )
