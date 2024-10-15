@@ -201,7 +201,7 @@ function AutofixInsightCard({
                   <div>
                     {insight.stacktrace_context
                       .map((stacktrace, i) => {
-                        let vars = {};
+                        let vars: any = {};
                         try {
                           vars = JSON.parse(stacktrace.vars_as_json);
                         } catch {
@@ -344,7 +344,7 @@ function AutofixInsightCards({
   );
 }
 
-function useUpdateInsightCard({groupId, runId}: {groupId: string; runId: string}) {
+export function useUpdateInsightCard({groupId, runId}: {groupId: string; runId: string}) {
   const api = useApi({persistInFlight: true});
 
   return useMutation({

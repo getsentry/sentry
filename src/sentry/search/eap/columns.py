@@ -222,12 +222,7 @@ SPAN_FUNCTION_DEFINITIONS = {
     "sum": FunctionDefinition(
         internal_function=Function.FUNCTION_SUM,
         search_type="duration",
-        arguments=[
-            ArgumentDefinition(
-                argument_type="duration",
-                default_arg="span.duration",
-            )
-        ],
+        arguments=[ArgumentDefinition(argument_type="duration", default_arg="span.duration")],
     ),
     "avg": FunctionDefinition(
         internal_function=Function.FUNCTION_AVERAGE,
@@ -237,7 +232,7 @@ SPAN_FUNCTION_DEFINITIONS = {
     "count": FunctionDefinition(
         internal_function=Function.FUNCTION_COUNT,
         search_type="number",
-        arguments=[ArgumentDefinition(ignored=True)],
+        arguments=[ArgumentDefinition(argument_type="duration", default_arg="span.duration")],
     ),
     "p50": FunctionDefinition(
         internal_function=Function.FUNCTION_P50,

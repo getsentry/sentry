@@ -6,7 +6,6 @@ import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {EventData, MetaType} from 'sentry/utils/discover/eventView';
 import EventView from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -22,12 +21,11 @@ import {useUserQuery} from '../hooks/useUserQuery';
 interface FieldProps {
   column: TableColumn<keyof TableDataRow>;
   data: EventData;
-  dataset: DiscoverDatasets;
   meta: MetaType;
   unit?: string;
 }
 
-export function FieldRenderer({data, dataset, meta, unit, column}: FieldProps) {
+export function FieldRenderer({data, meta, unit, column}: FieldProps) {
   const location = useLocation();
   const organization = useOrganization();
   const [userQuery, setUserQuery] = useUserQuery();
@@ -67,8 +65,8 @@ export function FieldRenderer({data, dataset, meta, unit, column}: FieldProps) {
       projectSlug: data.project,
       traceSlug: data.trace,
       timestamp: data.timestamp,
-      eventId:
-        dataset === DiscoverDatasets.SPANS_INDEXED ? data['transaction.id'] : undefined,
+      targetId: data['transaction.span_id'],
+      eventId: undefined,
       organization,
       location,
       spanId,

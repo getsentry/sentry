@@ -663,7 +663,7 @@ class GetOwnersCase(_ParticipantsTest):
             data={
                 "event_id": "0" * 32,
                 "environment": "development",
-                "timestamp": before_now(days=1).timestamp(),
+                "timestamp": before_now(days=1).isoformat(),
                 "fingerprint": ["part-1"],
                 "stacktrace": {"frames": [{"filename": "flow/spice.js"}]},
             },

@@ -73,7 +73,7 @@ class GroupSnoozeTest(
             self.store_event(
                 data={
                     "user": {"id": i},
-                    "timestamp": before_now(seconds=1).timestamp(),
+                    "timestamp": before_now(seconds=1).isoformat(),
                     "fingerprint": ["group1"],
                 },
                 project_id=self.project.id,
@@ -90,7 +90,7 @@ class GroupSnoozeTest(
             group = self.store_event(
                 data={
                     "fingerprint": ["group1"],
-                    "timestamp": before_now(minutes=5 + i).timestamp(),
+                    "timestamp": before_now(minutes=5 + i).isoformat(),
                     "tags": {"sentry:user": i},
                 },
                 project_id=self.project.id,
@@ -135,7 +135,7 @@ class GroupSnoozeTest(
             group = self.store_event(
                 data={
                     "fingerprint": ["group1"],
-                    "timestamp": before_now(minutes=5 + i).timestamp(),
+                    "timestamp": before_now(minutes=5 + i).isoformat(),
                 },
                 project_id=self.project.id,
             ).group
