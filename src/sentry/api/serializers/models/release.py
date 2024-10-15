@@ -11,7 +11,11 @@ from django.db.models import Sum
 
 from sentry import release_health, tagstore
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.api.serializers.types import ReleaseSerializerResponse
+from sentry.api.serializers.release_details_types import VersionInfo
+from sentry.api.serializers.types import (
+    GroupEventReleaseSerializerResponse,
+    ReleaseSerializerResponse,
+)
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.deploy import Deploy
@@ -27,7 +31,7 @@ from sentry.utils import metrics
 from sentry.utils.hashlib import md5_text
 
 
-def expose_version_info(info):
+def expose_version_info(info) -> VersionInfo | None:
     if info is None:
         return None
     version = {"raw": info["version_raw"]}
@@ -616,7 +620,7 @@ class GroupEventReleaseSerializer(Serializer):
             result[item] = p
         return result
 
-    def serialize(self, obj, attrs, user, **kwargs):
+    def serialize(self, obj, attrs, user, **kwargs) -> GroupEventReleaseSerializerResponse:
         return {
             "id": obj.id,
             "commitCount": obj.commit_count,

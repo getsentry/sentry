@@ -39,22 +39,10 @@ class ProjectGroupEventsDocs(ProjectGroupEventBase):
         self.validate_schema(request, response)
 
 
-class ProjectGroupEventsLatestDocs(ProjectGroupEventBase):
+class ProjectGroupEventDetailsDocs(ProjectGroupEventBase):
     def setUp(self):
         super().setUp()
         self.url = f"/api/0/issues/{self.group_id}/events/latest/"
-
-    def test_get(self):
-        response = self.client.get(self.url)
-        request = RequestFactory().get(self.url)
-
-        self.validate_schema(request, response)
-
-
-class ProjectGroupEventsOldestDocs(ProjectGroupEventBase):
-    def setUp(self):
-        super().setUp()
-        self.url = f"/api/0/issues/{self.group_id}/events/oldest/"
 
     def test_get(self):
         response = self.client.get(self.url)

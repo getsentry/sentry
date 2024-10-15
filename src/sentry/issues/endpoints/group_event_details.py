@@ -4,6 +4,8 @@ import logging
 from collections.abc import Sequence
 
 from django.contrib.auth.models import AnonymousUser
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 from snuba_sdk import Condition, Or
@@ -17,8 +19,20 @@ from sentry.api.helpers.environments import get_environments
 from sentry.api.helpers.group_index import parse_and_convert_issue_search_query
 from sentry.api.helpers.group_index.validators import ValidationError
 from sentry.api.serializers import EventSerializer, serialize
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
+from sentry.apidocs.examples.event_examples import EventExamples
+from sentry.apidocs.parameters import GlobalParams, IssueParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.eventstore.models import Event, GroupEvent
-from sentry.issues.endpoints.project_event_details import wrap_event_response
+from sentry.issues.endpoints.project_event_details import (
+    GroupEventDetailsResponse,
+    wrap_event_response,
+)
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.environment import Environment
 from sentry.models.group import Group
@@ -99,10 +113,11 @@ def issue_search_query_to_conditions(
     return snql_conditions
 
 
+@extend_schema(tags=["Events"])
 @region_silo_endpoint
 class GroupEventDetailsEndpoint(GroupEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PUBLIC,
     }
     enforce_rate_limit = True
     rate_limits = {
@@ -113,14 +128,36 @@ class GroupEventDetailsEndpoint(GroupEndpoint):
         }
     }
 
+    @extend_schema(
+        operation_id="Retrieve an Issue Event",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            IssueParams.ISSUES_OR_GROUPS,
+            IssueParams.ISSUE_ID,
+            GlobalParams.ENVIRONMENT,
+            OpenApiParameter(
+                name="event_id",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.PATH,
+                description="The ID of the event to retrieve, or 'latest', 'oldest', or 'recommended'.",
+                required=True,
+                enum=["latest", "oldest", "recommended"],
+            ),
+        ],
+        responses={
+            200: inline_sentry_response_serializer(
+                "IssueEventDetailsResponse", GroupEventDetailsResponse
+            ),
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+        examples=EventExamples.GROUP_EVENT_DETAILS,
+    )
     def get(self, request: Request, group: Group, event_id: str) -> Response:
         """
-        Retrieve the latest(most recent), oldest, or recommended Event for an Issue
-        ``````````````````````````````````````
-
-        Retrieves the details of the latest/oldest/recommended event for an issue.
-
-        :pparam string group_id: the ID of the issue
+        Retrieves the details of an issue event.
         """
         environments = [e for e in get_environments(request, group.project.organization)]
         environment_names = [e.name for e in environments]
