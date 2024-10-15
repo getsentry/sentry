@@ -76,7 +76,12 @@ async function fetchReplayList({
     return {
       fetchError: undefined,
       pageLinks,
-      replays: data.map(mapResponseToReplayRecord),
+      replays: payload.query ? data.map(mapResponseToReplayRecord) : [],
+      // for the replay tab in transactions, if payload.query is undefined, this means the transaction has no related replays.
+      // but because we cannot query for an empty list of IDs (e.g. `id:[]` breaks our search endpoint),
+      // and leaving query empty results in ALL replays being returned for a specified project
+      // (which doesn't make sense as we want to show no replays), we
+      // essentially want to hardcode no replays being returned.
     };
   } catch (error) {
     if (error.responseJSON?.detail) {
