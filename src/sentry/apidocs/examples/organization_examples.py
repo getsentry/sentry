@@ -893,21 +893,6 @@ class OrganizationExamples:
         )
     ]
 
-    EXTERNAL_USER_CREATE = [
-        OpenApiExample(
-            "Create an external user",
-            value={
-                "id": 123,
-                "provider": "github",
-                "external_name": "@billy",
-                "integration_id": 123,
-                "user_id": 123,
-            },
-            status_codes=["200", "201"],
-            response_only=True,
-        )
-    ]
-
     GET_HISTORICAL_ANOMALIES = [
         OpenApiExample(
             "Identify anomalies in historical data",

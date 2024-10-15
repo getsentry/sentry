@@ -10,6 +10,7 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework.request import Request
 from rest_framework.serializers import ValidationError
 
+from sentry.constants import ObjectStatus
 from sentry.integrations.base import (
     FeatureDescription,
     IntegrationFeatures,
@@ -19,6 +20,8 @@ from sentry.integrations.base import (
 )
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.on_call.metrics import OnCallInteractionType
+from sentry.integrations.opsgenie.metrics import record_event
 from sentry.integrations.opsgenie.tasks import migrate_opsgenie_plugin
 from sentry.organizations.services.organization import RpcOrganizationSummary
 from sentry.pipeline import PipelineView
@@ -119,7 +122,7 @@ class InstallationConfigView(PipelineView):
 
 
 class OpsgenieIntegration(IntegrationInstallation):
-    def get_keyring_client(self, keyid: str) -> OpsgenieClient:
+    def get_keyring_client(self, keyid: int | str) -> OpsgenieClient:
         org_integration = self.org_integration
         assert org_integration, "OrganizationIntegration is required"
         team = get_team(team_id=keyid, org_integration=org_integration)
@@ -169,7 +172,7 @@ class OpsgenieIntegration(IntegrationInstallation):
         }
 
         integration = integration_service.get_integration(
-            organization_integration_id=self.org_integration.id
+            organization_integration_id=self.org_integration.id, status=ObjectStatus.ACTIVE
         )
         if not integration:
             raise IntegrationError("Integration does not exist")
@@ -180,40 +183,37 @@ class OpsgenieIntegration(IntegrationInstallation):
             team["id"] = str(self.org_integration.id) + "-" + team["team"]
 
         invalid_keys = []
-        for team in teams:
-            # skip if team, key pair already exist in config
-            if (team["team"], team["integration_key"]) in existing_team_key_pairs:
-                continue
+        with record_event(OnCallInteractionType.VERIFY_KEYS).capture():
+            for team in teams:
+                # skip if team, key pair already exist in config
+                if (team["team"], team["integration_key"]) in existing_team_key_pairs:
+                    continue
 
-            integration_key = team["integration_key"]
+                integration_key = team["integration_key"]
 
-            # validate integration keys
-            client = OpsgenieClient(
-                integration=integration,
-                integration_key=integration_key,
-            )
-            # call an API to test the integration key
-            try:
-                client.get_alerts()
-            except ApiError as e:
-                logger.info(
-                    "opsgenie.authorization_error",
-                    extra={"error": str(e), "status_code": e.code},
+                # validate integration keys
+                client = OpsgenieClient(
+                    integration=integration,
+                    integration_key=integration_key,
                 )
-                if e.code == 429:
-                    raise ApiRateLimitedError(
-                        "Too many requests. Please try updating one team/key at a time."
-                    )
-                elif e.code == 401:
-                    invalid_keys.append(integration_key)
-                    pass
-                elif e.json and e.json.get("message"):
-                    raise ApiError(e.json["message"])
-                else:
-                    raise
+                # call an API to test the integration key
+                try:
+                    client.get_alerts()
+                except ApiError as e:
+                    if e.code == 429:
+                        raise ApiRateLimitedError(
+                            "Too many requests. Please try updating one team/key at a time."
+                        )
+                    elif e.code == 401:
+                        invalid_keys.append(integration_key)
+                        pass
+                    elif e.json and e.json.get("message"):
+                        raise ApiError(e.json["message"])
+                    else:
+                        raise
 
-        if invalid_keys:
-            raise ApiUnauthorized(f"Invalid integration key: {str(invalid_keys)}")
+            if invalid_keys:
+                raise ApiUnauthorized(f"Invalid integration key: {str(invalid_keys)}")
 
         return super().update_organization_config(data)
 
@@ -256,21 +256,22 @@ class OpsgenieIntegrationProvider(IntegrationProvider):
         organization: RpcOrganizationSummary,
         extra: Any | None = None,
     ) -> None:
-        try:
-            org_integration = OrganizationIntegration.objects.get(
-                integration=integration, organization_id=organization.id
-            )
+        with record_event(OnCallInteractionType.POST_INSTALL).capture():
+            try:
+                org_integration = OrganizationIntegration.objects.get(
+                    integration=integration, organization_id=organization.id
+                )
 
-        except OrganizationIntegration.DoesNotExist:
-            logger.exception("The Opsgenie post_install step failed.")
-            return
+            except OrganizationIntegration.DoesNotExist:
+                logger.exception("The Opsgenie post_install step failed.")
+                return
 
-        key = integration.metadata["api_key"]
-        team_table = []
-        if key:
-            team_name = "my-first-key"
-            team_id = f"{org_integration.id}-{team_name}"
-            team_table.append({"team": team_name, "id": team_id, "integration_key": key})
+            key = integration.metadata["api_key"]
+            team_table = []
+            if key:
+                team_name = "my-first-key"
+                team_id = f"{org_integration.id}-{team_name}"
+                team_table.append({"team": team_name, "id": team_id, "integration_key": key})
 
-        org_integration.config.update({"team_table": team_table})
-        org_integration.update(config=org_integration.config)
+            org_integration.config.update({"team_table": team_table})
+            org_integration.update(config=org_integration.config)

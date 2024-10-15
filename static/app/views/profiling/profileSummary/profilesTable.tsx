@@ -12,18 +12,15 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 
-const ALL_FIELDS = [
-  'profile.id',
-  'timestamp',
-  'transaction.duration',
-  'release',
-  'environment',
-  'trace',
-  'trace.transaction',
-  'id',
-] as const;
-
-type FieldType = (typeof ALL_FIELDS)[number];
+type FieldType =
+  | 'profile.id'
+  | 'timestamp'
+  | 'transaction.duration'
+  | 'release'
+  | 'environment'
+  | 'trace'
+  | 'trace.transaction'
+  | 'id';
 
 const FIELDS = [
   'profile.id',

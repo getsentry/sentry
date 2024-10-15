@@ -180,6 +180,14 @@ Valid fields include:
         description="The ID of the external user object. This is returned when creating an external user.",
     )
 
+    EXTERNAL_TEAM_ID = OpenApiParameter(
+        name="external_team_id",
+        location="path",
+        required=True,
+        type=int,
+        description="The ID of the external team object. This is returned when creating an external team.",
+    )
+
 
 class ReleaseParams:
     VERSION = OpenApiParameter(
@@ -251,6 +259,23 @@ class SCIMParams:
         required=True,
         type=int,
         description="The ID of the team you'd like to query / update.",
+    )
+
+
+class IssueParams:
+    ISSUES_OR_GROUPS = OpenApiParameter(
+        name="var",
+        location="path",
+        required=False,
+        type=str,
+        description="Issue URLs may be accessed with either `issues` or `groups`. This parameter is will be removed when building the API docs.",
+    )
+    ISSUE_ID = OpenApiParameter(
+        name="issue_id",
+        location="path",
+        required=True,
+        type=int,
+        description="The ID of the issue you'd like to query.",
     )
 
 

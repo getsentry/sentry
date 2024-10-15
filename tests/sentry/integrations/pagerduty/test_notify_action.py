@@ -8,7 +8,7 @@ from sentry.integrations.pagerduty.actions.notification import PagerDutyNotifySe
 from sentry.integrations.pagerduty.utils import add_service
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
@@ -56,7 +56,7 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
             data={
                 "event_id": "a" * 32,
                 "message": "ohhhhhh noooooo",
-                "timestamp": iso_format(event_time),
+                "timestamp": event_time.isoformat(),
                 "fingerprint": ["group-1"],
             },
             project_id=self.project.id,
@@ -142,7 +142,7 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         event = self.store_event(
             data={
                 "event_id": "a" * 32,
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": before_now(minutes=1).isoformat(),
             },
             project_id=self.project.id,
         )
@@ -312,7 +312,7 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
                 metadata={"services": [service_info]},
             )
             integration.add_organization(self.organization, self.user)
-            org_integration = integration.organizationintegration_set.first()
+            org_integration = integration.organizationintegration_set.get()
             service = add_service(
                 org_integration,
                 service_name=service_info["service_name"],
