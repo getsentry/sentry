@@ -36,6 +36,7 @@ describe('Incident Rules Create', () => {
     render(
       <TriggersChart
         api={api}
+        anomalies={[]}
         location={router.location}
         organization={organization}
         projects={[project]}
