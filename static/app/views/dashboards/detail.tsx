@@ -232,11 +232,13 @@ class DashboardDetail extends Component<Props, State> {
         }) ??
           dashboard.widgets[widgetId]);
       if (widget) {
-        // this.setState({widgetViewerOpened: true});
         openWidgetViewerModal({
           organization,
           widget,
-          seriesData,
+          seriesData: this.state.dashboardLegendUtils.modifyTimeseriesNames(
+            widget,
+            seriesData
+          ),
           seriesResultsType,
           tableData,
           pageLinks,

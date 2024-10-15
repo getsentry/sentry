@@ -470,13 +470,24 @@ function WidgetViewerModal(props: Props) {
   }, [selectedQueryIndex]);
 
   function onLegendSelectChanged({selected}: {selected: Record<string, boolean>}) {
-    setDisabledLegends(selected);
     dashboardLegendUtils.updateLegendQueryParam(selected, widget);
+    setDisabledLegends(selected);
     trackAnalytics('dashboards_views.widget_viewer.toggle_legend', {
       organization,
       widget_type: widget.widgetType ?? WidgetType.DISCOVER,
       display_type: widget.displayType,
     });
+  }
+
+  function findDisabledLegends() {
+    const legendUnselected = dashboardLegendUtils.getLegendUnselected(widget);
+    if (
+      dashboardLegendUtils.encodeLegendQueryParam(widget, legendUnselected) ===
+      dashboardLegendUtils.encodeLegendQueryParam(widget, disabledLegends)
+    ) {
+      return disabledLegends;
+    }
+    return legendUnselected;
   }
 
   function DiscoverTable({
@@ -862,7 +873,7 @@ function WidgetViewerModal(props: Props) {
                 organization={organization}
                 onZoom={onZoom}
                 onLegendSelectChanged={onLegendSelectChanged}
-                legendOptions={{selected: disabledLegends}}
+                legendOptions={{selected: findDisabledLegends()}}
                 expandNumbers
                 showSlider={shouldShowSlider}
                 noPadding
@@ -880,7 +891,7 @@ function WidgetViewerModal(props: Props) {
                 widget={primaryWidget}
                 onZoom={onZoom}
                 onLegendSelectChanged={onLegendSelectChanged}
-                legendOptions={{selected: disabledLegends}}
+                legendOptions={{selected: findDisabledLegends()}}
                 expandNumbers
                 showSlider={shouldShowSlider}
                 noPadding

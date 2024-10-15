@@ -533,8 +533,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
           const forwardedRef = this.props.chartGroup ? this.handleRef : undefined;
 
           return organization.features.includes('dashboards-releases-on-charts') &&
-            (widget.displayType === DisplayType.LINE ||
-              widget.displayType === DisplayType.AREA) ? (
+            dashboardLegendUtils.widgetRequiresLegendUnselection(widget) ? (
             <ReleaseSeries
               end={end}
               start={start}

@@ -14,10 +14,6 @@ import DashboardLegendEncoderDecoder from './dashboardLegendUtils';
 describe('WidgetLegend functions util', () => {
   let legendFunctions: DashboardLegendEncoderDecoder;
 
-  // beforeEach(() => {
-  //   legendFunctions = new WidgetLegendFunctions();
-  // });
-
   describe('legendChanges', function () {
     let widget: Widget;
     let location: Location;

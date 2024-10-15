@@ -29,14 +29,8 @@ class DashboardLegendEncoderDecoder {
 
   // Updates legend param when a legend selection has been changed
   updateLegendQueryParam(selected: Record<string, boolean>, widget: Widget) {
-    const [dashboard, location, organization, router] = [
-      this.dashboard,
-      this.location,
-      this.organization,
-      this.router,
-    ];
+    const [dashboard, location, router] = [this.dashboard, this.location, this.router];
     const widgets = dashboard ? dashboard.widgets : [];
-
     let newLegendQuery: string[];
     if (!location.query.unselectedSeries && widgets) {
       newLegendQuery = widgets
@@ -44,18 +38,25 @@ class DashboardLegendEncoderDecoder {
         .map(dashboardWidget => {
           return dashboardWidget.id === widget.id
             ? this.encodeLegendQueryParam(widget, selected)
-            : organization.features.includes('dashboards-releases-on-charts')
-              ? this.formatLegendDefaultQuery(dashboardWidget.id)
-              : `${widget.id}-`;
+            : this.formatLegendDefaultQuery(dashboardWidget.id);
         });
 
-      router.replace({
-        // pathname: location.pathname,
-        query: {
-          ...location.query,
-          unselectedSeries: newLegendQuery,
-        },
-      });
+      const thisWidgetWithReleasesWasSelected =
+        Object.values(selected).filter(value => value === false).length !== 1 &&
+        Object.keys(selected).includes(`Releases:${widget.id}`);
+
+      const thisWidgetWithoutReleasesWasSelected =
+        !Object.keys(selected).includes(`Releases:${widget.id}`) &&
+        Object.values(selected).filter(value => value === false).length === 1;
+
+      if (thisWidgetWithReleasesWasSelected || thisWidgetWithoutReleasesWasSelected) {
+        router.replace({
+          query: {
+            ...location.query,
+            unselectedSeries: newLegendQuery,
+          },
+        });
+      }
     } else if (Array.isArray(location.query.unselectedSeries)) {
       let isInQuery = false;
       newLegendQuery = location.query.unselectedSeries.map(widgetLegend => {
@@ -70,7 +71,6 @@ class DashboardLegendEncoderDecoder {
 
       !isInQuery
         ? router.replace({
-            // pathname: location.pathname,
             query: {
               ...location.query,
               unselectedSeries: [
@@ -80,7 +80,6 @@ class DashboardLegendEncoderDecoder {
             },
           })
         : router.replace({
-            // pathname: location.pathname,
             query: {
               ...location.query,
               unselectedSeries: newLegendQuery,
@@ -88,7 +87,6 @@ class DashboardLegendEncoderDecoder {
           });
     } else {
       router.replace({
-        // pathname: location.pathname,
         query: {
           ...location.query,
           unselectedSeries: [
@@ -119,7 +117,9 @@ class DashboardLegendEncoderDecoder {
   }
 
   formatLegendDefaultQuery(widgetId?: string) {
-    return `${widgetId}-Releases`;
+    return this.organization.features.includes('dashboards-releases-on-charts')
+      ? `${widgetId}-Releases`
+      : `${widgetId}-`;
   }
 
   // going from selected to query param

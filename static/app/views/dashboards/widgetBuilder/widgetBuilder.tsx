@@ -65,7 +65,6 @@ import {
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 
 import type DashboardLegendEncoderDecoder from '../dashboardLegendUtils';
-// import WidgetLegendFunctions from '../dashboardLegendUtils';
 import {DEFAULT_STATS_PERIOD} from '../data';
 import {getDatasetConfig} from '../datasetConfig/base';
 import {useValidateWidgetQuery} from '../hooks/useValidateWidget';

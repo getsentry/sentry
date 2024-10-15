@@ -127,8 +127,19 @@ export function WidgetCardChartContainer({
     selected: Record<string, boolean>;
     type: 'legendselectchanged';
   }) {
-    setDisabledLegends(selected);
     dashboardLegendUtils.updateLegendQueryParam(selected, widget);
+    setDisabledLegends(selected);
+  }
+
+  function findDisabledLegends() {
+    const legendUnselected = dashboardLegendUtils.getLegendUnselected(widget);
+    if (
+      dashboardLegendUtils.encodeLegendQueryParam(widget, legendUnselected) ===
+      dashboardLegendUtils.encodeLegendQueryParam(widget, disabledLegends)
+    ) {
+      return disabledLegends;
+    }
+    return legendUnselected;
   }
 
   if (widget.widgetType === WidgetType.RELEASE) {
@@ -177,7 +188,7 @@ export function WidgetCardChartContainer({
                   onLegendSelectChanged ? onLegendSelectChanged : keepLegendState
                 }
                 legendOptions={
-                  legendOptions ? legendOptions : {selected: disabledLegends}
+                  legendOptions ? legendOptions : {selected: findDisabledLegends()}
                 }
                 dashboardLegendUtils={dashboardLegendUtils}
               />
@@ -231,7 +242,9 @@ export function WidgetCardChartContainer({
               onLegendSelectChanged={
                 onLegendSelectChanged ? onLegendSelectChanged : keepLegendState
               }
-              legendOptions={legendOptions ? legendOptions : {selected: disabledLegends}}
+              legendOptions={
+                legendOptions ? legendOptions : {selected: findDisabledLegends()}
+              }
               expandNumbers={expandNumbers}
               showSlider={showSlider}
               noPadding={noPadding}
