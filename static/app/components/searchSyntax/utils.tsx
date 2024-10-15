@@ -203,6 +203,10 @@ type GetKeyNameOpts = {
    * Include arguments in aggregate key names
    */
   aggregateWithArgs?: boolean;
+  /**
+   * Display explicit tags with `tags[name]` instead of `name`
+   */
+  showExplicitTagPrefix?: boolean;
 };
 
 /**
@@ -212,11 +216,14 @@ export const getKeyName = (
   key: TokenResult<Token.KEY_SIMPLE | Token.KEY_EXPLICIT_TAG | Token.KEY_AGGREGATE>,
   options: GetKeyNameOpts = {}
 ) => {
-  const {aggregateWithArgs} = options;
+  const {aggregateWithArgs, showExplicitTagPrefix = false} = options;
   switch (key.type) {
     case Token.KEY_SIMPLE:
       return key.value;
     case Token.KEY_EXPLICIT_TAG:
+      if (showExplicitTagPrefix) {
+        return key.text;
+      }
       return key.key.value;
     case Token.KEY_AGGREGATE:
       return aggregateWithArgs

@@ -1,3 +1,4 @@
+import urllib.parse
 from datetime import timedelta
 
 import pytest
@@ -12,7 +13,6 @@ from sentry.search.utils import InvalidQuery
 from sentry.snuba.outcomes import QueryDefinition
 from sentry.snuba.sessions_v2 import InvalidField
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.datetime import iso_format
 from sentry.utils.outcomes import Outcome
 
 
@@ -142,7 +142,14 @@ class OutcomesQueryDefinitionTests(TestCase):
         start = timezone.now()
         end = start + timedelta(days=1)
         query = _make_query(
-            f"groupBy=category&field=sum(quantity)&start={iso_format(start)}&end={iso_format(end)}",
+            urllib.parse.urlencode(
+                {
+                    "groupBy": "category",
+                    "field": "sum(quantity)",
+                    "start": start.isoformat(),
+                    "end": end.isoformat(),
+                }
+            ),
             {"organization_id": 1},
         )
         assert query.start

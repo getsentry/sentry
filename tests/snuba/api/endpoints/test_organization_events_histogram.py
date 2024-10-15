@@ -27,7 +27,7 @@ ARRAY_COLUMNS = ["measurements", "span_op_breakdowns"]
 class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
-        self.min_ago = iso_format(before_now(minutes=1))
+        self.min_ago = before_now(minutes=1)
         self.data = load_data("transaction")
         self.features = {}
 
@@ -42,7 +42,7 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
                     measurement_name = suffix_key
                     breakdown_name = f"ops.{suffix_key}"
 
-                    data["timestamp"] = iso_format(start)
+                    data["timestamp"] = start.isoformat()
                     data["start_timestamp"] = iso_format(start - timedelta(seconds=i))
                     value = random.random() * (spec.end - spec.start) + spec.start
                     data["transaction"] = f"/measurement/{measurement_name}/value/{value}"
@@ -1032,7 +1032,7 @@ class OrganizationEventsMetricsEnhancedPerformanceHistogramEndpointTest(
 ):
     def setUp(self):
         super().setUp()
-        self.min_ago = iso_format(before_now(minutes=1))
+        self.min_ago = before_now(minutes=1)
         self.features = {}
 
     def populate_events(self, specs):

@@ -7,6 +7,7 @@ import {NoteInputWithStorage} from 'sentry/components/activity/note/inputWithSto
 import useMutateActivity from 'sentry/components/feedback/useMutateActivity';
 import Timeline from 'sentry/components/timeline';
 import TimeSince from 'sentry/components/timeSince';
+import {IconFlag} from 'sentry/icons/iconFlag';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {space} from 'sentry/styles/space';
@@ -96,6 +97,11 @@ function StreamlinedActivitySection({group}: {group: Group}) {
           source="issue-details"
           {...noteProps}
         />
+        <ActivityTimelineItem
+          title={t('Last Seen')}
+          icon={<IconFlag size="xs" />}
+          timestamp={<SmallTimestamp date={group.lastSeen} />}
+        />
         {group.activity.map(item => {
           const authorName = item.user ? item.user.name : 'Sentry';
           const {title, message} = getGroupActivityItem(
@@ -113,9 +119,14 @@ function StreamlinedActivitySection({group}: {group: Group}) {
               title={
                 <TitleWrapper>
                   {title}
-                  {item.type === GroupActivityType.NOTE && (
-                    <NoteDropdown onDelete={() => handleDelete(item)} user={item.user} />
-                  )}
+                  <NoteDropdownWrapper>
+                    {item.type === GroupActivityType.NOTE && (
+                      <NoteDropdown
+                        onDelete={() => handleDelete(item)}
+                        user={item.user}
+                      />
+                    )}
+                  </NoteDropdownWrapper>
                 </TitleWrapper>
               }
               timestamp={<SmallTimestamp date={item.dateCreated} />}
@@ -142,10 +153,13 @@ const Author = styled('span')`
   font-weight: ${p => p.theme.fontWeightBold};
 `;
 
+const NoteDropdownWrapper = styled('span')`
+  font-weight: normal;
+`;
+
 const TitleWrapper = styled('div')`
   display: flex;
   align-items: center;
-  font-weight: normal;
   gap: ${space(0.5)};
 `;
 

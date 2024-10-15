@@ -505,8 +505,8 @@ A list of actions that take place when all required conditions and filters for t
 - `workspace` - The integration ID associated with the Slack workspace.
 - `channel` - The name of the channel to send the notification to (e.g., #critical, Jane Schmidt).
 - `channel_id` (optional) - The ID of the channel to send the notification to.
-- `tags` - A string of tags to show in the notification, separated by commas (e.g., "environment, user, my_tag").
-- `notes` - Text to show alongside the notification. To @ a user, include their user id like `@<USER_ID>`. To include a clickable link, format the link and title like `<http://example.com|Click Here>`.
+- `tags` (optional) - A string of tags to show in the notification, separated by commas (e.g., "environment, user, my_tag").
+- `notes` (optional) - Text to show alongside the notification. To @ a user, include their user id like `@<USER_ID>`. To include a clickable link, format the link and title like `<http://example.com|Click Here>`.
 ```json
 {
     "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
@@ -531,7 +531,7 @@ A list of actions that take place when all required conditions and filters for t
 **Send a Discord notification**
 - `server` - The integration ID associated with the Discord server.
 - `channel_id` - The ID of the channel to send the notification to.
-- `tags` - A string of tags to show in the notification, separated by commas (e.g., "environment, user, my_tag").
+- `tags` (optional) - A string of tags to show in the notification, separated by commas (e.g., "environment, user, my_tag").
 ```json
 {
     "id": "sentry.integrations.discord.notify_action.DiscordNotifyServiceAction",
