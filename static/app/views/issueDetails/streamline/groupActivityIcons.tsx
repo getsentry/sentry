@@ -65,4 +65,5 @@ export const groupActivityTypeIconMapping: Record<
   },
   [GroupActivityType.SET_PRIORITY]: {Component: IconEdit, defaultProps: {}},
   [GroupActivityType.DELETED_ATTACHMENT]: {Component: IconDelete, defaultProps: {}},
+  [GroupActivityType.LAST_SEEN]: {Component: IconFlag, defaultProps: {}},
 };
