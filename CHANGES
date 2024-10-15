@@ -1,3 +1,35 @@
+24.10.0
+-------
+
+### Various fixes & improvements
+
+- feat(releases): Split release commit from shared component (#78538) by @scttcper
+- chore(alerts): Add info log when sending subscription update data to Seer (#79049) by @ceorourke
+- feat(anomaly detection): add preview chart to new alert form (#78238) by @natemoo-re
+- feat(issue-stream): Use stacked primary secondary counts designs (#79070) by @MichaelSun48
+- feat(alerts): Add new feature flag to enable EAP alerts (#78985) by @edwardgou-sentry
+- feat(discover): Update EAP dataset and entity key for discover builders (#78967) by @edwardgou-sentry
+- fix: add info to post process TypeErrors for debugging (#79099) by @mjq
+- ref(ingest): annotate transaction consumer with spans (#79101) by @mjq
+- ref(rr6): Replace many useRouter's with useNavigate's (#78804) by @evanpurkhiser
+- chore(feedback): Analytics for error rendering feedback item (#78978) by @c298lee
+- feat(explore): Linking to spans in traceview from all tables (#78984) by @Abdkhan14
+- fix(eap): Count takes arg (#79066) by @Zylphrex
+- feat(quick-start): Add analytics code to the backend to track quick start completion (#79089) by @priscilawebdev
+- feat(quick-start): Add new feature flag for the new updates (#79094) by @priscilawebdev
+- fix(dashboard): OnDemand widget creation also includes transaction type (#79059) by @narsaynorath
+- fix(dashboard): OnDemand extraction for Transaction widgets (#79055) by @narsaynorath
+- feat(quick-start): Add analytics code to the frontend to track quick start completion (#79092) by @priscilawebdev
+- ref(quick-start): Update 'project to set up' logic to default to the first project (#78460) by @priscilawebdev
+- ref(onboarding): Add pnpm to express js install step (#79093) by @priscilawebdev
+- feat(dynamic-sampling): add feature flag (#79084) by @constantinius
+- fix(loader): Catch errors in `sentryOnLoad` separately (#78993) by @mydea
+- ref(feedback): 401 for unauth'd POSTs to projectUserReports (#79069) by @aliu39
+- fix(issue-stream): reduce font size of events and user counts (#79028) by @MichaelSun48
+- fix(issue-stream): Fix bug where replay divider was shown despite no replays (#79068) by @MichaelSun48
+
+_Plus 1020 more_
+
 24.9.0
 ------
 
