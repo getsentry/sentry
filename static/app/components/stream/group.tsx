@@ -442,15 +442,20 @@ function BaseGroupRow({
           </CountTooltipContent>
         }
       >
-        <PrimaryCount
-          value={primaryCount}
-          hasNewLayout={organization.features.includes('issue-stream-table-layout')}
-        />
-        {secondaryCount !== undefined && useFilteredStats && (
-          <SecondaryCount
-            value={secondaryCount}
-            hasNewLayout={organization.features.includes('issue-stream-table-layout')}
-          />
+        {hasNewLayout ? (
+          <CountsWrapper>
+            <PrimaryCount value={primaryCount} hasNewLayout={hasNewLayout} />
+            {secondaryCount !== undefined && useFilteredStats && (
+              <SecondaryCount value={secondaryCount} hasNewLayout={hasNewLayout} />
+            )}
+          </CountsWrapper>
+        ) : (
+          <Fragment>
+            <PrimaryCount value={primaryCount} />
+            {secondaryCount !== undefined && useFilteredStats && (
+              <SecondaryCount value={secondaryCount} />
+            )}
+          </Fragment>
         )}
       </Tooltip>
     </GuideAnchor>
@@ -488,16 +493,20 @@ function BaseGroupRow({
         </CountTooltipContent>
       }
     >
-      <PrimaryCount
-        value={primaryUserCount}
-        hasNewLayout={organization.features.includes('issue-stream-table-layout')}
-      />
-      {secondaryUserCount !== undefined && useFilteredStats && (
-        <SecondaryCount
-          dark
-          value={secondaryUserCount}
-          hasNewLayout={organization.features.includes('issue-stream-table-layout')}
-        />
+      {hasNewLayout ? (
+        <CountsWrapper>
+          <PrimaryCount value={primaryUserCount} hasNewLayout={hasNewLayout} />
+          {secondaryUserCount !== undefined && useFilteredStats && (
+            <SecondaryCount value={secondaryUserCount} hasNewLayout={hasNewLayout} />
+          )}
+        </CountsWrapper>
+      ) : (
+        <Fragment>
+          <PrimaryCount value={primaryUserCount} />
+          {secondaryUserCount !== undefined && useFilteredStats && (
+            <SecondaryCount value={secondaryUserCount} />
+          )}
+        </Fragment>
       )}
     </Tooltip>
   );
@@ -542,17 +551,14 @@ function BaseGroupRow({
           query={query}
           source={referrer}
         />
-        <EventOrGroupExtraDetails
-          data={group}
-          showLifetime={!organization.features.includes('issue-stream-table-layout')}
-        />
+        <EventOrGroupExtraDetails data={group} showLifetime={!hasNewLayout} />
       </GroupSummary>
       {hasGuideAnchor && issueStreamAnchor}
 
       {withChart &&
       !displayReprocessingLayout &&
       issueTypeConfig.stats.enabled &&
-      organization.features.includes('issue-stream-table-layout') ? (
+      hasNewLayout ? (
         <NarrowChartWrapper breakpoint={COLUMN_BREAKPOINTS.TREND}>
           <GroupStatusChart
             hideZeros
@@ -596,7 +602,7 @@ function BaseGroupRow({
           )}
           {withColumns.includes('event') &&
           issueTypeConfig.stats.enabled &&
-          organization.features.includes('issue-stream-table-layout') ? (
+          hasNewLayout ? (
             <NarrowEventsOrUsersCountsWrapper breakpoint={COLUMN_BREAKPOINTS.EVENTS}>
               <InnerCountsWrapper>{groupCount}</InnerCountsWrapper>
             </NarrowEventsOrUsersCountsWrapper>
@@ -609,7 +615,7 @@ function BaseGroupRow({
           )}
           {withColumns.includes('users') &&
           issueTypeConfig.stats.enabled &&
-          organization.features.includes('issue-stream-table-layout') ? (
+          hasNewLayout ? (
             <NarrowEventsOrUsersCountsWrapper breakpoint={COLUMN_BREAKPOINTS.USERS}>
               <InnerCountsWrapper>{groupUsersCount}</InnerCountsWrapper>
             </NarrowEventsOrUsersCountsWrapper>
@@ -617,7 +623,7 @@ function BaseGroupRow({
             <EventCountsWrapper>{groupUsersCount}</EventCountsWrapper>
           )}
           {withColumns.includes('priority') ? (
-            organization.features.includes('issue-stream-table-layout') ? (
+            hasNewLayout ? (
               <NarrowPriorityWrapper breakpoint={COLUMN_BREAKPOINTS.PRIORITY}>
                 {group.priority ? (
                   <GroupPriority group={group} onChange={onPriorityChange} />
@@ -632,7 +638,7 @@ function BaseGroupRow({
             )
           ) : null}
           {withColumns.includes('assignee') &&
-            (organization.features.includes('issue-stream-table-layout') ? (
+            (hasNewLayout ? (
               <NarrowAssigneeWrapper breakpoint={COLUMN_BREAKPOINTS.ASSIGNEE}>
                 <AssigneeSelector
                   group={group}
@@ -750,15 +756,35 @@ const GroupCheckBoxWrapper = styled('div')<{hasNewLayout: boolean}>`
     `}
 `;
 
-const PrimaryCount = styled(Count)<{hasNewLayout: boolean}>`
+const CountsWrapper = styled('div')`
+  display: flex;
+  flex-direction: column;
+`;
+
+const PrimaryCount = styled(Count)<{hasNewLayout?: boolean}>`
   font-size: ${p => (p.hasNewLayout ? p.theme.fontSizeMedium : p.theme.fontSizeLarge)};
+  ${p =>
+    p.hasNewLayout &&
+    `
+    display: flex;
+    justify-content: right;
+    margin-bottom: ${space(0.25)};
+  `}
   font-variant-numeric: tabular-nums;
 `;
 
 const SecondaryCount = styled(({value, ...p}) => <Count {...p} value={value} />)<{
-  hasNewLayout: boolean;
+  hasNewLayout?: boolean;
 }>`
-  font-size: ${p => (p.hasNewLayout ? p.theme.fontSizeMedium : p.theme.fontSizeLarge)};
+  font-size: ${p => (p.hasNewLayout ? p.theme.fontSizeSmall : p.theme.fontSizeLarge)};
+  ${p =>
+    p.hasNewLayout &&
+    css`
+      display: flex;
+      justify-content: right;
+      color: ${p.theme.subText};
+    `}
+
   font-variant-numeric: tabular-nums;
 
   :before {
