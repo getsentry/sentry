@@ -35,7 +35,7 @@ export function useTraceScrollToPath(
       const queryParams = qs.parse(location.search);
 
       scrollToNode = {
-        eventId: queryParams.eventId as string | undefined,
+        eventId: (queryParams.eventId ?? queryParams.targetId) as string | undefined,
         path: decodeScrollQueue(queryParams.node) as TraceTree.NodePath[] | undefined,
       };
     }
