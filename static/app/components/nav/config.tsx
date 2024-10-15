@@ -1,13 +1,18 @@
+import {lazy} from 'react';
+
 import type {NavConfig, NavSidebarItem} from 'sentry/components/nav/utils';
 import {
+  IconBroadcast,
   IconDashboard,
   IconGraph,
   IconIssues,
   IconLightning,
   IconProject,
+  IconQuestion,
   IconSearch,
   IconSettings,
   IconSiren,
+  IconStats,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -209,6 +214,19 @@ export function createNavConfig({organization}: {organization: Organization}): N
       {label: t('Alerts'), to: `/${prefix}/alerts/rules/`, icon: <IconSiren />},
     ],
     footer: [
+      {
+        label: t('Help'),
+        icon: <IconQuestion />,
+        overlay: lazy(() => import('./overlay/help')),
+      },
+      {
+        label: t('New'),
+        icon: <IconBroadcast />,
+      },
+      {
+        label: t('Stats'),
+        icon: <IconStats />,
+      },
       {
         label: t('Settings'),
         to: `/settings/${organization.slug}/`,
