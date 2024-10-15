@@ -26,14 +26,12 @@ export default function OnboardingProjectsCard({
     });
   };
 
-  // TODO(Priscila): Reflect on this logic
   const selectedProjectSlug = onboardingContext.data.selectedSDK?.key;
 
   const project = selectedProjectSlug
     ? allProjects.find(p => p.slug === selectedProjectSlug)
-    : undefined;
+    : allProjects[0];
 
-  // Project selected during onboarding but not received first event
   const projectHasFirstEvent = !project?.firstEvent;
 
   if (!project || !projectHasFirstEvent) {
