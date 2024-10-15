@@ -45,8 +45,8 @@ jobs:
       - name: Inspect failure
         if: failure()
         run: |
-          docker compose ps
-          docker compose logs --tail 1000
+          docker compose -f devservices/docker-compose-testing.yml ps
+          docker compose -f devservices/docker-compose-testing.yml logs --tail 1000
 
   docker-compose-backend-test:
     name: backend test
@@ -108,8 +108,8 @@ jobs:
       - name: Inspect failure
         if: failure()
         run: |
-          docker compose ps
-          docker compose logs --tail 1000
+          docker compose -f devservices/docker-compose-testing.yml ps
+          docker compose -f devservices/docker-compose-testing.yml logs --tail 1000
 
   docker-compose-backend-migration-tests:
     name: backend migration tests
@@ -147,8 +147,8 @@ jobs:
       - name: Inspect failure
         if: failure()
         run: |
-          docker compose ps
-          docker compose logs --tail 1000
+          docker compose -f devservices/docker-compose-testing.yml ps
+          docker compose -f devservices/docker-compose-testing.yml logs --tail 1000
 
   docker-compose-cli:
     name: cli test
@@ -185,8 +185,8 @@ jobs:
       - name: Inspect failure
         if: failure()
         run: |
-          docker compose ps
-          docker compose logs --tail 1000
+          docker compose -f devservices/docker-compose-testing.yml ps
+          docker compose -f devservices/docker-compose-testing.yml logs --tail 1000
 
   docker-compose-migration:
     name: check migration
@@ -218,8 +218,8 @@ jobs:
       - name: Inspect failure
         if: failure()
         run: |
-          docker compose ps
-          docker compose logs --tail 1000
+          docker compose -f devservices/docker-compose-testing.yml ps
+          docker compose -f devservices/docker-compose-testing.yml logs --tail 1000
 
   docker-compose-monolith-dbs:
     name: monolith-dbs test
@@ -266,8 +266,8 @@ jobs:
       - name: Inspect failure
         if: failure()
         run: |
-          docker compose ps
-          docker compose logs --tail 1000
+          docker compose -f devservices/docker-compose-testing.yml ps
+          docker compose -f devservices/docker-compose-testing.yml logs --tail 1000
 
   # This check runs once all dependent jobs have passed
   # It symbolizes that all required Backend checks have succesfully passed (Or skipped)
