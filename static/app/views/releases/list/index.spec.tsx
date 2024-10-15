@@ -611,7 +611,7 @@ describe('ReleasesList', () => {
       url: '/organizations/org-slug/recent-searches/',
       method: 'POST',
     });
-    render(<ReleasesList {...props} />, {
+    render(<ReleasesList {...props} location={{...props.location, query: {}}} />, {
       router,
       organization,
     });
