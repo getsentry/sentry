@@ -1720,8 +1720,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
     def _test_null_filters(self, query_key, field, null_value, nonnull_value):
         """
         Tests filters on a nullable field such as user.email:"", !user.email:"", user.email:["", ...].
-        On the backend, null fields are stored as @param `null_value` - either "" or python None. These queries are
-        handled as a special case which needs testing.
+        Due to clickhouse aggregations, these queries are handled as a special case which needs testing.
 
         @param query_key       name of field in URL query string, ex `user.email`.
         @param field           name of kwarg used for testutils.mock_replay, ex `user_email`.
@@ -1782,16 +1781,16 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 assert len(data) == 0
 
     def test_query_null_email(self):
-        self._test_null_filter("user.email", "user_email", "", "andrew@example.com")
+        self._test_null_filters("user.email", "user_email", "", "andrew@example.com")
 
     def test_query_null_ipv4(self):
-        self._test_null_filter("user.ip", "ipv4", None, "127.0.0.1")
+        self._test_null_filters("user.ip", "ipv4", None, "127.0.0.1")
 
     def test_query_null_username(self):
-        self._test_null_filter("user.username", "user_name", "", "andrew1")
+        self._test_null_filters("user.username", "user_name", "", "andrew1")
 
     def test_query_null_user_id(self):
-        self._test_null_filter("user.id", "user_id", "", "12ef6")
+        self._test_null_filters("user.id", "user_id", "", "12ef6")
 
     def test_query_branches_computed_activity_conditions(self):
         project = self.create_project(teams=[self.team])
