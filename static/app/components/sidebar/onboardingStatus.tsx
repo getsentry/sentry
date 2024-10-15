@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useContext} from 'react';
+import {Fragment, useCallback, useContext, useEffect} from 'react';
 import type {Theme} from '@emotion/react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -57,10 +57,6 @@ export default function OnboardingStatus({
     onShowPanel();
   }, [walkthrough, isActive, onShowPanel, org]);
 
-  if (!org.features?.includes('onboarding')) {
-    return null;
-  }
-
   const tasks = getMergedTasks({
     organization: org,
     projects,
@@ -81,7 +77,20 @@ export default function OnboardingStatus({
       !task.completionSeen
   );
 
-  if (doneTasks.length >= allDisplayedTasks.length && !isActive) {
+  const allTasksCompleted = doneTasks.length >= allDisplayedTasks.length;
+
+  useEffect(() => {
+    if (!allTasksCompleted || isActive) {
+      return;
+    }
+
+    trackAnalytics('quick_start.completed', {
+      organization: org,
+      referrer: 'onboarding_sidebar',
+    });
+  }, [isActive, allTasksCompleted, org]);
+
+  if (!org.features?.includes('onboarding') || (allTasksCompleted && !isActive)) {
     return null;
   }
 
