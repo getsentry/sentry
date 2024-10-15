@@ -823,6 +823,7 @@ class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpoin
                     {
                         "description": "foo",
                         "sentry_tags": {"status": "success"},
+                        "tags": {"bar": "bar1"},
                     },
                     start_ts=self.ten_mins_ago,
                 ),
@@ -830,6 +831,7 @@ class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpoin
                     {
                         "description": "foo",
                         "sentry_tags": {"status": "success"},
+                        "tags": {"bar": "bar2"},
                     },
                     measurements={"foo": {"value": 5}},
                     start_ts=self.ten_mins_ago,
@@ -842,6 +844,9 @@ class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpoin
             {
                 "field": [
                     "description",
+                    "count_unique(bar)",
+                    "count_unique(tags[bar])",
+                    "count_unique(tags[bar,string])",
                     "count()",
                     "count(span.duration)",
                     "count(tags[foo,     number])",
@@ -867,6 +872,9 @@ class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpoin
         data = response.data["data"]
         assert data[0] == {
             "description": "foo",
+            "count_unique(bar)": 2,
+            "count_unique(tags[bar])": 2,
+            "count_unique(tags[bar,string])": 2,
             "count()": 2,
             "count(span.duration)": 2,
             "count(tags[foo,     number])": 1,

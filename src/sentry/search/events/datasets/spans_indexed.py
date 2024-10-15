@@ -651,6 +651,12 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
                     default_result_type="integer",
                 ),
                 SnQLFunction(
+                    "count_unique",
+                    required_args=[ColumnTagArg("column")],
+                    snql_aggregate=lambda args, alias: Function("uniq", [args["column"]], alias),
+                    default_result_type="integer",
+                ),
+                SnQLFunction(
                     "sum",
                     required_args=[NumericColumn("column", spans=True)],
                     snql_aggregate=self._resolve_aggregate_if("sum"),
