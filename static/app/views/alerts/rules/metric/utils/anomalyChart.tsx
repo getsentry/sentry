@@ -18,7 +18,7 @@ export function getAnomalyMarkerSeries(
   opts: AnomalyMarkerSeriesOptions = {}
 ): AreaChartSeries[] {
   const series: AreaChartSeries[] = [];
-  if (anomalies.length === 0) {
+  if (!Array.isArray(anomalies) || anomalies.length === 0) {
     return series;
   }
   const {startDate, endDate} = opts;
