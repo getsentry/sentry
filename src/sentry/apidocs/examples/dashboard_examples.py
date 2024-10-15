@@ -67,7 +67,7 @@ DASHBOARD_OBJECT = {
     "projects": [1],
     "filters": {},
     "period": "7d",
-    "permissions": {"is_creator_only_editable": "False"},
+    "permissions": {"is_creator_only_editable": False},
 }
 
 DASHBOARDS_OBJECT = [
