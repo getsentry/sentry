@@ -844,7 +844,18 @@ class ProjectRulesEndpoint(ProjectEndpoint):
         created_alert_rule_ui_component = trigger_sentry_app_action_creators_for_issues(
             kwargs["actions"]
         )
-        rule = ProjectRuleCreator(request=request, **kwargs).run()
+        rule = ProjectRuleCreator(
+            name=kwargs.get("name"),
+            project=kwargs.get("project"),
+            action_match=kwargs.get("action_match"),
+            actions=kwargs.get("actions"),
+            conditions=kwargs.get("conditions"),
+            frequency=kwargs.get("frequency"),
+            environment=kwargs.get("environment"),
+            owner=kwargs.get("owner"),
+            filter_match=kwargs.get("filter_match"),
+            request=request,
+        ).run()
 
         RuleActivity.objects.create(
             rule=rule, user_id=request.user.id, type=RuleActivityType.CREATED.value

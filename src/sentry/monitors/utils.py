@@ -242,8 +242,18 @@ def create_issue_alert_rule(
         "frequency": data.get("frequency"),
         "user_id": request.user.id,
     }
-
-    rule = ProjectRuleCreator(request=request, **kwargs).run()
+    rule = ProjectRuleCreator(
+        name=kwargs.get("name"),
+        project=kwargs.get("project"),
+        action_match=kwargs.get("action_match"),
+        actions=kwargs.get("actions"),
+        conditions=kwargs.get("conditions"),
+        frequency=kwargs.get("frequency"),
+        environment=kwargs.get("environment"),
+        owner=kwargs.get("owner"),
+        filter_match=kwargs.get("filter_match"),
+        request=request,
+    ).run()
     rule.update(source=RuleSource.CRON_MONITOR)
     RuleActivity.objects.create(
         rule=rule, user_id=request.user.id, type=RuleActivityType.CREATED.value

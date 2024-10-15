@@ -109,7 +109,16 @@ def find_channel_id_for_rule(
             rule = Rule.objects.get(id=rule_id)
             rule = Updater.run(rule=rule, pending_save=False, **kwargs)
         else:
-            rule = ProjectRuleCreator(pending_save=False, **kwargs).run()
+            rule = ProjectRuleCreator(
+                name=kwargs.get("name"),
+                project=kwargs.get("project"),
+                action_match=kwargs.get("action_match"),
+                actions=kwargs.get("actions"),
+                conditions=kwargs.get("conditions"),
+                frequency=kwargs.get("frequency"),
+                environment=kwargs.get("environment"),
+                filter_match=kwargs.get("filter_match"),
+            ).run()
             if user_id:
                 RuleActivity.objects.create(
                     rule=rule, user_id=user_id, type=RuleActivityType.CREATED.value

@@ -3268,7 +3268,7 @@ class MonitorTestCase(APITestCase):
             actions=actions,
             frequency=5,
             environment=self.environment.id,
-        ).call()
+        ).run()
         rule.update(source=RuleSource.CRON_MONITOR)
 
         config = monitor.config
