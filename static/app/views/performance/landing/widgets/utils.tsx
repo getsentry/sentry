@@ -31,13 +31,13 @@ function setWidgetStorageObject(localObject: Record<string, string>) {
   localStorage.setItem(getContainerLocalStorageObjectKey, JSON.stringify(localObject));
 }
 
-const mepQueryParamBase = {};
+const mepQueryParamBase: Record<string, string> = {};
 
 export function getMEPQueryParams(
   mepContext: MetricsEnhancedSettingContext,
   forceAuto?: boolean
 ) {
-  let queryParams = {};
+  let queryParams: Record<string, string> = {};
   const base = mepQueryParamBase;
   if (mepContext.shouldQueryProvideMEPAutoParams || forceAuto) {
     queryParams = {
