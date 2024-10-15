@@ -133,7 +133,7 @@ function GroupTimestamp({date, label}: {date: string | null; label: string}) {
       aria-label={label}
       tooltipPrefix={label}
       date={date}
-      suffix=""
+      suffix="ago"
       unitStyle="extraShort"
     />
   );
@@ -824,7 +824,7 @@ const ChartWrapper = styled('div')<{margin: boolean; narrowGroups: boolean}>`
 `;
 
 const NarrowChartWrapper = styled('div')<{breakpoint: string}>`
-  width: 200px;
+  width: 175px;
   align-self: center;
   margin-right: ${space(2)};
 
@@ -836,7 +836,7 @@ const NarrowChartWrapper = styled('div')<{breakpoint: string}>`
 const TimestampWrapper = styled('div')<{breakpoint: string}>`
   display: flex;
   align-self: center;
-  width: 60px;
+  width: 75px;
   margin-right: ${space(2)};
 
   @media (max-width: ${p => p.breakpoint}) {
