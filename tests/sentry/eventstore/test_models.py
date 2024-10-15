@@ -1,4 +1,5 @@
 import pickle
+from typing import Any
 from unittest import mock
 
 import pytest
@@ -438,6 +439,63 @@ class EventTest(TestCase, PerformanceIssueTestCase):
         assert len(default_variant.component.values) == 1
         assert default_variant.component.values[0].id == "message"
         assert default_variant.component.values[0].values == ["Dogs are great!"]
+
+    def test_has_stacktrace(self):
+        Stacktrace = dict[str, Any]
+
+        empty_stacktrace: Stacktrace = {}
+        no_frames_stacktrace: Stacktrace = {"not_frames": "some not-frame-y stuff here"}
+        empty_frames_stacktrace: Stacktrace = {"frames": []}
+        stacktrace_with_frames: Stacktrace = {"frames": [{"frame": "stuff"}]}
+
+        top_level_stacktrace_cases = [
+            (empty_stacktrace, False),
+            (no_frames_stacktrace, False),
+            (empty_frames_stacktrace, False),
+            (stacktrace_with_frames, True),
+        ]
+
+        for stacktrace, expected_value in top_level_stacktrace_cases:
+            event = Event(
+                event_id="11212012123120120415201309082013",
+                data={"message": "Dogs are great!", "stacktrace": stacktrace},
+                project_id=self.project.id,
+            )
+            assert event.has_stacktrace == expected_value, f"Top-level case `{stacktrace}` failed"
+
+        exception_and_thread_cases = [
+            ([empty_stacktrace], False),
+            ([no_frames_stacktrace], False),
+            ([empty_frames_stacktrace], False),
+            ([stacktrace_with_frames], True),
+            # These cases show it looks through all exceptions, not just the first or last
+            ([empty_stacktrace, stacktrace_with_frames], True),
+            ([stacktrace_with_frames, empty_stacktrace], True),
+            ([empty_stacktrace, stacktrace_with_frames, empty_stacktrace], True),
+        ]
+
+        for stacktraces, expected_value in exception_and_thread_cases:
+            values_value = [{"stacktrace": stacktrace} for stacktrace in stacktraces]
+
+            event = Event(
+                event_id="11212012123120120415201309082013",
+                data={"message": "Dogs are great!"},
+                project_id=self.project.id,
+            )
+            # Assign this after the fact to get the purposefully broken cases past the normalizer
+            event.data["exception"] = {"values": values_value}
+
+            assert event.has_stacktrace == expected_value, f"Exception case `{stacktraces}` failed"
+
+            event = Event(
+                event_id="11212012123120120415201309082013",
+                data={"message": "Dogs are great!"},
+                project_id=self.project.id,
+            )
+            # Assign this after the fact to get the purposefully broken cases past the normalizer
+            event.data["threads"] = {"values": values_value}
+
+            assert event.has_stacktrace == expected_value, f"Threads case `{stacktraces}` failed"
 
 
 class EventGroupsTest(TestCase):
