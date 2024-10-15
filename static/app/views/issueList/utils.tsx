@@ -211,6 +211,9 @@ export const DISCOVER_EXCLUSION_FIELDS: string[] = [
   'first_seen',
   'is',
   '__text',
+  'issue.priority',
+  'issue.category',
+  'issue.type',
 ];
 
 export const FOR_REVIEW_QUERIES: string[] = [Query.FOR_REVIEW];
