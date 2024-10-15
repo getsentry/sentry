@@ -73,3 +73,12 @@ def urlsplit_best_effort(s: str) -> tuple[str, str, str, str]:
         return scheme, netloc, path, query
     else:
         return parsed.scheme, parsed.netloc, parsed.path, parsed.query
+
+
+def parse_id_or_slug_param(id_or_slug: str | None) -> tuple[int | None, str | None]:
+    if not id_or_slug:
+        return None, None
+
+    if id_or_slug.isnumeric():
+        return int(id_or_slug), None
+    return None, id_or_slug
