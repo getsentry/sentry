@@ -27,13 +27,11 @@ class GroupingInput:
     def create_event(self, config_name):
         grouping_config = get_default_grouping_config_dict(config_name)
 
-        # Customize grouping config from the _grouping config
-        grouping_info = self.data.get("_grouping", None) or {}
-        enhancements = grouping_info.get("enhancements")
-        if enhancements:
-            enhancement_bases = Enhancements.loads(grouping_config["enhancements"]).bases
-            e = Enhancements.from_config_string(enhancements or "", bases=enhancement_bases)
-            grouping_config["enhancements"] = e.dumps()
+        # Add in any extra grouping configuration from the input data
+        grouping_config["enhancements"] = Enhancements.from_config_string(
+            self.data.get("_grouping", {}).get("enhancements", ""),
+            bases=Enhancements.loads(grouping_config["enhancements"]).bases,
+        ).dumps()
 
         # Normalize the event
         mgr = EventManager(data=self.data, grouping_config=grouping_config)
