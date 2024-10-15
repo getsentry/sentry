@@ -21,11 +21,8 @@ _grouping_fixture_path = os.path.join(os.path.dirname(__file__), "grouping_input
 class GroupingInput:
     def __init__(self, filename):
         self.filename = filename
-
-    @cached_property
-    def data(self):
         with open(os.path.join(_grouping_fixture_path, self.filename)) as f:
-            return json.load(f)
+            self.data = json.load(f)
 
     def create_event(self, config_name):
         grouping_config = get_default_grouping_config_dict(config_name)
