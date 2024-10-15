@@ -318,12 +318,16 @@ class SearchResolverColumnTest(TestCase):
     def test_count(self):
         resolved_column, virtual_context = self.resolver.resolve_column("count()")
         assert resolved_column.proto_definition == AttributeAggregation(
-            aggregate=Function.FUNCTION_COUNT, key=None, label="count()"
+            aggregate=Function.FUNCTION_COUNT,
+            key=AttributeKey(name="duration_ms", type=AttributeKey.Type.TYPE_INT),
+            label="count()",
         )
         assert virtual_context is None
         resolved_column, virtual_context = self.resolver.resolve_column("count(span.duration)")
         assert resolved_column.proto_definition == AttributeAggregation(
-            aggregate=Function.FUNCTION_COUNT, key=None, label="count(span.duration)"
+            aggregate=Function.FUNCTION_COUNT,
+            key=AttributeKey(name="duration_ms", type=AttributeKey.Type.TYPE_INT),
+            label="count(span.duration)",
         )
         assert virtual_context is None
 
