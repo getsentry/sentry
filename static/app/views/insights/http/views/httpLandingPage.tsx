@@ -63,7 +63,7 @@ export function HTTPLandingPage() {
     },
   });
 
-  const ADDITIONAL_FILTERS = {};
+  const ADDITIONAL_FILTERS: {[SpanMetricsField.USER_GEO_SUBREGION]?: string} = {};
 
   if (query[SpanMetricsField.USER_GEO_SUBREGION].length > 0) {
     ADDITIONAL_FILTERS[SpanMetricsField.USER_GEO_SUBREGION] =

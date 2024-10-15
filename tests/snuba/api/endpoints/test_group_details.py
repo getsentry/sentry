@@ -1,4 +1,6 @@
+from typing import Any
 from unittest import mock
+from unittest.mock import patch
 
 from rest_framework.exceptions import ErrorDetail
 
@@ -318,7 +320,31 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         assert response.data["issueType"] == "error"
         assert response.data["issueCategory"] == "error"
 
-    def test_delete_issue_platform_deletion(self):
+    def test_delete_error_issue(self) -> Any:
+        """Test that a user cannot delete a error issue"""
+        self.login_as(user=self.user)
+        group = self.create_group(status=GroupStatus.RESOLVED, project=self.project)
+        url = f"/api/0/issues/{group.id}/"
+
+        with patch(
+            "sentry.api.helpers.group_index.delete.delete_groups_task.apply_async"
+        ) as mock_apply_async:
+            response = self.client.delete(url, format="json")
+            mock_apply_async.assert_called_once()
+            kwargs = mock_apply_async.call_args[1]
+            assert kwargs["countdown"] == 3600
+            assert response.status_code == 202
+            # Since the task has not executed yet the group is pending deletion
+            assert Group.objects.get(id=group.id).status == GroupStatus.PENDING_DELETION
+
+        # Undo some of what the previous endpoint call did
+        group.update(status=GroupStatus.RESOLVED)
+        with self.tasks():
+            response = self.client.delete(url, format="json")
+            assert response.status_code == 202
+            assert not Group.objects.filter(id=group.id).exists()
+
+    def test_delete_issue_platform_issue(self) -> Any:
         """Test that a user cannot delete an issue if issue platform deletion is not allowed"""
         self.login_as(user=self.user)
 
@@ -334,7 +360,23 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         assert response.json() == ["Only error issues can be deleted."]
 
         # We are allowed to delete the groups with the feature flag enabled
+        with Feature({"organizations:issue-platform-deletion": True}):
+            with patch(
+                "sentry.api.helpers.group_index.delete.delete_groups_task.apply_async"
+            ) as mock_apply_async:
+                response = self.client.delete(url, format="json")
+                assert response.status_code == 202
+                # Since the task has not executed yet the group is pending deletion
+                assert Group.objects.get(id=group.id).status == GroupStatus.PENDING_DELETION
+                mock_apply_async.assert_called_once()
+                kwargs = mock_apply_async.call_args[1]
+                # We don't wait to schedule the deletion of non-error issues
+                assert kwargs["countdown"] == 0
+
+        # Undo some of what the previous endpoint call did
+        group.update(status=GroupStatus.RESOLVED)
         with Feature({"organizations:issue-platform-deletion": True}), self.tasks():
             response = self.client.delete(url, format="json")
             assert response.status_code == 202
+            # Now check that the group doesn't exist
             assert not Group.objects.filter(id=group.id).exists()
