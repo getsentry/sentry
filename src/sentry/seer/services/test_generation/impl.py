@@ -33,6 +33,8 @@ class RegionBackedTestGenerationService(TestGenerationService):
         )
 
         if response.status_code == 200:
-            return CreateUnitTestResponse()
+            return CreateUnitTestResponse(status_code=response.status_code)
         else:
-            return CreateUnitTestResponse(error_detail=response.text)
+            return CreateUnitTestResponse(
+                error_detail=response.text, status_code=response.status_code
+            )

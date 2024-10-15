@@ -8,6 +8,7 @@ from sentry.hybridcloud.rpc import RpcModel
 
 class CreateUnitTestResponse(RpcModel):
     error_detail: str | None = None
+    status_code: int | None = None
 
     @property
     def success(self):
