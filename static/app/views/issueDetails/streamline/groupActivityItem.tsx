@@ -588,6 +588,11 @@ export default function getGroupActivityItem(
           title: t('First Seen'),
           message: null,
         };
+      case GroupActivityType.LAST_SEEN:
+        return {
+          title: t('Last Seen'),
+          message: null,
+        };
       case GroupActivityType.ASSIGNED: {
         return getAssignedMessage(activity);
       }

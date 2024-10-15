@@ -379,6 +379,7 @@ export enum GroupActivityType {
   UNMERGE_SOURCE = 'unmerge_source',
   UNMERGE_DESTINATION = 'unmerge_destination',
   FIRST_SEEN = 'first_seen',
+  LAST_SEEN = 'last_seen',
   ASSIGNED = 'assigned',
   UNASSIGNED = 'unassigned',
   MERGE = 'merge',
@@ -482,6 +483,10 @@ interface GroupActivityUnassigned extends GroupActivityBase {
 interface GroupActivityFirstSeen extends GroupActivityBase {
   data: Record<string, any>;
   type: GroupActivityType.FIRST_SEEN;
+}
+
+export interface GroupActivityLastSeen extends GroupActivityBase {
+  type: GroupActivityType.LAST_SEEN;
 }
 
 interface GroupActivityMarkReviewed extends GroupActivityBase {
@@ -679,7 +684,8 @@ export type GroupActivity =
   | GroupActivityAutoSetOngoing
   | GroupActivitySetEscalating
   | GroupActivitySetPriority
-  | GroupActivityDeletedAttachment;
+  | GroupActivityDeletedAttachment
+  | GroupActivityLastSeen;
 
 export type Activity = GroupActivity;
 
