@@ -103,6 +103,8 @@ class OrganizationAccessRequestDetailsEndpoint(OrganizationEndpoint):
             return Response([])
 
         teams_by_user = OrganizationMember.objects.get_teams_by_user(organization=organization)
+
+        # We omit any requests which are now redundant (i.e. the user joined that team some other way)
         valid_access_requests: list[OrganizationAccessRequest] = []
         for access_request in access_requests:
             if access_request.member.user_id is None:
