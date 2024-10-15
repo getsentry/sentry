@@ -53,7 +53,7 @@ class GroupingInput:
 
 
 def with_grouping_inputs(test_param_name: str, inputs_dir: str) -> pytest.MarkDecorator:
-    grouping_inputs = list(
+    grouping_inputs = (
         GroupingInput(inputs_dir, filename)
         for filename in sorted(os.listdir(inputs_dir))
         if filename.endswith(".json")
