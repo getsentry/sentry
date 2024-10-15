@@ -1,20 +1,36 @@
 from __future__ import annotations
 
-from collections.abc import Callable
 from os import path
+from typing import Any
 
 import pytest
+from simplejson import JSONEncoder  # noqa: S003
 
 from sentry.eventstore.models import Event
 from sentry.grouping.component import GroupingComponent
 from sentry.grouping.strategies.configurations import CONFIGURATIONS
 from sentry.models.project import Project
 from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG
-from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.testutils.pytest.fixtures import InstaSnapshotter, django_db_all
 from sentry.utils import json
-from tests.sentry.grouping import GroupingInput, with_grouping_inputs
+from tests.sentry.grouping import (
+    GROUPING_INPUTS_DIR,
+    GroupingInput,
+    get_grouping_inputs,
+    with_grouping_inputs,
+)
 
-GROUPING_INPUTS_DIR = path.join(path.dirname(__file__), "grouping_inputs")
+json_encoder = JSONEncoder(
+    sort_keys=True,
+    separators=(",", ":"),
+    default=json.better_default_encoder,
+)
+
+GROUPING_INPUTS = get_grouping_inputs(GROUPING_INPUTS_DIR)
+
+
+def to_json(value: Any) -> str:
+    return json_encoder.encode(value)
 
 
 def dump_variant(variant, lines=None, indent=0):
@@ -37,9 +53,9 @@ def dump_variant(variant, lines=None, indent=0):
             if isinstance(value, GroupingComponent):
                 _dump_component(value, indent + 1)
             else:
-                lines.append("{}{}".format("  " * (indent + 1), json.dumps(value)))
+                lines.append("{}{}".format("  " * (indent + 1), to_json(value)))
 
-    lines.append("{}hash: {}".format("  " * indent, json.dumps(variant.get_hash())))
+    lines.append("{}hash: {}".format("  " * indent, to_json(variant.get_hash())))
 
     for key, value in sorted(variant.__dict__.items()):
         if isinstance(value, GroupingComponent):
@@ -49,19 +65,19 @@ def dump_variant(variant, lines=None, indent=0):
             # We do not want to dump the config
             continue
         else:
-            lines.append("{}{}: {}".format("  " * indent, key, json.dumps(value)))
+            lines.append("{}{}: {}".format("  " * indent, key, to_json(value)))
 
     return lines
 
 
-@with_grouping_inputs("grouping_input", GROUPING_INPUTS_DIR)
+@with_grouping_inputs("grouping_input", GROUPING_INPUTS)
 @pytest.mark.parametrize(
     "config_name",
     set(CONFIGURATIONS.keys()) - {DEFAULT_GROUPING_CONFIG},
     ids=lambda config_name: config_name.replace("-", "_"),
 )
 def test_variants_with_legacy_configs(
-    config_name: str, grouping_input: GroupingInput, insta_snapshot: Callable[[str], None]
+    config_name: str, grouping_input: GroupingInput, insta_snapshot: InstaSnapshotter
 ) -> None:
     """
     Run the variant snapshot tests using an minimal (and much more performant) save process.
@@ -79,7 +95,7 @@ def test_variants_with_legacy_configs(
 
 
 @django_db_all
-@with_grouping_inputs("grouping_input", GROUPING_INPUTS_DIR)
+@with_grouping_inputs("grouping_input", get_grouping_inputs(GROUPING_INPUTS_DIR))
 @pytest.mark.parametrize(
     "config_name",
     # Technically we don't need to parameterize this since there's only one option, but doing it
@@ -91,7 +107,7 @@ def test_variants_with_legacy_configs(
 def test_variants_with_current_default_config(
     config_name: str,
     grouping_input: GroupingInput,
-    insta_snapshot: Callable[[str], None],
+    insta_snapshot: InstaSnapshotter,
     default_project: Project,
 ):
     """
@@ -113,7 +129,7 @@ def test_variants_with_current_default_config(
 
 
 def _assert_and_snapshot_results(
-    event: Event, config_name: str, input_file: str, insta_snapshot: Callable[[str], None]
+    event: Event, config_name: str, input_file: str, insta_snapshot: InstaSnapshotter
 ) -> None:
     # Make sure the event was annotated with the grouping config
     assert event.get_grouping_config()["id"] == config_name
@@ -129,7 +145,7 @@ def _assert_and_snapshot_results(
 
     insta_snapshot(
         output,
-        reference_file=path.join(
+        path.join(
             path.dirname(__file__),
             "snapshots",
             path.basename(__file__).replace(".py", ""),

@@ -1,4 +1,7 @@
 import os
+import time
+from collections.abc import Generator, Iterable
+from os import path
 from unittest import mock
 
 import pytest
@@ -21,6 +24,8 @@ from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG
 from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
 from sentry.testutils.helpers.eventprocessing import save_new_event
 from sentry.utils import json
+
+GROUPING_INPUTS_DIR = path.join(path.dirname(__file__), "grouping_inputs")
 
 
 class GroupingInput:
@@ -70,7 +75,10 @@ class GroupingInput:
             return save_new_event(self.data, project)
 
     def create_event(
-        self, config_name: str, use_full_ingest_pipeline: bool = True, project: Project = None
+        self,
+        config_name: str,
+        use_full_ingest_pipeline: bool = True,
+        project: Project | None = None,
     ) -> Event:
         grouping_config = get_default_grouping_config_dict(config_name)
 
@@ -93,12 +101,21 @@ class GroupingInput:
         return event
 
 
-def with_grouping_inputs(test_param_name: str, inputs_dir: str) -> pytest.MarkDecorator:
-    grouping_inputs = (
+def get_grouping_inputs(inputs_dir: str) -> list[GroupingInput]:
+    return [
         GroupingInput(inputs_dir, filename)
         for filename in sorted(os.listdir(inputs_dir))
         if filename.endswith(".json")
-    )
+    ]
+
+
+# # By getting these when the module loads, we can use them across tests and then use them
+# GROUPING_INPUTS = get_grouping_inputs(GROUPING_INPUTS_DIR)
+
+
+def with_grouping_inputs(
+    test_param_name: str, grouping_inputs: list[GroupingInput]
+) -> pytest.MarkDecorator:
     return pytest.mark.parametrize(
         test_param_name,
         grouping_inputs,
