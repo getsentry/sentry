@@ -52,7 +52,11 @@ def dump_variant(variant, lines=None, indent=0):
 
 
 @with_grouping_inputs("grouping_input", GROUPING_INPUTS_DIR)
-@pytest.mark.parametrize("config_name", CONFIGURATIONS.keys(), ids=lambda x: x.replace("-", "_"))
+@pytest.mark.parametrize(
+    "config_name",
+    CONFIGURATIONS.keys(),
+    ids=lambda config_name: config_name.replace("-", "_"),
+)
 def test_event_hash_variant(
     config_name: str, grouping_input: GroupingInput, insta_snapshot: Callable[[str], None]
 ) -> None:
