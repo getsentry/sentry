@@ -19,7 +19,6 @@ from sentry.utils.snuba import raw_query
 class GroupHashesEndpoint(GroupEndpoint):
     publish_status = {
         "PUT": ApiPublishStatus.PRIVATE,
-        "DELETE": ApiPublishStatus.PRIVATE,
         "GET": ApiPublishStatus.PRIVATE,
     }
 

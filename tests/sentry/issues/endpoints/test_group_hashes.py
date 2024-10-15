@@ -107,7 +107,7 @@ class GroupHashesTest(APITestCase, SnubaTestCase):
         )
 
         with patch("sentry.issues.endpoints.group_hashes.metrics.incr") as mock_metrics_incr:
-            response = self.client.delete(url, format="json")
+            response = self.client.put(url, format="json")
 
             assert response.status_code == 202, response.content
             mock_metrics_incr.assert_any_call(
@@ -167,7 +167,7 @@ class GroupHashesTest(APITestCase, SnubaTestCase):
         hashes[0].update(state=GroupHash.State.LOCKED_IN_MIGRATION)
         hashes[1].update(state=GroupHash.State.LOCKED_IN_MIGRATION)
 
-        response = self.client.delete(url, format="json")
+        response = self.client.put(url, format="json")
 
         assert response.status_code == 409
         assert response.data["detail"] == "Already being unmerged"
