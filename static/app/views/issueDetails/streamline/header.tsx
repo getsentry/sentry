@@ -1,4 +1,4 @@
-import {Fragment, useMemo} from 'react';
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 import Color from 'color';
 
@@ -9,16 +9,12 @@ import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import EventMessage from 'sentry/components/events/eventMessage';
 import ParticipantList from 'sentry/components/group/streamlinedParticipantList';
 import Link from 'sentry/components/links/link';
-import Version from 'sentry/components/version';
-import VersionHoverCard from 'sentry/components/versionHoverCard';
 import {IconChevron, IconPanel} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group, TeamParticipant, UserParticipant} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
-import type {Release} from 'sentry/types/release';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
@@ -32,11 +28,6 @@ import {ReplayBadge} from 'sentry/views/issueDetails/streamline/replayBadge';
 import {UserFeedbackBadge} from 'sentry/views/issueDetails/streamline/userFeedbackBadge';
 import {useIssueDetailsHeader} from 'sentry/views/issueDetails/useIssueDetailsHeader';
 import type {ReprocessingStatus} from 'sentry/views/issueDetails/utils';
-
-interface GroupRelease {
-  firstRelease: Release;
-  lastRelease: Release;
-}
 
 interface GroupHeaderProps {
   baseUrl: string;
@@ -58,16 +49,7 @@ export default function StreamlinedGroupHeader({
   const organization = useOrganization();
   const {sort: _sort, ...query} = location.query;
 
-  const {data: groupReleaseData} = useApiQuery<GroupRelease>(
-    [`/organizations/${organization.slug}/issues/${group.id}/first-last-release/`],
-    {
-      staleTime: 30000,
-      gcTime: 30000,
-    }
-  );
-
   const {count: eventCount, userCount} = group;
-  const {firstRelease, lastRelease} = groupReleaseData || {};
 
   const [sidebarOpen, setSidebarOpen] = useSyncedLocalStorageState(
     'issue-details-sidebar-open',
@@ -123,41 +105,6 @@ export default function StreamlinedGroupHeader({
               showUnhandled={group.isUnhandled}
               levelIndicatorSize={'10px'}
             />
-            {firstRelease && lastRelease && (
-              <Fragment>
-                <Divider />
-                <ReleaseWrapper>
-                  {firstRelease.id === lastRelease.id ? t('Release') : t('Releases')}
-                  <VersionHoverCard
-                    organization={organization}
-                    projectSlug={project.slug}
-                    releaseVersion={firstRelease.version}
-                  >
-                    <Version
-                      version={firstRelease.version}
-                      projectId={project.id}
-                      truncate
-                    />
-                  </VersionHoverCard>
-                  {firstRelease.id === lastRelease.id ? null : (
-                    <Fragment>
-                      -
-                      <VersionHoverCard
-                        organization={organization}
-                        projectSlug={project.slug}
-                        releaseVersion={lastRelease.version}
-                      >
-                        <Version
-                          version={lastRelease.version}
-                          projectId={project.id}
-                          truncate
-                        />
-                      </VersionHoverCard>
-                    </Fragment>
-                  )}
-                </ReleaseWrapper>
-              </Fragment>
-            )}
             <AttachmentsBadge group={group} />
             <UserFeedbackBadge group={group} project={project} />
             <ReplayBadge group={group} project={project} />
@@ -344,18 +291,6 @@ const Wrapper = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(0.5)};
-`;
-
-const ReleaseWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  max-width: 40%;
-  gap: ${space(0.25)};
-  a {
-    color: ${p => p.theme.gray300};
-    text-decoration: underline;
-    text-decoration-style: dotted;
-  }
 `;
 
 const Header = styled('div')`
