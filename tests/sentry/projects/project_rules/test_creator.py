@@ -37,7 +37,7 @@ class TestProjectRuleCreator(TestCase):
 
     def test_creates_rule(self):
         r = self.creator.run()
-        rule = Rule.objects.get(id=r.id)
+        rule: Rule = Rule.objects.get(id=r.id)
         assert rule.label == "New Cool Rule"
         assert rule.owner_user_id == self.user.id
         assert rule.owner_team_id is None
