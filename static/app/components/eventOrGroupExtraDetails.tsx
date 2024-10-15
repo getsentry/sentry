@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {ErrorLevelText} from 'sentry/components/events/errorLevelText';
+import ErrorLevel from 'sentry/components/events/errorLevel';
 import EventAnnotation from 'sentry/components/events/eventAnnotation';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import ShortId from 'sentry/components/group/inboxBadges/shortId';
@@ -89,6 +89,7 @@ function EventOrGroupExtraDetails({
   const level = 'level' in data ? data.level : null;
 
   const items = [
+    hasNewLayout && level ? <ErrorLevel level={level} size={'10px'} /> : null,
     shortId ? (
       <ShortId
         shortId={shortId}
@@ -97,7 +98,6 @@ function EventOrGroupExtraDetails({
         }
       />
     ) : null,
-    hasNewLayout && level ? <ErrorLevelText level={level} /> : null,
     isUnhandled ? <UnhandledTag /> : null,
     showLifetime ? (
       <Lifetime firstSeen={firstSeen} lastSeen={lastSeen} lifetime={lifetime} />
