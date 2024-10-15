@@ -223,13 +223,15 @@ function RootCauseContext({
           )}
         </ExpandableInsightContext>
       )}
-      <ExpandableInsightContext
-        icon={<IconCode size="sm" color="subText" />}
-        title={'Relevant code'}
-        rounded
-      >
-        <AutofixRootCauseCodeContexts codeContext={cause.code_context} repos={repos} />
-      </ExpandableInsightContext>
+      {cause.code_context.length > 0 && (
+        <ExpandableInsightContext
+          icon={<IconCode size="sm" color="subText" />}
+          title={'Relevant code'}
+          rounded
+        >
+          <AutofixRootCauseCodeContexts codeContext={cause.code_context} repos={repos} />
+        </ExpandableInsightContext>
+      )}
     </RootCauseContextContainer>
   );
 }

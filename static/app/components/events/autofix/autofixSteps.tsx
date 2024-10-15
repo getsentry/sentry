@@ -3,7 +3,9 @@ import styled from '@emotion/styled';
 import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
 
 import {AutofixChanges} from 'sentry/components/events/autofix/autofixChanges';
-import AutofixInsightCards from 'sentry/components/events/autofix/autofixInsightCards';
+import AutofixInsightCards, {
+  useUpdateInsightCard,
+} from 'sentry/components/events/autofix/autofixInsightCards';
 import AutofixMessageBox from 'sentry/components/events/autofix/autofixMessageBox';
 import {
   AutofixRootCause,
@@ -158,6 +160,19 @@ export function AutofixSteps({data, groupId, runId, onRetry}: AutofixStepsProps)
     }
   };
 
+  const {mutate: sendFeedbackOnChanges} = useUpdateInsightCard({groupId, runId});
+  const iterateOnChangesStep = (text: string) => {
+    const planStep = steps?.[steps.length - 2];
+    if (!planStep || planStep.type !== AutofixStepType.DEFAULT) {
+      return;
+    }
+    sendFeedbackOnChanges({
+      step_index: planStep.index,
+      retain_insight_card_index: planStep.insights.length - 1,
+      message: text,
+    });
+  };
+
   const lastStepVisible = useInView(
     stepsRef.current.length ? stepsRef.current[stepsRef.current.length - 1] : null
   );
@@ -174,9 +189,9 @@ export function AutofixSteps({data, groupId, runId, onRetry}: AutofixStepsProps)
   const isRootCauseSelectionStep =
     lastStep.type === AutofixStepType.ROOT_CAUSE_ANALYSIS &&
     lastStep.status === 'COMPLETED';
-  const areCodeChangesShowing =
+
+  const isChangesStep =
     lastStep.type === AutofixStepType.CHANGES && lastStep.status === 'COMPLETED';
-  const disabled = areCodeChangesShowing ? true : false;
 
   const scrollToMatchingStep = () => {
     const matchingStepIndex = steps.findIndex(step => step.type === lastStep.type);
@@ -194,11 +209,18 @@ export function AutofixSteps({data, groupId, runId, onRetry}: AutofixStepsProps)
             previousStep !== null &&
             previousStep?.type === step.type &&
             previousStep.status === 'ERROR';
+          const nextStep = index + 1 < steps.length ? steps[index + 1] : null;
+          const twoInsightStepsInARow =
+            nextStep?.type === AutofixStepType.DEFAULT &&
+            step.type === AutofixStepType.DEFAULT;
+          const twoNonDefaultStepsInARow =
+            nextStep?.type !== AutofixStepType.DEFAULT &&
+            step.type !== AutofixStepType.DEFAULT;
           return (
             <div ref={el => (stepsRef.current[index] = el)} key={step.id}>
               <Step
                 step={step}
-                hasStepBelow={index + 1 < steps.length}
+                hasStepBelow={index + 1 < steps.length && !twoInsightStepsInARow}
                 hasStepAbove={index > 0}
                 groupId={groupId}
                 runId={runId}
@@ -206,6 +228,7 @@ export function AutofixSteps({data, groupId, runId, onRetry}: AutofixStepsProps)
                 repos={repos}
                 hasErroredStepBefore={previousStepErrored}
               />
+              {twoNonDefaultStepsInARow && <StepSeparator />}
             </div>
           );
         })}
@@ -215,10 +238,15 @@ export function AutofixSteps({data, groupId, runId, onRetry}: AutofixStepsProps)
         displayText={activeLog ?? ''}
         step={lastStep}
         responseRequired={lastStep.status === 'WAITING_FOR_USER_RESPONSE'}
-        onSend={!isRootCauseSelectionStep ? null : selectRootCause}
+        onSend={
+          !isRootCauseSelectionStep
+            ? !isChangesStep
+              ? null
+              : iterateOnChangesStep
+            : selectRootCause
+        }
         actionText={!isRootCauseSelectionStep ? 'Send' : 'Find a Fix'}
         allowEmptyMessage={!isRootCauseSelectionStep ? false : true}
-        isDisabled={disabled}
         groupId={groupId}
         runId={runId}
         primaryAction={isRootCauseSelectionStep}
@@ -269,3 +297,8 @@ const ContentWrapper = styled(motion.div)`
 `;
 
 const AnimationWrapper = styled(motion.div)``;
+
+const StepSeparator = styled('div')`
+  height: 1px;
+  margin: ${space(1)} 0;
+`;

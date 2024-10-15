@@ -13,7 +13,6 @@ describe('AutofixMessageBox', () => {
     groupId: '123',
     runId: '456',
     actionText: 'Send',
-    isDisabled: false,
     allowEmptyMessage: false,
     responseRequired: false,
     step: null,
@@ -97,13 +96,6 @@ describe('AutofixMessageBox', () => {
     render(<AutofixMessageBox {...stepProps} />);
 
     expect(screen.getByText(AutofixStepFixture().title)).toBeInTheDocument();
-  });
-
-  it('disables input and button when isDisabled is true', () => {
-    render(<AutofixMessageBox {...defaultProps} isDisabled />);
-
-    expect(screen.getByPlaceholderText('Say something...')).toBeDisabled();
-    expect(screen.getByRole('button', {name: 'Send'})).toBeDisabled();
   });
 
   it('renders required input style when responseRequired is true', () => {
