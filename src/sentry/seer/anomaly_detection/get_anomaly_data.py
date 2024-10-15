@@ -70,6 +70,7 @@ def get_anomaly_data_from_seer(
         "alert_rule_id": alert_rule.id,
     }
     try:
+        logger.info("Sending subscription update data to Seer", extra=extra_data)
         response = make_signed_seer_api_request(
             SEER_ANOMALY_DETECTION_CONNECTION_POOL,
             SEER_ANOMALY_DETECTION_ENDPOINT_URL,

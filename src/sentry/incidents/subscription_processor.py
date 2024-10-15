@@ -405,6 +405,16 @@ class SubscriptionProcessor:
                 aggregation_value=aggregation_value,
             )
             if potential_anomalies is None:
+                logger.info(
+                    "No potential anomalies found",
+                    extra={
+                        "subscription_id": self.subscription.id,
+                        "dataset": self.alert_rule.snuba_query.dataset,
+                        "organization_id": self.subscription.project.organization.id,
+                        "project_id": self.subscription.project_id,
+                        "alert_rule_id": self.alert_rule.id,
+                    },
+                )
                 return []
 
         # Trigger callbacks for any AlertRules that may need to know about the subscription update
