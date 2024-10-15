@@ -29,6 +29,7 @@ import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
+import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {decodeScalar} from 'sentry/utils/queryString';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import withApi from 'sentry/utils/withApi';
@@ -69,6 +70,8 @@ type State = {
 } & DeprecatedAsyncView['state'];
 
 class ManageDashboards extends DeprecatedAsyncView<Props, State> {
+  shouldReload = true;
+
   constructor(props: Props, context: any) {
     super(props, context);
 
@@ -94,7 +97,14 @@ class ManageDashboards extends DeprecatedAsyncView<Props, State> {
     if (currentWidth !== this.state.windowWidth) {
       this.setState({windowWidth: currentWidth});
     }
-    this.fetchData();
+    const paginationObject = parseLinkHeader(this.state.dashboardsPageLinks);
+    if (
+      this.state.dashboards?.length &&
+      paginationObject.next.results &&
+      this.getDashboardsPerPage() > this.state.dashboards.length
+    ) {
+      this.reloadData();
+    }
   }, 250);
 
   componentDidMount() {
@@ -246,7 +256,7 @@ class ManageDashboards extends DeprecatedAsyncView<Props, State> {
   }
 
   renderDashboards() {
-    const {dashboards, dashboardsPageLinks} = this.state;
+    const {reloading, dashboards, dashboardsPageLinks} = this.state;
     const {organization, location, api} = this.props;
     return (
       <DashboardList
@@ -256,6 +266,8 @@ class ManageDashboards extends DeprecatedAsyncView<Props, State> {
         pageLinks={dashboardsPageLinks}
         location={location}
         onDashboardsChange={() => this.onDashboardsChange()}
+        reloading={reloading}
+        limit={this.getDashboardsPerPage()}
       />
     );
   }

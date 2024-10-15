@@ -15,6 +15,7 @@ import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import Pagination from 'sentry/components/pagination';
+import Placeholder from 'sentry/components/placeholder';
 import TimeSince from 'sentry/components/timeSince';
 import {IconEllipsis} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
@@ -33,10 +34,12 @@ import GridPreview from './gridPreview';
 type Props = {
   api: Client;
   dashboards: DashboardListItem[] | null;
+  limit: number;
   location: Location;
   onDashboardsChange: () => void;
   organization: Organization;
   pageLinks: string;
+  reloading: boolean;
 };
 
 function DashboardList({
@@ -46,6 +49,8 @@ function DashboardList({
   dashboards,
   pageLinks,
   onDashboardsChange,
+  reloading,
+  limit,
 }: Props) {
   function handleDelete(dashboard: DashboardListItem) {
     deleteDashboard(api, organization.slug, dashboard.id)
@@ -137,7 +142,7 @@ function DashboardList({
   };
 
   function renderMiniDashboards() {
-    return dashboards?.map((dashboard, index) => {
+    return dashboards?.slice(0, limit).map((dashboard, index) => {
       return (
         <DashboardCard
           key={`${index}-${dashboard.id}`}
@@ -166,7 +171,16 @@ function DashboardList({
         </EmptyStateWarning>
       );
     }
-    return <DashboardGrid>{renderMiniDashboards()}</DashboardGrid>;
+    return (
+      <DashboardGrid>
+        {renderMiniDashboards()}
+        {reloading &&
+          limit > dashboards.length &&
+          new Array(limit - dashboards.length)
+            .fill(0)
+            .map((_, index) => <Placeholder key={index} height="270px" />)}
+      </DashboardGrid>
+    );
   }
 
   return (
