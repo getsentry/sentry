@@ -11,9 +11,9 @@ from sentry.api.serializers.models.apitoken import ApiTokenSerializer
 from sentry.auth.services.auth.impl import promote_request_api_user
 from sentry.coreapi import APIUnauthorized
 from sentry.mediators.token_exchange.refresher import Refresher
-from sentry.mediators.token_exchange.util import GrantTypes
 from sentry.sentry_apps.api.bases.sentryapps import SentryAppAuthorizationsBaseEndpoint
 from sentry.sentry_apps.token_exchange.grant_exchanger import GrantExchanger
+from sentry.sentry_apps.token_exchange.util import GrantTypes
 
 logger = logging.getLogger(__name__)
 

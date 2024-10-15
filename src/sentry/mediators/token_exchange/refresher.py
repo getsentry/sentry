@@ -5,13 +5,13 @@ from sentry import analytics
 from sentry.coreapi import APIUnauthorized
 from sentry.mediators.mediator import Mediator
 from sentry.mediators.param import Param
-from sentry.mediators.token_exchange.util import token_expiration
-from sentry.mediators.token_exchange.validator import Validator
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.apitoken import ApiToken
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.services.app import RpcSentryAppInstallation
+from sentry.sentry_apps.token_exchange.util import token_expiration
+from sentry.sentry_apps.token_exchange.validator import Validator
 from sentry.users.models.user import User
 
 
@@ -27,9 +27,9 @@ class Refresher(Mediator):
     using = router.db_for_write(User)
 
     def call(self):
-        self._validate()
-        self._delete_token()
-        return self._create_new_token()
+        if self._validate():
+            self._delete_token()
+            return self._create_new_token()
 
     def record_analytics(self):
         analytics.record(
@@ -39,9 +39,10 @@ class Refresher(Mediator):
         )
 
     def _validate(self):
-        Validator.run(install=self.install, client_id=self.client_id, user=self.user)
+        is_valid = Validator(install=self.install, client_id=self.client_id, user=self.user).run()
 
         self._validate_token_belongs_to_app()
+        return is_valid
 
     def _validate_token_belongs_to_app(self):
         if self.token.application != self.application:
