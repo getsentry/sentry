@@ -255,10 +255,13 @@ const Heading = styled('div')``;
 const AllStats = styled('div')`
   display: flex;
   gap: ${space(4)};
+  padding-top: ${space(0.25)};
 `;
 
 const Stat = styled('div')`
-  display: inline-block;
+  display: flex;
+  flex-direction: column;
+  gap: ${space(1)};
   font-size: ${p => p.theme.fontSizeSmall};
 `;
 
@@ -269,13 +272,15 @@ const Label = styled('div')`
 `;
 
 const StatCount = styled(Count)`
-  font-size: ${p => p.theme.headerFontSize};
+  font-size: ${p => p.theme.fontSizeExtraLarge};
   display: block;
+  line-height: 1;
 `;
 
 const TitleWrapper = styled('h3')`
-  font-size: ${p => p.theme.headerFontSize};
-  margin: 0 0 8px;
+  font-size: 20px;
+  margin: 0;
+  padding-bottom: 2px;
   text-overflow: ellipsis;
   white-space: nowrap;
   overflow: hidden;
@@ -284,7 +289,7 @@ const TitleWrapper = styled('h3')`
   & em {
     font-weight: ${p => p.theme.fontWeightNormal};
     color: ${p => p.theme.textColor};
-    font-size: 90%;
+    font-size: ${p => p.theme.fontSizeLarge};
   }
 `;
 
@@ -292,11 +297,10 @@ const TitleHeading = styled('div')`
   display: flex;
   line-height: 2;
   gap: ${space(1)};
-  padding-top: ${space(1)};
 `;
 
 const StyledBreak = styled('hr')`
-  margin-top: ${space(2)};
+  margin-top: ${space(1.5)};
   margin-bottom: 0;
   margin-right: 0;
   border-color: ${p => p.theme.border};
