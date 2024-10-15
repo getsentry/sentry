@@ -5,7 +5,6 @@ import {ReleaseFixture} from 'sentry-fixture/release';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   act,
-  fireEvent,
   render,
   screen,
   userEvent,
@@ -262,7 +261,9 @@ describe('ReleasesList', () => {
 
     // we want release header to be visible despite the error message
     expect(
-      screen.getByPlaceholderText('Search by version, build, package, or stage')
+      await screen.getByRole('combobox', {
+        name: 'Add a search term',
+      })
     ).toBeInTheDocument();
   });
 
@@ -610,20 +611,19 @@ describe('ReleasesList', () => {
       url: '/organizations/org-slug/recent-searches/',
       method: 'POST',
     });
-    render(<ReleasesList {...props} />, {
+    render(<ReleasesList {...props} location={{...props.location, query: {}}} />, {
       router,
       organization,
     });
-    const smartSearchBar = await screen.findByTestId('smart-search-input');
+    const smartSearchBar = await screen.findByRole('combobox', {
+      name: 'Add a search term',
+    });
+    await userEvent.click(smartSearchBar);
+    await userEvent.clear(smartSearchBar);
+    expect(await screen.findByRole('option', {name: 'release'})).toBeInTheDocument();
 
     await userEvent.clear(smartSearchBar);
-    fireEvent.change(smartSearchBar, {target: {value: 'release'}});
-
-    const autocompleteItems = await screen.findAllByTestId('search-autocomplete-item');
-    expect(autocompleteItems.at(0)).toHaveTextContent('release');
-
-    await userEvent.clear(smartSearchBar);
-    fireEvent.change(smartSearchBar, {target: {value: 'release.version:'}});
+    await userEvent.click(screen.getByRole('option', {name: 'release.version'}));
 
     expect(await screen.findByText('sentry@0.5.3')).toBeInTheDocument();
   });

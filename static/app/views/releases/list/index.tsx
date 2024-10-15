@@ -22,8 +22,6 @@ import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilt
 import Pagination from 'sentry/components/pagination';
 import Panel from 'sentry/components/panels/panel';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
-import SmartSearchBar from 'sentry/components/smartSearchBar';
-import {ItemType} from 'sentry/components/smartSearchBar/types';
 import {getRelativeSummary} from 'sentry/components/timeRangeSelector/utils';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
@@ -568,35 +566,15 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
 
               {this.shouldShowQuickstart ? null : (
                 <SortAndFilterWrapper>
-                  {organization.features.includes('search-query-builder-releases') ? (
-                    <StyledSearchQueryBuilder
-                      onSearch={this.handleSearch}
-                      initialQuery={this.getQuery() || ''}
-                      filterKeys={this.filterKeys}
-                      getTagValues={this.getTagValues}
-                      placeholder={t('Search by version, build, package, or stage')}
-                      searchSource="releases"
-                      showUnsubmittedIndicator
-                    />
-                  ) : (
-                    <StyledSmartSearchBar
-                      searchSource="releases"
-                      query={this.getQuery()}
-                      placeholder={t('Search by version, build, package, or stage')}
-                      hasRecentSearches={false}
-                      maxMenuHeight={500}
-                      supportedTagType={ItemType.PROPERTY}
-                      onSearch={this.handleSearch}
-                      onGetTagValues={this.getTagValues}
-                      supportedTags={{
-                        ...SEMVER_TAGS,
-                        release: {
-                          key: 'release',
-                          name: 'release',
-                        },
-                      }}
-                    />
-                  )}
+                  <StyledSearchQueryBuilder
+                    onSearch={this.handleSearch}
+                    initialQuery={this.getQuery() || ''}
+                    filterKeys={this.filterKeys}
+                    getTagValues={this.getTagValues}
+                    placeholder={t('Search by version, build, package, or stage')}
+                    searchSource="releases"
+                    showUnsubmittedIndicator
+                  />
                   <ReleasesStatusOptions
                     selected={activeStatus}
                     onSelect={this.handleStatus}
@@ -663,12 +641,6 @@ const SortAndFilterWrapper = styled('div')`
   }
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: minmax(0, 1fr);
-  }
-`;
-
-const StyledSmartSearchBar = styled(SmartSearchBar)`
-  @media (max-width: ${p => p.theme.breakpoints.medium}) {
-    grid-column: 1 / -1;
   }
 `;
 
