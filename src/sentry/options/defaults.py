@@ -2793,3 +2793,11 @@ register(
     default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# TODO: Temporary, to be removed
+register(
+    "split_queue_task_router.enable",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
