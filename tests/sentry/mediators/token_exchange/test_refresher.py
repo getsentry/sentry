@@ -43,7 +43,7 @@ class TestRefresher(TestCase):
         assert not ApiToken.objects.filter(id=self.token.id).exists()
 
     def test_validates_generic_token_exchange_requirements(self):
-        self.refresher._validate()
+        assert self.refresher._validate()
 
     def test_validates_token_belongs_to_sentry_app(self):
         refresh_token = ApiToken.objects.create(
