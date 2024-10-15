@@ -31,9 +31,7 @@ export type OnboardingEventParameters = {
   'onboarding.messaging_integration_external_install_clicked': {
     provider_key: string;
   };
-  'onboarding.messaging_integration_modal_rendered': {
-    project_id: string;
-  };
+  'onboarding.messaging_integration_modal_rendered': {};
   'onboarding.messaging_integration_steps_refreshed': {};
   'onboarding.next_step_clicked': {
     newOrg: boolean;
