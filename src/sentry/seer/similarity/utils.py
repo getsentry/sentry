@@ -240,6 +240,8 @@ def get_stacktrace_string(data: dict[str, Any]) -> str:
     return stacktrace_str.strip()
 
 
+# TODO: Once `get_stacktrace_string` learns to handle top-level stacktraces, this can go away in
+# favor of `event.has_stacktrace`
 def event_content_has_stacktrace(event: Event) -> bool:
     # If an event has no stacktrace, there's no data for Seer to analyze, so no point in making the
     # API call. If we ever start analyzing message-only events, we'll need to add `event.title in
