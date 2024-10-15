@@ -10,10 +10,10 @@ from sentry.api.base import control_silo_endpoint
 from sentry.api.serializers.models.apitoken import ApiTokenSerializer
 from sentry.auth.services.auth.impl import promote_request_api_user
 from sentry.coreapi import APIUnauthorized
-from sentry.mediators.token_exchange.refresher import Refresher
 from sentry.mediators.token_exchange.util import GrantTypes
 from sentry.sentry_apps.api.bases.sentryapps import SentryAppAuthorizationsBaseEndpoint
 from sentry.sentry_apps.token_exchange.grant_exchanger import GrantExchanger
+from sentry.sentry_apps.token_exchange.refresher import Refresher
 
 logger = logging.getLogger(__name__)
 
@@ -41,12 +41,12 @@ class SentryAppAuthorizationsEndpoint(SentryAppAuthorizationsBaseEndpoint):
                     user=promote_request_api_user(request),
                 ).run()
             elif request.json_body.get("grant_type") == GrantTypes.REFRESH:
-                token = Refresher.run(
+                token = Refresher(
                     install=installation,
                     refresh_token=request.json_body.get("refresh_token"),
                     client_id=request.json_body.get("client_id"),
                     user=promote_request_api_user(request),
-                )
+                ).run()
             else:
                 return Response({"error": "Invalid grant_type"}, status=403)
         except APIUnauthorized as e:
