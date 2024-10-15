@@ -82,6 +82,7 @@ API_PUBLISH_STATUS_ALLOWLIST_DONT_MODIFY = {
     "/api/0/organizations/{organization_id_or_slug}/{var}/{issue_id}/hashes/": {
         "GET",
         "DELETE",
+        "PUT",
     },
     "/api/0/organizations/{organization_id_or_slug}/{var}/{issue_id}/reprocessing/": {"POST"},
     "/api/0/organizations/{organization_id_or_slug}/{var}/{issue_id}/stats/": {"GET"},
