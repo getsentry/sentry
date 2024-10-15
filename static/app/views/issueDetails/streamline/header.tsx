@@ -121,6 +121,7 @@ export default function StreamlinedGroupHeader({
               type={group.type}
               level={group.level}
               showUnhandled={group.isUnhandled}
+              levelIndicatorSize={'10px'}
             />
             {firstRelease && lastRelease && (
               <Fragment>
