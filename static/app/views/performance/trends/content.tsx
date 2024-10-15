@@ -90,7 +90,7 @@ class TrendsContent extends Component<Props, State> {
   handleTrendFunctionChange = (field: string) => {
     const {organization, location} = this.props;
 
-    const offsets = {};
+    const offsets: Record<string, undefined> = {};
 
     Object.values(TrendChangeType).forEach(trendChangeType => {
       const queryKey = getSelectedQueryKey(trendChangeType);

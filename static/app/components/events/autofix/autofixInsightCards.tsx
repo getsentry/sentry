@@ -201,7 +201,7 @@ function AutofixInsightCard({
                   <div>
                     {insight.stacktrace_context
                       .map((stacktrace, i) => {
-                        let vars = {};
+                        let vars: any = {};
                         try {
                           vars = JSON.parse(stacktrace.vars_as_json);
                         } catch {

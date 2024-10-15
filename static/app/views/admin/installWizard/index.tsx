@@ -54,7 +54,7 @@ export default class InstallWizard extends DeprecatedAsyncView<
     }
 
     // A mapping of option name to Field object
-    const fields = {};
+    const fields: Record<string, React.ReactNode> = {};
 
     for (const key of missingOptions) {
       const option = options[key];

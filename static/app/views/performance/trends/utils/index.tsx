@@ -146,7 +146,7 @@ export const trendCursorNames = {
 const TOKEN_KEYS_SUPPORTED_IN_METRICS_TRENDS = ['transaction', 'tpm()'];
 
 export function resetCursors() {
-  const cursors = {};
+  const cursors: Record<string, undefined> = {};
   Object.values(trendCursorNames).forEach(cursor => (cursors[cursor] = undefined)); // Resets both cursors
   return cursors;
 }

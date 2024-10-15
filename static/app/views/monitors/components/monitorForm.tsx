@@ -179,7 +179,7 @@ function MonitorForm({
   const {selection} = usePageFilters();
 
   function formDataFromConfig(type: MonitorType, config: MonitorConfig) {
-    const rv = {};
+    const rv: Record<string, MonitorConfig[keyof MonitorConfig]> = {};
     switch (type) {
       case 'cron_job':
         rv['config.scheduleType'] = config.schedule_type;

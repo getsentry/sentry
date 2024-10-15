@@ -83,7 +83,7 @@ function Content({
   }
 
   function setInitialFrameMap(): {[frameIndex: number]: boolean} {
-    const indexMap = {};
+    const indexMap: Record<string, boolean> = {};
     (data.frames ?? []).forEach((frame, frameIdx) => {
       const nextFrame = (data.frames ?? [])[frameIdx + 1];
       const repeatedFrame = isRepeatedFrame(frame, nextFrame);
@@ -96,7 +96,7 @@ function Content({
 
   function getInitialFrameCounts(): {[frameIndex: number]: number} {
     let count = 0;
-    const countMap = {};
+    const countMap: Record<string, number> = {};
     (data.frames ?? []).forEach((frame, frameIdx) => {
       const nextFrame = (data.frames ?? [])[frameIdx + 1];
       const repeatedFrame = isRepeatedFrame(frame, nextFrame);

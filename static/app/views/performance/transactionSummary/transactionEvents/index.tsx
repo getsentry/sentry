@@ -108,7 +108,7 @@ function EventsContentWrapper(props: ChildProps) {
       eventsDisplayFilterName
     ].sort;
     const currentSort = eventView?.sorts?.[0];
-    let sortQuery = {};
+    let sortQuery: Record<string, string> = {};
 
     if (
       eventsFilterOptionSort?.kind === currentSort?.kind &&
