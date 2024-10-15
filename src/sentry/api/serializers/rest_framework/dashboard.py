@@ -343,7 +343,8 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
 
                 if (
                     ondemand_feature
-                    and data.get("widget_type") == DashboardWidgetTypes.DISCOVER
+                    and data.get("widget_type")
+                    in [DashboardWidgetTypes.DISCOVER, DashboardWidgetTypes.TRANSACTION_LIKE]
                     and not query.get("on_demand_extraction_disabled", False)
                 ):
                     if query.get("columns"):
@@ -654,7 +655,10 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
 
         DashboardWidgetQuery.objects.bulk_create(new_queries)
 
-        if widget.widget_type == DashboardWidgetTypes.DISCOVER:
+        if widget.widget_type in [
+            DashboardWidgetTypes.DISCOVER,
+            DashboardWidgetTypes.TRANSACTION_LIKE,
+        ]:
             self._check_query_cardinality(new_queries)
 
     def _check_query_cardinality(self, new_queries: Sequence[DashboardWidgetQuery]):
@@ -734,7 +738,10 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
                 raise serializers.ValidationError("You cannot use a query not owned by this widget")
         DashboardWidgetQuery.objects.bulk_create(new_queries)
 
-        if widget.widget_type == DashboardWidgetTypes.DISCOVER:
+        if widget.widget_type in [
+            DashboardWidgetTypes.DISCOVER,
+            DashboardWidgetTypes.TRANSACTION_LIKE,
+        ]:
             self._check_query_cardinality(new_queries + update_queries)
 
     def update_widget_query(self, query, data, order):
