@@ -62,7 +62,7 @@ function EventMessage({
   return (
     <LevelMessageContainer className={className}>
       {showEventLevel && <ErrorLevel level={level} size={levelIndicatorSize} />}
-      {hasStreamlinedUI ? <Divider /> : null}
+      {hasStreamlinedUI && showEventLevel ? <Divider /> : null}
       {showUnhandled ? <UnhandledTag /> : null}
       {hasStreamlinedUI && showUnhandled ? <Divider /> : null}
       {hasNewIssueStreamTableLayout ? subtitle : renderedMessage}
