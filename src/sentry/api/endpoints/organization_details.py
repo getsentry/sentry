@@ -62,6 +62,7 @@ from sentry.constants import (
     SAFE_FIELDS_DEFAULT,
     SCRAPE_JAVASCRIPT_DEFAULT,
     SENSITIVE_FIELDS_DEFAULT,
+    TARGET_SAMPLE_RATE_DEFAULT,
     UPTIME_AUTODETECTION,
 )
 from sentry.datascrubbing import validate_pii_config_update, validate_pii_selectors
@@ -215,6 +216,7 @@ ORG_OPTIONS = (
         METRICS_ACTIVATE_LAST_FOR_GAUGES_DEFAULT,
     ),
     ("uptimeAutodetection", "sentry:uptime_autodetection", bool, UPTIME_AUTODETECTION),
+    ("targetSampleRate", "sentry:target_sample_rate", float, TARGET_SAMPLE_RATE_DEFAULT),
 )
 
 DELETION_STATUSES = frozenset(
