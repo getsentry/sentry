@@ -15,8 +15,8 @@ class ProjectRuleCreator:
     name: str
     project: Project
     action_match: str
-    actions: Sequence
-    conditions: Sequence
+    actions: Sequence[dict[str, Any]]
+    conditions: Sequence[dict[str, Any]]
     frequency: int
     environment: int | None = None
     owner: Actor | None = None
