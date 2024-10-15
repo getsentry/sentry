@@ -52,7 +52,7 @@ class GroupingInput:
         return event
 
 
-def with_grouping_input(name, inputs_dir):
+def with_grouping_inputs(name, inputs_dir):
     grouping_input = list(
         GroupingInput(inputs_dir, filename)
         for filename in sorted(os.listdir(inputs_dir))
