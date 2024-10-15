@@ -1505,7 +1505,7 @@ class BaseQueryBuilder:
 
     def _get_entity_name(self) -> str:
         if self.dataset in DATASET_TO_ENTITY_MAP:
-            return DATASET_TO_ENTITY_MAP[self.dataset]
+            return DATASET_TO_ENTITY_MAP[self.dataset].value
         return self.dataset.value
 
     def get_snql_query(self) -> Request:
