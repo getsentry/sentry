@@ -14,7 +14,7 @@ const mockReplay = ReplayReader.factory({
     },
     tags: {
       foo: ['bar', 'baz'],
-      'my custom tag': ['a wordy value'],
+      my_custom_tag: ['a wordy value'],
     },
   }),
   errors: [],
@@ -55,25 +55,25 @@ describe('TagPanel', () => {
     expect(screen.getByText('baz')).toBeInTheDocument();
   });
 
-  it('should link known tags to their proper field names', () => {
+  it('should link known tags to their proper field names and a valid search query', () => {
     renderComponent(mockReplay);
 
     expect(screen.getByText('bar').closest('a')).toHaveAttribute(
       'href',
-      '/organizations/org-slug/replays/?query=tags%5B%22foo%22%5D%3A%22bar%22'
+      '/organizations/org-slug/replays/?query=foo%3A%22bar%22'
     );
     expect(screen.getByText('baz').closest('a')).toHaveAttribute(
       'href',
-      '/organizations/org-slug/replays/?query=tags%5B%22foo%22%5D%3A%22baz%22'
+      '/organizations/org-slug/replays/?query=foo%3A%22baz%22'
     );
   });
 
-  it('should link user-submitted tags with the tags[] syntax', () => {
+  it('should link user-submitted tags to a valid search query', () => {
     renderComponent(mockReplay);
 
     expect(screen.getByText('a wordy value').closest('a')).toHaveAttribute(
       'href',
-      '/organizations/org-slug/replays/?query=tags%5B%22my%20custom%20tag%22%5D%3A%22a%20wordy%20value%22'
+      '/organizations/org-slug/replays/?query=my_custom_tag%3A%22a%20wordy%20value%22'
     );
   });
 

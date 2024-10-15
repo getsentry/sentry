@@ -47,6 +47,7 @@ function EventEntryContent({
       return (
         <Exception
           event={event}
+          group={group}
           data={entry.data}
           projectSlug={projectSlug}
           groupingCurrentLevel={groupingCurrentLevel}
@@ -98,6 +99,7 @@ function EventEntryContent({
       return (
         <Threads
           event={event}
+          group={group}
           data={entry.data}
           projectSlug={projectSlug}
           groupingCurrentLevel={groupingCurrentLevel}

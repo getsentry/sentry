@@ -196,7 +196,6 @@ module = [
     "sentry.api.serializers.rest_framework.notification_action",
     "sentry.api.serializers.rest_framework.rule",
     "sentry.api.serializers.snuba",
-    "sentry.api.validators.email",
     "sentry.auth.helper",
     "sentry.auth.provider",
     "sentry.auth.system",
@@ -468,7 +467,6 @@ module = [
     "sentry.issues.update_inbox",
     "sentry.lang.java.processing",
     "sentry.llm.*",
-    "sentry.mediators.sentry_app_installations.installation_notifier",
     "sentry.migrations.*",
     "sentry.models.event",
     "sentry.models.eventattachment",
@@ -534,6 +532,7 @@ module = [
     "sentry.utils.uwsgi",
     "sentry.utils.zip",
     "sentry.web.frontend.auth_provider_login",
+    "sentry.web.frontend.cli",
     "sentry.web.frontend.csv",
     "sentry_plugins.base",
     "tests.sentry.deletions.test_group",
@@ -574,6 +573,7 @@ module = [
     "tests.sentry.tasks.test_on_demand_metrics",
     "tests.sentry.types.test_actor",
     "tests.sentry.types.test_region",
+    "tests.sentry.web.frontend.test_cli",
     "tools.*",
 ]
 disallow_any_generics = true

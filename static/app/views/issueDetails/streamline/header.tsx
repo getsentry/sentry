@@ -116,6 +116,7 @@ export default function StreamlinedGroupHeader({
           </TitleHeading>
           <MessageWrapper>
             <EventMessage
+              data={group}
               message={message}
               type={group.type}
               level={group.level}
@@ -215,21 +216,23 @@ export default function StreamlinedGroupHeader({
               </Wrapper>
             )}
           </WorkflowWrapper>
-          <Divider />
-          <Button
-            icon={
-              sidebarOpen ? (
-                <IconChevron direction="right" />
-              ) : (
-                <IconPanel direction="right" />
-              )
-            }
-            title={sidebarOpen ? t('Close Sidebar') : t('Open Sidebar')}
-            aria-label={sidebarOpen ? t('Close Sidebar') : t('Open Sidebar')}
-            size="sm"
-            borderless
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-          />
+          <CollapseSidebarWrapper>
+            <Divider />
+            <Button
+              icon={
+                sidebarOpen ? (
+                  <IconChevron direction="right" />
+                ) : (
+                  <IconPanel direction="right" />
+                )
+              }
+              title={sidebarOpen ? t('Close Sidebar') : t('Open Sidebar')}
+              aria-label={sidebarOpen ? t('Close Sidebar') : t('Open Sidebar')}
+              size="sm"
+              borderless
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+            />
+          </CollapseSidebarWrapper>
         </SidebarWorkflowWrapper>
       </InfoWrapper>
     </Header>
@@ -364,4 +367,14 @@ const Header = styled('div')`
 
 const StyledBreadcrumbs = styled(Breadcrumbs)`
   margin-top: ${space(2)};
+`;
+
+const CollapseSidebarWrapper = styled('div')`
+  display: flex;
+  gap: ${space(0.5)};
+  align-items: center;
+
+  @media (max-width: ${p => p.theme.breakpoints.large}) {
+    display: none;
+  }
 `;

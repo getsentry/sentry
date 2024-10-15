@@ -193,7 +193,7 @@ const StreamlineEventsTable = styled('div')`
     padding: 0 ${space(1.5)};
     white-space: nowrap;
     text-overflow: ellipsis;
-    text-transform: capitalize;
+    text-transform: none;
     border-width: 0 1px 0 0;
     border-style: solid;
     border-image: linear-gradient(

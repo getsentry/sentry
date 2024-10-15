@@ -207,7 +207,7 @@ describe('groupEvents', () => {
       {router, organization}
     );
     await waitFor(() => {
-      expect(screen.getByText('transaction')).toBeInTheDocument();
+      expect(screen.getByText('Transaction')).toBeInTheDocument();
     });
     expect(requests.discover).toHaveBeenCalledWith(
       '/organizations/org-slug/events/',
@@ -238,7 +238,7 @@ describe('groupEvents', () => {
       })
     );
     await waitFor(() => {
-      expect(screen.getByText('transaction')).toBeInTheDocument();
+      expect(screen.getByText('Transaction')).toBeInTheDocument();
     });
   });
 
@@ -273,7 +273,7 @@ describe('groupEvents', () => {
     );
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
-    const attachmentsColumn = screen.queryByText('attachments');
+    const attachmentsColumn = screen.queryByText('Attachments');
     expect(attachmentsColumn).not.toBeInTheDocument();
     expect(requests.attachments).not.toHaveBeenCalled();
   });
@@ -288,7 +288,7 @@ describe('groupEvents', () => {
     );
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
-    const attachmentsColumn = screen.queryByText('attachments');
+    const attachmentsColumn = screen.queryByText('Attachments');
     expect(attachmentsColumn).not.toBeInTheDocument();
     expect(requests.attachments).toHaveBeenCalled();
   });
@@ -303,7 +303,7 @@ describe('groupEvents', () => {
     );
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
-    const minidumpColumn = screen.queryByText('minidump');
+    const minidumpColumn = screen.queryByText('Minidump');
     expect(minidumpColumn).not.toBeInTheDocument();
   });
 
@@ -335,7 +335,7 @@ describe('groupEvents', () => {
       {router, organization}
     );
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
-    const minidumpColumn = screen.queryByText('minidump');
+    const minidumpColumn = screen.queryByText('Minidump');
     expect(minidumpColumn).toBeInTheDocument();
   });
 
@@ -367,8 +367,8 @@ describe('groupEvents', () => {
       {router, organization}
     );
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
-    const attachmentsColumn = screen.queryByText('attachments');
-    const minidumpColumn = screen.queryByText('minidump');
+    const attachmentsColumn = screen.queryByText('Attachments');
+    const minidumpColumn = screen.queryByText('Minidump');
     expect(attachmentsColumn).not.toBeInTheDocument();
     expect(minidumpColumn).toBeInTheDocument();
     expect(requests.attachments).toHaveBeenCalled();
@@ -393,7 +393,7 @@ describe('groupEvents', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText('transaction')).toBeInTheDocument();
+      expect(screen.getByText('Transaction')).toBeInTheDocument();
     });
   });
 
@@ -410,7 +410,7 @@ describe('groupEvents', () => {
       expect.objectContaining({query: expect.not.objectContaining({sort: 'user'})})
     );
     await waitFor(() => {
-      expect(screen.getByText('transaction')).toBeInTheDocument();
+      expect(screen.getByText('Transaction')).toBeInTheDocument();
     });
   });
 
@@ -439,7 +439,7 @@ describe('groupEvents', () => {
       })
     );
     await waitFor(() => {
-      expect(screen.getByText('transaction')).toBeInTheDocument();
+      expect(screen.getByText('Transaction')).toBeInTheDocument();
     });
   });
 
