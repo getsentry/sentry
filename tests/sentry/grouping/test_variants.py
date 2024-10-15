@@ -11,6 +11,8 @@ from sentry.grouping.strategies.configurations import CONFIGURATIONS
 from sentry.utils import json
 from tests.sentry.grouping import with_grouping_input
 
+GROUPING_INPUTS_DIR = path.join(path.dirname(__file__), "grouping_inputs")
+
 
 def dump_variant(variant, lines=None, indent=0):
     if lines is None:
@@ -49,7 +51,7 @@ def dump_variant(variant, lines=None, indent=0):
     return lines
 
 
-@with_grouping_input("grouping_input")
+@with_grouping_input("grouping_input", GROUPING_INPUTS_DIR)
 @pytest.mark.parametrize("config_name", CONFIGURATIONS.keys(), ids=lambda x: x.replace("-", "_"))
 def test_event_hash_variant(config_name, grouping_input, insta_snapshot):
     event = grouping_input.create_event(config_name)

@@ -54,10 +54,10 @@ class GroupingInput:
         return event
 
 
-def with_grouping_input(name):
+def with_grouping_input(name, inputs_dir):
     grouping_input = list(
         GroupingInput(filename)
-        for filename in sorted(os.listdir(_grouping_fixture_path))
+        for filename in sorted(os.listdir(inputs_dir))
         if filename.endswith(".json")
     )
     return pytest.mark.parametrize(
