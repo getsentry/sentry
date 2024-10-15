@@ -378,11 +378,11 @@ class DiscoverTimeseriesQueryTest(TimeseriesBase):
         project3 = self.create_project(organization=self.organization)
 
         self.store_event(
-            data={"message": "hello", "timestamp": self.one_min_ago.timestamp()},
+            data={"message": "hello", "timestamp": self.one_min_ago.isoformat()},
             project_id=project2.id,
         )
         self.store_event(
-            data={"message": "hello", "timestamp": self.one_min_ago.timestamp()},
+            data={"message": "hello", "timestamp": self.one_min_ago.isoformat()},
             project_id=project3.id,
         )
 
@@ -407,19 +407,19 @@ class DiscoverTimeseriesQueryTest(TimeseriesBase):
     def test_nested_conditional_filter(self):
         project2 = self.create_project(organization=self.organization)
         self.store_event(
-            data={"release": "a" * 32, "timestamp": self.one_min_ago.timestamp()},
+            data={"release": "a" * 32, "timestamp": self.one_min_ago.isoformat()},
             project_id=self.project.id,
         )
         self.event = self.store_event(
-            data={"release": "b" * 32, "timestamp": self.one_min_ago.timestamp()},
+            data={"release": "b" * 32, "timestamp": self.one_min_ago.isoformat()},
             project_id=self.project.id,
         )
         self.event = self.store_event(
-            data={"release": "c" * 32, "timestamp": self.one_min_ago.timestamp()},
+            data={"release": "c" * 32, "timestamp": self.one_min_ago.isoformat()},
             project_id=self.project.id,
         )
         self.event = self.store_event(
-            data={"release": "a" * 32, "timestamp": self.one_min_ago.timestamp()},
+            data={"release": "a" * 32, "timestamp": self.one_min_ago.isoformat()},
             project_id=project2.id,
         )
 

@@ -12,9 +12,9 @@ import OnboardingPanel from 'sentry/components/onboardingPanel';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import useRouter from 'sentry/utils/useRouter';
 
 type Props = {
   issueTab?: boolean;
@@ -34,14 +34,14 @@ export function UserFeedbackEmpty({projectIds, issueTab = false}: Props) {
   const hasAnyFeedback = selectedProjects.some(({hasUserReports}) => hasUserReports);
   const {activateSidebarIssueDetails} = useFeedbackOnboardingSidebarPanel();
 
-  const router = useRouter();
+  const navigate = useNavigate();
   const setProjId = useCallback(() => {
-    router.push({
+    navigate({
       pathname: location.pathname,
       query: {...location.query, project: projectIds?.[0]},
       hash: location.hash,
     });
-  }, [location.hash, location.query, location.pathname, projectIds, router]);
+  }, [location.hash, location.query, location.pathname, projectIds, navigate]);
 
   useEffect(() => {
     if (issueTab) {
