@@ -1,3 +1,5 @@
+import logging
+
 from django.db import IntegrityError, router, transaction
 from rest_framework import serializers
 from rest_framework.request import Request
@@ -11,7 +13,10 @@ from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPerm
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.models.organizationaccessrequest import OrganizationAccessRequest
+from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
+
+logger = logging.getLogger(__name__)
 
 
 class AccessRequestPermission(OrganizationPermission):
@@ -71,16 +76,18 @@ class OrganizationAccessRequestDetailsEndpoint(OrganizationEndpoint):
 
     def get(self, request: Request, organization) -> Response:
         """
-        Get list of requests to join org/team
-
+        Get a list of requests to join org/team.
+        If any requests are outdated, take this opportunity to prune them.
         """
+        OrganizationAccessRequest.objects.prune_outdated_team_requests(organization=organization)
+
         if request.access.has_scope("org:write"):
             access_requests = list(
                 OrganizationAccessRequest.objects.filter(
                     team__organization=organization,
                     member__user_is_active=True,
                     member__user_id__isnull=False,
-                ).select_related("team")
+                ).select_related("team", "member")
             )
 
         elif request.access.has_scope("team:write") and request.access.team_ids_with_membership:
@@ -89,19 +96,26 @@ class OrganizationAccessRequestDetailsEndpoint(OrganizationEndpoint):
                     member__user_is_active=True,
                     member__user_id__isnull=False,
                     team__id__in=request.access.team_ids_with_membership,
-                ).select_related("team")
+                ).select_related("team", "member")
             )
         else:
             # Return empty response if user does not have access
             return Response([])
 
-        return Response(serialize(access_requests, request.user))
+        teams_by_user = OrganizationMember.objects.get_teams_by_user(organization=organization)
+        valid_access_requests: list[OrganizationAccessRequest] = []
+        for access_request in access_requests:
+            if access_request.member.user_id is None:
+                continue
+            if access_request.team_id in teams_by_user[access_request.member.user_id]:
+                continue
+            valid_access_requests.append(access_request)
+
+        return Response(serialize(valid_access_requests, request.user))
 
     def put(self, request: Request, organization, request_id) -> Response:
         """
         Approve or deny a request
-
-        Approve or deny a request.
 
             {method} {path}
 
