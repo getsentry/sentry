@@ -18,7 +18,7 @@ import {space} from 'sentry/styles/space';
 import type {Authenticator} from 'sentry/types/auth';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
-import useRouter from 'sentry/utils/useRouter';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useUser} from 'sentry/utils/useUser';
 import {OrganizationLoaderContext} from 'sentry/views/organizationContext';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
@@ -63,7 +63,7 @@ function SudoModal({
   closeButton,
 }: Props) {
   const user = useUser();
-  const router = useRouter();
+  const navigate = useNavigate();
   const api = useApi();
   const [state, setState] = useState<State>({
     authenticators: [] as Authenticator[],
@@ -157,7 +157,10 @@ function SudoModal({
 
   const handleSuccess = () => {
     if (isSuperuser) {
-      router.replace({pathname: location.pathname, state: {forceUpdate: new Date()}});
+      navigate(
+        {pathname: location.pathname, state: {forceUpdate: new Date()}},
+        {replace: true}
+      );
       if (needsReload) {
         window.location.reload();
       }

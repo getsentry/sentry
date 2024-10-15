@@ -52,8 +52,8 @@ import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhan
 import {decodeInteger, decodeList, decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useProjects from 'sentry/utils/useProjects';
-import useRouter from 'sentry/utils/useRouter';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
@@ -190,7 +190,7 @@ function WidgetViewerModal(props: Props) {
   } = props;
   const location = useLocation();
   const {projects} = useProjects();
-  const router = useRouter();
+  const navigate = useNavigate();
   const shouldShowSlider = organization.features.includes('widget-viewer-modal-minimap');
   // TODO(Tele-Team): Re-enable this when we have a better way to determine if the data is transaction only
   // let widgetContentLoadingStatus: boolean | undefined = undefined;
@@ -447,13 +447,16 @@ function WidgetViewerModal(props: Props) {
     );
     widths.forEach((width, index) => (newWidths[index] = parseInt(width, 10)));
     newWidths[columnIndex] = newWidth;
-    router.replace({
-      pathname: location.pathname,
-      query: {
-        ...location.query,
-        [WidgetViewerQueryField.WIDTH]: newWidths,
+    navigate(
+      {
+        pathname: location.pathname,
+        query: {
+          ...location.query,
+          [WidgetViewerQueryField.WIDTH]: newWidths,
+        },
       },
-    });
+      {replace: true}
+    );
   };
 
   // Get discover result totals
@@ -471,15 +474,18 @@ function WidgetViewerModal(props: Props) {
 
   function onLegendSelectChanged({selected}: {selected: Record<string, boolean>}) {
     setDisabledLegends(selected);
-    router.replace({
-      pathname: location.pathname,
-      query: {
-        ...location.query,
-        [WidgetViewerQueryField.LEGEND]: Object.keys(selected).filter(
-          key => !selected[key]
-        ),
+    navigate(
+      {
+        pathname: location.pathname,
+        query: {
+          ...location.query,
+          [WidgetViewerQueryField.LEGEND]: Object.keys(selected).filter(
+            key => !selected[key]
+          ),
+        },
       },
-    });
+      {replace: true}
+    );
     trackAnalytics('dashboards_views.widget_viewer.toggle_legend', {
       organization,
       widget_type: widget.widgetType ?? WidgetType.DISCOVER,
@@ -533,13 +539,16 @@ function WidgetViewerModal(props: Props) {
           <Pagination
             pageLinks={pageLinks}
             onCursor={newCursor => {
-              router.replace({
-                pathname: location.pathname,
-                query: {
-                  ...location.query,
-                  [WidgetViewerQueryField.CURSOR]: newCursor,
+              navigate(
+                {
+                  pathname: location.pathname,
+                  query: {
+                    ...location.query,
+                    [WidgetViewerQueryField.CURSOR]: newCursor,
+                  },
                 },
-              });
+                {replace: true}
+              );
 
               if (widget.displayType === DisplayType.TABLE) {
                 setChartUnmodified(false);
@@ -606,14 +615,17 @@ function WidgetViewerModal(props: Props) {
                 newCursor = undefined;
                 nextPage = 0;
               }
-              router.replace({
-                pathname: location.pathname,
-                query: {
-                  ...location.query,
-                  [WidgetViewerQueryField.CURSOR]: newCursor,
-                  [WidgetViewerQueryField.PAGE]: nextPage,
+              navigate(
+                {
+                  pathname: location.pathname,
+                  query: {
+                    ...location.query,
+                    [WidgetViewerQueryField.CURSOR]: newCursor,
+                    [WidgetViewerQueryField.PAGE]: nextPage,
+                  },
                 },
-              });
+                {replace: true}
+              );
 
               if (widget.displayType === DisplayType.TABLE) {
                 setChartUnmodified(false);
@@ -674,13 +686,16 @@ function WidgetViewerModal(props: Props) {
             <Pagination
               pageLinks={pageLinks}
               onCursor={newCursor => {
-                router.replace({
-                  pathname: location.pathname,
-                  query: {
-                    ...location.query,
-                    [WidgetViewerQueryField.CURSOR]: newCursor,
+                navigate(
+                  {
+                    pathname: location.pathname,
+                    query: {
+                      ...location.query,
+                      [WidgetViewerQueryField.CURSOR]: newCursor,
+                    },
                   },
-                });
+                  {replace: true}
+                );
                 trackAnalytics('dashboards_views.widget_viewer.paginate', {
                   organization,
                   widget_type: WidgetType.RELEASE,
@@ -725,7 +740,7 @@ function WidgetViewerModal(props: Props) {
         period: null,
       },
     });
-    router.push({
+    navigate({
       pathname: location.pathname,
       query: {
         ...location.query,
@@ -909,15 +924,18 @@ function WidgetViewerModal(props: Props) {
               value={selectedQueryIndex}
               options={queryOptions}
               onChange={(option: SelectValue<number>) => {
-                router.replace({
-                  pathname: location.pathname,
-                  query: {
-                    ...location.query,
-                    [WidgetViewerQueryField.QUERY]: option.value,
-                    [WidgetViewerQueryField.PAGE]: undefined,
-                    [WidgetViewerQueryField.CURSOR]: undefined,
+                navigate(
+                  {
+                    pathname: location.pathname,
+                    query: {
+                      ...location.query,
+                      [WidgetViewerQueryField.QUERY]: option.value,
+                      [WidgetViewerQueryField.PAGE]: undefined,
+                      [WidgetViewerQueryField.CURSOR]: undefined,
+                    },
                   },
-                });
+                  {replace: true}
+                );
 
                 trackAnalytics('dashboards_views.widget_viewer.select_query', {
                   organization,

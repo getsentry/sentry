@@ -16,9 +16,9 @@ import {
 import type {MetricsQueryApiQueryParams} from 'sentry/utils/metrics/useMetricsQuery';
 import type {MetricsSamplesResults} from 'sentry/utils/metrics/useMetricsSamples';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import useRouter from 'sentry/utils/useRouter';
 import {METRIC_CHART_GROUP, MIN_WIDGET_WIDTH} from 'sentry/views/metrics/constants';
 import {useMetricsContext} from 'sentry/views/metrics/context';
 import {useGetCachedChartPalette} from 'sentry/views/metrics/utils/metricsChartPalette';
@@ -43,7 +43,7 @@ export function MetricScratchpad() {
   } = useMetricsContext();
   const {selection} = usePageFilters();
   const location = useLocation();
-  const router = useRouter();
+  const navigate = useNavigate();
   const organization = useOrganization();
   const getChartPalette = useGetCachedChartPalette();
   const metricsNewInputs = hasMetricsNewInputs(organization);
@@ -86,7 +86,7 @@ export function MetricScratchpad() {
         }
       }
 
-      router.push(
+      navigate(
         generateLinkToEventInTraceView({
           traceSlug: dataRow.trace,
           projectSlug: dataRow.project,
@@ -103,7 +103,7 @@ export function MetricScratchpad() {
         })
       );
     },
-    [router, organization, location]
+    [navigate, location, organization]
   );
 
   const firstWidget = widgets[0];

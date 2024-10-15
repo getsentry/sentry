@@ -19,9 +19,9 @@ import {parseDashboard} from 'sentry/utils/metrics/dashboardImport';
 import {useMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import useRouter from 'sentry/utils/useRouter';
 import {
   assignDefaultLayout,
   getInitialColumnDepths,
@@ -48,7 +48,7 @@ type FormState = {
 
 function DashboardImportModal({Header, Body, Footer}: ModalRenderProps) {
   const api = useApi();
-  const router = useRouter();
+  const navigate = useNavigate();
 
   const {selection} = usePageFilters();
   // we want to get all custom metrics for organization
@@ -97,12 +97,12 @@ function DashboardImportModal({Header, Body, Footer}: ModalRenderProps) {
 
     const dashboard = await createDashboard(api, organization.slug, newDashboard);
 
-    router.push(
+    navigate(
       normalizeUrl({
         pathname: `/organizations/${organization.slug}/dashboards/${dashboard.id}/`,
       })
     );
-  }, [formState.importResult, selection, organization, api, router]);
+  }, [formState.importResult, selection, organization, api, navigate]);
 
   return (
     <Fragment>

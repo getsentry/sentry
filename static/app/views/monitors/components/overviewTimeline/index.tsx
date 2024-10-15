@@ -12,8 +12,8 @@ import {space} from 'sentry/styles/space';
 import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {useDimensions} from 'sentry/utils/useDimensions';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import useRouter from 'sentry/utils/useRouter';
 import type {Monitor} from 'sentry/views/monitors/types';
 import {makeMonitorListQueryKey} from 'sentry/views/monitors/utils';
 
@@ -33,8 +33,7 @@ export function OverviewTimeline({monitorList}: Props) {
   const organization = useOrganization();
   const api = useApi();
   const queryClient = useQueryClient();
-  const router = useRouter();
-  const location = router.location;
+  const location = useLocation();
 
   const elementRef = useRef<HTMLDivElement>(null);
   const {width: timelineWidth} = useDimensions<HTMLDivElement>({elementRef});
