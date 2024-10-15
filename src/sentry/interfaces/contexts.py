@@ -3,6 +3,7 @@ from __future__ import annotations
 import string
 from typing import Any, ClassVar, TypeVar
 
+import sentry_sdk
 from django.utils.encoding import force_str
 
 from sentry.interfaces.base import Interface
@@ -232,7 +233,12 @@ class Contexts(Interface):
     @classmethod
     def normalize_context(cls, alias, data):
         ctx_type = data.get("type", alias)
-        ctx_cls = context_types.get(ctx_type, DefaultContextType)
+        try:
+            ctx_cls = context_types.get(ctx_type, DefaultContextType)
+        except TypeError:
+            # Debugging information for SENTRY-FOR-SENTRY-2NH2.
+            sentry_sdk.set_context("ctx_type", ctx_type)
+            raise
         return ctx_cls(alias, data)
 
     def iter_contexts(self):
