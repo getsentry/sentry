@@ -114,6 +114,24 @@ export function getErrorMessage(
           meta: metaData,
         },
       ];
+    case NativeProcessingErrors.NATIVE_SYMBOLICATOR_FAILED:
+      return [
+        {
+          title: t('Failed to process native stacktraces'),
+          desc: null,
+          data: errorData,
+          meta: metaData,
+        },
+      ];
+    case NativeProcessingErrors.NATIVE_INTERNAL_FAILURE:
+      return [
+        {
+          title: t('Internal failure when attempting to symbolicate'),
+          desc: null,
+          data: errorData,
+          meta: metaData,
+        },
+      ];
     case JavascriptProcessingErrors.JS_MISSING_SOURCES_CONTENT:
       return [
         {
