@@ -4,9 +4,9 @@ import ErrorLevel from 'sentry/components/events/errorLevel';
 import UnhandledTag from 'sentry/components/group/inboxBadges/unhandledTag';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {type Event, EventOrGroupType, type Level} from 'sentry/types/event';
+import type {Event, EventOrGroupType, Level} from 'sentry/types/event';
 import type {BaseGroup, GroupTombstoneHelper} from 'sentry/types/group';
-import {getTitle} from 'sentry/utils/events';
+import {eventTypeHasLogLevel, getTitle} from 'sentry/utils/events';
 import useOrganization from 'sentry/utils/useOrganization';
 import {Divider} from 'sentry/views/issueDetails/divider';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
@@ -23,16 +23,6 @@ type Props = {
   levelIndicatorSize?: '9px' | '10px' | '11px';
   showUnhandled?: boolean;
 };
-
-const EVENT_TYPES_WITH_LOG_LEVEL = new Set([
-  EventOrGroupType.ERROR,
-  EventOrGroupType.CSP,
-  EventOrGroupType.EXPECTCT,
-  EventOrGroupType.DEFAULT,
-  EventOrGroupType.EXPECTSTAPLE,
-  EventOrGroupType.HPKP,
-  EventOrGroupType.NEL,
-]);
 
 function EventMessage({
   data,
@@ -51,7 +41,7 @@ function EventMessage({
     'issue-stream-table-layout'
   );
 
-  const showEventLevel = level && EVENT_TYPES_WITH_LOG_LEVEL.has(type);
+  const showEventLevel = level && eventTypeHasLogLevel(type);
   const {subtitle} = getTitle(data);
   const renderedMessage = message ? (
     <Message>{message}</Message>
