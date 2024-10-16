@@ -837,7 +837,7 @@ CELERY_ROUTES = ("sentry.queue.routers.SplitQueueTaskRouter",)
 # and a default one as destination. The default one is used when the
 # rollout option is not active.
 CELERY_SPLIT_QUEUE_TASK_ROUTES_REGION: Mapping[str, SplitQueueTaskRoute] = {
-    "events.save_event_transaction": {
+    "sentry.tasks.store.save_event_transaction": {
         "default_queue": "events.save_event_transaction",
         "queues_config": {
             "total": 3,
