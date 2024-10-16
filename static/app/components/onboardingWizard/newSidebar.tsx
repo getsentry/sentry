@@ -182,15 +182,11 @@ function TaskGroup({title, description, tasks, expanded, hidePanel}: TaskGroupPr
     <TaskGroupWrapper>
       <TaskGroupHeader onClick={() => setIsExpanded(!isExpanded)}>
         <InteractionStateLayer />
-        <span>
+        <div>
           <strong>{title}</strong>
           <p>{description}</p>
-        </span>
-        <Chevron
-          direction={isExpanded ? 'up' : 'down'}
-          role="presentation"
-          size="large"
-        />
+        </div>
+        <Chevron direction={isExpanded ? 'up' : 'down'} role="button" size="large" />
       </TaskGroupHeader>
       {isExpanded && (
         <Fragment>
