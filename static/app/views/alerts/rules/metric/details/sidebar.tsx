@@ -146,7 +146,7 @@ export function MetricDetailsSidebar({
 
   const ownerId = rule.owner?.split(':')[1];
   const teamActor = ownerId && {type: 'team' as Actor['type'], id: ownerId, name: ''};
-  let conditionType;
+  let conditionType: React.ReactNode;
   const activationCondition =
     rule.monitorType === MonitorType.ACTIVATED &&
     typeof rule.activationCondition !== 'undefined' &&
