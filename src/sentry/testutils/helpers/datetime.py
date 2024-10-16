@@ -8,7 +8,7 @@ import time_machine
 __all__ = ["iso_format", "before_now", "timestamp_format"]
 
 
-def iso_format(date):
+def iso_format(date: datetime) -> str:
     return date.isoformat()[:19]
 
 
