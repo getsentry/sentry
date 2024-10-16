@@ -125,7 +125,7 @@ class DataSecrecyTest(APITestCase):
         )
 
         with outbox_runner():
-            self.get_success_response(self.org.slug, method="delete")
+            self.get_success_response(self.org.slug, method="delete", status_code=204)
 
         assert DataSecrecyWaiver.objects.filter(organization=self.org).first() is None
 
