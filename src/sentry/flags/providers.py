@@ -64,31 +64,31 @@ def handle_launchdarkly_actions(action: str) -> int:
         return ACTION_MAP["updated"]
 
 
-def handle_launchdarkly_event(request_data: dict[str, Any], organization_id: int):
-    write(
-        [
-            {
-                "action": handle_launchdarkly_actions(request_data["accesses"][0]["action"]),
-                "created_at": datetime.datetime.fromtimestamp(
-                    request_data["date"] / 1000.0, datetime.UTC
-                ),
-                "created_by": request_data["member"]["email"],
-                "created_by_type": CREATED_BY_TYPE_MAP["email"],
-                "flag": request_data["name"],
-                "organization_id": organization_id,
-                "tags": {},
-            }
-        ]
-    )
+def handle_launchdarkly_event(
+    request_data: dict[str, Any], organization_id: int
+) -> list[FlagAuditLogRow]:
+    return [
+        {
+            "action": handle_launchdarkly_actions(request_data["accesses"][0]["action"]),
+            "created_at": datetime.datetime.fromtimestamp(
+                request_data["date"] / 1000.0, datetime.UTC
+            ),
+            "created_by": request_data["member"]["email"],
+            "created_by_type": CREATED_BY_TYPE_MAP["email"],
+            "flag": request_data["name"],
+            "organization_id": organization_id,
+            "tags": {},
+        }
+    ]
 
 
 def handle_provider_event(
     provider: str,
     request_data: dict[str, Any],
     organization_id: int,
-):
+) -> list[FlagAuditLogRow]:
     if provider == "launchdarkly":
-        handle_launchdarkly_event(request_data, organization_id)
+        return handle_launchdarkly_event(request_data, organization_id)
     else:
         raise InvalidProvider(provider)
 
