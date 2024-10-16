@@ -21,23 +21,6 @@ class OrganizationTracesEndpointTestBase(BaseSpansTestCase, APITestCase):
         super().setUp()
         self.login_as(user=self.user)
 
-    def do_request(self, query, features=None, **kwargs):
-        if features is None:
-            features = ["organizations:performance-trace-explorer", "organizations:global-views"]
-
-        if self.is_eap:
-            if query is None:
-                query = {}
-            query["dataset"] = "spans"
-
-        with self.feature(features):
-            return self.client.get(
-                reverse(self.view, kwargs={"organization_id_or_slug": self.organization.slug}),
-                query,
-                format="json",
-                **kwargs,
-            )
-
     def double_write_segment(
         self,
         *,
@@ -291,6 +274,23 @@ class OrganizationTracesEndpointTestBase(BaseSpansTestCase, APITestCase):
 
 class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
     view = "sentry-api-0-organization-traces"
+
+    def do_request(self, query, features=None, **kwargs):
+        if features is None:
+            features = ["organizations:performance-trace-explorer", "organizations:global-views"]
+
+        if self.is_eap:
+            if query is None:
+                query = {}
+            query["dataset"] = "spans"
+
+        with self.feature(features):
+            return self.client.get(
+                reverse(self.view, kwargs={"organization_id_or_slug": self.organization.slug}),
+                query,
+                format="json",
+                **kwargs,
+            )
 
     def test_no_feature(self):
         response = self.do_request({}, features=[])
@@ -876,9 +876,15 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
 class OrganizationTraceSpansEndpointTest(OrganizationTracesEndpointTestBase):
     view = "sentry-api-0-organization-trace-spans"
 
-    def _do_request(self, trace_id, query, features=None, **kwargs):
+    def do_request(self, trace_id, query, features=None, **kwargs):
         if features is None:
             features = ["organizations:performance-trace-explorer", "organizations:global-views"]
+
+        if self.is_eap:
+            if query is None:
+                query = {}
+            query["dataset"] = "spans"
+
         with self.feature(features):
             return self.client.get(
                 reverse(
@@ -897,18 +903,18 @@ class OrganizationTraceSpansEndpointTest(OrganizationTracesEndpointTestBase):
         query = {
             "project": [self.project.id],
         }
-        response = self._do_request(uuid4().hex, query, features=[])
+        response = self.do_request(uuid4().hex, query, features=[])
         assert response.status_code == 404, response.data
 
     def test_no_project(self):
-        response = self._do_request(uuid4().hex, {})
+        response = self.do_request(uuid4().hex, {})
         assert response.status_code == 404, response.data
 
     def test_bad_params_missing_field(self):
         query = {
             "project": [self.project.id],
         }
-        response = self._do_request(uuid4().hex, query)
+        response = self.do_request(uuid4().hex, query)
         assert response.status_code == 400, response.data
         assert response.data == {
             "field": [
@@ -933,7 +939,7 @@ class OrganizationTraceSpansEndpointTest(OrganizationTracesEndpointTestBase):
             "sort": "id",
         }
 
-        response = self._do_request(trace_id, query)
+        response = self.do_request(trace_id, query)
         assert response.status_code == 200, response.data
         assert response.data["meta"] == {
             "dataset": "unknown",
@@ -972,7 +978,7 @@ class OrganizationTraceSpansEndpointTest(OrganizationTracesEndpointTestBase):
                 "query": user_query,
             }
 
-            response = self._do_request(trace_id, query)
+            response = self.do_request(trace_id, query)
             assert response.status_code == 200, response.data
             assert response.data["meta"] == {
                 "dataset": "unknown",
@@ -1027,7 +1033,7 @@ class OrganizationTraceSpansEndpointTest(OrganizationTracesEndpointTestBase):
                 if user_query:
                     query["query"] = user_query
 
-                response = self._do_request(trace_id, query)
+                response = self.do_request(trace_id, query)
                 assert response.status_code == 200, response.data
                 assert response.data["meta"] == {
                     "dataset": "unknown",
@@ -1047,6 +1053,23 @@ class OrganizationTraceSpansEndpointTest(OrganizationTracesEndpointTestBase):
 
 class OrganizationTracesStatsEndpointTest(OrganizationTracesEndpointTestBase):
     view = "sentry-api-0-organization-traces-stats"
+
+    def do_request(self, query, features=None, **kwargs):
+        if features is None:
+            features = ["organizations:performance-trace-explorer", "organizations:global-views"]
+
+        if self.is_eap:
+            if query is None:
+                query = {}
+            query["dataset"] = "spans"
+
+        with self.feature(features):
+            return self.client.get(
+                reverse(self.view, kwargs={"organization_id_or_slug": self.organization.slug}),
+                query,
+                format="json",
+                **kwargs,
+            )
 
     def test_no_feature(self):
         response = self.do_request({}, features=[])
@@ -2482,9 +2505,13 @@ class OrganizationTracesEAPEndpointTest(OrganizationTracesEndpointTest):
         pass
 
 
-# class OrganizationTraceSpansEAPEndpointTest(OrganizationTraceSpansEndpointTest):
-#     is_eap: bool = True
-#
-#
-# class OrganizationTracesStatsEAPEndpointTest(OrganizationTracesStatsEndpointTest):
-#     is_eap: bool = True
+class OrganizationTraceSpansEAPEndpointTest(OrganizationTraceSpansEndpointTest):
+    is_eap: bool = True
+
+    @pytest.mark.skip(reason="no support for metrics so not back porting this feature")
+    def test_get_spans_for_trace_matching_tags_metrics(self):
+        pass
+
+
+class OrganizationTracesStatsEAPEndpointTest(OrganizationTracesStatsEndpointTest):
+    is_eap: bool = True
