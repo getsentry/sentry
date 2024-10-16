@@ -37,8 +37,8 @@ class GrantExchanger:
                 # Once it's exchanged it's no longer valid and should not be
                 # exchangeable, so we delete it.
                 self._delete_grant()
-                self.record_analytics()
-                return token
+        self.record_analytics()
+        return token
 
     def record_analytics(self) -> None:
         analytics.record(
