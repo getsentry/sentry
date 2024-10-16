@@ -14,6 +14,8 @@ import {openConfirmModal} from 'sentry/components/confirm';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import * as Layout from 'sentry/components/layouts/thirds';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import Placeholder from 'sentry/components/placeholder';
 import TimeSince from 'sentry/components/timeSince';
@@ -35,11 +37,13 @@ type Props = {
   api: Client;
   dashboards: DashboardListItem[] | null;
   limit: number;
+  loading: boolean;
   location: Location;
   onDashboardsChange: () => void;
   organization: Organization;
   pageLinks: string;
   reloading: boolean;
+  resizing: boolean;
 };
 
 function DashboardList({
@@ -51,6 +55,8 @@ function DashboardList({
   onDashboardsChange,
   reloading,
   limit,
+  loading,
+  resizing,
 }: Props) {
   function handleDelete(dashboard: DashboardListItem) {
     deleteDashboard(api, organization.slug, dashboard.id)
@@ -173,13 +179,21 @@ function DashboardList({
     }
     return (
       <DashboardGrid>
-        {renderMiniDashboards()}
+        {loading && !resizing ? renderLoading() : renderMiniDashboards()}
         {reloading &&
           limit > dashboards.length &&
           new Array(limit - dashboards.length)
             .fill(0)
             .map((_, index) => <Placeholder key={index} height="270px" />)}
       </DashboardGrid>
+    );
+  }
+
+  function renderLoading() {
+    return (
+      <Layout.Page withPadding>
+        <LoadingIndicator />
+      </Layout.Page>
     );
   }
 

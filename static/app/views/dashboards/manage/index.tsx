@@ -65,6 +65,7 @@ type Props = {
 type State = {
   dashboards: DashboardListItem[] | null;
   dashboardsPageLinks: string;
+  resizing: boolean;
   showTemplates: boolean;
   windowWidth: number;
 } & DeprecatedAsyncView['state'];
@@ -76,11 +77,11 @@ class ManageDashboards extends DeprecatedAsyncView<Props, State> {
     super(props, context);
 
     this.state = {
-      ...super.getDefaultState(),
       ...this.getDefaultState(),
       dashboards: [],
       dashboardsPageLinks: '',
       windowWidth: window.innerWidth,
+      resizing: false,
     };
   }
 
@@ -95,7 +96,9 @@ class ManageDashboards extends DeprecatedAsyncView<Props, State> {
     const currentWidth = window.innerWidth;
     // Only update state if the width has changed
     if (currentWidth !== this.state.windowWidth) {
-      this.setState({windowWidth: currentWidth});
+      this.setState({windowWidth: currentWidth, resizing: true});
+    } else {
+      this.setState({resizing: false});
     }
     const paginationObject = parseLinkHeader(this.state.dashboardsPageLinks);
     if (
@@ -106,6 +109,16 @@ class ManageDashboards extends DeprecatedAsyncView<Props, State> {
       this.reloadData();
     }
   }, 250);
+
+  componentDidUpdate(prevProps: Props, prevContext: any) {
+    super.componentDidUpdate(prevProps, prevContext);
+
+    const {location} = this.props;
+    // Check if the query has changed
+    if (!isEqual(location.query, prevProps.location.query)) {
+      this.setState({resizing: false});
+    }
+  }
 
   componentDidMount() {
     window.addEventListener('resize', this.debouncedHandleResize);
@@ -256,7 +269,7 @@ class ManageDashboards extends DeprecatedAsyncView<Props, State> {
   }
 
   renderDashboards() {
-    const {reloading, dashboards, dashboardsPageLinks} = this.state;
+    const {reloading, dashboards, dashboardsPageLinks, loading, resizing} = this.state;
     const {organization, location, api} = this.props;
     return (
       <DashboardList
@@ -267,6 +280,8 @@ class ManageDashboards extends DeprecatedAsyncView<Props, State> {
         location={location}
         onDashboardsChange={() => this.onDashboardsChange()}
         reloading={reloading}
+        loading={loading}
+        resizing={resizing}
         limit={this.getDashboardsPerPage()}
       />
     );

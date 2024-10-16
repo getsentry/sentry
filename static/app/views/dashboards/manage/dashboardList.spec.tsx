@@ -107,6 +107,8 @@ describe('Dashboards - DashboardList', function () {
         location={router.location}
         limit={24}
         reloading={false}
+        loading={false}
+        resizing={false}
       />
     );
 
@@ -123,6 +125,8 @@ describe('Dashboards - DashboardList', function () {
         location={router.location}
         limit={24}
         reloading={false}
+        loading={false}
+        resizing={false}
       />
     );
 
@@ -140,6 +144,8 @@ describe('Dashboards - DashboardList', function () {
         location={router.location}
         limit={24}
         reloading={false}
+        loading={false}
+        resizing={false}
       />,
       {router}
     );
@@ -164,6 +170,8 @@ describe('Dashboards - DashboardList', function () {
         location={{...LocationFixture(), query: {statsPeriod: '7d'}}}
         limit={24}
         reloading={false}
+        loading={false}
+        resizing={false}
       />,
       {router}
     );
@@ -184,6 +192,8 @@ describe('Dashboards - DashboardList', function () {
         onDashboardsChange={dashboardUpdateMock}
         limit={24}
         reloading={false}
+        loading={false}
+        resizing={false}
       />,
       {router}
     );
@@ -223,6 +233,8 @@ describe('Dashboards - DashboardList', function () {
         onDashboardsChange={dashboardUpdateMock}
         limit={24}
         reloading={false}
+        loading={false}
+        resizing={false}
       />
     );
 
@@ -243,6 +255,8 @@ describe('Dashboards - DashboardList', function () {
         onDashboardsChange={dashboardUpdateMock}
         limit={24}
         reloading={false}
+        loading={false}
+        resizing={false}
       />
     );
 
@@ -271,6 +285,8 @@ describe('Dashboards - DashboardList', function () {
         onDashboardsChange={dashboardUpdateMock}
         limit={24}
         reloading={false}
+        loading={false}
+        resizing={false}
       />
     );
 
