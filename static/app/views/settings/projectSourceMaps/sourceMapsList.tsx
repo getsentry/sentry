@@ -71,7 +71,7 @@ function mergeReleaseAndDebugIdBundles(
 }
 
 interface UseSourceMapUploadsProps {
-  cursor: string;
+  cursor: string | undefined;
   organization: Organization;
   project: Project;
   query: string | undefined;
