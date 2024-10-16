@@ -188,7 +188,7 @@ export function getColoredWidgetIndicator(
   }
 
   return (
-    <ThresholdsHoverWrapper thresholds={thresholds} tableData={tableData}>
+    <ThresholdsHoverWrapper thresholds={thresholds} type={dataType}>
       <CircleIndicator color={color} size={12} />
     </ThresholdsHoverWrapper>
   );
