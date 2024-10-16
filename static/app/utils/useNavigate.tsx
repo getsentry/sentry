@@ -2,6 +2,7 @@ import {useCallback, useEffect, useRef} from 'react';
 import {useNavigate as useReactRouter6Navigate} from 'react-router-dom';
 import type {LocationDescriptor} from 'history';
 
+import {locationDescriptorToTo} from 'sentry/utils/reactRouter6Compat/location';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 
 import {useRouteContext} from './useRouteContext';
@@ -42,7 +43,7 @@ export function useNavigate(): ReactRouter3Navigate {
           return;
         }
 
-        router6Navigate(normalizeUrl(to), options);
+        router6Navigate(locationDescriptorToTo(normalizeUrl(to)), options);
       },
       [router6Navigate]
     );
