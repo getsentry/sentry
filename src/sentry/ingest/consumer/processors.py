@@ -73,6 +73,7 @@ def process_transaction_no_celery(
         # Delete the event payload from cache since it won't show up in post-processing.
         if cache_key:
             event_processing_store.delete_by_key(cache_key)
+            transaction_processing_store.delete_by_key(cache_key)
         return
 
     manager = EventManager(data)
@@ -89,6 +90,7 @@ def process_transaction_no_celery(
     if not isinstance(data, dict):
         data = dict(data.items())
     event_processing_store.store(data)
+    transaction_processing_store.store(data)
 
 
 @trace_func(name="ingest_consumer.process_event")

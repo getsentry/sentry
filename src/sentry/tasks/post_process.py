@@ -14,6 +14,7 @@ from django.utils import timezone
 from google.api_core.exceptions import ServiceUnavailable
 
 from sentry import features, projectoptions
+from sentry.eventstore.processing import transaction_processing_store
 from sentry.exceptions import PluginError
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
@@ -524,7 +525,11 @@ def post_process_group(
                 )
                 return
             with metrics.timer("tasks.post_process.delete_event_cache"):
-                event_processing_store.delete_by_key(cache_key)
+                event_type = data.get("type", None)
+                if event_type == "transaction":
+                    transaction_processing_store.delete_by_key(cache_key)
+                else:
+                    event_processing_store.delete_by_key(cache_key)
 
             occurrence = None
             event = process_event(data, group_id)
