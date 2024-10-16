@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import importlib
 import os
 import shlex
 import subprocess
@@ -70,7 +71,31 @@ failed command (code {p.returncode}):
     return all_good
 
 
+# Temporary, see https://github.com/getsentry/sentry/pull/78881
+def check_minimum_version(minimum_version: str):
+    version = importlib.metadata.version("sentry-devenv")
+
+    parsed_version = tuple(map(int, version.split(".")))
+    parsed_minimum_version = tuple(map(int, minimum_version.split(".")))
+
+    if parsed_version < parsed_minimum_version:
+        raise SystemExit(
+            f"""
+Your devenv version ({version}) doesn't meet the
+minimum version ({minimum_version}) defined in the repo config.
+
+Run the following to update your global devenv to the minimum,
+and use it to run this repo's sync.
+
+{constants.root}/bin/devenv update {minimum_version}
+{constants.root}/bin/devenv sync
+"""
+        )
+
+
 def main(context: dict[str, str]) -> int:
+    check_minimum_version("1.11.0")
+
     repo = context["repo"]
     reporoot = context["reporoot"]
     repo_config = config.get_config(f"{reporoot}/devenv/config.ini")
@@ -80,22 +105,15 @@ def main(context: dict[str, str]) -> int:
 
     FRONTEND_ONLY = os.environ.get("SENTRY_DEVENV_FRONTEND_ONLY") is not None
 
-    # repo-local devenv needs to update itself first with a successful sync
-    # so it'll take 2 syncs to get onto devenv-managed node, it is what it is
-    try:
-        from devenv.lib import node
+    from devenv.lib import node
 
-        node.install(
-            repo_config["node"]["version"],
-            repo_config["node"][constants.SYSTEM_MACHINE],
-            repo_config["node"][f"{constants.SYSTEM_MACHINE}_sha256"],
-            reporoot,
-        )
-        node.install_yarn(repo_config["node"]["yarn_version"], reporoot)
-    except ImportError:
-        from devenv.lib import volta  # type: ignore[attr-defined]
-
-        volta.install(reporoot)
+    node.install(
+        repo_config["node"]["version"],
+        repo_config["node"][constants.SYSTEM_MACHINE],
+        repo_config["node"][f"{constants.SYSTEM_MACHINE}_sha256"],
+        reporoot,
+    )
+    node.install_yarn(repo_config["node"]["yarn_version"], reporoot)
 
     # no more imports from devenv past this point! if the venv is recreated
     # then we won't have access to devenv libs until it gets reinstalled
@@ -114,16 +132,12 @@ def main(context: dict[str, str]) -> int:
             repo_config["colima"][f"{constants.SYSTEM_MACHINE}_sha256"],
             reporoot,
         )
-        try:
-            limactl.install(reporoot)  # type: ignore[call-arg]
-        except TypeError:
-            # again, it'll take 2 syncs to get here
-            limactl.install(
-                repo_config["lima"]["version"],
-                repo_config["lima"][constants.SYSTEM_MACHINE],
-                repo_config["lima"][f"{constants.SYSTEM_MACHINE}_sha256"],
-                reporoot,
-            )
+        limactl.install(
+            repo_config["lima"]["version"],
+            repo_config["lima"][constants.SYSTEM_MACHINE],
+            repo_config["lima"][f"{constants.SYSTEM_MACHINE}_sha256"],
+            reporoot,
+        )
 
     if not run_procs(
         repo,
