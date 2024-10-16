@@ -14,5 +14,5 @@ export const findUpcomingTasks = (task: OnboardingTask) =>
   task.requisiteTasks.length > 0 && !findCompleteTasks(task);
 
 export function hasQuickStartUpdatesFeature(organization: Organization) {
-  return organization.features.includes('quick-start-updates');
+  return organization.features?.includes('quick-start-updates');
 }

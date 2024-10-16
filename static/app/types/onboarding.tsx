@@ -9,6 +9,13 @@ import type {Organization} from './organization';
 import type {PlatformIntegration, PlatformKey, Project} from './project';
 import type {AvatarUser} from './user';
 
+// TODO(priscilawebdev): Define the groups we would like to display
+export enum OnboardingTaskGroup {
+  BASIC = 'basic',
+  NEXT = 'next',
+  LEVEL_UP = 'level_up',
+}
+
 export enum OnboardingTaskKey {
   FIRST_PROJECT = 'create_project',
   FIRST_EVENT = 'send_first_event',
@@ -23,6 +30,8 @@ export enum OnboardingTaskKey {
   FIRST_TRANSACTION = 'setup_transactions',
   METRIC_ALERT = 'setup_metric_alert_rules',
   USER_SELECTED_PROJECTS = 'setup_userselected_projects',
+  REAL_TIME_NOTIFICATIONS = 'setup_real_time_notifications',
+  LINK_SENTRY_TO_SOURCE_CODE = 'link_sentry_to_source_code',
   /// Customized card that shows the selected integrations during onboarding
   INTEGRATIONS = 'integrations',
   /// Regular card that tells the user to setup integrations if no integrations were selected during onboarding
@@ -68,6 +77,10 @@ interface OnboardingTaskDescriptorBase {
    * An extra component that may be rendered within the onboarding task item.
    */
   SupplementComponent?: React.ComponentType<OnboardingSupplementComponentProps>;
+  /**
+   * The group that this task belongs to, e.g. basic and level up
+   */
+  group?: OnboardingTaskGroup;
   /**
    * If a render function was provided, it will be used to render the entire card,
    * and the card will be rendered before any other cards regardless of completion status.
