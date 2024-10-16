@@ -962,6 +962,11 @@ function buildRoutes() {
         name={t('Early Features')}
         component={make(() => import('sentry/views/settings/earlyFeatures'))}
       />
+      <Route
+        path="dynamic-sampling/"
+        name={t('Dynamic Sampling')}
+        component={make(() => import('sentry/views/settings/dynamicSampling'))}
+      />
     </Route>
   );
 
