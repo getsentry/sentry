@@ -565,12 +565,208 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
             alias,
         )
 
+    def _resolve_aggregate_if(
+        self, aggregate: str
+    ) -> Callable[[Mapping[str, str | Column | SelectType | int | float], str | None], SelectType]:
+        def extract_attr(
+            column: str | Column | SelectType | int | float,
+        ) -> tuple[Column, str] | None:
+            # This check exists to handle the temporay prefixing.
+            # Once that's removed, this condition should become much simpler
+
+            if not isinstance(column, Function):
+                return None
+
+            if column.function != "if":
+                return None
+
+            if len(column.parameters) != 3:
+                return None
+
+            if (
+                not isinstance(column.parameters[0], Function)
+                or column.parameters[0].function != "mapContains"
+                or len(column.parameters[0].parameters) != 2
+            ):
+                return None
+
+            attr_col = column.parameters[0].parameters[0]
+            attr_name = column.parameters[0].parameters[1]
+
+            if not isinstance(attr_col, Column) or not isinstance(attr_name, str):
+                return None
+
+            return attr_col, attr_name
+
+        def resolve_aggregate_if(
+            args: Mapping[str, str | Column | SelectType | int | float],
+            alias: str | None = None,
+        ) -> SelectType:
+            attr = extract_attr(args["column"])
+
+            # If we're not aggregating on an attr column,
+            # we can directly aggregate on the column
+            if attr is None:
+                return Function(
+                    f"{aggregate}",
+                    [args["column"]],
+                    alias,
+                )
+
+            # When aggregating on an attr column, we have to make sure that we skip rows
+            # where the attr does not exist.
+            attr_col, attr_name = attr
+
+            function = (
+                aggregate.replace("quantile", "quantileIf")
+                if aggregate.startswith("quantile(")
+                else f"{aggregate}If"
+            )
+
+            unprefixed = Function("mapContains", [attr_col, attr_name])
+            prefixed = Function("mapContains", [attr_col, f"sentry.{attr_name}"])
+
+            return Function(
+                function,
+                [
+                    args["column"],
+                    Function("or", [unprefixed, prefixed]),
+                ],
+                alias,
+            )
+
+        return resolve_aggregate_if
+
     @property
     def function_converter(self) -> dict[str, SnQLFunction]:
-        existing_functions = super().function_converter
         function_converter = {
             function.name: function
             for function in [
+                SnQLFunction(
+                    "eps",
+                    snql_aggregate=lambda args, alias: Function(
+                        "divide", [Function("count", []), args["interval"]], alias
+                    ),
+                    optional_args=[IntervalDefault("interval", 1, None)],
+                    default_result_type="rate",
+                ),
+                SnQLFunction(
+                    "epm",
+                    snql_aggregate=lambda args, alias: Function(
+                        "divide",
+                        [Function("count", []), Function("divide", [args["interval"], 60])],
+                        alias,
+                    ),
+                    optional_args=[IntervalDefault("interval", 1, None)],
+                    default_result_type="rate",
+                ),
+                SnQLFunction(
+                    "count",
+                    optional_args=[
+                        with_default("span.duration", NumericColumn("column", spans=True)),
+                    ],
+                    snql_aggregate=self._resolve_aggregate_if("count"),
+                    default_result_type="integer",
+                ),
+                SnQLFunction(
+                    "count_unique",
+                    required_args=[ColumnTagArg("column")],
+                    snql_aggregate=lambda args, alias: Function("uniq", [args["column"]], alias),
+                    default_result_type="integer",
+                ),
+                SnQLFunction(
+                    "sum",
+                    required_args=[NumericColumn("column", spans=True)],
+                    snql_aggregate=self._resolve_aggregate_if("sum"),
+                    result_type_fn=self.reflective_result_type(),
+                    default_result_type="duration",
+                ),
+                SnQLFunction(
+                    "avg",
+                    optional_args=[
+                        with_default("span.duration", NumericColumn("column", spans=True)),
+                    ],
+                    snql_aggregate=self._resolve_aggregate_if("avg"),
+                    result_type_fn=self.reflective_result_type(),
+                    default_result_type="duration",
+                    redundant_grouping=True,
+                ),
+                SnQLFunction(
+                    "p50",
+                    optional_args=[
+                        with_default("span.duration", NumericColumn("column", spans=True)),
+                    ],
+                    snql_aggregate=self._resolve_aggregate_if("quantile(0.5)"),
+                    result_type_fn=self.reflective_result_type(),
+                    default_result_type="duration",
+                    redundant_grouping=True,
+                ),
+                SnQLFunction(
+                    "p75",
+                    optional_args=[
+                        with_default("span.duration", NumericColumn("column", spans=True)),
+                    ],
+                    snql_aggregate=self._resolve_aggregate_if("quantile(0.75)"),
+                    result_type_fn=self.reflective_result_type(),
+                    default_result_type="duration",
+                    redundant_grouping=True,
+                ),
+                SnQLFunction(
+                    "p90",
+                    optional_args=[
+                        with_default("span.duration", NumericColumn("column", spans=True)),
+                    ],
+                    snql_aggregate=self._resolve_aggregate_if("quantile(0.90)"),
+                    result_type_fn=self.reflective_result_type(),
+                    default_result_type="duration",
+                    redundant_grouping=True,
+                ),
+                SnQLFunction(
+                    "p95",
+                    optional_args=[
+                        with_default("span.duration", NumericColumn("column", spans=True)),
+                    ],
+                    snql_aggregate=self._resolve_aggregate_if("quantile(0.95)"),
+                    result_type_fn=self.reflective_result_type(),
+                    default_result_type="duration",
+                    redundant_grouping=True,
+                ),
+                SnQLFunction(
+                    "p99",
+                    optional_args=[
+                        with_default("span.duration", NumericColumn("column", spans=True)),
+                    ],
+                    snql_aggregate=self._resolve_aggregate_if("quantile(0.99)"),
+                    result_type_fn=self.reflective_result_type(),
+                    default_result_type="duration",
+                    redundant_grouping=True,
+                ),
+                SnQLFunction(
+                    "p100",
+                    optional_args=[
+                        with_default("span.duration", NumericColumn("column", spans=True)),
+                    ],
+                    snql_aggregate=self._resolve_aggregate_if("max"),
+                    result_type_fn=self.reflective_result_type(),
+                    default_result_type="duration",
+                    redundant_grouping=True,
+                ),
+                SnQLFunction(
+                    "min",
+                    required_args=[NumericColumn("column", spans=True)],
+                    snql_aggregate=self._resolve_aggregate_if("min"),
+                    result_type_fn=self.reflective_result_type(),
+                    default_result_type="duration",
+                    redundant_grouping=True,
+                ),
+                SnQLFunction(
+                    "max",
+                    required_args=[NumericColumn("column", spans=True)],
+                    snql_aggregate=self._resolve_aggregate_if("max"),
+                    result_type_fn=self.reflective_result_type(),
+                    default_result_type="duration",
+                    redundant_grouping=True,
+                ),
                 SnQLFunction(
                     "count_weighted",
                     optional_args=[NullColumn("column")],
@@ -722,8 +918,11 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
             ]
         }
 
-        existing_functions.update(function_converter)
-        return existing_functions
+        for alias, name in constants.SPAN_FUNCTION_ALIASES.items():
+            if name in function_converter:
+                function_converter[alias] = function_converter[name].alias_as(alias)
+
+        return function_converter
 
     def _resolve_sum_weighted(
         self,

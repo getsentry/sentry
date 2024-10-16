@@ -593,7 +593,7 @@ class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpoin
         )
         response = self.do_request(
             {
-                "field": ["span.duration", "description", "count()"],
+                "field": ["span.duration", "description"],
                 "query": "",
                 "orderby": "description",
                 "project": self.project.id,
@@ -607,14 +607,12 @@ class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpoin
         assert len(data) == 2
         assert data == [
             {
-                "span.duration": 1000,
+                "span.duration": 1000.0,
                 "description": "bar",
-                "count()": 1,
             },
             {
-                "span.duration": 1000,
+                "span.duration": 1000.0,
                 "description": "foo",
-                "count()": 1,
             },
         ]
         assert meta["dataset"] == self.dataset
@@ -825,6 +823,15 @@ class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpoin
                     {
                         "description": "foo",
                         "sentry_tags": {"status": "success"},
+                        "tags": {"bar": "bar1"},
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {
+                        "description": "foo",
+                        "sentry_tags": {"status": "success"},
+                        "tags": {"bar": "bar2"},
                     },
                     measurements={"foo": {"value": 5}},
                     start_ts=self.ten_mins_ago,
@@ -835,7 +842,24 @@ class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpoin
 
         response = self.do_request(
             {
-                "field": ["description", "avg(tags[foo,number])", "p50(tags[foo,      number])"],
+                "field": [
+                    "description",
+                    "count_unique(bar)",
+                    "count_unique(tags[bar])",
+                    "count_unique(tags[bar,string])",
+                    "count()",
+                    "count(span.duration)",
+                    "count(tags[foo,     number])",
+                    "sum(tags[foo,number])",
+                    "avg(tags[foo,number])",
+                    "p50(tags[foo,number])",
+                    "p75(tags[foo,number])",
+                    "p95(tags[foo,number])",
+                    "p99(tags[foo,number])",
+                    "p100(tags[foo,number])",
+                    "min(tags[foo,number])",
+                    "max(tags[foo,number])",
+                ],
                 "query": "",
                 "orderby": "description",
                 "project": self.project.id,
@@ -846,8 +870,24 @@ class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpoin
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 1
         data = response.data["data"]
-        assert data[0]["avg(tags[foo,number])"] == 5
-        assert data[0]["p50(tags[foo,      number])"] == 5
+        assert data[0] == {
+            "description": "foo",
+            "count_unique(bar)": 2,
+            "count_unique(tags[bar])": 2,
+            "count_unique(tags[bar,string])": 2,
+            "count()": 2,
+            "count(span.duration)": 2,
+            "count(tags[foo,     number])": 1,
+            "sum(tags[foo,number])": 5.0,
+            "avg(tags[foo,number])": 5.0,
+            "p50(tags[foo,number])": 5.0,
+            "p75(tags[foo,number])": 5.0,
+            "p95(tags[foo,number])": 5.0,
+            "p99(tags[foo,number])": 5.0,
+            "p100(tags[foo,number])": 5.0,
+            "min(tags[foo,number])": 5.0,
+            "max(tags[foo,number])": 5.0,
+        }
 
     def test_margin_of_error(self):
         total_samples = 10
