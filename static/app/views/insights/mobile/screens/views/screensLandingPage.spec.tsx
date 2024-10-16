@@ -83,7 +83,7 @@ describe('Screens Landing Page', function () {
         action: 'PUSH',
         hash: '',
         key: '',
-        pathname: '/organizations/org-slug/performance/mobile/mobile-screens',
+        pathname: '/organizations/org-slug/insights/mobile/mobile-screens',
         query: {
           project: project.id,
         },
