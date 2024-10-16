@@ -178,6 +178,7 @@ const EventListHeaderItem = styled('div')`
 const StreamlineEventsTable = styled('div')`
   ${Panel} {
     border: 0;
+    margin-bottom: 0;
   }
 
   ${GridHead} {
