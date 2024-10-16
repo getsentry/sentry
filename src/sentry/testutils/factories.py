@@ -2139,7 +2139,11 @@ class Factories:
         if name is None:
             name = petname.generate(2, " ", letters=10).title()
         return Detector.objects.create(
-            organization=organization, name=name, owner_user_id=owner_user_id, owner_team=owner_team
+            organization=organization,
+            name=name,
+            owner_user_id=owner_user_id,
+            owner_team=owner_team,
+            **kwargs,
         )
 
     @staticmethod
