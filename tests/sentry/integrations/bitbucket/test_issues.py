@@ -6,7 +6,7 @@ from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.services.integration import integration_service
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import EventType
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
@@ -33,7 +33,7 @@ class BitbucketIssueTest(APITestCase):
         )
         assert org_integration is not None
         self.org_integration = org_integration
-        min_ago = iso_format(before_now(minutes=1))
+        min_ago = before_now(minutes=1).isoformat()
         event = self.store_event(
             data={
                 "event_id": "a" * 32,

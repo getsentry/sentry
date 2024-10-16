@@ -291,7 +291,7 @@ class FetchCommitsTest(TestCase):
 
 @apply_feature_flag_on_cls("organizations:set-commits-updated")
 class FetchCommitsTestUpdated(FetchCommitsTest):
-    ...
+    pass
 
 
 @control_silo_test

@@ -1,7 +1,10 @@
+from unittest.mock import patch
+
 import orjson
 import pytest
 import responses
 
+from sentry.integrations.utils.metrics import EventLifecycleOutcome
 from sentry.models.rule import Rule
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.skips import requires_snuba
@@ -46,23 +49,8 @@ class OpsgenieClientTest(APITestCase):
         assert client.integration_key == METADATA["api_key"]
 
     @responses.activate
-    def test_authorize_integration(self):
-        client = self.installation.get_keyring_client("team-123")
-
-        resp_data = {
-            "result": "Integration [sentry] is valid",
-            "took": 1,
-            "requestId": "hello-world",
-        }
-        responses.add(
-            responses.POST, url=f"{client.base_url}/integrations/authenticate", json=resp_data
-        )
-
-        resp = client.authorize_integration(type="sentry")
-        assert resp == resp_data
-
-    @responses.activate
-    def test_send_notification(self):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_send_notification(self, mock_record):
         resp_data = {
             "result": "Request will be processed",
             "took": 1,
@@ -110,3 +98,7 @@ class OpsgenieClientTest(APITestCase):
             "message": "Hello world",
             "source": "Sentry",
         }
+        assert len(mock_record.mock_calls) == 2
+        start, halt = mock_record.mock_calls
+        assert start.args[0] == EventLifecycleOutcome.STARTED
+        assert halt.args[0] == EventLifecycleOutcome.SUCCESS

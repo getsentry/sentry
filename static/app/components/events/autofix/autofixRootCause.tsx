@@ -60,6 +60,7 @@ export function useSelectCause({groupId, runId}: {groupId: string; runId: string
       params:
         | {
             causeId: string;
+            instruction?: string;
           }
         | {
             customRootCause: string;
@@ -81,6 +82,7 @@ export function useSelectCause({groupId, runId}: {groupId: string; runId: string
                 payload: {
                   type: 'select_root_cause',
                   cause_id: params.causeId,
+                  instruction: params.instruction,
                 },
               },
       });
@@ -221,13 +223,15 @@ function RootCauseContext({
           )}
         </ExpandableInsightContext>
       )}
-      <ExpandableInsightContext
-        icon={<IconCode size="sm" color="subText" />}
-        title={'Relevant code'}
-        rounded
-      >
-        <AutofixRootCauseCodeContexts codeContext={cause.code_context} repos={repos} />
-      </ExpandableInsightContext>
+      {cause.code_context.length > 0 && (
+        <ExpandableInsightContext
+          icon={<IconCode size="sm" color="subText" />}
+          title={'Relevant code'}
+          rounded
+        >
+          <AutofixRootCauseCodeContexts codeContext={cause.code_context} repos={repos} />
+        </ExpandableInsightContext>
+      )}
     </RootCauseContextContainer>
   );
 }

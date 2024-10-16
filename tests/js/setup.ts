@@ -17,8 +17,6 @@ import ConfigStore from 'sentry/stores/configStore';
 import {DANGEROUS_SET_TEST_HISTORY} from 'sentry/utils/browserHistory';
 import * as performanceForSentry from 'sentry/utils/performanceForSentry';
 
-window.__SENTRY_USING_REACT_ROUTER_SIX = true;
-
 /**
  * Set locale to English
  */

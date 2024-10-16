@@ -9,7 +9,7 @@ import sentry.models.groupsnooze
 from sentry.models.group import Group
 from sentry.models.groupsnooze import GroupSnooze
 from sentry.testutils.cases import PerformanceIssueTestCase, SnubaTestCase, TestCase
-from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
@@ -73,7 +73,7 @@ class GroupSnoozeTest(
             self.store_event(
                 data={
                     "user": {"id": i},
-                    "timestamp": iso_format(before_now(seconds=1)),
+                    "timestamp": before_now(seconds=1).isoformat(),
                     "fingerprint": ["group1"],
                 },
                 project_id=self.project.id,
@@ -90,7 +90,7 @@ class GroupSnoozeTest(
             group = self.store_event(
                 data={
                     "fingerprint": ["group1"],
-                    "timestamp": iso_format(before_now(minutes=5 + i)),
+                    "timestamp": before_now(minutes=5 + i).isoformat(),
                     "tags": {"sentry:user": i},
                 },
                 project_id=self.project.id,
@@ -135,7 +135,7 @@ class GroupSnoozeTest(
             group = self.store_event(
                 data={
                     "fingerprint": ["group1"],
-                    "timestamp": iso_format(before_now(minutes=5 + i)),
+                    "timestamp": before_now(minutes=5 + i).isoformat(),
                 },
                 project_id=self.project.id,
             ).group
