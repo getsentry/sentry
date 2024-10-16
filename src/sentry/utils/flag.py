@@ -4,7 +4,7 @@ from contextvars import ContextVar
 flag_manager = ContextVar("flag_manager")  # type: ignore[var-annotated]
 
 
-def initialize_flag_manager(capacity: int = 10) -> None:
+def initialize_flag_manager(capacity: int = 100) -> None:
     flag_manager.set(FlagManager(capacity=capacity))
 
 
