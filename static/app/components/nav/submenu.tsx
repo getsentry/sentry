@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
+import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link from 'sentry/components/links/link';
 import {useNavContext} from 'sentry/components/nav/context';
 import type {NavSubmenuItem} from 'sentry/components/nav/utils';
@@ -62,17 +63,22 @@ function SubmenuItem({item}: {item: NavSubmenuItem}) {
   return (
     <FeatureGuard {...featureGuardProps}>
       <SubmenuItemWrapper>
-        <Link
+        <SubmenuLink
           {...linkProps}
-          className={isActive ? 'active' : undefined}
           aria-current={isActive ? 'page' : undefined}
+          aria-selected={isActive}
         >
+          <InteractionStateLayer hasSelectedBackground={isActive} />
           {item.label}
-        </Link>
+        </SubmenuLink>
       </SubmenuItemWrapper>
     </FeatureGuard>
   );
 }
+
+const SubmenuLink = styled(Link)`
+  position: relative;
+`;
 
 const SubmenuItemList = styled('ul')`
   list-style: none;
@@ -96,24 +102,12 @@ const SubmenuItemWrapper = styled('li')`
     font-weight: ${p => p.theme.fontWeightNormal};
     line-height: 177.75%;
     margin-inline: ${space(1)};
-    border: 1px solid transparent;
     border-radius: ${p => p.theme.borderRadius};
-
-    &:hover,
-    &:focus-visible {
-      color: ${p => p.theme.gray500};
-      background: rgba(62, 52, 70, 0.09);
-    }
 
     &.active {
       color: ${p => p.theme.gray500};
       background: rgba(62, 52, 70, 0.09);
       border: 1px solid ${p => p.theme.translucentGray100};
-
-      &:hover,
-      &:focus-visible {
-        background: rgba(62, 52, 70, 0.18);
-      }
     }
   }
 `;

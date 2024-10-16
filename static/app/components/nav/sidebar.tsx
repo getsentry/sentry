@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
+import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link from 'sentry/components/links/link';
 import {useNavContext} from 'sentry/components/nav/context';
 import Submenu from 'sentry/components/nav/submenu';
@@ -101,18 +102,23 @@ function SidebarItem({item}: {item: NavSidebarItem}) {
   return (
     <FeatureGuard {...featureGuardProps}>
       <SidebarItemWrapper>
-        <Link
+        <SidebarLink
           {...linkProps}
-          className={isActive || isSubmenuActive ? 'active' : undefined}
           aria-current={isActive ? 'page' : undefined}
+          aria-selected={isActive || isSubmenuActive}
         >
+          <InteractionStateLayer hasSelectedBackground={isActive || isSubmenuActive} />
           {item.icon}
           <span>{item.label}</span>
-        </Link>
+        </SidebarLink>
       </SidebarItemWrapper>
     </FeatureGuard>
   );
 }
+
+const SidebarLink = styled(Link)`
+  position: relative;
+`;
 
 const SidebarItemWrapper = styled('li')`
   svg {
@@ -136,24 +142,6 @@ const SidebarItemWrapper = styled('li')`
     font-size: ${theme.fontSizeMedium};
     font-weight: ${theme.fontWeightNormal};
     line-height: 177.75%;
-    border: 1px solid transparent;
-
-    &:hover,
-    &:focus-visible {
-      color: var(--color-hover, ${theme.white});
-      background: rgba(255, 255, 255, 0.1);
-    }
-
-    &.active {
-      color: var(--color-hover, ${theme.white});
-      background: rgba(255, 255, 255, 0.1);
-      border: 1px solid rgba(255, 255, 255, 0.06);
-
-      &:hover,
-      &:focus-visible {
-        background: rgba(255, 255, 255, 0.2);
-      }
-    }
 
     & > * {
       pointer-events: none;
