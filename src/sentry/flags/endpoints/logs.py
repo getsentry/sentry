@@ -61,6 +61,10 @@ class OrganizationFlagLogIndexEndpoint(OrganizationEndpoint):
             organization_id=organization.id,
         )
 
+        flags = request.GET.getlist("flag")
+        if flags:
+            queryset = queryset.filter(flag__in=flags)
+
         return self.paginate(
             request=request,
             queryset=queryset,
