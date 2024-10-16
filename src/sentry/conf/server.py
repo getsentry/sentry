@@ -346,6 +346,7 @@ MIDDLEWARE: tuple[str, ...] = (
     "sentry.middleware.locale.SentryLocaleMiddleware",
     "sentry.middleware.ratelimit.RatelimitMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
+    "sentry.middleware.devtoolbar.DevToolbarAnalyticsMiddleware",
 )
 
 ROOT_URLCONF = "sentry.conf.urls"
@@ -836,7 +837,7 @@ CELERY_ROUTES = ("sentry.queue.routers.SplitQueueTaskRouter",)
 # and a default one as destination. The default one is used when the
 # rollout option is not active.
 CELERY_SPLIT_QUEUE_TASK_ROUTES_REGION: Mapping[str, SplitQueueTaskRoute] = {
-    "events.save_event_transaction": {
+    "sentry.tasks.store.save_event_transaction": {
         "default_queue": "events.save_event_transaction",
         "queues_config": {
             "total": 3,
@@ -3150,6 +3151,7 @@ PG_VERSION: str = os.getenv("PG_VERSION") or "14"
 ZERO_DOWNTIME_MIGRATIONS_RAISE_FOR_UNSAFE = True
 ZERO_DOWNTIME_MIGRATIONS_LOCK_TIMEOUT = None
 ZERO_DOWNTIME_MIGRATIONS_STATEMENT_TIMEOUT = None
+ZERO_DOWNTIME_MIGRATIONS_LOCK_TIMEOUT_FORCE = False
 
 if int(PG_VERSION.split(".", maxsplit=1)[0]) < 12:
     # In v0.6 of django-pg-zero-downtime-migrations this settings is deprecated for PostreSQLv12+

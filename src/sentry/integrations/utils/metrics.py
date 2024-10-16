@@ -9,6 +9,7 @@ from typing import Any, Self
 
 from django.conf import settings
 
+from sentry.integrations.base import IntegrationDomain
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -173,6 +174,23 @@ class EventLifecycle:
             self._extra.update(extra)
         self._terminate(EventLifecycleOutcome.FAILURE, exc)
 
+    def record_halt(self, exc: BaseException | None = None) -> None:
+        """Record that the event halted in an ambiguous state.
+
+        This method can be called in response to a sufficiently ambiguous exception
+        or other error condition, where it may have been caused by a user error or
+        other expected condition, but there is some substantial chance that it
+        represents a bug.
+
+        Such cases usually mean that we want to:
+          (1) document the ambiguity;
+          (2) monitor it for sudden spikes in frequency; and
+          (3) investigate whether more detailed error information is available
+              (but probably later, as a backlog item).
+        """
+
+        self._terminate(EventLifecycleOutcome.HALTED, exc)
+
     def __enter__(self) -> Self:
         if self._state is not None:
             self._report_flow_error("The lifecycle has already been entered")
@@ -209,7 +227,8 @@ class IntegrationPipelineViewType(Enum):
     """A specific step in an integration's pipeline that is not a static page."""
 
     # IdentityProviderPipeline
-    IDENTITY_PROVIDER = "IDENTITY_PROVIDER"
+    IDENTITY_LOGIN = "IDENTITY_LOGIN"
+    IDENTITY_LINK = "IDENTITY_LINK"
 
     # GitHub
     OAUTH_LOGIN = "OAUTH_LOGIN"
@@ -234,7 +253,7 @@ class IntegrationPipelineViewEvent(EventLifecycleMetric):
     """An instance to be recorded of a user going through an integration pipeline view (step)."""
 
     interaction_type: IntegrationPipelineViewType
-    domain: str
+    domain: IntegrationDomain
     provider_key: str
 
     def get_key(self, outcome: EventLifecycleOutcome) -> str:

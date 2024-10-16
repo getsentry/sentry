@@ -800,7 +800,7 @@ class OrganizationExamples:
                 },
                 "deployCount": 1,
                 "lastDeploy": {
-                    "id": 53070941,
+                    "id": "53070941",
                     "environment": "canary-test-control",
                     "dateStarted": None,
                     "dateFinished": "2024-05-21T11:26:17.597793Z",
@@ -889,21 +889,6 @@ class OrganizationExamples:
                 },
             },
             status_codes=["200"],
-            response_only=True,
-        )
-    ]
-
-    EXTERNAL_USER_CREATE = [
-        OpenApiExample(
-            "Create an external user",
-            value={
-                "id": 123,
-                "provider": "github",
-                "external_name": "@billy",
-                "integration_id": 123,
-                "user_id": 123,
-            },
-            status_codes=["200", "201"],
             response_only=True,
         )
     ]
