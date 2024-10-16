@@ -1668,7 +1668,7 @@ SENTRY_EVENT_PROCESSING_STORE_OPTIONS: dict[str, str] = {}
 
 # Transactions processing backend
 SENTRY_TRANSACTIONS_PROCESSING_STORE: str | None = None
-SENTRY_TRANSACTIONS_PROCESSING_STORE_OPTIONS: dict[str, str] | None = None
+SENTRY_TRANSACTION_PROCESSING_STORE_OPTIONS: dict[str, str] | None = None
 
 # The internal Django cache is still used in many places
 # TODO(dcramer): convert uses over to Sentry's backend
