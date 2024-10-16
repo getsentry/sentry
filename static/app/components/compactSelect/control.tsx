@@ -298,6 +298,11 @@ export function Control({
           ?.focus();
       }
 
+      // Prevent form submissions on Enter key press in search box
+      if (e.key === 'Enter') {
+        e.preventDefault();
+      }
+
       // Continue propagation, otherwise the overlay won't close on Esc key press
       e.continuePropagation();
     },

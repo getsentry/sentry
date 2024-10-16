@@ -1009,7 +1009,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         data = {
             "event_id": "a" * 32,
             "message": "super bad",
-            "timestamp": iso_format(two_weeks_ago + timedelta(minutes=1)),
+            "timestamp": two_weeks_ago + timedelta(minutes=1),
             "tags": {"sentry:user": self.user.email},
             "exception": [{"value": "BadError"}],
         }

@@ -4,7 +4,7 @@ from unittest import mock
 from django.utils import timezone
 
 from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 
 
 class GroupTagKeyValuesTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
@@ -15,7 +15,7 @@ class GroupTagKeyValuesTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase
         project = self.create_project()
 
         event = self.store_event(
-            data={"tags": {key: value}, "timestamp": iso_format(before_now(seconds=1))},
+            data={"tags": {key: value}, "timestamp": before_now(seconds=1).isoformat()},
             project_id=project.id,
         )
         group = event.group
@@ -68,7 +68,7 @@ class GroupTagKeyValuesTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase
                     "username": "foo",
                     "ip_address": "127.0.0.1",
                 },
-                "timestamp": iso_format(before_now(seconds=10)),
+                "timestamp": before_now(seconds=10).isoformat(),
             },
             project_id=project.id,
         )
@@ -99,7 +99,7 @@ class GroupTagKeyValuesTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase
                     "username": "foo",
                     "ip_address": "127.0.0.1",
                 },
-                "timestamp": iso_format(before_now(seconds=5)),
+                "timestamp": before_now(seconds=5).isoformat(),
                 "tags": {"message": "minidumpC:\\Users\\test"},
             },
             project_id=project.id,
@@ -133,7 +133,7 @@ class GroupTagKeyValuesTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase
                     "username": "foo",
                     "ip_address": "127.0.0.1",
                 },
-                "timestamp": iso_format(before_now(seconds=10)),
+                "timestamp": before_now(seconds=10).isoformat(),
             },
             project_id=project.id,
         )
@@ -147,7 +147,7 @@ class GroupTagKeyValuesTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase
                     "username": "foo",
                     "ip_address": "127.0.0.1",
                 },
-                "timestamp": iso_format(before_now(seconds=10)),
+                "timestamp": before_now(seconds=10).isoformat(),
             },
             project_id=project.id,
         )
@@ -161,7 +161,7 @@ class GroupTagKeyValuesTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase
                     "username": "bar",
                     "ip_address": "127.0.0.1",
                 },
-                "timestamp": iso_format(before_now(seconds=10)),
+                "timestamp": before_now(seconds=10).isoformat(),
             },
             project_id=project.id,
         )

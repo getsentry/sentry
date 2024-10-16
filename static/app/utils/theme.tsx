@@ -648,6 +648,16 @@ const generateUtils = (colors: BaseColors, aliases: Aliases) => ({
     overflow: 'hidden',
     textOverflow: 'ellipsis',
   }),
+  // https://css-tricks.com/inclusively-hidden/
+  visuallyHidden: css({
+    clip: 'rect(0 0 0 0)',
+    clipPath: 'inset(50%)',
+    height: '1px',
+    overflow: 'hidden',
+    position: 'absolute',
+    whiteSpace: 'nowrap',
+    width: '1px',
+  }),
 });
 
 const generatePrismVariables = (
