@@ -21,28 +21,13 @@ class DevToolbarAnalyticsMiddlewareUnitTest(TestCase):
 
     def setUp(self):
         # Allows changing the get_response mock for each test.
-        self.get_response = MagicMock(return_value=HttpResponse(status=200))
-        self.middleware.get_response = self.get_response
-
-    def make_toolbar_request(
-        self,
-        path="/",
-        method="GET",
-        headers=None,
-        incl_toolbar_header=True,
-        resolver_match="mock",
-    ):
-        headers = headers or {}
-        if incl_toolbar_header:
-            headers["queryReferrer"] = "devtoolbar"
-        request = getattr(self.factory, method.lower())(path, headers=headers)
-        request.resolver_match = MagicMock() if resolver_match == "mock" else resolver_match
-        return request
+        self.middleware.get_response = MagicMock(return_value=HttpResponse(status=200))
 
     @override_options({"devtoolbar.analytics.enabled": True})
     @patch("sentry.analytics.record")
     def test_basic(self, mock_record: MagicMock):
-        request = self.make_toolbar_request()
+        request = self.factory.get("/?queryReferrer=devtoolbar")
+        request.resolver_match = MagicMock()
         self.middleware(request)
         mock_record.assert_called()
         assert mock_record.call_args[0][0] == self.analytics_event_name
@@ -50,13 +35,13 @@ class DevToolbarAnalyticsMiddlewareUnitTest(TestCase):
     @override_options({"devtoolbar.analytics.enabled": True})
     @patch("sentry.analytics.record")
     def test_no_devtoolbar_header(self, mock_record: MagicMock):
-        request = self.make_toolbar_request(incl_toolbar_header=False)
+        request = self.factory.get("/")
+        request.resolver_match = MagicMock()
         self.middleware(request)
         mock_record.assert_not_called()
 
-        request = self.make_toolbar_request(
-            headers={"queryReferrer": "not-toolbar"}, incl_toolbar_header=False
-        )
+        request = self.factory.get("/?queryReferrer=not-toolbar")
+        request.resolver_match = MagicMock()
         self.middleware(request)
         mock_record.assert_not_called()
 
@@ -64,7 +49,7 @@ class DevToolbarAnalyticsMiddlewareUnitTest(TestCase):
     @patch("sentry.middleware.devtoolbar.logger.exception")
     @patch("sentry.analytics.record")
     def test_request_not_resolved(self, mock_record: MagicMock, mock_logger: MagicMock):
-        request = self.make_toolbar_request()
+        request = self.factory.get("/?queryReferrer=devtoolbar")
         request.resolver_match = None
         self.middleware(request)
 
@@ -81,9 +66,8 @@ class DevToolbarAnalyticsMiddlewareUnitTest(TestCase):
         # Integration tests do a better job of testing these fields, since they involve route resolver.
         view_name = "my-endpoint"
         route = "/issues/(?P<issue_id>)/"
-        request = self.make_toolbar_request(
-            resolver_match=MagicMock(view_name=view_name, route=route),
-        )
+        request = self.factory.get("/?queryReferrer=devtoolbar")
+        request.resolver_match = MagicMock(view_name=view_name, route=route)
         self.middleware(request)
 
         mock_record.assert_called()
@@ -95,9 +79,8 @@ class DevToolbarAnalyticsMiddlewareUnitTest(TestCase):
     @patch("sentry.analytics.record")
     def test_query_string(self, mock_record: MagicMock):
         query = "?a=b&statsPeriod=14d"
-        request = self.make_toolbar_request(
-            path="https://sentry.io/replays/" + query,
-        )
+        request = self.factory.get(f"/{query}&queryReferrer=devtoolbar")
+        request.resolver_match = MagicMock()
         self.middleware(request)
 
         mock_record.assert_called()
@@ -108,7 +91,10 @@ class DevToolbarAnalyticsMiddlewareUnitTest(TestCase):
     @patch("sentry.analytics.record")
     def test_origin(self, mock_record: MagicMock):
         origin = "https://potato.com"
-        request = self.make_toolbar_request(headers={"Origin": origin})
+        request = self.factory.get(
+            f"{origin}/?queryReferrer=devtoolbar", headers={"Origin": origin}
+        )
+        request.resolver_match = MagicMock()
         self.middleware(request)
 
         mock_record.assert_called()
@@ -119,7 +105,9 @@ class DevToolbarAnalyticsMiddlewareUnitTest(TestCase):
     @patch("sentry.analytics.record")
     def test_origin_from_referrer(self, mock_record: MagicMock):
         origin = "https://potato.com"
-        request = self.make_toolbar_request(headers={"Referer": origin + "/issues/?a=b"})
+        url = origin + "/issues/?a=b&queryReferrer=devtoolbar"
+        request = self.factory.get(url, headers={"Referer": url})
+        request.resolver_match = MagicMock()
         self.middleware(request)
 
         mock_record.assert_called()
@@ -129,8 +117,9 @@ class DevToolbarAnalyticsMiddlewareUnitTest(TestCase):
     @override_options({"devtoolbar.analytics.enabled": True})
     @patch("sentry.analytics.record")
     def test_response_status_code(self, mock_record: MagicMock):
-        request = self.make_toolbar_request()
-        self.get_response.return_value = HttpResponse(status=420)
+        request = self.factory.get("/?queryReferrer=devtoolbar")
+        request.resolver_match = MagicMock()
+        self.middleware.get_response.return_value = HttpResponse(status=420)
         self.middleware(request)
 
         mock_record.assert_called()
@@ -141,7 +130,8 @@ class DevToolbarAnalyticsMiddlewareUnitTest(TestCase):
     @patch("sentry.analytics.record")
     def test_methods(self, mock_record: MagicMock):
         for method in ["GET", "POST", "PUT", "DELETE"]:
-            request = self.make_toolbar_request(method=method)
+            request = getattr(self.factory, method.lower())("/?queryReferrer=devtoolbar")
+            request.resolver_match = MagicMock()
             self.middleware(request)
 
             mock_record.assert_called()
@@ -168,18 +158,17 @@ class DevToolbarAnalyticsMiddlewareIntegrationTest(APITestCase, SnubaTestCase):
     @patch("sentry.analytics.record")
     def _test_endpoint(
         self,
-        path: str,
-        query_string: str,
+        url: str,
         method: str,
         expected_view_name: str,
         expected_route: str,
         mock_record: MagicMock,
+        expected_query_string=None,
         expected_org_id=None,
         expected_org_slug=None,
         expected_proj_id=None,
         expected_proj_slug=None,
     ):
-        url = path + query_string
         response: HttpResponse = getattr(self.client, method.lower())(
             url,
             headers={
@@ -192,7 +181,7 @@ class DevToolbarAnalyticsMiddlewareIntegrationTest(APITestCase, SnubaTestCase):
             "devtoolbar.api_request",
             view_name=expected_view_name,
             route=expected_route,
-            query_string=query_string,
+            query_string=expected_query_string,
             origin=self.origin,
             method=method,
             status_code=response.status_code,
@@ -205,27 +194,26 @@ class DevToolbarAnalyticsMiddlewareIntegrationTest(APITestCase, SnubaTestCase):
 
     def test_organization_replays(self):
         self._test_endpoint(
-            f"/api/0/organizations/{self.organization.slug}/replays/",
-            "?field=id",
+            f"/api/0/organizations/{self.organization.slug}/replays/?field=id&queryReferrer=devtoolbar",
             "GET",
             "sentry-api-0-organization-replay-index",
             "^api/0/organizations/(?P<organization_id_or_slug>[^\\/]+)/replays/$",
+            expected_query_string="?field=id",
             expected_org_slug=self.organization.slug,
         )
         self._test_endpoint(
-            f"/api/0/organizations/{self.organization.id}/replays/",
-            "?field=id",
+            f"/api/0/organizations/{self.organization.id}/replays/?queryReferrer=devtoolbar&field=id",
             "GET",
             "sentry-api-0-organization-replay-index",
             "^api/0/organizations/(?P<organization_id_or_slug>[^\\/]+)/replays/$",
+            expected_query_string="?field=id",
             expected_org_id=self.organization.id,
         )
 
     def test_group_details(self):
         group = self.create_group(substatus=GroupSubStatus.NEW)
         self._test_endpoint(
-            f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/",
-            "",
+            f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/?queryReferrer=devtoolbar",
             "GET",
             "sentry-api-0-organization-group-group-details",
             "^api/0/organizations/(?P<organization_id_or_slug>[^\\/]+)/(?:issues|groups)/(?P<issue_id>[^\\/]+)/$",
@@ -235,8 +223,7 @@ class DevToolbarAnalyticsMiddlewareIntegrationTest(APITestCase, SnubaTestCase):
     def test_project_user_feedback(self):
         # Should return 400 (no POST data)
         self._test_endpoint(
-            f"/api/0/projects/{self.organization.slug}/{self.project.id}/user-feedback/",
-            "",
+            f"/api/0/projects/{self.organization.slug}/{self.project.id}/user-feedback/?queryReferrer=devtoolbar",
             "POST",
             "sentry-api-0-project-user-reports",
             r"^api/0/projects/(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/(?:user-feedback|user-reports)/$",
