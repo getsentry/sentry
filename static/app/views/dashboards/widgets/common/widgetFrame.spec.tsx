@@ -26,6 +26,25 @@ describe('WidgetFrame', () => {
     });
   });
 
+  describe('Badge', () => {
+    it('Shows the badge', () => {
+      const {rerender} = render(<WidgetFrame title="count()" />);
+
+      expect(screen.queryByText('Sampled')).not.toBeInTheDocument();
+
+      rerender(
+        <WidgetFrame
+          title="count()"
+          badgeProps={{
+            text: 'Sampled',
+          }}
+        />
+      );
+
+      expect(screen.getByText('Sampled')).toBeInTheDocument();
+    });
+  });
+
   describe('Action Menu', () => {
     it('Renders a single action as a button', async () => {
       const onAction = jest.fn();
