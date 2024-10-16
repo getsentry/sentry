@@ -78,8 +78,8 @@ class DevToolbarAnalyticsMiddlewareUnitTest(TestCase):
     @override_options({"devtoolbar.analytics.enabled": True})
     @patch("sentry.analytics.record")
     def test_query_string(self, mock_record: MagicMock):
-        query = "?a=b&statsPeriod=14d"
-        request = self.factory.get(f"/{query}&queryReferrer=devtoolbar")
+        query = "?a=b&statsPeriod=14d&queryReferrer=devtoolbar"
+        request = self.factory.get("/" + query)
         request.resolver_match = MagicMock()
         self.middleware(request)
 
@@ -198,7 +198,7 @@ class DevToolbarAnalyticsMiddlewareIntegrationTest(APITestCase, SnubaTestCase):
             "GET",
             "sentry-api-0-organization-replay-index",
             "^api/0/organizations/(?P<organization_id_or_slug>[^\\/]+)/replays/$",
-            expected_query_string="?field=id",
+            expected_query_string="?field=id&queryReferrer=devtoolbar",
             expected_org_slug=self.organization.slug,
         )
         self._test_endpoint(
@@ -206,7 +206,7 @@ class DevToolbarAnalyticsMiddlewareIntegrationTest(APITestCase, SnubaTestCase):
             "GET",
             "sentry-api-0-organization-replay-index",
             "^api/0/organizations/(?P<organization_id_or_slug>[^\\/]+)/replays/$",
-            expected_query_string="?field=id",
+            expected_query_string="?queryReferrer=devtoolbar&field=id",
             expected_org_id=self.organization.id,
         )
 
@@ -217,6 +217,7 @@ class DevToolbarAnalyticsMiddlewareIntegrationTest(APITestCase, SnubaTestCase):
             "GET",
             "sentry-api-0-organization-group-group-details",
             "^api/0/organizations/(?P<organization_id_or_slug>[^\\/]+)/(?:issues|groups)/(?P<issue_id>[^\\/]+)/$",
+            expected_query_string="?queryReferrer=devtoolbar",
             expected_org_slug=self.organization.slug,
         )
 
@@ -227,6 +228,7 @@ class DevToolbarAnalyticsMiddlewareIntegrationTest(APITestCase, SnubaTestCase):
             "POST",
             "sentry-api-0-project-user-reports",
             r"^api/0/projects/(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/(?:user-feedback|user-reports)/$",
+            expected_query_string="?queryReferrer=devtoolbar",
             expected_org_slug=self.organization.slug,
             expected_proj_id=self.project.id,
         )
