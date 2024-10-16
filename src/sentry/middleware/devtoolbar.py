@@ -45,7 +45,7 @@ def _record_api_request(request: HttpRequest, response: HttpResponse) -> None:
     project_id, project_slug = parse_id_or_slug_param(project_id_or_slug)
 
     origin = origin_from_request(request)
-    query_string: str = get_query_string(request) or None
+    query_string = get_query_string(request) or None
     if query_string:
         params = query_string.lstrip("?").split("&")
         params = list(filter(lambda s: s != "queryReferrer=devtoolbar", params))
