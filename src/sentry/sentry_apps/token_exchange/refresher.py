@@ -5,13 +5,13 @@ from django.utils.functional import cached_property
 
 from sentry import analytics
 from sentry.coreapi import APIUnauthorized
+from sentry.mediators.token_exchange.util import token_expiration
+from sentry.mediators.token_exchange.validator import Validator
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.apitoken import ApiToken
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.services.app import RpcSentryAppInstallation
-from sentry.sentry_apps.token_exchange.util import token_expiration
-from sentry.sentry_apps.token_exchange.validator import Validator
 from sentry.users.models.user import User
 
 
@@ -28,8 +28,8 @@ class Refresher:
 
     def run(self) -> ApiToken:
         with transaction.atomic(router.db_for_write(ApiToken)):
-            if self._validate():
-                self.token.delete()
+            self._validate()
+            self.token.delete()
 
         self.record_analytics()
         return self._create_new_token()
@@ -41,12 +41,11 @@ class Refresher:
             exchange_type="refresh",
         )
 
-    def _validate(self) -> bool:
-        is_valid = Validator(install=self.install, client_id=self.client_id, user=self.user).run()
+    def _validate(self) -> None:
+        Validator.run(install=self.install, client_id=self.client_id, user=self.user)
 
         if self.token.application != self.application:
             raise APIUnauthorized("Token does not belong to the application")
-        return is_valid
 
     def _create_new_token(self) -> ApiToken:
         token = ApiToken.objects.create(
