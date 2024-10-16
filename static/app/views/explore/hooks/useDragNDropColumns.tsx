@@ -52,6 +52,9 @@ export function useDragNDropColumns({columns}: UseDragAndDropColumnsProps) {
 
   function deleteColumnAtIndex(i: number) {
     setEditableColumns(oldEditableColumns => {
+      if (oldEditableColumns.length === 1) {
+        return [{id: 1, column: undefined}];
+      }
       return [...oldEditableColumns.slice(0, i), ...oldEditableColumns.slice(i + 1)];
     });
   }

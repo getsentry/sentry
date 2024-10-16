@@ -53,6 +53,7 @@ export function ToolbarGroupBy({disabled}: ToolbarGroupByProps) {
       <div>
         <ColumnEditor
           disabled={resultMode === 'samples'}
+          allowFirstColumnDeletion={groupBys.length > 1 || groupBys[0] !== ''}
           columns={editableColumns}
           onColumnChange={updateColumnAtIndex}
           onColumnDelete={deleteColumnAtIndex}

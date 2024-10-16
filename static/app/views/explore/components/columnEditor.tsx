@@ -39,6 +39,7 @@ interface ColumnEditorProps {
   onColumnDelete: (i: number) => void;
   onColumnSwap: (i: number, j: number) => void;
   stringTags: TagCollection;
+  allowFirstColumnDeletion?: boolean;
   disabled?: boolean;
 }
 
@@ -50,6 +51,7 @@ export function ColumnEditor({
   stringTags,
   numberTags,
   disabled = false,
+  allowFirstColumnDeletion = false,
 }: ColumnEditorProps) {
   const tags: SelectOption<string>[] = useMemo(() => {
     const allTags = [
@@ -113,7 +115,7 @@ export function ColumnEditor({
             <ColumnEditorRow
               disabled={disabled}
               key={column.id}
-              canDelete={columns.length > 1}
+              canDelete={columns.length > 1 || allowFirstColumnDeletion}
               column={column}
               tags={tags}
               onColumnChange={c => onColumnChange(i, c)}
@@ -241,10 +243,12 @@ const TriggerLabel = styled('span')`
   text-align: left;
   line-height: normal;
   position: relative;
+  font-weight: normal;
 `;
 
 const TriggerContainer = styled('div')`
   display: flex;
+  align-items: center;
   justify-content: space-between;
   width: 100%;
 `;
