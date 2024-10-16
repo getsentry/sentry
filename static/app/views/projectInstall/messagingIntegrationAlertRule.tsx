@@ -6,22 +6,22 @@ import Input from 'sentry/components/input';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
-import {useIssueAlertNotificationContext} from 'sentry/views/projectInstall/issueAlertNotificationContext';
-import {providerDetails} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
+import {
+  type IssueAlertNotificationProps,
+  providerDetails,
+} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
 
 type Props = {
+  notificationProps: IssueAlertNotificationProps;
   providersToIntegrations: Record<string, OrganizationIntegration[]>;
 };
 
-export default function MessagingIntegrationAlertRule({providersToIntegrations}: Props) {
-  const {
-    alertNotificationChannel: channel,
-    alertNotificationIntegration: integration,
-    alertNotificationProvider: provider,
-    setAlertNotificationChannel: setChannel,
-    setAlertNotificationIntegration: setIntegration,
-    setAlertNotificationProvider: setProvider,
-  } = useIssueAlertNotificationContext();
+export default function MessagingIntegrationAlertRule({
+  notificationProps,
+  providersToIntegrations,
+}: Props) {
+  const {channel, integration, provider, setChannel, setIntegration, setProvider} =
+    notificationProps;
 
   const providerOptions = useMemo(
     () =>

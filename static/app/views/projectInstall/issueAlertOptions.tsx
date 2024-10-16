@@ -13,7 +13,9 @@ import type {IssueAlertRuleAction} from 'sentry/types/alerts';
 import {IssueAlertActionType, IssueAlertConditionType} from 'sentry/types/alerts';
 import type {Organization} from 'sentry/types/organization';
 import withOrganization from 'sentry/utils/withOrganization';
-import IssueAlertNotificationOptions from 'sentry/views/projectInstall/issueAlertNotificationOptions';
+import IssueAlertNotificationOptions, {
+  type IssueAlertNotificationProps,
+} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
 
 export enum MetricValues {
   ERRORS = 0,
@@ -42,6 +44,7 @@ const METRIC_CONDITION_MAP = {
 
 type StateUpdater = (updatedData: RequestDataFragment) => void;
 type Props = DeprecatedAsyncComponent['props'] & {
+  notificationProps: IssueAlertNotificationProps;
   onChange: StateUpdater;
   organization: Organization;
   alertSetting?: string;
@@ -304,11 +307,11 @@ class IssueAlertOptions extends DeprecatedAsyncComponent<Props, State> {
           onChange={alertSetting => this.setStateAndUpdateParents({alertSetting})}
           value={this.state.alertSetting}
         />
-        {!this.props.organization.features.includes(
+        {this.props.organization.features.includes(
           'messaging-integration-onboarding-project-creation'
         ) &&
           parseInt(this.state.alertSetting, 10) !== RuleAction.CREATE_ALERT_LATER && (
-            <IssueAlertNotificationOptions />
+            <IssueAlertNotificationOptions {...this.props.notificationProps} />
           )}
       </Content>
     );

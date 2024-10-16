@@ -24,8 +24,6 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
-import {IssueAlertActionType} from 'sentry/types/alerts';
-import type {OrganizationIntegration} from 'sentry/types/integrations';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {Team} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -37,7 +35,10 @@ import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useTeams} from 'sentry/utils/useTeams';
-import {IssueAlertNotificationContext} from 'sentry/views/projectInstall/issueAlertNotificationContext';
+import {
+  MultipleCheckboxOptions,
+  useCreateNotificationAction,
+} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
 import IssueAlertOptions, {
   MetricValues,
   RuleAction,
@@ -84,52 +85,18 @@ function CreateProject() {
   const [alertRuleConfig, setAlertRuleConfig] = useState<IssueAlertFragment | undefined>(
     undefined
   );
-  const [alertNotificationAction, setAlertNotificationAction] = useState<
-    IssueAlertActionType[]
-  >([IssueAlertActionType.NOTIFY_EMAIL]);
-  const [alertNotificationProvider, setAlertNotificationProvider] = useState<
-    string | undefined
-  >(undefined);
-  const [alertNotificationIntegration, setAlertNotificationIntegration] = useState<
-    OrganizationIntegration | undefined
-  >(undefined);
-  const [alertNotificationChannel, setAlertNotificationChannel] = useState<
-    string | undefined
-  >(undefined);
 
-  const integrationAction = useMemo(() => {
-    const id = alertNotificationAction.find(
-      action => action !== IssueAlertActionType.NOTIFY_EMAIL
-    );
-    if (id === IssueAlertActionType.SLACK) {
-      return [
-        {
-          id: id,
-          workspace: alertNotificationIntegration?.id,
-          channel: alertNotificationChannel,
-        },
-      ];
-    }
-    if (id === IssueAlertActionType.DISCORD) {
-      return [
-        {
-          id: id,
-          server: alertNotificationIntegration?.id,
-          channel_id: alertNotificationChannel,
-        },
-      ];
-    }
-    if (id === IssueAlertActionType.MS_TEAMS) {
-      return [
-        {
-          id: id,
-          team: alertNotificationIntegration?.id,
-          channel: alertNotificationChannel,
-        },
-      ];
-    }
-    return undefined;
-  }, [alertNotificationAction, alertNotificationIntegration, alertNotificationChannel]);
+  const {
+    createNotificationAction,
+    actions: alertNotificationActions,
+    provider,
+    integration,
+    channel,
+    setActions: setAlertNotificationActions,
+    setProvider,
+    setIntegration,
+    setChannel,
+  } = useCreateNotificationAction();
 
   const frameworkSelectionEnabled = !!organization?.features.includes(
     'onboarding-sdk-selection'
@@ -185,28 +152,25 @@ function CreateProject() {
               },
             }
           );
-          ruleIds?.push(ruleData.id);
+          ruleIds.push(ruleData.id);
         }
         if (
           organization.features.includes(
             'messaging-integration-onboarding-project-creation'
-          ) &&
-          integrationAction
+          )
         ) {
-          const ruleData = await api.requestPromise(
-            `/projects/${organization.slug}/${projectData.slug}/rules/`,
-            {
-              method: 'POST',
-              data: {
-                name,
-                conditions,
-                actions: integrationAction,
-                actionMatch,
-                frequency,
-              },
-            }
-          );
-          ruleIds?.push(ruleData.id);
+          const ruleData = await createNotificationAction({
+            api,
+            name,
+            organizationSlug: organization.slug,
+            projectSlug: projectData.slug,
+            conditions,
+            actionMatch,
+            frequency,
+          });
+          if (ruleData) {
+            ruleIds.push(ruleData.id);
+          }
         }
         trackAnalytics('project_creation_page.created', {
           organization,
@@ -262,7 +226,15 @@ function CreateProject() {
         }
       }
     },
-    [api, alertRuleConfig, organization, platform, projectName, team, integrationAction]
+    [
+      api,
+      alertRuleConfig,
+      organization,
+      platform,
+      projectName,
+      team,
+      createNotificationAction,
+    ]
   );
 
   const handleProjectCreation = useCallback(async () => {
@@ -340,8 +312,9 @@ function CreateProject() {
   const isMissingAlertThreshold =
     shouldCreateCustomRule && !conditions?.every?.(condition => condition.value);
   const isMissingMessagingIntegrationChannel =
-    integrationAction?.some(action => action !== IssueAlertActionType.NOTIFY_EMAIL) &&
-    !alertNotificationChannel;
+    alertNotificationActions?.some(
+      action => action === MultipleCheckboxOptions.INTEGRATION
+    ) && !channel;
 
   const formErrorCount = [
     isMissingTeam,
@@ -422,24 +395,21 @@ function CreateProject() {
             noAutoFilter
           />
           <StyledListItem>{t('Set your alert frequency')}</StyledListItem>
-          <IssueAlertNotificationContext.Provider
-            value={{
-              alertNotificationAction,
-              alertNotificationChannel,
-              alertNotificationIntegration,
-              alertNotificationProvider,
-              setAlertNotificationAction,
-              setAlertNotificationChannel,
-              setAlertNotificationIntegration,
-              setAlertNotificationProvider,
+          <IssueAlertOptions
+            {...alertFrequencyDefaultValues}
+            platformLanguage={platform?.language as SupportedLanguages}
+            onChange={updatedData => setAlertRuleConfig(updatedData)}
+            notificationProps={{
+              actions: alertNotificationActions,
+              channel,
+              integration,
+              provider,
+              setActions: setAlertNotificationActions,
+              setChannel,
+              setIntegration,
+              setProvider,
             }}
-          >
-            <IssueAlertOptions
-              {...alertFrequencyDefaultValues}
-              platformLanguage={platform?.language as SupportedLanguages}
-              onChange={updatedData => setAlertRuleConfig(updatedData)}
-            />
-          </IssueAlertNotificationContext.Provider>
+          />
           <StyledListItem>{t('Name your project and assign it a team')}</StyledListItem>
           <CreateProjectForm
             onSubmit={(event: React.FormEvent<HTMLFormElement>) => {

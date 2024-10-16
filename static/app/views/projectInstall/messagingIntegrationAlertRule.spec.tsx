@@ -3,7 +3,6 @@ import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegr
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 import selectEvent from 'sentry-test/selectEvent';
 
-import {IssueAlertNotificationContext} from 'sentry/views/projectInstall/issueAlertNotificationContext';
 import MessagingIntegrationAlertRule from 'sentry/views/projectInstall/messagingIntegrationAlertRule';
 
 describe('MessagingIntegrationAlertRule', function () {
@@ -26,19 +25,19 @@ describe('MessagingIntegrationAlertRule', function () {
     }),
   ];
 
-  const mockSetAlertNotificationChannel = jest.fn();
-  const mockSetAlertNotificationIntegration = jest.fn();
-  const mockSetAlertNotificationProvider = jest.fn();
+  const mockSetChannel = jest.fn();
+  const mockSetIntegration = jest.fn();
+  const mockSetProvider = jest.fn();
 
-  const issueAlertNotificationContextValue = {
-    alertNotificationAction: [],
-    alertNotificationChannel: 'channel',
-    alertNotificationIntegration: slackIntegrations[0],
-    alertNotificationProvider: 'slack',
-    setAlertNotificationAction: jest.fn(),
-    setAlertNotificationChannel: mockSetAlertNotificationChannel,
-    setAlertNotificationIntegration: mockSetAlertNotificationIntegration,
-    setAlertNotificationProvider: mockSetAlertNotificationProvider,
+  const notificationProps = {
+    actions: [],
+    channel: 'channel',
+    integration: slackIntegrations[0],
+    provider: 'slack',
+    setActions: jest.fn(),
+    setChannel: mockSetChannel,
+    setIntegration: mockSetIntegration,
+    setProvider: mockSetProvider,
   };
 
   const providersToIntegrations = {
@@ -47,34 +46,33 @@ describe('MessagingIntegrationAlertRule', function () {
     msteams: msteamsIntegrations,
   };
 
-  const getComponent = props => (
-    <IssueAlertNotificationContext.Provider
-      value={{...issueAlertNotificationContextValue, ...props}}
-    >
-      <MessagingIntegrationAlertRule providersToIntegrations={providersToIntegrations} />
-    </IssueAlertNotificationContext.Provider>
+  const getComponent = () => (
+    <MessagingIntegrationAlertRule
+      notificationProps={notificationProps}
+      providersToIntegrations={providersToIntegrations}
+    />
   );
 
   it('renders', function () {
-    render(getComponent({}));
+    render(getComponent());
     expect(screen.getAllByRole('textbox')).toHaveLength(3);
   });
 
   it('calls setter when new integration is selected', async function () {
-    render(getComponent({}));
+    render(getComponent());
     await selectEvent.select(
       screen.getByText("Moo Deng's Workspace"),
       "Moo Waan's Workspace"
     );
-    expect(mockSetAlertNotificationIntegration).toHaveBeenCalled();
+    expect(mockSetIntegration).toHaveBeenCalled();
   });
 
   it('calls setters when new provider is selected', async function () {
-    render(getComponent({}));
+    render(getComponent());
     await selectEvent.select(screen.getByText('Slack'), 'Discord');
-    expect(mockSetAlertNotificationProvider).toHaveBeenCalled();
-    expect(mockSetAlertNotificationIntegration).toHaveBeenCalled();
-    expect(mockSetAlertNotificationChannel).toHaveBeenCalled();
+    expect(mockSetProvider).toHaveBeenCalled();
+    expect(mockSetIntegration).toHaveBeenCalled();
+    expect(mockSetChannel).toHaveBeenCalled();
   });
 
   // it('disables integration select when there is only one option', function () {

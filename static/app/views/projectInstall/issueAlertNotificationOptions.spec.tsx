@@ -5,7 +5,6 @@ import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegr
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import type {OrganizationIntegration} from 'sentry/types/integrations';
-import {IssueAlertNotificationContext} from 'sentry/views/projectInstall/issueAlertNotificationContext';
 import IssueAlertNotificationOptions from 'sentry/views/projectInstall/issueAlertNotificationOptions';
 
 describe('MessagingIntegrationAlertRule', function () {
@@ -14,24 +13,20 @@ describe('MessagingIntegrationAlertRule', function () {
   });
   let mockResponse: jest.Mock<any>;
   let integrations: OrganizationIntegration[] = [];
-  const mockSetAlertNotificationAction = jest.fn();
+  const mockSetAction = jest.fn();
 
-  const issueAlertNotificationContextValue = {
-    alertNotificationAction: [],
-    alertNotificationChannel: 'channel',
-    alertNotificationIntegration: undefined,
-    alertNotificationProvider: 'slack',
-    setAlertNotificationAction: mockSetAlertNotificationAction,
-    setAlertNotificationChannel: jest.fn(),
-    setAlertNotificationIntegration: jest.fn(),
-    setAlertNotificationProvider: jest.fn(),
+  const notificationProps = {
+    actions: [],
+    channel: 'channel',
+    integration: undefined,
+    provider: 'slack',
+    setActions: mockSetAction,
+    setChannel: jest.fn(),
+    setIntegration: jest.fn(),
+    setProvider: jest.fn(),
   };
 
-  const getComponent = () => (
-    <IssueAlertNotificationContext.Provider value={issueAlertNotificationContextValue}>
-      <IssueAlertNotificationOptions />
-    </IssueAlertNotificationContext.Provider>
-  );
+  const getComponent = () => <IssueAlertNotificationOptions {...notificationProps} />;
 
   beforeEach(function () {
     integrations = [
@@ -102,6 +97,6 @@ describe('MessagingIntegrationAlertRule', function () {
     await screen.findByText(/notify via email/i);
     await screen.findByText(/notify via integration/i);
     await userEvent.click(screen.getByText(/notify via integration/i));
-    expect(mockSetAlertNotificationAction).toHaveBeenCalled();
+    expect(mockSetAction).toHaveBeenCalled();
   });
 });

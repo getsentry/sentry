@@ -1,6 +1,7 @@
-import {useEffect, useMemo, useState} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import type {Client} from 'sentry/api';
 import MultipleCheckbox from 'sentry/components/forms/controls/multipleCheckbox';
 import {space} from 'sentry/styles/space';
 import {IssueAlertActionType} from 'sentry/types/alerts';
@@ -10,7 +11,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 import SetupMessagingIntegrationButton, {
   MessagingIntegrationAnalyticsView,
 } from 'sentry/views/alerts/rules/issue/setupMessagingIntegrationButton';
-import {useIssueAlertNotificationContext} from 'sentry/views/projectInstall/issueAlertNotificationContext';
 import MessagingIntegrationAlertRule from 'sentry/views/projectInstall/messagingIntegrationAlertRule';
 
 export const providerDetails = {
@@ -34,44 +34,138 @@ export const providerDetails = {
   },
 };
 
-enum MultipleCheckboxOptions {
+export const enum MultipleCheckboxOptions {
   EMAIL = 'email',
   INTEGRATION = 'integration',
 }
 
-export default function IssueAlertNotificationOptions() {
-  const organization = useOrganization();
-  const {
-    alertNotificationAction: action,
-    alertNotificationProvider: provider,
-    setAlertNotificationAction: setAction,
-    setAlertNotificationIntegration: setIntegration,
-    setAlertNotificationProvider: setProvider,
-  } = useIssueAlertNotificationContext();
-  const [selectedValues, setSelectedValues] = useState<MultipleCheckboxOptions[]>(
-    action.map(a =>
-      a === IssueAlertActionType.NOTIFY_EMAIL
-        ? MultipleCheckboxOptions.EMAIL
-        : MultipleCheckboxOptions.INTEGRATION
-    )
+export type IssueAlertNotificationProps = {
+  actions: MultipleCheckboxOptions[];
+  channel: string | undefined;
+  integration: OrganizationIntegration | undefined;
+  provider: string | undefined;
+  setActions: (action: MultipleCheckboxOptions[]) => void;
+  setChannel: (channel: string | undefined) => void;
+  setIntegration: (integration: OrganizationIntegration | undefined) => void;
+  setProvider: (provider: string | undefined) => void;
+};
+
+export function useCreateNotificationAction() {
+  const [actions, setActions] = useState<MultipleCheckboxOptions[]>([
+    MultipleCheckboxOptions.EMAIL,
+  ]);
+  const [provider, setProvider] = useState<string | undefined>(undefined);
+  const [integration, setIntegration] = useState<OrganizationIntegration | undefined>(
+    undefined
   );
+  const [channel, setChannel] = useState<string | undefined>(undefined);
+
+  const integrationAction = useMemo(() => {
+    const isCreatingIntegrationNotification = actions.find(
+      action => action === MultipleCheckboxOptions.INTEGRATION
+    );
+    if (!isCreatingIntegrationNotification) {
+      return undefined;
+    }
+    if (provider === 'slack') {
+      return [
+        {
+          id: IssueAlertActionType.SLACK,
+          workspace: integration?.id,
+          channel: channel,
+        },
+      ];
+    }
+    if (provider === 'discord') {
+      return [
+        {
+          id: IssueAlertActionType.DISCORD,
+          server: integration?.id,
+          channel_id: channel,
+        },
+      ];
+    }
+    if (provider === 'msteams') {
+      return [
+        {
+          id: IssueAlertActionType.MS_TEAMS,
+          team: integration?.id,
+          channel: channel,
+        },
+      ];
+    }
+    return undefined;
+  }, [actions, integration, channel, provider]);
+
+  type Props = {
+    actionMatch: string | undefined;
+    api: Client;
+    conditions: {id: string; interval: string; value: string}[] | undefined;
+    frequency: number | undefined;
+    name: string | undefined;
+    organizationSlug: string;
+    projectSlug: string;
+  };
+
+  const createNotificationAction = useCallback(
+    ({
+      api,
+      organizationSlug,
+      projectSlug,
+      name,
+      conditions,
+      actionMatch,
+      frequency,
+    }: Props) => {
+      if (!integrationAction) {
+        return null;
+      }
+      return api.requestPromise(`/projects/${organizationSlug}/${projectSlug}/rules/`, {
+        method: 'POST',
+        data: {
+          name,
+          conditions,
+          actions: integrationAction,
+          actionMatch,
+          frequency,
+        },
+      });
+    },
+    [integrationAction]
+  );
+
+  return {
+    createNotificationAction,
+    actions,
+    provider,
+    integration,
+    channel,
+    setActions,
+    setProvider,
+    setIntegration,
+    setChannel,
+  };
+}
+
+export default function IssueAlertNotificationOptions(
+  notificationProps: IssueAlertNotificationProps
+) {
+  const organization = useOrganization();
+  const {actions, provider, setActions, setIntegration, setProvider} = notificationProps;
 
   const messagingIntegrationsQuery = useApiQuery<OrganizationIntegration[]>(
     [`/organizations/${organization.slug}/integrations/?integrationType=messaging`],
     {staleTime: Infinity}
   );
 
-  const refetchConfigs = () => messagingIntegrationsQuery.refetch();
-
   const providersToIntegrations = useMemo(() => {
     const map: {[key: string]: OrganizationIntegration[]} = {};
-    if (!messagingIntegrationsQuery.data) {
-      return {};
-    }
-    for (const i of messagingIntegrationsQuery.data) {
-      const providerSlug = i.provider.slug;
-      map[providerSlug] = map[providerSlug] ?? [];
-      map[providerSlug].push(i);
+    if (messagingIntegrationsQuery.data) {
+      for (const i of messagingIntegrationsQuery.data) {
+        const providerSlug = i.provider.slug;
+        map[providerSlug] = map[providerSlug] ?? [];
+        map[providerSlug].push(i);
+      }
     }
     return map;
   }, [messagingIntegrationsQuery.data]);
@@ -92,19 +186,8 @@ export default function IssueAlertNotificationOptions() {
   }, [messagingIntegrationsQuery.data]);
 
   const shouldRenderNotificationConfigs = useMemo(() => {
-    return selectedValues.some(v => v !== MultipleCheckboxOptions.EMAIL);
-  }, [selectedValues]);
-
-  const onChange = values => {
-    setSelectedValues(values);
-    setAction(
-      values.map(v =>
-        v === MultipleCheckboxOptions.INTEGRATION && provider
-          ? providerDetails[provider].action
-          : IssueAlertActionType.NOTIFY_EMAIL
-      )
-    );
-  };
+    return actions.some(v => v !== MultipleCheckboxOptions.EMAIL);
+  }, [actions]);
 
   if (messagingIntegrationsQuery.isLoading || messagingIntegrationsQuery.isError) {
     return null;
@@ -112,7 +195,11 @@ export default function IssueAlertNotificationOptions() {
 
   return (
     <div>
-      <MultipleCheckbox name="notification" value={selectedValues} onChange={onChange}>
+      <MultipleCheckbox
+        name="notification"
+        value={actions}
+        onChange={values => setActions(values)}
+      >
         <Wrapper>
           <MultipleCheckbox.Item value={MultipleCheckboxOptions.EMAIL} disabled>
             Notify via email
@@ -124,6 +211,7 @@ export default function IssueAlertNotificationOptions() {
               </MultipleCheckbox.Item>
               {shouldRenderNotificationConfigs && (
                 <MessagingIntegrationAlertRule
+                  notificationProps={notificationProps}
                   providersToIntegrations={providersToIntegrations}
                 />
               )}
@@ -133,7 +221,7 @@ export default function IssueAlertNotificationOptions() {
       </MultipleCheckbox>
       {shouldRenderSetupButton && (
         <SetupMessagingIntegrationButton
-          refetchConfigs={refetchConfigs}
+          refetchConfigs={messagingIntegrationsQuery.refetch}
           analyticsParams={{
             view: MessagingIntegrationAnalyticsView.ALERT_RULE_CREATION,
           }}
