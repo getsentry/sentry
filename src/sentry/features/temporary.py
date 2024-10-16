@@ -83,8 +83,6 @@ def register_temporary_features(manager: FeatureManager):
     # Enable the continuous profiling compatible redesign
     manager.add("organizations:continuous-profiling-compat", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Disables legacy cron ingest endpoints
-    manager.add("organizations:crons-disable-ingest-endpoints", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
-    # Disables legacy cron ingest endpoints
     manager.add("organizations:crons-write-user-feedback", OrganizationFeature, FeatureHandlerStrategy.OPTIONS, api_expose=False)
     # Delightful Developer Metrics (DDM):
     # Enables experimental WIP custom metrics related features
@@ -354,7 +352,7 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:project-event-date-limit", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     manager.add("organizations:project-templates", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Enable the new quick start guide
-    manager.add("organizations:quick-start-updates", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    manager.add("organizations:quick-start-updates", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable the new Related Events feature
     manager.add("organizations:related-events", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Enable related issues feature
