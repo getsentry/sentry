@@ -165,11 +165,17 @@ class AlertRuleSerializer(CamelSnakeModelSerializer[AlertRule]):
             self.context["organization"],
             actor=self.context.get("user", None),
         )
+        allow_eap = features.has(
+            "organizations:alerts-eap",
+            self.context["organization"],
+            actor=self.context.get("user", None),
+        )
 
         try:
             if not check_aggregate_column_support(
                 aggregate,
                 allow_mri=allow_mri,
+                allow_eap=allow_eap,
             ):
                 raise serializers.ValidationError(
                     "Invalid Metric: We do not currently support this field."

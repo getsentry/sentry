@@ -135,12 +135,9 @@ def instrumented_task(name, stat_suffix=None, silo_mode=None, record_timing=Fals
 
         # If the split task router is configured for the task, always use queues defined
         # in the split task configuration
-        if name in settings.CELERY_SPLIT_QUEUE_TASK_ROUTES:
+        if name in settings.CELERY_SPLIT_QUEUE_TASK_ROUTES and "queue" in kwargs:
             q = kwargs.pop("queue")
-            if q:
-                logger.warning(
-                    "ignoring queue: %s, using value from CELERY_SPLIT_QUEUE_TASK_ROUTES", q
-                )
+            logger.warning("ignoring queue: %s, using value from CELERY_SPLIT_QUEUE_TASK_ROUTES", q)
 
         # We never use result backends in Celery. Leaving `trail=True` means that if we schedule
         # many tasks from a parent task, each task leaks memory. This can lead to the scheduler
