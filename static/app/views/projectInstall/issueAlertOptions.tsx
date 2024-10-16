@@ -13,6 +13,7 @@ import type {IssueAlertRuleAction} from 'sentry/types/alerts';
 import {IssueAlertActionType, IssueAlertConditionType} from 'sentry/types/alerts';
 import type {Organization} from 'sentry/types/organization';
 import withOrganization from 'sentry/utils/withOrganization';
+import IssueAlertNotificationOptions from 'sentry/views/projectInstall/issueAlertNotificationOptions';
 
 export enum MetricValues {
   ERRORS = 0,
@@ -303,6 +304,12 @@ class IssueAlertOptions extends DeprecatedAsyncComponent<Props, State> {
           onChange={alertSetting => this.setStateAndUpdateParents({alertSetting})}
           value={this.state.alertSetting}
         />
+        {!this.props.organization.features.includes(
+          'messaging-integration-onboarding-project-creation'
+        ) &&
+          parseInt(this.state.alertSetting, 10) !== RuleAction.CREATE_ALERT_LATER && (
+            <IssueAlertNotificationOptions />
+          )}
       </Content>
     );
   }
@@ -313,6 +320,9 @@ export default withOrganization(IssueAlertOptions);
 const Content = styled('div')`
   padding-top: ${space(2)};
   padding-bottom: ${space(4)};
+  display: flex;
+  flex-direction: column;
+  gap: ${space(2)};
 `;
 
 const CustomizeAlert = styled('div')`

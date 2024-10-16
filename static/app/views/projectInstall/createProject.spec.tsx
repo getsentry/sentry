@@ -1,4 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
 import {MOCK_RESP_VERBOSE} from 'sentry-fixture/ruleConditions';
 import {TeamFixture} from 'sentry-fixture/team';
 
@@ -45,6 +46,15 @@ function renderFrameworkModalMockRequests({
   MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/projects/`,
     body: [],
+  });
+
+  MockApiClient.addMockResponse({
+    url: `/organizations/${organization.slug}/integrations/?integrationType=messaging`,
+    body: [
+      OrganizationIntegrationsFixture({
+        name: "Moo Deng's Workspace",
+      }),
+    ],
   });
 
   const projectCreationMockRequest = MockApiClient.addMockResponse({
@@ -374,6 +384,15 @@ describe('CreateProject', function () {
       MockApiClient.addMockResponse({
         url: `/projects/${organization.slug}/rule-conditions/`,
         body: MOCK_RESP_VERBOSE,
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/integrations/?integrationType=messaging`,
+        body: [
+          OrganizationIntegrationsFixture({
+            name: "Moo Deng's Workspace",
+          }),
+        ],
       });
     });
 

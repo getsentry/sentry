@@ -1,3 +1,5 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
 import {
   MOCK_RESP_INCONSISTENT_INTERVALS,
   MOCK_RESP_INCONSISTENT_PLACEHOLDERS,
@@ -5,22 +7,54 @@ import {
   MOCK_RESP_VERBOSE,
 } from 'sentry-fixture/ruleConditions';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import selectEvent from 'sentry-test/selectEvent';
 
+import {IssueAlertNotificationContext} from 'sentry/views/projectInstall/issueAlertNotificationContext';
 import IssueAlertOptions from 'sentry/views/projectInstall/issueAlertOptions';
 
 describe('IssueAlertOptions', function () {
-  const {organization} = initializeOrg();
+  const organization = OrganizationFixture({
+    features: ['messaging-integration-onboarding-project-creation'],
+  });
   const URL = `/projects/${organization.slug}/rule-conditions/`;
   const props = {
     onChange: jest.fn(),
   };
+
+  const issueAlertNotificationContextValue = {
+    alertNotificationAction: [],
+    alertNotificationChannel: 'channel',
+    alertNotificationIntegration: OrganizationIntegrationsFixture({
+      name: "Moo Deng's Workspace",
+      status: 'disabled',
+    }),
+    alertNotificationProvider: 'slack',
+    setAlertNotificationAction: jest.fn(),
+    setAlertNotificationChannel: jest.fn(),
+    setAlertNotificationIntegration: jest.fn(),
+    setAlertNotificationProvider: jest.fn(),
+  };
+
+  const getComponent = () => (
+    <IssueAlertNotificationContext.Provider value={issueAlertNotificationContextValue}>
+      <IssueAlertOptions {...props} />
+    </IssueAlertNotificationContext.Provider>
+  );
+
   beforeEach(() => {
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/rule-conditions/`,
       body: MOCK_RESP_VERBOSE,
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/?integrationType=messaging`,
+      body: [
+        OrganizationIntegrationsFixture({
+          name: "Moo Deng's Workspace",
+        }),
+      ],
     });
   });
   afterEach(() => {
@@ -34,7 +68,7 @@ describe('IssueAlertOptions', function () {
       body: [],
     });
 
-    render(<IssueAlertOptions {...props} />, {organization});
+    render(getComponent(), {organization});
     expect(screen.getAllByRole('radio')).toHaveLength(2);
   });
 
@@ -44,7 +78,7 @@ describe('IssueAlertOptions', function () {
       body: {},
     });
 
-    render(<IssueAlertOptions {...props} />, {organization});
+    render(getComponent(), {organization});
     expect(screen.getAllByRole('radio')).toHaveLength(2);
   });
 
@@ -54,7 +88,7 @@ describe('IssueAlertOptions', function () {
       body: MOCK_RESP_INCONSISTENT_INTERVALS,
     });
 
-    render(<IssueAlertOptions {...props} />, {organization});
+    render(getComponent(), {organization});
     expect(screen.getAllByRole('radio')).toHaveLength(2);
   });
 
@@ -63,7 +97,7 @@ describe('IssueAlertOptions', function () {
       url: URL,
       body: MOCK_RESP_INCONSISTENT_PLACEHOLDERS,
     });
-    render(<IssueAlertOptions {...props} />, {organization});
+    render(getComponent(), {organization});
     expect(screen.getAllByRole('radio')).toHaveLength(3);
   });
 
@@ -73,7 +107,7 @@ describe('IssueAlertOptions', function () {
       body: MOCK_RESP_ONLY_IGNORED_CONDITIONS_INVALID,
     });
 
-    render(<IssueAlertOptions {...props} />, {organization});
+    render(getComponent(), {organization});
     expect(screen.getAllByRole('radio')).toHaveLength(3);
     await selectEvent.select(screen.getByText('Select...'), 'users affected by');
     expect(props.onChange).toHaveBeenCalledWith(
@@ -90,7 +124,7 @@ describe('IssueAlertOptions', function () {
       body: MOCK_RESP_VERBOSE,
     });
 
-    render(<IssueAlertOptions {...props} />);
+    render(getComponent());
     expect(screen.getAllByRole('radio')).toHaveLength(3);
   });
 
@@ -100,7 +134,7 @@ describe('IssueAlertOptions', function () {
       body: MOCK_RESP_VERBOSE,
     });
 
-    render(<IssueAlertOptions {...props} />);
+    render(getComponent());
     await selectEvent.select(screen.getByText('occurrences of'), 'users affected by');
     await selectEvent.select(screen.getByText('one minute'), '30 days');
     expect(props.onChange).toHaveBeenCalledWith(
@@ -117,7 +151,7 @@ describe('IssueAlertOptions', function () {
       body: MOCK_RESP_VERBOSE,
     });
 
-    render(<IssueAlertOptions {...props} />);
+    render(getComponent());
     expect(screen.getByTestId('range-input')).toHaveValue(10);
   });
 
@@ -127,7 +161,7 @@ describe('IssueAlertOptions', function () {
       body: MOCK_RESP_VERBOSE,
     });
 
-    render(<IssueAlertOptions {...props} organization={organization} />);
+    render(getComponent());
     await userEvent.click(screen.getByLabelText(/When there are more than/i));
     expect(props.onChange).toHaveBeenCalledWith(
       expect.objectContaining({

@@ -1,0 +1,120 @@
+import {useEffect, useMemo} from 'react';
+import styled from '@emotion/styled';
+
+import SelectControl from 'sentry/components/forms/controls/selectControl';
+import Input from 'sentry/components/input';
+import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
+import type {OrganizationIntegration} from 'sentry/types/integrations';
+import {useIssueAlertNotificationContext} from 'sentry/views/projectInstall/issueAlertNotificationContext';
+import {providerDetails} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
+
+type Props = {
+  providersToIntegrations: Record<string, OrganizationIntegration[]>;
+};
+
+export default function MessagingIntegrationAlertRule({providersToIntegrations}: Props) {
+  const {
+    alertNotificationChannel: channel,
+    alertNotificationIntegration: integration,
+    alertNotificationProvider: provider,
+    setAlertNotificationChannel: setChannel,
+    setAlertNotificationIntegration: setIntegration,
+    setAlertNotificationProvider: setProvider,
+  } = useIssueAlertNotificationContext();
+
+  const providerOptions = useMemo(
+    () =>
+      Object.keys(providersToIntegrations).map(p => ({
+        value: p,
+        label: providerDetails[p].name,
+      })),
+    [providersToIntegrations]
+  );
+  const integrationOptions = useMemo(
+    () =>
+      provider && providersToIntegrations[provider]
+        ? providersToIntegrations[provider]?.map(i => ({
+            value: i,
+            label: i.name,
+          }))
+        : [],
+    [providersToIntegrations, provider]
+  );
+
+  useEffect(() => {
+    const providerKeys = Object.keys(providersToIntegrations);
+    if (providerKeys.length > 0) {
+      const firstProvider = providerKeys[0];
+      setProvider(firstProvider);
+
+      const firstIntegration = providersToIntegrations[firstProvider][0];
+      setIntegration(firstIntegration);
+    }
+  }, [providersToIntegrations, setProvider, setIntegration]);
+
+  if (!provider) {
+    return null;
+  }
+
+  return (
+    <div>
+      <RuleWrapper>
+        <Rule>
+          {t('Send')}
+          <InlineSelectControl
+            label="provider"
+            disabled={Object.keys(providersToIntegrations).length === 1}
+            value={provider}
+            options={providerOptions}
+            onChange={p => {
+              setProvider(p.value);
+              setIntegration(providersToIntegrations[p.value][0]);
+              setChannel('');
+            }}
+          />
+          {t('notification to the')}
+          <InlineSelectControl
+            label="integration"
+            role="select"
+            disabled={integrationOptions.length === 1}
+            value={integration}
+            options={integrationOptions}
+            onChange={i => setIntegration(i.value)}
+          />
+          {providerDetails[provider]?.label}
+          <InlineInput
+            // label="channel"
+            type="text"
+            value={channel || ''}
+            placeholder={providerDetails[provider]?.placeholder}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+              setChannel(e.target.value)
+            }
+          />
+        </Rule>
+      </RuleWrapper>
+    </div>
+  );
+}
+
+const RuleWrapper = styled('div')`
+  padding: ${space(1)};
+  background-color: ${p => p.theme.backgroundSecondary};
+  border-radius: ${p => p.theme.borderRadius};
+`;
+
+const Rule = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
+`;
+
+const InlineSelectControl = styled(SelectControl)`
+  width: 180px;
+`;
+
+const InlineInput = styled(Input)`
+  width: auto;
+  min-height: 28px;
+`;
