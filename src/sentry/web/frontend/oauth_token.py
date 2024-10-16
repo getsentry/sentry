@@ -9,10 +9,10 @@ from django.views.generic.base import View
 from rest_framework.request import Request
 
 from sentry import options
+from sentry.mediators.token_exchange.util import GrantTypes
 from sentry.models.apiapplication import ApiApplication, ApiApplicationStatus
 from sentry.models.apigrant import ApiGrant
 from sentry.models.apitoken import ApiToken
-from sentry.sentry_apps.token_exchange.util import GrantTypes
 from sentry.utils import json, metrics
 from sentry.web.frontend.base import control_silo_view
 from sentry.web.frontend.openidtoken import OpenIDToken
@@ -157,11 +157,9 @@ class OAuthTokenView(View):
         token_information = {
             "access_token": token.token,
             "refresh_token": token.refresh_token,
-            "expires_in": (
-                int((token.expires_at - timezone.now()).total_seconds())
-                if token.expires_at
-                else None
-            ),
+            "expires_in": int((token.expires_at - timezone.now()).total_seconds())
+            if token.expires_at
+            else None,
             "expires_at": token.expires_at,
             "token_type": "bearer",
             "scope": " ".join(token.get_scopes()),
