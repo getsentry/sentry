@@ -3,6 +3,7 @@ from __future__ import annotations
 import importlib.metadata
 import logging
 import os
+import sys
 from typing import IO, Any
 
 import click
@@ -259,7 +260,10 @@ def configure_structlog() -> None:
 
         kwargs["processors"].append(JSONRenderer())
 
-    structlog.configure(**kwargs)
+    structlog.configure(
+        logger_factory=structlog.PrintLoggerFactory(sys.stderr),
+        **kwargs,
+    )
 
     lvl = os.environ.get("SENTRY_LOG_LEVEL")
 
