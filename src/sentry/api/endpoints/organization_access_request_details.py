@@ -103,13 +103,12 @@ class OrganizationAccessRequestDetailsEndpoint(OrganizationEndpoint):
         teams_by_user = OrganizationMember.objects.get_teams_by_user(organization=organization)
 
         # We omit any requests which are now redundant (i.e. the user joined that team some other way)
-        valid_access_requests: list[OrganizationAccessRequest] = []
-        for access_request in access_requests:
-            if access_request.member.user_id is None:
-                continue
-            if access_request.team_id in teams_by_user[access_request.member.user_id]:
-                continue
-            valid_access_requests.append(access_request)
+        valid_access_requests = [
+            access_request
+            for access_request in access_requests
+            if access_request.member.user_id is not None
+            and access_request.team_id not in teams_by_user[access_request.member.user_id]
+        ]
 
         return Response(serialize(valid_access_requests, request.user))
 
