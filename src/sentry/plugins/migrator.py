@@ -1,5 +1,6 @@
 import logging
 from dataclasses import dataclass
+from itertools import chain
 from typing import Any
 
 from django.utils.functional import cached_property
@@ -22,16 +23,20 @@ class Migrator:
     organization: RpcOrganization
 
     def run(self) -> None:
-        for project in self.projects:
-            for plugin in plugins.for_project(project):
-                if plugin.slug != self.integration.provider:
-                    continue
 
-                if self.all_repos_migrated(plugin.slug):
-                    # Since repos are Org-level, if they're all migrated, we
-                    # can disable the Plugin for all Projects. There'd be no
-                    # Repos left, associated with the Plugin.
-                    self.disable_for_all_projects(plugin)
+        plugins_list = set(
+            chain.from_iterable(plugins.for_project(project) for project in self.projects)
+        )
+
+        for plugin in plugins_list:
+            if plugin.slug != self.integration.provider:
+                continue
+
+            if self.all_repos_migrated(plugin.slug):
+                # Since repos are Org-level, if they're all migrated, we
+                # can disable the Plugin for all Projects. There'd be no
+                # Repos left, associated with the Plugin.
+                self.disable_for_all_projects(plugin)
 
     def all_repos_migrated(self, provider: str) -> bool:
         return all(r.integration_id is not None for r in self.repos_for_provider(provider))
