@@ -171,21 +171,6 @@ function Task({task, completed, hidePanel}: TaskProps) {
     );
   }
 
-  // if (status === 'waiting') {
-  //   return (
-  //     <TaskWrapper onClick={handleClick}>
-  //       <InteractionStateLayer />
-  //       <div>
-  //         <strong>{task.title}</strong>
-  //         <p>{task.description}</p>
-  //       </div>
-  //       <Tooltip title={t('Waiting for event')}>
-  //         <PulsingIndicator />
-  //       </Tooltip>
-  //     </TaskWrapper>
-  //   );
-  // }
-
   return (
     <TaskWrapper onClick={handleClick}>
       <InteractionStateLayer />
