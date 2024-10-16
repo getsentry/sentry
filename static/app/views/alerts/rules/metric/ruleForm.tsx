@@ -1099,7 +1099,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     };
 
     try {
-      const [anomalies] = await this.api.requestPromise(
+      const anomalies = await this.api.requestPromise(
         `/organizations/${organization.slug}/events/anomalies/`,
         {method: 'POST', data: params}
       );
