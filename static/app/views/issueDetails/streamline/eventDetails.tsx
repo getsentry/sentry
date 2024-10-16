@@ -123,7 +123,8 @@ export function EventDetails({
       {/* TODO(issues): We should use the router for this */}
       {currentTab === Tab.EVENTS && (
         <PageErrorBoundary mini message={t('There was an error loading the event list')}>
-          <GroupContent>
+          {/* Overflow added only to this instance to scroll table. Acts weird with sticky nav. */}
+          <GroupContent style={{overflowX: 'auto'}}>
             <EventList group={group} project={project} />
           </GroupContent>
         </PageErrorBoundary>

@@ -240,6 +240,7 @@ const StyledLayoutBody = styled(Layout.Body)<{
   ${p =>
     p.hasStreamlinedUi &&
     css`
+      min-height: 100vh;
       @media (min-width: ${p.theme.breakpoints.large}) {
         gap: ${space(1.5)};
         display: ${p.sidebarOpen ? 'grid' : 'block'};
