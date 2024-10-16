@@ -1,16 +1,35 @@
+from abc import ABC, abstractmethod
+
 from sentry.models.notificationaction import ActionService
 
 
-class OnCallSpec:
-    provider: str
-
-    def __init__(self, provider):
-        self.provider = provider
+class OnCallSpec(ABC):
+    @property
+    @abstractmethod
+    def provider_slug(self):
+        raise NotImplementedError
 
     @property
-    def provider_slug(self) -> str:
-        return self.provider
+    @abstractmethod
+    def action_service(self):
+        raise NotImplementedError
+
+
+class OpsgenieOnCallSpec(OnCallSpec):
+    @property
+    def provider_slug(self):
+        return "opsgenie"
 
     @property
-    def action_service(self) -> ActionService:
-        return ActionService.PAGERDUTY if self.provider == "pagerduty" else ActionService.OPSGENIE
+    def action_service(self):
+        return ActionService.OPSGENIE
+
+
+class PagerDutyOnCallSpec(OnCallSpec):
+    @property
+    def provider_slug(self):
+        return "pagerduty"
+
+    @property
+    def action_service(self):
+        return ActionService.PAGERDUTY
