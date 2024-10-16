@@ -16,7 +16,7 @@
     {% script %}
     <script>
       (function() {
-        const delay = '{{ delay|escapejs }}';
+        const delay = {{ delay|escapejs }};
         const cookie = '{{ cookie|escapejs }}';
 
         document.getElementById('close-popup').addEventListener('click', () => {
@@ -24,6 +24,10 @@
         });
 
         if (window.opener) {
+          const origin = window.location.origin.endsWith('.sentry.io')
+            ? 'https://sentry.io'
+            : window.location.origin;
+
           window.opener.postMessage({
             source: 'sentry-toolbar',
             message: 'did-login',
