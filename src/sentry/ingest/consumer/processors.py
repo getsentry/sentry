@@ -210,7 +210,6 @@ def process_event(
             # Records rc-processing usage broken down by
             # event type.
 
-            # todo: rewrite this after rc-processing split
             event_type = data.get("type")
             if event_type == "error":
                 app_feature = "errors"
