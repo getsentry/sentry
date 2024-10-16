@@ -6,7 +6,7 @@ import {HeaderTitle} from 'sentry/components/charts/styles';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconEllipsis, IconWarning} from 'sentry/icons';
+import {IconEllipsis, IconExpand, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
@@ -21,6 +21,7 @@ export interface Props extends StateProps {
   badge?: BadgeProps;
   children?: React.ReactNode;
   description?: string;
+  onFullScreenViewClick?: () => void;
   title?: string;
   warnings?: string[];
 }
@@ -59,7 +60,9 @@ export function WidgetFrame(props: Props) {
 
         {props.badge && <RigidBadge {...props.badge} />}
 
-        {(props.description || (actions && actions.length > 0)) && (
+        {(props.description ||
+          props.onFullScreenViewClick ||
+          (actions && actions.length > 0)) && (
           <TitleActions>
             {props.description && (
               <QuestionTooltip title={props.description} size="sm" icon="info" />
@@ -90,6 +93,18 @@ export function WidgetFrame(props: Props) {
                 position="bottom-end"
               />
             ) : null}
+
+            {props.onFullScreenViewClick && (
+              <Button
+                aria-label={t('Open Full-Screen View')}
+                borderless
+                size="xs"
+                icon={<IconExpand />}
+                onClick={() => {
+                  props.onFullScreenViewClick?.();
+                }}
+              />
+            )}
           </TitleActions>
         )}
       </Header>

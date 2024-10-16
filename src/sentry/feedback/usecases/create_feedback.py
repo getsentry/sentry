@@ -232,7 +232,7 @@ def create_feedback_issue(event, project_id: int, source: FeedbackCreationSource
             is_message_spam = is_spam(event["contexts"]["feedback"]["message"])
         except Exception:
             # until we have LLM error types ironed out, just catch all exceptions
-            logger.exception("Error checking if message is spam")
+            logger.exception("Error checking if message is spam", extra={"project_id": project_id})
         metrics.incr(
             "feedback.create_feedback_issue.spam_detection",
             tags={

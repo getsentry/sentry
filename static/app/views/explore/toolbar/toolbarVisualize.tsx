@@ -8,17 +8,14 @@ import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import type {ParsedFunction} from 'sentry/utils/discover/fields';
 import {parseFunction} from 'sentry/utils/discover/fields';
-import {
-  ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
-  ALLOWED_EXPLORE_VISUALIZE_FIELDS,
-} from 'sentry/utils/fields';
+import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
+import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import type {Visualize} from 'sentry/views/explore/hooks/useVisualizes';
 import {
   DEFAULT_VISUALIZATION,
   useVisualizes,
 } from 'sentry/views/explore/hooks/useVisualizes';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
-import type {SpanIndexedField} from 'sentry/views/insights/types';
 
 import {
   ToolbarFooter,
@@ -35,29 +32,47 @@ interface ToolbarVisualizeProps {}
 export function ToolbarVisualize({}: ToolbarVisualizeProps) {
   const [visualizes, setVisualizes] = useVisualizes();
 
+  const numberTags = useSpanTags('number');
+
   const parsedVisualizeGroups: ParsedFunction[][] = useMemo(() => {
     return visualizes.map(visualize =>
       visualize.yAxes.map(parseFunction).filter(defined)
     );
   }, [visualizes]);
 
-  const fieldOptions: SelectOption<SpanIndexedField>[] =
-    ALLOWED_EXPLORE_VISUALIZE_FIELDS.map(field => {
+  const fieldOptions: SelectOption<string>[] = useMemo(() => {
+    const options = Object.values(numberTags).map(tag => {
       return {
-        label: field,
-        value: field,
-        textValue: field,
+        label: tag.name,
+        value: tag.key,
+        textValue: tag.name,
       };
     });
 
-  const aggregateOptions: SelectOption<string>[] =
-    ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.map(aggregate => {
+    options.sort((a, b) => {
+      if (a.label < b.label) {
+        return -1;
+      }
+
+      if (a.label > b.label) {
+        return 1;
+      }
+
+      return 0;
+    });
+
+    return options;
+  }, [numberTags]);
+
+  const aggregateOptions: SelectOption<string>[] = useMemo(() => {
+    return ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.map(aggregate => {
       return {
         label: aggregate,
         value: aggregate,
         textValue: aggregate,
       };
     });
+  }, []);
 
   const addChart = useCallback(() => {
     setVisualizes([
@@ -138,6 +153,7 @@ export function ToolbarVisualize({}: ToolbarVisualizeProps) {
               {parsedVisualizeGroup.map((parsedVisualize, index) => (
                 <ToolbarRow key={index}>
                   <CompactSelect
+                    searchable
                     options={fieldOptions}
                     value={parsedVisualize.arguments[0]}
                     onChange={newField => setChartField(group, index, newField)}

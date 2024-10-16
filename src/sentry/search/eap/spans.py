@@ -1,6 +1,7 @@
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import datetime
+from re import Match
 from typing import cast
 
 from parsimonious.exceptions import ParseError
@@ -21,8 +22,15 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
 from sentry.api import event_search
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap import constants
-from sentry.search.eap.columns import SPAN_COLUMN_DEFINITIONS, ResolvedColumn
+from sentry.search.eap.columns import (
+    SPAN_COLUMN_DEFINITIONS,
+    SPAN_FUNCTION_DEFINITIONS,
+    VIRTUAL_CONTEXTS,
+    ResolvedColumn,
+)
 from sentry.search.eap.types import SearchResolverConfig
+from sentry.search.events import constants as qb_constants
+from sentry.search.events import fields
 from sentry.search.events import filter as event_filter
 from sentry.search.events.types import SnubaParams
 
@@ -218,39 +226,150 @@ class SearchResolver:
     def resolve_column(self, column: str) -> tuple[ResolvedColumn, VirtualColumnContext | None]:
         """Column is either an attribute or an aggregate, this function will determine which it is and call the relevant
         resolve function"""
-        # Temporary, this is just to make testing resolve_query easier
-        return SPAN_COLUMN_DEFINITIONS[column], None
-        # Check if column is an aggregate if so
-        # self.resolve_aggregate(column)
-        # else
-        # self.resolve_attribute(column)
+        match = fields.is_function(column)
+        if match:
+            return self.resolve_aggregate(column, match)
+        else:
+            return self.resolve_attribute(column)
 
-        # Cache the column
+        # TODO: Cache the column
         # self.resolved_coluumn[alias] = ResolvedColumn()
         # return ResolvedColumn()
-        raise NotImplementedError()
 
     def get_field_type(self, column: str) -> str:
         resolved_column, _ = self.resolve_column(column)
         return resolved_column.search_type
 
     def resolve_attributes(
-        self, column: list[str]
-    ) -> tuple[list[ResolvedColumn], list[VirtualColumnContext]]:
+        self, columns: list[str]
+    ) -> tuple[list[ResolvedColumn], list[VirtualColumnContext | None]]:
         """Helper function to resolve a list of attributes instead of 1 attribute at a time"""
-        raise NotImplementedError()
+        resolved_columns = []
+        resolved_contexts = []
+        for column in columns:
+            col, context = self.resolve_attribute(column)
+            resolved_columns.append(col)
+            resolved_contexts.append(context)
+        return resolved_columns, resolved_contexts
 
-    def resolve_attribute(self, column: str) -> tuple[ResolvedColumn, VirtualColumnContext]:
+    def resolve_attribute(self, column: str) -> tuple[ResolvedColumn, VirtualColumnContext | None]:
         """Attributes are columns that aren't 'functions' or 'aggregates', usually this means string or numeric
         attributes (aka. tags), but can also refer to fields like span.description"""
-        raise NotImplementedError()
+        if column in SPAN_COLUMN_DEFINITIONS:
+            column_definition = SPAN_COLUMN_DEFINITIONS[column]
+        else:
+            # If the column isn't predefined handle it as a tag
+            tag_match = qb_constants.TYPED_TAG_KEY_RE.search(column)
+            if tag_match is None:
+                tag_match = qb_constants.TAG_KEY_RE.search(column)
+                field_type = "string"
+            else:
+                field_type = None
+            field = tag_match.group("tag") if tag_match else None
+            if field is None:
+                raise InvalidSearchQuery(f"Could not parse {column}")
+            # Assume string if a type isn't passed. eg. tags[foo]
+            if field_type is None:
+                field_type = tag_match.group("type") if tag_match else None
+
+            if field_type not in constants.TYPE_MAP:
+                raise InvalidSearchQuery(f"Unsupported type {field_type} in {column}")
+            internal_name = f"attr_str[{field}]" if field_type == "string" else f"attr_num[{field}]"
+            return (
+                ResolvedColumn(
+                    public_alias=column, internal_name=internal_name, search_type=field_type
+                ),
+                None,
+            )
+
+        if column in VIRTUAL_CONTEXTS:
+            column_context = VIRTUAL_CONTEXTS[column](self.params)
+        else:
+            column_context = None
+
+        if column_definition:
+            return column_definition, column_context
+        else:
+            raise InvalidSearchQuery(f"Could not parse {column}")
 
     def resolve_aggregates(
-        self, column: list[str]
-    ) -> tuple[list[ResolvedColumn], list[VirtualColumnContext]]:
+        self, columns: list[str]
+    ) -> tuple[list[ResolvedColumn], list[VirtualColumnContext | None]]:
         """Helper function to resolve a list of aggregates instead of 1 attribute at a time"""
-        raise NotImplementedError()
+        resolved_aggregates, resolved_contexts = [], []
+        for column in columns:
+            aggregate, context = self.resolve_aggregate(column)
+            resolved_aggregates.append(aggregate)
+            resolved_contexts.append(context)
+        return resolved_aggregates, resolved_contexts
 
-    def resolve_aggregate(self, column: str) -> tuple[ResolvedColumn, VirtualColumnContext]:
-        raise NotImplementedError()
-        # Throw error if column is not an aggregate
+    def resolve_aggregate(
+        self, column: str, match: Match | None = None
+    ) -> tuple[ResolvedColumn, VirtualColumnContext | None]:
+        # Check if this is a valid function, parse the function name and args out
+        if match is None:
+            match = fields.is_function(column)
+            if match is None:
+                raise InvalidSearchQuery(f"{column} is not an aggregate")
+
+        function = match.group("function")
+        columns = match.group("columns")
+        # Alias defaults to the name of the function
+        alias = match.group("alias") or column
+
+        # Get the function definition
+        if function not in SPAN_FUNCTION_DEFINITIONS:
+            raise InvalidSearchQuery(f"Unknown function {function}")
+        function_definition = SPAN_FUNCTION_DEFINITIONS[function]
+
+        parsed_columns = []
+
+        # Parse the arguments
+        attribute_args = fields.parse_arguments(function, columns)
+        if len(attribute_args) < len(function_definition.required_arguments):
+            raise InvalidSearchQuery(
+                f"Invalid number of arguments for {function}, was expecting {len(function_definition.required_arguments)} arguments"
+            )
+
+        for index, argument in enumerate(function_definition.arguments):
+            if argument.ignored:
+                continue
+            if index < len(attribute_args):
+                parsed_argument, _ = self.resolve_attribute(attribute_args[index])
+            elif argument.default_arg:
+                parsed_argument, _ = self.resolve_attribute(argument.default_arg)
+            else:
+                raise InvalidSearchQuery(
+                    f"Invalid number of arguments for {function}, was expecting {len(function_definition.required_arguments)} arguments"
+                )
+
+            if (
+                argument.argument_type is not None
+                and parsed_argument.search_type != argument.argument_type
+            ):
+                raise InvalidSearchQuery(
+                    f"{argument} is invalid for {function}, its a {parsed_argument.search_type} type field but {function} expects a {argument.argument_type} type field"
+                )
+            parsed_columns.append(parsed_argument)
+
+        # Proto doesn't support anything more than 1 argument yet
+        if len(parsed_columns) > 1:
+            raise InvalidSearchQuery("Cannot use more than one argument")
+        elif len(parsed_columns) == 1:
+            resolved_argument = (
+                parsed_columns[0].proto_definition
+                if isinstance(parsed_columns[0].proto_definition, AttributeKey)
+                else None
+            )
+        else:
+            resolved_argument = None
+
+        return (
+            ResolvedColumn(
+                public_alias=alias,
+                internal_name=function_definition.internal_function,
+                search_type=function_definition.search_type,
+                argument=resolved_argument,
+            ),
+            None,
+        )

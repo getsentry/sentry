@@ -1,16 +1,18 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import ErrorLevel from 'sentry/components/events/errorLevel';
-import {ErrorLevelText} from 'sentry/components/events/errorLevelText';
 import UnhandledTag from 'sentry/components/group/inboxBadges/unhandledTag';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {EventOrGroupType, type Level} from 'sentry/types/event';
+import {type Event, EventOrGroupType, type Level} from 'sentry/types/event';
+import type {BaseGroup, GroupTombstoneHelper} from 'sentry/types/group';
+import {getTitle} from 'sentry/utils/events';
+import useOrganization from 'sentry/utils/useOrganization';
 import {Divider} from 'sentry/views/issueDetails/divider';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 type Props = {
+  data: Event | BaseGroup | GroupTombstoneHelper;
   message: React.ReactNode;
   type: EventOrGroupType;
   className?: string;
@@ -18,7 +20,7 @@ type Props = {
   /**
    * Size of the level indicator.
    */
-  levelIndicatorSize?: '9px' | '11px';
+  levelIndicatorSize?: '9px' | '10px' | '11px';
   showUnhandled?: boolean;
 };
 
@@ -33,6 +35,7 @@ const EVENT_TYPES_WITH_LOG_LEVEL = new Set([
 ]);
 
 function EventMessage({
+  data,
   className,
   level,
   levelIndicatorSize,
@@ -40,24 +43,29 @@ function EventMessage({
   type,
   showUnhandled = false,
 }: Props) {
+  const organization = useOrganization({allowNull: true});
   const hasStreamlinedUI = useHasStreamlinedUI();
+
+  // TODO(malwilley): When the new layout is GA'd, this component should be renamed
+  const hasNewIssueStreamTableLayout = organization?.features.includes(
+    'issue-stream-table-layout'
+  );
+
   const showEventLevel = level && EVENT_TYPES_WITH_LOG_LEVEL.has(type);
+  const {subtitle} = getTitle(data);
+  const renderedMessage = message ? (
+    <Message>{message}</Message>
+  ) : (
+    <NoMessage>({t('No error message')})</NoMessage>
+  );
+
   return (
     <LevelMessageContainer className={className}>
-      {!hasStreamlinedUI ? <ErrorLevel level={level} size={levelIndicatorSize} /> : null}
+      {showEventLevel && <ErrorLevel level={level} size={levelIndicatorSize} />}
+      {hasStreamlinedUI && showEventLevel ? <Divider /> : null}
       {showUnhandled ? <UnhandledTag /> : null}
-      {hasStreamlinedUI && showEventLevel ? (
-        <Fragment>
-          {showUnhandled ? <Divider /> : null}
-          <ErrorLevelText level={level} />
-          <Divider />
-        </Fragment>
-      ) : null}
-      {message ? (
-        <Message>{message}</Message>
-      ) : (
-        <NoMessage>({t('No error message')})</NoMessage>
-      )}
+      {hasStreamlinedUI && showUnhandled ? <Divider /> : null}
+      {hasNewIssueStreamTableLayout ? subtitle : renderedMessage}
     </LevelMessageContainer>
   );
 }
