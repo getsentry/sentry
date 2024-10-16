@@ -1,6 +1,6 @@
 from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.models import Action, DataConditionGroup
-from sentry.workflow_engine.process import process_workflow
+from sentry.workflow_engine.process import process_workflows
 
 
 class TestWorkflowCase(TestCase):
@@ -29,21 +29,14 @@ class TestWorkflowCase(TestCase):
 
         self.detector = self.create_detector(organization=self.organization)
         self.create_detector_workflow(detector=self.detector, workflow=self.workflow)
+        self.detector_result = {}
 
-
-class TestProcessWorkflow(TestWorkflowCase):
     def setUp(self):
         super().setUp()
         self.create_workflow_case()
 
     def test_process_workflow(self):
         packet = {"query_id": 1}
-        process_workflow(packet, [self.detector])
+        result = process_workflows(packet, [(self.detector, [self.detector_result])])
 
-
-class TestProcessWorkflows(TestWorkflowCase):
-    def setUp(self):
-        super().setUp()
-        # figure out the create stuff
-
-    # process_workflows -- simplez
+        assert result is None

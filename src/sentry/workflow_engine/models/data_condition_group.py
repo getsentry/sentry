@@ -20,3 +20,14 @@ class DataConditionGroup(DefaultFieldsModel):
 
     logic_type = models.CharField(max_length=200, choices=Type.choices, default=Type.ANY)
     organization = models.ForeignKey("sentry.Organization", on_delete=models.CASCADE)
+
+    def evaluate_conditions(self, data):
+        """
+        Evaluate all the conditions in the group
+        """
+        # get the conditions for the group
+        # iterate over the conditions
+        #   evaluate each condition
+        #   if the logic type is ANY and any condition is True, return condition.condition_result
+        #  if the logic type is ALL and all conditions are True, return condition.condition_result
+        pass
