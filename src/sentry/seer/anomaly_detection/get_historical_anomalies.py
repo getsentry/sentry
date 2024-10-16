@@ -151,10 +151,18 @@ def get_historical_anomaly_data_from_seer(
     """
     if alert_rule.status == AlertRuleStatus.NOT_ENOUGH_DATA.value:
         return []
-    # don't think this can happen but mypy is yelling
+    # don't think these can happen but mypy is yelling
     if not alert_rule.snuba_query:
         logger.error(
             "No snuba query associated with alert rule",
+            extra={
+                "alert_rule_id": alert_rule.id,
+            },
+        )
+        return None
+    if not alert_rule.organization:
+        logger.error(
+            "No organization associated with alert rule",
             extra={
                 "alert_rule_id": alert_rule.id,
             },
