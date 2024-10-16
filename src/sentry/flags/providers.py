@@ -56,12 +56,10 @@ that don't fit in the other buckets.
 
 
 def handle_launchdarkly_actions(action: str) -> int:
-    if action == "createFlag":
+    if action == "createFlag" or action == "cloneFlag":
         return ACTION_MAP["created"]
     if action == "deleteFlag":
         return ACTION_MAP["deleted"]
-    if action == "cloneFlag":
-        return ACTION_MAP["cloned"]
     else:
         return ACTION_MAP["updated"]
 

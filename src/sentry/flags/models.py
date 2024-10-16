@@ -12,7 +12,6 @@ class ActionEnum(Enum):
     CREATED = 0
     DELETED = 1
     UPDATED = 2
-    CLONED = 3
 
     @classmethod
     def to_string(cls, integer):
@@ -22,8 +21,6 @@ class ActionEnum(Enum):
             return "deleted"
         if integer == 2:
             return "updated"
-        if integer == 3:
-            return "cloned"
         raise ValueError
 
 
@@ -31,7 +28,6 @@ ACTION_MAP = {
     "created": ActionEnum.CREATED.value,
     "deleted": ActionEnum.DELETED.value,
     "updated": ActionEnum.UPDATED.value,
-    "cloned": ActionEnum.CLONED.value,
 }
 
 
