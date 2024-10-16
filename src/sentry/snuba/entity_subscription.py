@@ -16,6 +16,7 @@ from sentry.models.organization import Organization
 from sentry.search.events.builder.base import BaseQueryBuilder
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.builder.metrics import AlertMetricsQueryBuilder
+from sentry.search.events.builder.spans_indexed import SpansEAPQueryBuilder
 from sentry.search.events.types import ParamsType, QueryBuilderConfig
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import (
@@ -47,6 +48,7 @@ ENTITY_TIME_COLUMNS: Mapping[EntityKey, str] = {
     EntityKey.GenericMetricsGauges: "timestamp",
     EntityKey.MetricsCounters: "timestamp",
     EntityKey.MetricsSets: "timestamp",
+    EntityKey.EAPSpans: "timestamp",
 }
 CRASH_RATE_ALERT_AGGREGATE_RE = (
     r"^percentage\([ ]*(sessions_crashed|users_crashed)[ ]*\,[ ]*(sessions|users)[ ]*\)"
@@ -215,6 +217,41 @@ class EventsEntitySubscription(BaseEventsAndTransactionEntitySubscription):
 class PerformanceTransactionsEntitySubscription(BaseEventsAndTransactionEntitySubscription):
     query_type = SnubaQuery.Type.PERFORMANCE
     dataset = Dataset.Transactions
+
+
+class PerformanceSpansEAPEntitySubscription(BaseEventsAndTransactionEntitySubscription):
+    query_type = SnubaQuery.Type.PERFORMANCE
+    dataset = Dataset.EventsAnalyticsPlatform
+
+    def build_query_builder(
+        self,
+        query: str,
+        project_ids: list[int],
+        environment: Environment | None,
+        params: ParamsType | None = None,
+        skip_field_validation_for_entity_subscription_deletion: bool = False,
+    ) -> BaseQueryBuilder:
+        if params is None:
+            params = {}
+
+        params["project_id"] = project_ids
+
+        query = apply_dataset_query_conditions(self.query_type, query, self.event_types)
+        if environment:
+            params["environment"] = environment.name
+
+        return SpansEAPQueryBuilder(
+            dataset=Dataset(self.dataset.value),
+            query=query,
+            selected_columns=[self.aggregate],
+            params=params,
+            offset=None,
+            limit=None,
+            config=QueryBuilderConfig(
+                skip_time_conditions=True,
+                skip_field_validation_for_entity_subscription_deletion=skip_field_validation_for_entity_subscription_deletion,
+            ),
+        )
 
 
 class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
@@ -453,6 +490,7 @@ EntitySubscription = Union[
     MetricsSetsEntitySubscription,
     PerformanceTransactionsEntitySubscription,
     PerformanceMetricsEntitySubscription,
+    PerformanceSpansEAPEntitySubscription,
 ]
 
 
@@ -476,6 +514,8 @@ def get_entity_subscription(
             entity_subscription_cls = PerformanceTransactionsEntitySubscription
         elif dataset in (Dataset.Metrics, Dataset.PerformanceMetrics):
             entity_subscription_cls = PerformanceMetricsEntitySubscription
+        elif dataset == Dataset.EventsAnalyticsPlatform:
+            entity_subscription_cls = PerformanceSpansEAPEntitySubscription
     if query_type == SnubaQuery.Type.CRASH_RATE:
         entity_key = determine_crash_rate_alert_entity(aggregate)
         if entity_key == EntityKey.MetricsCounters:
