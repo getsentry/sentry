@@ -9,6 +9,7 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import TransactionNameSearchBar from 'sentry/components/performance/searchBar';
+import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKeyTransactionsManager';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {canUseMetricsData} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
@@ -19,6 +20,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+import {useUserTeams} from 'sentry/utils/useUserTeams';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
@@ -73,6 +75,7 @@ function MobileOverviewPage() {
   const {projects} = useProjects();
   const onboardingProject = useOnboardingProject();
   const navigate = useNavigate();
+  const {teams} = useUserTeams();
 
   const withStaticFilters = canUseMetricsData(organization);
 
@@ -197,14 +200,27 @@ function MobileOverviewPage() {
                 <PerformanceDisplayProvider
                   value={{performanceType: ProjectPerformanceType.MOBILE}}
                 >
-                  <DoubleChartRow allowedCharts={doubleChartRowCharts} {...sharedProps} />
-                  <TripleChartRow allowedCharts={tripleChartRowCharts} {...sharedProps} />
-                  <Table
-                    projects={projects}
-                    columnTitles={columnTitles}
-                    setError={setPageError}
-                    {...sharedProps}
-                  />
+                  <TeamKeyTransactionManager.Provider
+                    organization={organization}
+                    teams={teams}
+                    selectedTeams={['myteams']}
+                    selectedProjects={eventView.project.map(String)}
+                  >
+                    <DoubleChartRow
+                      allowedCharts={doubleChartRowCharts}
+                      {...sharedProps}
+                    />
+                    <TripleChartRow
+                      allowedCharts={tripleChartRowCharts}
+                      {...sharedProps}
+                    />
+                    <Table
+                      projects={projects}
+                      columnTitles={columnTitles}
+                      setError={setPageError}
+                      {...sharedProps}
+                    />
+                  </TeamKeyTransactionManager.Provider>
                 </PerformanceDisplayProvider>
               )}
 
