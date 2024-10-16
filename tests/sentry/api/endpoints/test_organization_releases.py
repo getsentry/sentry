@@ -821,6 +821,39 @@ class OrganizationReleaseListTest(APITestCase, BaseMetricsTestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
 
+    def test_disallow_archive_release_when_no_open_membership(self):
+        # test legacy status value of None (=open)
+        self.release.status = None
+        self.release.save()
+
+        # disable Open Membership
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        # user has no access to all the projects
+        user_no_team = self.create_user(is_superuser=False)
+        self.create_member(
+            user=user_no_team, organization=self.organization, role="member", teams=[]
+        )
+        self.login_as(user_no_team)
+
+        url = reverse(
+            "sentry-api-0-organization-releases",
+            kwargs={"organization_id_or_slug": self.organization.slug},
+        )
+
+        response = self.client.post(
+            url,
+            format="json",
+            data={
+                "version": "777",
+                "projects": [self.project.slug],
+                "status": "archived",
+            },
+        )
+        assert response.status_code == 400
+        assert b"Invalid project ids or slugs" in response.content
+
 
 class OrganizationReleasesStatsTest(APITestCase):
     endpoint = "sentry-api-0-organization-releases-stats"
