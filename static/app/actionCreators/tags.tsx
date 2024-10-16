@@ -171,10 +171,12 @@ export function fetchSpanFieldValues({
   endpointParams,
   projectIds,
   search,
+  dataset,
 }: {
   api: Client;
   fieldKey: string;
   orgSlug: string;
+  dataset?: 'spans' | 'spansIndexed';
   endpointParams?: Query;
   projectIds?: string[];
   search?: string;
@@ -198,6 +200,10 @@ export function fetchSpanFieldValues({
     if (endpointParams.statsPeriod) {
       query.statsPeriod = endpointParams.statsPeriod;
     }
+  }
+  if (dataset === 'spans') {
+    query.dataset = 'spans';
+    query.type = 'string';
   }
 
   return api.requestPromise(url, {
