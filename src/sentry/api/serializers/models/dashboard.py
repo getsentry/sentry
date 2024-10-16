@@ -308,7 +308,7 @@ class DashboardDetailsModelSerializer(Serializer):
             "widgets": attrs["widgets"],
             "projects": [project.id for project in obj.projects.all()],
             "filters": {},
-            "permissions": serialize(obj.permissions) if hasattr(obj, "permissions") else "",
+            "permissions": serialize(obj.permissions) if hasattr(obj, "permissions") else None,
         }
 
         if obj.filters is not None:
