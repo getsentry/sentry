@@ -12,7 +12,7 @@ from usageaccountant import UsageUnit
 from sentry import eventstore, features
 from sentry.attachments import CachedAttachment, attachment_cache
 from sentry.event_manager import EventManager, save_attachment
-from sentry.eventstore.processing import event_processing_store
+from sentry.eventstore.processing import event_processing_store, transaction_processing_store
 from sentry.feedback.usecases.create_feedback import FeedbackCreationSource, is_in_feedback_denylist
 from sentry.ingest.userreport import Conflict, save_userreport
 from sentry.killswitches import killswitch_matches_context
@@ -199,11 +199,18 @@ def process_event(
                     return
 
         with metrics.timer("ingest_consumer._store_event"):
-            cache_key = event_processing_store.store(data)
+            event_type = data.get("type")
+
+            if event_type == "transaction":
+                cache_key = transaction_processing_store.store(data)
+            else:
+                cache_key = event_processing_store.store(data)
 
         try:
             # Records rc-processing usage broken down by
             # event type.
+
+            # todo: rewrite this after rc-processing split
             event_type = data.get("type")
             if event_type == "error":
                 app_feature = "errors"
