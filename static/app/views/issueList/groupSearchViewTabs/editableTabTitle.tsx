@@ -1,7 +1,6 @@
 import {useContext, useEffect, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {motion} from 'framer-motion';
 
 import {GrowingInput} from 'sentry/components/growingInput';
 import {TabsContext} from 'sentry/components/tabs';
@@ -89,51 +88,49 @@ function EditableTabTitle({
 
   return (
     <Tooltip title={label} disabled={isEditing} showOnlyOnOverflow skipWrapper>
-      <motion.div layout="position" transition={{duration: 0.2}}>
-        {isSelected && isEditing ? (
-          <StyledGrowingInput
-            value={inputValue}
-            onChange={handleOnChange}
-            onKeyDown={handleOnKeyDown}
-            onBlur={handleOnBlur}
-            ref={inputRef}
-            style={memoizedStyles}
-            isEditing={isEditing}
-            maxLength={128}
-            onPointerDown={e => {
+      {isSelected && isEditing ? (
+        <StyledGrowingInput
+          value={inputValue}
+          onChange={handleOnChange}
+          onKeyDown={handleOnKeyDown}
+          onBlur={handleOnBlur}
+          ref={inputRef}
+          style={memoizedStyles}
+          isEditing={isEditing}
+          maxLength={128}
+          onPointerDown={e => {
+            e.stopPropagation();
+            if (!isEditing) {
+              e.preventDefault();
+            }
+          }}
+          onMouseDown={e => {
+            e.stopPropagation();
+            if (!isEditing) {
+              e.preventDefault();
+            }
+          }}
+        />
+      ) : (
+        <UnselectedTabTitle
+          onDoubleClick={() => setIsEditing(true)}
+          onPointerDown={e => {
+            if (isSelected) {
               e.stopPropagation();
-              if (!isEditing) {
-                e.preventDefault();
-              }
-            }}
-            onMouseDown={e => {
+              e.preventDefault();
+            }
+          }}
+          onMouseDown={e => {
+            if (isSelected) {
               e.stopPropagation();
-              if (!isEditing) {
-                e.preventDefault();
-              }
-            }}
-          />
-        ) : (
-          <UnselectedTabTitle
-            onDoubleClick={() => setIsEditing(true)}
-            onPointerDown={e => {
-              if (isSelected) {
-                e.stopPropagation();
-                e.preventDefault();
-              }
-            }}
-            onMouseDown={e => {
-              if (isSelected) {
-                e.stopPropagation();
-                e.preventDefault();
-              }
-            }}
-            isSelected={isSelected}
-          >
-            {label}
-          </UnselectedTabTitle>
-        )}
-      </motion.div>
+              e.preventDefault();
+            }
+          }}
+          isSelected={isSelected}
+        >
+          {label}
+        </UnselectedTabTitle>
+      )}
     </Tooltip>
   );
 }

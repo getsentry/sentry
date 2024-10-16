@@ -3,7 +3,6 @@ import 'intersection-observer'; // polyfill
 import {useCallback, useContext, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import type {Node} from '@react-types/shared';
-import {motion} from 'framer-motion';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {
@@ -470,19 +469,11 @@ export function DraggableTabBar({
             */}
             {((tabListState && tabListState?.selectedKey === tab.key) ||
               (!tabListState && tab.key === initialTabKey)) && (
-              <motion.div
-                // This stops the ellipsis menu from animating in on load (when tabListState isn't initialized yet),
-                // but enables the animation later on when switching tabs
-                initial={tabListState ? {opacity: 0} : false}
-                animate={{opacity: 1}}
-                transition={{delay: 0.1}}
-              >
-                <DraggableTabMenuButton
-                  hasUnsavedChanges={!!tab.unsavedChanges}
-                  menuOptions={makeMenuOptions(tab)}
-                  aria-label={`${tab.label} Ellipsis Menu`}
-                />
-              </motion.div>
+              <DraggableTabMenuButton
+                hasUnsavedChanges={!!tab.unsavedChanges}
+                menuOptions={makeMenuOptions(tab)}
+                aria-label={`${tab.label} Ellipsis Menu`}
+              />
             )}
           </TabContentWrap>
         </DraggableTabList.Item>

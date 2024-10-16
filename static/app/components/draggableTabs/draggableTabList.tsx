@@ -229,8 +229,7 @@ function Tabs({
               data-key={item.key}
               dragConstraints={dragConstraints} // dragConstraints are the bounds that the tab can be dragged within
               dragElastic={0} // Prevents the tab from being dragged outside of the dragConstraints (w/o this you can drag it outside but it'll spring back)
-              dragTransition={{bounceStiffness: 400, bounceDamping: 40}} // Recovers spring behavior thats lost when using dragElastic=0
-              layout
+              layout="position"
               drag={item.key !== editingTabKey} // Disable dragging if the tab is being edited
               onDrag={() => setIsDragging(true)}
               onDragEnd={() => setIsDragging(false)}
