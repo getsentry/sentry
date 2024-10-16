@@ -12,7 +12,10 @@ import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilt
 import TransactionNameSearchBar from 'sentry/components/performance/searchBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {canUseMetricsData} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
+import {
+  canUseMetricsData,
+  useMEPSettingContext,
+} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {PageAlert, usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -28,6 +31,7 @@ import {AI_LANDING_TITLE} from 'sentry/views/insights/pages/ai/settings';
 import {OVERVIEW_PAGE_TITLE} from 'sentry/views/insights/pages/settings';
 import {generateGenericPerformanceEventView} from 'sentry/views/performance/data';
 import {TripleChartRow} from 'sentry/views/performance/landing/widgets/components/widgetChartRow';
+import {filterAllowedChartsMetrics} from 'sentry/views/performance/landing/widgets/utils';
 import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
 import Onboarding from 'sentry/views/performance/onboarding';
 import Table from 'sentry/views/performance/table';
@@ -54,6 +58,7 @@ function AiOverviewPage() {
   const {projects} = useProjects();
   const onboardingProject = useOnboardingProject();
   const navigate = useNavigate();
+  const mepSetting = useMEPSettingContext();
 
   const withStaticFilters = canUseMetricsData(organization);
   const eventView = generateGenericPerformanceEventView(
@@ -76,15 +81,19 @@ function AiOverviewPage() {
 
   const showOnboarding = onboardingProject !== undefined;
 
-  const tripleChartRowCharts = [
-    PerformanceWidgetSetting.TPM_AREA,
-    PerformanceWidgetSetting.DURATION_HISTOGRAM,
-    PerformanceWidgetSetting.P50_DURATION_AREA,
-    PerformanceWidgetSetting.P75_DURATION_AREA,
-    PerformanceWidgetSetting.P95_DURATION_AREA,
-    PerformanceWidgetSetting.P99_DURATION_AREA,
-    PerformanceWidgetSetting.FAILURE_RATE_AREA,
-  ];
+  const tripleChartRowCharts = filterAllowedChartsMetrics(
+    organization,
+    [
+      PerformanceWidgetSetting.TPM_AREA,
+      PerformanceWidgetSetting.DURATION_HISTOGRAM,
+      PerformanceWidgetSetting.P50_DURATION_AREA,
+      PerformanceWidgetSetting.P75_DURATION_AREA,
+      PerformanceWidgetSetting.P95_DURATION_AREA,
+      PerformanceWidgetSetting.P99_DURATION_AREA,
+      PerformanceWidgetSetting.FAILURE_RATE_AREA,
+    ],
+    mepSetting
+  );
 
   const sharedProps = {eventView, location, organization, withStaticFilters};
 
