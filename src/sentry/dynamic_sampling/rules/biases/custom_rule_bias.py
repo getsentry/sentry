@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 class CustomRuleBias(Bias):
     """
-    Boosts at 100% sample rate all the traces that have a replay_id.
+    Boosts to 100% sample rate all the traces matching an active custom rule.
     """
 
     def generate_rules(self, project: Project, base_sample_rate: float) -> list[PolymorphicRule]:
