@@ -29,7 +29,7 @@ class RepositoryDeletionTask(ModelDeletionTask[Repository]):
         return _get_repository_child_relations(instance)
 
     def delete_instance(self, instance: Repository) -> None:
-        # TODO child_relations should also send pending_delete so we
+        # TODO: child_relations should also send pending_delete so we
         # don't have to do this here.
         pending_delete.send(sender=type(instance), instance=instance, actor=self.get_actor())
 

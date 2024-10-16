@@ -787,7 +787,7 @@ def _prepare_query_params(query_params: SnubaQueryParams, referrer: str | None =
             "groupby": query_params.groupby,
             "conditions": query_params_conditions,
             "aggregations": query_params.aggregations,
-            "granularity": query_params.rollup,  # TODO name these things the same
+            "granularity": query_params.rollup,  # TODO: name these things the same
         }
     )
     kwargs = {k: v for k, v in kwargs.items() if v is not None}
@@ -1644,7 +1644,7 @@ def aliased_query_params(
     )
 
 
-# TODO (evanh) Since we are assuming that all string values are columns,
+# TODO: (evanh) Since we are assuming that all string values are columns,
 # this will get tricky if we ever have complex columns where there are
 # string arguments to the functions that aren't columns
 def resolve_complex_column(col, resolve_func, ignored):

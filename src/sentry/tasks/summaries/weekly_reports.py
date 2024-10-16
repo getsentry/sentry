@@ -320,7 +320,7 @@ class OrganizationReportBatch:
                 user_project_count=template_ctx["user_project_count"],
             )
 
-            # TODO see if we can use the UUID to track if the email was sent or not
+            # TODO: see if we can use the UUID to track if the email was sent or not
             logger.info(
                 "weekly_report.send_email",
                 extra={

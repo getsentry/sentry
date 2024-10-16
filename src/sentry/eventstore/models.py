@@ -602,7 +602,7 @@ class Event(BaseEvent):
     def group_id(self, value: int | None) -> None:
         self._group_id = value
 
-    # TODO We need a better way to cache these properties. functools
+    # TODO: We need a better way to cache these properties. functools
     # doesn't quite do the trick as there is a reference bug with unsaved
     # models. But the current _group_cache thing is also clunky because these
     # properties need to be stripped out in __getstate__.

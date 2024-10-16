@@ -1027,7 +1027,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             # * we started with Postgres candidates and so only do one Snuba query max
             # * the paginator is returning enough results to satisfy the query (>= the limit)
             # * there are no more groups in Snuba to post-filter
-            # TODO do we actually have to rebuild this SequencePaginator every time
+            # TODO: do we actually have to rebuild this SequencePaginator every time
             # or can we just make it after we've broken out of the loop?
             paginator_results = SequencePaginator(
                 [(score, id) for (id, score) in result_groups], reverse=True, **paginator_options

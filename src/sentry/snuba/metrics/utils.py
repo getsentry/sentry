@@ -487,7 +487,7 @@ def to_intervals(
     assert interval_seconds > 0
 
     # horrible hack for backward compatibility
-    # TODO Try to fix this upstream
+    # TODO: Try to fix this upstream
     if start is None or end is None:
         return None, None, 0
 
