@@ -10,6 +10,10 @@ from slack_sdk.errors import SlackApiError
 from sentry.api.serializers.rest_framework.rule import ACTION_UUID_KEY
 from sentry.constants import ISSUE_ALERTS_THREAD_DEFAULT
 from sentry.eventstore.models import GroupEvent
+from sentry.integrations.messaging.metrics import (
+    MessagingInteractionEvent,
+    MessagingInteractionType,
+)
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.repository import get_default_issue_alert_repository
 from sentry.integrations.repository.base import NotificationMessageValidationError
@@ -28,7 +32,9 @@ from sentry.integrations.slack.metrics import (
     SLACK_ISSUE_ALERT_SUCCESS_DATADOG_METRIC,
 )
 from sentry.integrations.slack.sdk_client import SlackSdkClient
+from sentry.integrations.slack.spec import SlackMessagingSpec
 from sentry.integrations.slack.utils.channel import SlackChannelIdData, get_channel_id
+from sentry.integrations.utils.metrics import EventLifecycle
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.rule import Rule
 from sentry.notifications.additional_attachment_manager import get_additional_attachment
@@ -122,41 +128,56 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                 rule_action_uuid=rule_action_uuid,
             )
 
-            # We need to search by rule action uuid and rule id, so only search if they exist
-            reply_broadcast = False
-            thread_ts = None
-            if (
-                OrganizationOption.objects.get_value(
-                    organization=self.project.organization,
-                    key="sentry:issue_alerts_thread_flag",
-                    default=ISSUE_ALERTS_THREAD_DEFAULT,
-                )
-                and rule_action_uuid
-                and rule_id
-            ):
-                parent_notification_message = None
+            def get_thread_ts(lifecycle: EventLifecycle) -> str | None:
+                """Find the thread in which to post this notification as a reply.
+
+                Return None to post the notification as a top-level message.
+                """
+
+                # We need to search by rule action uuid and rule id, so only search if they exist
+                if not (
+                    rule_action_uuid
+                    and rule_id
+                    and OrganizationOption.objects.get_value(
+                        organization=self.project.organization,
+                        key="sentry:issue_alerts_thread_flag",
+                        default=ISSUE_ALERTS_THREAD_DEFAULT,
+                    )
+                ):
+                    return None
+
                 try:
                     parent_notification_message = self._repository.get_parent_notification_message(
                         rule_id=rule_id,
                         group_id=event.group.id,
                         rule_action_uuid=rule_action_uuid,
                     )
-                except Exception:
+                except Exception as e:
+                    lifecycle.record_halt(e)
+
                     # if there's an error trying to grab a parent notification, don't let that error block this flow
                     # we already log at the repository layer, no need to log again here
-                    pass
+                    return None
 
-                if parent_notification_message:
-                    # If a parent notification exists for this rule and action, then we can reply in a thread
-                    # Make sure we track that this reply will be in relation to the parent row
-                    new_notification_message_object.parent_notification_message_id = (
-                        parent_notification_message.id
-                    )
-                    # To reply to a thread, use the specific key in the payload as referenced by the docs
-                    # https://api.slack.com/methods/chat.postMessage#arg_thread_ts
-                    thread_ts = parent_notification_message.message_identifier
-                    # If this flow is triggered again for the same issue, we want it to be seen in the main channel
-                    reply_broadcast = True
+                if parent_notification_message is None:
+                    return None
+
+                # If a parent notification exists for this rule and action, then we can reply in a thread
+                # Make sure we track that this reply will be in relation to the parent row
+                new_notification_message_object.parent_notification_message_id = (
+                    parent_notification_message.id
+                )
+                # To reply to a thread, use the specific key in the payload as referenced by the docs
+                # https://api.slack.com/methods/chat.postMessage#arg_thread_ts
+                return parent_notification_message.message_identifier
+
+            with MessagingInteractionEvent(
+                MessagingInteractionType.GET_PARENT_NOTIFICATION, SlackMessagingSpec()
+            ).capture() as lifecycle:
+                thread_ts = get_thread_ts(lifecycle)
+
+            # If this flow is triggered again for the same issue, we want it to be seen in the main channel
+            reply_broadcast = thread_ts is not None
 
             client = SlackSdkClient(integration_id=integration.id)
             text = str(blocks.get("text"))
