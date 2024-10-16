@@ -372,6 +372,18 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
                 time_window=1,
             )
 
+        with pytest.raises(
+            ValidationError, match="Dynamic alerts do not support 'is:unresolved' queries"
+        ):
+            rule = self.create_alert_rule(
+                seasonality=AlertRuleSeasonality.AUTO,
+                sensitivity=AlertRuleSensitivity.HIGH,
+                threshold_type=AlertRuleThresholdType.ABOVE_AND_BELOW,
+                detection_type=AlertRuleDetectionType.DYNAMIC,
+                time_window=30,
+                query="is:unresolved",
+            )
+
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:anomaly-detection-rollout")
     @with_feature("organizations:incidents")
@@ -928,6 +940,19 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
             **data,
         )
         assert resp.data[0] == INVALID_TIME_WINDOW
+        # We don't call send_historical_data_to_seer if we encounter a validation error.
+        assert mock_seer_request.call_count == 0
+
+        data2 = self.get_serialized_alert_rule()
+        data2["query"] = "is:unresolved"
+
+        resp = self.get_error_response(
+            self.organization.slug,
+            alert_rule.id,
+            status_code=400,
+            **data2,
+        )
+        assert resp.data[0] == "Dynamic alerts do not support 'is:unresolved' queries"
         # We don't call send_historical_data_to_seer if we encounter a validation error.
         assert mock_seer_request.call_count == 0
 

@@ -578,10 +578,12 @@ def create_alert_rule(
         resolution = time_window
         # NOTE: we hardcode seasonality for EA
         seasonality = AlertRuleSeasonality.AUTO
-        if not (sensitivity):
+        if not sensitivity:
             raise ValidationError("Dynamic alerts require a sensitivity level")
         if time_window not in DYNAMIC_TIME_WINDOWS:
             raise ValidationError(INVALID_TIME_WINDOW)
+        if "is:unresolved" in query:
+            raise ValidationError("Dynamic alerts do not support 'is:unresolved' queries")
     else:
         resolution = get_alert_resolution(time_window, organization)
         seasonality = None
@@ -917,6 +919,8 @@ def update_alert_rule(
                 raise ResourceDoesNotExist(
                     "Your organization does not have access to this feature."
                 )
+            if query and "is:unresolved" in query:
+                raise ValidationError("Dynamic alerts do not support 'is:unresolved' queries")
             # NOTE: if adding a new metric alert type, take care to check that it's handled here
             project = projects[0] if projects else alert_rule.projects.get()
             update_rule_data(alert_rule, project, snuba_query, updated_fields, updated_query_fields)
