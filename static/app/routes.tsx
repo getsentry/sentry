@@ -1774,7 +1774,7 @@ function buildRoutes() {
             component={make(
               () =>
                 import(
-                  'ssentry/views/insights/mobile/screenRendering/screenRenderingSummaryPage'
+                  'sentry/views/insights/mobile/screenRendering/screenRenderingSummaryPage'
                 )
             )}
           />
