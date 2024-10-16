@@ -96,7 +96,7 @@ Then, use it to run sync this one time.
 
 
 def main(context: dict[str, str]) -> int:
-    check_minimum_version("1.12.0")
+    check_minimum_version("1.13.0")
 
     repo = context["repo"]
     reporoot = context["reporoot"]
