@@ -119,12 +119,12 @@ class WaiveDataSecrecyEndpoint(OrganizationEndpoint):
             serialize(ds, request.user, DataSecrecyWaiverSerializer()), status=status.HTTP_200_OK
         )
 
-    def delete(self, request: Request, organization):
+    def delete(self, request: Request, organization: Organization):
         """
         Reinstates data secrecy for an organization.
         """
         try:
-            ds = get_object_or_404(DataSecrecyWaiver, organization=organization)
+            ds = DataSecrecyWaiver.objects.get(organization=organization)
             ds.delete()
 
             self.create_audit_entry(
@@ -136,7 +136,7 @@ class WaiveDataSecrecyEndpoint(OrganizationEndpoint):
                 {"detail": "Data secrecy has been reinstated."},
                 status=status.HTTP_204_NO_CONTENT,
             )
-        except Http404:
+        except DataSecrecyWaiver.DoesNotExist:
             return Response(
                 {"detail": "No data secrecy waiver found for this organization."},
                 status=status.HTTP_404_NOT_FOUND,
