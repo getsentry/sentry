@@ -946,7 +946,9 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
 
     @property
     def field_alias_converter(self) -> Mapping[str, Callable[[str], SelectType]]:
-        existing_field_aliases: dict[str, Callable[[str], SelectType]] = {**super().field_alias_converter}
+        existing_field_aliases: dict[str, Callable[[str], SelectType]] = {
+            **super().field_alias_converter
+        }
 
         field_alias_converter: Mapping[str, Callable[[str], SelectType]] = {
             constants.PRECISE_START_TS: lambda alias: Function(
