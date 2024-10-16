@@ -34,7 +34,7 @@ T = TypeVar("T", str, bytes)
 # load everywhere
 _last_validation_log: float | None = None
 Pipeline = Any
-# TODO type Pipeline instead of using Any here
+# TODO: type Pipeline instead of using Any here
 
 
 def _get_model_key(model: type[models.Model]) -> str:

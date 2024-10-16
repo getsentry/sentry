@@ -61,7 +61,7 @@ class _Identity(TypedDict):
 class _UserOptions(TypedDict):
     theme: str  # TODO: enum/literal for theme options
     language: str
-    stacktraceOrder: int  # TODO enum/literal
+    stacktraceOrder: int  # TODO: enum/literal
     defaultIssueEvent: str
     timezone: str
     clock24Hours: bool

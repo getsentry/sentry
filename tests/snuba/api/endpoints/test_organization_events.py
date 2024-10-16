@@ -82,7 +82,7 @@ class OrganizationEventsEndpointTestBase(APITransactionTestCase, SnubaTestCase, 
         self, per_transaction_threshold: bool = False, project: Project | None = None
     ) -> None:
         _project = project or self.project
-        # If duration is > 300 * 4 then the user is fruistrated
+        # If duration is > 300 * 4 then the user is frustrated
         # There's a total of 4 users and three of them reach the frustration threshold
         events = [
             ("one", 300),

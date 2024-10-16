@@ -84,7 +84,7 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
 
         if serializer.is_valid():
             payload = serializer.validated_data
-            # TODO adding mentions to a note doesn't send notifications. Should it?
+            # TODO: adding mentions to a note doesn't send notifications. Should it?
             # Remove mentions as they shouldn't go into the database
             payload.pop("mentions", [])
 

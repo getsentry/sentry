@@ -275,7 +275,7 @@ class ProjectSerializerResponse(ProjectSerializerBaseResponse):
     isPublic: bool
     avatar: SerializedAvatarFields
     color: str
-    status: str  # TODO enum/literal
+    status: str  # TODO: enum/literal
 
 
 @register(Project)

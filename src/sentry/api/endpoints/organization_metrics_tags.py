@@ -58,7 +58,7 @@ class OrganizationMetricsTagsEndpoint(OrganizationEndpoint):
             for project in projects
         ):
             if metric_name.startswith("d:eap"):
-                # TODO hack for EAP, return a fixed list
+                # TODO: hack for EAP, return a fixed list
                 return Response([Tag(key="color"), Tag(key="location")])
 
         try:
