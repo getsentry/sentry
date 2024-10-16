@@ -1,11 +1,9 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import {motion} from 'framer-motion';
 
 import Feature from 'sentry/components/acl/feature';
 import Link from 'sentry/components/links/link';
 import {useNavContext} from 'sentry/components/nav/context';
-import {useNavIndicator} from 'sentry/components/nav/useNavIndicator';
 import type {NavSubmenuItem} from 'sentry/components/nav/utils';
 import {
   isNavItemActive,
@@ -41,7 +39,7 @@ function Submenu() {
 
 export default Submenu;
 
-const SubmenuWrapper = styled(motion.div)`
+const SubmenuWrapper = styled('div')`
   position: relative;
   border-right: 1px solid ${p => p.theme.translucentGray200};
   background: ${p => p.theme.surface300};
@@ -101,29 +99,23 @@ const SubmenuItemWrapper = styled('li')`
     border: 1px solid transparent;
     border-radius: ${p => p.theme.borderRadius};
 
-    &:hover {
+    &:hover,
+    &:focus-visible {
       color: ${p => p.theme.gray500};
-      /* background: rgba(62, 52, 70, 0.09); */
+      background: rgba(62, 52, 70, 0.09);
     }
 
     &.active {
       color: ${p => p.theme.gray500};
       background: rgba(62, 52, 70, 0.09);
       border: 1px solid ${p => p.theme.translucentGray100};
+
+      &:hover,
+      &:focus-visible {
+        background: rgba(62, 52, 70, 0.18);
+      }
     }
   }
-`;
-
-const SubmenuIndicator = styled(motion.span)`
-  position: absolute;
-  left: 0;
-  right: 0;
-  opacity: 0;
-  pointer-events: none;
-  margin-inline: ${space(1)};
-  height: 32px;
-  background: ${p => p.theme.translucentGray100};
-  border-radius: ${p => p.theme.borderRadius};
 `;
 
 const SubmenuFooterWrapper = styled('div')`
@@ -137,21 +129,13 @@ const SubmenuFooterWrapper = styled('div')`
 `;
 
 function SubmenuBody({children}) {
-  const {indicatorProps, containerProps} = useNavIndicator();
-  return (
-    <div>
-      <SubmenuIndicator {...indicatorProps} />
-      <SubmenuItemList {...containerProps}>{children}</SubmenuItemList>
-    </div>
-  );
+  return <SubmenuItemList>{children}</SubmenuItemList>;
 }
 
 function SubmenuFooter({children}) {
-  const {indicatorProps, containerProps} = useNavIndicator();
   return (
     <SubmenuFooterWrapper>
-      <SubmenuIndicator {...indicatorProps} />
-      <SubmenuItemList {...containerProps}>{children}</SubmenuItemList>
+      <SubmenuItemList>{children}</SubmenuItemList>
     </SubmenuFooterWrapper>
   );
 }

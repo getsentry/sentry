@@ -1,12 +1,10 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import {motion} from 'framer-motion';
 
 import Feature from 'sentry/components/acl/feature';
 import Link from 'sentry/components/links/link';
 import {useNavContext} from 'sentry/components/nav/context';
 import Submenu from 'sentry/components/nav/submenu';
-import {useNavIndicator} from 'sentry/components/nav/useNavIndicator';
 import {
   isNavItemActive,
   isNonEmptyArray,
@@ -140,14 +138,21 @@ const SidebarItemWrapper = styled('li')`
     line-height: 177.75%;
     border: 1px solid transparent;
 
-    &:hover {
+    &:hover,
+    &:focus-visible {
       color: var(--color-hover, ${theme.white});
+      background: rgba(255, 255, 255, 0.1);
     }
 
     &.active {
       color: var(--color-hover, ${theme.white});
       background: rgba(255, 255, 255, 0.1);
       border: 1px solid rgba(255, 255, 255, 0.06);
+
+      &:hover,
+      &:focus-visible {
+        background: rgba(255, 255, 255, 0.2);
+      }
     }
 
     & > * {
@@ -165,19 +170,6 @@ const SidebarItemWrapper = styled('li')`
       gap: ${space(0.5)};
     }
   }
-`;
-
-const SidebarIndicator = styled(motion.span)`
-  position: absolute;
-  left: 0;
-  right: 0;
-  opacity: 0;
-  pointer-events: none;
-  margin-inline: ${space(1)};
-  width: 58px;
-  height: 52px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: ${theme.borderRadius};
 `;
 
 const SidebarFooterWrapper = styled('div')`
@@ -198,22 +190,13 @@ const SidebarHeader = styled('header')`
 `;
 
 function SidebarBody({children}) {
-  const {indicatorProps, containerProps} = useNavIndicator();
-  // div wrapper is needed to for indicator positioning
-  return (
-    <div>
-      <SidebarIndicator {...indicatorProps} />
-      <SidebarItemList {...containerProps}>{children}</SidebarItemList>
-    </div>
-  );
+  return <SidebarItemList>{children}</SidebarItemList>;
 }
 
 function SidebarFooter({children}) {
-  const {indicatorProps, containerProps} = useNavIndicator();
   return (
     <SidebarFooterWrapper>
-      <SidebarIndicator {...indicatorProps} />
-      <SidebarItemList {...containerProps}>{children}</SidebarItemList>
+      <SidebarItemList>{children}</SidebarItemList>
     </SidebarFooterWrapper>
   );
 }
