@@ -2,6 +2,7 @@ from enum import Enum
 
 from attr import dataclass
 
+from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.opsgenie.spec import OpsgenieOnCallSpec
 from sentry.integrations.utils.metrics import EventLifecycleMetric, EventLifecycleOutcome
 from sentry.models.organization import Organization
@@ -46,7 +47,7 @@ class OnCallInteractionEvent(EventLifecycleMetric):
 
     def get_key(self, outcome: EventLifecycleOutcome) -> str:
         return self.get_standard_key(
-            domain="on_call",
+            domain=IntegrationDomain.ON_CALL_SCHEDULING,
             integration_name=self.spec.provider_slug,
             interaction_type=str(self.interaction_type),
             outcome=outcome,

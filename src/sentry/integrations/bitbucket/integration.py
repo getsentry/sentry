@@ -10,6 +10,7 @@ from rest_framework.response import Response
 from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.integrations.base import (
     FeatureDescription,
+    IntegrationDomain,
     IntegrationFeatures,
     IntegrationMetadata,
     IntegrationProvider,
@@ -19,6 +20,10 @@ from sentry.integrations.services.repository import RpcRepository, repository_se
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.integrations.tasks.migrate_repo import migrate_repo
 from sentry.integrations.utils import AtlassianConnectValidationError, get_integration_from_request
+from sentry.integrations.utils.metrics import (
+    IntegrationPipelineViewEvent,
+    IntegrationPipelineViewType,
+)
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization import RpcOrganizationSummary
 from sentry.pipeline import NestedPipelineView, PipelineView
@@ -251,9 +256,18 @@ class BitbucketIntegrationProvider(IntegrationProvider):
 
 class VerifyInstallation(PipelineView):
     def dispatch(self, request: Request, pipeline) -> Response:
-        try:
-            integration = get_integration_from_request(request, BitbucketIntegrationProvider.key)
-        except AtlassianConnectValidationError:
-            return pipeline.error("Unable to verify installation.")
-        pipeline.bind_state("external_id", integration.external_id)
-        return pipeline.next_step()
+        with IntegrationPipelineViewEvent(
+            IntegrationPipelineViewType.VERIFY_INSTALLATION,
+            IntegrationDomain.SOURCE_CODE_MANAGEMENT,
+            BitbucketIntegrationProvider.key,
+        ).capture() as lifecycle:
+            try:
+                integration = get_integration_from_request(
+                    request, BitbucketIntegrationProvider.key
+                )
+            except AtlassianConnectValidationError as e:
+                lifecycle.record_failure({"failure_reason": str(e)})
+                return pipeline.error("Unable to verify installation.")
+
+            pipeline.bind_state("external_id", integration.external_id)
+            return pipeline.next_step()

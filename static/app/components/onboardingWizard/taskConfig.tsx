@@ -5,7 +5,10 @@ import {navigateTo} from 'sentry/actionCreators/navigation';
 import type {Client} from 'sentry/api';
 import type {OnboardingContextProps} from 'sentry/components/onboarding/onboardingContext';
 import {filterSupportedTasks} from 'sentry/components/onboardingWizard/filterSupportedTasks';
-import {taskIsDone} from 'sentry/components/onboardingWizard/utils';
+import {
+  hasQuickStartUpdatesFeature,
+  taskIsDone,
+} from 'sentry/components/onboardingWizard/utils';
 import {filterProjects} from 'sentry/components/performanceOnboarding/utils';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import {sourceMaps} from 'sentry/data/platformCategories';
@@ -18,7 +21,7 @@ import type {
   OnboardingTask,
   OnboardingTaskDescriptor,
 } from 'sentry/types/onboarding';
-import {OnboardingTaskKey} from 'sentry/types/onboarding';
+import {OnboardingTaskGroup, OnboardingTaskKey} from 'sentry/types/onboarding';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {isDemoWalkthrough} from 'sentry/utils/demoMode';
@@ -168,14 +171,19 @@ export function getOnboardingTasks({
     {
       task: OnboardingTaskKey.FIRST_PROJECT,
       title: t('Create a project'),
-      description: t(
-        "Monitor in seconds by adding a simple lines of code to your project. It's as easy as microwaving leftover pizza."
-      ),
+      description: hasQuickStartUpdatesFeature(organization)
+        ? t(
+            "Monitor in seconds by adding a few lines of code to your project. It's as easy as microwaving leftover pizza."
+          )
+        : t(
+            "Monitor in seconds by adding a simple lines of code to your project. It's as easy as microwaving leftover pizza."
+          ),
       skippable: false,
       requisites: [],
       actionType: 'app',
       location: `/organizations/${organization.slug}/projects/new/`,
       display: true,
+      group: OnboardingTaskGroup.BASIC,
     },
     {
       task: OnboardingTaskKey.FIRST_EVENT,
@@ -204,6 +212,7 @@ export function getOnboardingTasks({
             </EventWaiter>
           ) : null
       ),
+      group: OnboardingTaskGroup.BASIC,
     },
     {
       task: OnboardingTaskKey.INVITE_MEMBER,
@@ -216,6 +225,7 @@ export function getOnboardingTasks({
       actionType: 'action',
       action: () => openInviteMembersModal({source: 'onboarding_widget'}),
       display: true,
+      group: OnboardingTaskGroup.BASIC,
     },
     {
       task: OnboardingTaskKey.FIRST_INTEGRATION,
@@ -227,7 +237,34 @@ export function getOnboardingTasks({
       requisites: [OnboardingTaskKey.FIRST_PROJECT, OnboardingTaskKey.FIRST_EVENT],
       actionType: 'app',
       location: `/settings/${organization.slug}/integrations/`,
-      display: true,
+      display: !hasQuickStartUpdatesFeature(organization),
+      group: OnboardingTaskGroup.BASIC,
+    },
+    {
+      task: OnboardingTaskKey.REAL_TIME_NOTIFICATIONS,
+      title: t('Real-time notifications'),
+      description: t(
+        'Triage and resolving issues faster by integrating Sentry with messaging platforms like Slack, Discord and MS Teams.'
+      ),
+      skippable: true,
+      requisites: [OnboardingTaskKey.FIRST_PROJECT, OnboardingTaskKey.FIRST_EVENT],
+      actionType: 'app',
+      location: `/settings/${organization.slug}/integrations/?category=chat`,
+      display: hasQuickStartUpdatesFeature(organization),
+      group: OnboardingTaskGroup.BASIC,
+    },
+    {
+      task: OnboardingTaskKey.LINK_SENTRY_TO_SOURCE_CODE,
+      title: t('Link Sentry to Source Code'),
+      description: t(
+        'Resolve bugs faster with commit data and stack trace linking to your source code in GitHub, Gitlab and more.'
+      ),
+      skippable: true,
+      requisites: [OnboardingTaskKey.FIRST_PROJECT, OnboardingTaskKey.FIRST_EVENT],
+      actionType: 'app',
+      location: `/settings/${organization.slug}/integrations/?category=codeowners`,
+      display: hasQuickStartUpdatesFeature(organization),
+      group: OnboardingTaskGroup.BASIC,
     },
     {
       task: OnboardingTaskKey.SECOND_PLATFORM,
@@ -362,14 +399,19 @@ export function getOnboardingTasks({
     {
       task: OnboardingTaskKey.RELEASE_TRACKING,
       title: t('Track releases'),
-      description: t(
-        'Take an in-depth look at the health of each and every release with crash analytics, errors, related issues and suspect commits.'
-      ),
+      description: hasQuickStartUpdatesFeature(organization)
+        ? t(
+            'Identify which release introduced an issue and track release health with crash analytics, errors, and adoption data.'
+          )
+        : t(
+            'Take an in-depth look at the health of each and every release with crash analytics, errors, related issues and suspect commits.'
+          ),
       skippable: true,
       requisites: [OnboardingTaskKey.FIRST_PROJECT, OnboardingTaskKey.FIRST_EVENT],
       actionType: 'app',
       location: `/settings/${organization.slug}/projects/:projectId/release-tracking/`,
       display: true,
+      group: OnboardingTaskGroup.BASIC,
     },
     {
       task: OnboardingTaskKey.SOURCEMAPS,
@@ -418,6 +460,7 @@ export function getOnboardingTasks({
       actionType: 'app',
       location: getIssueAlertUrl({projects, organization, onboardingContext}),
       display: true,
+      group: OnboardingTaskGroup.BASIC,
     },
     {
       task: OnboardingTaskKey.METRIC_ALERT,
