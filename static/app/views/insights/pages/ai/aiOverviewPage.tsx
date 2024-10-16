@@ -56,7 +56,7 @@ function AiOverviewPage() {
   const {projects} = useProjects();
   const onboardingProject = useOnboardingProject();
   const navigate = useNavigate();
-  const teams = useUserTeams();
+  const {teams} = useUserTeams();
 
   const withStaticFilters = canUseMetricsData(organization);
   const eventView = generateGenericPerformanceEventView(
