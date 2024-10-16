@@ -237,7 +237,7 @@ function BaseGroupRow({
     (evt: React.MouseEvent<HTMLDivElement>) => {
       const targetElement = evt.target as Partial<HTMLElement>;
       if (!group) {
-        return false;
+        return true;
       }
 
       // Ignore clicks on links
