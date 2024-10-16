@@ -27,8 +27,8 @@ export function ThresholdsIndicator({
   const {max1, max2} = max_values;
 
   const normalizedValue = normalizeUnit(value, valueUnit, type);
-  const normalizedMax1 = normalizeUnit(max1, thresholdUnit, type);
-  const normalizedMax2 = normalizeUnit(max2, thresholdUnit, type);
+  const normalizedMax1 = thresholdUnit ? normalizeUnit(max1, thresholdUnit, type) : max1;
+  const normalizedMax2 = thresholdUnit ? normalizeUnit(max2, thresholdUnit, type) : max2;
 
   const state = getThresholdState(
     normalizedValue,
