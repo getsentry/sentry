@@ -46,7 +46,7 @@ function getOrganizationReleases(
   organization: Organization,
   conditions: ReleaseConditions
 ) {
-  const query = {};
+  const query: Record<string, string> = {};
   Object.keys(conditions).forEach(key => {
     let value = conditions[key];
     if (value && (key === 'start' || key === 'end')) {
