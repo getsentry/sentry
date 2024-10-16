@@ -18,8 +18,8 @@ transaction_processing_store = LazyServiceWrapper(
     ),
     (
         settings.SENTRY_EVENT_PROCESSING_STORE_OPTIONS
-        if settings.SENTRY_TRANSACTIONS_PROCESSING_STORE_OPTIONS is None
-        else settings.SENTRY_TRANSACTIONS_PROCESSING_STORE_OPTIONS
+        if settings.SENTRY_TRANSACTION_PROCESSING_STORE_OPTIONS is None
+        else settings.SENTRY_TRANSACTION_PROCESSING_STORE_OPTIONS
     ),
 )
 
