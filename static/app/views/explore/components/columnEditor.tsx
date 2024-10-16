@@ -25,20 +25,16 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
-import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 
-type Column = {
-  column: string | undefined;
-  id: number;
-};
+import type {Column} from '../hooks/useDragNDropColumns';
+import {useResultMode} from '../hooks/useResultsMode';
 
 interface ColumnEditorProps {
   columns: Column[];
-  numberTags: TagCollection;
   onColumnChange: (i: number, column: string) => void;
   onColumnDelete: (i: number) => void;
   onColumnSwap: (i: number, j: number) => void;
-  stringTags: TagCollection;
+  tags: TagCollection;
   allowFirstColumnDeletion?: boolean;
   disabled?: boolean;
 }
@@ -48,43 +44,19 @@ export function ColumnEditor({
   onColumnChange,
   onColumnDelete,
   onColumnSwap,
-  stringTags,
-  numberTags,
-  disabled = false,
+  tags,
   allowFirstColumnDeletion = false,
 }: ColumnEditorProps) {
-  const tags: SelectOption<string>[] = useMemo(() => {
-    const allTags = [
-      ...Object.values(stringTags).map(tag => {
-        return {
-          label: tag.name,
-          value: tag.key,
-          textValue: tag.name,
-          trailingItems: <TypeBadge tag={tag} />,
-        };
-      }),
-      ...Object.values(numberTags).map(tag => {
-        return {
-          label: tag.name,
-          value: tag.key,
-          textValue: tag.name,
-          trailingItems: <TypeBadge tag={tag} />,
-        };
-      }),
-    ];
-    allTags.sort((a, b) => {
-      if (a.label < b.label) {
-        return -1;
-      }
-
-      if (a.label > b.label) {
-        return 1;
-      }
-
-      return 0;
+  const [resultMode] = useResultMode();
+  const options: SelectOption<string>[] = useMemo(() => {
+    return Object.values(tags).map(tag => {
+      return {
+        label: tag.name,
+        value: tag.key,
+        textValue: tag.name,
+      };
     });
-    return allTags;
-  }, [stringTags, numberTags]);
+  }, [tags]);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -113,11 +85,11 @@ export function ColumnEditor({
         {columns.map((column, i) => {
           return (
             <ColumnEditorRow
-              disabled={disabled}
+              disabled={resultMode === 'samples'}
               key={column.id}
               canDelete={columns.length > 1 || allowFirstColumnDeletion}
               column={column}
-              tags={tags}
+              tags={options}
               onColumnChange={c => onColumnChange(i, c)}
               onColumnDelete={() => onColumnDelete(i)}
             />
