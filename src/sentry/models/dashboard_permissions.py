@@ -16,7 +16,9 @@ class DashboardPermissions(Model):
     __relocation_scope__ = RelocationScope.Organization
 
     is_creator_only_editable = models.BooleanField(default=False)
-    dashboard = models.OneToOneField("sentry.Dashboard", on_delete=models.CASCADE)
+    dashboard = models.OneToOneField(
+        "sentry.Dashboard", on_delete=models.CASCADE, related_name="permissions"
+    )
 
     class Meta:
         app_label = "sentry"

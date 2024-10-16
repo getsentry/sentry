@@ -7,6 +7,7 @@ from sentry import features
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.models.dashboard import Dashboard
+from sentry.models.dashboard_permissions import DashboardPermissions
 from sentry.models.dashboard_widget import (
     DashboardWidget,
     DashboardWidgetDisplayTypes,
@@ -62,6 +63,10 @@ class DashboardWidgetResponse(TypedDict):
     limit: int | None
     widgetType: str
     layout: dict[str, int]
+
+
+class DashboardPermissionsResponse(TypedDict):
+    is_creator_only_editable: bool
 
 
 @register(DashboardWidget)
@@ -169,6 +174,14 @@ class DashboardWidgetQuerySerializer(Serializer):
         }
 
 
+@register(DashboardPermissions)
+class DashboardPermissionsSerializer(Serializer):
+    def serialize(self, obj, attrs, user, **kwargs) -> DashboardPermissionsResponse:
+        return {
+            "is_creator_only_editable": obj.is_creator_only_editable,
+        }
+
+
 class DashboardListResponse(TypedDict):
     id: str
     title: str
@@ -259,6 +272,7 @@ class DashboardDetailsResponse(DashboardDetailsResponseOptional):
     widgets: list[DashboardWidgetResponse]
     projects: list[int]
     filters: DashboardFilters
+    permissions: DashboardPermissionsResponse | None
 
 
 @register(Dashboard)
@@ -294,6 +308,7 @@ class DashboardDetailsModelSerializer(Serializer):
             "widgets": attrs["widgets"],
             "projects": [project.id for project in obj.projects.all()],
             "filters": {},
+            "permissions": serialize(obj.permissions) if hasattr(obj, "permissions") else None,
         }
 
         if obj.filters is not None:
