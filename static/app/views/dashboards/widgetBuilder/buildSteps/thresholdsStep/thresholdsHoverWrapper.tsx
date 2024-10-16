@@ -15,7 +15,7 @@ type Props = {
   type?: string;
 };
 
-function ThresholdsHoverWrapper({children, thresholds, type}: Props) {
+export function ThresholdsHoverWrapper({children, thresholds, type}: Props) {
   const {
     unit,
     max_values: {max1, max2},
@@ -82,5 +82,3 @@ const ContextTitle = styled('h6')`
 const StyledIndicator = styled(CircleIndicator)`
   margin-right: ${space(1)};
 `;
-
-export default ThresholdsHoverWrapper;

@@ -66,7 +66,7 @@ import {
   WidgetType,
 } from 'sentry/views/dashboards/types';
 
-import ThresholdsHoverWrapper from './widgetBuilder/buildSteps/thresholdsStep/thresholdsHoverWrapper';
+import {ThresholdsHoverWrapper} from './widgetBuilder/buildSteps/thresholdsStep/thresholdsHoverWrapper';
 import type {ThresholdsConfig} from './widgetBuilder/buildSteps/thresholdsStep/thresholdsStep';
 import {ThresholdMaxKeys} from './widgetBuilder/buildSteps/thresholdsStep/thresholdsStep';
 
