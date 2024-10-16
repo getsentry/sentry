@@ -98,7 +98,7 @@ function PerformanceSetupBanner({
     <TraceWarningComponents.Banner
       title={t('Your setup is incomplete')}
       description={t(
-        'Want to know why this string of errors happened? Configure tracing for your SDKs to see correlated events accross your services.'
+        'Want to know why this string of errors happened? Configure tracing for your SDKs to see correlated events across your services.'
       )}
       image={emptyTraceImg}
       onPrimaryButtonClick={() => {
