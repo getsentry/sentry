@@ -7,19 +7,13 @@ from datetime import datetime, timezone
 
 from sentry.api.event_search import ParenExpression, SearchFilter
 from sentry.replays.lib.new_query.conditions import (
-    IPv4Scalar,
     NonEmptyStringScalar,
     StringArray,
     StringScalar,
     UUIDArray,
 )
-from sentry.replays.lib.new_query.fields import (
-    FieldProtocol,
-    NullableStringColumnField,
-    StringColumnField,
-    UUIDColumnField,
-)
-from sentry.replays.lib.new_query.parsers import parse_ipv4, parse_str, parse_uuid
+from sentry.replays.lib.new_query.fields import FieldProtocol, StringColumnField, UUIDColumnField
+from sentry.replays.lib.new_query.parsers import parse_str, parse_uuid
 from sentry.replays.lib.selector.parse import parse_selector
 from sentry.replays.usecases.query.conditions import (
     ClickSelectorComposite,
@@ -68,10 +62,6 @@ varying_search_config: dict[str, FieldProtocol] = {
     "error_ids": ComputedField(parse_uuid, ErrorIdScalar),
     "trace_ids": UUIDColumnField("trace_ids", parse_uuid, UUIDArray),
     "urls": StringColumnField("urls", parse_str, StringArray),
-    "user.email": StringColumnField("user_email", parse_str, NonEmptyStringScalar),
-    "user.id": StringColumnField("user_id", parse_str, NonEmptyStringScalar),
-    "user.ip_address": NullableStringColumnField("ip_address_v4", parse_ipv4, IPv4Scalar),
-    "user.username": StringColumnField("user_name", parse_str, NonEmptyStringScalar),
 }
 
 # Aliases
@@ -79,7 +69,6 @@ varying_search_config["error_id"] = varying_search_config["error_ids"]
 varying_search_config["trace_id"] = varying_search_config["trace_ids"]
 varying_search_config["trace"] = varying_search_config["trace_ids"]
 varying_search_config["url"] = varying_search_config["urls"]
-varying_search_config["user.ip"] = varying_search_config["user.ip_address"]
 varying_search_config["*"] = TagField(query=TagScalar)
 
 
