@@ -86,7 +86,7 @@ devenv version ({minimum_version}) to run sync.
 
 Please run the following to update your global devenv to the minimum:
 
-{constants.root}/bin/devenv update {minimum_version}
+{constants.root}/venv/bin/pip install -U 'sentry-devenv=={minimum_version}'
 
 Then, use it to run sync this one time.
 
