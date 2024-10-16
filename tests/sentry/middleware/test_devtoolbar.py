@@ -158,17 +158,18 @@ class DevToolbarAnalyticsMiddlewareIntegrationTest(APITestCase, SnubaTestCase):
     @patch("sentry.analytics.record")
     def _test_endpoint(
         self,
-        url: str,
+        path: str,
+        query_string: str,
         method: str,
         expected_view_name: str,
         expected_route: str,
         mock_record: MagicMock,
-        expected_query_string=None,
         expected_org_id=None,
         expected_org_slug=None,
         expected_proj_id=None,
         expected_proj_slug=None,
     ):
+        url = path + query_string
         response: HttpResponse = getattr(self.client, method.lower())(
             url,
             headers={
@@ -181,7 +182,7 @@ class DevToolbarAnalyticsMiddlewareIntegrationTest(APITestCase, SnubaTestCase):
             "devtoolbar.api_request",
             view_name=expected_view_name,
             route=expected_route,
-            query_string=expected_query_string,
+            query_string=query_string,
             origin=self.origin,
             method=method,
             status_code=response.status_code,
@@ -194,41 +195,41 @@ class DevToolbarAnalyticsMiddlewareIntegrationTest(APITestCase, SnubaTestCase):
 
     def test_organization_replays(self):
         self._test_endpoint(
-            f"/api/0/organizations/{self.organization.slug}/replays/?field=id&queryReferrer=devtoolbar",
+            f"/api/0/organizations/{self.organization.slug}/replays/",
+            "?field=id&queryReferrer=devtoolbar",
             "GET",
             "sentry-api-0-organization-replay-index",
             "^api/0/organizations/(?P<organization_id_or_slug>[^\\/]+)/replays/$",
-            expected_query_string="?field=id&queryReferrer=devtoolbar",
             expected_org_slug=self.organization.slug,
         )
         self._test_endpoint(
-            f"/api/0/organizations/{self.organization.id}/replays/?queryReferrer=devtoolbar&field=id",
+            f"/api/0/organizations/{self.organization.id}/replays/",
+            "?queryReferrer=devtoolbar&field=id",
             "GET",
             "sentry-api-0-organization-replay-index",
             "^api/0/organizations/(?P<organization_id_or_slug>[^\\/]+)/replays/$",
-            expected_query_string="?queryReferrer=devtoolbar&field=id",
             expected_org_id=self.organization.id,
         )
 
     def test_group_details(self):
         group = self.create_group(substatus=GroupSubStatus.NEW)
         self._test_endpoint(
-            f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/?queryReferrer=devtoolbar",
+            f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/",
+            "?queryReferrer=devtoolbar",
             "GET",
             "sentry-api-0-organization-group-group-details",
             "^api/0/organizations/(?P<organization_id_or_slug>[^\\/]+)/(?:issues|groups)/(?P<issue_id>[^\\/]+)/$",
-            expected_query_string="?queryReferrer=devtoolbar",
             expected_org_slug=self.organization.slug,
         )
 
     def test_project_user_feedback(self):
         # Should return 400 (no POST data)
         self._test_endpoint(
-            f"/api/0/projects/{self.organization.slug}/{self.project.id}/user-feedback/?queryReferrer=devtoolbar",
+            f"/api/0/projects/{self.organization.slug}/{self.project.id}/user-feedback/",
+            "?queryReferrer=devtoolbar",
             "POST",
             "sentry-api-0-project-user-reports",
             r"^api/0/projects/(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/(?:user-feedback|user-reports)/$",
-            expected_query_string="?queryReferrer=devtoolbar",
             expected_org_slug=self.organization.slug,
             expected_proj_id=self.project.id,
         )
