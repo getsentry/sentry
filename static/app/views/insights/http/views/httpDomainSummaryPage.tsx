@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {Fragment} from 'react';
 
 import Alert from 'sentry/components/alert';
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
@@ -215,7 +215,21 @@ export function HTTPDomainSummaryPage() {
       )}
 
       {isInDomainView && view === FRONTEND_LANDING_SUB_PATH && (
-        <FrontendHeader module={ModuleName.HTTP} />
+        <FrontendHeader
+          headerTitle={
+            <Fragment>
+              {project && <ProjectAvatar project={project} size={36} />}
+              {domain || NULL_DOMAIN_DESCRIPTION}
+              <DomainStatusLink domain={domain} />
+            </Fragment>
+          }
+          breadcrumbs={[
+            {
+              label: 'Domain Summary',
+            },
+          ]}
+          module={ModuleName.HTTP}
+        />
       )}
 
       {isInDomainView && view === BACKEND_LANDING_SUB_PATH && (
