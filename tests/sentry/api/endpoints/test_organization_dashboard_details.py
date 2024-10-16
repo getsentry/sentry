@@ -8,6 +8,7 @@ from django.urls import reverse
 
 from sentry.discover.models import DatasetSourcesTypes
 from sentry.models.dashboard import Dashboard, DashboardTombstone
+from sentry.models.dashboard_permissions import DashboardPermissions
 from sentry.models.dashboard_widget import (
     DashboardWidget,
     DashboardWidgetDisplayTypes,
@@ -346,6 +347,33 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
 
         assert response.data["widgets"][0]["queries"][0]["selectedAggregate"] is None
         assert response.data["widgets"][2]["queries"][0]["selectedAggregate"] == 1
+
+    def test_dashboard_details_data_returns_permissions(self):
+        dashboard = Dashboard.objects.create(
+            title="Dashboard With Dataset Source",
+            created_by_id=self.user.id,
+            organization=self.organization,
+        )
+        DashboardPermissions.objects.create(dashboard=dashboard, is_creator_only_editable=False)
+        response = self.do_request("get", self.url(dashboard.id))
+
+        assert response.status_code == 200, response.content
+
+        assert "permissions" in response.data
+        assert not response.data["permissions"]["is_creator_only_editable"]
+
+    def test_dashboard_details_data_returns_Null_permissions(self):
+        dashboard = Dashboard.objects.create(
+            title="Dashboard With Dataset Source",
+            created_by_id=self.user.id,
+            organization=self.organization,
+        )
+        response = self.do_request("get", self.url(dashboard.id))
+
+        assert response.status_code == 200, response.content
+
+        assert "permissions" in response.data
+        assert not response.data["permissions"]
 
 
 class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCase):
@@ -1763,6 +1791,18 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                     ],
                 }
             ],
+        }
+        response = self.do_request(
+            "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
+        )
+        assert response.status_code == 200, response.data
+
+    def test_update_dashboard_permissions(self):
+        mock_project = self.create_project()
+        self.create_environment(project=mock_project, name="mock_env")
+        data = {
+            "title": "Dashboard",
+            "permissions": {"is_creator_only_editable": "False"},
         }
         response = self.do_request(
             "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data

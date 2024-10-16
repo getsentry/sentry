@@ -10,7 +10,7 @@ from django.conf import settings
 from redis.client import StrictRedis
 from rediscluster import RedisCluster
 
-from sentry import analytics, features
+from sentry import analytics
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.monitors.models import Monitor
@@ -180,8 +180,6 @@ def handle_processing_errors(item: CheckinItem, error: ProcessingErrorsException
     try:
         project = Project.objects.get_from_cache(id=item.message["project_id"])
         organization = Organization.objects.get_from_cache(id=project.organization_id)
-        if not features.has("organizations:crons-write-user-feedback", organization):
-            return
 
         metrics.incr(
             "monitors.checkin.handle_processing_error",
