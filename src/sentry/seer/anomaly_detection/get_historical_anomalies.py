@@ -175,7 +175,7 @@ def get_historical_anomaly_data_from_seer(
     end = datetime.fromisoformat(end_string)
     query_columns = get_query_columns([snuba_query.aggregate], snuba_query.time_window)
     historical_data = fetch_historical_data(
-        alert_rule=alert_rule,
+        organization=alert_rule.organization,
         snuba_query=snuba_query,
         query_columns=query_columns,
         project=project,
