@@ -62,8 +62,8 @@ const getMembersQueryKey = ({
   query,
 }: {
   orgSlug: string;
-  query: string;
-}): ApiQueryKey => [`/organizations/${orgSlug}/members/`, {query: {query}}];
+  query: Record<string, string>;
+}): ApiQueryKey => [`/organizations/${orgSlug}/members/`, {query}];
 
 const getInviteRequestsQueryKey = ({organization}): ApiQueryKey => [
   `/organizations/${organization.slug}/invite-requests/`,
@@ -94,7 +94,10 @@ function OrganizationMembersList() {
   } = useApiQuery<Member[]>(
     getMembersQueryKey({
       orgSlug: organization.slug,
-      query: location.query.query as string,
+      query: {
+        query: location.query.query as string,
+        cursor: location.query.cursor as string,
+      },
     }),
     {staleTime: 0}
   );
@@ -112,7 +115,10 @@ function OrganizationMembersList() {
       queryClient,
       getMembersQueryKey({
         orgSlug: organization.slug,
-        query: location.query.query as string,
+        query: {
+          query: location.query.query as string,
+          cursor: location.query.cursor as string,
+        },
       }),
       currentMembers => currentMembers?.filter(member => member.id !== id)
     );
@@ -251,7 +257,7 @@ function OrganizationMembersList() {
   const handleQueryChange = (query: string) => {
     navigate({
       pathname: location.pathname,
-      query: {...location.query, query},
+      query: {...location.query, query, cursor: undefined},
     });
   };
 
