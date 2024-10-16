@@ -16,12 +16,18 @@ class GetOrganizationAccessRequestTest(APITestCase):
             role="member",
             user=self.create_user("joined-team@example.com"),
         )
+        invite_email_member = self.create_member(
+            organization=organization,
+            role="member",
+            email="invite-email@example.com",
+        )
         not_joined_team_member = self.create_member(
             organization=organization,
             role="member",
             user=self.create_user("not-joined-team@example.com"),
         )
         OrganizationAccessRequest.objects.create(member=joined_team_member, team=team)
+        OrganizationAccessRequest.objects.create(member=invite_email_member, team=team)
         not_joined_request = OrganizationAccessRequest.objects.create(
             member=not_joined_team_member, team=team
         )
@@ -33,6 +39,7 @@ class GetOrganizationAccessRequestTest(APITestCase):
         )
 
         # We omit the request that has already been fulfilled by a user joining the team some other way.
+        # We also omit email invites to teams (since those cannot be approved until the user creates a Sentry account)
         assert len(resp.data) == 1
         assert resp.data[0]["id"] == str(not_joined_request.id)
         assert resp.data[0]["member"]["id"] == str(not_joined_request.member.id)
