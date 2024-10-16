@@ -44,7 +44,7 @@ def _nonempty_str(expression: Expression) -> Condition:
     return StringScalar.visit_neq(expression, "")
 
 
-def _nonempty_ipv4(expression: Expression) -> Condition:
+def _nonnull_ipv4(expression: Expression) -> Condition:
     return IPv4Scalar.visit_neq(expression, None)
 
 
@@ -70,13 +70,13 @@ class SumOfIPv4Scalar(GenericBase):
     @staticmethod
     def visit_eq(expression: Expression, value: str | None) -> Condition:
         if value is None:
-            return does_not_contain(_nonempty_ipv4(expression))
+            return does_not_contain(_nonnull_ipv4(expression))
         return contains(IPv4Scalar.visit_eq(expression, value))
 
     @staticmethod
     def visit_neq(expression: Expression, value: str | None) -> Condition:
         if value is None:
-            return contains(_nonempty_ipv4(expression))
+            return contains(_nonnull_ipv4(expression))
         return does_not_contain(IPv4Scalar.visit_eq(expression, value))
 
     @staticmethod
