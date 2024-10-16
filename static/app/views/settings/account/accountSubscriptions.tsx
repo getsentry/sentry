@@ -5,6 +5,7 @@ import moment from 'moment-timezone';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {DateTime} from 'sentry/components/dateTime';
 import EmptyMessage from 'sentry/components/emptyMessage';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
@@ -36,7 +37,7 @@ export type Subscription = {
 };
 
 function AccountSubscriptions() {
-  const {data: subscriptions = [], isLoading} = useApiQuery<Subscription[]>([ENDPOINT], {
+  const {data: subscriptions = [], isPending} = useApiQuery<Subscription[]>([ENDPOINT], {
     staleTime: 2 * 60 * 1000,
   });
 
@@ -76,8 +77,8 @@ function AccountSubscriptions() {
     },
   });
 
-  if (isLoading) {
-    return null;
+  if (isPending) {
+    <LoadingIndicator />;
   }
 
   const subGroups: Array<[string, Subscription[]]> = Object.entries(
@@ -129,8 +130,8 @@ function AccountSubscriptions() {
 
                   {subs
                     .sort((a, b) => a.listId - b.listId)
-                    .map(subscription => (
-                      <PanelItem center key={subscription.listId}>
+                    .map((subscription, i) => (
+                      <PanelItem center key={`${email}-${subscription.listId}-${i}`}>
                         <SubscriptionDetails
                           htmlFor={`${subscription.email}-${subscription.listId}`}
                           aria-label={subscription.listName}
