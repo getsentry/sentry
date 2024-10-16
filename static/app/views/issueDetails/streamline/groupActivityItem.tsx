@@ -292,11 +292,13 @@ export default function getGroupActivityItem(
             message: tct('by [author] in releases greater than [version] [semver]', {
               author,
               version: (
-                <Version
-                  version={currentVersion}
-                  projectId={projectId}
-                  tooltipRawVersion
-                />
+                <ReleaseWrapper>
+                  <Version
+                    version={currentVersion}
+                    projectId={projectId}
+                    tooltipRawVersion
+                  />
+                </ReleaseWrapper>
               ),
               semver: isSemverRelease(currentVersion) ? t('(semver)') : t('(non-semver)'),
             }),
@@ -309,7 +311,9 @@ export default function getGroupActivityItem(
             ? tct('by [author] in [version] [semver]', {
                 author,
                 version: (
-                  <Version version={version} projectId={projectId} tooltipRawVersion />
+                  <ReleaseWrapper>
+                    <Version version={version} projectId={projectId} tooltipRawVersion />
+                  </ReleaseWrapper>
                 ),
                 semver: isSemverRelease(version) ? t('(semver)') : t('(non-semver)'),
               })
@@ -338,11 +342,13 @@ export default function getGroupActivityItem(
                   />
                 ),
                 release: (
-                  <Version
-                    version={deployedReleases[0].version}
-                    projectId={projectId}
-                    tooltipRawVersion
-                  />
+                  <ReleaseWrapper>
+                    <Version
+                      version={deployedReleases[0].version}
+                      projectId={projectId}
+                      tooltipRawVersion
+                    />
+                  </ReleaseWrapper>
                 ),
               }
             ),
@@ -364,11 +370,13 @@ export default function getGroupActivityItem(
                   />
                 ),
                 release: (
-                  <Version
-                    version={deployedReleases[0].version}
-                    projectId={projectId}
-                    tooltipRawVersion
-                  />
+                  <ReleaseWrapper>
+                    <Version
+                      version={deployedReleases[0].version}
+                      projectId={projectId}
+                      tooltipRawVersion
+                    />
+                  </ReleaseWrapper>
                 ),
               }
             ),
@@ -472,18 +480,22 @@ export default function getGroupActivityItem(
                 '[regressionVersion] is greater than or equal to [resolvedVersion] compared via [comparison]',
                 {
                   regressionVersion: (
-                    <Version
-                      version={data.version}
-                      projectId={projectId}
-                      tooltipRawVersion
-                    />
+                    <ReleaseWrapper>
+                      <Version
+                        version={data.version}
+                        projectId={projectId}
+                        tooltipRawVersion
+                      />
+                    </ReleaseWrapper>
                   ),
                   resolvedVersion: (
-                    <Version
-                      version={data.resolved_in_version}
-                      projectId={projectId}
-                      tooltipRawVersion
-                    />
+                    <ReleaseWrapper>
+                      <Version
+                        version={data.resolved_in_version}
+                        projectId={projectId}
+                        tooltipRawVersion
+                      />
+                    </ReleaseWrapper>
                   ),
                   comparison: data.follows_semver ? t('semver') : t('release date'),
                 }
@@ -498,11 +510,13 @@ export default function getGroupActivityItem(
             ? tct('by [author] in [version]. [subtext]', {
                 author,
                 version: (
-                  <Version
-                    version={data.version}
-                    projectId={projectId}
-                    tooltipRawVersion
-                  />
+                  <ReleaseWrapper>
+                    <Version
+                      version={data.version}
+                      projectId={projectId}
+                      tooltipRawVersion
+                    />
+                  </ReleaseWrapper>
                 ),
                 subtext,
               })
@@ -587,11 +601,13 @@ export default function getGroupActivityItem(
               message: tct('in [firstRelease]. Marked as [priority] priority', {
                 priority: activity.data.priority,
                 firstRelease: (
-                  <Version
-                    version={firstRelease.version}
-                    projectId={projectId}
-                    tooltipRawVersion
-                  />
+                  <ReleaseWrapper>
+                    <Version
+                      version={firstRelease.version}
+                      projectId={projectId}
+                      tooltipRawVersion
+                    />
+                  </ReleaseWrapper>
                 ),
               }),
             };
@@ -615,11 +631,13 @@ export default function getGroupActivityItem(
             title: t('Last Seen'),
             message: tct('in [lastRelease]', {
               lastRelease: (
-                <Version
-                  version={lastRelease.version}
-                  projectId={projectId}
-                  tooltipRawVersion
-                />
+                <ReleaseWrapper>
+                  <Version
+                    version={lastRelease.version}
+                    projectId={projectId}
+                    tooltipRawVersion
+                  />
+                </ReleaseWrapper>
               ),
             }),
           };
@@ -731,4 +749,12 @@ const CodeWrapper = styled('div')`
 
 const StyledRuleSpan = styled('span')`
   font-family: ${p => p.theme.text.familyMono};
+`;
+
+const ReleaseWrapper = styled('span')`
+  a {
+    color: ${p => p.theme.gray300};
+    text-decoration: underline;
+    text-decoration-style: dotted;
+  }
 `;
