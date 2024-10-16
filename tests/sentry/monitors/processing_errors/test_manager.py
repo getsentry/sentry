@@ -229,19 +229,10 @@ class HandleProcessingErrorsTest(TestCase):
         handle_processing_errors(
             build_checkin_item(
                 message_overrides={"project_id": self.project.id},
+                payload_overrides={"monitor_slug": monitor.slug},
             ),
             exception,
         )
-        errors = get_errors_for_monitor(monitor)
-        assert not errors
-        with self.feature("organizations:crons-write-user-feedback"):
-            handle_processing_errors(
-                build_checkin_item(
-                    message_overrides={"project_id": self.project.id},
-                    payload_overrides={"monitor_slug": monitor.slug},
-                ),
-                exception,
-            )
         errors = get_errors_for_monitor(monitor)
         assert len(errors) == 1
 
