@@ -919,7 +919,7 @@ def update_alert_rule(
                 raise ResourceDoesNotExist(
                     "Your organization does not have access to this feature."
                 )
-            if "is:unresolved" in query:
+            if query and "is:unresolved" in query:
                 raise ValidationError("Dynamic alerts do not support 'is:unresolved' queries")
             # NOTE: if adding a new metric alert type, take care to check that it's handled here
             project = projects[0] if projects else alert_rule.projects.get()
