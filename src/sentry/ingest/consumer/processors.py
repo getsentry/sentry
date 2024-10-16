@@ -55,7 +55,7 @@ def trace_func(**span_kwargs):
 
 
 def process_transaction_no_celery(
-    data: MutableMapping[str, Any], project_id: int, cache_key: str, start_time: float
+    data: MutableMapping[str, Any], project_id: int, start_time: float
 ) -> None:
 
     set_current_event_project(project_id)
@@ -70,9 +70,6 @@ def process_transaction_no_celery(
             "platform": data.get("platform") or "none",
         },
     ):
-        # Delete the event payload from cache since it won't show up in post-processing.
-        if cache_key:
-            event_processing_store.delete_by_key(cache_key)
         return
 
     manager = EventManager(data)
@@ -81,7 +78,6 @@ def process_transaction_no_celery(
         project_id,
         assume_normalized=True,
         start_time=start_time,
-        cache_key=cache_key,
     )
     # Put the updated event back into the cache so that post_process
     # has the most recent data.
@@ -198,8 +194,14 @@ def process_event(
                 if not event_processing_store.exists(data):
                     return
 
-        with metrics.timer("ingest_consumer._store_event"):
-            cache_key = event_processing_store.store(data)
+        # The no_celery_mode version of the transactions consumer skips one trip to rc-processing
+        # Otherwise, we have to store the event in processing store here for the save_event task to
+        # fetch later
+        if no_celery_mode:
+            cache_key = None
+        else:
+            with metrics.timer("ingest_consumer._store_event"):
+                cache_key = event_processing_store.store(data)
 
         try:
             # Records rc-processing usage broken down by
@@ -223,15 +225,16 @@ def process_event(
                     CachedAttachment(type=attachment.pop("attachment_type"), **attachment)
                     for attachment in attachments
                 ]
-
+                assert cache_key is not None
                 attachment_cache.set(
                     cache_key, attachments=attachment_objects, timeout=CACHE_TIMEOUT
                 )
 
         if data.get("type") == "transaction":
             if no_celery_mode:
-                process_transaction_no_celery(data, project_id, cache_key, start_time)
+                process_transaction_no_celery(data, project_id, start_time)
             else:
+                assert cache_key is not None
                 # No need for preprocess/process for transactions thus submit
                 # directly transaction specific save_event task.
                 save_event_transaction.delay(
