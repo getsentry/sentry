@@ -23,4 +23,4 @@ transaction_processing_store = LazyServiceWrapper(
     ),
 )
 
-__all__ = ["event_processing_store"]
+__all__ = ["event_processing_store", "transaction_processing_store"]
