@@ -2,7 +2,7 @@ from typing import Any
 
 from sentry.event_manager import EventManager
 from sentry.eventstore.models import Event
-from sentry.eventstore.processing import event_processing_store
+from sentry.eventstore.processing import event_processing_store, transactions_processing_store
 from sentry.models.project import Project
 from sentry.testutils.helpers.task_runner import TaskRunner
 from sentry.testutils.outbox import outbox_runner
@@ -13,6 +13,13 @@ def write_event_to_cache(event):
     cache_data["event_id"] = event.event_id
     cache_data["project"] = event.project_id
     return event_processing_store.store(cache_data)
+
+
+def write_transaction_to_cache(event):
+    cache_data = dict(event.data)
+    cache_data["event_id"] = event.event_id
+    cache_data["project"] = event.project_id
+    return transactions_processing_store.store(cache_data)
 
 
 def save_new_event(event_data: dict[str, Any], project: Project) -> Event:

@@ -507,6 +507,10 @@ def _do_save_event(
 
     if cache_key and data is None:
         data = processing.event_processing_store.get(cache_key)
+
+        if options.get("rc-processing-split-write-double") and data is None:
+            data = processing.transactions_processing_store.get(cache_key)
+
         if data is not None:
             event_type = data.get("type") or "none"
 
@@ -563,10 +567,19 @@ def _do_save_event(
             if not isinstance(data, dict):
                 data = dict(data.items())
             processing.event_processing_store.store(data)
+
+            event_type = data.get("type")
+            if event_type == "transaction" and options.get("rc-processing-split-write-double"):
+                processing.transactions_processing_store.store(data)
         except HashDiscarded:
             # Delete the event payload from cache since it won't show up in post-processing.
             if cache_key:
                 processing.event_processing_store.delete_by_key(cache_key)
+
+                event_type = data.get("type")
+                if event_type == "transaction" and options.get("rc-processing-split-write-double"):
+                    processing.transactions_processing_store.store(data)
+
         except Exception:
             metrics.incr("events.save_event.exception", tags={"event_type": event_type})
             raise

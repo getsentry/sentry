@@ -9,10 +9,10 @@ from django.conf import settings
 from django.core.cache import cache
 from usageaccountant import UsageUnit
 
-from sentry import eventstore, features
+from sentry import eventstore, features, options
 from sentry.attachments import CachedAttachment, attachment_cache
 from sentry.event_manager import save_attachment
-from sentry.eventstore.processing import event_processing_store
+from sentry.eventstore.processing import event_processing_store, transactions_processing_store
 from sentry.feedback.usecases.create_feedback import FeedbackCreationSource, is_in_feedback_denylist
 from sentry.ingest.userreport import Conflict, save_userreport
 from sentry.killswitches import killswitch_matches_context
@@ -159,10 +159,14 @@ def process_event(
 
         with metrics.timer("ingest_consumer._store_event"):
             cache_key = event_processing_store.store(data)
+            event_type = data.get("type")
+            if event_type == "transaction" and options.get("rc-processing-split-write-double"):
+                transactions_cache_key = transactions_processing_store.store(data)
 
         try:
             # Records rc-processing usage broken down by
             # event type.
+            # TODO: rewrite this after split
             event_type = data.get("type")
             if event_type == "error":
                 app_feature = "errors"
@@ -190,13 +194,22 @@ def process_event(
         if data.get("type") == "transaction":
             # No need for preprocess/process for transactions thus submit
             # directly transaction specific save_event task.
-            save_event_transaction.delay(
-                cache_key=cache_key,
-                data=None,
-                start_time=start_time,
-                event_id=event_id,
-                project_id=project_id,
-            )
+            if options.get("rc-processing-split-write-double"):
+                save_event_transaction.delay(
+                    cache_key=transactions_cache_key,
+                    data=None,
+                    start_time=start_time,
+                    event_id=event_id,
+                    project_id=project_id,
+                )
+            else:
+                save_event_transaction.delay(
+                    cache_key=cache_key,
+                    data=None,
+                    start_time=start_time,
+                    event_id=event_id,
+                    project_id=project_id,
+                )
 
             try:
                 collect_span_metrics(project, data)

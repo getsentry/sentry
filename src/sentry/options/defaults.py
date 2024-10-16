@@ -2785,3 +2785,5 @@ register(
     default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+register("rc-processing-split-write-double", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)

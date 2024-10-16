@@ -502,8 +502,11 @@ def post_process_group(
     from sentry.utils import snuba
 
     with snuba.options_override({"consistent": True}):
-        from sentry import eventstore
-        from sentry.eventstore.processing import event_processing_store
+        from sentry import eventstore, options
+        from sentry.eventstore.processing import (
+            event_processing_store,
+            transactions_processing_store,
+        )
         from sentry.ingest.transaction_clusterer.datasource.redis import (
             record_transaction_name as record_transaction_name_for_clustering,
         )
@@ -517,6 +520,10 @@ def post_process_group(
             # to ensure that we don't duplicate work should the forwarding consumers
             # need to rewind history.
             data = event_processing_store.get(cache_key)
+
+            if not data and options.get("rc-processing-split-write-double"):
+                data = transactions_processing_store.get(cache_key)
+
             if not data:
                 logger.info(
                     "post_process.skipped",
@@ -525,6 +532,8 @@ def post_process_group(
                 return
             with metrics.timer("tasks.post_process.delete_event_cache"):
                 event_processing_store.delete_by_key(cache_key)
+                if options.get("rc-processing-split-write-double"):
+                    transactions_processing_store.delete_by_key(cache_key)
 
             occurrence = None
             event = process_event(data, group_id)

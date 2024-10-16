@@ -1665,6 +1665,11 @@ SENTRY_EVENT_PROCESSING_STORE = (
 )
 SENTRY_EVENT_PROCESSING_STORE_OPTIONS: dict[str, str] = {}
 
+SENTRY_TRANSACTIONS_PROCESSING_STORE = (
+    "sentry.eventstore.processing.redis.RedisClusterEventProcessingStore"
+)
+SENTRY_TRANSACTIONS_PROCESSING_STORE_OPTIONS: dict[str, str] = {}
+
 # The internal Django cache is still used in many places
 # TODO(dcramer): convert uses over to Sentry's backend
 CACHES = {"default": {"BACKEND": "django.core.cache.backends.dummy.DummyCache"}}

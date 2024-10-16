@@ -63,6 +63,12 @@ def mock_event_processing_store():
 
 
 @pytest.fixture
+def mock_transaction_processing_store():
+    with mock.patch("sentry.eventstore.processing.transaction_processing_store") as m:
+        yield m
+
+
+@pytest.fixture
 def mock_refund():
     with mock.patch.object(quotas, "refund") as m:
         yield m
