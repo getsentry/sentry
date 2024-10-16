@@ -1,7 +1,6 @@
 import type {Flags} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 
-const DEFAULT_BUFFER_SIZE = 100;
 let __SINGLETON: FeatureObserver | null = null;
 
 export default class FeatureObserver {
@@ -27,10 +26,10 @@ export default class FeatureObserver {
 
   public observeFlags({
     organization,
-    bufferSize = DEFAULT_BUFFER_SIZE,
+    bufferSize,
   }: {
+    bufferSize: number;
     organization: Organization;
-    bufferSize?: number;
   }) {
     const FLAGS = this.FEATURE_FLAGS;
 
