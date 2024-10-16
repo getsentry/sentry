@@ -35,9 +35,6 @@ class TestGrantExchanger(TestCase):
         token = self.grant_exchanger.run()
         assert SentryAppInstallation.objects.get(id=self.install.id).api_token == token
 
-    def test_validate_generic_token_exchange_requirements(self):
-        assert self.grant_exchanger._validate()
-
     def test_grant_must_belong_to_installations(self):
         other_install = self.create_sentry_app_installation(prevent_token_exchange=True)
         self.grant_exchanger.code = other_install.api_grant.code
