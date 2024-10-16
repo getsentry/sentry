@@ -678,7 +678,7 @@ describe('ProjectAlertsCreate', function () {
       method: 'POST',
       body: ProjectAlertRuleFixture(),
     });
-
+    createWrapper();
     await userEvent.click((await screen.findAllByLabelText('Delete Node'))[0]);
 
     await selectEvent.select(screen.getByText('Add action...'), [
@@ -710,6 +710,7 @@ describe('ProjectAlertsCreate', function () {
   });
 
   it('does not display noisy alert banner for legacy integrations', async function () {
+    createWrapper();
     await userEvent.click((await screen.findAllByLabelText('Delete Node'))[0]);
 
     await selectEvent.select(screen.getByText('Add action...'), [
