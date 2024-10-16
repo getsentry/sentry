@@ -14,6 +14,7 @@ import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails
 import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
 import {AssigneeSelector} from 'sentry/components/group/assigneeSelector';
 import {getBadgeProperties} from 'sentry/components/group/inboxBadges/statusBadge';
+import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import type {GroupListColumn} from 'sentry/components/issues/groupList';
 import Link from 'sentry/components/links/link';
 import PanelItem from 'sentry/components/panels/panelItem';
@@ -45,9 +46,13 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 import EventView from 'sentry/utils/discover/eventView';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
+import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useMutation} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -56,6 +61,7 @@ import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import GroupPriority from 'sentry/views/issueDetails/groupPriority';
 import {COLUMN_BREAKPOINTS} from 'sentry/views/issueList/actions/utils';
 import {
+  createIssueLink,
   DISCOVER_EXCLUSION_FIELDS,
   getTabs,
   isForReviewQuery,
@@ -160,6 +166,8 @@ function BaseGroupRow({
   showLastTriggered = false,
   onPriorityChange,
 }: Props) {
+  const navigate = useNavigate();
+  const location = useLocation();
   const groups = useLegacyStore(GroupStore);
   const group = useMemo(
     () => groups.find(item => item.id === id) as Group | undefined,
@@ -226,37 +234,32 @@ function BaseGroupRow({
     },
   });
 
-  const wrapperToggle = useCallback(
+  const clickHasBeenHandled = useCallback(
     (evt: React.MouseEvent<HTMLDivElement>) => {
       const targetElement = evt.target as Partial<HTMLElement>;
       if (!group) {
-        return;
+        return true;
       }
 
       // Ignore clicks on links
       if (targetElement?.tagName?.toLowerCase() === 'a') {
-        return;
+        return true;
       }
 
       // Ignore clicks on the selection checkbox
       if (targetElement?.tagName?.toLowerCase() === 'input') {
-        return;
+        return true;
       }
 
       let e = targetElement;
       while (e.parentElement) {
         if (e?.tagName?.toLowerCase() === 'a') {
-          return;
+          return true;
         }
         e = e.parentElement!;
       }
 
-      if (evt.shiftKey) {
-        SelectedGroupStore.shiftToggleItems(group.id);
-        window.getSelection()?.removeAllRanges();
-      } else {
-        SelectedGroupStore.toggleSelect(group.id);
-      }
+      return false;
     },
     [group]
   );
@@ -528,15 +531,61 @@ function BaseGroupRow({
     <GuideAnchor target="issue_stream" />
   );
 
+  const onClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (displayReprocessingLayout) {
+      return;
+    }
+
+    const handled = clickHasBeenHandled(e);
+
+    if (handled) {
+      return;
+    }
+
+    if (canSelect && e.shiftKey) {
+      SelectedGroupStore.shiftToggleItems(group.id);
+      window.getSelection()?.removeAllRanges();
+      return;
+    }
+
+    if (canSelect && isCtrlKeyPressed(e)) {
+      SelectedGroupStore.toggleSelect(group.id);
+      return;
+    }
+
+    if (hasNewLayout) {
+      navigate(
+        normalizeUrl(
+          createIssueLink({
+            data: group,
+            organization,
+            referrer,
+            streamIndex: index,
+            location,
+            query,
+          })
+        )
+      );
+      return;
+    }
+
+    if (!canSelect) {
+      return;
+    }
+
+    SelectedGroupStore.toggleSelect(group.id);
+  };
+
   return (
     <Wrapper
       data-test-id="group"
       data-test-reviewed={reviewed}
-      onClick={displayReprocessingLayout || !canSelect ? undefined : wrapperToggle}
+      onClick={onClick}
       reviewed={reviewed}
       useTintRow={useTintRow ?? true}
       hasNewLayout={hasNewLayout}
     >
+      {hasNewLayout && <InteractionStateLayer data-layer />}
       {canSelect && (
         <GroupCheckbox
           group={group}
@@ -681,8 +730,27 @@ const Wrapper = styled(PanelItem)<{
   ${p =>
     p.hasNewLayout &&
     css`
+      cursor: pointer;
       padding: ${space(1)} 0;
       min-height: 66px;
+
+      /* Adds underline to issue title when active  */
+      &:hover {
+        [data-issue-title-primary] {
+          text-decoration: underline;
+        }
+      }
+
+      /* Disables the hover effect when hovering over dropdown buttons and checkboxes */
+      &:has(button:hover, input:hover, [data-overlay]:hover) {
+        [data-layer] {
+          display: none;
+        }
+
+        [data-issue-title-primary] {
+          text-decoration: none;
+        }
+      }
     `}
 
   ${p =>

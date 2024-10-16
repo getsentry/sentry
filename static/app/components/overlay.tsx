@@ -124,7 +124,7 @@ const Overlay = styled(
           : {style};
 
       return (
-        <motion.div {...props} {...animationProps} ref={ref}>
+        <motion.div {...props} {...animationProps} data-overlay ref={ref}>
           {defined(arrowProps) && <OverlayArrow {...arrowProps} />}
           <PanelProvider>{children}</PanelProvider>
         </motion.div>
