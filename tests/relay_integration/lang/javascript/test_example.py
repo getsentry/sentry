@@ -5,7 +5,7 @@ import pytest
 from sentry.models.files.file import File
 from sentry.models.release import Release
 from sentry.models.releasefile import ReleaseFile
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.relay import RelayStoreHelper
 from sentry.testutils.skips import requires_kafka, requires_symbolicator
@@ -71,7 +71,7 @@ class TestExample(RelayStoreHelper):
             )
 
         data = {
-            "timestamp": iso_format(before_now(minutes=1)),
+            "timestamp": before_now(minutes=1).isoformat(),
             "message": "hello",
             "platform": "javascript",
             "release": "abc",
