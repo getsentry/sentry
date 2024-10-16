@@ -1,4 +1,4 @@
-import type {MonitorBucketEnvMapping} from '../types';
+import type {MonitorBucketEnvMapping, StatsBucket} from '../types';
 
 import {CHECKIN_STATUS_PRECEDENT} from './constants';
 
@@ -9,18 +9,18 @@ import {CHECKIN_STATUS_PRECEDENT} from './constants';
 export function mergeEnvMappings(
   envMappingA: MonitorBucketEnvMapping,
   envMappingB: MonitorBucketEnvMapping
-) {
+): MonitorBucketEnvMapping {
   const combinedEnvs = new Set([
     ...Object.keys(envMappingA),
     ...Object.keys(envMappingB),
   ]);
-  return [...combinedEnvs].reduce((mergedEnvs, env) => {
-    const mergedStatusCounts = {};
+  return [...combinedEnvs].reduce<MonitorBucketEnvMapping>((mergedEnvs, env) => {
+    const mergedStatusCounts: Partial<StatsBucket> = {};
     for (const status of CHECKIN_STATUS_PRECEDENT) {
       mergedStatusCounts[status] =
         (envMappingA[env]?.[status] ?? 0) + (envMappingB[env]?.[status] ?? 0);
     }
-    mergedEnvs[env] = mergedStatusCounts;
+    mergedEnvs[env] = mergedStatusCounts as StatsBucket;
     return mergedEnvs;
   }, {});
 }

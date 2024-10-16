@@ -11,7 +11,7 @@ from uuid import uuid4
 import jsonschema
 from django.conf import settings
 from django.db import models
-from django.db.models import Q
+from django.db.models import Case, IntegerField, Q, Value, When
 from django.db.models.signals import post_delete, pre_save
 from django.dispatch import receiver
 from django.utils import timezone
@@ -167,6 +167,20 @@ class CheckInStatus:
             (cls.MISSED, "missed"),
             (cls.TIMEOUT, "timeout"),
         )
+
+
+DEFAULT_STATUS_ORDER = [
+    MonitorStatus.ERROR,
+    MonitorStatus.OK,
+    MonitorStatus.ACTIVE,
+    MonitorStatus.DISABLED,
+]
+
+MONITOR_ENVIRONMENT_ORDERING = Case(
+    When(is_muted=True, then=Value(len(DEFAULT_STATUS_ORDER) + 1)),
+    *[When(status=s, then=Value(i)) for i, s in enumerate(DEFAULT_STATUS_ORDER)],
+    output_field=IntegerField(),
+)
 
 
 class MonitorType:
