@@ -75,15 +75,16 @@ export default storyBook(WidgetFrame, story => {
     return (
       <Fragment>
         <p>
-          <JSXNode name="WidgetFrame" /> supports a <code>badge</code> prop. If passed, a
-          <code>Badge</code> component with the relevant props appears in the header.
+          <JSXNode name="WidgetFrame" /> supports a <code>badgeProps</code> prop. If
+          passed, a<code>Badge</code> component with the relevant props appears in the
+          header.
         </p>
 
         <SideBySide>
           <NormalWidget>
             <WidgetFrame
               title="count()"
-              badge={{
+              badgeProps={{
                 text: 'Sampled',
                 type: 'default',
               }}

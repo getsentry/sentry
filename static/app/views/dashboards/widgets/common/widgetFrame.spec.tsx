@@ -35,7 +35,7 @@ describe('WidgetFrame', () => {
       rerender(
         <WidgetFrame
           title="count()"
-          badge={{
+          badgeProps={{
             text: 'Sampled',
           }}
         />

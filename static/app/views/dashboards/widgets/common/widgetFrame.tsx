@@ -18,7 +18,7 @@ import {WarningsList} from './warningsList';
 
 export interface Props extends StateProps {
   actions?: MenuItemProps[];
-  badge?: BadgeProps;
+  badgeProps?: BadgeProps;
   children?: React.ReactNode;
   description?: string;
   onFullScreenViewClick?: () => void;
@@ -58,7 +58,7 @@ export function WidgetFrame(props: Props) {
           <TitleText>{props.title}</TitleText>
         </Tooltip>
 
-        {props.badge && <RigidBadge {...props.badge} />}
+        {props.badgeProps && <RigidBadge {...props.badgeProps} />}
 
         {(props.description ||
           props.onFullScreenViewClick ||
