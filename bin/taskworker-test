@@ -20,6 +20,7 @@ configure()
 @click.option("--number", "-n", help="Number of messages to append", default=10_000)
 @click.option("--verbose", "-v", help="Enable verbose output", default=False, is_flag=True)
 @click.option("--seed", "-s", help="pseudo random number generator seed", default=None)
+@click.option("--consumers", help="Number of consumer processes", default=1)
 @click.option("--workers", help="Number of worker processes", default=1)
 @click.option("--mode", help="The worker/consumer mode to use", default="pull")
 @click.option("--storage", help="The storage mode to use", default="postgres")
@@ -27,6 +28,7 @@ configure()
 def main(
     number: int,
     verbose: bool,
+    consumers: int,
     workers: int,
     seed: float | None,
     mode: str,
@@ -67,24 +69,25 @@ def main(
                 "cmd": ["sentry", "run", "kafka-task-grpc-pull", "--storage", storage],
             },
         )
-        processes.append(
-            {
-                "name": "consumer",
-                "cmd": [
-                    "sentry",
-                    "run",
-                    "consumer",
-                    "taskworker",
-                    "--consumer-group",
-                    "taskworker-pull",
-                    "--log-level",
-                    "warning",
-                    "--",
-                    "--storage",
-                    storage,
-                ],
-            }
-        )
+        for i in range(consumers):
+            processes.append(
+                {
+                    "name": f"consumer-{i}",
+                    "cmd": [
+                        "sentry",
+                        "run",
+                        "consumer",
+                        "taskworker",
+                        "--consumer-group",
+                        "taskworker-pull",
+                        "--log-level",
+                        "warning",
+                        "--",
+                        "--storage",
+                        storage,
+                    ],
+                }
+            )
         for i in range(workers):
             processes.append(
                 {
@@ -247,7 +250,7 @@ def print_results(log_file: str, worker_count: int) -> None:
         bar += f" {count} "
         bars.append((bucket_upper, bar))
 
-    for (bucket_upper, bar) in sorted(bars, key=lambda x: x[0]):
+    for bucket_upper, bar in sorted(bars, key=lambda x: x[0]):
         click.echo(f"{bucket_upper:.5f} {bar}")
 
 
