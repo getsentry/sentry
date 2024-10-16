@@ -30,7 +30,8 @@ export function ToolbarGroupBy({disabled}: ToolbarGroupByProps) {
 
   useEffect(() => {
     setGroupBys(editableColumns.map(({column}) => column).filter(defined));
-  }, [editableColumns, setGroupBys]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editableColumns]);
 
   const addGroupBy = useCallback(() => {
     setGroupBys([...groupBys, '']);
