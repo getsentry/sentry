@@ -25,6 +25,7 @@ export function BackendHeader({module, headerActions}: Props) {
   return (
     <DomainViewHeader
       domainBaseUrl={backendBaseUrl}
+      domainTitle={BACKEND_LANDING_TITLE}
       headerTitle={BACKEND_LANDING_TITLE}
       additonalHeaderActions={headerActions}
       modules={modules}

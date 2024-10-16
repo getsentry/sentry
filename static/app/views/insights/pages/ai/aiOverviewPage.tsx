@@ -24,6 +24,7 @@ import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLay
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {AiHeader} from 'sentry/views/insights/pages/ai/aiPageHeader';
+import {AI_LANDING_TITLE} from 'sentry/views/insights/pages/ai/settings';
 import {OVERVIEW_PAGE_TITLE} from 'sentry/views/insights/pages/settings';
 import {generateGenericPerformanceEventView} from 'sentry/views/performance/data';
 import {TripleChartRow} from 'sentry/views/performance/landing/widgets/components/widgetChartRow';
@@ -124,7 +125,7 @@ function AiOverviewPage() {
       renderDisabled={NoAccess}
     >
       <Layout.Header>
-        <AiHeader />
+        <AiHeader headerTitle={AI_LANDING_TITLE} />
       </Layout.Header>
       <Layout.Body>
         <Layout.Main fullWidth>
