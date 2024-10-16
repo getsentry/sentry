@@ -72,7 +72,8 @@ def process_transaction_no_celery(
     ):
         # Delete the event payload from cache since it won't show up in post-processing.
         if cache_key:
-            event_processing_store.delete_by_key(cache_key)
+            with sentry_sdk.start_span(op="event_processing_store.delete_by_key"):
+                event_processing_store.delete_by_key(cache_key)
         return
 
     manager = EventManager(data)
@@ -88,7 +89,9 @@ def process_transaction_no_celery(
     data = manager.get_data()
     if not isinstance(data, dict):
         data = dict(data.items())
-    event_processing_store.store(data)
+
+    with sentry_sdk.start_span(op="event_processing_store.store"):
+        event_processing_store.store(data)
 
 
 @trace_func(name="ingest_consumer.process_event")
@@ -230,7 +233,8 @@ def process_event(
 
         if data.get("type") == "transaction":
             if no_celery_mode:
-                process_transaction_no_celery(data, project_id, cache_key, start_time)
+                with sentry_sdk.start_span(op="ingest_consumer.process_transaction_no_celery"):
+                    process_transaction_no_celery(data, project_id, cache_key, start_time)
             else:
                 # No need for preprocess/process for transactions thus submit
                 # directly transaction specific save_event task.
