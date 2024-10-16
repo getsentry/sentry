@@ -197,7 +197,7 @@ export function EventFeatureFlagList({
     <ErrorBoundary mini message={t('There was a problem loading feature flags.')}>
       <InterimSection
         help={t(
-          "The last 10 flags evaluated in the user's session leading up to this event."
+          "The last 100 flags evaluated in the user's session leading up to this event."
         )}
         isHelpHoverable
         title={t('Feature Flags')}
