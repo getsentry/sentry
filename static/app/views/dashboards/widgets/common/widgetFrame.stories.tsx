@@ -127,6 +127,24 @@ export default storyBook(WidgetFrame, story => {
       </Fragment>
     );
   });
+
+  story('Full Screen View Button', () => {
+    return (
+      <Fragment>
+        <p>
+          <JSXNode name="WidgetFrame" /> supports a <code>onOpenFullScreenView</code>{' '}
+          prop. This is a special action that always appears as an individual icon to the
+          right of the normal actions.
+        </p>
+
+        <SideBySide>
+          <NormalWidget>
+            <WidgetFrame title="count()" onFullScreenViewClick={() => {}} />
+          </NormalWidget>
+        </SideBySide>
+      </Fragment>
+    );
+  });
 });
 
 const NormalWidget = styled('div')`
