@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 
+import Badge, {type BadgeProps} from 'sentry/components/badge/badge';
 import {Button, LinkButton} from 'sentry/components/button';
 import {HeaderTitle} from 'sentry/components/charts/styles';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
@@ -17,6 +18,7 @@ import {WarningsList} from './warningsList';
 
 export interface Props extends StateProps {
   actions?: MenuItemProps[];
+  badgeProps?: BadgeProps;
   children?: React.ReactNode;
   description?: string;
   onFullScreenViewClick?: () => void;
@@ -55,6 +57,8 @@ export function WidgetFrame(props: Props) {
         <Tooltip title={props.title} containerDisplayMode="grid" showOnlyOnOverflow>
           <TitleText>{props.title}</TitleText>
         </Tooltip>
+
+        {props.badgeProps && <RigidBadge {...props.badgeProps} />}
 
         {(props.description ||
           props.onFullScreenViewClick ||
@@ -168,6 +172,10 @@ const Header = styled('div')`
 const TitleText = styled(HeaderTitle)`
   ${p => p.theme.overflowEllipsis};
   font-weight: ${p => p.theme.fontWeightBold};
+`;
+
+const RigidBadge = styled(Badge)`
+  flex-shrink: 0;
 `;
 
 const VisualizationWrapper = styled('div')`
