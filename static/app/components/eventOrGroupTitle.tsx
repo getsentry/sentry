@@ -41,7 +41,11 @@ function EventOrGroupTitle({
           groupingCurrentLevel={data.metadata?.current_level}
           query={query}
         >
-          {hasNewLayout ? <Title>{titleLabel}</Title> : titleLabel}
+          {hasNewLayout ? (
+            <Title data-issue-title-primary>{titleLabel}</Title>
+          ) : (
+            titleLabel
+          )}
         </GroupPreviewTooltip>
       ) : (
         titleLabel

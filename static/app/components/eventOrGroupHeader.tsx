@@ -15,6 +15,7 @@ import type {Organization} from 'sentry/types/organization';
 import {getLocation, getMessage, isTombstone} from 'sentry/utils/events';
 import {useLocation} from 'sentry/utils/useLocation';
 import withOrganization from 'sentry/utils/withOrganization';
+import {createIssueLink} from 'sentry/views/issueList/utils';
 
 import EventTitleError from './eventTitleError';
 
@@ -71,8 +72,7 @@ function EventOrGroupHeader({
   }
 
   function getTitle() {
-    const {id, status} = data as Group;
-    const {eventID: latestEventId, groupID} = data as Event;
+    const {status} = data as Group;
 
     const commonEleProps = {
       'data-test-id': status === 'resolved' ? 'resolved-issue' : null,
@@ -84,32 +84,18 @@ function EventOrGroupHeader({
       );
     }
 
-    // If we have passed in a custom event ID, use it; otherwise use default
-    const finalEventId = eventId ?? latestEventId;
-
     return (
       <TitleWithLink
         {...commonEleProps}
-        to={{
-          pathname: `/organizations/${organization.slug}/issues/${
-            latestEventId ? groupID : id
-          }/${finalEventId ? `events/${finalEventId}/` : ''}`,
-          query: {
-            referrer: source || 'event-or-group-header',
-            stream_index: index,
-            query,
-            // This adds sort to the query if one was selected from the
-            // issues list page
-            ...(location.query.sort !== undefined ? {sort: location.query.sort} : {}),
-            // This appends _allp to the URL parameters if they have no
-            // project selected ("all" projects included in results). This is
-            // so that when we enter the issue details page and lock them to
-            // a project, we can properly take them back to the issue list
-            // page with no project selected (and not the locked project
-            // selected)
-            ...(location.query.project !== undefined ? {} : {_allp: 1}),
-          },
-        }}
+        to={createIssueLink({
+          organization,
+          data,
+          eventId,
+          referrer: source,
+          streamIndex: index,
+          location,
+          query,
+        })}
         onClick={onClick}
       >
         {getTitleChildren()}
