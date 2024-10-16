@@ -458,4 +458,12 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
     imageSrc: screenLoadsPreviewImg,
     supportedSdks: ['android', 'flutter', 'apple-ios', 'react-native'],
   },
+  'screen-rendering': {
+    description: t('TODO'),
+    heading: t('TODO'),
+    imageSrc: screenLoadsPreviewImg, // TODO - replace with actual image
+    valuePropDescription: t('TODO'),
+    valuePropPoints: [],
+    supportedSdks: ['android', 'flutter', 'apple-ios', 'react-native'],
+  },
 };

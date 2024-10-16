@@ -181,6 +181,7 @@ const LABEL_FOR_MODULE_NAME: {[key in ModuleName]: ReactNode} = {
   resource: t('Resource'),
   other: t('Domain'),
   ai: t('Domain'),
+  'screen-rendering': t('Domain'),
   'mobile-ui': t('Domain'),
   'mobile-screens': t('Domain'),
 };
