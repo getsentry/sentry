@@ -27,7 +27,7 @@ export function NewIssueExperienceButton() {
 
   const feedbackButton = openForm ? (
     <Button
-      size="sm"
+      size="xs"
       aria-label={t('Give feedback on new UI')}
       onClick={() =>
         openForm({
@@ -51,7 +51,7 @@ export function NewIssueExperienceButton() {
     <ButtonBar merged>
       <StyledButton
         enabled={hasStreamlinedUI}
-        size="sm"
+        size={hasStreamlinedUI ? 'xs' : 'sm'}
         icon={<IconLab isSolid={hasStreamlinedUI} />}
         title={label}
         aria-label={label}
