@@ -620,6 +620,8 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "user.username:username123",
                 "user.email:username@example.com",
                 "user.email:*@example.com",
+                "user.email:[user2@example.com, username@example.com]",
+                "!user.email:[user2@example.com]",
                 "user.ip:127.0.0.1",
                 "sdk.name:sentry.javascript.react",
                 "os.name:macOS",
@@ -718,6 +720,8 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "activity:<2",
                 "viewed_by_id:2",
                 "seen_by_id:2",
+                "user.email:[user2@example.com]",
+                "!user.email:[username@example.com, user2@example.com]",
             ]
             for query in null_queries:
                 response = self.client.get(self.url + f"?field=id&query={query}")
