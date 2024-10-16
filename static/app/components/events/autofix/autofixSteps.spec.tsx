@@ -59,7 +59,7 @@ describe('AutofixSteps', () => {
 
     expect(screen.getByText('Root cause 1')).toBeInTheDocument();
     expect(
-      screen.getByPlaceholderText('Or propose your own root cause instead...')
+      screen.getByPlaceholderText('Provide any instructions for the fix...')
     ).toBeInTheDocument();
   });
 
@@ -72,9 +72,7 @@ describe('AutofixSteps', () => {
 
     render(<AutofixSteps {...defaultProps} />);
 
-    const input = screen.getByPlaceholderText(
-      'Or propose your own root cause instead...'
-    );
+    const input = screen.getByPlaceholderText('Provide any instructions for the fix...');
     await userEvent.type(input, 'Custom root cause');
     await userEvent.click(screen.getByRole('button', {name: 'Find a Fix'}));
 
@@ -103,47 +101,11 @@ describe('AutofixSteps', () => {
     });
   });
 
-  it('disables input when code changes are showing', () => {
-    MockApiClient.addMockResponse({
-      url: '/issues/group1/autofix/setup/',
-      body: {
-        genAIConsent: {ok: true},
-        codebaseIndexing: {ok: true},
-        integration: {ok: true},
-        githubWriteIntegration: {
-          repos: [],
-        },
-      },
-    });
-
-    const propsWithCodeChanges = {
-      ...defaultProps,
-      data: {
-        ...defaultProps.data,
-        steps: [
-          ...(defaultProps.data.steps as AutofixStep[]),
-          AutofixStepFixture({
-            id: '3',
-            type: AutofixStepType.CHANGES,
-            status: 'COMPLETED',
-            progress: [],
-            changes: [AutofixCodebaseChangeData()],
-          }),
-        ],
-      },
-    };
-
-    render(<AutofixSteps {...propsWithCodeChanges} />);
-
-    const input = screen.getByPlaceholderText('Say something...');
-    expect(input).toBeDisabled();
-  });
-
   it('renders AutofixMessageBox with correct props', () => {
     render(<AutofixSteps {...defaultProps} />);
 
     const messageBox = screen.getByPlaceholderText(
-      'Or propose your own root cause instead...'
+      'Provide any instructions for the fix...'
     );
     expect(messageBox).toBeInTheDocument();
 
@@ -178,5 +140,58 @@ describe('AutofixSteps', () => {
     render(<AutofixSteps {...propsWithProgress} />);
 
     expect(screen.getByText('Log message')).toBeInTheDocument();
+  });
+
+  it('handles iterating on changes step', async () => {
+    MockApiClient.addMockResponse({
+      url: '/issues/group1/autofix/setup/',
+      body: {
+        genAIConsent: {ok: true},
+        codebaseIndexing: {ok: true},
+        integration: {ok: true},
+        githubWriteIntegration: {
+          repos: [],
+        },
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: '/issues/group1/autofix/update/',
+      method: 'POST',
+      body: {},
+    });
+
+    const propsWithChanges = {
+      ...defaultProps,
+      data: {
+        ...defaultProps.data,
+        steps: [
+          AutofixStepFixture({
+            id: '1',
+            type: AutofixStepType.DEFAULT,
+            status: 'COMPLETED',
+            insights: [],
+            progress: [],
+            index: 0,
+          }),
+          AutofixStepFixture({
+            id: '2',
+            type: AutofixStepType.CHANGES,
+            status: 'COMPLETED',
+            progress: [],
+            changes: [AutofixCodebaseChangeData()],
+          }),
+        ],
+      },
+    };
+
+    render(<AutofixSteps {...propsWithChanges} />);
+
+    const input = screen.getByPlaceholderText('Say something...');
+    await userEvent.type(input, 'Feedback on changes');
+    await userEvent.click(screen.getByRole('button', {name: 'Send'}));
+
+    await waitFor(() => {
+      expect(addSuccessMessage).toHaveBeenCalledWith("Thanks, I'll rethink this...");
+    });
   });
 });

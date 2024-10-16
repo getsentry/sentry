@@ -6,6 +6,7 @@ import {Button} from 'sentry/components/button';
 import {type AutofixStep, AutofixStepType} from 'sentry/components/events/autofix/types';
 import Input from 'sentry/components/input';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {
   IconCheckmark,
   IconChevron,
@@ -51,14 +52,11 @@ interface AutofixMessageBoxProps {
   allowEmptyMessage: boolean;
   displayText: string;
   groupId: string;
-  inputPlaceholder: string;
-  isDisabled: boolean;
-  onSend: ((message: string) => void) | null;
+  onSend: ((message: string, isCustom?: boolean) => void) | null;
   responseRequired: boolean;
   runId: string;
   step: AutofixStep | null;
-  emptyInfoText?: string;
-  notEmptyInfoText?: string;
+  isRootCauseSelectionStep?: boolean;
   primaryAction?: boolean;
   scrollIntoView?: (() => void) | null;
 }
@@ -98,29 +96,41 @@ function StepIcon({step}: {step: AutofixStep}) {
 function AutofixMessageBox({
   displayText = '',
   step = null,
-  inputPlaceholder = 'Say something...',
   primaryAction = false,
   responseRequired = false,
   onSend,
   actionText = 'Send',
   allowEmptyMessage = false,
-  isDisabled = false,
   groupId,
   runId,
-  emptyInfoText = '',
-  notEmptyInfoText = '',
   scrollIntoView = null,
+  isRootCauseSelectionStep = false,
 }: AutofixMessageBoxProps) {
   const [message, setMessage] = useState('');
   const {mutate: send} = useSendMessage({groupId, runId});
 
-  isDisabled =
-    isDisabled ||
+  const [rootCauseMode, setRootCauseMode] = useState<
+    'suggested_root_cause' | 'custom_root_cause'
+  >('suggested_root_cause');
+
+  const isDisabled =
     step?.status === 'ERROR' ||
     (step?.type === AutofixStepType.ROOT_CAUSE_ANALYSIS && step.causes?.length === 0);
 
   const handleSend = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+
+    if (isRootCauseSelectionStep && onSend) {
+      if (rootCauseMode === 'custom_root_cause' && message.trim() !== '') {
+        onSend?.(message, true);
+        setMessage('');
+      } else if (rootCauseMode === 'suggested_root_cause') {
+        onSend?.(message, false);
+        setMessage('');
+      }
+      return;
+    }
+
     if (message.trim() !== '' || allowEmptyMessage) {
       if (onSend != null) {
         onSend(message);
@@ -162,7 +172,22 @@ function AutofixMessageBox({
           }}
         />
         <ActionBar>
-          <p>{message.length > 0 ? notEmptyInfoText : emptyInfoText}</p>
+          {isRootCauseSelectionStep && (
+            <Fragment>
+              <SegmentedControl
+                size="xs"
+                value={rootCauseMode}
+                onChange={setRootCauseMode}
+              >
+                <SegmentedControl.Item key="suggested_root_cause">
+                  {t('Use suggested root cause')}
+                </SegmentedControl.Item>
+                <SegmentedControl.Item key="custom_root_cause">
+                  {t('Provide your own root cause')}
+                </SegmentedControl.Item>
+              </SegmentedControl>
+            </Fragment>
+          )}
         </ActionBar>
       </DisplayArea>
       <form onSubmit={handleSend}>
@@ -173,7 +198,13 @@ function AutofixMessageBox({
                 type="text"
                 value={message}
                 onChange={e => setMessage(e.target.value)}
-                placeholder={inputPlaceholder}
+                placeholder={
+                  !isRootCauseSelectionStep
+                    ? 'Say something...'
+                    : rootCauseMode === 'suggested_root_cause'
+                      ? 'Provide any instructions for the fix...'
+                      : 'Propose your own root cause...'
+                }
                 disabled={isDisabled}
               />
               <Button
@@ -286,8 +317,8 @@ const ProcessingStatusIndicator = styled(LoadingIndicator)`
 
 const ActionBar = styled('div')`
   position: absolute;
-  bottom: 3em;
-  color: ${p => p.theme.subText};
+  bottom: 4.25em;
+  left: ${space(2)};
 `;
 
 export default AutofixMessageBox;

@@ -1,5 +1,4 @@
 import {Fragment, useCallback, useMemo, useRef} from 'react';
-import type {Theme} from '@emotion/react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
@@ -49,11 +48,13 @@ import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useMutation} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import withOrganization from 'sentry/utils/withOrganization';
 import type {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import GroupPriority from 'sentry/views/issueDetails/groupPriority';
+import {COLUMN_BREAKPOINTS} from 'sentry/views/issueList/actions/utils';
 import {
   DISCOVER_EXCLUSION_FIELDS,
   getTabs,
@@ -91,8 +92,10 @@ function GroupCheckbox({
   group: Group;
   displayReprocessingLayout?: boolean;
 }) {
+  const organization = useOrganization();
   const {records: selectedGroupMap} = useLegacyStore(SelectedGroupStore);
   const isSelected = selectedGroupMap.get(group.id) ?? false;
+  const hasNewLayout = organization.features.includes('issue-stream-table-layout');
 
   const onChange = useCallback(
     (evt: React.ChangeEvent<HTMLInputElement>) => {
@@ -108,7 +111,7 @@ function GroupCheckbox({
   );
 
   return (
-    <GroupCheckBoxWrapper>
+    <GroupCheckBoxWrapper hasNewLayout={hasNewLayout}>
       <Checkbox
         id={group.id}
         aria-label={t('Select Issue')}
@@ -164,6 +167,7 @@ function BaseGroupRow({
   );
   const originalInboxState = useRef(group?.inbox as InboxDetails | null);
   const {selection} = usePageFilters();
+  const hasNewLayout = organization.features.includes('issue-stream-table-layout');
 
   const referrer = source ? `${source}-issue-stream` : 'issue-stream';
 
@@ -438,9 +442,20 @@ function BaseGroupRow({
           </CountTooltipContent>
         }
       >
-        <PrimaryCount value={primaryCount} />
-        {secondaryCount !== undefined && useFilteredStats && (
-          <SecondaryCount value={secondaryCount} />
+        {hasNewLayout ? (
+          <CountsWrapper>
+            <PrimaryCount value={primaryCount} hasNewLayout={hasNewLayout} />
+            {secondaryCount !== undefined && useFilteredStats && (
+              <SecondaryCount value={secondaryCount} hasNewLayout={hasNewLayout} />
+            )}
+          </CountsWrapper>
+        ) : (
+          <Fragment>
+            <PrimaryCount value={primaryCount} />
+            {secondaryCount !== undefined && useFilteredStats && (
+              <SecondaryCount value={secondaryCount} />
+            )}
+          </Fragment>
         )}
       </Tooltip>
     </GuideAnchor>
@@ -478,9 +493,20 @@ function BaseGroupRow({
         </CountTooltipContent>
       }
     >
-      <PrimaryCount value={primaryUserCount} />
-      {secondaryUserCount !== undefined && useFilteredStats && (
-        <SecondaryCount dark value={secondaryUserCount} />
+      {hasNewLayout ? (
+        <CountsWrapper>
+          <PrimaryCount value={primaryUserCount} hasNewLayout={hasNewLayout} />
+          {secondaryUserCount !== undefined && useFilteredStats && (
+            <SecondaryCount value={secondaryUserCount} hasNewLayout={hasNewLayout} />
+          )}
+        </CountsWrapper>
+      ) : (
+        <Fragment>
+          <PrimaryCount value={primaryUserCount} />
+          {secondaryUserCount !== undefined && useFilteredStats && (
+            <SecondaryCount value={secondaryUserCount} />
+          )}
+        </Fragment>
       )}
     </Tooltip>
   );
@@ -509,6 +535,7 @@ function BaseGroupRow({
       onClick={displayReprocessingLayout || !canSelect ? undefined : wrapperToggle}
       reviewed={reviewed}
       useTintRow={useTintRow ?? true}
+      hasNewLayout={hasNewLayout}
     >
       {canSelect && (
         <GroupCheckbox
@@ -516,7 +543,7 @@ function BaseGroupRow({
           displayReprocessingLayout={displayReprocessingLayout}
         />
       )}
-      <GroupSummary canSelect={canSelect}>
+      <GroupSummary canSelect={canSelect} hasNewLayout={hasNewLayout}>
         <EventOrGroupHeader
           index={index}
           organization={organization}
@@ -524,14 +551,26 @@ function BaseGroupRow({
           query={query}
           source={referrer}
         />
-        <EventOrGroupExtraDetails
-          data={group}
-          showLifetime={!organization.features.includes('issue-stream-table-layout')}
-        />
+        <EventOrGroupExtraDetails data={group} showLifetime={!hasNewLayout} />
       </GroupSummary>
       {hasGuideAnchor && issueStreamAnchor}
 
-      {withChart && !displayReprocessingLayout && issueTypeConfig.stats.enabled && (
+      {withChart &&
+      !displayReprocessingLayout &&
+      issueTypeConfig.stats.enabled &&
+      hasNewLayout ? (
+        <NarrowChartWrapper breakpoint={COLUMN_BREAKPOINTS.TREND}>
+          <GroupStatusChart
+            hideZeros
+            loading={!defined(groupStats)}
+            stats={groupStats}
+            secondaryStats={groupSecondaryStats}
+            showSecondaryPoints={showSecondaryPoints}
+            groupStatus={getBadgeProperties(group.status, group.substatus)?.status}
+            showMarkLine
+          />
+        </NarrowChartWrapper>
+      ) : (
         <ChartWrapper
           narrowGroups={narrowGroups}
           margin={withColumns.includes('firstSeen')}
@@ -552,42 +591,72 @@ function BaseGroupRow({
       ) : (
         <Fragment>
           {withColumns.includes('firstSeen') && (
-            <TimestampWrapper>
+            <TimestampWrapper breakpoint={COLUMN_BREAKPOINTS.AGE}>
               <GroupTimestamp date={group.firstSeen} label={t('First Seen')} />
             </TimestampWrapper>
           )}
           {withColumns.includes('lastSeen') && (
-            <TimestampWrapper>
+            <TimestampWrapper breakpoint={COLUMN_BREAKPOINTS.SEEN}>
               <GroupTimestamp date={group.lastSeen} label={t('Last Seen')} />
             </TimestampWrapper>
           )}
-          {withColumns.includes('event') && issueTypeConfig.stats.enabled && (
+          {withColumns.includes('event') &&
+          issueTypeConfig.stats.enabled &&
+          hasNewLayout ? (
+            <NarrowEventsOrUsersCountsWrapper breakpoint={COLUMN_BREAKPOINTS.EVENTS}>
+              <InnerCountsWrapper>{groupCount}</InnerCountsWrapper>
+            </NarrowEventsOrUsersCountsWrapper>
+          ) : (
             <EventCountsWrapper
               leftMargin={withColumns.includes('lastSeen') ? undefined : '0px'}
             >
               {groupCount}
             </EventCountsWrapper>
           )}
-          {withColumns.includes('users') && issueTypeConfig.stats.enabled && (
+          {withColumns.includes('users') &&
+          issueTypeConfig.stats.enabled &&
+          hasNewLayout ? (
+            <NarrowEventsOrUsersCountsWrapper breakpoint={COLUMN_BREAKPOINTS.USERS}>
+              <InnerCountsWrapper>{groupUsersCount}</InnerCountsWrapper>
+            </NarrowEventsOrUsersCountsWrapper>
+          ) : (
             <EventCountsWrapper>{groupUsersCount}</EventCountsWrapper>
           )}
           {withColumns.includes('priority') ? (
-            <PriorityWrapper narrowGroups={narrowGroups}>
-              {group.priority ? (
-                <GroupPriority group={group} onChange={onPriorityChange} />
-              ) : null}
-            </PriorityWrapper>
+            hasNewLayout ? (
+              <NarrowPriorityWrapper breakpoint={COLUMN_BREAKPOINTS.PRIORITY}>
+                {group.priority ? (
+                  <GroupPriority group={group} onChange={onPriorityChange} />
+                ) : null}
+              </NarrowPriorityWrapper>
+            ) : (
+              <PriorityWrapper narrowGroups={narrowGroups}>
+                {group.priority ? (
+                  <GroupPriority group={group} onChange={onPriorityChange} />
+                ) : null}
+              </PriorityWrapper>
+            )
           ) : null}
-          {withColumns.includes('assignee') && (
-            <AssigneeWrapper narrowGroups={narrowGroups}>
-              <AssigneeSelector
-                group={group}
-                assigneeLoading={assigneeLoading}
-                handleAssigneeChange={handleAssigneeChange}
-                memberList={memberList}
-              />
-            </AssigneeWrapper>
-          )}
+          {withColumns.includes('assignee') &&
+            (hasNewLayout ? (
+              <NarrowAssigneeWrapper breakpoint={COLUMN_BREAKPOINTS.ASSIGNEE}>
+                <AssigneeSelector
+                  group={group}
+                  assigneeLoading={assigneeLoading}
+                  handleAssigneeChange={handleAssigneeChange}
+                  memberList={memberList}
+                />
+              </NarrowAssigneeWrapper>
+            ) : (
+              <AssigneeWrapper narrowGroups={narrowGroups}>
+                <AssigneeSelector
+                  group={group}
+                  assigneeLoading={assigneeLoading}
+                  handleAssigneeChange={handleAssigneeChange}
+                  memberList={memberList}
+                />
+              </AssigneeWrapper>
+            ))}
           {showLastTriggered && <EventCountsWrapper>{lastTriggered}</EventCountsWrapper>}
         </Fragment>
       )}
@@ -601,12 +670,20 @@ export default StreamGroup;
 
 // Position for wrapper is relative for overlay actions
 const Wrapper = styled(PanelItem)<{
+  hasNewLayout: boolean;
   reviewed: boolean;
   useTintRow: boolean;
 }>`
   position: relative;
   padding: ${space(1.5)} 0;
   line-height: 1.1;
+
+  ${p =>
+    p.hasNewLayout &&
+    css`
+      padding: ${space(1)} 0;
+      min-height: 66px;
+    `}
 
   ${p =>
     p.useTintRow &&
@@ -644,49 +721,78 @@ const Wrapper = styled(PanelItem)<{
     `};
 `;
 
-const GroupSummary = styled('div')<{canSelect: boolean}>`
+const GroupSummary = styled('div')<{canSelect: boolean; hasNewLayout: boolean}>`
   overflow: hidden;
   margin-left: ${p => space(p.canSelect ? 1 : 2)};
-  margin-right: ${space(1)};
+  margin-right: ${p => (p.hasNewLayout ? space(2) : space(1))};
   flex: 1;
   width: 66.66%;
+
+  ${p =>
+    p.hasNewLayout &&
+    css`
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      font-size: ${p.theme.fontSizeMedium};
+    `}
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
     width: 50%;
   }
 `;
 
-const GroupCheckBoxWrapper = styled('div')`
+const GroupCheckBoxWrapper = styled('div')<{hasNewLayout: boolean}>`
   margin-left: ${space(2)};
   align-self: flex-start;
   height: 15px;
   display: flex;
   align-items: center;
+
+  ${p =>
+    p.hasNewLayout &&
+    css`
+      padding-top: ${space(2)};
+    `}
 `;
 
-const primaryStatStyle = (theme: Theme) => css`
-  font-size: ${theme.fontSizeLarge};
+const CountsWrapper = styled('div')`
+  display: flex;
+  flex-direction: column;
+`;
+
+const PrimaryCount = styled(Count)<{hasNewLayout?: boolean}>`
+  font-size: ${p => (p.hasNewLayout ? p.theme.fontSizeMedium : p.theme.fontSizeLarge)};
+  ${p =>
+    p.hasNewLayout &&
+    `
+    display: flex;
+    justify-content: right;
+    margin-bottom: ${space(0.25)};
+  `}
   font-variant-numeric: tabular-nums;
 `;
 
-const PrimaryCount = styled(Count)`
-  ${p => primaryStatStyle(p.theme)};
-`;
+const SecondaryCount = styled(({value, ...p}) => <Count {...p} value={value} />)<{
+  hasNewLayout?: boolean;
+}>`
+  font-size: ${p => (p.hasNewLayout ? p.theme.fontSizeSmall : p.theme.fontSizeLarge)};
+  ${p =>
+    p.hasNewLayout &&
+    css`
+      display: flex;
+      justify-content: right;
+      color: ${p.theme.subText};
+    `}
 
-const secondaryStatStyle = (theme: Theme) => css`
-  font-size: ${theme.fontSizeLarge};
   font-variant-numeric: tabular-nums;
 
   :before {
     content: '/';
     padding-left: ${space(0.25)};
     padding-right: 2px;
-    color: ${theme.gray300};
+    color: ${p => p.theme.gray300};
   }
-`;
-
-const SecondaryCount = styled(({value, ...p}) => <Count {...p} value={value} />)`
-  ${p => secondaryStatStyle(p.theme)}
 `;
 
 const CountTooltipContent = styled('div')`
@@ -711,18 +817,47 @@ const ChartWrapper = styled('div')<{margin: boolean; narrowGroups: boolean}>`
   align-self: center;
   margin-right: ${p => (p.margin ? space(2) : 0)};
 
-  /* prettier-ignore */
   @media (max-width: ${p =>
-    p.narrowGroups ? p.theme.breakpoints.xlarge : p.theme.breakpoints.large}) {
+      p.narrowGroups ? p.theme.breakpoints.xlarge : p.theme.breakpoints.large}) {
     display: none;
   }
 `;
 
-const TimestampWrapper = styled('div')`
+const NarrowChartWrapper = styled('div')<{breakpoint: string}>`
+  width: 200px;
+  align-self: center;
+  margin-right: ${space(2)};
+
+  @media (max-width: ${p => p.breakpoint}) {
+    display: none;
+  }
+`;
+
+const TimestampWrapper = styled('div')<{breakpoint: string}>`
   display: flex;
   align-self: center;
-  width: 40px;
-  margin: 0 ${space(1)};
+  width: 60px;
+  margin-right: ${space(2)};
+
+  @media (max-width: ${p => p.breakpoint}) {
+    display: none;
+  }
+`;
+
+const NarrowEventsOrUsersCountsWrapper = styled('div')<{breakpoint: string}>`
+  display: flex;
+  justify-content: flex-end;
+  align-self: center;
+  margin-right: ${space(2)};
+  width: 60px;
+
+  @media (max-width: ${p => p.breakpoint}) {
+    display: none;
+  }
+`;
+
+const InnerCountsWrapper = styled('div')`
+  margin-right: ${space(2)};
 `;
 
 const EventCountsWrapper = styled('div')<{leftMargin?: string}>`
@@ -738,6 +873,18 @@ const EventCountsWrapper = styled('div')<{leftMargin?: string}>`
   }
 `;
 
+const NarrowPriorityWrapper = styled('div')<{breakpoint: string}>`
+  width: 70px;
+  margin-right: ${space(2)};
+  align-self: center;
+  display: flex;
+  justify-content: flex-start;
+
+  @media (max-width: ${p => p.theme.breakpoints.large}) {
+    display: none;
+  }
+`;
+
 const PriorityWrapper = styled('div')<{narrowGroups: boolean}>`
   width: 70px;
   margin: 0 ${space(2)};
@@ -745,9 +892,8 @@ const PriorityWrapper = styled('div')<{narrowGroups: boolean}>`
   display: flex;
   justify-content: flex-end;
 
-  /* prettier-ignore */
   @media (max-width: ${p =>
-    p.narrowGroups ? p.theme.breakpoints.large : p.theme.breakpoints.medium}) {
+      p.narrowGroups ? p.theme.breakpoints.large : p.theme.breakpoints.medium}) {
     display: none;
   }
 `;
@@ -757,9 +903,21 @@ const AssigneeWrapper = styled('div')<{narrowGroups: boolean}>`
   margin: 0 ${space(2)};
   align-self: center;
 
-  /* prettier-ignore */
   @media (max-width: ${p =>
-    p.narrowGroups ? p.theme.breakpoints.large : p.theme.breakpoints.medium}) {
+      p.narrowGroups ? p.theme.breakpoints.large : p.theme.breakpoints.medium}) {
+    display: none;
+  }
+`;
+
+const NarrowAssigneeWrapper = styled('div')<{breakpoint: string}>`
+  display: flex;
+  justify-content: flex-start;
+  text-align: right;
+  width: 60px;
+  margin-right: ${space(2)};
+  align-self: center;
+
+  @media (max-width: ${p => p.breakpoint}) {
     display: none;
   }
 `;
