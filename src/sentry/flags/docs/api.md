@@ -13,6 +13,7 @@ This document is structured by resource with each resource having actions that c
 ## Flag Logs [/organizations/<organization_id_or_slug>/flags/logs/]
 
 - Parameters
+  - flag (optional, string) - The flag name to filter the result by. Can be specified multiple times.
   - start (optional, string) - ISO 8601 format (`YYYY-MM-DDTHH:mm:ss.sssZ`)
   - end (optional, string) - ISO 8601 format. Required if `start` is set.
   - statsPeriod (optional, string) - A positive integer suffixed with a unit type.
