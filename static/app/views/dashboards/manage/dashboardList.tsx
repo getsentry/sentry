@@ -14,7 +14,10 @@ import {openConfirmModal} from 'sentry/components/confirm';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import * as Layout from 'sentry/components/layouts/thirds';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
+import Placeholder from 'sentry/components/placeholder';
 import TimeSince from 'sentry/components/timeSince';
 import {IconEllipsis} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
@@ -33,10 +36,14 @@ import GridPreview from './gridPreview';
 type Props = {
   api: Client;
   dashboards: DashboardListItem[] | null;
+  limit: number;
+  loading: boolean;
   location: Location;
   onDashboardsChange: () => void;
   organization: Organization;
   pageLinks: string;
+  reloading: boolean;
+  resizing: boolean;
 };
 
 function DashboardList({
@@ -46,6 +53,10 @@ function DashboardList({
   dashboards,
   pageLinks,
   onDashboardsChange,
+  reloading,
+  limit,
+  loading,
+  resizing,
 }: Props) {
   function handleDelete(dashboard: DashboardListItem) {
     deleteDashboard(api, organization.slug, dashboard.id)
@@ -137,7 +148,7 @@ function DashboardList({
   };
 
   function renderMiniDashboards() {
-    return dashboards?.map((dashboard, index) => {
+    return dashboards?.slice(0, limit).map((dashboard, index) => {
       return (
         <DashboardCard
           key={`${index}-${dashboard.id}`}
@@ -166,7 +177,24 @@ function DashboardList({
         </EmptyStateWarning>
       );
     }
-    return <DashboardGrid>{renderMiniDashboards()}</DashboardGrid>;
+    return (
+      <DashboardGrid>
+        {loading && !resizing ? renderLoading() : renderMiniDashboards()}
+        {reloading &&
+          limit > dashboards.length &&
+          new Array(limit - dashboards.length)
+            .fill(0)
+            .map((_, index) => <Placeholder key={index} height="270px" />)}
+      </DashboardGrid>
+    );
+  }
+
+  function renderLoading() {
+    return (
+      <Layout.Page withPadding>
+        <LoadingIndicator />
+      </Layout.Page>
+    );
   }
 
   return (
@@ -197,17 +225,9 @@ function DashboardList({
 
 const DashboardGrid = styled('div')`
   display: grid;
-  grid-template-columns: minmax(100px, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   grid-template-rows: repeat(3, max-content);
   gap: ${space(2)};
-
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
-    grid-template-columns: repeat(2, minmax(100px, 1fr));
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
-    grid-template-columns: repeat(3, minmax(100px, 1fr));
-  }
 `;
 
 const PaginationRow = styled(Pagination)`

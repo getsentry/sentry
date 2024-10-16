@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 import type {Location} from 'history';
+import debounce from 'lodash/debounce';
+import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 
 import {createDashboard} from 'sentry/actionCreators/dashboards';
@@ -27,6 +29,7 @@ import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
+import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {decodeScalar} from 'sentry/utils/queryString';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import withApi from 'sentry/utils/withApi';
@@ -62,10 +65,26 @@ type Props = {
 type State = {
   dashboards: DashboardListItem[] | null;
   dashboardsPageLinks: string;
+  resizing: boolean;
   showTemplates: boolean;
+  windowWidth: number;
 } & DeprecatedAsyncView['state'];
 
 class ManageDashboards extends DeprecatedAsyncView<Props, State> {
+  shouldReload = true;
+
+  constructor(props: Props, context: any) {
+    super(props, context);
+
+    this.state = {
+      ...this.getDefaultState(),
+      dashboards: [],
+      dashboardsPageLinks: '',
+      windowWidth: window.innerWidth,
+      resizing: false,
+    };
+  }
+
   getDefaultState() {
     return {
       ...super.getDefaultState(),
@@ -73,8 +92,61 @@ class ManageDashboards extends DeprecatedAsyncView<Props, State> {
     };
   }
 
+  debouncedHandleResize = debounce(() => {
+    const currentWidth = window.innerWidth;
+    // Only update state if the width has changed
+    if (currentWidth !== this.state.windowWidth) {
+      this.setState({windowWidth: currentWidth, resizing: true});
+    } else {
+      this.setState({resizing: false});
+    }
+    const paginationObject = parseLinkHeader(this.state.dashboardsPageLinks);
+    if (
+      this.state.dashboards?.length &&
+      paginationObject.next.results &&
+      this.getDashboardsPerPage() > this.state.dashboards.length
+    ) {
+      this.reloadData();
+    }
+  }, 250);
+
+  componentDidUpdate(prevProps: Props, prevContext: any) {
+    super.componentDidUpdate(prevProps, prevContext);
+
+    const {location} = this.props;
+    // Check if the query has changed
+    if (!isEqual(location.query, prevProps.location.query)) {
+      this.setState({resizing: false});
+    }
+  }
+
+  componentDidMount() {
+    window.addEventListener('resize', this.debouncedHandleResize);
+    super.componentDidMount();
+  }
+
+  componentWillUnmount() {
+    window.removeEventListener('resize', this.debouncedHandleResize);
+    super.componentWillUnmount();
+  }
+
+  shouldComponentUpdate(nextProps: Readonly<Props>, nextState: Readonly<State>): boolean {
+    const propsEqual = isEqual(nextProps, this.props);
+    const stateEqual = isEqual(nextState, this.state);
+    const windowEqual = isEqual(this.state.windowWidth, window.innerWidth);
+    return !propsEqual || !stateEqual || !windowEqual;
+  }
+
+  getDashboardsPerPage(): number {
+    // min-midth of widget is 300px with additional 16px margin on each side (also accounting for side menu)
+    return Math.floor((window.innerWidth - 100) / (300 + 32)) < 3
+      ? 8
+      : Math.floor((window.innerWidth - 100) / (300 + 32)) * 3;
+  }
+
   getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     const {organization, location} = this.props;
+    const dashboardsPerPage = this.getDashboardsPerPage();
     const endpoints: ReturnType<DeprecatedAsyncView['getEndpoints']> = [
       [
         'dashboards',
@@ -83,7 +155,7 @@ class ManageDashboards extends DeprecatedAsyncView<Props, State> {
           query: {
             ...pick(location.query, ['cursor', 'query']),
             sort: this.getActiveSort().value,
-            per_page: '9',
+            per_page: dashboardsPerPage,
           },
         },
       ],
@@ -197,7 +269,7 @@ class ManageDashboards extends DeprecatedAsyncView<Props, State> {
   }
 
   renderDashboards() {
-    const {dashboards, dashboardsPageLinks} = this.state;
+    const {reloading, dashboards, dashboardsPageLinks, loading, resizing} = this.state;
     const {organization, location, api} = this.props;
     return (
       <DashboardList
@@ -207,6 +279,10 @@ class ManageDashboards extends DeprecatedAsyncView<Props, State> {
         pageLinks={dashboardsPageLinks}
         location={location}
         onDashboardsChange={() => this.onDashboardsChange()}
+        reloading={reloading}
+        loading={loading}
+        resizing={resizing}
+        limit={this.getDashboardsPerPage()}
       />
     );
   }
