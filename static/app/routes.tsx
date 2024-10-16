@@ -559,35 +559,19 @@ function buildRoutes() {
       <Route
         path="toolbar/"
         name={t('Developer Toolbar')}
-        component={make(() => import('sentry/views/settings/project/toolbar'))}
+        component={make(() => import('sentry/views/settings/project/projectToolbar'))}
       />
       <Route path="source-maps/" name={t('Source Maps')}>
         <IndexRoute
           component={make(() => import('sentry/views/settings/projectSourceMaps'))}
         />
         <Route
-          path="artifact-bundles/"
-          name={t('Artifact Bundles')}
+          name={t('Source Map Uploads')}
+          path=":bundleId/"
           component={make(() => import('sentry/views/settings/projectSourceMaps'))}
-        >
-          <Route
-            name={t('Artifact Bundle')}
-            path=":bundleId/"
-            component={make(() => import('sentry/views/settings/projectSourceMaps'))}
-          />
-        </Route>
-        <Route
-          path="release-bundles/"
-          name={t('Release Bundles')}
-          component={make(() => import('sentry/views/settings/projectSourceMaps'))}
-        >
-          <Route
-            name={t('Release Bundle')}
-            path=":bundleId/"
-            component={make(() => import('sentry/views/settings/projectSourceMaps'))}
-          />
-        </Route>
-        <Redirect from=":name/" to="release-bundles/:name/" />
+        />
+        <Redirect from="source-maps/artifact-bundles/" to="source-maps/" />
+        <Redirect from="source-maps/release-bundles/" to="source-maps/" />
       </Route>
       <Route
         path="filters/"
@@ -966,6 +950,11 @@ function buildRoutes() {
         path="early-features/"
         name={t('Early Features')}
         component={make(() => import('sentry/views/settings/earlyFeatures'))}
+      />
+      <Route
+        path="dynamic-sampling/"
+        name={t('Dynamic Sampling')}
+        component={make(() => import('sentry/views/settings/dynamicSampling'))}
       />
     </Route>
   );
@@ -1756,6 +1745,55 @@ function buildRoutes() {
             path="details/"
             component={make(
               () => import('sentry/views/insights/mobile/screens/views/screenDetailsPage')
+            )}
+          />
+        </Route>
+        <Route path={`${MODULE_BASE_URLS[ModuleName.APP_START]}/`}>
+          <IndexRoute
+            component={make(
+              () =>
+                import(
+                  'sentry/views/insights/mobile/appStarts/views/appStartsLandingPage'
+                )
+            )}
+          />
+          <Route
+            path="spans/"
+            component={make(
+              () =>
+                import('sentry/views/insights/mobile/appStarts/views/screenSummaryPage')
+            )}
+          />
+        </Route>
+        <Route path={`${MODULE_BASE_URLS[ModuleName.MOBILE_UI]}/`}>
+          <IndexRoute
+            component={make(
+              () => import('sentry/views/insights/mobile/ui/views/uiLandingPage')
+            )}
+          />
+          <Route
+            path="spans/"
+            component={make(
+              () => import('sentry/views/insights/mobile/ui/views/screenSummaryPage')
+            )}
+          />
+        </Route>
+        <Route path={`${MODULE_BASE_URLS[ModuleName.SCREEN_LOAD]}/`}>
+          <IndexRoute
+            component={make(
+              () =>
+                import(
+                  'sentry/views/insights/mobile/screenload/views/screenloadLandingPage'
+                )
+            )}
+          />
+          <Route
+            path="spans/"
+            component={make(
+              () =>
+                import(
+                  'sentry/views/insights/mobile/screenload/views/screenLoadSpansPage'
+                )
             )}
           />
         </Route>

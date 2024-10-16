@@ -12,13 +12,11 @@ import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyti
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import {
-  getTraceViewQueryStatus,
-  TraceViewWaterfall,
-} from 'sentry/views/performance/newTraceDetails';
+import {TraceViewWaterfall} from 'sentry/views/performance/newTraceDetails';
 import {useReplayTraceMeta} from 'sentry/views/performance/newTraceDetails/traceApi/useReplayTraceMeta';
 import {useTrace} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
 import {useTraceRootEvent} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
+import {useTraceTree} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceTree';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TracePreferencesState} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import {loadTraceViewPreferences} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
@@ -162,12 +160,17 @@ export function NewTraceView({replayRecord}: {replayRecord: undefined | ReplayRe
   });
 
   const firstTrace = replayTraces?.[0];
-  const trace = useTrace({
+  const traceResults = useTrace({
     traceSlug: firstTrace?.traceSlug,
     timestamp: firstTrace?.timestamp,
   });
-  const rootEvent = useTraceRootEvent(trace.data ?? null);
+  const rootEvent = useTraceRootEvent(traceResults.data ?? null);
   const metaResults = useReplayTraceMeta(replayRecord);
+  const traceTree = useTraceTree({
+    traceResults,
+    metaResults,
+    replayRecord: replayRecord ?? null,
+  });
 
   const preferences = useMemo(
     () =>
@@ -221,8 +224,7 @@ export function NewTraceView({replayRecord}: {replayRecord: undefined | ReplayRe
       <TraceViewWaterfallWrapper>
         <TraceViewWaterfall
           traceSlug={undefined}
-          trace={trace.data ?? null}
-          status={getTraceViewQueryStatus(trace.status, metaResults.status)}
+          tree={traceTree}
           rootEvent={rootEvent}
           replayTraces={otherReplayTraces}
           organization={organization}

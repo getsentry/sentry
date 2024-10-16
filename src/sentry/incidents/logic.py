@@ -564,6 +564,13 @@ def create_alert_rule(
 
     :return: The created `AlertRule`
     """
+    has_anomaly_detection = features.has(
+        "organizations:anomaly-detection-alerts", organization
+    ) and features.has("organizations:anomaly-detection-rollout", organization)
+
+    if detection_type == AlertRuleDetectionType.DYNAMIC.value and not has_anomaly_detection:
+        raise ResourceDoesNotExist("Your organization does not have access to this feature.")
+
     if monitor_type == AlertRuleMonitorTypeInt.ACTIVATED and not activation_condition:
         raise ValidationError("Activation condition required for activated alert rule")
 
@@ -647,13 +654,6 @@ def create_alert_rule(
             AlertRuleExcludedProjects.objects.bulk_create(exclusions)
 
         if alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC.value:
-            if not features.has(
-                "organizations:anomaly-detection-alerts", organization
-            ) and not features.has("organizations:anomaly-detection-rollout", organization):
-                alert_rule.delete()
-                raise ResourceDoesNotExist(
-                    "Your organization does not have access to this feature."
-                )
             # NOTE: if adding a new metric alert type, take care to check that it's handled here
             send_new_rule_data(alert_rule, projects[0], snuba_query)
 
@@ -1103,6 +1103,18 @@ def delete_alert_rule(
 
         incidents = Incident.objects.filter(alert_rule=alert_rule)
         if incidents.exists():
+            # if this was a dynamic rule, delete the data in Seer
+            if alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC:
+                success = delete_rule_in_seer(
+                    alert_rule=alert_rule,
+                )
+                if not success:
+                    logger.error(
+                        "Call to delete rule data in Seer failed",
+                        extra={
+                            "rule_id": alert_rule.id,
+                        },
+                    )
             AlertRuleActivity.objects.create(
                 alert_rule=alert_rule,
                 user_id=user.id if user else None,

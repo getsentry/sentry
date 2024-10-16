@@ -19,7 +19,7 @@ from sentry.testutils.cases import (
     ReplaysSnubaTestCase,
     SnubaTestCase,
 )
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 
 pytestmark = pytest.mark.sentry_metrics
 
@@ -69,7 +69,7 @@ class OrganizationReplayCountEndpointTest(
         event_a = self.store_event(
             data={
                 "event_id": event_id_a,
-                "timestamp": iso_format(self.min_ago),
+                "timestamp": self.min_ago.isoformat(),
                 "contexts": {"replay": {"replay_id": replay1_id}},
                 "fingerprint": ["group-1"],
             },
@@ -78,7 +78,7 @@ class OrganizationReplayCountEndpointTest(
         self.store_event(
             data={
                 "event_id": uuid.uuid4().hex,
-                "timestamp": iso_format(self.min_ago),
+                "timestamp": self.min_ago.isoformat(),
                 "contexts": {"replay": {"replay_id": replay2_id}},
                 "fingerprint": ["group-1"],
             },
@@ -87,7 +87,7 @@ class OrganizationReplayCountEndpointTest(
         self.store_event(
             data={
                 "event_id": event_id_b,
-                "timestamp": iso_format(self.min_ago),
+                "timestamp": self.min_ago.isoformat(),
                 "contexts": {
                     "replay": {"replay_id": uuid.uuid4().hex}
                 },  # a replay id that doesn't exist
@@ -98,7 +98,7 @@ class OrganizationReplayCountEndpointTest(
         event_c = self.store_event(
             data={
                 "event_id": event_id_b,
-                "timestamp": iso_format(self.min_ago),
+                "timestamp": self.min_ago.isoformat(),
                 "contexts": {"replay": {"replay_id": replay3_id}},
                 "fingerprint": ["group-2"],
             },
@@ -148,7 +148,7 @@ class OrganizationReplayCountEndpointTest(
         event_a = self.store_event(
             data={
                 "event_id": event_id_a,
-                "timestamp": iso_format(self.min_ago),
+                "timestamp": self.min_ago.isoformat(),
                 "contexts": {"replay": {"replay_id": replay1_id}},
                 "fingerprint": ["group-1"],
             },
@@ -157,7 +157,7 @@ class OrganizationReplayCountEndpointTest(
         self.store_event(
             data={
                 "event_id": uuid.uuid4().hex,
-                "timestamp": iso_format(self.min_ago),
+                "timestamp": self.min_ago.isoformat(),
                 "contexts": {"replay": {"replay_id": replay2_id}},
                 "fingerprint": ["group-1"],
             },
@@ -166,7 +166,7 @@ class OrganizationReplayCountEndpointTest(
         self.store_event(
             data={
                 "event_id": event_id_b,
-                "timestamp": iso_format(self.min_ago),
+                "timestamp": self.min_ago.isoformat(),
                 "contexts": {"replay": {"replay_id": uuid.uuid4().hex}},
                 "fingerprint": ["group-1"],
             },
@@ -175,7 +175,7 @@ class OrganizationReplayCountEndpointTest(
         event_c = self.store_event(
             data={
                 "event_id": event_id_b,
-                "timestamp": iso_format(self.min_ago),
+                "timestamp": self.min_ago.isoformat(),
                 "contexts": {"replay": {"replay_id": replay3_id}},
                 "fingerprint": ["group-2"],
             },
@@ -317,7 +317,7 @@ class OrganizationReplayCountEndpointTest(
         event_a = self.store_event(
             data={
                 "event_id": event_id_a,
-                "timestamp": iso_format(self.min_ago),
+                "timestamp": self.min_ago.isoformat(),
                 "contexts": {"replay": {"replay_id": replay1_id}},
                 "fingerprint": ["group-1"],
             },
@@ -326,7 +326,7 @@ class OrganizationReplayCountEndpointTest(
         event_b = self.store_event(
             data={
                 "event_id": event_id_b,
-                "timestamp": iso_format(self.min_ago),
+                "timestamp": self.min_ago.isoformat(),
                 "contexts": {"replay": {"replay_id": replay1_id}},
                 "fingerprint": ["group-2"],
             },
@@ -359,7 +359,7 @@ class OrganizationReplayCountEndpointTest(
         event_a = self.store_event(
             data={
                 "event_id": event_id_a,
-                "timestamp": iso_format(self.min_ago),
+                "timestamp": self.min_ago.isoformat(),
                 "contexts": {"replay": {"replay_id": replay1_id}},
                 "fingerprint": ["group-1"],
             },
@@ -368,7 +368,7 @@ class OrganizationReplayCountEndpointTest(
         event_b = self.store_event(
             data={
                 "event_id": event_id_b,
-                "timestamp": iso_format(self.min_ago),
+                "timestamp": self.min_ago.isoformat(),
                 "contexts": {"replay": {"replay_id": replay1_id}},
                 "fingerprint": ["group-1"],
             },
@@ -399,7 +399,7 @@ class OrganizationReplayCountEndpointTest(
         event_a = self.store_event(
             data={
                 "event_id": event_id_a,
-                "timestamp": iso_format(self.min_ago),
+                "timestamp": self.min_ago.isoformat(),
                 "contexts": {"replay": {"replay_id": replay1_id}},
                 "transaction": "t-1",
             },
@@ -513,7 +513,7 @@ class OrganizationReplayCountEndpointTest(
         event_a = self.store_event(
             data={
                 "event_id": event_id_a,
-                "timestamp": iso_format(self.min_ago),
+                "timestamp": self.min_ago.isoformat(),
                 "fingerprint": ["group-1"],
             },
             project_id=self.project.id,
@@ -552,7 +552,7 @@ class OrganizationReplayCountEndpointTest(
         event_a = self.store_event(
             data={
                 "event_id": event_id_a,
-                "timestamp": iso_format(self.min_ago),
+                "timestamp": self.min_ago.isoformat(),
                 "contexts": {"replay": {"replay_id": replay1_id}},
                 "fingerprint": ["group-1"],
             },
@@ -579,7 +579,7 @@ class OrganizationReplayCountEndpointTest(
         event_b = self.store_event(
             data={
                 "event_id": event_id_b,
-                "timestamp": iso_format(self.min_ago),
+                "timestamp": self.min_ago.isoformat(),
                 "fingerprint": ["group-2"],
             },
             project_id=project.id,

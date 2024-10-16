@@ -1,22 +1,22 @@
 import {useMemo} from 'react';
 import {useParams as useReactRouter6Params} from 'react-router-dom';
 
-import {CUSTOMER_DOMAIN, NODE_ENV, USING_CUSTOMER_DOMAIN} from 'sentry/constants';
-import {useRouteContext} from 'sentry/utils/useRouteContext';
+import {CUSTOMER_DOMAIN, USING_CUSTOMER_DOMAIN} from 'sentry/constants';
+
+import {useRouteContext} from './useRouteContext';
 
 export function useParams<P = Record<string, string>>(): P {
   // When running in test mode we still read from the legacy route context to
   // keep test compatability while we fully migrate to react router 6
-  const useReactRouter6 = NODE_ENV !== 'test';
+  const legacyRouterContext = useRouteContext();
 
   let contextParams: any;
 
-  if (useReactRouter6) {
+  if (!legacyRouterContext) {
     // biome-ignore lint/correctness/useHookAtTopLevel: react-router 6 migration
     contextParams = useReactRouter6Params();
   } else {
-    // biome-ignore lint/correctness/useHookAtTopLevel: react-router 6 migration
-    contextParams = useRouteContext().params;
+    contextParams = legacyRouterContext.params;
   }
 
   // Memoize params as mutating for customer domains causes other hooks

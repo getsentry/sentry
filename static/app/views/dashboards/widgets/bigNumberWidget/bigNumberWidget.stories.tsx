@@ -49,6 +49,13 @@ export default storyBook(BigNumberWidget, story => {
                   'eps()': '1/second',
                 },
               }}
+              thresholds={{
+                max_values: {
+                  max1: 1,
+                  max2: 2,
+                },
+                unit: '1/second',
+              }}
             />
           </SmallSizingWindow>
           <SmallSizingWindow>
@@ -241,6 +248,128 @@ export default storyBook(BigNumberWidget, story => {
                   'http_rate(200)': 'percentage',
                 },
               }}
+            />
+          </NormalWidget>
+        </SideBySide>
+      </Fragment>
+    );
+  });
+
+  story('Thresholds', () => {
+    const meta = {
+      fields: {
+        'eps()': 'rate',
+      },
+      units: {
+        'eps()': '1/second',
+      },
+    };
+
+    const thresholds = {
+      max_values: {
+        max1: 20,
+        max2: 50,
+      },
+      unit: '1/second',
+    };
+
+    return (
+      <Fragment>
+        <p>
+          <JSXNode name="BigNumberWidget" /> supports a <code>thresholds</code> prop. If
+          specified, the value of the data in the widget will be evaluated against these
+          thresholds, and indicated using a colorful circle next to the value.
+        </p>
+
+        <SideBySide>
+          <NormalWidget>
+            <BigNumberWidget
+              title="eps()"
+              data={[
+                {
+                  'eps()': 7.1,
+                },
+              ]}
+              meta={meta}
+              thresholds={thresholds}
+              preferredPolarity="+"
+            />
+          </NormalWidget>
+
+          <NormalWidget>
+            <BigNumberWidget
+              title="eps()"
+              data={[
+                {
+                  'eps()': 27.781,
+                },
+              ]}
+              meta={meta}
+              thresholds={thresholds}
+              preferredPolarity="-"
+            />
+          </NormalWidget>
+
+          <NormalWidget>
+            <BigNumberWidget
+              title="eps()"
+              data={[
+                {
+                  'eps()': 78.1,
+                },
+              ]}
+              meta={meta}
+              thresholds={thresholds}
+              preferredPolarity="+"
+            />
+          </NormalWidget>
+        </SideBySide>
+
+        <p>
+          The thresholds respect the preferred polarity. By default, the preferred
+          polarity is positive (higher numbers are good).
+        </p>
+
+        <SideBySide>
+          <NormalWidget>
+            <BigNumberWidget
+              title="eps()"
+              data={[
+                {
+                  'eps()': 7.1,
+                },
+              ]}
+              meta={meta}
+              thresholds={thresholds}
+              preferredPolarity="-"
+            />
+          </NormalWidget>
+
+          <NormalWidget>
+            <BigNumberWidget
+              title="eps()"
+              data={[
+                {
+                  'eps()': 27.781,
+                },
+              ]}
+              meta={meta}
+              thresholds={thresholds}
+              preferredPolarity="-"
+            />
+          </NormalWidget>
+
+          <NormalWidget>
+            <BigNumberWidget
+              title="eps()"
+              data={[
+                {
+                  'eps()': 78.1,
+                },
+              ]}
+              meta={meta}
+              thresholds={thresholds}
+              preferredPolarity="-"
             />
           </NormalWidget>
         </SideBySide>
