@@ -113,14 +113,12 @@ class SumOfStringScalar(GenericBase):
 
     @staticmethod
     def visit_match(expression: Expression, value: str) -> Condition:
-        if value == "":
-            return SumOfStringScalar.visit_eq(expression, value)
+        # Assumes this is only called on wildcard strings, so `value` is non-empty.
         return contains(StringScalar.visit_match(expression, value))
 
     @staticmethod
     def visit_not_match(expression: Expression, value: str) -> Condition:
-        if value == "":
-            return SumOfStringScalar.visit_neq(expression, value)
+        # Assumes this is only called on wildcard strings, so `value` is non-empty.
         return does_not_contain(StringScalar.visit_match(expression, value))
 
     @staticmethod
