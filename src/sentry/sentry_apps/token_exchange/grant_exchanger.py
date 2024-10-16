@@ -6,14 +6,14 @@ from django.utils.functional import cached_property
 
 from sentry import analytics
 from sentry.coreapi import APIUnauthorized
+from sentry.mediators.token_exchange.util import token_expiration
+from sentry.mediators.token_exchange.validator import Validator
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.apigrant import ApiGrant
 from sentry.models.apitoken import ApiToken
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.services.app import RpcSentryAppInstallation
-from sentry.sentry_apps.token_exchange.util import token_expiration
-from sentry.sentry_apps.token_exchange.validator import Validator
 from sentry.silo.safety import unguarded_write
 from sentry.users.models.user import User
 
@@ -31,14 +31,15 @@ class GrantExchanger:
 
     def run(self):
         with transaction.atomic(using=router.db_for_write(ApiToken)):
-            if self._validate():
-                token = self._create_token()
+            self._validate()
+            token = self._create_token()
 
-                # Once it's exchanged it's no longer valid and should not be
-                # exchangeable, so we delete it.
-                self._delete_grant()
-        self.record_analytics()
-        return token
+            # Once it's exchanged it's no longer valid and should not be
+            # exchangeable, so we delete it.
+            self._delete_grant()
+            self.record_analytics()
+
+            return token
 
     def record_analytics(self) -> None:
         analytics.record(
@@ -47,15 +48,14 @@ class GrantExchanger:
             exchange_type="authorization",
         )
 
-    def _validate(self) -> bool:
-        is_valid = Validator(install=self.install, client_id=self.client_id, user=self.user).run()
+    def _validate(self) -> None:
+        Validator.run(install=self.install, client_id=self.client_id, user=self.user)
 
         if not self._grant_belongs_to_install() or not self._sentry_app_user_owns_grant():
             raise APIUnauthorized("Forbidden grant")
 
         if not self._grant_is_active():
             raise APIUnauthorized("Grant has already expired.")
-        return is_valid
 
     def _grant_belongs_to_install(self) -> bool:
         return self.grant.sentry_app_installation.id == self.install.id
