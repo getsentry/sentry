@@ -51,7 +51,7 @@ export function NewIssueExperienceButton() {
     <ButtonBar merged>
       <StyledButton
         enabled={hasStreamlinedUI}
-        size="xs"
+        size={hasStreamlinedUI ? 'xs' : 'sm'}
         icon={<IconLab isSolid={hasStreamlinedUI} />}
         title={label}
         aria-label={label}
