@@ -422,9 +422,6 @@ export function Actions(props: Props) {
               disabled={disabled}
               disableArchiveUntilOccurrence={!archiveUntilOccurrenceCap.enabled}
             />
-            {!hasStreamlinedUI && (
-              <EnvironmentPageFilter position="bottom-end" size="xs" />
-            )}
             <SubscribeAction
               className="hidden-xs"
               disabled={disabled}
