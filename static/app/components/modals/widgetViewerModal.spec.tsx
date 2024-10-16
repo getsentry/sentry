@@ -95,6 +95,7 @@ async function renderModal({
 
 describe('Modals -> WidgetViewerModal', function () {
   let initialData, initialDataWithFlag;
+  let dashboardLegendUtils: DashboardLegendEncoderDecoder;
   beforeEach(() => {
     initialData = initializeOrg({
       organization: {
@@ -110,6 +111,13 @@ describe('Modals -> WidgetViewerModal', function () {
         features: [...initialData.organization.features],
       },
     };
+
+    dashboardLegendUtils = new DashboardLegendEncoderDecoder({
+      location: initialData.router.location,
+      dashboard: DashboardFixture([], {id: 'new', title: 'Dashboard'}),
+      organization: initialData.organization,
+      router: initialData.router,
+    });
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
@@ -350,20 +358,6 @@ describe('Modals -> WidgetViewerModal', function () {
         );
         // Need to manually set the new router location and rerender to simulate the dropdown selection click
         initialData.router.location.query = {query: ['1']};
-        const dashboardLegendUtils = new DashboardLegendEncoderDecoder({
-          location: initialData.router.location,
-          dashboard: {
-            id: 'new',
-            title: 'Dashboard',
-            createdBy: undefined,
-            dateCreated: '2020-01-01T00:00:00.000Z',
-            widgets: [mockWidget],
-            projects: [],
-            filters: {},
-          },
-          organization: initialData.organization,
-          router: initialData.router,
-        });
         rerender(
           <WidgetViewerModal
             Header={stubEl}
@@ -784,20 +778,6 @@ describe('Modals -> WidgetViewerModal', function () {
         );
         // Need to manually set the new router location and rerender to simulate the sortable column click
         initialData.router.location.query = {sort: '-count()'};
-        const dashboardLegendUtils = new DashboardLegendEncoderDecoder({
-          location: initialData.router.location,
-          dashboard: {
-            id: 'new',
-            title: 'Dashboard',
-            createdBy: undefined,
-            dateCreated: '2020-01-01T00:00:00.000Z',
-            widgets: [mockWidget],
-            projects: [],
-            filters: {},
-          },
-          organization: initialData.organization,
-          router: initialData.router,
-        });
         rerender(
           <WidgetViewerModal
             Header={stubEl}
@@ -875,20 +855,6 @@ describe('Modals -> WidgetViewerModal', function () {
         );
         // Need to manually set the new router location and rerender to simulate the next page click
         initialData.router.location.query = {cursor: ['0:10:0']};
-        const dashboardLegendUtils = new DashboardLegendEncoderDecoder({
-          location: initialData.router.location,
-          dashboard: {
-            id: 'new',
-            title: 'Dashboard',
-            createdBy: undefined,
-            dateCreated: '2020-01-01T00:00:00.000Z',
-            widgets: [mockWidget],
-            projects: [],
-            filters: {},
-          },
-          organization: initialData.organization,
-          router: initialData.router,
-        });
 
         rerender(
           <WidgetViewerModal
@@ -1245,20 +1211,6 @@ describe('Modals -> WidgetViewerModal', function () {
       );
       // Need to manually set the new router location and rerender to simulate the sortable column click
       initialData.router.location.query = {sort: ['freq']};
-      const dashboardLegendUtils = new DashboardLegendEncoderDecoder({
-        location: initialData.router.location,
-        dashboard: {
-          id: 'new',
-          title: 'Dashboard',
-          createdBy: undefined,
-          dateCreated: '2020-01-01T00:00:00.000Z',
-          widgets: [mockWidget],
-          projects: [],
-          filters: {},
-        },
-        organization: initialData.organization,
-        router: initialData.router,
-      });
       rerender(
         <WidgetViewerModal
           Header={stubEl}
@@ -1309,20 +1261,6 @@ describe('Modals -> WidgetViewerModal', function () {
       );
       // Need to manually set the new router location and rerender to simulate the next page click
       initialData.router.location.query = {cursor: ['0:10:0']};
-      const dashboardLegendUtils = new DashboardLegendEncoderDecoder({
-        location: initialData.router.location,
-        dashboard: {
-          id: 'new',
-          title: 'Dashboard',
-          createdBy: undefined,
-          dateCreated: '2020-01-01T00:00:00.000Z',
-          widgets: [mockWidget],
-          projects: [],
-          filters: {},
-        },
-        organization: initialData.organization,
-        router: initialData.router,
-      });
       rerender(
         <WidgetViewerModal
           Header={stubEl}
@@ -1480,20 +1418,6 @@ describe('Modals -> WidgetViewerModal', function () {
       );
       // Need to manually set the new router location and rerender to simulate the sortable column click
       initialData.router.location.query = {sort: '-sum(session)'};
-      const dashboardLegendUtils = new DashboardLegendEncoderDecoder({
-        location: initialData.router.location,
-        dashboard: {
-          id: 'new',
-          title: 'Dashboard',
-          createdBy: undefined,
-          dateCreated: '2020-01-01T00:00:00.000Z',
-          widgets: [mockWidget],
-          projects: [],
-          filters: {},
-        },
-        organization: initialData.organization,
-        router: initialData.router,
-      });
       rerender(
         <WidgetViewerModal
           Header={stubEl}
