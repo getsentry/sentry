@@ -55,7 +55,6 @@ import {getSortField} from './fieldRenderers';
 
 // Metadata mapping for discover results.
 export type MetaType = Record<string, any> & {
-  fields?: Record<string, string>;
   isMetricsData?: boolean;
   isMetricsExtractedData?: boolean;
   tips?: {columns: string; query: string};
