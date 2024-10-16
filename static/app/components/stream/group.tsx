@@ -50,7 +50,6 @@ import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useMutation} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -555,16 +554,14 @@ function BaseGroupRow({
 
     if (hasNewLayout) {
       navigate(
-        normalizeUrl(
-          createIssueLink({
-            data: group,
-            organization,
-            referrer,
-            streamIndex: index,
-            location,
-            query,
-          })
-        )
+        createIssueLink({
+          data: group,
+          organization,
+          referrer,
+          streamIndex: index,
+          location,
+          query,
+        })
       );
       return;
     }
