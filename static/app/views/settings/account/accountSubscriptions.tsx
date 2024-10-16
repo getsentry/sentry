@@ -5,11 +5,13 @@ import moment from 'moment-timezone';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {DateTime} from 'sentry/components/dateTime';
 import EmptyMessage from 'sentry/components/emptyMessage';
+import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import PanelItem from 'sentry/components/panels/panelItem';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import Switch from 'sentry/components/switchButton';
 import {IconToggle} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -37,7 +39,12 @@ export type Subscription = {
 };
 
 function AccountSubscriptions() {
-  const {data: subscriptions = [], isPending} = useApiQuery<Subscription[]>([ENDPOINT], {
+  const {
+    data: subscriptions = [],
+    isPending,
+    isError,
+    refetch,
+  } = useApiQuery<Subscription[]>([ENDPOINT], {
     staleTime: 2 * 60 * 1000,
   });
 
@@ -78,11 +85,21 @@ function AccountSubscriptions() {
   });
 
   if (isPending) {
-    <LoadingIndicator />;
+    return <LoadingIndicator />;
   }
 
-  const subGroups: Array<[string, Subscription[]]> = Object.entries(
-    subscriptions.reduce((acc, sub) => {
+  if (isError) {
+    return (
+      <LoadingError
+        onRetry={() => {
+          refetch();
+        }}
+      />
+    );
+  }
+
+  const subGroups = Object.entries(
+    subscriptions.reduce<Record<string, Subscription[]>>((acc, sub) => {
       (acc[sub.email] = acc[sub.email] || []).push(sub);
       return acc;
     }, {})
@@ -99,9 +116,12 @@ function AccountSubscriptions() {
     });
   };
 
+  const subscriptionText = t('Subscriptions');
   return (
     <div>
-      <SettingsPageHeader title={t('Subscriptions')} />
+      <SentryDocumentTitle title={subscriptionText} />
+      <SettingsPageHeader title={subscriptionText} />
+
       <TextBlock>
         {t(`Sentry is committed to respecting your inbox. Our goal is to
               provide useful content and resources that make fixing errors less
