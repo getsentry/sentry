@@ -1,4 +1,5 @@
 import {urlEncode} from '@sentry/utils';
+import {DashboardFixture} from 'sentry-fixture/dashboard';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {MetricsFieldFixture} from 'sentry-fixture/metrics';
 import {SessionsFieldFixture} from 'sentry-fixture/sessions';
@@ -80,16 +81,7 @@ function renderTestComponent({
 
   const dashboardLegendUtils = new DashboardLegendEncoderDecoder({
     location: LocationFixture(),
-    dashboard: {
-      id: 'new',
-      title: 'Dashboard',
-      createdBy: undefined,
-      dateCreated: '2020-01-01T00:00:00.000Z',
-      widgets: [],
-      projects: [],
-      filters: {},
-      ...dashboard,
-    },
+    dashboard: DashboardFixture([], {id: 'new', title: 'Dashboard', ...dashboard}),
     organization,
     router,
   });

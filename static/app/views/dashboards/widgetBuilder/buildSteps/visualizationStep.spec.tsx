@@ -1,3 +1,4 @@
+import {DashboardFixture} from 'sentry-fixture/dashboard';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {TagsFixture} from 'sentry-fixture/tags';
 
@@ -98,15 +99,7 @@ describe('VisualizationStep', function () {
 
   const dashboardLegendUtils = new DashboardLegendEncoderDecoder({
     location: LocationFixture(),
-    dashboard: {
-      id: 'new',
-      title: 'Dashboard',
-      createdBy: undefined,
-      dateCreated: '2020-01-01T00:00:00.000Z',
-      widgets: [],
-      projects: [],
-      filters: {},
-    },
+    dashboard: DashboardFixture([], {id: 'new', title: 'Dashboard'}),
     organization,
     router,
   });

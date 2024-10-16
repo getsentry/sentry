@@ -1,4 +1,5 @@
 import ReactEchartsCore from 'echarts-for-react/lib/core';
+import {DashboardFixture} from 'sentry-fixture/dashboard';
 import {MetricsTotalCountByReleaseIn24h} from 'sentry-fixture/metrics';
 import {ProjectFixture} from 'sentry-fixture/project';
 
@@ -54,15 +55,7 @@ async function renderModal({
 }) {
   const dashboardLegendUtils = new DashboardLegendEncoderDecoder({
     location: router.location,
-    dashboard: {
-      id: 'new',
-      title: 'Dashboard',
-      createdBy: undefined,
-      dateCreated: '2020-01-01T00:00:00.000Z',
-      widgets: [widget],
-      projects: [],
-      filters: {},
-    },
+    dashboard: DashboardFixture([widget], {id: 'new', title: 'Dashboard'}),
     organization,
     router,
   });
