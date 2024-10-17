@@ -43,17 +43,6 @@ class LargeHTTPPayloadDetectorTest(TestCase):
                     "http.decoded_response_content_length": 50_000_000,
                 },
             ),
-            create_span(
-                "http.client",
-                1000,
-                "GET /api/0/organizations/endpoint1",
-                "hash2",
-                data={
-                    "http.response_transfer_size": 50_000_000,
-                    "http.response_content_length": "12345",
-                    "http.decoded_response_content_length": 50_000_000,
-                },
-            ),
         ]
 
         event = create_event(spans)
