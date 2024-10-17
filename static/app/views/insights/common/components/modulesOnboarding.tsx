@@ -30,6 +30,7 @@ import {
   MODULE_DATA_TYPES,
   MODULE_DATA_TYPES_PLURAL,
   MODULE_PRODUCT_DOC_LINKS,
+  MODULE_TITLES,
 } from 'sentry/views/insights/settings';
 import {ModuleName} from 'sentry/views/insights/types';
 import PerformanceOnboarding from 'sentry/views/performance/onboarding';
@@ -459,11 +460,23 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
     supportedSdks: ['android', 'flutter', 'apple-ios', 'react-native'],
   },
   'screen-rendering': {
-    description: t('TODO'),
-    heading: t('TODO'),
+    description: t(
+      'Screen Rendering shows you views within your application are presenting slow or frozen interactions and how frequently these hiccups are occurring.'
+    ),
+    heading: t('An app that loads quickly can still be terrible'),
     imageSrc: screenLoadsPreviewImg, // TODO - replace with actual image
-    valuePropDescription: t('TODO'),
-    valuePropPoints: [],
+    valuePropDescription: tct('With [moduleTitle]:', {
+      moduleTitle: MODULE_TITLES[ModuleName.SCREEN_RENDERING],
+    }),
+    valuePropPoints: [
+      tct('Compare [dataType] performance between releases.', {
+        dataType: MODULE_DATA_TYPES[ModuleName.SCREEN_RENDERING].toLowerCase(),
+      }),
+      t('Drill down to specific suspect operations.'),
+      tct('Correlate [dataType] performance with real-user metrics.', {
+        dataType: MODULE_DATA_TYPES[ModuleName.SCREEN_RENDERING].toLowerCase(),
+      }),
+    ],
     supportedSdks: ['android', 'flutter', 'apple-ios', 'react-native'],
   },
 };

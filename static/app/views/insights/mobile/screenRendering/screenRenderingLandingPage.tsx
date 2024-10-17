@@ -4,23 +4,18 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {space} from 'sentry/styles/space';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
-import useOrganization from 'sentry/utils/useOrganization';
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
 import {ReleaseComparisonSelector} from 'sentry/views/insights/common/components/releaseSelector';
-import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import {PlatformSelector} from 'sentry/views/insights/mobile/screenload/components/platformSelector';
 import {ScreenRenderingContent} from 'sentry/views/insights/mobile/screenRendering/screenRenderingContent';
 import {MODULE_TITLE} from 'sentry/views/insights/mobile/screenRendering/settings';
 import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
 import {ModuleName} from 'sentry/views/insights/types';
-import Onboarding from 'sentry/views/performance/onboarding';
 
 export function ScreenRenderingModule() {
-  const organization = useOrganization();
-  const onboardingProject = useOnboardingProject();
   const {isProjectCrossPlatform} = useCrossPlatformProject();
 
   return (
@@ -42,13 +37,8 @@ export function ScreenRenderingModule() {
             </Container>
             <PageAlert />
             <ErrorBoundary mini>
-              <ModulesOnboarding moduleName={ModuleName.SCREEN_LOAD}>
-                {onboardingProject && (
-                  <OnboardingContainer>
-                    <Onboarding organization={organization} project={onboardingProject} />
-                  </OnboardingContainer>
-                )}
-                {!onboardingProject && <ScreenRenderingContent />}
+              <ModulesOnboarding moduleName={ModuleName.SCREEN_RENDERING}>
+                <ScreenRenderingContent />
               </ModulesOnboarding>
             </ErrorBoundary>
           </Layout.Main>
@@ -82,8 +72,4 @@ const Container = styled('div')`
     grid-template-rows: auto;
     grid-template-columns: auto 1fr auto;
   }
-`;
-
-const OnboardingContainer = styled('div')`
-  margin-top: ${space(2)};
 `;
