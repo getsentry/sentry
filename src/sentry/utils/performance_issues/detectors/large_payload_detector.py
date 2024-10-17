@@ -55,7 +55,7 @@ class LargeHTTPPayloadDetector(PerformanceDetector):
 
         payload_size_threshold = self.settings.get("payload_size_threshold")
 
-        if not encoded_body_size.isdigit():
+        if type(encoded_body_size) is str:
             encoded_body_size = int(encoded_body_size)
 
         if encoded_body_size > payload_size_threshold:
