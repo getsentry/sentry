@@ -235,12 +235,20 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
         return <BigNumber key={`big_number:${result.title}`}>{'\u2014'}</BigNumber>;
       }
 
+      // Remove this after https://github.com/getsentry/sentry/pull/79237
+      const mergedMeta = {
+        ...meta,
+        fields: {
+          [field]: meta?.[field],
+        },
+      };
+
       return (
         <BigNumberWidgetVisualization
           key={i}
           field={field}
           value={value as number}
-          meta={meta as Meta}
+          meta={mergedMeta as Meta}
           thresholds={widget.thresholds as Thresholds}
           preferredPolarity="-"
         />
