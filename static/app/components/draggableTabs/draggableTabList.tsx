@@ -138,7 +138,6 @@ function Tabs({
   ariaProps: AriaTabListOptions<DraggableTabListItemProps>;
   hoveringKey: Key | 'addView' | null;
   onReorder: (newOrder: Node<DraggableTabListItemProps>[]) => void;
-  onReorderComplete: () => void;
   orientation: 'horizontal' | 'vertical';
   overflowingTabs: Node<DraggableTabListItemProps>[];
   setHoveringKey: (key: Key | 'addView' | null) => void;
@@ -150,6 +149,7 @@ function Tabs({
   disabled?: boolean;
   editingTabKey?: string;
   onChange?: (key: string | number) => void;
+  onReorderComplete?: () => void;
   tabVariant?: BaseTabProps['variant'];
   value?: string | number;
 }) {
@@ -237,7 +237,7 @@ function Tabs({
               onDrag={() => setIsDragging(true)}
               onDragEnd={() => {
                 setIsDragging(false);
-                onReorderComplete();
+                onReorderComplete?.();
               }}
               onHoverStart={() => setHoveringKey(item.key)}
               onHoverEnd={() => setHoveringKey(null)}
@@ -333,7 +333,7 @@ function BaseDraggableTabList({
         state={state}
         className={className}
         onReorder={onReorder}
-        onReorderComplete={() => onReorderComplete?.()}
+        onReorderComplete={onReorderComplete}
         tabVariant={tabVariant}
         setTabRefs={setTabElements}
         tabs={persistentTabs}
@@ -399,11 +399,11 @@ export interface DraggableTabListProps
   extends AriaTabListOptions<DraggableTabListItemProps>,
     TabListStateOptions<DraggableTabListItemProps> {
   onReorder: (newOrder: Node<DraggableTabListItemProps>[]) => void;
-  onReorderComplete: () => void;
   className?: string;
   editingTabKey?: string;
   hideBorder?: boolean;
   onAddView?: React.MouseEventHandler;
+  onReorderComplete?: () => void;
   outerWrapStyles?: React.CSSProperties;
   showTempTab?: boolean;
   tabVariant?: BaseTabProps['variant'];
