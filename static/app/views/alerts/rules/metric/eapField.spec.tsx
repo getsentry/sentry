@@ -4,39 +4,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import EAPField from 'sentry/views/alerts/rules/metric/eapField';
 
 describe('EAPField', () => {
-  let metaMock;
-  beforeEach(() => {
-    metaMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/metrics/meta/',
-      body: [
-        {
-          type: 'd',
-          name: 'duration',
-          unit: 'millisecond',
-          mri: 'd:spans/duration@millisecond',
-          operations: [
-            'avg',
-            'count',
-            'histogram',
-            'max',
-            'max_timestamp',
-            'min',
-            'min_timestamp',
-            'p50',
-            'p75',
-            'p90',
-            'p95',
-            'p99',
-            'sum',
-          ],
-          projectIds: [1],
-          blockingStatus: [],
-        },
-      ],
-    });
-  });
-
-  it('renders', async () => {
+  it('renders', () => {
     const {project} = initializeOrg();
     render(
       <EAPField
@@ -45,17 +13,6 @@ describe('EAPField', () => {
         project={project}
       />
     );
-    await waitFor(() => {
-      expect(metaMock).toHaveBeenCalledWith(
-        '/organizations/org-slug/metrics/meta/',
-        expect.objectContaining({
-          query: {
-            project: [2],
-            useCase: ['spans'],
-          },
-        })
-      );
-    });
     screen.getByText('count');
     screen.getByText('span.duration');
   });
