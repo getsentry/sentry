@@ -442,30 +442,6 @@ export function getOnboardingTasks({
       display: hasPlatformWithSourceMaps(projects),
     },
     {
-      task: OnboardingTaskKey.USER_REPORTS,
-      title: t('User crash reports'),
-      description: t('Collect user feedback when your application crashes'),
-      skippable: true,
-      requisites: [
-        OnboardingTaskKey.FIRST_PROJECT,
-        OnboardingTaskKey.FIRST_EVENT,
-        OnboardingTaskKey.USER_CONTEXT,
-      ],
-      actionType: 'app',
-      location: `/settings/${organization.slug}/projects/:projectId/user-reports/`,
-      display: false,
-    },
-    {
-      task: OnboardingTaskKey.ISSUE_TRACKER,
-      title: t('Set up issue tracking'),
-      description: t('Link to Sentry issues within your issue tracker'),
-      skippable: true,
-      requisites: [OnboardingTaskKey.FIRST_PROJECT, OnboardingTaskKey.FIRST_EVENT],
-      actionType: 'app',
-      location: `/settings/${organization.slug}/projects/:projectId/plugins/`,
-      display: false,
-    },
-    {
       task: OnboardingTaskKey.ALERT_RULE,
       title: t('Configure an Issue Alert'),
       description: t(
