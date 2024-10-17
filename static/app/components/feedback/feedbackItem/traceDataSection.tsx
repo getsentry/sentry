@@ -8,7 +8,10 @@ import type {Event} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import {TraceDataSection as IssuesTraceDataSection} from 'sentry/views/issueDetails/traceDataSection';
-import {useTraceTimelineEvents} from 'sentry/views/issueDetails/traceTimeline/useTraceTimelineEvents';
+import {
+  type TimelineEvent,
+  useTraceTimelineEvents,
+} from 'sentry/views/issueDetails/traceTimeline/useTraceTimelineEvents';
 
 /**
  * Doesn't require a Section wrapper. Rendered conditionally if
@@ -40,7 +43,7 @@ export default function TraceDataSection({
           organization,
         });
       }
-      if (!!crashReportId && oneOtherIssueEvent?.id === crashReportId) {
+      if (eventIsCrashReportDup(oneOtherIssueEvent, crashReportId)) {
         trackAnalytics('feedback.trace-section.crash-report-dup', {organization});
       }
     }
@@ -48,7 +51,7 @@ export default function TraceDataSection({
     crashReportId,
     isError,
     isLoading,
-    oneOtherIssueEvent?.id,
+    oneOtherIssueEvent,
     organization,
     traceEvents.length,
   ]);
@@ -56,7 +59,7 @@ export default function TraceDataSection({
   return organization.features.includes('user-feedback-trace-section') &&
     !isError &&
     traceEvents.length > 1 &&
-    (!crashReportId || oneOtherIssueEvent?.id !== crashReportId) ? (
+    !eventIsCrashReportDup(oneOtherIssueEvent, crashReportId) ? (
     <Section icon={<IconSpan size="xs" />} title={t('Data From The Same Trace')}>
       {isLoading ? (
         <Placeholder height="114px" />
@@ -65,4 +68,11 @@ export default function TraceDataSection({
       )}
     </Section>
   ) : null;
+}
+
+function eventIsCrashReportDup(
+  event: TimelineEvent | undefined,
+  crashReportId: string | undefined
+) {
+  return !!crashReportId && event?.id === crashReportId;
 }
