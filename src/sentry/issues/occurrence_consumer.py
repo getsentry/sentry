@@ -54,22 +54,25 @@ def create_rate_limit_key(fingerprint: str) -> str:
 def is_rate_limited(
     fingerprint: str,
 ) -> bool:
-    rate_limit_enabled = options.get("issues.occurrence-consumer.rate-limit.enabled")
-    if not rate_limit_enabled:
-        return False
+    try:
+        rate_limit_enabled = options.get("issues.occurrence-consumer.rate-limit.enabled")
+        if not rate_limit_enabled:
+            return False
 
-    rate_limit_key = create_rate_limit_key(fingerprint)
-    rate_limit_quota = Quota(**options.get("issues.occurrence-consumer.rate-limit.quota"))
-    granted_quota = rate_limiter.check_and_use_quotas(
-        [
-            RequestedQuota(
-                rate_limit_key,
-                1,
-                [rate_limit_quota],
-            )
-        ]
-    )[0]
-    return not granted_quota.granted
+        rate_limit_key = create_rate_limit_key(fingerprint)
+        rate_limit_quota = Quota(**options.get("issues.occurrence-consumer.rate-limit.quota"))
+        granted_quota = rate_limiter.check_and_use_quotas(
+            [
+                RequestedQuota(
+                    rate_limit_key,
+                    1,
+                    [rate_limit_quota],
+                )
+            ]
+        )
+        return not granted_quota.granted
+    except Exception:
+        return False
 
 
 @sentry_sdk.tracing.trace
