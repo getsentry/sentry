@@ -5,8 +5,10 @@ from typing import Any
 import orjson
 import pytest
 
+from sentry.eventstore.models import Event
 from sentry.grouping.component import GroupingComponent
 from sentry.grouping.strategies.configurations import CONFIGURATIONS
+from sentry.testutils.pytest.fixtures import InstaSnapshotter
 from tests.sentry.grouping import with_grouping_input
 
 
@@ -60,6 +62,12 @@ def test_event_hash_variant(config_name, grouping_input, insta_snapshot):
     # break stuff later on.
     event.project = None
 
+    _assert_and_snapshot_results(event, config_name, insta_snapshot)
+
+
+def _assert_and_snapshot_results(
+    event: Event, config_name: str, insta_snapshot: InstaSnapshotter
+) -> None:
     # Make sure the event was annotated with the grouping config
     assert event.get_grouping_config()["id"] == config_name
 
