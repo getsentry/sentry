@@ -2,6 +2,7 @@ import {useCallback, useMemo} from 'react';
 
 import type {SelectOption} from 'sentry/components/compactSelect';
 import {CompactSelect} from 'sentry/components/compactSelect';
+import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {formatParsedFunction, parseFunction} from 'sentry/utils/discover/fields';
@@ -100,7 +101,12 @@ export function ToolbarSortBy({fields, setSorts, sorts}: ToolbarSortByProps) {
   return (
     <ToolbarSection data-test-id="section-sort-by">
       <ToolbarHeader>
-        <ToolbarLabel>{t('Sort By')}</ToolbarLabel>
+        <Tooltip
+          position="right"
+          title={t('Results you see first and last in your samples or aggregates.')}
+        >
+          <ToolbarLabel>{t('Sort By')}</ToolbarLabel>
+        </Tooltip>
       </ToolbarHeader>
       <div>
         <ToolbarRow>

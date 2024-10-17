@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {getInterval} from 'sentry/components/charts/utils';
 import {CompactSelect} from 'sentry/components/compactSelect';
+import {Tooltip} from 'sentry/components/tooltip';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {IconClock, IconGraph} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -154,32 +155,40 @@ export function ExploreCharts({query}: ExploreChartsProps) {
               <ChartHeader>
                 <ChartTitle>{formattedYAxes.join(',')}</ChartTitle>
                 <ChartSettingsContainer>
-                  <CompactSelect
-                    triggerLabel=""
-                    triggerProps={{
-                      icon: <IconGraph type={chartIcon} />,
-                      borderless: true,
-                      showChevron: false,
-                      size: 'sm',
-                    }}
-                    value={chartType}
-                    menuTitle="Type"
-                    options={exploreChartTypeOptions}
-                    onChange={option => handleChartTypeChange(option.value, index)}
-                  />
-                  <CompactSelect
-                    triggerLabel=""
-                    value={interval}
-                    onChange={({value}) => setInterval(value)}
-                    triggerProps={{
-                      icon: <IconClock />,
-                      borderless: true,
-                      showChevron: false,
-                      size: 'sm',
-                    }}
-                    menuTitle="Interval"
-                    options={intervalOptions}
-                  />
+                  <Tooltip
+                    title={t('Type of chart displayed in this visualization (ex. line)')}
+                  >
+                    <CompactSelect
+                      triggerLabel=""
+                      triggerProps={{
+                        icon: <IconGraph type={chartIcon} />,
+                        borderless: true,
+                        showChevron: false,
+                        size: 'sm',
+                      }}
+                      value={chartType}
+                      menuTitle="Type"
+                      options={exploreChartTypeOptions}
+                      onChange={option => handleChartTypeChange(option.value, index)}
+                    />
+                  </Tooltip>
+                  <Tooltip
+                    title={t('Time interval displayed in this visualization (ex. 5m)')}
+                  >
+                    <CompactSelect
+                      triggerLabel=""
+                      value={interval}
+                      onChange={({value}) => setInterval(value)}
+                      triggerProps={{
+                        icon: <IconClock />,
+                        borderless: true,
+                        showChevron: false,
+                        size: 'sm',
+                      }}
+                      menuTitle="Interval"
+                      options={intervalOptions}
+                    />
+                  </Tooltip>
                 </ChartSettingsContainer>
               </ChartHeader>
               <Chart
