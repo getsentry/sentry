@@ -19,7 +19,8 @@ export default function TimelineGaps({durationMs, startTimestampMs, videoEvents}
 
   // create gap in timeline when there is a gap between video events
   for (const video of videoEvents) {
-    if (start < video.timestamp) {
+    // arbitrarily set minimum gap to 1 second
+    if (video.timestamp - start > 1000) {
       ranges.push({
         left: toPercent((start - startTimestampMs) / durationMs),
         width: toPercent((video.timestamp - start) / durationMs),
@@ -43,7 +44,7 @@ export default function TimelineGaps({durationMs, startTimestampMs, videoEvents}
         return (
           <Range key={`${rangeCss.left}-${rangeCss.width}`} style={rangeCss}>
             <Tooltip
-              title={t('App is suspended')}
+              title={t('Video Unavailable')}
               isHoverable
               containerDisplayMode="block"
               position="top"
