@@ -247,7 +247,11 @@ function Tabs({
                 variant={tabVariant}
               />
             </TabItemWrap>
-            <TabDivider isVisible={isTabDividerVisible(item.key)} initial={false} />
+            <TabDivider
+              layout="position"
+              isVisible={isTabDividerVisible(item.key)}
+              initial={false}
+            />
           </Fragment>
         ))}
       </ReorderGroup>
@@ -353,6 +357,7 @@ function BaseDraggableTabList({
           </AddViewButton>
         </AddViewMotionWrapper>
         <TabDivider
+          layout="position"
           isVisible={
             defined(tempTab) &&
             state?.selectedKey !== TEMPORARY_TAB_KEY &&
