@@ -1,7 +1,10 @@
 from urllib.parse import quote
 
+import pytest
 from django.urls import reverse
+from rest_framework.exceptions import AuthenticationFailed
 
+from sentry.flags.endpoints.hooks import get_org_id_from_token
 from sentry.flags.models import ACTION_MAP, CREATED_BY_TYPE_MAP, FlagAuditLogModel
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.silo.base import SiloMode
@@ -15,6 +18,29 @@ class OrganizationFlagsHooksEndpointTestCase(APITestCase):
 
     def setUp(self):
         super().setUp()
+
+    def test_bad_token(self):
+        token_str = "badtoken"
+        url = reverse(self.endpoint, args=("launchdarkly", token_str))
+
+        response = self.client.post(url, {})
+
+        assert response.status_code == 403
+
+    def test_bad_org(self):
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            token_str = "sntrys+_abc123_xyz"
+            token_encoded = quote(token_str)
+            OrgAuthToken.objects.create(
+                name="Test Token 1",
+                token_hashed=hash_token(token_str),
+                organization_id=1234,
+                token_last_characters="xyz",
+                scope_list=["org:ci"],
+                date_last_used=None,
+            )
+        with pytest.raises(AuthenticationFailed):
+            get_org_id_from_token(token_encoded)
 
     def test_no_provider(self):
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -30,9 +56,7 @@ class OrganizationFlagsHooksEndpointTestCase(APITestCase):
             )
 
         url = reverse(self.endpoint, args=("test", token_encoded))
-
         response = self.client.post(url, {})
-
         assert response.status_code == 404
 
     def test_launchdarkly_post_create(self):
@@ -452,11 +476,3 @@ class OrganizationFlagsHooksEndpointTestCase(APITestCase):
         assert flag.created_by_type == CREATED_BY_TYPE_MAP["email"]
         assert flag.organization_id == self.organization.id
         assert flag.tags is not None
-
-    def test_bad_token(self):
-        token_str = "badtoken"
-        url = reverse(self.endpoint, args=("launchdarkly", token_str))
-
-        response = self.client.post(url, {})
-
-        assert response.status_code == 403

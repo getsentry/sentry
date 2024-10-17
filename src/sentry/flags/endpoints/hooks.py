@@ -31,6 +31,25 @@ This endpoint allows writes if any write-level "org" permission was provided.
 """
 
 
+def get_org_id_from_token(token: str):
+    token_hashed = hash_token(unquote(token))
+    org_token: OrgAuthTokenReplica | OrgAuthToken
+    if SiloMode.get_current_mode() == SiloMode.REGION:
+        try:
+            org_token = OrgAuthTokenReplica.objects.get(
+                token_hashed=token_hashed,
+            )
+        except OrgAuthTokenReplica.DoesNotExist:
+            raise AuthenticationFailed("Invalid org token")
+    else:
+        try:
+            org_token = OrgAuthToken.objects.get(token_hashed=token_hashed)
+        except OrgAuthToken.DoesNotExist:
+            raise AuthenticationFailed("Invalid org token")
+
+    return org_token.organization_id
+
+
 @region_silo_endpoint
 class OrganizationFlagsHooksEndpoint(Endpoint):
     authentication_classes = ()
@@ -41,23 +60,11 @@ class OrganizationFlagsHooksEndpoint(Endpoint):
     }
 
     def post(self, request: Request, provider: str, token: str) -> Response:
-        token_hashed = hash_token(unquote(token))
-        org_token: OrgAuthTokenReplica | OrgAuthToken
-        if SiloMode.get_current_mode() == SiloMode.REGION:
-            try:
-                org_token = OrgAuthTokenReplica.objects.get(
-                    token_hashed=token_hashed,
-                )
-            except OrgAuthTokenReplica.DoesNotExist:
-                raise AuthenticationFailed("Invalid org token")
-        else:
-            try:
-                org_token = OrgAuthToken.objects.get(token_hashed=token_hashed)
-            except OrgAuthToken.DoesNotExist:
-                raise AuthenticationFailed("Invalid org token")
+        org_id = get_org_id_from_token(token)
 
         try:
-            write(handle_provider_event(provider, request.data, org_token.organization_id))
+
+            write(handle_provider_event(provider, request.data, org_id))
             return Response(status=200)
         except InvalidProvider:
             raise ResourceDoesNotExist
