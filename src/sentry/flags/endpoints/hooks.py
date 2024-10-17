@@ -63,7 +63,6 @@ class OrganizationFlagsHooksEndpoint(Endpoint):
         org_id = get_org_id_from_token(token)
 
         try:
-
             write(handle_provider_event(provider, request.data, org_id))
             return Response(status=200)
         except InvalidProvider:
