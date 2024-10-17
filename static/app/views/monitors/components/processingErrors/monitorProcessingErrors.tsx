@@ -56,6 +56,7 @@ export default function MonitorProcessingErrors({
     <StyledHovercard
       skipWrapper
       showUnderline
+      position="bottom"
       header={tct('Check-in on [datetime]', {datetime: <DateTime date={checkin.ts} />})}
       body={
         // Prevent clicks inside the hovercard from closing the expandable alert
@@ -65,6 +66,7 @@ export default function MonitorProcessingErrors({
             maxDefaultDepth={3}
             withAnnotatedText
             forceDefaultExpand
+            initialExpandedPaths={['$']}
           />
         </div>
       }
