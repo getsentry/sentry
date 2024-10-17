@@ -5,7 +5,9 @@ from django.utils.functional import cached_property
 
 from sentry import eventstore
 from sentry.event_manager import EventManager, get_event_type, materialize_metadata
+from sentry.eventstore.models import Event
 from sentry.grouping.api import (
+    GroupingConfig,
     apply_server_fingerprinting,
     get_default_grouping_config_dict,
     load_grouping_config,
@@ -24,6 +26,20 @@ class GroupingInput:
         with open(os.path.join(_grouping_fixture_path, self.filename)) as f:
             self.data = json.load(f)
 
+    def _manually_save_event(self, grouping_config: GroupingConfig) -> Event:
+        """
+        Manually complete the steps to save an event, in such a way as to not touch postgres (which
+        makes it run a lot faster).
+        """
+        mgr = EventManager(data=self.data, grouping_config=grouping_config)
+        mgr.normalize()
+        data = mgr.get_data()
+
+        # Normalize the stacktrace for grouping.  This normally happens in `EventManager.save`.
+        normalize_stacktraces_for_grouping(data, load_grouping_config(grouping_config))
+
+        return eventstore.backend.create_event(data=data)
+
     def create_event(self, config_name):
         grouping_config = get_default_grouping_config_dict(config_name)
 
@@ -33,17 +49,9 @@ class GroupingInput:
             bases=Enhancements.loads(grouping_config["enhancements"]).bases,
         ).dumps()
 
-        # Normalize the event
-        mgr = EventManager(data=self.data, grouping_config=grouping_config)
-        mgr.normalize()
-        data = mgr.get_data()
+        event = self._manually_save_event(grouping_config)
 
-        # Normalize the stacktrace for grouping.  This normally happens in
-        # save()
-        normalize_stacktraces_for_grouping(data, load_grouping_config(grouping_config))
-        evt = eventstore.backend.create_event(data=data)
-
-        return evt
+        return event
 
 
 grouping_input = list(
