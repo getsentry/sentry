@@ -54,11 +54,11 @@ class GroupingInput:
         return event
 
 
-grouping_input = list(
+grouping_input = [
     GroupingInput(filename)
     for filename in sorted(os.listdir(_grouping_fixture_path))
     if filename.endswith(".json")
-)
+]
 
 
 def with_grouping_input(name):
