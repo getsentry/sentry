@@ -268,7 +268,7 @@ def create_feedback_issue(event, project_id: int, source: FeedbackCreationSource
     if len(feedback_message) > max_msg_size:
         metrics.incr(
             "feedback.create_feedback_issue.large_message",
-            tags={"nearest_pow2": 2 ** math.ceil(math.log2(len(feedback_message)))},
+            tags={"pow2_size_bucket": 2 ** math.ceil(math.log2(len(feedback_message)))},
         )
         feedback_message = feedback_message[:max_msg_size]
 
