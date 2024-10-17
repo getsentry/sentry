@@ -30,7 +30,9 @@ class GroupingInput:
         with open(path.join(inputs_dir, self.filename)) as f:
             self.data = json.load(f)
 
-    def _manually_save_event(self, grouping_config: GroupingConfig) -> Event:
+    def _manually_save_event(
+        self, grouping_config: GroupingConfig, fingerprinting_config: FingerprintingRules
+    ) -> Event:
         """
         Manually complete the steps to save an event, in such a way as to not touch postgres (which
         makes it run a lot faster).
@@ -42,6 +44,12 @@ class GroupingInput:
         # Normalize the stacktrace for grouping.  This normally happens in `EventManager.save`.
         normalize_stacktraces_for_grouping(data, load_grouping_config(grouping_config))
 
+        data.setdefault("fingerprint", ["{{ default }}"])
+        apply_server_fingerprinting(data, fingerprinting_config)
+        event_type = get_event_type(data)
+        event_metadata = event_type.get_metadata(data)
+        data.update(materialize_metadata(data, event_type, event_metadata))
+
         return eventstore.backend.create_event(data=data)
 
     def create_event(self, config_name: str) -> Event:
@@ -52,8 +60,12 @@ class GroupingInput:
             self.data.get("_grouping", {}).get("enhancements", ""),
             bases=Enhancements.loads(grouping_config["enhancements"]).bases,
         ).dumps()
+        fingerprinting_config = FingerprintingRules.from_json(
+            {"rules": self.data.get("_fingerprinting_rules", [])},
+            bases=CONFIGURATIONS[config_name].fingerprinting_bases,
+        )
 
-        event = self._manually_save_event(grouping_config)
+        event = self._manually_save_event(grouping_config, fingerprinting_config)
 
         return event
 
