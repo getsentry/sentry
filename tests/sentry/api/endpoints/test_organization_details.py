@@ -328,6 +328,10 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
             response = self.get_success_response(self.organization.slug)
             assert response.data["targetSampleRate"] == 1.0
 
+        with self.feature({"organizations:dynamic-sampling-custom": False}):
+            response = self.get_success_response(self.organization.slug)
+            assert "targetSampleRate" not in response.data
+
     def test_sensitive_fields_too_long(self):
         value = 1000 * ["0123456789"] + ["1"]
         resp = self.get_response(self.organization.slug, method="put", sensitiveFields=value)
