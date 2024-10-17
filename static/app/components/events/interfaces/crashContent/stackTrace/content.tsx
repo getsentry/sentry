@@ -320,7 +320,6 @@ function Content({
 
 const Wrapper = styled('div')<{hasIconMargin: boolean}>`
   position: relative;
-
   margin-left: ${p => (p.hasIconMargin ? space(2) : 0)};
   @media (max-width: ${p => p.theme.breakpoints.medium}) {
     margin-left: 0;
