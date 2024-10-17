@@ -1,6 +1,7 @@
 import {useEffect} from 'react';
 
 import Section from 'sentry/components/feedback/feedbackItem/feedbackItemSection';
+import Placeholder from 'sentry/components/placeholder';
 import {IconSpan} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
@@ -17,11 +18,9 @@ import {useTraceTimelineEvents} from 'sentry/views/issueDetails/traceTimeline/us
 export default function TraceDataSection({
   eventData,
   crashReportId,
-  hasProject,
 }: {
   crashReportId: string | undefined;
   eventData: Event;
-  hasProject: boolean;
 }) {
   // If there's a linked error from a crash report and only one other issue, showing both could be redundant.
   // TODO: we could add a jest test .spec for this ^
@@ -29,11 +28,7 @@ export default function TraceDataSection({
   const {oneOtherIssueEvent, traceEvents, isLoading, isError} = useTraceTimelineEvents({
     event: eventData,
   });
-  const show =
-    !isLoading &&
-    !isError &&
-    traceEvents.length > 1 && // traceEvents include the current event.
-    (!hasProject || !crashReportId || oneOtherIssueEvent?.id === crashReportId);
+  // Note traceEvents includes the current event (feedback).
 
   useEffect(() => {
     if (isError) {
@@ -45,13 +40,12 @@ export default function TraceDataSection({
           organization,
         });
       }
-      if (hasProject && !!crashReportId && oneOtherIssueEvent?.id === crashReportId) {
+      if (!!crashReportId && oneOtherIssueEvent?.id === crashReportId) {
         trackAnalytics('feedback.trace-section.crash-report-dup', {organization});
       }
     }
   }, [
     crashReportId,
-    hasProject,
     isError,
     isLoading,
     oneOtherIssueEvent?.id,
@@ -59,9 +53,16 @@ export default function TraceDataSection({
     traceEvents.length,
   ]);
 
-  return show && organization.features.includes('user-feedback-trace-section') ? (
+  return organization.features.includes('user-feedback-trace-section') &&
+    !isError &&
+    traceEvents.length > 1 &&
+    (!crashReportId || oneOtherIssueEvent?.id !== crashReportId) ? (
     <Section icon={<IconSpan size="xs" />} title={t('Data From The Same Trace')}>
-      <IssuesTraceDataSection event={eventData} />
+      {isLoading ? (
+        <Placeholder height="114px" />
+      ) : (
+        <IssuesTraceDataSection event={eventData} />
+      )}
     </Section>
   ) : null;
 }
