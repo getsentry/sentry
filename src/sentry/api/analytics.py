@@ -39,15 +39,15 @@ class DevToolbarApiRequestEvent(analytics.Event):
     attributes = (
         analytics.Attribute("view_name"),
         analytics.Attribute("route"),
-        analytics.Attribute("query_string"),
-        analytics.Attribute("origin"),
+        analytics.Attribute("query_string", required=False),
+        analytics.Attribute("origin", required=False),
         analytics.Attribute("method"),
         analytics.Attribute("status_code", type=int),
         analytics.Attribute("organization_id", type=int, required=False),
         analytics.Attribute("organization_slug", required=False),
         analytics.Attribute("project_id", type=int, required=False),
         analytics.Attribute("project_slug", required=False),
-        analytics.Attribute("user_id", type=int),
+        analytics.Attribute("user_id", type=int, required=False),
     )
 
 
