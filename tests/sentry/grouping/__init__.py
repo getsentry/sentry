@@ -22,7 +22,7 @@ _grouping_fixture_path = os.path.join(os.path.dirname(__file__), "grouping_input
 
 class GroupingInput:
     def __init__(self, filename):
-        self.filename = filename
+        self.filename = filename  # Necessary for test naming
         with open(os.path.join(_grouping_fixture_path, self.filename)) as f:
             self.data = json.load(f)
 
