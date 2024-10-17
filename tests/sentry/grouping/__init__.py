@@ -1,65 +1,76 @@
 import os
+from os import path
 
 import pytest
 from django.utils.functional import cached_property
 
 from sentry import eventstore
 from sentry.event_manager import EventManager, get_event_type, materialize_metadata
-from sentry.grouping.api import apply_server_fingerprinting, load_grouping_config
+from sentry.eventstore.models import Event
+from sentry.grouping.api import (
+    GroupingConfig,
+    apply_server_fingerprinting,
+    get_default_grouping_config_dict,
+    load_grouping_config,
+)
 from sentry.grouping.enhancer import Enhancements
 from sentry.grouping.fingerprinting import FingerprintingRules
 from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
 from sentry.utils import json
 
-_grouping_fixture_path = os.path.join(os.path.dirname(__file__), "grouping_inputs")
+GROUPING_INPUTS_DIR = path.join(path.dirname(__file__), "grouping_inputs")
+FINGERPRINT_INPUTS_DIR = path.join(path.dirname(__file__), "fingerprint_inputs")
 
 
 class GroupingInput:
-    def __init__(self, filename):
-        self.filename = filename
+    def __init__(self, inputs_dir: str, filename: str):
+        self.filename = filename  # Necessary for test naming
+        with open(path.join(inputs_dir, self.filename)) as f:
+            self.data = json.load(f)
 
-    @cached_property
-    def data(self):
-        with open(os.path.join(_grouping_fixture_path, self.filename)) as f:
-            return json.load(f)
-
-    def create_event(self, grouping_config):
-        grouping_input = dict(self.data)
-        # Customize grouping config from the _grouping config
-        grouping_info = grouping_input.pop("_grouping", None) or {}
-        enhancements = grouping_info.get("enhancements")
-        if enhancements:
-            enhancement_bases = Enhancements.loads(grouping_config["enhancements"]).bases
-            e = Enhancements.from_config_string(enhancements or "", bases=enhancement_bases)
-            grouping_config["enhancements"] = e.dumps()
-
-        # Normalize the event
-        mgr = EventManager(data=grouping_input, grouping_config=grouping_config)
+    def _manually_save_event(self, grouping_config: GroupingConfig) -> Event:
+        """
+        Manually complete the steps to save an event, in such a way as to not touch postgres (which
+        makes it run a lot faster).
+        """
+        mgr = EventManager(data=self.data, grouping_config=grouping_config)
         mgr.normalize()
         data = mgr.get_data()
 
-        # Normalize the stacktrace for grouping.  This normally happens in
-        # save()
+        # Normalize the stacktrace for grouping.  This normally happens in `EventManager.save`.
         normalize_stacktraces_for_grouping(data, load_grouping_config(grouping_config))
-        evt = eventstore.backend.create_event(data=data)
 
-        return evt
+        return eventstore.backend.create_event(data=data)
+
+    def create_event(self, config_name: str) -> Event:
+        grouping_config = get_default_grouping_config_dict(config_name)
+
+        # Add in any extra grouping configuration from the input data
+        grouping_config["enhancements"] = Enhancements.from_config_string(
+            self.data.get("_grouping", {}).get("enhancements", ""),
+            bases=Enhancements.loads(grouping_config["enhancements"]).bases,
+        ).dumps()
+
+        event = self._manually_save_event(grouping_config)
+
+        return event
 
 
-grouping_input = list(
-    GroupingInput(filename)
-    for filename in os.listdir(_grouping_fixture_path)
-    if filename.endswith(".json")
-)
+def get_grouping_inputs(inputs_dir: str) -> list[GroupingInput]:
+    return [
+        GroupingInput(inputs_dir, filename)
+        for filename in sorted(os.listdir(inputs_dir))
+        if filename.endswith(".json")
+    ]
 
 
-def with_grouping_input(name):
+def with_grouping_inputs(test_param_name: str, inputs_dir: str) -> pytest.MarkDecorator:
+    grouping_inputs = get_grouping_inputs(inputs_dir)
     return pytest.mark.parametrize(
-        name, grouping_input, ids=lambda x: x.filename[:-5].replace("-", "_")
+        test_param_name,
+        grouping_inputs,
+        ids=lambda grouping_input: grouping_input.filename.replace("-", "_").replace(".json", ""),
     )
-
-
-_fingerprint_fixture_path = os.path.join(os.path.dirname(__file__), "fingerprint_inputs")
 
 
 class FingerprintInput:
@@ -68,14 +79,14 @@ class FingerprintInput:
 
     @cached_property
     def data(self):
-        with open(os.path.join(_fingerprint_fixture_path, self.filename)) as f:
+        with open(path.join(FINGERPRINT_INPUTS_DIR, self.filename)) as f:
             return json.load(f)
 
-    def create_event(self, grouping_config=None):
-        input = dict(self.data)
-
-        config = FingerprintingRules.from_json({"rules": input.pop("_fingerprinting_rules")})
-        mgr = EventManager(data=input, grouping_config=grouping_config)
+    def create_event(self):
+        config = FingerprintingRules.from_json(
+            {"rules": self.data.get("_fingerprinting_rules", [])},
+        )
+        mgr = EventManager(data=self.data)
         mgr.normalize()
         data = mgr.get_data()
 
@@ -91,7 +102,7 @@ class FingerprintInput:
 
 fingerprint_input = list(
     FingerprintInput(filename)
-    for filename in os.listdir(_fingerprint_fixture_path)
+    for filename in os.listdir(FINGERPRINT_INPUTS_DIR)
     if filename.endswith(".json")
 )
 

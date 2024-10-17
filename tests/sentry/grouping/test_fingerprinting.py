@@ -4,13 +4,14 @@ import pytest
 
 from sentry.grouping.api import get_default_grouping_config_dict
 from sentry.grouping.fingerprinting import FingerprintingRules, InvalidFingerprintingConfig
-from sentry.testutils.pytest.fixtures import django_db_all
-from tests.sentry.grouping import with_fingerprint_input
+from sentry.grouping.variants import BaseVariant
+from sentry.testutils.pytest.fixtures import InstaSnapshotter, django_db_all
+from tests.sentry.grouping import FingerprintInput, with_fingerprint_input
 
 GROUPING_CONFIG = get_default_grouping_config_dict()
 
 
-def test_basic_parsing(insta_snapshot: object) -> None:
+def test_basic_parsing() -> None:
     rules = FingerprintingRules.from_config_string(
         """
 # This is a config
@@ -124,7 +125,7 @@ logger:test2 -> logger-, {{ logger }}, -, {{ level }}
     }
 
 
-def test_discover_field_parsing(insta_snapshot: object) -> None:
+def test_discover_field_parsing() -> None:
     rules = FingerprintingRules.from_config_string(
         """
 # This is a config
@@ -164,11 +165,11 @@ release:foo                                     -> release-foo
 
 @with_fingerprint_input("input")
 @django_db_all  # because of `options` usage
-def test_event_hash_variant(insta_snapshot: Any, input: Any) -> None:
-    config, evt = input.create_event()
+def test_event_hash_variant(insta_snapshot: InstaSnapshotter, input: FingerprintInput) -> None:
+    config, event = input.create_event()
 
-    def dump_variant(v: Any) -> dict[str, Any]:
-        rv = v.as_dict()
+    def dump_variant(variant: BaseVariant) -> dict[str, Any]:
+        rv = variant.as_dict()
 
         for key in "hash", "description", "config":
             rv.pop(key, None)
@@ -182,11 +183,13 @@ def test_event_hash_variant(insta_snapshot: Any, input: Any) -> None:
     insta_snapshot(
         {
             "config": config.to_json(),
-            "fingerprint": evt.data["fingerprint"],
-            "title": evt.data["title"],
+            "fingerprint": event.data["fingerprint"],
+            "title": event.data["title"],
             "variants": {
-                k: dump_variant(v)
-                for (k, v) in evt.get_grouping_variants(force_config=GROUPING_CONFIG).items()
+                variant_name: dump_variant(variant)
+                for (variant_name, variant) in event.get_grouping_variants(
+                    force_config=GROUPING_CONFIG
+                ).items()
             },
         }
     )
