@@ -1,10 +1,10 @@
-from dataclasses import dataclass
-
-from django.db import router, transaction
+from django.db import router
 from django.utils.functional import cached_property
 
 from sentry import analytics
 from sentry.coreapi import APIUnauthorized
+from sentry.mediators.mediator import Mediator
+from sentry.mediators.param import Param
 from sentry.mediators.token_exchange.util import token_expiration
 from sentry.mediators.token_exchange.validator import Validator
 from sentry.models.apiapplication import ApiApplication
@@ -15,39 +15,42 @@ from sentry.sentry_apps.services.app import RpcSentryAppInstallation
 from sentry.users.models.user import User
 
 
-@dataclass
-class Refresher:
+class Refresher(Mediator):
     """
     Exchanges a Refresh Token for a new Access Token
     """
 
-    install: RpcSentryAppInstallation
-    refresh_token: str
-    client_id: str
-    user: User
+    install = Param(RpcSentryAppInstallation)
+    refresh_token = Param(str)
+    client_id = Param(str)
+    user = Param(User)
+    using = router.db_for_write(User)
 
-    def run(self) -> ApiToken:
-        with transaction.atomic(router.db_for_write(ApiToken)):
-            self._validate()
-            self.token.delete()
-
-        self.record_analytics()
+    def call(self):
+        self._validate()
+        self._delete_token()
         return self._create_new_token()
 
-    def record_analytics(self) -> None:
+    def record_analytics(self):
         analytics.record(
             "sentry_app.token_exchanged",
             sentry_app_installation_id=self.install.id,
             exchange_type="refresh",
         )
 
-    def _validate(self) -> None:
+    def _validate(self):
         Validator.run(install=self.install, client_id=self.client_id, user=self.user)
 
-        if self.token.application != self.application:
-            raise APIUnauthorized("Token does not belong to the application")
+        self._validate_token_belongs_to_app()
 
-    def _create_new_token(self) -> ApiToken:
+    def _validate_token_belongs_to_app(self):
+        if self.token.application != self.application:
+            raise APIUnauthorized
+
+    def _delete_token(self):
+        self.token.delete()
+
+    def _create_new_token(self):
         token = ApiToken.objects.create(
             user=self.user,
             application=self.application,
@@ -61,22 +64,22 @@ class Refresher:
         return token
 
     @cached_property
-    def token(self) -> ApiToken:
+    def token(self):
         try:
             return ApiToken.objects.get(refresh_token=self.refresh_token)
         except ApiToken.DoesNotExist:
-            raise APIUnauthorized("Token does not exist")
+            raise APIUnauthorized
 
     @cached_property
-    def application(self) -> ApiApplication:
+    def application(self):
         try:
             return ApiApplication.objects.get(client_id=self.client_id)
         except ApiApplication.DoesNotExist:
-            raise APIUnauthorized("Application does not exist")
+            raise APIUnauthorized
 
     @property
-    def sentry_app(self) -> SentryApp:
+    def sentry_app(self):
         try:
             return self.application.sentry_app
         except SentryApp.DoesNotExist:
-            raise APIUnauthorized("Sentry App does not exist")
+            raise APIUnauthorized
