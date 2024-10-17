@@ -22,6 +22,10 @@ class IssueNotificationMessageBuilder(SlackNotificationsMessageBuilder):
         self.notification: ProjectNotification = notification
 
     def build(self) -> SlackBlock:
+        # TODO: Tag with MessagingInteractionType
+        # Does this encompass both ISSUE_ALERT_TO_DM and ISSUE_ALERT_MESSAGE_TO_CHANNEL
+        # depending on the value of `self.recipient`?
+
         group = getattr(self.notification, "group", None)
         return SlackIssuesMessageBuilder(
             group=group,
