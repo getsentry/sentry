@@ -375,6 +375,16 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
         assert "permissions" in response.data
         assert not response.data["permissions"]
 
+    def test_dashboard_viewable_with_no_edit_permissions(self):
+        dashboard = Dashboard.objects.create(
+            title="Dashboard With Dataset Source",
+            created_by_id=1142,
+            organization=self.organization,
+        )
+        DashboardPermissions.objects.create(is_creator_only_editable=True, dashboard=dashboard)
+        response = self.do_request("get", self.url(dashboard.id), {"UuerId": 1289})
+        assert response.status_code == 200, response.content
+
 
 class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCase):
     def test_delete(self):
@@ -504,6 +514,36 @@ class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCas
         with self.feature({"organizations:dashboards-edit": False}):
             response = self.do_request("delete", self.url("default-overview"))
             assert response.status_code == 404
+
+    def test_delete_dashboard_with_edit_permissions_not_granted(self):
+        dashboard = Dashboard.objects.create(
+            title="Dashboard With Dataset Source",
+            created_by_id=11452,
+            organization=self.organization,
+        )
+        DashboardPermissions.objects.create(is_creator_only_editable=True, dashboard=dashboard)
+        response = self.do_request("delete", self.url(dashboard.id), {"userId": 12333})
+        assert response.status_code == 204
+
+    def test_delete_dashboard_with_edit_permissions_disabled(self):
+        dashboard = Dashboard.objects.create(
+            title="Dashboard With Dataset Source",
+            created_by_id=11452,
+            organization=self.organization,
+        )
+        DashboardPermissions.objects.create(is_creator_only_editable=False, dashboard=dashboard)
+        response = self.do_request("delete", self.url(dashboard.id), {"userId": 12333})
+        assert response.status_code == 204
+
+    def test_delete_dashboard_with_edit_permissions_granted(self):
+        dashboard = Dashboard.objects.create(
+            title="Dashboard With Dataset Source",
+            created_by_id=12333,
+            organization=self.organization,
+        )
+        DashboardPermissions.objects.create(is_creator_only_editable=True, dashboard=dashboard)
+        response = self.do_request("delete", self.url(dashboard.id), {"userId": 12333})
+        assert response.status_code == 204, response.content  # 204: RESPONSE_NO_CONTENT ??
 
 
 class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
@@ -1808,6 +1848,49 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
         )
         assert response.status_code == 200, response.data
+
+    def test_edit_dashboard_with_edit_permissions_not_granted(self):
+        dashboard = Dashboard.objects.create(
+            title="Dashboard With Dataset Source",
+            # To ensure the creator isn't the one editing the dashboard
+            created_by_id=12333,
+            organization=self.organization,
+        )
+        DashboardPermissions.objects.create(is_creator_only_editable=True, dashboard=dashboard)
+        response = self.do_request(
+            "put",
+            self.url(dashboard.id),
+            {"userId": 12349},
+        )
+        assert response.status_code == 403
+
+    def test_edit_dashboard_with_edit_permissions_disabled(self):
+        dashboard = Dashboard.objects.create(
+            title="Dashboard With Dataset Source",
+            created_by_id=12333,
+            organization=self.organization,
+        )
+        DashboardPermissions.objects.create(is_creator_only_editable=False, dashboard=dashboard)
+        response = self.do_request(
+            "put",
+            self.url(dashboard.id),
+            {"userId": 12349},
+        )
+        assert response.status_code == 200
+
+    def test_edit_dashboard_with_edit_permissions_granted(self):
+        dashboard = Dashboard.objects.create(
+            title="Dashboard With Dataset Source",
+            created_by_id=12333,
+            organization=self.organization,
+        )
+        DashboardPermissions.objects.create(is_creator_only_editable=True, dashboard=dashboard)
+        response = self.do_request(
+            "put",
+            self.url(self.dashboard.id),
+            {"userId": 12333},
+        )
+        assert response.status_code == 200, response.content
 
 
 class OrganizationDashboardDetailsOnDemandTest(OrganizationDashboardDetailsTestCase):
