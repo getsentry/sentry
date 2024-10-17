@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import type {DataZoomComponentOption, LegendComponentOption} from 'echarts';
 import type {Location} from 'history';
@@ -84,10 +84,6 @@ export function WidgetCardChartContainer({
 }: Props) {
   const location = useLocation();
 
-  const [disabledLegends, setDisabledLegends] = useState<{[key: string]: boolean}>(
-    dashboardLegendUtils.getLegendUnselected(widget)
-  );
-
   if (widget.widgetType === WidgetType.ISSUE) {
     return (
       <IssueWidgetQueries
@@ -128,18 +124,6 @@ export function WidgetCardChartContainer({
     type: 'legendselectchanged';
   }) {
     dashboardLegendUtils.updateLegendQueryParam(selected, widget);
-    setDisabledLegends(selected);
-  }
-
-  function findDisabledLegends() {
-    const legendUnselected = dashboardLegendUtils.getLegendUnselected(widget);
-    if (
-      dashboardLegendUtils.encodeLegendQueryParam(widget, legendUnselected) ===
-      dashboardLegendUtils.encodeLegendQueryParam(widget, disabledLegends)
-    ) {
-      return disabledLegends;
-    }
-    return legendUnselected;
   }
 
   if (widget.widgetType === WidgetType.RELEASE) {
@@ -188,7 +172,9 @@ export function WidgetCardChartContainer({
                   onLegendSelectChanged ? onLegendSelectChanged : keepLegendState
                 }
                 legendOptions={
-                  legendOptions ? legendOptions : {selected: findDisabledLegends()}
+                  legendOptions
+                    ? legendOptions
+                    : {selected: dashboardLegendUtils.getLegendUnselected(widget)}
                 }
                 dashboardLegendUtils={dashboardLegendUtils}
               />
@@ -243,7 +229,9 @@ export function WidgetCardChartContainer({
                 onLegendSelectChanged ? onLegendSelectChanged : keepLegendState
               }
               legendOptions={
-                legendOptions ? legendOptions : {selected: findDisabledLegends()}
+                legendOptions
+                  ? legendOptions
+                  : {selected: dashboardLegendUtils.getLegendUnselected(widget)}
               }
               expandNumbers={expandNumbers}
               showSlider={showSlider}

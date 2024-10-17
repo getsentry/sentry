@@ -246,11 +246,6 @@ function WidgetViewerModal(props: Props) {
     }
   }, [end, location, locationPageFilter, start]);
 
-  // Get legends toggle settings from location
-  // We use the legend query params for just the initial state
-  const [disabledLegends, setDisabledLegends] = useState<{[key: string]: boolean}>(
-    dashboardLegendUtils.getLegendUnselected(widget)
-  );
   const [totalResults, setTotalResults] = useState<string | undefined>();
 
   // Get query selection settings from location
@@ -474,23 +469,11 @@ function WidgetViewerModal(props: Props) {
 
   function onLegendSelectChanged({selected}: {selected: Record<string, boolean>}) {
     dashboardLegendUtils.updateLegendQueryParam(selected, widget);
-    setDisabledLegends(selected);
     trackAnalytics('dashboards_views.widget_viewer.toggle_legend', {
       organization,
       widget_type: widget.widgetType ?? WidgetType.DISCOVER,
       display_type: widget.displayType,
     });
-  }
-
-  function findDisabledLegends() {
-    const legendUnselected = dashboardLegendUtils.getLegendUnselected(widget);
-    if (
-      dashboardLegendUtils.encodeLegendQueryParam(widget, legendUnselected) ===
-      dashboardLegendUtils.encodeLegendQueryParam(widget, disabledLegends)
-    ) {
-      return disabledLegends;
-    }
-    return legendUnselected;
   }
 
   function DiscoverTable({
@@ -885,7 +868,9 @@ function WidgetViewerModal(props: Props) {
                 organization={organization}
                 onZoom={onZoom}
                 onLegendSelectChanged={onLegendSelectChanged}
-                legendOptions={{selected: findDisabledLegends()}}
+                legendOptions={{
+                  selected: dashboardLegendUtils.getLegendUnselected(widget),
+                }}
                 expandNumbers
                 showSlider={shouldShowSlider}
                 noPadding
@@ -903,7 +888,9 @@ function WidgetViewerModal(props: Props) {
                 widget={primaryWidget}
                 onZoom={onZoom}
                 onLegendSelectChanged={onLegendSelectChanged}
-                legendOptions={{selected: findDisabledLegends()}}
+                legendOptions={{
+                  selected: dashboardLegendUtils.getLegendUnselected(widget),
+                }}
                 expandNumbers
                 showSlider={shouldShowSlider}
                 noPadding
