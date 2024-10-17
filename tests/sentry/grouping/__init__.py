@@ -67,7 +67,9 @@ def get_grouping_inputs(inputs_dir: str) -> list[GroupingInput]:
 def with_grouping_inputs(test_param_name: str, inputs_dir: str) -> pytest.MarkDecorator:
     grouping_inputs = get_grouping_inputs(inputs_dir)
     return pytest.mark.parametrize(
-        test_param_name, grouping_inputs, ids=lambda x: x.filename[:-5].replace("-", "_")
+        test_param_name,
+        grouping_inputs,
+        ids=lambda grouping_input: grouping_input.filename[:-5].replace("-", "_"),
     )
 
 
