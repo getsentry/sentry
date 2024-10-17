@@ -9,8 +9,10 @@ import difflib
 import os
 import re
 import sys
+from collections.abc import Callable, Generator
 from concurrent.futures import ThreadPoolExecutor
 from string import Template
+from typing import Any, Protocol
 
 import pytest
 import requests
@@ -193,8 +195,23 @@ def read_snapshot_file(reference_file: str) -> tuple[str, str]:
         return (header, refval)
 
 
+InequalityComparator = Callable[[str, str], bool]
+# InstaSnapshotter = Callable[[str | Any, str | None, str | None, InequalityComparator], None]
+
+
+class InstaSnapshotter(Protocol):
+    def __call__(
+        self,
+        output: str | Any,
+        reference_file: str | None = None,
+        subname: str | None = None,
+        inequality_comparator: InequalityComparator = lambda refval, output: refval != output,
+    ):
+        ...
+
+
 @pytest.fixture
-def insta_snapshot(request, log):
+def insta_snapshot(request, log) -> Generator[InstaSnapshotter]:
     def inner(
         output,
         reference_file=None,

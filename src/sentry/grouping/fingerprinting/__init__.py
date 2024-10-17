@@ -485,7 +485,7 @@ class Rule:
 
     def _to_config_structure(self) -> dict[str, Any]:
         config_structure: dict[str, Any] = {
-            "matchers": [x._to_config_structure() for x in self.matchers],
+            "matchers": sorted([x._to_config_structure() for x in self.matchers]),
             "fingerprint": self.fingerprint,
             "attributes": self.attributes,
         }
