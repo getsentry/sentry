@@ -104,12 +104,12 @@ SentryAndroid.init(context) { options ->
   options.isDebug = true
 
   // Currently under experimental options:
-  options.experimental.sessionReplay.errorSampleRate = 1.0
+  options.experimental.sessionReplay.onErrorSampleRate = 1.0
   options.experimental.sessionReplay.sessionSampleRate = 1.0
 }`;
 
 const getReplaySetupSnippetXml = () => `
-<meta-data android:name="io.sentry.session-replay.error-sample-rate" android:value="1.0" />
+<meta-data android:name="io.sentry.session-replay.on-error-sample-rate" android:value="1.0" />
 <meta-data android:name="io.sentry.session-replay.session-sample-rate" android:value="1.0" />`;
 
 const getReplayConfigurationSnippet = () => `
@@ -434,7 +434,7 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
   ],
   verify: getReplayVerifyStep({
     replayOnErrorSampleRateName:
-      'options\u200b.experimental\u200b.sessionReplay\u200b.errorSampleRate',
+      'options\u200b.experimental\u200b.sessionReplay\u200b.onErrorSampleRate',
     replaySessionSampleRateName:
       'options\u200b.experimental\u200b.sessionReplay\u200b.sessionSampleRate',
   }),
