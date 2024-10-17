@@ -942,6 +942,16 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         self.create_organization(slug="taken")
         self.get_error_response(self.organization.slug, slug="taken", status_code=400)
 
+    def test_target_sample_rate_feature(self):
+        with self.feature("organizations:dynamic-sampling-custom"):
+            data = {"targetSampleRate": 0.1}
+            self.get_success_response(self.organization.slug, **data)
+
+        with self.feature({"organizations:dynamic-sampling-custom": False}):
+            data = {"targetSampleRate": 0.1}
+            self.get_error_response(self.organization.slug, status_code=400, **data)
+
+    @with_feature("organizations:dynamic-sampling-custom")
     def test_target_sample_rate_range(self):
         # low, within and high
         data = {"targetSampleRate": 0.0}

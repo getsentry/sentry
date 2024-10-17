@@ -369,6 +369,18 @@ class OrganizationSerializer(BaseOrganizationSerializer):
         return value
 
     def validate_targetSampleRate(self, value):
+        from sentry import features
+
+        organization = self.context["organization"]
+        request = self.context["request"]
+        has_dynamic_sampling_custom = features.has(
+            "organizations:dynamic-sampling-custom", organization, actor=request.user
+        )
+        if not has_dynamic_sampling_custom:
+            raise serializers.ValidationError(
+                "Organization does not have the custom dynamic sample rate feature enabled."
+            )
+
         if not 0.0 <= value <= 1.0:
             raise serializers.ValidationError(
                 "The targetSampleRate option must be in the range [0:1]"
