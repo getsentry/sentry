@@ -6,6 +6,7 @@ import responses
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.pagerduty.actions.notification import PagerDutyNotifyServiceAction
 from sentry.integrations.pagerduty.utils import add_service
+from sentry.integrations.utils.metrics import EventLifecycleOutcome
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -296,7 +297,8 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         assert data["event_action"] == "trigger"
 
     @responses.activate
-    def test_invalid_service_selected(self):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_invalid_service_selected(self, mock_record):
         # make a service associated with a different pagerduty account
         service_info = {
             "type": "service",
@@ -325,3 +327,7 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         form = rule.get_form_instance()
         assert not form.is_valid()
         assert len(form.errors) == 1
+        assert len(mock_record.mock_calls) == 2
+        start, halt = mock_record.mock_calls
+        assert start.args[0] == EventLifecycleOutcome.STARTED
+        assert halt.args[0] == EventLifecycleOutcome.FAILURE
