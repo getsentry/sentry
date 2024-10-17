@@ -85,7 +85,7 @@ export function ColumnEditorModal({
       {({insertColumn, updateColumnAtIndex, deleteColumnAtIndex, editableColumns}) => (
         <Fragment>
           <Header closeButton data-test-id="editor-header">
-            <h4>{t('Edit Columns')}</h4>
+            <h4>{t('Edit Table')}</h4>
           </Header>
           <Body data-test-id="editor-body">
             {editableColumns.map((column, i) => {
@@ -203,6 +203,7 @@ function ColumnEditorRow({
         onChange={handleColumnChange}
         searchable
         triggerProps={{
+          prefix: t('Column'),
           style: {
             width: '100%',
           },
@@ -223,6 +224,7 @@ function ColumnEditorRow({
 const RowContainer = styled('div')`
   display: flex;
   flex-direction: row;
+  align-items: center;
 
   :not(:first-child) {
     margin-top: ${space(1)};
