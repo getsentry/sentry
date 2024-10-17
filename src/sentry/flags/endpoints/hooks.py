@@ -13,7 +13,6 @@ from sentry.flags.providers import (
     write,
 )
 from sentry.hybridcloud.models.orgauthtokenreplica import OrgAuthTokenReplica
-from sentry.models.organization import Organization
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.silo.base import SiloMode
 from sentry.utils.security.orgauthtoken_token import hash_token
@@ -41,27 +40,22 @@ class OrganizationFlagsHooksEndpoint(Endpoint):
 
     def post(self, request: Request, provider: str, token: str) -> Response:
         token_hashed = hash_token(token)
-        token: OrgAuthTokenReplica | OrgAuthToken
+        org_token: OrgAuthTokenReplica | OrgAuthToken
         if SiloMode.get_current_mode() == SiloMode.REGION:
             try:
-                token = OrgAuthTokenReplica.objects.get(
+                org_token = OrgAuthTokenReplica.objects.get(
                     token_hashed=token_hashed,
                 )
             except OrgAuthTokenReplica.DoesNotExist:
                 raise AuthenticationFailed("Invalid org token")
         else:
             try:
-                token = OrgAuthToken.objects.get(token_hashed=token_hashed)
+                org_token = OrgAuthToken.objects.get(token_hashed=token_hashed)
             except OrgAuthToken.DoesNotExist:
                 raise AuthenticationFailed("Invalid org token")
 
-        organization = Organization.objects.get(id=token.organization_id)
-
-        if organization is None:
-            raise ResourceDoesNotExist
-
         try:
-            write(handle_provider_event(provider, request.data, organization.id))
+            write(handle_provider_event(provider, request.data, org_token.organization_id))
             return Response(status=200)
         except InvalidProvider:
             raise ResourceDoesNotExist
