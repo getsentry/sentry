@@ -186,7 +186,20 @@ export function DatabaseLandingPage() {
         </Layout.Header>
       )}
 
-      {isInDomainView && <BackendHeader module={ModuleName.DB} />}
+      {isInDomainView && (
+        <BackendHeader
+          headerTitle={
+            <React.Fragment>
+              {MODULE_TITLE}
+              <PageHeadingQuestionTooltip
+                docsUrl={MODULE_DOC_LINK}
+                title={MODULE_DESCRIPTION}
+              />
+            </React.Fragment>
+          }
+          module={ModuleName.DB}
+        />
+      )}
 
       <Layout.Body>
         <Layout.Main fullWidth>

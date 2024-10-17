@@ -54,7 +54,7 @@ REGRESSION = "regression"
 TREND_TYPES = [IMPROVED, REGRESSION]
 
 
-# TODO move this to the builder file and introduce a top-events version instead
+# TODO: move this to the builder file and introduce a top-events version instead
 class TrendQueryBuilder(DiscoverQueryBuilder):
     def convert_aggregate_filter_to_condition(
         self, aggregate_filter: AggregateFilter
