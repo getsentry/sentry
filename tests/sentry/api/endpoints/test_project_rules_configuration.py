@@ -4,7 +4,6 @@ from sentry.constants import TICKET_ACTIONS
 from sentry.integrations.github_enterprise.actions import GitHubEnterpriseCreateTicketAction
 from sentry.rules import MatchType
 from sentry.rules import rules as default_rules
-from sentry.rules.filters.issue_category import IssueCategoryFilter
 from sentry.rules.registry import RuleRegistry
 from sentry.testutils.cases import APITestCase
 
@@ -34,7 +33,7 @@ class ProjectRuleConfigurationTest(APITestCase):
         response = self.get_success_response(self.organization.slug, project1.slug)
         assert len(response.data["actions"]) == 12
         assert len(response.data["conditions"]) == 10
-        assert len(response.data["filters"]) == 8
+        assert len(response.data["filters"]) == 9
 
     @property
     def rules(self):
@@ -149,7 +148,7 @@ class ProjectRuleConfigurationTest(APITestCase):
             },
         } in response.data["actions"]
         assert len(response.data["conditions"]) == 10
-        assert len(response.data["filters"]) == 8
+        assert len(response.data["filters"]) == 9
 
     @patch("sentry.sentry_apps.components.SentryAppComponentPreparer.run")
     def test_sentry_app_alert_rules(self, mock_sentry_app_components_preparer):
@@ -180,13 +179,13 @@ class ProjectRuleConfigurationTest(APITestCase):
             "sentryAppInstallationUuid": str(install.uuid),
         } in response.data["actions"]
         assert len(response.data["conditions"]) == 10
-        assert len(response.data["filters"]) == 8
+        assert len(response.data["filters"]) == 9
 
     def test_issue_type_and_category_filter_feature(self):
         response = self.get_success_response(self.organization.slug, self.project.slug)
         assert len(response.data["actions"]) == 12
 
-        assert len(response.data["conditions"]) == 9
+        assert len(response.data["conditions"]) == 10
         assert len(response.data["filters"]) == 9
         assert len(response.data["conditions"]) == 10
 
