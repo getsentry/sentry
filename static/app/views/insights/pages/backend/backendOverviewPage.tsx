@@ -30,6 +30,7 @@ import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {ViewTrendsButton} from 'sentry/views/insights/common/viewTrendsButton';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
+import {BACKEND_LANDING_TITLE} from 'sentry/views/insights/pages/backend/settings';
 import {OVERVIEW_PAGE_TITLE} from 'sentry/views/insights/pages/settings';
 import {generateBackendPerformanceEventView} from 'sentry/views/performance/data';
 import {
@@ -160,7 +161,10 @@ function BackendOverviewPage() {
       organization={organization}
       renderDisabled={NoAccess}
     >
-      <BackendHeader headerActions={<ViewTrendsButton />} />
+      <BackendHeader
+        headerTitle={BACKEND_LANDING_TITLE}
+        headerActions={<ViewTrendsButton />}
+      />
       <Layout.Body>
         <Layout.Main fullWidth>
           <ModuleLayout.Layout>
