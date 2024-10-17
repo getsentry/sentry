@@ -21,7 +21,7 @@ from sentry.users.web import accounts
 from sentry.users.web.account_identity import AccountIdentityAssociateView
 from sentry.users.web.user_avatar import UserAvatarPhotoView
 from sentry.web import api
-from sentry.web.frontend import generic
+from sentry.web.frontend import csrf_failure, generic
 from sentry.web.frontend.auth_channel_login import AuthChannelLoginView
 from sentry.web.frontend.auth_close import AuthCloseView
 from sentry.web.frontend.auth_login import AuthLoginView
@@ -30,6 +30,8 @@ from sentry.web.frontend.auth_organization_login import AuthOrganizationLoginVie
 from sentry.web.frontend.auth_provider_login import AuthProviderLoginView
 from sentry.web.frontend.cli import get_cli, get_cli_download_url
 from sentry.web.frontend.disabled_member_view import DisabledMemberView
+from sentry.web.frontend.error_404 import Error404View
+from sentry.web.frontend.error_500 import Error500View
 from sentry.web.frontend.error_page_embed import ErrorPageEmbedView
 from sentry.web.frontend.group_event_json import GroupEventJsonView
 from sentry.web.frontend.group_plugin_action import GroupPluginActionView
@@ -62,7 +64,23 @@ from social_auth.views import complete
 generic_react_page_view = GenericReactPageView.as_view()
 react_page_view = ReactPageView.as_view()
 
-urlpatterns: list[URLResolver | URLPattern] = []
+urlpatterns: list[URLResolver | URLPattern] = [
+    re_path(
+        r"^500/",
+        Error500View.as_view(),
+        name="error-500",
+    ),
+    re_path(
+        r"^404/",
+        Error404View.as_view(),
+        name="error-404",
+    ),
+    re_path(
+        r"^403-csrf-failure/",
+        csrf_failure.view,
+        name="error-403-csrf-failure",
+    ),
+]
 
 if getattr(settings, "DEBUG_VIEWS", settings.DEBUG):
     from sentry.web.debug_urls import urlpatterns as debug_urls
