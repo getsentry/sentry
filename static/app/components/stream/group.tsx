@@ -829,7 +829,7 @@ const CountsWrapper = styled('div')`
   flex-direction: column;
 `;
 
-const PrimaryCount = styled(Count)<{hasNewLayout?: boolean}>`
+export const PrimaryCount = styled(Count)<{hasNewLayout?: boolean}>`
   font-size: ${p => (p.hasNewLayout ? p.theme.fontSizeMedium : p.theme.fontSizeLarge)};
   ${p =>
     p.hasNewLayout &&
@@ -924,7 +924,7 @@ const NarrowEventsOrUsersCountsWrapper = styled('div')<{breakpoint: string}>`
   }
 `;
 
-const InnerCountsWrapper = styled('div')`
+export const InnerCountsWrapper = styled('div')`
   margin-right: ${space(2)};
 `;
 
