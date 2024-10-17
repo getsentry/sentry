@@ -60,43 +60,6 @@ export function useCreateNotificationAction() {
   );
   const [channel, setChannel] = useState<string | undefined>(undefined);
 
-  const integrationAction = useMemo(() => {
-    const isCreatingIntegrationNotification = actions.find(
-      action => action === MultipleCheckboxOptions.INTEGRATION
-    );
-    if (!isCreatingIntegrationNotification) {
-      return undefined;
-    }
-    switch (provider) {
-      case 'slack':
-        return [
-          {
-            id: IssueAlertActionType.SLACK,
-            workspace: integration?.id,
-            channel: channel,
-          },
-        ];
-      case 'discord':
-        return [
-          {
-            id: IssueAlertActionType.DISCORD,
-            server: integration?.id,
-            channel_id: channel,
-          },
-        ];
-      case 'msteams':
-        return [
-          {
-            id: IssueAlertActionType.MS_TEAMS,
-            team: integration?.id,
-            channel: channel,
-          },
-        ];
-      default:
-        return undefined;
-    }
-  }, [actions, integration, channel, provider]);
-
   type Props = {
     actionMatch: string | undefined;
     api: Client;
@@ -117,8 +80,43 @@ export function useCreateNotificationAction() {
       actionMatch,
       frequency,
     }: Props) => {
-      if (!integrationAction) {
-        return null;
+      let integrationAction;
+      const isCreatingIntegrationNotification = actions.find(
+        action => action === MultipleCheckboxOptions.INTEGRATION
+      );
+      if (!isCreatingIntegrationNotification) {
+        return undefined;
+      }
+      switch (provider) {
+        case 'slack':
+          integrationAction = [
+            {
+              id: IssueAlertActionType.SLACK,
+              workspace: integration?.id,
+              channel: channel,
+            },
+          ];
+          break;
+        case 'discord':
+          integrationAction = [
+            {
+              id: IssueAlertActionType.DISCORD,
+              server: integration?.id,
+              channel_id: channel,
+            },
+          ];
+          break;
+        case 'msteams':
+          integrationAction = [
+            {
+              id: IssueAlertActionType.MS_TEAMS,
+              team: integration?.id,
+              channel: channel,
+            },
+          ];
+          break;
+        default:
+          return undefined;
       }
       return api.requestPromise(`/projects/${organizationSlug}/${projectSlug}/rules/`, {
         method: 'POST',
@@ -131,7 +129,7 @@ export function useCreateNotificationAction() {
         },
       });
     },
-    [integrationAction]
+    [actions, provider, integration, channel]
   );
 
   return {
