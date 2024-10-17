@@ -5,11 +5,11 @@ import {space} from 'sentry/styles/space';
 import {DEEMPHASIS_COLOR_NAME} from 'sentry/views/dashboards/widgets/bigNumberWidget/settings';
 import type {StateProps} from 'sentry/views/dashboards/widgets/common/types';
 
-interface Props {
+interface ErrorPanelProps {
   error: StateProps['error'];
 }
 
-export function ErrorPanel({error}: Props) {
+export function ErrorPanel({error}: ErrorPanelProps) {
   return (
     <Panel>
       <NonShrinkingWarningIcon color={DEEMPHASIS_COLOR_NAME} size="md" />
