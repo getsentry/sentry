@@ -69,7 +69,7 @@ def is_rate_limited(
                     [rate_limit_quota],
                 )
             ]
-        )
+        )[0]
         return not granted_quota.granted
     except Exception:
         logger.exception("Failed to check issue platform rate limiter")
