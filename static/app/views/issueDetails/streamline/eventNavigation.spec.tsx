@@ -128,13 +128,13 @@ describe('EventNavigation', () => {
     expect(screen.queryByText('Jump To:')).not.toBeInTheDocument();
     expect(screen.queryByText('Replay')).not.toBeInTheDocument();
     expect(screen.queryByText('Tags')).not.toBeInTheDocument();
-    expect(screen.queryByText('Event Highlights')).not.toBeInTheDocument();
+    expect(screen.queryByText('Highlights')).not.toBeInTheDocument();
   });
 
   it('does show jump to sections when the sections render', () => {
     render(<EventNavigation {...defaultProps} />);
     expect(screen.getByText('Jump to:')).toBeInTheDocument();
-    expect(screen.getByText('Event Highlights')).toBeInTheDocument();
+    expect(screen.getByText('Highlights')).toBeInTheDocument();
     expect(screen.getByText('Replay')).toBeInTheDocument();
     expect(screen.getByText('Tags')).toBeInTheDocument();
   });
