@@ -1,7 +1,7 @@
+import logging
 from dataclasses import dataclass
 from datetime import datetime, timezone
 
-import sentry_sdk
 from django.db import router, transaction
 from django.utils.functional import cached_property
 
@@ -18,6 +18,8 @@ from sentry.sentry_apps.services.app import RpcSentryAppInstallation
 from sentry.silo.safety import unguarded_write
 from sentry.users.models.user import User
 
+logger = logging.getLogger("sentry.token-exchange")
+
 
 @dataclass
 class GrantExchanger:
@@ -30,26 +32,24 @@ class GrantExchanger:
     client_id: str
     user: User
 
-    @sentry_sdk.trace
     def run(self):
         with transaction.atomic(using=router.db_for_write(ApiToken)):
-            sentry_sdk.set_context(
-                "token-exchange.grant",
-                {
-                    "user_id": self.user.id,
-                    "install_id": self.install.id,
-                    "org_id": self.install.organization_id,
-                    "sentry_app_id": self.sentry_app.id,
-                    "application_id": self.application.id,
-                    "grant_id": self.grant.id,
-                },
-            )
-            self._validate()
-            token = self._create_token()
+            try:
+                self._validate()
+                token = self._create_token()
 
-            # Once it's exchanged it's no longer valid and should not be
-            # exchangeable, so we delete it.
-            self._delete_grant()
+                # Once it's exchanged it's no longer valid and should not be
+                # exchangeable, so we delete it.
+                self._delete_grant()
+            except APIUnauthorized:
+                logger.info(
+                    "grant-exchanger.context",
+                    extra={
+                        "application_id": self.application.id,
+                        "grant_id": self.grant.id,
+                    },
+                )
+                raise
         self.record_analytics()
 
         return token
@@ -65,9 +65,6 @@ class GrantExchanger:
         Validator.run(install=self.install, client_id=self.client_id, user=self.user)
 
         if not self._grant_belongs_to_install() or not self._sentry_app_user_owns_grant():
-            sentry_sdk.capture_message(
-                "Grant's sentry app installation doesn't match given install or user"
-            )
             raise APIUnauthorized("Forbidden grant")
 
         if not self._grant_is_active():

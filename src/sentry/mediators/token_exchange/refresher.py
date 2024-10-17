@@ -1,4 +1,5 @@
-import sentry_sdk
+import logging
+
 from django.db import router
 from django.utils.functional import cached_property
 
@@ -15,6 +16,8 @@ from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallat
 from sentry.sentry_apps.services.app import RpcSentryAppInstallation
 from sentry.users.models.user import User
 
+logger = logging.getLogger("sentry.token-exchange")
+
 
 class Refresher(Mediator):
     """
@@ -27,23 +30,20 @@ class Refresher(Mediator):
     user = Param(User)
     using = router.db_for_write(User)
 
-    @sentry_sdk.trace
     def call(self):
-        sentry_sdk.set_context(
-            "token-exchange.refresh",
-            {
-                "user_id": self.user.id,
-                "install_id": self.install.id,
-                "org_id": self.install.organization_id,
-                "sentry_app_id": self.sentry_app.id,
-                "application_id": self.application.id,
-                "refreh_token": self.refresh_token[-4:],
-            },
-        )
-
-        self._validate()
-        self._delete_token()
-        return self._create_new_token()
+        try:
+            self._validate()
+            self._delete_token()
+            return self._create_new_token()
+        except APIUnauthorized:
+            logger.info(
+                "refresher.context",
+                extra={
+                    "application_id": self.application.id,
+                    "refresh_token": self.refresh_token[-4:],
+                },
+            )
+            raise
 
     def record_analytics(self):
         analytics.record(
@@ -82,7 +82,6 @@ class Refresher(Mediator):
         try:
             return ApiToken.objects.get(refresh_token=self.refresh_token)
         except ApiToken.DoesNotExist:
-            sentry_sdk.capture_message("Unable to find given refresh token in ApiToken objects")
             raise APIUnauthorized("Token does not exist")
 
     @cached_property

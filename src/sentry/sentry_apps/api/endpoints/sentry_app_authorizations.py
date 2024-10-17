@@ -50,11 +50,18 @@ class SentryAppAuthorizationsEndpoint(SentryAppAuthorizationsBaseEndpoint):
             else:
                 return Response({"error": "Invalid grant_type"}, status=403)
         except APIUnauthorized as e:
-            logger.warning(e, exc_info=True)
-            sentry_sdk.capture_exception(e)
+            logger.warning(
+                e,
+                exc_info=True,
+                extra={
+                    "user_id": request.user.id,
+                    "sentry_app_installation_id": installation.id,
+                    "organization_id": installation.organization_id,
+                    "sentry_app_id": installation.sentry_app.id,
+                },
+            )
             return Response({"error": e.msg or "Unauthorized"}, status=403)
 
-        sentry_sdk.set_context("token-exchange", {"new_refresh_token": token.refresh_token[-4:]})
         attrs = {"state": request.json_body.get("state"), "application": None}
 
         body = ApiTokenSerializer().serialize(token, attrs, promote_request_api_user(request))

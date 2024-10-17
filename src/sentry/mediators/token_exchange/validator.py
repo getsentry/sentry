@@ -1,4 +1,3 @@
-import sentry_sdk
 from django.db import router
 from django.utils.functional import cached_property
 
@@ -21,7 +20,6 @@ class Validator(Mediator):
     user = Param(User)
     using = router.db_for_write(User)
 
-    @sentry_sdk.trace
     def call(self):
         self._validate_is_sentry_app_making_request()
         self._validate_app_is_owned_by_user()
