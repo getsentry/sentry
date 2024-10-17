@@ -3,11 +3,12 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import QuickTrace from 'sentry/components/quickTrace';
 import type {Event} from 'sentry/types/event';
+import type {Organization} from 'sentry/types/organization';
 import type {QuickTraceEvent} from 'sentry/utils/performance/quickTrace/types';
 
 describe('Quick Trace', function () {
-  let location;
-  let organization;
+  let location: any;
+  let organization: Organization;
 
   const initialize = () => {
     const context = initializeOrg();

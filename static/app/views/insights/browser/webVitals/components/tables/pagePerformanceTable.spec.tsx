@@ -22,7 +22,7 @@ describe('PagePerformanceTable', function () {
   const organization = OrganizationFixture();
   const router = RouterFixture();
 
-  let eventsMock;
+  let eventsMock: jest.Mock;
 
   beforeEach(function () {
     jest.mocked(useLocation).mockReturnValue(router.location);

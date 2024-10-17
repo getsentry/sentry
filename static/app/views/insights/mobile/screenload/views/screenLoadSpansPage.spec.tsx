@@ -4,6 +4,8 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, waitFor, within} from 'sentry-test/reactTestingLibrary';
 
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import localStorage from 'sentry/utils/localStorage';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -17,7 +19,7 @@ jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
 jest.mock('sentry/utils/useProjects');
 
-function mockResponses(organization, project) {
+function mockResponses(organization: Organization, project: Project) {
   jest.mocked(useOnboardingProject).mockReturnValue(undefined);
 
   jest.mocked(useProjects).mockReturnValue({
@@ -109,9 +111,9 @@ function mockResponses(organization, project) {
 
 describe('Screen Summary', function () {
   describe('Cross Platform Project', function () {
-    let eventsMock;
-    let eventsStatsMock;
-    let organization;
+    let eventsMock: jest.Mock;
+    let eventsStatsMock: jest.Mock;
+    let organization: Organization;
     beforeEach(function () {
       const project = ProjectFixture({
         platform: 'react-native',
@@ -205,9 +207,9 @@ describe('Screen Summary', function () {
   });
 
   describe('Native Project', function () {
-    let eventsMock;
-    let eventsStatsMock;
-    let organization;
+    let eventsMock: jest.Mock;
+    let eventsStatsMock: jest.Mock;
+    let organization: Organization;
     beforeEach(function () {
       const project = ProjectFixture({platform: 'android', hasInsightsScreenLoad: true});
       organization = OrganizationFixture({features: ['insights-initial-modules']});

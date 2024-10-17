@@ -63,7 +63,7 @@ describe('PageloadModule', function () {
     },
   });
 
-  let eventsMock;
+  let eventsMock: jest.Mock;
   beforeEach(function () {
     localStorage.clear();
     browserHistory.push = jest.fn();

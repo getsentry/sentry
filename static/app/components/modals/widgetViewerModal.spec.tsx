@@ -26,7 +26,7 @@ jest.mock('echarts-for-react/lib/core', () => {
 
 const stubEl = (props: {children?: React.ReactNode}) => <div>{props.children}</div>;
 
-let eventsMetaMock;
+let eventsMetaMock: jest.Mock;
 
 const waitForMetaToHaveBeenCalled = async () => {
   await waitFor(() => {

@@ -44,7 +44,7 @@ describe('replayPlayerEventsContext', () => {
       errors: [],
       replayRecord: ReplayRecordFixture(),
     });
-    const mockRRwebFrames = [];
+    const mockRRwebFrames: any[] = [];
     mockReplay!.getRRWebFrames = jest.fn().mockReturnValue(mockRRwebFrames);
 
     const {result} = renderHook(useReplayPlayerEvents, {

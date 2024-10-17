@@ -54,7 +54,9 @@ describe('destinationSummaryPage', () => {
     initiallyLoaded: false,
   });
 
-  let eventsMock, eventsStatsMock, spanFieldTagsMock;
+  let eventsMock: jest.Mock;
+  let eventsStatsMock: jest.Mock;
+  let spanFieldTagsMock: jest.Mock;
 
   beforeEach(() => {
     eventsMock = MockApiClient.addMockResponse({

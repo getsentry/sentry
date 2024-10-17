@@ -36,7 +36,7 @@ function renderProjectCharts(platform?: PlatformKey, chartDisplay?: string) {
 }
 
 describe('ProjectDetail > ProjectCharts', () => {
-  let mockSessions;
+  let mockSessions: jest.Mock;
   beforeEach(() => {
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/releases/stats/`,

@@ -17,7 +17,8 @@ jest.mock('sentry/views/insights/common/queries/useOnboardingProject');
 describe('DatabaseLandingPage', function () {
   const organization = OrganizationFixture();
 
-  let spanListRequestMock, spanChartsRequestMock;
+  let spanListRequestMock: jest.Mock;
+  let spanChartsRequestMock: jest.Mock;
 
   jest.mocked(useProjects).mockReturnValue({
     projects: [ProjectFixture({hasInsightsDb: true})],
