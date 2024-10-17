@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import type {Polarity} from 'sentry/components/percentChange';
 
 import {normalizeUnit} from '../../utils';
+import {ThresholdsHoverWrapper} from '../../widgetBuilder/buildSteps/thresholdsStep/thresholdsHoverWrapper';
 import type {Thresholds} from '../common/types';
 
 interface ThresholdsIndicatorProps {
@@ -39,7 +40,11 @@ export function ThresholdsIndicator({
 
   const colorName = COLOR_NAME_FOR_STATE[state];
 
-  return <Circle role="status" aria-label={state} color={theme[colorName]} />;
+  return (
+    <ThresholdsHoverWrapper thresholds={thresholds} type={type}>
+      <Circle role="status" aria-label={state} color={theme[colorName]} />
+    </ThresholdsHoverWrapper>
+  );
 }
 
 const Circle = styled('div')<{color: string}>`
