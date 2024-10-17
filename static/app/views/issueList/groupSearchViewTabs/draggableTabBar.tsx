@@ -480,7 +480,7 @@ export function DraggableTabBar({
                 <DraggableTabMenuButton
                   hasUnsavedChanges={!!tab.unsavedChanges}
                   menuOptions={makeMenuOptions(tab)}
-                  aria-label={`${tab.label} Ellipsis Menu`}
+                  aria-label={t(`{label} Ellipsis Menu`, {label: tab.label})}
                 />
               </motion.div>
             )}
