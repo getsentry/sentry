@@ -23,6 +23,7 @@ from sentry.conf.types.kafka_definition import (
     validate_consumer_definition,
 )
 from sentry.consumers.validate_schema import ValidateSchema
+from sentry.eventstream.base import EventStreamEventType
 from sentry.ingest.types import ConsumerType
 from sentry.utils.imports import import_string
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
@@ -373,6 +374,9 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "synchronize_commit_log_topic_default": "snuba-generic-events-commit-log",
         "synchronize_commit_group_default": "generic_events_group",
         "click_options": _POST_PROCESS_FORWARDER_OPTIONS,
+        "static_args": {
+            "eventStreamType": EventStreamEventType.Generic,
+        },
     },
     "post-process-forwarder-transactions": {
         "topic": Topic.TRANSACTIONS,
@@ -380,6 +384,9 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "synchronize_commit_log_topic_default": "snuba-transactions-commit-log",
         "synchronize_commit_group_default": "transactions_group",
         "click_options": _POST_PROCESS_FORWARDER_OPTIONS,
+        "static_args": {
+            "eventStreamType": EventStreamEventType.Transaction,
+        },
     },
     "post-process-forwarder-errors": {
         "topic": Topic.EVENTS,
@@ -387,6 +394,9 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "synchronize_commit_log_topic_default": "snuba-commit-log",
         "synchronize_commit_group_default": "snuba-consumers",
         "click_options": _POST_PROCESS_FORWARDER_OPTIONS,
+        "static_args": {
+            "eventStreamType": EventStreamEventType.Error,
+        },
     },
     "process-spans": {
         "topic": Topic.SNUBA_SPANS,

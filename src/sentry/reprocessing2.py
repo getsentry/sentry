@@ -78,6 +78,7 @@ instead of group deletion is:
 * Mark the group as deleted in Redis.
 * All reprocessed events are "just" inserted over the old ones.
 """
+
 from __future__ import annotations
 
 import logging
@@ -94,10 +95,11 @@ from sentry import eventstore, models, nodestore, options
 from sentry.attachments import CachedAttachment, attachment_cache
 from sentry.deletions.defaults.group import DIRECT_GROUP_RELATED_MODELS
 from sentry.eventstore.models import Event, GroupEvent
-from sentry.eventstore.processing import event_processing_store
+from sentry.eventstore.processing import event_processing_store, transaction_processing_store
 from sentry.eventstore.reprocessing import reprocessing_store
 from sentry.models.eventattachment import EventAttachment
 from sentry.snuba.dataset import Dataset
+from sentry.tasks.store import ConsumerType
 from sentry.types.activity import ActivityType
 from sentry.utils import metrics, snuba
 from sentry.utils.safe import get_path, set_path
@@ -152,8 +154,10 @@ def backup_unprocessed_event(data: Mapping[str, Any]) -> None:
 
     if options.get("store.reprocessing-force-disable"):
         return
-
-    event_processing_store.store(dict(data), unprocessed=True)
+    if data.get("type") == "transaction":
+        transaction_processing_store.store(dict(data), unprocessed=True)
+    else:
+        event_processing_store.store(dict(data), unprocessed=True)
 
 
 @dataclass
@@ -194,7 +198,9 @@ def pull_event_data(project_id: int, event_id: str) -> ReprocessableEvent:
     return ReprocessableEvent(event=event, data=data, attachments=attachments)
 
 
-def reprocess_event(project_id: int, event_id: str, start_time: float) -> None:
+def reprocess_event(
+    project_id: int, event_id: str, consumer_type: ConsumerType, start_time: float
+) -> None:
     from sentry.ingest.consumer.processors import CACHE_TIMEOUT
     from sentry.tasks.store import preprocess_event_from_reprocessing
 
@@ -206,11 +212,16 @@ def reprocess_event(project_id: int, event_id: str, start_time: float) -> None:
 
     # Step 1: Fix up the event payload for reprocessing and put it in event
     # cache/event_processing_store
+
+    if consumer_type == ConsumerType.Transactions:
+        cache = transaction_processing_store
+    else:
+        cache = event_processing_store
     set_path(data, "contexts", "reprocessing", "original_issue_id", value=event.group_id)
     set_path(
         data, "contexts", "reprocessing", "original_primary_hash", value=event.get_primary_hash()
     )
-    cache_key = event_processing_store.store(data)
+    cache_key = cache.store(data)
 
     # Step 2: Copy attachments into attachment cache. Note that we can only
     # consider minidumps because filestore just stays as-is after reprocessing
