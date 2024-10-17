@@ -38,16 +38,17 @@ class GrantExchanger:
                 {
                     "user_id": self.user.id,
                     "install_id": self.install.id,
-                    "client_id": self.client_id,
                     "org_id": self.install.organization_id,
                     "sentry_app_id": self.sentry_app.id,
-                    "sentry_app_slug": self.sentry_app.slug,
                     "application_id": self.application.id,
                     "grant_id": self.grant.id,
                 },
             )
             self._validate()
             token = self._create_token()
+            sentry_sdk.set_context(
+                "token-exchange.refresh", {"new_refresh_token": token.refresh_token[-4:]}
+            )
 
             # Once it's exchanged it's no longer valid and should not be
             # exchangeable, so we delete it.

@@ -34,17 +34,21 @@ class Refresher(Mediator):
             {
                 "user_id": self.user.id,
                 "install_id": self.install.id,
-                "client_id": self.client_id,
                 "org_id": self.install.organization_id,
                 "sentry_app_id": self.sentry_app.id,
-                "sentry_app_slug": self.sentry_app.slug,
                 "application_id": self.application.id,
+                "refreh_token": self.refresh_token[-4:],
             },
         )
 
         self._validate()
         self._delete_token()
-        self._create_new_token()
+        token = self._create_new_token()
+
+        sentry_sdk.set_context(
+            "token-exchange.refresh", {"new_refresh_token": token.refresh_token[-4:]}
+        )
+        return token
 
     def record_analytics(self):
         analytics.record(
