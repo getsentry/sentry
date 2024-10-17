@@ -33,7 +33,7 @@ export const useDeleteFeedback = (feedbackIds, projectId) => {
             complete: () => {
               navigate(
                 normalizeUrl({
-                  pathname: '/feedback/',
+                  pathname: `/organizations/${organization.slug}/feedback/`,
                   query: {
                     mailbox: locationQuery.mailbox,
                     project: locationQuery.project,

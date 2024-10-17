@@ -1,11 +1,13 @@
-import {Fragment, useCallback, useContext} from 'react';
+import {Fragment, useCallback, useContext, useEffect} from 'react';
 import type {Theme} from '@emotion/react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext';
+import {NewOnboardingSidebar} from 'sentry/components/onboardingWizard/newSidebar';
 import OnboardingSidebar from 'sentry/components/onboardingWizard/sidebar';
 import {getMergedTasks} from 'sentry/components/onboardingWizard/taskConfig';
+import {hasQuickStartUpdatesFeature} from 'sentry/components/onboardingWizard/utils';
 import ProgressRing, {
   RingBackground,
   RingBar,
@@ -57,10 +59,6 @@ export default function OnboardingStatus({
     onShowPanel();
   }, [walkthrough, isActive, onShowPanel, org]);
 
-  if (!org.features?.includes('onboarding')) {
-    return null;
-  }
-
   const tasks = getMergedTasks({
     organization: org,
     projects,
@@ -81,7 +79,20 @@ export default function OnboardingStatus({
       !task.completionSeen
   );
 
-  if (doneTasks.length >= allDisplayedTasks.length && !isActive) {
+  const allTasksCompleted = doneTasks.length >= allDisplayedTasks.length;
+
+  useEffect(() => {
+    if (!allTasksCompleted || isActive) {
+      return;
+    }
+
+    trackAnalytics('quick_start.completed', {
+      organization: org,
+      referrer: 'onboarding_sidebar',
+    });
+  }, [isActive, allTasksCompleted, org]);
+
+  if (!org.features?.includes('onboarding') || (allTasksCompleted && !isActive)) {
     return null;
   }
 
@@ -116,13 +127,20 @@ export default function OnboardingStatus({
           </div>
         )}
       </Container>
-      {isActive && (
-        <OnboardingSidebar
-          orientation={orientation}
-          collapsed={collapsed}
-          onClose={hidePanel}
-        />
-      )}
+      {isActive &&
+        (hasQuickStartUpdatesFeature(org) ? (
+          <NewOnboardingSidebar
+            orientation={orientation}
+            collapsed={collapsed}
+            onClose={hidePanel}
+          />
+        ) : (
+          <OnboardingSidebar
+            orientation={orientation}
+            collapsed={collapsed}
+            onClose={hidePanel}
+          />
+        ))}
     </Fragment>
   );
 }

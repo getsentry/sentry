@@ -11,17 +11,24 @@ import {EnvironmentPageFilter} from 'sentry/components/organizations/environment
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
-import {SpanSearchQueryBuilder} from 'sentry/components/performance/spanSearchQueryBuilder';
+import {
+  EAPSpanSearchQueryBuilder,
+  SpanSearchQueryBuilder,
+} from 'sentry/components/performance/spanSearchQueryBuilder';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {ExploreCharts} from 'sentry/views/explore/charts';
-import {SpanTagsProvider} from 'sentry/views/explore/contexts/spanTagsContext';
+import {
+  SpanTagsProvider,
+  useSpanTags,
+} from 'sentry/views/explore/contexts/spanTagsContext';
 import {useDataset} from 'sentry/views/explore/hooks/useDataset';
 import {useResultMode} from 'sentry/views/explore/hooks/useResultsMode';
 import {useUserQuery} from 'sentry/views/explore/hooks/useUserQuery';
@@ -37,7 +44,11 @@ function ExploreContentImpl({}: ExploreContentProps) {
   const navigate = useNavigate();
   const organization = useOrganization();
   const {selection} = usePageFilters();
+  const [dataset] = useDataset();
   const [resultsMode] = useResultMode();
+
+  const numberTags = useSpanTags('number');
+  const stringTags = useSpanTags('string');
 
   const supportedAggregates = useMemo(() => {
     return resultsMode === 'aggregate' ? ALLOWED_EXPLORE_VISUALIZE_AGGREGATES : [];
@@ -82,13 +93,25 @@ function ExploreContentImpl({}: ExploreContentProps) {
               <EnvironmentPageFilter />
               <DatePageFilter />
             </PageFilterBar>
-            <StyledSpanSearchQueryBuilder
-              supportedAggregates={supportedAggregates}
-              projects={selection.projects}
-              initialQuery={userQuery}
-              onSearch={setUserQuery}
-              searchSource="explore"
-            />
+            {dataset === DiscoverDatasets.SPANS_INDEXED ? (
+              <StyledSpanSearchQueryBuilder
+                supportedAggregates={supportedAggregates}
+                projects={selection.projects}
+                initialQuery={userQuery}
+                onSearch={setUserQuery}
+                searchSource="explore"
+              />
+            ) : (
+              <StyledEAPSpanSearchQueryBuilder
+                supportedAggregates={supportedAggregates}
+                projects={selection.projects}
+                initialQuery={userQuery}
+                onSearch={setUserQuery}
+                searchSource="explore"
+                numberTags={numberTags}
+                stringTags={stringTags}
+              />
+            )}
             <ExploreToolbar extras={toolbarExtras} />
             <Main fullWidth>
               <ExploreCharts query={userQuery} />
@@ -122,6 +145,10 @@ const Body = styled(Layout.Body)`
 `;
 
 const StyledSpanSearchQueryBuilder = styled(SpanSearchQueryBuilder)`
+  grid-column: 2/3;
+`;
+
+const StyledEAPSpanSearchQueryBuilder = styled(EAPSpanSearchQueryBuilder)`
   grid-column: 2/3;
 `;
 

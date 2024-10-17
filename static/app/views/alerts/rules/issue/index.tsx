@@ -926,7 +926,6 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
     ];
 
     return (
-      this.props.organization.features.includes('noisy-alert-warning') &&
       !!rule &&
       !isSavedAlertRule(rule) &&
       rule.conditions.length === 0 &&
@@ -1222,7 +1221,7 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
               <StepHeader>{t('Set conditions')}</StepHeader>{' '}
               {hasMessagingIntegrationOnboarding ? (
                 <SetupMessagingIntegrationButton
-                  projectSlug={project.slug}
+                  projectId={project.id}
                   refetchConfigs={this.refetchConfigs}
                   analyticsParams={{
                     view: MessagingIntegrationAnalyticsView.ALERT_RULE_CREATION,

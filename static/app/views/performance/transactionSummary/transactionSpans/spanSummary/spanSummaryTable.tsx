@@ -188,7 +188,7 @@ export default function SpanSummaryTable(props: Props) {
   });
 
   // Restructure the transaction durations into a map for faster lookup
-  const transactionDurationMap = {};
+  const transactionDurationMap: Record<string, number> = {};
   txnDurationData?.data.forEach(datum => {
     transactionDurationMap[datum.id] = datum['transaction.duration'];
   });
