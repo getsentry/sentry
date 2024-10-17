@@ -10,7 +10,6 @@ import {
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import selectEvent from 'sentry-test/selectEvent';
 
-import {IssueAlertNotificationContext} from 'sentry/views/projectInstall/issueAlertNotificationContext';
 import IssueAlertOptions from 'sentry/views/projectInstall/issueAlertOptions';
 
 describe('IssueAlertOptions', function () {
@@ -22,7 +21,7 @@ describe('IssueAlertOptions', function () {
     onChange: jest.fn(),
   };
 
-  const issueAlertNotificationContextValue = {
+  const notificationProps = {
     alertNotificationAction: [],
     alertNotificationChannel: 'channel',
     alertNotificationIntegration: OrganizationIntegrationsFixture({
@@ -36,11 +35,7 @@ describe('IssueAlertOptions', function () {
     setAlertNotificationProvider: jest.fn(),
   };
 
-  const getComponent = () => (
-    <IssueAlertNotificationContext.Provider value={issueAlertNotificationContextValue}>
-      <IssueAlertOptions {...props} />
-    </IssueAlertNotificationContext.Provider>
-  );
+  const getComponent = () => <IssueAlertOptions {...props} {...notificationProps} />;
 
   beforeEach(() => {
     MockApiClient.addMockResponse({

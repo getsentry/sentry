@@ -106,6 +106,7 @@ function CreateProject() {
     async (selectedFramework?: OnboardingSelectedSDK) => {
       const {slug} = organization;
       const {
+        shouldCreateRule,
         shouldCreateCustomRule,
         name,
         conditions,
@@ -157,7 +158,8 @@ function CreateProject() {
         if (
           organization.features.includes(
             'messaging-integration-onboarding-project-creation'
-          )
+          ) &&
+          shouldCreateRule
         ) {
           const ruleData = await createNotificationAction({
             api,
@@ -301,7 +303,7 @@ function CreateProject() {
     setProjectName(newName);
   }
 
-  const {shouldCreateCustomRule, conditions} = alertRuleConfig || {};
+  const {shouldCreateRule, shouldCreateCustomRule, conditions} = alertRuleConfig || {};
   const canUserCreateProject = canCreateProject(organization);
 
   const canCreateTeam = organization.access.includes('project:admin');
@@ -312,9 +314,11 @@ function CreateProject() {
   const isMissingAlertThreshold =
     shouldCreateCustomRule && !conditions?.every?.(condition => condition.value);
   const isMissingMessagingIntegrationChannel =
+    shouldCreateRule &&
     alertNotificationActions?.some(
       action => action === MultipleCheckboxOptions.INTEGRATION
-    ) && !channel;
+    ) &&
+    !channel;
 
   const formErrorCount = [
     isMissingTeam,
@@ -468,7 +472,7 @@ function CreateProject() {
             <Alert type="error">
               {Object.keys(errors).map(key => {
                 const label =
-                  key === 'actions' ? 'Notify via integration' : startCase(key);
+                  key === 'actions' ? t('Notify via integration') : startCase(key);
                 return (
                   <div key={key}>
                     <strong>{label}</strong>: {errors[key]}

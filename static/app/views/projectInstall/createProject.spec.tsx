@@ -377,7 +377,9 @@ describe('CreateProject', function () {
   });
 
   describe('Issue Alerts Options', function () {
-    const organization = OrganizationFixture();
+    const organization = OrganizationFixture({
+      features: ['messaging-integration-onboarding-project-creation'],
+    });
     beforeEach(() => {
       TeamStore.loadUserTeams([teamWithAccess]);
 
@@ -423,6 +425,13 @@ describe('CreateProject', function () {
       expect(getSubmitButton()).toBeEnabled();
 
       await userEvent.clear(screen.getByTestId('range-input'));
+      expect(getSubmitButton()).toBeDisabled();
+
+      await userEvent.click(
+        screen.getByRole('checkbox', {
+          name: /notify via integration \(slack, discord, ms teams, etc\.\)/i,
+        })
+      );
       expect(getSubmitButton()).toBeDisabled();
 
       await userEvent.click(screen.getByText("I'll create my own alerts later"));

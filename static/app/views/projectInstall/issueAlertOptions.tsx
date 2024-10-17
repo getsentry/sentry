@@ -44,12 +44,12 @@ const METRIC_CONDITION_MAP = {
 
 type StateUpdater = (updatedData: RequestDataFragment) => void;
 type Props = DeprecatedAsyncComponent['props'] & {
-  notificationProps: IssueAlertNotificationProps;
   onChange: StateUpdater;
   organization: Organization;
   alertSetting?: string;
   interval?: string;
   metric?: MetricValues;
+  notificationProps?: IssueAlertNotificationProps;
   platformLanguage?: SupportedLanguages;
   threshold?: string;
 };
@@ -73,6 +73,7 @@ type RequestDataFragment = {
   frequency: number;
   name: string;
   shouldCreateCustomRule: boolean;
+  shouldCreateRule: boolean;
 };
 
 function getConditionFrom(
@@ -196,20 +197,24 @@ class IssueAlertOptions extends DeprecatedAsyncComponent<Props, State> {
 
   getUpdatedData(): RequestDataFragment {
     let defaultRules: boolean;
+    let shouldCreateRule: boolean;
     let shouldCreateCustomRule: boolean;
     const alertSetting: RuleAction = parseInt(this.state.alertSetting, 10);
     switch (alertSetting) {
       case RuleAction.DEFAULT_ALERT:
         defaultRules = true;
-        shouldCreateCustomRule = false;
-        break;
-      case RuleAction.CREATE_ALERT_LATER:
-        defaultRules = false;
+        shouldCreateRule = true;
         shouldCreateCustomRule = false;
         break;
       case RuleAction.CUSTOMIZED_ALERTS:
         defaultRules = false;
+        shouldCreateRule = true;
         shouldCreateCustomRule = true;
+        break;
+      case RuleAction.CREATE_ALERT_LATER:
+        defaultRules = false;
+        shouldCreateRule = false;
+        shouldCreateCustomRule = false;
         break;
       default:
         throw new RangeError('Supplied alert creation action is not handled');
@@ -217,6 +222,7 @@ class IssueAlertOptions extends DeprecatedAsyncComponent<Props, State> {
 
     return {
       defaultRules,
+      shouldCreateRule,
       shouldCreateCustomRule,
       name: 'Send a notification for new issues',
       conditions:
@@ -310,6 +316,7 @@ class IssueAlertOptions extends DeprecatedAsyncComponent<Props, State> {
         {this.props.organization.features.includes(
           'messaging-integration-onboarding-project-creation'
         ) &&
+          this.props.notificationProps &&
           parseInt(this.state.alertSetting, 10) !== RuleAction.CREATE_ALERT_LATER && (
             <IssueAlertNotificationOptions {...this.props.notificationProps} />
           )}
