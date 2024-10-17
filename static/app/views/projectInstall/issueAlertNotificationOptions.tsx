@@ -67,34 +67,34 @@ export function useCreateNotificationAction() {
     if (!isCreatingIntegrationNotification) {
       return undefined;
     }
-    if (provider === 'slack') {
-      return [
-        {
-          id: IssueAlertActionType.SLACK,
-          workspace: integration?.id,
-          channel: channel,
-        },
-      ];
+    switch (provider) {
+      case 'slack':
+        return [
+          {
+            id: IssueAlertActionType.SLACK,
+            workspace: integration?.id,
+            channel: channel,
+          },
+        ];
+      case 'discord':
+        return [
+          {
+            id: IssueAlertActionType.DISCORD,
+            server: integration?.id,
+            channel_id: channel,
+          },
+        ];
+      case 'msteams':
+        return [
+          {
+            id: IssueAlertActionType.MS_TEAMS,
+            team: integration?.id,
+            channel: channel,
+          },
+        ];
+      default:
+        return undefined;
     }
-    if (provider === 'discord') {
-      return [
-        {
-          id: IssueAlertActionType.DISCORD,
-          server: integration?.id,
-          channel_id: channel,
-        },
-      ];
-    }
-    if (provider === 'msteams') {
-      return [
-        {
-          id: IssueAlertActionType.MS_TEAMS,
-          team: integration?.id,
-          channel: channel,
-        },
-      ];
-    }
-    return undefined;
   }, [actions, integration, channel, provider]);
 
   type Props = {
