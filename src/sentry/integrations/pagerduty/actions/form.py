@@ -7,7 +7,7 @@ from django import forms
 from django.utils.translation import gettext_lazy as _
 
 from sentry.integrations.on_call.metrics import OnCallInteractionType
-from sentry.integrations.opsgenie.metrics import record_event
+from sentry.integrations.pagerduty.metrics import record_event
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import ExternalProviders
 
