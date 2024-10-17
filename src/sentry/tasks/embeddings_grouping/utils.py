@@ -467,7 +467,7 @@ def send_group_and_stacktrace_to_seer_multithreaded(
     project_id: int,
 ) -> BulkCreateGroupingRecordsResponse | None:
     def process_chunk(
-        chunk_data: list[int], chunk_stacktrace: list[str]
+        chunk_data: dict[str, Any], chunk_stacktrace: list[str]
     ) -> BulkCreateGroupingRecordsResponse | None:
         return _make_seer_call(
             CreateGroupingRecordsRequest(
