@@ -1,10 +1,10 @@
-from sentry.mediators.project_rules.creator import Creator
 from sentry.models.rule import Rule
+from sentry.projects.project_rules.creator import ProjectRuleCreator
 from sentry.testutils.cases import TestCase
 from sentry.types.actor import Actor
 
 
-class TestCreator(TestCase):
+class TestProjectRuleCreator(TestCase):
     def setUp(self):
         self.user = self.create_user()
         self.org = self.create_organization(name="bloop", owner=self.user)
@@ -12,7 +12,7 @@ class TestCreator(TestCase):
             teams=[self.create_team()], name="foo", fire_project_created=True
         )
 
-        self.creator = Creator(
+        self.creator = ProjectRuleCreator(
             name="New Cool Rule",
             owner=Actor.from_id(user_id=self.user.id),
             project=self.project,
@@ -36,7 +36,7 @@ class TestCreator(TestCase):
         )
 
     def test_creates_rule(self):
-        r = self.creator.call()
+        r = self.creator.run()
         rule = Rule.objects.get(id=r.id)
         assert rule.label == "New Cool Rule"
         assert rule.owner_user_id == self.user.id
