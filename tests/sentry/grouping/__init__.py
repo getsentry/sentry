@@ -23,9 +23,9 @@ FINGERPRINT_INPUTS_DIR = path.join(path.dirname(__file__), "fingerprint_inputs")
 
 
 class GroupingInput:
-    def __init__(self, filename):
+    def __init__(self, inputs_dir, filename):
         self.filename = filename  # Necessary for test naming
-        with open(path.join(GROUPING_INPUTS_DIR, self.filename)) as f:
+        with open(path.join(inputs_dir, self.filename)) as f:
             self.data = json.load(f)
 
     def _manually_save_event(self, grouping_config: GroupingConfig) -> Event:
@@ -58,7 +58,7 @@ class GroupingInput:
 
 def get_grouping_inputs(inputs_dir: str) -> list[GroupingInput]:
     return [
-        GroupingInput(filename)
+        GroupingInput(inputs_dir, filename)
         for filename in sorted(os.listdir(inputs_dir))
         if filename.endswith(".json")
     ]
