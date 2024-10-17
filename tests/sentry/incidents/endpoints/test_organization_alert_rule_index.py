@@ -1317,6 +1317,21 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
             )
         assert resp.data["name"][0] == "Ensure this field has no more than 256 characters."
 
+    @patch("sentry.analytics.record")
+    def test_performance_alert(self, record_analytics):
+        valid_alert_rule = {
+            **self.alert_rule_dict,
+            "queryType": 1,
+            "dataset": "transactions",
+            "eventTypes": ["transaction"],
+        }
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            resp = self.get_response(self.organization.slug, **valid_alert_rule)
+            assert resp.status_code == 201
+            assert self.analytics_called_with_args(
+                record_analytics, "alert.created", query_type="PERFORMANCE"
+            )
+
 
 @freeze_time()
 class AlertRuleCreateEndpointTestCrashRateAlert(AlertRuleIndexBase):
