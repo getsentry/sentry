@@ -29,7 +29,7 @@ def test_benchmark_grouping(config_name, benchmark):
 def run_configuration(grouping_input, config_name):
     event = grouping_input.create_event(config_name)
 
-    # Copied from test_variants.py, not sure if necessary
+    # This ensures we won't try to touch the DB when getting event hashes
     event.project = None
 
     event.get_hashes()
