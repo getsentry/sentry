@@ -17,8 +17,8 @@ class DevToolbarAnalyticsMiddleware:
     def __call__(self, request):
         response = self.get_response(request)
         try:
-            # note ordering of conditions to avoid extra option queries.
-            if request.headers.get("queryReferrer") == "devtoolbar" and options.get(
+            # Note ordering of conditions to reduce option queries. GET contains the query params, regardless of method.
+            if request.GET.get("queryReferrer") == "devtoolbar" and options.get(
                 "devtoolbar.analytics.enabled"
             ):
                 _record_api_request(request, response)
@@ -45,7 +45,8 @@ def _record_api_request(request: HttpRequest, response: HttpResponse) -> None:
     project_id, project_slug = parse_id_or_slug_param(project_id_or_slug)
 
     origin = origin_from_request(request)
-    query_string: str = get_query_string(request)  # starts with '?'
+    query_string: str = get_query_string(request)  # starts with ? if non-empty
+
     analytics.record(
         "devtoolbar.api_request",
         view_name=view_name,
