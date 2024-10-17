@@ -76,7 +76,7 @@ const EventNavOrder = [
 ];
 
 const sectionLabels = {
-  [SectionKey.HIGHLIGHTS]: t('Event Highlights'),
+  [SectionKey.HIGHLIGHTS]: t('Highlights'),
   [SectionKey.STACKTRACE]: t('Stack Trace'),
   [SectionKey.TRACE]: t('Trace'),
   [SectionKey.EXCEPTION]: t('Stack Trace'),
