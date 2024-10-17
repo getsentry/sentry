@@ -165,7 +165,7 @@ release:foo                                     -> release-foo
 @with_fingerprint_input("input")
 @django_db_all  # because of `options` usage
 def test_event_hash_variant(insta_snapshot: Any, input: Any) -> None:
-    config, evt = input.create_event()
+    config, event = input.create_event()
 
     def dump_variant(v: Any) -> dict[str, Any]:
         rv = v.as_dict()
@@ -182,11 +182,11 @@ def test_event_hash_variant(insta_snapshot: Any, input: Any) -> None:
     insta_snapshot(
         {
             "config": config.to_json(),
-            "fingerprint": evt.data["fingerprint"],
-            "title": evt.data["title"],
+            "fingerprint": event.data["fingerprint"],
+            "title": event.data["title"],
             "variants": {
                 k: dump_variant(v)
-                for (k, v) in evt.get_grouping_variants(force_config=GROUPING_CONFIG).items()
+                for (k, v) in event.get_grouping_variants(force_config=GROUPING_CONFIG).items()
             },
         }
     )

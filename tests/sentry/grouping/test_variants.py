@@ -54,14 +54,14 @@ def dump_variant(variant, lines=None, indent=0):
 @with_grouping_input("grouping_input")
 @pytest.mark.parametrize("config_name", CONFIGURATIONS.keys(), ids=lambda x: x.replace("-", "_"))
 def test_event_hash_variant(config_name, grouping_input, insta_snapshot):
-    evt = grouping_input.create_event(config_name)
+    event = grouping_input.create_event(config_name)
 
     # Make sure we don't need to touch the DB here because this would
     # break stuff later on.
-    evt.project = None
+    event.project = None
 
     rv: list[str] = []
-    for key, value in sorted(evt.get_grouping_variants().items()):
+    for key, value in sorted(event.get_grouping_variants().items()):
         if rv:
             rv.append("-" * 74)
         rv.append("%s:" % key)
@@ -69,6 +69,6 @@ def test_event_hash_variant(config_name, grouping_input, insta_snapshot):
     output = "\n".join(rv)
 
     # Make sure the event was annotated with the grouping config
-    assert evt.get_grouping_config()["id"] == config_name
+    assert event.get_grouping_config()["id"] == config_name
 
     insta_snapshot(output)
