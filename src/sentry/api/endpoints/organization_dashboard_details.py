@@ -53,7 +53,10 @@ class DashboardPermissions(BasePermission):
 
 class OrganizationDashboardBase(OrganizationEndpoint):
     owner = ApiOwner.PERFORMANCE
-    permission_classes = (OrganizationDashboardsPermission, DashboardPermissions)
+    if features.has({"organizations:dashboards-edit-access": True}):
+        permission_classes = (OrganizationDashboardsPermission, DashboardPermissions)
+    else:
+        permission_classes = (OrganizationDashboardsPermission,)
 
     def convert_args(
         self, request: Request, organization_id_or_slug, dashboard_id, *args, **kwargs
