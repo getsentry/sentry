@@ -306,7 +306,7 @@ function IssueListHeader({
             );
 
   return (
-    <StyledPanelHeader disablePadding>
+    <StyledPanelHeader disablePadding hasNewLayout={hasNewLayout}>
       {hasNewLayout ? (
         <StyledIssueStreamHeaderLabel>
           {issueHeadingContent}
@@ -423,9 +423,14 @@ const StyledPanel = styled(Panel)`
   container-type: inline-size;
 `;
 
-const StyledPanelHeader = styled(PanelHeader)`
+const StyledPanelHeader = styled(PanelHeader)<{hasNewLayout: boolean}>`
   padding-top: ${space(1)};
   padding-bottom: ${space(1)};
+  ${p =>
+    p.hasNewLayout &&
+    css`
+      text-transform: none;
+    `}
 `;
 
 const StyledLoadingIndicatorWrapper = styled('div')`
