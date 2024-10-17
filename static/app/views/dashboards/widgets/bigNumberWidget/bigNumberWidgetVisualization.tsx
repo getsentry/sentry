@@ -63,12 +63,17 @@ export function BigNumberWidgetVisualization(props: Props) {
   return (
     <Wrapper>
       <NumberAndDifferenceContainer>
-        {props.thresholds &&
-          defined(props.thresholds?.max_values.max1) &&
+        {defined(props.thresholds?.max_values.max1) &&
           defined(props.thresholds?.max_values.max2) && (
             <ThresholdsIndicator
               preferredPolarity={props.preferredPolarity}
-              thresholds={props.thresholds}
+              thresholds={{
+                unit: props.thresholds.unit ?? undefined,
+                max_values: {
+                  max1: props.thresholds.max_values.max1,
+                  max2: props.thresholds.max_values.max2,
+                },
+              }}
               unit={unit ?? ''}
               value={clampedValue}
               type={type ?? 'integer'}

@@ -5,11 +5,18 @@ import type {Polarity} from 'sentry/components/percentChange';
 
 import {normalizeUnit} from '../../utils';
 import {ThresholdsHoverWrapper} from '../../widgetBuilder/buildSteps/thresholdsStep/thresholdsHoverWrapper';
-import type {Thresholds} from '../common/types';
-import {ThresholdsConfig} from '../../widgetBuilder/buildSteps/thresholdsStep/thresholdsStep';
+import type {ThresholdsConfig} from '../../widgetBuilder/buildSteps/thresholdsStep/thresholdsStep';
+
+type ValidThresholds = {
+  max_values: {
+    max1: number;
+    max2: number;
+  };
+  unit?: string;
+};
 
 interface ThresholdsIndicatorProps {
-  thresholds: Thresholds;
+  thresholds: ValidThresholds;
   type: string;
   unit: string;
   value: number;
