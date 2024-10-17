@@ -1,5 +1,6 @@
 import os
 from os import path
+from unittest import mock
 
 import pytest
 from django.utils.functional import cached_property
@@ -16,8 +17,10 @@ from sentry.grouping.api import (
 from sentry.grouping.enhancer import Enhancements
 from sentry.grouping.fingerprinting import FingerprintingRules
 from sentry.grouping.strategies.configurations import CONFIGURATIONS
+from sentry.models.project import Project
 from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG
 from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
+from sentry.testutils.helpers.eventprocessing import save_new_event
 from sentry.utils import json
 
 GROUPING_INPUTS_DIR = path.join(path.dirname(__file__), "grouping_inputs")
@@ -51,6 +54,24 @@ class GroupingInput:
         data.update(materialize_metadata(data, event_type, event_metadata))
 
         return eventstore.backend.create_event(data=data)
+
+    def _save_event_with_pipeline(
+        self,
+        grouping_config: GroupingConfig,
+        fingerprinting_config: FingerprintingRules,
+        project: Project,
+    ):
+        with (
+            mock.patch(
+                "sentry.grouping.ingest.hashing.get_grouping_config_dict_for_project",
+                return_value=grouping_config,
+            ),
+            mock.patch(
+                "sentry.grouping.ingest.hashing.get_fingerprinting_config_for_project",
+                return_value=fingerprinting_config,
+            ),
+        ):
+            return save_new_event(self.data, project)
 
     def create_event(self, config_name: str) -> Event:
         grouping_config = get_default_grouping_config_dict(config_name)
