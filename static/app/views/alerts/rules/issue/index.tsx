@@ -528,6 +528,10 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
             delete action.name;
           }
           for (const condition of rule.conditions) {
+            // values of 0 must be manually changed to strings, otherwise they will be interpreted as missing by the serializer
+            if ('value' in condition && condition.value === 0) {
+              condition.value = '0';
+            }
             delete condition.name;
           }
           for (const filter of rule.filters) {
