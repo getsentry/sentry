@@ -1,12 +1,18 @@
 from __future__ import annotations
 
+from typing import Any
+
+import orjson
 import pytest
 
 from sentry.grouping.api import get_default_grouping_config_dict
 from sentry.grouping.component import GroupingComponent
 from sentry.grouping.strategies.configurations import CONFIGURATIONS
-from sentry.utils import json
 from tests.sentry.grouping import with_grouping_input
+
+
+def to_json(value: Any) -> str:
+    return orjson.dumps(value, option=orjson.OPT_SORT_KEYS).decode()
 
 
 def dump_variant(variant, lines=None, indent=0):
@@ -29,9 +35,9 @@ def dump_variant(variant, lines=None, indent=0):
             if isinstance(value, GroupingComponent):
                 _dump_component(value, indent + 1)
             else:
-                lines.append("{}{}".format("  " * (indent + 1), json.dumps(value)))
+                lines.append("{}{}".format("  " * (indent + 1), to_json(value)))
 
-    lines.append("{}hash: {}".format("  " * indent, json.dumps(variant.get_hash())))
+    lines.append("{}hash: {}".format("  " * indent, to_json(variant.get_hash())))
 
     for key, value in sorted(variant.__dict__.items()):
         if isinstance(value, GroupingComponent):
@@ -41,7 +47,7 @@ def dump_variant(variant, lines=None, indent=0):
             # We do not want to dump the config
             continue
         else:
-            lines.append("{}{}: {}".format("  " * indent, key, json.dumps(value)))
+            lines.append("{}{}: {}".format("  " * indent, key, to_json(value)))
 
     return lines
 
