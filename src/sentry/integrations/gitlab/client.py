@@ -9,6 +9,7 @@ from django.urls import reverse
 from requests import PreparedRequest
 
 from sentry.identity.services.identity.model import RpcIdentity
+from sentry.integrations.base import IntegrationFeatureNotImplementedError
 from sentry.integrations.gitlab.blame import fetch_file_blames
 from sentry.integrations.gitlab.utils import GitLabApiClientPath
 from sentry.integrations.source_code_management.commit_context import (
@@ -308,6 +309,9 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
         See https://docs.gitlab.com/ee/api/commits.html#get-a-single-commit
         """
         return self.get_cached(GitLabApiClientPath.commit.format(project=project_id, sha=sha))
+
+    def get_merge_commit_sha_from_commit(self, repo: str, sha: str) -> str | None:
+        raise IntegrationFeatureNotImplementedError
 
     def compare_commits(self, project_id, start_sha, end_sha):
         """Compare commits between two SHAs
