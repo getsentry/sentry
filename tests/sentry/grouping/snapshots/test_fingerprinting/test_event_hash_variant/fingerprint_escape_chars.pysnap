@@ -1,5 +1,5 @@
 ---
-created: '2023-02-10T13:31:47.690454Z'
+created: '2024-10-16T22:32:31.788940+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_fingerprinting.py
 ---
@@ -12,6 +12,7 @@ config:
     matchers:
     - - message
       - \{\[\*\?\]\}
+    text: message:"\{\[\*\?\]\}" -> "escaped{{ message }}"
   version: 1
 fingerprint:
 - escaped

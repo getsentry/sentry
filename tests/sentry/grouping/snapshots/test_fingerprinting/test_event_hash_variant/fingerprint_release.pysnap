@@ -1,5 +1,5 @@
 ---
-created: '2024-04-02T20:25:06.571127+00:00'
+created: '2024-10-16T22:32:31.117234+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_fingerprinting.py
 ---
@@ -11,6 +11,7 @@ config:
     matchers:
     - - release
       - foo.bar@*
+    text: release:"foo.bar@*" -> "foo.bar-release"
   version: 1
 fingerprint:
 - foo.bar-release
