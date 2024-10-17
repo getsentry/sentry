@@ -389,7 +389,7 @@ describe('Modals -> WidgetViewerModal', function () {
         mockEvents();
         // Rerender with first legend disabled
         initialData.router.location.query = {
-          unselectedSeries: [`${mockWidget.id}-Query Name`],
+          unselectedSeries: [`${mockWidget.id}:Query Name`],
         };
         await renderModal({initialData, widget: mockWidget});
         expect(ReactEchartsCore).toHaveBeenLastCalledWith(

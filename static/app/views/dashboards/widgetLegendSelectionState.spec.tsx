@@ -11,6 +11,8 @@ import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 
 import WidgetLegendSelectionState from './widgetLegendSelectionState';
 
+const WIDGET_ID_DELIMITER = ':';
+
 describe('WidgetLegend functions util', () => {
   let legendFunctions: WidgetLegendSelectionState;
 
@@ -41,7 +43,7 @@ describe('WidgetLegend functions util', () => {
       location = {
         ...LocationFixture(),
         query: {
-          unselectedSeries: ['12345-Releases'],
+          unselectedSeries: [`12345${WIDGET_ID_DELIMITER}Releases`],
         },
       };
       organization = {
@@ -74,7 +76,7 @@ describe('WidgetLegend functions util', () => {
     it('updates legend query param when legend option toggled', () => {
       legendFunctions.setWidgetSelectionState({'Releases:12345': true}, widget);
       expect(router.replace).toHaveBeenCalledWith({
-        query: {unselectedSeries: ['12345-']},
+        query: {unselectedSeries: [`12345${WIDGET_ID_DELIMITER}`]},
       });
     });
 
@@ -86,14 +88,14 @@ describe('WidgetLegend functions util', () => {
         widget
       );
       expect(router.replace).toHaveBeenCalledWith({
-        query: {unselectedSeries: ['12345-Releases']},
+        query: {unselectedSeries: [`12345${WIDGET_ID_DELIMITER}Releases`]},
       });
     });
 
     it('gives updated query param when widget change submitted', () => {
       expect(legendFunctions.updatedLegendQueryOnWidgetChange(dashboard)).toEqual([
-        '12345-Releases',
-        '23456-Releases',
+        `12345${WIDGET_ID_DELIMITER}Releases`,
+        `23456${WIDGET_ID_DELIMITER}Releases`,
       ]);
     });
   });
@@ -123,7 +125,7 @@ describe('WidgetLegend functions util', () => {
     it('formats to query param format from selected', () => {
       expect(
         legendFunctions.encodeLegendQueryParam(widget, {[`Releases:${widget.id}`]: false})
-      ).toEqual(`${widget.id}-Releases`);
+      ).toEqual(`${widget.id}${WIDGET_ID_DELIMITER}Releases`);
     });
 
     it('formats to selected format from query param', () => {

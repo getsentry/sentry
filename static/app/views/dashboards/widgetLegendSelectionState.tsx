@@ -16,6 +16,9 @@ type Props = {
 
 type LegendSelection = Record<string, boolean>;
 
+const SERIES_DELIMITER = ',';
+const WIDGET_ID_DELIMITER = ':';
+
 class WidgetLegendSelectionState {
   dashboard: DashboardDetails | null;
   location: Location;
@@ -41,7 +44,8 @@ class WidgetLegendSelectionState {
           return dashboardWidget.id === widget.id
             ? this.encodeLegendQueryParam(widget, selected)
             : this.formatLegendDefaultQuery(dashboardWidget.id);
-        });
+        })
+        .filter(unselectedSeries => unselectedSeries !== undefined);
 
       const thisWidgetWithReleasesWasSelected =
         Object.values(selected).filter(value => value === false).length !== 1 &&
@@ -88,15 +92,24 @@ class WidgetLegendSelectionState {
             },
           });
     } else {
-      router.replace({
-        query: {
-          ...location.query,
-          unselectedSeries: [
-            location.query.unselectedSeries,
-            this.encodeLegendQueryParam(widget, selected),
-          ],
-        },
-      });
+      if (location.query.unselectedSeries?.includes(widget.id!)) {
+        router.replace({
+          query: {
+            ...location.query,
+            unselectedSeries: [this.encodeLegendQueryParam(widget, selected)],
+          },
+        });
+      } else {
+        router.replace({
+          query: {
+            ...location.query,
+            unselectedSeries: [
+              location.query.unselectedSeries,
+              this.encodeLegendQueryParam(widget, selected),
+            ],
+          },
+        });
+      }
     }
   }
 
@@ -125,38 +138,46 @@ class WidgetLegendSelectionState {
 
   formatLegendDefaultQuery(widgetId?: string) {
     return this.organization.features.includes('dashboards-releases-on-charts')
-      ? `${widgetId}-Releases`
-      : `${widgetId}-`;
+      ? `${widgetId}${WIDGET_ID_DELIMITER}Releases`
+      : undefined;
   }
 
   // going from selected to query param
   encodeLegendQueryParam(widget: Widget, selected: LegendSelection) {
     return (
       widget.id +
-      '-' +
+      WIDGET_ID_DELIMITER +
       Object.keys(selected)
         .filter(key => !selected[key])
-        .map(series => WidgetLegendNameEncoderDecoder.decodeSeriesNameForLegend(series))
-        .join('-')
+        .map(series =>
+          encodeURIComponent(
+            WidgetLegendNameEncoderDecoder.decodeSeriesNameForLegend(series)
+          )
+        )
+        .join(SERIES_DELIMITER)
     );
   }
 
   // going from query param to selected
   decodeLegendQueryParam(widget: Widget) {
     const location = this.location;
-    return decodeList(location.query.unselectedSeries).reduce((acc, legend) => {
-      const [widgetId, ...seriesNames] = legend.split('-');
-      if (widget.id === widgetId && seriesNames) {
-        seriesNames.forEach(series => {
-          if (series) {
-            acc[
-              WidgetLegendNameEncoderDecoder.encodeSeriesNameForLegend(series, widget.id)
-            ] = false;
-          }
-        });
-      }
-      return acc;
-    }, {});
+
+    const widgetLegendString = decodeList(location.query.unselectedSeries).find(
+      widgetLegend => widgetLegend.includes(widget.id!)
+    );
+    if (widgetLegendString) {
+      const [_, seriesNameString] = widgetLegendString.split(WIDGET_ID_DELIMITER);
+      const seriesNames = seriesNameString.split(SERIES_DELIMITER);
+      return seriesNames.reduce((acc, series) => {
+        acc[
+          decodeURIComponent(
+            WidgetLegendNameEncoderDecoder.encodeSeriesNameForLegend(series, widget.id)
+          )
+        ] = false;
+        return acc;
+      }, {});
+    }
+    return {};
   }
 
   // when a widget has been changed/added/deleted update legend to incorporate that
@@ -173,7 +194,7 @@ class WidgetLegendSelectionState {
       ? newDashboard.widgets
           .filter(widget => this.widgetRequiresLegendUnselection(widget))
           .map(widget => {
-            const widgetRegex = new RegExp(`/^${widget.id}-.*`);
+            const widgetRegex = new RegExp(`/^${widget.id}${WIDGET_ID_DELIMITER}.*`);
             const widgetIdMatches = Array.isArray(location.query.unselectedSeries)
               ? location.query.unselectedSeries.filter(legend => widgetRegex.test(legend))
               : [location.query.unselectedSeries].filter(legend =>
