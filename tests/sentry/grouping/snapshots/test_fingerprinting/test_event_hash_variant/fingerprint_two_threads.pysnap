@@ -1,5 +1,5 @@
 ---
-created: '2021-10-09T08:26:55.655641Z'
+created: '2024-10-16T22:32:30.528301+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_fingerprinting.py
 ---
@@ -11,6 +11,7 @@ config:
     matchers:
     - - function
       - main
+    text: function:"main" -> "in-main"
   version: 1
 fingerprint:
 - in-main
