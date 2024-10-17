@@ -33,12 +33,20 @@ from sentry.utils.cache import cache
 logger = logging.getLogger(__name__)
 
 
-DEBOUNCE_PR_COMMENT_CACHE_KEY = lambda pullrequest_id: f"pr-comment-{pullrequest_id}"
-DEBOUNCE_PR_COMMENT_LOCK_KEY = lambda pullrequest_id: f"queue_comment_task:{pullrequest_id}"
+def _debounce_pr_comment_cache_key(pullrequest_id: int) -> str:
+    return f"pr-comment-{pullrequest_id}"
+
+
+def _debounce_pr_comment_lock_key(pullrequest_id: int) -> str:
+    return f"queue_comment_task:{pullrequest_id}"
+
+
+def _pr_comment_log(integration_name: str, suffix: str) -> str:
+    return f"{integration_name}.pr_comment.{suffix}"
+
+
 PR_COMMENT_TASK_TTL = timedelta(minutes=5).total_seconds()
 PR_COMMENT_WINDOW = 14  # days
-
-PR_COMMENT_LOG = "{integration_name}.pr_comment.{suffix}"
 
 
 @dataclass
@@ -118,7 +126,7 @@ class CommitContextIntegration(ABC):
             default=True,
         ):
             logger.info(
-                PR_COMMENT_LOG.format(integration_name=self.integration_name, suffix="disabled"),
+                _pr_comment_log(integration_name=self.integration_name, suffix="disabled"),
                 extra={"organization_id": project.organization_id},
             )
             return
@@ -129,7 +137,7 @@ class CommitContextIntegration(ABC):
             group.level is not logging.INFO and repo_query.exists()
         ):  # Don't comment on info level issues
             logger.info(
-                PR_COMMENT_LOG.format(
+                _pr_comment_log(
                     integration_name=self.integration_name, suffix="incorrect_repo_config"
                 ),
                 extra={"organization_id": project.organization_id},
@@ -139,9 +147,7 @@ class CommitContextIntegration(ABC):
         repo: Repository = repo_query.get()
 
         logger.info(
-            PR_COMMENT_LOG.format(
-                integration_name=self.integration_name, suffix="queue_comment_check"
-            ),
+            _pr_comment_log(integration_name=self.integration_name, suffix="queue_comment_check"),
             extra={"organization_id": commit.organization_id, "merge_commit_sha": commit.key},
         )
         from sentry.integrations.github.tasks.pr_comment import github_comment_workflow
@@ -158,7 +164,7 @@ class CommitContextIntegration(ABC):
 
         if merge_commit_sha is None:
             logger.info(
-                PR_COMMENT_LOG.format(
+                _pr_comment_log(
                     integration_name=self.integration_name,
                     suffix="queue_comment_workflow.commit_not_in_default_branch",
                 ),
@@ -177,7 +183,7 @@ class CommitContextIntegration(ABC):
         )
         if not pr_query.exists():
             logger.info(
-                PR_COMMENT_LOG.format(
+                _pr_comment_log(
                     integration_name=self.integration_name,
                     suffix="queue_comment_workflow.missing_pr",
                 ),
@@ -200,10 +206,10 @@ class CommitContextIntegration(ABC):
             or group_owner.group_id not in merged_pr_comment_query[0].group_ids
         ):
             lock = locks.get(
-                DEBOUNCE_PR_COMMENT_LOCK_KEY(pr.id), duration=10, name="queue_comment_task"
+                _debounce_pr_comment_lock_key(pr.id), duration=10, name="queue_comment_task"
             )
             with lock.acquire():
-                cache_key = DEBOUNCE_PR_COMMENT_CACHE_KEY(pullrequest_id=pr.id)
+                cache_key = _debounce_pr_comment_cache_key(pullrequest_id=pr.id)
                 if cache.get(cache_key) is not None:
                     return
 
@@ -211,7 +217,7 @@ class CommitContextIntegration(ABC):
                 PullRequestCommit.objects.get_or_create(commit=commit, pull_request=pr)
 
                 logger.info(
-                    PR_COMMENT_LOG.format(
+                    _pr_comment_log(
                         integration_name=self.integration_name, suffix="queue_comment_workflow"
                     ),
                     extra={"pullrequest_id": pr.id, "project_id": group_owner.project_id},
