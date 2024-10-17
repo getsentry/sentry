@@ -34,6 +34,6 @@ def run_configuration(grouping_input: GroupingInput, config_name: str) -> None:
     event = grouping_input.create_event(config_name)
 
     # This ensures we won't try to touch the DB when getting event hashes
-    event.project = None
+    event.project = None  # type: ignore[assignment]
 
     event.get_hashes()
