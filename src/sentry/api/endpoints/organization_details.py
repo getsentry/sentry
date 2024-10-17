@@ -278,6 +278,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     relayPiiConfig = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     apdexThreshold = serializers.IntegerField(min_value=1, required=False)
     uptimeAutodetection = serializers.BooleanField(required=False)
+    targetSampleRate = serializers.FloatField(required=False)
 
     @cached_property
     def _has_legacy_rate_limits(self):
