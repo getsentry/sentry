@@ -19,7 +19,10 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.repository import RpcRepository, repository_service
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.integrations.tasks.migrate_repo import migrate_repo
-from sentry.integrations.utils import AtlassianConnectValidationError, get_integration_from_request
+from sentry.integrations.utils.atlassian_connect import (
+    AtlassianConnectValidationError,
+    get_integration_from_request,
+)
 from sentry.integrations.utils.metrics import (
     IntegrationPipelineViewEvent,
     IntegrationPipelineViewType,
