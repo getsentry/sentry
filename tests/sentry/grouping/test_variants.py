@@ -9,19 +9,22 @@ import pytest
 from sentry.eventstore.models import Event
 from sentry.grouping.component import GroupingComponent
 from sentry.grouping.strategies.configurations import CONFIGURATIONS
+from sentry.grouping.variants import BaseVariant
 from sentry.testutils.pytest.fixtures import InstaSnapshotter
-from tests.sentry.grouping import GROUPING_INPUTS_DIR, with_grouping_inputs
+from tests.sentry.grouping import GROUPING_INPUTS_DIR, GroupingInput, with_grouping_inputs
 
 
 def to_json(value: Any) -> str:
     return orjson.dumps(value, option=orjson.OPT_SORT_KEYS).decode()
 
 
-def dump_variant(variant, lines=None, indent=0):
+def dump_variant(
+    variant: BaseVariant, lines: list[str] | None = None, indent: int = 0
+) -> list[str]:
     if lines is None:
         lines = []
 
-    def _dump_component(component, indent):
+    def _dump_component(component: GroupingComponent, indent: int) -> None:
         if not component.hint and not component.values:
             return
         lines.append(
@@ -56,7 +59,9 @@ def dump_variant(variant, lines=None, indent=0):
 
 @with_grouping_inputs("grouping_input", GROUPING_INPUTS_DIR)
 @pytest.mark.parametrize("config_name", CONFIGURATIONS.keys(), ids=lambda x: x.replace("-", "_"))
-def test_event_hash_variant(config_name, grouping_input, insta_snapshot):
+def test_event_hash_variant(
+    config_name: str, grouping_input: GroupingInput, insta_snapshot: InstaSnapshotter
+) -> None:
     event = grouping_input.create_event(config_name)
 
     # This ensures we won't try to touch the DB when getting event variants

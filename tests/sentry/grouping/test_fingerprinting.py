@@ -4,8 +4,9 @@ import pytest
 
 from sentry.grouping.api import get_default_grouping_config_dict
 from sentry.grouping.fingerprinting import FingerprintingRules, InvalidFingerprintingConfig
-from sentry.testutils.pytest.fixtures import django_db_all
-from tests.sentry.grouping import with_fingerprint_input
+from sentry.grouping.variants import BaseVariant
+from sentry.testutils.pytest.fixtures import InstaSnapshotter, django_db_all
+from tests.sentry.grouping import FingerprintInput, with_fingerprint_input
 
 GROUPING_CONFIG = get_default_grouping_config_dict()
 
@@ -164,10 +165,10 @@ release:foo                                     -> release-foo
 
 @with_fingerprint_input("input")
 @django_db_all  # because of `options` usage
-def test_event_hash_variant(insta_snapshot: Any, input: Any) -> None:
+def test_event_hash_variant(insta_snapshot: InstaSnapshotter, input: FingerprintInput) -> None:
     config, event = input.create_event()
 
-    def dump_variant(variant: Any) -> dict[str, Any]:
+    def dump_variant(variant: BaseVariant) -> dict[str, Any]:
         rv = variant.as_dict()
 
         for key in "hash", "description", "config":
