@@ -46,9 +46,6 @@ class GrantExchanger:
             )
             self._validate()
             token = self._create_token()
-            sentry_sdk.set_context(
-                "token-exchange.refresh", {"new_refresh_token": token.refresh_token[-4:]}
-            )
 
             # Once it's exchanged it's no longer valid and should not be
             # exchangeable, so we delete it.

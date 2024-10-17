@@ -43,12 +43,7 @@ class Refresher(Mediator):
 
         self._validate()
         self._delete_token()
-        token = self._create_new_token()
-
-        sentry_sdk.set_context(
-            "token-exchange.refresh", {"new_refresh_token": token.refresh_token[-4:]}
-        )
-        return token
+        return self._create_new_token()
 
     def record_analytics(self):
         analytics.record(
