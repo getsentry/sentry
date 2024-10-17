@@ -118,57 +118,6 @@ const ERROR_FIELDS = [
 class WidgetCard extends Component<Props, State> {
   state: State = {};
 
-  renderContextMenu() {
-    const {
-      widget,
-      selection,
-      organization,
-      showContextMenu,
-      isPreview,
-      widgetLimitReached,
-      onEdit,
-      onDuplicate,
-      onDelete,
-      isEditingDashboard,
-      router,
-      location,
-      index,
-    } = this.props;
-
-    const {seriesData, tableData, pageLinks, totalIssuesCount, seriesResultsType} =
-      this.state;
-
-    if (isEditingDashboard) {
-      return null;
-    }
-
-    return (
-      <WidgetCardContextMenuContainer>
-        <WidgetCardContextMenu
-          organization={organization}
-          widget={widget}
-          selection={selection}
-          showContextMenu={showContextMenu}
-          isPreview={isPreview}
-          widgetLimitReached={widgetLimitReached}
-          onDuplicate={onDuplicate}
-          onEdit={onEdit}
-          onDelete={onDelete}
-          router={router}
-          location={location}
-          index={index}
-          seriesData={seriesData}
-          seriesResultsType={seriesResultsType}
-          tableData={tableData}
-          pageLinks={pageLinks}
-          totalIssuesCount={totalIssuesCount}
-          description={widget.description}
-          title={widget.title}
-        />
-      </WidgetCardContextMenuContainer>
-    );
-  }
-
   setData = ({
     tableResults,
     timeseriesResults,
@@ -310,7 +259,31 @@ class WidgetCard extends Component<Props, State> {
                       <DiscoverSplitAlert widget={widget} />
                     </WidgetTitleRow>
                   </WidgetHeaderDescription>
-                  {this.renderContextMenu()}
+                  {!this.props.isEditingDashboard && (
+                    <WidgetCardContextMenuContainer>
+                      <WidgetCardContextMenu
+                        organization={organization}
+                        widget={widget}
+                        selection={selection}
+                        showContextMenu={this.props.showContextMenu}
+                        isPreview={this.props.isPreview}
+                        widgetLimitReached={this.props.widgetLimitReached}
+                        onDuplicate={this.props.onDuplicate}
+                        onEdit={this.props.onEdit}
+                        onDelete={this.props.onDelete}
+                        router={this.props.router}
+                        location={this.props.location}
+                        index={this.props.index}
+                        seriesData={this.state.seriesData}
+                        seriesResultsType={this.state.seriesResultsType}
+                        tableData={this.state.tableData}
+                        pageLinks={this.state.pageLinks}
+                        totalIssuesCount={this.state.totalIssuesCount}
+                        description={widget.description}
+                        title={widget.title}
+                      />
+                    </WidgetCardContextMenuContainer>
+                  )}
                 </WidgetHeaderWrapper>
                 {hasSessionDuration && SESSION_DURATION_ALERT}
                 {isWidgetInvalid ? (
