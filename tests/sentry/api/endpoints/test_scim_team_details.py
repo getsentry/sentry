@@ -23,7 +23,9 @@ class SCIMDetailGetTest(SCIMTestCase):
         }
 
     def test_scim_team_details_basic(self):
-        team = self.create_team(organization=self.organization, name="test-scimv2")
+        team = self.create_team(
+            organization=self.organization, name="test-scimv2", idp_provisioned=True
+        )
         url = reverse(
             "sentry-api-0-organization-scim-team-details",
             args=[self.organization.slug, team.id],
@@ -39,7 +41,9 @@ class SCIMDetailGetTest(SCIMTestCase):
         }
 
     def test_scim_team_details_excluded_attributes(self):
-        team = self.create_team(organization=self.organization, name="test-scimv2")
+        team = self.create_team(
+            organization=self.organization, name="test-scimv2", idp_provisioned=True
+        )
         url = reverse(
             "sentry-api-0-organization-scim-team-details",
             args=[self.organization.slug, team.id],
@@ -81,7 +85,7 @@ class SCIMDetailPatchTest(SCIMTestCase):
 
     def setUp(self):
         super().setUp()
-        self.team = self.create_team(organization=self.organization)
+        self.team = self.create_team(organization=self.organization, idp_provisioned=True)
         self.base_data: dict[str, Any] = {
             "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
         }
@@ -310,7 +314,7 @@ class SCIMDetailDeleteTest(SCIMTestCase):
 
     @patch("sentry.scim.endpoints.teams.metrics")
     def test_delete_team(self, mock_metrics):
-        team = self.create_team(organization=self.organization)
+        team = self.create_team(organization=self.organization, idp_provisioned=True)
         self.get_success_response(self.organization.slug, team.id, status_code=204)
 
         assert Team.objects.get(id=team.id).status == TeamStatus.PENDING_DELETION
