@@ -27,9 +27,8 @@ class GroupingInput:
     def create_event(self, config_name):
         grouping_config = get_default_grouping_config_dict(config_name)
 
-        grouping_input = dict(self.data)
         # Customize grouping config from the _grouping config
-        grouping_info = grouping_input.pop("_grouping", None) or {}
+        grouping_info = self.data.get("_grouping", None) or {}
         enhancements = grouping_info.get("enhancements")
         if enhancements:
             enhancement_bases = Enhancements.loads(grouping_config["enhancements"]).bases
@@ -37,7 +36,7 @@ class GroupingInput:
             grouping_config["enhancements"] = e.dumps()
 
         # Normalize the event
-        mgr = EventManager(data=grouping_input, grouping_config=grouping_config)
+        mgr = EventManager(data=self.data, grouping_config=grouping_config)
         mgr.normalize()
         data = mgr.get_data()
 
@@ -75,10 +74,10 @@ class FingerprintInput:
             return json.load(f)
 
     def create_event(self, grouping_config=None):
-        input = dict(self.data)
-
-        config = FingerprintingRules.from_json({"rules": input.pop("_fingerprinting_rules")})
-        mgr = EventManager(data=input, grouping_config=grouping_config)
+        config = FingerprintingRules.from_json(
+            {"rules": self.data.get("_fingerprinting_rules", [])},
+        )
+        mgr = EventManager(data=self.data, grouping_config=grouping_config)
         mgr.normalize()
         data = mgr.get_data()
 
