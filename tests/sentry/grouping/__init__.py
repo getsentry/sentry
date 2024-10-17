@@ -1,4 +1,5 @@
 import os
+from os import path
 
 import pytest
 from django.utils.functional import cached_property
@@ -17,13 +18,13 @@ from sentry.grouping.fingerprinting import FingerprintingRules
 from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
 from sentry.utils import json
 
-_grouping_fixture_path = os.path.join(os.path.dirname(__file__), "grouping_inputs")
+_grouping_fixture_path = path.join(path.dirname(__file__), "grouping_inputs")
 
 
 class GroupingInput:
     def __init__(self, filename):
         self.filename = filename  # Necessary for test naming
-        with open(os.path.join(_grouping_fixture_path, self.filename)) as f:
+        with open(path.join(_grouping_fixture_path, self.filename)) as f:
             self.data = json.load(f)
 
     def _manually_save_event(self, grouping_config: GroupingConfig) -> Event:
@@ -67,7 +68,7 @@ def with_grouping_input(name):
     )
 
 
-_fingerprint_fixture_path = os.path.join(os.path.dirname(__file__), "fingerprint_inputs")
+_fingerprint_fixture_path = path.join(path.dirname(__file__), "fingerprint_inputs")
 
 
 class FingerprintInput:
@@ -76,7 +77,7 @@ class FingerprintInput:
 
     @cached_property
     def data(self):
-        with open(os.path.join(_fingerprint_fixture_path, self.filename)) as f:
+        with open(path.join(_fingerprint_fixture_path, self.filename)) as f:
             return json.load(f)
 
     def create_event(self, grouping_config=None):
