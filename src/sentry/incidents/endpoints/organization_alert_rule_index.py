@@ -159,6 +159,7 @@ class AlertRuleIndexMixin(Endpoint):
                     is_api_token=request.auth is not None,
                     duplicate_rule=duplicate_rule,
                     wizard_v3=wizard_v3,
+                    dataset=alert_rule.dataset,
                 )
             return Response(serialize(alert_rule, request.user), status=status.HTTP_201_CREATED)
 

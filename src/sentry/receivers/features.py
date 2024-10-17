@@ -301,6 +301,7 @@ def record_alert_rule_created(
     rule_id: int,
     rule_type: str,
     is_api_token: bool,
+    dataset=None,
     referrer=None,
     session_id=None,
     alert_rule_ui_component=None,
@@ -334,6 +335,7 @@ def record_alert_rule_created(
         alert_rule_ui_component=alert_rule_ui_component,
         duplicate_rule=duplicate_rule,
         wizard_v3=wizard_v3,
+        dataset=dataset,
     )
 
 
