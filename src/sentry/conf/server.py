@@ -346,6 +346,7 @@ MIDDLEWARE: tuple[str, ...] = (
     "sentry.middleware.locale.SentryLocaleMiddleware",
     "sentry.middleware.ratelimit.RatelimitMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
+    "sentry.middleware.devtoolbar.DevToolbarAnalyticsMiddleware",
 )
 
 ROOT_URLCONF = "sentry.conf.urls"
@@ -836,7 +837,7 @@ CELERY_ROUTES = ("sentry.queue.routers.SplitQueueTaskRouter",)
 # and a default one as destination. The default one is used when the
 # rollout option is not active.
 CELERY_SPLIT_QUEUE_TASK_ROUTES_REGION: Mapping[str, SplitQueueTaskRoute] = {
-    "events.save_event_transaction": {
+    "sentry.tasks.store.save_event_transaction": {
         "default_queue": "events.save_event_transaction",
         "queues_config": {
             "total": 3,
@@ -2218,9 +2219,6 @@ SENTRY_USE_ISSUE_OCCURRENCE = False
 # This flag activates consuming GroupAttribute messages in the development environment
 SENTRY_USE_GROUP_ATTRIBUTES = True
 
-# This flag activates replay analyzer service in the development environment
-SENTRY_USE_REPLAY_ANALYZER_SERVICE = False
-
 # This flag activates Spotlight Sidecar in the development environment
 SENTRY_USE_SPOTLIGHT = False
 
@@ -2468,14 +2466,6 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
             },
             "ports": {"8085/tcp": 8085},
             "only_if": settings.SENTRY_USE_PROFILING,
-        }
-    ),
-    "session-replay-analyzer": lambda settings, options: (
-        {
-            "image": "ghcr.io/getsentry/session-replay-analyzer:latest",
-            "environment": {},
-            "ports": {"3000/tcp": 3000},
-            "only_if": settings.SENTRY_USE_REPLAY_ANALYZER_SERVICE,
         }
     ),
     "spotlight-sidecar": lambda settings, options: (
@@ -3150,6 +3140,7 @@ PG_VERSION: str = os.getenv("PG_VERSION") or "14"
 ZERO_DOWNTIME_MIGRATIONS_RAISE_FOR_UNSAFE = True
 ZERO_DOWNTIME_MIGRATIONS_LOCK_TIMEOUT = None
 ZERO_DOWNTIME_MIGRATIONS_STATEMENT_TIMEOUT = None
+ZERO_DOWNTIME_MIGRATIONS_LOCK_TIMEOUT_FORCE = False
 
 if int(PG_VERSION.split(".", maxsplit=1)[0]) < 12:
     # In v0.6 of django-pg-zero-downtime-migrations this settings is deprecated for PostreSQLv12+

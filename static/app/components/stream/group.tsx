@@ -1,5 +1,4 @@
 import {Fragment, useCallback, useMemo, useRef} from 'react';
-import type {Theme} from '@emotion/react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
@@ -15,6 +14,7 @@ import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails
 import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
 import {AssigneeSelector} from 'sentry/components/group/assigneeSelector';
 import {getBadgeProperties} from 'sentry/components/group/inboxBadges/statusBadge';
+import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import type {GroupListColumn} from 'sentry/components/issues/groupList';
 import Link from 'sentry/components/links/link';
 import PanelItem from 'sentry/components/panels/panelItem';
@@ -46,9 +46,13 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 import EventView from 'sentry/utils/discover/eventView';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
+import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useMutation} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -57,6 +61,7 @@ import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import GroupPriority from 'sentry/views/issueDetails/groupPriority';
 import {COLUMN_BREAKPOINTS} from 'sentry/views/issueList/actions/utils';
 import {
+  createIssueLink,
   DISCOVER_EXCLUSION_FIELDS,
   getTabs,
   isForReviewQuery,
@@ -134,7 +139,7 @@ function GroupTimestamp({date, label}: {date: string | null; label: string}) {
       aria-label={label}
       tooltipPrefix={label}
       date={date}
-      suffix=""
+      suffix="ago"
       unitStyle="extraShort"
     />
   );
@@ -161,6 +166,8 @@ function BaseGroupRow({
   showLastTriggered = false,
   onPriorityChange,
 }: Props) {
+  const navigate = useNavigate();
+  const location = useLocation();
   const groups = useLegacyStore(GroupStore);
   const group = useMemo(
     () => groups.find(item => item.id === id) as Group | undefined,
@@ -227,37 +234,32 @@ function BaseGroupRow({
     },
   });
 
-  const wrapperToggle = useCallback(
+  const clickHasBeenHandled = useCallback(
     (evt: React.MouseEvent<HTMLDivElement>) => {
       const targetElement = evt.target as Partial<HTMLElement>;
       if (!group) {
-        return;
+        return true;
       }
 
       // Ignore clicks on links
       if (targetElement?.tagName?.toLowerCase() === 'a') {
-        return;
+        return true;
       }
 
       // Ignore clicks on the selection checkbox
       if (targetElement?.tagName?.toLowerCase() === 'input') {
-        return;
+        return true;
       }
 
       let e = targetElement;
       while (e.parentElement) {
         if (e?.tagName?.toLowerCase() === 'a') {
-          return;
+          return true;
         }
         e = e.parentElement!;
       }
 
-      if (evt.shiftKey) {
-        SelectedGroupStore.shiftToggleItems(group.id);
-        window.getSelection()?.removeAllRanges();
-      } else {
-        SelectedGroupStore.toggleSelect(group.id);
-      }
+      return false;
     },
     [group]
   );
@@ -443,9 +445,20 @@ function BaseGroupRow({
           </CountTooltipContent>
         }
       >
-        <PrimaryCount value={primaryCount} />
-        {secondaryCount !== undefined && useFilteredStats && (
-          <SecondaryCount value={secondaryCount} />
+        {hasNewLayout ? (
+          <CountsWrapper>
+            <PrimaryCount value={primaryCount} hasNewLayout={hasNewLayout} />
+            {secondaryCount !== undefined && useFilteredStats && (
+              <SecondaryCount value={secondaryCount} hasNewLayout={hasNewLayout} />
+            )}
+          </CountsWrapper>
+        ) : (
+          <Fragment>
+            <PrimaryCount value={primaryCount} />
+            {secondaryCount !== undefined && useFilteredStats && (
+              <SecondaryCount value={secondaryCount} />
+            )}
+          </Fragment>
         )}
       </Tooltip>
     </GuideAnchor>
@@ -483,9 +496,20 @@ function BaseGroupRow({
         </CountTooltipContent>
       }
     >
-      <PrimaryCount value={primaryUserCount} />
-      {secondaryUserCount !== undefined && useFilteredStats && (
-        <SecondaryCount dark value={secondaryUserCount} />
+      {hasNewLayout ? (
+        <CountsWrapper>
+          <PrimaryCount value={primaryUserCount} hasNewLayout={hasNewLayout} />
+          {secondaryUserCount !== undefined && useFilteredStats && (
+            <SecondaryCount value={secondaryUserCount} hasNewLayout={hasNewLayout} />
+          )}
+        </CountsWrapper>
+      ) : (
+        <Fragment>
+          <PrimaryCount value={primaryUserCount} />
+          {secondaryUserCount !== undefined && useFilteredStats && (
+            <SecondaryCount value={secondaryUserCount} />
+          )}
+        </Fragment>
       )}
     </Tooltip>
   );
@@ -507,15 +531,61 @@ function BaseGroupRow({
     <GuideAnchor target="issue_stream" />
   );
 
+  const onClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (displayReprocessingLayout) {
+      return;
+    }
+
+    const handled = clickHasBeenHandled(e);
+
+    if (handled) {
+      return;
+    }
+
+    if (canSelect && e.shiftKey) {
+      SelectedGroupStore.shiftToggleItems(group.id);
+      window.getSelection()?.removeAllRanges();
+      return;
+    }
+
+    if (canSelect && isCtrlKeyPressed(e)) {
+      SelectedGroupStore.toggleSelect(group.id);
+      return;
+    }
+
+    if (hasNewLayout) {
+      navigate(
+        normalizeUrl(
+          createIssueLink({
+            data: group,
+            organization,
+            referrer,
+            streamIndex: index,
+            location,
+            query,
+          })
+        )
+      );
+      return;
+    }
+
+    if (!canSelect) {
+      return;
+    }
+
+    SelectedGroupStore.toggleSelect(group.id);
+  };
+
   return (
     <Wrapper
       data-test-id="group"
       data-test-reviewed={reviewed}
-      onClick={displayReprocessingLayout || !canSelect ? undefined : wrapperToggle}
+      onClick={onClick}
       reviewed={reviewed}
       useTintRow={useTintRow ?? true}
       hasNewLayout={hasNewLayout}
     >
+      {hasNewLayout && <InteractionStateLayer data-layer />}
       {canSelect && (
         <GroupCheckbox
           group={group}
@@ -530,17 +600,14 @@ function BaseGroupRow({
           query={query}
           source={referrer}
         />
-        <EventOrGroupExtraDetails
-          data={group}
-          showLifetime={!organization.features.includes('issue-stream-table-layout')}
-        />
+        <EventOrGroupExtraDetails data={group} showLifetime={!hasNewLayout} />
       </GroupSummary>
       {hasGuideAnchor && issueStreamAnchor}
 
       {withChart &&
       !displayReprocessingLayout &&
       issueTypeConfig.stats.enabled &&
-      organization.features.includes('issue-stream-table-layout') ? (
+      hasNewLayout ? (
         <NarrowChartWrapper breakpoint={COLUMN_BREAKPOINTS.TREND}>
           <GroupStatusChart
             hideZeros
@@ -584,9 +651,9 @@ function BaseGroupRow({
           )}
           {withColumns.includes('event') &&
           issueTypeConfig.stats.enabled &&
-          organization.features.includes('issue-stream-table-layout') ? (
+          hasNewLayout ? (
             <NarrowEventsOrUsersCountsWrapper breakpoint={COLUMN_BREAKPOINTS.EVENTS}>
-              <div style={{marginRight: space(2)}}>{groupCount}</div>
+              <InnerCountsWrapper>{groupCount}</InnerCountsWrapper>
             </NarrowEventsOrUsersCountsWrapper>
           ) : (
             <EventCountsWrapper
@@ -597,15 +664,15 @@ function BaseGroupRow({
           )}
           {withColumns.includes('users') &&
           issueTypeConfig.stats.enabled &&
-          organization.features.includes('issue-stream-table-layout') ? (
+          hasNewLayout ? (
             <NarrowEventsOrUsersCountsWrapper breakpoint={COLUMN_BREAKPOINTS.USERS}>
-              <div style={{marginRight: space(2)}}>{groupUsersCount}</div>
+              <InnerCountsWrapper>{groupUsersCount}</InnerCountsWrapper>
             </NarrowEventsOrUsersCountsWrapper>
           ) : (
             <EventCountsWrapper>{groupUsersCount}</EventCountsWrapper>
           )}
           {withColumns.includes('priority') ? (
-            organization.features.includes('issue-stream-table-layout') ? (
+            hasNewLayout ? (
               <NarrowPriorityWrapper breakpoint={COLUMN_BREAKPOINTS.PRIORITY}>
                 {group.priority ? (
                   <GroupPriority group={group} onChange={onPriorityChange} />
@@ -620,7 +687,7 @@ function BaseGroupRow({
             )
           ) : null}
           {withColumns.includes('assignee') &&
-            (organization.features.includes('issue-stream-table-layout') ? (
+            (hasNewLayout ? (
               <NarrowAssigneeWrapper breakpoint={COLUMN_BREAKPOINTS.ASSIGNEE}>
                 <AssigneeSelector
                   group={group}
@@ -663,8 +730,27 @@ const Wrapper = styled(PanelItem)<{
   ${p =>
     p.hasNewLayout &&
     css`
+      cursor: pointer;
       padding: ${space(1)} 0;
       min-height: 66px;
+
+      /* Adds underline to issue title when active  */
+      &:hover {
+        [data-issue-title-primary] {
+          text-decoration: underline;
+        }
+      }
+
+      /* Disables the hover effect when hovering over dropdown buttons and checkboxes */
+      &:has(button:hover, input:hover, [data-overlay]:hover) {
+        [data-layer] {
+          display: none;
+        }
+
+        [data-issue-title-primary] {
+          text-decoration: none;
+        }
+      }
     `}
 
   ${p =>
@@ -706,7 +792,7 @@ const Wrapper = styled(PanelItem)<{
 const GroupSummary = styled('div')<{canSelect: boolean; hasNewLayout: boolean}>`
   overflow: hidden;
   margin-left: ${p => space(p.canSelect ? 1 : 2)};
-  margin-right: ${space(1)};
+  margin-right: ${p => (p.hasNewLayout ? space(2) : space(1))};
   flex: 1;
   width: 66.66%;
 
@@ -738,29 +824,43 @@ const GroupCheckBoxWrapper = styled('div')<{hasNewLayout: boolean}>`
     `}
 `;
 
-const primaryStatStyle = (theme: Theme) => css`
-  font-size: ${theme.fontSizeLarge};
+const CountsWrapper = styled('div')`
+  display: flex;
+  flex-direction: column;
+`;
+
+const PrimaryCount = styled(Count)<{hasNewLayout?: boolean}>`
+  font-size: ${p => (p.hasNewLayout ? p.theme.fontSizeMedium : p.theme.fontSizeLarge)};
+  ${p =>
+    p.hasNewLayout &&
+    `
+    display: flex;
+    justify-content: right;
+    margin-bottom: ${space(0.25)};
+  `}
   font-variant-numeric: tabular-nums;
 `;
 
-const PrimaryCount = styled(Count)`
-  ${p => primaryStatStyle(p.theme)};
-`;
+const SecondaryCount = styled(({value, ...p}) => <Count {...p} value={value} />)<{
+  hasNewLayout?: boolean;
+}>`
+  font-size: ${p => (p.hasNewLayout ? p.theme.fontSizeSmall : p.theme.fontSizeLarge)};
+  ${p =>
+    p.hasNewLayout &&
+    css`
+      display: flex;
+      justify-content: right;
+      color: ${p.theme.subText};
+    `}
 
-const secondaryStatStyle = (theme: Theme) => css`
-  font-size: ${theme.fontSizeLarge};
   font-variant-numeric: tabular-nums;
 
   :before {
     content: '/';
     padding-left: ${space(0.25)};
     padding-right: 2px;
-    color: ${theme.gray300};
+    color: ${p => p.theme.gray300};
   }
-`;
-
-const SecondaryCount = styled(({value, ...p}) => <Count {...p} value={value} />)`
-  ${p => secondaryStatStyle(p.theme)}
 `;
 
 const CountTooltipContent = styled('div')`
@@ -792,7 +892,7 @@ const ChartWrapper = styled('div')<{margin: boolean; narrowGroups: boolean}>`
 `;
 
 const NarrowChartWrapper = styled('div')<{breakpoint: string}>`
-  width: 200px;
+  width: 175px;
   align-self: center;
   margin-right: ${space(2)};
 
@@ -804,7 +904,7 @@ const NarrowChartWrapper = styled('div')<{breakpoint: string}>`
 const TimestampWrapper = styled('div')<{breakpoint: string}>`
   display: flex;
   align-self: center;
-  width: 60px;
+  width: 75px;
   margin-right: ${space(2)};
 
   @media (max-width: ${p => p.breakpoint}) {
@@ -822,6 +922,10 @@ const NarrowEventsOrUsersCountsWrapper = styled('div')<{breakpoint: string}>`
   @media (max-width: ${p => p.breakpoint}) {
     display: none;
   }
+`;
+
+const InnerCountsWrapper = styled('div')`
+  margin-right: ${space(2)};
 `;
 
 const EventCountsWrapper = styled('div')<{leftMargin?: string}>`

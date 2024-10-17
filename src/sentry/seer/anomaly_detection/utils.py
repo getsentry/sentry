@@ -8,7 +8,7 @@ from rest_framework.exceptions import ParseError
 from sentry import release_health
 from sentry.api.bases.organization_events import resolve_axis_column
 from sentry.api.serializers.snuba import SnubaTSResultSerializer
-from sentry.incidents.models.alert_rule import AlertRule, AlertRuleThresholdType
+from sentry.incidents.models.alert_rule import AlertRuleThresholdType
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.search.events.types import SnubaParams
@@ -213,7 +213,7 @@ def get_dataset_from_label(dataset_label: str):
 
 
 def fetch_historical_data(
-    alert_rule: AlertRule,
+    organization: Organization,
     snuba_query: SnubaQuery,
     query_columns: list[str],
     project: Project,
@@ -245,7 +245,7 @@ def fetch_historical_data(
         dataset_label = "metricsEnhanced"
     dataset = get_dataset_from_label(dataset_label)
 
-    if not project or not dataset or not alert_rule.organization:
+    if not project or not dataset or not organization:
         return None
 
     environments = []
@@ -253,7 +253,7 @@ def fetch_historical_data(
         environments = [snuba_query.environment]
 
     snuba_params = SnubaParams(
-        organization=alert_rule.organization,
+        organization=organization,
         projects=[project],
         start=start,
         end=end,
@@ -262,9 +262,7 @@ def fetch_historical_data(
     )
 
     if dataset == metrics_performance:
-        return get_crash_free_historical_data(
-            start, end, project, alert_rule.organization, granularity
-        )
+        return get_crash_free_historical_data(start, end, project, organization, granularity)
     else:
         event_types = get_event_types(snuba_query, event_types)
         snuba_query_string = get_snuba_query_string(snuba_query, event_types)

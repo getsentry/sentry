@@ -28,7 +28,7 @@ const BASIC_QUERY_PARAMS = {
   statsPeriod: '14d',
 };
 
-function WrappedComponent({data, ...rest}) {
+function WrappedComponent({data, ...rest}: any) {
   return (
     <OrganizationContext.Provider value={data.organization}>
       <MEPSettingProvider>
@@ -52,8 +52,8 @@ function WrappedComponent({data, ...rest}) {
 }
 
 describe('Performance > Widgets > Query Batching', function () {
-  let eventsMock;
-  let eventStatsMock;
+  let eventsMock: jest.Mock;
+  let eventStatsMock: jest.Mock;
 
   beforeEach(function () {
     eventsMock = MockApiClient.addMockResponse({

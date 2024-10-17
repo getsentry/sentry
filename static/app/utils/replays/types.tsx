@@ -15,8 +15,6 @@ import type {
 } from '@sentry/react';
 import invariant from 'invariant';
 
-import type {HydratedA11yFrame} from 'sentry/utils/replays/hydrateA11yFrame';
-
 export type Dimensions = {
   height: number;
   width: number;
@@ -444,7 +442,7 @@ export type ErrorFrame = Overwrite<
   }
 >;
 
-export type ReplayFrame = BreadcrumbFrame | ErrorFrame | SpanFrame | HydratedA11yFrame;
+export type ReplayFrame = BreadcrumbFrame | ErrorFrame | SpanFrame;
 
 interface VideoFrame {
   container: string;

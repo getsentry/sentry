@@ -421,7 +421,7 @@ class OnboardingTasksSerializer(Serializer):
 
 
 class _DetailedOrganizationSerializerResponseOptional(OrganizationSerializerResponse, total=False):
-    role: Any  # TODO replace with enum/literal
+    role: Any  # TODO: replace with enum/literal
     orgRole: str
     uptimeAutodetection: bool
 
