@@ -97,11 +97,9 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
         />
 
         {eventData ? (
-          <TraceDataSection
-            eventData={eventData}
-            crashReportId={crashReportId}
-            hasProject={!!feedbackItem.project}
-          />
+          <ErrorBoundary mini>
+            <TraceDataSection eventData={eventData} crashReportId={crashReportId} />
+          </ErrorBoundary>
         ) : null}
 
         <Section icon={<IconTag size="xs" />} title={t('Tags')}>
