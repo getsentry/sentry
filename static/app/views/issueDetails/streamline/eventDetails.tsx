@@ -158,7 +158,11 @@ function StickyEventNav({
   const {dispatch} = useEventDetailsReducer();
 
   useLayoutEffect(() => {
-    const navHeight = nav?.offsetHeight ?? 0;
+    if (!nav) {
+      return;
+    }
+
+    const navHeight = nav.offsetHeight ?? 0;
     const sidebarHeight = isScreenMedium ? theme.sidebar.mobileHeightNumber : 0;
     dispatch({
       type: 'UPDATE_DETAILS',
