@@ -75,14 +75,27 @@ describe('MessagingIntegrationAlertRule', function () {
     expect(mockSetChannel).toHaveBeenCalled();
   });
 
-  // it('disables integration select when there is only one option', function () {
-  //   render(
-  //     getComponent({
-  //       alertNotificationIntegration: discordIntegrations[0],
-  //       alertNotificationProvider: 'discord',
-  //     })
-  //   );
-  //   screen.getByRole('text').click();
-  //   expect(screen.getByRole('textbox')).toBeDisabled();
-  // });
+  it('disables provider select when there is only one provider option', function () {
+    render(
+      <MessagingIntegrationAlertRule
+        notificationProps={notificationProps}
+        providersToIntegrations={{slack: slackIntegrations}}
+      />
+    );
+    expect(screen.getByLabelText('provider')).toBeDisabled();
+  });
+
+  it('disables integration select when there is only one integration option', function () {
+    render(
+      <MessagingIntegrationAlertRule
+        notificationProps={{
+          ...notificationProps,
+          integration: discordIntegrations[0],
+          provider: 'discord',
+        }}
+        providersToIntegrations={providersToIntegrations}
+      />
+    );
+    expect(screen.getByLabelText('integration')).toBeDisabled();
+  });
 });

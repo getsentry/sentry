@@ -86,17 +86,7 @@ function CreateProject() {
     undefined
   );
 
-  const {
-    createNotificationAction,
-    actions: alertNotificationActions,
-    provider,
-    integration,
-    channel,
-    setActions: setAlertNotificationActions,
-    setProvider,
-    setIntegration,
-    setChannel,
-  } = useCreateNotificationAction();
+  const {createNotificationAction, notificationProps} = useCreateNotificationAction();
 
   const frameworkSelectionEnabled = !!organization?.features.includes(
     'onboarding-sdk-selection'
@@ -155,24 +145,16 @@ function CreateProject() {
           );
           ruleIds.push(ruleData.id);
         }
-        if (
-          organization.features.includes(
-            'messaging-integration-onboarding-project-creation'
-          ) &&
-          shouldCreateRule
-        ) {
-          const ruleData = await createNotificationAction({
-            api,
-            name,
-            organizationSlug: organization.slug,
-            projectSlug: projectData.slug,
-            conditions,
-            actionMatch,
-            frequency,
-          });
-          if (ruleData) {
-            ruleIds.push(ruleData.id);
-          }
+        const ruleData = await createNotificationAction({
+          shouldCreateRule,
+          name,
+          projectSlug: projectData.slug,
+          conditions,
+          actionMatch,
+          frequency,
+        });
+        if (ruleData) {
+          ruleIds.push(ruleData.id);
         }
         trackAnalytics('project_creation_page.created', {
           organization,
@@ -315,10 +297,10 @@ function CreateProject() {
     shouldCreateCustomRule && !conditions?.every?.(condition => condition.value);
   const isMissingMessagingIntegrationChannel =
     shouldCreateRule &&
-    alertNotificationActions?.some(
+    notificationProps.actions?.some(
       action => action === MultipleCheckboxOptions.INTEGRATION
     ) &&
-    !channel;
+    !notificationProps.channel;
 
   const formErrorCount = [
     isMissingTeam,
@@ -341,6 +323,10 @@ function CreateProject() {
       'Please provide an integration channel for alert notifications'
     );
   }
+
+  const keyToErrorText = {
+    actions: t('Notify via integration'),
+  };
 
   const alertFrequencyDefaultValues = useMemo(() => {
     if (!autoFill) {
@@ -403,16 +389,7 @@ function CreateProject() {
             {...alertFrequencyDefaultValues}
             platformLanguage={platform?.language as SupportedLanguages}
             onChange={updatedData => setAlertRuleConfig(updatedData)}
-            notificationProps={{
-              actions: alertNotificationActions,
-              channel,
-              integration,
-              provider,
-              setActions: setAlertNotificationActions,
-              setChannel,
-              setIntegration,
-              setProvider,
-            }}
+            notificationProps={notificationProps}
           />
           <StyledListItem>{t('Name your project and assign it a team')}</StyledListItem>
           <CreateProjectForm
@@ -470,15 +447,14 @@ function CreateProject() {
 
           {errors && (
             <Alert type="error">
-              {Object.keys(errors).map(key => {
-                const label =
-                  key === 'actions' ? t('Notify via integration') : startCase(key);
-                return (
-                  <div key={key}>
-                    <strong>{label}</strong>: {errors[key]}
-                  </div>
-                );
-              })}
+              {Object.keys(errors).map(key => (
+                <div key={key}>
+                  <strong>
+                    {keyToErrorText[key] ? keyToErrorText[key] : startCase(key)}
+                  </strong>
+                  : {errors[key]}
+                </div>
+              ))}
             </Alert>
           )}
         </List>

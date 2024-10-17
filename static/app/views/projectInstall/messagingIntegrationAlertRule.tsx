@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import Input from 'sentry/components/input';
-import {t} from 'sentry/locale';
+// import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
 import {
@@ -58,43 +58,45 @@ export default function MessagingIntegrationAlertRule({
   }
 
   return (
-    <div>
-      <RuleWrapper>
-        <Rule>
-          {t('Send')}
-          <InlineSelectControl
-            label="provider"
-            disabled={Object.keys(providersToIntegrations).length === 1}
-            value={provider}
-            options={providerOptions}
-            onChange={p => {
-              setProvider(p.value);
-              setIntegration(providersToIntegrations[p.value][0]);
-              setChannel('');
-            }}
-          />
-          {t('notification to the')}
-          <InlineSelectControl
-            label="integration"
-            role="select"
-            disabled={integrationOptions.length === 1}
-            value={integration}
-            options={integrationOptions}
-            onChange={i => setIntegration(i.value)}
-          />
-          {providerDetails[provider]?.label}
-          <InlineInput
-            // label="channel"
-            type="text"
-            value={channel || ''}
-            placeholder={providerDetails[provider]?.placeholder}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-              setChannel(e.target.value)
-            }
-          />
-        </Rule>
-      </RuleWrapper>
-    </div>
+    <RuleWrapper>
+      <Rule>
+        {providerDetails[provider]?.makeSentence({
+          providerName: (
+            <InlineSelectControl
+              aria-label="provider"
+              disabled={Object.keys(providersToIntegrations).length === 1}
+              value={provider}
+              options={providerOptions}
+              onChange={p => {
+                setProvider(p.value);
+                setIntegration(providersToIntegrations[p.value][0]);
+                setChannel('');
+              }}
+            />
+          ),
+          integrationName: (
+            <InlineSelectControl
+              aria-label="integration"
+              disabled={integrationOptions.length === 1}
+              value={integration}
+              options={integrationOptions}
+              onChange={i => setIntegration(i.value)}
+            />
+          ),
+          target: (
+            <InlineInput
+              aria-label="channel"
+              type="text"
+              value={channel || ''}
+              placeholder={providerDetails[provider]?.placeholder}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                setChannel(e.target.value)
+              }
+            />
+          ),
+        })}
+      </Rule>
+    </RuleWrapper>
   );
 }
 

@@ -1,12 +1,13 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import type {Client} from 'sentry/api';
 import MultipleCheckbox from 'sentry/components/forms/controls/multipleCheckbox';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {IssueAlertActionType} from 'sentry/types/alerts';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import SetupMessagingIntegrationButton, {
   MessagingIntegrationAnalyticsView,
@@ -15,22 +16,43 @@ import MessagingIntegrationAlertRule from 'sentry/views/projectInstall/messaging
 
 export const providerDetails = {
   slack: {
-    name: 'Slack',
+    name: t('Slack'),
     action: IssueAlertActionType.SLACK,
-    label: 'workspace to',
-    placeholder: 'channel, e.g. #critical',
+    placeholder: t('channel, e.g. #critical'),
+    makeSentence: ({providerName, integrationName, target}) =>
+      tct(
+        'Send [providerName] notification to the [integrationName] workspace to [target]',
+        {
+          providerName,
+          integrationName,
+          target,
+        }
+      ),
   },
   discord: {
     name: 'Discord',
     action: IssueAlertActionType.DISCORD,
-    label: 'server in the channel',
     placeholder: 'channel ID or URL',
+    makeSentence: ({providerName, integrationName, target}) =>
+      tct(
+        'Send [providerName] notification to the [integrationName] server in the channel [target]',
+        {
+          providerName,
+          integrationName,
+          target,
+        }
+      ),
   },
   msteams: {
     name: 'MSTeams',
     action: IssueAlertActionType.MS_TEAMS,
-    label: 'team to',
     placeholder: 'channel ID',
+    makeSentence: ({providerName, integrationName, target}) =>
+      tct('Send [providerName] notification to the [integrationName] team to [target]', {
+        providerName,
+        integrationName,
+        target,
+      }),
   },
 };
 
@@ -60,33 +82,41 @@ export function useCreateNotificationAction() {
   );
   const [channel, setChannel] = useState<string | undefined>(undefined);
 
+  const api = useApi();
+  const organization = useOrganization();
+
   type Props = {
     actionMatch: string | undefined;
-    api: Client;
     conditions: {id: string; interval: string; value: string}[] | undefined;
     frequency: number | undefined;
     name: string | undefined;
-    organizationSlug: string;
     projectSlug: string;
+    shouldCreateRule: boolean | undefined;
   };
 
   const createNotificationAction = useCallback(
     ({
-      api,
-      organizationSlug,
+      shouldCreateRule,
       projectSlug,
       name,
       conditions,
       actionMatch,
       frequency,
     }: Props) => {
-      let integrationAction;
       const isCreatingIntegrationNotification = actions.find(
         action => action === MultipleCheckboxOptions.INTEGRATION
       );
-      if (!isCreatingIntegrationNotification) {
+      if (
+        !organization.features.includes(
+          'messaging-integration-onboarding-project-creation'
+        ) ||
+        !shouldCreateRule ||
+        !isCreatingIntegrationNotification
+      ) {
         return undefined;
       }
+
+      let integrationAction;
       switch (provider) {
         case 'slack':
           integrationAction = [
@@ -118,7 +148,8 @@ export function useCreateNotificationAction() {
         default:
           return undefined;
       }
-      return api.requestPromise(`/projects/${organizationSlug}/${projectSlug}/rules/`, {
+
+      return api.requestPromise(`/projects/${organization.slug}/${projectSlug}/rules/`, {
         method: 'POST',
         data: {
           name,
@@ -129,19 +160,29 @@ export function useCreateNotificationAction() {
         },
       });
     },
-    [actions, provider, integration, channel]
+    [
+      actions,
+      api,
+      provider,
+      integration,
+      channel,
+      organization.features,
+      organization.slug,
+    ]
   );
 
   return {
     createNotificationAction,
-    actions,
-    provider,
-    integration,
-    channel,
-    setActions,
-    setProvider,
-    setIntegration,
-    setChannel,
+    notificationProps: {
+      actions,
+      provider,
+      integration,
+      channel,
+      setActions,
+      setProvider,
+      setIntegration,
+      setChannel,
+    },
   };
 }
 

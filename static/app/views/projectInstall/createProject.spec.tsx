@@ -429,7 +429,7 @@ describe('CreateProject', function () {
 
       await userEvent.click(
         screen.getByRole('checkbox', {
-          name: /notify via integration \(slack, discord, ms teams, etc\.\)/i,
+          name: 'Notify via integration (Slack, Discord, MS Teams, etc.)',
         })
       );
       expect(getSubmitButton()).toBeDisabled();
