@@ -56,7 +56,7 @@ class GroupingInput:
 
 grouping_input = list(
     GroupingInput(filename)
-    for filename in os.listdir(_grouping_fixture_path)
+    for filename in sorted(os.listdir(_grouping_fixture_path))
     if filename.endswith(".json")
 )
 
