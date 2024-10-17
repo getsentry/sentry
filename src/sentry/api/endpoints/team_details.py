@@ -60,9 +60,9 @@ class TeamDetailsEndpoint(TeamEndpoint):
     _allow_idp_changes = False
 
     def can_modify_team(self, team: Team):
-        if not team.idp_provisioned:
-            return True
-        return team.idp_provisioned and self._allow_idp_changes
+        if team.idp_provisioned:
+            return self._allow_idp_changes
+        return True
 
     @extend_schema(
         operation_id="Retrieve a Team",
