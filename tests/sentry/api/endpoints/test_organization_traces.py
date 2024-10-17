@@ -15,26 +15,16 @@ from sentry.utils.samples import load_data
 
 class OrganizationTracesEndpointTestBase(BaseSpansTestCase, APITestCase):
     view: str
+    is_eap: bool = False
 
     def setUp(self):
         super().setUp()
         self.login_as(user=self.user)
 
-    def do_request(self, query, features=None, **kwargs):
-        if features is None:
-            features = ["organizations:performance-trace-explorer", "organizations:global-views"]
-        with self.feature(features):
-            return self.client.get(
-                reverse(self.view, kwargs={"organization_id_or_slug": self.organization.slug}),
-                query,
-                format="json",
-                **kwargs,
-            )
-
     def double_write_segment(
         self,
         *,
-        project_id,
+        project,
         trace_id,
         transaction_id,
         span_id,
@@ -59,16 +49,18 @@ class OrganizationTracesEndpointTestBase(BaseSpansTestCase, APITestCase):
 
         self.store_event(
             data=data,
-            project_id=project_id,
+            project_id=project.id,
         )
 
         self.store_segment(
-            project_id=project_id,
+            project_id=project.id,
             trace_id=trace_id,
             transaction_id=transaction_id,
             span_id=span_id,
             timestamp=timestamp,
             duration=duration,
+            organization_id=project.organization.id,
+            is_eap=self.is_eap,
             **kwargs,
         )
 
@@ -87,7 +79,7 @@ class OrganizationTracesEndpointTestBase(BaseSpansTestCase, APITestCase):
         trace_id_1 = uuid4().hex
         timestamps.append(now - timedelta(minutes=10))
         self.double_write_segment(
-            project_id=project_1.id,
+            project=project_1,
             trace_id=trace_id_1,
             transaction_id=uuid4().hex,
             span_id=span_ids[0],
@@ -100,7 +92,7 @@ class OrganizationTracesEndpointTestBase(BaseSpansTestCase, APITestCase):
         for i in range(1, 4):
             timestamps.append(now - timedelta(minutes=9, seconds=45 - i))
             self.double_write_segment(
-                project_id=project_2.id,
+                project=project_2,
                 trace_id=trace_id_1,
                 transaction_id=uuid4().hex,
                 span_id=span_ids[i],
@@ -117,7 +109,7 @@ class OrganizationTracesEndpointTestBase(BaseSpansTestCase, APITestCase):
         txn_id_2 = uuid4().hex
         timestamps.append(now - timedelta(days=1, minutes=20))
         self.double_write_segment(
-            project_id=project_1.id,
+            project=project_1,
             trace_id=trace_id_2,
             transaction_id=txn_id_2,
             span_id=span_ids[4],
@@ -130,7 +122,7 @@ class OrganizationTracesEndpointTestBase(BaseSpansTestCase, APITestCase):
         for i in range(5, 7):
             timestamps.append(now - timedelta(days=1, minutes=19, seconds=55 - i))
             self.double_write_segment(
-                project_id=project_2.id,
+                project=project_2,
                 trace_id=trace_id_2,
                 transaction_id=uuid4().hex,
                 span_id=span_ids[i],
@@ -145,6 +137,7 @@ class OrganizationTracesEndpointTestBase(BaseSpansTestCase, APITestCase):
 
         timestamps.append(now - timedelta(days=1, minutes=19, seconds=59))
         self.store_indexed_span(
+            organization_id=project_1.organization.id,
             project_id=project_1.id,
             trace_id=trace_id_2,
             transaction_id=txn_id_2,
@@ -155,10 +148,12 @@ class OrganizationTracesEndpointTestBase(BaseSpansTestCase, APITestCase):
             duration=1_000,
             exclusive_time=1_000,
             op="http.client",
+            is_eap=self.is_eap,
         )
 
         timestamps.append(now - timedelta(days=1, minutes=19, seconds=40))
         self.store_indexed_span(
+            organization_id=project_1.organization.id,
             project_id=project_1.id,
             trace_id=trace_id_2,
             transaction_id=txn_id_2,
@@ -169,10 +164,12 @@ class OrganizationTracesEndpointTestBase(BaseSpansTestCase, APITestCase):
             duration=3_000,
             exclusive_time=3_000,
             op="db.sql",
+            is_eap=self.is_eap,
         )
 
         timestamps.append(now - timedelta(days=1, minutes=19, seconds=45))
         self.store_indexed_span(
+            organization_id=project_1.organization.id,
             project_id=project_1.id,
             trace_id=trace_id_2,
             transaction_id=txn_id_2,
@@ -183,12 +180,13 @@ class OrganizationTracesEndpointTestBase(BaseSpansTestCase, APITestCase):
             duration=3,
             exclusive_time=3,
             op="db.sql",
+            is_eap=self.is_eap,
         )
 
         timestamps.append(now - timedelta(days=2, minutes=30))
         trace_id_3 = uuid4().hex
         self.double_write_segment(
-            project_id=project_1.id,
+            project=project_1,
             trace_id=trace_id_3,
             transaction_id=uuid4().hex,
             span_id=span_ids[10],
@@ -226,7 +224,7 @@ class OrganizationTracesEndpointTestBase(BaseSpansTestCase, APITestCase):
 
         timestamps.append(now - timedelta(days=2, minutes=29, seconds=50))
         self.double_write_segment(
-            project_id=project_1.id,
+            project=project_1,
             trace_id=trace_id_3,
             transaction_id=uuid4().hex,
             span_id=span_ids[11],
@@ -249,6 +247,7 @@ class OrganizationTracesEndpointTestBase(BaseSpansTestCase, APITestCase):
 
         timestamps.append(now - timedelta(days=1, minutes=21, seconds=0))
         self.store_indexed_span(
+            organization_id=project_1.organization.id,
             project_id=project_1.id,
             trace_id=trace_id_2,
             transaction_id=None,  # mock an INP span
@@ -259,6 +258,7 @@ class OrganizationTracesEndpointTestBase(BaseSpansTestCase, APITestCase):
             duration=1_000,
             exclusive_time=1_000,
             op="ui.navigation.click",
+            is_eap=self.is_eap,
         )
 
         return (
@@ -274,6 +274,23 @@ class OrganizationTracesEndpointTestBase(BaseSpansTestCase, APITestCase):
 
 class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
     view = "sentry-api-0-organization-traces"
+
+    def do_request(self, query, features=None, **kwargs):
+        if features is None:
+            features = ["organizations:performance-trace-explorer", "organizations:global-views"]
+
+        if self.is_eap:
+            if query is None:
+                query = {}
+            query["dataset"] = "spans"
+
+        with self.feature(features):
+            return self.client.get(
+                reverse(self.view, kwargs={"organization_id_or_slug": self.organization.slug}),
+                query,
+                format="json",
+                **kwargs,
+            )
 
     def test_no_feature(self):
         response = self.do_request({}, features=[])
@@ -428,7 +445,7 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
         ts = now - timedelta(minutes=10)
 
         self.double_write_segment(
-            project_id=project.id,
+            project=project,
             trace_id=trace_id,
             transaction_id=uuid4().hex,
             span_id=span_id_1,
@@ -440,7 +457,7 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
         )
 
         self.double_write_segment(
-            project_id=project.id,
+            project=project,
             trace_id=trace_id,
             transaction_id=uuid4().hex,
             span_id=span_id_2,
@@ -515,7 +532,7 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
         ts = now - timedelta(minutes=10)
 
         self.double_write_segment(
-            project_id=project.id,
+            project=project,
             trace_id=trace_id,
             transaction_id=uuid4().hex,
             span_id=span_id,
@@ -618,12 +635,12 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
         ) = self.create_mock_traces()
 
         for q in [
+            ["foo:[bar, baz]"],
+            ["foo:bar span.duration:>10s", "foo:baz"],
             [
                 "(foo:bar AND span.duration:>10s) OR (foo:bar AND span.duration:<10m)",
                 "foo:baz",
             ],
-            ["foo:bar span.duration:>10s", "foo:baz"],
-            ["foo:[bar, baz]"],
         ]:
             for features in [
                 None,  # use the default features
@@ -859,9 +876,15 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
 class OrganizationTraceSpansEndpointTest(OrganizationTracesEndpointTestBase):
     view = "sentry-api-0-organization-trace-spans"
 
-    def _do_request(self, trace_id, query, features=None, **kwargs):
+    def do_request(self, trace_id, query, features=None, **kwargs):
         if features is None:
             features = ["organizations:performance-trace-explorer", "organizations:global-views"]
+
+        if self.is_eap:
+            if query is None:
+                query = {}
+            query["dataset"] = "spans"
+
         with self.feature(features):
             return self.client.get(
                 reverse(
@@ -880,18 +903,18 @@ class OrganizationTraceSpansEndpointTest(OrganizationTracesEndpointTestBase):
         query = {
             "project": [self.project.id],
         }
-        response = self._do_request(uuid4().hex, query, features=[])
+        response = self.do_request(uuid4().hex, query, features=[])
         assert response.status_code == 404, response.data
 
     def test_no_project(self):
-        response = self._do_request(uuid4().hex, {})
+        response = self.do_request(uuid4().hex, {})
         assert response.status_code == 404, response.data
 
     def test_bad_params_missing_field(self):
         query = {
             "project": [self.project.id],
         }
-        response = self._do_request(uuid4().hex, query)
+        response = self.do_request(uuid4().hex, query)
         assert response.status_code == 400, response.data
         assert response.data == {
             "field": [
@@ -916,7 +939,7 @@ class OrganizationTraceSpansEndpointTest(OrganizationTracesEndpointTestBase):
             "sort": "id",
         }
 
-        response = self._do_request(trace_id, query)
+        response = self.do_request(trace_id, query)
         assert response.status_code == 200, response.data
         assert response.data["meta"] == {
             "dataset": "unknown",
@@ -955,7 +978,7 @@ class OrganizationTraceSpansEndpointTest(OrganizationTracesEndpointTestBase):
                 "query": user_query,
             }
 
-            response = self._do_request(trace_id, query)
+            response = self.do_request(trace_id, query)
             assert response.status_code == 200, response.data
             assert response.data["meta"] == {
                 "dataset": "unknown",
@@ -1010,7 +1033,7 @@ class OrganizationTraceSpansEndpointTest(OrganizationTracesEndpointTestBase):
                 if user_query:
                     query["query"] = user_query
 
-                response = self._do_request(trace_id, query)
+                response = self.do_request(trace_id, query)
                 assert response.status_code == 200, response.data
                 assert response.data["meta"] == {
                     "dataset": "unknown",
@@ -1030,6 +1053,23 @@ class OrganizationTraceSpansEndpointTest(OrganizationTracesEndpointTestBase):
 
 class OrganizationTracesStatsEndpointTest(OrganizationTracesEndpointTestBase):
     view = "sentry-api-0-organization-traces-stats"
+
+    def do_request(self, query, features=None, **kwargs):
+        if features is None:
+            features = ["organizations:performance-trace-explorer", "organizations:global-views"]
+
+        if self.is_eap:
+            if query is None:
+                query = {}
+            query["dataset"] = "spans"
+
+        with self.feature(features):
+            return self.client.get(
+                reverse(self.view, kwargs={"organization_id_or_slug": self.organization.slug}),
+                query,
+                format="json",
+                **kwargs,
+            )
 
     def test_no_feature(self):
         response = self.do_request({}, features=[])
@@ -1074,7 +1114,7 @@ class OrganizationTracesStatsEndpointTest(OrganizationTracesEndpointTestBase):
         timestamp = timestamp - timedelta(minutes=10)
 
         self.double_write_segment(
-            project_id=project_1.id,
+            project=project_1,
             trace_id=uuid4().hex,
             transaction_id=uuid4().hex,
             span_id="1" + uuid4().hex[:15],
@@ -1085,7 +1125,7 @@ class OrganizationTracesStatsEndpointTest(OrganizationTracesEndpointTestBase):
         )
 
         self.double_write_segment(
-            project_id=project_1.id,
+            project=project_1,
             trace_id=uuid4().hex,
             transaction_id=uuid4().hex,
             span_id="1" + uuid4().hex[:15],
@@ -1096,7 +1136,7 @@ class OrganizationTracesStatsEndpointTest(OrganizationTracesEndpointTestBase):
         )
 
         self.double_write_segment(
-            project_id=project_2.id,
+            project=project_2,
             trace_id=uuid4().hex,
             transaction_id=uuid4().hex,
             span_id="1" + uuid4().hex[:15],
@@ -2455,3 +2495,23 @@ def test_build_breakdown_error(mock_new_trace_interval, mock_capture_exception):
     mock_capture_exception.assert_called_with(
         exception, contexts={"bad_trace": {"trace": "a" * 32}}
     )
+
+
+class OrganizationTracesEAPEndpointTest(OrganizationTracesEndpointTest):
+    is_eap: bool = True
+
+    @pytest.mark.skip(reason="no support for metrics so not back porting this feature")
+    def test_matching_tag_metrics(self):
+        pass
+
+
+class OrganizationTraceSpansEAPEndpointTest(OrganizationTraceSpansEndpointTest):
+    is_eap: bool = True
+
+    @pytest.mark.skip(reason="no support for metrics so not back porting this feature")
+    def test_get_spans_for_trace_matching_tags_metrics(self):
+        pass
+
+
+class OrganizationTracesStatsEAPEndpointTest(OrganizationTracesStatsEndpointTest):
+    is_eap: bool = True
