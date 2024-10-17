@@ -124,7 +124,12 @@ export function EventDetails({
           message={t('There was an error loading the event content')}
         >
           <GroupContent>
-            <StickyEventNav event={event} group={group} searchQuery={searchQuery} />
+            <StickyEventNav
+              event={event}
+              group={group}
+              searchQuery={searchQuery}
+              dispatch={dispatch}
+            />
             <ContentPadding>
               <EventDetailsContent group={group} event={event} project={project} />
             </ContentPadding>
@@ -146,7 +151,9 @@ function StickyEventNav({
   event,
   group,
   searchQuery,
+  dispatch,
 }: {
+  dispatch: ReturnType<typeof useEventDetailsReducer>['dispatch'];
   event: Event;
   group: Group;
   searchQuery: string;
@@ -155,7 +162,6 @@ function StickyEventNav({
   const [nav, setNav] = useState<HTMLDivElement | null>(null);
   const isStuck = useIsStuck(nav);
   const isScreenMedium = useMedia(`(max-width: ${theme.breakpoints.medium})`);
-  const {dispatch} = useEventDetailsReducer();
 
   useLayoutEffect(() => {
     if (!nav) {
