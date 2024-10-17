@@ -61,7 +61,7 @@ export default function TraceDataSection({
   return organization.features.includes('user-feedback-trace-section') &&
     !isError &&
     traceEvents.length > 1 &&
-    isCrashReportDup ? (
+    !isCrashReportDup ? (
     <Section icon={<IconSpan size="xs" />} title={t('Data From The Same Trace')}>
       {isLoading ? (
         <Placeholder height="114px" />
