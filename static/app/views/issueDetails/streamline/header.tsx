@@ -269,7 +269,7 @@ const InfoWrapper = styled('div')<{isResolvedOrIgnored: boolean}>`
       ? `linear-gradient(to right, ${p.theme.background}, ${Color(p.theme.success).lighten(0.5).alpha(0.15).string()})`
       : p.theme.background};
   color: ${p => p.theme.gray300};
-  padding: ${space(1)} 24px;
+  padding: ${space(0.5)} 24px;
   margin-right: 0;
   margin-left: 0;
   flex-wrap: wrap;
