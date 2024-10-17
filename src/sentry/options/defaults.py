@@ -472,6 +472,12 @@ register(
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "feedback.message.max-size",
+    type=Int,
+    default=4096,
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 
 # Extract spans only from a random fraction of transactions.

@@ -8,19 +8,20 @@ from uuid import uuid4
 
 import jsonschema
 
-from sentry import features
+from sentry import options
 from sentry.constants import DataCategory
 from sentry.eventstore.models import Event, GroupEvent
-from sentry.feedback.usecases.spam_detection import is_spam
+from sentry.feedback.usecases.spam_detection import (
+    auto_ignore_spam_feedbacks,
+    is_spam,
+    spam_detection_enabled,
+)
 from sentry.issues.grouptype import FeedbackGroup
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.issues.json_schemas import EVENT_PAYLOAD_SCHEMA, LEGACY_EVENT_PAYLOAD_SCHEMA
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
-from sentry.issues.status_change_message import StatusChangeMessage
-from sentry.models.group import GroupStatus
 from sentry.models.project import Project
 from sentry.signals import first_feedback_received, first_new_feedback_received
-from sentry.types.group import GroupSubStatus
 from sentry.utils import metrics
 from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.safe import get_path
@@ -151,6 +152,21 @@ def fix_for_issue_platform(event_data):
     return ret_event
 
 
+def validate_issue_platform_event_schema(event_data):
+    """
+    The issue platform schema validation does not run in dev atm so we have to do the validation
+    ourselves, or else our tests are not representative of what happens in prod.
+    """
+    try:
+        jsonschema.validate(event_data, EVENT_PAYLOAD_SCHEMA)
+    except jsonschema.exceptions.ValidationError:
+        try:
+            jsonschema.validate(event_data, LEGACY_EVENT_PAYLOAD_SCHEMA)
+        except jsonschema.exceptions.ValidationError:
+            metrics.incr("feedback.create_feedback_issue.invalid_schema")
+            raise
+
+
 def should_filter_feedback(event, project_id, source: FeedbackCreationSource):
     # Right now all unreal error events without a feedback
     # actually get a sent a feedback with this message
@@ -205,26 +221,33 @@ def create_feedback_issue(event, project_id: int, source: FeedbackCreationSource
     if should_filter_feedback(event, project_id, source):
         return
 
+    feedback_message = event["contexts"]["feedback"]["message"]
+    max_msg_size = options.get("feedback.message.max-size")  # Note options are cached.
     project = Project.objects.get_from_cache(id=project_id)
 
+    # Spam detection.
     is_message_spam = None
-    if features.has(
-        "organizations:user-feedback-spam-filter-ingest", project.organization
-    ) and project.get_option("sentry:feedback_ai_spam_detection"):
-        try:
-            is_message_spam = is_spam(event["contexts"]["feedback"]["message"])
-        except Exception:
-            # until we have LLM error types ironed out, just catch all exceptions
-            logger.exception("Error checking if message is spam")
-        metrics.incr(
-            "feedback.create_feedback_issue.spam_detection",
-            tags={
-                "is_spam": is_message_spam,
-                "referrer": source.value,
-                "client_source": event["contexts"]["feedback"].get("source"),
-            },
-            sample_rate=1.0,
-        )
+    if spam_detection_enabled(project):
+        if len(feedback_message) <= max_msg_size:
+            try:
+                is_message_spam = is_spam(feedback_message)
+            except Exception:
+                # until we have LLM error types ironed out, just catch all exceptions
+                logger.exception("Error checking if message is spam")
+            metrics.incr(
+                "feedback.create_feedback_issue.spam_detection",
+                tags={
+                    "is_spam": is_message_spam,
+                    "referrer": source.value,
+                    "client_source": event["contexts"]["feedback"].get("source"),
+                },
+                sample_rate=1.0,
+            )
+        else:
+            is_message_spam = True
+
+    if len(feedback_message) > max_msg_size:
+        feedback_message = feedback_message[:max_msg_size]
 
     # Note that some of the fields below like title and subtitle
     # are not used by the feedback UI, but are required.
@@ -240,7 +263,7 @@ def create_feedback_issue(event, project_id: int, source: FeedbackCreationSource
         project_id=project_id,
         fingerprint=issue_fingerprint,  # random UUID for fingerprint so feedbacks are grouped individually
         issue_title="User Feedback",
-        subtitle=event["contexts"]["feedback"]["message"],
+        subtitle=feedback_message,
         resource_id=None,
         evidence_data=evidence_data,
         evidence_display=evidence_display,
@@ -262,6 +285,7 @@ def create_feedback_issue(event, project_id: int, source: FeedbackCreationSource
     # make sure event data is valid for issue platform
     validate_issue_platform_event_schema(event_fixed)
 
+    # Analytics
     if not project.flags.has_feedbacks:
         first_feedback_received.send_robust(project=project, sender=Project)
 
@@ -274,9 +298,11 @@ def create_feedback_issue(event, project_id: int, source: FeedbackCreationSource
     ):
         first_new_feedback_received.send_robust(project=project, sender=Project)
 
+    # Send to issue platform for processing.
     produce_occurrence_to_kafka(
         payload_type=PayloadType.OCCURRENCE, occurrence=occurrence, event_data=event_fixed
     )
+    # Mark as spam with a STATUS_CHANGE kafka message.
     if is_message_spam:
         auto_ignore_spam_feedbacks(project, issue_fingerprint)
     metrics.incr(
@@ -287,6 +313,7 @@ def create_feedback_issue(event, project_id: int, source: FeedbackCreationSource
         },
         sample_rate=1.0,
     )
+
     track_outcome(
         org_id=project.organization_id,
         project_id=project_id,
@@ -298,21 +325,6 @@ def create_feedback_issue(event, project_id: int, source: FeedbackCreationSource
         category=DataCategory.USER_REPORT_V2,
         quantity=1,
     )
-
-
-def validate_issue_platform_event_schema(event_data):
-    """
-    The issue platform schema validation does not run in dev atm so we have to do the validation
-    ourselves, or else our tests are not representative of what happens in prod.
-    """
-    try:
-        jsonschema.validate(event_data, EVENT_PAYLOAD_SCHEMA)
-    except jsonschema.exceptions.ValidationError:
-        try:
-            jsonschema.validate(event_data, LEGACY_EVENT_PAYLOAD_SCHEMA)
-        except jsonschema.exceptions.ValidationError:
-            metrics.incr("feedback.create_feedback_issue.invalid_schema")
-            raise
 
 
 class UserReportShimDict(TypedDict):
@@ -386,17 +398,3 @@ def shim_to_feedback(
             "Error attempting to create new User Feedback from Shiming old User Report"
         )
         metrics.incr("feedback.shim_to_feedback.failed", tags={"referrer": source.value})
-
-
-def auto_ignore_spam_feedbacks(project, issue_fingerprint):
-    if features.has("organizations:user-feedback-spam-filter-actions", project.organization):
-        metrics.incr("feedback.spam-detection-actions.set-ignored")
-        produce_occurrence_to_kafka(
-            payload_type=PayloadType.STATUS_CHANGE,
-            status_change=StatusChangeMessage(
-                fingerprint=issue_fingerprint,
-                project_id=project.id,
-                new_status=GroupStatus.IGNORED,  # we use ignored in the UI for the spam tab
-                new_substatus=GroupSubStatus.FOREVER,
-            ),
-        )
