@@ -9,8 +9,7 @@ from django.db import models
 
 from sentry.db.models import FlexibleForeignKey, control_silo_model
 from sentry.db.models.manager.base import BaseManager
-
-from . import ControlAvatarBase
+from sentry.models.avatars import ControlAvatarBase
 
 if TYPE_CHECKING:
     from sentry.sentry_apps.models.sentry_app import SentryApp
