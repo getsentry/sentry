@@ -12,7 +12,7 @@ import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import WidgetCard from 'sentry/views/dashboards/widgetCard';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
-import DashboardLegendEncoderDecoder from '../dashboardLegendUtils';
+import WidgetLegendSelectionState from '../widgetLegendSelectionState';
 
 describe('Dashboards > IssueWidgetCard', function () {
   const {router, organization} = initializeOrg({
@@ -52,7 +52,7 @@ describe('Dashboards > IssueWidgetCard', function () {
   const user = UserFixture();
   const api = new MockApiClient();
 
-  const dashboardLegendUtils = new DashboardLegendEncoderDecoder({
+  const widgetLegendState = new WidgetLegendSelectionState({
     location: LocationFixture(),
     dashboard: DashboardFixture([widget]),
     organization,
@@ -106,7 +106,7 @@ describe('Dashboards > IssueWidgetCard', function () {
         renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
-        dashboardLegendUtils={dashboardLegendUtils}
+        widgetLegendState={widgetLegendState}
       />
     );
 
@@ -137,7 +137,7 @@ describe('Dashboards > IssueWidgetCard', function () {
         renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
-        dashboardLegendUtils={dashboardLegendUtils}
+        widgetLegendState={widgetLegendState}
       />,
       {router}
     );
@@ -166,7 +166,7 @@ describe('Dashboards > IssueWidgetCard', function () {
         renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
-        dashboardLegendUtils={dashboardLegendUtils}
+        widgetLegendState={widgetLegendState}
       />
     );
 
@@ -191,7 +191,7 @@ describe('Dashboards > IssueWidgetCard', function () {
         renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached
-        dashboardLegendUtils={dashboardLegendUtils}
+        widgetLegendState={widgetLegendState}
       />
     );
 
@@ -224,7 +224,7 @@ describe('Dashboards > IssueWidgetCard', function () {
         renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
-        dashboardLegendUtils={dashboardLegendUtils}
+        widgetLegendState={widgetLegendState}
       />
     );
 

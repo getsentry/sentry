@@ -33,7 +33,6 @@ import withPageFilters from 'sentry/utils/withPageFilters';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 
 import AddWidget, {ADD_WIDGET_BUTTON_DRAG_ID} from './addWidget';
-import type DashboardLegendEncoderDecoder from './dashboardLegendUtils';
 import type {Position} from './layoutUtils';
 import {
   assignDefaultLayout,
@@ -56,6 +55,7 @@ import SortableWidget from './sortableWidget';
 import type {DashboardDetails, Widget} from './types';
 import {DashboardWidgetSource, WidgetType} from './types';
 import {connectDashboardCharts, getDashboardFiltersFromURL} from './utils';
+import type WidgetLegendSelectionState from './widgetLegendSelectionState';
 
 export const DRAG_HANDLE_CLASS = 'widget-drag';
 const DRAG_RESIZE_CLASS = 'widget-resize';
@@ -77,7 +77,6 @@ export const DASHBOARD_CHART_GROUP = 'dashboard-group';
 type Props = {
   api: Client;
   dashboard: DashboardDetails;
-  dashboardLegendUtils: DashboardLegendEncoderDecoder;
   handleAddCustomWidget: (widget: Widget) => void;
   handleUpdateWidgetList: (widgets: Widget[]) => void;
   isEditingDashboard: boolean;
@@ -89,6 +88,7 @@ type Props = {
   organization: Organization;
   router: InjectedRouter;
   selection: PageFilters;
+  widgetLegendState: WidgetLegendSelectionState;
   widgetLimitReached: boolean;
   handleAddMetricWidget?: (layout?: Widget['layout']) => void;
   isPreview?: boolean;
@@ -390,7 +390,7 @@ class Dashboard extends Component<Props, State> {
 
     const widgetProps = {
       widget,
-      dashboardLegendUtils: this.props.dashboardLegendUtils,
+      widgetLegendState: this.props.widgetLegendState,
       isEditingDashboard,
       widgetLimitReached,
       onDelete: this.handleDeleteWidget(widget),

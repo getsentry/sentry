@@ -1,9 +1,9 @@
 import type {Location} from 'history';
 
-import type {Series} from 'sentry/types/echarts';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {decodeList} from 'sentry/utils/queryString';
+import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 
 import {type DashboardDetails, DisplayType, type Widget} from './types';
 
@@ -14,7 +14,9 @@ type Props = {
   router: InjectedRouter;
 };
 
-class DashboardLegendEncoderDecoder {
+type LegendSelection = Record<string, boolean>;
+
+class WidgetLegendSelectionState {
   dashboard: DashboardDetails | null;
   location: Location;
   organization: Organization;
@@ -28,7 +30,7 @@ class DashboardLegendEncoderDecoder {
   }
 
   // Updates legend param when a legend selection has been changed
-  updateLegendQueryParam(selected: Record<string, boolean>, widget: Widget) {
+  setWidgetSelectionState(selected: LegendSelection, widget: Widget) {
     const [dashboard, location, router] = [this.dashboard, this.location, this.router];
     const widgets = dashboard ? dashboard.widgets : [];
     let newLegendQuery: string[];
@@ -99,14 +101,19 @@ class DashboardLegendEncoderDecoder {
   }
 
   // sets unselected legend options by the legend query param
-  getLegendUnselected(widget: Widget) {
+  getWidgetSelectionState(widget: Widget): LegendSelection {
     const location = this.location;
 
     return location.query.unselectedSeries
       ? this.decodeLegendQueryParam(widget)
       : this.widgetRequiresLegendUnselection(widget) &&
           this.organization.features.includes('dashboards-releases-on-charts')
-        ? {[this.encodeSeriesNameForLegend('Releases', widget.id)]: false}
+        ? {
+            [WidgetLegendNameEncoderDecoder.encodeSeriesNameForLegend(
+              'Releases',
+              widget.id
+            )]: false,
+          }
         : {};
   }
 
@@ -123,13 +130,13 @@ class DashboardLegendEncoderDecoder {
   }
 
   // going from selected to query param
-  encodeLegendQueryParam(widget: Widget, selected: Record<string, boolean>) {
+  encodeLegendQueryParam(widget: Widget, selected: LegendSelection) {
     return (
       widget.id +
       '-' +
       Object.keys(selected)
         .filter(key => !selected[key])
-        .map(series => this.decodeSeriesNameForLegend(series))
+        .map(series => WidgetLegendNameEncoderDecoder.decodeSeriesNameForLegend(series))
         .join('-')
     );
   }
@@ -138,38 +145,18 @@ class DashboardLegendEncoderDecoder {
   decodeLegendQueryParam(widget: Widget) {
     const location = this.location;
     return decodeList(location.query.unselectedSeries).reduce((acc, legend) => {
-      const legendValues = legend.split('-');
-      const widgetId = legendValues[0];
-      const seriesNames = legendValues.splice(1);
+      const [widgetId, ...seriesNames] = legend.split('-');
       if (widget.id === widgetId && seriesNames) {
         seriesNames.forEach(series => {
           if (series) {
-            acc[this.encodeSeriesNameForLegend(series, widget.id)] = false;
+            acc[
+              WidgetLegendNameEncoderDecoder.encodeSeriesNameForLegend(series, widget.id)
+            ] = false;
           }
         });
       }
       return acc;
     }, {});
-  }
-
-  encodeSeriesNameForLegend(seriesName: string, widgetId?: string) {
-    return `${seriesName}:${widgetId}`;
-  }
-
-  decodeSeriesNameForLegend(encodedSeriesName: string) {
-    return encodedSeriesName.split(':')[0];
-  }
-
-  // change timeseries names to SeriesName:widgetID
-  modifyTimeseriesNames(widget: Widget, timeseriesResults?: Series[]) {
-    return timeseriesResults
-      ? timeseriesResults.map(series => {
-          return {
-            ...series,
-            seriesName: this.encodeSeriesNameForLegend(series.seriesName, widget.id),
-          };
-        })
-      : [];
   }
 
   // when a widget has been changed/added/deleted update legend to incorporate that
@@ -201,4 +188,4 @@ class DashboardLegendEncoderDecoder {
   }
 }
 
-export default DashboardLegendEncoderDecoder;
+export default WidgetLegendSelectionState;

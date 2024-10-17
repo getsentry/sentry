@@ -22,7 +22,6 @@ import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metr
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
-import DashboardLegendEncoderDecoder from 'sentry/views/dashboards/dashboardLegendUtils';
 import type {
   DashboardDetails,
   DashboardListItem,
@@ -40,6 +39,7 @@ import {
   NEW_DASHBOARD_ID,
 } from 'sentry/views/dashboards/widgetBuilder/utils';
 import WidgetCard from 'sentry/views/dashboards/widgetCard';
+import WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 
@@ -288,8 +288,8 @@ function AddToDashboardModal({
                   widget={widget}
                   showStoredAlert
                   shouldResize={false}
-                  dashboardLegendUtils={
-                    new DashboardLegendEncoderDecoder({
+                  widgetLegendState={
+                    new WidgetLegendSelectionState({
                       location,
                       router,
                       organization,

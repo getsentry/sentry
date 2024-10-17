@@ -4,7 +4,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import DashboardLegendEncoderDecoder from '../dashboardLegendUtils';
+import WidgetLegendSelectionState from '../widgetLegendSelectionState';
 
 import WidgetBuilder from './widgetBuilder';
 
@@ -27,8 +27,8 @@ function WidgetBuilderContainer(props: WidgetBuilderProps) {
       <WidgetBuilder
         {...props}
         organization={organization}
-        dashboardLegendUtils={
-          new DashboardLegendEncoderDecoder({
+        widgetLegendState={
+          new WidgetLegendSelectionState({
             location: props.location,
             organization,
             dashboard: props.dashboard,

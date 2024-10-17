@@ -31,7 +31,7 @@ import {
 import type {WidgetBuilderProps} from 'sentry/views/dashboards/widgetBuilder';
 import WidgetBuilder from 'sentry/views/dashboards/widgetBuilder';
 
-import DashboardLegendEncoderDecoder from '../dashboardLegendUtils';
+import WidgetLegendSelectionState from '../widgetLegendSelectionState';
 
 const defaultOrgFeatures = [
   'performance-view',
@@ -84,7 +84,7 @@ function renderTestComponent({
 
   ProjectsStore.loadInitialData(projects);
 
-  const dashboardLegendUtils = new DashboardLegendEncoderDecoder({
+  const widgetLegendState = new WidgetLegendSelectionState({
     location: LocationFixture(),
     dashboard: DashboardFixture([], {id: 'new', title: 'Dashboard', ...dashboard}),
     organization,
@@ -115,7 +115,7 @@ function renderTestComponent({
         ...params,
       }}
       updateDashboardSplitDecision={updateDashboardSplitDecision}
-      dashboardLegendUtils={dashboardLegendUtils}
+      widgetLegendState={widgetLegendState}
     />,
     {
       router,

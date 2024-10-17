@@ -55,7 +55,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useProjects from 'sentry/utils/useProjects';
 import withPageFilters from 'sentry/utils/withPageFilters';
-import type DashboardLegendEncoderDecoder from 'sentry/views/dashboards/dashboardLegendUtils';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {
@@ -85,6 +84,7 @@ import IssueWidgetQueries from 'sentry/views/dashboards/widgetCard/issueWidgetQu
 import ReleaseWidgetQueries from 'sentry/views/dashboards/widgetCard/releaseWidgetQueries';
 import {WidgetCardChartContainer} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
 import WidgetQueries from 'sentry/views/dashboards/widgetCard/widgetQueries';
+import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
@@ -98,9 +98,9 @@ import {
 } from './widgetViewerModal/widgetViewerTableCell';
 
 export interface WidgetViewerModalOptions {
-  dashboardLegendUtils: DashboardLegendEncoderDecoder;
   organization: Organization;
   widget: Widget;
+  widgetLegendState: WidgetLegendSelectionState;
   dashboardFilters?: DashboardFilters;
   onEdit?: () => void;
   onMetricWidgetEdit?: (widget: Widget) => void;
@@ -189,7 +189,7 @@ function WidgetViewerModal(props: Props) {
     pageLinks: defaultPageLinks,
     seriesResultsType,
     dashboardFilters,
-    dashboardLegendUtils,
+    widgetLegendState,
   } = props;
   const location = useLocation();
   const {projects} = useProjects();
@@ -468,7 +468,7 @@ function WidgetViewerModal(props: Props) {
   }, [selectedQueryIndex]);
 
   function onLegendSelectChanged({selected}: {selected: Record<string, boolean>}) {
-    dashboardLegendUtils.updateLegendQueryParam(selected, widget);
+    widgetLegendState.setWidgetSelectionState(selected, widget);
     trackAnalytics('dashboards_views.widget_viewer.toggle_legend', {
       organization,
       widget_type: widget.widgetType ?? WidgetType.DISCOVER,
@@ -869,13 +869,13 @@ function WidgetViewerModal(props: Props) {
                 onZoom={onZoom}
                 onLegendSelectChanged={onLegendSelectChanged}
                 legendOptions={{
-                  selected: dashboardLegendUtils.getLegendUnselected(widget),
+                  selected: widgetLegendState.getWidgetSelectionState(widget),
                 }}
                 expandNumbers
                 showSlider={shouldShowSlider}
                 noPadding
                 chartZoomOptions={chartZoomOptions}
-                dashboardLegendUtils={dashboardLegendUtils}
+                widgetLegendState={widgetLegendState}
               />
             ) : (
               <MemoizedWidgetCardChartContainer
@@ -889,13 +889,13 @@ function WidgetViewerModal(props: Props) {
                 onZoom={onZoom}
                 onLegendSelectChanged={onLegendSelectChanged}
                 legendOptions={{
-                  selected: dashboardLegendUtils.getLegendUnselected(widget),
+                  selected: widgetLegendState.getWidgetSelectionState(widget),
                 }}
                 expandNumbers
                 showSlider={shouldShowSlider}
                 noPadding
                 chartZoomOptions={chartZoomOptions}
-                dashboardLegendUtils={dashboardLegendUtils}
+                widgetLegendState={widgetLegendState}
               />
             )}
           </Container>

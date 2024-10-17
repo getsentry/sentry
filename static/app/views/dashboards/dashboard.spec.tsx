@@ -14,7 +14,7 @@ import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 
 import {OrganizationContext} from '../organizationContext';
 
-import DashboardLegendEncoderDecoder from './dashboardLegendUtils';
+import WidgetLegendSelectionState from './widgetLegendSelectionState';
 
 describe('Dashboards > Dashboard', () => {
   const organization = OrganizationFixture({
@@ -63,7 +63,7 @@ describe('Dashboards > Dashboard', () => {
     ],
   };
 
-  const dashboardLegendUtils = new DashboardLegendEncoderDecoder({
+  const widgetLegendState = new WidgetLegendSelectionState({
     organization,
     dashboard: mockDashboard,
     router: RouterFixture(),
@@ -141,7 +141,7 @@ describe('Dashboards > Dashboard', () => {
         location={initialData.router.location}
         widgetLimitReached={false}
         isEditingDashboard={false}
-        dashboardLegendUtils={dashboardLegendUtils}
+        widgetLegendState={widgetLegendState}
       />,
       {router: initialData.router}
     );
@@ -165,7 +165,7 @@ describe('Dashboards > Dashboard', () => {
         newWidget={newWidget}
         widgetLimitReached={false}
         onSetNewWidget={mockCallbackToUnsetNewWidget}
-        dashboardLegendUtils={dashboardLegendUtils}
+        widgetLegendState={widgetLegendState}
       />,
       {router: initialData.router}
     );
@@ -189,7 +189,7 @@ describe('Dashboards > Dashboard', () => {
         location={initialData.router.location}
         widgetLimitReached={false}
         onSetNewWidget={mockCallbackToUnsetNewWidget}
-        dashboardLegendUtils={dashboardLegendUtils}
+        widgetLegendState={widgetLegendState}
       />,
       {router: initialData.router}
     );
@@ -211,7 +211,7 @@ describe('Dashboards > Dashboard', () => {
         widgetLimitReached={false}
         onSetNewWidget={mockCallbackToUnsetNewWidget}
         newWidget={newWidget}
-        dashboardLegendUtils={dashboardLegendUtils}
+        widgetLegendState={widgetLegendState}
       />
     );
     await waitFor(() => expect(mockHandleAddCustomWidget).toHaveBeenCalled());
@@ -234,7 +234,7 @@ describe('Dashboards > Dashboard', () => {
         location={initialData.router.location}
         widgetLimitReached={false}
         onSetNewWidget={mockCallbackToUnsetNewWidget}
-        dashboardLegendUtils={dashboardLegendUtils}
+        widgetLegendState={widgetLegendState}
       />,
       {router: initialData.router}
     );
@@ -262,7 +262,7 @@ describe('Dashboards > Dashboard', () => {
               router={initialData.router}
               location={initialData.router.location}
               widgetLimitReached={false}
-              dashboardLegendUtils={dashboardLegendUtils}
+              widgetLegendState={widgetLegendState}
             />
           </MEPSettingProvider>
         </OrganizationContext.Provider>
@@ -319,7 +319,7 @@ describe('Dashboards > Dashboard', () => {
               location={location}
               widgetLimitReached={false}
               isPreview={isPreview}
-              dashboardLegendUtils={dashboardLegendUtils}
+              widgetLegendState={widgetLegendState}
             />
           </MEPSettingProvider>
         </OrganizationContext.Provider>

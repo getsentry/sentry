@@ -10,7 +10,7 @@ import type {Organization} from 'sentry/types/organization';
 import {DashboardWidgetSource} from 'sentry/views/dashboards/types';
 import WidgetBuilder from 'sentry/views/dashboards/widgetBuilder';
 
-import DashboardLegendEncoderDecoder from '../../dashboardLegendUtils';
+import WidgetLegendSelectionState from '../../widgetLegendSelectionState';
 
 jest.unmock('lodash/debounce');
 
@@ -97,7 +97,7 @@ describe('VisualizationStep', function () {
     },
   });
 
-  const dashboardLegendUtils = new DashboardLegendEncoderDecoder({
+  const widgetLegendState = new WidgetLegendSelectionState({
     location: LocationFixture(),
     dashboard: DashboardFixture([], {id: 'new', title: 'Dashboard'}),
     organization,
@@ -132,7 +132,7 @@ describe('VisualizationStep', function () {
           orgId: organization.slug,
           dashboardId: 'new',
         }}
-        dashboardLegendUtils={dashboardLegendUtils}
+        widgetLegendState={widgetLegendState}
       />,
       {
         router,
@@ -182,7 +182,7 @@ describe('VisualizationStep', function () {
           orgId: organization.slug,
           dashboardId: 'new',
         }}
-        dashboardLegendUtils={dashboardLegendUtils}
+        widgetLegendState={widgetLegendState}
       />,
       {
         router,
@@ -225,7 +225,7 @@ describe('VisualizationStep', function () {
           orgId: organization.slug,
           dashboardId: 'new',
         }}
-        dashboardLegendUtils={dashboardLegendUtils}
+        widgetLegendState={widgetLegendState}
       />,
       {
         router,
@@ -272,7 +272,7 @@ describe('VisualizationStep', function () {
           orgId: organization.slug,
           dashboardId: 'new',
         }}
-        dashboardLegendUtils={dashboardLegendUtils}
+        widgetLegendState={widgetLegendState}
       />,
       {
         router,

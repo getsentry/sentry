@@ -45,11 +45,11 @@ import {DiscoverSplitAlert} from 'sentry/views/dashboards/discoverSplitAlert';
 import {MetricWidgetCard} from 'sentry/views/dashboards/metrics/widgetCard';
 import {Toolbar} from 'sentry/views/dashboards/widgetCard/toolbar';
 
-import type DashboardLegendEncoderDecoder from '../dashboardLegendUtils';
 import type {DashboardFilters, Widget} from '../types';
 import {DisplayType, OnDemandExtractionState, WidgetType} from '../types';
 import {getColoredWidgetIndicator, hasThresholdMaxValue} from '../utils';
 import {DEFAULT_RESULTS_LIMIT} from '../widgetBuilder/utils';
+import type WidgetLegendSelectionState from '../widgetLegendSelectionState';
 
 import {DashboardsMEPConsumer, DashboardsMEPProvider} from './dashboardsMEPContext';
 import WidgetCardChartContainer from './widgetCardChartContainer';
@@ -69,12 +69,12 @@ type DraggableProps = Pick<ReturnType<typeof useSortable>, 'attributes' | 'liste
 
 type Props = WithRouterProps & {
   api: Client;
-  dashboardLegendUtils: DashboardLegendEncoderDecoder;
   isEditingDashboard: boolean;
   location: Location;
   organization: Organization;
   selection: PageFilters;
   widget: Widget;
+  widgetLegendState: WidgetLegendSelectionState;
   widgetLimitReached: boolean;
   dashboardFilters?: DashboardFilters;
   draggableProps?: DraggableProps;
@@ -248,7 +248,7 @@ class WidgetCard extends Component<Props, State> {
       shouldResize,
       onLegendSelectChanged,
       legendOptions,
-      dashboardLegendUtils,
+      widgetLegendState,
     } = this.props;
 
     if (widget.displayType === DisplayType.TOP_N) {
@@ -372,7 +372,7 @@ class WidgetCard extends Component<Props, State> {
                     shouldResize={shouldResize}
                     onLegendSelectChanged={onLegendSelectChanged}
                     legendOptions={legendOptions}
-                    dashboardLegendUtils={dashboardLegendUtils}
+                    widgetLegendState={widgetLegendState}
                   />
                 ) : (
                   <LazyRender containerHeight={200} withoutContainer>
@@ -393,7 +393,7 @@ class WidgetCard extends Component<Props, State> {
                       shouldResize={shouldResize}
                       onLegendSelectChanged={onLegendSelectChanged}
                       legendOptions={legendOptions}
-                      dashboardLegendUtils={dashboardLegendUtils}
+                      widgetLegendState={widgetLegendState}
                     />
                   </LazyRender>
                 )}

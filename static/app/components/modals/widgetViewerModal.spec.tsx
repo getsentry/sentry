@@ -16,9 +16,9 @@ import {space} from 'sentry/styles/space';
 import type {Series} from 'sentry/types/echarts';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
-import DashboardLegendEncoderDecoder from 'sentry/views/dashboards/dashboardLegendUtils';
 import type {DashboardFilters, Widget, WidgetQuery} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
 
 jest.mock('echarts-for-react/lib/core', () => {
   return jest.fn(({style}) => {
@@ -53,7 +53,7 @@ async function renderModal({
   seriesResultsType?: Record<string, AggregationOutputType>;
   tableData?: TableDataWithTitle[];
 }) {
-  const dashboardLegendUtils = new DashboardLegendEncoderDecoder({
+  const widgetLegendState = new WidgetLegendSelectionState({
     location: router.location,
     dashboard: DashboardFixture([widget], {id: 'new', title: 'Dashboard'}),
     organization,
@@ -75,7 +75,7 @@ async function renderModal({
         pageLinks={pageLinks}
         seriesResultsType={seriesResultsType}
         dashboardFilters={dashboardFilters}
-        dashboardLegendUtils={dashboardLegendUtils}
+        widgetLegendState={widgetLegendState}
       />
     </div>,
     {
@@ -95,7 +95,7 @@ async function renderModal({
 
 describe('Modals -> WidgetViewerModal', function () {
   let initialData, initialDataWithFlag;
-  let dashboardLegendUtils: DashboardLegendEncoderDecoder;
+  let widgetLegendState: WidgetLegendSelectionState;
   beforeEach(() => {
     initialData = initializeOrg({
       organization: {
@@ -112,7 +112,7 @@ describe('Modals -> WidgetViewerModal', function () {
       },
     };
 
-    dashboardLegendUtils = new DashboardLegendEncoderDecoder({
+    widgetLegendState = new WidgetLegendSelectionState({
       location: initialData.router.location,
       dashboard: DashboardFixture([], {id: 'new', title: 'Dashboard'}),
       organization: initialData.organization,
@@ -368,7 +368,7 @@ describe('Modals -> WidgetViewerModal', function () {
             organization={initialData.organization}
             widget={mockWidget}
             onEdit={() => undefined}
-            dashboardLegendUtils={dashboardLegendUtils}
+            widgetLegendState={widgetLegendState}
           />
         );
         await waitForMetaToHaveBeenCalled();
@@ -788,7 +788,7 @@ describe('Modals -> WidgetViewerModal', function () {
             organization={initialData.organization}
             widget={mockWidget}
             onEdit={() => undefined}
-            dashboardLegendUtils={dashboardLegendUtils}
+            widgetLegendState={widgetLegendState}
           />
         );
         await waitForMetaToHaveBeenCalled();
@@ -866,7 +866,7 @@ describe('Modals -> WidgetViewerModal', function () {
             organization={initialData.organization}
             widget={mockWidget}
             onEdit={() => undefined}
-            dashboardLegendUtils={dashboardLegendUtils}
+            widgetLegendState={widgetLegendState}
           />
         );
         await waitForMetaToHaveBeenCalled();
@@ -1221,7 +1221,7 @@ describe('Modals -> WidgetViewerModal', function () {
           organization={initialData.organization}
           widget={mockWidget}
           onEdit={() => undefined}
-          dashboardLegendUtils={dashboardLegendUtils}
+          widgetLegendState={widgetLegendState}
         />
       );
       await waitFor(() =>
@@ -1271,7 +1271,7 @@ describe('Modals -> WidgetViewerModal', function () {
           organization={initialData.organization}
           widget={mockWidget}
           onEdit={() => undefined}
-          dashboardLegendUtils={dashboardLegendUtils}
+          widgetLegendState={widgetLegendState}
         />
       );
       expect(await screen.findByText('Another Error: Failed')).toBeInTheDocument();
@@ -1430,7 +1430,7 @@ describe('Modals -> WidgetViewerModal', function () {
           onEdit={() => undefined}
           seriesData={[]}
           tableData={[]}
-          dashboardLegendUtils={dashboardLegendUtils}
+          widgetLegendState={widgetLegendState}
         />
       );
       await waitFor(() => {

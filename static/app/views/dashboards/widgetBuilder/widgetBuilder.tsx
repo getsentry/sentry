@@ -64,7 +64,6 @@ import {
 } from 'sentry/views/dashboards/types';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 
-import type DashboardLegendEncoderDecoder from '../dashboardLegendUtils';
 import {DEFAULT_STATS_PERIOD} from '../data';
 import {getDatasetConfig} from '../datasetConfig/base';
 import {useValidateWidgetQuery} from '../hooks/useValidateWidget';
@@ -73,6 +72,7 @@ import {
   DashboardsMEPConsumer,
   DashboardsMEPProvider,
 } from '../widgetCard/dashboardsMEPContext';
+import type WidgetLegendSelectionState from '../widgetLegendSelectionState';
 
 import {BuildStep} from './buildSteps/buildStep';
 import {ColumnsStep} from './buildSteps/columnsStep';
@@ -138,11 +138,11 @@ interface QueryData {
 
 interface Props extends RouteComponentProps<RouteParams, {}> {
   dashboard: DashboardDetails;
-  dashboardLegendUtils: DashboardLegendEncoderDecoder;
   onSave: (widgets: Widget[]) => void;
   organization: Organization;
   selection: PageFilters;
   tags: TagCollection;
+  widgetLegendState: WidgetLegendSelectionState;
   displayType?: DisplayType;
   end?: DateString;
   start?: DateString;
@@ -185,7 +185,7 @@ function WidgetBuilder({
   router,
   tags,
   updateDashboardSplitDecision,
-  dashboardLegendUtils,
+  widgetLegendState,
 }: Props) {
   const {widgetIndex, orgId, dashboardId} = params;
   const {source, displayType, defaultTitle, limit, dataset} = location.query;
@@ -885,9 +885,10 @@ function WidgetBuilder({
         nextWidgetList[updateWidgetIndex] = nextWidgetData;
       }
 
-      const unselectedSeriesParam = dashboardLegendUtils.updatedLegendQueryOnWidgetChange(
-        {...dashboard, widgets: [...dashboard.widgets, nextWidgetData]}
-      );
+      const unselectedSeriesParam = widgetLegendState.updatedLegendQueryOnWidgetChange({
+        ...dashboard,
+        widgets: [...dashboard.widgets, nextWidgetData],
+      });
       const query = {...location.query, unselectedSeries: unselectedSeriesParam};
       onSave(nextWidgetList);
       addSuccessMessage(t('Updated widget.'));
@@ -1223,7 +1224,7 @@ function WidgetBuilder({
                                     onWidgetSplitDecision={
                                       handleUpdateWidgetSplitDecision
                                     }
-                                    dashboardLegendUtils={dashboardLegendUtils}
+                                    widgetLegendState={widgetLegendState}
                                   />
                                   <DataSetStep
                                     dataSet={state.dataSet}

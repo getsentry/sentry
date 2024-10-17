@@ -19,16 +19,16 @@ import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import usePrevious from 'sentry/utils/usePrevious';
 import type {DashboardFilters, Widget, WidgetType} from 'sentry/views/dashboards/types';
 import {DisplayType} from 'sentry/views/dashboards/types';
+import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 
-import type DashboardLegendEncoderDecoder from '../../dashboardLegendUtils';
 import {getDashboardFiltersFromURL} from '../../utils';
 import WidgetCard, {WidgetCardPanel} from '../../widgetCard';
+import type WidgetLegendSelectionState from '../../widgetLegendSelectionState';
 import {displayTypes} from '../utils';
 
 import {BuildStep} from './buildStep';
 
 interface Props {
-  dashboardLegendUtils: DashboardLegendEncoderDecoder;
   displayType: DisplayType;
   isWidgetInvalid: boolean;
   location: Location;
@@ -36,6 +36,7 @@ interface Props {
   organization: Organization;
   pageFilters: PageFilters;
   widget: Widget;
+  widgetLegendState: WidgetLegendSelectionState;
   dashboardFilters?: DashboardFilters;
   error?: string;
   noDashboardsMEPProvider?: boolean;
@@ -56,7 +57,7 @@ export function VisualizationStep({
   location,
   isWidgetInvalid,
   onWidgetSplitDecision,
-  dashboardLegendUtils,
+  widgetLegendState,
 }: Props) {
   const [debouncedWidget, setDebouncedWidget] = useState(widget);
 
@@ -94,8 +95,10 @@ export function VisualizationStep({
   }));
 
   const unselectedReleasesForCharts = {
-    [dashboardLegendUtils.encodeSeriesNameForLegend('Releases', debouncedWidget.id)]:
-      false,
+    [WidgetLegendNameEncoderDecoder.encodeSeriesNameForLegend(
+      'Releases',
+      debouncedWidget.id
+    )]: false,
   };
 
   return (
@@ -144,11 +147,11 @@ export function VisualizationStep({
           onLegendSelectChanged={() => {}}
           legendOptions={
             organization.features.includes('dashboards-releases-on-charts') &&
-            dashboardLegendUtils.widgetRequiresLegendUnselection(widget)
+            widgetLegendState.widgetRequiresLegendUnselection(widget)
               ? {selected: unselectedReleasesForCharts}
               : undefined
           }
-          dashboardLegendUtils={dashboardLegendUtils}
+          widgetLegendState={widgetLegendState}
         />
       </VisualizationWrapper>
     </StyledBuildStep>

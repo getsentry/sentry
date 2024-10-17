@@ -9,10 +9,10 @@ import type {Organization} from 'sentry/types/organization';
 import type {DashboardDetails, Widget} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 
-import DashboardLegendEncoderDecoder from './dashboardLegendUtils';
+import WidgetLegendSelectionState from './widgetLegendSelectionState';
 
 describe('WidgetLegend functions util', () => {
-  let legendFunctions: DashboardLegendEncoderDecoder;
+  let legendFunctions: WidgetLegendSelectionState;
 
   describe('legendChanges', function () {
     let widget: Widget;
@@ -57,7 +57,7 @@ describe('WidgetLegend functions util', () => {
         ...RouterFixture({location}),
       };
 
-      legendFunctions = new DashboardLegendEncoderDecoder({
+      legendFunctions = new WidgetLegendSelectionState({
         dashboard,
         location,
         organization,
@@ -66,13 +66,13 @@ describe('WidgetLegend functions util', () => {
     });
 
     it('set initial unselected legend options', () => {
-      expect(legendFunctions.getLegendUnselected(widget)).toEqual({
+      expect(legendFunctions.getWidgetSelectionState(widget)).toEqual({
         'Releases:12345': false,
       });
     });
 
     it('updates legend query param when legend option toggled', () => {
-      legendFunctions.updateLegendQueryParam({'Releases:12345': true}, widget);
+      legendFunctions.setWidgetSelectionState({'Releases:12345': true}, widget);
       expect(router.replace).toHaveBeenCalledWith({
         query: {unselectedSeries: ['12345-']},
       });
@@ -81,7 +81,7 @@ describe('WidgetLegend functions util', () => {
     it('updates legend query param when legend option toggled but not in query params', () => {
       location = {...location, query: {...location.query, unselectedSeries: []}};
 
-      legendFunctions.updateLegendQueryParam(
+      legendFunctions.setWidgetSelectionState(
         {'Releases:12345': false, 'count():12345': true},
         widget
       );
