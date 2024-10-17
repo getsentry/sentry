@@ -2,6 +2,7 @@ import {Fragment, useCallback, useMemo} from 'react';
 
 import {Button} from 'sentry/components/button';
 import {CompactSelect, type SelectOption} from 'sentry/components/compactSelect';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconAdd} from 'sentry/icons';
 import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
@@ -137,7 +138,14 @@ export function ToolbarVisualize({}: ToolbarVisualizeProps) {
   return (
     <ToolbarSection data-test-id="section-visualizes">
       <ToolbarHeader>
-        <ToolbarLabel>{t('Visualize')}</ToolbarLabel>
+        <Tooltip
+          position="right"
+          title={t(
+            'Primary metric that appears in your chart, overlays and/or equations.'
+          )}
+        >
+          <ToolbarLabel>{t('Visualize')}</ToolbarLabel>
+        </Tooltip>
         <ToolbarHeaderButton
           size="zero"
           icon={<IconAdd />}
