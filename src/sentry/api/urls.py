@@ -3193,7 +3193,7 @@ urlpatterns = [
     ),
     # Feature Flag Providers
     re_path(
-        r"^flags/hooks/provider/(?P<provider>[\w-]+)/token/(?P<token>[\w-]+)/$",
+        r"^flags/hooks/provider/(?P<provider>[\w-]+)/token/(?P<token>.+)/$",
         OrganizationFlagsHooksEndpoint.as_view(),
         name="sentry-api-0-flag-hooks",
     ),
