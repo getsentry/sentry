@@ -371,8 +371,24 @@ class ProjectOwnership(Model):
     ) -> list[Rule]:
         rules = []
         if ownership.schema is not None:
+            # "projectownership" or "projectcodeowners"
+            ownership_type = type(ownership).__name__.lower()
+
             munged_data = Matcher.munge_if_needed(data)
-            for rule in load_schema(ownership.schema):
+            metrics.gauge(
+                key="projectownership.matching_ownership_rules.frames",
+                value=len(munged_data[0]),
+                tags={"ownership_type": ownership_type},
+            )
+
+            rules = load_schema(ownership.schema)
+            metrics.gauge(
+                key="projectownership.matching_ownership_rules.rules",
+                value=len(rules),
+                tags={"ownership_type": ownership_type},
+            )
+
+            for rule in rules:
                 if rule.test(data, munged_data):
                     rules.append(rule)
 
