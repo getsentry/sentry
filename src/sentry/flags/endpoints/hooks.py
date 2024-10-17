@@ -1,3 +1,5 @@
+from urllib.parse import unquote
+
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -39,7 +41,7 @@ class OrganizationFlagsHooksEndpoint(Endpoint):
     }
 
     def post(self, request: Request, provider: str, token: str) -> Response:
-        token_hashed = hash_token(token)
+        token_hashed = hash_token(unquote(token))
         org_token: OrgAuthTokenReplica | OrgAuthToken
         if SiloMode.get_current_mode() == SiloMode.REGION:
             try:

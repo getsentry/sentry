@@ -1,3 +1,5 @@
+from urllib.parse import quote
+
 from django.urls import reverse
 
 from sentry.flags.models import ACTION_MAP, CREATED_BY_TYPE_MAP, FlagAuditLogModel
@@ -16,7 +18,8 @@ class OrganizationFlagsHooksEndpointTestCase(APITestCase):
 
     def test_no_provider(self):
         with assume_test_silo_mode(SiloMode.CONTROL):
-            token_str = "sntrys_abc123_xyz"
+            token_str = "sntrys+_abc123_xyz"
+            token_encoded = quote(token_str)
             OrgAuthToken.objects.create(
                 name="Test Token 1",
                 token_hashed=hash_token(token_str),
@@ -26,7 +29,7 @@ class OrganizationFlagsHooksEndpointTestCase(APITestCase):
                 date_last_used=None,
             )
 
-        url = reverse(self.endpoint, args=("test", token_str))
+        url = reverse(self.endpoint, args=("test", token_encoded))
 
         response = self.client.post(url, {})
 
@@ -170,7 +173,8 @@ class OrganizationFlagsHooksEndpointTestCase(APITestCase):
         }
 
         with assume_test_silo_mode(SiloMode.CONTROL):
-            token_str = "sntrys_abc123_xyz"
+            token_str = "sntrys+_abc123_xyz"
+            token_encoded = quote(token_str)
             OrgAuthToken.objects.create(
                 name="Test Token 1",
                 token_hashed=hash_token(token_str),
@@ -180,7 +184,7 @@ class OrganizationFlagsHooksEndpointTestCase(APITestCase):
                 date_last_used=None,
             )
 
-        url = reverse(self.endpoint, args=("launchdarkly", token_str))
+        url = reverse(self.endpoint, args=("launchdarkly", token_encoded))
 
         response = self.client.post(url, request_data)
 
@@ -423,7 +427,8 @@ class OrganizationFlagsHooksEndpointTestCase(APITestCase):
         }
 
         with assume_test_silo_mode(SiloMode.CONTROL):
-            token_str = "sntrys_abc123_xyz"
+            token_str = "sntrys_+abc123_xyz"
+            token_encoded = quote(token_str)
             OrgAuthToken.objects.create(
                 name="Test Token 1",
                 token_hashed=hash_token(token_str),
@@ -433,7 +438,7 @@ class OrganizationFlagsHooksEndpointTestCase(APITestCase):
                 date_last_used=None,
             )
 
-        url = reverse(self.endpoint, args=("launchdarkly", token_str))
+        url = reverse(self.endpoint, args=("launchdarkly", token_encoded))
 
         response = self.client.post(url, request_data)
 
