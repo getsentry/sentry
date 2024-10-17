@@ -3,6 +3,7 @@ import time
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
+from enum import Enum
 
 import sentry_sdk
 from snuba_sdk import (
@@ -19,7 +20,7 @@ from snuba_sdk import (
     Request,
 )
 
-from sentry import quotas
+from sentry import features, quotas
 from sentry.dynamic_sampling.models.base import ModelType
 from sentry.dynamic_sampling.models.common import RebalancedItem, guarded_run
 from sentry.dynamic_sampling.models.factory import model_factory
@@ -63,7 +64,7 @@ from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset, EntityKey
-from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
+from sentry.snuba.metrics.naming_layer.mri import SpanMRI, TransactionMRI
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.relay import schedule_invalidate_project_config
@@ -74,6 +75,13 @@ from sentry.utils.snuba import raw_snql_query
 # as a temporary solution to dogfood our own product without exploding the cardinality of the project_id tag.
 PROJECTS_WITH_METRICS = {1, 11276}  # sentry  # javascript
 logger = logging.getLogger(__name__)
+
+
+class SamplingMeasure(Enum):
+    """The type of data being measured for dynamic sampling rebalancing."""
+
+    SPANS = "spans"
+    TRANSACTIONS = "transactions"
 
 
 @instrumented_task(
@@ -91,14 +99,35 @@ def boost_low_volume_projects(context: TaskContext) -> None:
         "boost_low_volume_projects",
         extra={"traceparent": sentry_sdk.get_traceparent(), "baggage": sentry_sdk.get_baggage()},
     )
+
+    # NB: This always uses the *transactions* root count just to get the list of orgs.
     for orgs in TimedIterator(context, GetActiveOrgs(max_projects=MAX_PROJECTS_PER_QUERY)):
-        for (
-            org_id,
-            projects_with_tx_count_and_rates,
-        ) in fetch_projects_with_total_root_transaction_count_and_rates(
-            context, org_ids=orgs
-        ).items():
-            boost_low_volume_projects_of_org.delay(org_id, projects_with_tx_count_and_rates)
+        for measure, orgs in partition_by_measure(orgs).items():
+            for org_id, projects in fetch_projects_with_total_root_transaction_count_and_rates(
+                context, org_ids=orgs, measure=measure
+            ).items():
+                boost_low_volume_projects_of_org.delay(org_id, projects)
+
+
+def partition_by_measure(orgs: Sequence[OrganizationId]) -> Mapping[SamplingMeasure, list[int]]:
+    """
+    Partitions the orgs by the measure that will be used to adjust the sample
+    rates. This is controlled through a feature flag on the organization,
+    determined by its plan.
+    """
+
+    spans = []
+    transactions = []
+
+    # TODO: Batch-query the feature flag
+    for org_id in orgs:
+        org = Organization.objects.get_from_cache(id=org_id)
+        if features.has("organizations:dynamic-sampling-spans", org):
+            spans.append(org_id)
+        else:
+            transactions.append(org_id)
+
+    return {SamplingMeasure.SPANS: spans, SamplingMeasure.TRANSACTIONS: transactions}
 
 
 @instrumented_task(
@@ -128,6 +157,7 @@ def boost_low_volume_projects_of_org(
 def fetch_projects_with_total_root_transaction_count_and_rates(
     context: TaskContext,
     org_ids: list[int],
+    measure: SamplingMeasure,
     granularity: Granularity | None = None,
     query_interval: timedelta | None = None,
 ) -> Mapping[OrganizationId, Sequence[tuple[ProjectId, int, DecisionKeepCount, DecisionDropCount]]]:
@@ -149,7 +179,12 @@ def fetch_projects_with_total_root_transaction_count_and_rates(
         org_ids = list(org_ids)
         transaction_string_id = indexer.resolve_shared_org("decision")
         transaction_tag = f"tags_raw[{transaction_string_id}]"
-        metric_id = indexer.resolve_shared_org(str(TransactionMRI.COUNT_PER_ROOT_PROJECT.value))
+        if measure == SamplingMeasure.SPANS:
+            metric_id = indexer.resolve_shared_org(str(SpanMRI.COUNT_PER_ROOT_PROJECT.value))
+        elif measure == SamplingMeasure.TRANSACTIONS:
+            metric_id = indexer.resolve_shared_org(str(TransactionMRI.COUNT_PER_ROOT_PROJECT.value))
+        else:
+            raise ValueError(f"Unsupported measure: {measure}")
 
         where = [
             Condition(Column("timestamp"), Op.GTE, datetime.utcnow() - query_interval),
