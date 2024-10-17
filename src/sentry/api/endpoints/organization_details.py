@@ -62,6 +62,7 @@ from sentry.constants import (
     SAFE_FIELDS_DEFAULT,
     SCRAPE_JAVASCRIPT_DEFAULT,
     SENSITIVE_FIELDS_DEFAULT,
+    TARGET_SAMPLE_RATE_DEFAULT,
     UPTIME_AUTODETECTION,
 )
 from sentry.datascrubbing import validate_pii_config_update, validate_pii_selectors
@@ -215,6 +216,7 @@ ORG_OPTIONS = (
         METRICS_ACTIVATE_LAST_FOR_GAUGES_DEFAULT,
     ),
     ("uptimeAutodetection", "sentry:uptime_autodetection", bool, UPTIME_AUTODETECTION),
+    ("targetSampleRate", "sentry:target_sample_rate", float, TARGET_SAMPLE_RATE_DEFAULT),
 )
 
 DELETION_STATUSES = frozenset(
@@ -276,6 +278,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     relayPiiConfig = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     apdexThreshold = serializers.IntegerField(min_value=1, required=False)
     uptimeAutodetection = serializers.BooleanField(required=False)
+    targetSampleRate = serializers.FloatField(required=False)
 
     @cached_property
     def _has_legacy_rate_limits(self):
@@ -362,6 +365,25 @@ class OrganizationSerializer(BaseOrganizationSerializer):
         if not self._has_legacy_rate_limits:
             raise serializers.ValidationError(
                 "The accountRateLimit option cannot be configured for this organization"
+            )
+        return value
+
+    def validate_targetSampleRate(self, value):
+        from sentry import features
+
+        organization = self.context["organization"]
+        request = self.context["request"]
+        has_dynamic_sampling_custom = features.has(
+            "organizations:dynamic-sampling-custom", organization, actor=request.user
+        )
+        if not has_dynamic_sampling_custom:
+            raise serializers.ValidationError(
+                "Organization does not have the custom dynamic sample rate feature enabled."
+            )
+
+        if not 0.0 <= value <= 1.0:
+            raise serializers.ValidationError(
+                "The targetSampleRate option must be in the range [0:1]"
             )
         return value
 
