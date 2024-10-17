@@ -450,6 +450,29 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
         assert response.status_code == 403, response.data
         assert response.data == {"detail": "You do not have permission to perform this action."}
 
+    def test_disallow_delete_all_projects_savedquery_when_no_open_membership(self):
+        self.setup_no_team_user()
+
+        query = {"fields": ["event_id"], "query": "event.type:error", "limit": 10, "version": 2}
+        model = DiscoverSavedQuery.objects.create(
+            organization=self.org,
+            created_by_id=self.user.id,
+            name="v2 query",
+            query=query,
+        )
+
+        assert not model.projects.exists()
+
+        with self.feature(self.feature_name):
+            url = reverse(
+                "sentry-api-0-discover-saved-query-detail", args=[self.org.slug, model.id]
+            )
+
+            response = self.client.delete(url)
+
+        assert response.status_code == 403, response.data
+        assert response.data == {"detail": "You do not have permission to perform this action."}
+
 
 class OrganizationDiscoverQueryVisitTest(APITestCase, SnubaTestCase):
     def setUp(self):

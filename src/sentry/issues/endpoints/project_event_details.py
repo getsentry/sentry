@@ -10,7 +10,13 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import IssueEventSerializer, serialize
+from sentry.api.serializers.models.event import IssueEventSerializerResponse
 from sentry.eventstore.models import Event, GroupEvent
+
+
+class GroupEventDetailsResponse(IssueEventSerializerResponse):
+    nextEventID: str | None
+    previousEventID: str | None
 
 
 def wrap_event_response(
@@ -18,7 +24,7 @@ def wrap_event_response(
     event: Event | GroupEvent,
     environments: list[str],
     include_full_release_data: bool = False,
-):
+) -> GroupEventDetailsResponse:
     event_data = serialize(
         event,
         request_user,

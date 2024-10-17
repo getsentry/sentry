@@ -6,17 +6,21 @@ import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidg
 import * as Layout from 'sentry/components/layouts/thirds';
 import {TabList, Tabs} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
+import type {Organization} from 'sentry/types/organization';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import useOrganization from 'sentry/utils/useOrganization';
 import {
   type RoutableModuleNames,
   useModuleURLBuilder,
 } from 'sentry/views/insights/common/utils/useModuleURL';
 import {OVERVIEW_PAGE_TITLE} from 'sentry/views/insights/pages/settings';
+import {isModuleEnabled} from 'sentry/views/insights/pages/utils';
 import {MODULE_TITLES} from 'sentry/views/insights/settings';
 import type {ModuleName} from 'sentry/views/insights/types';
 
-type Props = {
+export type Props = {
   domainBaseUrl: string;
+  domainTitle: string;
   headerTitle: React.ReactNode;
   modules: ModuleName[];
   selectedModule: ModuleName | undefined;
@@ -34,6 +38,7 @@ type Tab = {
 export function DomainViewHeader({
   modules,
   headerTitle,
+  domainTitle,
   selectedModule,
   hideDefaultTabs,
   additonalHeaderActions,
@@ -42,6 +47,7 @@ export function DomainViewHeader({
   tabs,
 }: Props) {
   const navigate = useNavigate();
+  const organization = useOrganization();
   const moduleURLBuilder = useModuleURLBuilder();
 
   const baseCrumbs: Crumb[] = [
@@ -51,7 +57,7 @@ export function DomainViewHeader({
       preservePageFilters: true,
     },
     {
-      label: headerTitle,
+      label: domainTitle,
       to: domainBaseUrl,
       preservePageFilters: true,
     },
@@ -62,6 +68,8 @@ export function DomainViewHeader({
     },
     ...additionalBreadCrumbs,
   ];
+
+  const filteredModules = filterEnabledModules(modules, organization);
 
   const defaultHandleTabChange = (key: ModuleName | typeof OVERVIEW_PAGE_TITLE) => {
     if (key === selectedModule || (key === OVERVIEW_PAGE_TITLE && !module)) {
@@ -88,7 +96,10 @@ export function DomainViewHeader({
       key: OVERVIEW_PAGE_TITLE,
       label: OVERVIEW_PAGE_TITLE,
     },
-    ...modules.map(moduleName => ({key: moduleName, label: MODULE_TITLES[moduleName]})),
+    ...filteredModules.map(moduleName => ({
+      key: moduleName,
+      label: MODULE_TITLES[moduleName],
+    })),
   ];
 
   return (
@@ -119,3 +130,7 @@ export function DomainViewHeader({
     </Fragment>
   );
 }
+
+const filterEnabledModules = (modules: ModuleName[], organization: Organization) => {
+  return modules.filter(module => isModuleEnabled(module, organization));
+};
