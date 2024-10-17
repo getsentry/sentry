@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {useEffect} from 'react';
 
 import Section from 'sentry/components/feedback/feedbackItem/feedbackItemSection';
 import Placeholder from 'sentry/components/placeholder';
@@ -30,8 +30,6 @@ export default function TraceDataSection({
   });
   // Note traceEvents includes the current event (feedback).
 
-  const [isCrashReportDup, setIsCrashReportDup] = useState(false);
-
   useEffect(() => {
     if (isError) {
       trackAnalytics('feedback.trace-section.error', {organization});
@@ -44,9 +42,6 @@ export default function TraceDataSection({
       }
       if (!!crashReportId && oneOtherIssueEvent?.id === crashReportId) {
         trackAnalytics('feedback.trace-section.crash-report-dup', {organization});
-        setIsCrashReportDup(true);
-      } else {
-        setIsCrashReportDup(false);
       }
     }
   }, [
@@ -61,7 +56,7 @@ export default function TraceDataSection({
   return organization.features.includes('user-feedback-trace-section') &&
     !isError &&
     traceEvents.length > 1 &&
-    isCrashReportDup ? (
+    (!crashReportId || oneOtherIssueEvent?.id !== crashReportId) ? (
     <Section icon={<IconSpan size="xs" />} title={t('Data From The Same Trace')}>
       {isLoading ? (
         <Placeholder height="114px" />
