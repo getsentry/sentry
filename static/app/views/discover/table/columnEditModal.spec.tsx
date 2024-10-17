@@ -16,7 +16,7 @@ import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import ColumnEditModal from 'sentry/views/discover/table/columnEditModal';
 
-const stubEl = styled(p => p.children);
+const stubEl = styled((p: any) => p.children);
 
 function mountModal(
   {
@@ -277,7 +277,7 @@ describe('Discover -> ColumnEditModal', function () {
   });
 
   describe('function & column selection', function () {
-    let onApply;
+    let onApply!: jest.Mock;
     beforeEach(function () {
       onApply = jest.fn();
     });
@@ -632,7 +632,7 @@ describe('Discover -> ColumnEditModal', function () {
   });
 
   describe('equation automatic update', function () {
-    let onApply;
+    let onApply!: jest.Mock;
     beforeEach(function () {
       onApply = jest.fn();
     });

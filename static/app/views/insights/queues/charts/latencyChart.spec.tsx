@@ -8,7 +8,7 @@ import {Referrer} from 'sentry/views/insights/queues/referrers';
 describe('latencyChart', () => {
   const organization = OrganizationFixture();
 
-  let eventsStatsMock;
+  let eventsStatsMock: jest.Mock;
 
   beforeEach(() => {
     eventsStatsMock = MockApiClient.addMockResponse({

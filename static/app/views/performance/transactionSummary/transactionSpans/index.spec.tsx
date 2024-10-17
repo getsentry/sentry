@@ -42,9 +42,9 @@ function initializeData(options: {query: {}; additionalFeatures?: string[]}) {
 }
 
 describe('Performance > Transaction Spans', function () {
-  let eventsMock;
-  let eventsSpanOpsMock;
-  let eventsSpansPerformanceMock;
+  let eventsMock: jest.Mock;
+  let eventsSpanOpsMock: jest.Mock;
+  let eventsSpansPerformanceMock: jest.Mock;
   beforeEach(function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',

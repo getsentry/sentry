@@ -59,7 +59,8 @@ describe('Dashboards > Dashboard', () => {
     ],
   };
 
-  let initialData, tagsMock;
+  let initialData: ReturnType<typeof initializeOrg>;
+  let tagsMock: jest.Mock;
 
   beforeEach(() => {
     initialData = initializeOrg({organization, router: {}, projects: []});

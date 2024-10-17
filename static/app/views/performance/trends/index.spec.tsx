@@ -55,13 +55,13 @@ async function waitForMockCall(mock: any) {
   });
 }
 
-function enterSearch(el, text) {
+function enterSearch(el: HTMLElement, text: string) {
   fireEvent.change(el, {target: {value: text}});
   fireEvent.submit(el);
 }
 
 // Might swap on/off the skiphover to check perf later.
-async function clickEl(el) {
+async function clickEl(el: HTMLElement) {
   await userEvent.click(el, {skipHover: true});
 }
 
@@ -150,7 +150,7 @@ function initializeTrendsData(
 }
 
 describe('Performance > Trends', function () {
-  let trendsStatsMock;
+  let trendsStatsMock: jest.Mock;
   beforeEach(function () {
     browserHistory.push = jest.fn();
     MockApiClient.addMockResponse({

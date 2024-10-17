@@ -56,10 +56,10 @@ describe('SpanSummaryPage', function () {
     },
   });
 
-  let headerDataMock;
-  let avgDurationChartMock;
-  let spanThroughputChartMock;
-  let transactionThroughputChartMock;
+  let headerDataMock: jest.Mock;
+  let avgDurationChartMock: jest.Mock;
+  let spanThroughputChartMock: jest.Mock;
+  let transactionThroughputChartMock: jest.Mock;
 
   beforeEach(() => {
     jest.mocked(useParams).mockReturnValue({
