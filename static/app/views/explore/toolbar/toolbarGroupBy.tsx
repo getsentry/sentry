@@ -3,6 +3,7 @@ import {useCallback, useMemo} from 'react';
 import {Button} from 'sentry/components/button';
 import type {SelectOption} from 'sentry/components/compactSelect';
 import {CompactSelect} from 'sentry/components/compactSelect';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconAdd} from 'sentry/icons/iconAdd';
 import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
@@ -84,7 +85,14 @@ export function ToolbarGroupBy({disabled}: ToolbarGroupByProps) {
   return (
     <ToolbarSection data-test-id="section-group-by">
       <ToolbarHeader>
-        <ToolbarLabel disabled={disabled}>{t('Group By')}</ToolbarLabel>
+        <Tooltip
+          position="right"
+          title={t(
+            'Aggregated data by a key attribute to calculate averages, percentiles, count and more'
+          )}
+        >
+          <ToolbarLabel disabled={disabled}>{t('Group By')}</ToolbarLabel>
+        </Tooltip>
         <ToolbarHeaderButton
           disabled={disabled}
           size="zero"

@@ -22,11 +22,13 @@ import {
 } from 'sentry/utils/metrics/mri';
 import {ON_DEMAND_METRICS_UNSUPPORTED_TAGS} from 'sentry/utils/onDemandMetrics/constants';
 import {shouldShowOnDemandMetricAlertUI} from 'sentry/utils/onDemandMetrics/features';
+import {DEFAULT_EAP_METRICS_ALERT_FIELD} from 'sentry/views/alerts/rules/metric/eapField';
 import {
   Dataset,
   EventTypes,
   SessionsAggregate,
 } from 'sentry/views/alerts/rules/metric/types';
+import {hasEAPAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
 import {hasInsightsAlerts} from 'sentry/views/insights/common/utils/hasInsightsAlerts';
 import {MODULE_TITLE as LLM_MONITORING_MODULE_TITLE} from 'sentry/views/insights/llmMonitoring/settings';
 
@@ -48,7 +50,8 @@ export type AlertType =
   | 'llm_tokens'
   | 'llm_cost'
   | 'insights_metrics'
-  | 'uptime_monitor';
+  | 'uptime_monitor'
+  | 'eap_metrics';
 
 export enum MEPAlertsQueryType {
   ERROR = 0,
@@ -72,6 +75,7 @@ export const DatasetMEPAlertQueryTypes: Record<
   [Dataset.TRANSACTIONS]: MEPAlertsQueryType.PERFORMANCE,
   [Dataset.GENERIC_METRICS]: MEPAlertsQueryType.PERFORMANCE,
   [Dataset.METRICS]: MEPAlertsQueryType.CRASH_RATE,
+  [Dataset.EVENTS_ANALYTICS_PLATFORM]: MEPAlertsQueryType.PERFORMANCE,
 };
 
 export const AlertWizardAlertNames: Record<AlertType, string> = {
@@ -93,6 +97,7 @@ export const AlertWizardAlertNames: Record<AlertType, string> = {
   llm_tokens: t('LLM token usage'),
   insights_metrics: t('Insights Metric'),
   uptime_monitor: t('Uptime Monitor'),
+  eap_metrics: t('EAP Metric'),
 };
 
 /**
@@ -101,6 +106,7 @@ export const AlertWizardAlertNames: Record<AlertType, string> = {
  */
 export const AlertWizardExtraContent: Partial<Record<AlertType, React.ReactNode>> = {
   insights_metrics: <FeatureBadge type="alpha" />,
+  eap_metrics: <FeatureBadge type="experimental" />,
   uptime_monitor: <FeatureBadge type="beta" />,
 };
 
@@ -135,6 +141,7 @@ export const getAlertWizardCategories = (org: Organization) => {
         'cls',
         ...(hasCustomMetrics(org) ? (['custom_transactions'] satisfies AlertType[]) : []),
         ...(hasInsightsAlerts(org) ? ['insights_metrics' as const] : []),
+        ...(hasEAPAlerts(org) ? ['eap_metrics' as const] : []),
       ],
     });
     if (org.features.includes('insights-addon-modules')) {
@@ -246,6 +253,11 @@ export const AlertWizardRuleTemplates: Record<
     aggregate: SessionsAggregate.CRASH_FREE_USERS,
     dataset: Dataset.METRICS,
     eventTypes: EventTypes.USER,
+  },
+  eap_metrics: {
+    aggregate: DEFAULT_EAP_METRICS_ALERT_FIELD,
+    dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+    eventTypes: EventTypes.TRANSACTION,
   },
 };
 
