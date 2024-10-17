@@ -402,6 +402,7 @@ disable_error_code = [
 # begin: stronger typing
 [[tool.mypy.overrides]]
 module = [
+    "sentry.api.endpoints.project_backfill_similar_issues_embeddings_records",
     "sentry.api.helpers.deprecation",
     "sentry.api.helpers.source_map_helper",
     "sentry.auth.services.*",

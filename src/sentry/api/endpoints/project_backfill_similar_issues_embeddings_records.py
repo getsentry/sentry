@@ -8,6 +8,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.auth.superuser import is_active_superuser
+from sentry.models.project import Project
 from sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project import (
     backfill_seer_grouping_records_for_project,
 )
@@ -20,7 +21,7 @@ class ProjectBackfillSimilarIssuesEmbeddingsRecords(ProjectEndpoint):
         "POST": ApiPublishStatus.PRIVATE,
     }
 
-    def post(self, request: Request, project) -> Response:
+    def post(self, request: Request, project: Project) -> Response:
         if not features.has("projects:similarity-embeddings-backfill", project):
             return Response(status=404)
 
