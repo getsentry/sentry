@@ -2781,3 +2781,5 @@ register(
     default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+register("rc-processing-split.rollout", type=float, default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
