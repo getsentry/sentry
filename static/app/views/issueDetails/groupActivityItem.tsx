@@ -474,6 +474,15 @@ function GroupActivityItem({
       }
       case GroupActivityType.CREATE_ISSUE: {
         const {data} = activity;
+
+        if (data.provider === 'Azure DevOps') {
+          return tct('[author] linked this issue to [provider] issue titled [title]', {
+            author,
+            provider: data.provider,
+            title: <ExternalLink href={data.location}>{data.title}</ExternalLink>,
+          });
+        }
+
         return tct('[author] created an issue on [provider] titled [title]', {
           author,
           provider: data.provider,
