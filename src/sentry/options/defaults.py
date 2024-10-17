@@ -452,18 +452,6 @@ register(
     default=None,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Replay Analyzer service.
-register(
-    "replay.analyzer_service_url",
-    default=None,
-    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "organizations:session-replay-accessibility-issues-enabled",
-    type=Bool,
-    default=True,
-    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
 # Globally disables replay-video.
 register(
     "replay.replay-video.disabled",
@@ -2791,13 +2779,5 @@ register(
     "secret-scanning.github.enable-signature-verification",
     type=Bool,
     default=True,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# TODO: Temporary, to be removed
-register(
-    "split_queue_task_router.enable",
-    type=Bool,
-    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
