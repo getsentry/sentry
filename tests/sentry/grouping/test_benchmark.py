@@ -17,7 +17,9 @@ def benchmark_available() -> bool:
 
 @pytest.mark.skipif(not benchmark_available(), reason="requires pytest-benchmark")
 @pytest.mark.parametrize(
-    "config_name", sorted(CONFIGURATIONS.keys()), ids=lambda x: x.replace("-", "_")
+    "config_name",
+    sorted(CONFIGURATIONS.keys()),
+    ids=lambda config_name: config_name.replace("-", "_"),
 )
 def test_benchmark_grouping(config_name, benchmark):
     input_iter = iter(GROUPING_INPUTS)
