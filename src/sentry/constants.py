@@ -710,6 +710,7 @@ METRICS_ACTIVATE_PERCENTILES_DEFAULT = True
 METRICS_ACTIVATE_LAST_FOR_GAUGES_DEFAULT = False
 DATA_CONSENT_DEFAULT = False
 UPTIME_AUTODETECTION = True
+TARGET_SAMPLE_RATE_DEFAULT = 1.0
 
 # `sentry:events_member_admin` - controls whether the 'member' role gets the event:admin scope
 EVENTS_MEMBER_ADMIN_DEFAULT = True

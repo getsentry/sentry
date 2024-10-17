@@ -78,7 +78,7 @@ describe('Dashboards > WidgetCard', function () {
   };
 
   const api = new MockApiClient();
-  let eventsMock;
+  let eventsMock: jest.Mock;
 
   beforeEach(function () {
     MockApiClient.addMockResponse({
