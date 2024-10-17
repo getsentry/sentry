@@ -148,9 +148,10 @@ export default function MetricDetailsBody({
   const {dataset, aggregate, query} = rule;
 
   const eventType = extractEventTypeFilterFromRule(rule);
-  const queryWithTypeFilter = (
-    query ? `(${query}) AND (${eventType})` : eventType
-  ).trim();
+  const queryWithTypeFilter =
+    dataset === Dataset.EVENTS_ANALYTICS_PLATFORM
+      ? query
+      : (query ? `(${query}) AND (${eventType})` : eventType).trim();
   const relativeOptions = {
     ...SELECTOR_RELATIVE_PERIODS,
     ...(rule.timeWindow > 1 ? {[TimePeriod.FOURTEEN_DAYS]: t('Last 14 days')} : {}),
