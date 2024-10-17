@@ -218,7 +218,7 @@ describe('BigNumberWidget', () => {
   });
 
   describe('Thresholds', () => {
-    it('Evaluates the current value against a threshold', () => {
+    it('Evaluates the current value against a threshold', async () => {
       render(
         <BigNumberWidget
           data={[
@@ -245,6 +245,9 @@ describe('BigNumberWidget', () => {
       );
 
       expect(screen.getByRole('status')).toHaveAttribute('aria-label', 'meh');
+
+      await userEvent.hover(screen.getByRole('status'));
+      expect(await screen.findByText('Thresholds in /second')).toBeInTheDocument();
     });
 
     it('Normalizes the units', () => {
