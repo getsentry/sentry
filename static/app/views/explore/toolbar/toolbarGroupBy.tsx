@@ -24,7 +24,6 @@ import {IconDelete} from 'sentry/icons/iconDelete';
 import {IconGrabbable} from 'sentry/icons/iconGrabbable';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import {useGroupBys} from 'sentry/views/explore/hooks/useGroupBys';
 
@@ -42,6 +41,38 @@ export function ToolbarGroupBy({disabled}: ToolbarGroupByProps) {
   const tags = useSpanTags();
 
   const {groupBys, setGroupBys} = useGroupBys();
+
+  const options: SelectOption<string>[] = useMemo(() => {
+    // These options aren't known to exist on this project but it was inserted into
+    // the group bys somehow so it should be a valid options in the group bys.
+    //
+    // One place this may come from is when switching projects/environment/date range,
+    // a tag may disappear based on the selection.
+    const unknownOptions = groupBys
+      .filter(groupBy => groupBy && !tags.hasOwnProperty(groupBy))
+      .map(groupBy => {
+        return {
+          label: groupBy,
+          value: groupBy,
+          textValue: groupBy,
+        };
+      });
+
+    const knownOptions = Object.keys(tags).map(tagKey => {
+      return {
+        label: tagKey,
+        value: tagKey,
+        textValue: tagKey,
+      };
+    });
+
+    return [
+      // hard code in an empty option
+      {label: t('None'), value: '', textValue: t('none')},
+      ...unknownOptions,
+      ...knownOptions,
+    ];
+  }, [groupBys, tags]);
 
   const {
     editableColumns,
@@ -75,7 +106,7 @@ export function ToolbarGroupBy({disabled}: ToolbarGroupByProps) {
           onColumnChange={updateColumnAtIndex}
           onColumnDelete={deleteColumnAtIndex}
           onColumnSwap={swapColumnsAtIndex}
-          tags={tags}
+          options={options}
         />
       </div>
     </ToolbarSection>
@@ -91,7 +122,7 @@ interface ColumnEditorProps {
   onColumnChange: (i: number, column: string) => void;
   onColumnDelete: (i: number) => void;
   onColumnSwap: (i: number, j: number) => void;
-  tags: TagCollection;
+  options: SelectOption<string>[];
 }
 
 export function ColumnEditor({
@@ -99,18 +130,9 @@ export function ColumnEditor({
   onColumnChange,
   onColumnDelete,
   onColumnSwap,
-  tags,
+  options,
 }: ColumnEditorProps) {
   const [resultMode] = useResultMode();
-  const options: SelectOption<string>[] = useMemo(() => {
-    return Object.values(tags).map(tag => {
-      return {
-        label: tag.name,
-        value: tag.key,
-        textValue: tag.name,
-      };
-    });
-  }, [tags]);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -181,28 +203,9 @@ function ColumnEditorRow({
     }
   }
 
-  // The compact select component uses the option label to render the current
-  // selection. This overrides it to render in a trailing item showing the type.
   const label = useMemo(() => {
-    if (defined(column.column)) {
-      const tag = options.find(option => option.value === column.column);
-      if (defined(tag)) {
-        return (
-          <TriggerContainer>
-            <TriggerLabel>{tag.label}</TriggerLabel>
-            {tag.trailingItems &&
-              (typeof tag.trailingItems === 'function'
-                ? tag.trailingItems({
-                    disabled: false,
-                    isFocused: false,
-                    isSelected: false,
-                  })
-                : tag.trailingItems)}
-          </TriggerContainer>
-        );
-      }
-    }
-    return <TriggerLabel>{!column.column && t('None')}</TriggerLabel>;
+    const tag = options.find(option => option.value === column.column);
+    return <TriggerLabel>{tag?.label ?? t('None')}</TriggerLabel>;
   }, [column.column, options]);
 
   return (
@@ -270,11 +273,4 @@ const TriggerLabel = styled('span')`
   line-height: normal;
   position: relative;
   font-weight: normal;
-`;
-
-const TriggerContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
 `;
