@@ -10,6 +10,8 @@ import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Event} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
 import type {MultiSeriesEventsStats} from 'sentry/types/organization';
 import {useIsStuck} from 'sentry/utils/useIsStuck';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -44,14 +46,10 @@ export function EventDetails({
   event,
   project,
 }: Required<EventDetailsContentProps>) {
-  const theme = useTheme();
   const location = useLocation();
   const navigate = useNavigate();
   const {selection} = usePageFilters();
-  const isScreenMedium = useMedia(`(max-width: ${theme.breakpoints.medium})`);
   const {environments} = selection;
-  const [nav, setNav] = useState<HTMLDivElement | null>(null);
-  const isStuck = useIsStuck(nav);
   const {eventDetails, dispatch} = useEventDetailsReducer();
 
   const searchQuery = useEventQuery({group});
@@ -69,15 +67,6 @@ export function EventDetails({
       referrer: 'issue_details.streamline_graph',
     },
   });
-
-  useLayoutEffect(() => {
-    const navHeight = nav?.offsetHeight ?? 0;
-    const sidebarHeight = isScreenMedium ? theme.sidebar.mobileHeightNumber : 0;
-    dispatch({
-      type: 'UPDATE_DETAILS',
-      state: {navScrollMargin: navHeight + sidebarHeight},
-    });
-  }, [nav, isScreenMedium, dispatch, theme.sidebar.mobileHeightNumber]);
 
   return (
     <EventDetailsContext.Provider value={{...eventDetails, dispatch}}>
@@ -135,13 +124,7 @@ export function EventDetails({
           message={t('There was an error loading the event content')}
         >
           <GroupContent>
-            <FloatingEventNavigation
-              event={event}
-              group={group}
-              ref={setNav}
-              query={searchQuery}
-              data-stuck={isStuck}
-            />
+            <StickyEventNav event={event} group={group} searchQuery={searchQuery} />
             <ContentPadding>
               <EventDetailsContent group={group} event={event} project={project} />
             </ContentPadding>
@@ -156,6 +139,41 @@ export function EventDetails({
         </ExtraContent>
       </PageErrorBoundary>
     </EventDetailsContext.Provider>
+  );
+}
+
+function StickyEventNav({
+  event,
+  group,
+  searchQuery,
+}: {
+  event: Event;
+  group: Group;
+  searchQuery: string;
+}) {
+  const theme = useTheme();
+  const [nav, setNav] = useState<HTMLDivElement | null>(null);
+  const isStuck = useIsStuck(nav);
+  const isScreenMedium = useMedia(`(max-width: ${theme.breakpoints.medium})`);
+  const {dispatch} = useEventDetailsReducer();
+
+  useLayoutEffect(() => {
+    const navHeight = nav?.offsetHeight ?? 0;
+    const sidebarHeight = isScreenMedium ? theme.sidebar.mobileHeightNumber : 0;
+    dispatch({
+      type: 'UPDATE_DETAILS',
+      state: {navScrollMargin: navHeight + sidebarHeight},
+    });
+  }, [nav, isScreenMedium, dispatch, theme.sidebar.mobileHeightNumber]);
+
+  return (
+    <FloatingEventNavigation
+      event={event}
+      group={group}
+      ref={setNav}
+      query={searchQuery}
+      data-stuck={isStuck}
+    />
   );
 }
 
