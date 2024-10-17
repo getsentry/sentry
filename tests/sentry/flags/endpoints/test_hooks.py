@@ -1,7 +1,10 @@
 from django.urls import reverse
 
 from sentry.flags.models import ACTION_MAP, CREATED_BY_TYPE_MAP, FlagAuditLogModel
+from sentry.models.orgauthtoken import OrgAuthToken
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils.security.orgauthtoken_token import hash_token
 
 
@@ -10,6 +13,24 @@ class OrganizationFlagsHooksEndpointTestCase(APITestCase):
 
     def setUp(self):
         super().setUp()
+
+    def test_no_provider(self):
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            token_str = "sntrys_abc123_xyz"
+            OrgAuthToken.objects.create(
+                name="Test Token 1",
+                token_hashed=hash_token(token_str),
+                organization_id=self.organization.id,
+                token_last_characters="xyz",
+                scope_list=["org:ci"],
+                date_last_used=None,
+            )
+
+        url = reverse(self.endpoint, args=("test", token_str))
+
+        response = self.client.post(url, {})
+
+        assert response.status_code == 404
 
     def test_launchdarkly_post_create(self):
         request_data = {
@@ -148,17 +169,18 @@ class OrganizationFlagsHooksEndpointTestCase(APITestCase):
             },
         }
 
-        token_str = "sntrys_abc123_xyz"
-        token = self.create_org_auth_token(
-            name="Test Token 1",
-            token_hashed=hash_token(token_str),
-            organization_id=self.organization.id,
-            token_last_characters="xyz",
-            scope_list=["org:ci"],
-            date_last_used=None,
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            token_str = "sntrys_abc123_xyz"
+            OrgAuthToken.objects.create(
+                name="Test Token 1",
+                token_hashed=hash_token(token_str),
+                organization_id=self.organization.id,
+                token_last_characters="xyz",
+                scope_list=["org:ci"],
+                date_last_used=None,
+            )
 
-        url = reverse(self.endpoint, args=("launchdarkly", token))
+        url = reverse(self.endpoint, args=("launchdarkly", token_str))
 
         response = self.client.post(url, request_data)
 
@@ -400,17 +422,18 @@ class OrganizationFlagsHooksEndpointTestCase(APITestCase):
             },
         }
 
-        token_str = "sntrys_abc123_xyz"
-        token = self.create_org_auth_token(
-            name="Test Token 1",
-            token_hashed=hash_token(token_str),
-            organization_id=self.organization.id,
-            token_last_characters="xyz",
-            scope_list=["org:ci"],
-            date_last_used=None,
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            token_str = "sntrys_abc123_xyz"
+            OrgAuthToken.objects.create(
+                name="Test Token 1",
+                token_hashed=hash_token(token_str),
+                organization_id=self.organization.id,
+                token_last_characters="xyz",
+                scope_list=["org:ci"],
+                date_last_used=None,
+            )
 
-        url = reverse(self.endpoint, args=("launchdarkly", token))
+        url = reverse(self.endpoint, args=("launchdarkly", token_str))
 
         response = self.client.post(url, request_data)
 
@@ -426,11 +449,9 @@ class OrganizationFlagsHooksEndpointTestCase(APITestCase):
         assert flag.tags is not None
 
     def test_bad_token(self):
-        url = reverse(self.endpoint, args=("launchdarkly", "badtoken"))
+        token_str = "badtoken"
+        url = reverse(self.endpoint, args=("launchdarkly", token_str))
 
-        response = self.client.post(
-            url,
-            {},
-        )
+        response = self.client.post(url, {})
 
-        assert response.status_code == 401
+        assert response.status_code == 403

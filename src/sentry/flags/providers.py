@@ -100,10 +100,11 @@ def handle_provider_event(
     request_data: dict[str, Any],
     organization_id: int,
 ) -> list[FlagAuditLogRow]:
-    if provider == "launchdarkly":
-        return handle_launchdarkly_event(request_data, organization_id)
-    else:
-        raise InvalidProvider(provider)
+    match provider:
+        case "launchdarkly":
+            return handle_launchdarkly_event(request_data, organization_id)
+        case _:
+            raise InvalidProvider(provider)
 
 
 """Internal flag-pole provider.
