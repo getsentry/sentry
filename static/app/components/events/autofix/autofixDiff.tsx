@@ -344,6 +344,36 @@ function DiffHunkContent({
     setEditedLines([]);
   };
 
+  const getDeletedLineTitle = (index: number) => {
+    return t(
+      '%s deleted line%s%s',
+      linesWithChanges
+        .slice(index, lineGroups.find(g => g.start === index)?.end! + 1)
+        .filter(l => l.line_type === DiffLineType.REMOVED).length,
+      linesWithChanges
+        .slice(index, lineGroups.find(g => g.start === index)?.end)
+        .filter(l => l.line_type === DiffLineType.REMOVED).length === 1
+        ? ''
+        : 's',
+      linesWithChanges
+        .slice(index, lineGroups.find(g => g.start === index)?.end)
+        .filter(l => l.line_type === DiffLineType.REMOVED).length > 0
+        ? t(' from line %s', getStartLineNumber(index, DiffLineType.REMOVED))
+        : ''
+    );
+  };
+
+  const getNewLineTitle = (index: number) => {
+    return t(
+      '%s new line%s%s',
+      editedLines.length,
+      editedLines.length === 1 ? '' : 's',
+      editedLines.length > 0
+        ? t(' from line %s', getStartLineNumber(index, DiffLineType.ADDED))
+        : ''
+    );
+  };
+
   return (
     <Fragment>
       <HunkHeaderEmptySpace />
@@ -378,27 +408,7 @@ function DiffHunkContent({
             {editingGroup === index && (
               <EditOverlay ref={overlayRef}>
                 <OverlayTitle>{t('Editing %s', fileName)}</OverlayTitle>
-                <SectionTitle>
-                  {t(
-                    '%s deleted line%s%s',
-                    linesWithChanges
-                      .slice(index, lineGroups.find(g => g.start === index)?.end! + 1)
-                      .filter(l => l.line_type === DiffLineType.REMOVED).length,
-                    linesWithChanges
-                      .slice(index, lineGroups.find(g => g.start === index)?.end)
-                      .filter(l => l.line_type === DiffLineType.REMOVED).length === 1
-                      ? ''
-                      : 's',
-                    linesWithChanges
-                      .slice(index, lineGroups.find(g => g.start === index)?.end)
-                      .filter(l => l.line_type === DiffLineType.REMOVED).length > 0
-                      ? t(
-                          ' from line %s',
-                          getStartLineNumber(index, DiffLineType.REMOVED)
-                        )
-                      : ''
-                  )}
-                </SectionTitle>
+                <SectionTitle>{getDeletedLineTitle(index)}</SectionTitle>
                 {linesWithChanges
                   .slice(index, lineGroups.find(g => g.start === index)?.end! + 1)
                   .filter(l => l.line_type === DiffLineType.REMOVED).length > 0 ? (
@@ -413,16 +423,7 @@ function DiffHunkContent({
                 ) : (
                   <NoChangesMessage>{t('No lines are being deleted.')}</NoChangesMessage>
                 )}
-                <SectionTitle>
-                  {t(
-                    '%s new line%s%s',
-                    editedLines.length,
-                    editedLines.length === 1 ? '' : 's',
-                    editedLines.length > 0
-                      ? t(' from line %s', getStartLineNumber(index, DiffLineType.ADDED))
-                      : ''
-                  )}
-                </SectionTitle>
+                <SectionTitle>{getNewLineTitle(index)}</SectionTitle>
                 <TextAreaWrapper>
                   <StyledTextArea
                     value={editedContent}
