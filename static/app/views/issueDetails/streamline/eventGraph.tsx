@@ -16,7 +16,6 @@ import type {EventsStats, MultiSeriesEventsStats} from 'sentry/types/organizatio
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import useOrganization from 'sentry/utils/useOrganization';
-import useRouter from 'sentry/utils/useRouter';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import useFlagSeries from 'sentry/views/issueDetails/streamline/flagSeries';
 import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/useIssueDetailsDiscoverQuery';
@@ -56,7 +55,6 @@ export function EventGraph({group, groupStats, searchQuery}: EventGraphProps) {
   const [visibleSeries, setVisibleSeries] = useState<EventGraphSeries>(
     EventGraphSeries.EVENT
   );
-  const router = useRouter();
 
   const [isGraphHovered, setIsGraphHovered] = useState(false);
   const eventStats = groupStats['count()'];
@@ -78,7 +76,6 @@ export function EventGraph({group, groupStats, searchQuery}: EventGraphProps) {
   );
   const chartZoomProps = useChartZoom({
     saveOnZoom: true,
-    router,
   });
 
   const flagSeries = useFlagSeries({

@@ -26,6 +26,7 @@ export function getMetricDatasetQueryExtras({
     hasOnDemandMetricAlertFeature(organization) ||
     hasCustomMetrics(organization) ||
     organization.features.includes('mep-rollout-flag') ||
+    organization.features.includes('dashboards-metrics-transition') ||
     hasInsightsAlerts(organization);
   const disableMetricDataset =
     decodeScalar(location?.query?.disableMetricDataset) === 'true';

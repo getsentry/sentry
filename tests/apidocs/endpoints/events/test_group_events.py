@@ -1,7 +1,7 @@
 from django.test.client import RequestFactory
 
 from fixtures.apidocs_test_case import APIDocsTestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 
 
 class ProjectGroupEventBase(APIDocsTestCase):
@@ -16,11 +16,11 @@ class ProjectGroupEventBase(APIDocsTestCase):
         }
 
         for timestamp in first_release.values():
-            self.create_event("a", release="1.0", timestamp=iso_format(timestamp))
+            self.create_event("a", release="1.0", timestamp=timestamp.isoformat())
         self.create_event("b", release="1.1")
 
         for timestamp in last_release.values():
-            event = self.create_event("c", release="1.0a", timestamp=iso_format(timestamp))
+            event = self.create_event("c", release="1.0a", timestamp=timestamp.isoformat())
 
         self.group_id = event.group.id
 
@@ -39,22 +39,10 @@ class ProjectGroupEventsDocs(ProjectGroupEventBase):
         self.validate_schema(request, response)
 
 
-class ProjectGroupEventsLatestDocs(ProjectGroupEventBase):
+class ProjectGroupEventDetailsDocs(ProjectGroupEventBase):
     def setUp(self):
         super().setUp()
         self.url = f"/api/0/issues/{self.group_id}/events/latest/"
-
-    def test_get(self):
-        response = self.client.get(self.url)
-        request = RequestFactory().get(self.url)
-
-        self.validate_schema(request, response)
-
-
-class ProjectGroupEventsOldestDocs(ProjectGroupEventBase):
-    def setUp(self):
-        super().setUp()
-        self.url = f"/api/0/issues/{self.group_id}/events/oldest/"
 
     def test_get(self):
         response = self.client.get(self.url)
