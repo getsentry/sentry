@@ -6,6 +6,7 @@ import type {Polarity} from 'sentry/components/percentChange';
 import {normalizeUnit} from '../../utils';
 import {ThresholdsHoverWrapper} from '../../widgetBuilder/buildSteps/thresholdsStep/thresholdsHoverWrapper';
 import type {Thresholds} from '../common/types';
+import {ThresholdsConfig} from '../../widgetBuilder/buildSteps/thresholdsStep/thresholdsStep';
 
 interface ThresholdsIndicatorProps {
   thresholds: Thresholds;
@@ -40,8 +41,16 @@ export function ThresholdsIndicator({
 
   const colorName = COLOR_NAME_FOR_STATE[state];
 
+  const thresholdsConfig: ThresholdsConfig = {
+    unit: thresholdUnit ?? null,
+    max_values: {
+      max1: max1 ?? null,
+      max2: max2 ?? null,
+    },
+  };
+
   return (
-    <ThresholdsHoverWrapper thresholds={thresholds} type={type}>
+    <ThresholdsHoverWrapper thresholds={thresholdsConfig} type={type}>
       <Circle role="status" aria-label={state} color={theme[colorName]} />
     </ThresholdsHoverWrapper>
   );
