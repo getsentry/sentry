@@ -187,7 +187,7 @@ def process_event(
         # The no_celery_mode version of the transactions consumer skips one trip to rc-processing
         # Otherwise, we have to store the event in processing store here for the save_event task to
         # fetch later
-        if no_celery_mode:
+        if no_celery_mode and not attachments:
             cache_key = None
         else:
             with metrics.timer("ingest_consumer._store_event"):
