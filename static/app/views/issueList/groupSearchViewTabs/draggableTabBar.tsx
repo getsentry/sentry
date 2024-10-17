@@ -137,7 +137,6 @@ export function DraggableTabBar({
       })
       .filter(defined);
     setTabs(newTabs);
-    onReorder?.(newTabs);
     trackAnalytics('issue_views.reordered_views', {
       organization,
     });
@@ -435,6 +434,7 @@ export function DraggableTabBar({
   return (
     <DraggableTabList
       onReorder={handleOnReorder}
+      onReorderComplete={() => onReorder?.(tabs)}
       defaultSelectedKey={initialTabKey}
       onAddView={handleCreateNewView}
       orientation="horizontal"
