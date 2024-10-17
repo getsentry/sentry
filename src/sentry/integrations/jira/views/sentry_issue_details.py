@@ -17,7 +17,10 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group_stream import StreamGroupSerializer
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.services.integration import integration_service
-from sentry.integrations.utils import AtlassianConnectValidationError, get_integration_from_request
+from sentry.integrations.utils.atlassian_connect import (
+    AtlassianConnectValidationError,
+    get_integration_from_request,
+)
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.shared_integrations.exceptions import ApiError

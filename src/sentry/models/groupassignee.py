@@ -137,7 +137,7 @@ class GroupAssigneeManager(BaseManager["GroupAssignee"]):
         force_autoassign: bool = False,
         assignment_source: AssignmentSource | None = None,
     ):
-        from sentry.integrations.utils import sync_group_assignee_outbound
+        from sentry.integrations.utils.sync import sync_group_assignee_outbound
         from sentry.models.activity import Activity
         from sentry.models.groupsubscription import GroupSubscription
 
@@ -206,7 +206,7 @@ class GroupAssigneeManager(BaseManager["GroupAssignee"]):
         extra: dict[str, str] | None = None,
         assignment_source: AssignmentSource | None = None,
     ) -> None:
-        from sentry.integrations.utils import sync_group_assignee_outbound
+        from sentry.integrations.utils.sync import sync_group_assignee_outbound
         from sentry.models.activity import Activity
         from sentry.models.projectownership import ProjectOwnership
 

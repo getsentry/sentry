@@ -15,7 +15,7 @@ from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.constants import ObjectStatus
 from sentry.integrations.mixins.issues import IssueSyncIntegration
 from sentry.integrations.services.integration import integration_service
-from sentry.integrations.utils import sync_group_assignee_inbound
+from sentry.integrations.utils.sync import sync_group_assignee_inbound
 from sentry.utils.email import parse_email
 
 if TYPE_CHECKING:

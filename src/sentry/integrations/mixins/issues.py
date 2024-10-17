@@ -17,7 +17,7 @@ from sentry.integrations.services.integration import integration_service
 from sentry.integrations.tasks.sync_status_inbound import (
     sync_status_inbound as sync_status_inbound_task,
 )
-from sentry.integrations.utils import where_should_sync
+from sentry.integrations.utils.sync import where_should_sync
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.group import Group
 from sentry.models.grouplink import GroupLink

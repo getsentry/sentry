@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any
 
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.services.integration.service import integration_service
-from sentry.integrations.utils import sync_group_assignee_inbound
+from sentry.integrations.utils.sync import sync_group_assignee_inbound
 
 if TYPE_CHECKING:
     from sentry.integrations.models.integration import Integration
