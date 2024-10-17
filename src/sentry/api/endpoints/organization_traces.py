@@ -28,7 +28,9 @@ from sentry.models.project import Project
 from sentry.search.events.builder.base import BaseQueryBuilder
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.builder.spans_indexed import (
+    SpansEAPQueryBuilder,
     SpansIndexedQueryBuilder,
+    TimeseriesSpanEAPIndexedQueryBuilder,
     TimeseriesSpanIndexedQueryBuilder,
 )
 from sentry.search.events.constants import TIMEOUT_SPAN_ERROR_MESSAGE
@@ -82,6 +84,9 @@ class TraceResult(TypedDict):
 
 
 class OrganizationTracesSerializer(serializers.Serializer):
+    dataset = serializers.ChoiceField(
+        ["spans", "spansIndexed"], required=False, default="spansIndexed"
+    )
     metricsMax = serializers.FloatField(required=False)
     metricsMin = serializers.FloatField(required=False)
     metricsOp = serializers.CharField(required=False)
@@ -92,6 +97,13 @@ class OrganizationTracesSerializer(serializers.Serializer):
     query = serializers.ListField(
         required=False, allow_empty=True, child=serializers.CharField(allow_blank=True)
     )
+
+    def validate_dataset(self, value):
+        if value == "spans":
+            return Dataset.EventsAnalyticsPlatform
+        if value == "spansIndexed":
+            return Dataset.SpansIndexed
+        raise NotImplementedError
 
 
 @contextmanager
@@ -136,6 +148,7 @@ class OrganizationTracesEndpoint(OrganizationTracesEndpointBase):
         serialized = serializer.validated_data
 
         executor = TracesExecutor(
+            dataset=serialized["dataset"],
             snuba_params=snuba_params,
             user_queries=serialized.get("query", []),
             metrics_max=serialized.get("metricsMax"),
@@ -169,6 +182,9 @@ class OrganizationTracesEndpoint(OrganizationTracesEndpointBase):
 
 
 class OrganizationTraceSpansSerializer(serializers.Serializer):
+    dataset = serializers.ChoiceField(
+        ["spans", "spansIndexed"], required=False, default="spansIndexed"
+    )
     metricsMax = serializers.FloatField(required=False)
     metricsMin = serializers.FloatField(required=False)
     metricsOp = serializers.CharField(required=False)
@@ -180,6 +196,13 @@ class OrganizationTraceSpansSerializer(serializers.Serializer):
     query = serializers.ListField(
         required=False, allow_empty=True, child=serializers.CharField(allow_blank=True)
     )
+
+    def validate_dataset(self, value):
+        if value == "spans":
+            return Dataset.EventsAnalyticsPlatform
+        if value == "spansIndexed":
+            return Dataset.SpansIndexed
+        raise NotImplementedError
 
 
 @region_silo_endpoint
@@ -203,6 +226,7 @@ class OrganizationTraceSpansEndpoint(OrganizationTracesEndpointBase):
         serialized = serializer.validated_data
 
         executor = TraceSpansExecutor(
+            dataset=serialized["dataset"],
             snuba_params=snuba_params,
             trace_id=trace_id,
             fields=serialized["field"],
@@ -230,10 +254,20 @@ class OrganizationTraceSpansEndpoint(OrganizationTracesEndpointBase):
 
 
 class OrganizationTracesStatsSerializer(serializers.Serializer):
+    dataset = serializers.ChoiceField(
+        ["spans", "spansIndexed"], required=False, default="spansIndexed"
+    )
     query = serializers.ListField(
         required=False, allow_empty=True, child=serializers.CharField(allow_blank=True)
     )
     yAxis = serializers.ListField(required=True, child=serializers.CharField())
+
+    def validate_dataset(self, value):
+        if value == "spans":
+            return Dataset.EventsAnalyticsPlatform
+        if value == "spansIndexed":
+            return Dataset.SpansIndexed
+        raise NotImplementedError
 
 
 @region_silo_endpoint
@@ -277,6 +311,7 @@ class OrganizationTracesStatsEndpoint(OrganizationTracesEndpointBase):
             comparison_delta: timedelta | None,
         ) -> SnubaTSResult:
             executor = TraceStatsExecutor(
+                dataset=serialized["dataset"],
                 snuba_params=snuba_params,
                 columns=serialized["yAxis"],
                 user_queries=serialized.get("query", []),
@@ -306,6 +341,7 @@ class TracesExecutor:
     def __init__(
         self,
         *,
+        dataset: Dataset,
         snuba_params: SnubaParams,
         user_queries: list[str],
         metrics_max: float | None,
@@ -317,8 +353,9 @@ class TracesExecutor:
         breakdown_slices: int,
         get_all_projects: Callable[[], list[Project]],
     ):
+        self.dataset = dataset
         self.snuba_params = snuba_params
-        self.user_queries = process_user_queries(snuba_params, user_queries)
+        self.user_queries = process_user_queries(snuba_params, user_queries, dataset)
         self.metrics_max = metrics_max
         self.metrics_min = metrics_min
         self.metrics_operation = metrics_operation
@@ -344,10 +381,10 @@ class TracesExecutor:
                 self.snuba_params,
             )
 
-        self.refine_params(min_timestamp, max_timestamp)
-
         if not trace_ids:
             return []
+
+        self.refine_params(min_timestamp, max_timestamp)
 
         with handle_span_query_errors():
             snuba_params = self.params_with_all_projects()
@@ -572,6 +609,93 @@ class TracesExecutor:
         snuba_params: SnubaParams,
         sort: str | None = None,
     ) -> tuple[BaseQueryBuilder, str]:
+        if self.dataset == Dataset.EventsAnalyticsPlatform:
+            return self.get_traces_matching_span_conditions_query_eap(snuba_params, sort)
+        return self.get_traces_matching_span_conditions_query_indexed(snuba_params, sort)
+
+    def get_traces_matching_span_conditions_query_eap(
+        self,
+        snuba_params: SnubaParams,
+        sort: str | None = None,
+    ) -> tuple[BaseQueryBuilder, str]:
+        if len(self.user_queries) < 2:
+            timestamp_column = "timestamp"
+        else:
+            timestamp_column = "min(timestamp)"
+
+        if sort == "-timestamp":
+            orderby = [f"-{timestamp_column}"]
+        else:
+            # The orderby is intentionally `None` here as this query is much faster
+            # if we let Clickhouse decide which order to return the results in.
+            # This also means we cannot order by any columns or paginate.
+            orderby = None
+
+        if len(self.user_queries) < 2:
+            # Optimization: If there is only a condition for a single span,
+            # we can take the fast path and query without using aggregates.
+            query = SpansEAPQueryBuilder(
+                Dataset.EventsAnalyticsPlatform,
+                params={},
+                snuba_params=snuba_params,
+                query=None,
+                selected_columns=["trace", timestamp_column],
+                orderby=orderby,
+                limit=self.limit,
+                limitby=("trace", 1),
+                config=QueryBuilderConfig(
+                    transform_alias_to_input_format=True,
+                ),
+            )
+
+            for where in self.user_queries.values():
+                query.where.extend(where)
+        else:
+            query = SpansEAPQueryBuilder(
+                Dataset.EventsAnalyticsPlatform,
+                params={},
+                snuba_params=snuba_params,
+                query=None,
+                selected_columns=["trace", timestamp_column],
+                orderby=orderby,
+                limit=self.limit,
+                limitby=("trace", 1),
+                config=QueryBuilderConfig(
+                    auto_aggregations=True,
+                    transform_alias_to_input_format=True,
+                ),
+            )
+
+            trace_conditions = []
+            for where in self.user_queries.values():
+                if len(where) == 1:
+                    trace_conditions.extend(where)
+                elif len(where) > 1:
+                    trace_conditions.append(BooleanCondition(op=BooleanOp.AND, conditions=where))
+
+                # Transform the condition into it's aggregate form so it can be used to
+                # match on the trace.
+                new_condition = generate_trace_condition(where)
+                if new_condition:
+                    query.having.append(new_condition)
+
+            if len(trace_conditions) == 1:
+                # This should never happen since it should use a flat query
+                # but handle it just in case.
+                query.where.extend(trace_conditions)
+            elif len(trace_conditions) > 1:
+                query.where.append(BooleanCondition(op=BooleanOp.OR, conditions=trace_conditions))
+
+        if options.get("performance.traces.trace-explorer-skip-floating-spans"):
+            query.add_conditions([Condition(Column("segment_id"), Op.NEQ, "00")])
+
+        return query, timestamp_column
+
+    def get_traces_matching_span_conditions_query_indexed(
+        self,
+        snuba_params: SnubaParams,
+        sort: str | None = None,
+    ) -> tuple[BaseQueryBuilder, str]:
         if len(self.user_queries) < 2:
             timestamp_column = "timestamp"
         else:
@@ -766,6 +890,50 @@ class TracesExecutor:
         snuba_params: SnubaParams,
         trace_ids: list[str],
     ) -> tuple[BaseQueryBuilder, Referrer]:
+        if self.dataset == Dataset.EventsAnalyticsPlatform:
+            return self.get_traces_breakdown_projects_query_eap(snuba_params, trace_ids)
+        return self.get_traces_breakdown_projects_query_indexed(snuba_params, trace_ids)
+
+    def get_traces_breakdown_projects_query_eap(
+        self,
+        snuba_params: SnubaParams,
+        trace_ids: list[str],
+    ) -> tuple[BaseQueryBuilder, Referrer]:
+        query = SpansEAPQueryBuilder(
+            Dataset.EventsAnalyticsPlatform,
+            params={},
+            snuba_params=snuba_params,
+            query="is_transaction:1",
+            selected_columns=[
+                "trace",
+                "project",
+                "sdk.name",
+                "span.op",
+                "parent_span",
+                "transaction",
+                "precise.start_ts",
+                "precise.finish_ts",
+            ],
+            orderby=["precise.start_ts", "-precise.finish_ts"],
+            # limit the number of segments we fetch per trace so a single
+            # large trace does not result in the rest being blank
+            limitby=("trace", int(MAX_SNUBA_RESULTS / len(trace_ids))),
+            limit=MAX_SNUBA_RESULTS,
+            config=QueryBuilderConfig(
+                transform_alias_to_input_format=True,
+            ),
+        )
+
+        # restrict the query to just this subset of trace ids
+        query.add_conditions([Condition(Column("trace_id"), Op.IN, trace_ids)])
+
+        return query, Referrer.API_TRACE_EXPLORER_TRACES_BREAKDOWNS
+
+    def get_traces_breakdown_projects_query_indexed(
+        self,
+        snuba_params: SnubaParams,
+        trace_ids: list[str],
+    ) -> tuple[BaseQueryBuilder, Referrer]:
         query = SpansIndexedQueryBuilder(
             Dataset.SpansIndexed,
             params={},
@@ -797,6 +965,74 @@ class TracesExecutor:
         return query, Referrer.API_TRACE_EXPLORER_TRACES_BREAKDOWNS
 
     def get_traces_metas_query(
+        self,
+        snuba_params: SnubaParams,
+        trace_ids: list[str],
+    ) -> tuple[BaseQueryBuilder, Referrer]:
+        if self.dataset == Dataset.EventsAnalyticsPlatform:
+            return self.get_traces_metas_query_eap(snuba_params, trace_ids)
+        return self.get_traces_metas_query_indexed(snuba_params, trace_ids)
+
+    def get_traces_metas_query_eap(
+        self,
+        snuba_params: SnubaParams,
+        trace_ids: list[str],
+    ) -> tuple[BaseQueryBuilder, Referrer]:
+        query = SpansEAPQueryBuilder(
+            Dataset.EventsAnalyticsPlatform,
+            params={},
+            snuba_params=snuba_params,
+            query=None,
+            selected_columns=[
+                "trace",
+                "count()",
+                "first_seen()",
+                "last_seen()",
+            ],
+            limit=len(trace_ids),
+            config=QueryBuilderConfig(
+                functions_acl=["first_seen", "last_seen"],
+                transform_alias_to_input_format=True,
+            ),
+        )
+
+        # restrict the query to just this subset of trace ids
+        query.add_conditions([Condition(Column("trace_id"), Op.IN, trace_ids)])
+
+        """
+        We want to get a count of the number of matching spans. To do this, we have to
+        translate the user queries into conditions, and get a count of spans that match
+        any one of the user queries.
+        """
+
+        # Translate each user query into a condition to match one
+        trace_conditions = []
+        for where in self.user_queries.values():
+            trace_condition = format_as_trace_conditions(where)
+            if not trace_condition:
+                continue
+            elif len(trace_condition) == 1:
+                trace_conditions.append(trace_condition[0])
+            else:
+                trace_conditions.append(Function("and", trace_condition))
+
+        # Join all the user queries together into a single one where at least 1 have
+        # to be true.
+        if not trace_conditions:
+            query.columns.append(Function("count", [], MATCHING_COUNT_ALIAS))
+        elif len(trace_conditions) == 1:
+            query.columns.append(Function("countIf", trace_conditions, MATCHING_COUNT_ALIAS))
+        else:
+            query.columns.append(
+                Function("countIf", [Function("or", trace_conditions)], MATCHING_COUNT_ALIAS)
+            )
+
+        if options.get("performance.traces.trace-explorer-skip-floating-spans"):
+            query.add_conditions([Condition(Column("segment_id"), Op.NEQ, "00")])
+
+        return query, Referrer.API_TRACE_EXPLORER_TRACES_META
+
+    def get_traces_metas_query_indexed(
         self,
         snuba_params: SnubaParams,
         trace_ids: list[str],
@@ -904,6 +1140,7 @@ class TraceSpansExecutor:
     def __init__(
         self,
         *,
+        dataset: Dataset,
         snuba_params: SnubaParams,
         trace_id: str,
         fields: list[str],
@@ -915,10 +1152,11 @@ class TraceSpansExecutor:
         metrics_query: str | None,
         mri: str | None,
     ):
+        self.dataset = dataset
         self.snuba_params = snuba_params
         self.trace_id = trace_id
         self.fields = fields
-        self.user_queries = process_user_queries(snuba_params, user_queries)
+        self.user_queries = process_user_queries(snuba_params, user_queries, dataset)
         self.metrics_max = metrics_max
         self.metrics_min = metrics_min
         self.metrics_operation = metrics_operation
@@ -991,6 +1229,76 @@ class TraceSpansExecutor:
         return {"data": data, "meta": meta}
 
     def get_user_spans_query(
+        self,
+        snuba_params: SnubaParams,
+        span_keys: list[SpanKey] | None,
+        limit: int,
+        offset: int,
+    ) -> BaseQueryBuilder:
+        if self.dataset == Dataset.EventsAnalyticsPlatform:
+            # span_keys is not supported in EAP mode because that's a legacy
+            # code path to support metrics that no longer exists
+            return self.get_user_spans_query_eap(snuba_params, limit, offset)
+        return self.get_user_spans_query_indexed(snuba_params, span_keys, limit, offset)
+
+    def get_user_spans_query_eap(
+        self,
+        snuba_params: SnubaParams,
+        limit: int,
+        offset: int,
+    ) -> BaseQueryBuilder:
+        user_spans_query = SpansEAPQueryBuilder(
+            Dataset.EventsAnalyticsPlatform,
+            params={},
+            snuba_params=snuba_params,
+            query=None,  # Note: conditions are added below
+            selected_columns=self.fields,
+            orderby=self.sort,
+            limit=limit,
+            offset=offset,
+            config=QueryBuilderConfig(
+                transform_alias_to_input_format=True,
+            ),
+        )
+
+        user_conditions = []
+
+        for where in self.user_queries.values():
+            user_conditions.append(where)
+
+        # First make sure that we only return spans from the trace specified
+        user_spans_query.add_conditions([Condition(Column("trace_id"), Op.EQ, self.trace_id)])
+
+        conditions = []
+
+        # Next we have to turn the user queries into the appropriate conditions in
+        # the SnQL that we produce.
+
+        # There are multiple sets of user conditions that needs to be satisfied
+        # and if a span satisfy any of them, it should be considered.
+        #
+        # To handle this use case, we want to OR all the user specified
+        # conditions together in this query.
+        for where in user_conditions:
+            if len(where) > 1:
+                conditions.append(BooleanCondition(op=BooleanOp.AND, conditions=where))
+            elif len(where) == 1:
+                conditions.append(where[0])
+
+        if len(conditions) > 1:
+            # More than 1 set of conditions were specified, we want to show
+            # spans that match any 1 of them so join the conditions with `OR`s.
+            user_spans_query.add_conditions(
+                [BooleanCondition(op=BooleanOp.OR, conditions=conditions)]
+            )
+        elif len(conditions) == 1:
+            # Only 1 set of user conditions were specified, simply insert them into
+            # the final query.
+            user_spans_query.add_conditions([conditions[0]])
+
+        return user_spans_query
+
+    def get_user_spans_query_indexed(
         self,
         snuba_params: SnubaParams,
         span_keys: list[SpanKey] | None,
@@ -1104,15 +1412,17 @@ class TraceStatsExecutor:
     def __init__(
         self,
         *,
+        dataset: Dataset,
         snuba_params: SnubaParams,
         columns: list[str],
         user_queries: list[str],
         rollup: int,
         zerofill_results: bool,
     ):
+        self.dataset = dataset
         self.snuba_params = snuba_params
         self.columns = columns
-        self.user_queries = process_user_queries(snuba_params, user_queries)
+        self.user_queries = process_user_queries(snuba_params, user_queries, dataset)
         self.rollup = rollup
         self.zerofill_results = zerofill_results
 
@@ -1143,6 +1453,39 @@ class TraceStatsExecutor:
         )
 
     def get_timeseries_query(self) -> BaseQueryBuilder:
+        if self.dataset == Dataset.EventsAnalyticsPlatform:
+            return self.get_timeseries_query_eap()
+        return self.get_timeseries_query_indexed()
+
+    def get_timeseries_query_eap(self) -> BaseQueryBuilder:
+        query = TimeseriesSpanEAPIndexedQueryBuilder(
+            Dataset.EventsAnalyticsPlatform,
+            params={},
+            snuba_params=self.snuba_params,
+            interval=self.rollup,
+            query=None,
+            selected_columns=self.columns,
+        )
+
+        trace_conditions = []
+
+        for where in self.user_queries.values():
+            if len(where) == 1:
+                trace_conditions.extend(where)
+            elif len(where) > 1:
+                trace_conditions.append(BooleanCondition(op=BooleanOp.AND, conditions=where))
+
+        if len(trace_conditions) == 1:
+            query.where.extend(trace_conditions)
+        elif len(trace_conditions) > 1:
+            query.where.append(BooleanCondition(op=BooleanOp.OR, conditions=trace_conditions))
+
+        if options.get("performance.traces.trace-explorer-skip-floating-spans"):
+            query.add_conditions([Condition(Column("segment_id"), Op.NEQ, "00")])
+
+        return query
+
+    def get_timeseries_query_indexed(self) -> BaseQueryBuilder:
         query = TimeseriesSpanIndexedQueryBuilder(
             Dataset.SpansIndexed,
             params={},
@@ -1474,18 +1817,33 @@ def process_breakdowns(data, traces_range):
 def process_user_queries(
     snuba_params: SnubaParams,
     user_queries: list[str],
+    dataset: Dataset = Dataset.SpansIndexed,
 ) -> dict[str, list[list[WhereType]]]:
     with handle_span_query_errors():
-        builder = SpansIndexedQueryBuilder(
-            Dataset.SpansIndexed,
-            params={},
-            snuba_params=snuba_params,
-            query=None,  # Note: conditions are added below
-            selected_columns=[],
-            config=QueryBuilderConfig(
-                transform_alias_to_input_format=True,
-            ),
-        )
+        if dataset == Dataset.EventsAnalyticsPlatform:
+            span_indexed_builder = SpansEAPQueryBuilder(
+                dataset,
+                params={},
+                snuba_params=snuba_params,
+                query=None,  # Note: conditions are added below
+                selected_columns=[],
+                config=QueryBuilderConfig(
+                    transform_alias_to_input_format=True,
+                ),
+            )
+            resolve_conditions = span_indexed_builder.resolve_conditions
+        else:
+            span_eap_builder = SpansIndexedQueryBuilder(
+                dataset,
+                params={},
+                snuba_params=snuba_params,
+                query=None,  # Note: conditions are added below
+                selected_columns=[],
+                config=QueryBuilderConfig(
+                    transform_alias_to_input_format=True,
+                ),
+            )
+            resolve_conditions = span_eap_builder.resolve_conditions
 
         queries: dict[str, list[list[WhereType]]] = {}
 
@@ -1498,7 +1856,7 @@ def process_user_queries(
 
             # We want to ignore all the aggregate conditions here because we're strictly
             # searching on span attributes, not aggregates
-            where, _ = builder.resolve_conditions(user_query)
+            where, _ = resolve_conditions(user_query)
             queries[user_query] = where
 
     set_measurement("user_queries_count", len(queries))

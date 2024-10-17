@@ -915,6 +915,26 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
                     snql_aggregate=self._resolve_upper_limit,
                     default_result_type="number",
                 ),
+                SnQLFunction(
+                    "first_seen",
+                    snql_aggregate=lambda args, alias: Function(
+                        "toUnixTimestamp64Milli",
+                        [Function("min", [Column("start_timestamp")])],
+                        alias,
+                    ),
+                    default_result_type="duration",
+                    private=True,
+                ),
+                SnQLFunction(
+                    "last_seen",
+                    snql_aggregate=lambda args, alias: Function(
+                        "toUnixTimestamp64Milli",
+                        [Function("max", [Column("end_timestamp")])],
+                        alias,
+                    ),
+                    default_result_type="duration",
+                    private=True,
+                ),
             ]
         }
 
@@ -923,6 +943,33 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
                 function_converter[alias] = function_converter[name].alias_as(alias)
 
         return function_converter
+
+    @property
+    def field_alias_converter(self) -> Mapping[str, Callable[[str], SelectType]]:
+        existing_field_aliases: dict[str, Callable[[str], SelectType]] = {
+            **super().field_alias_converter
+        }
+
+        field_alias_converter: Mapping[str, Callable[[str], SelectType]] = {
+            constants.PRECISE_START_TS: lambda alias: Function(
+                "divide",
+                [
+                    Function("toUnixTimestamp64Milli", [Column("start_timestamp")]),
+                    1000,
+                ],
+                alias,
+            ),
+            constants.PRECISE_FINISH_TS: lambda alias: Function(
+                "divide",
+                [
+                    Function("toUnixTimestamp64Milli", [Column("end_timestamp")]),
+                    1000,
+                ],
+                alias,
+            ),
+        }
+        existing_field_aliases.update(field_alias_converter)
+        return existing_field_aliases
 
     def _resolve_sum_weighted(
         self,
