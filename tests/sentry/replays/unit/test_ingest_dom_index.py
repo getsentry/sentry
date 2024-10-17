@@ -17,6 +17,7 @@ from sentry.replays.usecases.ingest.dom_index import (
     log_canvas_size,
     parse_replay_actions,
 )
+from sentry.testutils.helpers.features import Feature
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json
 
@@ -384,8 +385,9 @@ def test_parse_replay_dead_click_actions(patch_rage_click_issue_with_replay_even
         },
     ]
 
-    default_project.update_option("sentry:replay_rage_click_issues", True)
-    replay_actions = parse_replay_actions(default_project, "1", 30, events, mock_replay_event())
+    with Feature({"organizations:session-replay-rage-click-issue-creation": True}):
+        default_project.update_option("sentry:replay_rage_click_issues", True)
+        replay_actions = parse_replay_actions(default_project, "1", 30, events, mock_replay_event())
     assert patch_rage_click_issue_with_replay_event.call_count == 2
     assert replay_actions is not None
     assert replay_actions["type"] == "replay_event"
@@ -537,8 +539,9 @@ def test_rage_click_issue_creation_no_component_name(
         },
     ]
 
-    default_project.update_option("sentry:replay_rage_click_issues", True)
-    parse_replay_actions(default_project, "1", 30, events, mock_replay_event())
+    with Feature({"organizations:session-replay-rage-click-issue-creation": True}):
+        default_project.update_option("sentry:replay_rage_click_issues", True)
+        parse_replay_actions(default_project, "1", 30, events, mock_replay_event())
 
     # test that 2 rage click issues are still created
     assert patch_rage_click_issue_with_replay_event.call_count == 2
@@ -939,8 +942,9 @@ def test_parse_replay_rage_clicks_with_replay_event(
         },
     ]
 
-    default_project.update_option("sentry:replay_rage_click_issues", True)
-    replay_actions = parse_replay_actions(default_project, "1", 30, events, mock_replay_event())
+    with Feature({"organizations:session-replay-rage-click-issue-creation": True}):
+        default_project.update_option("sentry:replay_rage_click_issues", True)
+        replay_actions = parse_replay_actions(default_project, "1", 30, events, mock_replay_event())
     assert patch_rage_click_issue_with_replay_event.call_count == 2
     assert replay_actions is not None
     assert replay_actions["type"] == "replay_event"
