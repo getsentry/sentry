@@ -274,7 +274,7 @@ def process_event(
                 )
 
         # remember for an 1 hour that we saved this event (deduplication protection)
-        with sentry_sdk.start_span(op="cache.set") as span:
+        with sentry_sdk.start_span(op="cache.set"):
             cache.set(deduplication_key, "", CACHE_TIMEOUT)
 
         # emit event_accepted once everything is done
