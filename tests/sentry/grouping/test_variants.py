@@ -60,13 +60,13 @@ def test_event_hash_variant(config_name, grouping_input, insta_snapshot):
     # break stuff later on.
     event.project = None
 
-    rv: list[str] = []
+    lines: list[str] = []
     for variant_name, variant in sorted(event.get_grouping_variants().items()):
-        if rv:
-            rv.append("-" * 74)
-        rv.append("%s:" % variant_name)
-        dump_variant(variant, rv, 1)
-    output = "\n".join(rv)
+        if lines:
+            lines.append("-" * 74)
+        lines.append("%s:" % variant_name)
+        dump_variant(variant, lines, 1)
+    output = "\n".join(lines)
 
     # Make sure the event was annotated with the grouping config
     assert event.get_grouping_config()["id"] == config_name
