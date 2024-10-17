@@ -455,6 +455,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             "metricsActivatePercentiles": False,
             "metricsActivateLastForGauges": True,
             "uptimeAutodetection": False,
+            "targetSampleRate": 0.1,
         }
 
         # needed to set require2FA
@@ -493,6 +494,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert options.get("sentry:metrics_activate_percentiles") is False
         assert options.get("sentry:metrics_activate_last_for_gauges") is True
         assert options.get("sentry:uptime_autodetection") is False
+        assert options.get("sentry:target_sample_rate") == 0.1
 
         # log created
         with assume_test_silo_mode_of(AuditLogEntry):
