@@ -6,24 +6,10 @@ from sentry.utils.security.orgauthtoken_token import hash_token
 
 
 class OrganizationFlagsHooksEndpointTestCase(APITestCase):
-    endpoint = "sentry-api-0-organization-flag-hooks"
+    endpoint = "sentry-api-0-flag-hooks"
 
     def setUp(self):
         super().setUp()
-        self.url = reverse(self.endpoint, args=(self.organization.slug, "test"))
-
-    def test_post(self):
-        token = "sntrys_abc123_xyz"
-        self.create_org_auth_token(
-            name="Test Token 1",
-            token_hashed=hash_token(token),
-            organization_id=self.organization.id,
-            token_last_characters="xyz",
-            scope_list=["org:ci"],
-            date_last_used=None,
-        )
-
-        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
 
     def test_launchdarkly_post_create(self):
         request_data = {
@@ -162,23 +148,19 @@ class OrganizationFlagsHooksEndpointTestCase(APITestCase):
             },
         }
 
-        token = "sntrys_abc123_xyz"
-        self.create_org_auth_token(
+        token_str = "sntrys_abc123_xyz"
+        token = self.create_org_auth_token(
             name="Test Token 1",
-            token_hashed=hash_token(token),
+            token_hashed=hash_token(token_str),
             organization_id=self.organization.id,
             token_last_characters="xyz",
             scope_list=["org:ci"],
             date_last_used=None,
         )
 
-        url = reverse(self.endpoint, args=(self.organization.slug, "launchdarkly"))
+        url = reverse(self.endpoint, args=("launchdarkly", token))
 
-        response = self.client.post(
-            url,
-            request_data,
-            HTTP_AUTHORIZATION=f"Bearer {token}",
-        )
+        response = self.client.post(url, request_data)
 
         assert response.status_code == 200
         assert FlagAuditLogModel.objects.count() == 1
@@ -418,23 +400,19 @@ class OrganizationFlagsHooksEndpointTestCase(APITestCase):
             },
         }
 
-        token = "sntrys_abc123_xyz"
-        self.create_org_auth_token(
+        token_str = "sntrys_abc123_xyz"
+        token = self.create_org_auth_token(
             name="Test Token 1",
-            token_hashed=hash_token(token),
+            token_hashed=hash_token(token_str),
             organization_id=self.organization.id,
             token_last_characters="xyz",
             scope_list=["org:ci"],
             date_last_used=None,
         )
 
-        url = reverse(self.endpoint, args=(self.organization.slug, "launchdarkly"))
+        url = reverse(self.endpoint, args=("launchdarkly", token))
 
-        response = self.client.post(
-            url,
-            request_data,
-            HTTP_AUTHORIZATION=f"Bearer {token}",
-        )
+        response = self.client.post(url, request_data)
 
         assert response.status_code == 200
         assert FlagAuditLogModel.objects.count() == 1
@@ -446,3 +424,13 @@ class OrganizationFlagsHooksEndpointTestCase(APITestCase):
         assert flag.created_by_type == CREATED_BY_TYPE_MAP["email"]
         assert flag.organization_id == self.organization.id
         assert flag.tags is not None
+
+    def test_bad_token(self):
+        url = reverse(self.endpoint, args=("launchdarkly", "badtoken"))
+
+        response = self.client.post(
+            url,
+            {},
+        )
+
+        assert response.status_code == 401
