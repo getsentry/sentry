@@ -81,7 +81,6 @@ function Headers({
               </GraphHeader>
             </GraphHeaderWrapper>
           )}
-
           {organization.features.includes('issue-stream-table-layout') ? (
             <Fragment>
               <TimestampLabel breakpoint={COLUMN_BREAKPOINTS.AGE}>
@@ -251,7 +250,7 @@ const AssigneeLabel = styled(ToolbarHeader)<{isSavedSearchesOpen?: boolean}>`
   }
 `;
 
-const NarrowAssigneeLabel = styled(IssueStreamHeaderLabel)`
+export const NarrowAssigneeLabel = styled(IssueStreamHeaderLabel)`
   justify-content: flex-end;
   text-align: right;
   width: 60px;
