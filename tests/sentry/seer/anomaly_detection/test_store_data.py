@@ -137,7 +137,7 @@ class AnomalyDetectionStoreDataTest(AlertRuleBase, BaseMetricsTestCase, Performa
                 },
                 project_id=self.project.id,
             )
-        result = fetch_historical_data(alert_rule, snuba_query, ["count()"], self.project)
+        result = fetch_historical_data(self.organization, snuba_query, ["count()"], self.project)
         assert result
         assert {"time": int(self.time_1_ts), "count": 1} in result.data.get("data")
         assert {"time": int(self.time_2_ts), "count": 1} in result.data.get("data")
@@ -171,7 +171,7 @@ class AnomalyDetectionStoreDataTest(AlertRuleBase, BaseMetricsTestCase, Performa
                 },
                 project_id=self.project.id,
             )
-        result = fetch_historical_data(alert_rule, snuba_query, ["count()"], self.project)
+        result = fetch_historical_data(self.organization, snuba_query, ["count()"], self.project)
         assert result
         assert {"time": int(self.time_1_ts), "count": 1} in result.data.get("data")
         assert {"time": int(self.time_2_ts), "count": 1} in result.data.get("data")
@@ -188,7 +188,7 @@ class AnomalyDetectionStoreDataTest(AlertRuleBase, BaseMetricsTestCase, Performa
 
         event2 = self.create_performance_issue(event_data=make_event(**event_data))
 
-        result = fetch_historical_data(alert_rule, snuba_query, ["count()"], self.project)
+        result = fetch_historical_data(self.organization, snuba_query, ["count()"], self.project)
         assert result
         assert {"time": int(event1.datetime.timestamp()), "count": 1} in result.data.get("data")
         assert {"time": int(event2.datetime.timestamp()), "count": 1} in result.data.get("data")
@@ -238,7 +238,7 @@ class AnomalyDetectionStoreDataTest(AlertRuleBase, BaseMetricsTestCase, Performa
             threshold_period=1,
         )
         snuba_query = SnubaQuery.objects.get(id=alert_rule.snuba_query_id)
-        result = fetch_historical_data(alert_rule, snuba_query, ["count()"], self.project)
+        result = fetch_historical_data(self.organization, snuba_query, ["count()"], self.project)
         assert result
         assert self.time_1 in result.data.get("data").get("intervals")
         assert 1 in result.data.get("data").get("groups")[0].get("series").get("sum(session)")
