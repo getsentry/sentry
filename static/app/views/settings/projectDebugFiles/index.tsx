@@ -49,14 +49,9 @@ function makeDebugFilesQueryKey({
 }: {
   orgSlug: string;
   projectSlug: string;
-  query: string;
+  query: Record<string, string>;
 }): ApiQueryKey {
-  return [
-    `/projects/${orgSlug}/${projectSlug}/files/dsyms/`,
-    {
-      query: {query},
-    },
-  ];
+  return [`/projects/${orgSlug}/${projectSlug}/files/dsyms/`, {query}];
 }
 
 function makeSymbolSourcesQueryKey({orgSlug}: {orgSlug: string}): ApiQueryKey {
@@ -70,6 +65,7 @@ function ProjectDebugSymbols({organization, project, location, router, params}: 
   const [showDetails, setShowDetails] = useState(false);
 
   const query = decodeScalar(location.query.query, '');
+  const cursor = decodeScalar(location.query.cursor, '');
   const hasSymbolSourcesFeatureFlag = organization.features.includes('symbol-sources');
 
   const {
@@ -82,7 +78,7 @@ function ProjectDebugSymbols({organization, project, location, router, params}: 
     makeDebugFilesQueryKey({
       projectSlug: params.projectId,
       orgSlug: organization.slug,
-      query,
+      query: {query, cursor},
     }),
     {
       staleTime: 0,
@@ -134,7 +130,7 @@ function ProjectDebugSymbols({organization, project, location, router, params}: 
         queryKey: makeDebugFilesQueryKey({
           projectSlug: params.projectId,
           orgSlug: organization.slug,
-          query,
+          query: {query, cursor},
         }),
       });
 
