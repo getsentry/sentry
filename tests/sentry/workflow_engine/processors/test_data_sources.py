@@ -1,6 +1,6 @@
 from sentry.snuba.models import SnubaQuery
 from sentry.testutils.cases import TestCase
-from sentry.workflow_engine.models import DataSource
+from sentry.workflow_engine.models import DataPacket, DataSource
 from sentry.workflow_engine.processors import process_data_sources
 
 
@@ -30,25 +30,22 @@ class TestProcessDataSources(TestCase):
         )
         self.ds2.detectors.set([self.detector_two])
 
-        self.packet = self.query
-        self.packet_two = self.query_two
+        self.packet = DataPacket[dict](self.query.id, {"query_id": self.query.id, "foo": "bar"})
+        self.packet_two = DataPacket[dict](
+            self.query_two.id, {"query_id": self.query_two.id, "foo": "baz"}
+        )
 
-        # turn a query into a data packet, "simulating" the result from the snuba query
-        self.packet.query_id = self.query.id
-        self.packet_two.query_id = self.query_two.id
-
-        self.data_packets = [self.query, self.query_two]
+        self.data_packets = [self.packet, self.packet_two]
 
     def test_single_data_packet(self):
-        self.data_packets = [self.query]
-        assert process_data_sources(self.data_packets, DataSource.Type.SNUBA_QUERY) == [
-            (self.query, [self.detector_one])
+        assert process_data_sources([self.packet], DataSource.Type.SNUBA_QUERY) == [
+            (self.packet, [self.detector_one])
         ]
 
     def test_multiple_data_packets(self):
         assert process_data_sources(self.data_packets, DataSource.Type.SNUBA_QUERY) == [
-            (self.query, [self.detector_one]),
-            (self.query_two, [self.detector_two]),
+            (self.packet, [self.detector_one]),
+            (self.packet_two, [self.detector_two]),
         ]
 
     def test_multiple_detectors(self):
@@ -62,9 +59,9 @@ class TestProcessDataSources(TestCase):
         self.ds2.detectors.add(self.detector_five)
 
         assert process_data_sources(self.data_packets, DataSource.Type.SNUBA_QUERY) == [
-            (self.query, [self.detector_one]),
+            (self.packet, [self.detector_one]),
             (
-                self.query_two,
+                self.packet_two,
                 [self.detector_two, self.detector_three, self.detector_four, self.detector_five],
             ),
         ]
@@ -90,6 +87,6 @@ class TestProcessDataSources(TestCase):
         assert process_data_sources(
             self.data_packets, DataSource.Type.SNUBA_QUERY_SUBSCRIPTION
         ) == [
-            (self.query, [self.detector_one]),
-            (self.query_two, [self.detector_two]),
+            (self.packet, [self.detector_one]),
+            (self.packet_two, [self.detector_two]),
         ]

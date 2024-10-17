@@ -1,8 +1,6 @@
 import logging
 
-from sentry.workflow_engine.models import Detector
-from sentry.workflow_engine.models.data_source import DataPacket
-from sentry.workflow_engine.models.detector import DetectorEvaluationResult
+from sentry.workflow_engine.models import DataPacket, Detector, DetectorEvaluationResult
 
 logger = logging.getLogger(__name__)
 
@@ -11,12 +9,16 @@ def process_detectors(
     data_packet: DataPacket, detectors: list[Detector]
 ) -> list[tuple[Detector, list[DetectorEvaluationResult]]]:
     results = []
+
     for detector in detectors:
         handler = detector.detector_handler
+
         if not handler:
             continue
+
         detector_results = handler.evaluate(data_packet)
         detector_group_keys = set()
+
         for result in detector_results:
             if result.state_update_data:
                 if result.state_update_data.group_key in detector_group_keys:
