@@ -545,16 +545,18 @@ const PulsingIndicator = styled('div')<{hasQuickStartUpdatesFeature?: boolean}>`
 `;
 
 const EventWaitingIndicator = styled(
-  (
-    p: React.HTMLAttributes<HTMLDivElement> & {
-      hasQuickStartUpdatesFeature: boolean;
-      text?: string;
-    }
-  ) => {
-    if (p.hasQuickStartUpdatesFeature) {
+  ({
+    hasQuickStartUpdatesFeature: quickStartUpdatesFeature,
+    text,
+    ...p
+  }: React.HTMLAttributes<HTMLDivElement> & {
+    hasQuickStartUpdatesFeature: boolean;
+    text?: string;
+  }) => {
+    if (quickStartUpdatesFeature) {
       return (
         <div {...p}>
-          <Tooltip title={p.text || t('Waiting for event')}>
+          <Tooltip title={text || t('Waiting for event')}>
             <PulsingIndicator hasQuickStartUpdatesFeature />
           </Tooltip>
         </div>
@@ -563,7 +565,7 @@ const EventWaitingIndicator = styled(
     return (
       <div {...p}>
         <PulsingIndicator />
-        {p.text || t('Waiting for event')}
+        {text || t('Waiting for event')}
       </div>
     );
   }
