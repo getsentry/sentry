@@ -125,6 +125,7 @@ function Tabs({
   state,
   className,
   onReorder,
+  onReorderComplete,
   tabVariant,
   setTabRefs,
   tabs,
@@ -148,6 +149,7 @@ function Tabs({
   disabled?: boolean;
   editingTabKey?: string;
   onChange?: (key: string | number) => void;
+  onReorderComplete?: () => void;
   tabVariant?: BaseTabProps['variant'];
   value?: string | number;
 }) {
@@ -233,7 +235,10 @@ function Tabs({
               layout
               drag={item.key !== editingTabKey} // Disable dragging if the tab is being edited
               onDrag={() => setIsDragging(true)}
-              onDragEnd={() => setIsDragging(false)}
+              onDragEnd={() => {
+                setIsDragging(false);
+                onReorderComplete?.();
+              }}
               onHoverStart={() => setHoveringKey(item.key)}
               onHoverEnd={() => setHoveringKey(null)}
               initial={false}
@@ -264,6 +269,7 @@ function BaseDraggableTabList({
   className,
   outerWrapStyles,
   onReorder,
+  onReorderComplete,
   onAddView,
   tabVariant = 'filled',
   ...props
@@ -331,6 +337,7 @@ function BaseDraggableTabList({
         state={state}
         className={className}
         onReorder={onReorder}
+        onReorderComplete={onReorderComplete}
         tabVariant={tabVariant}
         setTabRefs={setTabElements}
         tabs={persistentTabs}
@@ -401,6 +408,7 @@ export interface DraggableTabListProps
   editingTabKey?: string;
   hideBorder?: boolean;
   onAddView?: React.MouseEventHandler;
+  onReorderComplete?: () => void;
   outerWrapStyles?: React.CSSProperties;
   showTempTab?: boolean;
   tabVariant?: BaseTabProps['variant'];
