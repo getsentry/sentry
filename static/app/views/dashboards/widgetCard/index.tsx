@@ -1,7 +1,9 @@
 import {Fragment, useState} from 'react';
 import type {useSortable} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
+import type {Location} from 'history';
 
+import type {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/alert';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import {HeaderTitle} from 'sentry/components/charts/styles';
@@ -16,7 +18,10 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
+import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
+import type {Organization} from 'sentry/types/organization';
 import {getFormattedDate} from 'sentry/utils/dates';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
@@ -28,11 +33,12 @@ import {
   MEPState,
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
-import useApi from 'sentry/utils/useApi';
-import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
-import useRouter from 'sentry/utils/useRouter';
+import withApi from 'sentry/utils/withApi';
+import withOrganization from 'sentry/utils/withOrganization';
+import withPageFilters from 'sentry/utils/withPageFilters';
+// eslint-disable-next-line no-restricted-imports
+import withSentryRouter from 'sentry/utils/withSentryRouter';
 import {DASHBOARD_CHART_GROUP} from 'sentry/views/dashboards/dashboard';
 import {DiscoverSplitAlert} from 'sentry/views/dashboards/discoverSplitAlert';
 import {MetricWidgetCard} from 'sentry/views/dashboards/metrics/widgetCard';
@@ -59,8 +65,12 @@ export const SESSION_DURATION_ALERT = (
 
 type DraggableProps = Pick<ReturnType<typeof useSortable>, 'attributes' | 'listeners'>;
 
-type Props = {
+type Props = WithRouterProps & {
+  api: Client;
   isEditingDashboard: boolean;
+  location: Location;
+  organization: Organization;
+  selection: PageFilters;
   widget: Widget;
   widgetLimitReached: boolean;
   dashboardFilters?: DashboardFilters;
@@ -106,13 +116,6 @@ type Data = {
 };
 
 function WidgetCard(props: Props) {
-  const router = useRouter();
-  const location = useLocation();
-  const api = useApi();
-  const organization = useOrganization();
-  const pageFilters = usePageFilters();
-  const {selection} = pageFilters;
-
   const [data, setData] = useState<Data>();
 
   const onDataFetched = (newData: Data) => {
@@ -124,6 +127,9 @@ function WidgetCard(props: Props) {
   };
 
   const {
+    api,
+    organization,
+    selection,
     widget,
     isMobile,
     renderErrorMessage,
@@ -134,6 +140,7 @@ function WidgetCard(props: Props) {
     noDashboardsMEPProvider,
     dashboardFilters,
     isWidgetInvalid,
+    location,
     onWidgetSplitDecision,
     shouldResize,
   } = props;
@@ -183,8 +190,8 @@ function WidgetCard(props: Props) {
         onEdit={props.onEdit}
         onDelete={props.onDelete}
         onDuplicate={props.onDuplicate}
-        router={router}
-        location={location}
+        router={props.router}
+        location={props.location}
         organization={organization}
         selection={selection}
         widget={widget}
@@ -240,8 +247,8 @@ function WidgetCard(props: Props) {
                       onDuplicate={props.onDuplicate}
                       onEdit={props.onEdit}
                       onDelete={props.onDelete}
-                      router={router}
-                      location={location}
+                      router={props.router}
+                      location={props.location}
                       index={props.index}
                       seriesData={data?.timeseriesResults}
                       seriesResultsType={data?.timeseriesResultsTypes}
@@ -353,7 +360,7 @@ function WidgetCard(props: Props) {
   );
 }
 
-export default WidgetCard;
+export default withApi(withOrganization(withPageFilters(withSentryRouter(WidgetCard))));
 
 function DisplayOnDemandWarnings(props: {widget: Widget}) {
   const organization = useOrganization();
