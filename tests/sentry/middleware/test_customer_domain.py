@@ -377,9 +377,7 @@ class End2EndTest(APITestCase):
             response = self.client.get(
                 reverse("org-events-endpoint", kwargs={"organization_id_or_slug": "some-org"}),
                 data={"querystring": "value"},
-                # This should preferably be HTTP_HOST.
-                # Using SERVER_NAME until https://code.djangoproject.com/ticket/32106 is fixed.
-                SERVER_NAME="does-not-exist.testserver",
+                HTTP_HOST="does-not-exist.testserver",
                 follow=True,
             )
             assert response.status_code == 200
@@ -448,9 +446,7 @@ class End2EndTest(APITestCase):
                     "org-events-endpoint", kwargs={"organization_id_or_slug": "albertos-apples"}
                 ),
                 data={"querystring": "value"},
-                # This should preferably be HTTP_HOST.
-                # Using SERVER_NAME until https://code.djangoproject.com/ticket/32106 is fixed.
-                SERVER_NAME="albertos-apples.testserver",
+                HTTP_HOST="albertos-apples.testserver",
                 follow=True,
             )
             assert response.status_code == 200
@@ -469,7 +465,7 @@ class End2EndTest(APITestCase):
                     "org-events-endpoint", kwargs={"organization_id_or_slug": "albertos-apples"}
                 ),
                 data={"querystring": "value"},
-                SERVER_NAME="albertos-apples.testserver",
+                HTTP_HOST="albertos-apples.testserver",
             )
             assert response.status_code == 200
 
@@ -479,7 +475,7 @@ class End2EndTest(APITestCase):
                     "org-events-endpoint", kwargs={"organization_id_or_slug": "albertos-apples"}
                 ),
                 data={"querystring": "value"},
-                SERVER_NAME="albertos-apples.testserver",
+                HTTP_HOST="albertos-apples.testserver",
             )
             assert response.status_code == 405
 
@@ -584,7 +580,7 @@ class End2EndTest(APITestCase):
         ):
             response = self.client.get(
                 "/api/0/some-org/",
-                SERVER_NAME="banned.testserver",
+                HTTP_HOST="banned.testserver",
                 follow=True,
             )
             assert response.status_code == 200

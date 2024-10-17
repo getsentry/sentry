@@ -112,7 +112,7 @@ class End2EndTest(APITestCase):
 
         response = self.client.get(
             reverse("test-endpoint"),
-            SERVER_NAME="albertos_apples.testserver",
+            HTTP_HOST="albertos_apples.testserver",
         )
         assert isinstance(response, HttpResponseRedirect)
         assert response.status_code == 302

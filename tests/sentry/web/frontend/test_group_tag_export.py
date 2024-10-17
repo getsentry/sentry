@@ -80,7 +80,7 @@ class GroupTagExportTest(TestCase, SnubaTestCase):
         self.url = f"{url}?environment={self.environment.name}"
 
         response = self.client.get(
-            self.url, SERVER_NAME=f"{self.project.organization.slug}.testserver"
+            self.url, HTTP_HOST=f"{self.project.organization.slug}.testserver"
         )
         self.verify_test(response)
 
