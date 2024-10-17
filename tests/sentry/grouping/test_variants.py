@@ -5,7 +5,6 @@ from typing import Any
 import orjson
 import pytest
 
-from sentry.grouping.api import get_default_grouping_config_dict
 from sentry.grouping.component import GroupingComponent
 from sentry.grouping.strategies.configurations import CONFIGURATIONS
 from tests.sentry.grouping import with_grouping_input
@@ -55,8 +54,7 @@ def dump_variant(variant, lines=None, indent=0):
 @with_grouping_input("grouping_input")
 @pytest.mark.parametrize("config_name", CONFIGURATIONS.keys(), ids=lambda x: x.replace("-", "_"))
 def test_event_hash_variant(config_name, grouping_input, insta_snapshot, log):
-    grouping_config = get_default_grouping_config_dict(config_name)
-    evt = grouping_input.create_event(grouping_config)
+    evt = grouping_input.create_event(config_name)
 
     # Make sure we don't need to touch the DB here because this would
     # break stuff later on.
@@ -73,6 +71,7 @@ def test_event_hash_variant(config_name, grouping_input, insta_snapshot, log):
     hashes = evt.get_hashes()
     log(repr(hashes))
 
-    assert evt.get_grouping_config() == grouping_config
+    # Make sure the event was annotated with the grouping config
+    assert evt.get_grouping_config()["id"] == config_name
 
     insta_snapshot(output)

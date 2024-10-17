@@ -5,7 +5,11 @@ from django.utils.functional import cached_property
 
 from sentry import eventstore
 from sentry.event_manager import EventManager, get_event_type, materialize_metadata
-from sentry.grouping.api import apply_server_fingerprinting, load_grouping_config
+from sentry.grouping.api import (
+    apply_server_fingerprinting,
+    get_default_grouping_config_dict,
+    load_grouping_config,
+)
 from sentry.grouping.enhancer import Enhancements
 from sentry.grouping.fingerprinting import FingerprintingRules
 from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
@@ -23,7 +27,9 @@ class GroupingInput:
         with open(os.path.join(_grouping_fixture_path, self.filename)) as f:
             return json.load(f)
 
-    def create_event(self, grouping_config):
+    def create_event(self, config_name):
+        grouping_config = get_default_grouping_config_dict(config_name)
+
         grouping_input = dict(self.data)
         # Customize grouping config from the _grouping config
         grouping_info = grouping_input.pop("_grouping", None) or {}
