@@ -5,6 +5,8 @@ from typing import Any, Literal
 from sentry.api.serializers import ExternalEventSerializer, serialize
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.integrations.client import ApiClient
+from sentry.integrations.on_call.metrics import OnCallInteractionType
+from sentry.integrations.pagerduty.metrics import record_event
 from sentry.shared_integrations.client.base import BaseApiResponseX
 
 LEVEL_SEVERITY_MAP = {
@@ -78,5 +80,5 @@ class PagerDutyClient(ApiClient):
         else:
             # the payload is for a metric alert
             payload = data
-
-        return self.post("/", data=payload)
+        with record_event(OnCallInteractionType.CREATE).capture():
+            return self.post("/", data=payload)
