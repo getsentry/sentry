@@ -273,7 +273,7 @@ class HTTPOverheadDetectorTest(TestCase):
             data={
                 "url": url,
                 "network.protocol.version": "1.1",
-                "request_start": None,
+                "http.request.request_start": None,
             },
         )
 
