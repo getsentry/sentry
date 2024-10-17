@@ -61,11 +61,11 @@ def test_event_hash_variant(config_name, grouping_input, insta_snapshot):
     event.project = None
 
     rv: list[str] = []
-    for key, value in sorted(event.get_grouping_variants().items()):
+    for variant_name, variant in sorted(event.get_grouping_variants().items()):
         if rv:
             rv.append("-" * 74)
-        rv.append("%s:" % key)
-        dump_variant(value, rv, 1)
+        rv.append("%s:" % variant_name)
+        dump_variant(variant, rv, 1)
     output = "\n".join(rv)
 
     # Make sure the event was annotated with the grouping config
