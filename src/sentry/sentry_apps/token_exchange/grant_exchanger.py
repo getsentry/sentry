@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from datetime import datetime, timezone
 
+import sentry_sdk
 from django.db import router, transaction
 from django.utils.functional import cached_property
 
@@ -29,17 +30,29 @@ class GrantExchanger:
     client_id: str
     user: User
 
+    @sentry_sdk.trace
     def run(self):
         with transaction.atomic(using=router.db_for_write(ApiToken)):
+            sentry_sdk.set_context(
+                "token-exchange.grant",
+                {
+                    "user_id": self.user.id,
+                    "install_id": self.install.id,
+                    "client_id": self.client_id,
+                    "org_id": self.install.organization_id,
+                    "app_id": self.sentry_app.id,
+                },
+            )
             self._validate()
             token = self._create_token()
 
             # Once it's exchanged it's no longer valid and should not be
             # exchangeable, so we delete it.
             self._delete_grant()
-            self.record_analytics()
+            sentry_sdk.capture_exception()
+        self.record_analytics()
 
-            return token
+        return token
 
     def record_analytics(self) -> None:
         analytics.record(
@@ -52,10 +65,13 @@ class GrantExchanger:
         Validator.run(install=self.install, client_id=self.client_id, user=self.user)
 
         if not self._grant_belongs_to_install() or not self._sentry_app_user_owns_grant():
+            sentry_sdk.capture_message(
+                "Grant's sentry app installation doesn't match given install or user"
+            )
             raise APIUnauthorized("Forbidden grant")
 
         if not self._grant_is_active():
-            raise APIUnauthorized("Grant has already expired.")
+            raise APIUnauthorized("Grant has already expired")
 
     def _grant_belongs_to_install(self) -> bool:
         return self.grant.sentry_app_installation.id == self.install.id

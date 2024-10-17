@@ -1,3 +1,4 @@
+import sentry_sdk
 from django.db import router
 from django.utils.functional import cached_property
 
@@ -26,10 +27,24 @@ class Refresher(Mediator):
     user = Param(User)
     using = router.db_for_write(User)
 
+    @sentry_sdk.trace
     def call(self):
+        sentry_sdk.set_context(
+            "token-exchange.refresh",
+            {
+                "user_id": self.user.id,
+                "install_id": self.install.id,
+                "client_id": self.client_id,
+                "org_id": self.install.organization_id,
+                "app_id": self.sentry_app.id,
+            },
+        )
+
         self._validate()
         self._delete_token()
-        return self._create_new_token()
+        token = self._create_new_token()
+        sentry_sdk.capture_exception()
+        return token
 
     def record_analytics(self):
         analytics.record(
@@ -45,7 +60,7 @@ class Refresher(Mediator):
 
     def _validate_token_belongs_to_app(self):
         if self.token.application != self.application:
-            raise APIUnauthorized
+            raise APIUnauthorized("Token does not belong to the application")
 
     def _delete_token(self):
         self.token.delete()
@@ -68,18 +83,19 @@ class Refresher(Mediator):
         try:
             return ApiToken.objects.get(refresh_token=self.refresh_token)
         except ApiToken.DoesNotExist:
-            raise APIUnauthorized
+            sentry_sdk.capture_message("Unable to find given refresh token in ApiToken objects")
+            raise APIUnauthorized("Token does not exist")
 
     @cached_property
     def application(self):
         try:
             return ApiApplication.objects.get(client_id=self.client_id)
         except ApiApplication.DoesNotExist:
-            raise APIUnauthorized
+            raise APIUnauthorized("Application does not exist")
 
     @property
     def sentry_app(self):
         try:
             return self.application.sentry_app
         except SentryApp.DoesNotExist:
-            raise APIUnauthorized
+            raise APIUnauthorized("Sentry App does not exist")
