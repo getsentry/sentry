@@ -59,7 +59,9 @@ class TeamDetailsEndpoint(TeamEndpoint):
     # OrganizationSCIMTeamDetails inherits this endpoint, but toggles this setting
     _allow_idp_changes = False
 
-    def is_permitted_idp_change(self, team: Team):
+    def can_modify_team(self, team: Team):
+        if not team.idp_provisioned:
+            return True
         return team.idp_provisioned and self._allow_idp_changes
 
     @extend_schema(
@@ -113,7 +115,7 @@ class TeamDetailsEndpoint(TeamEndpoint):
         team.
         """
 
-        if not self.is_permitted_idp_change(team):
+        if not self.can_modify_team(team):
             return Response(
                 {"detail": "This team is managed through your organization's identity provider."},
                 status=403,
@@ -154,7 +156,7 @@ class TeamDetailsEndpoint(TeamEndpoint):
         immediate. Teams will have their slug released while waiting for deletion.
         """
 
-        if not self.is_permitted_idp_change(team):
+        if not self.can_modify_team(team):
             return Response(
                 {"detail": "This team is managed through your organization's identity provider."},
                 status=403,
