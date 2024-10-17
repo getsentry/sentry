@@ -255,7 +255,9 @@ export function SourceMapsDetails({params, location, router, project}: Props) {
                   key={data.id}
                   size={data.fileSize}
                   name={data.filePath}
-                  type={debugIdBundleTypeLabels[data.fileType]}
+                  type={
+                    debugIdBundleTypeLabels[data.fileType as DebugIdBundleArtifactType]
+                  }
                   downloadUrl={downloadUrl}
                   orgSlug={organization.slug}
                   artifactColumnDetails={
