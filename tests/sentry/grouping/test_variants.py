@@ -64,7 +64,7 @@ def dump_variant(
 def test_event_hash_variant(
     config_name: str, grouping_input: GroupingInput, insta_snapshot: InstaSnapshotter
 ) -> None:
-    event = grouping_input.create_event(config_name)
+    event = grouping_input.create_event(config_name, use_full_ingest_pipeline=False)
 
     # This ensures we won't try to touch the DB when getting event variants
     event.project = None  # type: ignore[assignment]

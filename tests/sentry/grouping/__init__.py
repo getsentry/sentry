@@ -73,7 +73,12 @@ class GroupingInput:
         ):
             return save_new_event(self.data, project)
 
-    def create_event(self, config_name: str) -> Event:
+    def create_event(
+        self,
+        config_name: str,
+        use_full_ingest_pipeline: bool = True,
+        project: Project | None = None,
+    ) -> Event:
         grouping_config = get_default_grouping_config_dict(config_name)
 
         # Add in any extra grouping configuration from the input data
@@ -86,7 +91,11 @@ class GroupingInput:
             bases=CONFIGURATIONS[config_name].fingerprinting_bases,
         )
 
-        event = self._manually_save_event(grouping_config, fingerprinting_config)
+        if use_full_ingest_pipeline:
+            assert project, "'project' is required to use full pipeline"
+            event = self._save_event_with_pipeline(grouping_config, fingerprinting_config, project)
+        else:
+            event = self._manually_save_event(grouping_config, fingerprinting_config)
 
         return event
 
