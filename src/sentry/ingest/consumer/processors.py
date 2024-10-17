@@ -60,18 +60,6 @@ def process_transaction_no_celery(
 
     set_current_event_project(project_id)
 
-    event_type = data.get("type") or "none"
-
-    if killswitch_matches_context(
-        "store.load-shed-save-event-projects",
-        {
-            "project_id": project_id,
-            "event_type": event_type,
-            "platform": data.get("platform") or "none",
-        },
-    ):
-        return
-
     manager = EventManager(data)
     # event.project.organization is populated after this statement.
     manager.save(
