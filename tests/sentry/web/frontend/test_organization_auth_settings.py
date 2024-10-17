@@ -240,7 +240,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         self.login_as(self.user, organization_id=organization.id)
 
         with self.feature("organizations:sso-basic"):
-            resp = self.client.get(path, SERVER_NAME=f"{organization.slug}.testserver")
+            resp = self.client.get(path, HTTP_HOST=f"{organization.slug}.testserver")
 
         content = resp.content.decode("utf-8")
         assert f"http://{organization.slug}.testserver" in content

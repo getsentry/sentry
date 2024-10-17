@@ -354,7 +354,7 @@ class ReactPageViewTest(TestCase):
         with self.feature({"system:multi-region": True}):
             response = self.client.get(
                 "/issues/",
-                SERVER_NAME=f"{org.slug}.testserver",
+                HTTP_HOST=f"{org.slug}.testserver",
             )
             assert response.status_code == 200
             self.assertTemplateUsed(response, "sentry/base-react.html")
@@ -369,7 +369,7 @@ class ReactPageViewTest(TestCase):
         with self.feature({"system:multi-region": True}):
             response = self.client.get(
                 "/issues/",
-                SERVER_NAME=f"{org.slug}.testserver",
+                HTTP_HOST=f"{org.slug}.testserver",
                 follow=True,
             )
             assert response.status_code == 200
@@ -388,7 +388,7 @@ class ReactPageViewTest(TestCase):
         with self.feature({"system:multi-region": True}):
             response = self.client.get(
                 "/issues/",
-                SERVER_NAME=f"{org.slug}.testserver",
+                HTTP_HOST=f"{org.slug}.testserver",
                 follow=True,
             )
             assert response.status_code == 200
@@ -405,7 +405,7 @@ class ReactPageViewTest(TestCase):
         with self.feature({"organizations:profiling-browser": [org.slug]}):
             response = self.client.get(
                 "/issues/",
-                SERVER_NAME=f"{org.slug}.testserver",
+                HTTP_HOST=f"{org.slug}.testserver",
                 follow=True,
             )
             assert response.status_code == 200
@@ -418,7 +418,7 @@ class ReactPageViewTest(TestCase):
 
         response = self.client.get(
             "/issues/",
-            SERVER_NAME=f"{org.slug}.testserver",
+            HTTP_HOST=f"{org.slug}.testserver",
             follow=True,
         )
         assert response.status_code == 200
