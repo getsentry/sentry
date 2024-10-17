@@ -56,13 +56,6 @@ class GroupingInput:
         return event
 
 
-grouping_input = [
-    GroupingInput(filename)
-    for filename in sorted(os.listdir(GROUPING_INPUTS_DIR))
-    if filename.endswith(".json")
-]
-
-
 def get_grouping_inputs(inputs_dir: str) -> list[GroupingInput]:
     return [
         GroupingInput(filename)

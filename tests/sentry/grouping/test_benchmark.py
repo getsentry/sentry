@@ -1,7 +1,9 @@
 import pytest
 
 from sentry.grouping.strategies.configurations import CONFIGURATIONS
-from tests.sentry.grouping import grouping_input as grouping_inputs
+from tests.sentry.grouping import GROUPING_INPUTS_DIR, get_grouping_inputs
+
+GROUPING_INPUTS = get_grouping_inputs(GROUPING_INPUTS_DIR)
 
 
 def benchmark_available() -> bool:
@@ -18,12 +20,12 @@ def benchmark_available() -> bool:
     "config_name", sorted(CONFIGURATIONS.keys()), ids=lambda x: x.replace("-", "_")
 )
 def test_benchmark_grouping(config_name, benchmark):
-    input_iter = iter(grouping_inputs)
+    input_iter = iter(GROUPING_INPUTS)
 
     def setup():
         return (next(input_iter), config_name), {}
 
-    benchmark.pedantic(run_configuration, setup=setup, rounds=len(grouping_inputs))
+    benchmark.pedantic(run_configuration, setup=setup, rounds=len(GROUPING_INPUTS))
 
 
 def run_configuration(grouping_input, config_name):
