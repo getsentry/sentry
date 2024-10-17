@@ -1,3 +1,4 @@
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
@@ -11,6 +12,7 @@ import {
 } from 'sentry/components/onboardingWizard/utils';
 import {filterProjects} from 'sentry/components/performanceOnboarding/utils';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
+import {Tooltip} from 'sentry/components/tooltip';
 import {sourceMaps} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
@@ -208,7 +210,12 @@ export function getOnboardingTasks({
               eventType="error"
               onIssueReceived={() => !taskIsDone(task) && onCompleteTask()}
             >
-              {() => <EventWaitingIndicator text={t('Waiting for error')} />}
+              {() => (
+                <EventWaitingIndicator
+                  text={t('Waiting for error')}
+                  hasQuickStartUpdatesFeature={hasQuickStartUpdatesFeature(organization)}
+                />
+              )}
             </EventWaiter>
           ) : null
       ),
@@ -338,7 +345,11 @@ export function getOnboardingTasks({
               eventType="transaction"
               onIssueReceived={() => !taskIsDone(task) && onCompleteTask()}
             >
-              {() => <EventWaitingIndicator />}
+              {() => (
+                <EventWaitingIndicator
+                  hasQuickStartUpdatesFeature={hasQuickStartUpdatesFeature(organization)}
+                />
+              )}
             </EventWaiter>
           ) : null
       ),
@@ -391,7 +402,12 @@ export function getOnboardingTasks({
               eventType="replay"
               onIssueReceived={() => !taskIsDone(task) && onCompleteTask()}
             >
-              {() => <EventWaitingIndicator text={t('Waiting for user session')} />}
+              {() => (
+                <EventWaitingIndicator
+                  hasQuickStartUpdatesFeature={hasQuickStartUpdatesFeature(organization)}
+                  text={t('Waiting for user session')}
+                />
+              )}
             </EventWaiter>
           ) : null
       ),
@@ -516,22 +532,54 @@ export function getMergedTasks({organization, projects, onboardingContext}: Opti
   }));
 }
 
-const PulsingIndicator = styled('div')`
+const PulsingIndicator = styled('div')<{hasQuickStartUpdatesFeature?: boolean}>`
   ${pulsingIndicatorStyles};
-  margin-right: ${space(1)};
+  ${p =>
+    p.hasQuickStartUpdatesFeature
+      ? css`
+          margin: 0 ${space(0.5)};
+        `
+      : css`
+          margin-right: ${space(1)};
+        `}
 `;
 
 const EventWaitingIndicator = styled(
-  (p: React.HTMLAttributes<HTMLDivElement> & {text?: string}) => (
-    <div {...p}>
-      <PulsingIndicator />
-      {p.text || t('Waiting for event')}
-    </div>
-  )
+  ({
+    hasQuickStartUpdatesFeature: quickStartUpdatesFeature,
+    text,
+    ...p
+  }: React.HTMLAttributes<HTMLDivElement> & {
+    hasQuickStartUpdatesFeature: boolean;
+    text?: string;
+  }) => {
+    if (quickStartUpdatesFeature) {
+      return (
+        <div {...p}>
+          <Tooltip title={text || t('Waiting for event')}>
+            <PulsingIndicator hasQuickStartUpdatesFeature />
+          </Tooltip>
+        </div>
+      );
+    }
+    return (
+      <div {...p}>
+        <PulsingIndicator />
+        {text || t('Waiting for event')}
+      </div>
+    );
+  }
 )`
   display: flex;
   align-items: center;
-  flex-grow: 1;
-  font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.pink400};
+  ${p =>
+    p.hasQuickStartUpdatesFeature
+      ? css`
+          height: 16px;
+        `
+      : css`
+          flex-grow: 1;
+          font-size: ${p.theme.fontSizeMedium};
+          color: ${p.theme.pink400};
+        `}
 `;
