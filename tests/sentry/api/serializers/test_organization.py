@@ -88,7 +88,6 @@ class OrganizationSerializerTest(TestCase):
             "invite-members",
             "minute-resolution-sessions",
             "new-page-filter",
-            "noisy-alert-warning",
             "open-membership",
             "relay",
             "shared-issues",
