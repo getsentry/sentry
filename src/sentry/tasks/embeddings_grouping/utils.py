@@ -1,5 +1,6 @@
 import logging
 import time
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import asdict
 from datetime import UTC, datetime, timedelta
@@ -349,7 +350,7 @@ def get_events_from_nodestore(
     project: Project,
     snuba_results: list[dict[str, Any]],
     groups_to_backfill_with_no_embedding_has_snuba_row: list[int],
-) -> tuple[GroupStacktraceData, dict[str, Any]]:
+) -> tuple[GroupStacktraceData, dict[int, str]]:
     nodestore_events = lookup_group_data_stacktrace_bulk(project, snuba_results)
     # If nodestore returns no data
     if len(nodestore_events) == 0:
@@ -438,8 +439,8 @@ def _make_seer_call(
 
 @sentry_sdk.tracing.trace
 def send_group_and_stacktrace_to_seer(
-    groups_to_backfill_with_no_embedding_has_snuba_row_and_nodestore_row,
-    nodestore_results,
+    groups_to_backfill_with_no_embedding_has_snuba_row_and_nodestore_row: list[int],
+    nodestore_results: dict[str, Any],
     project_id: int,
 ) -> BulkCreateGroupingRecordsResponse | None:
     with metrics.timer(
@@ -459,11 +460,15 @@ def send_group_and_stacktrace_to_seer(
 
 @sentry_sdk.tracing.trace
 def send_group_and_stacktrace_to_seer_multithreaded(
-    groups_to_backfill_with_no_embedding_has_snuba_row_and_nodestore_row,
-    nodestore_results,
+    groups_to_backfill_with_no_embedding_has_snuba_row_and_nodestore_row: list[
+        tuple[int, dict[str, Any]]
+    ],
+    nodestore_results: dict[str, Any],
     project_id: int,
 ) -> BulkCreateGroupingRecordsResponse | None:
-    def process_chunk(chunk_data, chunk_stacktrace):
+    def process_chunk(
+        chunk_data: list[int], chunk_stacktrace: list[str]
+    ) -> BulkCreateGroupingRecordsResponse | None:
         return _make_seer_call(
             CreateGroupingRecordsRequest(
                 group_id_list=chunk_data["group_ids"],
@@ -632,7 +637,7 @@ def make_nodestore_call_multithreaded(project: Project, node_keys: list[str]) ->
 
 @sentry_sdk.tracing.trace
 def lookup_group_data_stacktrace_bulk(
-    project: Project, rows: list[GroupEventRow]
+    project: Project, rows: list[dict[str, Any]]
 ) -> dict[int, Event]:
     with metrics.timer(
         f"{BACKFILL_NAME}.lookup_event_bulk",
@@ -707,7 +712,12 @@ def lookup_group_data_stacktrace_bulk(
 
 
 def _retry_operation(
-    operation, *args, retries: int, delay: int, exceptions: Exception, **kwargs
+    operation: Callable[..., Any],
+    *args: Any,
+    retries: int,
+    delay: int,
+    exceptions: Any,
+    **kwargs: Any,
 ) -> Any:
     for attempt in range(retries):
         try:
