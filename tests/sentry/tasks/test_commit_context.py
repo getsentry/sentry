@@ -12,6 +12,7 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.github.integration import GitHubIntegrationProvider
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.source_code_management.commit_context import (
+    CommitContextIntegration,
     CommitInfo,
     FileBlameInfo,
     SourceLineInfo,
@@ -29,11 +30,7 @@ from sentry.models.pullrequest import (
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
-from sentry.tasks.commit_context import (
-    PR_COMMENT_WINDOW,
-    process_commit_context,
-    queue_comment_task_if_needed,
-)
+from sentry.tasks.commit_context import PR_COMMENT_WINDOW, process_commit_context
 from sentry.testutils.cases import IntegrationTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import assume_test_silo_mode
@@ -1209,13 +1206,20 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextIntegration):
         assert integration
 
         install = integration.get_installation(organization_id=self.code_mapping.organization_id)
+        assert isinstance(install, CommitContextIntegration)
 
         with self.tasks():
-            queue_comment_task_if_needed(
-                commit=self.commit, group_owner=groupowner, repo=self.repo, installation=install
+            install.queue_comment_task_if_needed(
+                project=self.project,
+                commit=self.commit,
+                group_owner=groupowner,
+                group_id=self.event.group_id,
             )
-            queue_comment_task_if_needed(
-                commit=self.commit, group_owner=groupowner, repo=self.repo, installation=install
+            install.queue_comment_task_if_needed(
+                project=self.project,
+                commit=self.commit,
+                group_owner=groupowner,
+                group_id=self.event.group_id,
             )
             assert mock_comment_workflow.call_count == 1
 
@@ -1244,6 +1248,7 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextIntegration):
         assert integration
 
         install = integration.get_installation(organization_id=self.code_mapping.organization_id)
+        assert isinstance(install, CommitContextIntegration)
 
         # open PR comment
         PullRequestComment.objects.create(
@@ -1256,10 +1261,16 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextIntegration):
         )
 
         with self.tasks():
-            queue_comment_task_if_needed(
-                commit=self.commit, group_owner=groupowner, repo=self.repo, installation=install
+            install.queue_comment_task_if_needed(
+                project=self.project,
+                commit=self.commit,
+                group_owner=groupowner,
+                group_id=self.event.group_id,
             )
-            queue_comment_task_if_needed(
-                commit=self.commit, group_owner=groupowner, repo=self.repo, installation=install
+            install.queue_comment_task_if_needed(
+                project=self.project,
+                commit=self.commit,
+                group_owner=groupowner,
+                group_id=self.event.group_id,
             )
             assert mock_comment_workflow.call_count == 1
