@@ -79,6 +79,9 @@ def test_save_user_report_large_message_truncated(default_project, monkeypatch):
     )
 
     max_length = UserReport._meta.get_field("comments").max_length
+    if not max_length:
+        assert False, "Missing max_length for UserReport comments field!"
+
     report = {
         "event_id": "123456",
         "name": "Test User",

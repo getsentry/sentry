@@ -41,7 +41,7 @@ def save_userreport(
             return
 
         max_comment_length = UserReport._meta.get_field("comments").max_length
-        if len(report["comments"]) > max_comment_length:
+        if max_comment_length and len(report["comments"]) > max_comment_length:
             metrics.incr(
                 "feedback.large_message",
                 tags={
