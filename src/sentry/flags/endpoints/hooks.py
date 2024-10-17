@@ -1,5 +1,6 @@
 from urllib.parse import unquote
 
+import sentry_sdk
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -68,4 +69,5 @@ class OrganizationFlagsHooksEndpoint(Endpoint):
         except InvalidProvider:
             raise ResourceDoesNotExist
         except DeserializationError as exc:
-            return Response(exc.errors, status=400)
+            sentry_sdk.capture_exception()
+            return Response(exc.errors, status=200)

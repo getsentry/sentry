@@ -13,11 +13,8 @@ from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils.security.orgauthtoken_token import hash_token
 
 
-class OrganizationFlagsHooksEndpointTestCase(APITestCase):
+class OrganizationFlagsAuthTokenTestCase(APITestCase):
     endpoint = "sentry-api-0-flag-hooks"
-
-    def setUp(self):
-        super().setUp()
 
     def test_bad_token(self):
         token_str = "badtoken"
@@ -41,6 +38,13 @@ class OrganizationFlagsHooksEndpointTestCase(APITestCase):
             )
         with pytest.raises(AuthenticationFailed):
             get_org_id_from_token(token_encoded)
+
+
+class OrganizationFlagsHooksEndpointTestCase(APITestCase):
+    endpoint = "sentry-api-0-flag-hooks"
+
+    def setUp(self):
+        super().setUp()
 
     def test_no_provider(self):
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -222,3 +226,60 @@ class OrganizationFlagsHooksEndpointTestCase(APITestCase):
         assert flag.created_by_type == CREATED_BY_TYPE_MAP["email"]
         assert flag.organization_id == self.organization.id
         assert flag.tags is not None
+
+    def test_launchdarkly_serialize_error(self):
+        request_data = {
+            "currentVersion": {
+                "name": "test flag",
+                "kind": "boolean",
+                "description": "testing a feature flag",
+                "key": "test-flag",
+                "_version": 1,
+                "creationDate": 1729123465176,
+                "includeInSnippet": False,
+                "clientSideAvailability": {"usingMobileKey": False, "usingEnvironmentId": False},
+                "variations": [
+                    {"_id": "d883033e-fa8b-41d4-a4be-112d9a59278e", "value": True, "name": "on"},
+                    {"_id": "73aaa33f-c9ca-4bdc-8c97-01a20567aa3f", "value": False, "name": "off"},
+                ],
+                "temporary": False,
+                "tags": [],
+                "_links": {
+                    "parent": {"href": "/api/v2/flags/default", "type": "application/json"},
+                    "self": {"href": "/api/v2/flags/default/test-flag", "type": "application/json"},
+                },
+                "maintainerId": "1234",
+                "_maintainer": {
+                    "_links": {
+                        "self": {
+                            "href": "/api/v2/members/1234",
+                            "type": "application/json",
+                        }
+                    },
+                    "_id": "1234",
+                    "firstName": "Michelle",
+                    "lastName": "Doe",
+                    "role": "owner",
+                    "email": "michelle@example.com",
+                },
+            }
+        }
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            token_str = "sntrys+_abc123_xy/3_*z"
+            token_encoded = quote(token_str)
+            OrgAuthToken.objects.create(
+                name="Test Token 1",
+                token_hashed=hash_token(token_str),
+                organization_id=self.organization.id,
+                token_last_characters="xyz",
+                scope_list=["org:ci"],
+                date_last_used=None,
+            )
+
+        url = reverse(self.endpoint, args=("launchdarkly", token_encoded))
+
+        response = self.client.post(url, request_data)
+
+        assert response.status_code == 200
+        assert FlagAuditLogModel.objects.count() == 0

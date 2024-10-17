@@ -143,14 +143,14 @@ def test_launchdarkly_create():
             },
         },
     }
-    res = handle_provider_event("launchdarkly", request_data, "123")
+    res = handle_provider_event("launchdarkly", request_data, 123)
     assert len(res) == 1
     flag_row = res[0]
     assert flag_row["action"] == ACTION_MAP["created"]
     assert flag_row["flag"] == "test flag"
     assert flag_row["created_by"] == "michelle@example.com"
     assert flag_row["created_by_type"] == CREATED_BY_TYPE_MAP["email"]
-    assert flag_row["organization_id"] == "123"
+    assert flag_row["organization_id"] == 123
     assert flag_row["tags"] is not None
 
 
@@ -340,7 +340,7 @@ def test_launchdarkly_update():
         },
     }
 
-    res = handle_provider_event("launchdarkly", request_data, "123")
+    res = handle_provider_event("launchdarkly", request_data, 123)
     assert len(res) == 1
     flag_row = res[0]
     assert flag_row["action"] == ACTION_MAP["updated"]
@@ -376,7 +376,7 @@ def test_launchdarkly_delete():
         "title": "Michelle deleted the flag [test flag](https://app.launchdarkly.com/default/test/features/test-flag) in `Test`",
     }
 
-    res = handle_provider_event("launchdarkly", request_data, "123")
+    res = handle_provider_event("launchdarkly", request_data, 123)
     assert len(res) == 1
     flag_row = res[0]
     assert flag_row["action"] == ACTION_MAP["deleted"]
@@ -399,4 +399,4 @@ def test_bad_launchdarkly_data():
         },
     }
     with pytest.raises(DeserializationError):
-        handle_provider_event("launchdarkly", request_data, "123")
+        handle_provider_event("launchdarkly", request_data, 123)
