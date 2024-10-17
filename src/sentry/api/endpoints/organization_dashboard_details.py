@@ -53,7 +53,7 @@ class DashboardPermissions(BasePermission):
 
 class OrganizationDashboardBase(OrganizationEndpoint):
     owner = ApiOwner.PERFORMANCE
-    if features.has({"organizations:dashboards-edit-access": True}):
+    if features.has("organizations:dashboards-edit-access"):
         permission_classes = (OrganizationDashboardsPermission, DashboardPermissions)
     else:
         permission_classes = (OrganizationDashboardsPermission,)
