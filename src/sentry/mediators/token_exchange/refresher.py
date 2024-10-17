@@ -44,8 +44,7 @@ class Refresher(Mediator):
 
         self._validate()
         self._delete_token()
-        token = self._create_new_token()
-        return token
+        self._create_new_token()
 
     def record_analytics(self):
         analytics.record(
