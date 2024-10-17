@@ -98,6 +98,17 @@ function EAPField({aggregate, project, onChange}: Props) {
     [metaArr, onChange, aggregation]
   );
 
+  const handleOperationChange = useCallback(
+    option => {
+      if (field) {
+        onChange(`${option.value}(${field})`, {});
+      } else {
+        onChange(`${option.value}(${DEFAULT_EAP_FIELD})`, {});
+      }
+    },
+    [field, onChange]
+  );
+
   // As SelectControl does not support an options size limit out of the box
   // we work around it by using the async variant of the control
   const getFieldOptions = useCallback(
@@ -151,13 +162,7 @@ function EAPField({aggregate, project, onChange}: Props) {
         placeholder={t('Select an operation')}
         options={OPERATIONS}
         value={aggregation}
-        onChange={option => {
-          if (field) {
-            onChange(`${option.value}(${field})`, {});
-          } else {
-            onChange(`${option.value}(${DEFAULT_EAP_FIELD})`, {});
-          }
-        }}
+        onChange={handleOperationChange}
       />
       <StyledSelectControl
         searchable
