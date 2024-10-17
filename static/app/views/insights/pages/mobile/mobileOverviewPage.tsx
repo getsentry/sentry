@@ -27,8 +27,10 @@ import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {ViewTrendsButton} from 'sentry/views/insights/common/viewTrendsButton';
 import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
-import {OVERVIEW_PAGE_ALLOWED_OPS} from 'sentry/views/insights/pages/mobile/settings';
-import {MOBILE_LANDING_TITLE} from 'sentry/views/insights/pages/mobile/settings';
+import {
+  MOBILE_LANDING_TITLE,
+  OVERVIEW_PAGE_ALLOWED_OPS,
+} from 'sentry/views/insights/pages/mobile/settings';
 import {OVERVIEW_PAGE_TITLE} from 'sentry/views/insights/pages/settings';
 import {
   generateGenericPerformanceEventView,
