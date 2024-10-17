@@ -24,6 +24,7 @@ export enum OnboardingTaskKey {
   USER_CONTEXT = 'setup_user_context',
   RELEASE_TRACKING = 'setup_release_tracking',
   SOURCEMAPS = 'setup_sourcemaps',
+  USER_REPORTS = 'setup_user_reports',
   ALERT_RULE = 'setup_alert_rules',
   FIRST_TRANSACTION = 'setup_transactions',
   METRIC_ALERT = 'setup_metric_alert_rules',
