@@ -942,6 +942,25 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         self.create_organization(slug="taken")
         self.get_error_response(self.organization.slug, slug="taken", status_code=400)
 
+    def test_target_sample_rate_range(self):
+        # low, within and high
+        data = {"targetSampleRate": 0.0}
+        self.get_success_response(self.organization.slug, **data)
+
+        data = {"targetSampleRate": 0.1}
+        self.get_success_response(self.organization.slug, **data)
+
+        data = {"targetSampleRate": 1.0}
+        self.get_success_response(self.organization.slug, **data)
+
+        # below range
+        data = {"targetSampleRate": -0.1}
+        self.get_error_response(self.organization.slug, status_code=400, **data)
+
+        # above range
+        data = {"targetSampleRate": 1.1}
+        self.get_error_response(self.organization.slug, status_code=400, **data)
+
 
 class OrganizationDeleteTest(OrganizationDetailsTestBase):
     method = "delete"

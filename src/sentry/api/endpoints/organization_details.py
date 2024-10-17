@@ -368,6 +368,13 @@ class OrganizationSerializer(BaseOrganizationSerializer):
             )
         return value
 
+    def validate_targetSampleRate(self, value):
+        if not 0.0 <= value <= 1.0:
+            raise serializers.ValidationError(
+                "The targetSampleRate option must be in the range [0:1]"
+            )
+        return value
+
     def validate(self, attrs):
         attrs = super().validate(attrs)
         if attrs.get("avatarType") == "upload":
