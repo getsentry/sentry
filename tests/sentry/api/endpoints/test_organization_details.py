@@ -410,7 +410,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         "sentry.integrations.github.integration.GitHubApiClient.get_repositories",
         return_value=[{"name": "cool-repo", "full_name": "testgit/cool-repo"}],
     )
-    @with_feature("organizations:codecov-integration")
+    @with_feature(["organizations:codecov-integration", "organizations:dynamic-sampling-custom"])
     def test_various_options(self, mock_get_repositories):
         initial = self.organization.get_audit_log_data()
         with assume_test_silo_mode_of(AuditLogEntry):
