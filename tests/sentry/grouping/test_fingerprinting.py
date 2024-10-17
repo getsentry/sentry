@@ -167,8 +167,8 @@ release:foo                                     -> release-foo
 def test_event_hash_variant(insta_snapshot: Any, input: Any) -> None:
     config, event = input.create_event()
 
-    def dump_variant(v: Any) -> dict[str, Any]:
-        rv = v.as_dict()
+    def dump_variant(variant: Any) -> dict[str, Any]:
+        rv = variant.as_dict()
 
         for key in "hash", "description", "config":
             rv.pop(key, None)
@@ -185,8 +185,10 @@ def test_event_hash_variant(insta_snapshot: Any, input: Any) -> None:
             "fingerprint": event.data["fingerprint"],
             "title": event.data["title"],
             "variants": {
-                k: dump_variant(v)
-                for (k, v) in event.get_grouping_variants(force_config=GROUPING_CONFIG).items()
+                variant_name: dump_variant(variant)
+                for (variant_name, variant) in event.get_grouping_variants(
+                    force_config=GROUPING_CONFIG
+                ).items()
             },
         }
     )
