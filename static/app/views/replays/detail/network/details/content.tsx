@@ -1,6 +1,8 @@
 import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
+import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getFrameMethod, getFrameStatus} from 'sentry/utils/replays/resourceFrame';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -68,6 +70,16 @@ export default function NetworkDetailsContent(props: Props) {
             <Setup showSnippet={output} {...props} />
           )}
           {output === Output.UNSUPPORTED && <UnsupportedOp type="bodies" />}
+          {output === Output.BODY_PARSE_ERROR && (
+            <ParseError>{t('The SDK was unable to parse the response body.')}</ParseError>
+          )}
+          {output === Output.BODY_PARSE_TIMEOUT && (
+            <ParseError>
+              {t(
+                'The SDK timed out while parsing response body. This is to reduce CPU usage on client browsers.'
+              )}
+            </ParseError>
+          )}
         </OverflowFluidHeight>
       );
     case 'details':
@@ -93,4 +105,7 @@ const OverflowFluidHeight = styled(FluidHeight)`
 `;
 const SectionList = styled('dl')`
   margin: 0;
+`;
+const ParseError = styled('p')`
+  padding: ${space(2)};
 `;
