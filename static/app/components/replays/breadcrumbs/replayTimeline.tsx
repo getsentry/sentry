@@ -75,7 +75,6 @@ export default function ReplayTimeline() {
           <TimelineGaps
             durationMs={durationMs}
             startTimestampMs={startTimestampMs}
-            frames={chapterFrames}
             videoEvents={videoEvents}
           />
         ) : null}

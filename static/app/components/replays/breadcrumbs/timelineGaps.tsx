@@ -4,11 +4,10 @@ import styled from '@emotion/styled';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import toPercent from 'sentry/utils/number/toPercent';
-import type {ReplayFrame, VideoEvent} from 'sentry/utils/replays/types';
+import type {VideoEvent} from 'sentry/utils/replays/types';
 
 interface Props {
   durationMs: number;
-  frames: ReplayFrame[];
   startTimestampMs: number;
   videoEvents: VideoEvent[];
 }
