@@ -55,6 +55,7 @@ class LaunchDarklyItemSerializer(serializers.Serializer):
     date = serializers.IntegerField(required=True)
     member = serializers.DictField(required=True)
     name = serializers.CharField(max_length=100, required=True)
+    description = serializers.CharField(required=True)
 
 
 """
@@ -90,7 +91,7 @@ def handle_launchdarkly_event(
             "created_by_type": CREATED_BY_TYPE_MAP["email"],
             "flag": result["name"],
             "organization_id": organization_id,
-            "tags": {},
+            "tags": {"description": result["description"]},
         }
     ]
 

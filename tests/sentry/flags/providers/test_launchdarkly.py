@@ -30,7 +30,7 @@ def test_launchdarkly_create():
         ],
         "kind": "flag",
         "name": "test flag",
-        "description": "",
+        "description": "flag was created",
         "shortDescription": "",
         "member": {
             "_links": {
@@ -152,6 +152,7 @@ def test_launchdarkly_create():
     assert flag_row["created_by_type"] == CREATED_BY_TYPE_MAP["email"]
     assert flag_row["organization_id"] == 123
     assert flag_row["tags"] is not None
+    assert flag_row["tags"]["description"] == "flag was created"
 
 
 def test_launchdarkly_update():

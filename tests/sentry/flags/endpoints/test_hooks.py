@@ -86,7 +86,7 @@ class OrganizationFlagsHooksEndpointTestCase(APITestCase):
             ],
             "kind": "flag",
             "name": "test flag",
-            "description": "",
+            "description": "flag was created",
             "shortDescription": "",
             "member": {
                 "_links": {
@@ -226,6 +226,7 @@ class OrganizationFlagsHooksEndpointTestCase(APITestCase):
         assert flag.created_by_type == CREATED_BY_TYPE_MAP["email"]
         assert flag.organization_id == self.organization.id
         assert flag.tags is not None
+        assert flag.tags["description"] == "flag was created"
 
     def test_launchdarkly_serialize_error(self):
         request_data = {
