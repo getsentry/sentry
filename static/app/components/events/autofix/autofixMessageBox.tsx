@@ -178,6 +178,7 @@ function AutofixMessageBox({
                 size="xs"
                 value={rootCauseMode}
                 onChange={setRootCauseMode}
+                aria-label={t('Root cause selection')}
               >
                 <SegmentedControl.Item key="suggested_root_cause">
                   {t('Use suggested root cause')}
