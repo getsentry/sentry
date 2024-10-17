@@ -23,13 +23,10 @@ def test_empty_message(set_sentry_option):
 
 
 @django_db_all
-def test_save_user_report_returns_instance(set_sentry_option, default_project, monkeypatch):
+def test_save_user_report_returns_instance(default_project, monkeypatch):
     # Mocking dependencies and setting up test data
     monkeypatch.setattr("sentry.ingest.userreport.is_in_feedback_denylist", lambda org: False)
     monkeypatch.setattr("sentry.ingest.userreport.should_filter_user_report", lambda message: False)
-    monkeypatch.setattr(
-        "sentry.ingest.userreport.UserReport.objects.create", lambda **kwargs: UserReport()
-    )
     monkeypatch.setattr(
         "sentry.eventstore.backend.get_event_by_id", lambda project_id, event_id: None
     )
@@ -51,7 +48,7 @@ def test_save_user_report_returns_instance(set_sentry_option, default_project, m
 
 
 @django_db_all
-def test_save_user_report_denylist(set_sentry_option, default_project, monkeypatch):
+def test_save_user_report_denylist(default_project, monkeypatch):
     monkeypatch.setattr("sentry.ingest.userreport.is_in_feedback_denylist", lambda org: True)
     report = {
         "event_id": "123456",
