@@ -48,7 +48,7 @@ function makeDebugFilesQueryKey({
 }: {
   orgSlug: string;
   projectSlug: string;
-  query: Record<string, string | undefined>;
+  query: {cursor: string | undefined; query: string | undefined};
 }): ApiQueryKey {
   return [`/projects/${orgSlug}/${projectSlug}/files/dsyms/`, {query}];
 }
