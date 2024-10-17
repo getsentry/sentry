@@ -63,6 +63,14 @@ grouping_input = [
 ]
 
 
+def get_grouping_inputs(inputs_dir: str) -> list[GroupingInput]:
+    return [
+        GroupingInput(filename)
+        for filename in sorted(os.listdir(inputs_dir))
+        if filename.endswith(".json")
+    ]
+
+
 def with_grouping_input(name):
     return pytest.mark.parametrize(
         name, grouping_input, ids=lambda x: x.filename[:-5].replace("-", "_")
