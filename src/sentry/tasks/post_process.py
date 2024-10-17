@@ -14,7 +14,6 @@ from django.utils import timezone
 from google.api_core.exceptions import ServiceUnavailable
 
 from sentry import features, projectoptions
-from sentry.eventstore.processing import transaction_processing_store
 from sentry.exceptions import PluginError
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
@@ -504,7 +503,10 @@ def post_process_group(
 
     with snuba.options_override({"consistent": True}):
         from sentry import eventstore
-        from sentry.eventstore.processing import event_processing_store
+        from sentry.eventstore.processing import (
+            event_processing_store,
+            transaction_processing_store,
+        )
         from sentry.ingest.transaction_clusterer.datasource.redis import (
             record_transaction_name as record_transaction_name_for_clustering,
         )
