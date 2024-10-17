@@ -54,7 +54,7 @@ class SentryAppAuthorizationsEndpoint(SentryAppAuthorizationsBaseEndpoint):
             sentry_sdk.capture_exception(e)
             return Response({"error": e.msg or "Unauthorized"}, status=403)
 
-        sentry_sdk.set_context("token-exchange.refresh", {"new_token": token.refresh_token[-4:]})
+        sentry_sdk.set_context("token-exchange", {"new_refresh_token": token.refresh_token[-4:]})
         attrs = {"state": request.json_body.get("state"), "application": None}
 
         body = ApiTokenSerializer().serialize(token, attrs, promote_request_api_user(request))
