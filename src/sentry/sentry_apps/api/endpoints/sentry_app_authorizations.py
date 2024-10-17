@@ -51,6 +51,7 @@ class SentryAppAuthorizationsEndpoint(SentryAppAuthorizationsBaseEndpoint):
                 return Response({"error": "Invalid grant_type"}, status=403)
         except APIUnauthorized as e:
             logger.warning(e, exc_info=True)
+            sentry_sdk.capture_exception(e)
             return Response({"error": e.msg or "Unauthorized"}, status=403)
 
         attrs = {"state": request.json_body.get("state"), "application": None}

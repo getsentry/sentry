@@ -40,7 +40,10 @@ class GrantExchanger:
                     "install_id": self.install.id,
                     "client_id": self.client_id,
                     "org_id": self.install.organization_id,
-                    "app_id": self.sentry_app.id,
+                    "sentry_app_id": self.sentry_app.id,
+                    "sentry_app_slug": self.sentry_app.slug,
+                    "application_id": self.application.id,
+                    "grant_id": self.grant.id,
                 },
             )
             self._validate()
@@ -49,7 +52,6 @@ class GrantExchanger:
             # Once it's exchanged it's no longer valid and should not be
             # exchangeable, so we delete it.
             self._delete_grant()
-            sentry_sdk.capture_exception()
         self.record_analytics()
 
         return token

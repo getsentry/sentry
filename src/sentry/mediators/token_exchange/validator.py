@@ -26,7 +26,6 @@ class Validator(Mediator):
         self._validate_is_sentry_app_making_request()
         self._validate_app_is_owned_by_user()
         self._validate_installation()
-        sentry_sdk.capture_exception()
         return True
 
     def _validate_is_sentry_app_making_request(self):

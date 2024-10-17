@@ -36,14 +36,15 @@ class Refresher(Mediator):
                 "install_id": self.install.id,
                 "client_id": self.client_id,
                 "org_id": self.install.organization_id,
-                "app_id": self.sentry_app.id,
+                "sentry_app_id": self.sentry_app.id,
+                "sentry_app_slug": self.sentry_app.slug,
+                "application_id": self.application.id,
             },
         )
 
         self._validate()
         self._delete_token()
         token = self._create_new_token()
-        sentry_sdk.capture_exception()
         return token
 
     def record_analytics(self):
