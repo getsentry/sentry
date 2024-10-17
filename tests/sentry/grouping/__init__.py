@@ -18,13 +18,14 @@ from sentry.grouping.fingerprinting import FingerprintingRules
 from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
 from sentry.utils import json
 
-_grouping_fixture_path = path.join(path.dirname(__file__), "grouping_inputs")
+GROUPING_INPUTS_DIR = path.join(path.dirname(__file__), "grouping_inputs")
+FINGERPRINT_INPUTS_DIR = path.join(path.dirname(__file__), "fingerprint_inputs")
 
 
 class GroupingInput:
     def __init__(self, filename):
         self.filename = filename  # Necessary for test naming
-        with open(path.join(_grouping_fixture_path, self.filename)) as f:
+        with open(path.join(GROUPING_INPUTS_DIR, self.filename)) as f:
             self.data = json.load(f)
 
     def _manually_save_event(self, grouping_config: GroupingConfig) -> Event:
@@ -57,7 +58,7 @@ class GroupingInput:
 
 grouping_input = [
     GroupingInput(filename)
-    for filename in sorted(os.listdir(_grouping_fixture_path))
+    for filename in sorted(os.listdir(GROUPING_INPUTS_DIR))
     if filename.endswith(".json")
 ]
 
@@ -68,16 +69,13 @@ def with_grouping_input(name):
     )
 
 
-_fingerprint_fixture_path = path.join(path.dirname(__file__), "fingerprint_inputs")
-
-
 class FingerprintInput:
     def __init__(self, filename):
         self.filename = filename
 
     @cached_property
     def data(self):
-        with open(path.join(_fingerprint_fixture_path, self.filename)) as f:
+        with open(path.join(FINGERPRINT_INPUTS_DIR, self.filename)) as f:
             return json.load(f)
 
     def create_event(self, grouping_config=None):
@@ -100,7 +98,7 @@ class FingerprintInput:
 
 fingerprint_input = list(
     FingerprintInput(filename)
-    for filename in os.listdir(_fingerprint_fixture_path)
+    for filename in os.listdir(FINGERPRINT_INPUTS_DIR)
     if filename.endswith(".json")
 )
 
