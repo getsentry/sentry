@@ -1,8 +1,13 @@
 import pytest
 from django.utils import timezone
+from rest_framework.exceptions import ErrorDetail
 
 from sentry.flags.models import ACTION_MAP, CREATED_BY_TYPE_MAP
-from sentry.flags.providers import DeserializationError, handle_provider_event
+from sentry.flags.providers import (
+    DeserializationError,
+    LaunchDarklyItemSerializer,
+    handle_provider_event,
+)
 
 default_timezone = timezone.get_default_timezone()
 
@@ -386,6 +391,7 @@ def test_launchdarkly_delete():
 def test_bad_launchdarkly_data():
     request_data = {
         "accesses": [],
+        "description": {},
         "member": {
             "_links": {
                 "parent": {"href": "/api/v2/members", "type": "application/json"},
@@ -399,5 +405,19 @@ def test_bad_launchdarkly_data():
             "lastName": "Doe",
         },
     }
-    with pytest.raises(DeserializationError):
+
+    serializer = LaunchDarklyItemSerializer(
+        data=request_data,
+    )
+    assert not serializer.is_valid()
+    assert serializer.errors == {
+        "date": [ErrorDetail(string="This field is required.", code="required")],
+        "name": [ErrorDetail(string="This field is required.", code="required")],
+        "description": [ErrorDetail(string="Not a valid string.", code="invalid")],
+    }
+
+    with pytest.raises(
+        DeserializationError,
+    ):
+
         handle_provider_event("launchdarkly", request_data, 123)
