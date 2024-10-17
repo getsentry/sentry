@@ -1,18 +1,5 @@
-import {useEffect, useMemo} from 'react';
-import {
-  closestCenter,
-  DndContext,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-} from '@dnd-kit/core';
-import {
-  SortableContext,
-  sortableKeyboardCoordinates,
-  useSortable,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable';
+import {useMemo} from 'react';
+import {useSortable} from '@dnd-kit/sortable';
 import {CSS} from '@dnd-kit/utilities';
 import styled from '@emotion/styled';
 
@@ -27,8 +14,9 @@ import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {useGroupBys} from 'sentry/views/explore/hooks/useGroupBys';
 
+import {DragNDropContext} from '../contexts/dragNDropContext';
 import {useSpanTags} from '../contexts/spanTagsContext';
-import {type Column, useDragNDropColumns} from '../hooks/useDragNDropColumns';
+import type {Column} from '../hooks/useDragNDropColumns';
 import {useResultMode} from '../hooks/useResultsMode';
 
 import {ToolbarHeader, ToolbarHeaderButton, ToolbarLabel, ToolbarSection} from './styles';
@@ -39,6 +27,7 @@ interface ToolbarGroupByProps {
 
 export function ToolbarGroupBy({disabled}: ToolbarGroupByProps) {
   const tags = useSpanTags();
+  const [resultMode] = useResultMode();
 
   const {groupBys, setGroupBys} = useGroupBys();
 
@@ -74,107 +63,43 @@ export function ToolbarGroupBy({disabled}: ToolbarGroupByProps) {
     ];
   }, [groupBys, tags]);
 
-  const {
-    editableColumns,
-    insertColumn,
-    updateColumnAtIndex,
-    deleteColumnAtIndex,
-    swapColumnsAtIndex,
-  } = useDragNDropColumns({columns: groupBys});
-
-  useEffect(() => {
-    setGroupBys(editableColumns.map(({column}) => column ?? ''));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editableColumns]);
-
   return (
-    <ToolbarSection data-test-id="section-group-by">
-      <StyledToolbarHeader>
-        <ToolbarLabel disabled={disabled}>{t('Group By')}</ToolbarLabel>
-        <ToolbarHeaderButton
-          disabled={disabled}
-          size="zero"
-          onClick={insertColumn}
-          borderless
-          aria-label={t('Add Group')}
-          icon={<IconAdd />}
-        />
-      </StyledToolbarHeader>
-      <div>
-        <ColumnEditor
-          columns={editableColumns}
-          onColumnChange={updateColumnAtIndex}
-          onColumnDelete={deleteColumnAtIndex}
-          onColumnSwap={swapColumnsAtIndex}
-          options={options}
-        />
-      </div>
-    </ToolbarSection>
+    <DragNDropContext columns={groupBys} setColumns={setGroupBys}>
+      {({editableColumns, insertColumn, updateColumnAtIndex, deleteColumnAtIndex}) => (
+        <ToolbarSection data-test-id="section-group-by">
+          <StyledToolbarHeader>
+            <ToolbarLabel disabled={disabled}>{t('Group By')}</ToolbarLabel>
+            <ToolbarHeaderButton
+              disabled={disabled}
+              size="zero"
+              onClick={insertColumn}
+              borderless
+              aria-label={t('Add Group')}
+              icon={<IconAdd />}
+            />
+          </StyledToolbarHeader>
+          {editableColumns.map((column, i) => (
+            <ColumnEditorRow
+              disabled={resultMode === 'samples'}
+              key={column.id}
+              canDelete={
+                editableColumns.length > 1 || !['', undefined].includes(column.column)
+              }
+              column={column}
+              options={options}
+              onColumnChange={c => updateColumnAtIndex(i, c)}
+              onColumnDelete={() => deleteColumnAtIndex(i)}
+            />
+          ))}
+        </ToolbarSection>
+      )}
+    </DragNDropContext>
   );
 }
 
 const StyledToolbarHeader = styled(ToolbarHeader)`
   margin-bottom: ${space(1)};
 `;
-
-interface ColumnEditorProps {
-  columns: Column[];
-  onColumnChange: (i: number, column: string) => void;
-  onColumnDelete: (i: number) => void;
-  onColumnSwap: (i: number, j: number) => void;
-  options: SelectOption<string>[];
-}
-
-export function ColumnEditor({
-  columns,
-  onColumnChange,
-  onColumnDelete,
-  onColumnSwap,
-  options,
-}: ColumnEditorProps) {
-  const [resultMode] = useResultMode();
-
-  const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  );
-
-  function handleDragEnd(event) {
-    const {active, over} = event;
-
-    if (active.id !== over.id) {
-      const oldIndex = columns.findIndex(({id}) => id === active.id);
-      const newIndex = columns.findIndex(({id}) => id === over.id);
-      onColumnSwap(oldIndex, newIndex);
-    }
-  }
-
-  return (
-    <DndContext
-      sensors={sensors}
-      collisionDetection={closestCenter}
-      onDragEnd={handleDragEnd}
-    >
-      <SortableContext items={columns} strategy={verticalListSortingStrategy}>
-        {columns.map((column, i) => {
-          return (
-            <ColumnEditorRow
-              disabled={resultMode === 'samples'}
-              key={column.id}
-              canDelete={columns.length > 1 || !['', undefined].includes(column.column)}
-              column={column}
-              options={options}
-              onColumnChange={c => onColumnChange(i, c)}
-              onColumnDelete={() => onColumnDelete(i)}
-            />
-          );
-        })}
-      </SortableContext>
-    </DndContext>
-  );
-}
 
 interface ColumnEditorRowProps {
   canDelete: boolean;

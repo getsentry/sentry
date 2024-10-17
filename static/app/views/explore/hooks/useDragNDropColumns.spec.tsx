@@ -1,69 +1,84 @@
-import {act, renderHook} from 'sentry-test/reactTestingLibrary';
+import {useState} from 'react';
+
+import {act, render} from 'sentry-test/reactTestingLibrary';
 
 import {useDragNDropColumns} from './useDragNDropColumns';
 
 describe('useDragNDropColumns', () => {
   const initialColumns = ['span.op', 'span_id', 'timestamp'];
 
-  it('should initialize editableColumns correctly', () => {
-    const {result} = renderHook(() => useDragNDropColumns({columns: initialColumns}));
-
-    expect(result.current.editableColumns).toEqual([
-      {id: 1, column: 'span.op'},
-      {id: 2, column: 'span_id'},
-      {id: 3, column: 'timestamp'},
-    ]);
-  });
-
   it('should insert a column', () => {
-    const {result} = renderHook(() => useDragNDropColumns({columns: initialColumns}));
+    let columns, setColumns, insertColumn;
+
+    function TestPage() {
+      [columns, setColumns] = useState(initialColumns);
+      ({insertColumn} = useDragNDropColumns({columns, setColumns}));
+      return null;
+    }
+
+    render(<TestPage />, {disableRouterMocks: true});
 
     act(() => {
-      result.current.insertColumn();
+      insertColumn();
     });
 
-    expect(result.current.editableColumns).toEqual([
-      {id: 1, column: 'span.op'},
-      {id: 2, column: 'span_id'},
-      {id: 3, column: 'timestamp'},
-      {id: 4, column: undefined},
-    ]);
+    expect(columns).toEqual(['span.op', 'span_id', 'timestamp', '']);
   });
 
   it('should update a column at a specific index', () => {
-    const {result} = renderHook(() => useDragNDropColumns({columns: initialColumns}));
+    let columns, setColumns, updateColumnAtIndex;
+
+    function TestPage() {
+      [columns, setColumns] = useState(initialColumns);
+      ({updateColumnAtIndex} = useDragNDropColumns({columns, setColumns}));
+      return null;
+    }
+
+    render(<TestPage />, {disableRouterMocks: true});
 
     act(() => {
-      result.current.updateColumnAtIndex(1, 'updatedColumn');
+      updateColumnAtIndex(0, 'span.description');
     });
 
-    expect(result.current.editableColumns[1].column).toBe('updatedColumn');
+    expect(columns).toEqual(['span.description', 'span_id', 'timestamp']);
   });
 
   it('should delete a column at a specific index', () => {
-    const {result} = renderHook(() => useDragNDropColumns({columns: initialColumns}));
+    let columns, setColumns, deleteColumnAtIndex;
+
+    function TestPage() {
+      [columns, setColumns] = useState(initialColumns);
+      ({deleteColumnAtIndex} = useDragNDropColumns({columns, setColumns}));
+      return null;
+    }
+
+    render(<TestPage />, {disableRouterMocks: true});
 
     act(() => {
-      result.current.deleteColumnAtIndex(1);
+      deleteColumnAtIndex(0);
     });
 
-    expect(result.current.editableColumns).toEqual([
-      {id: 1, column: 'span.op'},
-      {id: 3, column: 'timestamp'},
-    ]);
+    expect(columns).toEqual(['span_id', 'timestamp']);
   });
 
   it('should swap two columns at specific indices', () => {
-    const {result} = renderHook(() => useDragNDropColumns({columns: initialColumns}));
+    let columns, setColumns, onDragEnd;
+
+    function TestPage() {
+      [columns, setColumns] = useState(initialColumns);
+      ({onDragEnd} = useDragNDropColumns({columns, setColumns}));
+      return null;
+    }
+
+    render(<TestPage />, {disableRouterMocks: true});
 
     act(() => {
-      result.current.swapColumnsAtIndex(0, 2);
+      onDragEnd({
+        active: {id: 1},
+        over: {id: 3},
+      });
     });
 
-    expect(result.current.editableColumns).toEqual([
-      {id: 2, column: 'span_id'},
-      {id: 3, column: 'timestamp'},
-      {id: 1, column: 'span.op'},
-    ]);
+    expect(columns).toEqual(['span_id', 'timestamp', 'span.op']);
   });
 });

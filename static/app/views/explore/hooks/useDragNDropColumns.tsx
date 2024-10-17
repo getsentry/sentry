@@ -1,4 +1,5 @@
 import {useEffect, useMemo, useState} from 'react';
+import type {DragEndEvent} from '@dnd-kit/core';
 import {arrayMove} from '@dnd-kit/sortable';
 
 export type Column = {
@@ -8,9 +9,14 @@ export type Column = {
 
 interface UseDragAndDropColumnsProps {
   columns: string[];
+  setColumns: (columns: string[]) => void;
 }
 
-export function useDragNDropColumns({columns}: UseDragAndDropColumnsProps) {
+const extractColumns = (editableColumns: Column[]) => {
+  return editableColumns.map(({column}) => column ?? '');
+};
+
+export function useDragNDropColumns({columns, setColumns}: UseDragAndDropColumnsProps) {
   const mappedColumns = useMemo(() => {
     return columns.map((column, i) => ({id: i + 1, column}));
   }, [columns]);
@@ -38,6 +44,8 @@ export function useDragNDropColumns({columns}: UseDragAndDropColumnsProps) {
 
       setNextId(nextId + 1); // make sure to increment the id for the next time
 
+      setColumns(extractColumns(newEditableColumns));
+
       return newEditableColumns;
     });
   }
@@ -46,6 +54,9 @@ export function useDragNDropColumns({columns}: UseDragAndDropColumnsProps) {
     setEditableColumns(oldEditableColumns => {
       const newEditableColumns = [...oldEditableColumns];
       newEditableColumns[i].column = column;
+
+      setColumns(extractColumns(newEditableColumns));
+
       return newEditableColumns;
     });
   }
@@ -53,16 +64,36 @@ export function useDragNDropColumns({columns}: UseDragAndDropColumnsProps) {
   function deleteColumnAtIndex(i: number) {
     setEditableColumns(oldEditableColumns => {
       if (oldEditableColumns.length === 1) {
+        setColumns(['']);
         return [{id: 1, column: undefined}];
       }
-      return [...oldEditableColumns.slice(0, i), ...oldEditableColumns.slice(i + 1)];
+
+      const newEditableColumns = [
+        ...oldEditableColumns.slice(0, i),
+        ...oldEditableColumns.slice(i + 1),
+      ];
+
+      setColumns(extractColumns(newEditableColumns));
+
+      return newEditableColumns;
     });
   }
 
-  function swapColumnsAtIndex(i: number, j: number) {
-    setEditableColumns(oldEditableColumns => {
-      return arrayMove(oldEditableColumns, i, j);
-    });
+  function onDragEnd(event: DragEndEvent) {
+    const {active, over} = event;
+
+    if (active.id !== over?.id) {
+      const oldIndex = editableColumns.findIndex(({id}) => id === active.id);
+      const newIndex = editableColumns.findIndex(({id}) => id === over?.id);
+
+      setEditableColumns(oldEditableColumns => {
+        const newEditableColumns = arrayMove(oldEditableColumns, oldIndex, newIndex);
+
+        setColumns(extractColumns(newEditableColumns));
+
+        return newEditableColumns;
+      });
+    }
   }
 
   return {
@@ -70,6 +101,6 @@ export function useDragNDropColumns({columns}: UseDragAndDropColumnsProps) {
     insertColumn,
     updateColumnAtIndex,
     deleteColumnAtIndex,
-    swapColumnsAtIndex,
+    onDragEnd,
   };
 }
