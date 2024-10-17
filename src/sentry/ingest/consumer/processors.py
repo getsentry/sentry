@@ -169,6 +169,8 @@ def process_event(
     with sentry_sdk.start_span(op="orjson.loads"):
         data = orjson.loads(payload)
 
+    sentry_sdk.set_extra("event_type", data.get("type"))
+
     if project_id == settings.SENTRY_PROJECT:
         metrics.incr(
             "internal.captured.ingest_consumer.parsed",
@@ -281,10 +283,14 @@ def process_event(
                 )
 
         # remember for an 1 hour that we saved this event (deduplication protection)
-        cache.set(deduplication_key, "", CACHE_TIMEOUT)
+        with sentry_sdk.start_span(op="cache.set"):
+            cache.set(deduplication_key, "", CACHE_TIMEOUT)
 
         # emit event_accepted once everything is done
-        event_accepted.send_robust(ip=remote_addr, data=data, project=project, sender=process_event)
+        with sentry_sdk.start_span(op="event_accepted.send_robust"):
+            event_accepted.send_robust(
+                ip=remote_addr, data=data, project=project, sender=process_event
+            )
     except Exception as exc:
         if isinstance(exc, KeyError):  # ex: missing event_id in message["payload"]
             raise
