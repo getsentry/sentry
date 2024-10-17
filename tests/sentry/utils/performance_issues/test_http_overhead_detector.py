@@ -260,3 +260,23 @@ class HTTPOverheadDetectorTest(TestCase):
                 evidence_display=[],
             )
         ]
+
+    def test_none_request_start(self):
+        url = "https://example.com/api/endpoint/123"
+        event = _valid_http_overhead_event("/api/endpoint/123")
+
+        # Include an invalid span to ensure it's not processed
+        span = create_span(
+            "http.client",
+            desc=url,
+            duration=1000,
+            data={
+                "url": url,
+                "network.protocol.version": "1.1",
+                "http.request.request_start": None,
+            },
+        )
+
+        event["spans"] = [span]
+
+        assert self.find_problems(event) == []
