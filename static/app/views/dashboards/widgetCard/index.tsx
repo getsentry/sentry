@@ -117,32 +117,6 @@ const ERROR_FIELDS = [
 
 class WidgetCard extends Component<Props, State> {
   state: State = {};
-  renderToolbar() {
-    const {
-      onEdit,
-      onDelete,
-      onDuplicate,
-      draggableProps,
-      hideToolbar,
-      isEditingDashboard,
-      isMobile,
-    } = this.props;
-
-    if (!isEditingDashboard) {
-      return null;
-    }
-
-    return (
-      <Toolbar
-        onEdit={onEdit}
-        onDelete={onDelete}
-        onDuplicate={onDuplicate}
-        draggableProps={draggableProps}
-        hideToolbar={hideToolbar}
-        isMobile={isMobile}
-      />
-    );
-  }
 
   renderContextMenu() {
     const {
@@ -383,7 +357,16 @@ class WidgetCard extends Component<Props, State> {
                     />
                   </LazyRender>
                 )}
-                {this.renderToolbar()}
+                {this.props.isEditingDashboard && (
+                  <Toolbar
+                    onEdit={this.props.onEdit}
+                    onDelete={this.props.onDelete}
+                    onDuplicate={this.props.onDuplicate}
+                    draggableProps={this.props.draggableProps}
+                    hideToolbar={this.props.hideToolbar}
+                    isMobile={this.props.isMobile}
+                  />
+                )}
               </WidgetCardPanel>
             </VisuallyCompleteWithData>
             {!organization.features.includes('performance-mep-bannerless-ui') && (
