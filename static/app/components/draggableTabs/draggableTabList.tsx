@@ -125,6 +125,7 @@ function Tabs({
   state,
   className,
   onReorder,
+  onReorderComplete,
   tabVariant,
   setTabRefs,
   tabs,
@@ -137,6 +138,7 @@ function Tabs({
   ariaProps: AriaTabListOptions<DraggableTabListItemProps>;
   hoveringKey: Key | 'addView' | null;
   onReorder: (newOrder: Node<DraggableTabListItemProps>[]) => void;
+  onReorderComplete: () => void;
   orientation: 'horizontal' | 'vertical';
   overflowingTabs: Node<DraggableTabListItemProps>[];
   setHoveringKey: (key: Key | 'addView' | null) => void;
@@ -233,7 +235,10 @@ function Tabs({
               layout
               drag={item.key !== editingTabKey} // Disable dragging if the tab is being edited
               onDrag={() => setIsDragging(true)}
-              onDragEnd={() => setIsDragging(false)}
+              onDragEnd={() => {
+                setIsDragging(false);
+                onReorderComplete();
+              }}
               onHoverStart={() => setHoveringKey(item.key)}
               onHoverEnd={() => setHoveringKey(null)}
               initial={false}
@@ -260,6 +265,7 @@ function BaseDraggableTabList({
   className,
   outerWrapStyles,
   onReorder,
+  onReorderComplete,
   onAddView,
   tabVariant = 'filled',
   ...props
@@ -327,6 +333,7 @@ function BaseDraggableTabList({
         state={state}
         className={className}
         onReorder={onReorder}
+        onReorderComplete={() => onReorderComplete?.()}
         tabVariant={tabVariant}
         setTabRefs={setTabElements}
         tabs={persistentTabs}
@@ -392,6 +399,7 @@ export interface DraggableTabListProps
   extends AriaTabListOptions<DraggableTabListItemProps>,
     TabListStateOptions<DraggableTabListItemProps> {
   onReorder: (newOrder: Node<DraggableTabListItemProps>[]) => void;
+  onReorderComplete: () => void;
   className?: string;
   editingTabKey?: string;
   hideBorder?: boolean;
