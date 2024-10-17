@@ -5,7 +5,7 @@ import pytest
 from sentry.integrations.example.integration import ExampleIntegration
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.services.assignment_source import AssignmentSource
-from sentry.integrations.utils import sync_group_assignee_inbound
+from sentry.integrations.utils.sync import sync_group_assignee_inbound
 from sentry.models.activity import Activity
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.grouplink import GroupLink

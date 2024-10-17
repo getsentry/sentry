@@ -12,7 +12,7 @@ from fixtures.integrations.stub_service import StubService
 from sentry.integrations.jira.webhooks.base import JiraTokenError, JiraWebhookBase
 from sentry.integrations.mixins.issues import IssueSyncIntegration
 from sentry.integrations.services.integration.serial import serialize_integration
-from sentry.integrations.utils import AtlassianConnectValidationError
+from sentry.integrations.utils.atlassian_connect import AtlassianConnectValidationError
 from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.cases import APITestCase, TestCase

@@ -8,7 +8,7 @@ from django.utils import timezone
 from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.slack.utils.users import SlackUserData, get_slack_data_by_user
-from sentry.integrations.utils import get_identities_by_user
+from sentry.integrations.utils.identities import get_identities_by_user
 from sentry.organizations.services.organization import organization_service
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task

@@ -11,7 +11,7 @@ from sentry.integrations.base import IntegrationFeatureNotImplementedError
 from sentry.integrations.client import ApiClient
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.source_code_management.repository import RepositoryClient
-from sentry.integrations.utils import get_query_hash
+from sentry.integrations.utils.atlassian_connect import get_query_hash
 from sentry.models.repository import Repository
 from sentry.shared_integrations.client.base import BaseApiResponseX
 from sentry.utils import jwt
