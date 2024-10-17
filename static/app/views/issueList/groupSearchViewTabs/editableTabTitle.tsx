@@ -1,29 +1,27 @@
-import {useContext, useEffect, useMemo, useRef, useState} from 'react';
+import {useEffect, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
 import {GrowingInput} from 'sentry/components/growingInput';
-import {TabsContext} from 'sentry/components/tabs';
 import {Tooltip} from 'sentry/components/tooltip';
 
 interface EditableTabTitleProps {
   isEditing: boolean;
+  isSelected: boolean;
   label: string;
   onChange: (newLabel: string) => void;
   setIsEditing: (isEditing: boolean) => void;
-  tabKey: string;
 }
 
 function EditableTabTitle({
   label,
   onChange,
   isEditing,
-  tabKey,
+  isSelected,
   setIsEditing,
 }: EditableTabTitleProps) {
   const [inputValue, setInputValue] = useState(label);
-  const {tabListState} = useContext(TabsContext);
 
   useEffect(() => {
     setInputValue(label);
@@ -32,8 +30,6 @@ function EditableTabTitle({
   const theme = useTheme();
   const inputRef = useRef<HTMLInputElement>(null);
   const isEmpty = !inputValue.trim();
-
-  const isSelected = tabListState?.selectedKey === tabKey;
 
   const memoizedStyles = useMemo(() => {
     return {fontWeight: isSelected ? theme.fontWeightBold : theme.fontWeightNormal};
