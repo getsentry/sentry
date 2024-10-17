@@ -75,6 +75,7 @@ function InviteRequestRow({
           onChange={r => onUpdate({role: r.value})}
           value={inviteRequest.role}
           roles={allRoles}
+          aria-label={t('Role: %s', role?.name)}
         />
       ) : (
         <div>{inviteRequest.roleName}</div>

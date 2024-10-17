@@ -722,23 +722,12 @@ function buildRoutes() {
       />
       <Redirect from="members/requests" to="members/" />
       <Route path="members/" name={t('Members')}>
-        <Route
+        <IndexRoute
           component={make(
             () =>
-              import(
-                'sentry/views/settings/organizationMembers/organizationMembersWrapper'
-              )
+              import('sentry/views/settings/organizationMembers/organizationMembersList')
           )}
-        >
-          <IndexRoute
-            component={make(
-              () =>
-                import(
-                  'sentry/views/settings/organizationMembers/organizationMembersList'
-                )
-            )}
-          />
-        </Route>
+        />
         <Route
           path=":memberId/"
           name={t('Details')}
