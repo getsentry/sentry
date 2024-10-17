@@ -6,7 +6,7 @@ from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.services.integration import integration_service
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils.factories import EventType
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.http import absolute_uri
 
@@ -16,7 +16,7 @@ pytestmark = [requires_snuba]
 class GitlabIssuesTest(GitLabTestCase):
     def setUp(self):
         super().setUp()
-        min_ago = iso_format(before_now(minutes=1))
+        min_ago = before_now(minutes=1).isoformat()
         event = self.store_event(
             data={
                 "event_id": "a" * 32,
