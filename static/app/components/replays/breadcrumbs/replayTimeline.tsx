@@ -40,6 +40,7 @@ export default function ReplayTimeline() {
   const durationMs = replay.getDurationMs();
   const startTimestampMs = replay.getStartTimestampMs();
   const chapterFrames = replay.getChapterFrames();
+  const videoEvents = replay.getVideoEvents();
 
   // timeline is in the middle
   const initialTranslate = 0.5 / timelineScale;
@@ -75,6 +76,7 @@ export default function ReplayTimeline() {
             durationMs={durationMs}
             startTimestampMs={startTimestampMs}
             frames={chapterFrames}
+            videoEvents={videoEvents}
           />
         ) : null}
         <TimelineEventsContainer>
