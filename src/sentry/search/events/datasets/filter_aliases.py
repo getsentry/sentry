@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from functools import reduce
 
 from snuba_sdk import Column, Condition, Function, Op
@@ -280,7 +280,7 @@ def semver_build_filter_converter(
     """
     if builder.params.organization is None:
         raise ValueError("organization is a required param")
-    build: str = search_filter.value.raw_value
+    build: str | Sequence[str] = search_filter.value.raw_value
 
     operator, negated = handle_operator_negation(search_filter.operator)
     try:
