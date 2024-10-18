@@ -29,6 +29,7 @@ import useApi from 'sentry/utils/useApi';
 type AutofixChangesProps = {
   groupId: string;
   onRetry: () => void;
+  runId: string;
   step: AutofixChangesStep;
 };
 
@@ -168,9 +169,11 @@ function PullRequestLinkOrCreateButton({
 function AutofixRepoChange({
   change,
   groupId,
+  runId,
 }: {
   change: AutofixCodebaseChange;
   groupId: string;
+  runId: string;
 }) {
   return (
     <Content>
@@ -181,7 +184,12 @@ function AutofixRepoChange({
         </div>
         <PullRequestLinkOrCreateButton change={change} groupId={groupId} />
       </RepoChangesHeader>
-      <AutofixDiff diff={change.diff} />
+      <AutofixDiff
+        diff={change.diff}
+        groupId={groupId}
+        runId={runId}
+        repoId={change.repo_external_id}
+      />
     </Content>
   );
 }
@@ -193,7 +201,7 @@ const cardAnimationProps: AnimationProps = {
   transition: testableTransition({duration: 0.3}),
 };
 
-export function AutofixChanges({step, onRetry, groupId}: AutofixChangesProps) {
+export function AutofixChanges({step, onRetry, groupId, runId}: AutofixChangesProps) {
   const data = useAutofixData({groupId});
 
   if (step.status === 'ERROR' || data?.status === 'ERROR') {
@@ -242,7 +250,7 @@ export function AutofixChanges({step, onRetry, groupId}: AutofixChangesProps) {
             {step.changes.map((change, i) => (
               <Fragment key={change.repo_external_id}>
                 {i > 0 && <Separator />}
-                <AutofixRepoChange change={change} groupId={groupId} />
+                <AutofixRepoChange change={change} groupId={groupId} runId={runId} />
               </Fragment>
             ))}
           </ClippedBox>

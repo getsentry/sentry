@@ -18,6 +18,7 @@ import {
 describe('AutofixChanges', function () {
   const defaultProps = {
     groupId: '1',
+    runId: '1',
     onRetry: jest.fn(),
     step: AutofixStepFixture({
       type: AutofixStepType.CHANGES,

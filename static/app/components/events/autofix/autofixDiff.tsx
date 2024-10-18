@@ -1,20 +1,27 @@
-import {Fragment, useMemo, useState} from 'react';
+import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {type Change, diffWords} from 'diff';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/button';
 import {
   type DiffLine,
   DiffLineType,
   type FilePatch,
 } from 'sentry/components/events/autofix/types';
+import TextArea from 'sentry/components/forms/controls/textarea';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
-import {IconChevron} from 'sentry/icons';
+import {IconChevron, IconClose, IconDelete, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {useMutation} from 'sentry/utils/queryClient';
+import useApi from 'sentry/utils/useApi';
 
 type AutofixDiffProps = {
   diff: FilePatch[];
+  groupId: string;
+  runId: string;
+  repoId?: string;
 };
 
 interface DiffLineWithChanges extends DiffLine {
@@ -91,17 +98,288 @@ function HunkHeader({lines, sectionHeader}: {lines: DiffLine[]; sectionHeader: s
   );
 }
 
-function DiffHunkContent({lines, header}: {header: string; lines: DiffLine[]}) {
-  const linesWithChanges = useMemo(() => {
-    return addChangesToDiffLines(lines);
+function useUpdateHunk({groupId, runId}: {groupId: string; runId: string}) {
+  const api = useApi({persistInFlight: true});
+
+  return useMutation({
+    mutationFn: (params: {
+      fileName: string;
+      hunkIndex: number;
+      lines: DiffLine[];
+      repoId?: string;
+    }) => {
+      return api.requestPromise(`/issues/${groupId}/autofix/update/`, {
+        method: 'POST',
+        data: {
+          run_id: runId,
+          payload: {
+            type: 'update_code_change',
+            repo_id: params.repoId ?? null,
+            hunk_index: params.hunkIndex,
+            lines: params.lines,
+            file_path: params.fileName,
+          },
+        },
+      });
+    },
+    onError: () => {
+      addErrorMessage(t('Something went wrong when updating changes.'));
+    },
+  });
+}
+
+function DiffHunkContent({
+  groupId,
+  runId,
+  repoId,
+  hunkIndex,
+  lines,
+  header,
+  fileName,
+}: {
+  fileName: string;
+  groupId: string;
+  header: string;
+  hunkIndex: number;
+  lines: DiffLine[];
+  runId: string;
+  repoId?: string;
+}) {
+  const [linesWithChanges, setLinesWithChanges] = useState<DiffLineWithChanges[]>([]);
+
+  useEffect(() => {
+    setLinesWithChanges(addChangesToDiffLines(lines));
   }, [lines]);
+
+  const [editingGroup, setEditingGroup] = useState<number | null>(null);
+  const [editedContent, setEditedContent] = useState<string>('');
+  const [editedLines, setEditedLines] = useState<string[]>([]);
+  const overlayRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (overlayRef.current && !overlayRef.current.contains(event.target as Node)) {
+        setEditingGroup(null);
+        setEditedContent('');
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  const lineGroups = useMemo(() => {
+    const groups: {end: number; start: number; type: 'change' | DiffLineType}[] = [];
+    let currentGroup: (typeof groups)[number] | null = null;
+
+    linesWithChanges.forEach((line, index) => {
+      if (line.line_type !== DiffLineType.CONTEXT) {
+        if (!currentGroup) {
+          currentGroup = {start: index, end: index, type: 'change'};
+        } else if (currentGroup.type === 'change') {
+          currentGroup.end = index;
+        } else {
+          groups.push(currentGroup);
+          currentGroup = {start: index, end: index, type: 'change'};
+        }
+      } else if (currentGroup) {
+        groups.push(currentGroup);
+        currentGroup = null;
+      }
+    });
+
+    if (currentGroup) {
+      groups.push(currentGroup);
+    }
+
+    return groups;
+  }, [linesWithChanges]);
+
+  const handleEditClick = (index: number) => {
+    const group = lineGroups.find(g => g.start === index);
+    if (group) {
+      const content = linesWithChanges
+        .slice(group.start, group.end + 1)
+        .filter(line => line.line_type === DiffLineType.ADDED)
+        .map(line => line.value)
+        .join('');
+      const splitLines = content.split('\n');
+      if (splitLines[splitLines.length - 1] === '') {
+        splitLines.pop();
+      }
+      setEditedLines(splitLines);
+      if (content === '\n') {
+        setEditedContent('');
+      } else {
+        setEditedContent(content.endsWith('\n') ? content.slice(0, -1) : content);
+      }
+      setEditingGroup(index);
+    }
+  };
+
+  const handleTextAreaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newContent = e.target.value;
+    setEditedContent(newContent);
+    setEditedLines(newContent.split('\n'));
+  };
+
+  const updateHunk = useUpdateHunk({groupId, runId});
+  const handleSaveEdit = () => {
+    if (editingGroup === null) {
+      return;
+    }
+    const group = lineGroups.find(g => g.start === editingGroup);
+    if (!group) {
+      return;
+    }
+
+    let lastSourceLineNo = 0;
+    let lastTargetLineNo = 0;
+    let lastDiffLineNo = 0;
+
+    const updatedLines = linesWithChanges
+      .map((line, index) => {
+        if (index < group.start) {
+          lastSourceLineNo = line.source_line_no ?? lastSourceLineNo;
+          lastTargetLineNo = line.target_line_no ?? lastTargetLineNo;
+          lastDiffLineNo = line.diff_line_no ?? lastDiffLineNo;
+        }
+        if (index >= group.start && index <= group.end) {
+          if (line.line_type === DiffLineType.ADDED) {
+            return null; // Remove existing added lines
+          }
+          if (line.line_type === DiffLineType.REMOVED) {
+            lastSourceLineNo = line.source_line_no ?? lastSourceLineNo;
+          }
+          return line; // Keep other lines (removed and context) as is
+        }
+        return line;
+      })
+      .filter((line): line is DiffLine => line !== null);
+
+    // Insert new added lines
+    const newAddedLines: DiffLine[] = editedContent.split('\n').map((content, i) => {
+      lastDiffLineNo++;
+      lastTargetLineNo++;
+      return {
+        diff_line_no: lastDiffLineNo,
+        source_line_no: null,
+        target_line_no: lastTargetLineNo,
+        line_type: DiffLineType.ADDED,
+        value: content + (i === editedContent.split('\n').length - 1 ? '' : '\n'),
+      };
+    });
+
+    // Find the insertion point (after the last removed line or at the start of the group)
+    const insertionIndex = updatedLines.findIndex(
+      (line, index) => index >= group.start && line.line_type !== DiffLineType.REMOVED
+    );
+
+    updatedLines.splice(
+      insertionIndex === -1 ? group.start : insertionIndex,
+      0,
+      ...newAddedLines
+    );
+
+    // Update diff_line_no for all lines after the insertion
+    for (let i = insertionIndex + newAddedLines.length; i < updatedLines.length; i++) {
+      updatedLines[i].diff_line_no = ++lastDiffLineNo;
+    }
+
+    updateHunk.mutate({hunkIndex, lines: updatedLines, repoId, fileName});
+    setLinesWithChanges(addChangesToDiffLines(updatedLines));
+    setEditingGroup(null);
+    setEditedContent('');
+  };
+
+  const handleCancelEdit = () => {
+    setEditingGroup(null);
+    setEditedContent('');
+  };
+
+  const rejectChanges = (index: number) => {
+    const group = lineGroups.find(g => g.start === index);
+    if (!group) {
+      return;
+    }
+
+    const updatedLines = linesWithChanges
+      .map((line, i) => {
+        if (i >= group.start && i <= group.end) {
+          if (line.line_type === DiffLineType.ADDED) {
+            return null; // Remove added lines
+          }
+          if (line.line_type === DiffLineType.REMOVED) {
+            return {...line, line_type: DiffLineType.CONTEXT}; // Convert removed lines to context
+          }
+        }
+        return line;
+      })
+      .filter((line): line is DiffLine => line !== null);
+
+    updateHunk.mutate({hunkIndex, lines: updatedLines, repoId, fileName});
+    setLinesWithChanges(addChangesToDiffLines(updatedLines));
+  };
+
+  const getStartLineNumber = (index: number, lineType: DiffLineType) => {
+    const line = linesWithChanges[index];
+    if (lineType === DiffLineType.REMOVED) {
+      return line.source_line_no;
+    }
+    if (lineType === DiffLineType.ADDED) {
+      // Find the first non-null target_line_no
+      for (let i = index; i < linesWithChanges.length; i++) {
+        if (linesWithChanges[i].target_line_no !== null) {
+          return linesWithChanges[i].target_line_no;
+        }
+      }
+    }
+    return null;
+  };
+
+  const handleClearChanges = () => {
+    setEditedContent('');
+    setEditedLines([]);
+  };
+
+  const getDeletedLineTitle = (index: number) => {
+    return t(
+      '%s deleted line%s%s',
+      linesWithChanges
+        .slice(index, lineGroups.find(g => g.start === index)?.end! + 1)
+        .filter(l => l.line_type === DiffLineType.REMOVED).length,
+      linesWithChanges
+        .slice(index, lineGroups.find(g => g.start === index)?.end)
+        .filter(l => l.line_type === DiffLineType.REMOVED).length === 1
+        ? ''
+        : 's',
+      linesWithChanges
+        .slice(index, lineGroups.find(g => g.start === index)?.end)
+        .filter(l => l.line_type === DiffLineType.REMOVED).length > 0
+        ? t(' from line %s', getStartLineNumber(index, DiffLineType.REMOVED))
+        : ''
+    );
+  };
+
+  const getNewLineTitle = (index: number) => {
+    return t(
+      '%s new line%s%s',
+      editedLines.length,
+      editedLines.length === 1 ? '' : 's',
+      editedLines.length > 0
+        ? t(' from line %s', getStartLineNumber(index, DiffLineType.ADDED))
+        : ''
+    );
+  };
 
   return (
     <Fragment>
       <HunkHeaderEmptySpace />
       <HunkHeader lines={lines} sectionHeader={header} />
-      {linesWithChanges.map(line => (
-        <Fragment key={line.diff_line_no}>
+      {linesWithChanges.map((line, index) => (
+        <Fragment key={index}>
           <LineNumber lineType={line.line_type}>{line.source_line_no}</LineNumber>
           <LineNumber lineType={line.line_type}>{line.target_line_no}</LineNumber>
           <DiffContent
@@ -109,6 +387,71 @@ function DiffHunkContent({lines, header}: {header: string; lines: DiffLine[]}) {
             data-test-id={makeTestIdFromLineType(line.line_type)}
           >
             <DiffLineCode line={line} />
+            {lineGroups.some(group => index === group.start) && (
+              <ButtonGroup>
+                <ActionButton
+                  size="xs"
+                  icon={<IconEdit size="xs" />}
+                  aria-label={t('Edit changes')}
+                  title={t('Edit')}
+                  onClick={() => handleEditClick(index)}
+                />
+                <ActionButton
+                  size="xs"
+                  icon={<IconClose size="xs" />}
+                  aria-label={t('Reject changes')}
+                  title={t('Reject')}
+                  onClick={() => rejectChanges(index)}
+                />
+              </ButtonGroup>
+            )}
+            {editingGroup === index && (
+              <EditOverlay ref={overlayRef}>
+                <OverlayTitle>{t('Editing %s', fileName)}</OverlayTitle>
+                <SectionTitle>{getDeletedLineTitle(index)}</SectionTitle>
+                {linesWithChanges
+                  .slice(index, lineGroups.find(g => g.start === index)?.end! + 1)
+                  .filter(l => l.line_type === DiffLineType.REMOVED).length > 0 ? (
+                  <RemovedLines>
+                    {linesWithChanges
+                      .slice(index, lineGroups.find(g => g.start === index)?.end! + 1)
+                      .filter(l => l.line_type === DiffLineType.REMOVED)
+                      .map((l, i) => (
+                        <RemovedLine key={i}>{l.value}</RemovedLine>
+                      ))}
+                  </RemovedLines>
+                ) : (
+                  <NoChangesMessage>{t('No lines are being deleted.')}</NoChangesMessage>
+                )}
+                <SectionTitle>{getNewLineTitle(index)}</SectionTitle>
+                <TextAreaWrapper>
+                  <StyledTextArea
+                    value={editedContent}
+                    onChange={handleTextAreaChange}
+                    rows={5}
+                    autosize
+                    placeholder={
+                      editedLines.length === 0 ? t('No lines are being added...') : ''
+                    }
+                  />
+                  <ClearButton
+                    size="xs"
+                    onClick={handleClearChanges}
+                    aria-label={t('Clear changes')}
+                    icon={<IconDelete size="xs" />}
+                    title={t('Clear all new lines')}
+                  />
+                </TextAreaWrapper>
+                <OverlayButtonGroup>
+                  <Button size="xs" onClick={handleCancelEdit}>
+                    {t('Cancel')}
+                  </Button>
+                  <Button size="xs" priority="primary" onClick={handleSaveEdit}>
+                    {t('Save')}
+                  </Button>
+                </OverlayButtonGroup>
+              </EditOverlay>
+            )}
           </DiffContent>
         </Fragment>
       ))}
@@ -116,7 +459,17 @@ function DiffHunkContent({lines, header}: {header: string; lines: DiffLine[]}) {
   );
 }
 
-function FileDiff({file}: {file: FilePatch}) {
+function FileDiff({
+  file,
+  groupId,
+  runId,
+  repoId,
+}: {
+  file: FilePatch;
+  groupId: string;
+  runId: string;
+  repoId?: string;
+}) {
   const [isExpanded, setIsExpanded] = useState(true);
 
   return (
@@ -138,9 +491,18 @@ function FileDiff({file}: {file: FilePatch}) {
       </FileHeader>
       {isExpanded && (
         <DiffContainer>
-          {file.hunks.map(({section_header, source_start, lines}) => {
+          {file.hunks.map(({section_header, source_start, lines}, index) => {
             return (
-              <DiffHunkContent key={source_start} lines={lines} header={section_header} />
+              <DiffHunkContent
+                key={source_start}
+                repoId={repoId}
+                groupId={groupId}
+                runId={runId}
+                hunkIndex={index}
+                lines={lines}
+                header={section_header}
+                fileName={file.path}
+              />
             );
           })}
         </DiffContainer>
@@ -149,7 +511,7 @@ function FileDiff({file}: {file: FilePatch}) {
   );
 }
 
-export function AutofixDiff({diff}: AutofixDiffProps) {
+export function AutofixDiff({diff, groupId, runId, repoId}: AutofixDiffProps) {
   if (!diff || !diff.length) {
     return null;
   }
@@ -157,7 +519,13 @@ export function AutofixDiff({diff}: AutofixDiffProps) {
   return (
     <DiffsColumn>
       {diff.map(file => (
-        <FileDiff key={file.path} file={file} />
+        <FileDiff
+          key={file.path}
+          file={file}
+          groupId={groupId}
+          runId={runId}
+          repoId={repoId}
+        />
       ))}
     </DiffsColumn>
   );
@@ -248,7 +616,10 @@ const LineNumber = styled('div')<{lineType: DiffLineType}>`
 const DiffContent = styled('div')<{lineType: DiffLineType}>`
   position: relative;
   padding-left: ${space(4)};
+  padding-right: ${space(4)};
   white-space: pre-wrap;
+  word-break: break-all;
+  word-wrap: break-word;
 
   ${p =>
     p.lineType === DiffLineType.ADDED &&
@@ -274,4 +645,102 @@ const CodeDiff = styled('span')<{added?: boolean; removed?: boolean}>`
   vertical-align: middle;
   ${p => p.added && `background-color: ${p.theme.diff.added};`};
   ${p => p.removed && `background-color: ${p.theme.diff.removed};`};
+`;
+
+const ButtonGroup = styled('div')`
+  position: absolute;
+  top: 0;
+  right: ${space(0.25)};
+  display: flex;
+  opacity: 0;
+  transition: opacity 0.1s ease-in-out;
+
+  ${DiffContent}:hover & {
+    opacity: 1;
+  }
+`;
+
+const ActionButton = styled(Button)`
+  margin-left: ${space(0.5)};
+  font-family: ${p => p.theme.text.family};
+`;
+
+const EditOverlay = styled('div')`
+  position: fixed;
+  bottom: 200px;
+  right: ${space(2)};
+  left: calc(50% + ${space(2)});
+  background: ${p => p.theme.backgroundElevated};
+  border: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.borderRadius};
+  box-shadow: ${p => p.theme.dropShadowHeavy};
+  padding: ${space(2)};
+  z-index: 1;
+`;
+
+const OverlayButtonGroup = styled('div')`
+  display: flex;
+  justify-content: flex-end;
+  gap: ${space(1)};
+  margin-top: ${space(1)};
+  font-family: ${p => p.theme.text.family};
+`;
+
+const RemovedLines = styled('div')`
+  margin-bottom: ${space(1)};
+  font-family: ${p => p.theme.text.familyMono};
+  border-radius: ${p => p.theme.borderRadius};
+  overflow: hidden;
+`;
+
+const RemovedLine = styled('div')`
+  background-color: ${p => p.theme.diff.removedRow};
+  color: ${p => p.theme.textColor};
+  padding: ${space(0.25)} ${space(0.5)};
+`;
+
+const StyledTextArea = styled(TextArea)`
+  font-family: ${p => p.theme.text.familyMono};
+  font-size: ${p => p.theme.fontSizeSmall};
+  background-color: ${p => p.theme.diff.addedRow};
+  border-color: ${p => p.theme.border};
+  position: relative;
+
+  &:focus {
+    border-color: ${p => p.theme.focusBorder};
+    box-shadow: inset 0 0 0 1px ${p => p.theme.focusBorder};
+  }
+`;
+
+const ClearButton = styled(Button)`
+  position: absolute;
+  top: -${space(1)};
+  right: -${space(1)};
+  z-index: 1;
+`;
+
+const TextAreaWrapper = styled('div')`
+  position: relative;
+`;
+
+const SectionTitle = styled('p')`
+  margin: ${space(1)} 0;
+  font-size: ${p => p.theme.fontSizeMedium};
+  font-weight: bold;
+  color: ${p => p.theme.textColor};
+  font-family: ${p => p.theme.text.family};
+`;
+
+const NoChangesMessage = styled('p')`
+  margin: ${space(1)} 0;
+  color: ${p => p.theme.subText};
+  font-family: ${p => p.theme.text.family};
+`;
+
+const OverlayTitle = styled('h3')`
+  margin: 0 0 ${space(2)} 0;
+  font-size: ${p => p.theme.fontSizeMedium};
+  font-weight: bold;
+  color: ${p => p.theme.textColor};
+  font-family: ${p => p.theme.text.family};
 `;

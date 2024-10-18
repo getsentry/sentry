@@ -29,6 +29,7 @@ import {
   IconArrow,
   IconChevron,
   IconCode,
+  IconEdit,
   IconFire,
   IconRefresh,
   IconUser,
@@ -302,17 +303,6 @@ function AutofixInsightCards({
 }: AutofixInsightCardsProps) {
   return (
     <InsightsContainer>
-      {!hasStepAbove && (
-        <div>
-          <TitleText>Insights</TitleText>
-          <ChainLink
-            insightCardAboveIndex={null}
-            stepIndex={stepIndex}
-            groupId={groupId}
-            runId={runId}
-          />
-        </div>
-      )}
       {insights.length > 0 ? (
         insights.map((insight, index) =>
           !insight ? null : (
@@ -412,13 +402,13 @@ function ChainLink({
     <ArrowContainer>
       <IconArrow direction={'down'} className="arrow-icon" />
       <RethinkButton
-        icon={<IconRefresh />}
+        icon={<IconEdit size="xs" />}
         size="zero"
-        className="hover-button"
+        className="rethink-button"
+        title={t('Rethink from here')}
+        aria-label={t('Rethink from here')}
         onClick={() => setShowOverlay(true)}
-      >
-        Rethink from here
-      </RethinkButton>
+      />
 
       {showOverlay && (
         <RethinkInput ref={overlayRef}>
@@ -486,14 +476,6 @@ const NoInsightsYet = styled('div')`
   text-align: center;
 `;
 
-const TitleText = styled('p')`
-  font-size: ${p => p.theme.fontSizeLarge};
-  font-weight: ${p => p.theme.fontWeightBold};
-  margin: 0;
-  display: flex;
-  justify-content: center;
-`;
-
 const InsightsContainer = styled('div')``;
 
 const InsightContainer = styled(motion.div)`
@@ -517,15 +499,10 @@ const ArrowContainer = styled('div')`
     justify-self: center;
   }
 
-  .hover-button {
-    opacity: 0;
+  .rethink-button {
     grid-column: 3 / 4;
     justify-self: end;
     transition: opacity 0.1s ease-in-out;
-  }
-
-  &:hover .hover-button {
-    opacity: 1;
   }
 `;
 
