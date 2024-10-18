@@ -924,12 +924,11 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
             resp = self.get_error_response(
                 self.organization.slug, status_code=400, **rule_one_trigger_only_critical_no_action
             )
-        assert resp.data == [
-            ErrorDetail(
-                string="Each trigger must have an associated action for this alert to fire.",
-                code="invalid",
-            )
-        ]
+        assert resp.data == {
+            "nonFieldErrors": [
+                "Each trigger must have an associated action for this alert to fire."
+            ]
+        }
 
     def test_invalid_projects(self):
         with self.feature("organizations:incidents"):

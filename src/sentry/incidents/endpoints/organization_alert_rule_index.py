@@ -52,7 +52,6 @@ from sentry.models.project import Project
 from sentry.models.rule import Rule, RuleSource
 from sentry.models.team import Team
 from sentry.sentry_apps.services.app import app_service
-from sentry.signals import alert_rule_created
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery
 from sentry.uptime.models import (
@@ -118,16 +117,8 @@ class AlertRuleIndexMixin(Endpoint):
             },
             data=data,
         )
-
         if not serializer.is_valid():
             raise ValidationError(serializer.errors)
-
-        # if there are no triggers, then the serializer will raise an error
-        for trigger in data["triggers"]:
-            if not trigger.get("actions", []):
-                raise ValidationError(
-                    "Each trigger must have an associated action for this alert to fire."
-                )
 
         trigger_sentry_app_action_creators_for_incidents(serializer.validated_data)
         if get_slack_actions_with_async_lookups(organization, request.user, request.data):
@@ -143,25 +134,6 @@ class AlertRuleIndexMixin(Endpoint):
             return Response({"uuid": client.uuid}, status=202)
         else:
             alert_rule = serializer.save()
-            referrer = request.query_params.get("referrer")
-            session_id = request.query_params.get("sessionId")
-            duplicate_rule = request.query_params.get("duplicateRule")
-            wizard_v3 = request.query_params.get("wizardV3")
-            subscriptions = alert_rule.snuba_query.subscriptions.all()
-            for sub in subscriptions:
-                alert_rule_created.send_robust(
-                    user=request.user,
-                    project=sub.project,
-                    rule_id=alert_rule.id,
-                    rule_type="metric",
-                    sender=self,
-                    referrer=referrer,
-                    session_id=session_id,
-                    is_api_token=request.auth is not None,
-                    duplicate_rule=duplicate_rule,
-                    wizard_v3=wizard_v3,
-                    query_type=self.get_query_type_description(data.get("queryType", None)),
-                )
             return Response(serialize(alert_rule, request.user), status=status.HTTP_201_CREATED)
 
     def get_query_type_description(self, value):
