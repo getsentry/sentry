@@ -13,23 +13,27 @@ import partition from 'lodash/partition';
 
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import {updateOnboardingTask} from 'sentry/actionCreators/onboardingTasks';
+import {Button} from 'sentry/components/button';
 import {Chevron} from 'sentry/components/chevron';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {
   OnboardingContext,
   type OnboardingContextProps,
 } from 'sentry/components/onboarding/onboardingContext';
+import SkipConfirm from 'sentry/components/onboardingWizard/skipConfirm';
 import {findCompleteTasks, taskIsDone} from 'sentry/components/onboardingWizard/utils';
 import ProgressRing from 'sentry/components/progressRing';
 import SidebarPanel from 'sentry/components/sidebar/sidebarPanel';
 import type {CommonSidebarProps} from 'sentry/components/sidebar/types';
-import {Tooltip} from 'sentry/components/tooltip';
-import {IconCheckmark} from 'sentry/icons';
+import {IconCheckmark, IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import DemoWalkthroughStore from 'sentry/stores/demoWalkthroughStore';
-import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
 import {space} from 'sentry/styles/space';
-import {type OnboardingTask, OnboardingTaskGroup} from 'sentry/types/onboarding';
+import {
+  type OnboardingTask,
+  OnboardingTaskGroup,
+  type OnboardingTaskKey,
+} from 'sentry/types/onboarding';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -64,9 +68,24 @@ function useOnboardingTasks(
     }).filter(task => task.display);
     return {
       allTasks: all,
-      basicTasks: all.filter(task => task.group === OnboardingTaskGroup.BASIC),
+      gettingStartedTasks: all.filter(
+        task => task.group === OnboardingTaskGroup.GETTING_STARTED
+      ),
+      beyondBasicsTasks: all.filter(
+        task => task.group !== OnboardingTaskGroup.GETTING_STARTED
+      ),
     };
   }, [organization, projects, onboardingContext]);
+}
+
+function groupTasksByCompletion(tasks: OnboardingTask[]) {
+  const [completedTasks, incompletedTasks] = partition(tasks, task =>
+    findCompleteTasks(task)
+  );
+  return {
+    completedTasks,
+    incompletedTasks,
+  };
 }
 
 function getPanelDescription(walkthrough: boolean) {
@@ -85,10 +104,11 @@ function getPanelDescription(walkthrough: boolean) {
 interface TaskProps {
   hidePanel: () => void;
   task: OnboardingTask;
-  status?: 'waiting' | 'completed';
+  completed?: boolean;
 }
 
-function Task({task, status, hidePanel}: TaskProps) {
+function Task({task, completed, hidePanel}: TaskProps) {
+  const api = useApi();
   const organization = useOrganization();
   const router = useRouter();
 
@@ -129,26 +149,39 @@ function Task({task, status, hidePanel}: TaskProps) {
     [task, organization, router, hidePanel]
   );
 
-  if (status === 'completed') {
+  const handleMarkComplete = useCallback(
+    (taskKey: OnboardingTaskKey) => {
+      updateOnboardingTask(api, organization, {
+        task: taskKey,
+        status: 'complete',
+        completionSeen: true,
+      });
+    },
+    [api, organization]
+  );
+
+  const handleMarkSkipped = useCallback(
+    (taskKey: OnboardingTaskKey) => {
+      trackAnalytics('quick_start.task_card_clicked', {
+        organization,
+        todo_id: task.task,
+        todo_title: task.title,
+        action: 'skipped',
+      });
+      updateOnboardingTask(api, organization, {
+        task: taskKey,
+        status: 'skipped',
+        completionSeen: true,
+      });
+    },
+    [task, organization, api]
+  );
+
+  if (completed) {
     return (
       <TaskWrapper completed>
         <strong>{task.title}</strong>
         <IconCheckmark color="green300" isCircled />
-      </TaskWrapper>
-    );
-  }
-
-  if (status === 'waiting') {
-    return (
-      <TaskWrapper onClick={handleClick}>
-        <InteractionStateLayer />
-        <div>
-          <strong>{task.title}</strong>
-          <p>{task.description}</p>
-        </div>
-        <Tooltip title={t('Waiting for event')}>
-          <PulsingIndicator />
-        </Tooltip>
       </TaskWrapper>
     );
   }
@@ -160,6 +193,29 @@ function Task({task, status, hidePanel}: TaskProps) {
         <strong>{task.title}</strong>
         <p>{task.description}</p>
       </div>
+      {task.requisiteTasks.length === 0 && (
+        <Fragment>
+          {task.skippable && (
+            <SkipConfirm onSkip={() => handleMarkSkipped(task.task)}>
+              {({skip}) => (
+                <Button
+                  borderless
+                  size="zero"
+                  aria-label={t('Close')}
+                  icon={<IconClose size="xs" color="gray300" />}
+                  onClick={skip}
+                />
+              )}
+            </SkipConfirm>
+          )}
+          {task.SupplementComponent && (
+            <task.SupplementComponent
+              task={task}
+              onCompleteTask={() => handleMarkComplete(task.task)}
+            />
+          )}
+        </Fragment>
+      )}
     </TaskWrapper>
   );
 }
@@ -174,9 +230,11 @@ interface TaskGroupProps {
 
 function TaskGroup({title, description, tasks, expanded, hidePanel}: TaskGroupProps) {
   const [isExpanded, setIsExpanded] = useState(expanded);
-  const [completedTasks, incompletedTasks] = partition(tasks, task =>
-    findCompleteTasks(task)
-  );
+  const {completedTasks, incompletedTasks} = groupTasksByCompletion(tasks);
+
+  useEffect(() => {
+    setIsExpanded(expanded);
+  }, [expanded]);
 
   return (
     <TaskGroupWrapper>
@@ -215,12 +273,7 @@ function TaskGroup({title, description, tasks, expanded, hidePanel}: TaskGroupPr
               <Fragment>
                 <TaskGroupProgress completed>{t('Completed')}</TaskGroupProgress>
                 {completedTasks.map(task => (
-                  <Task
-                    key={task.task}
-                    task={task}
-                    hidePanel={hidePanel}
-                    status="completed"
-                  />
+                  <Task key={task.task} task={task} hidePanel={hidePanel} completed />
                 ))}
               </Fragment>
             )}
@@ -242,7 +295,7 @@ export function NewOnboardingSidebar({onClose, orientation, collapsed}: NewSideb
   const {projects} = useProjects();
   const walkthrough = isDemoWalkthrough();
   const {title, description} = getPanelDescription(walkthrough);
-  const {allTasks, basicTasks} = useOnboardingTasks(
+  const {allTasks, gettingStartedTasks, beyondBasicsTasks} = useOnboardingTasks(
     organization,
     projects,
     onboardingContext
@@ -309,17 +362,26 @@ export function NewOnboardingSidebar({onClose, orientation, collapsed}: NewSideb
     >
       <Content>
         <p>{description}</p>
-        {basicTasks.length && (
-          <TaskGroup
-            title={t('The basics')}
-            description={t(
-              'Learn the essentials to set up monitoring, capture errors, and track releases.'
-            )}
-            tasks={basicTasks}
-            hidePanel={onClose}
-            expanded
-          />
-        )}
+        <TaskGroup
+          title={t('Getting Started')}
+          description={t(
+            'Learn the essentials to set up monitoring, capture errors, and track releases.'
+          )}
+          tasks={gettingStartedTasks}
+          hidePanel={onClose}
+          expanded
+        />
+        <TaskGroup
+          title={t('Beyond the Basics')}
+          description={t(
+            'Explore advanced features like release tracking, performance alerts and more to enhance your monitoring.'
+          )}
+          tasks={beyondBasicsTasks}
+          hidePanel={onClose}
+          expanded={
+            groupTasksByCompletion(gettingStartedTasks).incompletedTasks.length === 0
+          }
+        />
       </Content>
     </Wrapper>
   );
@@ -398,7 +460,6 @@ const TaskWrapper = styled('div')<{completed?: boolean}>`
   border-radius: ${p => p.theme.borderRadius};
   display: grid;
   grid-template-columns: 1fr max-content;
-  align-items: center;
   gap: ${space(1)};
 
   p {
@@ -413,14 +474,11 @@ const TaskWrapper = styled('div')<{completed?: boolean}>`
           strong {
             opacity: 0.5;
           }
+          align-items: center;
         `
       : css`
           position: relative;
           cursor: pointer;
+          align-items: flex-start;
         `}
-`;
-
-const PulsingIndicator = styled('div')`
-  ${pulsingIndicatorStyles};
-  margin: 0 ${space(0.5)};
 `;
