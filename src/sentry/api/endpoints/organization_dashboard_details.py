@@ -44,9 +44,9 @@ class DashboardPermissions(BasePermission):
     }
 
     def has_object_permission(self, request: Request, view, obj):
-        if features.has(
+        if isinstance(obj, Dashboard) and features.has(
             "organizations:dashboards-edit-access", obj.organization, actor=request.user
-        ) and isinstance(obj, Dashboard):
+        ):
             # Check if user has permissions to edit dashboard
             if hasattr(obj, "permissions"):
                 return obj.permissions.has_edit_permissions(request.user.id)
