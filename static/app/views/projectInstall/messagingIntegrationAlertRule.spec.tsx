@@ -25,6 +25,12 @@ describe('MessagingIntegrationAlertRule', function () {
     }),
   ];
 
+  const providersToIntegrations = {
+    slack: slackIntegrations,
+    discord: discordIntegrations,
+    msteams: msteamsIntegrations,
+  };
+
   const mockSetChannel = jest.fn();
   const mockSetIntegration = jest.fn();
   const mockSetProvider = jest.fn();
@@ -34,24 +40,17 @@ describe('MessagingIntegrationAlertRule', function () {
     channel: 'channel',
     integration: slackIntegrations[0],
     provider: 'slack',
+    providersToIntegrations: providersToIntegrations,
+    querySuccess: true,
+    shouldRenderSetupButton: false,
+    refetchConfigs: jest.fn(),
     setActions: jest.fn(),
     setChannel: mockSetChannel,
     setIntegration: mockSetIntegration,
     setProvider: mockSetProvider,
   };
 
-  const providersToIntegrations = {
-    slack: slackIntegrations,
-    discord: discordIntegrations,
-    msteams: msteamsIntegrations,
-  };
-
-  const getComponent = () => (
-    <MessagingIntegrationAlertRule
-      notificationProps={notificationProps}
-      providersToIntegrations={providersToIntegrations}
-    />
-  );
+  const getComponent = () => <MessagingIntegrationAlertRule {...notificationProps} />;
 
   it('renders', function () {
     render(getComponent());
@@ -78,7 +77,7 @@ describe('MessagingIntegrationAlertRule', function () {
   it('disables provider select when there is only one provider option', function () {
     render(
       <MessagingIntegrationAlertRule
-        notificationProps={notificationProps}
+        {...notificationProps}
         providersToIntegrations={{slack: slackIntegrations}}
       />
     );
@@ -88,12 +87,11 @@ describe('MessagingIntegrationAlertRule', function () {
   it('disables integration select when there is only one integration option', function () {
     render(
       <MessagingIntegrationAlertRule
-        notificationProps={{
+        {...{
           ...notificationProps,
           integration: discordIntegrations[0],
           provider: 'discord',
         }}
-        providersToIntegrations={providersToIntegrations}
       />
     );
     expect(screen.getByLabelText('integration')).toBeDisabled();

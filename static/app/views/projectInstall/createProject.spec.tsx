@@ -94,6 +94,15 @@ describe('CreateProject', function () {
       // Not required for these tests
       statusCode: 500,
     });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/integrations/?integrationType=messaging`,
+      body: [
+        OrganizationIntegrationsFixture({
+          name: "Moo Deng's Workspace",
+        }),
+      ],
+    });
   });
 
   afterEach(() => {

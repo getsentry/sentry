@@ -296,6 +296,7 @@ function CreateProject() {
   const isMissingAlertThreshold =
     shouldCreateCustomRule && !conditions?.every?.(condition => condition.value);
   const isMissingMessagingIntegrationChannel =
+    organization.features.includes('messaging-integration-onboarding-project-creation') &&
     shouldCreateRule &&
     notificationProps.actions?.some(
       action => action === MultipleCheckboxOptions.INTEGRATION
@@ -326,6 +327,9 @@ function CreateProject() {
 
   const keyToErrorText = {
     actions: t('Notify via integration'),
+    conditions: t('Alert conditions'),
+    name: t('Alert name'),
+    detail: t('Project details'),
   };
 
   const alertFrequencyDefaultValues = useMemo(() => {
@@ -449,10 +453,7 @@ function CreateProject() {
             <Alert type="error">
               {Object.keys(errors).map(key => (
                 <div key={key}>
-                  <strong>
-                    {keyToErrorText[key] ? keyToErrorText[key] : startCase(key)}
-                  </strong>
-                  : {errors[key]}
+                  <strong>{keyToErrorText[key] ?? startCase(key)}</strong>: {errors[key]}
                 </div>
               ))}
             </Alert>

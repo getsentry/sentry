@@ -5,21 +5,26 @@ import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegr
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import type {OrganizationIntegration} from 'sentry/types/integrations';
-import IssueAlertNotificationOptions from 'sentry/views/projectInstall/issueAlertNotificationOptions';
+import IssueAlertNotificationOptions, {
+  type IssueAlertNotificationProps,
+} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
 
 describe('MessagingIntegrationAlertRule', function () {
   const organization = OrganizationFixture({
     features: ['messaging-integration-onboarding-project-creation'],
   });
-  let mockResponse: jest.Mock<any>;
-  let integrations: OrganizationIntegration[] = [];
+  const integrations: OrganizationIntegration[] = [];
   const mockSetAction = jest.fn();
 
-  const notificationProps = {
+  const notificationProps: IssueAlertNotificationProps = {
     actions: [],
     channel: 'channel',
     integration: undefined,
     provider: 'slack',
+    providersToIntegrations: {},
+    querySuccess: true,
+    shouldRenderSetupButton: false,
+    refetchConfigs: jest.fn(),
     setActions: mockSetAction,
     setChannel: jest.fn(),
     setIntegration: jest.fn(),
@@ -27,27 +32,6 @@ describe('MessagingIntegrationAlertRule', function () {
   };
 
   const getComponent = () => <IssueAlertNotificationOptions {...notificationProps} />;
-
-  beforeEach(function () {
-    integrations = [
-      OrganizationIntegrationsFixture({
-        name: "Moo Deng's Workspace",
-        status: 'disabled',
-      }),
-      OrganizationIntegrationsFixture({
-        name: "Moo Waan's Workspace",
-        status: 'disabled',
-      }),
-    ];
-    mockResponse = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/integrations/?integrationType=messaging`,
-      body: integrations,
-    });
-  });
-
-  afterEach(function () {
-    MockApiClient.clearMockResponses();
-  });
 
   it('renders setup button if no integrations are active', async function () {
     const providers = (providerKey: string) => [
@@ -63,11 +47,19 @@ describe('MessagingIntegrationAlertRule', function () {
         })
       );
     });
-    render(getComponent(), {organization: organization});
+    mockResponses.push(
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/integrations/?integrationType=messaging`,
+        body: [],
+      })
+    );
+    render(
+      <IssueAlertNotificationOptions {...notificationProps} shouldRenderSetupButton />,
+      {organization: organization}
+    );
     await screen.findByText(/notify via email/i);
     expect(screen.queryByText(/notify via integration/i)).not.toBeInTheDocument();
     await screen.findByRole('button', {name: /connect to messaging/i});
-    expect(mockResponse).toHaveBeenCalled();
     mockResponses.forEach(mock => {
       expect(mock).toHaveBeenCalled();
     });
@@ -83,7 +75,6 @@ describe('MessagingIntegrationAlertRule', function () {
     render(getComponent(), {organization: organization});
     await screen.findByText(/notify via email/i);
     await screen.findByText(/notify via integration/i);
-    expect(mockResponse).toHaveBeenCalled();
   });
 
   it('calls setter when new integration option is selected', async function () {

@@ -10,6 +10,7 @@ import {
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import selectEvent from 'sentry-test/selectEvent';
 
+import type {IssueAlertNotificationProps} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
 import IssueAlertOptions from 'sentry/views/projectInstall/issueAlertOptions';
 
 describe('IssueAlertOptions', function () {
@@ -17,39 +18,33 @@ describe('IssueAlertOptions', function () {
     features: ['messaging-integration-onboarding-project-creation'],
   });
   const URL = `/projects/${organization.slug}/rule-conditions/`;
+
+  const notificationProps: IssueAlertNotificationProps = {
+    actions: [],
+    channel: 'channel',
+    integration: OrganizationIntegrationsFixture(),
+    provider: 'slack',
+    providersToIntegrations: {},
+    querySuccess: true,
+    shouldRenderSetupButton: false,
+    refetchConfigs: jest.fn(),
+    setActions: jest.fn(),
+    setChannel: jest.fn(),
+    setIntegration: jest.fn(),
+    setProvider: jest.fn(),
+  };
+
   const props = {
     onChange: jest.fn(),
+    organization,
+    notificationProps,
   };
-
-  const notificationProps = {
-    alertNotificationAction: [],
-    alertNotificationChannel: 'channel',
-    alertNotificationIntegration: OrganizationIntegrationsFixture({
-      name: "Moo Deng's Workspace",
-      status: 'disabled',
-    }),
-    alertNotificationProvider: 'slack',
-    setAlertNotificationAction: jest.fn(),
-    setAlertNotificationChannel: jest.fn(),
-    setAlertNotificationIntegration: jest.fn(),
-    setAlertNotificationProvider: jest.fn(),
-  };
-
   const getComponent = () => <IssueAlertOptions {...props} {...notificationProps} />;
 
   beforeEach(() => {
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/rule-conditions/`,
       body: MOCK_RESP_VERBOSE,
-    });
-
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/integrations/?integrationType=messaging`,
-      body: [
-        OrganizationIntegrationsFixture({
-          name: "Moo Deng's Workspace",
-        }),
-      ],
     });
   });
   afterEach(() => {
@@ -169,5 +164,41 @@ describe('IssueAlertOptions', function () {
         ],
       })
     );
+  });
+
+  it('should render alert configuration if `Default` or `Custom` alerts are selected', async () => {
+    MockApiClient.addMockResponse({
+      url: URL,
+      body: MOCK_RESP_VERBOSE,
+    });
+
+    render(getComponent());
+    await screen.findByRole('checkbox', {name: 'Notify via email'});
+    await screen.findByRole('checkbox', {
+      name: 'Notify via integration (Slack, Discord, MS Teams, etc.)',
+    });
+    await selectEvent.select(screen.getByText('occurrences of'), 'users affected by');
+    await screen.findByRole('checkbox', {name: 'Notify via email'});
+    await screen.findByRole('checkbox', {
+      name: 'Notify via integration (Slack, Discord, MS Teams, etc.)',
+    });
+  });
+
+  it('should not render notification configuration if `Create Alerts Later` is selected', async () => {
+    MockApiClient.addMockResponse({
+      url: URL,
+      body: MOCK_RESP_VERBOSE,
+    });
+
+    render(getComponent());
+    await userEvent.click(screen.getByLabelText("I'll create my own alerts later"));
+    expect(
+      screen.queryByRole('checkbox', {name: 'Notify via email'})
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('checkbox', {
+        name: 'Notify via integration (Slack, Discord, MS Teams, etc.)',
+      })
+    ).not.toBeInTheDocument();
   });
 });
