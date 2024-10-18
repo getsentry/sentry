@@ -1,12 +1,49 @@
 import {ProjectFixture} from 'sentry-fixture/project';
 import {UserFixture} from 'sentry-fixture/user';
+import {WidgetQueryFixture} from 'sentry-fixture/widgetQuery';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import type {EventViewOptions} from 'sentry/utils/discover/eventView';
 import EventView from 'sentry/utils/discover/eventView';
-import {getCustomEventsFieldRenderer} from 'sentry/views/dashboards/datasetConfig/errorsAndTransactions';
+import {
+  getCustomEventsFieldRenderer,
+  transformEventsResponseToTable,
+} from 'sentry/views/dashboards/datasetConfig/errorsAndTransactions';
+
+describe('transformEventsResponseToTable', function () {
+  it('unsplats table meta field types', function () {
+    const rawData = {
+      data: [{'p75(measurements.inp)': null}],
+      meta: {
+        'p75(measurements.inp)': 'duration',
+        units: {
+          'p75(measurements.inp)': 'millisecond',
+        },
+        dataset: 'metricsEnhanced',
+        fields: {
+          'p75(measurements.inp)': 'duration',
+        },
+      },
+      title: 'A Query',
+    } as unknown as TableData;
+
+    const widgetQuery = WidgetQueryFixture();
+
+    expect(transformEventsResponseToTable(rawData, widgetQuery).meta).toEqual({
+      'p75(measurements.inp)': 'duration',
+      units: {
+        'p75(measurements.inp)': 'millisecond',
+      },
+      dataset: 'metricsEnhanced',
+      fields: {
+        'p75(measurements.inp)': 'duration',
+      },
+    });
+  });
+});
 
 describe('getCustomFieldRenderer', function () {
   const {organization, router} = initializeOrg();
