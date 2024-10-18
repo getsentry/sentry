@@ -54,6 +54,7 @@ from sentry.models.team import Team
 from sentry.sentry_apps.services.app import app_service
 from sentry.signals import alert_rule_created
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.models import SnubaQuery
 from sentry.uptime.models import (
     ProjectUptimeSubscription,
     ProjectUptimeSubscriptionMode,
@@ -159,8 +160,15 @@ class AlertRuleIndexMixin(Endpoint):
                     is_api_token=request.auth is not None,
                     duplicate_rule=duplicate_rule,
                     wizard_v3=wizard_v3,
+                    query_type=self.get_query_type_description(data.get("queryType", None)),
                 )
             return Response(serialize(alert_rule, request.user), status=status.HTTP_201_CREATED)
+
+    def get_query_type_description(self, value):
+        try:
+            return SnubaQuery.Type(value).name
+        except ValueError:
+            return "Unknown"
 
 
 @region_silo_endpoint

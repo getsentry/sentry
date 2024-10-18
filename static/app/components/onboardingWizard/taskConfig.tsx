@@ -185,7 +185,7 @@ export function getOnboardingTasks({
       actionType: 'app',
       location: `/organizations/${organization.slug}/projects/new/`,
       display: true,
-      group: OnboardingTaskGroup.BASIC,
+      group: OnboardingTaskGroup.GETTING_STARTED,
     },
     {
       task: OnboardingTaskKey.FIRST_EVENT,
@@ -219,7 +219,7 @@ export function getOnboardingTasks({
             </EventWaiter>
           ) : null
       ),
-      group: OnboardingTaskGroup.BASIC,
+      group: OnboardingTaskGroup.GETTING_STARTED,
     },
     {
       task: OnboardingTaskKey.INVITE_MEMBER,
@@ -232,7 +232,7 @@ export function getOnboardingTasks({
       actionType: 'action',
       action: () => openInviteMembersModal({source: 'onboarding_widget'}),
       display: true,
-      group: OnboardingTaskGroup.BASIC,
+      group: OnboardingTaskGroup.GETTING_STARTED,
     },
     {
       task: OnboardingTaskKey.FIRST_INTEGRATION,
@@ -245,7 +245,7 @@ export function getOnboardingTasks({
       actionType: 'app',
       location: `/settings/${organization.slug}/integrations/`,
       display: !hasQuickStartUpdatesFeature(organization),
-      group: OnboardingTaskGroup.BASIC,
+      group: OnboardingTaskGroup.GETTING_STARTED,
     },
     {
       task: OnboardingTaskKey.REAL_TIME_NOTIFICATIONS,
@@ -258,7 +258,7 @@ export function getOnboardingTasks({
       actionType: 'app',
       location: `/settings/${organization.slug}/integrations/?category=chat`,
       display: hasQuickStartUpdatesFeature(organization),
-      group: OnboardingTaskGroup.BASIC,
+      group: OnboardingTaskGroup.GETTING_STARTED,
     },
     {
       task: OnboardingTaskKey.LINK_SENTRY_TO_SOURCE_CODE,
@@ -271,7 +271,7 @@ export function getOnboardingTasks({
       actionType: 'app',
       location: `/settings/${organization.slug}/integrations/?category=codeowners`,
       display: hasQuickStartUpdatesFeature(organization),
-      group: OnboardingTaskGroup.BASIC,
+      group: OnboardingTaskGroup.GETTING_STARTED,
     },
     {
       task: OnboardingTaskKey.SECOND_PLATFORM,
@@ -427,7 +427,7 @@ export function getOnboardingTasks({
       actionType: 'app',
       location: `/settings/${organization.slug}/projects/:projectId/release-tracking/`,
       display: true,
-      group: OnboardingTaskGroup.BASIC,
+      group: OnboardingTaskGroup.GETTING_STARTED,
     },
     {
       task: OnboardingTaskKey.SOURCEMAPS,
@@ -442,30 +442,6 @@ export function getOnboardingTasks({
       display: hasPlatformWithSourceMaps(projects),
     },
     {
-      task: OnboardingTaskKey.USER_REPORTS,
-      title: t('User crash reports'),
-      description: t('Collect user feedback when your application crashes'),
-      skippable: true,
-      requisites: [
-        OnboardingTaskKey.FIRST_PROJECT,
-        OnboardingTaskKey.FIRST_EVENT,
-        OnboardingTaskKey.USER_CONTEXT,
-      ],
-      actionType: 'app',
-      location: `/settings/${organization.slug}/projects/:projectId/user-reports/`,
-      display: false,
-    },
-    {
-      task: OnboardingTaskKey.ISSUE_TRACKER,
-      title: t('Set up issue tracking'),
-      description: t('Link to Sentry issues within your issue tracker'),
-      skippable: true,
-      requisites: [OnboardingTaskKey.FIRST_PROJECT, OnboardingTaskKey.FIRST_EVENT],
-      actionType: 'app',
-      location: `/settings/${organization.slug}/projects/:projectId/plugins/`,
-      display: false,
-    },
-    {
       task: OnboardingTaskKey.ALERT_RULE,
       title: t('Configure an Issue Alert'),
       description: t(
@@ -476,7 +452,7 @@ export function getOnboardingTasks({
       actionType: 'app',
       location: getIssueAlertUrl({projects, organization, onboardingContext}),
       display: true,
-      group: OnboardingTaskGroup.BASIC,
+      group: OnboardingTaskGroup.GETTING_STARTED,
     },
     {
       task: OnboardingTaskKey.METRIC_ALERT,
