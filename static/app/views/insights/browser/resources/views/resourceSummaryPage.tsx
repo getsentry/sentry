@@ -119,7 +119,17 @@ function ResourceSummary() {
         </Layout.Header>
       )}
 
-      {isInDomainView && <FrontendHeader module={ModuleName.RESOURCE} />}
+      {isInDomainView && (
+        <FrontendHeader
+          headerTitle={spanMetrics[SpanMetricsField.SPAN_DESCRIPTION]}
+          breadcrumbs={[
+            {
+              label: tct('[dataType] Summary', {dataType: DATA_TYPE}),
+            },
+          ]}
+          module={ModuleName.RESOURCE}
+        />
+      )}
 
       <Layout.Body>
         <Layout.Main fullWidth>
