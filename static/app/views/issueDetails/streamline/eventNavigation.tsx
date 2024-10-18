@@ -346,7 +346,6 @@ function EventNavigationLink({
       to={{
         ...location,
         hash: `#${config.key}`,
-        replace: true,
       }}
       onClick={event => {
         event.preventDefault();
