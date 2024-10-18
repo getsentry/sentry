@@ -16,7 +16,7 @@ import {TooltipIconTrigger} from './tooltipIconTrigger';
 import type {StateProps} from './types';
 import {WarningsList} from './warningsList';
 
-export interface Props extends StateProps {
+export interface WidgetFrameProps extends StateProps {
   actions?: MenuItemProps[];
   badgeProps?: BadgeProps;
   children?: React.ReactNode;
@@ -26,7 +26,7 @@ export interface Props extends StateProps {
   warnings?: string[];
 }
 
-export function WidgetFrame(props: Props) {
+export function WidgetFrame(props: WidgetFrameProps) {
   const {error} = props;
 
   // The error state has its own set of available actions
