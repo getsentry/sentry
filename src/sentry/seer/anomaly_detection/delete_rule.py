@@ -1,12 +1,10 @@
 import logging
 from typing import TYPE_CHECKING, cast
 
-from django.conf import settings
 from urllib3.exceptions import MaxRetryError, TimeoutError
 
 from sentry.conf.server import SEER_ALERT_DELETION_URL
 from sentry.models.organization import Organization
-from sentry.net.http import connection_from_url
 from sentry.seer.anomaly_detection.types import DeleteAlertDataRequest
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.utils import json
@@ -14,9 +12,6 @@ from sentry.utils.json import JSONDecodeError
 
 logger = logging.getLogger(__name__)
 
-seer_anomaly_detection_connection_pool = connection_from_url(
-    settings.SEER_ANOMALY_DETECTION_URL, timeout=settings.SEER_DEFAULT_TIMEOUT
-)
 
 if TYPE_CHECKING:
     from sentry.incidents.models.alert_rule import AlertRule
@@ -26,6 +21,8 @@ def delete_rule_in_seer(alert_rule: "AlertRule") -> bool:
     """
     Send a request to delete an alert rule from Seer. Returns True if the request was successful.
     """
+    from sentry.seer.anomaly_detection.utils import SEER_ANOMALY_DETECTION_CONNECTION_POOL
+
     body = DeleteAlertDataRequest(
         organization_id=cast(Organization, alert_rule.organization).id,
         alert={"id": alert_rule.id},
@@ -36,7 +33,7 @@ def delete_rule_in_seer(alert_rule: "AlertRule") -> bool:
 
     try:
         response = make_signed_seer_api_request(
-            connection_pool=seer_anomaly_detection_connection_pool,
+            connection_pool=SEER_ANOMALY_DETECTION_CONNECTION_POOL,
             path=SEER_ALERT_DELETION_URL,
             body=json.dumps(body).encode("utf-8"),
         )
