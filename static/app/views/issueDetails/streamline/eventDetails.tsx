@@ -24,6 +24,7 @@ import {
 } from 'sentry/views/issueDetails/groupEventDetails/groupEventDetailsContent';
 import {
   EventDetailsContext,
+  useEventDetails,
   useEventDetailsReducer,
 } from 'sentry/views/issueDetails/streamline/context';
 import {EventGraph} from 'sentry/views/issueDetails/streamline/eventGraph';
@@ -124,12 +125,7 @@ export function EventDetails({
           message={t('There was an error loading the event content')}
         >
           <GroupContent>
-            <StickyEventNav
-              event={event}
-              group={group}
-              searchQuery={searchQuery}
-              dispatch={dispatch}
-            />
+            <StickyEventNav event={event} group={group} searchQuery={searchQuery} />
             <ContentPadding>
               <EventDetailsContent group={group} event={event} project={project} />
             </ContentPadding>
@@ -151,9 +147,7 @@ function StickyEventNav({
   event,
   group,
   searchQuery,
-  dispatch,
 }: {
-  dispatch: ReturnType<typeof useEventDetailsReducer>['dispatch'];
   event: Event;
   group: Group;
   searchQuery: string;
@@ -162,6 +156,7 @@ function StickyEventNav({
   const [nav, setNav] = useState<HTMLDivElement | null>(null);
   const isStuck = useIsStuck(nav);
   const isScreenMedium = useMedia(`(max-width: ${theme.breakpoints.medium})`);
+  const {dispatch} = useEventDetails();
 
   useLayoutEffect(() => {
     if (!nav) {
