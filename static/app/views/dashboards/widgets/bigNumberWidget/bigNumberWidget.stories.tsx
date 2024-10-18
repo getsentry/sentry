@@ -31,6 +31,12 @@ export default storyBook(BigNumberWidget, story => {
           visualization shows a tooltip with the full value.
         </p>
 
+        <p>
+          <JSXNode name="BigNumberWidget" /> also supports string values. This is not
+          commonly used, but it's capable of rendering timestamps and in fact most fields
+          defined in our field renderer pipeline
+        </p>
+
         <SideBySide>
           <SmallSizingWindow>
             <BigNumberWidget
@@ -95,6 +101,25 @@ export default storyBook(BigNumberWidget, story => {
               }}
             />
           </SmallSizingWindow>
+          <SmallSizingWindow>
+            <BigNumberWidget
+              title="Latest Timestamp"
+              description=""
+              data={[
+                {
+                  'max(timestamp)': '2024-10-17T16:08:07+00:00',
+                },
+              ]}
+              meta={{
+                fields: {
+                  'max(timestamp)': 'date',
+                },
+                units: {
+                  'max(timestamp)': null,
+                },
+              }}
+            />
+          </SmallSizingWindow>
         </SideBySide>
         <p>
           The <code>maximumValue</code> prop allows setting the maximum displayable value.
@@ -138,12 +163,6 @@ export default storyBook(BigNumberWidget, story => {
         <SideBySide>
           <NormalWidget>
             <BigNumberWidget title="Loading Count" isLoading />
-          </NormalWidget>
-          <NormalWidget>
-            <BigNumberWidget
-              title="Text"
-              data={[{'max(user.email)': 'bufo@example.com'}]}
-            />
           </NormalWidget>
           <NormalWidget>
             <BigNumberWidget title="Missing Count" data={[{}]} />
