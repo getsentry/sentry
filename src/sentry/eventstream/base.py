@@ -3,7 +3,6 @@ from __future__ import annotations
 import logging
 from collections.abc import Collection, Mapping, MutableMapping, Sequence
 from datetime import datetime
-from enum import Enum
 from typing import TYPE_CHECKING, Any, Optional, TypedDict, cast
 
 from sentry.issues.issue_occurrence import IssueOccurrence
@@ -11,6 +10,8 @@ from sentry.queue.routers import SplitQueueRouter
 from sentry.tasks.post_process import post_process_group
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.services import Service
+
+from .types import EventStreamEventType
 
 logger = logging.getLogger(__name__)
 
@@ -34,16 +35,6 @@ class GroupState(TypedDict):
 
 
 GroupStates = Sequence[GroupState]
-
-
-class EventStreamEventType(Enum):
-    """
-    We have 3 broad categories of event types that we care about in eventstream.
-    """
-
-    Error = "error"  # error, default, various security errors
-    Transaction = "transaction"  # transactions
-    Generic = "generic"  # generic events ingested via the issue platform
 
 
 class EventStream(Service):

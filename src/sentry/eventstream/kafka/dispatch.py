@@ -8,11 +8,12 @@ from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.types import Message
 
 from sentry import options
-from sentry.eventstream.base import EventStreamEventType, GroupStates
+from sentry.eventstream.base import GroupStates
 from sentry.eventstream.kafka.protocol import (
     get_task_kwargs_for_message,
     get_task_kwargs_for_message_from_headers,
 )
+from sentry.eventstream.types import EventStreamEventType
 from sentry.post_process_forwarder.post_process_forwarder import PostProcessForwarderStrategyFactory
 from sentry.tasks.post_process import post_process_group
 from sentry.utils import metrics
@@ -34,8 +35,8 @@ def _sampled_eventstream_timer(instance: str) -> Generator[None, None, None]:
 
 
 def dispatch_post_process_group_task(
-    event_id: str,
     eventstream_type: EventStreamEventType,
+    event_id: str,
     project_id: int,
     group_id: int | None,
     is_new: bool,
@@ -84,15 +85,19 @@ def _get_task_kwargs(message: Message[KafkaPayload]) -> Mapping[str, Any] | None
             return get_task_kwargs_for_message(message.payload.value)
 
 
-def _get_task_kwargs_and_dispatch(message: Message[KafkaPayload]) -> None:
+def _get_task_kwargs_and_dispatch(
+    eventstream_type: EventStreamEventType, message: Message[KafkaPayload]
+) -> None:
     task_kwargs = _get_task_kwargs(message)
     if not task_kwargs:
         return None
 
-    dispatch_post_process_group_task(**task_kwargs)
+    dispatch_post_process_group_task(eventstream_type, **task_kwargs)
 
 
 class EventPostProcessForwarderStrategyFactory(PostProcessForwarderStrategyFactory):
     @staticmethod
-    def _dispatch_function(message: Message[KafkaPayload]) -> None:
-        return _get_task_kwargs_and_dispatch(message)
+    def _dispatch_function(
+        eventstream_type: EventStreamEventType, message: Message[KafkaPayload]
+    ) -> None:
+        return _get_task_kwargs_and_dispatch(eventstream_type, message)

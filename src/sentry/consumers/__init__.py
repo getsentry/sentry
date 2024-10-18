@@ -23,7 +23,7 @@ from sentry.conf.types.kafka_definition import (
     validate_consumer_definition,
 )
 from sentry.consumers.validate_schema import ValidateSchema
-from sentry.eventstream.base import EventStreamEventType
+from sentry.eventstream.types import EventStreamEventType
 from sentry.ingest.types import ConsumerType
 from sentry.utils.imports import import_string
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
