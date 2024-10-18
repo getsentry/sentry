@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {type ReactNode, useMemo} from 'react';
 import type Fuse from 'fuse.js';
 
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
@@ -29,7 +29,7 @@ type FilterKeySearchItem = {
 const FUZZY_SEARCH_OPTIONS: Fuse.IFuseOptions<FilterKeySearchItem> = {
   keys: [
     {name: 'key', weight: 10},
-    {name: 'value', weight: 5},
+    {name: 'value', weight: 7},
     {name: 'keywords', weight: 2},
     {name: 'description', weight: 1},
   ],
@@ -53,10 +53,10 @@ function getFilterSearchValues(
     const fieldDef = getFieldDefinition(key.key);
     const values = key.values ?? fieldDef?.values ?? [];
 
-    const addItem = (value: string) => {
+    const addItem = (value: string, description: ReactNode = '') => {
       acc.push({
         value,
-        description: '',
+        description: typeof description === 'string' ? description : '',
         keywords: [],
         type: 'value',
         item: key,
@@ -70,12 +70,12 @@ function getFilterSearchValues(
         if (value.children.length) {
           for (const child of value.children) {
             if (child.value) {
-              addItem(child.value);
+              addItem(child.value, child.desc ?? child.documentation);
             }
           }
         } else {
           if (value.value) {
-            addItem(value.value);
+            addItem(value.value, value.desc ?? value.documentation);
           }
         }
       }
@@ -94,8 +94,12 @@ function getValueSuggestionsFromSearchResult(
   const suggestions: FilterValueItem[] = [];
 
   for (const result of results) {
-    if (result.item.type === 'key' || suggestions.length >= 3) {
+    if (suggestions.length >= 3) {
       break;
+    }
+
+    if (result.item.type === 'key') {
+      continue;
     }
 
     suggestions.push(
@@ -111,7 +115,13 @@ function getValueSuggestionsFromSearchResult(
     type: 'section',
   };
 
-  return suggestions.length ? [suggestedFiltersSection] : [];
+  const topItemIsValueSuggestion = results[0]?.item?.type === 'value';
+  const hasValueSuggestions = suggestions.length > 0;
+
+  return {
+    shouldShowAtTop: topItemIsValueSuggestion,
+    suggestedFiltersSection: hasValueSuggestions ? suggestedFiltersSection : null,
+  };
 }
 
 export function useSortedFilterKeyItems({
@@ -203,10 +213,14 @@ export function useSortedFilterKeyItems({
         type: 'section',
       };
 
+      const {shouldShowAtTop, suggestedFiltersSection} =
+        getValueSuggestionsFromSearchResult(searched);
+
       return [
-        ...getValueSuggestionsFromSearchResult(searched),
+        ...(shouldShowAtTop && suggestedFiltersSection ? [suggestedFiltersSection] : []),
         ...(shouldIncludeRawSearch ? [rawSearchSection] : []),
         keyItemsSection,
+        ...(!shouldShowAtTop && suggestedFiltersSection ? [suggestedFiltersSection] : []),
       ];
     }
 
