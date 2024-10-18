@@ -111,13 +111,6 @@ class GroupAutofixSetupCheck(GroupEndpoint):
         org: Organization = request.organization
         has_gen_ai_consent = org.get_option("sentry:gen_ai_consent", False)
 
-        if not (
-            features.has("projects:ai-autofix", group.project)
-            or features.has("organizations:autofix", group.organization)
-            or has_gen_ai_consent
-        ):
-            return Response({"detail": "Feature not enabled for project"}, status=403)
-
         is_codebase_indexing_disabled = features.has(
             "organizations:autofix-disable-codebase-indexing",
             group.organization,
