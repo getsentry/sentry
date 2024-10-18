@@ -1,18 +1,19 @@
-import {useMemo} from 'react';
-import type {Theme} from '@emotion/react';
+import {Fragment, useMemo} from 'react';
+import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import ActorAvatar from 'sentry/components/avatar/actorAvatar';
-import Count from 'sentry/components/count';
+import {AssigneeBadge} from 'sentry/components/assigneeBadge';
+import GroupStatusChart from 'sentry/components/charts/groupStatusChart';
 import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
+import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
+import {getBadgeProperties} from 'sentry/components/group/inboxBadges/statusBadge';
+import IssueStreamHeaderLabel from 'sentry/components/IssueStreamHeaderLabel';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import PanelItem from 'sentry/components/panels/panelItem';
-import {IconWrapper} from 'sentry/components/sidebarSection';
-import GroupChart from 'sentry/components/stream/groupChart';
-import {IconUser} from 'sentry/icons';
+import {PrimaryCount} from 'sentry/components/stream/group';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
@@ -23,6 +24,9 @@ import type {
   TracePerformanceIssue,
 } from 'sentry/utils/performance/quickTrace/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import useOrganization from 'sentry/utils/useOrganization';
+import {HeaderDivider} from 'sentry/views/issueList/actions';
+import {NarrowAssigneeLabel} from 'sentry/views/issueList/actions/headers';
 
 import type {TraceTree} from '../../../traceModels/traceTree';
 import type {TraceTreeNode} from '../../../traceModels/traceTreeNode';
@@ -63,6 +67,7 @@ function sortIssuesByLevel(a: TraceError, b: TraceError): number {
 }
 
 function Issue(props: IssueProps) {
+  const {organization} = props;
   const {
     isPending,
     data: fetchedIssue,
@@ -83,55 +88,92 @@ function Issue(props: IssueProps) {
     }
   );
 
+  const hasNewLayout = organization.features.includes('issue-stream-table-layout');
+
   return isPending ? (
     <StyledLoadingIndicatorWrapper>
       <LoadingIndicator size={24} mini />
     </StyledLoadingIndicatorWrapper>
   ) : fetchedIssue ? (
-    <StyledPanelItem>
-      <IssueSummaryWrapper>
-        <IssueSummary
-          data={fetchedIssue}
-          organization={props.organization}
-          event_id={props.issue.event_id}
-        />
-        <EventOrGroupExtraDetails data={fetchedIssue} />
-      </IssueSummaryWrapper>
+    <StyledPanelItem hasNewLayout={hasNewLayout}>
+      {hasNewLayout ? (
+        <NarrowIssueSummaryWrapper>
+          <EventOrGroupHeader data={fetchedIssue} organization={organization} />
+          <EventOrGroupExtraDetails data={fetchedIssue} />
+        </NarrowIssueSummaryWrapper>
+      ) : (
+        <IssueSummaryWrapper>
+          <IssueSummary
+            data={fetchedIssue}
+            organization={props.organization}
+            event_id={props.issue.event_id}
+          />
+          <EventOrGroupExtraDetails data={fetchedIssue} />
+        </IssueSummaryWrapper>
+      )}
       <ChartWrapper>
-        <GroupChart
+        <GroupStatusChart
           stats={
             fetchedIssue.filtered
               ? fetchedIssue.filtered.stats?.['24h']
               : fetchedIssue.stats?.['24h']
           }
           secondaryStats={fetchedIssue.filtered ? fetchedIssue.stats?.['24h'] : []}
+          groupStatus={
+            getBadgeProperties(fetchedIssue.status, fetchedIssue.substatus)?.status
+          }
+          hideZeros
           showSecondaryPoints
           showMarkLine
         />
       </ChartWrapper>
       <EventsWrapper>
-        <PrimaryCount
-          value={fetchedIssue.filtered ? fetchedIssue.filtered.count : fetchedIssue.count}
-        />
-      </EventsWrapper>
-      <UserCountWrapper>
-        <PrimaryCount
-          value={
-            fetchedIssue.filtered
-              ? fetchedIssue.filtered.userCount
-              : fetchedIssue.userCount
-          }
-        />
-      </UserCountWrapper>
-      <AssineeWrapper>
-        {fetchedIssue.assignedTo ? (
-          <ActorAvatar actor={fetchedIssue.assignedTo} hasTooltip size={24} />
+        {hasNewLayout ? (
+          <NarrowEventsOrUsersWrapper>
+            <PrimaryCount
+              value={
+                fetchedIssue.filtered ? fetchedIssue.filtered.count : fetchedIssue.count
+              }
+            />
+          </NarrowEventsOrUsersWrapper>
         ) : (
-          <StyledIconWrapper>
-            <IconUser size="md" />
-          </StyledIconWrapper>
+          <PrimaryCount
+            value={
+              fetchedIssue.filtered ? fetchedIssue.filtered.count : fetchedIssue.count
+            }
+          />
         )}
-      </AssineeWrapper>
+      </EventsWrapper>
+      {hasNewLayout ? (
+        <NarrowEventsOrUsersWrapper>
+          <PrimaryCount
+            value={
+              fetchedIssue.filtered
+                ? fetchedIssue.filtered.userCount
+                : fetchedIssue.userCount
+            }
+          />
+        </NarrowEventsOrUsersWrapper>
+      ) : (
+        <UserCountWrapper>
+          <PrimaryCount
+            value={
+              fetchedIssue.filtered
+                ? fetchedIssue.filtered.userCount
+                : fetchedIssue.userCount
+            }
+          />
+        </UserCountWrapper>
+      )}
+      {hasNewLayout ? (
+        <NarrowAssigneeWrapper>
+          <AssigneeBadge assignedTo={fetchedIssue.assignedTo ?? undefined} />
+        </NarrowAssigneeWrapper>
+      ) : (
+        <AssigneeWrapper>
+          <AssigneeBadge assignedTo={fetchedIssue.assignedTo ?? undefined} />
+        </AssigneeWrapper>
+      )}
     </StyledPanelItem>
   ) : isError ? (
     <LoadingError
@@ -215,6 +257,8 @@ function IssueListHeader({
   node: TraceTreeNode<TraceTree.NodeValue>;
   performanceIssues: TracePerformanceIssue[];
 }) {
+  const organization = useOrganization();
+
   const [singular, plural] = useMemo((): [string, string] => {
     const label = [t('Issue'), t('Issues')] as [string, string];
     for (const event of errorIssues) {
@@ -225,46 +269,76 @@ function IssueListHeader({
     return label;
   }, [errorIssues]);
 
-  return (
-    <StyledPanelHeader disablePadding>
-      <IssueHeading>
-        {errorIssues.length + performanceIssues.length > MAX_DISPLAYED_ISSUES_COUNT
-          ? tct(`[count]+  issues, [link]`, {
-              count: MAX_DISPLAYED_ISSUES_COUNT,
-              link: <StyledIssuesLink node={node}>{t('View All')}</StyledIssuesLink>,
+  const hasNewLayout = organization.features.includes('issue-stream-table-layout');
+
+  const issueHeadingContent =
+    errorIssues.length + performanceIssues.length > MAX_DISPLAYED_ISSUES_COUNT
+      ? tct(`[count]+  issues, [link]`, {
+          count: MAX_DISPLAYED_ISSUES_COUNT,
+          link: <StyledIssuesLink node={node}>{t('View All')}</StyledIssuesLink>,
+        })
+      : errorIssues.length > 0 && performanceIssues.length === 0
+        ? tct('[count] [text]', {
+            count: errorIssues.length,
+            text: errorIssues.length > 1 ? plural : singular,
+          })
+        : performanceIssues.length > 0 && errorIssues.length === 0
+          ? tct('[count] [text]', {
+              count: performanceIssues.length,
+              text: tn(
+                'Performance issue',
+                'Performance Issues',
+                performanceIssues.length
+              ),
             })
-          : errorIssues.length > 0 && performanceIssues.length === 0
-            ? tct('[count] [text]', {
-                count: errorIssues.length,
-                text: errorIssues.length > 1 ? plural : singular,
-              })
-            : performanceIssues.length > 0 && errorIssues.length === 0
-              ? tct('[count] [text]', {
-                  count: performanceIssues.length,
-                  text: tn(
-                    'Performance issue',
-                    'Performance Issues',
-                    performanceIssues.length
-                  ),
-                })
-              : tct(
-                  '[errors] [errorsText] and [performance_issues] [performanceIssuesText]',
-                  {
-                    errors: errorIssues.length,
-                    performance_issues: performanceIssues.length,
-                    errorsText: errorIssues.length > 1 ? plural : singular,
-                    performanceIssuesText: tn(
-                      'performance issue',
-                      'performance issues',
-                      performanceIssues.length
-                    ),
-                  }
-                )}
-      </IssueHeading>
-      <GraphHeading>{t('Graph')}</GraphHeading>
-      <EventsHeading>{t('Events')}</EventsHeading>
-      <UsersHeading>{t('Users')}</UsersHeading>
-      <AssigneeHeading>{t('Assignee')}</AssigneeHeading>
+          : tct(
+              '[errors] [errorsText] and [performance_issues] [performanceIssuesText]',
+              {
+                errors: errorIssues.length,
+                performance_issues: performanceIssues.length,
+                errorsText: errorIssues.length > 1 ? plural : singular,
+                performanceIssuesText: tn(
+                  'performance issue',
+                  'performance issues',
+                  performanceIssues.length
+                ),
+              }
+            );
+
+  return (
+    <StyledPanelHeader disablePadding hasNewLayout={hasNewLayout}>
+      {hasNewLayout ? (
+        <StyledIssueStreamHeaderLabel>
+          {issueHeadingContent}
+          <HeaderDivider />
+        </StyledIssueStreamHeaderLabel>
+      ) : (
+        <IssueHeading>{issueHeadingContent}</IssueHeading>
+      )}
+      {hasNewLayout ? (
+        <Fragment>
+          <NarrowGraphLabel>
+            {t('Trend')}
+            <HeaderDivider />
+          </NarrowGraphLabel>
+          <NarrowEventsLabel>
+            {t('Events')}
+            <HeaderDivider />
+          </NarrowEventsLabel>
+          <NarrowUsersLabel>
+            {t('Users')}
+            <HeaderDivider />
+          </NarrowUsersLabel>
+          <NarrowAssigneeLabel>{t('Assignee')}</NarrowAssigneeLabel>
+        </Fragment>
+      ) : (
+        <Fragment>
+          <GraphHeading>{t('Graph')}</GraphHeading>
+          <EventsHeading>{t('Events')}</EventsHeading>
+          <UsersHeading>{t('Users')}</UsersHeading>
+          <AssigneeHeading>{t('Assignee')}</AssigneeHeading>
+        </Fragment>
+      )}
     </StyledPanelHeader>
   );
 }
@@ -300,10 +374,27 @@ const GraphHeading = styled(Heading)`
   }
 `;
 
+const NarrowGraphLabel = styled(IssueStreamHeaderLabel)`
+  width: 200px;
+  display: flex;
+  justify-content: space-between;
+
+  @container (width < ${TABLE_WIDTH_BREAKPOINTS.FIRST}px) {
+    display: none;
+  }
+`;
+
 const EventsHeading = styled(Heading)`
   @container (width < ${TABLE_WIDTH_BREAKPOINTS.SECOND}px) {
     display: none;
   }
+`;
+
+const NarrowEventsLabel = styled(EventsHeading)`
+  display: flex;
+  justify-content: space-between;
+  width: 60px;
+  margin-left: 0;
 `;
 
 const UsersHeading = styled(Heading)`
@@ -313,6 +404,13 @@ const UsersHeading = styled(Heading)`
   @container (width < ${TABLE_WIDTH_BREAKPOINTS.THIRD}px) {
     display: none;
   }
+`;
+
+const NarrowUsersLabel = styled(UsersHeading)`
+  display: flex;
+  justify-content: space-between;
+  width: 60px;
+  margin-left: 0;
 `;
 
 const AssigneeHeading = styled(Heading)`
@@ -325,9 +423,14 @@ const StyledPanel = styled(Panel)`
   container-type: inline-size;
 `;
 
-const StyledPanelHeader = styled(PanelHeader)`
+const StyledPanelHeader = styled(PanelHeader)<{hasNewLayout: boolean}>`
   padding-top: ${space(1)};
   padding-bottom: ${space(1)};
+  ${p =>
+    p.hasNewLayout &&
+    css`
+      text-transform: none;
+    `}
 `;
 
 const StyledLoadingIndicatorWrapper = styled('div')`
@@ -341,10 +444,6 @@ const StyledLoadingIndicatorWrapper = styled('div')`
   & + & {
     border-top: 1px solid ${p => p.theme.border};
   }
-`;
-
-const StyledIconWrapper = styled(IconWrapper)`
-  margin: 0;
 `;
 
 const IssueSummaryWrapper = styled('div')`
@@ -377,10 +476,19 @@ const UserCountWrapper = styled(ColumnWrapper)`
   }
 `;
 
-const AssineeWrapper = styled(ColumnWrapper)`
+const NarrowEventsOrUsersWrapper = styled(UserCountWrapper)`
+  margin-left: 0;
+  justify-content: center;
+`;
+
+const AssigneeWrapper = styled(ColumnWrapper)`
   @container (width < ${TABLE_WIDTH_BREAKPOINTS.FOURTH}px) {
     display: none;
   }
+`;
+
+const NarrowAssigneeWrapper = styled(AssigneeWrapper)`
+  margin-left: 0;
 `;
 
 const ChartWrapper = styled('div')`
@@ -392,13 +500,33 @@ const ChartWrapper = styled('div')`
   }
 `;
 
-const PrimaryCount = styled(Count)`
-  font-size: ${p => p.theme.fontSizeLarge};
-  font-variant-numeric: tabular-nums;
+const StyledPanelItem = styled(PanelItem)<{hasNewLayout: boolean}>`
+  padding-top: ${p => (p.hasNewLayout ? '0px' : space(1))};
+  padding-bottom: ${p => (p.hasNewLayout ? '0px' : space(1))};
+  ${p =>
+    p.hasNewLayout
+      ? css`
+          padding: ${space(1)} 0;
+          min-height: 66px;
+          line-height: 1.1;
+        `
+      : css`
+          height: 84px;
+        `}
 `;
 
-const StyledPanelItem = styled(PanelItem)`
-  padding-top: ${space(1)};
-  padding-bottom: ${space(1)};
-  height: 84px;
+const StyledIssueStreamHeaderLabel = styled(IssueStreamHeaderLabel)`
+  display: flex;
+  margin-left: ${space(2)};
+  width: 66.66%;
+`;
+
+const NarrowIssueSummaryWrapper = styled('div')`
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  margin-left: ${space(2)};
+  margin-right: ${space(2)};
+  width: 66.66%;
+  justify-content: center;
 `;

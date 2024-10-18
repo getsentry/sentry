@@ -52,7 +52,6 @@ interface AutofixMessageBoxProps {
   allowEmptyMessage: boolean;
   displayText: string;
   groupId: string;
-  isDisabled: boolean;
   onSend: ((message: string, isCustom?: boolean) => void) | null;
   responseRequired: boolean;
   runId: string;
@@ -102,7 +101,6 @@ function AutofixMessageBox({
   onSend,
   actionText = 'Send',
   allowEmptyMessage = false,
-  isDisabled = false,
   groupId,
   runId,
   scrollIntoView = null,
@@ -115,8 +113,7 @@ function AutofixMessageBox({
     'suggested_root_cause' | 'custom_root_cause'
   >('suggested_root_cause');
 
-  isDisabled =
-    isDisabled ||
+  const isDisabled =
     step?.status === 'ERROR' ||
     (step?.type === AutofixStepType.ROOT_CAUSE_ANALYSIS && step.causes?.length === 0);
 
@@ -181,6 +178,7 @@ function AutofixMessageBox({
                 size="xs"
                 value={rootCauseMode}
                 onChange={setRootCauseMode}
+                aria-label={t('Root cause selection')}
               >
                 <SegmentedControl.Item key="suggested_root_cause">
                   {t('Use suggested root cause')}

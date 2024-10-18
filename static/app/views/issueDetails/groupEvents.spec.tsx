@@ -32,7 +32,7 @@ describe('groupEvents', () => {
   });
 
   let organization: Organization;
-  let router;
+  let router: ReturnType<typeof initializeOrg>['router'];
 
   beforeEach(() => {
     browserHistory.push = jest.fn();

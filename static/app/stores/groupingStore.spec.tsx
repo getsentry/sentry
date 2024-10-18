@@ -2,7 +2,7 @@ import * as GroupActionCreators from 'sentry/actionCreators/group';
 import GroupingStore from 'sentry/stores/groupingStore';
 
 describe('Grouping Store', function () {
-  let trigger;
+  let trigger!: jest.SpyInstance;
 
   beforeAll(function () {
     MockApiClient.asyncDelay = 1;
