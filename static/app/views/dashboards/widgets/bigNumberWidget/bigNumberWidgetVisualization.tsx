@@ -20,12 +20,12 @@ import {DEFAULT_FIELD} from '../common/settings';
 import {ThresholdsIndicator} from './thresholdsIndicator';
 
 export interface BigNumberWidgetVisualizationProps {
-  value: number;
+  value: number | string;
   field?: string;
   maximumValue?: number;
   meta?: Meta;
   preferredPolarity?: Polarity;
-  previousPeriodValue?: number;
+  previousPeriodValue?: number | string;
   thresholds?: Thresholds;
 }
 
@@ -48,9 +48,6 @@ export function BigNumberWidgetVisualization(props: BigNumberWidgetVisualization
       ? getFieldRenderer(field, meta as MetaType, false)
       : renderableValue => renderableValue.toString();
 
-  const doesValueHitMaximum = maximumValue ? value >= maximumValue : false;
-  const clampedValue = Math.min(value, maximumValue);
-
   const unit = meta?.units?.[field];
   const type = meta?.fields?.[field];
 
@@ -59,6 +56,25 @@ export function BigNumberWidgetVisualization(props: BigNumberWidgetVisualization
     organization,
     unit: unit ?? undefined, // TODO: Field formatters think units can't be null but they can
   };
+
+  // String values don't support differences, thresholds, max values, or anything else.
+  if (typeof value === 'string') {
+    return (
+      <Wrapper>
+        <NumberAndDifferenceContainer>
+          {fieldRenderer(
+            {
+              [field]: value,
+            },
+            baggage
+          )}
+        </NumberAndDifferenceContainer>
+      </Wrapper>
+    );
+  }
+
+  const doesValueHitMaximum = maximumValue ? value >= maximumValue : false;
+  const clampedValue = Math.min(value, maximumValue);
 
   return (
     <Wrapper>
@@ -92,6 +108,7 @@ export function BigNumberWidgetVisualization(props: BigNumberWidgetVisualization
         </NumberContainerOverride>
 
         {defined(previousPeriodValue) &&
+          typeof previousPeriodValue === 'number' &&
           Number.isFinite(previousPeriodValue) &&
           !Number.isNaN(previousPeriodValue) &&
           !doesValueHitMaximum && (
