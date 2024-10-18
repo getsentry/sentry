@@ -37,11 +37,9 @@ Sentry.init({
   }${
     params.isProfilingSelected
       ? `
-  _experiments: {
-    // profilesSampleRate is relative to tracesSampleRate.
-    // Here, we'll capture profiles for 100% of transactions.
-    profilesSampleRate: 1.0,
-  },`
+  // profilesSampleRate is relative to tracesSampleRate.
+  // Here, we'll capture profiles for 100% of transactions.
+  profilesSampleRate: 1.0,`
       : ''
   }
 });`;
@@ -155,7 +153,7 @@ const onboarding: OnboardingConfig = {
           ? [
               {
                 description: t(
-                  'React Native Profiling beta is available since SDK version 5.8.0.'
+                  'React Native Profiling is available since SDK version 5.32.0.'
                 ),
               },
             ]
