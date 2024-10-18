@@ -12,12 +12,12 @@ from sentry.constants import SentryAppStatus
 from sentry.hybridcloud.services.organization_mapping import organization_mapping_service
 from sentry.integrations.models.integration_feature import IntegrationFeature, IntegrationTypes
 from sentry.models.apiapplication import ApiApplication
-from sentry.models.avatars.sentry_app_avatar import SentryAppAvatar
 from sentry.organizations.services.organization import organization_service
 from sentry.sentry_apps.api.serializers.sentry_app_avatar import (
     SentryAppAvatarSerializer as ResponseSentryAppAvatarSerializer,
 )
 from sentry.sentry_apps.models.sentry_app import MASKED_VALUE, SentryApp
+from sentry.sentry_apps.models.sentry_app_avatar import SentryAppAvatar
 from sentry.users.models.user import User
 from sentry.users.services.user.service import user_service
 

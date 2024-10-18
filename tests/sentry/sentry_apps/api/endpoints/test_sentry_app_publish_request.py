@@ -3,7 +3,7 @@ from unittest import mock
 from django.urls import reverse
 
 from sentry.constants import SentryAppStatus
-from sentry.models.avatars.sentry_app_avatar import SentryAppAvatar
+from sentry.sentry_apps.models.sentry_app_avatar import SentryAppAvatar
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 
