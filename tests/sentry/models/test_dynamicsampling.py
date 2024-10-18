@@ -326,7 +326,7 @@ class TestCustomDynamicSamplingRuleProject(TestCase):
         for rule in CustomDynamicSamplingRule.objects.all():
             assert rule.is_active
 
-        CustomDynamicSamplingRule.deactivate_expired_rules()
+        CustomDynamicSamplingRule.deactivate_old_rules()
 
         # check that all expired rules are inactive and all active rules are still active
         for rule in CustomDynamicSamplingRule.objects.all():
