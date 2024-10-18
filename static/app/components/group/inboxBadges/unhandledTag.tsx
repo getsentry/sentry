@@ -1,6 +1,5 @@
 import styled from '@emotion/styled';
 
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconFatal} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
@@ -8,12 +7,10 @@ import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 function UnhandledTag() {
   const hasStreamlinedUI = useHasStreamlinedUI();
   return (
-    <Tooltip skipWrapper title={t('An unhandled error was detected in this Issue.')}>
-      <UnhandledTagWrapper>
-        {!hasStreamlinedUI && <StyledIconFatal size="xs" color="errorText" />}
-        {t('Unhandled')}
-      </UnhandledTagWrapper>
-    </Tooltip>
+    <UnhandledTagWrapper>
+      {!hasStreamlinedUI && <StyledIconFatal size="xs" color="errorText" />}
+      {t('Unhandled')}
+    </UnhandledTagWrapper>
   );
 }
 
