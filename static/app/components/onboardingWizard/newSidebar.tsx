@@ -1,7 +1,7 @@
 import {
+  forwardRef,
   Fragment,
   useCallback,
-  useContext,
   useEffect,
   useMemo,
   useRef,
@@ -9,6 +9,7 @@ import {
 } from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {AnimatePresence, motion} from 'framer-motion';
 import partition from 'lodash/partition';
 
 import {navigateTo} from 'sentry/actionCreators/navigation';
@@ -16,10 +17,7 @@ import {updateOnboardingTask} from 'sentry/actionCreators/onboardingTasks';
 import {Button} from 'sentry/components/button';
 import {Chevron} from 'sentry/components/chevron';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
-import {
-  OnboardingContext,
-  type OnboardingContextProps,
-} from 'sentry/components/onboarding/onboardingContext';
+import type {OnboardingContextProps} from 'sentry/components/onboarding/onboardingContext';
 import SkipConfirm from 'sentry/components/onboardingWizard/skipConfirm';
 import {findCompleteTasks, taskIsDone} from 'sentry/components/onboardingWizard/utils';
 import ProgressRing from 'sentry/components/progressRing';
@@ -38,9 +36,9 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoWalkthrough} from 'sentry/utils/demoMode';
+import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 
 import {getMergedTasks} from './taskConfig';
@@ -55,7 +53,7 @@ const INITIAL_MARK_COMPLETE_TIMEOUT = 600;
  */
 const COMPLETION_SEEN_TIMEOUT = 800;
 
-function useOnboardingTasks(
+export function useOnboardingTasks(
   organization: Organization,
   projects: Project[],
   onboardingContext: OnboardingContextProps
@@ -74,6 +72,7 @@ function useOnboardingTasks(
       beyondBasicsTasks: all.filter(
         task => task.group !== OnboardingTaskGroup.GETTING_STARTED
       ),
+      completeTasks: all.filter(findCompleteTasks),
     };
   }, [organization, projects, onboardingContext]);
 }
@@ -107,118 +106,156 @@ interface TaskProps {
   completed?: boolean;
 }
 
-function Task({task, completed, hidePanel}: TaskProps) {
-  const api = useApi();
-  const organization = useOrganization();
-  const router = useRouter();
+const Task = forwardRef(
+  ({task, completed, hidePanel}: TaskProps, ref: React.Ref<HTMLDivElement>) => {
+    const api = useApi();
+    const organization = useOrganization();
+    const router = useRouter();
 
-  const handleClick = useCallback(
-    (e: React.MouseEvent) => {
-      trackAnalytics('quick_start.task_card_clicked', {
-        organization,
-        todo_id: task.task,
-        todo_title: task.title,
-        action: 'clickthrough',
-      });
+    const handleClick = useCallback(
+      (e: React.MouseEvent) => {
+        trackAnalytics('quick_start.task_card_clicked', {
+          organization,
+          todo_id: task.task,
+          todo_title: task.title,
+          action: 'clickthrough',
+        });
 
-      e.stopPropagation();
+        e.stopPropagation();
 
-      if (isDemoWalkthrough()) {
-        DemoWalkthroughStore.activateGuideAnchor(task.task);
-      }
+        if (isDemoWalkthrough()) {
+          DemoWalkthroughStore.activateGuideAnchor(task.task);
+        }
 
-      if (task.actionType === 'external') {
-        window.open(task.location, '_blank');
-      }
+        if (task.actionType === 'external') {
+          window.open(task.location, '_blank');
+        }
 
-      if (task.actionType === 'action') {
-        task.action(router);
-      }
+        if (task.actionType === 'action') {
+          task.action(router);
+        }
 
-      if (task.actionType === 'app') {
-        // Convert all paths to a location object
-        let to =
-          typeof task.location === 'string' ? {pathname: task.location} : task.location;
-        // Add referrer to all links
-        to = {...to, query: {...to.query, referrer: 'onboarding_task'}};
+        if (task.actionType === 'app') {
+          // Convert all paths to a location object
+          let to =
+            typeof task.location === 'string' ? {pathname: task.location} : task.location;
+          // Add referrer to all links
+          to = {...to, query: {...to.query, referrer: 'onboarding_task'}};
 
-        navigateTo(to, router);
-      }
-      hidePanel();
-    },
-    [task, organization, router, hidePanel]
-  );
+          navigateTo(to, router);
+        }
+        hidePanel();
+      },
+      [task, organization, router, hidePanel]
+    );
 
-  const handleMarkComplete = useCallback(
-    (taskKey: OnboardingTaskKey) => {
-      updateOnboardingTask(api, organization, {
-        task: taskKey,
-        status: 'complete',
-        completionSeen: true,
-      });
-    },
-    [api, organization]
-  );
+    const handleMarkComplete = useCallback(
+      (taskKey: OnboardingTaskKey) => {
+        updateOnboardingTask(api, organization, {
+          task: taskKey,
+          status: 'complete',
+          completionSeen: true,
+        });
+      },
+      [api, organization]
+    );
 
-  const handleMarkSkipped = useCallback(
-    (taskKey: OnboardingTaskKey) => {
-      trackAnalytics('quick_start.task_card_clicked', {
-        organization,
-        todo_id: task.task,
-        todo_title: task.title,
-        action: 'skipped',
-      });
-      updateOnboardingTask(api, organization, {
-        task: taskKey,
-        status: 'skipped',
-        completionSeen: true,
-      });
-    },
-    [task, organization, api]
-  );
+    const handleMarkSkipped = useCallback(
+      (taskKey: OnboardingTaskKey) => {
+        trackAnalytics('quick_start.task_card_clicked', {
+          organization,
+          todo_id: task.task,
+          todo_title: task.title,
+          action: 'skipped',
+        });
+        updateOnboardingTask(api, organization, {
+          task: taskKey,
+          status: 'skipped',
+          completionSeen: true,
+        });
+      },
+      [task, organization, api]
+    );
 
-  if (completed) {
+    if (completed) {
+      return (
+        <TaskWrapper completed>
+          <strong>{task.title}</strong>
+          <IconCheckmark color="green300" isCircled />
+        </TaskWrapper>
+      );
+    }
+
     return (
-      <TaskWrapper completed>
-        <strong>{task.title}</strong>
-        <IconCheckmark color="green300" isCircled />
+      <TaskWrapper onClick={handleClick} ref={ref}>
+        <InteractionStateLayer />
+        <div>
+          <strong>{task.title}</strong>
+          <p>{task.description}</p>
+        </div>
+        {task.requisiteTasks.length === 0 && (
+          <TaskActions>
+            {task.skippable && (
+              <SkipConfirm onSkip={() => handleMarkSkipped(task.task)}>
+                {({skip}) => (
+                  <Button
+                    borderless
+                    size="zero"
+                    aria-label={t('Close')}
+                    icon={<IconClose size="xs" color="gray300" />}
+                    onClick={skip}
+                    css={css`
+                      /* If the pulsing indicator is active, the close button
+                     * should be above it so it's clickable.
+                     */
+                      z-index: 1;
+                    `}
+                  />
+                )}
+              </SkipConfirm>
+            )}
+            {task.SupplementComponent && (
+              <task.SupplementComponent
+                task={task}
+                onCompleteTask={() => handleMarkComplete(task.task)}
+              />
+            )}
+          </TaskActions>
+        )}
       </TaskWrapper>
     );
   }
+);
 
-  return (
-    <TaskWrapper onClick={handleClick}>
-      <InteractionStateLayer />
-      <div>
-        <strong>{task.title}</strong>
-        <p>{task.description}</p>
-      </div>
-      {task.requisiteTasks.length === 0 && (
-        <Fragment>
-          {task.skippable && (
-            <SkipConfirm onSkip={() => handleMarkSkipped(task.task)}>
-              {({skip}) => (
-                <Button
-                  borderless
-                  size="zero"
-                  aria-label={t('Close')}
-                  icon={<IconClose size="xs" color="gray300" />}
-                  onClick={skip}
-                />
-              )}
-            </SkipConfirm>
-          )}
-          {task.SupplementComponent && (
-            <task.SupplementComponent
-              task={task}
-              onCompleteTask={() => handleMarkComplete(task.task)}
-            />
-          )}
-        </Fragment>
-      )}
-    </TaskWrapper>
-  );
-}
+const AnimatedTask = motion(Task);
+
+AnimatedTask.defaultProps = {
+  initial: 'initial',
+  animate: 'animate',
+  exit: 'exit',
+  layout: true,
+  variants: {
+    initial: {
+      opacity: 0,
+      y: 40,
+    },
+    animate: {
+      opacity: 1,
+      y: 0,
+      transition: testableTransition({
+        delay: 0.8,
+        when: 'beforeChildren',
+        staggerChildren: 0.3,
+      }),
+    },
+    exit: {
+      y: 20,
+      z: -10,
+      opacity: 0,
+      transition: {duration: 0.2},
+    },
+  },
+};
 
 interface TaskGroupProps {
   description: string;
@@ -266,15 +303,26 @@ function TaskGroup({title, description, tasks, expanded, hidePanel}: TaskGroupPr
                 barWidth={2}
               />
             </TaskGroupProgress>
-            {incompletedTasks.map(task => (
-              <Task key={task.task} task={task} hidePanel={hidePanel} />
-            ))}
+            {incompletedTasks.length > 0 && (
+              <AnimatePresence initial={false}>
+                {incompletedTasks.map(task => (
+                  <AnimatedTask key={task.task} task={task} hidePanel={hidePanel} />
+                ))}
+              </AnimatePresence>
+            )}
             {completedTasks.length > 0 && (
               <Fragment>
                 <TaskGroupProgress completed>{t('Completed')}</TaskGroupProgress>
-                {completedTasks.map(task => (
-                  <Task key={task.task} task={task} hidePanel={hidePanel} completed />
-                ))}
+                <AnimatePresence initial={false}>
+                  {completedTasks.map(task => (
+                    <AnimatedTask
+                      key={task.task}
+                      task={task}
+                      hidePanel={hidePanel}
+                      completed
+                    />
+                  ))}
+                </AnimatePresence>
               </Fragment>
             )}
           </TaskGroupBody>
@@ -284,22 +332,24 @@ function TaskGroup({title, description, tasks, expanded, hidePanel}: TaskGroupPr
   );
 }
 
-interface NewSidebarProps extends Pick<CommonSidebarProps, 'orientation' | 'collapsed'> {
+interface NewSidebarProps
+  extends Pick<CommonSidebarProps, 'orientation' | 'collapsed'>,
+    ReturnType<typeof useOnboardingTasks> {
   onClose: () => void;
 }
 
-export function NewOnboardingSidebar({onClose, orientation, collapsed}: NewSidebarProps) {
+export function NewOnboardingSidebar({
+  onClose,
+  orientation,
+  collapsed,
+  allTasks,
+  gettingStartedTasks,
+  beyondBasicsTasks,
+}: NewSidebarProps) {
   const api = useApi();
   const organization = useOrganization();
-  const onboardingContext = useContext(OnboardingContext);
-  const {projects} = useProjects();
   const walkthrough = isDemoWalkthrough();
   const {title, description} = getPanelDescription(walkthrough);
-  const {allTasks, gettingStartedTasks, beyondBasicsTasks} = useOnboardingTasks(
-    organization,
-    projects,
-    onboardingContext
-  );
 
   const markCompletionTimeout = useRef<number | undefined>();
   const markCompletionSeenTimeout = useRef<number | undefined>();
@@ -369,7 +419,9 @@ export function NewOnboardingSidebar({onClose, orientation, collapsed}: NewSideb
           )}
           tasks={gettingStartedTasks}
           hidePanel={onClose}
-          expanded
+          expanded={
+            groupTasksByCompletion(gettingStartedTasks).incompletedTasks.length > 0
+          }
         />
         <TaskGroup
           title={t('Beyond the Basics')}
@@ -481,4 +533,10 @@ const TaskWrapper = styled('div')<{completed?: boolean}>`
           cursor: pointer;
           align-items: flex-start;
         `}
+`;
+
+const TaskActions = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(1)};
 `;
