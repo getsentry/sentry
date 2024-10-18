@@ -48,6 +48,7 @@ from sentry.constants import (
     SAFE_FIELDS_DEFAULT,
     SCRAPE_JAVASCRIPT_DEFAULT,
     SENSITIVE_FIELDS_DEFAULT,
+    TARGET_SAMPLE_RATE_DEFAULT,
     UPTIME_AUTODETECTION,
     ObjectStatus,
 )
@@ -610,6 +611,11 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         if features.has("organizations:uptime-settings", obj):
             context["uptimeAutodetection"] = bool(
                 obj.get_option("sentry:uptime_autodetection", UPTIME_AUTODETECTION)
+            )
+
+        if features.has("organizations:dynamic-sampling-custom", obj, actor=user):
+            context["targetSampleRate"] = float(
+                obj.get_option("sentry:target_sample_rate", TARGET_SAMPLE_RATE_DEFAULT)
             )
 
         trusted_relays_raw = obj.get_option("sentry:trusted-relays") or []
