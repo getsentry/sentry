@@ -68,9 +68,24 @@ function useOnboardingTasks(
     }).filter(task => task.display);
     return {
       allTasks: all,
-      basicTasks: all.filter(task => task.group === OnboardingTaskGroup.BASIC),
+      gettingStartedTasks: all.filter(
+        task => task.group === OnboardingTaskGroup.GETTING_STARTED
+      ),
+      beyondBasicsTasks: all.filter(
+        task => task.group !== OnboardingTaskGroup.GETTING_STARTED
+      ),
     };
   }, [organization, projects, onboardingContext]);
+}
+
+function groupTasksByCompletion(tasks: OnboardingTask[]) {
+  const [completedTasks, incompletedTasks] = partition(tasks, task =>
+    findCompleteTasks(task)
+  );
+  return {
+    completedTasks,
+    incompletedTasks,
+  };
 }
 
 function getPanelDescription(walkthrough: boolean) {
@@ -215,9 +230,11 @@ interface TaskGroupProps {
 
 function TaskGroup({title, description, tasks, expanded, hidePanel}: TaskGroupProps) {
   const [isExpanded, setIsExpanded] = useState(expanded);
-  const [completedTasks, incompletedTasks] = partition(tasks, task =>
-    findCompleteTasks(task)
-  );
+  const {completedTasks, incompletedTasks} = groupTasksByCompletion(tasks);
+
+  useEffect(() => {
+    setIsExpanded(expanded);
+  }, [expanded]);
 
   return (
     <TaskGroupWrapper>
@@ -278,7 +295,7 @@ export function NewOnboardingSidebar({onClose, orientation, collapsed}: NewSideb
   const {projects} = useProjects();
   const walkthrough = isDemoWalkthrough();
   const {title, description} = getPanelDescription(walkthrough);
-  const {allTasks, basicTasks} = useOnboardingTasks(
+  const {allTasks, gettingStartedTasks, beyondBasicsTasks} = useOnboardingTasks(
     organization,
     projects,
     onboardingContext
@@ -345,17 +362,26 @@ export function NewOnboardingSidebar({onClose, orientation, collapsed}: NewSideb
     >
       <Content>
         <p>{description}</p>
-        {basicTasks.length && (
-          <TaskGroup
-            title={t('The basics')}
-            description={t(
-              'Learn the essentials to set up monitoring, capture errors, and track releases.'
-            )}
-            tasks={basicTasks}
-            hidePanel={onClose}
-            expanded
-          />
-        )}
+        <TaskGroup
+          title={t('Getting Started')}
+          description={t(
+            'Learn the essentials to set up monitoring, capture errors, and track releases.'
+          )}
+          tasks={gettingStartedTasks}
+          hidePanel={onClose}
+          expanded
+        />
+        <TaskGroup
+          title={t('Beyond the Basics')}
+          description={t(
+            'Explore advanced features like release tracking, performance alerts and more to enhance your monitoring.'
+          )}
+          tasks={beyondBasicsTasks}
+          hidePanel={onClose}
+          expanded={
+            groupTasksByCompletion(gettingStartedTasks).incompletedTasks.length === 0
+          }
+        />
       </Content>
     </Wrapper>
   );
