@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import logging
 import time
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Iterable, Mapping
+from dataclasses import dataclass
 from enum import Enum
 from typing import Any, cast
 
@@ -18,10 +19,23 @@ from sentry.api import client
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, all_silo_endpoint
+from sentry.constants import ObjectStatus
 from sentry.identity.services.identity import identity_service
 from sentry.identity.services.identity.model import RpcIdentity
+from sentry.integrations.messaging import commands
+from sentry.integrations.messaging.commands import (
+    CommandInput,
+    CommandNotMatchedError,
+    MessagingIntegrationCommand,
+    MessagingIntegrationCommandDispatcher,
+)
+from sentry.integrations.messaging.metrics import (
+    MessagingInteractionEvent,
+    MessagingInteractionType,
+)
+from sentry.integrations.messaging.spec import MessagingIntegrationSpec
 from sentry.integrations.msteams import parsing
-from sentry.integrations.msteams.spec import PROVIDER
+from sentry.integrations.msteams.spec import PROVIDER, MsTeamsMessagingSpec
 from sentry.integrations.services.integration import integration_service
 from sentry.models.activity import ActivityIntegration
 from sentry.models.apikey import ApiKey
@@ -447,22 +461,21 @@ class MsTeamsWebhookEndpoint(Endpoint):
             action_data = {"assignedTo": ""}
         return action_data
 
+    _ACTION_TYPES = {
+        ACTION_TYPE.RESOLVE: ("resolve", MessagingInteractionType.RESOLVE),
+        ACTION_TYPE.IGNORE: ("ignore", MessagingInteractionType.IGNORE),
+        ACTION_TYPE.ASSIGN: ("assign", MessagingInteractionType.ASSIGN),
+        ACTION_TYPE.UNRESOLVE: ("unresolve", MessagingInteractionType.UNRESOLVE),
+        ACTION_TYPE.UNASSIGN: ("unassign", MessagingInteractionType.UNASSIGN),
+    }
+
     def _issue_state_change(self, group: Group, identity: RpcIdentity, data) -> Response:
         event_write_key = ApiKey(
             organization_id=group.project.organization_id, scope_list=["event:write"]
         )
 
-        # undoing the enum structure of ACTION_TYPE to
-        # get a more sensible analytics_event
-        action_types = {
-            ACTION_TYPE.RESOLVE: "resolve",
-            ACTION_TYPE.IGNORE: "ignore",
-            ACTION_TYPE.ASSIGN: "assign",
-            ACTION_TYPE.UNRESOLVE: "unresolve",
-            ACTION_TYPE.UNASSIGN: "unassign",
-        }
         action_data = self._make_action_data(data, identity.user_id)
-        status = action_types[data["payload"]["actionType"]]
+        status, interaction_type = self._ACTION_TYPES[data["payload"]["actionType"]]
         analytics_event = f"integrations.msteams.{status}"
         analytics.record(
             analytics_event,
@@ -470,13 +483,19 @@ class MsTeamsWebhookEndpoint(Endpoint):
             organization_id=group.project.organization.id,
         )
 
-        return client.put(
-            path=f"/projects/{group.project.organization.slug}/{group.project.slug}/issues/",
-            params={"id": group.id},
-            data=action_data,
-            user=user_service.get_user(user_id=identity.user_id),
-            auth=event_write_key,
-        )
+        with MessagingInteractionEvent(
+            interaction_type, MsTeamsMessagingSpec()
+        ).capture() as lifecycle:
+            response = client.put(
+                path=f"/projects/{group.project.organization.slug}/{group.project.slug}/issues/",
+                params={"id": group.id},
+                data=action_data,
+                user=user_service.get_user(user_id=identity.user_id),
+                auth=event_write_key,
+            )
+            if response.status_code >= 400:
+                lifecycle.record_failure()
+            return response
 
     def _handle_action_submitted(self, request: Request) -> Response:
         # pull out parameters
@@ -506,7 +525,9 @@ class MsTeamsWebhookEndpoint(Endpoint):
 
         group = Group.objects.select_related("project__organization").filter(id=group_id).first()
         if group:
-            integration = integration_service.get_integration(integration_id=integration.id)
+            integration = integration_service.get_integration(
+                integration_id=integration.id, status=ObjectStatus.ACTIVE
+            )
             if integration is None:
                 group = None
 
@@ -602,27 +623,54 @@ class MsTeamsWebhookEndpoint(Endpoint):
     def _handle_personal_message(self, request: Request) -> Response:
         data = request.data
         command_text = data.get("text", "").strip()
-        lowercase_command = command_text.lower()
-        conversation_id = data["conversation"]["id"]
-        teams_user_id = data["from"]["id"]
 
-        # only supporting unlink for now
-        if "unlink" in lowercase_command:
-            unlink_url = build_unlinking_url(conversation_id, data["serviceUrl"], teams_user_id)
-            card = build_unlink_identity_card(unlink_url)
-        elif "help" in lowercase_command:
-            card = build_help_command_card()
-        elif "link" == lowercase_command:  # don't to match other types of link commands
-            has_linked_identity = (
-                identity_service.get_identity(filter={"identity_ext_id": teams_user_id}) is not None
-            )
-            if has_linked_identity:
-                card = build_already_linked_identity_command_card()
-            else:
-                card = build_link_identity_command_card()
-        else:
+        dispatcher = MsTeamsCommandDispatcher(data)
+        try:
+            card = dispatcher.dispatch(CommandInput(command_text))
+        except CommandNotMatchedError:
             card = build_unrecognized_command_card(command_text)
 
         client = get_preinstall_client(data["serviceUrl"])
-        client.send_card(conversation_id, card)
+        client.send_card(dispatcher.conversation_id, card)
         return self.respond(status=204)
+
+
+@dataclass(frozen=True)
+class MsTeamsCommandDispatcher(MessagingIntegrationCommandDispatcher[AdaptiveCard]):
+    data: dict[str, Any]
+
+    @property
+    def integration_spec(self) -> MessagingIntegrationSpec:
+        return MsTeamsMessagingSpec()
+
+    @property
+    def conversation_id(self) -> str:
+        return self.data["conversation"]["id"]
+
+    @property
+    def teams_user_id(self) -> str:
+        return self.data["from"]["id"]
+
+    @property
+    def command_handlers(
+        self,
+    ) -> Iterable[tuple[MessagingIntegrationCommand, Callable[[CommandInput], AdaptiveCard]]]:
+        yield commands.HELP, (lambda _: build_help_command_card())
+        yield commands.LINK_IDENTITY, self.link_identity
+        yield commands.UNLINK_IDENTITY, self.unlink_identity
+
+    def link_identity(self, _: CommandInput) -> AdaptiveCard:
+        linked_identity = identity_service.get_identity(
+            filter={"identity_ext_id": self.teams_user_id}
+        )
+        has_linked_identity = linked_identity is not None
+        if has_linked_identity:
+            return build_already_linked_identity_command_card()
+        else:
+            return build_link_identity_command_card()
+
+    def unlink_identity(self, _: CommandInput) -> AdaptiveCard:
+        unlink_url = build_unlinking_url(
+            self.conversation_id, self.data["serviceUrl"], self.teams_user_id
+        )
+        return build_unlink_identity_card(unlink_url)

@@ -2,18 +2,26 @@ import {GroupFixture} from 'sentry-fixture/group';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
-import {ReleaseFixture} from 'sentry-fixture/release';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {TeamFixture} from 'sentry-fixture/team';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
-import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import type {TeamParticipant, UserParticipant} from 'sentry/types/group';
 import {IssueCategory} from 'sentry/types/group';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import StreamlinedGroupHeader from 'sentry/views/issueDetails/streamline/header';
 import {ReprocessingStatus} from 'sentry/views/issueDetails/utils';
+
+jest.mock('screenfull', () => ({
+  enabled: true,
+  isFullscreen: false,
+  request: jest.fn(),
+  exit: jest.fn(),
+  on: jest.fn(),
+  off: jest.fn(),
+}));
 
 describe('UpdatedGroupHeader', () => {
   const baseUrl = 'BASE_URL/';
@@ -23,7 +31,9 @@ describe('UpdatedGroupHeader', () => {
     teams: [TeamFixture()],
   });
   const group = GroupFixture({issueCategory: IssueCategory.ERROR, isUnhandled: true});
-  const location = LocationFixture({query: {streamline: '1'}});
+  const router = RouterFixture({
+    location: LocationFixture({query: {streamline: '1'}}),
+  });
 
   describe('JS Project Error Issue', () => {
     const defaultProps = {
@@ -32,9 +42,6 @@ describe('UpdatedGroupHeader', () => {
       groupReprocessingStatus: ReprocessingStatus.NO_STATUS,
       project,
     };
-
-    const firstRelease = ReleaseFixture({id: '1'});
-    const lastRelease = ReleaseFixture({id: '2'});
 
     beforeEach(() => {
       MockApiClient.addMockResponse({
@@ -46,26 +53,18 @@ describe('UpdatedGroupHeader', () => {
         url: `/organizations/org-slug/repos/`,
         body: {},
       });
-      MockApiClient.addMockResponse({
-        url: `/projects/org-slug/project-slug/releases/${encodeURIComponent(firstRelease.version)}/`,
-        body: {},
-      });
-      MockApiClient.addMockResponse({
-        url: `/organizations/org-slug/releases/${encodeURIComponent(firstRelease.version)}/deploys/`,
-        body: {},
-      });
+
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/issues/${group.id}/attachments/`,
+        body: [],
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/users/`,
         body: [],
       });
     });
 
     it('shows all elements of header', async () => {
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/issues/${group.id}/first-last-release/`,
-        method: 'GET',
-        body: {firstRelease, lastRelease},
-      });
       const teams: TeamParticipant[] = [{...TeamFixture(), type: 'team'}];
       const users: UserParticipant[] = [
         {
@@ -97,15 +96,15 @@ describe('UpdatedGroupHeader', () => {
           {...defaultProps}
           group={participantGroup}
           project={project}
+          event={null}
         />,
         {
           organization,
-          router: {location},
+          router,
         }
       );
 
       expect(screen.getByText('RequestError')).toBeInTheDocument();
-      expect(screen.getByText('Warning')).toBeInTheDocument();
       expect(screen.getByText('Unhandled')).toBeInTheDocument();
       expect(await screen.findByTestId('all-event-count')).toHaveTextContent(
         'All Events'
@@ -117,11 +116,6 @@ describe('UpdatedGroupHeader', () => {
       expect(
         await screen.findByRole('link', {name: formatAbbreviatedNumber(group.userCount)})
       ).toBeInTheDocument();
-
-      expect(
-        await screen.findByText(textWithMarkupMatcher('Releases'))
-      ).toBeInTheDocument();
-
       expect(
         screen.getByRole('button', {name: 'Modify issue priority'})
       ).toBeInTheDocument();
@@ -139,39 +133,20 @@ describe('UpdatedGroupHeader', () => {
       expect(screen.getByRole('button', {name: 'Archive'})).toBeInTheDocument();
     });
 
-    it('only shows one release if possible', async function () {
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/issues/${group.id}/first-last-release/`,
-        method: 'GET',
-        // First and last release match
-        body: {firstRelease, lastRelease: firstRelease},
-      });
-      render(
-        <StreamlinedGroupHeader {...defaultProps} group={group} project={project} />,
-        {
-          organization,
-          router: {location},
-        }
-      );
-      expect(
-        await screen.findByText(textWithMarkupMatcher('Release'))
-      ).toBeInTheDocument();
-    });
-
     it('displays new experience button if flag is set', async () => {
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/issues/${group.id}/first-last-release/`,
-        method: 'GET',
-        body: {firstRelease, lastRelease},
-      });
       const flaggedOrganization = OrganizationFixture({
         features: ['issue-details-streamline'],
       });
       render(
-        <StreamlinedGroupHeader {...defaultProps} group={group} project={project} />,
+        <StreamlinedGroupHeader
+          {...defaultProps}
+          group={group}
+          project={project}
+          event={null}
+        />,
         {
           organization: flaggedOrganization,
-          router: {location},
+          router,
         }
       );
       expect(

@@ -26,7 +26,6 @@ QUERY_AGGREGATION_DISPLAY = {
     "percentage(sessions_crashed, sessions)": "% sessions crash free rate",
     "percentage(users_crashed, users)": "% users crash free rate",
 }
-LOGO_URL = absolute_uri(get_asset_url("sentry", "images/sentry-email-avatar.png"))
 # These should be the same as the options in the frontend
 # COMPARISON_DELTA_OPTIONS
 TEXT_COMPARISON_DELTA = {
@@ -37,6 +36,10 @@ TEXT_COMPARISON_DELTA = {
     10080: ("same time one week ago"),  # one week
     43200: ("same time one month ago"),  # 30 days
 }
+
+
+def logo_url() -> str:
+    return absolute_uri(get_asset_url("sentry", "images/sentry-email-avatar.png"))
 
 
 def get_metric_count_from_incident(incident: Incident) -> str:
@@ -115,7 +118,9 @@ def incident_attachment_info(
         metric_value = get_metric_count_from_incident(incident)
 
     text = get_incident_status_text(alert_rule, metric_value)
-    if features.has("organizations:anomaly-detection-alerts", incident.organization):
+    if features.has(
+        "organizations:anomaly-detection-alerts", incident.organization
+    ) and features.has("organizations:anomaly-detection-rollout", incident.organization):
         text += f"\nThreshold: {alert_rule.detection_type.title()}"
 
     title = f"{status}: {alert_rule.name}"
@@ -142,7 +147,7 @@ def incident_attachment_info(
     return {
         "title": title,
         "text": text,
-        "logo_url": LOGO_URL,
+        "logo_url": logo_url(),
         "status": status,
         "ts": incident.date_started,
         "title_link": title_link,
@@ -211,7 +216,9 @@ def metric_alert_attachment_info(
     if metric_value is not None and status != INCIDENT_STATUS[IncidentStatus.CLOSED]:
         text = get_incident_status_text(alert_rule, metric_value)
 
-    if features.has("organizations:anomaly-detection-alerts", alert_rule.organization):
+    if features.has(
+        "organizations:anomaly-detection-alerts", alert_rule.organization
+    ) and features.has("organizations:anomaly-detection-rollout", alert_rule.organization):
         text += f"\nThreshold: {alert_rule.detection_type.title()}"
 
     date_started = None
@@ -228,7 +235,7 @@ def metric_alert_attachment_info(
     return {
         "title": title,
         "text": text,
-        "logo_url": LOGO_URL,
+        "logo_url": logo_url(),
         "status": status,
         "date_started": date_started,
         "last_triggered_date": last_triggered_date,

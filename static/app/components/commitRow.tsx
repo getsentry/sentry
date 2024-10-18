@@ -17,12 +17,12 @@ import Version from 'sentry/components/version';
 import VersionHoverCard from 'sentry/components/versionHoverCard';
 import {IconQuestion, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import type {Commit} from 'sentry/types/integrations';
 import type {AvatarProject} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useUser} from 'sentry/utils/useUser';
 import {Divider} from 'sentry/views/issueDetails/divider';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
@@ -49,6 +49,7 @@ function CommitRow({
   onCommitClick,
   project,
 }: CommitRowProps) {
+  const user = useUser();
   const hasStreamlinedUI = useHasStreamlinedUI();
   const organization = useOrganization();
   const handleInviteClick = useCallback(() => {
@@ -74,7 +75,6 @@ function CommitRow({
     });
   }, [commit.author, organization]);
 
-  const user = ConfigStore.get('user');
   const isUser = user?.id === commit.author?.id;
 
   const firstRelease = commit.releases?.[0];

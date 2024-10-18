@@ -7,6 +7,8 @@ export enum Output {
   UNSUPPORTED = 'unsupported',
   URL_SKIPPED = 'url_skipped',
   BODY_SKIPPED = 'body_skipped',
+  BODY_PARSE_ERROR = 'body_parse_error',
+  BODY_PARSE_TIMEOUT = 'body_parse_timeout',
   DATA = 'data',
 }
 
@@ -44,6 +46,15 @@ export default function getOutputType({isSetup, item, visibleTab}: Args): Output
   const respWarnings = response?._meta?.warnings ?? ['URL_SKIPPED'];
   const isReqUrlSkipped = reqWarnings?.includes('URL_SKIPPED');
   const isRespUrlSkipped = respWarnings?.includes('URL_SKIPPED');
+
+  if (respWarnings?.includes('BODY_PARSE_ERROR')) {
+    return Output.BODY_PARSE_ERROR;
+  }
+
+  if (respWarnings?.includes('BODY_PARSE_TIMEOUT')) {
+    return Output.BODY_PARSE_TIMEOUT;
+  }
+
   if (isReqUrlSkipped || isRespUrlSkipped) {
     return Output.URL_SKIPPED;
   }

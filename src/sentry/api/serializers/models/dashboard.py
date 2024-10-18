@@ -6,14 +6,15 @@ import orjson
 from sentry import features
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.constants import ALL_ACCESS_PROJECTS
-from sentry.discover.models import DatasetSourcesTypes
 from sentry.models.dashboard import Dashboard
+from sentry.models.dashboard_permissions import DashboardPermissions
 from sentry.models.dashboard_widget import (
     DashboardWidget,
     DashboardWidgetDisplayTypes,
     DashboardWidgetQuery,
     DashboardWidgetQueryOnDemand,
     DashboardWidgetTypes,
+    DatasetSourcesTypes,
 )
 from sentry.snuba.metrics.extraction import OnDemandMetricSpecVersioning
 from sentry.users.api.serializers.user import UserSerializerResponse
@@ -41,6 +42,7 @@ class DashboardWidgetQueryResponse(TypedDict):
     widgetId: str
     onDemand: list[OnDemandResponse]
     isHidden: bool
+    selectedAggregate: int | None
 
 
 class ThresholdType(TypedDict):
@@ -61,6 +63,10 @@ class DashboardWidgetResponse(TypedDict):
     limit: int | None
     widgetType: str
     layout: dict[str, int]
+
+
+class DashboardPermissionsResponse(TypedDict):
+    is_creator_only_editable: bool
 
 
 @register(DashboardWidget)
@@ -164,6 +170,15 @@ class DashboardWidgetQuerySerializer(Serializer):
             "widgetId": str(obj.widget_id),
             "onDemand": attrs["onDemand"],
             "isHidden": obj.is_hidden,
+            "selectedAggregate": obj.selected_aggregate,
+        }
+
+
+@register(DashboardPermissions)
+class DashboardPermissionsSerializer(Serializer):
+    def serialize(self, obj, attrs, user, **kwargs) -> DashboardPermissionsResponse:
+        return {
+            "is_creator_only_editable": obj.is_creator_only_editable,
         }
 
 
@@ -257,6 +272,7 @@ class DashboardDetailsResponse(DashboardDetailsResponseOptional):
     widgets: list[DashboardWidgetResponse]
     projects: list[int]
     filters: DashboardFilters
+    permissions: DashboardPermissionsResponse | None
 
 
 @register(Dashboard)
@@ -292,6 +308,7 @@ class DashboardDetailsModelSerializer(Serializer):
             "widgets": attrs["widgets"],
             "projects": [project.id for project in obj.projects.all()],
             "filters": {},
+            "permissions": serialize(obj.permissions) if hasattr(obj, "permissions") else None,
         }
 
         if obj.filters is not None:

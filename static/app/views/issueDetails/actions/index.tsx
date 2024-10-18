@@ -42,6 +42,7 @@ import {uniqueId} from 'sentry/utils/guid';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {getAnalyicsDataForProject} from 'sentry/utils/projects';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import useOrganization from 'sentry/utils/useOrganization';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
@@ -65,10 +66,10 @@ const isResolutionStatus = (data: UpdateData): data is GroupStatusResolution => 
 type Props = {
   api: Client;
   disabled: boolean;
+  event: Event | null;
   group: Group;
   organization: Organization;
   project: Project;
-  event?: Event;
   query?: Query;
 };
 
@@ -90,6 +91,9 @@ export function Actions(props: Props) {
 
   const hasStreamlinedUI = useHasStreamlinedUI();
 
+  const org = useOrganization();
+  const hasIssuePlatformDeletionUI = org.features.includes('issue-platform-deletion-ui');
+
   const {
     actions: {
       archiveUntilOccurrence: archiveUntilOccurrenceCap,
@@ -100,6 +104,13 @@ export function Actions(props: Props) {
     },
     discover: discoverCap,
   } = config;
+
+  // Update the deleteCap to be enabled if the feature flag is present
+  const updatedDeleteCap = {
+    ...deleteCap,
+    enabled: hasIssuePlatformDeletionUI || deleteCap.enabled,
+    disabledReason: hasIssuePlatformDeletionUI ? null : deleteCap.disabledReason,
+  };
 
   const getDiscoverUrl = () => {
     const {title, type, shortId} = group;
@@ -373,7 +384,7 @@ export function Actions(props: Props) {
             </ResolvedWrapper>
             <Divider />
             <Button
-              size="sm"
+              size="xs"
               disabled={disabled || isAutoResolved}
               onClick={() =>
                 onUpdate({
@@ -399,21 +410,18 @@ export function Actions(props: Props) {
                 projectSlug={project.slug}
                 isResolved={isResolved}
                 isAutoResolved={isAutoResolved}
-                size="sm"
+                size="xs"
                 priority="primary"
               />
             </GuideAnchor>
             <ArchiveActions
               className="hidden-xs"
-              size="sm"
+              size="xs"
               isArchived={isIgnored}
               onUpdate={onUpdate}
               disabled={disabled}
               disableArchiveUntilOccurrence={!archiveUntilOccurrenceCap.enabled}
             />
-            {!hasStreamlinedUI && (
-              <EnvironmentPageFilter position="bottom-end" size="sm" />
-            )}
             <SubscribeAction
               className="hidden-xs"
               disabled={disabled}
@@ -421,7 +429,7 @@ export function Actions(props: Props) {
               group={group}
               onClick={handleClick(onToggleSubscribe)}
               icon={group.isSubscribed ? <IconSubscribed /> : <IconUnsubscribed />}
-              size="sm"
+              size="xs"
             />
           </Fragment>
         ))}
@@ -431,7 +439,7 @@ export function Actions(props: Props) {
           'aria-label': t('More Actions'),
           icon: <IconEllipsis />,
           showChevron: false,
-          size: 'sm',
+          size: hasStreamlinedUI ? 'xs' : 'sm',
         }}
         items={[
           ...(isIgnored
@@ -490,8 +498,8 @@ export function Actions(props: Props) {
             priority: 'danger',
             label: t('Delete'),
             hidden: !hasDeleteAccess,
-            disabled: !deleteCap.enabled,
-            details: deleteCap.disabledReason,
+            disabled: !updatedDeleteCap.enabled,
+            details: updatedDeleteCap.disabledReason,
             onAction: openDeleteModal,
           },
           {

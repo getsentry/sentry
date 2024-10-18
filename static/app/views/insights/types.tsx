@@ -134,8 +134,7 @@ export const SPAN_FUNCTIONS = [
   'sum',
 ] as const;
 
-const BREAKPOINT_CONDITIONS = ['less', 'greater'] as const;
-type BreakpointCondition = (typeof BREAKPOINT_CONDITIONS)[number];
+type BreakpointCondition = 'less' | 'greater';
 
 type RegressionFunctions = [
   `regression_score(${string},${string})`,
@@ -358,6 +357,7 @@ export const METRICS_FUNCTIONS = ['count'] as const;
 export enum MetricsFields {
   TRANSACTION_DURATION = 'transaction.duration',
   TRANSACTION = 'transaction',
+  PROJECT = 'project',
 }
 
 export type MetricsNumberFields = MetricsFields.TRANSACTION_DURATION;
@@ -408,7 +408,3 @@ export const subregionCodeToName = {
 };
 
 export type SubregionCode = keyof typeof subregionCodeToName;
-
-export type InsightLandingProps = {
-  disableHeader?: boolean;
-};

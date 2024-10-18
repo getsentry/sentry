@@ -1,14 +1,12 @@
 import {useMemo} from 'react';
-import type {RouteHook} from 'react-router/lib/Router';
 import type {LocationDescriptor} from 'history';
 
-import {NODE_ENV} from 'sentry/constants';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
-import {useRouteContext} from 'sentry/utils/useRouteContext';
 
 import {useLocation} from './useLocation';
 import {useNavigate} from './useNavigate';
 import {useParams} from './useParams';
+import {useRouteContext} from './useRouteContext';
 import {useRoutes} from './useRoutes';
 
 /**
@@ -20,11 +18,10 @@ import {useRoutes} from './useRoutes';
 function useRouter(): InjectedRouter<any, any> {
   // When running in test mode we still read from the legacy route context to
   // keep test compatability while we fully migrate to react router 6
-  const useReactRouter6 = window.__SENTRY_USING_REACT_ROUTER_SIX && NODE_ENV !== 'test';
+  const legacyRouterContext = useRouteContext();
 
-  if (!useReactRouter6) {
-    // biome-ignore lint/correctness/useHookAtTopLevel: react-router 6 migration
-    return useRouteContext().router;
+  if (legacyRouterContext) {
+    return legacyRouterContext.router;
   }
 
   // biome-ignore lint/correctness/useHookAtTopLevel: react-router 6 migration
@@ -62,7 +59,7 @@ function useRouter(): InjectedRouter<any, any> {
         createHref: (_pathOrLoc: LocationDescriptor, _query?: any) => {
           throw new Error('createHref not implemented for react-router 6 migration');
         },
-        setRouteLeaveHook: (_route: any, _callback: RouteHook) => () => {
+        setRouteLeaveHook: (_route: any, _callback: any) => () => {
           throw new Error(
             'setRouteLeave hook not implemented for react-router6 migration'
           );

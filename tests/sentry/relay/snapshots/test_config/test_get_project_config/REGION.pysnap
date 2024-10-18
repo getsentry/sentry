@@ -20,9 +20,6 @@ config:
     scrubData: true
     scrubDefaults: true
     sensitiveFields: []
-  features:
-  - organizations:transaction-name-mark-scrubbed-as-sanitized
-  - organizations:transaction-name-normalize
   filterSettings:
     csp:
       disallowedSources:
@@ -96,6 +93,7 @@ config:
       - '*/ready'
       - '*/readyz'
       - '*/ping'
+      - '*/up'
   groupingConfig:
     enhancements: KLUv_SAYwQAAkwKRs25ld3N0eWxlOjIwMjMtMDEtMTGQ
     id: newstyle:2023-01-11

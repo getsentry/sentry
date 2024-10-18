@@ -17,7 +17,7 @@ import useProjects from 'sentry/utils/useProjects';
 
 import {traceAnalytics} from '../traceAnalytics';
 import type {TraceTree} from '../traceModels/traceTree';
-import {TraceType} from '../traceType';
+import {TraceShape} from '../traceModels/traceTree';
 
 import {TraceWarningComponents} from './styles';
 import {usePerformanceUsageStats} from './usePerformanceUsageStats';
@@ -98,7 +98,7 @@ function PerformanceSetupBanner({
     <TraceWarningComponents.Banner
       title={t('Your setup is incomplete')}
       description={t(
-        'Want to know why this string of errors happened? Configure tracing for your SDKs to see correlated events accross your services.'
+        'Want to know why this string of errors happened? Configure tracing for your SDKs to see correlated events across your services.'
       )}
       image={emptyTraceImg}
       onPrimaryButtonClick={() => {
@@ -246,7 +246,7 @@ export function ErrorsOnlyWarnings({
     return filterProjects(projects, tree);
   }, [projects, tree]);
 
-  if (tree.type !== 'trace' || tree.shape !== TraceType.ONLY_ERRORS) {
+  if (tree.type !== 'trace' || tree.shape !== TraceShape.ONLY_ERRORS) {
     return null;
   }
 

@@ -53,33 +53,25 @@ from sentry.grouping.api import (
     GroupingConfig,
     get_grouping_config_dict_for_project,
 )
-from sentry.grouping.ingest.config import (
-    is_in_transition,
-    project_uses_optimized_grouping,
-    update_grouping_config_if_needed,
-)
+from sentry.grouping.ingest.config import is_in_transition, update_grouping_config_if_needed
 from sentry.grouping.ingest.hashing import (
-    find_existing_grouphash,
-    get_hash_values,
+    find_grouphash_with_group,
     get_or_create_grouphashes,
     maybe_run_background_grouping,
     maybe_run_secondary_grouping,
     run_primary_grouping,
 )
-from sentry.grouping.ingest.metrics import (
-    record_calculation_metric_with_result,
-    record_hash_calculation_metrics,
-    record_new_group_metrics,
-)
+from sentry.grouping.ingest.metrics import record_hash_calculation_metrics, record_new_group_metrics
 from sentry.grouping.ingest.seer import maybe_check_seer_for_matching_grouphash
 from sentry.grouping.ingest.utils import (
     add_group_id_to_grouphashes,
-    check_for_category_mismatch,
     check_for_group_creation_load_shed,
+    is_non_error_type_group,
 )
+from sentry.grouping.variants import BaseVariant
 from sentry.ingest.inbound_filters import FilterStatKeys
 from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
-from sentry.issues.grouptype import ErrorGroupType, GroupCategory
+from sentry.issues.grouptype import ErrorGroupType
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.killswitches import killswitch_matches_context
@@ -139,7 +131,6 @@ from sentry.utils.performance_issues.performance_problem import PerformanceProbl
 from sentry.utils.safe import get_path, safe_execute, setdefault_path, trim
 from sentry.utils.sdk import set_measurement
 from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
-from sentry.utils.types import NonNone
 
 if TYPE_CHECKING:
     from sentry.eventstore.models import BaseEvent, Event
@@ -328,7 +319,9 @@ class ScoreClause(Func):
     def __int__(self):
         # Calculate the score manually when coercing to an int.
         # This is used within create_or_update and friends
-        return self.group.get_score() if self.group else 0
+
+        # XXX: Since removing the 'score' column from 'Group', this now always returns 0.
+        return 0
 
     def as_sql(
         self,
@@ -517,12 +510,10 @@ class EventManager:
             return jobs[0]["event"]
         else:
             project = job["event"].project
-            job["optimized_grouping"] = project_uses_optimized_grouping(project)
             job["in_grouping_transition"] = is_in_transition(project)
             metric_tags = {
                 "platform": job["event"].platform or "unknown",
                 "sdk": normalized_sdk_tag_from_event(job["event"].data),
-                "using_transition_optimization": job["optimized_grouping"],
                 "in_transition": job["in_grouping_transition"],
             }
             # This metric allows differentiating from all calls to the `event_manager.save` metric
@@ -885,26 +876,6 @@ def _materialize_metadata_many(jobs: Sequence[Job]) -> None:
 
         data.update(materialize_metadata(data, event_type, event_metadata))
         job["culprit"] = data["culprit"]
-
-
-# TODO: This is only called in `_save_aggregate`, so when that goes, so can this (it's been
-# supplanted by `_get_group_processing_kwargs` below)
-def _get_group_creation_kwargs(job: Job | PerformanceJob) -> dict[str, Any]:
-    kwargs = {
-        "platform": job["platform"],
-        "message": job["event"].search_message,
-        "logger": job["logger_name"],
-        "level": LOG_LEVELS_MAP.get(job["level"]),
-        "last_seen": job["event"].datetime,
-        "first_seen": job["event"].datetime,
-        "active_at": job["event"].datetime,
-        "culprit": job["culprit"],
-    }
-
-    if job["release"]:
-        kwargs["first_release"] = job["release"]
-
-    return kwargs
 
 
 def _get_group_processing_kwargs(job: Job) -> dict[str, Any]:
@@ -1322,272 +1293,7 @@ def get_culprit(data: Mapping[str, Any]) -> str:
 
 
 @sentry_sdk.tracing.trace
-def assign_event_to_group(event: Event, job: Job, metric_tags: MutableTags) -> GroupInfo | None:
-    if job["optimized_grouping"]:
-        group_info = _save_aggregate_new(
-            event=event,
-            job=job,
-            metric_tags=metric_tags,
-        )
-    else:
-        group_info = _save_aggregate(
-            event=event,
-            job=job,
-            release=job["release"],
-            received_timestamp=job["received_timestamp"],
-            metric_tags=metric_tags,
-        )
-
-    if group_info:
-        event.group = group_info.group
-    job["groups"] = [group_info]
-
-    return group_info
-
-
-def _save_aggregate(
-    event: Event,
-    job: Job,
-    release: Release | None,
-    received_timestamp: int | float,
-    metric_tags: MutableTags,
-) -> GroupInfo | None:
-    project = event.project
-
-    primary_hashes, secondary_hashes = get_hash_values(project, job, metric_tags)
-    hashes = primary_hashes + secondary_hashes
-    has_secondary_hashes = len(secondary_hashes) > 0
-
-    # Now that we've used the current and possibly secondary grouping config(s) to calculate the
-    # hashes, we're free to perform a config update if permitted. Future events will use the new
-    # config, but will also be grandfathered into the current config for a month, so as not to
-    # erroneously create new groups.
-    update_grouping_config_if_needed(project, "ingest")
-
-    _materialize_metadata_many([job])
-    metadata = dict(job["event_metadata"])
-
-    group_creation_kwargs = _get_group_creation_kwargs(job)
-
-    grouphashes = get_or_create_grouphashes(project, hashes)
-
-    existing_grouphash = find_existing_grouphash(grouphashes)
-
-    # In principle the group gets the same metadata as the event, so common
-    # attributes can be defined in eventtypes.
-    #
-    # Additionally the `last_received` key is set for group metadata, later in
-    # _save_aggregate
-    group_creation_kwargs["data"] = materialize_metadata(
-        event.data,
-        get_event_type(event.data),
-        metadata,
-    )
-    group_creation_kwargs["data"]["last_received"] = received_timestamp
-
-    if existing_grouphash is None:
-        if killswitch_matches_context(
-            "store.load-shed-group-creation-projects",
-            {
-                "project_id": project.id,
-                "platform": event.platform,
-            },
-        ):
-            raise HashDiscarded("Load shedding group creation", reason="load_shed")
-
-        with (
-            sentry_sdk.start_span(op="event_manager.create_group_transaction") as span,
-            metrics.timer("event_manager.create_group_transaction") as metric_tags,
-            transaction.atomic(router.db_for_write(GroupHash)),
-        ):
-            # These values will get overridden with whatever happens inside the lock if we do manage
-            # to acquire it, so it should only end up with `wait-for-lock` if we don't
-            #
-            # TODO: If we're using this `outome` value for anything more than a count in DD (in
-            # other words, if we care about duration), we should probably update it so that when an
-            # event does have to wait, we record whether during its wait the event which got the
-            # lock first
-            #   a) created a new group without consulting Seer,
-            #   b) created a new group because Seer didn't find a close enough match, or
-            #   c) used an existing group found by Seer
-            # because which of those things happened will have an effect on how long the event had to wait.
-            span.set_tag("outcome", "wait_for_lock")
-            metric_tags["outcome"] = "wait_for_lock"
-
-            grouphash_ids = [h.id for h in grouphashes]
-
-            # If we're in this branch, we checked our grouphashes and didn't find one with a group
-            # attached. We thus want to either ask seer for a nearest neighbor group (and create a
-            # new group if one isn't found) or just create a new group without consulting seer, but
-            # either way we need to guard against another event with the same hash coming in before
-            # we're done here and also thinking it needs to talk to seer and/or create a new group.
-            # To prevent this, we're using double-checked locking
-            # (https://en.wikipedia.org/wiki/Double-checked_locking).
-
-            # First, try to lock the relevant rows in the `GroupHash` table. If another (identically
-            # hashed) event is already in the process of talking to seer and/or creating a group and
-            # has grabbed the lock before us, we'll block here until it's done. If not, we've now
-            # got the lock and other identically-hashed events will have to wait for us.
-            all_grouphashes = list(
-                GroupHash.objects.filter(id__in=grouphash_ids).select_for_update()
-            )
-
-            grouphashes = [gh for gh in all_grouphashes if gh.hash in hashes]
-
-            # Now check again to see if any of our grouphashes have a group. If we got the lock, the
-            # result won't have changed and we still won't find anything. If we didn't get it, we'll
-            # have blocked until whichever identically-hashed event *did* get the lock has either
-            # created a new group for our hashes or assigned them to a neighboring group suggessted
-            # by seer. If that happens, we'll skip this whole branch and jump down to the same one
-            # we would have landed in had we found a group to begin with.
-            existing_grouphash = find_existing_grouphash(grouphashes)
-
-            # If we still haven't found a matching grouphash, we're now safe to go ahead and talk to
-            # seer and/or create the group.
-            if existing_grouphash is None:
-                seer_matched_grouphash = maybe_check_seer_for_matching_grouphash(event)
-                seer_matched_group = (
-                    Group.objects.filter(id=seer_matched_grouphash.group_id).first()
-                    if seer_matched_grouphash
-                    else None
-                )
-
-                group = seer_matched_group or _create_group(project, event, **group_creation_kwargs)
-
-                new_hashes = list(grouphashes)
-
-                GroupHash.objects.filter(id__in=[h.id for h in new_hashes]).exclude(
-                    state=GroupHash.State.LOCKED_IN_MIGRATION
-                ).update(group=group)
-
-                is_new = not seer_matched_group
-                is_regression = (
-                    False
-                    if is_new
-                    else _process_existing_aggregate(
-                        # If `seer_matched_group` were `None`, `is_new` would be true and we
-                        # wouldn't be here
-                        group=NonNone(seer_matched_group),
-                        event=event,
-                        incoming_group_values=group_creation_kwargs,
-                        release=release,
-                    )
-                )
-
-                span.set_tag("outcome", "new_group" if is_new else "seer_match")
-                metric_tags["outcome"] = "new_group" if is_new else "seer_match"
-                record_calculation_metric_with_result(
-                    project=project,
-                    has_secondary_hashes=has_secondary_hashes,
-                    result="no_match",
-                )
-
-                if is_new:
-                    metrics.incr(
-                        "group.created",
-                        skip_internal=True,
-                        tags={
-                            "platform": event.platform or "unknown",
-                            "sdk": normalized_sdk_tag_from_event(event.data),
-                        },
-                    )
-
-                    # This only applies to events with stacktraces, and we only do this for new
-                    # groups, because we assume that if Seer puts an event in an existing group, it
-                    # and the existing group have the same frame mix
-                    frame_mix = event.get_event_metadata().get("in_app_frame_mix")
-                    if frame_mix:
-                        metrics.incr(
-                            "grouping.in_app_frame_mix",
-                            sample_rate=1.0,
-                            tags={
-                                "platform": event.platform or "unknown",
-                                "sdk": normalized_sdk_tag_from_event(event.data),
-                                "frame_mix": frame_mix,
-                            },
-                        )
-
-                return GroupInfo(group, is_new, is_regression)
-
-    # If we land here, it's because either:
-    #
-    # a) There's an existing group with one of our hashes and we found it the first time we looked.
-    #
-    # b) We didn't find a group the first time we looked, but another identically-hashed event beat
-    # us to the lock and while we were waiting either created a new group or assigned our hashes to
-    # a neighboring group suggested by seer - such that when we finally got the lock and looked
-    # again, this time there was a group to find.
-
-    group = Group.objects.get(id=existing_grouphash.group_id)
-    if group.issue_category != GroupCategory.ERROR:
-        logger.info(
-            "event_manager.category_mismatch",
-            extra={
-                "issue_category": group.issue_category,
-                "event_type": "error",
-            },
-        )
-        return None
-
-    is_new = False
-
-    new_hashes = [h for h in grouphashes if h.group_id is None]
-
-    primary_hash_values = set(primary_hashes)
-    new_hash_values = {gh.hash for gh in new_hashes}
-    all_primary_hashes_are_new = primary_hash_values.issubset(new_hash_values)
-    record_calculation_metric_with_result(
-        project=project,
-        has_secondary_hashes=has_secondary_hashes,
-        # If at least one primary hash value isn't new, then we'll definitely have found it, since
-        # we check all of the primary hashes before any secondary ones. If the primary hash values
-        # *are* all new, then we must have gotten here by finding a secondary hash (or we'd be in
-        # the group-creation/seer-consultation branch).
-        result="found_primary" if not all_primary_hashes_are_new else "found_secondary",
-    )
-
-    if new_hashes:
-        # There may still be secondary hashes that we did not use to find an
-        # existing group. A classic example is when grouping makes changes to
-        # the app-hash (changes to in_app logic), but the system hash stays
-        # stable and is used to find an existing group. Associate any new
-        # hashes with the group such that event saving continues to be
-        # resilient against grouping algorithm changes.
-        #
-        # There is a race condition here where two processes could "steal"
-        # hashes from each other. In practice this should not be user-visible
-        # as group creation is synchronized. Meaning the only way hashes could
-        # jump between groups is if there were two processes that:
-        #
-        # 1) have BOTH found an existing group
-        #    (otherwise at least one of them would be in the group creation
-        #    codepath which has transaction isolation/acquires row locks)
-        # 2) AND are looking at the same set, or an overlapping set of hashes
-        #    (otherwise they would not operate on the same rows)
-        # 3) yet somehow also sort their event into two different groups each
-        #    (otherwise the update would not change anything)
-        #
-        # We think this is a very unlikely situation. A previous version of
-        # _save_aggregate had races around group creation which made this race
-        # more user visible. For more context, see 84c6f75a and d0e22787, as
-        # well as GH-5085.
-        GroupHash.objects.filter(id__in=[h.id for h in new_hashes]).exclude(
-            state=GroupHash.State.LOCKED_IN_MIGRATION
-        ).update(group=group)
-
-    is_regression = _process_existing_aggregate(
-        group=group,
-        event=event,
-        incoming_group_values=group_creation_kwargs,
-        release=release,
-    )
-
-    return GroupInfo(group, is_new, is_regression)
-
-
-# TODO: None of the seer logic has been added to this version yet, so you can't simultaneously use
-# optimized transitions and seer
-def _save_aggregate_new(
+def assign_event_to_group(
     event: Event,
     job: Job,
     metric_tags: MutableTags,
@@ -1602,7 +1308,8 @@ def _save_aggregate_new(
     if primary.existing_grouphash:
         group_info = handle_existing_grouphash(job, primary.existing_grouphash, primary.grouphashes)
         result = "found_primary"
-    # If we haven't, try again using the secondary config
+    # If we haven't, try again using the secondary config. (If there is no secondary config, or
+    # we're out of the transition period, we'll get back the empty `NULL_GROUPHASH_INFO`.)
     else:
         secondary = get_hashes_and_grouphashes(job, maybe_run_secondary_grouping, metric_tags)
         all_grouphashes = primary.grouphashes + secondary.grouphashes
@@ -1614,7 +1321,9 @@ def _save_aggregate_new(
             result = "found_secondary"
         # If we still haven't found a group, ask Seer for a match (if enabled for the project)
         else:
-            seer_matched_grouphash = maybe_check_seer_for_matching_grouphash(event)
+            seer_matched_grouphash = maybe_check_seer_for_matching_grouphash(
+                event, primary.variants, all_grouphashes
+            )
 
             if seer_matched_grouphash:
                 group_info = handle_existing_grouphash(job, seer_matched_grouphash, all_grouphashes)
@@ -1631,14 +1340,7 @@ def _save_aggregate_new(
     maybe_run_background_grouping(project, job)
 
     record_hash_calculation_metrics(
-        primary.config, primary.hashes, secondary.config, secondary.hashes
-    )
-    # TODO: Once the legacy `_save_aggregate` goes away, the logic inside of
-    # `record_calculation_metric_with_result` can be pulled into `record_hash_calculation_metrics`
-    record_calculation_metric_with_result(
-        project=project,
-        has_secondary_hashes=len(secondary.hashes) > 0,
-        result=result,
+        project, primary.config, primary.hashes, secondary.config, secondary.hashes, result
     )
 
     # Now that we've used the current and possibly secondary grouping config(s) to calculate the
@@ -1647,6 +1349,13 @@ def _save_aggregate_new(
     # erroneously create new groups.
     update_grouping_config_if_needed(project, "ingest")
 
+    # The only way there won't be group info is we matched to a performance, cron, replay, or
+    # other-non-error-type group because of a hash collision - exceedingly unlikely, and not
+    # something we've ever observed, but theoretically possible.
+    if group_info:
+        event.group = group_info.group
+    job["groups"] = [group_info]
+
     return group_info
 
 
@@ -1654,7 +1363,7 @@ def get_hashes_and_grouphashes(
     job: Job,
     hash_calculation_function: Callable[
         [Project, Job, MutableTags],
-        tuple[GroupingConfig, list[str]],
+        tuple[GroupingConfig, list[str], dict[str, BaseVariant]],
     ],
     metric_tags: MutableTags,
 ) -> GroupHashInfo:
@@ -1669,14 +1378,14 @@ def get_hashes_and_grouphashes(
     project = job["event"].project
 
     # These will come back as Nones if the calculation decides it doesn't need to run
-    grouping_config, hashes = hash_calculation_function(project, job, metric_tags)
+    grouping_config, hashes, variants = hash_calculation_function(project, job, metric_tags)
 
     if hashes:
-        grouphashes = get_or_create_grouphashes(project, hashes)
+        grouphashes = get_or_create_grouphashes(project, hashes, grouping_config["id"])
 
-        existing_grouphash = find_existing_grouphash(grouphashes)
+        existing_grouphash = find_grouphash_with_group(grouphashes)
 
-        return GroupHashInfo(grouping_config, hashes, grouphashes, existing_grouphash)
+        return GroupHashInfo(grouping_config, variants, hashes, grouphashes, existing_grouphash)
     else:
         return NULL_GROUPHASH_INFO
 
@@ -1706,12 +1415,16 @@ def handle_existing_grouphash(
     #    (otherwise the update would not change anything)
     #
     # We think this is a very unlikely situation. A previous version of
-    # _save_aggregate had races around group creation which made this race
+    # this function had races around group creation which made this race
     # more user visible. For more context, see 84c6f75a and d0e22787, as
     # well as GH-5085.
     group = Group.objects.get(id=existing_grouphash.group_id)
 
-    if check_for_category_mismatch(group):
+    # As far as we know this has never happened, but in theory at least, the error event hashing
+    # algorithm and other event hashing algorithms could come up with the same hash value in the
+    # same project and our hash could have matched to a non-error group. Just to be safe, we make
+    # sure that's not the case before proceeding.
+    if is_non_error_type_group(group):
         return None
 
     # There may still be hashes that we did not use to find an existing
@@ -1777,7 +1490,7 @@ def create_group_with_grouphashes(job: Job, grouphashes: list[GroupHash]) -> Gro
         # condition scenario above, we'll have been blocked long enough for the other event to
         # have created the group and updated our grouphashes with a group id, which means this
         # time, we'll find something.
-        existing_grouphash = find_existing_grouphash(grouphashes)
+        existing_grouphash = find_grouphash_with_group(grouphashes)
 
         # If we still haven't found a matching grouphash, we're now safe to go ahead and create
         # the group.
@@ -1806,16 +1519,6 @@ def _create_group(
     first_release: Release | None = None,
     **group_creation_kwargs: Any,
 ) -> Group:
-    # Temporary log to debug events seeming to disappear after being sent to Seer
-    if event.data.get("seer_similarity"):
-        logger.info(
-            "seer.similarity.pre_create_group",
-            extra={
-                "event_id": event.event_id,
-                "hash": event.get_primary_hash(),
-                "project": project.id,
-            },
-        )
 
     short_id = _get_next_short_id(project)
 
@@ -1890,18 +1593,6 @@ def _create_group(
             # Maybe the stuck counter was hiding some other error
             logger.exception("Error after unsticking project counter")
             raise
-
-    # Temporary log to debug events seeming to disappear after being sent to Seer
-    if event.data.get("seer_similarity"):
-        logger.info(
-            "seer.similarity.post_create_group",
-            extra={
-                "event_id": event.event_id,
-                "hash": event.get_primary_hash(),
-                "project": project.id,
-                "group_id": group.id,
-            },
-        )
 
     return group
 

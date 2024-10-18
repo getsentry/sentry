@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import pytest
@@ -10,7 +10,7 @@ from sentry.snuba import errors, metrics_performance
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery
 from sentry.testutils.cases import BaseMetricsTestCase, PerformanceIssueTestCase
-from sentry.testutils.helpers.datetime import iso_format
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.performance_issues.event_generators import get_event
 from sentry.utils.snuba import SnubaTSResult
 from tests.sentry.incidents.endpoints.test_organization_alert_rule_index import AlertRuleBase
@@ -30,15 +30,18 @@ def make_event(**kwargs: Any) -> dict[str, Any]:
     return result
 
 
+@freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
 class AnomalyDetectionStoreDataTest(AlertRuleBase, BaseMetricsTestCase, PerformanceIssueTestCase):
     def setUp(self):
         super().setUp()
-        self.time_1 = "2024-08-29T00:00:00Z"
-        self.time_1_dt = datetime(2024, 8, 29, 0, 0)
+
+        self.now = datetime.now(UTC)
+        self.time_1_dt = self.now - timedelta(days=2)
+        self.time_1 = self.time_1_dt.strftime("%Y-%m-%dT%H:%M:%SZ")
         self.time_1_ts = self.time_1_dt.timestamp()
 
-        self.time_2 = "2024-08-29T02:00:00Z"
-        self.time_2_dt = datetime(2024, 8, 29, 2, 0)
+        self.time_2_dt = self.now - timedelta(days=3)
+        self.time_2 = self.time_2_dt.strftime("%Y-%m-%dT%H:%M:%SZ")
         self.time_2_ts = self.time_2_dt.timestamp()
 
         self.received = self.time_1_ts
@@ -84,6 +87,29 @@ class AnomalyDetectionStoreDataTest(AlertRuleBase, BaseMetricsTestCase, Performa
         )
         assert result == expected_return_value
 
+    def test_anomaly_detection_format_historical_data_none_value(self):
+        """
+        Test that we don't end up with a None value, but rather 0.
+        """
+        expected_return_value = [
+            {"timestamp": self.time_1_ts, "value": 1},
+            {"timestamp": self.time_2_ts, "value": 0},
+        ]
+        snuba_raw_data = [
+            {"p95_measurements_fid": 1, "time": self.time_1_ts},
+            {"p95_measurements_fid": None, "time": self.time_2_ts},
+        ]
+        data = SnubaTSResult(
+            data={"data": snuba_raw_data}, start=self.time_1_dt, end=self.time_2_dt, rollup=3600
+        )
+        result = format_historical_data(
+            data=data,
+            query_columns=["p95_measurements_fid"],
+            dataset=errors,
+            organization=self.organization,
+        )
+        assert result == expected_return_value
+
     def test_anomaly_detection_fetch_historical_data(self):
         alert_rule = self.create_alert_rule(organization=self.organization, projects=[self.project])
         snuba_query = SnubaQuery.objects.get(id=alert_rule.snuba_query_id)
@@ -93,7 +119,7 @@ class AnomalyDetectionStoreDataTest(AlertRuleBase, BaseMetricsTestCase, Performa
                 data={
                     "event_id": "a" * 32,
                     "message": "super duper bad",
-                    "timestamp": iso_format(self.time_1_dt),
+                    "timestamp": self.time_1_dt.isoformat(),
                     "fingerprint": ["group1"],
                     "tags": {"sentry:user": self.user.email},
                     "exception": [{"value": "BadError"}],
@@ -104,14 +130,14 @@ class AnomalyDetectionStoreDataTest(AlertRuleBase, BaseMetricsTestCase, Performa
                 data={
                     "event_id": "b" * 32,
                     "message": "super bad",
-                    "timestamp": iso_format(self.time_2_dt),
+                    "timestamp": self.time_2_dt.isoformat(),
                     "fingerprint": ["group2"],
                     "tags": {"sentry:user": self.user.email},
                     "exception": [{"value": "BadError"}],
                 },
                 project_id=self.project.id,
             )
-        result = fetch_historical_data(alert_rule, snuba_query, ["count()"], self.project)
+        result = fetch_historical_data(self.organization, snuba_query, ["count()"], self.project)
         assert result
         assert {"time": int(self.time_1_ts), "count": 1} in result.data.get("data")
         assert {"time": int(self.time_2_ts), "count": 1} in result.data.get("data")
@@ -127,7 +153,7 @@ class AnomalyDetectionStoreDataTest(AlertRuleBase, BaseMetricsTestCase, Performa
                 data={
                     "event_id": "a" * 32,
                     "message": "super duper bad",
-                    "timestamp": iso_format(self.time_1_dt),
+                    "timestamp": self.time_1_dt.isoformat(),
                     "fingerprint": ["group1"],
                     "tags": {"sentry:user": self.user.email},
                     "exception": [{"value": "BadError"}],
@@ -138,14 +164,14 @@ class AnomalyDetectionStoreDataTest(AlertRuleBase, BaseMetricsTestCase, Performa
                 data={
                     "event_id": "b" * 32,
                     "message": "super bad",
-                    "timestamp": iso_format(self.time_2_dt),
+                    "timestamp": self.time_2_dt.isoformat(),
                     "fingerprint": ["group2"],
                     "tags": {"sentry:user": self.user.email},
                     "exception": [{"value": "BadError"}],
                 },
                 project_id=self.project.id,
             )
-        result = fetch_historical_data(alert_rule, snuba_query, ["count()"], self.project)
+        result = fetch_historical_data(self.organization, snuba_query, ["count()"], self.project)
         assert result
         assert {"time": int(self.time_1_ts), "count": 1} in result.data.get("data")
         assert {"time": int(self.time_2_ts), "count": 1} in result.data.get("data")
@@ -162,7 +188,7 @@ class AnomalyDetectionStoreDataTest(AlertRuleBase, BaseMetricsTestCase, Performa
 
         event2 = self.create_performance_issue(event_data=make_event(**event_data))
 
-        result = fetch_historical_data(alert_rule, snuba_query, ["count()"], self.project)
+        result = fetch_historical_data(self.organization, snuba_query, ["count()"], self.project)
         assert result
         assert {"time": int(event1.datetime.timestamp()), "count": 1} in result.data.get("data")
         assert {"time": int(event2.datetime.timestamp()), "count": 1} in result.data.get("data")
@@ -212,7 +238,7 @@ class AnomalyDetectionStoreDataTest(AlertRuleBase, BaseMetricsTestCase, Performa
             threshold_period=1,
         )
         snuba_query = SnubaQuery.objects.get(id=alert_rule.snuba_query_id)
-        result = fetch_historical_data(alert_rule, snuba_query, ["count()"], self.project)
+        result = fetch_historical_data(self.organization, snuba_query, ["count()"], self.project)
         assert result
         assert self.time_1 in result.data.get("data").get("intervals")
         assert 1 in result.data.get("data").get("groups")[0].get("series").get("sum(session)")

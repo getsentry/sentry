@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {Fragment} from 'react';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -39,15 +39,17 @@ import {
   MODULE_DOC_LINK,
   MODULE_TITLE,
 } from 'sentry/views/insights/http/settings';
-import {
-  type InsightLandingProps,
-  ModuleName,
-  SpanMetricsField,
-} from 'sentry/views/insights/types';
+import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
+import {BACKEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/backend/settings';
+import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
+import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/settings';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
+import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
 
-export function HTTPLandingPage({disableHeader}: InsightLandingProps) {
+export function HTTPLandingPage() {
   const organization = useOrganization();
   const location = useLocation();
+  const {isInDomainView, view} = useDomainViewFilters();
 
   const sortField = decodeScalar(location.query?.[QueryParameterNames.DOMAINS_SORT]);
 
@@ -61,7 +63,7 @@ export function HTTPLandingPage({disableHeader}: InsightLandingProps) {
     },
   });
 
-  const ADDITIONAL_FILTERS = {};
+  const ADDITIONAL_FILTERS: {[SpanMetricsField.USER_GEO_SUBREGION]?: string} = {};
 
   if (query[SpanMetricsField.USER_GEO_SUBREGION].length > 0) {
     ADDITIONAL_FILTERS[SpanMetricsField.USER_GEO_SUBREGION] =
@@ -155,24 +157,28 @@ export function HTTPLandingPage({disableHeader}: InsightLandingProps) {
     Referrer.LANDING_DOMAINS_LIST
   );
 
-  useSynchronizeCharts([!isThroughputDataLoading && !isDurationDataLoading]);
+  useSynchronizeCharts(
+    3,
+    !isThroughputDataLoading && !isDurationDataLoading && !isResponseCodeDataLoading
+  );
 
   const crumbs = useModuleBreadcrumbs('http');
 
+  const headerTitle = (
+    <Fragment>
+      {MODULE_TITLE}
+      <PageHeadingQuestionTooltip docsUrl={MODULE_DOC_LINK} title={MODULE_DESCRIPTION} />
+    </Fragment>
+  );
+
   return (
     <React.Fragment>
-      {!disableHeader && (
+      {!isInDomainView && (
         <Layout.Header>
           <Layout.HeaderContent>
             <Breadcrumbs crumbs={crumbs} />
 
-            <Layout.Title>
-              {MODULE_TITLE}
-              <PageHeadingQuestionTooltip
-                docsUrl={MODULE_DOC_LINK}
-                title={MODULE_DESCRIPTION}
-              />
-            </Layout.Title>
+            <Layout.Title>{headerTitle}</Layout.Title>
           </Layout.HeaderContent>
           <Layout.HeaderActions>
             <ButtonBar gap={1}>
@@ -180,6 +186,14 @@ export function HTTPLandingPage({disableHeader}: InsightLandingProps) {
             </ButtonBar>
           </Layout.HeaderActions>
         </Layout.Header>
+      )}
+
+      {isInDomainView && view === FRONTEND_LANDING_SUB_PATH && (
+        <FrontendHeader module={ModuleName.HTTP} />
+      )}
+
+      {isInDomainView && view === BACKEND_LANDING_SUB_PATH && (
+        <BackendHeader headerTitle={headerTitle} module={ModuleName.HTTP} />
       )}
 
       <Layout.Body>
@@ -261,14 +275,14 @@ const DEFAULT_SORT = {
 
 const DOMAIN_TABLE_ROW_COUNT = 10;
 
-function PageWithProviders(props: InsightLandingProps) {
+function PageWithProviders() {
   return (
     <ModulePageProviders
       moduleName="http"
       features="insights-initial-modules"
       analyticEventName="insight.page_loads.http"
     >
-      <HTTPLandingPage {...props} />
+      <HTTPLandingPage />
     </ModulePageProviders>
   );
 }

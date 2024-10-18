@@ -6,11 +6,14 @@ from typing import Any
 
 from django.db.models import Q, QuerySet
 
-from sentry.api.serializers import SentryAppAlertRuleActionSerializer, Serializer, serialize
+from sentry.api.serializers import Serializer, serialize
 from sentry.auth.services.auth import AuthenticationContext
 from sentry.constants import SentryAppInstallationStatus, SentryAppStatus
 from sentry.hybridcloud.rpc.filter_query import FilterQueryDatabaseImpl, OpaqueSerializedResponse
-from sentry.mediators import alert_rule_actions
+from sentry.sentry_apps.alert_rule_action_creator import AlertRuleActionCreator
+from sentry.sentry_apps.api.serializers.sentry_app_component import (
+    SentryAppAlertRuleActionSerializer,
+)
 from sentry.sentry_apps.logic import SentryAppCreator
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_component import SentryAppComponent
@@ -252,7 +255,7 @@ class DatabaseBackedAppService(AppService):
             install = SentryAppInstallation.objects.get(uuid=install_uuid)
         except SentryAppInstallation.DoesNotExist:
             return RpcAlertRuleActionResult(success=False, message="Installation does not exist")
-        result = alert_rule_actions.AlertRuleActionCreator.run(install=install, fields=fields)
+        result = AlertRuleActionCreator(install=install, fields=fields).run()
         return RpcAlertRuleActionResult(success=result["success"], message=result["message"])
 
     def find_service_hook_sentry_app(self, *, api_application_id: int) -> RpcSentryApp | None:

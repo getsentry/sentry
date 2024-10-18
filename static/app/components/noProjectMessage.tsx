@@ -7,10 +7,10 @@ import NoProjectEmptyState from 'sentry/components/illustrations/NoProjectEmptyS
 import * as Layout from 'sentry/components/layouts/thirds';
 import {canCreateProject} from 'sentry/components/projects/canCreateProject';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import useProjects from 'sentry/utils/useProjects';
+import {useUser} from 'sentry/utils/useUser';
 
 type Props = {
   organization: Organization;
@@ -23,17 +23,16 @@ function NoProjectMessage({
   organization,
   superuserNeedsToBeProjectMember,
 }: Props) {
+  const user = useUser();
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
 
   const orgSlug = organization.slug;
   const canUserCreateProject = canCreateProject(organization);
   const canJoinTeam = organization.access.includes('team:read');
 
-  const {isSuperuser} = ConfigStore.get('user');
-
   const orgHasProjects = !!projects?.length;
   const hasProjectAccess =
-    isSuperuser && !superuserNeedsToBeProjectMember
+    user.isSuperuser && !superuserNeedsToBeProjectMember
       ? !!projects?.some(p => p.hasAccess)
       : !!projects?.some(p => p.isMember && p.hasAccess);
 

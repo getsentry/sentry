@@ -23,14 +23,15 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.examples.team_examples import TeamExamples
 from sentry.apidocs.parameters import GlobalParams, TeamParams
-from sentry.models.scheduledeletion import RegionScheduledDeletion
+from sentry.db.models.fields.slug import DEFAULT_SLUG_MAX_LENGTH
+from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.models.team import Team, TeamStatus
 
 
 @extend_schema_serializer(exclude_fields=["name"])
 class TeamDetailsSerializer(CamelSnakeModelSerializer):
     slug = SentrySerializerSlugField(
-        max_length=50,
+        max_length=DEFAULT_SLUG_MAX_LENGTH,
         help_text="Uniquely identifies a team. This is must be available.",
     )
 
@@ -55,6 +56,13 @@ class TeamDetailsEndpoint(TeamEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
         "PUT": ApiPublishStatus.PUBLIC,
     }
+    # OrganizationSCIMTeamDetails inherits this endpoint, but toggles this setting
+    _allow_idp_changes = False
+
+    def can_modify_idp_team(self, team: Team):
+        if not team.idp_provisioned:
+            return True
+        return self._allow_idp_changes
 
     @extend_schema(
         operation_id="Retrieve a Team",
@@ -106,6 +114,13 @@ class TeamDetailsEndpoint(TeamEndpoint):
         Update various attributes and configurable settings for the given
         team.
         """
+
+        if not self.can_modify_idp_team(team):
+            return Response(
+                {"detail": "This team is managed through your organization's identity provider."},
+                status=403,
+            )
+
         serializer = TeamDetailsSerializer(team, data=request.data, partial=True)
         if serializer.is_valid():
             team = serializer.save()
@@ -140,6 +155,13 @@ class TeamDetailsEndpoint(TeamEndpoint):
         **Note:** Deletion happens asynchronously and therefore is not
         immediate. Teams will have their slug released while waiting for deletion.
         """
+
+        if not self.can_modify_idp_team(team):
+            return Response(
+                {"detail": "This team is managed through your organization's identity provider."},
+                status=403,
+            )
+
         suffix = uuid4().hex
         new_slug = f"{team.slug}-{suffix}"[0:50]
         try:

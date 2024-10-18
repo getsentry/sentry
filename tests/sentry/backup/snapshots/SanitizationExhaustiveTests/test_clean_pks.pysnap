@@ -1,5 +1,5 @@
 ---
-created: '2024-09-12T18:50:41.219403+00:00'
+created: '2024-10-10T17:23:00.882306+00:00'
 creator: sentry
 source: tests/sentry/backup/test_sanitize.py
 ---
@@ -212,6 +212,16 @@ source: tests/sentry/backup/test_sanitize.py
   sanitized_fields:
   - date_added
   - date_updated
+- model_name: workflow_engine.dataconditiongroup
+  ordinal: 1
+  sanitized_fields:
+  - date_added
+  - date_updated
+- model_name: workflow_engine.dataconditiongroup
+  ordinal: 2
+  sanitized_fields:
+  - date_added
+  - date_updated
 - model_name: workflow_engine.datasource
   ordinal: 1
   sanitized_fields:
@@ -223,25 +233,39 @@ source: tests/sentry/backup/test_sanitize.py
   - date_added
   - date_updated
   - name
+- model_name: workflow_engine.detectorstate
+  ordinal: 1
+  sanitized_fields:
+  - date_added
+  - date_updated
 - model_name: workflow_engine.workflow
   ordinal: 1
   sanitized_fields:
   - date_added
   - date_updated
   - name
-- model_name: workflow_engine.workflow
-  ordinal: 2
+- model_name: workflow_engine.workflowdataconditiongroup
+  ordinal: 1
   sanitized_fields:
   - date_added
   - date_updated
-  - name
-- model_name: workflow_engine.workflowaction
+- model_name: workflow_engine.detectorworkflow
   ordinal: 1
   sanitized_fields:
   - date_added
   - date_updated
 - model_name: workflow_engine.datasourcedetector
   ordinal: 1
+  sanitized_fields:
+  - date_added
+  - date_updated
+- model_name: workflow_engine.datacondition
+  ordinal: 1
+  sanitized_fields:
+  - date_added
+  - date_updated
+- model_name: workflow_engine.datacondition
+  ordinal: 2
   sanitized_fields:
   - date_added
   - date_updated
@@ -674,6 +698,9 @@ source: tests/sentry/backup/test_sanitize.py
   ordinal: 1
   sanitized_fields:
   - date_added
+- model_name: sentry.dashboardpermissions
+  ordinal: 1
+  sanitized_fields: []
 - model_name: sentry.customdynamicsamplingruleproject
   ordinal: 1
   sanitized_fields: []

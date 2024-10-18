@@ -14,6 +14,7 @@ from sentry.integrations.slack.webhooks.action import (
     LINK_IDENTITY_MESSAGE,
     UNLINK_IDENTITY_MESSAGE,
 )
+from sentry.integrations.utils.metrics import EventLifecycleOutcome
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.models.activity import Activity, ActivityIntegration
 from sentry.models.authidentity import AuthIdentity
@@ -28,7 +29,7 @@ from sentry.models.team import Team
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import PerformanceIssueTestCase
-from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
@@ -156,10 +157,10 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         # Opening dialog should *not* cause the current message to be updated
         assert resp.content == b""
 
-        trigger_id = self.mock_view.call_args.kwargs["trigger_id"]
-        view: View = self.mock_view.call_args.kwargs["view"]
+        trigger_id = self._mock_view_update.call_args.kwargs["external_id"]
+        view: View = self._mock_view_update.call_args.kwargs["view"]
 
-        assert trigger_id == self.trigger_id
+        assert trigger_id == status_action["action_ts"]
 
         assert view.private_metadata is not None
         private_metadata = orjson.loads(view.private_metadata)
@@ -204,10 +205,10 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         # Opening dialog should *not* cause the current message to be updated
         assert resp.content == b""
 
-        trigger_id = self.mock_view.call_args.kwargs["trigger_id"]
-        view: View = self.mock_view.call_args.kwargs["view"]
+        trigger_id = self._mock_view_update.call_args.kwargs["external_id"]
+        view: View = self._mock_view_update.call_args.kwargs["view"]
 
-        assert trigger_id == self.trigger_id
+        assert trigger_id == status_action["action_ts"]
         assert view.private_metadata is not None
         private_metadata = orjson.loads(view.private_metadata)
         assert int(private_metadata["issue"]) == self.group.id
@@ -234,8 +235,9 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert resp.data["response_type"] == "ephemeral"
         assert resp.data["text"] == LINK_IDENTITY_MESSAGE.format(associate_url=associate_url)
 
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.integrations.slack.message_builder.issues.get_tags", return_value=[])
-    def test_archive_issue_until_escalating(self, mock_tags):
+    def test_archive_issue_until_escalating(self, mock_tags, mock_record):
         original_message = self.get_original_message(self.group.id)
         self.archive_issue(original_message, "ignored:archived_until_escalating")
 
@@ -252,6 +254,11 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert blocks[2]["text"]["text"].endswith(expect_status)
         assert "via" not in blocks[4]["elements"][0]["text"]
         assert ":white_circle:" in blocks[0]["text"]["text"]
+
+        assert len(mock_record.mock_calls) == 2
+        start, halt = mock_record.mock_calls
+        assert start.args[0] == EventLifecycleOutcome.STARTED
+        assert halt.args[0] == EventLifecycleOutcome.SUCCESS
 
     @patch("sentry.integrations.slack.message_builder.issues.get_tags", return_value=[])
     def test_archive_issue_until_escalating_through_unfurl(self, mock_tags):
@@ -721,8 +728,8 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         group_fingerprint = f"{PerformanceNPlusOneGroupType.type_id}-group1"
 
         event_data_2 = load_data("transaction-n-plus-one", fingerprint=[group_fingerprint])
-        event_data_2["timestamp"] = iso_format(before_now(seconds=20))
-        event_data_2["start_timestamp"] = iso_format(before_now(seconds=21))
+        event_data_2["timestamp"] = before_now(seconds=20).isoformat()
+        event_data_2["start_timestamp"] = before_now(seconds=21).isoformat()
         event_data_2["event_id"] = "f" * 32
 
         perf_issue = self.create_performance_issue(
@@ -863,18 +870,18 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert blocks[2]["text"]["text"].endswith(expect_status)
 
     @patch(
-        "slack_sdk.web.WebClient.views_open",
+        "slack_sdk.web.WebClient.views_update",
         return_value=SlackResponse(
             client=None,
             http_verb="POST",
-            api_url="https://slack.com/api/views.open",
+            api_url="https://slack.com/api/views.update",
             req_args={},
             data={"ok": True},
             headers={},
             status_code=200,
         ),
     )
-    def test_response_differs_on_bot_message(self, mock_views_open):
+    def test_response_differs_on_bot_message(self, _mock_view_updates_open):
         status_action = self.get_archive_status_action()
         original_message = self.get_original_message(self.group.id)
 
@@ -887,10 +894,10 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         # Opening dialog should *not* cause the current message to be updated
         assert resp.content == b""
 
-        trigger_id = mock_views_open.call_args.kwargs["trigger_id"]
-        view: View = mock_views_open.call_args.kwargs["view"]
+        trigger_id = _mock_view_updates_open.call_args.kwargs["external_id"]
+        view: View = _mock_view_updates_open.call_args.kwargs["view"]
 
-        assert trigger_id == self.trigger_id
+        assert trigger_id == status_action["action_ts"]
         assert view.private_metadata is not None
         private_metadata = orjson.loads(view.private_metadata)
         assert int(private_metadata["issue"]) == self.group.id
@@ -914,18 +921,18 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert blocks[2]["text"]["text"].endswith(expect_status)
 
     @patch(
-        "slack_sdk.web.WebClient.views_open",
+        "slack_sdk.web.WebClient.views_update",
         return_value=SlackResponse(
             client=None,
             http_verb="POST",
-            api_url="https://slack.com/api/views.open",
+            api_url="https://slack.com/api/views.update",
             req_args={},
             data={"ok": True},
             headers={},
             status_code=200,
         ),
     )
-    def test_permission_denied(self, mock_views_open):
+    def test_permission_denied(self, _mock_view_update):
         user2 = self.create_user(is_superuser=False)
         user2_identity = self.create_identity(
             external_id="slack_id2",
@@ -947,10 +954,10 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         # Opening dialog should *not* cause the current message to be updated
         assert resp.content == b""
 
-        trigger_id = mock_views_open.call_args.kwargs["trigger_id"]
-        view: View = mock_views_open.call_args.kwargs["view"]
+        trigger_id = _mock_view_update.call_args.kwargs["external_id"]
+        view: View = _mock_view_update.call_args.kwargs["view"]
 
-        assert trigger_id == self.trigger_id
+        assert trigger_id == status_action["action_ts"]
         assert view.private_metadata is not None
         private_metadata = orjson.loads(view.private_metadata)
         assert int(private_metadata["issue"]) == self.group.id
@@ -978,18 +985,18 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         )
 
     @patch(
-        "slack_sdk.web.WebClient.views_open",
+        "slack_sdk.web.WebClient.views_update",
         return_value=SlackResponse(
             client=None,
             http_verb="POST",
-            api_url="https://slack.com/api/views.open",
+            api_url="https://slack.com/api/views.update",
             req_args={},
             data={"ok": True},
             headers={},
             status_code=200,
         ),
     )
-    def test_permission_denied_through_unfurl(self, mock_views_open):
+    def test_permission_denied_through_unfurl(self, _mock_view_updates_open):
         user2 = self.create_user(is_superuser=False)
         user2_identity = self.create_identity(
             external_id="slack_id2",
@@ -1010,10 +1017,10 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         # Opening dialog should *not* cause the current message to be updated
         assert resp.content == b""
 
-        trigger_id = mock_views_open.call_args.kwargs["trigger_id"]
-        view: View = mock_views_open.call_args.kwargs["view"]
+        trigger_id = _mock_view_updates_open.call_args.kwargs["external_id"]
+        view: View = _mock_view_updates_open.call_args.kwargs["view"]
 
-        assert trigger_id == self.trigger_id
+        assert trigger_id == status_action["action_ts"]
         assert view.private_metadata is not None
         private_metadata = orjson.loads(view.private_metadata)
         assert int(private_metadata["issue"]) == self.group.id
@@ -1040,11 +1047,11 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
 
     @freeze_time("2021-01-14T12:27:28.303Z")
     @patch(
-        "slack_sdk.web.WebClient.views_open",
+        "slack_sdk.web.WebClient.views_update",
         return_value=SlackResponse(
             client=None,
             http_verb="POST",
-            api_url="https://slack.com/api/views.open",
+            api_url="https://slack.com/api/views.update",
             req_args={},
             data={"ok": False},
             headers={},
@@ -1063,10 +1070,10 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         # Opening dialog should *not* cause the current message to be updated
         assert resp.content == b""
 
-        trigger_id = mock_open_view.call_args.kwargs["trigger_id"]
+        trigger_id = mock_open_view.call_args.kwargs["external_id"]
         view: View = mock_open_view.call_args.kwargs["view"]
 
-        assert trigger_id == self.trigger_id
+        assert trigger_id == status_action["action_ts"]
         assert view.private_metadata is not None
         private_metadata = orjson.loads(view.private_metadata)
         assert int(private_metadata["issue"]) == self.group.id
@@ -1098,11 +1105,11 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
 
     @freeze_time("2021-01-14T12:27:28.303Z")
     @patch(
-        "slack_sdk.web.WebClient.views_open",
+        "slack_sdk.web.WebClient.views_update",
         return_value=SlackResponse(
             client=None,
             http_verb="POST",
-            api_url="https://slack.com/api/views.open",
+            api_url="https://slack.com/api/views.update",
             req_args={},
             data={"ok": False},
             headers={},
@@ -1120,10 +1127,10 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         # Opening dialog should *not* cause the current message to be updated
         assert resp.content == b""
 
-        trigger_id = mock_open_view.call_args.kwargs["trigger_id"]
+        trigger_id = mock_open_view.call_args.kwargs["external_id"]
         view: View = mock_open_view.call_args.kwargs["view"]
 
-        assert trigger_id == self.trigger_id
+        assert trigger_id == status_action["action_ts"]
         assert view.private_metadata is not None
         private_metadata = orjson.loads(view.private_metadata)
         assert int(private_metadata["issue"]) == self.group.id

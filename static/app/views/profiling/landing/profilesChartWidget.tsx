@@ -9,7 +9,6 @@ import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
 import {useProfileEventsStats} from 'sentry/utils/profiling/hooks/useProfileEventsStats';
-import useRouter from 'sentry/utils/useRouter';
 
 import {
   ContentContainer,
@@ -39,7 +38,6 @@ export function ProfilesChartWidget({
   userQuery,
   widgetHeight,
 }: ProfilesChartWidgetProps) {
-  const router = useRouter();
   const theme = useTheme();
 
   const profileStats = useProfileEventsStats({
@@ -121,7 +119,7 @@ export function ProfilesChartWidget({
         {header ?? <HeaderTitleLegend>{t('Profiles by Percentiles')}</HeaderTitleLegend>}
       </HeaderContainer>
       <ContentContainer>
-        <ChartZoom router={router} {...selection?.datetime}>
+        <ChartZoom {...selection?.datetime}>
           {zoomRenderProps => (
             <AreaChart
               {...zoomRenderProps}

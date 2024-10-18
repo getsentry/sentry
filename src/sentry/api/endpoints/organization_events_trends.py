@@ -54,7 +54,7 @@ REGRESSION = "regression"
 TREND_TYPES = [IMPROVED, REGRESSION]
 
 
-# TODO move this to the builder file and introduce a top-events version instead
+# TODO: move this to the builder file and introduce a top-events version instead
 class TrendQueryBuilder(DiscoverQueryBuilder):
     def convert_aggregate_filter_to_condition(
         self, aggregate_filter: AggregateFilter
@@ -431,7 +431,7 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
         except NoProjects:
             return Response([])
 
-        with sentry_sdk.start_span(op="discover.endpoint", description="trend_dates"):
+        with sentry_sdk.start_span(op="discover.endpoint", name="trend_dates"):
             middle_date = request.GET.get("middle")
             if middle_date:
                 try:

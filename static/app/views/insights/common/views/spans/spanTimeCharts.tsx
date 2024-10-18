@@ -81,7 +81,7 @@ export function SpanTimeCharts({
     referrer: 'api.starfish.span-time-charts',
   });
 
-  useSynchronizeCharts([!isPending]);
+  useSynchronizeCharts(1, !isPending);
 
   const moduleCharts: Record<
     ModuleName,

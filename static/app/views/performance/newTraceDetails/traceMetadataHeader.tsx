@@ -19,9 +19,10 @@ import type RequestError from 'sentry/utils/requestError/requestError';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
-import TraceConfigurations from 'sentry/views/performance/newTraceDetails/traceConfigurations';
 
 import Tab from '../transactionSummary/tabs';
+
+import TraceConfigurations from './traceConfigurations';
 
 interface TraceMetadataHeaderProps {
   organization: Organization;

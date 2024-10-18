@@ -8,7 +8,6 @@ import {WidgetFixture} from 'sentry-fixture/widget';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   act,
-  fireEvent,
   render,
   renderGlobalModal,
   screen,
@@ -479,16 +478,12 @@ describe('WidgetBuilder', function () {
       dashboard: testDashboard,
     });
 
-    const search = await screen.findByTestId(/smart-search-input/);
-
-    await userEvent.click(search);
-
-    // Use fireEvent for performance reasons as this test suite is slow
-    fireEvent.paste(search, {
-      target: {value: 'color:blue'},
-      clipboardData: {getData: () => 'color:blue'},
-    });
+    await userEvent.click(
+      await screen.findByRole('combobox', {name: 'Add a search term'})
+    );
+    await userEvent.paste('color:blue');
     await userEvent.keyboard('{enter}');
+
     await userEvent.click(screen.getByText('Add Widget'));
 
     await waitFor(() => {
@@ -743,10 +738,10 @@ describe('WidgetBuilder', function () {
 
     // Filters
     expect(
-      screen.getAllByPlaceholderText('Search for events, users, tags, and more')
+      await screen.findAllByRole('grid', {name: 'Create a search query'})
     ).toHaveLength(2);
-    expect(screen.getByText('event.type:csp')).toBeInTheDocument();
-    expect(screen.getByText('event.type:error')).toBeInTheDocument();
+    expect(screen.getByRole('row', {name: 'event.type:csp'})).toBeInTheDocument();
+    expect(screen.getByRole('row', {name: 'event.type:error'})).toBeInTheDocument();
 
     // Y-axis
     expect(screen.getAllByRole('button', {name: 'Remove query'})).toHaveLength(2);
@@ -866,7 +861,7 @@ describe('WidgetBuilder', function () {
     // Should set widget data up.
     expect(screen.getByText(widget.title)).toBeInTheDocument();
     expect(screen.getByText('Table')).toBeInTheDocument();
-    expect(screen.getByLabelText('Search events')).toBeInTheDocument();
+    await screen.findByRole('grid', {name: 'Create a search query'});
 
     // Should have an orderby select
     expect(screen.getByText('Sort by a column')).toBeInTheDocument();
@@ -988,10 +983,12 @@ describe('WidgetBuilder', function () {
       },
     });
 
-    expect(await screen.findByText('tag:value')).toBeInTheDocument();
+    expect(await screen.findByRole('row', {name: 'tag:value'})).toBeInTheDocument();
 
     // Table display, column, and sort field
-    expect(screen.getAllByText('count()')).toHaveLength(3);
+    await waitFor(() => {
+      expect(screen.getAllByText('count()')).toHaveLength(3);
+    });
     // Table display and column
     expect(screen.getAllByText('failure_count()')).toHaveLength(2);
     // Table display
@@ -1368,13 +1365,8 @@ describe('WidgetBuilder', function () {
   });
 
   it('alerts the user if there are unsaved title changes', async function () {
-    const {router} = renderTestComponent();
-
-    const alertMock = jest.fn();
-    const setRouteLeaveHookMock = jest.spyOn(router, 'setRouteLeaveHook');
-    setRouteLeaveHookMock.mockImplementationOnce((_route, _callback) => {
-      return alertMock();
-    });
+    renderTestComponent();
+    window.confirm = jest.fn();
 
     const customWidgetLabels = await screen.findByText('Custom Widget');
     // EditableText and chart title
@@ -1390,17 +1382,12 @@ describe('WidgetBuilder', function () {
     await userEvent.click(screen.getByText('Cancel'));
 
     // Assert an alert was triggered
-    expect(alertMock).toHaveBeenCalled();
+    expect(window.confirm).toHaveBeenCalled();
   });
 
   it('alerts the user if there are unsaved description changes', async function () {
-    const {router} = renderTestComponent();
-
-    const alertMock = jest.fn();
-    const setRouteLeaveHookMock = jest.spyOn(router, 'setRouteLeaveHook');
-    setRouteLeaveHookMock.mockImplementationOnce((_route, _callback) => {
-      return alertMock();
-    });
+    renderTestComponent();
+    window.confirm = jest.fn();
 
     const descriptionTextArea = await screen.findByRole('textbox', {
       name: 'Widget Description',
@@ -1421,12 +1408,12 @@ describe('WidgetBuilder', function () {
     await userEvent.click(screen.getByText('Cancel'));
 
     // Assert an alert was triggered
-    expect(alertMock).toHaveBeenCalled();
+    expect(window.confirm).toHaveBeenCalled();
   });
 
   it('does not trigger alert dialog if no changes', async function () {
     renderTestComponent();
-    const alertMock = jest.spyOn(window, 'alert');
+    const alertMock = jest.spyOn(window, 'confirm');
 
     await userEvent.click(await screen.findByText('Cancel'));
     expect(alertMock).not.toHaveBeenCalled();
@@ -1707,10 +1694,10 @@ describe('WidgetBuilder', function () {
     await userEvent.click(screen.getByText('Line Chart'));
     expect(eventsStatsMock).toHaveBeenCalledTimes(1);
 
-    await userEvent.type(
-      screen.getByTestId('smart-search-input'),
-      'transaction.duration:123a'
+    await userEvent.click(
+      await screen.findByRole('combobox', {name: 'Add a search term'})
     );
+    await userEvent.paste('transaction.duration:123a');
 
     // Unfocus input
     await userEvent.click(screen.getByText('Filter your results'));
@@ -1846,7 +1833,7 @@ describe('WidgetBuilder', function () {
 
         expect(await screen.findByText(/p99\(…\)/i)).toBeInTheDocument();
         expect(screen.getByText('transaction.duration')).toBeInTheDocument();
-        expect(screen.getByText('testFilter:value')).toBeInTheDocument();
+        expect(screen.getByRole('row', {name: 'testFilter:value'})).toBeInTheDocument();
         expect(screen.getByRole('radio', {name: /transactions/i})).toBeChecked();
 
         // Switch to errors
@@ -1858,7 +1845,7 @@ describe('WidgetBuilder', function () {
         // The state is still the same
         expect(await screen.findByText(/p99\(…\)/i)).toBeInTheDocument();
         expect(screen.getByText('transaction.duration')).toBeInTheDocument();
-        expect(screen.getByText('testFilter:value')).toBeInTheDocument();
+        expect(screen.getByRole('row', {name: 'testFilter:value'})).toBeInTheDocument();
       });
 
       it('sets the correct default count_if parameters for the errors dataset', async function () {
@@ -2059,7 +2046,7 @@ describe('WidgetBuilder', function () {
 
         expect(await screen.findByText(/p99\(…\)/i)).toBeInTheDocument();
         expect(screen.getByText('transaction.duration')).toBeInTheDocument();
-        expect(screen.getByText('testFilter:value')).toBeInTheDocument();
+        expect(screen.getByRole('row', {name: 'testFilter:value'})).toBeInTheDocument(); // Check for query builder token
         expect(screen.getByRole('radio', {name: /transactions/i})).toBeChecked();
 
         // Switch to errors
@@ -2071,7 +2058,7 @@ describe('WidgetBuilder', function () {
         // The state is still the same
         expect(await screen.findByText(/p99\(…\)/i)).toBeInTheDocument();
         expect(screen.getByText('transaction.duration')).toBeInTheDocument();
-        expect(screen.getByText('testFilter:value')).toBeInTheDocument();
+        expect(screen.getByRole('row', {name: 'testFilter:value'})).toBeInTheDocument();
       });
 
       it('sets the correct default count_if parameters for the errors dataset', async function () {

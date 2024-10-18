@@ -1,6 +1,6 @@
-import {traceReducerExhaustiveActionCheck} from 'sentry/views/performance/newTraceDetails/traceState';
-
-import type {TraceTree, TraceTreeNode} from '../traceModels/traceTree';
+import type {TraceTree} from '../traceModels/traceTree';
+import type {TraceTreeNode} from '../traceModels/traceTreeNode';
+import {traceReducerExhaustiveActionCheck} from '../traceState';
 
 export interface TraceRovingTabIndexState {
   index: number | null;

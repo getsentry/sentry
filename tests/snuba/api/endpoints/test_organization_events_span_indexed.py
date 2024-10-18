@@ -525,7 +525,9 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
         assert response.data["data"] == [{"foo": "", "count()": 1}]
 
 
-@pytest.mark.xfail(reason="Snuba is prefixing keys, and Sentry wasn't updated first")
+@pytest.mark.xfail(
+    reason="Snuba is not stable for the EAP dataset, xfailing since its prone to failure"
+)
 class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpointTest):
     is_eap = True
 
@@ -591,7 +593,7 @@ class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpoin
         )
         response = self.do_request(
             {
-                "field": ["span.duration", "description", "count()"],
+                "field": ["span.duration", "description"],
                 "query": "",
                 "orderby": "description",
                 "project": self.project.id,
@@ -605,14 +607,12 @@ class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpoin
         assert len(data) == 2
         assert data == [
             {
-                "span.duration": 1000,
+                "span.duration": 1000.0,
                 "description": "bar",
-                "count()": 1,
             },
             {
-                "span.duration": 1000,
+                "span.duration": 1000.0,
                 "description": "foo",
-                "count()": 1,
             },
         ]
         assert meta["dataset"] == self.dataset
@@ -649,7 +649,11 @@ class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpoin
         self.store_spans(
             [
                 self.create_span(
-                    {"description": "foo", "sentry_tags": {"status": "success", "foo": "five"}},
+                    {
+                        "description": "foo",
+                        "sentry_tags": {"status": "success"},
+                        "tags": {"foo": "five"},
+                    },
                     measurements={"foo": {"value": 5}},
                     start_ts=self.ten_mins_ago,
                 ),
@@ -678,7 +682,11 @@ class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpoin
         self.store_spans(
             [
                 self.create_span(
-                    {"description": "foo", "sentry_tags": {"status": "success", "foo": "five"}},
+                    {
+                        "description": "foo",
+                        "sentry_tags": {"status": "success"},
+                        "tags": {"foo": "five"},
+                    },
                     measurements={"foo": {"value": 5}},
                     start_ts=self.ten_mins_ago,
                 ),
@@ -707,7 +715,11 @@ class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpoin
         self.store_spans(
             [
                 self.create_span(
-                    {"description": "foo", "sentry_tags": {"status": "success", "foo": "five"}},
+                    {
+                        "description": "foo",
+                        "sentry_tags": {"status": "success"},
+                        "tags": {"foo": "five"},
+                    },
                     measurements={"foo": {"value": 5}},
                     start_ts=self.ten_mins_ago,
                 ),
@@ -754,17 +766,29 @@ class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpoin
         self.store_spans(
             [
                 self.create_span(
-                    {"description": "baz", "sentry_tags": {"status": "success", "foo": "five"}},
+                    {
+                        "description": "baz",
+                        "sentry_tags": {"status": "success"},
+                        "tags": {"foo": "five"},
+                    },
                     measurements={"foo": {"value": 71}},
                     start_ts=self.ten_mins_ago,
                 ),
                 self.create_span(
-                    {"description": "foo", "sentry_tags": {"status": "success", "foo": "five"}},
+                    {
+                        "description": "foo",
+                        "sentry_tags": {"status": "success"},
+                        "tags": {"foo": "five"},
+                    },
                     measurements={"foo": {"value": 5}},
                     start_ts=self.ten_mins_ago,
                 ),
                 self.create_span(
-                    {"description": "bar", "sentry_tags": {"status": "success", "foo": "five"}},
+                    {
+                        "description": "bar",
+                        "sentry_tags": {"status": "success"},
+                        "tags": {"foo": "five"},
+                    },
                     measurements={"foo": {"value": 8}},
                     start_ts=self.ten_mins_ago,
                 ),
@@ -791,6 +815,79 @@ class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpoin
         assert data[1]["description"] == "bar"
         assert data[2]["tags[foo,number]"] == 71
         assert data[2]["description"] == "baz"
+
+    def test_aggregate_numeric_attr(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "description": "foo",
+                        "sentry_tags": {"status": "success"},
+                        "tags": {"bar": "bar1"},
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {
+                        "description": "foo",
+                        "sentry_tags": {"status": "success"},
+                        "tags": {"bar": "bar2"},
+                    },
+                    measurements={"foo": {"value": 5}},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "description",
+                    "count_unique(bar)",
+                    "count_unique(tags[bar])",
+                    "count_unique(tags[bar,string])",
+                    "count()",
+                    "count(span.duration)",
+                    "count(tags[foo,     number])",
+                    "sum(tags[foo,number])",
+                    "avg(tags[foo,number])",
+                    "p50(tags[foo,number])",
+                    "p75(tags[foo,number])",
+                    "p95(tags[foo,number])",
+                    "p99(tags[foo,number])",
+                    "p100(tags[foo,number])",
+                    "min(tags[foo,number])",
+                    "max(tags[foo,number])",
+                ],
+                "query": "",
+                "orderby": "description",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        data = response.data["data"]
+        assert data[0] == {
+            "description": "foo",
+            "count_unique(bar)": 2,
+            "count_unique(tags[bar])": 2,
+            "count_unique(tags[bar,string])": 2,
+            "count()": 2,
+            "count(span.duration)": 2,
+            "count(tags[foo,     number])": 1,
+            "sum(tags[foo,number])": 5.0,
+            "avg(tags[foo,number])": 5.0,
+            "p50(tags[foo,number])": 5.0,
+            "p75(tags[foo,number])": 5.0,
+            "p95(tags[foo,number])": 5.0,
+            "p99(tags[foo,number])": 5.0,
+            "p100(tags[foo,number])": 5.0,
+            "min(tags[foo,number])": 5.0,
+            "max(tags[foo,number])": 5.0,
+        }
 
     def test_margin_of_error(self):
         total_samples = 10
@@ -846,6 +943,6 @@ class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpoin
         assert margin_of_error == pytest.approx(0.306, rel=1e-1)
         # How to read this; these results mean that the extrapolated count is
         # 500k, with a lower estimated bound of ~200k, and an upper bound of 800k
-        assert lower_limit == pytest.approx(193_612, abs=5000)
+        assert lower_limit == pytest.approx(190_000, abs=5000)
         assert extrapolated == pytest.approx(500_000)
-        assert upper_limit == pytest.approx(806_388, abs=5000)
+        assert upper_limit == pytest.approx(810_000, abs=5000)

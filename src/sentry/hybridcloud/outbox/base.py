@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import contextlib
 import logging
-from collections.abc import Collection, Generator, Iterable, Mapping, Sequence
+from collections.abc import Collection, Generator, Iterable, Mapping
 from typing import TYPE_CHECKING, Any, Protocol, TypeVar
 
 from django.db import connections, router, transaction
@@ -113,7 +113,7 @@ class RegionOutboxProducingManager(BaseManager[_RM]):
             return super().bulk_create(tuple_of_objs, *args, **kwds)
 
     def bulk_update(
-        self, objs: Iterable[_RM], fields: Sequence[str], *args: Any, **kwds: Any
+        self, objs: Iterable[_RM], fields: Iterable[str], *args: Any, **kwds: Any
     ) -> Any:
         from sentry.hybridcloud.models.outbox import outbox_context
 
@@ -297,7 +297,7 @@ class ControlOutboxProducingManager(BaseManager[_CM]):
             return super().bulk_create(tuple_of_objs, *args, **kwds)
 
     def bulk_update(
-        self, objs: Iterable[_CM], fields: Sequence[str], *args: Any, **kwds: Any
+        self, objs: Iterable[_CM], fields: Iterable[str], *args: Any, **kwds: Any
     ) -> Any:
         from sentry.hybridcloud.models.outbox import outbox_context
 

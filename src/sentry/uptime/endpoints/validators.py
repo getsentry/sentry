@@ -10,6 +10,7 @@ from sentry import audit_log
 from sentry.api.fields import ActorField
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.auth.superuser import is_active_superuser
+from sentry.models.environment import Environment
 from sentry.uptime.detectors.url_extraction import extract_domain_parts
 from sentry.uptime.models import ProjectUptimeSubscription, ProjectUptimeSubscriptionMode
 from sentry.uptime.subscriptions.subscriptions import (
@@ -35,6 +36,16 @@ public suffix list (PSL). See `extract_domain_parts` fo more details
 SUPPORTED_HTTP_METHODS = ["GET", "POST", "HEAD", "PUT", "DELETE", "PATCH", "OPTIONS"]
 MAX_REQUEST_SIZE_BYTES = 1000
 
+# This matches the jsonschema for the check config
+VALID_INTERVALS = [
+    timedelta(minutes=1),
+    timedelta(minutes=5),
+    timedelta(minutes=10),
+    timedelta(minutes=20),
+    timedelta(minutes=30),
+    timedelta(minutes=60),
+]
+
 HEADERS_LIST_SCHEMA = {
     "type": "array",
     "items": {
@@ -47,13 +58,17 @@ HEADERS_LIST_SCHEMA = {
 }
 
 
-def compute_http_request_size(method: str, url: str, headers: Sequence[tuple[str, str]], body: str):
+def compute_http_request_size(
+    method: str, url: str, headers: Sequence[tuple[str, str]], body: str | None
+):
     request_line_size = len(f"{method} {url} HTTP/1.1\r\n")
     headers_size = sum(
         len(key) + len(value.encode("utf-8")) + len("\r\n") for key, value in headers
     )
-    body_size = len(body.encode("utf-8"))
-    return request_line_size + headers_size + len("\r\n") + body_size
+    body_size = 0
+    if body is not None:
+        body_size = len(body.encode("utf-8")) + len("\r\n")
+    return request_line_size + headers_size + body_size
 
 
 @extend_schema_serializer()
@@ -64,30 +79,41 @@ class UptimeMonitorValidator(CamelSnakeSerializer):
         help_text="Name of the uptime monitor",
     )
     owner = ActorField(
-        required=True,
+        required=False,
         allow_null=True,
         help_text="The ID of the team or user that owns the uptime monitor. (eg. user:51 or team:6)",
     )
+    environment = serializers.CharField(
+        max_length=64,
+        required=False,
+        allow_null=True,
+        help_text="Name of the environment",
+    )
     url = URLField(required=True, max_length=255)
-    interval_seconds = serializers.IntegerField(
-        required=True, min_value=60, max_value=int(timedelta(days=1).total_seconds())
+    interval_seconds = serializers.ChoiceField(
+        required=True, choices=[int(i.total_seconds()) for i in VALID_INTERVALS]
+    )
+    timeout_ms = serializers.IntegerField(
+        required=True,
+        min_value=1000,
+        max_value=30_000,
     )
     mode = serializers.IntegerField(required=False)
     method = serializers.ChoiceField(
         required=False, choices=list(zip(SUPPORTED_HTTP_METHODS, SUPPORTED_HTTP_METHODS))
     )
     headers = serializers.JSONField(required=False)
-    body = serializers.CharField(required=False)
+    body = serializers.CharField(required=False, allow_null=True)
 
     def validate(self, attrs):
         headers = []
         method = "GET"
-        body = ""
+        body = None
         url = ""
         if self.instance:
             headers = self.instance.uptime_subscription.headers
             method = self.instance.uptime_subscription.method
-            body = self.instance.uptime_subscription.body or ""
+            body = self.instance.uptime_subscription.body
             url = self.instance.uptime_subscription.url
 
         request_size = compute_http_request_size(
@@ -134,17 +160,27 @@ class UptimeMonitorValidator(CamelSnakeSerializer):
             )
 
     def create(self, validated_data):
+        if validated_data.get("environment") is not None:
+            environment = Environment.get_or_create(
+                project=self.context["project"],
+                name=validated_data["environment"],
+            )
+        else:
+            environment = None
+
         method_headers_body = {
             k: v for k, v in validated_data.items() if k in {"method", "headers", "body"}
         }
         try:
             uptime_monitor, created = get_or_create_project_uptime_subscription(
                 project=self.context["project"],
+                environment=environment,
                 url=validated_data["url"],
                 interval_seconds=validated_data["interval_seconds"],
+                timeout_ms=validated_data["timeout_ms"],
                 name=validated_data["name"],
                 mode=validated_data.get("mode", ProjectUptimeSubscriptionMode.MANUAL),
-                owner=validated_data["owner"],
+                owner=validated_data.get("owner"),
                 **method_headers_body,
             )
         except MaxManualUptimeSubscriptionsReached:
@@ -171,19 +207,32 @@ class UptimeMonitorValidator(CamelSnakeSerializer):
             if "interval_seconds" in data
             else instance.uptime_subscription.interval_seconds
         )
+        timeout_ms = (
+            data["timeout_ms"] if "timeout_ms" in data else instance.uptime_subscription.timeout_ms
+        )
         method = data["method"] if "method" in data else instance.uptime_subscription.method
         headers = data["headers"] if "headers" in data else instance.uptime_subscription.headers
         body = data["body"] if "body" in data else instance.uptime_subscription.body
         name = data["name"] if "name" in data else instance.name
         owner = data["owner"] if "owner" in data else instance.owner
 
+        if "environment" in data:
+            environment = Environment.get_or_create(
+                project=self.context["project"],
+                name=data["environment"],
+            )
+        else:
+            environment = instance.environment
+
         if "mode" in data:
             raise serializers.ValidationError("Mode can only be specified on creation (for now)")
 
         update_project_uptime_subscription(
             uptime_monitor=instance,
+            environment=environment,
             url=url,
             interval_seconds=interval_seconds,
+            timeout_ms=timeout_ms,
             method=method,
             headers=headers,
             body=body,
