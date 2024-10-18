@@ -4,11 +4,11 @@ import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {
   BigNumberWidgetVisualization,
-  type Props as BigNumberWidgetVisualizationProps,
+  type BigNumberWidgetVisualizationProps,
 } from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidgetVisualization';
 import {
-  type Props as WidgetFrameProps,
   WidgetFrame,
+  type WidgetFrameProps,
 } from 'sentry/views/dashboards/widgets/common/widgetFrame';
 
 import {MISSING_DATA_MESSAGE, NON_FINITE_NUMBER_MESSAGE} from '../common/settings';
