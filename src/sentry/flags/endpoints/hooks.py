@@ -6,6 +6,7 @@ from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
@@ -58,6 +59,9 @@ class OrganizationFlagsHooksEndpoint(Endpoint):
         return args, kwargs
 
     def post(self, request: Request, organization: Organization, provider: str) -> Response:
+        if not features.has("organizations:feature-flags", organization, actor=request.user):
+            return Response("Not enabled.", status=404)
+
         try:
             write(handle_provider_event(provider, request.data, organization.id))
             return Response(status=200)

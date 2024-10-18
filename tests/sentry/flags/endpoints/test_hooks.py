@@ -29,6 +29,10 @@ class OrganizationFlagsHooksEndpointTestCase(APITestCase):
         )
         self.url = reverse(self.endpoint, args=("launchdarkly", self.token))
 
+    @property
+    def features(self):
+        return {"organizations:feature-flags": True}
+
     def test_launchdarkly_post_create(self):
         request_data = {
             "_links": {
@@ -166,7 +170,9 @@ class OrganizationFlagsHooksEndpointTestCase(APITestCase):
             },
         }
 
-        response = self.client.post(self.url, request_data)
+        with self.feature(self.features):
+            response = self.client.post(self.url, request_data)
+
         assert response.status_code == 200
         assert FlagAuditLogModel.objects.count() == 1
         flag = FlagAuditLogModel.objects.first()
@@ -180,17 +186,25 @@ class OrganizationFlagsHooksEndpointTestCase(APITestCase):
         assert flag.tags["description"] == "flag was created"
 
     def test_post_launchdarkly_deserialization_failed(self):
-        response = self.client.post(self.url, {})
-        assert response.status_code == 200
-        assert FlagAuditLogModel.objects.count() == 0
+        with self.feature(self.features):
+            response = self.client.post(self.url, {})
+            assert response.status_code == 200
+            assert FlagAuditLogModel.objects.count() == 0
 
     def test_post_invalid_provider(self):
-        response = self.client.post(reverse(self.endpoint, args=("test", self.token)), {})
-        assert response.status_code == 404
+        with self.feature(self.features):
+            response = self.client.post(reverse(self.endpoint, args=("test", self.token)), {})
+            assert response.status_code == 404
 
     def test_post_invalid_token(self):
-        response = self.client.post(reverse(self.endpoint, args=("launchdarkly", "wrong")), {})
-        assert response.status_code == 403
+        with self.feature(self.features):
+            response = self.client.post(reverse(self.endpoint, args=("launchdarkly", "wrong")), {})
+            assert response.status_code == 403
+
+    def test_post_disabled(self):
+        response = self.client.post(self.url, data={})
+        assert response.status_code == 404
+        assert response.content == b'"Not enabled."'
 
 
 @django_db_all
