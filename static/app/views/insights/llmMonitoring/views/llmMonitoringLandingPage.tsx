@@ -1,3 +1,5 @@
+import {Fragment} from 'react';
+
 import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -63,7 +65,22 @@ export function LLMMonitoringPage() {
             </Layout.HeaderActions>
           </Layout.Header>
         )}
-        {isInDomainView && <AiHeader module={ModuleName.AI} />}
+        {isInDomainView && (
+          <Layout.Header>
+            <AiHeader
+              headerTitle={
+                <Fragment>
+                  {MODULE_TITLE}
+                  <PageHeadingQuestionTooltip
+                    title={t('View analytics and information about your AI pipelines')}
+                    docsUrl={MODULE_DOC_LINK}
+                  />
+                </Fragment>
+              }
+              module={ModuleName.AI}
+            />
+          </Layout.Header>
+        )}
         <Layout.Body>
           <Layout.Main fullWidth>
             <ModuleLayout.Layout>

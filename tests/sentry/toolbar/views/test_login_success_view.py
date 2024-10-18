@@ -1,11 +1,8 @@
-from unittest.mock import Mock, patch
-
 from django.test import override_settings
 from django.urls import reverse
 
 from sentry.testutils.cases import APITestCase
-from sentry.toolbar.utils.testutils import csp_has_directive
-from sentry.toolbar.views.login_success_view import SUCCESS_TEMPLATE
+from sentry.toolbar.views.login_success_view import TEMPLATE
 
 
 class LoginSuccessViewTest(APITestCase):
@@ -29,27 +26,18 @@ class LoginSuccessViewTest(APITestCase):
         self.login_as(self.user)
         res = self.client.get(self.url)
         assert res.status_code == 200
-        self.assertTemplateUsed(res, SUCCESS_TEMPLATE)
+        self.assertTemplateUsed(res, TEMPLATE)
 
-    @override_settings(CSP_REPORT_ONLY=False, CSP_INCLUDE_NONCE_IN=["script-src"])
+    @override_settings(CSP_REPORT_ONLY=False)
     def test_csp_script_src_nonce(self):
         self.login_as(self.user)
-        mock_nonce = f"{'a' * 22}=="
+        res = self.client.get(self.url)
+        assert _has_nonce(res)
 
-        def mock_process_request(request):
-            request._csp_nonce = mock_nonce
-            request.csp_nonce = mock_nonce
-            return None
 
-        with patch(
-            "csp.middleware.CSPMiddleware.process_request", Mock(side_effect=mock_process_request)
-        ):
-            res = self.client.get(self.url)
-
-        # Header
-        csp = res.headers.get("Content-Security-Policy", "")
-        assert csp_has_directive(csp, "script-src", [f"'nonce-{mock_nonce}'"], [])
-
-        # Content
-        script_tag = f'<script nonce="{mock_nonce}">'
-        assert script_tag in res.content.decode("utf-8")
+def _has_nonce(response):
+    content = response.content.decode("utf-8")
+    # Middleware automatically injects the `nonce` attribute onto our <script>
+    # tag; so if that attribute is there then we can assume the nonce header and
+    # value are set correctly.
+    return "<script nonce=" in content

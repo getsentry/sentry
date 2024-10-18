@@ -107,7 +107,20 @@ function QueuesLandingPage() {
         </Layout.Header>
       )}
 
-      {isInDomainView && <BackendHeader module={ModuleName.QUEUE} />}
+      {isInDomainView && (
+        <BackendHeader
+          headerTitle={
+            <Fragment>
+              {MODULE_TITLE}
+              <PageHeadingQuestionTooltip
+                docsUrl={MODULE_DOC_LINK}
+                title={MODULE_DESCRIPTION}
+              />
+            </Fragment>
+          }
+          module={ModuleName.QUEUE}
+        />
+      )}
 
       <Layout.Body>
         <Layout.Main fullWidth>

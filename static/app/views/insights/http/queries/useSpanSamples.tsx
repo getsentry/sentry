@@ -61,7 +61,7 @@ export const useSpanSamples = <Fields extends SpanIndexedProperty[]>(
           | SpanIndexedField.SPAN_SELF_TIME
         >[]
       // This type is a little awkward but it explicitly states that the response could be empty. This doesn't enable unchecked access errors, but it at least indicates that it's possible that there's no data
-      // eslint-disable-next-line @typescript-eslint/ban-types
+      // eslint-disable-next-line @typescript-eslint/no-restricted-types
       | [];
   }>(
     [

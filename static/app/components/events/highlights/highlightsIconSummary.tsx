@@ -48,8 +48,10 @@ export function HighlightsIconSummary({event}: HighlightsIconSummaryProps) {
           {items.map((item, index) => (
             <IconSummary key={index}>
               <IconWrapper>{item.icon}</IconWrapper>
-              <IconTitle>{item.title}</IconTitle>
-              <IconSubtitle>{item.subtitle}</IconSubtitle>
+              <IconDescription>
+                <IconTitle>{item.title}</IconTitle>
+                {item.subtitle && <IconSubtitle>{item.subtitle}</IconSubtitle>}
+              </IconDescription>
             </IconSummary>
           ))}
         </ScrollCarousel>
@@ -61,32 +63,32 @@ export function HighlightsIconSummary({event}: HighlightsIconSummaryProps) {
 
 const IconBar = styled('div')`
   position: relative;
-  padding: ${space(2)} ${space(0.5)};
+  padding: ${space(1)} ${space(0.5)};
 `;
 
 const IconSummary = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
   flex: none;
-  display: grid;
-  grid-template: 1fr 1fr / auto 1fr;
-  grid-column-gap: ${space(1)};
-  grid-row-gap: ${space(0.5)};
+`;
+
+const IconDescription = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(0.5)};
 `;
 
 const IconWrapper = styled('div')`
-  grid-area: 1 / 1 / 3 / 2;
-  align-self: center;
+  flex: none;
 `;
 
 const IconTitle = styled('div')`
-  grid-area: 1 / 2 / 2 / 3;
-  align-self: self-end;
   line-height: 1;
 `;
 
 const IconSubtitle = styled('div')`
-  grid-area: 2 / 2 / 3 / 3;
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
   line-height: 1;
-  align-self: self-start;
 `;

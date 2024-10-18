@@ -321,7 +321,8 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
         fields: field,
         component: provided => {
           const eventView = props.eventView.clone();
-          let extraQueryParams = getMEPParamsIfApplicable(mepSetting, props.chartSetting);
+          let extraQueryParams: Record<string, string | boolean | number> =
+            getMEPParamsIfApplicable(mepSetting, props.chartSetting)!;
           const pageFilterDatetime = {
             start: provided.start,
             end: provided.end,

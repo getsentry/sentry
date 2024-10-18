@@ -4,7 +4,7 @@ from sentry.testutils.cases import APITestCase
 
 
 def test_audit_log_item_generation():
-    presenter = AuditLogPresenter("")
+    presenter = AuditLogPresenter("", True)
     presenter.set("a", True)
     presenter.unset("b")
     presenter.update("c", True, False)
@@ -40,7 +40,7 @@ class AuditLogPresenterFunctionalTestCase(APITestCase):
                 "flags:options-audit-log-organization-id": self.organization.id,
             }
         ):
-            presenter = AuditLogPresenter("")
+            presenter = AuditLogPresenter("", dry_run=False)
             presenter.set("a", True)
             presenter.flush()
 
@@ -53,3 +53,16 @@ class AuditLogPresenterFunctionalTestCase(APITestCase):
         assert flag.created_by_type == CREATED_BY_TYPE_MAP["name"]
         assert flag.organization_id == self.organization.id
         assert flag.tags == {"value": True}
+
+    def test_audit_log_presenter_flush_dry_run(self):
+        with self.options(
+            {
+                "flags:options-audit-log-is-enabled": True,
+                "flags:options-audit-log-organization-id": self.organization.id,
+            }
+        ):
+            presenter = AuditLogPresenter("", dry_run=True)
+            presenter.set("a", True)
+            presenter.flush()
+
+        assert FlagAuditLogModel.objects.count() == 0

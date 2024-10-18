@@ -5,6 +5,7 @@ import sentry_sdk
 from snuba_sdk.query_visitors import InvalidQueryError
 
 from sentry import features
+from sentry.api.serializers.rest_framework.dashboard import is_aggregate
 from sentry.constants import ObjectStatus
 from sentry.discover.arithmetic import ArithmeticParseError
 from sentry.discover.dataset_split import (
@@ -82,6 +83,30 @@ def _get_and_save_split_decision_for_dashboard_widget(
     projects = dashboard.projects.all() or Project.objects.filter(
         organization_id=dashboard.organization.id, status=ObjectStatus.ACTIVE
     )
+
+    # Handle cases where the organization has no projects at all.
+    # No projects means a downstream check will fail and we can default
+    # to the errors dataset.
+    if not projects.exists():
+        if not dry_run:
+            sentry_sdk.set_context(
+                "dashboard",
+                {
+                    "dashboard_id": dashboard.id,
+                    "widget_id": widget.id,
+                    "org_slug": dashboard.organization.slug,
+                },
+            )
+            sentry_sdk.capture_message(
+                "No projects found in organization for dashboard, defaulting to errors dataset"
+            )
+            _save_split_decision_for_widget(
+                widget,
+                DashboardWidgetTypes.ERROR_EVENTS,
+                DatasetSourcesTypes.FORCED,
+            )
+        return DashboardWidgetTypes.ERROR_EVENTS, False
+
     snuba_dataclass = _get_snuba_dataclass_for_dashboard_widget(widget, list(projects))
 
     selected_columns = _get_field_list(widget_query.fields or [])
@@ -138,7 +163,7 @@ def _get_and_save_split_decision_for_dashboard_widget(
             _save_split_decision_for_widget(
                 widget,
                 widget_dataset,
-                DatasetSourcesTypes.INFERRED,
+                DatasetSourcesTypes.SPLIT_VERSION_2,
             )
         return widget_dataset, False
 
@@ -156,9 +181,20 @@ def _get_and_save_split_decision_for_dashboard_widget(
                 offset=None,
                 limit=1,
                 referrer="tasks.performance.split_discover_dataset",
+                transform_alias_to_input_format=True,
             )
 
-            if metrics_query_result.get("data") and len(metrics_query_result["data"]) > 0:
+            has_metrics_data = (
+                metrics_query_result.get("data")
+                # No results were returned at all
+                and len(metrics_query_result["data"]) > 0
+                and any(
+                    metrics_query_result["data"][0][column] > 0
+                    for column in selected_columns
+                    if is_aggregate(column)
+                )
+            )
+            if has_metrics_data:
                 if dry_run:
                     logger.info(
                         "Split decision for %s: %s (inferred from running metrics query)",
@@ -169,7 +205,7 @@ def _get_and_save_split_decision_for_dashboard_widget(
                     _save_split_decision_for_widget(
                         widget,
                         DashboardWidgetTypes.TRANSACTION_LIKE,
-                        DatasetSourcesTypes.INFERRED,
+                        DatasetSourcesTypes.SPLIT_VERSION_2,
                     )
 
                 return DashboardWidgetTypes.TRANSACTION_LIKE, True
@@ -213,7 +249,7 @@ def _get_and_save_split_decision_for_dashboard_widget(
             _save_split_decision_for_widget(
                 widget,
                 DashboardWidgetTypes.ERROR_EVENTS,
-                DatasetSourcesTypes.INFERRED,
+                DatasetSourcesTypes.SPLIT_VERSION_2,
             )
         return DashboardWidgetTypes.ERROR_EVENTS, True
 
@@ -246,7 +282,7 @@ def _get_and_save_split_decision_for_dashboard_widget(
             _save_split_decision_for_widget(
                 widget,
                 DashboardWidgetTypes.TRANSACTION_LIKE,
-                DatasetSourcesTypes.INFERRED,
+                DatasetSourcesTypes.SPLIT_VERSION_2,
             )
 
         return DashboardWidgetTypes.TRANSACTION_LIKE, True

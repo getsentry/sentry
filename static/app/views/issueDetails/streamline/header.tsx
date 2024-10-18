@@ -1,4 +1,4 @@
-import {Fragment, useMemo} from 'react';
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 import Color from 'color';
 
@@ -7,22 +7,14 @@ import {Button} from 'sentry/components/button';
 import Count from 'sentry/components/count';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import EventMessage from 'sentry/components/events/eventMessage';
-import {
-  AssigneeSelector,
-  useHandleAssigneeChange,
-} from 'sentry/components/group/assigneeSelector';
 import ParticipantList from 'sentry/components/group/streamlinedParticipantList';
 import Link from 'sentry/components/links/link';
-import Version from 'sentry/components/version';
-import VersionHoverCard from 'sentry/components/versionHoverCard';
 import {IconChevron, IconPanel} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group, TeamParticipant, UserParticipant} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
-import type {Release} from 'sentry/types/release';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
@@ -30,23 +22,19 @@ import {useUser} from 'sentry/utils/useUser';
 import GroupActions from 'sentry/views/issueDetails/actions/index';
 import {Divider} from 'sentry/views/issueDetails/divider';
 import GroupPriority from 'sentry/views/issueDetails/groupPriority';
+import {GroupHeaderAssigneeSelector} from 'sentry/views/issueDetails/streamline/assigneeSelector';
 import {AttachmentsBadge} from 'sentry/views/issueDetails/streamline/attachmentsBadge';
 import {ReplayBadge} from 'sentry/views/issueDetails/streamline/replayBadge';
 import {UserFeedbackBadge} from 'sentry/views/issueDetails/streamline/userFeedbackBadge';
 import {useIssueDetailsHeader} from 'sentry/views/issueDetails/useIssueDetailsHeader';
 import type {ReprocessingStatus} from 'sentry/views/issueDetails/utils';
 
-interface GroupRelease {
-  firstRelease: Release;
-  lastRelease: Release;
-}
-
 interface GroupHeaderProps {
   baseUrl: string;
+  event: Event | null;
   group: Group;
   groupReprocessingStatus: ReprocessingStatus;
   project: Project;
-  event?: Event;
 }
 
 export default function StreamlinedGroupHeader({
@@ -61,21 +49,7 @@ export default function StreamlinedGroupHeader({
   const organization = useOrganization();
   const {sort: _sort, ...query} = location.query;
 
-  const {data: groupReleaseData} = useApiQuery<GroupRelease>(
-    [`/organizations/${organization.slug}/issues/${group.id}/first-last-release/`],
-    {
-      staleTime: 30000,
-      gcTime: 30000,
-    }
-  );
-
   const {count: eventCount, userCount} = group;
-  const {firstRelease, lastRelease} = groupReleaseData || {};
-
-  const {handleAssigneeChange, assigneeLoading} = useHandleAssigneeChange({
-    organization,
-    group,
-  });
 
   const [sidebarOpen, setSidebarOpen] = useSyncedLocalStorageState(
     'issue-details-sidebar-open',
@@ -124,46 +98,13 @@ export default function StreamlinedGroupHeader({
           </TitleHeading>
           <MessageWrapper>
             <EventMessage
+              data={group}
               message={message}
               type={group.type}
               level={group.level}
               showUnhandled={group.isUnhandled}
+              levelIndicatorSize={'10px'}
             />
-            {firstRelease && lastRelease && (
-              <Fragment>
-                <Divider />
-                <ReleaseWrapper>
-                  {firstRelease.id === lastRelease.id ? t('Release') : t('Releases')}
-                  <VersionHoverCard
-                    organization={organization}
-                    projectSlug={project.slug}
-                    releaseVersion={firstRelease.version}
-                  >
-                    <Version
-                      version={firstRelease.version}
-                      projectId={project.id}
-                      truncate
-                    />
-                  </VersionHoverCard>
-                  {firstRelease.id === lastRelease.id ? null : (
-                    <Fragment>
-                      -
-                      <VersionHoverCard
-                        organization={organization}
-                        projectSlug={project.slug}
-                        releaseVersion={lastRelease.version}
-                      >
-                        <Version
-                          version={lastRelease.version}
-                          projectId={project.id}
-                          truncate
-                        />
-                      </VersionHoverCard>
-                    </Fragment>
-                  )}
-                </ReleaseWrapper>
-              </Fragment>
-            )}
             <AttachmentsBadge group={group} />
             <UserFeedbackBadge group={group} project={project} />
             <ReplayBadge group={group} project={project} />
@@ -204,10 +145,10 @@ export default function StreamlinedGroupHeader({
             </Wrapper>
             <Wrapper>
               {t('Assignee')}
-              <AssigneeSelector
+              <GroupHeaderAssigneeSelector
                 group={group}
-                assigneeLoading={assigneeLoading}
-                handleAssigneeChange={handleAssigneeChange}
+                project={project}
+                event={event}
               />
             </Wrapper>
             {group.participants.length > 0 && (
@@ -223,21 +164,23 @@ export default function StreamlinedGroupHeader({
               </Wrapper>
             )}
           </WorkflowWrapper>
-          <Divider />
-          <Button
-            icon={
-              sidebarOpen ? (
-                <IconChevron direction="right" />
-              ) : (
-                <IconPanel direction="right" />
-              )
-            }
-            title={sidebarOpen ? t('Close Sidebar') : t('Open Sidebar')}
-            aria-label={sidebarOpen ? t('Close Sidebar') : t('Open Sidebar')}
-            size="sm"
-            borderless
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-          />
+          <CollapseSidebarWrapper>
+            <Divider />
+            <Button
+              icon={
+                sidebarOpen ? (
+                  <IconChevron direction="right" />
+                ) : (
+                  <IconPanel direction="right" />
+                )
+              }
+              title={sidebarOpen ? t('Close Sidebar') : t('Open Sidebar')}
+              aria-label={sidebarOpen ? t('Close Sidebar') : t('Open Sidebar')}
+              size="sm"
+              borderless
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+            />
+          </CollapseSidebarWrapper>
         </SidebarWorkflowWrapper>
       </InfoWrapper>
     </Header>
@@ -260,10 +203,13 @@ const Heading = styled('div')``;
 const AllStats = styled('div')`
   display: flex;
   gap: ${space(4)};
+  padding-top: ${space(0.25)};
 `;
 
 const Stat = styled('div')`
-  display: inline-block;
+  display: flex;
+  flex-direction: column;
+  gap: ${space(1)};
   font-size: ${p => p.theme.fontSizeSmall};
 `;
 
@@ -274,13 +220,15 @@ const Label = styled('div')`
 `;
 
 const StatCount = styled(Count)`
-  font-size: ${p => p.theme.headerFontSize};
+  font-size: ${p => p.theme.fontSizeExtraLarge};
   display: block;
+  line-height: 1;
 `;
 
 const TitleWrapper = styled('h3')`
-  font-size: ${p => p.theme.headerFontSize};
-  margin: 0 0 8px;
+  font-size: 20px;
+  margin: 0;
+  padding-bottom: 2px;
   text-overflow: ellipsis;
   white-space: nowrap;
   overflow: hidden;
@@ -289,7 +237,7 @@ const TitleWrapper = styled('h3')`
   & em {
     font-weight: ${p => p.theme.fontWeightNormal};
     color: ${p => p.theme.textColor};
-    font-size: 90%;
+    font-size: ${p => p.theme.fontSizeLarge};
   }
 `;
 
@@ -297,11 +245,10 @@ const TitleHeading = styled('div')`
   display: flex;
   line-height: 2;
   gap: ${space(1)};
-  padding-top: ${space(1)};
 `;
 
 const StyledBreak = styled('hr')`
-  margin-top: ${space(2)};
+  margin-top: ${space(1.5)};
   margin-bottom: 0;
   margin-right: 0;
   border-color: ${p => p.theme.border};
@@ -322,7 +269,7 @@ const InfoWrapper = styled('div')<{isResolvedOrIgnored: boolean}>`
       ? `linear-gradient(to right, ${p.theme.background}, ${Color(p.theme.success).lighten(0.5).alpha(0.15).string()})`
       : p.theme.background};
   color: ${p => p.theme.gray300};
-  padding: ${space(1)} 24px;
+  padding: ${space(0.5)} 24px;
   margin-right: 0;
   margin-left: 0;
   flex-wrap: wrap;
@@ -346,18 +293,6 @@ const Wrapper = styled('div')`
   gap: ${space(0.5)};
 `;
 
-const ReleaseWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  max-width: 40%;
-  gap: ${space(0.25)};
-  a {
-    color: ${p => p.theme.gray300};
-    text-decoration: underline;
-    text-decoration-style: dotted;
-  }
-`;
-
 const Header = styled('div')`
   background-color: ${p => p.theme.background};
   display: flex;
@@ -372,4 +307,14 @@ const Header = styled('div')`
 
 const StyledBreadcrumbs = styled(Breadcrumbs)`
   margin-top: ${space(2)};
+`;
+
+const CollapseSidebarWrapper = styled('div')`
+  display: flex;
+  gap: ${space(0.5)};
+  align-items: center;
+
+  @media (max-width: ${p => p.theme.breakpoints.large}) {
+    display: none;
+  }
 `;

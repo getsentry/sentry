@@ -14,6 +14,7 @@ from sentry.integrations.slack.webhooks.command import (
 from sentry.integrations.utils.metrics import EventLifecycleOutcome
 from sentry.silo.base import SiloMode
 from sentry.testutils.helpers import get_response_text, link_user
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 from tests.sentry.integrations.slack.webhooks.commands import SlackCommandsTest
 
@@ -62,6 +63,33 @@ class SlackCommandsLinkTeamTest(SlackCommandsLinkTeamTestBase):
         )
         data = orjson.loads(response.content)
         assert CHANNEL_ALREADY_LINKED_MESSAGE in get_response_text(data)
+
+        assert len(mock_record.mock_calls) == 2
+        start, halt = mock_record.mock_calls
+        assert start.args[0] == EventLifecycleOutcome.STARTED
+        assert halt.args[0] == EventLifecycleOutcome.HALTED
+
+    @with_feature("organizations:slack-multiple-team-single-channel-linking")
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @responses.activate
+    def test_link_another_team_to_channel_with_flag(self, mock_record):
+        """
+        Test that we block a user who tries to link a second team to a
+        channel that already has a team linked to it.
+        """
+        self.link_team()
+
+        response = self.get_slack_response(
+            {
+                "text": "link team",
+                "team_id": self.external_id,
+                "user_id": self.slack_id,
+                "channel_name": self.channel_name,
+                "channel_id": self.channel_id,
+            }
+        )
+        data = orjson.loads(response.content)
+        assert "Link your Sentry team to this Slack channel!" in get_response_text(data)
 
         assert len(mock_record.mock_calls) == 2
         start, halt = mock_record.mock_calls

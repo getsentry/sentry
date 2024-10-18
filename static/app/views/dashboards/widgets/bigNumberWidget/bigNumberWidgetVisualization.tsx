@@ -9,20 +9,27 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {AutoSizedText} from 'sentry/views/dashboards/widgetCard/autoSizedText';
 import {DifferenceToPreviousPeriodValue} from 'sentry/views/dashboards/widgets/bigNumberWidget/differenceToPreviousPeriodValue';
-import type {Meta, TableData} from 'sentry/views/dashboards/widgets/common/types';
+import type {
+  Meta,
+  TableData,
+  Thresholds,
+} from 'sentry/views/dashboards/widgets/common/types';
 
 import {DEFAULT_FIELD} from '../common/settings';
 
-export interface Props {
+import {ThresholdsIndicator} from './thresholdsIndicator';
+
+export interface BigNumberWidgetVisualizationProps {
   value: number;
   field?: string;
   maximumValue?: number;
   meta?: Meta;
   preferredPolarity?: Polarity;
   previousPeriodValue?: number;
+  thresholds?: Thresholds;
 }
 
-export function BigNumberWidgetVisualization(props: Props) {
+export function BigNumberWidgetVisualization(props: BigNumberWidgetVisualizationProps) {
   const {
     field = DEFAULT_FIELD,
     value,
@@ -45,6 +52,7 @@ export function BigNumberWidgetVisualization(props: Props) {
   const clampedValue = Math.min(value, maximumValue);
 
   const unit = meta?.units?.[field];
+  const type = meta?.fields?.[field];
 
   const baggage = {
     location,
@@ -55,6 +63,16 @@ export function BigNumberWidgetVisualization(props: Props) {
   return (
     <Wrapper>
       <NumberAndDifferenceContainer>
+        {props.thresholds && (
+          <ThresholdsIndicator
+            preferredPolarity={props.preferredPolarity}
+            thresholds={props.thresholds}
+            unit={unit ?? ''}
+            value={clampedValue}
+            type={type ?? 'integer'}
+          />
+        )}
+
         <NumberContainerOverride>
           <Tooltip
             title={value}

@@ -3,14 +3,10 @@ import type {Theme} from '@emotion/react';
 
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import type {PlatformKey} from 'sentry/types/project';
-import {isParentAutogroupedNode} from 'sentry/views/performance/newTraceDetails/guards';
-import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
 
-import {
-  ParentAutogroupNode,
-  type TraceTree,
-  type TraceTreeNode,
-} from '../traceModels/traceTree';
+import {TraceTree} from '../traceModels/traceTree';
+import type {TraceTreeNode} from '../traceModels/traceTreeNode';
+import type {VirtualizedViewManager} from '../traceRenderers/virtualizedViewManager';
 
 export const TRACE_COUNT_FORMATTER = Intl.NumberFormat(undefined, {notation: 'compact'});
 
@@ -73,44 +69,28 @@ export function TraceRowConnectors(props: {
   manager: VirtualizedViewManager;
   node: TraceTreeNode<TraceTree.NodeValue>;
 }) {
-  const hasChildren =
-    (props.node.expanded || props.node.zoomedIn) && props.node.children.length > 0;
-  const showVerticalConnector =
-    hasChildren || (props.node.value && isParentAutogroupedNode(props.node));
-
-  // If the tail node of the collapsed node has no children,
-  // we don't want to render the vertical connector as no children
-  // are being rendered as the chain is entirely collapsed
-  const hideVerticalConnector =
-    showVerticalConnector &&
-    props.node.value &&
-    props.node instanceof ParentAutogroupNode &&
-    (!props.node.tail.children.length ||
-      (!props.node.tail.expanded && !props.node.expanded));
+  const hasChildren = TraceTree.HasVisibleChildren(props.node);
+  const nodeDepth = TraceTree.Depth(props.node);
 
   return (
     <Fragment>
-      {props.node.connectors.map((c, i) => {
+      {TraceTree.ConnectorsTo(props.node).map((c, i) => {
         return (
           <span
             key={i}
             style={{
               left: -(
-                Math.abs(Math.abs(c) - props.node.depth) * props.manager.row_depth_padding
+                Math.abs(Math.abs(c) - nodeDepth) * props.manager.row_depth_padding
               ),
             }}
-            className={`TraceVerticalConnector ${c < 0 ? 'Orphaned' : ''}`}
+            className={`TraceVerticalConnector ${c <= 0 ? 'Orphaned' : ''}`}
           />
         );
       })}
-      {showVerticalConnector && !hideVerticalConnector ? (
-        <span className="TraceExpandedVerticalConnector" />
-      ) : null}
-      {props.node.isLastChild ? (
+      {hasChildren ? <span className="TraceExpandedVerticalConnector" /> : null}
+      {TraceTree.IsLastChild(props.node) ? (
         <span className="TraceVerticalLastChildConnector" />
-      ) : (
-        <span className="TraceVerticalConnector" />
-      )}
+      ) : null}
     </Fragment>
   );
 }
