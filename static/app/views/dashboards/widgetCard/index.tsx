@@ -54,13 +54,14 @@ import WidgetCardChartContainer from './widgetCardChartContainer';
 import WidgetCardContextMenu from './widgetCardContextMenu';
 
 const SESSION_DURATION_INGESTION_STOP_DATE = new Date('2023-01-12');
+
+export const SESSION_DURATION_ALERT_TEXT = t(
+  'session.duration is no longer being recorded as of %s. Data in this widget may be incomplete.',
+  getFormattedDate(SESSION_DURATION_INGESTION_STOP_DATE, 'MMM D, YYYY')
+);
+
 export const SESSION_DURATION_ALERT = (
-  <PanelAlert type="warning">
-    {t(
-      'session.duration is no longer being recorded as of %s. Data in this widget may be incomplete.',
-      getFormattedDate(SESSION_DURATION_INGESTION_STOP_DATE, 'MMM D, YYYY')
-    )}
-  </PanelAlert>
+  <PanelAlert type="warning">{SESSION_DURATION_ALERT_TEXT}</PanelAlert>
 );
 
 type DraggableProps = Pick<ReturnType<typeof useSortable>, 'attributes' | 'listeners'>;
