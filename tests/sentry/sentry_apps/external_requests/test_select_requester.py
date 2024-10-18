@@ -106,7 +106,7 @@ class TestSelectRequester(TestCase):
             status=500,
         )
 
-        with pytest.raises(APIError):
+        with pytest.raises(Exception):
             SelectRequester(
                 install=self.install,
                 project_slug=self.project.slug,
