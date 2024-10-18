@@ -13,7 +13,9 @@ import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {HealthStatsPeriodOption} from 'sentry/types/release';
 import {ReleasesDisplayOption} from 'sentry/views/releases/list/releasesDisplayOptions';
-import ReleasesRequest from 'sentry/views/releases/list/releasesRequest';
+import ReleasesRequest, {
+  type ReleasesRequestRenderProps,
+} from 'sentry/views/releases/list/releasesRequest';
 
 describe('ReleasesRequest', () => {
   const {organization, router} = initializeOrg();
@@ -176,7 +178,7 @@ describe('ReleasesRequest', () => {
   });
 
   it('calculates correct session health data', async () => {
-    let healthData;
+    let healthData!: ReleasesRequestRenderProps['getHealthData'];
 
     render(
       <ReleasesRequest
@@ -406,7 +408,7 @@ describe('ReleasesRequest', () => {
   });
 
   it('calculates correct user health data', async () => {
-    let healthData;
+    let healthData!: ReleasesRequestRenderProps['getHealthData'];
 
     render(
       <ReleasesRequest
@@ -634,7 +636,7 @@ describe('ReleasesRequest', () => {
   });
 
   it('calculates correct session count histogram (auto period)', async () => {
-    let healthData;
+    let healthData!: ReleasesRequestRenderProps['getHealthData'];
 
     render(
       <ReleasesRequest

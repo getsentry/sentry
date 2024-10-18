@@ -82,8 +82,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:continuous-profiling-stats", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=True)
     # Enable the continuous profiling compatible redesign
     manager.add("organizations:continuous-profiling-compat", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Disables legacy cron ingest endpoints
-    manager.add("organizations:crons-write-user-feedback", OrganizationFeature, FeatureHandlerStrategy.OPTIONS, api_expose=False)
     # Delightful Developer Metrics (DDM):
     # Enables experimental WIP custom metrics related features
     manager.add("organizations:custom-metrics-experimental", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
@@ -213,8 +211,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:more-slow-alerts", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     manager.add("organizations:navigation-sidebar-v2", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("organizations:new-page-filter", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=True, api_expose=True)
-    # Display warning banner for every event issue alerts
-    manager.add("organizations:noisy-alert-warning", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True, default=True)
     # Notify all project members when fallthrough is disabled, instead of just the auto-assignee
     manager.add("organizations:notification-all-recipients", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Drop obsoleted status changes in occurence consumer
@@ -503,8 +499,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:transaction-name-sanitization", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Enables creation and full updating of uptime monitors via the api
     manager.add("organizations:uptime-api-create-update", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Displys the "Uptime Monitor" option in the alert creation wizard
-    manager.add("organizations:uptime-display-wizard-create", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enables automatic hostname detection in uptime
     manager.add("organizations:uptime-automatic-hostname-detection", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enables automatic subscription creation in uptime
