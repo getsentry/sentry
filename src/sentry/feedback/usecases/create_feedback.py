@@ -330,7 +330,7 @@ def create_feedback_issue(event, project_id: int, source: FeedbackCreationSource
     )
     # Mark as spam. We need this since IP doesn't currently support an initial status of IGNORED.
     if is_message_spam:
-        set_feedback_ignored(project, issue_fingerprint)
+        auto_ignore_spam_feedbacks(project, issue_fingerprint)
     metrics.incr(
         "feedback.create_feedback_issue.produced_occurrence",
         tags={
@@ -353,7 +353,7 @@ def create_feedback_issue(event, project_id: int, source: FeedbackCreationSource
     )
 
 
-def set_feedback_ignored(project, issue_fingerprint):
+def auto_ignore_spam_feedbacks(project, issue_fingerprint):
     """
     Marks an issue as spam with a STATUS_CHANGE kafka message. The IGNORED status allows the occurrence to skip alerts
     and be picked up by frontend spam queries.
