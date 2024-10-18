@@ -431,8 +431,9 @@ class WidgetCard extends Component<Props, State> {
 
 export default withApi(withOrganization(withPageFilters(withSentryRouter(WidgetCard))));
 
-function DisplayOnDemandWarnings(props: {widget: Widget}) {
+function useOnDemandWarning(props: {widget: Widget}): string | null {
   const organization = useOrganization();
+
   if (!hasOnDemandMetricWidgetFeature(organization)) {
     return null;
   }
@@ -452,25 +453,26 @@ function DisplayOnDemandWarnings(props: {widget: Widget}) {
   );
 
   if (widgetContainsHighCardinality) {
-    return (
-      <Tooltip
-        containerDisplayMode="inline-flex"
-        title={t(
-          'This widget is using indexed data because it has a column with too many unique values.'
-        )}
-      >
-        <IconWarning color="warningText" />
-      </Tooltip>
+    return t(
+      'This widget is using indexed data because it has a column with too many unique values.'
     );
   }
+
   if (widgetReachedSpecLimit) {
+    return t(
+      "This widget is using indexed data because you've reached your organization limit for dynamically extracted metrics."
+    );
+  }
+
+  return null;
+}
+
+function DisplayOnDemandWarnings(props: {widget: Widget}) {
+  const warning = useOnDemandWarning(props);
+
+  if (warning) {
     return (
-      <Tooltip
-        containerDisplayMode="inline-flex"
-        title={t(
-          "This widget is using indexed data because you've reached your organization limit for dynamically extracted metrics."
-        )}
-      >
+      <Tooltip containerDisplayMode="inline-flex" title={warning}>
         <IconWarning color="warningText" />
       </Tooltip>
     );
