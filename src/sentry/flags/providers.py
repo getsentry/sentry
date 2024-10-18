@@ -85,7 +85,7 @@ def handle_launchdarkly_event(
 
     return [
         {
-            "action": handle_launchdarkly_actions(result["accesses"][0]["action"]),
+            "action": handle_launchdarkly_actions(access["action"]),
             "created_at": datetime.datetime.fromtimestamp(result["date"] / 1000.0, datetime.UTC),
             "created_by": result["member"]["email"],
             "created_by_type": CREATED_BY_TYPE_MAP["email"],
@@ -93,6 +93,22 @@ def handle_launchdarkly_event(
             "organization_id": organization_id,
             "tags": {"description": result["description"]},
         }
+        for access in result["accesses"]
+        if access["action"]
+        in (
+            "createFlag",
+            "cloneFlag",
+            "deleteFlag",
+            "updateFallthrough",
+            "updateOffVariation",
+            "updateOn",
+            "updateRules",
+            "updateScheduledChanges",
+            "updateDeprecated",
+            "updateFlagDefaultVariations",
+            "updateFlagVariations",
+            "updateGlobalArchived",
+        )
     ]
 
 

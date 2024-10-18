@@ -31,7 +31,6 @@ def test_launchdarkly_create():
         "date": 1729123465221,
         "accesses": [
             {"action": "createFlag", "resource": "proj/default:env/test:flag/test-flag"},
-            {"action": "createFlag", "resource": "proj/default:env/production:flag/test-flag"},
         ],
         "kind": "flag",
         "name": "test flag",
@@ -167,7 +166,7 @@ def test_launchdarkly_update():
         "date": 1729123867537,
         "accesses": [
             {"action": "updateOn", "resource": "proj/default:env/test:flag/test-flag"},
-            {"action": "updateFallthrough", "resource": "proj/default:env/test:flag/test-flag"},
+            {"action": "randomActionReject", "resource": "proj/default:env/test:flag/test-flag"},
         ],
         "kind": "flag",
         "name": "test flag",
@@ -352,13 +351,14 @@ def test_launchdarkly_update():
     assert flag_row["action"] == ACTION_MAP["updated"]
 
 
-def test_launchdarkly_delete():
+def test_launchdarkly_delete_and_update():
     request_data = {
         "_id": "1234",
         "_accountId": "1234",
         "date": 1729123867537,
         "accesses": [
             {"action": "deleteFlag", "resource": "proj/default:env/test:flag/test-flag"},
+            {"action": "updateRules", "resource": "proj/default:env/test:flag/test-flag"},
         ],
         "kind": "flag",
         "name": "test flag",
@@ -383,9 +383,49 @@ def test_launchdarkly_delete():
     }
 
     res = handle_provider_event("launchdarkly", request_data, 123)
-    assert len(res) == 1
-    flag_row = res[0]
-    assert flag_row["action"] == ACTION_MAP["deleted"]
+    assert len(res) == 2
+    flag_row_delete = res[0]
+    flag_row_update = res[1]
+    assert flag_row_delete["action"] == ACTION_MAP["deleted"]
+    assert flag_row_update["action"] == ACTION_MAP["updated"]
+
+
+def test_launchdarkly_no_valid_action():
+    request_data = {
+        "_id": "1234",
+        "_accountId": "1234",
+        "date": 1729123867537,
+        "accesses": [
+            {"action": "copyFlagConfigTo", "resource": "proj/default:env/test:flag/test-flag"},
+            {
+                "action": "updateFlagRuleDescription	",
+                "resource": "proj/default:env/test:flag/test-flag",
+            },
+        ],
+        "kind": "flag",
+        "name": "test flag",
+        "description": "deleted the flag",
+        "shortDescription": "",
+        "comment": "",
+        "member": {
+            "_links": {
+                "parent": {"href": "/api/v2/members", "type": "application/json"},
+                "self": {
+                    "href": "/api/v2/members/1234",
+                    "type": "application/json",
+                },
+            },
+            "_id": "1234",
+            "email": "michelle@example.io",
+            "firstName": "Michelle",
+            "lastName": "Doe",
+        },
+        "titleVerb": "deleted the flag",
+        "title": "Michelle deleted the flag [test flag](https://app.launchdarkly.com/default/test/features/test-flag) in `Test`",
+    }
+
+    res = handle_provider_event("launchdarkly", request_data, 123)
+    assert len(res) == 0
 
 
 def test_bad_launchdarkly_data():
