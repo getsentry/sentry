@@ -159,20 +159,20 @@ describe('AutofixInsightCards', () => {
 
   it('renders "Rethink from here" buttons', () => {
     renderComponent();
-    const rethinkButtons = screen.getAllByText('Rethink from here');
+    const rethinkButtons = screen.getAllByRole('button', {name: 'Rethink from here'});
     expect(rethinkButtons.length).toBeGreaterThan(0);
   });
 
   it('shows rethink input overlay when "Rethink from here" is clicked', async () => {
     renderComponent();
-    const rethinkButton = screen.getAllByText('Rethink from here')[0];
+    const rethinkButton = screen.getByRole('button', {name: 'Rethink from here'});
     await userEvent.click(rethinkButton);
     expect(screen.getByPlaceholderText('Say something...')).toBeInTheDocument();
   });
 
   it('hides rethink input overlay when clicked outside', async () => {
     renderComponent();
-    const rethinkButton = screen.getAllByText('Rethink from here')[0];
+    const rethinkButton = screen.getByRole('button', {name: 'Rethink from here'});
     await userEvent.click(rethinkButton);
     expect(screen.getByPlaceholderText('Say something...')).toBeInTheDocument();
 
@@ -187,7 +187,7 @@ describe('AutofixInsightCards', () => {
     });
 
     renderComponent();
-    const rethinkButton = screen.getAllByText('Rethink from here')[0];
+    const rethinkButton = screen.getByRole('button', {name: 'Rethink from here'});
     await userEvent.click(rethinkButton);
 
     const input = screen.getByPlaceholderText('Say something...');
@@ -208,7 +208,7 @@ describe('AutofixInsightCards', () => {
             type: 'restart_from_point_with_feedback',
             message: 'Rethink this part',
             step_index: 0,
-            retain_insight_card_index: null,
+            retain_insight_card_index: 0,
           }),
         }),
       })
@@ -222,7 +222,7 @@ describe('AutofixInsightCards', () => {
     });
 
     renderComponent();
-    const rethinkButton = screen.getAllByText('Rethink from here')[0];
+    const rethinkButton = screen.getByRole('button', {name: 'Rethink from here'});
     await userEvent.click(rethinkButton);
 
     const input = screen.getByPlaceholderText('Say something...');
@@ -246,7 +246,7 @@ describe('AutofixInsightCards', () => {
     });
 
     renderComponent();
-    const rethinkButton = screen.getAllByText('Rethink from here')[0];
+    const rethinkButton = screen.getByRole('button', {name: 'Rethink from here'});
     await userEvent.click(rethinkButton);
 
     const input = screen.getByPlaceholderText('Say something...');
