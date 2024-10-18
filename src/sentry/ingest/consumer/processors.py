@@ -225,10 +225,7 @@ def process_event(
         if data.get("type") == "transaction":
             if no_celery_mode:
                 with sentry_sdk.start_span(op="ingest_consumer.process_transaction_no_celery"):
-                    transaction = sentry_sdk.get_current_scope().transaction
-
-                    if transaction is not None:
-                        transaction.set_tag("no_celery_mode", True)
+                    sentry_sdk.set_tag("no_celery_mode", True)
 
                     process_transaction_no_celery(data, project_id, start_time)
             else:
