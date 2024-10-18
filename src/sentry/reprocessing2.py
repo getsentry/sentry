@@ -214,14 +214,14 @@ def reprocess_event(
     # cache/event_processing_store
 
     if consumer_type == ConsumerType.Transactions:
-        cache = transaction_processing_store
+        processing_store = transaction_processing_store
     else:
-        cache = event_processing_store
+        processing_store = event_processing_store
     set_path(data, "contexts", "reprocessing", "original_issue_id", value=event.group_id)
     set_path(
         data, "contexts", "reprocessing", "original_primary_hash", value=event.get_primary_hash()
     )
-    cache_key = cache.store(data)
+    cache_key = processing_store.store(data)
 
     # Step 2: Copy attachments into attachment cache. Note that we can only
     # consider minidumps because filestore just stays as-is after reprocessing

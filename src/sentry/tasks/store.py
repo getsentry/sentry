@@ -678,21 +678,3 @@ def save_event_attachments(
         has_attachments=True,
         **kwargs,
     )
-
-
-# TODO(swatinem): remove this (and related queue) once the backing worker deployment is gone
-@instrumented_task(
-    name="sentry.tasks.store.save_event_highcpu",
-    queue="events.save_event_highcpu",
-    time_limit=65,
-    soft_time_limit=60,
-)
-def save_event_highcpu(
-    cache_key: str | None = None,
-    data: MutableMapping[str, Any] | None = None,
-    start_time: float | None = None,
-    event_id: str | None = None,
-    project_id: int | None = None,
-    **kwargs: Any,
-) -> None:
-    _do_save_event(ConsumerType.Events, cache_key, data, start_time, event_id, project_id, **kwargs)
