@@ -1,4 +1,7 @@
-class ConsumerType:
+from enum import Enum
+
+
+class ConsumerType(Enum):
     """
     Defines the types of ingestion consumers
     """
