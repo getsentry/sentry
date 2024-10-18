@@ -139,14 +139,16 @@ def get_stacktrace_string(data: dict[str, Any]) -> str:
     stacktrace_str = ""
     found_non_snipped_context_line = False
     result_parts = []
+    frame_strings = []
 
     metrics.distribution("seer.grouping.exceptions.length", len(exceptions))
 
     def _process_frames(frames: list[dict[str, Any]]) -> None:
-        nonlocal found_non_snipped_context_line
-        nonlocal html_frame_count
         nonlocal frame_count
+        nonlocal html_frame_count
+        nonlocal found_non_snipped_context_line
         nonlocal result_parts
+        nonlocal frame_strings
 
         contributing_frames = [
             frame for frame in frames if frame.get("id") == "frame" and frame.get("contributes")
@@ -200,7 +202,7 @@ def get_stacktrace_string(data: dict[str, Any]) -> str:
             continue
 
         # For each exception, extract its type, value, and up to limit number of stacktrace frames
-        exc_type, exc_value, frame_strings = "", "", []
+        exc_type, exc_value = "", ""
         for exception_value in exception.get("values", []):
             if exception_value.get("id") == "type":
                 exc_type = _get_value_if_exists(exception_value)
