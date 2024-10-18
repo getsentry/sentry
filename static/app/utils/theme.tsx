@@ -3,6 +3,7 @@ import color from 'color';
 
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
+import {themeSpace} from 'sentry/styles/space';
 import {Outcome} from 'sentry/types/core';
 
 const lightColors = {
@@ -968,6 +969,7 @@ export const lightTheme = {
     ...darkColors,
     ...darkAliases,
   },
+  space: themeSpace,
   ...generateUtils(lightColors, lightAliases),
   alert: generateAlertTheme(lightColors, lightAliases),
   badge: generateBadgeTheme(lightColors),
@@ -999,6 +1001,7 @@ export const darkTheme: Theme = {
     ...lightColors,
     ...lightAliases,
   },
+  space: themeSpace,
   ...generateUtils(darkColors, lightAliases),
   alert: generateAlertTheme(darkColors, darkAliases),
   badge: generateBadgeTheme(darkColors),
