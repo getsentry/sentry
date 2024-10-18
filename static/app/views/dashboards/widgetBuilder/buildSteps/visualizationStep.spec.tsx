@@ -1,3 +1,5 @@
+import {DashboardFixture} from 'sentry-fixture/dashboard';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {TagsFixture} from 'sentry-fixture/tags';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -7,6 +9,8 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import type {Organization} from 'sentry/types/organization';
 import {DashboardWidgetSource} from 'sentry/views/dashboards/types';
 import WidgetBuilder from 'sentry/views/dashboards/widgetBuilder';
+
+import WidgetLegendSelectionState from '../../widgetLegendSelectionState';
 
 jest.unmock('lodash/debounce');
 
@@ -93,6 +97,13 @@ describe('VisualizationStep', function () {
     },
   });
 
+  const widgetLegendState = new WidgetLegendSelectionState({
+    location: LocationFixture(),
+    dashboard: DashboardFixture([], {id: 'new', title: 'Dashboard'}),
+    organization,
+    router,
+  });
+
   beforeEach(function () {
     ProjectsStore.loadInitialData(projects);
   });
@@ -121,6 +132,7 @@ describe('VisualizationStep', function () {
           orgId: organization.slug,
           dashboardId: 'new',
         }}
+        widgetLegendState={widgetLegendState}
       />,
       {
         router,
@@ -170,6 +182,7 @@ describe('VisualizationStep', function () {
           orgId: organization.slug,
           dashboardId: 'new',
         }}
+        widgetLegendState={widgetLegendState}
       />,
       {
         router,
@@ -212,6 +225,7 @@ describe('VisualizationStep', function () {
           orgId: organization.slug,
           dashboardId: 'new',
         }}
+        widgetLegendState={widgetLegendState}
       />,
       {
         router,
@@ -258,6 +272,7 @@ describe('VisualizationStep', function () {
           orgId: organization.slug,
           dashboardId: 'new',
         }}
+        widgetLegendState={widgetLegendState}
       />,
       {
         router,

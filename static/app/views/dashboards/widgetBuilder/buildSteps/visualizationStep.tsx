@@ -19,9 +19,11 @@ import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import usePrevious from 'sentry/utils/usePrevious';
 import type {DashboardFilters, Widget, WidgetType} from 'sentry/views/dashboards/types';
 import {DisplayType} from 'sentry/views/dashboards/types';
+import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 
 import {getDashboardFiltersFromURL} from '../../utils';
 import WidgetCard, {WidgetCardPanel} from '../../widgetCard';
+import type WidgetLegendSelectionState from '../../widgetLegendSelectionState';
 import {displayTypes} from '../utils';
 
 import {BuildStep} from './buildStep';
@@ -34,6 +36,7 @@ interface Props {
   organization: Organization;
   pageFilters: PageFilters;
   widget: Widget;
+  widgetLegendState: WidgetLegendSelectionState;
   dashboardFilters?: DashboardFilters;
   error?: string;
   noDashboardsMEPProvider?: boolean;
@@ -54,6 +57,7 @@ export function VisualizationStep({
   location,
   isWidgetInvalid,
   onWidgetSplitDecision,
+  widgetLegendState,
 }: Props) {
   const [debouncedWidget, setDebouncedWidget] = useState(widget);
 
@@ -89,6 +93,13 @@ export function VisualizationStep({
     label: displayTypes[value],
     value,
   }));
+
+  const unselectedReleasesForCharts = {
+    [WidgetLegendNameEncoderDecoder.encodeSeriesNameForLegend(
+      'Releases',
+      debouncedWidget.id
+    )]: false,
+  };
 
   return (
     <StyledBuildStep
@@ -133,6 +144,14 @@ export function VisualizationStep({
           onDataFetched={onDataFetched}
           onWidgetSplitDecision={onWidgetSplitDecision}
           shouldResize={false}
+          onLegendSelectChanged={() => {}}
+          legendOptions={
+            organization.features.includes('dashboards-releases-on-charts') &&
+            widgetLegendState.widgetRequiresLegendUnselection(widget)
+              ? {selected: unselectedReleasesForCharts}
+              : undefined
+          }
+          widgetLegendState={widgetLegendState}
         />
       </VisualizationWrapper>
     </StyledBuildStep>

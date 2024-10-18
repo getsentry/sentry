@@ -72,6 +72,7 @@ import {
   DashboardsMEPConsumer,
   DashboardsMEPProvider,
 } from '../widgetCard/dashboardsMEPContext';
+import type WidgetLegendSelectionState from '../widgetLegendSelectionState';
 
 import {BuildStep} from './buildSteps/buildStep';
 import {ColumnsStep} from './buildSteps/columnsStep';
@@ -141,6 +142,7 @@ interface Props extends RouteComponentProps<RouteParams, {}> {
   organization: Organization;
   selection: PageFilters;
   tags: TagCollection;
+  widgetLegendState: WidgetLegendSelectionState;
   displayType?: DisplayType;
   end?: DateString;
   start?: DateString;
@@ -183,6 +185,7 @@ function WidgetBuilder({
   router,
   tags,
   updateDashboardSplitDecision,
+  widgetLegendState,
 }: Props) {
   const {widgetIndex, orgId, dashboardId} = params;
   const {source, displayType, defaultTitle, limit, dataset} = location.query;
@@ -882,9 +885,14 @@ function WidgetBuilder({
         nextWidgetList[updateWidgetIndex] = nextWidgetData;
       }
 
+      const unselectedSeriesParam = widgetLegendState.updatedLegendQueryOnWidgetChange({
+        ...dashboard,
+        widgets: [...dashboard.widgets, nextWidgetData],
+      });
+      const query = {...location.query, unselectedSeries: unselectedSeriesParam};
       onSave(nextWidgetList);
       addSuccessMessage(t('Updated widget.'));
-      goToDashboards(dashboardId ?? NEW_DASHBOARD_ID);
+      goToDashboards(dashboardId ?? NEW_DASHBOARD_ID, query);
       trackAnalytics('dashboards_views.widget_builder.save', {
         organization,
         data_set: widgetData.widgetType ?? defaultWidgetType,
@@ -1216,6 +1224,7 @@ function WidgetBuilder({
                                     onWidgetSplitDecision={
                                       handleUpdateWidgetSplitDecision
                                     }
+                                    widgetLegendState={widgetLegendState}
                                   />
                                   <DataSetStep
                                     dataSet={state.dataSet}
