@@ -62,6 +62,10 @@ class LaunchDarklyItemSerializer(serializers.Serializer):
 LaunchDarkly has a lot more flag actions than what's in our
 ACTION_MAP. The "updated" action is the catch-all for actions
 that don't fit in the other buckets.
+
+We started out with a few actions that we think would be useful
+to accept. All other actions will not be logged
+to the audit log. This set of actions is subject to change.
 """
 
 
