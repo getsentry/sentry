@@ -1,4 +1,4 @@
-import React, {useMemo, useState} from 'react';
+import React, {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
@@ -135,24 +135,23 @@ export function PageOverview() {
       ? undefined
       : calculatePerformanceScoreFromStoredTableDataRow(projectScores?.data?.[0]);
 
+  const handleTabChange = (value: string) => {
+    trackAnalytics('insight.vital.overview.toggle_tab', {
+      organization,
+      tab: value,
+    });
+    browserHistory.push({
+      ...location,
+      query: {
+        ...location.query,
+        tab: value,
+      },
+    });
+  };
+
   return (
     <React.Fragment>
-      <Tabs
-        value={tab}
-        onChange={value => {
-          trackAnalytics('insight.vital.overview.toggle_tab', {
-            organization,
-            tab: value,
-          });
-          browserHistory.push({
-            ...location,
-            query: {
-              ...location.query,
-              tab: value,
-            },
-          });
-        }}
-      >
+      <Tabs value={tab} onChange={handleTabChange}>
         {!isInDomainView && (
           <Layout.Header>
             <Layout.HeaderContent>
@@ -189,7 +188,45 @@ export function PageOverview() {
             </TabList>
           </Layout.Header>
         )}
-        {isInDomainView && <FrontendHeader module={ModuleName.VITAL} />}
+        {isInDomainView && (
+          <FrontendHeader
+            headerTitle={
+              <Fragment>
+                {transaction && project && <ProjectAvatar project={project} size={24} />}
+                {transaction ?? t('Page Loads')}
+              </Fragment>
+            }
+            headerActions={
+              transactionSummaryTarget && (
+                <LinkButton
+                  to={transactionSummaryTarget}
+                  onClick={() => {
+                    trackAnalytics('insight.vital.overview.open_transaction_summary', {
+                      organization,
+                    });
+                  }}
+                  size="sm"
+                >
+                  {t('View Transaction Summary')}
+                </LinkButton>
+              )
+            }
+            hideDefaultTabs
+            tabs={{
+              value: tab,
+              onTabChange: handleTabChange,
+              tabList: (
+                <TabList hideBorder>
+                  {LANDING_DISPLAYS.map(({label, field}) => (
+                    <TabList.Item key={field}>{label}</TabList.Item>
+                  ))}
+                </TabList>
+              ),
+            }}
+            breadcrumbs={transaction ? [{label: 'Page Summary'}] : []}
+            module={ModuleName.VITAL}
+          />
+        )}
         {tab === LandingDisplayField.SPANS ? (
           <Layout.Body>
             <Layout.Main fullWidth>

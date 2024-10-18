@@ -30,7 +30,10 @@ import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {ViewTrendsButton} from 'sentry/views/insights/common/components/viewTrendsButton';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
-import {OVERVIEW_PAGE_ALLOWED_OPS} from 'sentry/views/insights/pages/frontend/settings';
+import {
+  FRONTEND_LANDING_TITLE,
+  OVERVIEW_PAGE_ALLOWED_OPS,
+} from 'sentry/views/insights/pages/frontend/settings';
 import {OVERVIEW_PAGE_TITLE} from 'sentry/views/insights/pages/settings';
 import {generateFrontendOtherPerformanceEventView} from 'sentry/views/performance/data';
 import {
@@ -160,7 +163,10 @@ function FrontendOverviewPage() {
       organization={organization}
       renderDisabled={NoAccess}
     >
-      <FrontendHeader headerActions={<ViewTrendsButton />} />
+      <FrontendHeader
+        headerTitle={FRONTEND_LANDING_TITLE}
+        headerActions={<ViewTrendsButton />}
+      />
       <Layout.Body>
         <Layout.Main fullWidth>
           <ModuleLayout.Layout>
