@@ -127,9 +127,9 @@ function CustomViewsIssueListHeader({
       </Layout.HeaderActions>
       <StyledGlobalEventProcessingAlert projects={selectedProjects} />
       {groupSearchViews ? (
-        <Tabs>
+        <StyledTabs>
           <CustomViewsIssueListHeaderTabsContent {...props} views={groupSearchViews} />
-        </Tabs>
+        </StyledTabs>
       ) : (
         <div style={{height: 33}} />
       )}
@@ -474,6 +474,10 @@ function CustomViewsIssueListHeaderTabsContent({
 }
 
 export default CustomViewsIssueListHeader;
+
+const StyledTabs = styled(Tabs)`
+  grid-column: 1 / -1;
+`;
 
 const StyledGlobalEventProcessingAlert = styled(GlobalEventProcessingAlert)`
   grid-column: 1/-1;
