@@ -238,6 +238,7 @@ function Tabs({
                 orientation={orientation}
                 overflowing={overflowingTabs.some(tab => tab.key === item.key)}
                 variant={tabVariant}
+                as="div"
               />
             </TabItemWrap>
             <TabDivider isVisible={isTabDividerVisible(item.key)} initial={false} />
