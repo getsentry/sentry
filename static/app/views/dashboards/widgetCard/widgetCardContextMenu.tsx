@@ -65,13 +65,12 @@ const useIndexedEventsWarning = (): string | null => {
   const organization = useOrganization();
   const metricSettingContext = useMEPSettingContext();
 
-  return (
-    !organization.features.includes('performance-mep-bannerless-ui') &&
+  return !organization.features.includes('performance-mep-bannerless-ui') &&
     isMetricsData === false &&
     metricSettingContext &&
-    metricSettingContext.metricSettingState !== MEPState.TRANSACTIONS_ONLY &&
-    t('Indexed')
-  );
+    metricSettingContext.metricSettingState !== MEPState.TRANSACTIONS_ONLY
+    ? t('Indexed')
+    : null;
 };
 
 function WidgetCardContextMenu({
