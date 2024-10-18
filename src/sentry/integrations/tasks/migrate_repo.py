@@ -19,7 +19,7 @@ from sentry.tasks.base import instrumented_task, retry
 )
 @retry(exclude=(Integration.DoesNotExist, Repository.DoesNotExist, Organization.DoesNotExist))
 def migrate_repo(repo_id: int, integration_id: int, organization_id: int) -> None:
-    from sentry.mediators.plugins.migrator import Migrator
+    from sentry.plugins.migrator import Migrator
 
     integration = integration_service.get_integration(integration_id=integration_id)
     if integration is None:
@@ -65,4 +65,4 @@ def migrate_repo(repo_id: int, integration_id: int, organization_id: int) -> Non
         if organization is None:
             raise Organization.DoesNotExist
 
-        Migrator.run(integration=integration, organization=organization)
+        Migrator(integration=integration, organization=organization).run()
