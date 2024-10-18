@@ -28,6 +28,7 @@ interface TabProps extends AriaTabProps {
    */
   overflowing: boolean;
   state: TabListState<any>;
+  as?: React.ElementType;
   borderStyle?: BaseTabProps['borderStyle'];
   variant?: BaseTabProps['variant'];
 }
@@ -51,6 +52,7 @@ export interface BaseTabProps {
   orientation: Orientation;
   overflowing: boolean;
   tabProps: DOMAttributes<FocusableElement>;
+  as?: React.ElementType;
   /**
    * This controls the border style of the tab. Only active when
    * `variant='filled'` since other variants do not have a border
@@ -71,6 +73,7 @@ export const BaseTab = forwardRef(
       isSelected,
       variant = 'flat',
       borderStyle = 'solid',
+      as = 'li',
     } = props;
 
     const ref = useObjectRef(forwardedRef);
@@ -99,6 +102,7 @@ export const BaseTab = forwardRef(
           overflowing={overflowing}
           borderStyle={borderStyle}
           ref={ref}
+          as={as}
         >
           {!isSelected && (
             <VariantStyledInteractionStateLayer hasSelectedBackground={false} />
@@ -116,6 +120,7 @@ export const BaseTab = forwardRef(
           hidden={hidden}
           overflowing={overflowing}
           ref={ref}
+          as={as}
         >
           <VariantStyledInteractionStateLayer hasSelectedBackground={false} />
           <VariantFocusLayer />
@@ -131,6 +136,7 @@ export const BaseTab = forwardRef(
         selected={isSelected}
         overflowing={overflowing}
         ref={ref}
+        as={as}
       >
         <InnerWrap>
           <StyledInteractionStateLayer
@@ -153,7 +159,15 @@ export const BaseTab = forwardRef(
  */
 export const Tab = forwardRef(
   (
-    {item, state, orientation, overflowing, variant, borderStyle = 'solid'}: TabProps,
+    {
+      item,
+      state,
+      orientation,
+      overflowing,
+      variant,
+      borderStyle = 'solid',
+      as = 'li',
+    }: TabProps,
     forwardedRef: React.ForwardedRef<HTMLLIElement>
   ) => {
     const ref = useObjectRef(forwardedRef);
@@ -176,13 +190,13 @@ export const Tab = forwardRef(
         ref={ref}
         borderStyle={borderStyle}
         variant={variant}
+        as={as}
       >
         {rendered}
       </BaseTab>
     );
   }
 );
-
 const FloatingTabWrap = styled('li', {shouldForwardProp: tabsShouldForwardProp})<{
   overflowing: boolean;
 }>`
