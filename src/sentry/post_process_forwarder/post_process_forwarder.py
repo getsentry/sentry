@@ -11,6 +11,7 @@ from arroyo.processing.strategies import (
 )
 from arroyo.types import Commit, Message, Partition
 
+from sentry.eventstream.base import EventStreamEventType
 from sentry.utils.arroyo import MultiprocessingPool, run_task_with_multiprocessing
 
 logger = logging.getLogger(__name__)
@@ -24,6 +25,7 @@ class PostProcessForwarderStrategyFactory(ProcessingStrategyFactory[KafkaPayload
 
     def __init__(
         self,
+        eventStreamType: EventStreamEventType,
         mode: str,
         num_processes: int,
         input_block_size: int,
@@ -32,6 +34,7 @@ class PostProcessForwarderStrategyFactory(ProcessingStrategyFactory[KafkaPayload
         max_batch_time: int,
         concurrency: int,
     ) -> None:
+        self.eventStreamType = eventStreamType
         self.mode = mode
         self.input_block_size = input_block_size
         self.output_block_size = output_block_size

@@ -12,7 +12,7 @@ from usageaccountant import UsageUnit
 from sentry import eventstore, features
 from sentry.attachments import CachedAttachment, attachment_cache
 from sentry.event_manager import EventManager, save_attachment
-from sentry.eventstore.processing import event_processing_store
+from sentry.eventstore.processing import event_processing_store, transaction_processing_store
 from sentry.feedback.usecases.create_feedback import FeedbackCreationSource, is_in_feedback_denylist
 from sentry.ingest.userreport import Conflict, save_userreport
 from sentry.killswitches import killswitch_matches_context
@@ -74,7 +74,7 @@ def process_transaction_no_celery(
         data = dict(data.items())
 
     with sentry_sdk.start_span(op="event_processing_store.store"):
-        event_processing_store.store(data)
+        transaction_processing_store.store(data)
 
 
 @trace_func(name="ingest_consumer.process_event")
@@ -193,11 +193,17 @@ def process_event(
             cache_key = None
         else:
             with metrics.timer("ingest_consumer._store_event"):
+                event_type = data.get("type")
+
+            if event_type == "transaction":
+                cache_key = transaction_processing_store.store(data)
+            else:
                 cache_key = event_processing_store.store(data)
 
         try:
             # Records rc-processing usage broken down by
             # event type.
+
             event_type = data.get("type")
             if event_type == "error":
                 app_feature = "errors"

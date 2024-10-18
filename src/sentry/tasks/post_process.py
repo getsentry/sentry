@@ -503,7 +503,10 @@ def post_process_group(
 
     with snuba.options_override({"consistent": True}):
         from sentry import eventstore
-        from sentry.eventstore.processing import event_processing_store
+        from sentry.eventstore.processing import (
+            event_processing_store,
+            transaction_processing_store,
+        )
         from sentry.ingest.transaction_clusterer.datasource.redis import (
             record_transaction_name as record_transaction_name_for_clustering,
         )
@@ -524,7 +527,11 @@ def post_process_group(
                 )
                 return
             with metrics.timer("tasks.post_process.delete_event_cache"):
-                event_processing_store.delete_by_key(cache_key)
+                event_type = data.get("type", None)
+                if event_type == "transaction":
+                    transaction_processing_store.delete_by_key(cache_key)
+                else:
+                    event_processing_store.delete_by_key(cache_key)
 
             occurrence = None
             event = process_event(data, group_id)

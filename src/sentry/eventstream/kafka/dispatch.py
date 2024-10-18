@@ -8,7 +8,7 @@ from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.types import Message
 
 from sentry import options
-from sentry.eventstream.base import GroupStates
+from sentry.eventstream.base import EventStreamEventType, GroupStates
 from sentry.eventstream.kafka.protocol import (
     get_task_kwargs_for_message,
     get_task_kwargs_for_message_from_headers,
@@ -35,6 +35,7 @@ def _sampled_eventstream_timer(instance: str) -> Generator[None, None, None]:
 
 def dispatch_post_process_group_task(
     event_id: str,
+    eventstream_type: EventStreamEventType,
     project_id: int,
     group_id: int | None,
     is_new: bool,
