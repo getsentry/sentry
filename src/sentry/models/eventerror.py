@@ -48,6 +48,7 @@ class EventError:
     NATIVE_SIMULATOR_FRAME = "native_simulator_frame"
     NATIVE_UNKNOWN_IMAGE = "native_unknown_image"
     NATIVE_SYMBOLICATOR_FAILED = "native_symbolicator_failed"
+    NATIVE_UNSUPPORTED_DSYM = "native_unsupported_dsym"
 
     # Processing: Proguard
     PROGUARD_MISSING_MAPPING = "proguard_missing_mapping"
