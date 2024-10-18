@@ -402,6 +402,7 @@ disable_error_code = [
 # begin: stronger typing
 [[tool.mypy.overrides]]
 module = [
+    "sentry.api.endpoints.project_backfill_similar_issues_embeddings_records",
     "sentry.api.helpers.deprecation",
     "sentry.api.helpers.source_map_helper",
     "sentry.auth.services.*",
@@ -421,8 +422,7 @@ module = [
     "sentry.eventtypes.error",
     "sentry.grouping.component",
     "sentry.grouping.fingerprinting",
-    "sentry.grouping.ingest.metrics",
-    "sentry.grouping.ingest.utils",
+    "sentry.grouping.ingest.*",
     "sentry.grouping.parameterization",
     "sentry.hybridcloud.*",
     "sentry.ingest.slicing",
@@ -537,6 +537,7 @@ module = [
     "sentry_plugins.base",
     "tests.sentry.deletions.test_group",
     "tests.sentry.event_manager.test_event_manager",
+    "tests.sentry.grouping.ingest.test_seer",
     "tests.sentry.grouping.test_fingerprinting",
     "tests.sentry.hybridcloud.*",
     "tests.sentry.issues",

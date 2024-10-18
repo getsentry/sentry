@@ -143,7 +143,7 @@ function useTypedSpanTags({
   });
 
   const tags: TagCollection = useMemo(() => {
-    const allTags = {};
+    const allTags: TagCollection = {};
 
     for (const tag of result.data ?? []) {
       // For now, skip all the sentry. prefixed tags as they
