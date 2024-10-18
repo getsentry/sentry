@@ -427,7 +427,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
                 "regression_substatus_count": 0,
                 "total_substatus_count": 2,
             }
-            assert len(context["key_errors"]) == 2
+            assert len(context["key_errors"]) == 0
             assert len(context["key_performance_issues"]) == 2
             assert context["trends"]["total_error_count"] == 2
             assert context["trends"]["total_transaction_count"] == 10
@@ -668,7 +668,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
                 "regression_substatus_count": 0,
                 "total_substatus_count": 0,
             }
-            assert len(context["key_errors"]) == 2
+            assert len(context["key_errors"]) == 0
             assert context["trends"]["total_error_count"] == 2
             assert context["trends"]["total_transaction_count"] == 10
             assert "Weekly Report for" in message_params["subject"]

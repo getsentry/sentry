@@ -122,6 +122,7 @@ class DailySummaryTest(
                 self.three_days_ago,
                 fingerprint="group-1",
                 category=DataCategory.ERROR,
+                resolve=False,
             )
         for _ in range(4):
             self.store_event_and_outcomes(
@@ -129,6 +130,7 @@ class DailySummaryTest(
                 self.two_days_ago,
                 fingerprint="group-1",
                 category=DataCategory.ERROR,
+                resolve=False,
             )
         for _ in range(3):
             self.store_event_and_outcomes(
@@ -136,6 +138,7 @@ class DailySummaryTest(
                 self.now,
                 fingerprint="group-1",
                 category=DataCategory.ERROR,
+                resolve=False,
             )
 
         # create an issue first seen in the release and set it to regressed
@@ -188,6 +191,7 @@ class DailySummaryTest(
                 self.now,
                 fingerprint="group-4",
                 category=DataCategory.ERROR,
+                resolve=False,
             )
         if performance_issues:
             # store some performance issues
@@ -883,12 +887,14 @@ class DailySummaryTest(
             name="barf", organization=self.organization, teams=[self.team]
         )
         project3.first_event = self.three_days_ago
+        project3.save()
         for _ in range(15):
             self.store_event_and_outcomes(
                 project3.id,
                 self.now,
                 fingerprint="group-1",
                 category=DataCategory.ERROR,
+                resolve=False,
             )
         context = build_summary_data(
             timestamp=self.now.timestamp(),
