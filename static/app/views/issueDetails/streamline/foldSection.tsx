@@ -79,11 +79,16 @@ export const FoldSection = forwardRef<HTMLElement, FoldSectionProps>(function Fo
       if (window.location.hash) {
         const [, hash] = window.location.hash.split('#');
         if (hash === sectionKey) {
-          element.scrollIntoView();
+          if (isCollapsed) {
+            setIsCollapsed(false);
+          }
+
+          // Delay scrollIntoView to allow for layout changes to take place
+          setTimeout(() => element?.scrollIntoView(), 100);
         }
       }
     },
-    [sectionKey, navScrollMargin]
+    [sectionKey, navScrollMargin, isCollapsed, setIsCollapsed]
   );
 
   useLayoutEffect(() => {
