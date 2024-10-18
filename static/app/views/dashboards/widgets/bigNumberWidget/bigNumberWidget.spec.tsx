@@ -65,6 +65,47 @@ describe('BigNumberWidget', () => {
       expect(screen.getByText('Value is not a finite number.')).toBeInTheDocument();
     });
 
+    it('Formats dates', () => {
+      render(
+        <BigNumberWidget
+          data={[
+            {
+              'max(timestamp)': '2024-10-17T16:08:07+00:00',
+            },
+          ]}
+          meta={{
+            fields: {
+              'max(timestamp)': 'date',
+            },
+            units: {
+              'max(timestamp)': null,
+            },
+          }}
+        />
+      );
+
+      expect(screen.getByText('Oct 17, 2024 4:08:07 PM UTC')).toBeInTheDocument();
+    });
+
+    it('Renders strings', () => {
+      render(
+        <BigNumberWidget
+          data={[
+            {
+              'any(transaction)': '/api/0/fetch',
+            },
+          ]}
+          meta={{
+            fields: {
+              'max(timestamp)': 'string',
+            },
+          }}
+        />
+      );
+
+      expect(screen.getByText('/api/0/fetch')).toBeInTheDocument();
+    });
+
     it('Formats duration data', () => {
       render(
         <BigNumberWidget
