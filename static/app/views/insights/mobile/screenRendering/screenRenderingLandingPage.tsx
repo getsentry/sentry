@@ -13,6 +13,7 @@ import {PlatformSelector} from 'sentry/views/insights/mobile/screenload/componen
 import {ScreenRenderingContent} from 'sentry/views/insights/mobile/screenRendering/screenRenderingContent';
 import {MODULE_TITLE} from 'sentry/views/insights/mobile/screenRendering/settings';
 import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
+import {MODULE_FEATURE_MAP} from 'sentry/views/insights/settings';
 import {ModuleName} from 'sentry/views/insights/types';
 
 export function ScreenRenderingModule() {
@@ -52,7 +53,7 @@ function PageWithProviders() {
   return (
     <ModulePageProviders
       moduleName="screen_load"
-      features="insights-initial-modules"
+      features={MODULE_FEATURE_MAP[ModuleName.SCREEN_RENDERING]}
       analyticEventName="insight.page_loads.screen_load"
     >
       <ScreenRenderingModule />
