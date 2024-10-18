@@ -722,23 +722,12 @@ function buildRoutes() {
       />
       <Redirect from="members/requests" to="members/" />
       <Route path="members/" name={t('Members')}>
-        <Route
+        <IndexRoute
           component={make(
             () =>
-              import(
-                'sentry/views/settings/organizationMembers/organizationMembersWrapper'
-              )
+              import('sentry/views/settings/organizationMembers/organizationMembersList')
           )}
-        >
-          <IndexRoute
-            component={make(
-              () =>
-                import(
-                  'sentry/views/settings/organizationMembers/organizationMembersList'
-                )
-            )}
-          />
-        </Route>
+        />
         <Route
           path=":memberId/"
           name={t('Details')}
@@ -961,6 +950,11 @@ function buildRoutes() {
         path="early-features/"
         name={t('Early Features')}
         component={make(() => import('sentry/views/settings/earlyFeatures'))}
+      />
+      <Route
+        path="dynamic-sampling/"
+        name={t('Dynamic Sampling')}
+        component={make(() => import('sentry/views/settings/dynamicSampling'))}
       />
     </Route>
   );
@@ -1755,6 +1749,14 @@ function buildRoutes() {
           />
         </Route>
         <Route path={`${MODULE_BASE_URLS[ModuleName.APP_START]}/`}>
+          <IndexRoute
+            component={make(
+              () =>
+                import(
+                  'sentry/views/insights/mobile/appStarts/views/appStartsLandingPage'
+                )
+            )}
+          />
           <Route
             path="spans/"
             component={make(
@@ -1773,6 +1775,25 @@ function buildRoutes() {
             path="spans/"
             component={make(
               () => import('sentry/views/insights/mobile/ui/views/screenSummaryPage')
+            )}
+          />
+        </Route>
+        <Route path={`${MODULE_BASE_URLS[ModuleName.SCREEN_LOAD]}/`}>
+          <IndexRoute
+            component={make(
+              () =>
+                import(
+                  'sentry/views/insights/mobile/screenload/views/screenloadLandingPage'
+                )
+            )}
+          />
+          <Route
+            path="spans/"
+            component={make(
+              () =>
+                import(
+                  'sentry/views/insights/mobile/screenload/views/screenLoadSpansPage'
+                )
             )}
           />
         </Route>

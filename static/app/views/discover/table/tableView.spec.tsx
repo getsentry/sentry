@@ -7,12 +7,15 @@ import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLi
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TagStore from 'sentry/stores/tagStore';
 import {browserHistory} from 'sentry/utils/browserHistory';
+import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import TableView from 'sentry/views/discover/table/tableView';
 
 describe('TableView > CellActions', function () {
-  let initialData, rows, onChangeShowTags;
+  let initialData: ReturnType<typeof initializeOrg>;
+  let rows: any;
+  let onChangeShowTags: jest.Mock;
 
   const location = LocationFixture({
     pathname: '/organizations/org-slug/discover/results/',
@@ -37,7 +40,11 @@ describe('TableView > CellActions', function () {
   });
   const eventView = EventView.fromLocation(location);
 
-  function renderComponent(context, tableData, view) {
+  function renderComponent(
+    context: ReturnType<typeof initializeOrg>,
+    tableData: TableData,
+    view: EventView
+  ) {
     return render(
       <TableView
         organization={context.organization}
@@ -57,7 +64,7 @@ describe('TableView > CellActions', function () {
     );
   }
 
-  async function openContextMenu(cellIndex) {
+  async function openContextMenu(cellIndex: number) {
     const firstRow = screen.getAllByRole('row')[1];
     const emptyValueCell = within(firstRow).getAllByRole('cell')[cellIndex];
 

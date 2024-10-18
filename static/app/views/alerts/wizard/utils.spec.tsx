@@ -157,4 +157,13 @@ describe('Wizard utils', function () {
       })
     ).toEqual('insights_metrics');
   });
+
+  it('extracts eap metric alerts', function () {
+    expect(
+      getAlertTypeFromAggregateDataset({
+        aggregate: 'count(span.duration)',
+        dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+      })
+    ).toEqual('eap_metrics');
+  });
 });

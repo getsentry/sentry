@@ -52,7 +52,7 @@ class Dataset(Enum):
     indexed spans are similar to indexed transactions in the fields available to search
     """
 
-    SpansEAP = "eap_spans"
+    EventsAnalyticsPlatform = "events_analytics_platform"
 
     MetricsSummaries = "metrics_summaries"
     """
@@ -66,6 +66,7 @@ class EntityKey(Enum):
     Events = "events"
     Sessions = "sessions"
     Spans = "spans"
+    EAPSpans = "eap_spans"
     Transactions = "transactions"
     MetricsSets = "metrics_sets"
     MetricsCounters = "metrics_counters"

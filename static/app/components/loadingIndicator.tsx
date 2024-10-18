@@ -39,7 +39,7 @@ function LoadingIndicator(props: Props) {
     'loading-indicator': true,
   });
 
-  let loadingStyle = {};
+  let loadingStyle: React.CSSProperties = {};
   if (size) {
     loadingStyle = {
       width: size,

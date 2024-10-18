@@ -64,7 +64,7 @@ function GlobalSelectionLink(props: Props) {
     return <Link {...routerProps} />;
   }
 
-  let queryStringObject = {};
+  let queryStringObject: typeof globalQuery = {};
   if (typeof to === 'object' && to.search) {
     queryStringObject = qs.parse(to.search);
   }

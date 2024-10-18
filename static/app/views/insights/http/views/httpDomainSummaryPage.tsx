@@ -187,6 +187,14 @@ export function HTTPDomainSummaryPage() {
 
   const crumbs = useModuleBreadcrumbs('http');
 
+  const headerTitle = (
+    <Fragment>
+      {project && <ProjectAvatar project={project} size={36} />}
+      {domain || NULL_DOMAIN_DESCRIPTION}
+      <DomainStatusLink domain={domain} />
+    </Fragment>
+  );
+
   return (
     <React.Fragment>
       {!isInDomainView && (
@@ -196,7 +204,7 @@ export function HTTPDomainSummaryPage() {
               crumbs={[
                 ...crumbs,
                 {
-                  label: 'Domain Summary',
+                  label: t('Domain Summary'),
                 },
               ]}
             />
@@ -233,7 +241,15 @@ export function HTTPDomainSummaryPage() {
       )}
 
       {isInDomainView && view === BACKEND_LANDING_SUB_PATH && (
-        <BackendHeader module={ModuleName.HTTP} />
+        <BackendHeader
+          headerTitle={headerTitle}
+          module={ModuleName.HTTP}
+          breadcrumbs={[
+            {
+              label: t('Domain Summary'),
+            },
+          ]}
+        />
       )}
 
       <Layout.Body>

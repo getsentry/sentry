@@ -2,7 +2,7 @@ from collections.abc import MutableMapping
 from typing import Any
 
 from sentry.api.serializers import Serializer, register
-from sentry.models.avatars.sentry_app_avatar import SentryAppAvatar
+from sentry.sentry_apps.models.sentry_app_avatar import SentryAppAvatar
 
 
 @register(SentryAppAvatar)

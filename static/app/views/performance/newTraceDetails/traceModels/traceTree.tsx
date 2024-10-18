@@ -460,13 +460,6 @@ export class TraceTree extends TraceTreeEventDispatcher {
 
       // If the parent span does not exist in the span tree, the transaction will remain under the current node
       if (!parent) {
-        Sentry.withScope(scope => {
-          scope.setFingerprint(['trace-span-parent']);
-          scope.captureMessage(
-            'A transaction was found to have a span parent that does not exist in the span list'
-          );
-        });
-
         if (transaction.parent?.children.indexOf(transaction) === -1) {
           transaction.parent.children.push(transaction);
         }
@@ -1113,7 +1106,9 @@ export class TraceTree extends TraceTreeEventDispatcher {
 
     return TraceTree.Find(start, node => {
       if (type === 'txn' && isTransactionNode(node)) {
-        return node.value.event_id === id;
+        // A transaction itself is a span and we are starting to treat it as such.
+        // Hence we check for both event_id and span_id.
+        return node.value.event_id === id || node.value.span_id === id;
       }
       if (type === 'span' && isSpanNode(node)) {
         return node.value.span_id === id;
@@ -1170,7 +1165,9 @@ export class TraceTree extends TraceTreeEventDispatcher {
   ): TraceTreeNode<TraceTree.NodeValue> | null {
     return TraceTree.Find(start, node => {
       if (isTransactionNode(node)) {
-        return node.value.event_id === eventId;
+        // A transaction itself is a span and we are starting to treat it as such.
+        // Hence we check for both event_id and span_id.
+        return node.value.event_id === eventId || node.value.span_id === eventId;
       }
       if (isSpanNode(node)) {
         return node.value.span_id === eventId;

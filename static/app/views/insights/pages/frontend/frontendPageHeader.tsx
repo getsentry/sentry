@@ -40,6 +40,7 @@ export function FrontendHeader({
   return (
     <DomainViewHeader
       domainBaseUrl={frontendBaseUrl}
+      domainTitle={FRONTEND_LANDING_TITLE}
       modules={modules}
       selectedModule={module}
       additionalBreadCrumbs={breadcrumbs}

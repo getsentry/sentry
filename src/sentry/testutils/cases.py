@@ -1551,6 +1551,7 @@ class BaseSpansTestCase(SnubaTestCase):
             payload["tags"] = tags
         if transaction_id:
             payload["event_id"] = transaction_id
+            payload["segment_id"] = transaction_id[:16]
         if profile_id:
             payload["profile_id"] = profile_id
         if measurements:
@@ -1592,6 +1593,8 @@ class BaseSpansTestCase(SnubaTestCase):
         store_metrics_summary: Mapping[str, Sequence[Mapping[str, Any]]] | None = None,
         group: str = "00",
         category: str | None = None,
+        organization_id: int = 1,
+        is_eap: bool = False,
     ):
         if span_id is None:
             span_id = self._random_span_id()
@@ -1600,7 +1603,7 @@ class BaseSpansTestCase(SnubaTestCase):
 
         payload = {
             "project_id": project_id,
-            "organization_id": 1,
+            "organization_id": organization_id,
             "span_id": span_id,
             "trace_id": trace_id,
             "duration_ms": int(duration),
@@ -1626,6 +1629,7 @@ class BaseSpansTestCase(SnubaTestCase):
             }
         if transaction_id:
             payload["event_id"] = transaction_id
+            payload["segment_id"] = transaction_id[:16]
         if profile_id:
             payload["profile_id"] = profile_id
         if store_metrics_summary:
@@ -1638,7 +1642,7 @@ class BaseSpansTestCase(SnubaTestCase):
         # We want to give the caller the possibility to store only a summary since the database does not deduplicate
         # on the span_id which makes the assumptions of a unique span_id in the database invalid.
         if not store_only_summary:
-            self.store_span(payload)
+            self.store_span(payload, is_eap=is_eap)
 
         if "_metrics_summary" in payload:
             self.store_metrics_summary(payload)

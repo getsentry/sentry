@@ -94,6 +94,13 @@ export default function InviteStatusMessage({
     const sentCount = statuses.filter(i => i.sent).length;
     const errorCount = statuses.filter(i => i.error).length;
 
+    const statusIndicator =
+      hasDuplicateEmails || errorCount > 0 ? (
+        <IconWarning color="yellow300" size="sm" />
+      ) : (
+        <IconCheckmark color="successText" size="sm" />
+      );
+
     if (isNewInviteModal) {
       return (
         <CountMessage
@@ -117,7 +124,7 @@ export default function InviteStatusMessage({
 
       return (
         <StatusMessage status="success">
-          <IconCheckmark size="sm" />
+          {statusIndicator}
           <span>
             {errorCount > 0
               ? tct('Sent [invites], [failed] failed to send.', tctComponents)
@@ -138,7 +145,7 @@ export default function InviteStatusMessage({
 
     return (
       <StatusMessage status="success">
-        <IconCheckmark size="sm" />
+        {statusIndicator}
         {errorCount > 0
           ? tct(
               '[inviteRequests] pending approval, [failed] failed to send.',
@@ -153,7 +160,7 @@ export default function InviteStatusMessage({
   if (hasDuplicateEmails) {
     return (
       <StatusMessage status="error">
-        <IconWarning size="sm" />
+        <IconWarning size="sm" color="errorText" />
         {t('Duplicate emails between invite rows.')}
       </StatusMessage>
     );
@@ -172,13 +179,6 @@ export const StatusMessage = styled('div')<{
   font-size: ${p => p.theme.fontSizeMedium};
   color: ${p =>
     p.status === 'error' && !p.isNewInviteModal ? p.theme.errorText : p.theme.textColor};
-
-  > :first-child {
-    ${p =>
-      p.status === 'success'
-        ? `color: ${p.theme.successText}`
-        : p.status === 'error' && p.isNewInviteModal && `color: ${p.theme.errorText}`};
-  }
 `;
 
 export const BoldCount = styled('div')`
