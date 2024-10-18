@@ -4,6 +4,7 @@ import {
   Fragment,
   useCallback,
   useLayoutEffect,
+  useRef,
   useState,
 } from 'react';
 import styled from '@emotion/styled';
@@ -13,6 +14,7 @@ import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {IconChevron} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import mergeRefs from 'sentry/utils/mergeRefs';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import type {SectionKey} from 'sentry/views/issueDetails/streamline/context';
@@ -53,7 +55,6 @@ export const FoldSection = forwardRef<HTMLElement, FoldSectionProps>(function Fo
     sectionKey,
     initialCollapse = false,
     preventCollapse = false,
-    ...props
   },
   forwardedRef
 ) {
@@ -63,6 +64,31 @@ export const FoldSection = forwardRef<HTMLElement, FoldSectionProps>(function Fo
   const [isCollapsed, setIsCollapsed] = useSyncedLocalStorageState(
     getFoldSectionKey(sectionKey),
     initialCollapse
+  );
+  const hasAttemptedScroll = useRef(false);
+
+  const scrollToSection = useCallback(
+    (element: HTMLElement | null) => {
+      if (!element || !navScrollMargin || hasAttemptedScroll.current) {
+        return;
+      }
+      // Prevent scrolling to element on rerenders
+      hasAttemptedScroll.current = true;
+
+      // scroll to element if it's the current section on page load
+      if (window.location.hash) {
+        const [, hash] = window.location.hash.split('#');
+        if (hash === sectionKey) {
+          if (isCollapsed) {
+            setIsCollapsed(false);
+          }
+
+          // Delay scrollIntoView to allow for layout changes to take place
+          setTimeout(() => element?.scrollIntoView(), 100);
+        }
+      }
+    },
+    [sectionKey, navScrollMargin, isCollapsed, setIsCollapsed]
   );
 
   useLayoutEffect(() => {
@@ -92,8 +118,7 @@ export const FoldSection = forwardRef<HTMLElement, FoldSectionProps>(function Fo
   return (
     <Fragment>
       <Section
-        {...props}
-        ref={forwardedRef}
+        ref={mergeRefs([forwardedRef, scrollToSection])}
         id={sectionKey}
         scrollMargin={navScrollMargin ?? 0}
       >

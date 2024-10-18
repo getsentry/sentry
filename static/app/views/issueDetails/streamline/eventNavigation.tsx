@@ -342,8 +342,13 @@ function EventNavigationLink({
     config?.initialCollapse ?? false
   );
   return (
-    <Button
-      onClick={() => {
+    <LinkButton
+      to={{
+        ...location,
+        hash: `#${config.key}`,
+      }}
+      onClick={event => {
+        event.preventDefault();
         setIsCollapsed(false);
         document
           .getElementById(config.key)
@@ -354,7 +359,7 @@ function EventNavigationLink({
       css={propCss}
     >
       {sectionLabels[config.key]}
-    </Button>
+    </LinkButton>
   );
 }
 
