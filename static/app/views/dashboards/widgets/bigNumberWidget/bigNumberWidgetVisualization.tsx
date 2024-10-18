@@ -19,7 +19,7 @@ import {DEFAULT_FIELD} from '../common/settings';
 
 import {ThresholdsIndicator} from './thresholdsIndicator';
 
-export interface Props {
+export interface BigNumberWidgetVisualizationProps {
   value: number;
   field?: string;
   maximumValue?: number;
@@ -29,7 +29,7 @@ export interface Props {
   thresholds?: Thresholds;
 }
 
-export function BigNumberWidgetVisualization(props: Props) {
+export function BigNumberWidgetVisualization(props: BigNumberWidgetVisualizationProps) {
   const {
     field = DEFAULT_FIELD,
     value,
