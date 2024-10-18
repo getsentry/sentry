@@ -7,6 +7,7 @@ import {useListState} from '@react-stately/list';
 import type {CollectionChildren} from '@react-types/shared';
 
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
+import {KeyboardSelection} from 'sentry/components/searchQueryBuilder/hooks/useKeyboardSelection';
 import {useQueryBuilderGrid} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderGrid';
 import {useSelectOnDrag} from 'sentry/components/searchQueryBuilder/hooks/useSelectOnDrag';
 import {useUndoStack} from 'sentry/components/searchQueryBuilder/hooks/useUndoStack';
@@ -143,18 +144,20 @@ export function TokenizedQueryGrid({label, actionBarWidth}: TokenizedQueryGridPr
   }
 
   return (
-    <Grid
-      aria-label={label ?? t('Create a search query')}
-      items={parsedQuery}
-      selectionMode="multiple"
-      actionBarWidth={actionBarWidth}
-    >
-      {item => (
-        <Item key={makeTokenKey(item, parsedQuery)}>
-          {item.text.trim() ? item.text : t('Space')}
-        </Item>
-      )}
-    </Grid>
+    <KeyboardSelection>
+      <Grid
+        aria-label={label ?? t('Create a search query')}
+        items={parsedQuery}
+        selectionMode="multiple"
+        actionBarWidth={actionBarWidth}
+      >
+        {item => (
+          <Item key={makeTokenKey(item, parsedQuery)}>
+            {item.text.trim() ? item.text : t('Space')}
+          </Item>
+        )}
+      </Grid>
+    </KeyboardSelection>
   );
 }
 
