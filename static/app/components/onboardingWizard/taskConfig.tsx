@@ -532,7 +532,7 @@ const EventWaitingIndicator = styled(
     if (quickStartUpdatesFeature) {
       return (
         <div {...p}>
-          <Tooltip title={text || t('Waiting for event')}>
+          <Tooltip title={text || t('Waiting for event')} position="auto">
             <PulsingIndicator hasQuickStartUpdatesFeature />
           </Tooltip>
         </div>
