@@ -76,19 +76,19 @@ def get_org_id_from_token(token: str) -> int | None:
     token_hashed = hash_token(unquote(token))
     if SiloMode.get_current_mode() == SiloMode.REGION:
         try:
-            token = OrgAuthTokenReplica.objects.get(
+            org_token_replica = OrgAuthTokenReplica.objects.get(
                 token_hashed=token_hashed,
                 date_deactivated__isnull=True,
             )
-            return token.organization_id
+            return org_token_replica.organization_id
         except OrgAuthTokenReplica.DoesNotExist:
             return None
     else:
         try:
-            token = OrgAuthToken.objects.get(
+            org_token = OrgAuthToken.objects.get(
                 token_hashed=token_hashed,
                 date_deactivated__isnull=True,
             )
-            return token.organization_id
+            return org_token.organization_id
         except OrgAuthToken.DoesNotExist:
             return None
