@@ -384,7 +384,7 @@ export function Actions(props: Props) {
             </ResolvedWrapper>
             <Divider />
             <Button
-              size="xs"
+              size="sm"
               disabled={disabled || isAutoResolved}
               onClick={() =>
                 onUpdate({
@@ -410,13 +410,13 @@ export function Actions(props: Props) {
                 projectSlug={project.slug}
                 isResolved={isResolved}
                 isAutoResolved={isAutoResolved}
-                size="xs"
+                size="sm"
                 priority="primary"
               />
             </GuideAnchor>
             <ArchiveActions
-              className="hidden-xs"
-              size="xs"
+              className={hasStreamlinedUI ? undefined : 'hidden-xs'}
+              size="sm"
               isArchived={isIgnored}
               onUpdate={onUpdate}
               disabled={disabled}
@@ -429,7 +429,7 @@ export function Actions(props: Props) {
               group={group}
               onClick={handleClick(onToggleSubscribe)}
               icon={group.isSubscribed ? <IconSubscribed /> : <IconUnsubscribed />}
-              size="xs"
+              size="sm"
             />
           </Fragment>
         ))}
@@ -439,10 +439,10 @@ export function Actions(props: Props) {
           'aria-label': t('More Actions'),
           icon: <IconEllipsis />,
           showChevron: false,
-          size: hasStreamlinedUI ? 'xs' : 'sm',
+          size: 'sm',
         }}
         items={[
-          ...(isIgnored
+          ...(isIgnored || hasStreamlinedUI
             ? []
             : [
                 {
