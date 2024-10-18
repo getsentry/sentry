@@ -66,20 +66,18 @@ export function LLMMonitoringPage() {
           </Layout.Header>
         )}
         {isInDomainView && (
-          <Layout.Header>
-            <AiHeader
-              headerTitle={
-                <Fragment>
-                  {MODULE_TITLE}
-                  <PageHeadingQuestionTooltip
-                    title={t('View analytics and information about your AI pipelines')}
-                    docsUrl={MODULE_DOC_LINK}
-                  />
-                </Fragment>
-              }
-              module={ModuleName.AI}
-            />
-          </Layout.Header>
+          <AiHeader
+            headerTitle={
+              <Fragment>
+                {MODULE_TITLE}
+                <PageHeadingQuestionTooltip
+                  title={t('View analytics and information about your AI pipelines')}
+                  docsUrl={MODULE_DOC_LINK}
+                />
+              </Fragment>
+            }
+            module={ModuleName.AI}
+          />
         )}
         <Layout.Body>
           <Layout.Main fullWidth>
