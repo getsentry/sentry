@@ -27,6 +27,7 @@ import useProjects from 'sentry/utils/useProjects';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
+import {ViewTrendsButton} from 'sentry/views/insights/common/components/viewTrendsButton';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {AiHeader} from 'sentry/views/insights/pages/ai/aiPageHeader';
 import {AI_LANDING_TITLE} from 'sentry/views/insights/pages/ai/settings';
@@ -136,7 +137,7 @@ function AiOverviewPage() {
       organization={organization}
       renderDisabled={NoAccess}
     >
-      <AiHeader headerTitle={AI_LANDING_TITLE} />
+      <AiHeader headerTitle={AI_LANDING_TITLE} headerActions={<ViewTrendsButton />} />
       <Layout.Body>
         <Layout.Main fullWidth>
           <ModuleLayout.Layout>
