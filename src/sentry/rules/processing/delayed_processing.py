@@ -391,10 +391,15 @@ def get_rules_to_fire(
                     project_id,
                 ):
                     if action_match == "any":
+                        # Early return if we passed any condition for "any" match
                         rules_to_fire[alert_rule].add(group_id)
                         break
                     elif action_match == "all":
                         conditions_matched += 1
+                elif action_match == "all":
+                    # Early return if we failed any condition for "all" match
+                    break
+            # Check for "all" match if we passed all conditions
             if action_match == "all" and conditions_matched == len(slow_conditions):
                 rules_to_fire[alert_rule].add(group_id)
     return rules_to_fire
