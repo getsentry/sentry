@@ -48,7 +48,6 @@ export function FrontendHeader({
       headerTitle={headerTitle}
       tabs={tabs}
       hideDefaultTabs={hideDefaultTabs}
-      domainTitle={FRONTEND_LANDING_TITLE}
     />
   );
 }
