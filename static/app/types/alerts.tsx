@@ -213,6 +213,28 @@ export type IssueAlertRuleCondition = Omit<
   [key: string]: number | string;
 };
 
+interface SlackAction {
+  channel: string | undefined;
+  id: IssueAlertActionType.SLACK;
+  workspace: string | undefined;
+  channel_id?: string | undefined;
+  notes?: string | undefined;
+  tags?: string | undefined;
+}
+interface DiscordAction {
+  channel_id: string | undefined;
+  id: IssueAlertActionType.DISCORD;
+  server: string | undefined;
+  tags?: string | undefined;
+}
+interface MSTeamsAction {
+  channel: string | undefined;
+  id: IssueAlertActionType.MS_TEAMS;
+  team: string | undefined;
+}
+
+export type IntegrationAction = SlackAction | DiscordAction | MSTeamsAction;
+
 export interface UnsavedIssueAlertRule {
   /** When an issue matches [actionMatch] of the following */
   actionMatch: 'all' | 'any' | 'none';
