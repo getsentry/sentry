@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-import math
 from datetime import UTC, datetime
 from enum import Enum
 from typing import Any, TypedDict
@@ -265,10 +264,10 @@ def create_feedback_issue(event, project_id: int, source: FeedbackCreationSource
             is_message_spam = True
 
     if len(feedback_message) > max_msg_size:
-        metrics.incr(
+        metrics.distribution(
             "feedback.large_message",
+            len(feedback_message),
             tags={
-                "pow2_size_bucket": 2 ** math.ceil(math.log2(len(feedback_message))),
                 "entrypoint": "create_feedback_issue",
                 "referrer": source.value,
             },

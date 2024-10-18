@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-import math
 from datetime import timedelta
 
 from django.db import IntegrityError, router
@@ -42,10 +41,10 @@ def save_userreport(
 
         max_comment_length = UserReport._meta.get_field("comments").max_length
         if max_comment_length and len(report["comments"]) > max_comment_length:
-            metrics.incr(
+            metrics.distribution(
                 "feedback.large_message",
+                len(report["comments"]),
                 tags={
-                    "pow2_size_bucket": 2 ** math.ceil(math.log2(len(report["comments"]))),
                     "entrypoint": "save_userreport",
                     "referrer": source.value,
                 },
