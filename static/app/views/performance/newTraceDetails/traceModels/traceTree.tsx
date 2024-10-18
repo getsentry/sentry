@@ -1260,7 +1260,12 @@ export class TraceTree extends TraceTreeEventDispatcher {
     if (!expanded) {
       const index = this.list.indexOf(node);
       this.list.splice(index + 1, TraceTree.VisibleChildren(node).length);
+
       node.expanded = expanded;
+      // When transaction nodes are collapsed, they still render child transactions
+      if (isTransactionNode(node)) {
+        this.list.splice(index + 1, 0, ...TraceTree.VisibleChildren(node));
+      }
     } else {
       node.expanded = expanded;
       // Flip expanded so that we can collect visible children

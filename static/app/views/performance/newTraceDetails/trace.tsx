@@ -271,6 +271,8 @@ export function Trace({
       } else if (event.key === 'ArrowRight') {
         if (node.canFetch) {
           onNodeZoomIn(event, node, true);
+        } else {
+          onNodeExpand(event, node, true);
         }
       }
     },
