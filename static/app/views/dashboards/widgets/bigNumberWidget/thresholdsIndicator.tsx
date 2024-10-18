@@ -49,8 +49,8 @@ export function ThresholdsIndicator({
 
 const Circle = styled('div')<{color: string}>`
   display: inline-block;
-  height: max(12px, 20cqh);
-  width: max(12px, 20cqh);
+  height: clamp(12px, 20cqh, 50px);
+  width: clamp(12px, 20cqh, 50px);
 
   position: relative;
   align-self: center;
