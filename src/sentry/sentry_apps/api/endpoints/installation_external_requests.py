@@ -36,7 +36,11 @@ class SentryAppInstallationExternalRequestsEndpoint(SentryAppInstallationBaseEnd
 
         try:
             choices = SelectRequester(**kwargs).run()
-        except Exception as e:
-            return Response({"error": str(e)}, status=400)
+        except Exception:
+            message = f'Error retrieving select field options from {request.GET.get("uri")}'
+            return Response(
+                {"error": message},
+                status=400,
+            )
 
         return Response(choices)
