@@ -800,7 +800,7 @@ class OrganizationExamples:
                 },
                 "deployCount": 1,
                 "lastDeploy": {
-                    "id": 53070941,
+                    "id": "53070941",
                     "environment": "canary-test-control",
                     "dateStarted": None,
                     "dateFinished": "2024-05-21T11:26:17.597793Z",

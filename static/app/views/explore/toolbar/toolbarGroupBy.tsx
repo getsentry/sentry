@@ -6,6 +6,7 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/button';
 import type {SelectKey, SelectOption} from 'sentry/components/compactSelect';
 import {CompactSelect} from 'sentry/components/compactSelect';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconAdd} from 'sentry/icons/iconAdd';
 import {IconDelete} from 'sentry/icons/iconDelete';
 import {IconGrabbable} from 'sentry/icons/iconGrabbable';
@@ -68,7 +69,14 @@ export function ToolbarGroupBy({disabled}: ToolbarGroupByProps) {
       {({editableColumns, insertColumn, updateColumnAtIndex, deleteColumnAtIndex}) => (
         <ToolbarSection data-test-id="section-group-by">
           <StyledToolbarHeader>
-            <ToolbarLabel disabled={disabled}>{t('Group By')}</ToolbarLabel>
+            <Tooltip
+              position="right"
+              title={t(
+                'Aggregated data by a key attribute to calculate averages, percentiles, count and more'
+              )}
+            >
+              <ToolbarLabel disabled={disabled}>{t('Group By')}</ToolbarLabel>
+            </Tooltip>
             <ToolbarHeaderButton
               disabled={disabled}
               size="zero"

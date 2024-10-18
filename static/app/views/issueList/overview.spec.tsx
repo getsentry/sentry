@@ -72,7 +72,7 @@ function getSearchInput() {
 }
 
 describe('IssueList', function () {
-  let props;
+  let props: any;
 
   const tags = TagsFixture();
   const group = GroupFixture({project});
@@ -170,11 +170,11 @@ describe('IssueList', function () {
       location: {query: {query: DEFAULT_QUERY}, search: `query=${DEFAULT_QUERY}`},
       params: {},
       organization,
-      tags: tags.reduce((acc, tag) => {
+      tags: tags.reduce<Record<string, (typeof tags)[number]>>((acc, tag) => {
         acc[tag.key] = tag;
 
         return acc;
-      }),
+      }, {}),
     };
   });
 
@@ -978,7 +978,7 @@ describe('IssueList', function () {
   });
 
   describe('componentDidUpdate fetching groups', function () {
-    let fetchDataMock;
+    let fetchDataMock: jest.Mock;
 
     beforeEach(function () {
       fetchDataMock = MockApiClient.addMockResponse({
@@ -1133,7 +1133,7 @@ describe('IssueList', function () {
   });
 
   describe('Error Robot', function () {
-    const createWrapper = async moreProps => {
+    const createWrapper = async (moreProps: any) => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/issues/',
         body: [],

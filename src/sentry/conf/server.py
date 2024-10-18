@@ -2219,9 +2219,6 @@ SENTRY_USE_ISSUE_OCCURRENCE = False
 # This flag activates consuming GroupAttribute messages in the development environment
 SENTRY_USE_GROUP_ATTRIBUTES = True
 
-# This flag activates replay analyzer service in the development environment
-SENTRY_USE_REPLAY_ANALYZER_SERVICE = False
-
 # This flag activates Spotlight Sidecar in the development environment
 SENTRY_USE_SPOTLIGHT = False
 
@@ -2471,14 +2468,6 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
             "only_if": settings.SENTRY_USE_PROFILING,
         }
     ),
-    "session-replay-analyzer": lambda settings, options: (
-        {
-            "image": "ghcr.io/getsentry/session-replay-analyzer:latest",
-            "environment": {},
-            "ports": {"3000/tcp": 3000},
-            "only_if": settings.SENTRY_USE_REPLAY_ANALYZER_SERVICE,
-        }
-    ),
     "spotlight-sidecar": lambda settings, options: (
         {
             "image": "ghcr.io/getsentry/spotlight:latest",
@@ -2503,7 +2492,7 @@ SENTRY_SELF_HOSTED = True
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "24.9.0"
+SELF_HOSTED_STABLE_VERSION = "24.10.0"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
