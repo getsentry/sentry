@@ -97,7 +97,12 @@ export function Step({
                 />
               )}
               {step.type === AutofixStepType.CHANGES && (
-                <AutofixChanges step={step} groupId={groupId} onRetry={onRetry} />
+                <AutofixChanges
+                  step={step}
+                  groupId={groupId}
+                  onRetry={onRetry}
+                  runId={runId}
+                />
               )}
               {hasErroredStepBefore && hasStepBelow && (
                 <StepMessage>
