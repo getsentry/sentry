@@ -369,30 +369,27 @@ class ProjectOwnership(Model):
         ownership: ProjectOwnership | ProjectCodeOwners,
         data: Mapping[str, Any],
     ) -> list[Rule]:
-        rules = []
-        if ownership.schema is not None:
-            # "projectownership" or "projectcodeowners"
-            ownership_type = type(ownership).__name__.lower()
+        if ownership.schema is None:
+            return []
 
-            munged_data = Matcher.munge_if_needed(data)
-            metrics.gauge(
-                key="projectownership.matching_ownership_rules.frames",
-                value=len(munged_data[0]),
-                tags={"ownership_type": ownership_type},
-            )
+        # "projectownership" or "projectcodeowners"
+        ownership_type = type(ownership).__name__.lower()
 
-            rules = load_schema(ownership.schema)
-            metrics.gauge(
-                key="projectownership.matching_ownership_rules.rules",
-                value=len(rules),
-                tags={"ownership_type": ownership_type},
-            )
+        munged_data = Matcher.munge_if_needed(data)
+        metrics.gauge(
+            key="projectownership.matching_ownership_rules.frames",
+            value=len(munged_data[0]),
+            tags={"ownership_type": ownership_type},
+        )
 
-            for rule in rules:
-                if rule.test(data, munged_data):
-                    rules.append(rule)
+        rules = load_schema(ownership.schema)
+        metrics.gauge(
+            key="projectownership.matching_ownership_rules.rules",
+            value=len(rules),
+            tags={"ownership_type": ownership_type},
+        )
 
-        return rules
+        return [rule for rule in rules if rule.test(data, munged_data)]
 
 
 def process_resource_change(instance, change, **kwargs):
