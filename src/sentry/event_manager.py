@@ -15,7 +15,6 @@ from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, OperationalError, connection, router, transaction
 from django.db.models import Func, Max
-from django.db.models.signals import post_save
 from django.utils.encoding import force_str
 from urllib3.exceptions import MaxRetryError, TimeoutError
 from usageaccountant import UsageUnit
@@ -1717,13 +1716,6 @@ def _handle_regression(group: Group, event: BaseEvent, release: Release | None) 
             transition_type="automatic",
             sender="handle_regression",
         )
-        if not options.get("groups.enable-post-update-signal"):
-            post_save.send(
-                sender=Group,
-                instance=group,
-                created=False,
-                update_fields=["last_seen", "active_at", "status", "substatus"],
-            )
 
     follows_semver = False
     resolved_in_activity = None
