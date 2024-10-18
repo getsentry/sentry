@@ -37,10 +37,11 @@ from sentry.rules.processing.delayed_processing import (
     process_delayed_alert_conditions,
     process_rulegroups_in_batches,
 )
-from sentry.rules.processing.processor import PROJECT_ID_BUFFER_LIST_KEY
+from sentry.rules.processing.processor import PROJECT_ID_BUFFER_LIST_KEY, RuleProcessor
 from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase, TestCase
 from sentry.testutils.factories import EventType
 from sentry.testutils.helpers.datetime import before_now, freeze_time
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.helpers.redis import mock_redis_buffer
 from sentry.utils import json
@@ -1110,6 +1111,148 @@ class ProcessDelayedAlertConditionsTest(CreateEventTestCase, PerformanceIssueTes
         assert (two_conditions_match_all_rule.id, group5.id) in rule_fire_histories
         self.assert_buffer_cleared(project_id=self.project.id)
 
+        assert (two_conditions_match_all_rule.id, group5.id) in rule_fire_histories
+        self.assert_buffer_cleared(project_id=self.project.id)
+
+    @with_feature("organizations:event-unique-user-frequency-condition-with-conditions")
+    def test_special_event_frequency_condition(self):
+        Rule.objects.all().delete()
+        event_frequency_special_condition = Rule.objects.create(
+            label="Event Frequency Special Condition",
+            project=self.project,
+            environment_id=self.environment.id,
+            data={
+                "filter_match": "all",
+                "action_match": "all",
+                "actions": [
+                    {"id": "sentry.rules.actions.notify_event.NotifyEventAction"},
+                    {
+                        "id": "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
+                        "service": "mail",
+                    },
+                ],
+                "conditions": [
+                    {
+                        "id": "sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyConditionWithConditions",
+                        "value": 2,
+                        "comparisonType": "count",
+                        "interval": "1m",
+                    },
+                    {
+                        "match": "eq",
+                        "id": "sentry.rules.filters.tagged_event.TaggedEventFilter",
+                        "key": "region",
+                        "value": "EU",
+                    },
+                ],
+            },
+        )
+
+        self.create_event(
+            self.project.id, FROZEN_TIME, "group-1", self.environment.name, tags=[["region", "US"]]
+        )
+        self.create_event(
+            self.project.id, FROZEN_TIME, "group-1", self.environment.name, tags=[["region", "US"]]
+        )
+        evaluated_event = self.create_event(
+            self.project.id, FROZEN_TIME, "group-1", self.environment.name, tags=[["region", "EU"]]
+        )
+        assert evaluated_event.group
+
+        group1 = evaluated_event.group
+
+        project_ids = buffer.backend.get_sorted_set(
+            PROJECT_ID_BUFFER_LIST_KEY, 0, self.buffer_timestamp
+        )
+        rp = RuleProcessor(
+            evaluated_event.for_group(evaluated_event.group),
+            is_new=False,
+            is_regression=False,
+            is_new_group_environment=False,
+            has_reappeared=False,
+        )
+        rp.apply()
+
+        apply_delayed(project_ids[0][0])
+        rule_fire_histories = RuleFireHistory.objects.filter(
+            rule__in=[event_frequency_special_condition],
+            group__in=[group1],
+            event_id__in=[evaluated_event.event_id],
+            project=self.project,
+        ).values_list("rule", "group")
+        assert len(rule_fire_histories) == 0
+        self.assert_buffer_cleared(project_id=self.project.id)
+
+    @with_feature("organizations:event-unique-user-frequency-condition-with-conditions")
+    def test_special_event_frequency_condition_passes(self):
+        Rule.objects.all().delete()
+        event_frequency_special_condition = Rule.objects.create(
+            label="Event Frequency Special Condition",
+            project=self.project,
+            environment_id=self.environment.id,
+            data={
+                "filter_match": "all",
+                "action_match": "all",
+                "actions": [
+                    {"id": "sentry.rules.actions.notify_event.NotifyEventAction"},
+                    {
+                        "id": "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
+                        "service": "mail",
+                    },
+                ],
+                "conditions": [
+                    {
+                        "id": "sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyConditionWithConditions",
+                        "value": 2,
+                        "comparisonType": "count",
+                        "interval": "1m",
+                    },
+                    {
+                        "match": "eq",
+                        "id": "sentry.rules.filters.tagged_event.TaggedEventFilter",
+                        "key": "region",
+                        "value": "EU",
+                    },
+                ],
+            },
+        )
+
+        self.create_event(
+            self.project.id, FROZEN_TIME, "group-1", self.environment.name, tags=[["region", "EU"]]
+        )
+        self.create_event(
+            self.project.id, FROZEN_TIME, "group-1", self.environment.name, tags=[["region", "EU"]]
+        )
+        evaluated_event = self.create_event(
+            self.project.id, FROZEN_TIME, "group-1", self.environment.name, tags=[["region", "EU"]]
+        )
+        assert evaluated_event.group
+
+        group1 = evaluated_event.group
+
+        project_ids = buffer.backend.get_sorted_set(
+            PROJECT_ID_BUFFER_LIST_KEY, 0, self.buffer_timestamp
+        )
+        rp = RuleProcessor(
+            evaluated_event.for_group(evaluated_event.group),
+            is_new=False,
+            is_regression=False,
+            is_new_group_environment=False,
+            has_reappeared=False,
+        )
+        rp.apply()
+
+        apply_delayed(project_ids[0][0])
+        rule_fire_histories = RuleFireHistory.objects.filter(
+            rule__in=[event_frequency_special_condition],
+            group__in=[group1],
+            event_id__in=[evaluated_event.event_id],
+            project=self.project,
+        ).values_list("rule", "group")
+        assert len(rule_fire_histories) == 1
+        assert (event_frequency_special_condition.id, group1.id) in rule_fire_histories
+        self.assert_buffer_cleared(project_id=self.project.id)
+
     def test_apply_delayed_shared_condition_diff_filter(self):
         self._push_base_events()
         project_three = self.create_project(organization=self.organization)
@@ -1421,10 +1564,10 @@ class DataAndGroupsTest(TestCase):
     """
 
     def test_repr(self):
-        condition = DataAndGroups(data=TEST_RULE_SLOW_CONDITION, group_ids={1, 2})
+        condition = DataAndGroups(data=TEST_RULE_SLOW_CONDITION, group_ids={1, 2}, rule_id=1)
         assert (
             repr(condition)
-            == "<DataAndGroups data: {'id': 'sentry.rules.conditions.event_frequency.EventFrequencyCondition', 'value': 1, 'interval': '1h'} group_ids: {1, 2}>"
+            == "<DataAndGroups data: {'id': 'sentry.rules.conditions.event_frequency.EventFrequencyCondition', 'value': 1, 'interval': '1h'} group_ids: {1, 2} rule_id: 1>"
         )
 
 
