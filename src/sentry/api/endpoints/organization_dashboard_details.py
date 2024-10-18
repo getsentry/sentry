@@ -38,6 +38,7 @@ class DashboardPermissions(BasePermission):
     """
 
     scope_map = {
+        "GET": ["org:read", "org:write", "org:admin"],
         "POST": ["org:read", "org:write", "org:admin"],
         "PUT": ["org:read", "org:write", "org:admin"],
         "DELETE": ["org:read", "org:write", "org:admin"],
