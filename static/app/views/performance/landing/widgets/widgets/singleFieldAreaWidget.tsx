@@ -132,7 +132,8 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
           {provided.widgetData?.overall?.hasData ? (
             <Fragment>
               {props.fields.map(fieldName => {
-                const value = provided.widgetData?.overall?.[fieldName];
+                const value =
+                  provided.widgetData?.overall?.[fieldName as keyof WidgetDataResult];
 
                 if (!value) {
                   return null;
@@ -140,7 +141,7 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
 
                 return (
                   <HighlightNumber key={fieldName} color={props.chartColor}>
-                    {axisLabelFormatter(value, aggregateOutputType(fieldName))}
+                    {axisLabelFormatter(value as any, aggregateOutputType(fieldName))}
                   </HighlightNumber>
                 );
               })}
