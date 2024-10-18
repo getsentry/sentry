@@ -134,51 +134,11 @@ def get_stacktrace_string(data: dict[str, Any]) -> str:
     if exceptions and exceptions[0].get("id") == "chained-exception":
         exceptions = exceptions[0].get("values")
 
-    metrics.distribution("seer.grouping.exceptions.length", len(exceptions))
-
-    return _get_stacktrace_string(exceptions)
-
-
-def _get_stacktrace_string(exceptions: list[dict[str, Any]]) -> str:
-    stacktrace_str = ""
-    html_frame_count, result_parts, found_non_snipped_context_line = _process_exceptions(exceptions)
-    final_frame_count = 0
-    stacktrace_str = ""
-    for header, frame_strings in result_parts:
-        # For performance reasons, if the entire stacktrace is made of minified frames, restrict the
-        # result to include only the first 20 frames, since minified frames are significantly more
-        # token-dense than non-minified ones
-        if not found_non_snipped_context_line:
-            frame_strings = _discard_excess_frames(
-                frame_strings, FULLY_MINIFIED_STACKTRACE_MAX_FRAME_COUNT, final_frame_count
-            )
-            final_frame_count += len(frame_strings)
-
-        stacktrace_str += header + "".join(frame_strings)
-
-    metrics.incr(
-        "seer.grouping.html_in_stacktrace",
-        sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-        tags={
-            "html_frames": (
-                "none"
-                if html_frame_count == 0
-                else "all"
-                if html_frame_count == final_frame_count
-                else "some"
-            )
-        },
-    )
-    return stacktrace_str.strip()
-
-
-def _process_exceptions(
-    exceptions: list[dict[str, Any]]
-) -> tuple[int, list[tuple[str, list[str]]], bool]:
     found_non_snipped_context_line = False
     html_frame_count = 0  # for a temporary metric
     frame_count = 0
     result_parts = []
+    metrics.distribution("seer.grouping.exceptions.length", len(exceptions))
 
     def _process_frames(frames: list[dict[str, Any]]) -> None:
         nonlocal found_non_snipped_context_line
@@ -252,7 +212,34 @@ def _process_exceptions(
 
         result_parts.append((header, frame_strings))
 
-    return html_frame_count, result_parts, found_non_snipped_context_line
+    stacktrace_str = ""
+    final_frame_count = 0
+    for header, frame_strings in result_parts:
+        # For performance reasons, if the entire stacktrace is made of minified frames, restrict the
+        # result to include only the first 20 frames, since minified frames are significantly more
+        # token-dense than non-minified ones
+        if not found_non_snipped_context_line:
+            frame_strings = _discard_excess_frames(
+                frame_strings, FULLY_MINIFIED_STACKTRACE_MAX_FRAME_COUNT, final_frame_count
+            )
+            final_frame_count += len(frame_strings)
+
+        stacktrace_str += header + "".join(frame_strings)
+
+    metrics.incr(
+        "seer.grouping.html_in_stacktrace",
+        sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+        tags={
+            "html_frames": (
+                "none"
+                if html_frame_count == 0
+                else "all"
+                if html_frame_count == final_frame_count
+                else "some"
+            )
+        },
+    )
+    return stacktrace_str.strip()
 
 
 def event_content_has_stacktrace(event: Event) -> bool:
