@@ -36,7 +36,7 @@ class SentryAppInstallationExternalRequestsEndpoint(SentryAppInstallationBaseEnd
 
         try:
             choices = SelectRequester(**kwargs).run()
-        except Exception:
-            return Response({"error": "Error communicating with Sentry App service"}, status=400)
+        except Exception as e:
+            return Response({"error": str(e)}, status=400)
 
         return Response(choices)
