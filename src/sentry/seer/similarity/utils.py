@@ -116,18 +116,19 @@ def _get_value_if_exists(exception_value: dict[str, Any]) -> str:
 
 def get_stacktrace_string(data: dict[str, Any]) -> str:
     """Format a stacktrace string from the grouping information."""
-    if not (
-        get_path(data, "app", "hash") and get_path(data, "app", "component", "values")
-    ) and not (
-        get_path(data, "system", "hash") and get_path(data, "system", "component", "values")
-    ):
+    app_hash = get_path(data, "app", "hash")
+    app_component = get_path(data, "app", "component", "values")
+    system_hash = get_path(data, "system", "hash")
+    system_component = get_path(data, "system", "component", "values")
+
+    if not (app_hash or system_hash):
         return ""
 
     # Get the data used for grouping
-    if get_path(data, "app", "hash"):
-        exceptions = data["app"]["component"]["values"]
+    if app_hash:
+        exceptions = app_component
     else:
-        exceptions = data["system"]["component"]["values"]
+        exceptions = system_component
 
     # Handle chained exceptions
     if exceptions and exceptions[0].get("id") == "chained-exception":
