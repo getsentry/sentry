@@ -137,9 +137,7 @@ function AiOverviewPage() {
       organization={organization}
       renderDisabled={NoAccess}
     >
-      <Layout.Header>
-        <AiHeader headerTitle={AI_LANDING_TITLE} headerActions={<ViewTrendsButton />} />
-      </Layout.Header>
+      <AiHeader headerTitle={AI_LANDING_TITLE} headerActions={<ViewTrendsButton />} />
       <Layout.Body>
         <Layout.Main fullWidth>
           <ModuleLayout.Layout>
