@@ -38,6 +38,7 @@ import {
   getDurationUnit,
   tooltipFormatter,
 } from 'sentry/utils/discover/charts';
+import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {
   aggregateOutputType,
@@ -57,7 +58,6 @@ import {getDatasetConfig} from '../datasetConfig/base';
 import type {Widget} from '../types';
 import {DisplayType} from '../types';
 import {BigNumberWidgetVisualization} from '../widgets/bigNumberWidget/bigNumberWidgetVisualization';
-import type {Meta, Thresholds} from '../widgets/common/types';
 
 import type {GenericWidgetQueriesChildrenProps} from './genericWidgetQueries';
 
@@ -220,7 +220,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
       }
 
       const data = result?.data;
-      const meta = result?.meta;
+      const meta = result?.meta as EventsMetaType;
       const value = data?.[0]?.[selectedField];
 
       if (
@@ -235,21 +235,13 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
         return <BigNumber key={`big_number:${result.title}`}>{'\u2014'}</BigNumber>;
       }
 
-      // Remove this after https://github.com/getsentry/sentry/pull/79237
-      const mergedMeta = {
-        ...meta,
-        fields: {
-          [field]: meta?.[field],
-        },
-      };
-
       return (
         <BigNumberWidgetVisualization
           key={i}
           field={field}
-          value={value as number}
-          meta={mergedMeta as Meta}
-          thresholds={widget.thresholds as Thresholds}
+          value={value}
+          meta={meta}
+          thresholds={widget.thresholds ?? undefined}
           preferredPolarity="-"
         />
       );
