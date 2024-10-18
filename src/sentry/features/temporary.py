@@ -497,8 +497,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:transaction-name-normalize", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, default=True, api_expose=False)
     # Sanitize transaction names in the ingestion pipeline. # Deprecated
     manager.add("organizations:transaction-name-sanitization", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
-    # Enables creation and full updating of uptime monitors via the api
-    manager.add("organizations:uptime-api-create-update", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enables automatic hostname detection in uptime
     manager.add("organizations:uptime-automatic-hostname-detection", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enables automatic subscription creation in uptime
