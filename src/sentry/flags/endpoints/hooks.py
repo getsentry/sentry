@@ -27,8 +27,6 @@ decision to exclude all other forms of authentication. We don't want users accid
 writing logs or leaked DSNs generating invalid log entries. An organization token is
 secret and reasonably restricted and so makes sense for this use case where we have
 inter-provider communication.
-
-This endpoint allows writes if any write-level "org" permission was provided.
 """
 
 
