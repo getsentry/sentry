@@ -106,6 +106,7 @@ export function SpanTimeCharts({
     [ModuleName.AI]: [],
     [ModuleName.MOBILE_UI]: [],
     [ModuleName.MOBILE_SCREENS]: [],
+    [ModuleName.SCREEN_RENDERING]: [],
     [ModuleName.OTHER]: [],
   };
 

@@ -121,6 +121,7 @@ const LABEL_FOR_MODULE_NAME: {[key in ModuleName]: ReactNode} = {
   other: t('Action'),
   'mobile-ui': t('Action'),
   'mobile-screens': t('Action'),
+  'screen-rendering': t('Action'),
   ai: 'Action',
 };
 
