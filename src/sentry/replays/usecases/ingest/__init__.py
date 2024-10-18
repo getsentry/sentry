@@ -269,6 +269,7 @@ def recording_post_processor(
                 replay_id=message.replay_id,
                 segment_data=parsed_segment_data,
                 replay_event=parsed_replay_event,
+                org_id=message.org_id,
             )
 
         # Log canvas mutations to bigquery.
