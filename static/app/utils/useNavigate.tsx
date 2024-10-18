@@ -2,9 +2,9 @@ import {useCallback, useEffect, useRef} from 'react';
 import {useNavigate as useReactRouter6Navigate} from 'react-router-dom';
 import type {LocationDescriptor} from 'history';
 
+import {locationDescriptorToTo} from 'sentry/utils/reactRouter6Compat/location';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 
-import {locationDescriptorToTo} from './reactRouter6Compat/location';
 import {useRouteContext} from './useRouteContext';
 
 type NavigateOptions = {
@@ -37,10 +37,14 @@ export function useNavigate(): ReactRouter3Navigate {
 
     // biome-ignore lint/correctness/useHookAtTopLevel: react-router-6 migration
     const navigate = useCallback<ReactRouter3Navigate>(
-      (to: LocationDescriptor | number, options: NavigateOptions = {}) =>
-        typeof to === 'number'
-          ? router6Navigate(to)
-          : router6Navigate(locationDescriptorToTo(to), options),
+      (to: LocationDescriptor | number, options: NavigateOptions = {}) => {
+        if (typeof to === 'number') {
+          router6Navigate(to);
+          return;
+        }
+
+        router6Navigate(locationDescriptorToTo(normalizeUrl(to)), options);
+      },
       [router6Navigate]
     );
 
