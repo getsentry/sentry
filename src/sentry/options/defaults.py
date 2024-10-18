@@ -2755,6 +2755,14 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Disables URL autodetection during post-process
+register(
+    "uptime.disable_auto_detection",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 register(
     "releases.no_snuba_for_release_creation",
     type=Bool,
