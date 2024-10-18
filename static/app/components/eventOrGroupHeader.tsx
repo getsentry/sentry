@@ -14,6 +14,7 @@ import type {Group, GroupTombstoneHelper} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {getLocation, getMessage, isTombstone} from 'sentry/utils/events';
 import {useLocation} from 'sentry/utils/useLocation';
+import withOrganization from 'sentry/utils/withOrganization';
 import {createIssueLink} from 'sentry/views/issueList/utils';
 
 import EventTitleError from './eventTitleError';
@@ -181,7 +182,7 @@ const TitleWithoutLink = styled('span')`
   display: inline-flex;
 `;
 
-export default EventOrGroupHeader;
+export default withOrganization(EventOrGroupHeader);
 
 const StyledEventOrGroupTitle = styled(EventOrGroupTitle)<{
   hasSeen: boolean;
