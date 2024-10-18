@@ -82,4 +82,24 @@ describe('getConfigFromTimeRange', function () {
       timelineWidth,
     });
   });
+
+  it('Includes dates when the window spans days', function () {
+    const start = new Date('2023-05-14T20:00:00Z');
+    const end = new Date('2023-05-15T10:00:00Z');
+    const config = getConfigFromTimeRange(start, end, timelineWidth);
+    expect(config).toEqual({
+      start,
+      end,
+      dateLabelFormat: getFormat(),
+      // 14 hours
+      elapsedMinutes: 14 * 60,
+      intervals: {
+        normalMarkerInterval: 120,
+        minimumMarkerInterval: 115.5,
+        referenceMarkerInterval: 120.75,
+      },
+      dateTimeProps: {timeOnly: false},
+      timelineWidth,
+    });
+  });
 });
