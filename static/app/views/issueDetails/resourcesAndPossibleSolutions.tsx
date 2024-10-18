@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {AiSuggestedSolution} from 'sentry/components/events/aiSuggestedSolution';
 import {Autofix} from 'sentry/components/events/autofix';
+import {useAutofixSetup} from 'sentry/components/events/autofix/useAutofixSetup';
 import {Resources} from 'sentry/components/events/interfaces/performance/resources';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -51,10 +52,14 @@ export function ResourcesAndPossibleSolutions({event, project, group}: Props) {
   const config = getConfigForIssueType(group, project);
   const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');
   const isSampleError = useIsSampleEvent();
-  // NOTE:  Autofix is for INTERNAL testing only for now.
+  const {genAIConsent} = useAutofixSetup({
+    groupId: group.id,
+  });
+
   const displayAiAutofix =
-    organization.features.includes('autofix') &&
-    organization.features.includes('issue-details-autofix-ui') &&
+    ((organization.features.includes('autofix') &&
+      organization.features.includes('issue-details-autofix-ui')) ||
+      genAIConsent) &&
     !shouldShowCustomErrorResourceConfig(group, project) &&
     config.autofix &&
     hasStacktraceWithFrames(event) &&
