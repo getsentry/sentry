@@ -5,9 +5,17 @@ import EventView from 'sentry/utils/discover/eventView';
 import type {AnomalyConfidence} from 'sentry/utils/performance/anomalies/anomaliesQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import type {DomainView} from 'sentry/views/insights/pages/useFilters';
+import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
 
-export function generateAnomaliesRoute({orgSlug}: {orgSlug: string}): string {
-  return `/organizations/${orgSlug}/performance/summary/anomalies/`;
+export function generateAnomaliesRoute({
+  orgSlug,
+  view,
+}: {
+  orgSlug: string;
+  view?: DomainView;
+}): string {
+  return `${getTransactionSummaryBaseUrl(orgSlug, view)}/anomalies/`;
 }
 
 export const ANOMALY_FLAG = 'performance-anomaly-detection-ui';
@@ -17,14 +25,17 @@ export function anomaliesRouteWithQuery({
   transaction,
   projectID,
   query,
+  view,
 }: {
   orgSlug: string;
   query: Query;
   transaction: string;
   projectID?: string | string[];
+  view?: DomainView;
 }) {
   const pathname = generateAnomaliesRoute({
     orgSlug,
+    view,
   });
 
   return {

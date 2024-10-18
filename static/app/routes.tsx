@@ -1707,6 +1707,10 @@ function buildRoutes() {
           )}
         />
         {transactionSummaryRoutes}
+        <Route
+          path="trace/:traceSlug/"
+          component={make(() => import('sentry/views/performance/traceDetails'))}
+        />
         <Route path={`${MODULE_BASE_URLS[ModuleName.HTTP]}/`}>
           <IndexRoute
             component={make(
@@ -1762,6 +1766,11 @@ function buildRoutes() {
             () => import('sentry/views/insights/pages/backend/backendOverviewPage')
           )}
         />
+        {transactionSummaryRoutes}
+        <Route
+          path="trace/:traceSlug/"
+          component={make(() => import('sentry/views/performance/traceDetails'))}
+        />
         <Route path={`${MODULE_BASE_URLS[ModuleName.DB]}/`}>
           <IndexRoute
             component={make(
@@ -1814,6 +1823,11 @@ function buildRoutes() {
           component={make(
             () => import('sentry/views/insights/pages/mobile/mobileOverviewPage')
           )}
+        />
+        {transactionSummaryRoutes}
+        <Route
+          path="trace/:traceSlug/"
+          component={make(() => import('sentry/views/performance/traceDetails'))}
         />
         <Route path={`${MODULE_BASE_URLS[ModuleName.MOBILE_SCREENS]}/`}>
           <IndexRoute
@@ -1882,6 +1896,11 @@ function buildRoutes() {
       <Route path={`${AI_LANDING_SUB_PATH}/`}>
         <IndexRoute
           component={make(() => import('sentry/views/insights/pages/ai/aiOverviewPage'))}
+        />
+        {transactionSummaryRoutes}
+        <Route
+          path="trace/:traceSlug/"
+          component={make(() => import('sentry/views/performance/traceDetails'))}
         />
         <Route path={`${MODULE_BASE_URLS[ModuleName.AI]}/`}>
           <IndexRoute

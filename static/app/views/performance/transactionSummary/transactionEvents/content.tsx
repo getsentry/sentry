@@ -25,6 +25,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {
   platformToPerformanceType,
   ProjectPerformanceType,
@@ -76,6 +77,7 @@ function EventsContent(props: Props) {
     projects,
   } = props;
   const routes = useRoutes();
+  const domainViewFilters = useDomainViewFilters();
 
   const {eventView, titles} = useMemo(() => {
     const eventViewClone = originalEventView.clone();
@@ -166,6 +168,7 @@ function EventsContent(props: Props) {
         setError={setError}
         columnTitles={titles}
         transactionName={transactionName}
+        domainViewFilters={domainViewFilters}
       />
     </Layout.Main>
   );

@@ -4,6 +4,8 @@ import {spanTargetHash} from 'sentry/components/events/interfaces/spans/utils';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import type {DomainView} from 'sentry/views/insights/pages/useFilters';
+import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
 
 /**
  * Routes to the transaction event details view.
@@ -17,7 +19,8 @@ export function getTransactionDetailsUrl(
   eventSlug: string,
   transaction?: string,
   query?: Query,
-  spanId?: string
+  spanId?: string,
+  view?: DomainView
 ): LocationDescriptor {
   const locationQuery = {
     ...(query || {}),
@@ -28,7 +31,7 @@ export function getTransactionDetailsUrl(
   }
 
   const target: LocationDescriptor = {
-    pathname: normalizeUrl(`/organizations/${orgSlug}/performance/${eventSlug}/`),
+    pathname: normalizeUrl(`${getPerformanceBaseUrl(orgSlug, view)}/${eventSlug}/`),
     query: locationQuery,
     hash: defined(spanId) ? spanTargetHash(spanId) : undefined,
   };

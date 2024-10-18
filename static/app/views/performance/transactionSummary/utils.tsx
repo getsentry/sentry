@@ -16,6 +16,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
+import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
 
 import {TraceViewSources} from '../newTraceDetails/traceMetadataHeader';
 
@@ -45,7 +46,9 @@ export function generateTransactionSummaryRoute({
   view?: DomainView; // TODO - this should be mantatory once we release domain view
 }): string {
   if (view) {
-    return `/organizations/${orgSlug}/performance/${view}/summary/${subPath ? `${subPath}/` : ''}`;
+    return normalizeUrl(
+      `/organizations/${orgSlug}/performance/${view}/summary/${subPath ? `${subPath}/` : ''}`
+    );
   }
   return `/organizations/${orgSlug}/performance/summary/${subPath ? `${subPath}/` : ''}`;
 }
@@ -264,6 +267,11 @@ export function generateReplayLink(routes: PlainRoute<any>[]) {
     };
   };
 }
+
+export function getTransactionSummaryBaseUrl(orgSlug: string, view?: DomainView) {
+  return `${getPerformanceBaseUrl(orgSlug, view)}/summary`;
+}
+
 export const SidebarSpacer = styled('div')`
   margin-top: ${space(3)};
 `;
