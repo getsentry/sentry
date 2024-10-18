@@ -3,7 +3,6 @@ import type Fuse from 'fuse.js';
 
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import type {
-  FilterValueItem,
   KeySectionItem,
   SearchKeyItem,
 } from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/types';
@@ -15,6 +14,7 @@ import {
 import type {FieldDefinitionGetter} from 'sentry/components/searchQueryBuilder/types';
 import type {Tag} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
+import {FieldKey} from 'sentry/utils/fields';
 import {useFuzzySearch} from 'sentry/utils/fuzzySearch';
 
 type FilterKeySearchItem = {
@@ -86,26 +86,19 @@ function getFilterSearchValues(
 }
 
 // Returns a section of suggested filter values.
-// This will suggest a maximum of 3 options, and only if they
-// are more relevant than any of the key suggestions.
+// This will suggest a maximum of 3 options and will display them
+// at the top only if the score is better than any of the keys.
 function getValueSuggestionsFromSearchResult(
   results: Fuse.FuseResult<FilterKeySearchItem>[]
 ) {
-  const suggestions: FilterValueItem[] = [];
-
-  for (const result of results) {
-    if (suggestions.length >= 3) {
-      break;
-    }
-
-    if (result.item.type === 'key') {
-      continue;
-    }
-
-    suggestions.push(
-      createFilterValueItem(result.item.item.key, result.item.value ?? '')
-    );
-  }
+  const suggestions = results
+    .filter(result => result.item.type === 'value')
+    // Sort HAS suggestions below others because they are less valuable
+    .sort((a, b) =>
+      a.item.item.key === FieldKey.HAS && b.item.item.key !== FieldKey.HAS ? 1 : -1
+    )
+    .map(result => createFilterValueItem(result.item.item.key, result.item.value ?? ''))
+    .slice(0, 3);
 
   const suggestedFiltersSection: KeySectionItem = {
     key: 'suggested-filters',
