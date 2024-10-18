@@ -84,9 +84,7 @@ Sentry.init({
       ? `
   // Tracing
   // We recommend adjusting this value in production, or using a tracesSampler for finer control.
-  tracesSampleRate: 1.0, // Capture 100% of the transactions
-  // Set 'tracePropagationTargets' to control for which URLs distributed tracing should be enabled
-  tracePropagationTargets: ["localhost", /^https:\\/\\/yourserver\\.io\\/api/],`
+  tracesSampleRate: 1.0, // Capture 100% of the transactions`
       : ''
   }${
     params.isProfilingSelected
