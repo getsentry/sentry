@@ -4,17 +4,20 @@ import Color from 'color';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {Button} from 'sentry/components/button';
+import {Flex} from 'sentry/components/container/flex';
 import Count from 'sentry/components/count';
-import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
-import EventMessage from 'sentry/components/events/eventMessage';
+import ErrorLevel from 'sentry/components/events/errorLevel';
+import UnhandledTag from 'sentry/components/group/inboxBadges/unhandledTag';
 import ParticipantList from 'sentry/components/group/streamlinedParticipantList';
 import Link from 'sentry/components/links/link';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron, IconPanel} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group, TeamParticipant, UserParticipant} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
+import {getTitle} from 'sentry/utils/events';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
@@ -75,6 +78,8 @@ export default function StreamlinedGroupHeader({
     };
   }, [group, activeUser.id]);
 
+  const {title: primaryTitle, subtitle: secondaryTitle} = getTitle(group);
+
   return (
     <Header>
       <StyledBreadcrumbs
@@ -89,43 +94,27 @@ export default function StreamlinedGroupHeader({
           {label: shortIdBreadcrumb},
         ]}
       />
-      <HeadingGrid>
-        <Heading>
-          <TitleHeading>
-            <TitleWrapper>
-              <StyledEventOrGroupTitle data={group} />
-            </TitleWrapper>
-          </TitleHeading>
-          <MessageWrapper>
-            <EventMessage
-              data={group}
-              message={message}
-              type={group.type}
-              level={group.level}
-              showUnhandled={group.isUnhandled}
-              levelIndicatorSize={'10px'}
-            />
-            <AttachmentsBadge group={group} />
-            <UserFeedbackBadge group={group} project={project} />
-            <ReplayBadge group={group} project={project} />
-          </MessageWrapper>
-        </Heading>
-        <AllStats>
-          <Stat>
-            <Label data-test-id="all-event-count">{t('All Events')}</Label>
-            <Link disabled={disableActions} to={eventRoute}>
-              <StatCount value={eventCount} />
-            </Link>
-          </Stat>
-          <Stat>
-            <Label>{t('All Users')}</Label>
-            <Link disabled={disableActions} to={`${baseUrl}tags/user/${location.search}`}>
-              <StatCount value={userCount} />
-            </Link>
-          </Stat>
-        </AllStats>
-      </HeadingGrid>
-
+      <HeaderGrid>
+        <Flex gap={space(0.75)} align="flex-end">
+          <PrimaryTitle>{primaryTitle}</PrimaryTitle>
+          <SecondaryTitle>{secondaryTitle}</SecondaryTitle>
+        </Flex>
+        <StatTitle to={eventRoute}>{t('Events')}</StatTitle>
+        <StatTitle to={`${baseUrl}tags/user/${location.search}`}>{t('Users')}</StatTitle>
+        <Flex gap={space(1)} align="center" justify="flex-start">
+          <ErrorLevel level={group.level} size={'10px'} />
+          {group.isUnhandled && <UnhandledTag />}
+          <Divider />
+          <Message title={message} disabled={!message} hasMessage={!!message}>
+            {message ?? t('No error message')}
+          </Message>
+          <AttachmentsBadge group={group} />
+          <UserFeedbackBadge group={group} project={project} />
+          <ReplayBadge group={group} project={project} />
+        </Flex>
+        <StatCount value={eventCount} />
+        <StatCount value={userCount} />
+      </HeaderGrid>
       <StyledBreak />
       <InfoWrapper
         isResolvedOrIgnored={group.status === 'resolved' || group.status === 'ignored'}
@@ -169,9 +158,9 @@ export default function StreamlinedGroupHeader({
             <Button
               icon={
                 sidebarOpen ? (
-                  <IconChevron direction="right" />
+                  <IconChevron direction="right" color="gray300" />
                 ) : (
-                  <IconPanel direction="right" />
+                  <IconPanel direction="right" color="gray300" />
                 )
               }
               title={sidebarOpen ? t('Close Sidebar') : t('Open Sidebar')}
@@ -187,77 +176,57 @@ export default function StreamlinedGroupHeader({
   );
 }
 
-const StyledEventOrGroupTitle = styled(EventOrGroupTitle)`
-  font-size: inherit;
+const Header = styled('div')`
+  padding: 0 24px;
+  background-color: ${p => p.theme.background};
+  border-bottom: 1px solid ${p => p.theme.border};
 `;
 
-const HeadingGrid = styled('div')`
+const HeaderGrid = styled('div')`
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: ${space(2)};
+  grid-template-columns: minmax(150px, 1fr) auto auto;
+  gap: ${space(0.75)} ${space(2)};
   align-items: center;
 `;
 
-const Heading = styled('div')``;
-
-const AllStats = styled('div')`
-  display: flex;
-  gap: ${space(4)};
-  padding-top: ${space(0.25)};
-`;
-
-const Stat = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1)};
-  font-size: ${p => p.theme.fontSizeSmall};
-`;
-
-const Label = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+const PrimaryTitle = styled('div')`
+  flex: 0;
+  line-height: 1;
+  font-size: ${p => p.theme.fontSizeExtraLarge};
   font-weight: ${p => p.theme.fontWeightBold};
+`;
+
+const SecondaryTitle = styled('div')`
+  line-height: 1;
+  font-size: ${p => p.theme.fontSizeMedium};
+  white-space: nowrap;
+`;
+
+const StatTitle = styled(Link)`
+  display: block;
+  text-decoration: underline;
+  text-decoration-style: dotted;
   color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSizeSmall};
 `;
 
 const StatCount = styled(Count)`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
   display: block;
+  font-size: ${p => p.theme.fontSizeExtraLarge};
   line-height: 1;
 `;
 
-const TitleWrapper = styled('h3')`
-  font-size: 20px;
-  margin: 0;
-  padding-bottom: 2px;
+const Message = styled(Tooltip)<{hasMessage: boolean}>`
+  overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  overflow: hidden;
-  color: ${p => p.theme.headingColor};
-
-  & em {
-    font-weight: ${p => p.theme.fontWeightNormal};
-    color: ${p => p.theme.textColor};
-    font-size: ${p => p.theme.fontSizeLarge};
-  }
-`;
-
-const TitleHeading = styled('div')`
-  display: flex;
-  line-height: 2;
-  gap: ${space(1)};
+  color: ${p => p.theme.subText};
+  font-style: ${p => (p.hasMessage ? 'initial' : 'italic')};
 `;
 
 const StyledBreak = styled('hr')`
-  margin-top: ${space(1.5)};
-  margin-bottom: 0;
-  margin-right: 0;
+  margin: ${space(1.5)} -24px 0 0;
   border-color: ${p => p.theme.border};
-`;
-
-const MessageWrapper = styled('div')`
-  display: flex;
-  color: ${p => p.theme.gray300};
-  gap: ${space(1)};
 `;
 
 const InfoWrapper = styled('div')<{isResolvedOrIgnored: boolean}>`
@@ -269,7 +238,7 @@ const InfoWrapper = styled('div')<{isResolvedOrIgnored: boolean}>`
       ? `linear-gradient(to right, ${p.theme.background}, ${Color(p.theme.success).lighten(0.5).alpha(0.15).string()})`
       : p.theme.background};
   color: ${p => p.theme.gray300};
-  padding: ${space(0.5)} 24px;
+  padding: ${space(0.5)} 0;
   margin-right: 0;
   margin-left: 0;
   flex-wrap: wrap;
@@ -293,27 +262,14 @@ const Wrapper = styled('div')`
   gap: ${space(0.5)};
 `;
 
-const Header = styled('div')`
-  background-color: ${p => p.theme.background};
-  display: flex;
-  flex-direction: column;
-  border-bottom: 1px solid ${p => p.theme.border};
-
-  > * {
-    margin-right: 24px;
-    margin-left: 24px;
-  }
-`;
-
 const StyledBreadcrumbs = styled(Breadcrumbs)`
-  margin-top: ${space(2)};
+  margin-top: ${space(1)};
 `;
 
 const CollapseSidebarWrapper = styled('div')`
   display: flex;
   gap: ${space(0.5)};
   align-items: center;
-
   @media (max-width: ${p => p.theme.breakpoints.large}) {
     display: none;
   }
