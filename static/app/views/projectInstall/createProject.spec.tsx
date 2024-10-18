@@ -1,4 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
 import {MOCK_RESP_VERBOSE} from 'sentry-fixture/ruleConditions';
 import {TeamFixture} from 'sentry-fixture/team';
 
@@ -47,6 +48,15 @@ function renderFrameworkModalMockRequests({
     body: [],
   });
 
+  MockApiClient.addMockResponse({
+    url: `/organizations/${organization.slug}/integrations/?integrationType=messaging`,
+    body: [
+      OrganizationIntegrationsFixture({
+        name: "Moo Deng's Workspace",
+      }),
+    ],
+  });
+
   const projectCreationMockRequest = MockApiClient.addMockResponse({
     url: `/teams/${organization.slug}/${teamSlug}/projects/`,
     method: 'POST',
@@ -83,6 +93,15 @@ describe('CreateProject', function () {
       body: {},
       // Not required for these tests
       statusCode: 500,
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/integrations/?integrationType=messaging`,
+      body: [
+        OrganizationIntegrationsFixture({
+          name: "Moo Deng's Workspace",
+        }),
+      ],
     });
   });
 
@@ -367,13 +386,24 @@ describe('CreateProject', function () {
   });
 
   describe('Issue Alerts Options', function () {
-    const organization = OrganizationFixture();
+    const organization = OrganizationFixture({
+      features: ['messaging-integration-onboarding-project-creation'],
+    });
     beforeEach(() => {
       TeamStore.loadUserTeams([teamWithAccess]);
 
       MockApiClient.addMockResponse({
         url: `/projects/${organization.slug}/rule-conditions/`,
         body: MOCK_RESP_VERBOSE,
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/integrations/?integrationType=messaging`,
+        body: [
+          OrganizationIntegrationsFixture({
+            name: "Moo Deng's Workspace",
+          }),
+        ],
       });
     });
 
@@ -404,6 +434,13 @@ describe('CreateProject', function () {
       expect(getSubmitButton()).toBeEnabled();
 
       await userEvent.clear(screen.getByTestId('range-input'));
+      expect(getSubmitButton()).toBeDisabled();
+
+      await userEvent.click(
+        screen.getByRole('checkbox', {
+          name: 'Notify via integration (Slack, Discord, MS Teams, etc.)',
+        })
+      );
       expect(getSubmitButton()).toBeDisabled();
 
       await userEvent.click(screen.getByText("I'll create my own alerts later"));
