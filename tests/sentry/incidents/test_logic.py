@@ -103,7 +103,6 @@ from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventTy
 from sentry.testutils.cases import BaseIncidentsTest, BaseMetricsTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of
 from sentry.types.actor import Actor
 
@@ -309,7 +308,6 @@ class GetIncidentAggregatesTest(TestCase, BaseIncidentAggregatesTest):
     def test_projects(self):
         assert get_incident_aggregates(self.project_incident) == {"count": 4}
 
-    @override_options({"issues.group_attributes.send_kafka": True})
     def test_is_unresolved_query(self):
         incident = self.create_incident(
             date_started=self.now - timedelta(minutes=5),
@@ -1811,11 +1809,10 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         mock_seer_request.reset_mock()
 
         two_weeks_ago = before_now(days=14).replace(hour=10, minute=0, second=0, microsecond=0)
-        with self.options({"issues.group_attributes.send_kafka": True}):
-            self.create_error_event(timestamp=iso_format(two_weeks_ago + timedelta(minutes=1)))
-            self.create_error_event(
-                timestamp=iso_format(two_weeks_ago + timedelta(days=10))
-            )  # 4 days ago
+        self.create_error_event(timestamp=iso_format(two_weeks_ago + timedelta(minutes=1)))
+        self.create_error_event(
+            timestamp=iso_format(two_weeks_ago + timedelta(days=10))
+        )  # 4 days ago
 
         # update aggregate
         update_alert_rule(
@@ -1840,11 +1837,10 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
 
         two_weeks_ago = before_now(days=14).replace(hour=10, minute=0, second=0, microsecond=0)
-        with self.options({"issues.group_attributes.send_kafka": True}):
-            self.create_error_event(timestamp=iso_format(two_weeks_ago + timedelta(minutes=1)))
-            self.create_error_event(
-                timestamp=iso_format(two_weeks_ago + timedelta(days=10))
-            )  # 4 days ago
+        self.create_error_event(timestamp=iso_format(two_weeks_ago + timedelta(minutes=1)))
+        self.create_error_event(
+            timestamp=iso_format(two_weeks_ago + timedelta(days=10))
+        )  # 4 days ago
 
         dynamic_rule = self.create_alert_rule(
             sensitivity=AlertRuleSensitivity.HIGH,
