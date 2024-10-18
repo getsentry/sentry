@@ -3,6 +3,7 @@ import {VisuallyHidden} from '@react-aria/visually-hidden';
 import type {ListState} from '@react-stately/list';
 
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
+import {useKeyboardSelection} from 'sentry/components/searchQueryBuilder/hooks/useKeyboardSelection';
 import {findNearestFreeTextKey} from 'sentry/components/searchQueryBuilder/utils';
 import type {ParseResultToken} from 'sentry/components/searchSyntax/parser';
 import {defined} from 'sentry/utils';
@@ -24,8 +25,10 @@ type SelectionKeyHandlerProps = {
 export const SelectionKeyHandler = forwardRef(
   ({state, undo}: SelectionKeyHandlerProps, ref: ForwardedRef<HTMLInputElement>) => {
     const {dispatch, disabled} = useSearchQueryBuilder();
+    const {selectInDirection} = useKeyboardSelection();
 
-    const selectedTokens = Array.from(state.selectionManager.selectedKeys)
+    const selectedTokens: ParseResultToken[] = [...state.collection.getKeys()]
+      .filter(key => state.selectionManager.selectedKeys.has(key))
       .map(key => state.collection.getItem(key)?.value)
       .filter(defined);
 
@@ -70,6 +73,12 @@ export const SelectionKeyHandler = forwardRef(
           case 'ArrowRight':
             e.preventDefault();
             e.stopPropagation();
+
+            if (e.shiftKey) {
+              selectInDirection({state, direction: 'right'});
+              return;
+            }
+
             state.selectionManager.clearSelection();
             state.selectionManager.setFocusedKey(
               findNearestFreeTextKey(
@@ -82,6 +91,12 @@ export const SelectionKeyHandler = forwardRef(
           case 'ArrowLeft':
             e.preventDefault();
             e.stopPropagation();
+
+            if (e.shiftKey) {
+              selectInDirection({state, direction: 'left'});
+              return;
+            }
+
             state.selectionManager.clearSelection();
             state.selectionManager.setFocusedKey(
               findNearestFreeTextKey(
@@ -142,14 +157,13 @@ export const SelectionKeyHandler = forwardRef(
             return;
         }
       },
-      [dispatch, selectedTokens, state, undo]
+      [dispatch, selectInDirection, selectedTokens, state, undo]
     );
 
     // Using VisuallyHidden because display: none will not allow the input to be focused
     return (
       <VisuallyHidden>
         <input
-          aria-hidden
           data-test-id="selection-key-handler"
           ref={ref}
           tabIndex={-1}

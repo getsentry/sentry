@@ -6,6 +6,7 @@ import type {ListState} from '@react-stately/list';
 import type {FocusableElement, Node} from '@react-types/shared';
 
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
+import {useKeyboardSelection} from 'sentry/components/searchQueryBuilder/hooks/useKeyboardSelection';
 import {findNearestFreeTextKey} from 'sentry/components/searchQueryBuilder/utils';
 import type {ParseResultToken} from 'sentry/components/searchSyntax/parser';
 
@@ -95,6 +96,7 @@ export function useQueryBuilderGridItem(
 ) {
   const {wrapperRef} = useSearchQueryBuilder();
   const {rowProps, gridCellProps} = useGridListItem({node: item}, state, ref);
+  const {selectInDirection} = useKeyboardSelection();
 
   // When focus is inside the input, we want to handle some things differently.
   // Returns true if the default behavior should be used, false if not.
@@ -160,6 +162,15 @@ export function useQueryBuilderGridItem(
           return;
         }
 
+        if (e.shiftKey) {
+          selectInDirection({
+            state,
+            beginNewSelectionFromKey: item.key,
+            direction: 'right',
+          });
+          return;
+        }
+
         // Option/Ctrl + ArrowRight should skip focus over to the next free text token
         if (isMac() ? e.altKey : e.ctrlKey) {
           const nextKey = state.collection.getKeyAfter(item.key);
@@ -186,6 +197,15 @@ export function useQueryBuilderGridItem(
           return;
         }
 
+        if (e.shiftKey) {
+          selectInDirection({
+            state,
+            beginNewSelectionFromKey: item.key,
+            direction: 'left',
+          });
+          return;
+        }
+
         // Option/Ctrl + ArrowLeft should skip focus over to the next free text token
         if (isMac() ? e.altKey : e.ctrlKey) {
           const previousKey = state.collection.getKeyBefore(item.key);
@@ -200,7 +220,7 @@ export function useQueryBuilderGridItem(
         focusPreviousGridCell({walker, wrapperRef, state, item});
       }
     },
-    [handleInputKeyDown, item, state, wrapperRef]
+    [handleInputKeyDown, item, selectInDirection, state, wrapperRef]
   );
 
   const onKeyDown = useCallback(
