@@ -108,6 +108,11 @@ def handle_launchdarkly_event(
             "updateFlagDefaultVariations",
             "updateFlagVariations",
             "updateGlobalArchived",
+            "updateRulesWithMeasuredRollout",
+            "updateFallthroughWithMeasuredRollout",
+            "updatePrerequisites",
+            "stopMeasuredRolloutOnFlagFallthrough",
+            "stopMeasuredRolloutOnFlagRule",
         )
     ]
 
