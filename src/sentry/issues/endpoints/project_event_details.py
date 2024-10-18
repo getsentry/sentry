@@ -37,16 +37,13 @@ def wrap_event_response(
     prev_event_id = None
 
     if event.group_id:
-        conditions = []
-        if environments:
-            conditions.append(["environment", "IN", environments])
-        _filter = eventstore.Filter(
-            conditions=conditions,
-            project_ids=[event.project_id],
-            group_ids=[event.group_id],
+        prev_ids, next_ids = eventstore.backend.get_adjacent_event_ids_snql(
+            organization_id=event.organization.id,
+            project_id=event.project_id,
+            group_id=event.group_id,
+            environments=environments,
+            event=event,
         )
-
-        prev_ids, next_ids = eventstore.backend.get_adjacent_event_ids(event, filter=_filter)
 
         next_event_id = next_ids[1] if next_ids else None
         prev_event_id = prev_ids[1] if prev_ids else None
