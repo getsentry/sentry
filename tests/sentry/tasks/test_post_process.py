@@ -2157,7 +2157,6 @@ class DetectBaseUrlsForUptimeTestMixin(BasePostProgressGroupMixin):
         cluster = _get_cluster()
         assert exists == cluster.sismember(key, str(organization.id))
 
-    @with_feature("organizations:uptime-automatic-hostname-detection")
     def test_uptime_detection_feature_url(self):
         event = self.create_event(
             data={"request": {"url": "http://sentry.io"}},
@@ -2171,7 +2170,6 @@ class DetectBaseUrlsForUptimeTestMixin(BasePostProgressGroupMixin):
         )
         self.assert_organization_key(self.organization, True)
 
-    @with_feature("organizations:uptime-automatic-hostname-detection")
     def test_uptime_detection_feature_no_url(self):
         event = self.create_event(
             data={},
