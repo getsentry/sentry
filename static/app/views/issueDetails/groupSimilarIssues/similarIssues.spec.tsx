@@ -182,10 +182,10 @@ describe('Issues Similar Embeddings View', function () {
   });
 
   const similarEmbeddingsScores = [
-    {exception: 0.01, message: 0.3748, shouldBeGrouped: 'Yes'},
-    {exception: 0.005, message: 0.3738, shouldBeGrouped: 'Yes'},
-    {exception: 0.7384, message: 0.3743, shouldBeGrouped: 'No'},
-    {exception: 0.3849, message: 0.4738, shouldBeGrouped: 'No'},
+    {exception: 0.01, shouldBeGrouped: 'Yes'},
+    {exception: 0.005, shouldBeGrouped: 'Yes'},
+    {exception: 0.7384, shouldBeGrouped: 'No'},
+    {exception: 0.3849, shouldBeGrouped: 'No'},
   ];
 
   const mockData = {
