@@ -39,6 +39,18 @@ def save_userreport(
         if should_filter_user_report(report["comments"]):
             return
 
+        max_comment_length = UserReport._meta.get_field("comments").max_length
+        if max_comment_length and len(report["comments"]) > max_comment_length:
+            metrics.distribution(
+                "feedback.large_message",
+                len(report["comments"]),
+                tags={
+                    "entrypoint": "save_userreport",
+                    "referrer": source.value,
+                },
+            )
+            report["comments"] = report["comments"][:max_comment_length]
+
         if start_time is None:
             start_time = timezone.now()
 
