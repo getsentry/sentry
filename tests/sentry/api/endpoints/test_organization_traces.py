@@ -2504,6 +2504,131 @@ class OrganizationTracesEAPEndpointTest(OrganizationTracesEndpointTest):
     def test_matching_tag_metrics(self):
         pass
 
+    def test_invalid_sort(self):
+        for sort in ["foo", "-foo"]:
+            query = {
+                "project": [self.project.id],
+                "field": ["id", "parent_span"],
+                "sort": sort,
+            }
+
+            response = self.do_request(query)
+            assert response.status_code == 400, response.data
+            assert response.data == {
+                "detail": ErrorDetail(string=f"Unsupported sort: {sort}", code="parse_error"),
+            }
+
+    def test_sort_by_timestamp(self):
+        (
+            project_1,
+            project_2,
+            trace_id_1,
+            trace_id_2,
+            _,
+            timestamps,
+            span_ids,
+        ) = self.create_mock_traces()
+
+        expected = [
+            {
+                "trace": trace_id_1,
+                "numErrors": 1,
+                "numOccurrences": 0,
+                "numSpans": 4,
+                "matchingSpans": 3,
+                "project": project_1.slug,
+                "name": "foo",
+                "duration": 60_100,
+                "start": timestamps[0],
+                "end": timestamps[0] + 60_100,
+                "breakdowns": [
+                    {
+                        "project": project_1.slug,
+                        "sdkName": "sentry.javascript.node",
+                        "isRoot": False,
+                        "start": timestamps[0],
+                        "end": timestamps[0] + 60_100,
+                        "sliceStart": 0,
+                        "sliceEnd": 40,
+                        "sliceWidth": 40,
+                        "kind": "project",
+                        "duration": 60_100,
+                    },
+                    {
+                        "project": project_2.slug,
+                        "sdkName": "sentry.javascript.node",
+                        "isRoot": False,
+                        "start": timestamps[1] + 522,
+                        "end": timestamps[3] + 30_003 + 61,
+                        "sliceStart": 11,
+                        "sliceEnd": 32,
+                        "sliceWidth": 21,
+                        "kind": "project",
+                        "duration": timestamps[3] - timestamps[1] + 30_003,
+                    },
+                ],
+            },
+            {
+                "trace": trace_id_2,
+                "numErrors": 0,
+                "numOccurrences": 0,
+                "numSpans": 6,
+                "matchingSpans": 2,
+                "project": project_1.slug,
+                "name": "bar",
+                "duration": 90_123,
+                "start": timestamps[4],
+                "end": timestamps[4] + 90_123,
+                "breakdowns": [
+                    {
+                        "project": project_1.slug,
+                        "sdkName": "sentry.javascript.node",
+                        "isRoot": False,
+                        "start": timestamps[4],
+                        "end": timestamps[4] + 90_123,
+                        "sliceStart": 0,
+                        "sliceEnd": 40,
+                        "sliceWidth": 40,
+                        "kind": "project",
+                        "duration": 90_123,
+                    },
+                    {
+                        "project": project_2.slug,
+                        "sdkName": "sentry.javascript.node",
+                        "isRoot": False,
+                        "start": timestamps[5] - 988,
+                        "end": timestamps[6] + 20_006 + 536,
+                        "sliceStart": 4,
+                        "sliceEnd": 14,
+                        "sliceWidth": 10,
+                        "kind": "project",
+                        "duration": timestamps[6] - timestamps[5] + 20_006,
+                    },
+                ],
+            },
+        ]
+
+        for descending in [False, True]:
+            for q in [
+                ["foo:[bar, baz]"],
+                ["foo:bar span.duration:>10s", "foo:baz"],
+            ]:
+                query = {
+                    # only query for project_2 but expect traces to start from project_1
+                    "project": [project_2.id],
+                    "field": ["id", "parent_span", "span.duration"],
+                    "query": q,
+                    "sort": "-timestamp" if descending else "timestamp",
+                }
+
+                response = self.do_request(query)
+                assert response.status_code == 200, response.data
+                assert response.data["data"] == sorted(
+                    expected,
+                    key=lambda trace: trace["start"],
+                    reverse=descending,
+                )
+
 
 class OrganizationTraceSpansEAPEndpointTest(OrganizationTraceSpansEndpointTest):
     is_eap: bool = True
