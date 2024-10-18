@@ -1011,6 +1011,53 @@ describe('SearchQueryBuilder', function () {
       expect(getLastInput()).toHaveFocus();
     });
 
+    it('extends selection with shift+arrow keys', async function () {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          initialQuery="browser.name:firefox assigned:me"
+        />
+      );
+
+      await userEvent.click(getLastInput());
+
+      // Shift+ArrowLeft should select assigned:me
+      await userEvent.keyboard('{Shift>}{ArrowLeft}{/Shift}');
+      await waitFor(() => {
+        expect(screen.getByRole('row', {name: 'assigned:me'})).toHaveAttribute(
+          'aria-selected',
+          'true'
+        );
+      });
+
+      // Shift+ArrowLeft again should select browser.name
+      await userEvent.keyboard('{Shift>}{ArrowLeft}{/Shift}');
+      await waitFor(() => {
+        expect(screen.getByRole('row', {name: 'browser.name:firefox'})).toHaveAttribute(
+          'aria-selected',
+          'true'
+        );
+      });
+      // assigned:me should still be selected
+      expect(screen.getByRole('row', {name: 'assigned:me'})).toHaveAttribute(
+        'aria-selected',
+        'true'
+      );
+
+      // Shift+ArrowRight should unselect browser.name:firefox
+      await userEvent.keyboard('{Shift>}{ArrowRight}{/Shift}');
+      await waitFor(() => {
+        expect(
+          screen.getByRole('row', {name: 'browser.name:firefox'})
+        ).not.toHaveAttribute('aria-selected', 'true');
+      });
+      // assigned:me should still be selected
+      expect(screen.getByRole('row', {name: 'assigned:me'})).toHaveAttribute(
+        'aria-selected',
+        'true'
+      );
+    });
+
     it('when focus is in a filter segment, backspace first focuses the filter then deletes it', async function () {
       render(
         <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:firefox" />
