@@ -134,10 +134,12 @@ def get_stacktrace_string(data: dict[str, Any]) -> str:
     if exceptions and exceptions[0].get("id") == "chained-exception":
         exceptions = exceptions[0].get("values")
 
-    found_non_snipped_context_line = False
-    html_frame_count = 0  # for a temporary metric
     frame_count = 0
+    html_frame_count = 0  # for a temporary metric
+    stacktrace_str = ""
+    found_non_snipped_context_line = False
     result_parts = []
+
     metrics.distribution("seer.grouping.exceptions.length", len(exceptions))
 
     def _process_frames(frames: list[dict[str, Any]]) -> None:
@@ -212,8 +214,8 @@ def get_stacktrace_string(data: dict[str, Any]) -> str:
 
         result_parts.append((header, frame_strings))
 
-    stacktrace_str = ""
     final_frame_count = 0
+
     for header, frame_strings in result_parts:
         # For performance reasons, if the entire stacktrace is made of minified frames, restrict the
         # result to include only the first 20 frames, since minified frames are significantly more
@@ -239,6 +241,7 @@ def get_stacktrace_string(data: dict[str, Any]) -> str:
             )
         },
     )
+
     return stacktrace_str.strip()
 
 
