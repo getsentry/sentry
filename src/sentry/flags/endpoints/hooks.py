@@ -1,3 +1,4 @@
+import logging
 from urllib.parse import unquote
 
 import sentry_sdk
@@ -30,6 +31,8 @@ secret and reasonably restricted and so makes sense for this use case where we h
 inter-provider communication.
 """
 
+logger = logging.getLogger()
+
 
 @region_silo_endpoint
 class OrganizationFlagsHooksEndpoint(Endpoint):
@@ -48,7 +51,8 @@ class OrganizationFlagsHooksEndpoint(Endpoint):
         try:
             organization = Organization.objects.get(id=organization_id)
         except Organization.DoesNotExist:
-            raise ValueError(f"Organization lookup failed: {organization_id}")
+            logger.exception("Flags Webhook: lookup failed for organization `%d`", organization_id)
+            raise ResourceDoesNotExist
 
         kwargs["organization"] = organization
         return args, kwargs
