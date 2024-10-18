@@ -261,6 +261,7 @@ export function Trace({
           action_source: 'keyboard',
         });
       }
+
       if (event.key === 'ArrowLeft') {
         if (node.zoomedIn) {
           onNodeZoomIn(event, node, false);

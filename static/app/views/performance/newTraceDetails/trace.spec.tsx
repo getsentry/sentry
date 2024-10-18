@@ -201,7 +201,7 @@ async function keyboardNavigationTestSetup() {
       makeTransaction({
         span_id: i + '',
         event_id: i + '',
-        transaction: 'transaction-name' + i,
+        transaction: 'transaction-name-' + i,
         'transaction.op': 'transaction-op-' + i,
         project_slug: 'project_slug',
       })
@@ -698,6 +698,7 @@ describe('trace view', () => {
       await userEvent.keyboard('{arrowright}');
       expect(await screen.findByText('special-span')).toBeInTheDocument();
     });
+
     it('arrow left collapses row', async () => {
       const {virtualizedContainer} = await keyboardNavigationTestSetup();
       const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
@@ -720,6 +721,17 @@ describe('trace view', () => {
       expect(await screen.findByText('special-span')).toBeInTheDocument();
       await userEvent.keyboard('{arrowleft}');
       expect(screen.queryByText('special-span')).not.toBeInTheDocument();
+    });
+
+    it('arrow left does not collapse trace root row', async () => {
+      const {virtualizedContainer} = await keyboardNavigationTestSetup();
+      const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
+
+      await userEvent.click(rows[0]);
+      await waitFor(() => expect(rows[0]).toHaveFocus());
+
+      await userEvent.keyboard('{arrowleft}');
+      expect(await screen.findByText('transaction-name-1')).toBeInTheDocument();
     });
 
     it('roving updates the element in the drawer', async () => {

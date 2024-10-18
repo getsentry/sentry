@@ -1212,6 +1212,11 @@ export class TraceTree extends TraceTreeEventDispatcher {
   }
 
   expand(node: TraceTreeNode<TraceTree.NodeValue>, expanded: boolean): boolean {
+    // Trace root nodes are not expandable or collapsable
+    if (isTraceNode(node)) {
+      return false;
+    }
+
     // Expanding is not allowed for zoomed in nodes
     if (expanded === node.expanded || node.zoomedIn) {
       return false;
@@ -1275,6 +1280,10 @@ export class TraceTree extends TraceTreeEventDispatcher {
       organization: Organization;
     }
   ): Promise<Event | null> {
+    if (isTraceNode(node)) {
+      return Promise.resolve(null);
+    }
+
     if (zoomedIn === node.zoomedIn || !node.canFetch) {
       return Promise.resolve(null);
     }
