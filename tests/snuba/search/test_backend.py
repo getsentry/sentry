@@ -2587,10 +2587,7 @@ class EventsJoinedGroupAttributesSnubaSearchTest(TransactionTestCase, EventsSnub
             except urllib3.exceptions.HTTPError as err:
                 raise snuba.SnubaError(err)
 
-        with (
-            self.options({"issues.group_attributes.send_kafka": True}),
-            mock.patch("sentry.issues.attributes.produce_snapshot_to_kafka", post_insert),
-        ):
+        with (mock.patch("sentry.issues.attributes.produce_snapshot_to_kafka", post_insert),):
             super().setUp()
 
     @mock.patch("sentry.utils.metrics.timer")

@@ -51,44 +51,44 @@ class DailySummaryTest(
         resolve=True,
         level="error",
     ):
-        with self.options({"issues.group_attributes.send_kafka": True}):
-            if category == DataCategory.ERROR:
-                data = {
-                    "timestamp": timestamp.isoformat(),
-                    "fingerprint": [fingerprint],
-                    "level": level,
-                    "exception": {
-                        "values": [
-                            {
-                                "type": "IntegrationError",
-                                "value": "Identity not found.",
-                            }
-                        ]
-                    },
-                }
-                if release:
-                    data["release"] = release
-
-                event = self.store_event(
-                    data=data,
-                    project_id=project_id,
-                    assert_no_errors=False,
-                    default_event_type=EventType.DEFAULT,
-                )
-            elif category == DataCategory.TRANSACTION:
-                event = self.create_performance_issue()
-
-            self.store_outcomes(
-                {
-                    "org_id": self.organization.id,
-                    "project_id": project_id,
-                    "outcome": Outcome.ACCEPTED,
-                    "category": category,
-                    "timestamp": timestamp,
-                    "key_id": 1,
+        if category == DataCategory.ERROR:
+            data = {
+                "timestamp": timestamp.isoformat(),
+                "fingerprint": [fingerprint],
+                "level": level,
+                "exception": {
+                    "values": [
+                        {
+                            "type": "IntegrationError",
+                            "value": "Identity not found.",
+                        }
+                    ]
                 },
-                num_times=1,
+            }
+            if release:
+                data["release"] = release
+
+            event = self.store_event(
+                data=data,
+                project_id=project_id,
+                assert_no_errors=False,
+                default_event_type=EventType.DEFAULT,
             )
+        elif category == DataCategory.TRANSACTION:
+            event = self.create_performance_issue()
+
+        self.store_outcomes(
+            {
+                "org_id": self.organization.id,
+                "project_id": project_id,
+                "outcome": Outcome.ACCEPTED,
+                "category": category,
+                "timestamp": timestamp,
+                "key_id": 1,
+            },
+            num_times=1,
+        )
+
         group = event.group
         if resolve:
             group.status = GroupStatus.RESOLVED
@@ -122,6 +122,7 @@ class DailySummaryTest(
                 self.three_days_ago,
                 fingerprint="group-1",
                 category=DataCategory.ERROR,
+                resolve=False,
             )
         for _ in range(4):
             self.store_event_and_outcomes(
@@ -129,6 +130,7 @@ class DailySummaryTest(
                 self.two_days_ago,
                 fingerprint="group-1",
                 category=DataCategory.ERROR,
+                resolve=False,
             )
         for _ in range(3):
             self.store_event_and_outcomes(
@@ -136,6 +138,7 @@ class DailySummaryTest(
                 self.now,
                 fingerprint="group-1",
                 category=DataCategory.ERROR,
+                resolve=False,
             )
 
         # create an issue first seen in the release and set it to regressed
@@ -188,6 +191,7 @@ class DailySummaryTest(
                 self.now,
                 fingerprint="group-4",
                 category=DataCategory.ERROR,
+                resolve=False,
             )
         if performance_issues:
             # store some performance issues
@@ -289,33 +293,32 @@ class DailySummaryTest(
 
     @pytest.mark.skip(reason="flaky and part of a dead project")
     def test_build_summary_data_filter_to_unresolved(self):
-        with self.options({"issues.group_attributes.send_kafka": True}):
-            for _ in range(3):
-                group1 = self.store_event_and_outcomes(
-                    self.project.id,
-                    self.now,
-                    fingerprint="group-1",
-                    category=DataCategory.ERROR,
-                    resolve=False,
-                )
+        for _ in range(3):
+            group1 = self.store_event_and_outcomes(
+                self.project.id,
+                self.now,
+                fingerprint="group-1",
+                category=DataCategory.ERROR,
+                resolve=False,
+            )
 
-            for _ in range(3):
-                group2 = self.store_event_and_outcomes(
-                    self.project.id,
-                    self.now,
-                    fingerprint="group-2",
-                    category=DataCategory.ERROR,
-                    resolve=False,
-                )
+        for _ in range(3):
+            group2 = self.store_event_and_outcomes(
+                self.project.id,
+                self.now,
+                fingerprint="group-2",
+                category=DataCategory.ERROR,
+                resolve=False,
+            )
 
-            for _ in range(3):
-                self.store_event_and_outcomes(
-                    self.project.id,
-                    self.now,
-                    fingerprint="group-3",
-                    category=DataCategory.ERROR,
-                    resolve=True,
-                )
+        for _ in range(3):
+            self.store_event_and_outcomes(
+                self.project.id,
+                self.now,
+                fingerprint="group-3",
+                category=DataCategory.ERROR,
+                resolve=True,
+            )
 
         summary = build_summary_data(
             timestamp=self.now.timestamp(),
@@ -336,30 +339,29 @@ class DailySummaryTest(
     @pytest.mark.skip(reason="flaky and part of a dead project")
     def test_build_summary_data_filter_to_error_level(self):
         """Test that non-error level issues are filtered out of the results"""
-        with self.options({"issues.group_attributes.send_kafka": True}):
-            for _ in range(3):
-                group1 = self.store_event_and_outcomes(
-                    self.project.id,
-                    self.now,
-                    fingerprint="group-1",
-                    category=DataCategory.ERROR,
-                    resolve=False,
-                    level="info",
-                )
-                group2 = self.store_event_and_outcomes(
-                    self.project.id,
-                    self.now,
-                    fingerprint="group-2",
-                    category=DataCategory.ERROR,
-                    resolve=False,
-                )
-                group3 = self.store_event_and_outcomes(
-                    self.project.id,
-                    self.now,
-                    fingerprint="group-3",
-                    category=DataCategory.ERROR,
-                    resolve=False,
-                )
+        for _ in range(3):
+            group1 = self.store_event_and_outcomes(
+                self.project.id,
+                self.now,
+                fingerprint="group-1",
+                category=DataCategory.ERROR,
+                resolve=False,
+                level="info",
+            )
+            group2 = self.store_event_and_outcomes(
+                self.project.id,
+                self.now,
+                fingerprint="group-2",
+                category=DataCategory.ERROR,
+                resolve=False,
+            )
+            group3 = self.store_event_and_outcomes(
+                self.project.id,
+                self.now,
+                fingerprint="group-3",
+                category=DataCategory.ERROR,
+                resolve=False,
+            )
 
         summary = build_summary_data(
             timestamp=self.now.timestamp(),
@@ -746,24 +748,23 @@ class DailySummaryTest(
                 ]
             },
         }
-        with self.options({"issues.group_attributes.send_kafka": True}):
-            self.store_event(
-                data=data,
-                project_id=self.project.id,
-                assert_no_errors=False,
-                default_event_type=EventType.DEFAULT,
-            )
-            self.store_outcomes(
-                {
-                    "org_id": self.organization.id,
-                    "project_id": self.project.id,
-                    "outcome": Outcome.ACCEPTED,
-                    "category": DataCategory.ERROR,
-                    "timestamp": self.now,
-                    "key_id": 1,
-                },
-                num_times=1,
-            )
+        self.store_event(
+            data=data,
+            project_id=self.project.id,
+            assert_no_errors=False,
+            default_event_type=EventType.DEFAULT,
+        )
+        self.store_outcomes(
+            {
+                "org_id": self.organization.id,
+                "project_id": self.project.id,
+                "outcome": Outcome.ACCEPTED,
+                "category": DataCategory.ERROR,
+                "timestamp": self.now,
+                "key_id": 1,
+            },
+            num_times=1,
+        )
 
         ctx = build_summary_data(
             timestamp=self.now.timestamp(),
@@ -795,24 +796,23 @@ class DailySummaryTest(
                 ]
             },
         }
-        with self.options({"issues.group_attributes.send_kafka": True}):
-            self.store_event(
-                data=data,
-                project_id=self.project.id,
-                assert_no_errors=False,
-                default_event_type=EventType.DEFAULT,
-            )
-            self.store_outcomes(
-                {
-                    "org_id": self.organization.id,
-                    "project_id": self.project.id,
-                    "outcome": Outcome.ACCEPTED,
-                    "category": DataCategory.ERROR,
-                    "timestamp": self.now,
-                    "key_id": 1,
-                },
-                num_times=1,
-            )
+        self.store_event(
+            data=data,
+            project_id=self.project.id,
+            assert_no_errors=False,
+            default_event_type=EventType.DEFAULT,
+        )
+        self.store_outcomes(
+            {
+                "org_id": self.organization.id,
+                "project_id": self.project.id,
+                "outcome": Outcome.ACCEPTED,
+                "category": DataCategory.ERROR,
+                "timestamp": self.now,
+                "key_id": 1,
+            },
+            num_times=1,
+        )
 
         ctx = build_summary_data(
             timestamp=self.now.timestamp(),
@@ -844,24 +844,23 @@ class DailySummaryTest(
                 ]
             },
         }
-        with self.options({"issues.group_attributes.send_kafka": True}):
-            self.store_event(
-                data=data,
-                project_id=self.project.id,
-                assert_no_errors=False,
-                default_event_type=EventType.DEFAULT,
-            )
-            self.store_outcomes(
-                {
-                    "org_id": self.organization.id,
-                    "project_id": self.project.id,
-                    "outcome": Outcome.ACCEPTED,
-                    "category": DataCategory.ERROR,
-                    "timestamp": self.now,
-                    "key_id": 1,
-                },
-                num_times=1,
-            )
+        self.store_event(
+            data=data,
+            project_id=self.project.id,
+            assert_no_errors=False,
+            default_event_type=EventType.DEFAULT,
+        )
+        self.store_outcomes(
+            {
+                "org_id": self.organization.id,
+                "project_id": self.project.id,
+                "outcome": Outcome.ACCEPTED,
+                "category": DataCategory.ERROR,
+                "timestamp": self.now,
+                "key_id": 1,
+            },
+            num_times=1,
+        )
 
         ctx = build_summary_data(
             timestamp=self.now.timestamp(),
@@ -888,12 +887,14 @@ class DailySummaryTest(
             name="barf", organization=self.organization, teams=[self.team]
         )
         project3.first_event = self.three_days_ago
+        project3.save()
         for _ in range(15):
             self.store_event_and_outcomes(
                 project3.id,
                 self.now,
                 fingerprint="group-1",
                 category=DataCategory.ERROR,
+                resolve=False,
             )
         context = build_summary_data(
             timestamp=self.now.timestamp(),
