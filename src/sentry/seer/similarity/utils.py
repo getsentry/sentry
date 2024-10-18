@@ -134,84 +134,16 @@ def get_stacktrace_string(data: dict[str, Any]) -> str:
     if exceptions and exceptions[0].get("id") == "chained-exception":
         exceptions = exceptions[0].get("values")
 
-    frame_count = 0
-    html_frame_count = 0  # for a temporary metric
-    stacktrace_str = ""
-    found_non_snipped_context_line = False
-    result_parts = []
-
     metrics.distribution("seer.grouping.exceptions.length", len(exceptions))
 
-    # Reverse the list of exceptions in order to prioritize the outermost/most recent ones in cases
-    # where there are chained exceptions and we end up truncating
-    # Limit the number of chained exceptions
-    for exception in reversed(exceptions[-MAX_EXCEPTION_COUNT:]):
-        if exception.get("id") not in ["exception", "threads"] or not exception.get("contributes"):
-            continue
+    return _get_stacktrace_string(exceptions)
 
-        # For each exception, extract its type, value, and up to limit number of stacktrace frames
-        exc_type, exc_value, frame_strings = "", "", []
-        for exception_value in exception.get("values", []):
-            if exception_value.get("id") == "type":
-                exc_type = _get_value_if_exists(exception_value)
-            elif exception_value.get("id") == "value":
-                exc_value = _get_value_if_exists(exception_value)
-            elif exception_value.get("id") == "stacktrace" and frame_count < MAX_FRAME_COUNT:
-                contributing_frames = [
-                    frame
-                    for frame in exception_value["values"]
-                    if frame.get("id") == "frame" and frame.get("contributes")
-                ]
-                contributing_frames = _discard_excess_frames(
-                    contributing_frames, MAX_FRAME_COUNT, frame_count
-                )
-                frame_count += len(contributing_frames)
 
-                for frame in contributing_frames:
-                    frame_dict = {"filename": "", "function": "", "context-line": ""}
-                    for frame_values in frame.get("values", []):
-                        if frame_values.get("id") in frame_dict:
-                            frame_dict[frame_values["id"]] = _get_value_if_exists(frame_values)
-
-                    if not _is_snipped_context_line(frame_dict["context-line"]):
-                        found_non_snipped_context_line = True
-
-                    # Not an exhaustive list of tests we could run to detect HTML, but this is only
-                    # meant to be a temporary, quick-and-dirty metric
-                    # TODO: Don't let this, and the metric below, hang around forever. It's only to
-                    # help us get a sense of whether it's worthwhile trying to more accurately
-                    # detect, and then exclude, frames containing HTML
-                    if (
-                        frame_dict["filename"].endswith("html")
-                        or "<html>" in frame_dict["context-line"]
-                    ):
-                        html_frame_count += 1
-
-                    # We want to skip frames with base64 encoded filenames since they can be large
-                    # and not contain any usable information
-                    base64_encoded = False
-                    for base64_prefix in BASE64_ENCODED_PREFIXES:
-                        if frame_dict["filename"].startswith(base64_prefix):
-                            metrics.incr(
-                                "seer.grouping.base64_encoded_filename",
-                                sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-                            )
-                            base64_encoded = True
-                            break
-                    if base64_encoded:
-                        continue
-
-                    frame_strings.append(
-                        f'  File "{frame_dict["filename"]}", function {frame_dict["function"]}\n    {frame_dict["context-line"]}\n'
-                    )
-        # Only exceptions have the type and value properties, so we don't need to handle the threads
-        # case here
-        header = f"{exc_type}: {exc_value}\n" if exception["id"] == "exception" else ""
-
-        result_parts.append((header, frame_strings))
-
+def _get_stacktrace_string(exceptions: list[dict[str, Any]]) -> str:
+    stacktrace_str = ""
+    html_frame_count, result_parts, found_non_snipped_context_line = _process_exceptions(exceptions)
     final_frame_count = 0
-
+    stacktrace_str = ""
     for header, frame_strings in result_parts:
         # For performance reasons, if the entire stacktrace is made of minified frames, restrict the
         # result to include only the first 20 frames, since minified frames are significantly more
@@ -237,8 +169,90 @@ def get_stacktrace_string(data: dict[str, Any]) -> str:
             )
         },
     )
-
     return stacktrace_str.strip()
+
+
+def _process_exceptions(
+    exceptions: list[dict[str, Any]]
+) -> tuple[int, list[tuple[str, list[str]]], bool]:
+    found_non_snipped_context_line = False
+    html_frame_count = 0  # for a temporary metric
+    frame_count = 0
+    result_parts = []
+
+    def _process_frames(frames: list[dict[str, Any]]) -> None:
+        nonlocal found_non_snipped_context_line
+        nonlocal html_frame_count
+        nonlocal frame_count
+        nonlocal result_parts
+
+        contributing_frames = [
+            frame for frame in frames if frame.get("id") == "frame" and frame.get("contributes")
+        ]
+        contributing_frames = _discard_excess_frames(
+            contributing_frames, MAX_FRAME_COUNT, frame_count
+        )
+        frame_count += len(contributing_frames)
+
+        for frame in contributing_frames:
+            frame_dict = {"filename": "", "function": "", "context-line": ""}
+            for frame_values in frame.get("values", []):
+                if frame_values.get("id") in frame_dict:
+                    frame_dict[frame_values["id"]] = _get_value_if_exists(frame_values)
+
+            if not _is_snipped_context_line(frame_dict["context-line"]):
+                found_non_snipped_context_line = True
+
+            # Not an exhaustive list of tests we could run to detect HTML, but this is only
+            # meant to be a temporary, quick-and-dirty metric
+            # TODO: Don't let this, and the metric below, hang around forever. It's only to
+            # help us get a sense of whether it's worthwhile trying to more accurately
+            # detect, and then exclude, frames containing HTML
+            if frame_dict["filename"].endswith("html") or "<html>" in frame_dict["context-line"]:
+                html_frame_count += 1
+
+            # We want to skip frames with base64 encoded filenames since they can be large
+            # and not contain any usable information
+            base64_encoded = False
+            for base64_prefix in BASE64_ENCODED_PREFIXES:
+                if frame_dict["filename"].startswith(base64_prefix):
+                    metrics.incr(
+                        "seer.grouping.base64_encoded_filename",
+                        sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+                    )
+                    base64_encoded = True
+                    break
+            if base64_encoded:
+                continue
+
+            frame_strings.append(
+                f'  File "{frame_dict["filename"]}", function {frame_dict["function"]}\n    {frame_dict["context-line"]}\n'
+            )
+
+    # Reverse the list of exceptions in order to prioritize the outermost/most recent ones in cases
+    # where there are chained exceptions and we end up truncating
+    # Limit the number of chained exceptions
+    for exception in reversed(exceptions[-MAX_EXCEPTION_COUNT:]):
+        exception_type = exception.get("id")
+        if not exception.get("contributes") or exception_type not in ["exception", "threads"]:
+            continue
+
+        # For each exception, extract its type, value, and up to limit number of stacktrace frames
+        exc_type, exc_value, frame_strings = "", "", []
+        for exception_value in exception.get("values", []):
+            if exception_value.get("id") == "type":
+                exc_type = _get_value_if_exists(exception_value)
+            elif exception_value.get("id") == "value":
+                exc_value = _get_value_if_exists(exception_value)
+            elif exception_value.get("id") == "stacktrace" and frame_count < MAX_FRAME_COUNT:
+                _process_frames(exception_value["values"])
+        # Only exceptions have the type and value properties, so we don't need to handle the threads
+        # case here
+        header = f"{exc_type}: {exc_value}\n" if exception["id"] == "exception" else ""
+
+        result_parts.append((header, frame_strings))
+
+    return html_frame_count, result_parts, found_non_snipped_context_line
 
 
 def event_content_has_stacktrace(event: Event) -> bool:
