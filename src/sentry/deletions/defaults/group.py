@@ -5,6 +5,7 @@ from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from typing import Any
 
+from sentry_sdk import set_tag
 from snuba_sdk import DeleteQuery, Request
 
 from sentry import eventstore, eventstream, features, models, nodestore
@@ -202,7 +203,7 @@ class IssuePlatformEventsDeletionTask(EventsBaseDeletionTask):
         for project_id, group_ids in self.project_groups.items():
             query = DeleteQuery(
                 self.dataset.value,
-                column_conditions={"project_id": [project_id], "group_id": group_ids},
+                column_conditions={"project_id": [project_id], "group_id": list(group_ids)},
             )
             request = Request(
                 dataset=self.dataset.value,
@@ -268,6 +269,9 @@ class GroupDeletionTask(ModelDeletionTask[Group]):
                     )
 
                 if issue_platform_groups:
+                    # This helps creating custom Sentry alerts;
+                    # remove when #proj-snuba-lightweight_delets is done
+                    set_tag("issue_platform_deletion", True)
                     params = {"groups": issue_platform_groups}
                     child_relations.append(
                         BaseRelation(params=params, task=IssuePlatformEventsDeletionTask)
