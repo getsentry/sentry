@@ -39,7 +39,12 @@ export function MobileHeader({
 
   const modules = hasMobileScreens
     ? [ModuleName.MOBILE_SCREENS]
-    : [ModuleName.APP_START, ModuleName.SCREEN_LOAD, ModuleName.MOBILE_UI];
+    : [
+        ModuleName.APP_START,
+        ModuleName.SCREEN_LOAD,
+        ModuleName.SCREEN_RENDERING,
+        ModuleName.MOBILE_UI,
+      ];
 
   return (
     <DomainViewHeader

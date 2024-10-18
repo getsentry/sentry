@@ -25,6 +25,7 @@ const modulePropertyMap: Record<
   // Renamed resource to assets
   [ModuleName.RESOURCE]: 'hasInsightsAssets',
   [ModuleName.AI]: 'hasInsightsLlmMonitoring',
+  [ModuleName.SCREEN_RENDERING]: 'hasInsightsScreenLoad', // Screen rendering and screen loads share similar spans
 };
 
 /**
