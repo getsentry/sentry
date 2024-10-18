@@ -19,7 +19,7 @@ import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLay
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
-import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import {useEAPSpanSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {useHasFirstSpan} from 'sentry/views/insights/common/queries/useHasFirstSpan';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
@@ -92,7 +92,7 @@ export function DatabaseLandingPage() {
     ...BASE_FILTERS,
     'span.action': spanAction,
     'span.domain': spanDomain,
-    'span.system': system,
+    'attr_str[span.system]': system,
   };
 
   const tableFilters = {
@@ -105,6 +105,7 @@ export function DatabaseLandingPage() {
 
   const cursor = decodeScalar(location.query?.[QueryParameterNames.SPANS_CURSOR]);
 
+  // TODO: Update this to `useEAPSpans` when `duration_percentage()` function is implemented, and replace `self_time` with `duration`
   const queryListResponse = useSpanMetrics(
     {
       search: MutableSearch.fromQueryObject(tableFilters),
@@ -129,7 +130,7 @@ export function DatabaseLandingPage() {
     isPending: isThroughputDataLoading,
     data: throughputData,
     error: throughputError,
-  } = useSpanMetricsSeries(
+  } = useEAPSpanSeries(
     {
       search: MutableSearch.fromQueryObject(chartFilters),
       yAxis: ['spm()'],
@@ -141,7 +142,7 @@ export function DatabaseLandingPage() {
     isPending: isDurationDataLoading,
     data: durationData,
     error: durationError,
-  } = useSpanMetricsSeries(
+  } = useEAPSpanSeries(
     {
       search: MutableSearch.fromQueryObject(chartFilters),
       yAxis: [`${selectedAggregate}(${SpanMetricsField.SPAN_SELF_TIME})`],
