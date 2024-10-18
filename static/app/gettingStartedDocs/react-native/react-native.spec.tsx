@@ -47,7 +47,7 @@ describe('getting started with react-native', function () {
     ).toBeInTheDocument();
     expect(
       await screen.findByText(
-        textWithMarkupMatcher(/React Native Profiling beta is available/)
+        textWithMarkupMatcher(/React Native Profiling is available/)
       )
     ).toBeInTheDocument();
   });
