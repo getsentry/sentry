@@ -90,12 +90,14 @@ const Message = styled('span')`
   height: 100%;
   color: ${p => p.theme.textColor};
   font-weight: ${p => p.theme.fontWeightNormal};
+  font-size: ${p => p.theme.fontSizeMedium};
 `;
 
 const Title = styled('span')`
   ${p => p.theme.overflowEllipsis};
   display: inline-block;
   color: ${p => p.theme.textColor};
+  font-size: ${p => p.theme.fontSizeMedium};
 `;
 
 const Wrapper = styled('span')<{hasNewLayout: boolean}>`
