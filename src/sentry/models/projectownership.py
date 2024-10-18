@@ -376,14 +376,14 @@ class ProjectOwnership(Model):
         ownership_type = type(ownership).__name__.lower()
 
         munged_data = Matcher.munge_if_needed(data)
-        metrics.gauge(
+        metrics.distribution(
             key="projectownership.matching_ownership_rules.frames",
             value=len(munged_data[0]),
             tags={"ownership_type": ownership_type},
         )
 
         rules = load_schema(ownership.schema)
-        metrics.gauge(
+        metrics.distribution(
             key="projectownership.matching_ownership_rules.rules",
             value=len(rules),
             tags={"ownership_type": ownership_type},
