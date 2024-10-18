@@ -1,8 +1,8 @@
 from base64 import b64encode
 
 from sentry import options as options_store
-from sentry.models.avatars.sentry_app_avatar import SentryAppAvatar
 from sentry.models.files.control_file import ControlFile
+from sentry.sentry_apps.models.sentry_app_avatar import SentryAppAvatar
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 
