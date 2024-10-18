@@ -1,6 +1,8 @@
 from enum import StrEnum
 
 from django.db import models
+from django.db.models import F, Value
+from django.db.models.functions import Coalesce
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo_model
@@ -29,8 +31,8 @@ class DetectorState(DefaultFieldsModel):
     class Meta:
         constraints = [
             models.UniqueConstraint(
-                fields=["detector", "detector_group_key"],
-                nulls_distinct=False,
+                F("detector"),
+                Coalesce("detector_group_key", Value("")),
                 name="detector_state_unique_group_key",
             ),
         ]
