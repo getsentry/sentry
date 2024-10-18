@@ -16,6 +16,7 @@ from sentry.flags.providers import (
     write,
 )
 from sentry.hybridcloud.models.orgauthtokenreplica import OrgAuthTokenReplica
+from sentry.models.organization import Organization
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.silo.base import SiloMode
 from sentry.utils.security.orgauthtoken_token import hash_token
@@ -30,25 +31,6 @@ inter-provider communication.
 """
 
 
-def get_org_id_from_token(token: str):
-    token_hashed = hash_token(unquote(token))
-    org_token: OrgAuthTokenReplica | OrgAuthToken
-    if SiloMode.get_current_mode() == SiloMode.REGION:
-        try:
-            org_token = OrgAuthTokenReplica.objects.get(
-                token_hashed=token_hashed,
-            )
-        except OrgAuthTokenReplica.DoesNotExist:
-            raise AuthenticationFailed("Invalid org token")
-    else:
-        try:
-            org_token = OrgAuthToken.objects.get(token_hashed=token_hashed)
-        except OrgAuthToken.DoesNotExist:
-            raise AuthenticationFailed("Invalid org token")
-
-    return org_token.organization_id
-
-
 @region_silo_endpoint
 class OrganizationFlagsHooksEndpoint(Endpoint):
     authentication_classes = ()
@@ -58,14 +40,47 @@ class OrganizationFlagsHooksEndpoint(Endpoint):
         "POST": ApiPublishStatus.PRIVATE,
     }
 
-    def post(self, request: Request, provider: str, token: str) -> Response:
-        org_id = get_org_id_from_token(token)
+    def convert_args(self, request: Request, token: str, *args, **kwargs):
+        organization_id = get_org_id_from_token(token)
+        if not organization_id:
+            raise AuthenticationFailed("Invalid token specified.")
 
         try:
-            write(handle_provider_event(provider, request.data, org_id))
+            organization = Organization.objects.get(id=organization_id)
+        except Organization.DoesNotExist:
+            raise ValueError(f"Organization lookup failed: {organization_id}")
+
+        kwargs["organization"] = organization
+        return args, kwargs
+
+    def post(self, request: Request, organization: Organization, provider: str) -> Response:
+        try:
+            write(handle_provider_event(provider, request.data, organization.id))
             return Response(status=200)
         except InvalidProvider:
             raise ResourceDoesNotExist
         except DeserializationError as exc:
             sentry_sdk.capture_exception()
             return Response(exc.errors, status=200)
+
+
+def get_org_id_from_token(token: str) -> int | None:
+    token_hashed = hash_token(unquote(token))
+    if SiloMode.get_current_mode() == SiloMode.REGION:
+        try:
+            token = OrgAuthTokenReplica.objects.get(
+                token_hashed=token_hashed,
+                date_deactivated__isnull=True,
+            )
+            return token.organization_id
+        except OrgAuthTokenReplica.DoesNotExist:
+            return None
+    else:
+        try:
+            token = OrgAuthToken.objects.get(
+                token_hashed=token_hashed,
+                date_deactivated__isnull=True,
+            )
+            return token.organization_id
+        except OrgAuthToken.DoesNotExist:
+            return None

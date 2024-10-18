@@ -1,8 +1,6 @@
 from urllib.parse import quote
 
-import pytest
 from django.urls import reverse
-from rest_framework.exceptions import AuthenticationFailed
 
 from sentry.flags.endpoints.hooks import get_org_id_from_token
 from sentry.flags.models import ACTION_MAP, CREATED_BY_TYPE_MAP, FlagAuditLogModel
@@ -181,7 +179,7 @@ class OrganizationFlagsHooksEndpointTestCase(APITestCase):
         assert flag.tags is not None
         assert flag.tags["description"] == "flag was created"
 
-    def test_post_launchdarkly_deserialize_error(self):
+    def test_post_launchdarkly_deserialization_failed(self):
         response = self.client.post(self.url, {})
         assert response.status_code == 200
         assert FlagAuditLogModel.objects.count() == 0
@@ -214,5 +212,4 @@ def test_get_org_id_from_token():
 @django_db_all
 @assume_test_silo_mode(SiloMode.CONTROL)
 def test_get_org_id_from_token_invalid_token():
-    with pytest.raises(AuthenticationFailed):
-        get_org_id_from_token(quote("sntrys+_abc123_xyz"))
+    assert get_org_id_from_token(quote("sntrys+_abc123_xyz")) is None
