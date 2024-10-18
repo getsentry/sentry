@@ -118,13 +118,15 @@ function GroupCheckbox({
 
   return (
     <GroupCheckBoxWrapper hasNewLayout={hasNewLayout}>
-      <Checkbox
-        id={group.id}
-        aria-label={t('Select Issue')}
-        checked={isSelected}
-        disabled={!!displayReprocessingLayout}
-        onChange={onChange}
-      />
+      <CheckboxLabel hasNewLayout={hasNewLayout}>
+        <Checkbox
+          id={group.id}
+          aria-label={t('Select Issue')}
+          checked={isSelected}
+          disabled={!!displayReprocessingLayout}
+          onChange={onChange}
+        />
+      </CheckboxLabel>
     </GroupCheckBoxWrapper>
   );
 }
@@ -241,19 +243,17 @@ function BaseGroupRow({
         return true;
       }
 
-      // Ignore clicks on links
-      if (targetElement?.tagName?.toLowerCase() === 'a') {
-        return true;
-      }
+      const tagName = targetElement?.tagName?.toLowerCase();
 
-      // Ignore clicks on the selection checkbox
-      if (targetElement?.tagName?.toLowerCase() === 'input') {
+      const ignoredTags = new Set(['a', 'input', 'label']);
+
+      if (tagName && ignoredTags.has(tagName)) {
         return true;
       }
 
       let e = targetElement;
       while (e.parentElement) {
-        if (e?.tagName?.toLowerCase() === 'a') {
+        if (ignoredTags.has(e?.tagName?.toLowerCase() ?? '')) {
           return true;
         }
         e = e.parentElement!;
@@ -585,7 +585,7 @@ function BaseGroupRow({
       useTintRow={useTintRow ?? true}
       hasNewLayout={hasNewLayout}
     >
-      {hasNewLayout && <InteractionStateLayer data-layer />}
+      {hasNewLayout && <InteractionStateLayer />}
       {canSelect && (
         <GroupCheckbox
           group={group}
@@ -740,17 +740,6 @@ const Wrapper = styled(PanelItem)<{
           text-decoration: underline;
         }
       }
-
-      /* Disables the hover effect when hovering over dropdown buttons and checkboxes */
-      &:has(button:hover, input:hover, [data-overlay]:hover) {
-        [data-layer] {
-          display: none;
-        }
-
-        [data-issue-title-primary] {
-          text-decoration: none;
-        }
-      }
     `}
 
   ${p =>
@@ -811,16 +800,27 @@ const GroupSummary = styled('div')<{canSelect: boolean; hasNewLayout: boolean}>`
 `;
 
 const GroupCheckBoxWrapper = styled('div')<{hasNewLayout: boolean}>`
-  margin-left: ${space(2)};
   align-self: flex-start;
-  height: 15px;
+  width: 32px;
   display: flex;
   align-items: center;
+`;
+
+const CheckboxLabel = styled('label')<{hasNewLayout: boolean}>`
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  height: 100%;
+  width: 32px;
+  padding-left: ${space(2)};
+  padding-top: ${space(1.5)};
+  margin: 0;
 
   ${p =>
     p.hasNewLayout &&
     css`
-      padding-top: ${space(2)};
+      padding-top: 14px;
     `}
 `;
 
