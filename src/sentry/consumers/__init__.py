@@ -375,7 +375,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "synchronize_commit_group_default": "generic_events_group",
         "click_options": _POST_PROCESS_FORWARDER_OPTIONS,
         "static_args": {
-            "eventStreamType": EventStreamEventType.Generic,
+            "eventstream_type": EventStreamEventType.Generic,
         },
     },
     "post-process-forwarder-transactions": {
@@ -385,7 +385,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "synchronize_commit_group_default": "transactions_group",
         "click_options": _POST_PROCESS_FORWARDER_OPTIONS,
         "static_args": {
-            "eventStreamType": EventStreamEventType.Transaction,
+            "eventstream_type": EventStreamEventType.Transaction,
         },
     },
     "post-process-forwarder-errors": {
@@ -395,7 +395,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "synchronize_commit_group_default": "snuba-consumers",
         "click_options": _POST_PROCESS_FORWARDER_OPTIONS,
         "static_args": {
-            "eventStreamType": EventStreamEventType.Error,
+            "eventstream_type": EventStreamEventType.Error,
         },
     },
     "process-spans": {
