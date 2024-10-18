@@ -36,9 +36,10 @@ class SelectRequester:
     def run(self) -> dict[str, Any]:
         response: list[dict[str, str]] = []
         try:
+            url = self._build_url()
             body = safe_urlread(
                 send_and_save_sentry_app_request(
-                    self._build_url(),
+                    url,
                     self.sentry_app,
                     self.install.organization_id,
                     "select_options.requested",
@@ -56,10 +57,23 @@ class SelectRequester:
                     "project_slug": self.project_slug,
                     "uri": self.uri,
                     "error_message": str(e),
+                    "url": url,
                 },
             )
+            raise
 
         if not self._validate_response(response) or not response:
+            logger.info(
+                "select-requester.invalid-response",
+                extra={
+                    "response": response,
+                    "sentry_app_slug": self.sentry_app.slug,
+                    "install_uuid": self.install.uuid,
+                    "project_slug": self.project_slug,
+                    "uri": self.uri,
+                    "url": url,
+                },
+            )
             raise APIError(
                 f"Invalid response format for SelectField in {self.sentry_app} from uri: {self.uri}"
             )
