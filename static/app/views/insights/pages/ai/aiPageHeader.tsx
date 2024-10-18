@@ -18,7 +18,6 @@ type Props = {
   module?: HeaderProps['selectedModule'];
 };
 
-// TODO - add props to append to breadcrumbs and change title
 export function AiHeader({module, headerTitle, headerActions, breadcrumbs}: Props) {
   const {slug} = useOrganization();
 
