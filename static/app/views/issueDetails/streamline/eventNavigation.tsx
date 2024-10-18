@@ -346,8 +346,10 @@ function EventNavigationLink({
       to={{
         ...location,
         hash: `#${config.key}`,
+        replace: true,
       }}
-      onClick={() => {
+      onClick={event => {
+        event.preventDefault();
         setIsCollapsed(false);
         document
           .getElementById(config.key)
