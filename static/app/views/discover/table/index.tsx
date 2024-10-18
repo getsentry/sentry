@@ -220,7 +220,7 @@ class Table extends PureComponent<TableProps, TableState> {
         // events api uses a different response format so we need to construct tableData differently
         const tableData = {
           ...data,
-          meta: {...fields, ...nonFieldsMeta},
+          meta: {...fields, ...nonFieldsMeta, fields},
         };
 
         trackAnalytics('discover_search.success', {
