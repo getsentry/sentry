@@ -322,26 +322,30 @@ class EventAiSuggestedFixEndpoint(ProjectEndpoint):
         if event is None:
             raise ResourceDoesNotExist
 
-        # Check the OpenAI access policy
-        policy = get_openai_policy(
-            request.organization,
-            request.user,
-            pii_certified=request.GET.get("pii_certified") == "yes",
-        )
         policy_failure = None
-        stream = request.GET.get("stream") == "yes"
-
-        if policy == "subprocessor":
-            policy_failure = "subprocessor"
-        elif policy == "individual_consent":
-            if request.GET.get("consent") != "yes":
-                policy_failure = "individual_consent"
-        elif policy == "pii_certification_required":
-            policy_failure = "pii_certification_required"
-        elif policy == "allowed":
-            pass
+        # If the option has specifically been set to False,
+        if not bool(request.organization.get_option("sentry:ai_suggested_solution", default=False)):
+            policy_failure = "organization_consent_required"
         else:
-            logger.warning("Unknown OpenAI policy state")
+            # Check the OpenAI access policy
+            policy = get_openai_policy(
+                request.organization,
+                request.user,
+                pii_certified=request.GET.get("pii_certified") == "yes",
+            )
+            stream = request.GET.get("stream") == "yes"
+
+            if policy == "subprocessor":
+                policy_failure = "subprocessor"
+            elif policy == "individual_consent":
+                if request.GET.get("consent") != "yes":
+                    policy_failure = "individual_consent"
+            elif policy == "pii_certification_required":
+                policy_failure = "pii_certification_required"
+            elif policy == "allowed":
+                pass
+            else:
+                logger.warning("Unknown OpenAI policy state")
 
         if policy_failure is not None:
             return HttpResponse(
