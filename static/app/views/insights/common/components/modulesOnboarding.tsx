@@ -461,7 +461,7 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
   },
   'screen-rendering': {
     description: t(
-      'Screen Rendering shows you views within your application are presenting slow or frozen interactions and how frequently these hiccups are occurring.'
+      'Screen Rendering shows you views within your application that are presenting slow or frozen interactions and how frequently these hiccups are occurring.'
     ),
     heading: t('An app that loads quickly can still be terrible'),
     imageSrc: screenLoadsPreviewImg, // TODO - replace with actual image
