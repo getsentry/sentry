@@ -1,12 +1,8 @@
 import logging
 
 from sentry import features
-from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
-from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.llm.usecases import LLMUseCase, complete_prompt
-from sentry.models.group import GroupStatus
 from sentry.models.project import Project
-from sentry.types.group import GroupSubStatus
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -80,17 +76,3 @@ def spam_detection_enabled(project: Project) -> bool:
     return features.has(
         "organizations:user-feedback-spam-filter-ingest", project.organization
     ) and project.get_option("sentry:feedback_ai_spam_detection")
-
-
-def auto_ignore_spam_feedbacks(project, issue_fingerprint):
-    if features.has("organizations:user-feedback-spam-filter-actions", project.organization):
-        metrics.incr("feedback.spam-detection-actions.set-ignored")
-        produce_occurrence_to_kafka(
-            payload_type=PayloadType.STATUS_CHANGE,
-            status_change=StatusChangeMessage(
-                fingerprint=issue_fingerprint,
-                project_id=project.id,
-                new_status=GroupStatus.IGNORED,  # we use ignored in the UI for the spam tab
-                new_substatus=GroupSubStatus.FOREVER,
-            ),
-        )

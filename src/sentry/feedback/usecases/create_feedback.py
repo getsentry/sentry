@@ -9,20 +9,19 @@ from uuid import uuid4
 
 import jsonschema
 
-from sentry import options
+from sentry import features, options
 from sentry.constants import DataCategory
 from sentry.eventstore.models import Event, GroupEvent
-from sentry.feedback.usecases.spam_detection import (
-    auto_ignore_spam_feedbacks,
-    is_spam,
-    spam_detection_enabled,
-)
+from sentry.feedback.usecases.spam_detection import is_spam, spam_detection_enabled
 from sentry.issues.grouptype import FeedbackGroup
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.issues.json_schemas import EVENT_PAYLOAD_SCHEMA, LEGACY_EVENT_PAYLOAD_SCHEMA
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
+from sentry.issues.status_change_message import StatusChangeMessage
+from sentry.models.group import GroupStatus
 from sentry.models.project import Project
 from sentry.signals import first_feedback_received, first_new_feedback_received
+from sentry.types.group import GroupSubStatus
 from sentry.utils import metrics
 from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.safe import get_path
@@ -329,9 +328,9 @@ def create_feedback_issue(event, project_id: int, source: FeedbackCreationSource
     produce_occurrence_to_kafka(
         payload_type=PayloadType.OCCURRENCE, occurrence=occurrence, event_data=event_fixed
     )
-    # Mark as spam with a STATUS_CHANGE kafka message.
+    # Mark as spam. We need this since IP doesn't currently support an initial status of IGNORED.
     if is_message_spam:
-        auto_ignore_spam_feedbacks(project, issue_fingerprint)
+        set_feedback_ignored(project, issue_fingerprint)
     metrics.incr(
         "feedback.create_feedback_issue.produced_occurrence",
         tags={
@@ -352,6 +351,29 @@ def create_feedback_issue(event, project_id: int, source: FeedbackCreationSource
         category=DataCategory.USER_REPORT_V2,
         quantity=1,
     )
+
+
+def set_feedback_ignored(project, issue_fingerprint):
+    """
+    Marks an issue as spam with a STATUS_CHANGE kafka message. The IGNORED status allows the occurrence to skip alerts
+    and be picked up by frontend spam queries.
+    """
+    if features.has("organizations:user-feedback-spam-filter-actions", project.organization):
+        metrics.incr("feedback.spam-detection-actions.set-ignored")
+        produce_occurrence_to_kafka(
+            payload_type=PayloadType.STATUS_CHANGE,
+            status_change=StatusChangeMessage(
+                fingerprint=issue_fingerprint,
+                project_id=project.id,
+                new_status=GroupStatus.IGNORED,  # we use ignored in the UI for the spam tab
+                new_substatus=GroupSubStatus.FOREVER,
+            ),
+        )
+
+
+###########
+# Shim code
+###########
 
 
 class UserReportShimDict(TypedDict):
