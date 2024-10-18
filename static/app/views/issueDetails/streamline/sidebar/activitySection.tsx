@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo, useState} from 'react';
+import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -20,6 +20,8 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
 import {useUser} from 'sentry/utils/useUser';
+import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
+import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {groupActivityTypeIconMapping} from 'sentry/views/issueDetails/streamline/groupActivityIcons';
 import getGroupActivityItem from 'sentry/views/issueDetails/streamline/groupActivityItem';
 import {NoteDropdown} from 'sentry/views/issueDetails/streamline/noteDropdown';
@@ -28,7 +30,7 @@ export interface GroupRelease {
   firstRelease: Release;
   lastRelease: Release;
 }
-function StreamlinedActivitySection({group}: {group: Group}) {
+function ActivitySection({group}: {group: Group}) {
   const organization = useOrganization();
   const {teams} = useTeamsById();
 
@@ -128,7 +130,11 @@ function StreamlinedActivitySection({group}: {group: Group}) {
   }, [group.activity.length, group.lastSeen, group.project]);
 
   return (
-    <Fragment>
+    <FoldSection
+      sectionKey={SectionKey.SIDEBAR_ACTIVITY}
+      title={t('Activity')}
+      preventCollapse
+    >
       <Timeline.Container>
         <NoteInputWithStorage
           key={inputId}
@@ -185,7 +191,7 @@ function StreamlinedActivitySection({group}: {group: Group}) {
           );
         })}
       </Timeline.Container>
-    </Fragment>
+    </FoldSection>
   );
 }
 
@@ -211,4 +217,4 @@ const SmallTimestamp = styled(TimeSince)`
   font-size: ${p => p.theme.fontSizeSmall};
 `;
 
-export default StreamlinedActivitySection;
+export default ActivitySection;
