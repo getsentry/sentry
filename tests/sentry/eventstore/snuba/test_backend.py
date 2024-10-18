@@ -364,3 +364,53 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
 
         assert prev_ids == (str(event1.project_id), event1.event_id)
         assert next_ids == (str(event3.project_id), event3.event_id)
+
+    def test_adjacent_event_ids_same_timestamp_snql(self):
+        project = self.create_project()
+        event1 = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "type": "default",
+                "platform": "python",
+                "fingerprint": ["group"],
+                "timestamp": self.min_ago,
+            },
+            project_id=project.id,
+        )
+        event2 = self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "type": "default",
+                "platform": "python",
+                "fingerprint": ["group"],
+                "timestamp": self.min_ago,
+            },
+            project_id=project.id,
+        )
+
+        # the 2 events should be in the same group
+        assert event1.group_id == event2.group_id
+        # the 2 events should have the same timestamp
+        assert event1.datetime == event2.datetime
+
+        prev_ids, next_ids = self.eventstore.get_adjacent_event_ids_snql(
+            organization_id=event1.organization.id,
+            project_id=event1.project_id,
+            group_id=event1.group_id,
+            environments=[],
+            event=event1,
+        )
+
+        assert prev_ids is None
+        assert next_ids == (str(project.id), event2.event_id)
+
+        prev_ids, next_ids = self.eventstore.get_adjacent_event_ids_snql(
+            organization_id=event2.organization.id,
+            project_id=event2.project_id,
+            group_id=event2.group_id,
+            environments=[],
+            event=event2,
+        )
+
+        assert prev_ids == (str(project.id), event1.event_id)
+        assert next_ids is None

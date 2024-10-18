@@ -492,13 +492,11 @@ class SnubaEventStorage(EventStorage):
                     event.datetime - timedelta(days=100),
                 ),
                 Condition(
-                    Column(DATASETS[dataset][Columns.TIMESTAMP.value.alias]), Op.LT, event.datetime
-                ),
-                Condition(
                     Column(DATASETS[dataset][Columns.TIMESTAMP.value.alias]),
-                    Op.LTE,
-                    event.datetime - timedelta(seconds=1),
+                    Op.LT,
+                    event.datetime + timedelta(seconds=1),
                 ),
+                Condition(Column("event_id"), Op.LT, event.event_id),
             ]
 
         def make_next_timestamp_conditions(event):
@@ -509,15 +507,9 @@ class SnubaEventStorage(EventStorage):
                     event.datetime + timedelta(days=100),
                 ),
                 Condition(
-                    Column(DATASETS[dataset][Columns.TIMESTAMP.value.alias]),
-                    Op.GT,
-                    event.datetime,
+                    Column(DATASETS[dataset][Columns.TIMESTAMP.value.alias]), Op.GTE, event.datetime
                 ),
-                Condition(
-                    Column(DATASETS[dataset][Columns.TIMESTAMP.value.alias]),
-                    Op.GTE,
-                    event.datetime + timedelta(seconds=1),
-                ),
+                Condition(Column("event_id"), Op.GT, event.event_id),
             ]
 
         def make_request(is_prev):
@@ -550,7 +542,7 @@ class SnubaEventStorage(EventStorage):
                         ),
                         OrderBy(
                             Column("event_id"),
-                            direction=Direction.ASC,
+                            direction=order_by_direction,
                         ),
                     ],
                     limit=Limit(1),
