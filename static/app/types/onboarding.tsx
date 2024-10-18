@@ -9,11 +9,9 @@ import type {Organization} from './organization';
 import type {PlatformIntegration, PlatformKey, Project} from './project';
 import type {AvatarUser} from './user';
 
-// TODO(priscilawebdev): Define the groups we would like to display
 export enum OnboardingTaskGroup {
-  BASIC = 'basic',
-  NEXT = 'next',
-  LEVEL_UP = 'level_up',
+  GETTING_STARTED = 'getting_started',
+  BEYOND_BASICS = 'beyond_basics',
 }
 
 export enum OnboardingTaskKey {
