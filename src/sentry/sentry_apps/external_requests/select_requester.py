@@ -5,6 +5,7 @@ from urllib.parse import urlencode, urlparse, urlunparse
 from uuid import uuid4
 
 from django.utils.functional import cached_property
+from jsonschema import ValidationError
 
 from sentry.coreapi import APIError
 from sentry.http import safe_urlread
@@ -60,7 +61,7 @@ class SelectRequester:
                     "url": url,
                 },
             )
-            raise
+            raise APIError from e
 
         if not self._validate_response(response) or not response:
             logger.info(
@@ -74,7 +75,7 @@ class SelectRequester:
                     "url": url,
                 },
             )
-            raise APIError(
+            raise ValidationError(
                 f"Invalid response format for SelectField in {self.sentry_app} from uri: {self.uri}"
             )
         return self._format_response(response)
@@ -109,7 +110,14 @@ class SelectRequester:
 
         for option in resp:
             if not ("value" in option and "label" in option):
-                raise APIError("Missing `value` or `label` in option data for SelectField")
+                logger.info(
+                    "select-requester.invalid-response",
+                    extra={
+                        "resposnse": resp,
+                        "error_msg": "Missing `value` or `label` in option data for SelectField",
+                    },
+                )
+                raise ValidationError("Missing `value` or `label` in option data for SelectField")
 
             choices.append([option["value"], option["label"]])
 

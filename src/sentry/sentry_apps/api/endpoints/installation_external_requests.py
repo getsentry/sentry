@@ -1,13 +1,18 @@
+import logging
+
+from jsonschema import ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.client import ApiError
+from sentry.coreapi import APIError
 from sentry.models.project import Project
 from sentry.sentry_apps.api.bases.sentryapps import SentryAppInstallationBaseEndpoint
 from sentry.sentry_apps.external_requests.select_requester import SelectRequester
+
+logger = logging.getLogger("sentry.sentry-apps")
 
 
 @region_silo_endpoint
@@ -37,13 +42,12 @@ class SentryAppInstallationExternalRequestsEndpoint(SentryAppInstallationBaseEnd
 
         try:
             choices = SelectRequester(**kwargs).run()
-        except ApiError:
-            message = f"Error validating response options from {installation.sentry_app.slug} for {request.GET.get('uri')}"
+        except ValidationError as e:
             return Response(
-                {"error": message},
+                {"error": e.message},
                 status=400,
             )
-        except Exception:
+        except APIError:
             message = f'Error retrieving select field options from {request.GET.get("uri")}'
             return Response(
                 {"error": message},

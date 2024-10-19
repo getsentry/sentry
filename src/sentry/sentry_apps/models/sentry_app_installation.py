@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any, ClassVar, overload
 from django.db import models
 from django.db.models import QuerySet
 from django.utils import timezone
+from jsonschema import ValidationError
 
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.backup.scopes import RelocationScope
@@ -241,6 +242,6 @@ def prepare_ui_component(
             component=component, install=installation, project_slug=project_slug, values=values
         ).run()
         return component
-    except APIError:
+    except (APIError, ValidationError):
         # TODO(nisanthan): For now, skip showing the UI Component if the API requests fail
         return None
