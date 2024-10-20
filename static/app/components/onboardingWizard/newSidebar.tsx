@@ -1,12 +1,4 @@
-import {
-  forwardRef,
-  Fragment,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import partition from 'lodash/partition';
@@ -104,126 +96,124 @@ interface TaskProps {
   completed?: boolean;
 }
 
-const Task = forwardRef(
-  ({task, completed, hidePanel}: TaskProps, ref: React.Ref<HTMLDivElement>) => {
-    const api = useApi();
-    const organization = useOrganization();
-    const router = useRouter();
+function Task({task, completed, hidePanel}: TaskProps) {
+  const api = useApi();
+  const organization = useOrganization();
+  const router = useRouter();
 
-    const handleClick = useCallback(
-      (e: React.MouseEvent) => {
-        trackAnalytics('quick_start.task_card_clicked', {
-          organization,
-          todo_id: task.task,
-          todo_title: task.title,
-          action: 'clickthrough',
-        });
+  const handleClick = useCallback(
+    (e: React.MouseEvent) => {
+      trackAnalytics('quick_start.task_card_clicked', {
+        organization,
+        todo_id: task.task,
+        todo_title: task.title,
+        action: 'clickthrough',
+      });
 
-        e.stopPropagation();
+      e.stopPropagation();
 
-        if (isDemoWalkthrough()) {
-          DemoWalkthroughStore.activateGuideAnchor(task.task);
-        }
+      if (isDemoWalkthrough()) {
+        DemoWalkthroughStore.activateGuideAnchor(task.task);
+      }
 
-        if (task.actionType === 'external') {
-          window.open(task.location, '_blank');
-        }
+      if (task.actionType === 'external') {
+        window.open(task.location, '_blank');
+      }
 
-        if (task.actionType === 'action') {
-          task.action(router);
-        }
+      if (task.actionType === 'action') {
+        task.action(router);
+      }
 
-        if (task.actionType === 'app') {
-          // Convert all paths to a location object
-          let to =
-            typeof task.location === 'string' ? {pathname: task.location} : task.location;
-          // Add referrer to all links
-          to = {...to, query: {...to.query, referrer: 'onboarding_task'}};
+      if (task.actionType === 'app') {
+        // Convert all paths to a location object
+        let to =
+          typeof task.location === 'string' ? {pathname: task.location} : task.location;
+        // Add referrer to all links
+        to = {...to, query: {...to.query, referrer: 'onboarding_task'}};
 
-          navigateTo(to, router);
-        }
-        hidePanel();
-      },
-      [task, organization, router, hidePanel]
-    );
+        navigateTo(to, router);
+      }
+      hidePanel();
+    },
+    [task, organization, router, hidePanel]
+  );
 
-    const handleMarkComplete = useCallback(
-      (taskKey: OnboardingTaskKey) => {
-        updateOnboardingTask(api, organization, {
-          task: taskKey,
-          status: 'complete',
-          completionSeen: true,
-        });
-      },
-      [api, organization]
-    );
+  const handleMarkComplete = useCallback(
+    (taskKey: OnboardingTaskKey) => {
+      updateOnboardingTask(api, organization, {
+        task: taskKey,
+        status: 'complete',
+        completionSeen: true,
+      });
+    },
+    [api, organization]
+  );
 
-    const handleMarkSkipped = useCallback(
-      (taskKey: OnboardingTaskKey) => {
-        trackAnalytics('quick_start.task_card_clicked', {
-          organization,
-          todo_id: task.task,
-          todo_title: task.title,
-          action: 'skipped',
-        });
-        updateOnboardingTask(api, organization, {
-          task: taskKey,
-          status: 'skipped',
-          completionSeen: true,
-        });
-      },
-      [task, organization, api]
-    );
+  const handleMarkSkipped = useCallback(
+    (taskKey: OnboardingTaskKey) => {
+      trackAnalytics('quick_start.task_card_clicked', {
+        organization,
+        todo_id: task.task,
+        todo_title: task.title,
+        action: 'skipped',
+      });
+      updateOnboardingTask(api, organization, {
+        task: taskKey,
+        status: 'skipped',
+        completionSeen: true,
+      });
+    },
+    [task, organization, api]
+  );
 
-    if (completed) {
-      return (
-        <TaskWrapper completed>
-          <strong>{task.title}</strong>
-          <IconCheckmark color="green300" isCircled />
-        </TaskWrapper>
-      );
-    }
-
+  if (completed) {
     return (
-      <TaskWrapper onClick={handleClick} ref={ref}>
-        <InteractionStateLayer />
-        <div>
-          <strong>{task.title}</strong>
-          <p>{task.description}</p>
-        </div>
-        {task.requisiteTasks.length === 0 && (
-          <TaskActions>
-            {task.skippable && (
-              <SkipConfirm onSkip={() => handleMarkSkipped(task.task)}>
-                {({skip}) => (
-                  <Button
-                    borderless
-                    size="zero"
-                    aria-label={t('Close')}
-                    icon={<IconClose size="xs" color="gray300" />}
-                    onClick={skip}
-                    css={css`
-                      /* If the pulsing indicator is active, the close button
-                     * should be above it so it's clickable.
-                     */
-                      z-index: 1;
-                    `}
-                  />
-                )}
-              </SkipConfirm>
-            )}
-            {task.SupplementComponent && (
-              <task.SupplementComponent
-                task={task}
-                onCompleteTask={() => handleMarkComplete(task.task)}
-              />
-            )}
-          </TaskActions>
-        )}
+      <TaskWrapper completed>
+        <strong>{task.title}</strong>
+        <IconCheckmark color="green300" isCircled />
       </TaskWrapper>
     );
   }
-);
+
+  return (
+    <TaskWrapper onClick={handleClick}>
+      <InteractionStateLayer />
+      <div>
+        <strong>{task.title}</strong>
+        <p>{task.description}</p>
+      </div>
+      {task.requisiteTasks.length === 0 && (
+        <TaskActions>
+          {task.skippable && (
+            <SkipConfirm onSkip={() => handleMarkSkipped(task.task)}>
+              {({skip}) => (
+                <Button
+                  borderless
+                  size="zero"
+                  aria-label={t('Close')}
+                  icon={<IconClose size="xs" color="gray300" />}
+                  onClick={skip}
+                  css={css`
+                    /* If the pulsing indicator is active, the close button
+                     * should be above it so it's clickable.
+                     */
+                    z-index: 1;
+                  `}
+                />
+              )}
+            </SkipConfirm>
+          )}
+          {task.SupplementComponent && (
+            <task.SupplementComponent
+              task={task}
+              onCompleteTask={() => handleMarkComplete(task.task)}
+            />
+          )}
+        </TaskActions>
+      )}
+    </TaskWrapper>
+  );
+}
 
 interface TaskGroupProps {
   description: string;
