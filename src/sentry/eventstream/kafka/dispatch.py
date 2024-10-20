@@ -55,6 +55,7 @@ def dispatch_post_process_group_task(
 
         post_process_group.apply_async(
             kwargs={
+                "eventstream_type": eventstream_type,
                 "is_new": is_new,
                 "is_regression": is_regression,
                 "is_new_group_environment": is_new_group_environment,

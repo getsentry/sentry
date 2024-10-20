@@ -60,6 +60,7 @@ class EventStream(Service):
 
     def _dispatch_post_process_group_task(
         self,
+        eventstream_type: EventStreamEventType,
         event_id: str,
         project_id: int,
         group_id: int | None,
@@ -79,6 +80,7 @@ class EventStream(Service):
 
             post_process_group.apply_async(
                 kwargs={
+                    "eventstream_type": eventstream_type,
                     "is_new": is_new,
                     "is_regression": is_regression,
                     "is_new_group_environment": is_new_group_environment,
@@ -124,6 +126,7 @@ class EventStream(Service):
         group_states: GroupStates | None = None,
     ) -> None:
         self._dispatch_post_process_group_task(
+            self._get_event_type(event),
             event.event_id,
             event.project_id,
             event.group_id,
