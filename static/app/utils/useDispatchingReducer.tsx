@@ -120,22 +120,16 @@ export function useDispatchingReducer<R extends React.Reducer<any, any>>(
 
   const wrappedDispatch = useCallback(
     (a: ReducerAction<R>) => {
-      // @TODO it is possible for a dispatched action to throw an error
-      // and break the reducer. We should probably catch it, I'm just not sure
-      // what would be the best mechanism to handle it. If we opt to rethrow,
-      // we are likely going to have to rethrow async and lose stack traces...
       actionQueue.current.push(a);
 
       if (updatesRef.current !== null) {
         window.cancelAnimationFrame(updatesRef.current);
       }
 
-      window.requestAnimationFrame(() => {
-        setState(s => {
-          const next = update(s, actionQueue.current, reducerRef.current, emitter);
-          stateRef.current = next;
-          return next;
-        });
+      setState(s => {
+        const next = update(s, actionQueue.current, reducerRef.current, emitter);
+        stateRef.current = next;
+        return next;
       });
     },
     // Emitter is stable and can be ignored

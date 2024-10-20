@@ -4,6 +4,7 @@ import {EventContexts} from 'sentry/components/events/contexts';
 import {SpanProfileDetails} from 'sentry/components/events/interfaces/spans/spanProfileDetails';
 import {getSpanOperation} from 'sentry/components/events/interfaces/spans/utils';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import {LazyRender} from 'sentry/components/lazyRender';
 import {
   CustomMetricsEventData,
   eventHasCustomMetrics,
@@ -33,11 +34,11 @@ import {hasSpanTags, Tags} from './sections/tags';
 function SpanNodeDetailHeader({
   node,
   organization,
-  onTabScrollToNode,
+  onScrollToNode,
   project,
 }: {
   node: TraceTreeNode<TraceTree.Span>;
-  onTabScrollToNode: (node: TraceTreeNode<any>) => void;
+  onScrollToNode: (node: TraceTreeNode<any>) => void;
   organization: Organization;
   project: Project | undefined;
 }) {
@@ -63,7 +64,7 @@ function SpanNodeDetailHeader({
       <TraceDrawerComponents.NodeActions
         node={node}
         organization={organization}
-        onTabScrollToNode={onTabScrollToNode}
+        onScrollToNode={onScrollToNode}
       />
     </TraceDrawerComponents.HeaderContainer>
   );
@@ -72,7 +73,7 @@ function SpanNodeDetailHeader({
 export function SpanNodeDetails({
   node,
   organization,
-  onTabScrollToNode,
+  onScrollToNode,
   onParentClick,
 }: TraceTreeNodeDetailsProps<TraceTreeNode<TraceTree.Span>>) {
   const location = useLocation();
@@ -90,7 +91,7 @@ export function SpanNodeDetails({
         node={node}
         organization={organization}
         project={project}
-        onTabScrollToNode={onTabScrollToNode}
+        onScrollToNode={onScrollToNode}
       />
       {node.event?.projectSlug ? (
         <ProfilesProvider
@@ -111,34 +112,78 @@ export function SpanNodeDetails({
                 ) : null}
                 <TraceDrawerComponents.SectionCardGroup>
                   {hasFormattedSpanDescription(node) ? (
-                    <SpanDescription
+                    <LazyRender
+                      {...TraceDrawerComponents.LAZY_RENDER_PROPS}
+                      containerHeight={200}
+                    >
+                      <SpanDescription
+                        node={node}
+                        organization={organization}
+                        location={location}
+                      />
+                    </LazyRender>
+                  ) : null}
+                  <LazyRender
+                    {...TraceDrawerComponents.LAZY_RENDER_PROPS}
+                    containerHeight={200}
+                  >
+                    <GeneralInfo
                       node={node}
                       organization={organization}
                       location={location}
+                      onParentClick={onParentClick}
                     />
-                  ) : null}
-                  <GeneralInfo
-                    node={node}
-                    organization={organization}
-                    location={location}
-                    onParentClick={onParentClick}
-                  />
+                  </LazyRender>
                   {hasSpanHTTPInfo(node.value) ? (
-                    <SpanHTTPInfo span={node.value} />
+                    <LazyRender
+                      {...TraceDrawerComponents.LAZY_RENDER_PROPS}
+                      containerHeight={200}
+                    >
+                      <SpanHTTPInfo span={node.value} />
+                    </LazyRender>
                   ) : null}
-                  {hasSpanTags(node.value) ? <Tags span={node.value} /> : null}
-                  {hasSpanKeys(node) ? <SpanKeys node={node} /> : null}
+                  {hasSpanTags(node.value) ? (
+                    <LazyRender
+                      {...TraceDrawerComponents.LAZY_RENDER_PROPS}
+                      containerHeight={200}
+                    >
+                      <Tags span={node.value} />
+                    </LazyRender>
+                  ) : null}
+                  {hasSpanKeys(node) ? (
+                    <LazyRender
+                      {...TraceDrawerComponents.LAZY_RENDER_PROPS}
+                      containerHeight={200}
+                    >
+                      <SpanKeys node={node} />
+                    </LazyRender>
+                  ) : null}
                   {eventHasCustomMetrics(organization, node.value._metrics_summary) ? (
-                    <CustomMetricsEventData
-                      projectId={project?.id || ''}
-                      metricsSummary={node.value._metrics_summary}
-                      startTimestamp={node.value.start_timestamp}
-                    />
+                    <LazyRender
+                      {...TraceDrawerComponents.LAZY_RENDER_PROPS}
+                      containerHeight={200}
+                    >
+                      <CustomMetricsEventData
+                        projectId={project?.id || ''}
+                        metricsSummary={node.value._metrics_summary}
+                        startTimestamp={node.value.start_timestamp}
+                      />
+                    </LazyRender>
                   ) : null}
                 </TraceDrawerComponents.SectionCardGroup>
-                <EventContexts event={node.event!} />
+                <LazyRender
+                  {...TraceDrawerComponents.LAZY_RENDER_PROPS}
+                  containerHeight={200}
+                >
+                  <EventContexts event={node.event!} />
+                </LazyRender>
                 {organization.features.includes('profiling') ? (
-                  <SpanProfileDetails span={node.value} event={node.event!} />
+                  <LazyRender
+                    {...TraceDrawerComponents.LAZY_RENDER_PROPS}
+                    containerHeight={200}
+                  >
+                    <SpanProfileDetails span={node.value} event={node.event!} />
+                  </LazyRender>
                 ) : null}
               </ProfileGroupProvider>
             )}

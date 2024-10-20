@@ -8,7 +8,7 @@ import {EventEvidence} from 'sentry/components/events/eventEvidence';
 import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
 import {EventRRWebIntegration} from 'sentry/components/events/rrwebIntegration';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import type {LazyRenderProps} from 'sentry/components/lazyRender';
+import {LazyRender} from 'sentry/components/lazyRender';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -47,14 +47,10 @@ import ReplayPreview from './sections/replayPreview';
 import {Request} from './sections/request';
 import {hasSDKContext, Sdk} from './sections/sdk';
 
-export const LAZY_RENDER_PROPS: Partial<LazyRenderProps> = {
-  observerOptions: {rootMargin: '50px'},
-};
-
 type TransactionNodeDetailHeaderProps = {
   event: EventTransaction;
   node: TraceTreeNode<TraceTree.Transaction>;
-  onTabScrollToNode: (node: TraceTreeNode<any>) => void;
+  onScrollToNode: (node: TraceTreeNode<any>) => void;
   organization: Organization;
   project: Project | undefined;
 };
@@ -63,7 +59,7 @@ function TransactionNodeDetailHeader({
   node,
   organization,
   project,
-  onTabScrollToNode,
+  onScrollToNode,
   event,
 }: TransactionNodeDetailHeaderProps) {
   return (
@@ -86,7 +82,7 @@ function TransactionNodeDetailHeader({
       <TraceDrawerComponents.NodeActions
         node={node}
         organization={organization}
-        onTabScrollToNode={onTabScrollToNode}
+        onScrollToNode={onScrollToNode}
         eventSize={event?.size}
       />
     </TraceDrawerComponents.HeaderContainer>
@@ -96,7 +92,7 @@ function TransactionNodeDetailHeader({
 export function TransactionNodeDetails({
   node,
   organization,
-  onTabScrollToNode,
+  onScrollToNode,
   onParentClick,
   replayRecord,
 }: TraceTreeNodeDetailsProps<TraceTreeNode<TraceTree.Transaction>>) {
@@ -160,7 +156,7 @@ export function TransactionNodeDetails({
         organization={organization}
         project={project}
         event={event}
-        onTabScrollToNode={onTabScrollToNode}
+        onScrollToNode={onScrollToNode}
       />
 
       <IssueList node={node} organization={organization} issues={issues} />
@@ -173,60 +169,102 @@ export function TransactionNodeDetails({
           event={event}
           location={location}
         />
-        {hasAdditionalData(event) ? <AdditionalData event={event} /> : null}
-        {hasMeasurements(event) ? (
-          <Measurements event={event} location={location} organization={organization} />
+        {hasAdditionalData(event) ? (
+          <LazyRender {...TraceDrawerComponents.LAZY_RENDER_PROPS} containerHeight={200}>
+            <AdditionalData event={event} />
+          </LazyRender>
         ) : null}
-        {cacheMetrics.length > 0 ? <CacheMetrics cacheMetrics={cacheMetrics} /> : null}
-        {hasSDKContext(event) ? <Sdk event={event} /> : null}
+        {hasMeasurements(event) ? (
+          <LazyRender {...TraceDrawerComponents.LAZY_RENDER_PROPS} containerHeight={200}>
+            <Measurements event={event} location={location} organization={organization} />
+          </LazyRender>
+        ) : null}
+        {cacheMetrics.length > 0 ? (
+          <LazyRender {...TraceDrawerComponents.LAZY_RENDER_PROPS} containerHeight={200}>
+            <CacheMetrics cacheMetrics={cacheMetrics} />
+          </LazyRender>
+        ) : null}
+        {hasSDKContext(event) ? (
+          <LazyRender {...TraceDrawerComponents.LAZY_RENDER_PROPS} containerHeight={200}>
+            <Sdk event={event} />
+          </LazyRender>
+        ) : null}
         {eventHasCustomMetrics(organization, event._metrics_summary) ? (
-          <CustomMetricsEventData
-            metricsSummary={event._metrics_summary}
-            startTimestamp={event.startTimestamp}
-            projectId={event.projectID}
-          />
+          <LazyRender {...TraceDrawerComponents.LAZY_RENDER_PROPS} containerHeight={200}>
+            <CustomMetricsEventData
+              metricsSummary={event._metrics_summary}
+              startTimestamp={event.startTimestamp}
+              projectId={event.projectID}
+            />
+          </LazyRender>
         ) : null}
         {event.contexts.trace?.data ? (
-          <TraceDrawerComponents.TraceDataSection event={event} />
+          <LazyRender {...TraceDrawerComponents.LAZY_RENDER_PROPS} containerHeight={200}>
+            <TraceDrawerComponents.TraceDataSection event={event} />
+          </LazyRender>
         ) : null}
       </TraceDrawerComponents.SectionCardGroup>
 
       <Request event={event} />
 
       {event.projectSlug ? (
-        <Entries
-          definedEvent={event}
-          projectSlug={event.projectSlug}
-          group={undefined}
-          organization={organization}
-        />
+        <LazyRender {...TraceDrawerComponents.LAZY_RENDER_PROPS} containerHeight={200}>
+          <Entries
+            definedEvent={event}
+            projectSlug={event.projectSlug}
+            group={undefined}
+            organization={organization}
+          />
+        </LazyRender>
       ) : null}
 
-      <TraceDrawerComponents.EventTags
-        projectSlug={node.value.project_slug}
-        event={event}
-      />
+      <LazyRender {...TraceDrawerComponents.LAZY_RENDER_PROPS} containerHeight={200}>
+        <TraceDrawerComponents.EventTags
+          projectSlug={node.value.project_slug}
+          event={event}
+        />
+      </LazyRender>
 
-      <EventContexts event={event} />
-
-      {project ? <EventEvidence event={event} project={project} /> : null}
-
-      {replayRecord ? null : <ReplayPreview event={event} organization={organization} />}
-
-      <BreadCrumbs event={event} organization={organization} />
+      <LazyRender {...TraceDrawerComponents.LAZY_RENDER_PROPS} containerHeight={200}>
+        <EventContexts event={event} />
+      </LazyRender>
 
       {project ? (
-        <EventAttachments event={event} project={project} group={undefined} />
+        <LazyRender {...TraceDrawerComponents.LAZY_RENDER_PROPS} containerHeight={200}>
+          <EventEvidence event={event} project={project} />
+        </LazyRender>
       ) : null}
 
-      {project ? <EventViewHierarchy event={event} project={project} /> : null}
+      {replayRecord ? null : (
+        <LazyRender {...TraceDrawerComponents.LAZY_RENDER_PROPS} containerHeight={200}>
+          <ReplayPreview event={event} organization={organization} />
+        </LazyRender>
+      )}
+
+      <LazyRender {...TraceDrawerComponents.LAZY_RENDER_PROPS} containerHeight={200}>
+        <BreadCrumbs event={event} organization={organization} />
+      </LazyRender>
+
+      {project ? (
+        <LazyRender {...TraceDrawerComponents.LAZY_RENDER_PROPS} containerHeight={200}>
+          <EventAttachments event={event} project={project} group={undefined} />
+        </LazyRender>
+      ) : null}
+
+      {project ? (
+        <LazyRender {...TraceDrawerComponents.LAZY_RENDER_PROPS} containerHeight={200}>
+          <EventViewHierarchy event={event} project={project} />
+        </LazyRender>
+      ) : null}
 
       {event.projectSlug ? (
-        <EventRRWebIntegration
-          event={event}
-          orgId={organization.slug}
-          projectSlug={event.projectSlug}
-        />
+        <LazyRender {...TraceDrawerComponents.LAZY_RENDER_PROPS} containerHeight={200}>
+          <EventRRWebIntegration
+            event={event}
+            orgId={organization.slug}
+            projectSlug={event.projectSlug}
+          />
+        </LazyRender>
       ) : null}
     </TraceDrawerComponents.DetailContainer>
   );

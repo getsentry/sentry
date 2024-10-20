@@ -49,7 +49,6 @@ type TraceDrawerProps = {
   manager: VirtualizedViewManager;
   metaResults: TraceMetaQueryResults;
   onScrollToNode: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
-  onTabScrollToNode: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
   replayRecord: ReplayRecord | null;
   rootEventResults: UseApiQueryResult<EventTransaction, RequestError>;
   scheduler: TraceScheduler;
@@ -227,14 +226,14 @@ export function TraceDrawer(props: TraceDrawerProps) {
   const {onMouseDown, size} = usePassiveResizableDrawer(resizableDrawerOptions);
   const onParentClick = useCallback(
     (node: TraceTreeNode<TraceTree.NodeValue>) => {
-      props.onTabScrollToNode(node);
+      props.onScrollToNode(node);
       traceDispatch({
         type: 'activate tab',
         payload: node,
         pin_previous: true,
       });
     },
-    [props, traceDispatch]
+    [props.onScrollToNode, traceDispatch]
   );
 
   const onMinimizeClick = useCallback(() => {
@@ -388,9 +387,9 @@ export function TraceDrawer(props: TraceDrawerProps) {
                   index={i}
                   theme={theme}
                   trace={props.trace}
-                  trace_state={traceState}
+                  currentTab={traceState.tabs.current_tab}
                   traceDispatch={traceDispatch}
-                  onTabScrollToNode={props.onTabScrollToNode}
+                  onScrollToNode={props.onScrollToNode}
                   pinned
                 />
               );
@@ -403,9 +402,9 @@ export function TraceDrawer(props: TraceDrawerProps) {
                 tab={traceState.tabs.last_clicked_tab}
                 index={traceState.tabs.tabs.length}
                 theme={theme}
-                trace_state={traceState}
+                currentTab={traceState.tabs.current_tab}
                 traceDispatch={traceDispatch}
-                onTabScrollToNode={props.onTabScrollToNode}
+                onScrollToNode={props.onScrollToNode}
                 trace={props.trace}
               />
             ) : null}
@@ -419,17 +418,17 @@ export function TraceDrawer(props: TraceDrawerProps) {
         <DrawerContainerRefContext.Provider value={contentContainerRef}>
           <Content
             ref={contentContainerRef}
-            layout={traceState.preferences.layout}
             data-test-id="trace-drawer"
+            layout={traceState.preferences.layout}
           >
             <ContentWrapper>
               {traceState.tabs.current_tab ? (
                 traceState.tabs.current_tab.node === 'trace' ? (
                   <TraceDetails
-                    metaResults={props.metaResults}
-                    traceType={props.traceType}
                     tree={props.trace}
                     node={props.trace.root.children[0]}
+                    metaResults={props.metaResults}
+                    traceType={props.traceType}
                     rootEventResults={props.rootEventResults}
                     tagsInfiniteQueryResults={tagsInfiniteQueryResults}
                     traceEventView={props.traceEventView}
@@ -448,7 +447,7 @@ export function TraceDrawer(props: TraceDrawerProps) {
                     organization={organization}
                     onParentClick={onParentClick}
                     node={traceState.tabs.current_tab.node}
-                    onTabScrollToNode={props.onTabScrollToNode}
+                    onScrollToNode={props.onScrollToNode}
                   />
                 )
               ) : null}
@@ -461,15 +460,16 @@ export function TraceDrawer(props: TraceDrawerProps) {
 }
 
 interface TraceDrawerTabProps {
+  currentTab: TraceReducerState['tabs']['current_tab'];
   index: number;
-  onTabScrollToNode: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
+  onScrollToNode: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
   pinned: boolean;
   tab: TraceTabsReducerState['tabs'][number];
   theme: Theme;
   trace: TraceTree;
   traceDispatch: React.Dispatch<TraceReducerAction>;
-  trace_state: TraceReducerState;
 }
+
 function TraceDrawerTab(props: TraceDrawerTabProps) {
   const organization = useOrganization();
   const node = props.tab.node;
@@ -480,13 +480,11 @@ function TraceDrawerTab(props: TraceDrawerTabProps) {
       <Tab
         data-test-id="trace-drawer-tab"
         className={typeof props.tab.node === 'string' ? 'Static' : ''}
-        aria-selected={
-          props.tab === props.trace_state.tabs.current_tab ? 'true' : 'false'
-        }
+        aria-selected={props.tab === props.currentTab ? 'true' : 'false'}
         onClick={() => {
           if (props.tab.node !== 'vitals' && props.tab.node !== 'profiles') {
             traceAnalytics.trackTabView(node, organization);
-            props.onTabScrollToNode(root);
+            props.onScrollToNode(root);
           }
           props.traceDispatch({type: 'activate tab', payload: props.index});
         }}
@@ -507,10 +505,10 @@ function TraceDrawerTab(props: TraceDrawerTabProps) {
   return (
     <Tab
       data-test-id="trace-drawer-tab"
-      aria-selected={props.tab === props.trace_state.tabs.current_tab ? 'true' : 'false'}
+      aria-selected={props.tab === props.currentTab ? 'true' : 'false'}
       onClick={() => {
         traceAnalytics.trackTabView('event', organization);
-        props.onTabScrollToNode(node);
+        props.onScrollToNode(node);
         props.traceDispatch({type: 'activate tab', payload: props.index});
       }}
     >

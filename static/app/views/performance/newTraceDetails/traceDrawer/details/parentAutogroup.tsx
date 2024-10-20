@@ -17,7 +17,7 @@ export function ParentAutogroupNodeDetails({
   node,
   organization,
   onParentClick,
-  onTabScrollToNode,
+  onScrollToNode,
 }: TraceTreeNodeDetailsProps<ParentAutogroupNode>) {
   const theme = useTheme();
   const issues = useMemo(() => {
@@ -74,7 +74,7 @@ export function ParentAutogroupNodeDetails({
         <TraceDrawerComponents.NodeActions
           organization={organization}
           node={node}
-          onTabScrollToNode={onTabScrollToNode}
+          onScrollToNode={onScrollToNode}
         />
       </TraceDrawerComponents.HeaderContainer>
 

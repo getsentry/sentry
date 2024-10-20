@@ -523,6 +523,7 @@ describe('trace view', () => {
       expect(await screen.findByTestId('trace-drawer-title')).toHaveTextContent(
         'special-span'
       );
+
       const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
       expect(rows[7]).toHaveFocus();
     });

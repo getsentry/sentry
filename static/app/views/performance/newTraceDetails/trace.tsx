@@ -126,6 +126,16 @@ export function Trace({
   const traceState = useTraceState();
   const traceDispatch = useTraceStateDispatch();
 
+  const projectLookup: Record<string, PlatformKey | undefined> = useMemo(() => {
+    return projects.reduce<Record<Project['slug'], Project['platform']>>(
+      (acc, project) => {
+        acc[project.slug] = project.platform;
+        return acc;
+      },
+      {}
+    );
+  }, [projects]);
+
   const rerenderRef = useRef<TraceProps['rerender']>(rerender);
   rerenderRef.current = rerender;
 
@@ -180,14 +190,14 @@ export function Trace({
     };
   }, [manager, scheduler]);
 
-  const onNodeZoomIn = useCallback(
+  const onZoomIn = useCallback(
     (
       event: React.MouseEvent<Element> | React.KeyboardEvent<Element>,
       node: TraceTreeNode<TraceTree.NodeValue>,
       value: boolean
     ) => {
       if (!isTransactionNode(node) && !isSpanNode(node)) {
-        throw new TypeError('Node must be a transaction or span');
+        throw new TypeError('Zooming is not supported for this node type');
       }
 
       event.stopPropagation();
@@ -199,8 +209,6 @@ export function Trace({
           organization,
         })
         .then(() => {
-          rerenderRef.current();
-
           // If a query exists, we want to reapply the search after zooming in
           // so that new nodes are also highlighted if they match a query
           if (traceStateRef.current.search.query) {
@@ -211,27 +219,30 @@ export function Trace({
         })
         .catch(_e => {
           treePromiseStatusRef.current!.set(node, 'error');
+        })
+        .finally(() => {
+          rerenderRef.current();
         });
     },
     [api, organization, onTraceSearch]
   );
 
-  const onNodeExpand = useCallback(
+  const onExpand = useCallback(
     (
       event: React.MouseEvent<Element> | React.KeyboardEvent<Element>,
       node: TraceTreeNode<TraceTree.NodeValue>,
       value: boolean
     ) => {
       event.stopPropagation();
-
       treeRef.current.expand(node, value);
-      rerenderRef.current();
 
+      // If a query exists, we want to reapply the search after expanding
+      // so that new nodes are also highlighted if they match a query
       if (traceStateRef.current.search.query) {
-        // If a query exists, we want to reapply the search after expanding
-        // so that new nodes are also highlighted if they match a query
         onTraceSearch(traceStateRef.current.search.query, node, 'persist');
       }
+
+      rerenderRef.current();
     },
     [onTraceSearch]
   );
@@ -258,33 +269,23 @@ export function Trace({
           type: 'set roving index',
           index: nextIndex,
           node: treeRef.current.list[nextIndex],
-          action_source: 'keyboard',
         });
       }
+
       if (event.key === 'ArrowLeft') {
         if (node.zoomedIn) {
-          onNodeZoomIn(event, node, false);
+          onZoomIn(event, node, false);
         } else if (node.expanded) {
-          onNodeExpand(event, node, false);
+          onExpand(event, node, false);
         }
       } else if (event.key === 'ArrowRight') {
         if (node.canFetch) {
-          onNodeZoomIn(event, node, true);
+          onZoomIn(event, node, true);
         }
       }
     },
-    [manager, onNodeExpand, onNodeZoomIn, traceDispatch]
+    [manager, onExpand, onZoomIn, traceDispatch]
   );
-
-  const projectLookup: Record<string, PlatformKey | undefined> = useMemo(() => {
-    return projects.reduce<Record<Project['slug'], Project['platform']>>(
-      (acc, project) => {
-        acc[project.slug] = project.platform;
-        return acc;
-      },
-      {}
-    );
-  }, [projects]);
 
   const renderLoadingRow = useCallback(
     (n: VirtualizedRow) => {
@@ -318,8 +319,8 @@ export function Trace({
           node={n.item}
           manager={manager}
           theme={theme}
-          onExpand={onNodeExpand}
-          onZoomIn={onNodeZoomIn}
+          onExpand={onExpand}
+          onZoomIn={onZoomIn}
           onRowClick={onRowClick}
           onRowKeyDown={onRowKeyDown}
           tree={trace}
@@ -331,8 +332,8 @@ export function Trace({
     // we add forceRerender as a "unnecessary" dependency to trigger the virtualized list rerender
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [
-      onNodeExpand,
-      onNodeZoomIn,
+      onExpand,
+      onZoomIn,
       manager,
       previouslyFocusedNodeRef,
       onRowKeyDown,
@@ -363,7 +364,7 @@ export function Trace({
     manager,
     items: trace.list,
     container: scrollContainer,
-    render: render,
+    render,
     scheduler,
   });
 

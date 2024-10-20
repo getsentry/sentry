@@ -1,12 +1,9 @@
 import type React from 'react';
-import {createContext, useContext, useLayoutEffect, useMemo} from 'react';
+import {createContext, useContext, useLayoutEffect, useMemo, useReducer} from 'react';
 import * as qs from 'query-string';
 
 import {t} from 'sentry/locale';
-import {
-  type DispatchingReducerEmitter,
-  useDispatchingReducer,
-} from 'sentry/utils/useDispatchingReducer';
+import type {DispatchingReducerEmitter} from 'sentry/utils/useDispatchingReducer';
 
 import {TraceReducer, type TraceReducerAction, type TraceReducerState} from './index';
 import {storeTraceViewPreferences, type TracePreferencesState} from './tracePreferences';
@@ -74,31 +71,28 @@ export function TraceStateProvider(props: TraceStateProviderProps): React.ReactN
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const [traceState, traceDispatch, traceStateEmitter] = useDispatchingReducer(
-    TraceReducer,
-    {
-      rovingTabIndex: {
-        index: null,
-        items: null,
-        node: null,
-      },
-      search: {
-        node: null,
-        query: initialQuery,
-        resultIteratorIndex: null,
-        resultIndex: null,
-        results: null,
-        status: undefined,
-        resultsLookup: new Map(),
-      },
-      preferences: props.initialPreferences,
-      tabs: {
-        tabs: STATIC_DRAWER_TABS,
-        current_tab: STATIC_DRAWER_TABS[0] ?? null,
-        last_clicked_tab: null,
-      },
-    }
-  );
+  const [traceState, traceDispatch] = useReducer(TraceReducer, {
+    rovingTabIndex: {
+      index: null,
+      items: null,
+      node: null,
+    },
+    search: {
+      node: null,
+      query: initialQuery,
+      resultIteratorIndex: null,
+      resultIndex: null,
+      results: null,
+      status: undefined,
+      resultsLookup: new Map(),
+    },
+    preferences: props.initialPreferences,
+    tabs: {
+      tabs: STATIC_DRAWER_TABS,
+      current_tab: STATIC_DRAWER_TABS[0] ?? null,
+      last_clicked_tab: null,
+    },
+  });
 
   useLayoutEffect(() => {
     if (props.preferencesStorageKey) {
@@ -109,9 +103,7 @@ export function TraceStateProvider(props: TraceStateProviderProps): React.ReactN
   return (
     <TraceStateContext.Provider value={traceState}>
       <TraceStateDispatchContext.Provider value={traceDispatch}>
-        <TraceStateEmitterContext.Provider value={traceStateEmitter}>
-          {props.children}
-        </TraceStateEmitterContext.Provider>
+        {props.children}
       </TraceStateDispatchContext.Provider>
     </TraceStateContext.Provider>
   );

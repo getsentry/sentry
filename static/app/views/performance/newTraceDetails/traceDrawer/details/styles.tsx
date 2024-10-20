@@ -17,7 +17,7 @@ import KeyValueData, {
   type KeyValueDataContentProps,
   Subject,
 } from 'sentry/components/keyValueData';
-import {LazyRender, type LazyRenderProps} from 'sentry/components/lazyRender';
+import type {LazyRenderProps} from 'sentry/components/lazyRender';
 import Link from 'sentry/components/links/link';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -325,10 +325,6 @@ function IssuesLink({
   );
 }
 
-const LAZY_RENDER_PROPS: Partial<LazyRenderProps> = {
-  observerOptions: {rootMargin: '50px'},
-};
-
 const DurationContainer = styled('span')`
   font-weight: ${p => p.theme.fontWeightBold};
   margin-right: ${space(1)};
@@ -405,7 +401,7 @@ function TypeSafeBoolean<T>(value: T | null | undefined): value is NonNullable<T
 
 function NodeActions(props: {
   node: TraceTreeNode<any>;
-  onTabScrollToNode: (
+  onScrollToNode: (
     node:
       | TraceTreeNode<any>
       | ParentAutogroupNode
@@ -447,7 +443,7 @@ function NodeActions(props: {
       label: t('Show in View'),
       onAction: () => {
         traceAnalytics.trackShowInView(props.organization);
-        props.onTabScrollToNode(props.node);
+        props.onScrollToNode(props.node);
       },
     };
 
@@ -519,7 +515,7 @@ function NodeActions(props: {
           size="xs"
           onClick={_e => {
             traceAnalytics.trackShowInView(props.organization);
-            props.onTabScrollToNode(props.node);
+            props.onScrollToNode(props.node);
           }}
         >
           {t('Show in view')}
@@ -569,11 +565,9 @@ const ActionsContainer = styled('div')`
 
 function EventTags({projectSlug, event}: {event: Event; projectSlug: string}) {
   return (
-    <LazyRender {...TraceDrawerComponents.LAZY_RENDER_PROPS} containerHeight={200}>
-      <TagsWrapper>
-        <EventTagsDataSection event={event} projectSlug={projectSlug} />
-      </TagsWrapper>
-    </LazyRender>
+    <TagsWrapper>
+      <EventTagsDataSection event={event} projectSlug={projectSlug} />
+    </TagsWrapper>
   );
 }
 
@@ -703,6 +697,10 @@ export const CardContentSubject = styled('div')`
   word-wrap: break-word;
 `;
 
+const LAZY_RENDER_PROPS: Partial<LazyRenderProps> = {
+  observerOptions: {rootMargin: '50px'},
+};
+
 const TraceDrawerComponents = {
   DetailContainer,
   FlexBox,
@@ -713,12 +711,12 @@ const TraceDrawerComponents = {
   Actions,
   NodeActions,
   Table,
+  LAZY_RENDER_PROPS,
   IconTitleWrapper,
   IconBorder,
   TitleText,
   Duration,
   TableRow,
-  LAZY_RENDER_PROPS,
   TableRowButtonContainer,
   TableValueRow,
   IssuesLink,

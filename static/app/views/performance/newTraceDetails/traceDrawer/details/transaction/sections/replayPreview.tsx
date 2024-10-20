@@ -64,11 +64,7 @@ function ReplayPreview({
     return null;
   }
 
-  return (
-    <LazyRender {...TraceDrawerComponents.LAZY_RENDER_PROPS} containerHeight={480}>
-      <ReplaySection event={event} organization={organization} />
-    </LazyRender>
-  );
+  return <ReplaySection event={event} organization={organization} />;
 }
 
 const ReplaySectionContainer = styled('div')`

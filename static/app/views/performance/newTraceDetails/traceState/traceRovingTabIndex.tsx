@@ -16,7 +16,6 @@ export type TraceRovingTabIndexAction =
       type: 'initialize roving reducer';
     }
   | {
-      action_source: 'click' | 'keyboard' | 'load';
       index: number;
       node: TraceTreeNode<TraceTree.NodeValue>;
       type: 'set roving index';

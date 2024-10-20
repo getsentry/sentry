@@ -131,8 +131,8 @@ export type TraceMetaQueryResults = {
 };
 
 export function useTraceMeta(replayTraces: ReplayTrace[]): TraceMetaQueryResults {
-  const filters = usePageFilters();
   const api = useApi();
+  const filters = usePageFilters();
   const organization = useOrganization();
 
   const normalizedParams = useMemo(() => {

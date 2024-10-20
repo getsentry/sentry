@@ -20,7 +20,7 @@ import {type SectionCardKeyValueList, TraceDrawerComponents} from './styles';
 export function MissingInstrumentationNodeDetails({
   node,
   onParentClick,
-  onTabScrollToNode,
+  onScrollToNode,
   organization,
 }: TraceTreeNodeDetailsProps<MissingInstrumentationNode>) {
   const theme = useTheme();
@@ -95,7 +95,7 @@ export function MissingInstrumentationNodeDetails({
         <TraceDrawerComponents.NodeActions
           organization={organization}
           node={node}
-          onTabScrollToNode={onTabScrollToNode}
+          onScrollToNode={onScrollToNode}
         />
       </TraceDrawerComponents.HeaderContainer>
 

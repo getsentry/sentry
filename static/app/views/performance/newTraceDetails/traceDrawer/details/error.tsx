@@ -26,7 +26,7 @@ import {type SectionCardKeyValueList, TraceDrawerComponents} from './styles';
 export function ErrorNodeDetails({
   node,
   organization,
-  onTabScrollToNode,
+  onScrollToNode,
   onParentClick,
 }: TraceTreeNodeDetailsProps<TraceTreeNode<TraceTree.TraceError>>) {
   const issues = useMemo(() => {
@@ -95,7 +95,7 @@ export function ErrorNodeDetails({
           <TraceDrawerComponents.NodeActions
             node={node}
             organization={organization}
-            onTabScrollToNode={onTabScrollToNode}
+            onScrollToNode={onScrollToNode}
           />
           <LinkButton size="xs" to={generateIssueEventTarget(node.value, organization)}>
             {t('Go to Issue')}
