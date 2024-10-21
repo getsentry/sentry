@@ -2,9 +2,7 @@ from collections.abc import Mapping
 from typing import Any
 
 import sentry_sdk
-from django.db.models.signals import post_save
 
-from sentry import options
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupinbox import bulk_remove_groups_from_inbox
 from sentry.signals import issue_unresolved
@@ -53,13 +51,3 @@ def bulk_transition_group_to_ongoing(
 
     with sentry_sdk.start_span(name="bulk_remove_groups_from_inbox"):
         bulk_remove_groups_from_inbox(groups_to_transistion)
-
-    with sentry_sdk.start_span(name="post_save_send_robust"):
-        if not options.get("groups.enable-post-update-signal"):
-            for group in groups_to_transistion:
-                post_save.send_robust(
-                    sender=Group,
-                    instance=group,
-                    created=False,
-                    update_fields=["status", "substatus"],
-                )
