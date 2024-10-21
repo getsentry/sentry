@@ -32,6 +32,7 @@ import {
 } from 'sentry/views/dashboards/datasetConfig/errorsAndTransactions';
 import {DisplayType, type Widget, type WidgetQuery} from 'sentry/views/dashboards/types';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
+import {EventsSearchBar} from 'sentry/views/dashboards/widgetBuilder/buildSteps/filterResultsStep/eventsSearchBar';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
 
 const DEFAULT_WIDGET_QUERY: WidgetQuery = {
@@ -51,7 +52,7 @@ export const SpansConfig: DatasetConfig<
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
   enableEquations: false, // TODO: Should EAP support equations?
   getCustomFieldRenderer: getCustomEventsFieldRenderer,
-  SearchBar: () => <div />,
+  SearchBar: EventsSearchBar, // TODO: Replace with a custom EAP search bar
   filterSeriesSortOptions: () => () => true,
   filterYAxisAggregateParams: () => () => true,
   filterYAxisOptions: () => () => true,
