@@ -2800,7 +2800,7 @@ register(
     "issues.occurrence-consumer.rate-limit.quota",
     type=Dict,
     default={"window_seconds": 3600, "granularity_seconds": 60, "limit": 1000},
-      flags=FLAG_AUTOMATOR_MODIFIABLE,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 register(
@@ -2813,8 +2813,7 @@ register(
     "eventstore.adjacent_event_ids_use_snql",
     type=Bool,
     default=False,
-      flags=FLAG_AUTOMATOR_MODIFIABLE,
-
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 register(
