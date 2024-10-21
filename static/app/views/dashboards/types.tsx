@@ -29,6 +29,7 @@ export enum WidgetType {
   METRICS = 'custom-metrics',
   ERRORS = 'error-events',
   TRANSACTIONS = 'transaction-like',
+  SPANS = 'spans',
 }
 
 // These only pertain to on-demand warnings at this point in time

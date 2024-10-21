@@ -28,26 +28,28 @@ class Validator(Mediator):
 
     def _validate_is_sentry_app_making_request(self):
         if not self.user.is_sentry_app:
-            raise APIUnauthorized
+            raise APIUnauthorized("User is not a Sentry App")
 
     def _validate_app_is_owned_by_user(self):
         if self.sentry_app.proxy_user != self.user:
-            raise APIUnauthorized
+            raise APIUnauthorized("Sentry App does not belong to given user")
 
     def _validate_installation(self):
         if self.install.sentry_app.id != self.sentry_app.id:
-            raise APIUnauthorized
+            raise APIUnauthorized(
+                f"Sentry App Installation is not for Sentry App: {self.sentry_app.slug}"
+            )
 
     @cached_property
     def sentry_app(self):
         try:
             return self.application.sentry_app
         except SentryApp.DoesNotExist:
-            raise APIUnauthorized
+            raise APIUnauthorized("Sentry App does not exist")
 
     @cached_property
     def application(self):
         try:
             return ApiApplication.objects.get(client_id=self.client_id)
         except ApiApplication.DoesNotExist:
-            raise APIUnauthorized
+            raise APIUnauthorized("Application does not exist")
