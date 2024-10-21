@@ -9,7 +9,7 @@ from celery import Task, current_task
 from django.urls import reverse
 from requests.exceptions import RequestException
 
-from sentry import analytics
+from sentry import analytics, nodestore
 from sentry.api.serializers import serialize
 from sentry.constants import SentryAppInstallationStatus
 from sentry.db.models.base import Model
@@ -181,18 +181,33 @@ def _process_resource_change(
     # The class is serialized as a string when enqueueing the class.
     model: type[Event] | type[Model] = TYPES[sender]
     instance: Event | Model | None = None
-    # The Event model has different hooks for the different event types. The sender
-    # determines which type eg. Error and therefore the 'name' eg. error
-    if issubclass(model, Event):
-        if not kwargs.get("instance"):
-            extra = {"sender": sender, "action": action, "event_id": instance_id}
-            logger.info("process_resource_change.event_missing_event", extra=extra)
-            return
+
+    project_id: int | None = kwargs.get("project_id", None)
+    group_id: int | None = kwargs.get("group_id", None)
+    if sender == "Error" and not kwargs.get("instance", None) and project_id and group_id:
+        # Read event from nodestore as we're trying to move away from passing events in task
+        # messages.
+        node_id = Event.generate_node_id(project_id, str(instance_id))
+        nodedata = nodestore.backend.get(node_id)
+        node_event = Event(
+            project_id=project_id, group_id=group_id, event_id=str(instance_id), data=nodedata
+        )
+
+        kwargs["instance"] = node_event
         name = sender.lower()
     else:
-        # Some resources are named differently than their model. eg. Group vs Issue.
-        # Looks up the human name for the model. Defaults to the model name.
-        name = RESOURCE_RENAMES.get(model.__name__, model.__name__.lower())
+        # The Event model has different hooks for the different event types. The sender
+        # determines which type eg. Error and therefore the 'name' eg. error
+        if issubclass(model, Event):
+            if not kwargs.get("instance"):
+                extra = {"sender": sender, "action": action, "event_id": instance_id}
+                logger.info("process_resource_change.event_missing_event", extra=extra)
+                return
+            name = sender.lower()
+        else:
+            # Some resources are named differently than their model. eg. Group vs Issue.
+            # Looks up the human name for the model. Defaults to the model name.
+            name = RESOURCE_RENAMES.get(model.__name__, model.__name__.lower())
 
     # By default, use Celery's `current_task` but allow a value to be passed for the
     # bound Task.
