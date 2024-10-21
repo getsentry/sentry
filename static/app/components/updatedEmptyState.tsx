@@ -70,9 +70,9 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
     projectId: project.id,
     projectSlug: project.slug,
     isFeedbackSelected: false,
-    isPerformanceSelected: true,
-    isProfilingSelected: true,
-    isReplaySelected: true,
+    isPerformanceSelected: false,
+    isProfilingSelected: false,
+    isReplaySelected: false,
     sourcePackageRegistries: {
       isLoading: isLoadingRegistry,
       data: registryData,
