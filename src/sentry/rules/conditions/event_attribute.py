@@ -144,7 +144,10 @@ class EventAttributeCondition(EventCondition):
         if not attr_handler:
             attribute_values = []
         else:
-            attribute_values = attr_handler.handle(path, event)
+            try:
+                attribute_values = attr_handler.handle(path, event)
+            except KeyError:
+                attribute_values = []
 
         return self._passes(attribute_values)
 
