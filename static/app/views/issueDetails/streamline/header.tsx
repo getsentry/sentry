@@ -100,7 +100,7 @@ export default function StreamlinedGroupHeader({
           ]}
         />
         <HeaderGrid>
-          <Flex gap={space(0.75)} align="flex-end">
+          <Flex gap={space(0.75)} align="baseline">
             <PrimaryTitle title={primaryTitle} isHoverable showOnlyOnOverflow>
               {primaryTitle}
             </PrimaryTitle>
@@ -192,15 +192,14 @@ const Header = styled('div')`
 const HeaderGrid = styled('div')`
   display: grid;
   grid-template-columns: minmax(150px, 1fr) auto auto;
-  gap: ${space(0.75)} ${space(2)};
+  column-gap: ${space(2)};
   align-items: center;
 `;
 
 const PrimaryTitle = styled(Tooltip)`
-  line-height: 1;
   font-size: 20px;
   font-weight: ${p => p.theme.fontWeightBold};
-  overflow: hidden;
+  overflow-x: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 `;
@@ -217,7 +216,6 @@ const StatTitle = styled(Link)`
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
   line-height: 1;
-  align-self: flex-end;
   justify-self: flex-end;
 `;
 
