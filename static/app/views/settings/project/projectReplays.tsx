@@ -48,7 +48,7 @@ function ProjectReplaySettings({organization, project, params: {projectId}}: Pro
               {
                 inboundFilters: (
                   <Link
-                    to={`/settings/projects/${project.slug}/filters/data-filters/#filters-react-hydration-errors_help`}
+                    to={`/settings/${organization.slug}/projects/${project.slug}/filters/data-filters/#filters-react-hydration-errors_help`}
                   />
                 ),
               }

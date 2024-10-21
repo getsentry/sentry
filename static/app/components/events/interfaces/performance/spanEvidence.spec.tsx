@@ -120,7 +120,7 @@ describe('spanEvidence', () => {
     expect(settingsBtn).toBeInTheDocument();
     expect(settingsBtn).toHaveAttribute(
       'href',
-      `/settings/projects/project-slug/performance/?issueType=${
+      `/settings/${organization.slug}/projects/${project.slug}/performance/?issueType=${
         IssueType.PERFORMANCE_SLOW_DB_QUERY
       }#${sanitizeQuerySelector(IssueTitle.PERFORMANCE_SLOW_DB_QUERY)}`
     );
