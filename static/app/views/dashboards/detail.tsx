@@ -500,7 +500,7 @@ class DashboardDetail extends Component<Props, State> {
           });
         }
         const legendQuery =
-          this.state.widgetLegendState.setMultipleWidgetSelectionState(newDashboard);
+          this.state.widgetLegendState.setMultipleWidgetSelectionStateURL(newDashboard);
 
         if (dashboard && newDashboard.id !== dashboard.id) {
           this.props.router.replace(

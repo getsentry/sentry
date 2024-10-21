@@ -181,7 +181,7 @@ class WidgetLegendSelectionState {
   }
 
   // when a widget has been changed/added/deleted update legend to incorporate that
-  setMultipleWidgetSelectionState(newDashboard: DashboardDetails, newWidget?: Widget) {
+  setMultipleWidgetSelectionStateURL(newDashboard: DashboardDetails, newWidget?: Widget) {
     const [location] = [this.location];
     if (!location.query.unselectedSeries) {
       return location.query.unselectedSeries;

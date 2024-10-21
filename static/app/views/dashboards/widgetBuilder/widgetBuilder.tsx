@@ -830,7 +830,7 @@ function WidgetBuilder({
     nextWidgetList.splice(updateWidgetIndex, 1);
     nextWidgetList = generateWidgetsAfterCompaction(nextWidgetList);
 
-    const unselectedSeriesQuery = widgetLegendState.setMultipleWidgetSelectionState(
+    const unselectedSeriesQuery = widgetLegendState.setMultipleWidgetSelectionStateURL(
       {...dashboard, widgets: nextWidgetList},
       widgetToBeUpdated
     );
@@ -898,7 +898,7 @@ function WidgetBuilder({
         nextWidgetList[updateWidgetIndex] = nextWidgetData;
       }
 
-      const unselectedSeriesParam = widgetLegendState.setMultipleWidgetSelectionState(
+      const unselectedSeriesParam = widgetLegendState.setMultipleWidgetSelectionStateURL(
         {
           ...dashboard,
           widgets: [...nextWidgetList],
