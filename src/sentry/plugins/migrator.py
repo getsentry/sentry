@@ -61,12 +61,10 @@ class Migrator:
     def plugins(self) -> list[Plugin2 | Plugin]:
         return [plugins.configurable_for_project(project) for project in self.projects]
 
-    def _logging_context(self) -> None:
-        logger.info(
-            "migrator-context",
-            extra={
-                "org": self.organization.slug,
-                "integration_id": self.integration.id,
-                "integration_provider": self.integration.provider,
-            },
-        )
+    def _logging_context(self, context: dict[str, Any]) -> dict[str, Any]:
+        context.update({
+            "org": self.organization.slug,
+            "integration_id": self.integration.id,
+            "integration_provider": self.integration.provider,
+        })
+        return context
