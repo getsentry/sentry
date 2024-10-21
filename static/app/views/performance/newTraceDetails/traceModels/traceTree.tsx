@@ -856,30 +856,19 @@ export class TraceTree extends TraceTreeEventDispatcher {
 
           const start = index - matchCount;
 
-          let start_timestamp = Number.MAX_SAFE_INTEGER;
-          let timestamp = Number.MIN_SAFE_INTEGER;
+          let start_timestamp = Number.POSITIVE_INFINITY;
+          let timestamp = Number.NEGATIVE_INFINITY;
 
           for (let j = start; j < start + matchCount + 1; j++) {
             const child = node.children[j];
-            if (
-              child.value &&
-              'timestamp' in child.value &&
-              typeof child.value.timestamp === 'number' &&
-              child.value.timestamp > timestamp
-            ) {
-              timestamp = child.value.timestamp;
-            }
 
-            if (
-              child.value &&
-              'start_timestamp' in child.value &&
-              typeof child.value.start_timestamp === 'number' &&
-              child.value.start_timestamp < start_timestamp
-            ) {
-              start_timestamp = child.value.start_timestamp;
-            }
+            start_timestamp = Math.min(start_timestamp, node.children[j].space[0]);
+            timestamp = Math.max(
+              timestamp,
+              node.children[j].space[0] + node.children[j].space[1]
+            );
 
-            if (child.hasErrors) {
+            if (node.children[j].hasErrors) {
               for (const error of child.errors) {
                 autoGroupedNode.errors.add(error);
               }
