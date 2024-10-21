@@ -1,3 +1,5 @@
+import logging
+
 from django.db import router
 from django.utils.functional import cached_property
 
@@ -14,6 +16,8 @@ from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallat
 from sentry.sentry_apps.services.app import RpcSentryAppInstallation
 from sentry.users.models.user import User
 
+logger = logging.getLogger("sentry.token-exchange")
+
 
 class Refresher(Mediator):
     """
@@ -27,9 +31,19 @@ class Refresher(Mediator):
     using = router.db_for_write(User)
 
     def call(self):
-        self._validate()
-        self._delete_token()
-        return self._create_new_token()
+        try:
+            self._validate()
+            self._delete_token()
+            return self._create_new_token()
+        except APIUnauthorized:
+            logger.info(
+                "refresher.context",
+                extra={
+                    "application_id": self.application.id,
+                    "refresh_token": self.refresh_token[-4:],
+                },
+            )
+            raise
 
     def record_analytics(self):
         analytics.record(
@@ -45,7 +59,7 @@ class Refresher(Mediator):
 
     def _validate_token_belongs_to_app(self):
         if self.token.application != self.application:
-            raise APIUnauthorized
+            raise APIUnauthorized("Token does not belong to the application")
 
     def _delete_token(self):
         self.token.delete()
@@ -68,18 +82,18 @@ class Refresher(Mediator):
         try:
             return ApiToken.objects.get(refresh_token=self.refresh_token)
         except ApiToken.DoesNotExist:
-            raise APIUnauthorized
+            raise APIUnauthorized("Token does not exist")
 
     @cached_property
     def application(self):
         try:
             return ApiApplication.objects.get(client_id=self.client_id)
         except ApiApplication.DoesNotExist:
-            raise APIUnauthorized
+            raise APIUnauthorized("Application does not exist")
 
     @property
     def sentry_app(self):
         try:
             return self.application.sentry_app
         except SentryApp.DoesNotExist:
-            raise APIUnauthorized
+            raise APIUnauthorized("Sentry App does not exist")
