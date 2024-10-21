@@ -5,6 +5,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import MemberListStore from 'sentry/stores/memberListStore';
+import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import type {Widget} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import WidgetCard from 'sentry/views/dashboards/widgetCard';
@@ -17,6 +18,12 @@ describe('Dashboards > IssueWidgetCard', function () {
     }),
     router: {orgId: 'orgId'},
   } as Parameters<typeof initializeOrg>[0]);
+
+  const renderWithProviders = (component: React.ReactNode) =>
+    render(
+      <MEPSettingProvider forceTransactions={false}>{component}</MEPSettingProvider>,
+      {organization, router}
+    );
 
   const widget: Widget = {
     title: 'Issues',
@@ -82,7 +89,7 @@ describe('Dashboards > IssueWidgetCard', function () {
 
   it('renders with title and issues chart', async function () {
     MemberListStore.loadInitialData([user]);
-    render(
+    renderWithProviders(
       <WidgetCard
         api={api}
         organization={organization}
@@ -112,7 +119,7 @@ describe('Dashboards > IssueWidgetCard', function () {
   });
 
   it('opens in issues page', async function () {
-    render(
+    renderWithProviders(
       <WidgetCard
         api={api}
         organization={organization}
@@ -140,7 +147,7 @@ describe('Dashboards > IssueWidgetCard', function () {
 
   it('calls onDuplicate when Duplicate Widget is clicked', async function () {
     const mock = jest.fn();
-    render(
+    renderWithProviders(
       <WidgetCard
         api={api}
         organization={organization}
@@ -164,7 +171,7 @@ describe('Dashboards > IssueWidgetCard', function () {
 
   it('disables the duplicate widget button if max widgets is reached', async function () {
     const mock = jest.fn();
-    render(
+    renderWithProviders(
       <WidgetCard
         api={api}
         organization={organization}
@@ -188,7 +195,7 @@ describe('Dashboards > IssueWidgetCard', function () {
 
   it('maps lifetimeEvents and lifetimeUsers headers to more human readable', async function () {
     MemberListStore.loadInitialData([user]);
-    render(
+    renderWithProviders(
       <WidgetCard
         api={api}
         organization={organization}
