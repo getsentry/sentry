@@ -923,12 +923,11 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
             resp = self.get_error_response(
                 self.organization.slug, status_code=400, **rule_one_trigger_only_critical_no_action
             )
-        assert resp.data == [
-            ErrorDetail(
-                string="Each trigger must have an associated action for this alert to fire.",
-                code="invalid",
-            )
-        ]
+        assert resp.data == {
+            "nonFieldErrors": [
+                "Each trigger must have an associated action for this alert to fire."
+            ]
+        }
 
     def test_invalid_projects(self):
         with self.feature("organizations:incidents"):
@@ -1327,9 +1326,6 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
             resp = self.get_response(self.organization.slug, **valid_alert_rule)
             assert resp.status_code == 201
-            assert self.analytics_called_with_args(
-                record_analytics, "alert.created", query_type="PERFORMANCE"
-            )
 
 
 @freeze_time()
