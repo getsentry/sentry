@@ -239,6 +239,111 @@ def worker(ignore_unknown_queues: bool, **options: Any) -> None:
 
 @run.command()
 @click.option(
+    "--hostname",
+    "-n",
+    help=(
+        "Set custom hostname, e.g. 'w1.%h'. Expands: %h" "(hostname), %n (name) and %d, (domain)."
+    ),
+)
+@click.option(
+    "--namespace",
+    "-N",
+    help=(
+        "The task namespace, or namespaces to consume from. "
+        "Can be a comma separated list, or * "
+        "Example: -N video,image"
+    ),
+)
+@click.option("--autoreload", is_flag=True, default=False, help="Enable autoreloading.")
+@click.option("--port", "-P", help=("The port number the sever runs on"), default=50051)
+@log_options()
+@configuration
+def taskworker_push(port: int, **options: Any) -> None:
+    from sentry.taskworker.worker_push import serve
+
+    with managed_bgtasks(role="taskworker"):
+        serve(port, **options)
+
+
+@run.command()
+@click.option(
+    "--hostname",
+    "-n",
+    help=(
+        "Set custom hostname, e.g. 'w1.%h'. Expands: %h" "(hostname), %n (name) and %d, (domain)."
+    ),
+)
+@click.option(
+    "--namespace",
+    "-N",
+    help=(
+        "The task namespace, or namespaces to consume from. "
+        "Can be a comma separated list, or * "
+        "Example: -N video,image"
+    ),
+)
+@click.option("--autoreload", is_flag=True, default=False, help="Enable autoreloading.")
+@click.option(
+    "--max-task-count", help="Number of tasks this worker should run before exiting", default=10000
+)
+@log_options()
+@configuration
+def taskworker_pull(**options: Any) -> None:
+    import time
+
+    from sentry.taskworker.worker_pull import Worker
+
+    with managed_bgtasks(role="taskworker"):
+        worker = Worker(
+            namespace=options.get("namespace"), max_task_count=options.get("max_task_count")
+        )
+        worker.start()
+        # Give consumer time to catch up
+        time.sleep(1)
+        raise SystemExit(worker.exitcode)
+
+
+@run.command()
+@click.option(
+    "--worker-addrs",
+    "-W",
+    help=(
+        "The address of the workers, in the form of <IP>:<PORT>. "
+        "Can be a comma separated list"
+        "Example: -W 127.0.0.1:50051,127.0.0.1:50052"
+    ),
+)
+@click.option(
+    "--storage",
+    help="The storage backend to use.",
+    default="postgres",
+)
+@log_options()
+@configuration
+def kafka_task_grpc_push(worker_addrs: str, storage: str) -> None:
+    from sentry.taskworker.consumer_grpc_push import start
+
+    with managed_bgtasks(role="taskworker"):
+        start(worker_addrs.split(","), storage)
+
+
+@run.command()
+@log_options()
+@configuration
+@click.option(
+    "--storage",
+    help="The storage backend to use.",
+    default="postgres",
+)
+def kafka_task_grpc_pull(storage: str, **options: Any) -> None:
+    from sentry.taskworker.consumer_grpc_pull import serve
+
+    with managed_bgtasks(role="taskworker"):
+        serve(storage=storage)
+
+
+@run.command()
+@click.option(
     "--pidfile",
     help=(
         "Optional file used to store the process pid. The "
