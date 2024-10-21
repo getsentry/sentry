@@ -9,21 +9,13 @@ jest.mock('sentry/components/onboarding/gettingStartedDoc/types', () => ({
 const mockDocs = {
   profilingOnboarding: {
     introduction: jest.fn(() => 'Profiling Introduction'),
-    install: jest.fn(() => [
-      {title: 'Install Step', type: 'install'},
-    ]),
-    configure: jest.fn(() => [
-      {title: 'Configure Step', type: 'configure'},
-    ]),
+    install: jest.fn(() => [{title: 'Install Step', type: 'install'}]),
+    configure: jest.fn(() => [{title: 'Configure Step', type: 'configure'}]),
   },
   onboarding: {
     introduction: jest.fn(() => 'Default Introduction'),
-    install: jest.fn(() => [
-      {title: 'Default Install Step', type: 'install'},
-    ]),
-    configure: jest.fn(() => [
-      {title: 'Default Configure Step', type: 'configure'},
-    ]),
+    install: jest.fn(() => [{title: 'Default Install Step', type: 'install'}]),
+    configure: jest.fn(() => [{title: 'Default Configure Step', type: 'configure'}]),
   },
 };
 
@@ -72,7 +64,7 @@ describe('ProfilingOnboardingContent', () => {
       <ProfilingOnboardingContent
         docs={mockDocs as any}
         platform="javascript"
-        isSelfHosted={true}
+        isSelfHosted
       />
     );
 
