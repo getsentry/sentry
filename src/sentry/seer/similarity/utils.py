@@ -63,6 +63,7 @@ SEER_ELIGIBLE_PLATFORMS = frozenset(
         "node-profiling-onboarding-2-configure-performance",
         "node-profiling-onboarding-3-configure-profiling",
         "node-serverlesscloud",
+        "php",
         "python",
         "python-aiohttp",
         "python-asgi",
