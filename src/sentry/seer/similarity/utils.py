@@ -13,95 +13,6 @@ logger = logging.getLogger(__name__)
 MAX_FRAME_COUNT = 30
 MAX_EXCEPTION_COUNT = 30
 FULLY_MINIFIED_STACKTRACE_MAX_FRAME_COUNT = 20
-SEER_ELIGIBLE_PLATFORMS_EVENTS = frozenset(["python", "javascript", "node", "ruby"])
-SEER_ELIGIBLE_PLATFORMS = frozenset(
-    [
-        "bun",
-        "deno",
-        "django",
-        "javascript",
-        "javascript-angular",
-        "javascript-angularjs",
-        "javascript-astro",
-        "javascript-backbone",
-        "javascript-browser",
-        "javascript-electron",
-        "javascript-ember",
-        "javascript-gatsby",
-        "javascript-nextjs",
-        "javascript-performance-onboarding-1-install",
-        "javascript-performance-onboarding-2-configure",
-        "javascript-performance-onboarding-3-verify",
-        "javascript-react",
-        "javascript-react-performance-onboarding-1-install",
-        "javascript-react-performance-onboarding-2-configure",
-        "javascript-react-performance-onboarding-3-verify",
-        "javascript-react-with-error-monitoring",
-        "javascript-react-with-error-monitoring-performance-and-replay",
-        "javascript-remix",
-        "javascript-replay-onboarding-1-install",
-        "javascript-replay-onboarding-2-configure",
-        "javascript-solid",
-        "javascript-svelte",
-        "javascript-sveltekit",
-        "javascript-vue",
-        "javascript-vue-with-error-monitoring",
-        "node",
-        "node-awslambda",
-        "node-azurefunctions",
-        "node-connect",
-        "node-express",
-        "node-fastify",
-        "node-gcpfunctions",
-        "node-hapi",
-        "node-koa",
-        "node-nestjs",
-        "node-nodeawslambda",
-        "node-nodegcpfunctions",
-        "node-profiling-onboarding-0-alert",
-        "node-profiling-onboarding-1-install",
-        "node-profiling-onboarding-2-configure-performance",
-        "node-profiling-onboarding-3-configure-profiling",
-        "node-serverlesscloud",
-        "python",
-        "python-aiohttp",
-        "python-asgi",
-        "python-awslambda",
-        "python-azurefunctions",
-        "python-bottle",
-        "python-celery",
-        "python-chalice",
-        "python-django",
-        "python-falcon",
-        "python-fastapi",
-        "python-flask",
-        "python-gcpfunctions",
-        "python-profiling-onboarding-0-alert",
-        "python-profiling-onboarding-1-install",
-        "python-profiling-onboarding-3-configure-profiling",
-        "python-pylons",
-        "python-pymongo",
-        "python-pyramid",
-        "python-pythonawslambda",
-        "python-pythonazurefunctions",
-        "python-pythongcpfunctions",
-        "python-pythonserverless",
-        "python-quart",
-        "python-rq",
-        "python-sanic",
-        "python-serverless",
-        "python-starlette",
-        "python-tornado",
-        "python-tryton",
-        "python-wsgi",
-        "react",
-        "react-native",
-        "react-native-tracing",
-        "ruby",
-        "ruby-rack",
-        "ruby-rails",
-    ]
-)
 BASE64_ENCODED_PREFIXES = [
     "data:text/html;base64",
     "data:text/javascript;base64",
@@ -270,14 +181,6 @@ def event_content_is_seer_eligible(event: Event) -> bool:
         )
         return False
 
-    if event.platform not in SEER_ELIGIBLE_PLATFORMS_EVENTS:
-        metrics.incr(
-            "grouping.similarity.event_content_seer_eligible",
-            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-            tags={"eligible": False, "blocker": "unsupported-platform"},
-        )
-        return False
-
     metrics.incr(
         "grouping.similarity.event_content_seer_eligible",
         sample_rate=options.get("seer.similarity.metrics_sample_rate"),
@@ -370,7 +273,6 @@ def project_is_seer_eligible(project: Project) -> bool:
     the feature is enabled in the region.
     """
     is_backfill_completed = project.get_option("sentry:similarity_backfill_completed")
-    is_seer_eligible_platform = project.platform in SEER_ELIGIBLE_PLATFORMS
     is_region_enabled = options.get("similarity.new_project_seer_grouping.enabled")
 
-    return not is_backfill_completed and is_seer_eligible_platform and is_region_enabled
+    return not is_backfill_completed and is_region_enabled
