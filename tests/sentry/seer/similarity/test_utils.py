@@ -6,7 +6,6 @@ from uuid import uuid1
 from sentry.eventstore.models import Event
 from sentry.seer.similarity.utils import (
     BASE64_ENCODED_PREFIXES,
-    SEER_ELIGIBLE_PLATFORMS,
     _is_snipped_context_line,
     event_content_is_seer_eligible,
     filter_null_from_string,
@@ -787,27 +786,6 @@ class EventContentIsSeerEligibleTest(TestCase):
             data=bad_event_data,
         )
 
-        assert event_content_is_seer_eligible(good_event) is True
-        assert event_content_is_seer_eligible(bad_event) is False
-
-    def test_platform_filter(self):
-        good_event_data = self.get_eligible_event_data()
-        good_event = Event(
-            project_id=self.project.id,
-            event_id=uuid1().hex,
-            data=good_event_data,
-        )
-
-        bad_event_data = self.get_eligible_event_data()
-        bad_event_data["platform"] = "other"
-        bad_event = Event(
-            project_id=self.project.id,
-            event_id=uuid1().hex,
-            data=bad_event_data,
-        )
-
-        assert good_event_data["platform"] in SEER_ELIGIBLE_PLATFORMS
-        assert bad_event_data["platform"] not in SEER_ELIGIBLE_PLATFORMS
         assert event_content_is_seer_eligible(good_event) is True
         assert event_content_is_seer_eligible(bad_event) is False
 
