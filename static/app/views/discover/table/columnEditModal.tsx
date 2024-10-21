@@ -138,6 +138,7 @@ function ColumnEditModal(props: Props) {
           }
           onChange={setColumns}
           organization={organization}
+          supportsEquations
         />
       </Body>
       <Footer>
