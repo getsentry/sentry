@@ -809,7 +809,7 @@ class GetStacktraceStringTest(TestCase):
 
     def test_only_stacktrace_frames(self):
         stacktrace_str = get_stacktrace_string(self.ONLY_STACKTRACE)
-        assert stacktrace_str == self.EXPECTED_STACKTRACE_STRING
+        assert stacktrace_str == 'File "index.php", function \n    $server->emit($server->run());'
 
 
 class EventContentIsSeerEligibleTest(TestCase):

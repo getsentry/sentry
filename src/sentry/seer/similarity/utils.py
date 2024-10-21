@@ -199,7 +199,11 @@ def get_stacktrace_string(data: dict[str, Any]) -> str:
     # Limit the number of chained exceptions
     for exception in reversed(exceptions[-MAX_EXCEPTION_COUNT:]):
         exception_type = exception.get("id")
-        if not exception.get("contributes") or exception_type not in ["exception", "threads"]:
+        if not exception.get("contributes") or exception_type not in [
+            "exception",
+            "threads",
+            "stacktrace",
+        ]:
             continue
 
         # For each exception, extract its type, value, and up to limit number of stacktrace frames
