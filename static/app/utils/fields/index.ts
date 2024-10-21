@@ -800,8 +800,8 @@ export const AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
     parameters: [
       {
         name: 'value',
-        kind: 'value',
-        dataType: FieldValueType.NUMBER,
+        kind: 'column',
+        columnTypes: [FieldValueType.NUMBER],
         defaultValue: 'measurements.score.total',
         required: true,
       },
