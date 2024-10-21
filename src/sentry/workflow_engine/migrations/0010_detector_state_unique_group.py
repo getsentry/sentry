@@ -26,14 +26,27 @@ class Migration(CheckedMigration):
     ]
 
     operations = [
-        migrations.AddConstraint(
-            model_name="detectorstate",
-            constraint=models.UniqueConstraint(
-                models.F("detector"),
-                django.db.models.functions.comparison.Coalesce(
-                    "detector_group_key", models.Value("")
+        migrations.SeparateDatabaseAndState(
+            database_operations=[
+                migrations.RunSQL(
+                    """DROP INDEX CONCURRENTLY IF EXISTS "detector_state_unique_group_key";"""
                 ),
-                name="detector_state_unique_group_key",
-            ),
+                migrations.RunSQL(
+                    """CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS "detector_state_unique_group_key"
+                    ON "workflow_engine_detectorstate" ("detector_id", (COALESCE("detector_group_key", '')))"""
+                ),
+            ],
+            state_operations=[
+                migrations.AddConstraint(
+                    model_name="detectorstate",
+                    constraint=models.UniqueConstraint(
+                        models.F("detector"),
+                        django.db.models.functions.comparison.Coalesce(
+                            "detector_group_key", models.Value("")
+                        ),
+                        name="detector_state_unique_group_key",
+                    ),
+                ),
+            ],
         ),
     ]
