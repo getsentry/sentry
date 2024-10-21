@@ -31,8 +31,6 @@ import EventWaiter from 'sentry/utils/eventWaiter';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import withApi from 'sentry/utils/withApi';
 
-import OnboardingProjectsCard from './onboardingProjectsCard';
-
 function hasPlatformWithSourceMaps(projects: Project[] | undefined) {
   return projects !== undefined
     ? projects.some(({platform}) => platform && sourceMaps.includes(platform))
@@ -466,17 +464,6 @@ export function getOnboardingTasks({
       location: getMetricAlertUrl({projects, organization, onboardingContext}),
       // Use `features?.` because getsentry has a different `Organization` type/payload
       display: organization.features?.includes('incidents'),
-    },
-    {
-      task: OnboardingTaskKey.USER_SELECTED_PROJECTS,
-      title: t('Projects to Setup'),
-      description: '',
-      skippable: true,
-      requisites: [],
-      actionType: 'action',
-      action: () => {},
-      display: true,
-      renderCard: OnboardingProjectsCard,
     },
   ];
 }
