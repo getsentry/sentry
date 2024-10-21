@@ -470,7 +470,7 @@ class SnubaEventStream(SnubaProtocolEventStream):
             **kwargs,
         )
         self._dispatch_post_process_group_task(
-            EventStream._get_event_type(event),
+            str(EventStream._get_event_type(event)),
             event.event_id,
             event.project_id,
             event.group_id,

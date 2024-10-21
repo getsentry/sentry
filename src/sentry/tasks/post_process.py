@@ -14,7 +14,6 @@ from django.utils import timezone
 from google.api_core.exceptions import ServiceUnavailable
 
 from sentry import features, options, projectoptions
-from sentry.eventstream.types import EventStreamEventType
 from sentry.exceptions import PluginError
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
@@ -487,7 +486,7 @@ def should_update_escalating_metrics(event: Event, is_transaction_event: bool) -
     silo_mode=SiloMode.REGION,
 )
 def post_process_group(
-    eventstream_type: EventStreamEventType,
+    eventstream_type: str,
     is_new,
     is_regression,
     is_new_group_environment,
@@ -517,7 +516,7 @@ def post_process_group(
         from sentry.models.project import Project
         from sentry.reprocessing2 import is_reprocessed_event
 
-        if eventstream_type == EventStreamEventType.Transaction:
+        if eventstream_type == "transaction":
             processing_store = transaction_processing_store
         else:
             processing_store = event_processing_store
