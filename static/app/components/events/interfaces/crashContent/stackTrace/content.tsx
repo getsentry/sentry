@@ -5,12 +5,14 @@ import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import type {FrameSourceMapDebuggerData} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
 import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {Event, Frame} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey} from 'sentry/types/project';
 import type {StackTraceMechanism, StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 import withOrganization from 'sentry/utils/withOrganization';
+import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 import type {DeprecatedLineProps} from '../../frame/deprecatedLine';
 import DeprecatedLine from '../../frame/deprecatedLine';
@@ -66,6 +68,7 @@ function Content({
   frameSourceMapDebuggerData,
   hideSourceMapDebugger,
 }: Props) {
+  const hasStreamlinedUI = useHasStreamlinedUI();
   const [showingAbsoluteAddresses, setShowingAbsoluteAddresses] = useState(false);
   const [showCompleteFunctionName, setShowCompleteFunctionName] = useState(false);
   const [toggleFrameMap, setToggleFrameMap] = useState(setInitialFrameMap());
@@ -299,7 +302,7 @@ function Content({
   const platformIcon = stackTracePlatformIcon(platform, data.frames ?? []);
 
   return (
-    <Wrapper>
+    <Wrapper hasIconMargin={!hideIcon && hasStreamlinedUI}>
       {!hideIcon && <StacktracePlatformIcon platform={platformIcon} />}
       <StackTraceContentPanel
         className={wrapperClassName}
@@ -315,13 +318,20 @@ function Content({
   );
 }
 
-const Wrapper = styled('div')`
+const Wrapper = styled('div')<{hasIconMargin: boolean}>`
   position: relative;
+  margin-left: ${p => (p.hasIconMargin ? space(2) : 0)};
+  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+    margin-left: 0;
+  }
 `;
 
 export const StackTraceContentPanel = styled(Panel)`
   position: relative;
   border-top-left-radius: 0;
+  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+    border-top-left-radius: ${p => p.theme.borderRadius};
+  }
   overflow: hidden;
 `;
 
