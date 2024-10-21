@@ -220,7 +220,7 @@ class TypeAttributeHandler(AttributeHandler):
 
     @classmethod
     def _handle(cls, path: list[str], event: GroupEvent) -> list[str]:
-        return [event.data.get("type")]
+        return [str(event.data.get("type"))]
 
 
 @attribute_registry.register("extra")
