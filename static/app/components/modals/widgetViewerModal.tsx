@@ -68,6 +68,8 @@ import {
   getWidgetMetricsUrl,
   getWidgetReleasesUrl,
   hasDatasetSelector,
+  isUsingPerformanceScore,
+  performanceScoreTooltip,
 } from 'sentry/views/dashboards/utils';
 import {
   SESSION_DURATION_ALERT,
@@ -1073,6 +1075,12 @@ function WidgetViewerModal(props: Props) {
                             organization={organization}
                             selection={modalTableSelection}
                             selectedQueryIndex={selectedQueryIndex}
+                            disabled={isUsingPerformanceScore(widget)}
+                            disabledTooltip={
+                              isUsingPerformanceScore(widget)
+                                ? performanceScoreTooltip
+                                : undefined
+                            }
                           />
                         )}
                       </ButtonBar>
@@ -1093,6 +1101,8 @@ interface OpenButtonProps {
   selectedQueryIndex: number;
   selection: PageFilters;
   widget: Widget;
+  disabled?: boolean;
+  disabledTooltip?: string;
 }
 
 function OpenButton({
@@ -1100,6 +1110,8 @@ function OpenButton({
   selection,
   organization,
   selectedQueryIndex,
+  disabled,
+  disabledTooltip,
 }: OpenButtonProps) {
   let openLabel: string;
   let path: string;
@@ -1136,15 +1148,18 @@ function OpenButton({
 
   return (
     <Tooltip
-      title={t(
-        'We are splitting datasets to make them easier to digest. Please confirm the dataset for this widget by clicking Edit Widget.'
-      )}
-      disabled={!buttonDisabled}
+      title={
+        disabledTooltip ??
+        t(
+          'We are splitting datasets to make them easier to digest. Please confirm the dataset for this widget by clicking Edit Widget.'
+        )
+      }
+      disabled={defined(disabled) ? !disabled : !buttonDisabled}
     >
       <LinkButton
         to={path}
         priority="primary"
-        disabled={buttonDisabled}
+        disabled={disabled || buttonDisabled}
         onClick={() => {
           trackAnalytics('dashboards_views.widget_viewer.open_source', {
             organization,
