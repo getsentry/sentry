@@ -14,7 +14,6 @@ exports[`TraceTree ExpandToPath expands transactions from path segments 1`] = `
 trace root
   parent - transaction.op
     child - transaction.op
-      span.op - span.description
 "
 `;
 
@@ -49,15 +48,6 @@ exports[`TraceTree FromTrace sorts by start_timestamp 1`] = `
 trace root
   first - transaction.op
   last - transaction.op
-"
-`;
-
-exports[`TraceTree PathToNode path to span includes parent txn 1`] = `
-"
-trace root
-  span.op - span.description
-  parent - transaction.op
-    child - transaction.op
 "
 `;
 

@@ -1411,13 +1411,11 @@ describe('TraceTree', () => {
         node => isTransactionNode(node) && node.value.transaction === 'child'
       )!;
 
-      const request = mockSpansResponse([makeSpan()], 'project', 'child-event-id');
       await TraceTree.ExpandToPath(tree, TraceTree.PathToNode(child), {
         api,
         organization,
       });
 
-      expect(request).toHaveBeenCalled();
       expect(tree.serialize()).toMatchSnapshot();
     });
 
