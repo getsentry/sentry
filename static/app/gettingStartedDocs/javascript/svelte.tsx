@@ -100,7 +100,7 @@ export default app;
 
 const getVerifySnippet = () => `
 // SomeComponent.svelte
-<button type="button" on:click="{() => throw new Error("This is your first error!");}">
+<button type="button" on:click="{() => {throw new Error("This is your first error!");}}">
   Break the world
 </button>`;
 
