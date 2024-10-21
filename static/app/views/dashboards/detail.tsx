@@ -500,11 +500,10 @@ class DashboardDetail extends Component<Props, State> {
           });
         }
         const legendQuery =
-          this.state.widgetLegendState.updatedLegendQueryOnWidgetChange(newDashboard);
+          this.state.widgetLegendState.setMultipleWidgetSelectionState(newDashboard);
 
-        addSuccessMessage(t('Dashboard updated'));
         if (dashboard && newDashboard.id !== dashboard.id) {
-          browserHistory.replace(
+          this.props.router.replace(
             normalizeUrl({
               pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
               query: {
@@ -524,6 +523,8 @@ class DashboardDetail extends Component<Props, State> {
             })
           );
         }
+        addSuccessMessage(t('Dashboard updated'));
+
         return newDashboard;
       },
       // `updateDashboard` does its own error handling

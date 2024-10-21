@@ -292,7 +292,9 @@ function WidgetBuilder({
     return defaultState;
   });
 
-  const [widgetToBeUpdated, setWidgetToBeUpdated] = useState<Widget | null>(null);
+  const [widgetToBeUpdated, setWidgetToBeUpdated] = useState<Widget | undefined>(
+    undefined
+  );
 
   // For analytics around widget library selection
   const [latestLibrarySelectionTitle, setLatestLibrarySelectionTitle] = useState<
@@ -826,8 +828,17 @@ function WidgetBuilder({
     nextWidgetList.splice(updateWidgetIndex, 1);
     nextWidgetList = generateWidgetsAfterCompaction(nextWidgetList);
 
+    const unselectedSeriesQuery = widgetLegendState.setMultipleWidgetSelectionState(
+      {...dashboard, widgets: nextWidgetList},
+      widgetToBeUpdated
+    );
     onSave(nextWidgetList);
-    router.push(normalizeUrl(previousLocation));
+    router.push(
+      normalizeUrl({
+        ...previousLocation,
+        query: {...previousLocation.query, unselectedSeries: unselectedSeriesQuery},
+      })
+    );
   }
 
   async function handleSave() {
@@ -885,10 +896,13 @@ function WidgetBuilder({
         nextWidgetList[updateWidgetIndex] = nextWidgetData;
       }
 
-      const unselectedSeriesParam = widgetLegendState.updatedLegendQueryOnWidgetChange({
-        ...dashboard,
-        widgets: [...dashboard.widgets, nextWidgetData],
-      });
+      const unselectedSeriesParam = widgetLegendState.setMultipleWidgetSelectionState(
+        {
+          ...dashboard,
+          widgets: [...nextWidgetList],
+        },
+        nextWidgetData
+      );
       const query = {...location.query, unselectedSeries: unselectedSeriesParam};
       onSave(nextWidgetList);
       addSuccessMessage(t('Updated widget.'));

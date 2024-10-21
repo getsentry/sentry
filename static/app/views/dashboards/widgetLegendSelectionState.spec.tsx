@@ -93,7 +93,7 @@ describe('WidgetLegend functions util', () => {
     });
 
     it('gives updated query param when widget change submitted', () => {
-      expect(legendFunctions.updatedLegendQueryOnWidgetChange(dashboard)).toEqual([
+      expect(legendFunctions.setMultipleWidgetSelectionState(dashboard)).toEqual([
         `12345${WIDGET_ID_DELIMITER}Releases`,
         `23456${WIDGET_ID_DELIMITER}Releases`,
       ]);
