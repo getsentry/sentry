@@ -711,14 +711,15 @@ export function isUsingPerformanceScore(widget: Widget) {
   if (widget.queries.length === 0) {
     return false;
   }
+  return widget.queries.some(_doesWidgetUsePerformanceScore);
+}
 
-  for (const query of widget.queries) {
-    if (query.conditions?.includes('performance_score')) {
-      return true;
-    }
-    if (query.aggregates.some(aggregate => aggregate.includes('performance_score'))) {
-      return true;
-    }
+function _doesWidgetUsePerformanceScore(query: WidgetQuery) {
+  if (query.conditions?.includes('performance_score')) {
+    return true;
+  }
+  if (query.aggregates.some(aggregate => aggregate.includes('performance_score'))) {
+    return true;
   }
 
   return false;
