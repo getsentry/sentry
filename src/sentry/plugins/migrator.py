@@ -40,7 +40,7 @@ class Migrator:
         for project in self.projects:
             try:
                 logger.info(
-                    "plugin.disabled", extra={"project": project.slug, "plugin": plugin.slug}
+                    "plugin.disabled", extra=self._logging_context({"project": project.slug, "plugin": plugin.slug})
                 )
                 plugin.disable(project=project)
             except NotImplementedError:
