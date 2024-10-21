@@ -47,7 +47,6 @@ export function useAutofixSetup(
     canStartAutofix: Boolean(
       queryData.data?.integration.ok && queryData.data?.genAIConsent.ok
     ),
-    genAIConsent: Boolean(queryData.data?.genAIConsent.ok ?? false),
     canCreatePullRequests: Boolean(queryData.data?.githubWriteIntegration.ok),
   };
 }
