@@ -2,6 +2,8 @@ import type {Flags} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 
+// Both org and project instances should pass in the same buffer size
+export const FEATURE_FLAG_BUFFER_SIZE = 100;
 let __SINGLETON: FeatureObserver | null = null;
 
 export default class FeatureObserver {

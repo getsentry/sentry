@@ -17,7 +17,7 @@ import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {User} from 'sentry/types/user';
-import FeatureObserver from 'sentry/utils/featureObserver';
+import FeatureObserver, {FEATURE_FLAG_BUFFER_SIZE} from 'sentry/utils/featureObserver';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withProjects from 'sentry/utils/withProjects';
@@ -183,7 +183,7 @@ class ProjectContextProvider extends Component<Props, State> {
         setActiveProject(project);
         FeatureObserver.singleton().observeProjectFlags({
           project,
-          bufferSize: 100,
+          bufferSize: FEATURE_FLAG_BUFFER_SIZE,
         });
       } catch (error) {
         this.setState({
