@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -26,7 +25,7 @@ export function DynamicSampling() {
   const {hasAccess} = useAccess({access: ['org:write']});
 
   const formState = useFormState({
-    targetSampleRate: ((organization.targetSampleRate ?? 1) * 100)?.toString(),
+    targetSampleRate: ((organization.targetSampleRate ?? 1) * 100)?.toLocaleString(),
     samplingMode: 'auto' as const,
   });
 
@@ -80,20 +79,18 @@ export function DynamicSampling() {
                 'Take control over the individual sample rates in your projects. This disables automatic adjustments.'
               )}
             >
-              <Fragment>
-                <Confirm disabled>
-                  <Button
-                    title={t('This feature is not yet available.')}
-                    css={css`
-                      width: max-content;
-                    `}
-                  >
-                    {modeField.value === 'auto'
-                      ? t('Switch to Manual')
-                      : t('Switch to Auto')}
-                  </Button>
-                </Confirm>
-              </Fragment>
+              <Confirm disabled>
+                <Button
+                  title={t('This feature is not yet available.')}
+                  css={css`
+                    width: max-content;
+                  `}
+                >
+                  {modeField.value === 'auto'
+                    ? t('Switch to Manual')
+                    : t('Switch to Auto')}
+                </Button>
+              </Confirm>
             </FieldGroup>
             {modeField.value === 'auto' ? <TargetSampleRateField /> : null}
           </PanelBody>
