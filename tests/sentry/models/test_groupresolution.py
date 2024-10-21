@@ -194,3 +194,19 @@ class GroupResolutionTest(TestCase):
 
     def test_no_release_with_no_resolution(self):
         assert not GroupResolution.has_resolution(self.group, None)
+
+    def test_all_resolutions_are_implemented(self):
+        resolution_types = [
+            attr for attr in vars(GroupResolution.Type) if not attr.startswith("__")
+        ]
+        for resolution_type in resolution_types:
+            resolution = GroupResolution.objects.create(
+                release=self.new_release,
+                group=self.group,
+                type=getattr(GroupResolution.Type, resolution_type),
+            )
+            assert (
+                GroupResolution.has_resolution(self.group, self.old_release) is not NotImplemented
+            )
+
+            resolution.delete()
