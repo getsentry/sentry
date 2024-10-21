@@ -218,7 +218,7 @@ class TypeAttributeHandler(AttributeHandler):
 
     @classmethod
     def _handle(cls, path: list[str], event: GroupEvent) -> list[str]:
-        return [event.data["type"]]
+        return [event.data.get("type")]
 
 
 @attribute_registry.register("extra")
@@ -228,7 +228,7 @@ class ExtraAttributeHandler(AttributeHandler):
     @classmethod
     def _handle(cls, path: list[str], event: GroupEvent) -> list[str]:
         path.pop(0)
-        value = event.data["extra"]
+        value = event.data.get("extra", {})
         while path:
             bit = path.pop(0)
             value = value.get(bit)
@@ -249,7 +249,11 @@ class ExceptionAttributeHandler(AttributeHandler):
         if path[1] not in ("type", "value"):
             return []
 
-        return [getattr(e, path[1]) for e in event.interfaces["exception"].values if e is not None]
+        return [
+            getattr(e, path[1])
+            for e in getattr(event.interfaces.get("exception"), "values")
+            if e is not None
+        ]
 
 
 @attribute_registry.register("error")
@@ -268,8 +272,8 @@ class ErrorAttributeHandler(AttributeHandler):
 
         return [
             e.mechanism.handled != negate
-            for e in event.interfaces["exception"].values
-            if e.mechanism is not None and getattr(e.mechanism, "handled") is not None
+            for e in getattr(event.interfaces.get("exception"), "values")
+            if getattr(e, "mechanism") is not None and getattr(e.mechanism, "handled") is not None
         ]
 
 
@@ -282,7 +286,7 @@ class UserAttributeHandler(AttributeHandler):
         if path[1] not in ("id", "ip_address", "email", "username"):
             return []
 
-        return [getattr(event.interfaces["user"], path[1])]
+        return [getattr(event.interfaces.get("user", {}), path[1])]
 
 
 @attribute_registry.register("http")
@@ -294,7 +298,7 @@ class HttpAttributeHandler(AttributeHandler):
         if path[1] in ("url", "method"):
             return [getattr(event.interfaces["request"], path[1])]
         elif path[1] in ("status_code"):
-            contexts = event.data["contexts"]
+            contexts = event.data.get("contexts", {})
             response = contexts.get("response")
             if response is None:
                 response = {}
@@ -311,7 +315,7 @@ class SdkAttributeHandler(AttributeHandler):
     def _handle(cls, path: list[str], event: GroupEvent) -> list[str]:
         if path[1] != "name":
             return []
-        return [event.data["sdk"].get(path[1])]
+        return [event.data.get("sdk", {}).get(path[1])]
 
 
 @attribute_registry.register("stacktrace")
@@ -324,7 +328,11 @@ class StacktraceAttributeHandler(AttributeHandler):
         if stacktrace:
             stacks = [stacktrace]
         else:
-            stacks = [e.stacktrace for e in event.interfaces["exception"].values if e.stacktrace]
+            stacks = [
+                getattr(e, "stacktrace")
+                for e in getattr(event.interfaces.get("exception"), "values")
+                if getattr(e, "stacktrace")
+            ]
         result = []
         for st in stacks:
             for frame in st.frames:
@@ -352,7 +360,7 @@ class DeviceAttributeHandler(AttributeHandler):
             "screen_height_pixels",
             "screen_width_pixels",
         ):
-            contexts = event.data["contexts"]
+            contexts = event.data.get("contexts", {})
             device = contexts.get("device")
             if device is None:
                 device = []
@@ -368,7 +376,7 @@ class UnrealAttributeHandler(AttributeHandler):
     @classmethod
     def _handle(cls, path: list[str], event: GroupEvent) -> list[str]:
         if path[1] == "crash_type":
-            contexts = event.data["contexts"]
+            contexts = event.data.get("contexts", {})
             unreal = contexts.get("unreal")
             if unreal is None:
                 unreal = {}
@@ -384,7 +392,7 @@ class AppAttributeHandler(AttributeHandler):
     @classmethod
     def _handle(cls, path: list[str], event: GroupEvent) -> list[str]:
         if path[1] in ("in_foreground"):
-            contexts = event.data["contexts"]
+            contexts = event.data.get("contexts", {})
             response = contexts.get("app")
             if response is None:
                 response = {}
@@ -401,7 +409,7 @@ class OsAttributeHandler(AttributeHandler):
     def _handle(cls, path: list[str], event: GroupEvent) -> list[str]:
         if path[1] in ("distribution"):
             if path[2] in ("name", "version"):
-                contexts = event.data["contexts"]
+                contexts = event.data.get("contexts", {})
                 os_context = contexts.get("os")
                 if os_context is None:
                     os_context = {}
