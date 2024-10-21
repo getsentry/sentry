@@ -3,15 +3,14 @@ from enum import Enum
 from sentry import options
 from sentry.llm.exceptions import InvalidProviderError, InvalidTemperature, InvalidUsecaseError
 from sentry.llm.providers.base import LlmModelBase
-
-# from sentry.llm.providers.openai import OpenAIProvider
+from sentry.llm.providers.openai import OpenAIProvider
 from sentry.llm.providers.preview import PreviewLLM
 from sentry.llm.providers.vertex import VertexProvider
 from sentry.llm.types import ProviderConfig, UseCaseConfig
 
 SENTRY_LLM_SERVICE_ALIASES = {
     "vertex": VertexProvider,
-    # "openai": OpenAIProvider,
+    "openai": OpenAIProvider,
     "preview": PreviewLLM,
 }
 
