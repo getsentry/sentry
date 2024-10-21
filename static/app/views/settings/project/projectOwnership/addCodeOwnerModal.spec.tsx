@@ -82,7 +82,10 @@ describe('AddCodeOwnerModal', function () {
       />
     );
 
-    await selectEvent.select(screen.getByText('--'), 'example/hello-there');
+    await selectEvent.select(
+      screen.getByText('--'),
+      `Repo Name: ${codeMapping.repoName}, Stack Trace Root: ${codeMapping.stackRoot}, Source Code Root: ${codeMapping.sourceRoot}`
+    );
 
     expect(screen.getByTestId('icon-check-mark')).toBeInTheDocument();
 
@@ -111,7 +114,10 @@ describe('AddCodeOwnerModal', function () {
       />
     );
 
-    await selectEvent.select(screen.getByText('--'), 'example/hello-there');
+    await selectEvent.select(
+      screen.getByText('--'),
+      `Repo Name: ${codeMapping.repoName}, Stack Trace Root: ${codeMapping.stackRoot}, Source Code Root: ${codeMapping.sourceRoot}`
+    );
 
     expect(screen.getByText('No codeowner file found.')).toBeInTheDocument();
   });
@@ -143,7 +149,10 @@ describe('AddCodeOwnerModal', function () {
       />
     );
 
-    await selectEvent.select(screen.getByText('--'), 'example/hello-there');
+    await selectEvent.select(
+      screen.getByText('--'),
+      `Repo Name: ${codeMapping.repoName}, Stack Trace Root: ${codeMapping.stackRoot}, Source Code Root: ${codeMapping.sourceRoot}`
+    );
 
     await userEvent.click(screen.getByRole('button', {name: 'Add File'}));
 
