@@ -47,37 +47,36 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
         self.project2 = self.create_project()
         self.user = self.create_user()
         self.user2 = self.create_user()
-        with self.options({"issues.group_attributes.send_kafka": True}):
-            self.store_event(
-                data={
-                    "event_id": "a" * 32,
-                    "message": "very bad",
-                    "timestamp": iso_format(self.day_ago + timedelta(minutes=1)),
-                    "fingerprint": ["group1"],
-                    "tags": {"sentry:user": self.user.email},
-                },
-                project_id=self.project.id,
-            )
-            self.store_event(
-                data={
-                    "event_id": "b" * 32,
-                    "message": "oh my",
-                    "timestamp": iso_format(self.day_ago + timedelta(hours=1, minutes=1)),
-                    "fingerprint": ["group2"],
-                    "tags": {"sentry:user": self.user2.email},
-                },
-                project_id=self.project2.id,
-            )
-            self.store_event(
-                data={
-                    "event_id": "c" * 32,
-                    "message": "very bad",
-                    "timestamp": iso_format(self.day_ago + timedelta(hours=1, minutes=2)),
-                    "fingerprint": ["group2"],
-                    "tags": {"sentry:user": self.user2.email},
-                },
-                project_id=self.project2.id,
-            )
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "very bad",
+                "timestamp": iso_format(self.day_ago + timedelta(minutes=1)),
+                "fingerprint": ["group1"],
+                "tags": {"sentry:user": self.user.email},
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "message": "oh my",
+                "timestamp": iso_format(self.day_ago + timedelta(hours=1, minutes=1)),
+                "fingerprint": ["group2"],
+                "tags": {"sentry:user": self.user2.email},
+            },
+            project_id=self.project2.id,
+        )
+        self.store_event(
+            data={
+                "event_id": "c" * 32,
+                "message": "very bad",
+                "timestamp": iso_format(self.day_ago + timedelta(hours=1, minutes=2)),
+                "fingerprint": ["group2"],
+                "tags": {"sentry:user": self.user2.email},
+            },
+            project_id=self.project2.id,
+        )
         self.url = reverse(
             "sentry-api-0-organization-events-stats",
             kwargs={"organization_id_or_slug": self.project.organization.slug},

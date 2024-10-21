@@ -14,7 +14,6 @@ from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
 from sentry_kafka_schemas.schema_types.group_attributes_v1 import GroupAttributesSnapshot
 
-from sentry import options
 from sentry.conf.types.kafka_definition import Topic
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
@@ -91,9 +90,6 @@ def send_snapshot_values(
 def bulk_send_snapshot_values(
     group_ids: list[int] | None, groups: list[Group] | None, group_deleted: bool = False
 ) -> None:
-    if not (options.get("issues.group_attributes.send_kafka") or False):
-        return
-
     if group_ids is None and groups is None:
         raise ValueError("cannot send snapshot values when group_ids and groups are None")
 
