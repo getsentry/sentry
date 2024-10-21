@@ -130,6 +130,7 @@ class EventStorage(Service):
         "get_events_snql",
         "get_unfetched_events",
         "get_adjacent_event_ids",
+        "get_adjacent_event_ids_snql",
         "bind_nodes",
         "get_unfetched_transactions",
     )
@@ -270,6 +271,16 @@ class EventStorage(Service):
         group_id (Optional[int]): If the group ID for this event is already known, pass
             it here to save one Snuba query.
         """
+        raise NotImplementedError
+
+    def get_adjacent_event_ids_snql(
+        self,
+        organization_id: int,
+        project_id: int,
+        group_id: int,
+        environments: list[str],
+        event: Event | GroupEvent,
+    ):
         raise NotImplementedError
 
     def get_adjacent_event_ids(self, event, filter):
