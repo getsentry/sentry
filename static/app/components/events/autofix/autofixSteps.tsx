@@ -32,7 +32,6 @@ interface StepProps {
   hasErroredStepBefore: boolean;
   hasStepAbove: boolean;
   hasStepBelow: boolean;
-  onRetry: () => void;
   repos: AutofixRepository[];
   runId: string;
   step: AutofixStep;
@@ -64,7 +63,6 @@ export function Step({
   step,
   groupId,
   runId,
-  onRetry,
   repos,
   hasStepBelow,
   hasStepAbove,
@@ -97,12 +95,7 @@ export function Step({
                 />
               )}
               {step.type === AutofixStepType.CHANGES && (
-                <AutofixChanges
-                  step={step}
-                  groupId={groupId}
-                  onRetry={onRetry}
-                  runId={runId}
-                />
+                <AutofixChanges step={step} groupId={groupId} runId={runId} />
               )}
               {hasErroredStepBefore && hasStepBelow && (
                 <StepMessage>
@@ -119,33 +112,16 @@ export function Step({
   );
 }
 
-function useInView(ref: HTMLElement | null) {
-  const [inView, setInView] = useState(false);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(([entry]) => {
-      setInView(entry.isIntersecting);
-    });
-
-    if (!ref) {
-      return () => {
-        observer.disconnect();
-      };
-    }
-
-    observer.observe(ref);
-    return () => {
-      observer.disconnect();
-    };
-  }, [ref]);
-  return inView;
-}
-
-export function AutofixSteps({data, groupId, runId, onRetry}: AutofixStepsProps) {
+export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
   const steps = data.steps;
   const repos = data.repositories;
 
   const stepsRef = useRef<(HTMLDivElement | null)[]>([]);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [hasSeenBottom, setHasSeenBottom] = useState(false);
+  const [isBottomVisible, setIsBottomVisible] = useState(false);
+  const prevStepsLengthRef = useRef(0);
+  const prevInsightsCountRef = useRef(0);
 
   const {mutate: handleSelectFix} = useSelectCause({groupId, runId});
   const selectRootCause = (text: string, isCustom?: boolean) => {
@@ -178,9 +154,56 @@ export function AutofixSteps({data, groupId, runId, onRetry}: AutofixStepsProps)
     });
   };
 
-  const lastStepVisible = useInView(
-    stepsRef.current.length ? stepsRef.current[stepsRef.current.length - 1] : null
-  );
+  const bottomRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsBottomVisible(entry.isIntersecting);
+        if (entry.isIntersecting) {
+          setHasSeenBottom(true);
+        }
+      },
+      {threshold: 0.1, root: null, rootMargin: '0px'}
+    );
+
+    if (bottomRef.current) {
+      observer.observe(bottomRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (!steps) {
+      return;
+    }
+
+    const currentStepsLength = steps.length;
+    const currentInsightsCount = steps.reduce((count, step) => {
+      if (step.type === AutofixStepType.DEFAULT) {
+        return count + step.insights.length;
+      }
+      return count;
+    }, 0);
+
+    const hasNewSteps = currentStepsLength > prevStepsLengthRef.current;
+    const hasNewInsights = currentInsightsCount > prevInsightsCountRef.current;
+
+    if (hasNewSteps || hasNewInsights) {
+      if (!isBottomVisible) {
+        setHasSeenBottom(false);
+      }
+    }
+
+    prevStepsLengthRef.current = currentStepsLength;
+    prevInsightsCountRef.current = currentInsightsCount;
+  }, [steps, isBottomVisible]);
+
+  const scrollToBottom = () => {
+    bottomRef.current?.scrollIntoView({behavior: 'smooth', block: 'end'});
+    setHasSeenBottom(true);
+  };
 
   if (!steps) {
     return null;
@@ -198,16 +221,9 @@ export function AutofixSteps({data, groupId, runId, onRetry}: AutofixStepsProps)
   const isChangesStep =
     lastStep.type === AutofixStepType.CHANGES && lastStep.status === 'COMPLETED';
 
-  const scrollToMatchingStep = () => {
-    const matchingStepIndex = steps.findIndex(step => step.type === lastStep.type);
-    if (matchingStepIndex !== -1 && stepsRef.current[matchingStepIndex]) {
-      stepsRef.current[matchingStepIndex]?.scrollIntoView({behavior: 'smooth'});
-    }
-  };
-
   return (
     <div>
-      <StepsContainer>
+      <StepsContainer ref={containerRef}>
         {steps.map((step, index) => {
           const previousStep = index > 0 ? steps[index - 1] : null;
           const previousStepErrored =
@@ -217,23 +233,26 @@ export function AutofixSteps({data, groupId, runId, onRetry}: AutofixStepsProps)
           const nextStep = index + 1 < steps.length ? steps[index + 1] : null;
           const twoInsightStepsInARow =
             nextStep?.type === AutofixStepType.DEFAULT &&
-            step.type === AutofixStepType.DEFAULT;
+            step.type === AutofixStepType.DEFAULT &&
+            step.insights.length > 0 &&
+            nextStep.insights.length > 0;
           const twoNonDefaultStepsInARow =
-            nextStep?.type !== AutofixStepType.DEFAULT &&
+            previousStep &&
+            (previousStep?.type !== AutofixStepType.DEFAULT ||
+              previousStep?.insights.length === 0) &&
             step.type !== AutofixStepType.DEFAULT;
           return (
             <div ref={el => (stepsRef.current[index] = el)} key={step.id}>
+              {twoNonDefaultStepsInARow && <br />}
               <Step
                 step={step}
                 hasStepBelow={index + 1 < steps.length && !twoInsightStepsInARow}
                 hasStepAbove={index > 0}
                 groupId={groupId}
                 runId={runId}
-                onRetry={onRetry}
                 repos={repos}
                 hasErroredStepBefore={previousStepErrored}
               />
-              {twoNonDefaultStepsInARow && <StepSeparator />}
             </div>
           );
         })}
@@ -256,14 +275,17 @@ export function AutofixSteps({data, groupId, runId, onRetry}: AutofixStepsProps)
         runId={runId}
         primaryAction={isRootCauseSelectionStep}
         isRootCauseSelectionStep={isRootCauseSelectionStep}
-        scrollIntoView={
-          !lastStepVisible &&
-          (lastStep.type === AutofixStepType.ROOT_CAUSE_ANALYSIS ||
-            lastStep.type === AutofixStepType.CHANGES)
-            ? scrollToMatchingStep
-            : null
+        isChangesStep={isChangesStep}
+        scrollIntoView={!hasSeenBottom ? scrollToBottom : null}
+        scrollText={
+          lastStep.type === AutofixStepType.ROOT_CAUSE_ANALYSIS
+            ? 'View Root Cause'
+            : lastStep.type === AutofixStepType.CHANGES
+              ? 'View Fix'
+              : 'New Insight'
         }
       />
+      <div ref={bottomRef} />
     </div>
   );
 }
@@ -302,8 +324,3 @@ const ContentWrapper = styled(motion.div)`
 `;
 
 const AnimationWrapper = styled(motion.div)``;
-
-const StepSeparator = styled('div')`
-  height: 1px;
-  margin: ${space(1)} 0;
-`;
