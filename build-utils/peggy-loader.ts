@@ -1,6 +1,7 @@
 import peggy from 'peggy';
+import type {LoaderDefinitionFunction} from 'webpack';
 
-export default function peggyLoader(source) {
+const peggyLoader: LoaderDefinitionFunction = source => {
   // https://peggyjs.org/documentation.html#generating-a-parser-javascript-api
   const peggyOptions: peggy.OutputFormatAmdCommonjsEs = {
     cache: false,
@@ -12,4 +13,6 @@ export default function peggyLoader(source) {
   };
 
   return peggy.generate(source, peggyOptions);
-}
+};
+
+export default peggyLoader;
