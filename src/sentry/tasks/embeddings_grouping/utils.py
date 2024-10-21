@@ -342,7 +342,7 @@ def _make_snuba_call(
 @sentry_sdk.tracing.trace
 def get_events_from_nodestore(
     project: Project,
-    snuba_results: Sequence[dict[str, Any]],
+    snuba_results: Sequence[GroupEventRow],
     group_ids: list[int],
 ) -> tuple[GroupStacktraceData, dict[int, str]]:
     nodestore_events = lookup_group_data_stacktrace_bulk(project, snuba_results)
@@ -641,7 +641,7 @@ def make_nodestore_call_multithreaded(project: Project, node_keys: list[str]) ->
 
 @sentry_sdk.tracing.trace
 def lookup_group_data_stacktrace_bulk(
-    project: Project, rows: Sequence[dict[str, Any]]
+    project: Project, rows: Sequence[GroupEventRow]
 ) -> dict[int, Event]:
     with metrics.timer(
         f"{BACKFILL_NAME}.lookup_event_bulk",
