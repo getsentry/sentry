@@ -46,7 +46,6 @@ import {Toolbar} from 'sentry/views/dashboards/widgetCard/toolbar';
 
 import type {DashboardFilters, Widget} from '../types';
 import {DisplayType, OnDemandExtractionState, WidgetType} from '../types';
-import {getColoredWidgetIndicator, hasThresholdMaxValue} from '../utils';
 import {DEFAULT_RESULTS_LIMIT} from '../widgetBuilder/utils';
 
 import {DashboardsMEPConsumer, DashboardsMEPProvider} from './dashboardsMEPContext';
@@ -226,10 +225,6 @@ function WidgetCard(props: Props) {
                     >
                       <WidgetTitle>{widget.title}</WidgetTitle>
                     </Tooltip>
-                    {widget.thresholds &&
-                      hasThresholdMaxValue(widget.thresholds) &&
-                      data?.tableResults &&
-                      getColoredWidgetIndicator(widget.thresholds, data?.tableResults)}
                     <ExtractedMetricsTag queryKey={widget} />
                     <DisplayOnDemandWarnings widget={widget} />
                     <DiscoverSplitAlert widget={widget} />
