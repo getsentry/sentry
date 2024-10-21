@@ -16,7 +16,7 @@ from sentry.models.dashboard_widget import (
 from sentry.models.dashboard_widget import DatasetSourcesTypes as DashboardDatasetSourcesTypes
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.testutils.cases import BaseMetricsLayerTestCase, SnubaTestCase, TestCase
-from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.users.models.user import User
 from sentry.utils.samples import load_data
@@ -50,7 +50,6 @@ class DashboardWidgetDatasetSplitTestCase(BaseMetricsLayerTestCase, TestCase, Sn
 
         self.nine_mins_ago = before_now(minutes=9)
         self.ten_mins_ago = before_now(minutes=10)
-        self.ten_mins_ago_iso = iso_format(self.ten_mins_ago)
         self.dry_run = False
 
         self.dashboard = Dashboard.objects.create(
@@ -143,6 +142,40 @@ class DashboardWidgetDatasetSplitTestCase(BaseMetricsLayerTestCase, TestCase, Sn
             columns=[],
             aggregates=[],
             conditions="transaction:'/sentry/scripts/views.js'",
+            order=0,
+        )
+
+        with self.feature({"organizations:dynamic-sampling": True}):
+            _, queried_snuba = _get_and_save_split_decision_for_dashboard_widget(
+                metrics_query, self.dry_run
+            )
+        metrics_widget.refresh_from_db()
+        assert (
+            metrics_widget.discover_widget_split is None
+            if self.dry_run
+            else metrics_widget.discover_widget_split == 100
+        )
+        assert queried_snuba
+
+    def test_metrics_compatible_query_no_data_only_aggregates(self):
+        metrics_widget = DashboardWidget.objects.create(
+            dashboard=self.dashboard,
+            order=0,
+            title="widget",
+            display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+            widget_type=DashboardWidgetTypes.DISCOVER,
+            interval="1d",
+            detail={"layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2}},
+        )
+
+        # When only aggregates are requested, the response has a row but it's
+        # completely empty.
+        metrics_query = DashboardWidgetQuery.objects.create(
+            widget=metrics_widget,
+            fields=["count()", "count_unique(user)"],
+            columns=[],
+            aggregates=[],
+            conditions=f"project:[{self.project_2.slug}]",
             order=0,
         )
 
@@ -390,6 +423,42 @@ class DashboardWidgetDatasetSplitTestCase(BaseMetricsLayerTestCase, TestCase, Sn
         assert snuba_dataclass.environments == [environment]
 
     def test_errors_widget_unhandled_in_conditions(self):
+        error_widget = DashboardWidget.objects.create(
+            dashboard=self.dashboard,
+            order=0,
+            title="error widget",
+            display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+            widget_type=DashboardWidgetTypes.DISCOVER,
+            interval="1d",
+            detail={"layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2}},
+        )
+        errors_widget_query = DashboardWidgetQuery.objects.create(
+            widget=error_widget,
+            fields=["title", "issue", "project", "release", "count()", "count_unique(user)"],
+            columns=[],
+            aggregates=["count_unique(user)"],
+            conditions="(error.unhandled:true message:testing) OR message:test",
+            order=0,
+        )
+
+        _get_and_save_split_decision_for_dashboard_widget(errors_widget_query, self.dry_run)
+        error_widget.refresh_from_db()
+        assert (
+            error_widget.discover_widget_split is None
+            if self.dry_run
+            else error_widget.discover_widget_split == 100
+        )
+        if not self.dry_run:
+            assert error_widget.dataset_source == DashboardDatasetSourcesTypes.FORCED.value
+
+    def test_dashboard_projects_empty(self):
+        # Dashboard belonging to an org with no projects
+        self.organization = self.create_organization()
+        self.dashboard = Dashboard.objects.create(
+            title="Dashboard With Split Widgets",
+            created_by_id=self.user.id,
+            organization=self.organization,
+        )
         error_widget = DashboardWidget.objects.create(
             dashboard=self.dashboard,
             order=0,

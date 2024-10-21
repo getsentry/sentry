@@ -5,7 +5,7 @@ from django.urls import reverse
 from sentry import tagstore
 from sentry.tagstore.base import TagKeyStatus
 from sentry.testutils.cases import APITestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
@@ -19,7 +19,7 @@ class ProjectTagKeyDetailsTest(APITestCase, SnubaTestCase):
             self.store_event(
                 data={
                     "tags": {"foo": f"val{i}"},
-                    "timestamp": iso_format(before_now(seconds=1)),
+                    "timestamp": before_now(seconds=1).isoformat(),
                 },
                 project_id=project.id,
             )
@@ -52,7 +52,7 @@ class ProjectTagKeyDeleteTest(APITestCase):
 
         project = self.create_project()
         self.store_event(
-            data={"tags": {key: val}, "timestamp": iso_format(before_now(seconds=1))},
+            data={"tags": {key: val}, "timestamp": before_now(seconds=1).isoformat()},
             project_id=project.id,
         )
 
@@ -80,7 +80,7 @@ class ProjectTagKeyDeleteTest(APITestCase):
     def test_protected(self):
         project = self.create_project()
         self.store_event(
-            data={"environment": "prod", "timestamp": iso_format(before_now(seconds=1))},
+            data={"environment": "prod", "timestamp": before_now(seconds=1).isoformat()},
             project_id=project.id,
         )
 

@@ -3,66 +3,36 @@ import styled from '@emotion/styled';
 
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import toPercent from 'sentry/utils/number/toPercent';
-import {
-  getFrameOpOrCategory,
-  isBackgroundFrame,
-  isErrorFrame,
-  type ReplayFrame,
-} from 'sentry/utils/replays/types';
-import useOrganization from 'sentry/utils/useOrganization';
+import type {VideoEvent} from 'sentry/utils/replays/types';
 
 interface Props {
   durationMs: number;
-  frames: ReplayFrame[];
   startTimestampMs: number;
+  videoEvents: VideoEvent[];
 }
 
-// create gaps in the timeline by finding all columns between a background frame and foreground frame
-// or background frame to end of replay
-export default function TimelineGaps({durationMs, startTimestampMs, frames}: Props) {
-  const organization = useOrganization();
+export default function TimelineGaps({durationMs, startTimestampMs, videoEvents}: Props) {
   const ranges: Array<{left: string; width: string}> = [];
 
-  let start = -1;
-  let end = -1;
+  let start = startTimestampMs;
 
-  for (const currFrame of frames) {
-    // add metrics for frame coming after a background frame to see how often we have bad data
-    if (start !== -1) {
-      trackAnalytics('replay.frame-after-background', {
-        organization,
-        frame: getFrameOpOrCategory(currFrame),
-      });
-    }
-
-    // only considered start of gap if background frame hasn't been found yet
-    if (start === -1 && isBackgroundFrame(currFrame)) {
-      start = currFrame.timestampMs - startTimestampMs;
-    }
-
-    // gap only ends if a frame that's not a background frame or error frame has been found
-    if (start !== -1 && !isBackgroundFrame(currFrame) && !isErrorFrame(currFrame)) {
-      end = currFrame.timestampMs - startTimestampMs;
-    }
-
-    // create gap if we found have start (background frame) and end (another frame)
-    if (start !== -1 && end !== -1) {
+  // create gap in timeline when there is a gap between video events
+  for (const video of videoEvents) {
+    if (start < video.timestamp) {
       ranges.push({
-        left: toPercent(start / durationMs),
-        width: toPercent((end - start) / durationMs),
+        left: toPercent((start - startTimestampMs) / durationMs),
+        width: toPercent((video.timestamp - start) / durationMs),
       });
-      start = -1;
-      end = -1;
     }
+    start = video.timestamp + video.duration;
   }
 
-  // create gap if we still have start (background frame) until end of replay
-  if (start !== -1) {
+  // add gap at the end if the last video segment ends before the replay ends
+  if (videoEvents.length && start < startTimestampMs + durationMs) {
     ranges.push({
-      left: toPercent(start / durationMs),
-      width: toPercent((durationMs - start) / durationMs),
+      left: toPercent((start - startTimestampMs) / durationMs),
+      width: toPercent(durationMs / durationMs),
     });
   }
 
@@ -73,7 +43,7 @@ export default function TimelineGaps({durationMs, startTimestampMs, frames}: Pro
         return (
           <Range key={`${rangeCss.left}-${rangeCss.width}`} style={rangeCss}>
             <Tooltip
-              title={t('App is suspended')}
+              title={t('Video Unavailable')}
               isHoverable
               containerDisplayMode="block"
               position="top"

@@ -1009,7 +1009,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         data = {
             "event_id": "a" * 32,
             "message": "super bad",
-            "timestamp": iso_format(two_weeks_ago + timedelta(minutes=1)),
+            "timestamp": two_weeks_ago + timedelta(minutes=1),
             "tags": {"sentry:user": self.user.email},
             "exception": [{"value": "BadError"}],
         }
@@ -1703,12 +1703,12 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         # update query
         update_alert_rule(
             dynamic_rule,
-            query="is:unresolved",
+            query="message:*post_process*",
             detection_type=AlertRuleDetectionType.DYNAMIC,
         )
         assert mock_seer_request.call_count == 1
         snuba_query.refresh_from_db()
-        assert snuba_query.query == "is:unresolved"
+        assert snuba_query.query == "message:*post_process*"
         mock_seer_request.reset_mock()
         # update aggregate
         update_alert_rule(
@@ -1962,7 +1962,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             update_alert_rule(
                 dynamic_rule,
                 time_window=30,
-                query="is:unresolved",
+                query="message:*post_process*",
                 detection_type=AlertRuleDetectionType.DYNAMIC,
                 sensitivity=AlertRuleSensitivity.HIGH,
                 seasonality=AlertRuleSeasonality.AUTO,
@@ -1982,7 +1982,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             update_alert_rule(
                 dynamic_rule,
                 time_window=30,
-                query="is:unresolved",
+                query="message:*post_process*",
                 detection_type=AlertRuleDetectionType.DYNAMIC,
                 sensitivity=AlertRuleSensitivity.HIGH,
                 seasonality=AlertRuleSeasonality.AUTO,
@@ -3146,7 +3146,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest):
             self.action,
             type,
             target_type,
-            target_identifier=target_identifier,
+            target_identifier=str(target_identifier),
             integration_id=integration.id,
         )
 

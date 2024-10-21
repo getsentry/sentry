@@ -2,12 +2,14 @@ import itertools
 import logging
 from abc import ABC, abstractmethod
 from collections.abc import Mapping
+from dataclasses import dataclass
 from enum import Enum
 from types import TracebackType
 from typing import Any, Self
 
 from django.conf import settings
 
+from sentry.integrations.base import IntegrationDomain
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -84,10 +86,6 @@ class EventLifecycleMetric(ABC):
         return EventLifecycle(self, assume_success)
 
 
-class EventLifecycleStateError(Exception):
-    pass
-
-
 class EventLifecycle:
     """Context object that measures an event that may succeed or fail.
 
@@ -132,13 +130,17 @@ class EventLifecycle:
         if outcome == EventLifecycleOutcome.FAILURE:
             logger.error(key, extra=self._extra, exc_info=exc)
 
+    @staticmethod
+    def _report_flow_error(message) -> None:
+        logger.error("EventLifecycle flow error: %s", message)
+
     def _terminate(
         self, new_state: EventLifecycleOutcome, exc: BaseException | None = None
     ) -> None:
         if self._state is None:
-            raise EventLifecycleStateError("The lifecycle has not yet been entered")
+            self._report_flow_error("The lifecycle has not yet been entered")
         if self._state != EventLifecycleOutcome.STARTED:
-            raise EventLifecycleStateError("The lifecycle has already been exited")
+            self._report_flow_error("The lifecycle has already been exited")
         self._state = new_state
         self.record_event(new_state, exc)
 
@@ -152,8 +154,11 @@ class EventLifecycle:
 
         self._terminate(EventLifecycleOutcome.SUCCESS)
 
-    def record_failure(self, exc: BaseException | None = None) -> None:
-        """Record that the event halted in failure.
+    def record_failure(
+        self, exc: BaseException | None = None, extra: dict[str, Any] | None = None
+    ) -> None:
+        """Record that the event halted in failure. Additional data may be passed
+        to be logged.
 
         There is no need to call this method directly if an exception is raised from
         inside the context. It will be called automatically when exiting the context
@@ -165,11 +170,30 @@ class EventLifecycle:
         `record_failure` on the context object.
         """
 
+        if extra:
+            self._extra.update(extra)
         self._terminate(EventLifecycleOutcome.FAILURE, exc)
+
+    def record_halt(self, exc: BaseException | None = None) -> None:
+        """Record that the event halted in an ambiguous state.
+
+        This method can be called in response to a sufficiently ambiguous exception
+        or other error condition, where it may have been caused by a user error or
+        other expected condition, but there is some substantial chance that it
+        represents a bug.
+
+        Such cases usually mean that we want to:
+          (1) document the ambiguity;
+          (2) monitor it for sudden spikes in frequency; and
+          (3) investigate whether more detailed error information is available
+              (but probably later, as a backlog item).
+        """
+
+        self._terminate(EventLifecycleOutcome.HALTED, exc)
 
     def __enter__(self) -> Self:
         if self._state is not None:
-            raise EventLifecycleStateError("The lifecycle has already been entered")
+            self._report_flow_error("The lifecycle has already been entered")
         self._state = EventLifecycleOutcome.STARTED
         self.record_event(EventLifecycleOutcome.STARTED)
         return self
@@ -197,3 +221,49 @@ class EventLifecycle:
                 if self.assume_success
                 else EventLifecycleOutcome.HALTED
             )
+
+
+class IntegrationPipelineViewType(Enum):
+    """A specific step in an integration's pipeline that is not a static page."""
+
+    # IdentityProviderPipeline
+    IDENTITY_LOGIN = "IDENTITY_LOGIN"
+    IDENTITY_LINK = "IDENTITY_LINK"
+
+    # GitHub
+    OAUTH_LOGIN = "OAUTH_LOGIN"
+    GITHUB_INSTALLATION = "GITHUB_INSTALLATION"
+
+    # Bitbucket
+    VERIFY_INSTALLATION = "VERIFY_INSTALLATION"
+
+    # Bitbucket Server
+    # OAUTH_LOGIN = "OAUTH_LOGIN"
+    OAUTH_CALLBACK = "OAUTH_CALLBACK"
+
+    # Azure DevOps
+    ACCOUNT_CONFIG = "ACCOUNT_CONFIG"
+
+    def __str__(self) -> str:
+        return self.value.lower()
+
+
+@dataclass
+class IntegrationPipelineViewEvent(EventLifecycleMetric):
+    """An instance to be recorded of a user going through an integration pipeline view (step)."""
+
+    interaction_type: IntegrationPipelineViewType
+    domain: IntegrationDomain
+    provider_key: str
+
+    def get_key(self, outcome: EventLifecycleOutcome) -> str:
+        # not reporting as SLOs
+        root_tokens = ("sentry", "integrations", "installation")
+        specific_tokens = (
+            self.domain,
+            self.provider_key,
+            str(self.interaction_type),
+            str(outcome),
+        )
+
+        return ".".join(itertools.chain(root_tokens, specific_tokens))

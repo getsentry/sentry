@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useState} from 'react';
+import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -13,8 +13,10 @@ import {space} from 'sentry/styles/space';
 import type {NoteType} from 'sentry/types/alerts';
 import type {Group, GroupActivity} from 'sentry/types/group';
 import {GroupActivityType} from 'sentry/types/group';
+import type {Release} from 'sentry/types/release';
 import type {User} from 'sentry/types/user';
 import {uniqueId} from 'sentry/utils/guid';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
 import {useUser} from 'sentry/utils/useUser';
@@ -22,9 +24,21 @@ import {groupActivityTypeIconMapping} from 'sentry/views/issueDetails/streamline
 import getGroupActivityItem from 'sentry/views/issueDetails/streamline/groupActivityItem';
 import {NoteDropdown} from 'sentry/views/issueDetails/streamline/noteDropdown';
 
+export interface GroupRelease {
+  firstRelease: Release;
+  lastRelease: Release;
+}
 function StreamlinedActivitySection({group}: {group: Group}) {
   const organization = useOrganization();
   const {teams} = useTeamsById();
+
+  const {data: groupReleaseData} = useApiQuery<GroupRelease>(
+    [`/organizations/${organization.slug}/issues/${group.id}/first-last-release/`],
+    {
+      staleTime: 30000,
+      gcTime: 30000,
+    }
+  );
 
   const [inputId, setInputId] = useState(uniqueId());
 
@@ -82,6 +96,37 @@ function StreamlinedActivitySection({group}: {group: Group}) {
     [group.activity, mutators, group.id]
   );
 
+  const activities = useMemo(() => {
+    const lastSeenActivity: GroupActivity = {
+      type: GroupActivityType.LAST_SEEN,
+      id: uniqueId(),
+      dateCreated: group.lastSeen,
+      project: group.project,
+      data: {},
+    };
+
+    const groupActivities = [...group.activity, lastSeenActivity];
+    return groupActivities.sort((a, b) => {
+      const dateA = new Date(a.dateCreated).getTime();
+      const dateB = new Date(b.dateCreated).getTime();
+      if (
+        a.type === GroupActivityType.FIRST_SEEN &&
+        b.type === GroupActivityType.LAST_SEEN
+      ) {
+        return 1;
+      }
+      if (
+        a.type === GroupActivityType.LAST_SEEN &&
+        b.type === GroupActivityType.FIRST_SEEN
+      ) {
+        return -1;
+      }
+
+      return dateB - dateA;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [group.activity.length, group.lastSeen, group.project]);
+
   return (
     <Fragment>
       <Timeline.Container>
@@ -96,14 +141,15 @@ function StreamlinedActivitySection({group}: {group: Group}) {
           source="issue-details"
           {...noteProps}
         />
-        {group.activity.map(item => {
+        {activities.map(item => {
           const authorName = item.user ? item.user.name : 'Sentry';
           const {title, message} = getGroupActivityItem(
             item,
             organization,
             group.project.id,
             <Author>{authorName}</Author>,
-            teams
+            teams,
+            groupReleaseData
           );
 
           const Icon = groupActivityTypeIconMapping[item.type]?.Component ?? null;
@@ -113,9 +159,14 @@ function StreamlinedActivitySection({group}: {group: Group}) {
               title={
                 <TitleWrapper>
                   {title}
-                  {item.type === GroupActivityType.NOTE && (
-                    <NoteDropdown onDelete={() => handleDelete(item)} user={item.user} />
-                  )}
+                  <NoteDropdownWrapper>
+                    {item.type === GroupActivityType.NOTE && (
+                      <NoteDropdown
+                        onDelete={() => handleDelete(item)}
+                        user={item.user}
+                      />
+                    )}
+                  </NoteDropdownWrapper>
                 </TitleWrapper>
               }
               timestamp={<SmallTimestamp date={item.dateCreated} />}
@@ -142,10 +193,13 @@ const Author = styled('span')`
   font-weight: ${p => p.theme.fontWeightBold};
 `;
 
+const NoteDropdownWrapper = styled('span')`
+  font-weight: normal;
+`;
+
 const TitleWrapper = styled('div')`
   display: flex;
   align-items: center;
-  font-weight: normal;
   gap: ${space(0.5)};
 `;
 

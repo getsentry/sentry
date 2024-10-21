@@ -136,6 +136,7 @@ SPAN_COLUMN_MAP = {
     "transaction": "segment_name",
     "transaction.id": "transaction_id",
     "segment.id": "segment_id",
+    "transaction.span_id": "segment_id",
     "transaction.op": "transaction_op",
     "user": "user",
     "user.id": "sentry_tags[user.id]",
@@ -175,6 +176,7 @@ SPAN_COLUMN_MAP = {
 SPAN_EAP_COLUMN_MAP = {
     "id": "span_id",
     "span_id": "span_id",  # ideally this would be temporary, but unfortunately its heavily hardcoded in the FE
+    "parent_span": "parent_span_id",
     "organization.id": "organization_id",
     "project": "project_id",
     "project.id": "project_id",
@@ -198,7 +200,11 @@ SPAN_EAP_COLUMN_MAP = {
     "timestamp": "timestamp",
     "trace": "trace_id",
     "transaction": "segment_name",
+    # `transaction.id` and `segment.id` is going to be replaced by `transaction.span_id` please do not use
+    # transaction.id is "wrong", its pointing to segment_id to return something for the transistion, but represents the
+    # txn event id(32 char uuid). EAP will no longer be storing this.
     "transaction.id": "segment_id",
+    "transaction.span_id": "segment_id",
     "transaction.method": "attr_str[transaction.method]",
     "is_transaction": "is_segment",
     "segment.id": "segment_id",
@@ -285,7 +291,7 @@ DATASETS: dict[Dataset, dict[str, str]] = {
     Dataset.MetricsSummaries: METRICS_SUMMARIES_COLUMN_MAP,
     Dataset.PerformanceMetrics: METRICS_COLUMN_MAP,
     Dataset.SpansIndexed: SPAN_COLUMN_MAP,
-    Dataset.SpansEAP: SPAN_EAP_COLUMN_MAP,
+    Dataset.EventsAnalyticsPlatform: SPAN_EAP_COLUMN_MAP,
     Dataset.IssuePlatform: ISSUE_PLATFORM_MAP,
     Dataset.Replays: {},
 }
@@ -300,7 +306,7 @@ DATASET_FIELDS = {
     Dataset.Sessions: SESSIONS_FIELD_LIST,
     Dataset.IssuePlatform: list(ISSUE_PLATFORM_MAP.values()),
     Dataset.SpansIndexed: list(SPAN_COLUMN_MAP.values()),
-    Dataset.SpansEAP: list(SPAN_EAP_COLUMN_MAP.values()),
+    Dataset.EventsAnalyticsPlatform: list(SPAN_EAP_COLUMN_MAP.values()),
     Dataset.MetricsSummaries: list(METRICS_SUMMARIES_COLUMN_MAP.values()),
 }
 
@@ -782,7 +788,7 @@ def _prepare_query_params(query_params: SnubaQueryParams, referrer: str | None =
             "groupby": query_params.groupby,
             "conditions": query_params_conditions,
             "aggregations": query_params.aggregations,
-            "granularity": query_params.rollup,  # TODO name these things the same
+            "granularity": query_params.rollup,  # TODO: name these things the same
         }
     )
     kwargs = {k: v for k, v in kwargs.items() if v is not None}
@@ -1417,7 +1423,7 @@ def resolve_column(dataset) -> Callable:
         if isinstance(col, int) or isinstance(col, float):
             return col
         if (
-            dataset != Dataset.SpansEAP
+            dataset != Dataset.EventsAnalyticsPlatform
             and isinstance(col, str)
             and (col.startswith("tags[") or QUOTED_LITERAL_RE.match(col))
         ):
@@ -1428,7 +1434,7 @@ def resolve_column(dataset) -> Callable:
 
             if isinstance(col, (list, tuple)) or col in ("project_id", "group_id"):
                 return col
-        elif dataset == Dataset.SpansEAP:
+        elif dataset == Dataset.EventsAnalyticsPlatform:
             if isinstance(col, str) and col.startswith("sentry_tags["):
                 # Replace the first instance of sentry tags with attr str instead
                 return col.replace("sentry_tags", "attr_str", 1)
@@ -1460,7 +1466,7 @@ def resolve_column(dataset) -> Callable:
         span_op_breakdown_name = get_span_op_breakdown_name(col)
         if "span_op_breakdowns_key" in DATASETS[dataset] and span_op_breakdown_name:
             return f"span_op_breakdowns[{span_op_breakdown_name}]"
-        if dataset == Dataset.SpansEAP:
+        if dataset == Dataset.EventsAnalyticsPlatform:
             return f"attr_str[{col}]"
         return f"tags[{col}]"
 
@@ -1639,7 +1645,7 @@ def aliased_query_params(
     )
 
 
-# TODO (evanh) Since we are assuming that all string values are columns,
+# TODO: (evanh) Since we are assuming that all string values are columns,
 # this will get tricky if we ever have complex columns where there are
 # string arguments to the functions that aren't columns
 def resolve_complex_column(col, resolve_func, ignored):

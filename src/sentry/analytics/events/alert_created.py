@@ -15,6 +15,7 @@ class AlertCreatedEvent(analytics.Event):
         analytics.Attribute("alert_rule_ui_component", required=False),
         analytics.Attribute("duplicate_rule", required=False),
         analytics.Attribute("wizard_v3", required=False),
+        analytics.Attribute("query_type", required=False),
     )
 
 

@@ -227,6 +227,7 @@ class GitlabRequestParserTest(TestCase):
         )
         parser = GitlabRequestParser(request=request, response_handler=self.get_response)
         result = parser.get_integration_from_request()
+        assert result is not None
         assert result.id == integration.id
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)

@@ -1,6 +1,7 @@
 import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {CommitRow} from 'sentry/components/commitRow';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {StacktraceBanners} from 'sentry/components/events/interfaces/crashContent/exception/banners/stacktraceBanners';
 import {getLockReason} from 'sentry/components/events/interfaces/threads/threadSelector/lockReason';
@@ -9,6 +10,7 @@ import {
   getThreadStateHelpText,
   ThreadStates,
 } from 'sentry/components/events/interfaces/threads/threadSelector/threadStates';
+import {SuspectCommits} from 'sentry/components/events/suspectCommits';
 import Pill from 'sentry/components/pill';
 import Pills from 'sentry/components/pills';
 import QuestionTooltip from 'sentry/components/questionTooltip';
@@ -18,6 +20,7 @@ import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event, Thread} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {StackType, StackView} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
@@ -43,6 +46,7 @@ type Props = Pick<ExceptionProps, 'groupingCurrentLevel'> & {
     values?: Array<Thread>;
   };
   event: Event;
+  group: Group | undefined;
   projectSlug: Project['slug'];
 };
 
@@ -61,7 +65,7 @@ function getIntendedStackView(
   return stacktrace?.hasSystemFrames ? StackView.APP : StackView.FULL;
 }
 
-export function getThreadStateIcon(state: ThreadStates | undefined) {
+function ThreadStateIcon({state}: {state: ThreadStates | undefined}) {
   if (state === null || state === undefined) {
     return null;
   }
@@ -96,7 +100,7 @@ const useActiveThreadState = (
   return [activeThread, setActiveThread];
 };
 
-export function Threads({data, event, projectSlug, groupingCurrentLevel}: Props) {
+export function Threads({data, event, projectSlug, groupingCurrentLevel, group}: Props) {
   const threads = data.values ?? [];
   const hasStreamlinedUI = useHasStreamlinedUI();
   const [activeThread, setActiveThread] = useActiveThreadState(event, threads);
@@ -253,22 +257,23 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel}: Props)
               )}
             </div>
             {activeThread?.state && (
-              <div>
+              <TheadStateContainer>
                 <ThreadHeading>{t('Thread State')}</ThreadHeading>
                 <ThreadStateWrapper>
-                  {getThreadStateIcon(threadStateDisplay)}
-                  <ThreadState>{threadStateDisplay}</ThreadState>
+                  <ThreadStateIcon state={threadStateDisplay} />
+                  <TextOverflow>{threadStateDisplay}</TextOverflow>
                   {threadStateDisplay && (
                     <QuestionTooltip
                       position="top"
                       size="xs"
                       containerDisplayMode="block"
                       title={getThreadStateHelpText(threadStateDisplay)}
+                      skipWrapper
                     />
                   )}
                   <LockReason>{getLockReason(activeThread?.heldLocks)}</LockReason>
                 </ThreadStateWrapper>
-              </div>
+              </TheadStateContainer>
             )}
           </Grid>
           {!hideThreadTags && (
@@ -350,6 +355,19 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel}: Props)
                 </ErrorBoundary>
               )}
               {renderContent(childrenProps)}
+              {hasStreamlinedUI && group && (
+                <ErrorBoundary
+                  mini
+                  message={t('There was an error loading the suspect commits')}
+                >
+                  <SuspectCommits
+                    projectSlug={projectSlug}
+                    eventId={event.id}
+                    commitRow={CommitRow}
+                    group={group}
+                  />
+                </ErrorBoundary>
+              )}
             </Fragment>
           );
         }}
@@ -373,20 +391,19 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel}: Props)
 const Grid = styled('div')`
   display: grid;
   grid-template-columns: auto 1fr;
+  gap: ${space(2)};
+`;
+
+const TheadStateContainer = styled('div')`
+  ${p => p.theme.overflowEllipsis}
 `;
 
 const ThreadStateWrapper = styled('div')`
   display: flex;
   position: relative;
   flex-direction: row;
-  align-items: flex-start;
+  align-items: center;
   gap: ${space(0.5)};
-`;
-
-const ThreadState = styled(TextOverflow)`
-  max-width: 100%;
-  text-align: left;
-  font-weight: ${p => p.theme.fontWeightBold};
 `;
 
 const LockReason = styled(TextOverflow)`
