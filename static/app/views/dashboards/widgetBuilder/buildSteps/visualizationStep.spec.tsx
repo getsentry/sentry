@@ -1,3 +1,5 @@
+import {DashboardFixture} from 'sentry-fixture/dashboard';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {TagsFixture} from 'sentry-fixture/tags';
 
@@ -14,6 +16,8 @@ import {
 } from 'sentry/views/dashboards/types';
 import WidgetBuilder from 'sentry/views/dashboards/widgetBuilder';
 import {VisualizationStep} from 'sentry/views/dashboards/widgetBuilder/buildSteps/visualizationStep';
+
+import WidgetLegendSelectionState from '../../widgetLegendSelectionState';
 
 jest.unmock('lodash/debounce');
 
@@ -100,6 +104,13 @@ describe('VisualizationStep', function () {
     },
   });
 
+  const widgetLegendState = new WidgetLegendSelectionState({
+    location: LocationFixture(),
+    dashboard: DashboardFixture([], {id: 'new', title: 'Dashboard'}),
+    organization,
+    router,
+  });
+
   beforeEach(function () {
     ProjectsStore.loadInitialData(projects);
   });
@@ -128,6 +139,7 @@ describe('VisualizationStep', function () {
           orgId: organization.slug,
           dashboardId: 'new',
         }}
+        widgetLegendState={widgetLegendState}
       />,
       {
         router,
@@ -177,6 +189,7 @@ describe('VisualizationStep', function () {
           orgId: organization.slug,
           dashboardId: 'new',
         }}
+        widgetLegendState={widgetLegendState}
       />,
       {
         router,
@@ -219,6 +232,7 @@ describe('VisualizationStep', function () {
           orgId: organization.slug,
           dashboardId: 'new',
         }}
+        widgetLegendState={widgetLegendState}
       />,
       {
         router,
@@ -265,6 +279,7 @@ describe('VisualizationStep', function () {
           orgId: organization.slug,
           dashboardId: 'new',
         }}
+        widgetLegendState={widgetLegendState}
       />,
       {
         router,
@@ -308,6 +323,7 @@ describe('VisualizationStep', function () {
           widget={mockSpanWidget}
           isWidgetInvalid={false}
           location={router.location}
+          widgetLegendState={widgetLegendState}
         />
       </MEPSettingProvider>,
       {organization}

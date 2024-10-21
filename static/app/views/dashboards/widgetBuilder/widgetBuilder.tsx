@@ -72,6 +72,7 @@ import {
   DashboardsMEPConsumer,
   DashboardsMEPProvider,
 } from '../widgetCard/dashboardsMEPContext';
+import type WidgetLegendSelectionState from '../widgetLegendSelectionState';
 
 import {BuildStep} from './buildSteps/buildStep';
 import {ColumnsStep} from './buildSteps/columnsStep';
@@ -143,6 +144,7 @@ interface Props extends RouteComponentProps<RouteParams, {}> {
   organization: Organization;
   selection: PageFilters;
   tags: TagCollection;
+  widgetLegendState: WidgetLegendSelectionState;
   displayType?: DisplayType;
   end?: DateString;
   start?: DateString;
@@ -185,6 +187,7 @@ function WidgetBuilder({
   router,
   tags,
   updateDashboardSplitDecision,
+  widgetLegendState,
 }: Props) {
   const {widgetIndex, orgId, dashboardId} = params;
   const {source, displayType, defaultTitle, limit, dataset} = location.query;
@@ -291,7 +294,9 @@ function WidgetBuilder({
     return defaultState;
   });
 
-  const [widgetToBeUpdated, setWidgetToBeUpdated] = useState<Widget | null>(null);
+  const [widgetToBeUpdated, setWidgetToBeUpdated] = useState<Widget | undefined>(
+    undefined
+  );
 
   // For analytics around widget library selection
   const [latestLibrarySelectionTitle, setLatestLibrarySelectionTitle] = useState<
@@ -825,8 +830,17 @@ function WidgetBuilder({
     nextWidgetList.splice(updateWidgetIndex, 1);
     nextWidgetList = generateWidgetsAfterCompaction(nextWidgetList);
 
+    const unselectedSeriesQuery = widgetLegendState.setMultipleWidgetSelectionStateURL(
+      {...dashboard, widgets: nextWidgetList},
+      widgetToBeUpdated
+    );
     onSave(nextWidgetList);
-    router.push(normalizeUrl(previousLocation));
+    router.push(
+      normalizeUrl({
+        ...previousLocation,
+        query: {...previousLocation.query, unselectedSeries: unselectedSeriesQuery},
+      })
+    );
   }
 
   async function handleSave() {
@@ -884,9 +898,17 @@ function WidgetBuilder({
         nextWidgetList[updateWidgetIndex] = nextWidgetData;
       }
 
+      const unselectedSeriesParam = widgetLegendState.setMultipleWidgetSelectionStateURL(
+        {
+          ...dashboard,
+          widgets: [...nextWidgetList],
+        },
+        nextWidgetData
+      );
+      const query = {...location.query, unselectedSeries: unselectedSeriesParam};
       onSave(nextWidgetList);
       addSuccessMessage(t('Updated widget.'));
-      goToDashboards(dashboardId ?? NEW_DASHBOARD_ID);
+      goToDashboards(dashboardId ?? NEW_DASHBOARD_ID, query);
       trackAnalytics('dashboards_views.widget_builder.save', {
         organization,
         data_set: widgetData.widgetType ?? defaultWidgetType,
@@ -1218,6 +1240,7 @@ function WidgetBuilder({
                                     onWidgetSplitDecision={
                                       handleUpdateWidgetSplitDecision
                                     }
+                                    widgetLegendState={widgetLegendState}
                                   />
                                   <DataSetStep
                                     dataSet={state.dataSet}
