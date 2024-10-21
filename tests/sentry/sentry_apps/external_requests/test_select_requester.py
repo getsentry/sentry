@@ -1,5 +1,6 @@
 import pytest
 import responses
+from jsonschema import ValidationError
 
 from sentry.coreapi import APIError
 from sentry.sentry_apps.external_requests.select_requester import SelectRequester
@@ -69,7 +70,7 @@ class TestSelectRequester(TestCase):
             content_type="application/json",
         )
 
-        with pytest.raises(APIError):
+        with pytest.raises(ValidationError):
             SelectRequester(
                 install=self.install,
                 project_slug=self.project.slug,
@@ -90,7 +91,7 @@ class TestSelectRequester(TestCase):
             content_type="application/json",
         )
 
-        with pytest.raises(APIError):
+        with pytest.raises(ValidationError):
             SelectRequester(
                 install=self.install,
                 project_slug=self.project.slug,
