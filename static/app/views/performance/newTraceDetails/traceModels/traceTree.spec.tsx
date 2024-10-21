@@ -401,6 +401,7 @@ describe('TraceTree', () => {
       });
       expect(tree.build().serialize()).toMatchSnapshot();
     });
+
     it('if parent span does not exist in span tree, the transaction stays under its previous parent', () => {
       const tree = TraceTree.FromTrace(
         makeTrace({
