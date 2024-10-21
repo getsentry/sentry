@@ -3,7 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {openAddToDashboardModal} from 'sentry/actionCreators/modal';
-import type {NewQuery} from 'sentry/types/organization';
+import type {NewQuery, Organization, SavedQuery} from 'sentry/types/organization';
 import EventView from 'sentry/utils/discover/eventView';
 import {DisplayModes, SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {WidgetType} from 'sentry/views/dashboards/types';
@@ -41,12 +41,12 @@ function mount(
 }
 
 describe('Discover > SaveQueryButtonGroup', function () {
-  let organization,
-    errorsView,
-    savedQuery,
-    errorsViewSaved,
-    errorsViewModified,
-    errorsQuery;
+  let organization: Organization;
+  let errorsView: EventView;
+  let savedQuery: SavedQuery;
+  let errorsViewSaved: EventView;
+  let errorsViewModified: EventView;
+  let errorsQuery: NewQuery;
   const location = {
     pathname: '/organization/eventsv2/',
     query: {},
@@ -272,7 +272,7 @@ describe('Discover > SaveQueryButtonGroup', function () {
   });
 
   describe('viewing a saved query', () => {
-    let mockUtils;
+    let mockUtils: jest.SpyInstance;
 
     beforeEach(() => {
       mockUtils = jest
@@ -362,7 +362,7 @@ describe('Discover > SaveQueryButtonGroup', function () {
   });
 
   describe('modifying a saved query', () => {
-    let mockUtils;
+    let mockUtils: jest.SpyInstance;
 
     it('renders the correct set of buttons', async () => {
       mount(

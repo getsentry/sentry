@@ -43,7 +43,7 @@ export function SpansTable({}: SpansTableProps) {
       ...fields,
       'project',
       'trace',
-      'transaction.id',
+      'transaction.span_id',
       'span_id',
       'timestamp',
     ];
@@ -122,7 +122,6 @@ export function SpansTable({}: SpansTableProps) {
                     <TableBodyCell key={j}>
                       <FieldRenderer
                         column={columns[j]}
-                        dataset={dataset}
                         data={row}
                         unit={meta?.units?.[field]}
                         meta={meta}

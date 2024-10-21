@@ -112,7 +112,7 @@ class CreateEventTestCase(TestCase, BaseEventFrequencyPercentTest):
         tags: list[list[str]] | None = None,
     ) -> Event:
         data = {
-            "timestamp": timestamp.timestamp(),
+            "timestamp": timestamp.isoformat(),
             "environment": environment,
             "fingerprint": [fingerprint],
             "level": "error",

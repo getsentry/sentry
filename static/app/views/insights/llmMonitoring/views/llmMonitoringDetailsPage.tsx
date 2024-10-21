@@ -1,3 +1,5 @@
+import {Fragment} from 'react';
+
 import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -145,9 +147,20 @@ export function LLMMonitoringPage({params}: Props) {
         )}
 
         {isInDomainView && (
-          <Layout.Header>
-            <AiHeader module={ModuleName.AI} />
-          </Layout.Header>
+          <AiHeader
+            headerTitle={
+              <Fragment>
+                {spanDescription}
+                <FeatureBadge type={RELEASE_LEVEL} />
+              </Fragment>
+            }
+            breadcrumbs={[
+              {
+                label: t('Pipeline Summary'),
+              },
+            ]}
+            module={ModuleName.AI}
+          />
         )}
         <Layout.Body>
           <Layout.Main fullWidth>
