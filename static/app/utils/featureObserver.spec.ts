@@ -25,8 +25,8 @@ describe('FeatureObserver', () => {
       organization.features.includes('enable-issues');
       organization.features.includes('replay-mobile-ui');
       expect(inst.getFeatureFlags().values).toEqual([
-        {flag: 'enable-issues', result: true},
-        {flag: 'replay-mobile-ui', result: false},
+        {flag: 'feature.organizations:enable-issues', result: true},
+        {flag: 'feature.organizations:replay-mobile-ui', result: false},
       ]);
 
       // do more evaluations to fill up and overflow the buffer
@@ -34,9 +34,9 @@ describe('FeatureObserver', () => {
       organization.features.includes('autofix-ui');
       organization.features.includes('new-issue-details');
       expect(inst.getFeatureFlags().values).toEqual([
-        {flag: 'enable-replay', result: true},
-        {flag: 'autofix-ui', result: false},
-        {flag: 'new-issue-details', result: false},
+        {flag: 'feature.organizations:enable-replay', result: true},
+        {flag: 'feature.organizations:autofix-ui', result: false},
+        {flag: 'feature.organizations:new-issue-details', result: false},
       ]);
     });
 
@@ -49,34 +49,34 @@ describe('FeatureObserver', () => {
       organization.features.includes('replay-mobile-ui');
       organization.features.includes('enable-discover');
       expect(inst.getFeatureFlags().values).toEqual([
-        {flag: 'enable-issues', result: true},
-        {flag: 'replay-mobile-ui', result: false},
-        {flag: 'enable-discover', result: false},
+        {flag: 'feature.organizations:enable-issues', result: true},
+        {flag: 'feature.organizations:replay-mobile-ui', result: false},
+        {flag: 'feature.organizations:enable-discover', result: false},
       ]);
 
       // this is already in the queue; it should be removed and
       // added back to the end of the queue
       organization.features.includes('enable-issues');
       expect(inst.getFeatureFlags().values).toEqual([
-        {flag: 'replay-mobile-ui', result: false},
-        {flag: 'enable-discover', result: false},
-        {flag: 'enable-issues', result: true},
+        {flag: 'feature.organizations:replay-mobile-ui', result: false},
+        {flag: 'feature.organizations:enable-discover', result: false},
+        {flag: 'feature.organizations:enable-issues', result: true},
       ]);
 
       organization.features.includes('spam-ingest');
       expect(inst.getFeatureFlags().values).toEqual([
-        {flag: 'enable-discover', result: false},
-        {flag: 'enable-issues', result: true},
-        {flag: 'spam-ingest', result: false},
+        {flag: 'feature.organizations:enable-discover', result: false},
+        {flag: 'feature.organizations:enable-issues', result: true},
+        {flag: 'feature.organizations:spam-ingest', result: false},
       ]);
 
       // this is already in the queue but in the back
       // the queue should not change
       organization.features.includes('spam-ingest');
       expect(inst.getFeatureFlags().values).toEqual([
-        {flag: 'enable-discover', result: false},
-        {flag: 'enable-issues', result: true},
-        {flag: 'spam-ingest', result: false},
+        {flag: 'feature.organizations:enable-discover', result: false},
+        {flag: 'feature.organizations:enable-issues', result: true},
+        {flag: 'feature.organizations:spam-ingest', result: false},
       ]);
     });
 
@@ -88,24 +88,24 @@ describe('FeatureObserver', () => {
       organization.features.includes('enable-issues');
       organization.features.includes('replay-mobile-ui');
       expect(inst.getFeatureFlags().values).toEqual([
-        {flag: 'enable-issues', result: true},
-        {flag: 'replay-mobile-ui', result: false},
+        {flag: 'feature.organizations:enable-issues', result: true},
+        {flag: 'feature.organizations:replay-mobile-ui', result: false},
       ]);
 
       // this is already in the queue; it should be removed and
       // added back to the end of the queue
       organization.features.includes('enable-issues');
       expect(inst.getFeatureFlags().values).toEqual([
-        {flag: 'replay-mobile-ui', result: false},
-        {flag: 'enable-issues', result: true},
+        {flag: 'feature.organizations:replay-mobile-ui', result: false},
+        {flag: 'feature.organizations:enable-issues', result: true},
       ]);
 
       // this is already in the queue but in the back
       // the queue should not change
       organization.features.includes('enable-issues');
       expect(inst.getFeatureFlags().values).toEqual([
-        {flag: 'replay-mobile-ui', result: false},
-        {flag: 'enable-issues', result: true},
+        {flag: 'feature.organizations:replay-mobile-ui', result: false},
+        {flag: 'feature.organizations:enable-issues', result: true},
       ]);
     });
 
@@ -117,8 +117,8 @@ describe('FeatureObserver', () => {
       organization.features.includes('enable-issues');
       organization.features.includes('replay-mobile-ui');
       expect(inst.getFeatureFlags().values).toEqual([
-        {flag: 'enable-issues', result: true},
-        {flag: 'replay-mobile-ui', result: false},
+        {flag: 'feature.organizations:enable-issues', result: true},
+        {flag: 'feature.organizations:replay-mobile-ui', result: false},
       ]);
 
       expect(organization.features.includes('enable-issues')).toBe(true);
