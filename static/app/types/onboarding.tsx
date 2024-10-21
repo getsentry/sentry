@@ -161,12 +161,11 @@ export enum OnboardingProjectStatus {
   PROCESSED = 'processed',
 }
 
-export type OnboardingSelectedSDK = {
+export interface OnboardingSelectedSDK
+  extends Pick<PlatformIntegration, 'language' | 'link' | 'name' | 'type'> {
   category: Category;
   key: PlatformKey;
-  language: PlatformIntegration['language'];
-  type: PlatformIntegration['type'];
-};
+}
 
 export type OnboardingRecentCreatedProject = Project & {
   firstError: boolean;
