@@ -491,7 +491,7 @@ const storeConfig: GroupingStoreDefinition = {
       addLoadingMessage(loadingMessage);
 
       this.api.request(`/organizations/${orgSlug}/issues/${groupId}/hashes/`, {
-        method: 'DELETE',
+        method: 'PUT',
         query: {
           id: grouphashIds,
         },
