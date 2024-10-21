@@ -10,7 +10,7 @@ from django.test import override_settings
 from django.urls import reverse
 from requests.exceptions import Timeout
 
-from sentry import audit_log
+from sentry import audit_log, nodestore
 from sentry.api.serializers import serialize
 from sentry.constants import SentryAppStatus
 from sentry.integrations.models.utils import get_redis_key
@@ -293,7 +293,7 @@ class TestProcessResourceChange(TestCase):
             organization=self.project.organization, slug=sentry_app.slug
         )
 
-        one_min_ago = before_now(minutes=1).timestamp()
+        one_min_ago = before_now(minutes=1).isoformat()
         event = self.store_event(
             data={
                 "message": "Foo bar",
@@ -305,7 +305,10 @@ class TestProcessResourceChange(TestCase):
             assert_no_errors=False,
         )
 
-        with self.tasks():
+        with self.tasks(), patch(
+            "sentry.sentry_apps.tasks.sentry_apps.nodestore.backend.get",
+            wraps=nodestore.backend.get,
+        ) as nodestore_get:
             post_process_group(
                 is_new=False,
                 is_regression=False,
@@ -314,6 +317,7 @@ class TestProcessResourceChange(TestCase):
                 group_id=event.group_id,
                 project_id=self.project.id,
             )
+            assert not nodestore_get.called
 
         ((args, kwargs),) = safe_urlopen.call_args_list
         data = json.loads(kwargs["data"])
@@ -352,7 +356,10 @@ class TestProcessResourceChange(TestCase):
             assert_no_errors=False,
         )
 
-        with self.tasks():
+        with self.tasks(), patch(
+            "sentry.sentry_apps.tasks.sentry_apps.nodestore.backend.get",
+            wraps=nodestore.backend.get,
+        ) as nodestore_get:
             post_process_group(
                 is_new=False,
                 is_regression=False,
@@ -361,6 +368,8 @@ class TestProcessResourceChange(TestCase):
                 group_id=event.group_id,
                 project_id=self.project.id,
             )
+
+            assert nodestore_get.called
 
         ((args, kwargs),) = safe_urlopen.call_args_list
         data = json.loads(kwargs["data"])
@@ -436,7 +445,7 @@ class TestSendResourceChangeWebhook(TestCase):
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponse404)
     @with_feature("organizations:integrations-event-hooks")
     def test_sends_webhooks_to_all_installs(self, safe_urlopen):
-        one_min_ago = before_now(minutes=1).timestamp()
+        one_min_ago = before_now(minutes=1).isoformat()
         event = self.store_event(
             data={
                 "message": "Foo bar",

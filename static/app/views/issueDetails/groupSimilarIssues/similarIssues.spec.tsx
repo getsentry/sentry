@@ -20,7 +20,7 @@ jest.mock('sentry/utils/useNavigate', () => ({
 jest.mock('sentry/utils/analytics');
 
 describe('Issues Similar View', function () {
-  let mock;
+  let mock: jest.Mock;
 
   const project = ProjectFixture({
     features: ['similarity-view'],

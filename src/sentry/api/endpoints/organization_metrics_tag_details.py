@@ -41,7 +41,7 @@ class OrganizationMetricsTagDetailsEndpoint(OrganizationEndpoint):
             for project in projects
         ):
             if len(metric_names) == 1 and metric_names[0].startswith("d:eap"):
-                # TODO hack for EAP, hardcode some metric names
+                # TODO: hack for EAP, hardcode some metric names
                 if tag_name == "color":
                     return Response(
                         [

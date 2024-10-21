@@ -272,7 +272,7 @@ export function transformEventsResponseToTable(
   const {fields, ...otherMeta} = (data as EventsTableData).meta ?? {};
   tableData = {
     ...data,
-    meta: {...fields, ...otherMeta},
+    meta: {...fields, ...otherMeta, fields},
   } as TableData;
   return tableData as TableData;
 }

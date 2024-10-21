@@ -53,6 +53,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:alert-filters", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Enables the migration of alerts (checked in a migration script).
     manager.add("organizations:alerts-migration-enabled", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Enables EAP alerts
+    manager.add("organizations:alerts-eap", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable anomaly detection feature for rollout
     manager.add("organizations:anomaly-detection-rollout", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable anomaly detection charts
@@ -80,10 +82,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:continuous-profiling-stats", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=True)
     # Enable the continuous profiling compatible redesign
     manager.add("organizations:continuous-profiling-compat", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Disables legacy cron ingest endpoints
-    manager.add("organizations:crons-disable-ingest-endpoints", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
-    # Disables legacy cron ingest endpoints
-    manager.add("organizations:crons-write-user-feedback", OrganizationFeature, FeatureHandlerStrategy.OPTIONS, api_expose=False)
     # Delightful Developer Metrics (DDM):
     # Enables experimental WIP custom metrics related features
     manager.add("organizations:custom-metrics-experimental", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
@@ -123,6 +121,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:discover", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=True)
     # Enable the org recalibration
     manager.add("organizations:ds-org-recalibration", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
+    # Enable custom dynamic sampling rates
+    manager.add("organizations:dynamic-sampling-custom", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enables data secrecy mode
     manager.add("organizations:enterprise-data-secrecy", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Enable issue platform deletion
@@ -139,8 +139,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:gitlab-disable-on-broken", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Allow creating `GroupHashMetadata` records
     manager.add("organizations:grouphash-metadata-creation", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-    # Allows an org to have a larger set of project ownership rules per project
-    manager.add("organizations:higher-ownership-limit", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Enable increased issue_owners rate limit for auto-assignment
     manager.add("organizations:increased-issue-owners-rate-limit", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Starfish: extract metrics from the spans
@@ -196,8 +194,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:messaging-integration-onboarding", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable messaging-integration onboarding when creating a new project
     manager.add("organizations:messaging-integration-onboarding-project-creation", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable metric alert charts in email/slack
-    manager.add("organizations:metric-alert-chartcuterie", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=True)
     # Enable threshold period in metric alert rule builder
     manager.add("organizations:metric-alert-threshold-period", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enables the search bar for metrics samples list
@@ -215,9 +211,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:more-slow-alerts", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     manager.add("organizations:navigation-sidebar-v2", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("organizations:new-page-filter", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=True, api_expose=True)
-    manager.add("organizations:new-weekly-report", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-    # Display warning banner for every event issue alerts
-    manager.add("organizations:noisy-alert-warning", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Notify all project members when fallthrough is disabled, instead of just the auto-assignee
     manager.add("organizations:notification-all-recipients", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Drop obsoleted status changes in occurence consumer
@@ -352,6 +345,8 @@ def register_temporary_features(manager: FeatureManager):
     # Limit project events endpoint to only query back a certain number of days
     manager.add("organizations:project-event-date-limit", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     manager.add("organizations:project-templates", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
+    # Enable the new quick start guide
+    manager.add("organizations:quick-start-updates", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable the new Related Events feature
     manager.add("organizations:related-events", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Enable related issues feature
@@ -392,10 +387,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:search-query-builder-project-details", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("organizations:search-query-builder-alerts", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("organizations:search-query-builder-performance", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable the Replay Details > Accessibility tab
-    manager.add("organizations:session-replay-a11y-tab", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-    # Enable the accessibility issues endpoint
-    manager.add("organizations:session-replay-accessibility-issues", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable combined envelope Kafka items in Relay
     manager.add("organizations:session-replay-combined-envelope-items", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Enable canvas recording
@@ -506,16 +497,10 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:transaction-name-normalize", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, default=True, api_expose=False)
     # Sanitize transaction names in the ingestion pipeline. # Deprecated
     manager.add("organizations:transaction-name-sanitization", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
-    # Enables creation and full updating of uptime monitors via the api
-    manager.add("organizations:uptime-api-create-update", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Displys the "Uptime Monitor" option in the alert creation wizard
-    manager.add("organizations:uptime-display-wizard-create", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enables automatic hostname detection in uptime
     manager.add("organizations:uptime-automatic-hostname-detection", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enables automatic subscription creation in uptime
     manager.add("organizations:uptime-automatic-subscription-creation", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-    # Enabled returning uptime monitors from the rule api
-    manager.add("organizations:uptime-rule-api", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable creating issues via the issue platform
     manager.add("organizations:uptime-create-issues", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enables uptime related settings for projects and orgs

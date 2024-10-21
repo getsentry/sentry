@@ -9,7 +9,7 @@ from celery import Task, current_task
 from django.urls import reverse
 from requests.exceptions import RequestException
 
-from sentry import analytics, eventstore
+from sentry import analytics, nodestore
 from sentry.api.serializers import serialize
 from sentry.constants import SentryAppInstallationStatus
 from sentry.db.models.base import Model
@@ -183,10 +183,17 @@ def _process_resource_change(
     instance: Event | Model | None = None
 
     project_id: int | None = kwargs.get("project_id", None)
-    if sender == "Error" and not instance and project_id:
-        kwargs["instance"] = eventstore.backend.get_event_by_id(
-            project_id=project_id, event_id=str(instance_id)
+    group_id: int | None = kwargs.get("group_id", None)
+    if sender == "Error" and not kwargs.get("instance", None) and project_id and group_id:
+        # Read event from nodestore as we're trying to move away from passing events in task
+        # messages.
+        node_id = Event.generate_node_id(project_id, str(instance_id))
+        nodedata = nodestore.backend.get(node_id)
+        node_event = Event(
+            project_id=project_id, group_id=group_id, event_id=str(instance_id), data=nodedata
         )
+
+        kwargs["instance"] = node_event
         name = sender.lower()
     else:
         # The Event model has different hooks for the different event types. The sender

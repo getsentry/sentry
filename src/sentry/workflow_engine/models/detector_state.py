@@ -5,8 +5,6 @@ from django.db import models
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo_model
 
-from .detector import Detector
-
 
 class DetectorStatus(StrEnum):
     OK = "ok"
@@ -16,7 +14,7 @@ class DetectorStatus(StrEnum):
 class DetectorState(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Organization
 
-    detector = FlexibleForeignKey(Detector)
+    detector = FlexibleForeignKey("workflow_engine.Detector")
 
     # This key is used when a detector is using group-by
     # allows us to link to a specific group from a single detector
