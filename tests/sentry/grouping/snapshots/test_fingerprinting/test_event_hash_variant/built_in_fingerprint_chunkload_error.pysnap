@@ -1,5 +1,5 @@
 ---
-created: '2024-10-15T17:14:07.393318+00:00'
+created: '2024-10-15T17:19:43.335885+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_fingerprinting.py
 ---
@@ -7,16 +7,21 @@ config:
   rules: []
   version: 1
 fingerprint:
-- '{{ default }}'
+- chunkloaderror
 title: 'ChunkLoadError: ChunkLoadError: something something...'
 variants:
   app:
     component:
       contributes: false
-      hint: exception of system takes precedence
+      hint: custom fingerprint takes precedence
     type: component
+  built-in-fingerprint:
+    matched_rule: family:"javascript" type:"ChunkLoadError" -> "chunkloaderror"
+    type: built-in-fingerprint
+    values:
+    - chunkloaderror
   system:
     component:
-      contributes: true
-      hint: null
+      contributes: false
+      hint: custom fingerprint takes precedence
     type: component
