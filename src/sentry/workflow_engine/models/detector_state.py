@@ -14,7 +14,7 @@ class DetectorStatus(StrEnum):
 
 @region_silo_model
 class DetectorState(DefaultFieldsModel):
-    __relocation_scope__ = RelocationScope.Organization
+    __relocation_scope__ = RelocationScope.Excluded
 
     detector = FlexibleForeignKey("workflow_engine.Detector")
 
