@@ -9,6 +9,7 @@ import {
 } from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {AnimatePresence, motion} from 'framer-motion';
 import partition from 'lodash/partition';
 
 import {navigateTo} from 'sentry/actionCreators/navigation';
@@ -38,6 +39,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoWalkthrough} from 'sentry/utils/demoMode';
+import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -220,6 +222,36 @@ function Task({task, completed, hidePanel}: TaskProps) {
   );
 }
 
+const AnimatedTask = motion(Task);
+
+AnimatedTask.defaultProps = {
+  initial: 'initial',
+  animate: 'animate',
+  exit: 'exit',
+  layout: true,
+  variants: {
+    initial: {
+      opacity: 0,
+      y: 40,
+    },
+    animate: {
+      opacity: 1,
+      y: 0,
+      transition: testableTransition({
+        delay: 0.8,
+        when: 'beforeChildren',
+        staggerChildren: 0.3,
+      }),
+    },
+    exit: {
+      y: 20,
+      z: -10,
+      opacity: 0,
+      transition: {duration: 0.2},
+    },
+  },
+};
+
 interface TaskGroupProps {
   description: string;
   hidePanel: () => void;
@@ -230,11 +262,30 @@ interface TaskGroupProps {
 
 function TaskGroup({title, description, tasks, expanded, hidePanel}: TaskGroupProps) {
   const [isExpanded, setIsExpanded] = useState(expanded);
-  const {completedTasks, incompletedTasks} = groupTasksByCompletion(tasks);
+  const [completedTasks, setCompletedTasks] = useState([]);
+  const [incompletedTasks, setIncompletedTasks] = useState(tasks);
+  // const {completedTasks, incompletedTasks} = groupTasksByCompletion(tasks);
 
   useEffect(() => {
     setIsExpanded(expanded);
   }, [expanded]);
+
+  useEffect(() => {
+    // Mocking the async operation with setTimeout
+    const mockAsyncGroupTasks = () => {
+      return new Promise(resolve => {
+        setTimeout(() => {
+          resolve({completedTasks: [tasks[0]], incompletedTasks: [tasks[1], tasks[2]]});
+        }, 5000); // 1 second delay
+      });
+    };
+
+    // Call the async function and update state when it resolves
+    mockAsyncGroupTasks().then(x => {
+      setCompletedTasks((x as any).completedTasks);
+      setIncompletedTasks((x as any).incompletedTasks);
+    });
+  }, [tasks]); // This effect runs when `tasks` changes
 
   return (
     <TaskGroupWrapper>
@@ -266,15 +317,26 @@ function TaskGroup({title, description, tasks, expanded, hidePanel}: TaskGroupPr
                 barWidth={2}
               />
             </TaskGroupProgress>
-            {incompletedTasks.map(task => (
-              <Task key={task.task} task={task} hidePanel={hidePanel} />
-            ))}
+            {incompletedTasks.length > 0 && (
+              <AnimatePresence initial={false}>
+                {incompletedTasks.map(task => (
+                  <AnimatedTask key={task.task} task={task} hidePanel={hidePanel} />
+                ))}
+              </AnimatePresence>
+            )}
             {completedTasks.length > 0 && (
               <Fragment>
                 <TaskGroupProgress completed>{t('Completed')}</TaskGroupProgress>
-                {completedTasks.map(task => (
-                  <Task key={task.task} task={task} hidePanel={hidePanel} completed />
-                ))}
+                <AnimatePresence initial={false}>
+                  {completedTasks.map(task => (
+                    <AnimatedTask
+                      key={task.task}
+                      task={task}
+                      hidePanel={hidePanel}
+                      completed
+                    />
+                  ))}
+                </AnimatePresence>
               </Fragment>
             )}
           </TaskGroupBody>
