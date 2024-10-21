@@ -11,6 +11,7 @@ import {IconTelescope} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SeriesDataUnit} from 'sentry/types/echarts';
+import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {EventsStats, MultiSeriesEventsStats} from 'sentry/types/organization';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
@@ -25,6 +26,7 @@ export const enum EventGraphSeries {
   USER = 'user',
 }
 interface EventGraphProps {
+  event: Event;
   group: Group;
   groupStats: MultiSeriesEventsStats;
   searchQuery: string;
@@ -49,7 +51,7 @@ function createSeriesAndCount(stats: EventsStats) {
   );
 }
 
-export function EventGraph({group, groupStats, searchQuery}: EventGraphProps) {
+export function EventGraph({group, groupStats, searchQuery, event}: EventGraphProps) {
   const theme = useTheme();
   const organization = useOrganization();
   const [visibleSeries, setVisibleSeries] = useState<EventGraphSeries>(
@@ -84,6 +86,7 @@ export function EventGraph({group, groupStats, searchQuery}: EventGraphProps) {
       end: eventView.end,
       statsPeriod: eventView.statsPeriod,
     },
+    event,
   });
 
   const series = useMemo((): BarChartSeries[] => {
