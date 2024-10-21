@@ -1,12 +1,12 @@
 ---
-created: '2024-10-15T16:41:22.618329+00:00'
+created: '2024-10-15T17:23:36.712835+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: "8b7562d89f377f87756e18c8005b32bc"
+  hash: null
   component:
-    app*
+    app (custom fingerprint takes precedence)
       exception*
         stacktrace*
           frame*
@@ -167,10 +167,15 @@ app:
         value (ignored because stacktrace takes precedence)
           "SoftTimeLimitExceeded()"
 --------------------------------------------------------------------------
+custom-fingerprint:
+  hash: "554e214208f0372603dc9fa6c1c0965f"
+  info: {"matched_rule":{"attributes":{},"fingerprint":["soft-timelimit-exceeded"],"matchers":[["type","SoftTimeLimitExceeded"]]}}
+  values: ["soft-timelimit-exceeded"]
+--------------------------------------------------------------------------
 system:
-  hash: "230c61ce94218874c6833f3ceee5f080"
+  hash: null
   component:
-    system*
+    system (custom fingerprint takes precedence)
       exception*
         stacktrace*
           frame*
