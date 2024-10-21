@@ -45,7 +45,7 @@ export function useSystemSelectorOptions() {
         label = (
           <LabelContainer>
             {textValue}
-            <StyledFeatureBadge type={'beta'} />
+            <StyledFeatureBadge type={'new'} />
           </LabelContainer>
         );
       } else {
