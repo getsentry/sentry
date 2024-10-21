@@ -500,7 +500,7 @@ class InflightTaskStoreRedis(InflightTaskStore):
             deadline = datetime.now() + timedelta(seconds=30)
             formatted_deadline = (
                 deadline.isoformat() + "Z"
-            )  # TODO: timestamps in task JSON are encoded as a string in RGC 3339 format "{year}-{month}-{day}T{hour}:{min}:{sec}[.{frac_sec}]Z"
+            )  # TODO: timestamps in task JSON are encoded as a string in RFC 3339 format "{year}-{month}-{day}T{hour}:{min}:{sec}[.{frac_sec}]Z"
             self._remove_inflight_activations(TASK_ACTIVATION_STATUS_PENDING, task_id)
             self._set_inflight_activations(TASK_ACTIVATION_STATUS_PROCESSING, offset, task_id)
             self._set_inflight_activation_attributes(
