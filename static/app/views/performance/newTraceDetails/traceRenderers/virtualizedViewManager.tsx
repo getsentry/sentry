@@ -538,19 +538,30 @@ export class VirtualizedViewManager {
   }
 
   onZoomIntoSpace(space: [number, number]) {
-    let distance_x = space[0] - this.view.to_origin - this.view.trace_view.x;
     let final_x = space[0] - this.view.to_origin;
     let final_width = space[1];
-    const distance_width = this.view.trace_view.width - space[1];
 
     if (space[1] < this.view.MAX_ZOOM_PRECISION_MS) {
-      distance_x -= this.view.MAX_ZOOM_PRECISION_MS / 2 - space[1] / 2;
       final_x -= this.view.MAX_ZOOM_PRECISION_MS / 2 - space[1] / 2;
       final_width = this.view.MAX_ZOOM_PRECISION_MS;
     }
 
+    // If the view is not small, then zoom into the span and keep
+    // an offset on each side. This ensures we dont need
+    // to move the duration label insdie the bar and can preserve
+    // some context around the star/end time of a span
+    if (this.view.trace_physical_space.width > 300) {
+      const mat = this.view.getSpanToPxForSpace([final_x, final_width]);
+      const offsetInConfigSpace = 74 * mat[0];
+
+      final_x -= offsetInConfigSpace;
+      final_width += offsetInConfigSpace * 2;
+    }
+
     const start_x = this.view.trace_view.x;
     const start_width = this.view.trace_view.width;
+    const distance_x = final_x - this.view.trace_view.x;
+    const distance_width = this.view.trace_view.width - final_width;
 
     const max_distance = Math.max(Math.abs(distance_x), Math.abs(distance_width));
     const p = max_distance !== 0 ? Math.log10(max_distance) : 1;
@@ -1103,11 +1114,11 @@ export class VirtualizedViewManager {
     span_space: [number, number],
     text: string
   ): [number, number] {
-    const TEXT_PADDING = 2;
+    const TEXT_PADDING = 3;
 
     const icon_width_config_space = (18 * this.span_to_px[0]) / 2;
     const text_anchor_left =
-      span_space[0] > this.view.to_origin + this.view.trace_space.width * 0.8;
+      span_space[0] > this.view.to_origin + this.view.trace_space.width * 0.5;
     const text_width = this.text_measurer.measure(text);
 
     const timestamps = getIconTimestamps(node, span_space, icon_width_config_space);

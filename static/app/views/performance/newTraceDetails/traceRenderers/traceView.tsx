@@ -61,6 +61,14 @@ export class TraceView {
     );
   }
 
+  getSpanToPxForSpace(space: [number, number]): mat3 {
+    const view = new DOMView(space[0], 0, space[1], 0);
+    const traceViewToSpace = this.trace_space.between(view);
+    const tracePhysicalToView = this.trace_physical_space.between(this.trace_space);
+
+    return mat3.multiply(mat3.create(), traceViewToSpace, tracePhysicalToView);
+  }
+
   getConfigSpaceCursor(cursor: {x: number; y: number}): [number, number] {
     const left_percentage = cursor.x / this.trace_physical_space.width;
     const left_view = left_percentage * this.trace_view.width;
