@@ -234,7 +234,7 @@ export function FrameworkSuggestionModal({
     {
       id: selectedPlatform.key,
       type: selectedPlatform.type,
-      name: `${selectedPlatform.name} (Vanilla)`,
+      name: t('Nope, Vanilla'),
       language: selectedPlatform.key,
       link: selectedPlatform.link,
     },
