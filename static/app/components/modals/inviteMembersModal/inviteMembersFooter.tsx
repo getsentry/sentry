@@ -1,7 +1,5 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import ButtonBar from 'sentry/components/buttonBar';
 import InviteButton from 'sentry/components/modals/inviteMembersModal/inviteButton';
 import {useInviteMembersContext} from 'sentry/components/modals/inviteMembersModal/inviteMembersContext';
 import InviteStatusMessage from 'sentry/components/modals/inviteMembersModal/inviteStatusMessage';
@@ -39,8 +37,8 @@ export default function InviteMembersFooter({canSend}: Props) {
 
   return (
     <FooterContent>
+      {/* TODO(mia): remove these props and use InviteMemberContext once old modal is removed */}
       <div>
-        {/* TODO(mia): remove these props and use InviteMemberContext once old modal is removed */}
         <InviteStatusMessage
           data-test-id="invite-status-message"
           complete={complete}
@@ -50,23 +48,20 @@ export default function InviteMembersFooter({canSend}: Props) {
           willInvite={willInvite}
         />
       </div>
-      <ButtonBar gap={1}>
-        <Fragment>
-          <InviteButton
-            invites={invites}
-            willInvite={willInvite}
-            size="sm"
-            data-test-id="send-invites"
-            priority="primary"
-            disabled={!canSend || !isValidInvites}
-            onClick={() => {
-              organization.features.includes('invite-members-new-modal') &&
-                removeSentInvites();
-              sendInvites();
-            }}
-          />
-        </Fragment>
-      </ButtonBar>
+      <InviteButton
+        invites={invites}
+        willInvite={willInvite}
+        size="sm"
+        data-test-id="send-invites"
+        priority="primary"
+        disabled={!canSend || !isValidInvites}
+        onClick={() => {
+          if (organization.features.includes('invite-members-new-modal')) {
+            removeSentInvites();
+          }
+          sendInvites();
+        }}
+      />
     </FooterContent>
   );
 }
