@@ -7,6 +7,7 @@ from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.dlq import InvalidMessage
 from arroyo.types import BrokerValue, Message
 
+from sentry.ingest.types import ConsumerType
 from sentry.models.project import Project
 from sentry.utils import metrics
 
@@ -23,7 +24,9 @@ logger = logging.getLogger(__name__)
 
 
 def decode_and_process_chunks(
-    raw_message: Message[KafkaPayload], consumer_type: str, reprocess_only_stuck_events: bool
+    raw_message: Message[KafkaPayload],
+    consumer_type: ConsumerType,
+    reprocess_only_stuck_events: bool,
 ) -> IngestMessage | None:
     """
     The first pass for the `attachments` topic:
