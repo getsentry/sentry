@@ -334,7 +334,7 @@ function QueryContextMenu({
       disabled: !customMetric,
       onAction: () => {
         navigateTo(
-          `/settings/projects/:projectId/metrics/${encodeURIComponent(metricsQuery.mri)}`,
+          `/settings/${organization.slug}/projects/:projectId/metrics/${encodeURIComponent(metricsQuery.mri)}`,
           router
         );
       },

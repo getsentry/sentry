@@ -98,7 +98,8 @@ export function PageHeaderActions({showAddMetricButton, addCustomMetric}: Props)
       leadingItems: [<IconSettings key="icon" />],
       key: 'Metrics Settings',
       label: t('Metrics Settings'),
-      onAction: () => navigateTo(`/settings/projects/:projectId/metrics/`, router),
+      onAction: () =>
+        navigateTo(`/settings/${organization.slug}/projects/:projectId/metrics/`, router),
     };
 
     if (hasCustomMetrics(organization)) {

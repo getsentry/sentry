@@ -148,7 +148,7 @@ export function MetricQueryContextMenu({
 
         if (!isVirtualMetric(metricsQuery)) {
           navigateTo(
-            `/settings/projects/:projectId/metrics/${encodeURIComponent(
+            `/settings/${organization.slug}/projects/:projectId/metrics/${encodeURIComponent(
               metricsQuery.mri
             )}`,
             router
