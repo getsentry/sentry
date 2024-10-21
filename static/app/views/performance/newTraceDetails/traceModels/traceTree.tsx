@@ -470,10 +470,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
       transaction.parent = parent;
     }
 
-    const subTreeSpaceBounds: [number, number] = [
-      Number.POSITIVE_INFINITY,
-      Number.NEGATIVE_INFINITY,
-    ];
+    const subTreeSpaceBounds: [number, number] = [root.space[0], root.space[1]];
 
     TraceTree.ForEachChild(root, c => {
       c.invalidate();
@@ -482,6 +479,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
       //   // Track the min and max space of the sub tree as spans have ms precision
       subTreeSpaceBounds[0] = Math.min(subTreeSpaceBounds[0], c.space[0]);
       subTreeSpaceBounds[1] = Math.max(subTreeSpaceBounds[1], c.space[1]);
+
       if (isSpanNode(c)) {
         for (const performanceIssue of getRelatedPerformanceIssuesFromTransaction(
           c.value,
@@ -1201,6 +1199,11 @@ export class TraceTree extends TraceTreeEventDispatcher {
   }
 
   expand(node: TraceTreeNode<TraceTree.NodeValue>, expanded: boolean): boolean {
+    // Trace root nodes are not expandable or collapsable
+    if (isTraceNode(node)) {
+      return false;
+    }
+
     // Expanding is not allowed for zoomed in nodes
     if (expanded === node.expanded || node.zoomedIn) {
       return false;
@@ -1244,7 +1247,12 @@ export class TraceTree extends TraceTreeEventDispatcher {
     if (!expanded) {
       const index = this.list.indexOf(node);
       this.list.splice(index + 1, TraceTree.VisibleChildren(node).length);
+
       node.expanded = expanded;
+      // When transaction nodes are collapsed, they still render child transactions
+      if (isTransactionNode(node)) {
+        this.list.splice(index + 1, 0, ...TraceTree.VisibleChildren(node));
+      }
     } else {
       node.expanded = expanded;
       // Flip expanded so that we can collect visible children
@@ -1264,6 +1272,10 @@ export class TraceTree extends TraceTreeEventDispatcher {
       organization: Organization;
     }
   ): Promise<Event | null> {
+    if (isTraceNode(node)) {
+      return Promise.resolve(null);
+    }
+
     if (zoomedIn === node.zoomedIn || !node.canFetch) {
       return Promise.resolve(null);
     }
@@ -1370,17 +1382,29 @@ export class TraceTree extends TraceTreeEventDispatcher {
         });
 
         root.zoomedIn = true;
+
         // Spans contain millisecond precision, which means that it is possible for the
         // children spans of a transaction to extend beyond the start and end of the transaction
         // through ns precision. To account for this, we need to adjust the space of the transaction node and the space
         // of our trace so that all of the span children are visible and can be rendered inside the view
-        const start = Math.min(root.space[0], this.root.space[0]);
-        this.root.space = [start, Math.max(root.space[1], this.root.space[1])];
-        this.root.children[0].space = [...this.root.space];
+        const previousStart = this.root.space[0];
+        const previousDuration = this.root.space[1];
+
+        const newStart = root.space[0];
+        const newEnd = root.space[0] + root.space[1];
+
+        // Extend the start of the trace to include the new min start
+        if (newStart <= this.root.space[0]) {
+          this.root.space[0] = newStart;
+        }
+        // Extend the end of the trace to include the new max end
+        if (newEnd > this.root.space[0] + this.root.space[1]) {
+          this.root.space[1] = newEnd - this.root.space[0];
+        }
 
         if (
-          root.space[0] !== this.root.space[0] ||
-          root.space[1] !== this.root.space[1]
+          previousStart !== this.root.space[0] ||
+          previousDuration !== this.root.space[1]
         ) {
           this.dispatch('trace timeline change', this.root.space);
         }
