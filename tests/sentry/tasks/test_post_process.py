@@ -2521,12 +2521,18 @@ class PostProcessGroupErrorTest(
         return self.store_event(data=data, project_id=project_id, assert_no_errors=assert_no_errors)
 
     def call_post_process_group(
-        self, is_new, is_regression, is_new_group_environment, event, cache_key=None
+        self,
+        eventstream_type,
+        is_new,
+        is_regression,
+        is_new_group_environment,
+        event,
+        cache_key=None,
     ):
         if cache_key is None:
             cache_key = write_event_to_cache(event)
         post_process_group(
-            eventstream_type=EventStreamEventType.Error,
+            eventstream_type=eventstream_type,
             is_new=is_new,
             is_regression=is_regression,
             is_new_group_environment=is_new_group_environment,

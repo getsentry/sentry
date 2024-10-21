@@ -99,7 +99,6 @@ from sentry.eventstore.processing import event_processing_store, transaction_pro
 from sentry.eventstore.reprocessing import reprocessing_store
 from sentry.models.eventattachment import EventAttachment
 from sentry.snuba.dataset import Dataset
-from sentry.tasks.store import ConsumerType
 from sentry.types.activity import ActivityType
 from sentry.utils import metrics, snuba
 from sentry.utils.safe import get_path, set_path
@@ -198,9 +197,7 @@ def pull_event_data(project_id: int, event_id: str) -> ReprocessableEvent:
     return ReprocessableEvent(event=event, data=data, attachments=attachments)
 
 
-def reprocess_event(
-    project_id: int, event_id: str, consumer_type: ConsumerType, start_time: float
-) -> None:
+def reprocess_event(project_id: int, event_id: str, start_time: float) -> None:
     from sentry.ingest.consumer.processors import CACHE_TIMEOUT
     from sentry.tasks.store import preprocess_event_from_reprocessing
 
@@ -212,8 +209,7 @@ def reprocess_event(
 
     # Step 1: Fix up the event payload for reprocessing and put it in event
     # cache/event_processing_store
-
-    if consumer_type == ConsumerType.Transactions:
+    if data.get("type") == "transaction":
         processing_store = transaction_processing_store
     else:
         processing_store = event_processing_store
