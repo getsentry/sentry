@@ -523,7 +523,10 @@ export class TraceTree extends TraceTreeEventDispatcher {
       subTreeSpaceBounds[1] = 0;
     }
 
-    root.space = subTreeSpaceBounds;
+    root.space = [
+      Math.min(subTreeSpaceBounds[0], root.space[0]),
+      Math.max(subTreeSpaceBounds[1], root.space[1]),
+    ];
 
     // @TODO: each of these steps runs in On. If n becomes an issue as
     // some traces can have tens of thousands of spans, we can optimize this by trying
