@@ -1542,7 +1542,11 @@ export function ContinuousFlamegraph(): ReactElement {
         }
         flamegraph={
           <Fragment>
-            <FlamegraphWarnings flamegraph={flamegraph} requestState={profiles} />
+            <FlamegraphWarnings
+              flamegraph={flamegraph}
+              requestState={profiles}
+              filter={null}
+            />
             <FlamegraphZoomView
               profileGroup={profileGroup}
               canvasBounds={flamegraphCanvasBounds}
