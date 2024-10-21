@@ -294,11 +294,13 @@ class UserAuthenticatorDetailsTest(UserAuthenticatorDetailsTestBase):
         # Enroll the user in TOTP
         totp_interface = TotpInterface()
         totp_interface.enroll(self.user)
+        assert totp_interface.authenticator is not None
         totp_auth = totp_interface.authenticator
 
         # Enroll the user in recovery codes
         recovery_interface = RecoveryCodeInterface()
         recovery_interface.enroll(self.user)
+        assert recovery_interface.authenticator is not None
         recovery_auth = recovery_interface.authenticator
 
         # Confirm both authenticators exist
