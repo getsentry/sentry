@@ -223,7 +223,7 @@ class UserAuthenticatorDetailsEndpoint(UserEndpoint):
                 backup_interfaces = [x for x in interfaces if x.is_backup_interface]
                 # ensures that backup interfaces are removed when the last non-backup interface is removed.
                 # The "- 1" accounts for the authenticator that was just deleted.
-                if len(backup_interfaces) == len(interfaces):
+                if len(backup_interfaces) == len(interfaces) - 1:
                     for iface in backup_interfaces:
                         assert iface.authenticator, "Interface must have an authenticator to delete"
                         iface.authenticator.delete()
