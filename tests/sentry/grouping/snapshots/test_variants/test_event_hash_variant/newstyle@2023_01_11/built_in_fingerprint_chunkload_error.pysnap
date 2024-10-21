@@ -1,0 +1,40 @@
+---
+created: '2024-10-15T17:07:01.535326+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (exception of system takes precedence)
+      exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
+        stacktrace
+          frame (non app frame)
+            module*
+              "foo.bar"
+            filename (module takes precedence)
+              "bar.tsx"
+            function*
+              "main"
+        type*
+          "ChunkLoadError"
+        value*
+          "ChunkLoadError: something something..."
+--------------------------------------------------------------------------
+system:
+  hash: "925057f3a51f4b7bf154e59a63eb3f86"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "foo.bar"
+            filename (module takes precedence)
+              "bar.tsx"
+            function*
+              "main"
+        type*
+          "ChunkLoadError"
+        value (ignored because stacktrace takes precedence)
+          "ChunkLoadError: something something..."

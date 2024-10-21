@@ -1,0 +1,16 @@
+---
+created: '2024-10-15T17:04:31.419105+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: "e3d593b4335190212ca7c18b8e967fb1"
+  component:
+    app*
+      exception*
+        type*
+          "FailedToFetchError"
+        value*
+          "FailedToFetchError: Charlie didn't bring the ball back!"
+  info: null
+  values: ["{{ default }}","dogs are great"]
