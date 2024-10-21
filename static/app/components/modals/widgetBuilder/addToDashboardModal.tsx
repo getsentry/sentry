@@ -39,6 +39,7 @@ import {
   NEW_DASHBOARD_ID,
 } from 'sentry/views/dashboards/widgetBuilder/utils';
 import WidgetCard from 'sentry/views/dashboards/widgetCard';
+import WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 
@@ -287,6 +288,14 @@ function AddToDashboardModal({
                   widget={widget}
                   showStoredAlert
                   shouldResize={false}
+                  widgetLegendState={
+                    new WidgetLegendSelectionState({
+                      location,
+                      router,
+                      organization,
+                      dashboard: selectedDashboard,
+                    })
+                  }
                 />
               </MEPSettingProvider>
             )}

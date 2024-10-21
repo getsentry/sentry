@@ -1,4 +1,6 @@
 import {urlEncode} from '@sentry/utils';
+import {DashboardFixture} from 'sentry-fixture/dashboard';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {MetricsFieldFixture} from 'sentry-fixture/metrics';
 import {SessionsFieldFixture} from 'sentry-fixture/sessions';
 import {TagsFixture} from 'sentry-fixture/tags';
@@ -13,6 +15,8 @@ import type {DashboardDetails, Widget} from 'sentry/views/dashboards/types';
 import {DashboardWidgetSource, DisplayType} from 'sentry/views/dashboards/types';
 import type {WidgetBuilderProps} from 'sentry/views/dashboards/widgetBuilder';
 import WidgetBuilder from 'sentry/views/dashboards/widgetBuilder';
+
+import WidgetLegendSelectionState from '../widgetLegendSelectionState';
 
 const defaultOrgFeatures = [
   'performance-view',
@@ -63,6 +67,13 @@ function renderTestComponent({
 
   ProjectsStore.loadInitialData(projects);
 
+  const widgetLegendState = new WidgetLegendSelectionState({
+    location: LocationFixture(),
+    dashboard: DashboardFixture([], {id: 'new', title: 'Dashboard', ...dashboard}),
+    organization,
+    router,
+  });
+
   render(
     <WidgetBuilder
       route={{}}
@@ -86,6 +97,7 @@ function renderTestComponent({
         dashboardId: dashboard?.id ?? 'new',
         ...params,
       }}
+      widgetLegendState={widgetLegendState}
     />,
     {
       router,

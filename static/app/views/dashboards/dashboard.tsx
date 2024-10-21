@@ -55,6 +55,7 @@ import SortableWidget from './sortableWidget';
 import type {DashboardDetails, Widget} from './types';
 import {DashboardWidgetSource, WidgetType} from './types';
 import {connectDashboardCharts, getDashboardFiltersFromURL} from './utils';
+import type WidgetLegendSelectionState from './widgetLegendSelectionState';
 
 export const DRAG_HANDLE_CLASS = 'widget-drag';
 const DRAG_RESIZE_CLASS = 'widget-resize';
@@ -87,6 +88,7 @@ type Props = {
   organization: Organization;
   router: InjectedRouter;
   selection: PageFilters;
+  widgetLegendState: WidgetLegendSelectionState;
   widgetLimitReached: boolean;
   handleAddMetricWidget?: (layout?: Widget['layout']) => void;
   isPreview?: boolean;
@@ -388,6 +390,7 @@ class Dashboard extends Component<Props, State> {
 
     const widgetProps = {
       widget,
+      widgetLegendState: this.props.widgetLegendState,
       isEditingDashboard,
       widgetLimitReached,
       onDelete: this.handleDeleteWidget(widget),
