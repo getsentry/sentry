@@ -35,13 +35,22 @@ import SelectableList, {
   WidgetEmptyStateWarning,
 } from '../components/selectableList';
 import {transformTrendsDiscover} from '../transforms/transformTrendsDiscover';
-import type {PerformanceWidgetProps, QueryDefinition, WidgetDataResult} from '../types';
+import type {
+  GenericPerformanceWidgetProps,
+  PerformanceWidgetProps,
+  QueryDefinition,
+  WidgetDataResult,
+} from '../types';
 import {QUERY_LIMIT_PARAM, TOTAL_EXPANDABLE_ROWS_HEIGHT} from '../utils';
 import {PerformanceWidgetSetting} from '../widgetDefinitions';
 
 type DataType = {
   chart: WidgetDataResult & ReturnType<typeof transformTrendsDiscover>;
 };
+
+type ComponentData = React.ComponentProps<
+  GenericPerformanceWidgetProps<DataType>['Visualizations'][0]['component']
+>;
 
 const fields = [{field: 'transaction'}, {field: 'project'}];
 
@@ -113,10 +122,10 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
     [props.chartSetting, derivedTrendChangeType]
   );
 
-  const assembleAccordionItems = provided =>
+  const assembleAccordionItems = (provided: ComponentData) =>
     getItems(provided).map(item => ({header: item, content: getChart(provided)}));
 
-  const getChart = provided => (
+  const getChart = (provided: ComponentData) => (
     <TrendsChart
       {...provided}
       {...rest}
@@ -136,7 +145,7 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
     />
   );
 
-  const getItems = provided =>
+  const getItems = (provided: ComponentData) =>
     provided.widgetData.chart.transactionsList.map((listItem, i) => {
       const initialConditions = new MutableSearch([]);
       initialConditions.addFilterValues('transaction', [listItem.transaction]);
@@ -196,57 +205,60 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
     chart,
   };
 
-  const Visualizations = organization.features.includes('performance-new-widget-designs')
-    ? [
-        {
-          component: provided => (
-            <Accordion
-              expandedIndex={selectedListIndex}
-              setExpandedIndex={setSelectListIndex}
-              items={assembleAccordionItems(provided)}
-            />
-          ),
-          // accordion items height + chart height
-          height: TOTAL_EXPANDABLE_ROWS_HEIGHT + props.chartHeight,
-          noPadding: true,
-        },
-      ]
-    : [
-        {
-          component: provided => (
-            <TrendsChart
-              {...provided}
-              {...rest}
-              isLoading={provided.widgetData.chart.isLoading}
-              statsData={provided.widgetData.chart.statsData}
-              query={eventView.query}
-              project={eventView.project}
-              environment={eventView.environment}
-              start={eventView.start}
-              end={eventView.end}
-              statsPeriod={eventView.statsPeriod}
-              transaction={provided.widgetData.chart.transactionsList[selectedListIndex]}
-              trendChangeType={derivedTrendChangeType}
-              trendFunctionField={trendFunctionField}
-              disableXAxis
-              disableLegend
-            />
-          ),
-          bottomPadding: false,
-          height: props.chartHeight,
-        },
-        {
-          component: provided => (
-            <SelectableList
-              selectedIndex={selectedListIndex}
-              setSelectedIndex={setSelectListIndex}
-              items={getItems(provided)}
-            />
-          ),
-          height: 124,
-          noPadding: true,
-        },
-      ];
+  const Visualizations: GenericPerformanceWidgetProps<DataType>['Visualizations'] =
+    organization.features.includes('performance-new-widget-designs')
+      ? [
+          {
+            component: provided => (
+              <Accordion
+                expandedIndex={selectedListIndex}
+                setExpandedIndex={setSelectListIndex}
+                items={assembleAccordionItems(provided)}
+              />
+            ),
+            // accordion items height + chart height
+            height: TOTAL_EXPANDABLE_ROWS_HEIGHT + props.chartHeight,
+            noPadding: true,
+          },
+        ]
+      : [
+          {
+            component: provided => (
+              <TrendsChart
+                {...provided}
+                {...rest}
+                isLoading={provided.widgetData.chart.isLoading}
+                statsData={provided.widgetData.chart.statsData}
+                query={eventView.query}
+                project={eventView.project}
+                environment={eventView.environment}
+                start={eventView.start}
+                end={eventView.end}
+                statsPeriod={eventView.statsPeriod}
+                transaction={
+                  provided.widgetData.chart.transactionsList[selectedListIndex]
+                }
+                trendChangeType={derivedTrendChangeType}
+                trendFunctionField={trendFunctionField}
+                disableXAxis
+                disableLegend
+              />
+            ),
+            bottomPadding: false,
+            height: props.chartHeight,
+          },
+          {
+            component: provided => (
+              <SelectableList
+                selectedIndex={selectedListIndex}
+                setSelectedIndex={setSelectListIndex}
+                items={getItems(provided)}
+              />
+            ),
+            height: 124,
+            noPadding: true,
+          },
+        ];
 
   return (
     <GenericPerformanceWidget<DataType>
