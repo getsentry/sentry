@@ -226,106 +226,9 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
 
   const {id: activeThreadId, name: activeThreadName} = activeThread ?? {};
   const hideThreadTags = activeThreadId === undefined || !activeThreadName;
-  const threadContent = (
-    <TraceEventDataSection
-      type={EntryType.THREADS}
-      projectSlug={projectSlug}
-      eventId={event.id}
-      recentFirst={isStacktraceNewestFirst()}
-      fullStackTrace={stackView === StackView.FULL}
-      title={hasMoreThanOneThread ? t('Thread Stack Trace') : t('Stack Trace')}
-      platform={platform}
-      isNestedSection={hasMoreThanOneThread}
-      hasMinified={
-        !!exception?.values?.find(value => value.rawStacktrace) ||
-        !!activeThread?.rawStacktrace
-      }
-      hasVerboseFunctionNames={
-        !!exception?.values?.some(
-          value =>
-            !!value.stacktrace?.frames?.some(
-              frame =>
-                !!frame.rawFunction &&
-                !!frame.function &&
-                frame.rawFunction !== frame.function
-            )
-        ) ||
-        !!activeThread?.stacktrace?.frames?.some(
-          frame =>
-            !!frame.rawFunction &&
-            !!frame.function &&
-            frame.rawFunction !== frame.function
-        )
-      }
-      hasAbsoluteFilePaths={
-        !!exception?.values?.some(
-          value => !!value.stacktrace?.frames?.some(frame => !!frame.filename)
-        ) || !!activeThread?.stacktrace?.frames?.some(frame => !!frame.filename)
-      }
-      hasAbsoluteAddresses={
-        !!exception?.values?.some(
-          value => !!value.stacktrace?.frames?.some(frame => !!frame.instructionAddr)
-        ) || !!activeThread?.stacktrace?.frames?.some(frame => !!frame.instructionAddr)
-      }
-      hasAppOnlyFrames={
-        !!exception?.values?.some(
-          value => !!value.stacktrace?.frames?.some(frame => frame.inApp !== true)
-        ) || !!activeThread?.stacktrace?.frames?.some(frame => frame.inApp !== true)
-      }
-      hasNewestFirst={
-        !!exception?.values?.some(value => (value.stacktrace?.frames ?? []).length > 1) ||
-        (activeThread?.stacktrace?.frames ?? []).length > 1
-      }
-      stackTraceNotFound={stackTraceNotFound}
-    >
-      {childrenProps => {
-        // TODO(scttcper): These are duplicated from renderContent, should consolidate
-        const stackType = childrenProps.display.includes('minified')
-          ? StackType.MINIFIED
-          : StackType.ORIGINAL;
-        const isRaw = childrenProps.display.includes('raw-stack-trace');
-        const stackTrace = getThreadStacktrace(
-          stackType !== StackType.ORIGINAL,
-          activeThread
-        );
-
-        return (
-          <Fragment>
-            {stackTrace && !isRaw && !isSampleError && (
-              <ErrorBoundary customComponent={null}>
-                <StacktraceBanners event={event} stacktrace={stackTrace} />
-              </ErrorBoundary>
-            )}
-            {renderContent(childrenProps)}
-            {hasStreamlinedUI && group && (
-              <ErrorBoundary
-                mini
-                message={t('There was an error loading the suspect commits')}
-              >
-                <SuspectCommits
-                  projectSlug={projectSlug}
-                  eventId={event.id}
-                  commitRow={CommitRow}
-                  group={group}
-                />
-              </ErrorBoundary>
-            )}
-          </Fragment>
-        );
-      }}
-    </TraceEventDataSection>
-  );
 
   const threadComponent = (
-    <ThreadTraceWrapper
-      style={{
-        // TODO(issues): Remove on streamline issues ui GA
-        padding:
-          !hasMoreThanOneThread || hasStreamlinedUI
-            ? undefined
-            : `${space(1)} ${space(4)}`,
-      }}
-    >
+    <Fragment>
       {hasMoreThanOneThread && (
         <Fragment>
           <Grid>
@@ -373,8 +276,95 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
           )}
         </Fragment>
       )}
-      {threadContent}
-    </ThreadTraceWrapper>
+      <TraceEventDataSection
+        type={EntryType.THREADS}
+        projectSlug={projectSlug}
+        eventId={event.id}
+        recentFirst={isStacktraceNewestFirst()}
+        fullStackTrace={stackView === StackView.FULL}
+        title={hasMoreThanOneThread ? t('Thread Stack Trace') : t('Stack Trace')}
+        platform={platform}
+        isNestedSection={hasMoreThanOneThread}
+        hasMinified={
+          !!exception?.values?.find(value => value.rawStacktrace) ||
+          !!activeThread?.rawStacktrace
+        }
+        hasVerboseFunctionNames={
+          !!exception?.values?.some(
+            value =>
+              !!value.stacktrace?.frames?.some(
+                frame =>
+                  !!frame.rawFunction &&
+                  !!frame.function &&
+                  frame.rawFunction !== frame.function
+              )
+          ) ||
+          !!activeThread?.stacktrace?.frames?.some(
+            frame =>
+              !!frame.rawFunction &&
+              !!frame.function &&
+              frame.rawFunction !== frame.function
+          )
+        }
+        hasAbsoluteFilePaths={
+          !!exception?.values?.some(
+            value => !!value.stacktrace?.frames?.some(frame => !!frame.filename)
+          ) || !!activeThread?.stacktrace?.frames?.some(frame => !!frame.filename)
+        }
+        hasAbsoluteAddresses={
+          !!exception?.values?.some(
+            value => !!value.stacktrace?.frames?.some(frame => !!frame.instructionAddr)
+          ) || !!activeThread?.stacktrace?.frames?.some(frame => !!frame.instructionAddr)
+        }
+        hasAppOnlyFrames={
+          !!exception?.values?.some(
+            value => !!value.stacktrace?.frames?.some(frame => frame.inApp !== true)
+          ) || !!activeThread?.stacktrace?.frames?.some(frame => frame.inApp !== true)
+        }
+        hasNewestFirst={
+          !!exception?.values?.some(
+            value => (value.stacktrace?.frames ?? []).length > 1
+          ) || (activeThread?.stacktrace?.frames ?? []).length > 1
+        }
+        stackTraceNotFound={stackTraceNotFound}
+      >
+        {childrenProps => {
+          // TODO(scttcper): These are duplicated from renderContent, should consolidate
+          const stackType = childrenProps.display.includes('minified')
+            ? StackType.MINIFIED
+            : StackType.ORIGINAL;
+          const isRaw = childrenProps.display.includes('raw-stack-trace');
+          const stackTrace = getThreadStacktrace(
+            stackType !== StackType.ORIGINAL,
+            activeThread
+          );
+
+          return (
+            <Fragment>
+              {stackTrace && !isRaw && !isSampleError && (
+                <ErrorBoundary customComponent={null}>
+                  <StacktraceBanners event={event} stacktrace={stackTrace} />
+                </ErrorBoundary>
+              )}
+              {renderContent(childrenProps)}
+              {hasStreamlinedUI && group && (
+                <ErrorBoundary
+                  mini
+                  message={t('There was an error loading the suspect commits')}
+                >
+                  <SuspectCommits
+                    projectSlug={projectSlug}
+                    eventId={event.id}
+                    commitRow={CommitRow}
+                    group={group}
+                  />
+                </ErrorBoundary>
+              )}
+            </Fragment>
+          );
+        }}
+      </TraceEventDataSection>
+    </Fragment>
   );
 
   // If there is only one thread, we expect the stacktrace to wrap itself in a section
@@ -383,10 +373,20 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
       title={tn('Stack Trace', 'Stack Traces', threads.length)}
       type={SectionKey.STACKTRACE}
     >
-      {threadComponent}
+      <ThreadTraceWrapper
+        style={{
+          // TODO(issues): Remove on streamline issues ui GA
+          padding:
+            !hasMoreThanOneThread || hasStreamlinedUI
+              ? undefined
+              : `${space(1)} ${space(4)}`,
+        }}
+      >
+        {threadComponent}
+      </ThreadTraceWrapper>
     </InterimSection>
   ) : (
-    threadContent
+    threadComponent
   );
 }
 
