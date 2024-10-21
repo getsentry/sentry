@@ -465,56 +465,19 @@ def send_group_and_stacktrace_to_seer_multithreaded(
     ],
     nodestore_results: dict[str, Any],
     project_id: int,
-) -> BulkCreateGroupingRecordsResponse | None:
-    def process_chunk(
-        chunk_data: dict[str, Any], chunk_stacktrace: list[str]
-    ) -> BulkCreateGroupingRecordsResponse | None:
-        return _make_seer_call(
-            CreateGroupingRecordsRequest(
-                group_id_list=chunk_data["group_ids"],
-                data=chunk_data["data"],
-                stacktrace_list=chunk_stacktrace,
-                use_reranking=options.get("similarity.backfill_use_reranking"),
-            ),
-            project_id,
-        )
+) -> BulkCreateGroupingRecordsResponse:
 
     with metrics.timer(
         f"{BACKFILL_NAME}.send_group_and_stacktrace_to_seer",
         sample_rate=options.get("seer.similarity.metrics_sample_rate"),
     ):
-        chunk_size = options.get("similarity.backfill_seer_chunk_size")
-        chunks = [
-            {
-                "group_ids": groups_to_backfill_with_no_embedding_has_snuba_row_and_nodestore_row[
-                    i : i + chunk_size
-                ],
-                "data": nodestore_results["data"][i : i + chunk_size],
-            }
-            for i in range(
-                0,
-                len(groups_to_backfill_with_no_embedding_has_snuba_row_and_nodestore_row),
-                chunk_size,
-            )
-        ]
-        stacktrace_chunks = [
-            nodestore_results["stacktrace_list"][i : i + chunk_size]
-            for i in range(0, len(nodestore_results["stacktrace_list"]), chunk_size)
-        ]
+        seer_responses = _get_seer_responses(
+            groups_to_backfill_with_no_embedding_has_snuba_row_and_nodestore_row,
+            nodestore_results,
+            project_id,
+        )
 
-        seer_responses = []
-        with ThreadPoolExecutor(
-            max_workers=options.get("similarity.backfill_seer_threads")
-        ) as executor:
-            future_to_chunk = {
-                executor.submit(process_chunk, chunk, stacktrace_chunks[i]): chunk
-                for i, chunk in enumerate(chunks)
-            }
-            for future in as_completed(future_to_chunk):
-                chunk_response = future.result()
-                seer_responses.append(chunk_response)
-
-        aggregated_response: dict[str, Any] = {
+        aggregated_response: BulkCreateGroupingRecordsResponse = {
             "success": True,
             "groups_with_neighbor": {},
         }
@@ -531,19 +494,75 @@ def send_group_and_stacktrace_to_seer_multithreaded(
         return aggregated_response
 
 
+def _get_seer_responses(
+    groups_to_backfill_with_no_embedding_has_snuba_row_and_nodestore_row: list[
+        tuple[int, dict[str, Any]]
+    ],
+    nodestore_results: dict[str, Any],
+    project_id: int,
+) -> list[BulkCreateGroupingRecordsResponse]:
+    def process_chunk(
+        chunk_data: dict[str, Any], chunk_stacktrace: list[str]
+    ) -> BulkCreateGroupingRecordsResponse | None:
+        return _make_seer_call(
+            CreateGroupingRecordsRequest(
+                group_id_list=chunk_data["group_ids"],
+                data=chunk_data["data"],
+                stacktrace_list=chunk_stacktrace,
+                use_reranking=options.get("similarity.backfill_use_reranking"),
+            ),
+            project_id,
+        )
+
+    seer_responses = []
+    chunk_size = options.get("similarity.backfill_seer_chunk_size")
+    chunks = [
+        {
+            "group_ids": groups_to_backfill_with_no_embedding_has_snuba_row_and_nodestore_row[
+                i : i + chunk_size
+            ],
+            "data": nodestore_results["data"][i : i + chunk_size],
+        }
+        for i in range(
+            0,
+            len(groups_to_backfill_with_no_embedding_has_snuba_row_and_nodestore_row),
+            chunk_size,
+        )
+    ]
+    stacktrace_chunks = [
+        nodestore_results["stacktrace_list"][i : i + chunk_size]
+        for i in range(0, len(nodestore_results["stacktrace_list"]), chunk_size)
+    ]
+
+    with ThreadPoolExecutor(
+        max_workers=options.get("similarity.backfill_seer_threads")
+    ) as executor:
+        future_to_chunk = {
+            executor.submit(process_chunk, chunk, stacktrace_chunks[i]): chunk
+            for i, chunk in enumerate(chunks)
+        }
+        for future in as_completed(future_to_chunk):
+            chunk_response = future.result()
+            if chunk_response is None:
+                continue
+            seer_responses.append(chunk_response)
+
+    return seer_responses
+
+
 @sentry_sdk.tracing.trace
 def update_groups(
     project: Project,
     seer_response: BulkCreateGroupingRecordsResponse,
     group_id_batch_filtered: list[int],
     group_hashes_dict: dict[str, Any],
-):
+) -> None:
     groups_with_neighbor = seer_response["groups_with_neighbor"]
     groups = Group.objects.filter(project_id=project.id, id__in=group_id_batch_filtered)
     for group in groups:
         seer_similarity: dict[str, Any] = {
             "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
-            "request_hash": group_hashes_dict[group.id],
+            "request_hash": group_hashes_dict[str(group.id)],
         }
         if str(group.id) in groups_with_neighbor:
             # TODO: remove this try catch once the helper is made
