@@ -267,6 +267,85 @@ def taskworker_push(port: int, **options: Any) -> None:
 
 @run.command()
 @click.option(
+    "--namespace",
+    "-N",
+    help=(
+        "The task namespace, or namespaces to consume from. "
+        "Can be a comma separated list, or * "
+        "Example: -N video,image"
+    ),
+)
+@click.option("--autoreload", is_flag=True, default=False, help="Enable autoreloading.")
+@click.option("--port", "-P", help=("The port number the sever runs on"), default=50051)
+@log_options()
+@configuration
+def taskworker_reply(port: int, **options: Any) -> None:
+    from sentry.taskworker.worker_reply import serve
+
+    with managed_bgtasks(role="taskworker"):
+        serve(port, **options)
+
+
+@run.command()
+@click.argument("consumer_args", nargs=-1)
+@click.option(
+    "--group-instance-id",
+    type=str,
+    default=None,
+)
+@click.option(
+    "--consumer-group",
+    "group_id",
+    required=True,
+    help="Kafka consumer group for the consumer.",
+)
+# more options in the consumer definitions.
+@log_options()
+@configuration
+def taskworker_reply_consumer(
+    consumer_args: tuple[str, ...],
+    group_id: str,
+    group_instance_id: str,
+    **options: Any,
+) -> None:
+    from sentry.consumers import get_stream_processor
+    from sentry.utils.arroyo import initialize_arroyo_main
+
+    initialize_arroyo_main()
+
+    processors = []
+    for consumer_name in ["taskworker-consumer", "taskworker-consumer-reply"]:
+        if "reply" in consumer_name:
+            group_id = f"{group_id}-reply"
+
+        processor = get_stream_processor(
+            consumer_name,
+            consumer_args,
+            topic=None,
+            cluster=None,
+            group_id=group_id,
+            group_instance_id=group_instance_id,
+            auto_offset_reset="latest",
+            strict_offset_reset=False,
+            join_timeout=None,
+            max_poll_interval_ms=None,
+            synchronize_commit_group=None,
+            synchronize_commit_log_topic=None,
+            enable_dlq=False,
+            healthcheck_file_path=None,
+            enforce_schema=True,
+            **options,
+        )
+        processors.append(processor)
+    # TODO this is a giant hack. Ideally Arroyo would support
+    # consuming from multiple topics.
+    while True:
+        for processor in processors:
+            processor._run_once()
+
+
+@run.command()
+@click.option(
     "--hostname",
     "-n",
     help=(

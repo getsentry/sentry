@@ -2931,6 +2931,7 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "buffered-segments": "default",
     "buffered-segments-dlq": "default",
     "hackweek": "default",
+    "hackweek-reply": "default",
     "hackweek-dlq": "default",
 }
 

@@ -70,6 +70,7 @@ def taskworker_options(
         default_max_batch_time_ms=default_max_batch_time_ms,
     )
     options.append(click.Option(["--storage"], type=str, default="postgres"))
+    options.append(click.Option(["--worker-addrs"], type=str, default="127.0.0.1:50051"))
 
     return options
 
@@ -415,6 +416,18 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
     "taskworker": {
         "topic": Topic.HACKWEEK,
         "strategy_factory": "sentry.taskworker.processors.strategy_factory.StrategyFactory",
+        "click_options": taskworker_options(default_max_batch_size=100),
+        "dlq_topic": Topic.HACKWEEK_DLQ,
+    },
+    "taskworker-consumer": {
+        "topic": Topic.HACKWEEK,
+        "strategy_factory": "sentry.taskworker.processors.reply.StrategyFactory",
+        "click_options": taskworker_options(default_max_batch_size=100),
+        "dlq_topic": Topic.HACKWEEK_DLQ,
+    },
+    "taskworker-consumer-reply": {
+        "topic": Topic.HACKWEEK_REPLY,
+        "strategy_factory": "sentry.taskworker.processors.reply.ReplyStrategyFactory",
         "click_options": taskworker_options(default_max_batch_size=100),
         "dlq_topic": Topic.HACKWEEK_DLQ,
     },
