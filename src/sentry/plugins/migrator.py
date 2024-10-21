@@ -32,7 +32,6 @@ class Migrator:
                     # can disable the Plugin for all Projects. There'd be no
                     # Repos left, associated with the Plugin.
                     self.disable_for_all_projects(plugin)
-        self._logging_context()
 
     def all_repos_migrated(self, provider: str) -> bool:
         return all(r.integration_id is not None for r in self.repos_for_provider(provider))
