@@ -52,6 +52,7 @@ export enum DataSet {
   METRICS = 'metrics',
   ERRORS = 'error-events',
   TRANSACTIONS = 'transaction-like',
+  SPANS = 'spans',
 }
 
 export enum SortDirection {
