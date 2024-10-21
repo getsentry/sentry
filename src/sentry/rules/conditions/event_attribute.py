@@ -5,6 +5,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Any
 
+import sentry_sdk
 from django import forms
 
 from sentry.eventstore.models import GroupEvent
@@ -146,8 +147,9 @@ class EventAttributeCondition(EventCondition):
         else:
             try:
                 attribute_values = attr_handler.handle(path, event)
-            except KeyError:
+            except KeyError as e:
                 attribute_values = []
+                sentry_sdk.capture_exception(e)
 
         return self._passes(attribute_values)
 
@@ -251,7 +253,7 @@ class ExceptionAttributeHandler(AttributeHandler):
 
         return [
             getattr(e, path[1])
-            for e in getattr(event.interfaces.get("exception"), "values")
+            for e in getattr(event.interfaces.get("exception"), "values", [])
             if e is not None
         ]
 
@@ -272,7 +274,7 @@ class ErrorAttributeHandler(AttributeHandler):
 
         return [
             e.mechanism.handled != negate
-            for e in getattr(event.interfaces.get("exception"), "values")
+            for e in getattr(event.interfaces.get("exception"), "values", [])
             if getattr(e, "mechanism") is not None and getattr(e.mechanism, "handled") is not None
         ]
 
@@ -330,7 +332,7 @@ class StacktraceAttributeHandler(AttributeHandler):
         else:
             stacks = [
                 getattr(e, "stacktrace")
-                for e in getattr(event.interfaces.get("exception"), "values")
+                for e in getattr(event.interfaces.get("exception"), "values", [])
                 if getattr(e, "stacktrace")
             ]
         result = []
