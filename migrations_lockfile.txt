@@ -10,7 +10,7 @@ hybridcloud: 0016_add_control_cacheversion
 nodestore: 0002_nodestore_no_dictfield
 remote_subscriptions: 0003_drop_remote_subscription
 replays: 0004_index_together
-sentry: 0777_add_related_name_to_dashboard_permissions
+sentry: 0778_userreport_comments_max_length
 social_auth: 0002_default_auto_field
 uptime: 0017_unique_on_timeout
 workflow_engine: 0010_detector_state_unique_group
