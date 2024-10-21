@@ -1,6 +1,6 @@
 import logging
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import asdict
 from datetime import UTC, datetime, timedelta
@@ -69,8 +69,8 @@ class GroupStacktraceData(TypedDict):
 
 
 def filter_snuba_results(
-    snuba_results: list[dict[str, Any]],
-    groups_to_backfill_with_no_embedding: list[int],
+    snuba_results: Sequence[dict[str, Any]],
+    group_ids: list[int],
     project: Project,
 ) -> tuple[list[GroupEventRow], list[int]]:
     if not snuba_results or not snuba_results[0].get("data"):
@@ -78,7 +78,7 @@ def filter_snuba_results(
             "tasks.backfill_seer_grouping_records.results",
             extra={
                 "project_id": project.id,
-                "group_id_batch": json.dumps(groups_to_backfill_with_no_embedding),
+                "group_id_batch": json.dumps(group_ids),
             },
         )
         return [], []
@@ -86,11 +86,11 @@ def filter_snuba_results(
         snuba_result["data"][0] for snuba_result in snuba_results if snuba_result["data"]
     ]
 
-    groups_to_backfill_with_no_embedding_has_snuba_row = []
+    group_ids = []
     row_group_ids = {row["group_id"] for row in filtered_snuba_results}
-    for group_id in groups_to_backfill_with_no_embedding:
+    for group_id in group_ids:
         if group_id in row_group_ids:
-            groups_to_backfill_with_no_embedding_has_snuba_row.append(group_id)
+            group_ids.append(group_id)
         else:
             logger.info(
                 "tasks.backfill_seer_grouping_records.no_snuba_event",
@@ -100,7 +100,7 @@ def filter_snuba_results(
                     "group_id": group_id,
                 },
             )
-    return filtered_snuba_results, groups_to_backfill_with_no_embedding_has_snuba_row
+    return filtered_snuba_results, group_ids
 
 
 def create_project_cohort(worker_number: int, last_processed_project_id: int | None) -> list[int]:
@@ -224,41 +224,35 @@ def get_current_batch_groups_from_postgres(
             )
             project.update_option("sentry:similarity_backfill_completed", int(time.time()))
 
-        return (
-            groups_to_backfill_batch,
-            None,
-        )
+        return (groups_to_backfill_batch, None)
 
-    groups_to_backfill_with_no_embedding = [
+    group_ids = [
         group_id
         for (group_id, data) in groups_to_backfill_batch
         if get_path(data, "metadata", "seer_similarity", "similarity_model_version") is None
     ]
-    if len(groups_to_backfill_batch) != len(groups_to_backfill_with_no_embedding):
+    if len(groups_to_backfill_batch) != len(group_ids):
         logger.info(
             "backfill_seer_grouping_records.groups_already_had_embedding",
             extra={
                 "project_id": project.id,
-                "num_groups": len(groups_to_backfill_with_no_embedding),
+                "num_groups": len(group_ids),
             },
         )
-    return (
-        groups_to_backfill_with_no_embedding,
-        batch_end_group_id,
-    )
+    return (group_ids, batch_end_group_id)
 
 
 @sentry_sdk.tracing.trace
 def get_data_from_snuba(
     project: Project,
-    groups_to_backfill_with_no_embedding: list[int],
+    group_ids: list[int],
 ) -> list[dict[str, Any]]:
     # TODO(jangjodi): Only query per group if it has over 1 million events, or batch queries with new where condition
     events_entity = Entity("events", alias="events")
 
     snuba_results = []
     for group_ids_chunk in chunked(
-        groups_to_backfill_with_no_embedding,
+        group_ids,
         options.get("similarity.backfill_snuba_concurrent_requests"),
     ):
         snuba_requests = []
@@ -348,8 +342,8 @@ def _make_snuba_call(
 @sentry_sdk.tracing.trace
 def get_events_from_nodestore(
     project: Project,
-    snuba_results: list[dict[str, Any]],
-    groups_to_backfill_with_no_embedding_has_snuba_row: list[int],
+    snuba_results: Sequence[dict[str, Any]],
+    group_ids: list[int],
 ) -> tuple[GroupStacktraceData, dict[int, str]]:
     nodestore_events = lookup_group_data_stacktrace_bulk(project, snuba_results)
     # If nodestore returns no data
@@ -358,13 +352,10 @@ def get_events_from_nodestore(
             "tasks.backfill_seer_grouping_records.no_data",
             extra={
                 "project_id": project.id,
-                "group_id_batch": json.dumps(groups_to_backfill_with_no_embedding_has_snuba_row),
+                "group_id_batch": json.dumps(group_ids),
             },
         )
-        return (
-            GroupStacktraceData(data=[], stacktrace_list=[]),
-            {},
-        )
+        return (GroupStacktraceData(data=[], stacktrace_list=[]), {})
 
     group_data = []
     stacktrace_strings = []
@@ -439,7 +430,7 @@ def _make_seer_call(
 
 @sentry_sdk.tracing.trace
 def send_group_and_stacktrace_to_seer(
-    groups_to_backfill_with_no_embedding_has_snuba_row_and_nodestore_row: list[int],
+    group_ids: list[int],
     nodestore_results: dict[str, Any],
     project_id: int,
 ) -> BulkCreateGroupingRecordsResponse | None:
@@ -449,7 +440,7 @@ def send_group_and_stacktrace_to_seer(
     ):
         return _make_seer_call(
             CreateGroupingRecordsRequest(
-                group_id_list=groups_to_backfill_with_no_embedding_has_snuba_row_and_nodestore_row,
+                group_id_list=group_ids,
                 data=nodestore_results["data"],
                 stacktrace_list=nodestore_results["stacktrace_list"],
                 use_reranking=options.get("similarity.backfill_use_reranking"),
@@ -460,9 +451,7 @@ def send_group_and_stacktrace_to_seer(
 
 @sentry_sdk.tracing.trace
 def send_group_and_stacktrace_to_seer_multithreaded(
-    groups_to_backfill_with_no_embedding_has_snuba_row_and_nodestore_row: list[
-        tuple[int, dict[str, Any]]
-    ],
+    group_ids: list[tuple[int, dict[str, Any]]],
     nodestore_results: dict[str, Any],
     project_id: int,
 ) -> BulkCreateGroupingRecordsResponse:
@@ -472,7 +461,7 @@ def send_group_and_stacktrace_to_seer_multithreaded(
         sample_rate=options.get("seer.similarity.metrics_sample_rate"),
     ):
         seer_responses = _get_seer_responses(
-            groups_to_backfill_with_no_embedding_has_snuba_row_and_nodestore_row,
+            group_ids,
             nodestore_results,
             project_id,
         )
@@ -495,9 +484,7 @@ def send_group_and_stacktrace_to_seer_multithreaded(
 
 
 def _get_seer_responses(
-    groups_to_backfill_with_no_embedding_has_snuba_row_and_nodestore_row: list[
-        tuple[int, dict[str, Any]]
-    ],
+    group_ids: list[tuple[int, dict[str, Any]]],
     nodestore_results: dict[str, Any],
     project_id: int,
 ) -> list[BulkCreateGroupingRecordsResponse]:
@@ -518,14 +505,12 @@ def _get_seer_responses(
     chunk_size = options.get("similarity.backfill_seer_chunk_size")
     chunks = [
         {
-            "group_ids": groups_to_backfill_with_no_embedding_has_snuba_row_and_nodestore_row[
-                i : i + chunk_size
-            ],
+            "group_ids": group_ids[i : i + chunk_size],
             "data": nodestore_results["data"][i : i + chunk_size],
         }
         for i in range(
             0,
-            len(groups_to_backfill_with_no_embedding_has_snuba_row_and_nodestore_row),
+            len(group_ids),
             chunk_size,
         )
     ]
@@ -656,7 +641,7 @@ def make_nodestore_call_multithreaded(project: Project, node_keys: list[str]) ->
 
 @sentry_sdk.tracing.trace
 def lookup_group_data_stacktrace_bulk(
-    project: Project, rows: list[dict[str, Any]]
+    project: Project, rows: Sequence[dict[str, Any]]
 ) -> dict[int, Event]:
     with metrics.timer(
         f"{BACKFILL_NAME}.lookup_event_bulk",
