@@ -1199,6 +1199,11 @@ export class TraceTree extends TraceTreeEventDispatcher {
   }
 
   expand(node: TraceTreeNode<TraceTree.NodeValue>, expanded: boolean): boolean {
+    // Trace root nodes are not expandable or collapsable
+    if (isTraceNode(node)) {
+      return false;
+    }
+
     // Expanding is not allowed for zoomed in nodes
     if (expanded === node.expanded || node.zoomedIn) {
       return false;
@@ -1242,7 +1247,12 @@ export class TraceTree extends TraceTreeEventDispatcher {
     if (!expanded) {
       const index = this.list.indexOf(node);
       this.list.splice(index + 1, TraceTree.VisibleChildren(node).length);
+
       node.expanded = expanded;
+      // When transaction nodes are collapsed, they still render child transactions
+      if (isTransactionNode(node)) {
+        this.list.splice(index + 1, 0, ...TraceTree.VisibleChildren(node));
+      }
     } else {
       node.expanded = expanded;
       // Flip expanded so that we can collect visible children
@@ -1262,6 +1272,10 @@ export class TraceTree extends TraceTreeEventDispatcher {
       organization: Organization;
     }
   ): Promise<Event | null> {
+    if (isTraceNode(node)) {
+      return Promise.resolve(null);
+    }
+
     if (zoomedIn === node.zoomedIn || !node.canFetch) {
       return Promise.resolve(null);
     }
