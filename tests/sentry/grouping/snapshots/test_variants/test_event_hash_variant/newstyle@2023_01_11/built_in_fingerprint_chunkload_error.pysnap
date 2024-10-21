@@ -1,12 +1,12 @@
 ---
-created: '2024-10-15T17:07:01.535326+00:00'
+created: '2024-10-15T17:24:00.902258+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: null
   component:
-    app (exception of system takes precedence)
+    app (custom fingerprint takes precedence)
       exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
         stacktrace
           frame (non app frame)
@@ -21,10 +21,15 @@ app:
         value*
           "ChunkLoadError: something something..."
 --------------------------------------------------------------------------
+built-in-fingerprint:
+  hash: "5d731dcf8ecc4f042eeacf528d8d8da9"
+  info: {"matched_rule":{"attributes":{},"fingerprint":["chunkloaderror"],"is_builtin":true,"matchers":[["family","javascript"],["type","ChunkLoadError"]]}}
+  values: ["chunkloaderror"]
+--------------------------------------------------------------------------
 system:
-  hash: "925057f3a51f4b7bf154e59a63eb3f86"
+  hash: null
   component:
-    system*
+    system (custom fingerprint takes precedence)
       exception*
         stacktrace*
           frame*

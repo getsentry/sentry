@@ -1,5 +1,5 @@
 ---
-created: '2024-10-15T17:03:50.327327+00:00'
+created: '2024-10-15T17:23:30.884110+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -12,7 +12,7 @@ app:
           "FailedToFetchError"
         value*
           "FailedToFetchError: Maisey can't see the ball anymore :-("
-  info: null
+  info: {"client_fingerprint":["{{ default }}","dogs are great"]}
   values: ["{{ default }}","dogs are great"]
 --------------------------------------------------------------------------
 system:
@@ -24,5 +24,5 @@ system:
           "FailedToFetchError"
         value*
           "FailedToFetchError: Maisey can't see the ball anymore :-("
-  info: null
+  info: {"client_fingerprint":["{{ default }}","dogs are great"]}
   values: ["{{ default }}","dogs are great"]
