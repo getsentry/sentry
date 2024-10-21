@@ -356,54 +356,27 @@ class GetStacktraceStringTest(TestCase):
 
     ONLY_STACKTRACE = {
         "app": {
-            "key": "app",
-            "type": "component",
-            "description": "in-app stack-trace",
-            "hash": "cb220adbea9b2575459b64285f9a3605",
+            "hash": "foo",
             "component": {
                 "id": "app",
-                "name": "in-app",
                 "contributes": True,
-                "hint": None,
                 "values": [
                     {
                         "id": "stacktrace",
-                        "name": "stack-trace",
                         "contributes": True,
-                        "hint": None,
                         "values": [
                             {
                                 "id": "frame",
-                                "name": None,
                                 "contributes": True,
-                                "hint": None,
                                 "values": [
                                     {
-                                        "id": "module",
-                                        "name": None,
-                                        "contributes": None,
-                                        "hint": None,
-                                        "values": [],
-                                    },
-                                    {
                                         "id": "filename",
-                                        "name": None,
                                         "contributes": True,
-                                        "hint": None,
                                         "values": ["index.php"],
                                     },
                                     {
-                                        "id": "function",
-                                        "name": None,
-                                        "contributes": None,
-                                        "hint": None,
-                                        "values": [],
-                                    },
-                                    {
                                         "id": "context-line",
-                                        "name": None,
                                         "contributes": True,
-                                        "hint": None,
                                         "values": ["$server->emit($server->run());"],
                                     },
                                 ],
