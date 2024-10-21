@@ -43,7 +43,10 @@ export function BigNumberWidget(props: Props) {
 
   if (!defined(value)) {
     parsingError = MISSING_DATA_MESSAGE;
-  } else if (!Number.isFinite(value) || Number.isNaN(value)) {
+  } else if (
+    (typeof value === 'number' && !Number.isFinite(value)) ||
+    Number.isNaN(value)
+  ) {
     parsingError = NON_FINITE_NUMBER_MESSAGE;
   }
 
@@ -57,17 +60,19 @@ export function BigNumberWidget(props: Props) {
       error={error}
       onRetry={props.onRetry}
     >
-      <BigNumberResizeWrapper>
-        <BigNumberWidgetVisualization
-          value={Number(value)}
-          previousPeriodValue={Number(previousPeriodValue)}
-          field={field}
-          maximumValue={props.maximumValue}
-          preferredPolarity={props.preferredPolarity}
-          meta={props.meta}
-          thresholds={props.thresholds}
-        />
-      </BigNumberResizeWrapper>
+      {defined(value) && (
+        <BigNumberResizeWrapper>
+          <BigNumberWidgetVisualization
+            value={value}
+            previousPeriodValue={previousPeriodValue}
+            field={field}
+            maximumValue={props.maximumValue}
+            preferredPolarity={props.preferredPolarity}
+            meta={props.meta}
+            thresholds={props.thresholds}
+          />
+        </BigNumberResizeWrapper>
+      )}
     </WidgetFrame>
   );
 }
