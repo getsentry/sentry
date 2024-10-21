@@ -69,6 +69,12 @@ export const enum SectionKey {
   REGRESSION_EVENT_COMPARISON = 'regression-event-comparison',
   REGRESSION_POTENTIAL_CAUSES = 'regression-potential-causes',
   REGRESSION_AFFECTED_TRANSACTIONS = 'regression-affected-transactions',
+
+  SIDEBAR_PEOPLE = 'sidebar-people',
+  SIDEBAR_ACTIVITY = 'sidebar-activity',
+  SIDEBAR_ISSUE_TRACKING = 'sidebar-issue-tracking',
+  SIDEBAR_SIMILAR_ISSUES = 'sidebar-similar',
+  SIDEBAR_GROUPING = 'sidebar-grouping',
 }
 
 /**
