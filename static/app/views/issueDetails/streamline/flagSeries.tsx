@@ -113,7 +113,7 @@ export default function useFlagSeries({query = {}, event}: FlagSeriesProps) {
           `<div><span class="tooltip-label"><strong>${t(
             'Feature Flag'
           )}</strong></span></div>`,
-          `<div><code class="tooltip-code-no-margin">${data.name}</code>${data.label.formatter()}</div>`,
+          `<span class="tooltip-label-align-start"><code class="tooltip-code-no-margin">${data.name}</code>${data.label.formatter()}</span>`,
           '</div>',
           '<div class="tooltip-footer">',
           time,
