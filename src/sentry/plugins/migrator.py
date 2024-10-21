@@ -40,7 +40,8 @@ class Migrator:
         for project in self.projects:
             try:
                 logger.info(
-                    "plugin.disabled", extra=self._logging_context({"project": project.slug, "plugin": plugin.slug})
+                    "plugin.disabled",
+                    extra=self._logging_context({"project": project.slug, "plugin": plugin.slug}),
                 )
                 plugin.disable(project=project)
             except NotImplementedError:
@@ -62,9 +63,11 @@ class Migrator:
         return [plugins.configurable_for_project(project) for project in self.projects]
 
     def _logging_context(self, context: dict[str, Any]) -> dict[str, Any]:
-        context.update({
-            "org": self.organization.slug,
-            "integration_id": self.integration.id,
-            "integration_provider": self.integration.provider,
-        })
+        context.update(
+            {
+                "org": self.organization.slug,
+                "integration_id": self.integration.id,
+                "integration_provider": self.integration.provider,
+            }
+        )
         return context
