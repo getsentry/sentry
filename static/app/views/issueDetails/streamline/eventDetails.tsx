@@ -102,6 +102,7 @@ export function EventDetails({
           {!isLoadingStats && groupStats && (
             <ExtraContent>
               <EventGraph
+                event={event}
                 group={group}
                 groupStats={groupStats}
                 searchQuery={searchQuery}
