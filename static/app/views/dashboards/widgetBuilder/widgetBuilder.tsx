@@ -111,6 +111,7 @@ const WIDGET_TYPE_TO_DATA_SET = {
   [WidgetType.METRICS]: DataSet.METRICS,
   [WidgetType.ERRORS]: DataSet.ERRORS,
   [WidgetType.TRANSACTIONS]: DataSet.TRANSACTIONS,
+  [WidgetType.SPANS]: DataSet.SPANS,
 };
 
 export const DATA_SET_TO_WIDGET_TYPE = {
@@ -120,6 +121,7 @@ export const DATA_SET_TO_WIDGET_TYPE = {
   [DataSet.METRICS]: WidgetType.METRICS,
   [DataSet.ERRORS]: WidgetType.ERRORS,
   [DataSet.TRANSACTIONS]: WidgetType.TRANSACTIONS,
+  [DataSet.SPANS]: WidgetType.SPANS,
 };
 
 interface RouteParams {
