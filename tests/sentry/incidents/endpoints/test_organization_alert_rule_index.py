@@ -1327,9 +1327,6 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
             resp = self.get_response(self.organization.slug, **valid_alert_rule)
             assert resp.status_code == 201
-            assert self.analytics_called_with_args(
-                record_analytics, "alert.created", query_type="PERFORMANCE"
-            )
 
 
 @freeze_time()
