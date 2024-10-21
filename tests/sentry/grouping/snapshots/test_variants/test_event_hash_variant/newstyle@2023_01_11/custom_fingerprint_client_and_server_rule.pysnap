@@ -1,5 +1,5 @@
 ---
-created: '2020-12-08T17:25:10.426520Z'
+created: '2024-10-15T16:41:41.026484+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -117,7 +117,7 @@ app:
               "_prefetch"
             context-line*
               "exe.submit(fetch_file, idx.offset, idx.blob.getfile)"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (path:**/site-packages/** -app))
             module*
               "concurrent.futures._base"
             filename (module takes precedence)
@@ -126,7 +126,7 @@ app:
               "__exit__"
             context-line*
               "self.shutdown(wait=True)"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (path:**/site-packages/** -app))
             module*
               "concurrent.futures.thread"
             filename (module takes precedence)
@@ -153,7 +153,7 @@ app:
               "wait"
             context-line*
               "_sleep(delay)"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (path:**/site-packages/** -app))
             module*
               "billiard.pool"
             filename (module takes precedence)
