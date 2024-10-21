@@ -132,8 +132,7 @@ describe('Dashboards > IssueWidgetCard', function () {
         renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
-      />,
-      {router}
+      />
     );
 
     await userEvent.click(await screen.findByLabelText('Widget actions'));
