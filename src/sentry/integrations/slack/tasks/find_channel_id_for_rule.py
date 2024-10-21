@@ -10,10 +10,10 @@ from sentry.integrations.slack.utils.channel import (
 )
 from sentry.integrations.slack.utils.constants import SLACK_RATE_LIMITED_MESSAGE
 from sentry.integrations.slack.utils.rule_status import RedisRuleStatus
-from sentry.mediators.project_rules.creator import Creator
 from sentry.mediators.project_rules.updater import Updater
 from sentry.models.project import Project
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType
+from sentry.projects.project_rules.creator import ProjectRuleCreator
 from sentry.shared_integrations.exceptions import ApiRateLimitedError, DuplicateDisplayNameError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -109,7 +109,18 @@ def find_channel_id_for_rule(
             rule = Rule.objects.get(id=rule_id)
             rule = Updater.run(rule=rule, pending_save=False, **kwargs)
         else:
-            rule = Creator.run(pending_save=False, **kwargs)
+            rule = ProjectRuleCreator(
+                name=kwargs["name"],
+                project=project,
+                action_match=kwargs["action_match"],
+                actions=actions,
+                conditions=kwargs["conditions"],
+                frequency=kwargs["frequency"],
+                environment=kwargs.get("environment"),
+                owner=kwargs.get("owner"),
+                filter_match=kwargs.get("filter_match"),
+                request=kwargs.get("request"),
+            ).run()
             if user_id:
                 RuleActivity.objects.create(
                     rule=rule, user_id=user_id, type=RuleActivityType.CREATED.value
