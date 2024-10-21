@@ -29,9 +29,12 @@ class Migration(CheckedMigration):
         migrations.SeparateDatabaseAndState(
             database_operations=[
                 migrations.RunSQL(
+                    """DROP INDEX CONCURRENTLY IF EXISTS "detector_state_unique_group_key";"""
+                ),
+                migrations.RunSQL(
                     """CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS "detector_state_unique_group_key"
                     ON "workflow_engine_detectorstate" ("detector_id", (COALESCE("detector_group_key", '')))"""
-                )
+                ),
             ],
             state_operations=[
                 migrations.AddConstraint(
