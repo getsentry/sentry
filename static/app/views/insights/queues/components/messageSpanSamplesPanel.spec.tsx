@@ -12,7 +12,10 @@ jest.mock('sentry/utils/usePageFilters');
 describe('messageSpanSamplesPanel', () => {
   const organization = OrganizationFixture();
 
-  let eventsRequestMock, eventsStatsRequestMock, samplesRequestMock, spanFieldTagsMock;
+  let eventsRequestMock: jest.Mock;
+  let eventsStatsRequestMock: jest.Mock;
+  let samplesRequestMock: jest.Mock;
+  let spanFieldTagsMock: jest.Mock;
 
   jest.mocked(usePageFilters).mockReturnValue({
     isReady: true,

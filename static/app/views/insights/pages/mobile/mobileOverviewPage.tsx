@@ -9,9 +9,13 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import TransactionNameSearchBar from 'sentry/components/performance/searchBar';
+import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKeyTransactionsManager';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {canUseMetricsData} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
+import {
+  canUseMetricsData,
+  useMEPSettingContext,
+} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {PageAlert, usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -19,11 +23,16 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+import {useUserTeams} from 'sentry/utils/useUserTeams';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {ViewTrendsButton} from 'sentry/views/insights/common/viewTrendsButton';
 import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
+import {
+  MOBILE_LANDING_TITLE,
+  OVERVIEW_PAGE_ALLOWED_OPS,
+} from 'sentry/views/insights/pages/mobile/settings';
 import {OVERVIEW_PAGE_TITLE} from 'sentry/views/insights/pages/settings';
 import {
   generateGenericPerformanceEventView,
@@ -34,6 +43,7 @@ import {
   DoubleChartRow,
   TripleChartRow,
 } from 'sentry/views/performance/landing/widgets/components/widgetChartRow';
+import {filterAllowedChartsMetrics} from 'sentry/views/performance/landing/widgets/utils';
 import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
 import Onboarding from 'sentry/views/performance/onboarding';
 import Table from 'sentry/views/performance/table';
@@ -72,6 +82,8 @@ function MobileOverviewPage() {
   const {projects} = useProjects();
   const onboardingProject = useOnboardingProject();
   const navigate = useNavigate();
+  const {teams} = useUserTeams();
+  const mepSetting = useMEPSettingContext();
 
   const withStaticFilters = canUseMetricsData(organization);
 
@@ -87,21 +99,31 @@ function MobileOverviewPage() {
     ? REACT_NATIVE_COLUMN_TITLES
     : MOBILE_COLUMN_TITLES;
 
+  const doubleChartRowEventView = eventView.clone(); // some of the double chart rows rely on span metrics, so they can't be queried the same way
+
+  const existingQuery = new MutableSearch(eventView.query);
+  existingQuery.addDisjunctionFilterValues('transaction.op', OVERVIEW_PAGE_ALLOWED_OPS);
+  eventView.query = existingQuery.formatString();
+
   const showOnboarding = onboardingProject !== undefined;
 
   const doubleChartRowCharts = [
     PerformanceWidgetSetting.MOST_SLOW_FRAMES,
     PerformanceWidgetSetting.MOST_FROZEN_FRAMES,
   ];
-  const tripleChartRowCharts = [
-    PerformanceWidgetSetting.TPM_AREA,
-    PerformanceWidgetSetting.DURATION_HISTOGRAM,
-    PerformanceWidgetSetting.P50_DURATION_AREA,
-    PerformanceWidgetSetting.P75_DURATION_AREA,
-    PerformanceWidgetSetting.P95_DURATION_AREA,
-    PerformanceWidgetSetting.P99_DURATION_AREA,
-    PerformanceWidgetSetting.FAILURE_RATE_AREA,
-  ];
+  const tripleChartRowCharts = filterAllowedChartsMetrics(
+    organization,
+    [
+      PerformanceWidgetSetting.TPM_AREA,
+      PerformanceWidgetSetting.DURATION_HISTOGRAM,
+      PerformanceWidgetSetting.P50_DURATION_AREA,
+      PerformanceWidgetSetting.P75_DURATION_AREA,
+      PerformanceWidgetSetting.P95_DURATION_AREA,
+      PerformanceWidgetSetting.P99_DURATION_AREA,
+      PerformanceWidgetSetting.FAILURE_RATE_AREA,
+    ],
+    mepSetting
+  );
 
   if (organization.features.includes('mobile-vitals')) {
     columnTitles = [...columnTitles.slice(0, 5), 'ttid', ...columnTitles.slice(5, 0)];
@@ -164,7 +186,10 @@ function MobileOverviewPage() {
       organization={organization}
       renderDisabled={NoAccess}
     >
-      <MobileHeader headerActions={<ViewTrendsButton />} />
+      <MobileHeader
+        headerTitle={MOBILE_LANDING_TITLE}
+        headerActions={<ViewTrendsButton />}
+      />
       <Layout.Body>
         <Layout.Main fullWidth>
           <ModuleLayout.Layout>
@@ -193,14 +218,28 @@ function MobileOverviewPage() {
                 <PerformanceDisplayProvider
                   value={{performanceType: ProjectPerformanceType.MOBILE}}
                 >
-                  <DoubleChartRow allowedCharts={doubleChartRowCharts} {...sharedProps} />
-                  <TripleChartRow allowedCharts={tripleChartRowCharts} {...sharedProps} />
-                  <Table
-                    projects={projects}
-                    columnTitles={columnTitles}
-                    setError={setPageError}
-                    {...sharedProps}
-                  />
+                  <TeamKeyTransactionManager.Provider
+                    organization={organization}
+                    teams={teams}
+                    selectedTeams={['myteams']}
+                    selectedProjects={eventView.project.map(String)}
+                  >
+                    <DoubleChartRow
+                      allowedCharts={doubleChartRowCharts}
+                      {...sharedProps}
+                      eventView={doubleChartRowEventView}
+                    />
+                    <TripleChartRow
+                      allowedCharts={tripleChartRowCharts}
+                      {...sharedProps}
+                    />
+                    <Table
+                      projects={projects}
+                      columnTitles={columnTitles}
+                      setError={setPageError}
+                      {...sharedProps}
+                    />
+                  </TeamKeyTransactionManager.Provider>
                 </PerformanceDisplayProvider>
               )}
 

@@ -57,7 +57,6 @@ export function ShortIdBreadcrumb({
       />
       <ShortIdCopyable>
         <Tooltip
-          className="help-link"
           title={t(
             'This identifier is unique across your organization, and can be used to reference an issue in various places, like commit messages.'
           )}
