@@ -60,7 +60,7 @@ class EventStream(Service):
 
     def _dispatch_post_process_group_task(
         self,
-        eventstream_type: str,
+        eventstream_type: EventStreamEventType,
         event_id: str,
         project_id: int,
         group_id: int | None,
