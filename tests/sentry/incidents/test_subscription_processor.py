@@ -2663,26 +2663,25 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         )
         comparison_date = timezone.now() - comparison_delta
 
-        with self.options({"issues.group_attributes.send_kafka": True}):
-            for i in range(4):
-                data = {
-                    "timestamp": iso_format(comparison_date - timedelta(minutes=30 + i)),
-                    "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
-                    "fingerprint": ["group2"],
-                    "level": "error",
-                    "exception": {
-                        "values": [
-                            {
-                                "type": "IntegrationError",
-                                "value": "Identity not found.",
-                            }
-                        ]
-                    },
-                }
-                self.store_event(
-                    data=data,
-                    project_id=self.project.id,
-                )
+        for i in range(4):
+            data = {
+                "timestamp": iso_format(comparison_date - timedelta(minutes=30 + i)),
+                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
+                "fingerprint": ["group2"],
+                "level": "error",
+                "exception": {
+                    "values": [
+                        {
+                            "type": "IntegrationError",
+                            "value": "Identity not found.",
+                        }
+                    ]
+                },
+            }
+            self.store_event(
+                data=data,
+                project_id=self.project.id,
+            )
 
         self.metrics.incr.reset_mock()
         processor = self.send_update(rule, 2, timedelta(minutes=-9), subscription=self.sub)
