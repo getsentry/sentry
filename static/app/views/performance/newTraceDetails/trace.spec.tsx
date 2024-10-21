@@ -867,20 +867,28 @@ describe('trace', () => {
       });
     });
 
-    it.each(['?eventId=bad_value', '?node=bad_value'])(
-      'logs if path is not found: %s',
-      async path => {
-        mockQueryString(path);
+    it.each([
+      '?eventId=doesnotexist',
+      '?node=txn-doesnotexist',
+      // Invalid path
+      '?node=span-does-notexist',
+    ])('logs if path is not found: %s', async path => {
+      mockQueryString(path);
 
-        const sentrySpy = jest.spyOn(Sentry, 'captureMessage');
-        await pageloadTestSetup();
-        await waitFor(() => {
-          expect(sentrySpy).toHaveBeenCalledWith(
-            'Failed to find and scroll to node in tree'
-          );
-        });
-      }
-    );
+      const sentryScopeMock = {
+        setFingerprint: jest.fn(),
+        captureMessage: jest.fn(),
+      } as any;
+
+      jest.spyOn(Sentry, 'withScope').mockImplementation((f: any) => f(sentryScopeMock));
+      await pageloadTestSetup();
+
+      await waitFor(() => {
+        expect(sentryScopeMock.captureMessage).toHaveBeenCalledWith(
+          'Failed to scroll to node in trace tree'
+        );
+      });
+    });
 
     it('triggers search on load', async () => {
       mockQueryString('?search=transaction-op-5');

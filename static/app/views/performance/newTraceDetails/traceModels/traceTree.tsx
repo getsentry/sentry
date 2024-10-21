@@ -1077,10 +1077,14 @@ export class TraceTree extends TraceTreeEventDispatcher {
     tree: TraceTree,
     path: TraceTree.NodePath
   ): TraceTreeNode<TraceTree.NodeValue> | null {
-    const [type, id] = path.split('-');
+    const [type, id, rest] = path.split('-');
 
-    if (!type || !id) {
-      throw new TypeError('Node path must be in the format of `type-id`');
+    if (!type || !id || rest) {
+      Sentry.withScope(scope => {
+        scope.setFingerprint(['trace-view-path-error']);
+        scope.captureMessage('Invalid path to trace tree node ');
+      });
+      return null;
     }
 
     if (type === 'trace' && id === 'root') {

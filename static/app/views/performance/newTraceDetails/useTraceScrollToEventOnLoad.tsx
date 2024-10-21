@@ -1,4 +1,5 @@
 import {useLayoutEffect, useRef} from 'react';
+import * as Sentry from '@sentry/react';
 
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -69,6 +70,20 @@ export function useTraceScrollToEventOnLoad(options: UseTraceScrollToEventOnLoad
           }
           parent_node = parent_node.parent;
         }
+      }
+
+      if (index === -1 || !node) {
+        Sentry.withScope(scope => {
+          scope.setFingerprint(['trace-view-scroll-to-node-error']);
+          scope.captureMessage('Failed to scroll to node in trace tree');
+        });
+
+        onTraceLoad(trace, null, null);
+        rerender();
+        requestAnimationFrame(() => {
+          scheduler.dispatch('initialize virtualized list');
+        });
+        return;
       }
 
       onTraceLoad(trace, node, index);
