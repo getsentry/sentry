@@ -118,7 +118,7 @@ class Item extends Component<Props, State> {
       project.features.includes('similarity-embeddings') ||
       location.query.similarityEmbeddings === '1';
     const similarInterfaces = hasSimilarityEmbeddingsFeature
-      ? ['exception', 'message', 'shouldBeGrouped']
+      ? ['exception', 'shouldBeGrouped']
       : ['exception', 'message'];
 
     if (!visible) {
