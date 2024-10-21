@@ -52,7 +52,7 @@ class MockResizeObserver {
         {
           target: element,
           // @ts-expect-error partial mock
-          contentRect: {width: 1000, height: 24 * 10 - 1},
+          contentRect: {width: 1000, height: 24 * 20 - 1},
         },
       ],
       this
@@ -412,6 +412,7 @@ async function simpleTestSetup() {
 
 async function completeTestSetup() {
   const start = Date.now() / 1e3;
+
   mockTraceResponse({
     body: {
       transactions: [
@@ -453,6 +454,10 @@ async function completeTestSetup() {
       orphan_errors: [
         makeTraceError({
           event_id: 'error0',
+          issue: 'error-issue',
+          project_id: 0,
+          project_slug: 'project_slug',
+          issue_id: 0,
           title: 'error-title',
           level: 'fatal',
           timestamp: start + 2,
@@ -490,6 +495,15 @@ async function completeTestSetup() {
   mockTraceRootEvent('0');
   mockTraceEventDetails();
   mockMetricsResponse();
+
+  MockApiClient.addMockResponse({
+    url: '/organizations/org-slug/events/project_slug:error0/',
+    body: {
+      tags: [],
+      contexts: {},
+      entries: [],
+    },
+  });
 
   const transactionWithSpans = makeEventTransaction({
     entries: [
@@ -625,11 +639,17 @@ function printVirtualizedList(container: HTMLElement) {
     'trace-virtualized-list-scroll-container'
   )!;
 
+  const rows = Array.from(container.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR));
   stdout.push(
-    'top:' + scrollContainer.scrollTop + ' ' + 'left:' + scrollContainer.scrollLeft
+    'top:' +
+      scrollContainer.scrollTop +
+      ' ' +
+      'left:' +
+      scrollContainer.scrollLeft +
+      ' ' +
+      rows.length
   );
   stdout.push('///////////////////');
-  const rows = Array.from(container.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR));
 
   for (const r of [...rows]) {
     let t = r.textContent ?? '';
@@ -681,7 +701,7 @@ function assertHighlightedRowAtIndex(virtualizedContainer: HTMLElement, index: n
 
 describe('trace', () => {
   beforeEach(() => {
-    jest.spyOn(console, 'error').mockImplementation(jest.fn);
+    jest.spyOn(console, 'error').mockImplementation(() => {});
     globalThis.ResizeObserver = MockResizeObserver as any;
     MockDate.reset();
   });
@@ -689,7 +709,6 @@ describe('trace', () => {
     mockQueryString('');
     // @ts-expect-error clear mock
     globalThis.ResizeObserver = undefined;
-    MockApiClient.clearMockResponses();
   });
 
   it('renders loading state', async () => {
@@ -1193,9 +1212,9 @@ describe('trace', () => {
 
       for (const action of [
         // starting at the top, jumpt bottom with shift+arrowdown
-        ['{Shift>}{arrowdown}{/Shift}', 9],
+        ['{Shift>}{arrowdown}{/Shift}', 11],
         // // move to row above with arrowup
-        ['{arrowup}', 8],
+        ['{arrowup}', 10],
         // // and jump back to top with shift+arrowup
         ['{Shift>}{arrowup}{/Shift}', 1],
         // // // and jump to next row with arrowdown
@@ -1253,7 +1272,7 @@ describe('trace', () => {
       await searchToUpdate();
 
       await waitFor(() => {
-        assertHighlightedRowAtIndex(container, 9);
+        assertHighlightedRowAtIndex(container, 11);
       });
     });
     it('highlighted is persisted on node while it is part of the search results', async () => {
