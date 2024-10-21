@@ -6437,12 +6437,14 @@
     },
     "model": "workflow_engine.detectorstate",
     "relocation_dependencies": [],
-    "relocation_scope": "Organization",
+    "relocation_scope": "Excluded",
     "silos": [
       "Region"
     ],
     "table_name": "workflow_engine_detectorstate",
-    "uniques": []
+    "uniques": [
+      []
+    ]
   },
   "workflow_engine.detectorworkflow": {
     "dangling": false,

@@ -1,5 +1,5 @@
 ---
-created: '2024-10-10T17:23:00.882306+00:00'
+created: '2024-10-21T17:30:17.571525+00:00'
 creator: sentry
 source: tests/sentry/backup/test_sanitize.py
 ---
@@ -233,11 +233,6 @@ source: tests/sentry/backup/test_sanitize.py
   - date_added
   - date_updated
   - name
-- model_name: workflow_engine.detectorstate
-  ordinal: 1
-  sanitized_fields:
-  - date_added
-  - date_updated
 - model_name: workflow_engine.workflow
   ordinal: 1
   sanitized_fields:
