@@ -33,7 +33,6 @@ import {t, tct} from 'sentry/locale';
 type Params = DocsParams;
 
 const getSdkSetupSnippet = (params: Params) => `
-//...
 import * as Sentry from "@sentry/react";
 
 Sentry.init({
@@ -393,11 +392,11 @@ transaction.finish(); // Finishing the transaction will send it to Sentry`,
             'In addition, [code:@sentry/react] exports a [code:withProfiler] higher order component that can be used to capture React-related spans for specific React components:',
             {code: <code />}
           ),
+          language: 'javascript',
           code: `
 import * as Sentry from "@sentry/react";
 
 function App(props) {
-  // ...
   return <div />;
 }
 
