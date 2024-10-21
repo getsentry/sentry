@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 
 def decode_and_process_chunks(
     raw_message: Message[KafkaPayload],
-    consumer_type: ConsumerType,
+    consumer_type: str,
     reprocess_only_stuck_events: bool,
 ) -> IngestMessage | None:
     """
@@ -93,7 +93,7 @@ def process_attachments_and_events(
             if not reprocess_only_stuck_events:
                 process_individual_attachment(message, project)
         elif message_type == "event":
-            process_event(message, project, reprocess_only_stuck_events)
+            process_event(ConsumerType.Events, message, project, reprocess_only_stuck_events)
         elif message_type == "user_report":
             process_userreport(message, project)
         else:

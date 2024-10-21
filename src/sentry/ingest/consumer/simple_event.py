@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 def process_simple_event_message(
     raw_message: Message[KafkaPayload],
-    consumer_type: ConsumerType,
+    consumer_type: str,
     reprocess_only_stuck_events: bool,
     no_celery_mode: bool = False,
 ) -> None:
@@ -60,7 +60,9 @@ def process_simple_event_message(
             logger.exception("Project for ingested event does not exist: %s", project_id)
             return
 
-        return process_event(message, project, reprocess_only_stuck_events, no_celery_mode)
+        return process_event(
+            ConsumerType.Events, message, project, reprocess_only_stuck_events, no_celery_mode
+        )
 
     except Exception as exc:
         # If the retriable exception was raised, we should not DLQ

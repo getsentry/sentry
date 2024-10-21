@@ -61,7 +61,7 @@ def maybe_multiprocess_step(
 class IngestStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
     def __init__(
         self,
-        consumer_type: ConsumerType,
+        consumer_type: str,
         reprocess_only_stuck_events: bool,
         stop_at_timestamp: int | None,
         num_processes: int,

@@ -487,7 +487,7 @@ def process_event_from_reprocessing(
 
 
 def _do_save_event(
-    consumer_type: ConsumerType,
+    consumer_type: str,
     cache_key: str | None = None,
     data: MutableMapping[str, Any] | None = None,
     start_time: float | None = None,
