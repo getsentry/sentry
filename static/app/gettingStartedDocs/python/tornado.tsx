@@ -8,14 +8,20 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getPythonMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import replayOnboardingJsLoader from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
-import {crashReportOnboardingPython} from 'sentry/gettingStartedDocs/python/python';
+import {
+  AlternativeConfiguration,
+  crashReportOnboardingPython,
+} from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
 
 const getInstallSnippet = () => `pip install --upgrade sentry-sdk`;
 
-const getSdkSetupSnippet = (params: Params) => `import sentry_sdk
+type ProfilingMode = 'transaction' | 'continuous';
+
+const getSdkSetupSnippet = (params: Params, profilingMode: ProfilingMode) => `
+import sentry_sdk
 
 sentry_sdk.init(
     dsn="${params.dsn.public}",${
@@ -26,13 +32,21 @@ sentry_sdk.init(
     traces_sample_rate=1.0,`
         : ''
     }${
-      params.isProfilingSelected
+      params.isProfilingSelected && profilingMode === 'transaction'
         ? `
     # Set profiles_sample_rate to 1.0 to profile 100%
     # of sampled transactions.
     # We recommend adjusting this value in production.
     profiles_sample_rate=1.0,`
-        : ''
+        : params.isProfilingSelected && profilingMode === 'continuous'
+          ? `
+    _experiments={
+        # Set continuous_profiling_auto_start to True
+        # to automatically start the profiler on when
+        # possible.
+        "continuous_profiling_auto_start": True,
+    },`
+          : ''
     }
 )
 `;
@@ -78,40 +92,53 @@ const onboarding: OnboardingConfig = {
       ],
     },
   ],
-  configure: (params: Params) => [
-    {
-      type: StepType.CONFIGURE,
-      description: tct(
-        'If you have the [codeTornado:tornado] package in your dependencies, the Tornado integration will be enabled automatically when you initialize the Sentry SDK. Initialize the Sentry SDK before your app has been initialized:',
-        {
-          codeTornado: <code />,
-        }
-      ),
-      configurations: [
-        {
-          language: 'python',
-          code: `${getSdkSetupSnippet(params)}
+  configure: (params: Params) => {
+    const profilingMode = params.organization.features.includes('continuous-profiling')
+      ? 'continuous'
+      : 'transaction';
+
+    return [
+      {
+        type: StepType.CONFIGURE,
+        description: tct(
+          'If you have the [codeTornado:tornado] package in your dependencies, the Tornado integration will be enabled automatically when you initialize the Sentry SDK. Initialize the Sentry SDK before your app has been initialized:',
+          {
+            codeTornado: <code />,
+          }
+        ),
+        configurations: [
+          {
+            language: 'python',
+            code: `
+${getSdkSetupSnippet(params, profilingMode)}
 class MainHandler(tornado.web.RequestHandler):
     # ...
-        `,
-        },
-      ],
-    },
-  ],
-  verify: (params: Params) => [
-    {
-      type: StepType.VERIFY,
-      description: t(
-        'You can easily verify your Sentry installation by creating a route that triggers an error:'
-      ),
-      configurations: [
-        {
-          language: 'python',
+`,
+          },
+        ],
+        additionalInfo: <AlternativeConfiguration />,
+      },
+    ];
+  },
+  verify: (params: Params) => {
+    const profilingMode = params.organization.features.includes('continuous-profiling')
+      ? 'continuous'
+      : 'transaction';
 
-          code: `
+    return [
+      {
+        type: StepType.VERIFY,
+        description: t(
+          'You can easily verify your Sentry installation by creating a route that triggers an error:'
+        ),
+        configurations: [
+          {
+            language: 'python',
+
+            code: `
 import asyncio
 import tornado
-${getSdkSetupSnippet(params)}
+${getSdkSetupSnippet(params, profilingMode)}
 class MainHandler(tornado.web.RequestHandler):
     def get(self):
         1/0  # raises an error
@@ -128,29 +155,30 @@ async def main():
     await asyncio.Event().wait()
 
 asyncio.run(main())
-    `,
-        },
-      ],
-      additionalInfo: (
-        <div>
-          <p>
-            {tct(
-              'When you point your browser to [link:http://localhost:8888/] a transaction in the Performance section of Sentry will be created.',
-              {
-                link: <ExternalLink href="http://localhost:8888/" />,
-              }
-            )}
-          </p>
-          <p>
-            {t(
-              'Additionally, an error event will be sent to Sentry and will be connected to the transaction.'
-            )}
-          </p>
-          <p>{t('It takes a couple of moments for the data to appear in Sentry.')}</p>
-        </div>
-      ),
-    },
-  ],
+`,
+          },
+        ],
+        additionalInfo: (
+          <div>
+            <p>
+              {tct(
+                'When you point your browser to [link:http://localhost:8888/] a transaction in the Performance section of Sentry will be created.',
+                {
+                  link: <ExternalLink href="http://localhost:8888/" />,
+                }
+              )}
+            </p>
+            <p>
+              {t(
+                'Additionally, an error event will be sent to Sentry and will be connected to the transaction.'
+              )}
+            </p>
+            <p>{t('It takes a couple of moments for the data to appear in Sentry.')}</p>
+          </div>
+        ),
+      },
+    ];
+  },
   nextSteps: () => [],
 };
 

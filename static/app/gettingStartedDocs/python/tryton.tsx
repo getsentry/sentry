@@ -5,12 +5,17 @@ import type {
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {crashReportOnboardingPython} from 'sentry/gettingStartedDocs/python/python';
+import {
+  AlternativeConfiguration,
+  crashReportOnboardingPython,
+} from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
 
-const getSdkSetupSnippet = (params: Params) => `
+type ProfilingMode = 'transaction' | 'continuous';
+
+const getSdkSetupSnippet = (params: Params, profilingMode: ProfilingMode) => `
 import sentry_sdk
 from sentry_sdk.integrations.trytond import TrytondWSGIIntegration
 
@@ -26,13 +31,21 @@ sentry_sdk.init(
     traces_sample_rate=1.0,`
         : ''
     }${
-      params.isProfilingSelected
+      params.isProfilingSelected && profilingMode === 'transaction'
         ? `
     # Set profiles_sample_rate to 1.0 to profile 100%
     # of sampled transactions.
     # We recommend adjusting this value in production.
     profiles_sample_rate=1.0,`
-        : ''
+        : params.isProfilingSelected && profilingMode === 'continuous'
+          ? `
+    _experiments={
+        # Set continuous_profiling_auto_start to True
+        # to automatically start the profiler on when
+        # possible.
+        "continuous_profiling_auto_start": True,
+    },`
+          : ''
     }
 )
 
@@ -61,43 +74,50 @@ const onboarding: OnboardingConfig = {
       link: <ExternalLink href="https://www.tryton.org/" />,
     }),
   install: () => [],
-  configure: (params: Params) => [
-    {
-      type: StepType.CONFIGURE,
-      description: tct(
-        'To configure the SDK, initialize it with the integration in a custom [code:wsgi.py] script:',
-        {
-          code: <code />,
-        }
-      ),
-      configurations: [
-        {
-          code: [
-            {
-              label: 'wsgi.py',
-              value: 'wsgi.py',
-              language: 'python',
-              code: getSdkSetupSnippet(params),
-            },
-          ],
-        },
-        {
-          description: t(
-            'In Tryton>=5.4 an error handler can be registered to respond the client with a custom error message including the Sentry event id instead of a traceback.'
-          ),
-          language: 'python',
-          code: [
-            {
-              label: 'wsgi.py',
-              value: 'wsgi.py',
-              language: 'python',
-              code: getErrorHandlerSnippet(),
-            },
-          ],
-        },
-      ],
-    },
-  ],
+  configure: (params: Params) => {
+    const profilingMode = params.organization.features.includes('continuous-profiling')
+      ? 'continuous'
+      : 'transaction';
+
+    return [
+      {
+        type: StepType.CONFIGURE,
+        description: tct(
+          'To configure the SDK, initialize it with the integration in a custom [code:wsgi.py] script:',
+          {
+            code: <code />,
+          }
+        ),
+        configurations: [
+          {
+            code: [
+              {
+                label: 'wsgi.py',
+                value: 'wsgi.py',
+                language: 'python',
+                code: getSdkSetupSnippet(params, profilingMode),
+              },
+            ],
+          },
+          {
+            description: t(
+              'In Tryton>=5.4 an error handler can be registered to respond the client with a custom error message including the Sentry event id instead of a traceback.'
+            ),
+            language: 'python',
+            code: [
+              {
+                label: 'wsgi.py',
+                value: 'wsgi.py',
+                language: 'python',
+                code: getErrorHandlerSnippet(),
+              },
+            ],
+          },
+        ],
+        additionalInfo: <AlternativeConfiguration />,
+      },
+    ];
+  },
   verify: () => [],
 };
 

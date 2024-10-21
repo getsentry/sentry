@@ -9,14 +9,19 @@ import {
   type OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getPythonMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
-import {crashReportOnboardingPython} from 'sentry/gettingStartedDocs/python/python';
+import {
+  AlternativeConfiguration,
+  crashReportOnboardingPython,
+} from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
 
 const getInstallSnippet = () => `pip install --upgrade sentry-sdk`;
 
-const getSdkSetupSnippet = (params: Params) => `
+type ProfilingMode = 'transaction' | 'continuous';
+
+const getSdkSetupSnippet = (params: Params, profilingMode: ProfilingMode) => `
 import sentry_sdk
 from sentry_sdk.integrations.wsgi import SentryWsgiMiddleware
 
@@ -31,13 +36,21 @@ sentry_sdk.init(
     traces_sample_rate=1.0,`
         : ''
     }${
-      params.isProfilingSelected
+      params.isProfilingSelected && profilingMode === 'transaction'
         ? `
     # Set profiles_sample_rate to 1.0 to profile 100%
     # of sampled transactions.
     # We recommend adjusting this value in production.
     profiles_sample_rate=1.0,`
-        : ''
+        : params.isProfilingSelected && profilingMode === 'continuous'
+          ? `
+    _experiments={
+        # Set continuous_profiling_auto_start to True
+        # to automatically start the profiler on when
+        # possible.
+        "continuous_profiling_auto_start": True,
+    },`
+          : ''
     }
 )
 
@@ -104,20 +117,29 @@ const onboarding: OnboardingConfig = {
       ],
     },
   ],
-  configure: params => [
-    {
-      type: StepType.CONFIGURE,
-      description: t(
-        'Then you can use this generic WSGI middleware. It captures errors and attaches a basic amount of information for incoming requests.'
-      ),
-      configurations: [
-        {
-          language: 'python',
-          code: getSdkSetupSnippet(params),
-        },
-      ],
-    },
-  ],
+  configure: params => {
+    const profilingMode = params.organization.features.includes('continuous-profiling')
+      ? 'continuous'
+      : 'transaction';
+
+    return [
+      {
+        type: StepType.CONFIGURE,
+        description: t(
+          'Then you can use this generic WSGI middleware. It captures errors and attaches a basic amount of information for incoming requests.'
+        ),
+        configurations: [
+          {
+            language: 'python',
+            code: getSdkSetupSnippet(params, profilingMode),
+          },
+        ],
+        additionalInfo: params.isProfilingSelected && profilingMode === 'continuous' && (
+          <AlternativeConfiguration />
+        ),
+      },
+    ];
+  },
   verify: () => [
     {
       type: StepType.VERIFY,

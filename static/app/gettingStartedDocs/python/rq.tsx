@@ -8,14 +8,19 @@ import type {
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getPythonMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
-import {crashReportOnboardingPython} from 'sentry/gettingStartedDocs/python/python';
+import {
+  AlternativeConfiguration,
+  crashReportOnboardingPython,
+} from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
 
 const getInstallSnippet = () => `pip install --upgrade 'sentry-sdk[rq]'`;
 
-const getInitCallSnippet = (params: Params) => `
+type ProfilingMode = 'transaction' | 'continuous';
+
+const getInitCallSnippet = (params: Params, profilingMode: ProfilingMode) => `
 sentry_sdk.init(
   dsn="${params.dsn.public}",${
     params.isPerformanceSelected
@@ -25,7 +30,7 @@ sentry_sdk.init(
   traces_sample_rate=1.0,`
       : ''
   }${
-    params.isProfilingSelected
+    params.isProfilingSelected && profilingMode === 'transaction'
       ? `
   # Set profiles_sample_rate to 1.0 to profile 100%
   # of sampled transactions.
@@ -33,12 +38,22 @@ sentry_sdk.init(
   profiles_sample_rate=1.0,`
       : ''
   }
-)`;
+)${
+  params.isProfilingSelected && profilingMode === 'continuous'
+    ? `
 
-const getSdkSetupSnippet = (params: Params) => `
+# Manually call start_profiling and stop_profiling
+# to profile the code in between
+sentry_sdk.profiler.start_profiling()
+# do some work here
+sentry_sdk.profiler.stop_profiling()`
+    : ''
+}`;
+
+const getSdkSetupSnippet = (params: Params, profilingMode: ProfilingMode) => `
 import sentry_sdk
 
-${getInitCallSnippet(params)}`;
+${getInitCallSnippet(params, profilingMode)}`;
 
 const getStartWorkerSnippet = () => `
 rq worker \
@@ -50,13 +65,16 @@ def hello(name):
     1/0  # raises an error
     return "Hello %s!" % name`;
 
-const getWorkerSetupSnippet = (params: Params) => `
+const getWorkerSetupSnippet = (params: Params, profilingMode) => `
 import sentry_sdk
 
 # Sentry configuration for RQ worker processes
-${getInitCallSnippet(params)}`;
+${getInitCallSnippet(params, profilingMode)}`;
 
-const getMainPythonScriptSetupSnippet = (params: Params) => `
+const getMainPythonScriptSetupSnippet = (
+  params: Params,
+  profilingMode: ProfilingMode
+) => `
 from redis import Redis
 from rq import Queue
 
@@ -66,7 +84,7 @@ import sentry_sdk
 
 #import { get } from 'lodash';
 Sentry configuration for main.py process (same as above)
-${getInitCallSnippet(params)}
+${getInitCallSnippet(params, profilingMode)}
 
 q = Queue(connection=Redis())
 with sentry_sdk.start_transaction(name="testing_sentry"):
@@ -91,119 +109,141 @@ const onboarding: OnboardingConfig = {
       ],
     },
   ],
-  configure: (params: Params) => [
-    {
-      type: StepType.CONFIGURE,
-      description: (
-        <Fragment>
-          <p>
-            {tct(
-              'If you have the [codeRq:rq] package in your dependencies, the RQ integration will be enabled automatically when you initialize the Sentry SDK.',
+  configure: (params: Params) => {
+    const profilingMode = params.organization.features.includes('continuous-profiling')
+      ? 'continuous'
+      : 'transaction';
+
+    return [
+      {
+        type: StepType.CONFIGURE,
+        description: (
+          <Fragment>
+            <p>
+              {tct(
+                'If you have the [codeRq:rq] package in your dependencies, the RQ integration will be enabled automatically when you initialize the Sentry SDK.',
+                {
+                  codeRq: <code />,
+                }
+              )}
+            </p>
+            <p>
+              {tct(
+                'Create a file called [code:mysettings.py] with the following content:',
+                {
+                  code: <code />,
+                }
+              )}
+            </p>
+          </Fragment>
+        ),
+        configurations: [
+          {
+            code: [
               {
-                codeRq: <code />,
-              }
-            )}
-          </p>
-          <p>
+                label: 'mysettings.py',
+                value: 'mysettings.py',
+                language: 'python',
+                code: getSdkSetupSnippet(params, profilingMode),
+              },
+            ],
+          },
+          {
+            description: t('Start your worker with:'),
+            language: 'shell',
+            code: getStartWorkerSnippet(),
+          },
+        ],
+        additionalInfo: (
+          <Fragment>
             {tct(
-              'Create a file called [code:mysettings.py] with the following content:',
-              {
-                code: <code />,
-              }
+              'Generally, make sure that the call to [code:init] is loaded on worker startup, and not only in the module where your jobs are defined. Otherwise, the initialization happens too late and events might end up not being reported.',
+              {code: <code />}
             )}
-          </p>
-        </Fragment>
-      ),
-      configurations: [
-        {
-          code: [
-            {
-              label: 'mysettings.py',
-              value: 'mysettings.py',
-              language: 'python',
-              code: getSdkSetupSnippet(params),
-            },
-          ],
-        },
-        {
-          description: t('Start your worker with:'),
-          language: 'shell',
-          code: getStartWorkerSnippet(),
-        },
-      ],
-      additionalInfo: tct(
-        'Generally, make sure that the call to [code:init] is loaded on worker startup, and not only in the module where your jobs are defined. Otherwise, the initialization happens too late and events might end up not being reported.',
-        {code: <code />}
-      ),
-    },
-  ],
-  verify: params => [
-    {
-      type: StepType.VERIFY,
-      description: tct(
-        'To verify, create a simple job and a [code:main.py] script that enqueues the job in RQ, then start an RQ worker to run the job:',
-        {
-          code: <code />,
-        }
-      ),
-      configurations: [
-        {
-          description: <h5>{t('Job definition')}</h5>,
-          code: [
-            {
-              language: 'python',
-              label: 'jobs.py',
-              value: 'jobs.py',
-              code: getJobDefinitionSnippet(),
-            },
-          ],
-        },
-        {
-          description: <h5>{t('Settings for worker')}</h5>,
-          code: [
-            {
-              label: 'mysettings.py',
-              value: 'mysettings.py',
-              language: 'python',
-              code: getWorkerSetupSnippet(params),
-            },
-          ],
-        },
-        {
-          description: <h5>{t('Main Python Script')}</h5>,
-          code: [
-            {
-              label: 'main.py',
-              value: 'main.py',
-              language: 'python',
-              code: getMainPythonScriptSetupSnippet(params),
-            },
-          ],
-        },
-      ],
-      additionalInfo: (
-        <div>
-          <p>
-            {tct(
-              'When you run [code:python main.py] a transaction named [code:testing_sentry] in the Performance section of Sentry will be created.',
-              {
-                code: <code />,
-              }
+            {params.isProfilingSelected && profilingMode === 'continuous' && (
+              <Fragment>
+                <br />
+                <AlternativeConfiguration />
+              </Fragment>
             )}
-          </p>
-          <p>
-            {tct(
-              'If you run the RQ worker with [code:rq worker -c mysettings] a transaction for the execution of [code:hello()] will be created. Additionally, an error event will be sent to Sentry and will be connected to the transaction.',
+          </Fragment>
+        ),
+      },
+    ];
+  },
+  verify: params => {
+    const profilingMode = params.organization.features.includes('continuous-profiling')
+      ? 'continuous'
+      : 'transaction';
+
+    return [
+      {
+        type: StepType.VERIFY,
+        description: tct(
+          'To verify, create a simple job and a [code:main.py] script that enqueues the job in RQ, then start an RQ worker to run the job:',
+          {
+            code: <code />,
+          }
+        ),
+        configurations: [
+          {
+            description: <h5>{t('Job definition')}</h5>,
+            code: [
               {
-                code: <code />,
-              }
-            )}
-          </p>
-          <p>{t('It takes a couple of moments for the data to appear in Sentry.')}</p>
-        </div>
-      ),
-    },
-  ],
+                language: 'python',
+                label: 'jobs.py',
+                value: 'jobs.py',
+                code: getJobDefinitionSnippet(),
+              },
+            ],
+          },
+          {
+            description: <h5>{t('Settings for worker')}</h5>,
+            code: [
+              {
+                label: 'mysettings.py',
+                value: 'mysettings.py',
+                language: 'python',
+                code: getWorkerSetupSnippet(params, profilingMode),
+              },
+            ],
+          },
+          {
+            description: <h5>{t('Main Python Script')}</h5>,
+            code: [
+              {
+                label: 'main.py',
+                value: 'main.py',
+                language: 'python',
+                code: getMainPythonScriptSetupSnippet(params, profilingMode),
+              },
+            ],
+          },
+        ],
+        additionalInfo: (
+          <div>
+            <p>
+              {tct(
+                'When you run [code:python main.py] a transaction named [code:testing_sentry] in the Performance section of Sentry will be created.',
+                {
+                  code: <code />,
+                }
+              )}
+            </p>
+            <p>
+              {tct(
+                'If you run the RQ worker with [code:rq worker -c mysettings] a transaction for the execution of [code:hello()] will be created. Additionally, an error event will be sent to Sentry and will be connected to the transaction.',
+                {
+                  code: <code />,
+                }
+              )}
+            </p>
+            <p>{t('It takes a couple of moments for the data to appear in Sentry.')}</p>
+          </div>
+        ),
+      },
+    ];
+  },
 };
 
 const docs: Docs = {
