@@ -83,7 +83,6 @@ from sentry.issues.grouptype import (
 )
 from sentry.issues.ingest import send_issue_occurrence_to_eventstream
 from sentry.mail import mail_adapter
-from sentry.mediators.project_rules.creator import Creator
 from sentry.models.apitoken import ApiToken
 from sentry.models.authprovider import AuthProvider as AuthProviderModel
 from sentry.models.commit import Commit
@@ -114,6 +113,7 @@ from sentry.notifications.notifications.base import alert_page_needs_org_id
 from sentry.notifications.types import FineTuningAPIKey
 from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.plugins.base import plugins
+from sentry.projects.project_rules.creator import ProjectRuleCreator
 from sentry.replays.lib.event_linking import transform_event_for_linking_payload
 from sentry.replays.models import ReplayRecordingSegment
 from sentry.rules.base import RuleBase
@@ -3263,16 +3263,16 @@ class MonitorTestCase(APITestCase):
                 "uuid": str(uuid4()),
             },
         ]
-        rule = Creator(
+        rule = ProjectRuleCreator(
             name="New Cool Rule",
             project=self.project,
             conditions=conditions,
-            filterMatch="all",
+            filter_match="all",
             action_match="any",
             actions=actions,
             frequency=5,
             environment=self.environment.id,
-        ).call()
+        ).run()
         rule.update(source=RuleSource.CRON_MONITOR)
 
         config = monitor.config
