@@ -1402,15 +1402,14 @@ export class TraceTree extends TraceTreeEventDispatcher {
     scrollQueue: TraceTree.NodePath[],
     options: ViewManagerScrollToOptions
   ): Promise<void> {
-    const list = tree.list;
-
-    if (!list) {
-      return Promise.resolve();
-    }
-
     const transactionIds = new Set(
       scrollQueue.filter(s => s.startsWith('txn-')).map(s => s.replace('txn-', ''))
     );
+
+    // If we are just linking to a transaction, then we dont need to fetch its spans
+    if (transactionIds.size === 1 && scrollQueue.length === 1) {
+      return Promise.resolve();
+    }
 
     const transactionNodes = TraceTree.FindAll(
       tree.root,
@@ -1422,8 +1421,10 @@ export class TraceTree extends TraceTreeEventDispatcher {
 
     const promises = transactionNodes.map(node => tree.zoom(node, true, options));
 
-    return Promise.allSettled(promises)
-      .then(() => {})
+    return Promise.all(promises)
+      .then(_resp => {
+        // Ignore response
+      })
       .catch(e => {
         Sentry.withScope(scope => {
           scope.setFingerprint(['trace-view-expand-to-path-error']);

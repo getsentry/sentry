@@ -6,11 +6,9 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {TraceTree} from './traceModels/traceTree';
 import type {TraceTreeNode} from './traceModels/traceTreeNode';
 import type {TraceScheduler} from './traceRenderers/traceScheduler';
-import type {VirtualizedViewManager} from './traceRenderers/virtualizedViewManager';
 import type {useTraceScrollToPath} from './useTraceScrollToPath';
 
 type UseTraceScrollToEventOnLoadProps = {
-  manager: VirtualizedViewManager;
   onTraceLoad: (
     trace: TraceTree,
     node: TraceTreeNode<TraceTree.NodeValue> | null,
@@ -26,13 +24,13 @@ export function useTraceScrollToEventOnLoad(options: UseTraceScrollToEventOnLoad
   const api = useApi();
   const organization = useOrganization();
   const initializedRef = useRef<boolean>(false);
-  const {trace, manager, onTraceLoad, scheduler, scrollQueueRef, rerender} = options;
+  const {trace, onTraceLoad, scheduler, scrollQueueRef, rerender} = options;
 
   useLayoutEffect(() => {
     if (initializedRef.current) {
       return;
     }
-    if (trace.type !== 'trace' || !manager) {
+    if (trace.type !== 'trace') {
       return;
     }
 
@@ -43,7 +41,19 @@ export function useTraceScrollToEventOnLoad(options: UseTraceScrollToEventOnLoad
       return;
     }
 
+    const path = scrollQueueRef.current?.path;
+    const eventId = scrollQueueRef.current?.eventId;
+
+    if (!path && !eventId) {
+      return;
+    }
+
     function onTraceLoadComplete(node: TraceTreeNode<TraceTree.NodeValue> | null) {
+      // Important to set scrollQueueRef.current to null and trigger a rerender
+      // after the promise resolves as we show a loading state during scroll,
+      // else the screen could jump around while we fetch span data
+      scrollQueueRef.current = null;
+
       let index: number | null = node ? trace.list.indexOf(node) : -1;
       if (node && index === -1) {
         let parent_node = node.parent;
@@ -62,11 +72,6 @@ export function useTraceScrollToEventOnLoad(options: UseTraceScrollToEventOnLoad
       }
 
       onTraceLoad(trace, node, index);
-      // Important to set scrollQueueRef.current to null and trigger a rerender
-      // after the promise resolves as we show a loading state during scroll,
-      // else the screen could jump around while we fetch span data
-      scrollQueueRef.current = null;
-
       rerender();
       // Allow react to rerender before dispatching the init event
       requestAnimationFrame(() => {
@@ -74,23 +79,13 @@ export function useTraceScrollToEventOnLoad(options: UseTraceScrollToEventOnLoad
       });
     }
 
-    const path = scrollQueueRef.current?.path;
-    const eventId = scrollQueueRef.current?.eventId;
-
-    if (!path && !eventId) {
-      return;
-    }
     // Node path has higher specificity than eventId
     const promise = path
       ? TraceTree.ExpandToPath(trace, path, {
           api,
           organization,
         }).then(() => {
-          const node = TraceTree.FindByPath(trace, path[0]);
-          if (node) {
-            return node;
-          }
-          return null;
+          return TraceTree.FindByPath(trace, path[0]);
         })
       : eventId
         ? TraceTree.ExpandToEventID(eventId, trace, {
@@ -103,7 +98,6 @@ export function useTraceScrollToEventOnLoad(options: UseTraceScrollToEventOnLoad
   }, [
     api,
     trace,
-    manager,
     onTraceLoad,
     scheduler,
     scrollQueueRef,

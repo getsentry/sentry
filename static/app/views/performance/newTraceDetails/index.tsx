@@ -867,7 +867,6 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
     rerender,
     onTraceLoad,
     scrollQueueRef,
-    manager: viewManager,
     scheduler: traceScheduler,
     trace: props.tree,
   });
