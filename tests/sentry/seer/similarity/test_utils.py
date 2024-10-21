@@ -354,6 +354,40 @@ class GetStacktraceStringTest(TestCase):
         }
     }
 
+    ONLY_STACKTRACE = {
+        "app": {
+            "hash": "foo",
+            "component": {
+                "id": "app",
+                "contributes": True,
+                "values": [
+                    {
+                        "id": "stacktrace",
+                        "contributes": True,
+                        "values": [
+                            {
+                                "id": "frame",
+                                "contributes": True,
+                                "values": [
+                                    {
+                                        "id": "filename",
+                                        "contributes": True,
+                                        "values": ["index.php"],
+                                    },
+                                    {
+                                        "id": "context-line",
+                                        "contributes": True,
+                                        "values": ["$server->emit($server->run());"],
+                                    },
+                                ],
+                            }
+                        ],
+                    }
+                ],
+            },
+        }
+    }
+
     def create_exception(
         self,
         exception_type_str: str = "Exception",
@@ -745,6 +779,10 @@ class GetStacktraceStringTest(TestCase):
             ][1]["values"][0] = base64_filename
             stacktrace_str = get_stacktrace_string(data_base64_encoded_filename)
             assert stacktrace_str == "ZeroDivisionError: division by zero"
+
+    def test_only_stacktrace_frames(self):
+        stacktrace_str = get_stacktrace_string(self.ONLY_STACKTRACE)
+        assert stacktrace_str == 'File "index.php", function \n    $server->emit($server->run());'
 
 
 class EventContentIsSeerEligibleTest(TestCase):
