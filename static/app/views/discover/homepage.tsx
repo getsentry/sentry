@@ -71,6 +71,8 @@ class HomepageQueryAPI extends DeprecatedAsyncComponent<Props, HomepageQueryStat
               start: normalizeDateTimeString(start),
               end: normalizeDateTimeString(end),
             };
+          } else if (pinnedFilter === 'environments') {
+            query.environment = pageFilterState.state.environment;
           } else {
             query[pinnedFilter] = pageFilterState.state[pinnedFilter];
           }
