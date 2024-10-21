@@ -138,9 +138,6 @@
     "/api/0/issues/{issue_id}/tags/{key}/values/": {
       "$ref": "paths/events/tag-values.json"
     },
-    "/api/0/issues/{issue_id}/tags/{key}/": {
-      "$ref": "paths/events/tag-details.json"
-    },
     "/api/0/issues/{issue_id}/hashes/": {
       "$ref": "paths/events/issue-hashes.json"
     },
