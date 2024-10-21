@@ -309,29 +309,28 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         seer_return_value: StoreDataResponse = {"success": True}
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
         two_weeks_ago = before_now(days=14).replace(hour=10, minute=0, second=0, microsecond=0)
-        with self.options({"issues.group_attributes.send_kafka": True}):
-            self.store_event(
-                data={
-                    "event_id": "a" * 32,
-                    "message": "super duper bad",
-                    "timestamp": iso_format(two_weeks_ago + timedelta(minutes=1)),
-                    "fingerprint": ["group1"],
-                    "tags": {"sentry:user": self.user.email},
-                },
-                default_event_type=EventType.ERROR,
-                project_id=self.project.id,
-            )
-            self.store_event(
-                data={
-                    "event_id": "b" * 32,
-                    "message": "super bad",
-                    "timestamp": iso_format(two_weeks_ago + timedelta(days=10)),
-                    "fingerprint": ["group2"],
-                    "tags": {"sentry:user": self.user.email},
-                },
-                default_event_type=EventType.ERROR,
-                project_id=self.project.id,
-            )
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "super duper bad",
+                "timestamp": iso_format(two_weeks_ago + timedelta(minutes=1)),
+                "fingerprint": ["group1"],
+                "tags": {"sentry:user": self.user.email},
+            },
+            default_event_type=EventType.ERROR,
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "message": "super bad",
+                "timestamp": iso_format(two_weeks_ago + timedelta(days=10)),
+                "fingerprint": ["group2"],
+                "tags": {"sentry:user": self.user.email},
+            },
+            default_event_type=EventType.ERROR,
+            project_id=self.project.id,
+        )
 
         with outbox_runner():
             resp = self.get_success_response(

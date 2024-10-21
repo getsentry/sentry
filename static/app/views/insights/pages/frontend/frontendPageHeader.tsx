@@ -1,6 +1,9 @@
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOrganization from 'sentry/utils/useOrganization';
-import {DomainViewHeader} from 'sentry/views/insights/pages/domainViewHeader';
+import {
+  DomainViewHeader,
+  type Props as HeaderProps,
+} from 'sentry/views/insights/pages/domainViewHeader';
 import {
   FRONTEND_LANDING_SUB_PATH,
   FRONTEND_LANDING_TITLE,
@@ -9,12 +12,23 @@ import {DOMAIN_VIEW_BASE_URL} from 'sentry/views/insights/pages/settings';
 import {ModuleName} from 'sentry/views/insights/types';
 
 type Props = {
-  headerActions?: React.ReactNode;
-  module?: ModuleName;
+  headerTitle: HeaderProps['headerTitle'];
+  breadcrumbs?: HeaderProps['additionalBreadCrumbs'];
+  headerActions?: HeaderProps['additonalHeaderActions'];
+  hideDefaultTabs?: HeaderProps['hideDefaultTabs'];
+  module?: HeaderProps['selectedModule'];
+  tabs?: HeaderProps['tabs'];
 };
 
 // TODO - add props to append to breadcrumbs and change title
-export function FrontendHeader({module, headerActions}: Props) {
+export function FrontendHeader({
+  module,
+  headerActions,
+  headerTitle,
+  breadcrumbs,
+  tabs,
+  hideDefaultTabs,
+}: Props) {
   const {slug} = useOrganization();
 
   const frontendBaseUrl = normalizeUrl(
@@ -29,8 +43,11 @@ export function FrontendHeader({module, headerActions}: Props) {
       domainTitle={FRONTEND_LANDING_TITLE}
       modules={modules}
       selectedModule={module}
+      additionalBreadCrumbs={breadcrumbs}
       additonalHeaderActions={headerActions}
-      headerTitle={FRONTEND_LANDING_TITLE}
+      headerTitle={headerTitle}
+      tabs={tabs}
+      hideDefaultTabs={hideDefaultTabs}
     />
   );
 }

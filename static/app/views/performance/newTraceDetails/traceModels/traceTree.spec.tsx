@@ -401,6 +401,7 @@ describe('TraceTree', () => {
       });
       expect(tree.build().serialize()).toMatchSnapshot();
     });
+
     it('if parent span does not exist in span tree, the transaction stays under its previous parent', () => {
       const tree = TraceTree.FromTrace(
         makeTrace({
@@ -476,6 +477,77 @@ describe('TraceTree', () => {
       );
 
       expect(findTransactionByEventId(tree, 'transaction')?.canFetch).toBe(true);
+    });
+  });
+
+  describe('events', () => {
+    it('does not dispatch timeline change when spans fall inside the trace bounds', async () => {
+      const t = makeTrace({
+        transactions: [
+          makeTransaction({
+            start_timestamp: start,
+            timestamp: start + 2,
+            event_id: 'event-id',
+            project_slug: 'project',
+            children: [],
+          }),
+        ],
+        orphan_errors: [],
+      });
+
+      const tree = TraceTree.FromTrace(t, traceMetadata);
+
+      const listener = jest.fn();
+      tree.on('trace timeline change', listener);
+
+      const txn = TraceTree.Find(tree.root, n => isTransactionNode(n))!;
+
+      mockSpansResponse(
+        [makeSpan({start_timestamp: start + 0.5, timestamp: start + 1})],
+        'project',
+        'event-id'
+      );
+
+      await tree.zoom(txn, true, {
+        api: new MockApiClient(),
+        organization: OrganizationFixture(),
+      });
+
+      expect(listener).not.toHaveBeenCalled();
+    });
+
+    it('dispatches timeline change when span timestamp > trace timestamp', async () => {
+      const t = makeTrace({
+        transactions: [
+          makeTransaction({
+            start_timestamp: start,
+            timestamp: start + 1,
+            event_id: 'event-id',
+            project_slug: 'project',
+            children: [],
+          }),
+        ],
+        orphan_errors: [],
+      });
+      const tree = TraceTree.FromTrace(t, traceMetadata);
+
+      const listener = jest.fn();
+      tree.on('trace timeline change', listener);
+
+      const txn = TraceTree.Find(tree.root, n => isTransactionNode(n))!;
+
+      mockSpansResponse(
+        [makeSpan({start_timestamp: start, timestamp: start + 1.2})],
+        'project',
+        'event-id'
+      );
+
+      await tree.zoom(txn, true, {
+        api: new MockApiClient(),
+        organization: OrganizationFixture(),
+      });
+
+      expect(listener).toHaveBeenCalledWith([start * 1e3, 1200]);
     });
   });
 

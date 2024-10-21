@@ -466,6 +466,19 @@ register(
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Used for internal dogfooding of a reduced timeout on rage/dead clicks.
+register(
+    "replay.rage-click.experimental-timeout.org-id-list",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "replay.rage-click.experimental-timeout.milliseconds",
+    type=Int,
+    default=5000,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # User Feedback Options
 register(
@@ -2772,5 +2785,19 @@ register(
     "secret-scanning.github.enable-signature-verification",
     type=Bool,
     default=True,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "eventstore.adjacent_event_ids_use_snql",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "sentryapps.process-resource-change.use-eventid",
+    type=Bool,
+    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
