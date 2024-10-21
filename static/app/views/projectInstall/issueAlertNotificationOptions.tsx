@@ -68,7 +68,6 @@ export type IssueAlertNotificationProps = {
   provider: string | undefined;
   providersToIntegrations: Record<string, OrganizationIntegration[]>;
   querySuccess: boolean;
-  refetchConfigs: () => void;
   setActions: (action: MultipleCheckboxOptions[]) => void;
   setChannel: (channel: string | undefined) => void;
   setIntegration: (integration: OrganizationIntegration | undefined) => void;
@@ -214,7 +213,6 @@ export function useCreateNotificationAction() {
       setIntegration,
       setChannel,
       providersToIntegrations,
-      refetchConfigs: messagingIntegrationsQuery.refetch,
       querySuccess: messagingIntegrationsQuery.isSuccess,
       shouldRenderSetupButton,
     },
@@ -224,8 +222,7 @@ export function useCreateNotificationAction() {
 export default function IssueAlertNotificationOptions(
   notificationProps: IssueAlertNotificationProps
 ) {
-  const {actions, setActions, refetchConfigs, querySuccess, shouldRenderSetupButton} =
-    notificationProps;
+  const {actions, setActions, querySuccess, shouldRenderSetupButton} = notificationProps;
 
   const shouldRenderNotificationConfigs = actions.some(
     v => v !== MultipleCheckboxOptions.EMAIL
@@ -260,7 +257,6 @@ export default function IssueAlertNotificationOptions(
       </MultipleCheckbox>
       {shouldRenderSetupButton && (
         <SetupMessagingIntegrationButton
-          refetchConfigs={refetchConfigs}
           analyticsParams={{
             view: MessagingIntegrationAnalyticsView.ALERT_RULE_CREATION,
           }}
