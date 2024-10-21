@@ -3081,6 +3081,7 @@ class PostProcessGroupFeedbackTest(
             },
         ):
             self.call_post_process_group(
+                eventstream_type=EventStreamEventType.Error,
                 is_new=True,
                 is_regression=False,
                 is_new_group_environment=True,
