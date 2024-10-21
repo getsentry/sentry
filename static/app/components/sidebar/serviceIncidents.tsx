@@ -42,6 +42,7 @@ function ServiceIncidents({
         orientation={orientation}
         collapsed={collapsed}
         active={active}
+        badge={incidents.length}
         icon={<IconWarning size="md" />}
         label={t('Service status')}
         onClick={onShowPanel}
