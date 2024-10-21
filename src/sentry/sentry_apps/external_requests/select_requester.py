@@ -56,7 +56,6 @@ class SelectRequester:
                     "sentry_app_slug": self.sentry_app.slug,
                     "install_uuid": self.install.uuid,
                     "project_slug": self.project_slug,
-                    "uri": self.uri,
                     "error_message": str(e),
                     "url": url,
                 },
@@ -71,7 +70,6 @@ class SelectRequester:
                     "sentry_app_slug": self.sentry_app.slug,
                     "install_uuid": self.install.uuid,
                     "project_slug": self.project_slug,
-                    "uri": self.uri,
                     "url": url,
                 },
             )
