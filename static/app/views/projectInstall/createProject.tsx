@@ -88,10 +88,6 @@ function CreateProject() {
 
   const {createNotificationAction, notificationProps} = useCreateNotificationAction();
 
-  const frameworkSelectionEnabled = !!organization?.features.includes(
-    'onboarding-sdk-selection'
-  );
-
   const createProject = useCallback(
     async (selectedFramework?: OnboardingSelectedSDK) => {
       const {slug} = organization;
@@ -400,7 +396,7 @@ function CreateProject() {
             onSubmit={(event: React.FormEvent<HTMLFormElement>) => {
               // Prevent the page from reloading
               event.preventDefault();
-              frameworkSelectionEnabled ? handleProjectCreation() : createProject();
+              handleProjectCreation();
             }}
           >
             <div>
