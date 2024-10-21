@@ -10,7 +10,7 @@ from django.test import override_settings
 from django.urls import reverse
 from requests.exceptions import Timeout
 
-from sentry import audit_log
+from sentry import audit_log, nodestore
 from sentry.api.serializers import serialize
 from sentry.constants import SentryAppStatus
 from sentry.integrations.models.utils import get_redis_key
@@ -36,6 +36,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.eventprocessing import write_event_to_cache
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode_of, control_silo_test
 from sentry.testutils.skips import requires_snuba
@@ -304,7 +305,10 @@ class TestProcessResourceChange(TestCase):
             assert_no_errors=False,
         )
 
-        with self.tasks():
+        with self.tasks(), patch(
+            "sentry.sentry_apps.tasks.sentry_apps.nodestore.backend.get",
+            wraps=nodestore.backend.get,
+        ) as nodestore_get:
             post_process_group(
                 is_new=False,
                 is_regression=False,
@@ -313,6 +317,59 @@ class TestProcessResourceChange(TestCase):
                 group_id=event.group_id,
                 project_id=self.project.id,
             )
+            assert not nodestore_get.called
+
+        ((args, kwargs),) = safe_urlopen.call_args_list
+        data = json.loads(kwargs["data"])
+
+        assert data["action"] == "created"
+        assert data["installation"]["uuid"] == install.uuid
+        assert data["data"]["error"]["event_id"] == event.event_id
+        assert data["data"]["error"]["issue_id"] == str(event.group_id)
+        assert kwargs["headers"].keys() >= {
+            "Content-Type",
+            "Request-ID",
+            "Sentry-Hook-Resource",
+            "Sentry-Hook-Timestamp",
+            "Sentry-Hook-Signature",
+        }
+
+    @with_feature("organizations:integrations-event-hooks")
+    @override_options({"sentryapps.process-resource-change.use-eventid": True})
+    def test_error_created_sends_webhook_no_event_payload_eventid_only(self, safe_urlopen):
+        sentry_app = self.create_sentry_app(
+            organization=self.project.organization, events=["error.created"]
+        )
+        install = self.create_sentry_app_installation(
+            organization=self.project.organization, slug=sentry_app.slug
+        )
+
+        one_min_ago = before_now(minutes=1).timestamp()
+        event = self.store_event(
+            data={
+                "message": "Foo bar",
+                "exception": {"type": "Foo", "value": "oh no"},
+                "level": "error",
+                "timestamp": one_min_ago,
+            },
+            project_id=self.project.id,
+            assert_no_errors=False,
+        )
+
+        with self.tasks(), patch(
+            "sentry.sentry_apps.tasks.sentry_apps.nodestore.backend.get",
+            wraps=nodestore.backend.get,
+        ) as nodestore_get:
+            post_process_group(
+                is_new=False,
+                is_regression=False,
+                is_new_group_environment=False,
+                cache_key=write_event_to_cache(event),
+                group_id=event.group_id,
+                project_id=self.project.id,
+            )
+
+            assert nodestore_get.called
 
         ((args, kwargs),) = safe_urlopen.call_args_list
         data = json.loads(kwargs["data"])
