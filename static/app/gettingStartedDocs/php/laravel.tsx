@@ -60,18 +60,21 @@ composer install sentry/sentry-laravel
 composer update sentry/sentry-laravel -W`;
 
 const onboarding: OnboardingConfig = {
-  introduction: () =>
-    tct(
-      'This guide is for Laravel 11.0 an up. We also provide instructions for [otherVersionsLink:other versions] as well as [lumenSpecificLink:Lumen-specific instructions].',
-      {
-        otherVersionsLink: (
-          <ExternalLink href="https://docs.sentry.io/platforms/php/guides/laravel/other-versions/" />
-        ),
-        lumenSpecificLink: (
-          <ExternalLink href="https://docs.sentry.io/platforms/php/guides/laravel/other-versions/lumen/" />
-        ),
-      }
-    ),
+  introduction: () => (
+    <p>
+      {tct(
+        'This guide is for Laravel 11.0 an up. We also provide instructions for [otherVersionsLink:other versions] as well as [lumenSpecificLink:Lumen-specific instructions].',
+        {
+          otherVersionsLink: (
+            <ExternalLink href="https://docs.sentry.io/platforms/php/guides/laravel/other-versions/" />
+          ),
+          lumenSpecificLink: (
+            <ExternalLink href="https://docs.sentry.io/platforms/php/guides/laravel/other-versions/lumen/" />
+          ),
+        }
+      )}
+    </p>
+  ),
   install: (params: Params) => [
     {
       type: StepType.INSTALL,
