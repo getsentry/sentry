@@ -64,8 +64,6 @@ const DEFAULT_WIDGET_QUERY: WidgetQuery = {
 
 export type SeriesWithOrdering = [order: number, series: Series];
 
-// TODO: Commented out functions will be given implementations
-// to be able to make events-stats requests
 export const TransactionsConfig: DatasetConfig<
   EventsStats | MultiSeriesEventsStats,
   TableData | EventsTableData
