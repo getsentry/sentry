@@ -470,10 +470,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
       transaction.parent = parent;
     }
 
-    const subTreeSpaceBounds: [number, number] = [
-      Number.POSITIVE_INFINITY,
-      Number.NEGATIVE_INFINITY,
-    ];
+    const subTreeSpaceBounds: [number, number] = [root.space[0], root.space[1]];
 
     TraceTree.ForEachChild(root, c => {
       c.invalidate();
@@ -482,6 +479,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
       //   // Track the min and max space of the sub tree as spans have ms precision
       subTreeSpaceBounds[0] = Math.min(subTreeSpaceBounds[0], c.space[0]);
       subTreeSpaceBounds[1] = Math.max(subTreeSpaceBounds[1], c.space[1]);
+
       if (isSpanNode(c)) {
         for (const performanceIssue of getRelatedPerformanceIssuesFromTransaction(
           c.value,
@@ -1370,17 +1368,29 @@ export class TraceTree extends TraceTreeEventDispatcher {
         });
 
         root.zoomedIn = true;
+
         // Spans contain millisecond precision, which means that it is possible for the
         // children spans of a transaction to extend beyond the start and end of the transaction
         // through ns precision. To account for this, we need to adjust the space of the transaction node and the space
         // of our trace so that all of the span children are visible and can be rendered inside the view
-        const start = Math.min(root.space[0], this.root.space[0]);
-        this.root.space = [start, Math.max(root.space[1], this.root.space[1])];
-        this.root.children[0].space = [...this.root.space];
+        const previousStart = this.root.space[0];
+        const previousDuration = this.root.space[1];
+
+        const newStart = root.space[0];
+        const newEnd = root.space[0] + root.space[1];
+
+        // Extend the start of the trace to include the new min start
+        if (newStart <= this.root.space[0]) {
+          this.root.space[0] = newStart;
+        }
+        // Extend the end of the trace to include the new max end
+        if (newEnd > this.root.space[0] + this.root.space[1]) {
+          this.root.space[1] = newEnd - this.root.space[0];
+        }
 
         if (
-          root.space[0] !== this.root.space[0] ||
-          root.space[1] !== this.root.space[1]
+          previousStart !== this.root.space[0] ||
+          previousDuration !== this.root.space[1]
         ) {
           this.dispatch('trace timeline change', this.root.space);
         }
