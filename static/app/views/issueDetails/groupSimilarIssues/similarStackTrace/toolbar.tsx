@@ -125,7 +125,9 @@ class SimilarToolbar extends Component<Props, State> {
         <Columns>
           <StyledToolbarHeader>{t('Events')}</StyledToolbarHeader>
           <StyledToolbarHeader>{t('Exception')}</StyledToolbarHeader>
-          <StyledToolbarHeader>{t('Message')}</StyledToolbarHeader>
+          {!hasSimilarityEmbeddingsFeature && (
+            <StyledToolbarHeader>{t('Message')}</StyledToolbarHeader>
+          )}
           {hasSimilarityEmbeddingsFeature && (
             <StyledToolbarHeader>{t('Would Group')}</StyledToolbarHeader>
           )}
@@ -140,8 +142,8 @@ const Columns = styled('div')`
   display: flex;
   align-items: center;
   flex-shrink: 0;
-  min-width: 350px;
-  width: 350px;
+  min-width: 325px;
+  width: 325px;
 `;
 
 const StyledToolbarHeader = styled(ToolbarHeader)`
