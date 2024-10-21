@@ -1,3 +1,5 @@
+import {Fragment} from 'react';
+
 import ExternalLink from 'sentry/components/links/externalLink';
 import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/crashReportCallout';
 import widgetCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/widgetCallout';
@@ -31,7 +33,6 @@ import {t, tct} from 'sentry/locale';
 type Params = DocsParams;
 
 const getSdkSetupSnippet = (params: Params) => `
-//...
 import * as Sentry from "@sentry/react";
 
 Sentry.init({
@@ -94,7 +95,7 @@ root.render(<App />);
 `;
 
 const getVerifySnippet = () => `
-return <button onClick={() => methodDoesNotExist()}>Break the world</button>;
+return <button onClick={() => {throw new Error("This is your first error!");}}>Break the world</button>;
 `;
 
 const getInstallConfig = () => [
@@ -118,7 +119,16 @@ const getInstallConfig = () => [
 ];
 
 const onboarding: OnboardingConfig = {
-  introduction: MaybeBrowserProfilingBetaWarning,
+  introduction: params => (
+    <Fragment>
+      <MaybeBrowserProfilingBetaWarning {...params} />
+      <p>
+        {tct('In this quick guide you’ll use [strong:npm] or [strong:yarn] to set up:', {
+          strong: <strong />,
+        })}
+      </p>
+    </Fragment>
+  ),
   install: () => [
     {
       type: StepType.INSTALL,
@@ -190,22 +200,6 @@ const onboarding: OnboardingConfig = {
         'Configure routing, so Sentry can generate parameterized transaction names for a better overview on the Performance page.'
       ),
       link: 'https://docs.sentry.io/platforms/javascript/guides/react/configuration/integrations/react-router/',
-    },
-    {
-      id: 'performance-monitoring',
-      name: t('Tracing'),
-      description: t(
-        'Track down transactions to connect the dots between 10-second page loads and poor-performing API calls or slow database queries.'
-      ),
-      link: 'https://docs.sentry.io/platforms/javascript/guides/react/tracing/',
-    },
-    {
-      id: 'session-replay',
-      name: t('Session Replay'),
-      description: t(
-        'Get to the root cause of an error or latency issue faster by seeing all the technical details related to that issue in one visual replay on your web application.'
-      ),
-      link: 'https://docs.sentry.io/platforms/javascript/guides/react/session-replay/',
     },
   ],
 };
@@ -398,11 +392,11 @@ transaction.finish(); // Finishing the transaction will send it to Sentry`,
             'In addition, [code:@sentry/react] exports a [code:withProfiler] higher order component that can be used to capture React-related spans for specific React components:',
             {code: <code />}
           ),
+          language: 'javascript',
           code: `
 import * as Sentry from "@sentry/react";
 
 function App(props) {
-  // ...
   return <div />;
 }
 

@@ -1,6 +1,7 @@
-import {Component, Fragment} from 'react';
+import {Fragment, useState} from 'react';
 import type {useSortable} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
+import type {LegendComponentOption} from 'echarts';
 import type {Location} from 'history';
 
 import type {Client} from 'sentry/api';
@@ -26,7 +27,6 @@ import {getFormattedDate} from 'sentry/utils/dates';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {parseFunction} from 'sentry/utils/discover/fields';
-import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import {hasOnDemandMetricWidgetFeature} from 'sentry/utils/onDemandMetrics/features';
 import {ExtractedMetricsTag} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {
@@ -49,6 +49,7 @@ import type {DashboardFilters, Widget} from '../types';
 import {DisplayType, OnDemandExtractionState, WidgetType} from '../types';
 import {getColoredWidgetIndicator, hasThresholdMaxValue} from '../utils';
 import {DEFAULT_RESULTS_LIMIT} from '../widgetBuilder/utils';
+import type WidgetLegendSelectionState from '../widgetLegendSelectionState';
 
 import {DashboardsMEPConsumer, DashboardsMEPProvider} from './dashboardsMEPContext';
 import WidgetCardChartContainer from './widgetCardChartContainer';
@@ -73,6 +74,7 @@ type Props = WithRouterProps & {
   organization: Organization;
   selection: PageFilters;
   widget: Widget;
+  widgetLegendState: WidgetLegendSelectionState;
   widgetLimitReached: boolean;
   dashboardFilters?: DashboardFilters;
   draggableProps?: DraggableProps;
@@ -82,12 +84,14 @@ type Props = WithRouterProps & {
   isMobile?: boolean;
   isPreview?: boolean;
   isWidgetInvalid?: boolean;
+  legendOptions?: LegendComponentOption;
   noDashboardsMEPProvider?: boolean;
   noLazyLoad?: boolean;
   onDataFetched?: (results: TableDataWithTitle[]) => void;
   onDelete?: () => void;
   onDuplicate?: () => void;
   onEdit?: () => void;
+  onLegendSelectChanged?: () => void;
   onUpdate?: (widget: Widget | null) => void;
   onWidgetSplitDecision?: (splitDecision: WidgetType) => void;
   renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
@@ -96,14 +100,6 @@ type Props = WithRouterProps & {
   showStoredAlert?: boolean;
   tableItemLimit?: number;
   windowWidth?: number;
-};
-
-type State = {
-  pageLinks?: string;
-  seriesData?: Series[];
-  seriesResultsType?: Record<string, AggregationOutputType>;
-  tableData?: TableDataWithTitle[];
-  totalIssuesCount?: string;
 };
 
 type SearchFilterKey = {key?: {value: string}};
@@ -116,246 +112,193 @@ const ERROR_FIELDS = [
   'error.value',
 ];
 
-class WidgetCard extends Component<Props, State> {
-  state: State = {};
-  renderToolbar() {
-    const {
-      onEdit,
-      onDelete,
-      onDuplicate,
-      draggableProps,
-      hideToolbar,
-      isEditingDashboard,
-      isMobile,
-    } = this.props;
+type Data = {
+  pageLinks?: string;
+  tableResults?: TableDataWithTitle[];
+  timeseriesResults?: Series[];
+  timeseriesResultsTypes?: Record<string, AggregationOutputType>;
+  totalIssuesCount?: string;
+};
 
-    if (!isEditingDashboard) {
-      return null;
+function WidgetCard(props: Props) {
+  const [data, setData] = useState<Data>();
+
+  const onDataFetched = (newData: Data) => {
+    if (props.onDataFetched && newData.tableResults) {
+      props.onDataFetched(newData.tableResults);
     }
 
-    return (
-      <Toolbar
-        onEdit={onEdit}
-        onDelete={onDelete}
-        onDuplicate={onDuplicate}
-        draggableProps={draggableProps}
-        hideToolbar={hideToolbar}
-        isMobile={isMobile}
-      />
-    );
-  }
-
-  renderContextMenu() {
-    const {
-      widget,
-      selection,
-      organization,
-      showContextMenu,
-      isPreview,
-      widgetLimitReached,
-      onEdit,
-      onDuplicate,
-      onDelete,
-      isEditingDashboard,
-      router,
-      location,
-      index,
-    } = this.props;
-
-    const {seriesData, tableData, pageLinks, totalIssuesCount, seriesResultsType} =
-      this.state;
-
-    if (isEditingDashboard) {
-      return null;
-    }
-
-    return (
-      <WidgetCardContextMenu
-        organization={organization}
-        widget={widget}
-        selection={selection}
-        showContextMenu={showContextMenu}
-        isPreview={isPreview}
-        widgetLimitReached={widgetLimitReached}
-        onDuplicate={onDuplicate}
-        onEdit={onEdit}
-        onDelete={onDelete}
-        router={router}
-        location={location}
-        index={index}
-        seriesData={seriesData}
-        seriesResultsType={seriesResultsType}
-        tableData={tableData}
-        pageLinks={pageLinks}
-        totalIssuesCount={totalIssuesCount}
-      />
-    );
-  }
-
-  setData = ({
-    tableResults,
-    timeseriesResults,
-    totalIssuesCount,
-    pageLinks,
-    timeseriesResultsTypes,
-  }: {
-    pageLinks?: string;
-    tableResults?: TableDataWithTitle[];
-    timeseriesResults?: Series[];
-    timeseriesResultsTypes?: Record<string, AggregationOutputType>;
-    totalIssuesCount?: string;
-  }) => {
-    const {onDataFetched} = this.props;
-
-    if (onDataFetched && tableResults) {
-      onDataFetched(tableResults);
-    }
-
-    this.setState({
-      seriesData: timeseriesResults,
-      tableData: tableResults,
-      totalIssuesCount,
-      pageLinks,
-      seriesResultsType: timeseriesResultsTypes,
-    });
+    setData(newData);
   };
 
-  render() {
-    const {
-      api,
-      organization,
-      selection,
-      widget,
-      isMobile,
-      renderErrorMessage,
-      tableItemLimit,
-      windowWidth,
-      noLazyLoad,
-      showStoredAlert,
-      noDashboardsMEPProvider,
-      dashboardFilters,
-      isWidgetInvalid,
-      location,
-      onWidgetSplitDecision,
-      shouldResize,
-    } = this.props;
+  const {
+    api,
+    organization,
+    selection,
+    widget,
+    isMobile,
+    renderErrorMessage,
+    tableItemLimit,
+    windowWidth,
+    noLazyLoad,
+    showStoredAlert,
+    noDashboardsMEPProvider,
+    dashboardFilters,
+    isWidgetInvalid,
+    location,
+    onWidgetSplitDecision,
+    shouldResize,
+    onLegendSelectChanged,
+    legendOptions,
+    widgetLegendState,
+  } = props;
 
-    if (widget.displayType === DisplayType.TOP_N) {
-      const queries = widget.queries.map(query => ({
-        ...query,
-        // Use the last aggregate because that's where the y-axis is stored
-        aggregates: query.aggregates.length
-          ? [query.aggregates[query.aggregates.length - 1]]
-          : [],
-      }));
-      widget.queries = queries;
-      widget.limit = DEFAULT_RESULTS_LIMIT;
+  if (widget.displayType === DisplayType.TOP_N) {
+    const queries = widget.queries.map(query => ({
+      ...query,
+      // Use the last aggregate because that's where the y-axis is stored
+      aggregates: query.aggregates.length
+        ? [query.aggregates[query.aggregates.length - 1]]
+        : [],
+    }));
+    widget.queries = queries;
+    widget.limit = DEFAULT_RESULTS_LIMIT;
+  }
+
+  const hasSessionDuration = widget.queries.some(query =>
+    query.aggregates.some(aggregate => aggregate.includes('session.duration'))
+  );
+
+  function conditionalWrapWithDashboardsMEPProvider(component: React.ReactNode) {
+    if (noDashboardsMEPProvider) {
+      return component;
     }
+    return <DashboardsMEPProvider>{component}</DashboardsMEPProvider>;
+  }
+  // prettier-ignore
+  const widgetContainsErrorFields = widget.queries.some(
+    ({columns, aggregates, conditions}) =>
+      ERROR_FIELDS.some(
+        errorField =>
+          columns.includes(errorField) ||
+          aggregates.some(
+            aggregate => parseFunction(aggregate)?.arguments.includes(errorField)
+          ) ||
+          parseSearch(conditions)?.some(
+            filter => (filter as SearchFilterKey).key?.value === errorField
+          )
+      )
+  );
 
-    const hasSessionDuration = widget.queries.some(query =>
-      query.aggregates.some(aggregate => aggregate.includes('session.duration'))
-    );
-
-    function conditionalWrapWithDashboardsMEPProvider(component: React.ReactNode) {
-      if (noDashboardsMEPProvider) {
-        return component;
-      }
-      return <DashboardsMEPProvider>{component}</DashboardsMEPProvider>;
-    }
-    // prettier-ignore
-    const widgetContainsErrorFields = widget.queries.some(
-      ({columns, aggregates, conditions}) =>
-        ERROR_FIELDS.some(
-          errorField =>
-            columns.includes(errorField) ||
-            aggregates.some(
-              aggregate => parseFunction(aggregate)?.arguments.includes(errorField)
-            ) ||
-            parseSearch(conditions)?.some(
-              filter => (filter as SearchFilterKey).key?.value === errorField
-            )
-        )
-    );
-
-    if (widget.widgetType === WidgetType.METRICS) {
-      if (hasCustomMetrics(organization)) {
-        return (
-          <MetricWidgetCard
-            index={this.props.index}
-            isEditingDashboard={this.props.isEditingDashboard}
-            onEdit={this.props.onEdit}
-            onDelete={this.props.onDelete}
-            onDuplicate={this.props.onDuplicate}
-            router={this.props.router}
-            location={this.props.location}
-            organization={organization}
-            selection={selection}
-            widget={widget}
-            dashboardFilters={dashboardFilters}
-            renderErrorMessage={renderErrorMessage}
-            showContextMenu={this.props.showContextMenu}
-          />
-        );
-      }
-    }
-
+  if (widget.widgetType === WidgetType.METRICS) {
     return (
-      <ErrorBoundary
-        customComponent={<ErrorCard>{t('Error loading widget data')}</ErrorCard>}
-      >
-        {conditionalWrapWithDashboardsMEPProvider(
-          <Fragment>
-            <VisuallyCompleteWithData
-              id="DashboardList-FirstWidgetCard"
-              hasData={
-                ((this.state.tableData?.length || this.state.seriesData?.length) ?? 0) > 0
-              }
-              disabled={Number(this.props.index) !== 0}
-            >
-              <WidgetCardPanel isDragging={false}>
-                <WidgetHeaderWrapper>
-                  <WidgetHeaderDescription>
-                    <WidgetTitleRow>
-                      <Tooltip
-                        title={widget.title}
-                        containerDisplayMode="grid"
-                        showOnlyOnOverflow
-                      >
-                        <WidgetTitle>{widget.title}</WidgetTitle>
-                      </Tooltip>
-                      {widget.thresholds &&
-                        hasThresholdMaxValue(widget.thresholds) &&
-                        this.state.tableData &&
-                        getColoredWidgetIndicator(
-                          widget.thresholds,
-                          this.state.tableData
-                        )}
-                      <ExtractedMetricsTag queryKey={widget} />
-                      <DisplayOnDemandWarnings widget={widget} />
-                      <DiscoverSplitAlert widget={widget} />
-                    </WidgetTitleRow>
-                    {widget.description && (
-                      <Tooltip
-                        title={widget.description}
-                        containerDisplayMode="grid"
-                        showOnlyOnOverflow
-                        isHoverable
-                      >
-                        <WidgetDescription>{widget.description}</WidgetDescription>
-                      </Tooltip>
-                    )}
-                  </WidgetHeaderDescription>
-                  {this.renderContextMenu()}
-                </WidgetHeaderWrapper>
-                {hasSessionDuration && SESSION_DURATION_ALERT}
-                {isWidgetInvalid ? (
-                  <Fragment>
-                    {renderErrorMessage?.('Widget query condition is invalid.')}
-                    <StyledErrorPanel>
-                      <IconWarning color="gray500" size="lg" />
-                    </StyledErrorPanel>
-                  </Fragment>
-                ) : noLazyLoad ? (
+      <MetricWidgetCard
+        index={props.index}
+        isEditingDashboard={props.isEditingDashboard}
+        onEdit={props.onEdit}
+        onDelete={props.onDelete}
+        onDuplicate={props.onDuplicate}
+        router={props.router}
+        location={props.location}
+        organization={organization}
+        selection={selection}
+        widget={widget}
+        dashboardFilters={dashboardFilters}
+        renderErrorMessage={renderErrorMessage}
+        showContextMenu={props.showContextMenu}
+      />
+    );
+  }
+
+  return (
+    <ErrorBoundary
+      customComponent={<ErrorCard>{t('Error loading widget data')}</ErrorCard>}
+    >
+      {conditionalWrapWithDashboardsMEPProvider(
+        <Fragment>
+          <VisuallyCompleteWithData
+            id="DashboardList-FirstWidgetCard"
+            hasData={
+              ((data?.tableResults?.length || data?.timeseriesResults?.length) ?? 0) > 0
+            }
+            disabled={Number(props.index) !== 0}
+          >
+            <WidgetCardPanel isDragging={false} aria-label={t('Widget panel')}>
+              <WidgetHeaderWrapper>
+                <WidgetHeaderDescription>
+                  <WidgetTitleRow>
+                    <Tooltip
+                      title={widget.title}
+                      containerDisplayMode="grid"
+                      showOnlyOnOverflow
+                    >
+                      <WidgetTitle>{widget.title}</WidgetTitle>
+                    </Tooltip>
+                    {widget.thresholds &&
+                      hasThresholdMaxValue(widget.thresholds) &&
+                      data?.tableResults &&
+                      getColoredWidgetIndicator(widget.thresholds, data?.tableResults)}
+                    <ExtractedMetricsTag queryKey={widget} />
+                    <DisplayOnDemandWarnings widget={widget} />
+                    <DiscoverSplitAlert widget={widget} />
+                  </WidgetTitleRow>
+                </WidgetHeaderDescription>
+                {!props.isEditingDashboard && (
+                  <WidgetCardContextMenuContainer>
+                    <WidgetCardContextMenu
+                      organization={organization}
+                      widget={widget}
+                      selection={selection}
+                      showContextMenu={props.showContextMenu}
+                      isPreview={props.isPreview}
+                      widgetLimitReached={props.widgetLimitReached}
+                      onDuplicate={props.onDuplicate}
+                      onEdit={props.onEdit}
+                      onDelete={props.onDelete}
+                      router={props.router}
+                      location={props.location}
+                      index={props.index}
+                      seriesData={data?.timeseriesResults}
+                      seriesResultsType={data?.timeseriesResultsTypes}
+                      tableData={data?.tableResults}
+                      pageLinks={data?.pageLinks}
+                      totalIssuesCount={data?.totalIssuesCount}
+                      description={widget.description}
+                      title={widget.title}
+                    />
+                  </WidgetCardContextMenuContainer>
+                )}
+              </WidgetHeaderWrapper>
+              {hasSessionDuration && SESSION_DURATION_ALERT}
+              {isWidgetInvalid ? (
+                <Fragment>
+                  {renderErrorMessage?.('Widget query condition is invalid.')}
+                  <StyledErrorPanel>
+                    <IconWarning color="gray500" size="lg" />
+                  </StyledErrorPanel>
+                </Fragment>
+              ) : noLazyLoad ? (
+                <WidgetCardChartContainer
+                  location={location}
+                  api={api}
+                  organization={organization}
+                  selection={selection}
+                  widget={widget}
+                  isMobile={isMobile}
+                  renderErrorMessage={renderErrorMessage}
+                  tableItemLimit={tableItemLimit}
+                  windowWidth={windowWidth}
+                  onDataFetched={onDataFetched}
+                  dashboardFilters={dashboardFilters}
+                  chartGroup={DASHBOARD_CHART_GROUP}
+                  onWidgetSplitDecision={onWidgetSplitDecision}
+                  shouldResize={shouldResize}
+                  onLegendSelectChanged={onLegendSelectChanged}
+                  legendOptions={legendOptions}
+                  widgetLegendState={widgetLegendState}
+                />
+              ) : (
+                <LazyRender containerHeight={200} withoutContainer>
                   <WidgetCardChartContainer
                     location={location}
                     api={api}
@@ -366,76 +309,69 @@ class WidgetCard extends Component<Props, State> {
                     renderErrorMessage={renderErrorMessage}
                     tableItemLimit={tableItemLimit}
                     windowWidth={windowWidth}
-                    onDataFetched={this.setData}
+                    onDataFetched={onDataFetched}
                     dashboardFilters={dashboardFilters}
                     chartGroup={DASHBOARD_CHART_GROUP}
                     onWidgetSplitDecision={onWidgetSplitDecision}
                     shouldResize={shouldResize}
+                    onLegendSelectChanged={onLegendSelectChanged}
+                    legendOptions={legendOptions}
+                    widgetLegendState={widgetLegendState}
                   />
-                ) : (
-                  <LazyRender containerHeight={200} withoutContainer>
-                    <WidgetCardChartContainer
-                      location={location}
-                      api={api}
-                      organization={organization}
-                      selection={selection}
-                      widget={widget}
-                      isMobile={isMobile}
-                      renderErrorMessage={renderErrorMessage}
-                      tableItemLimit={tableItemLimit}
-                      windowWidth={windowWidth}
-                      onDataFetched={this.setData}
-                      dashboardFilters={dashboardFilters}
-                      chartGroup={DASHBOARD_CHART_GROUP}
-                      onWidgetSplitDecision={onWidgetSplitDecision}
-                      shouldResize={shouldResize}
-                    />
-                  </LazyRender>
-                )}
-                {this.renderToolbar()}
-              </WidgetCardPanel>
-            </VisuallyCompleteWithData>
-            {!organization.features.includes('performance-mep-bannerless-ui') && (
-              <MEPConsumer>
-                {metricSettingContext => {
-                  return (
-                    <DashboardsMEPConsumer>
-                      {({isMetricsData}) => {
-                        if (
-                          showStoredAlert &&
-                          isMetricsData === false &&
-                          widget.widgetType === WidgetType.DISCOVER &&
-                          metricSettingContext &&
-                          metricSettingContext.metricSettingState !==
-                            MEPState.TRANSACTIONS_ONLY
-                        ) {
-                          if (!widgetContainsErrorFields) {
-                            return (
-                              <StoredDataAlert showIcon>
-                                {tct(
-                                  "Your selection is only applicable to [indexedData: indexed event data]. We've automatically adjusted your results.",
-                                  {
-                                    indexedData: (
-                                      <ExternalLink href="https://docs.sentry.io/product/dashboards/widget-builder/#errors--transactions" />
-                                    ),
-                                  }
-                                )}
-                              </StoredDataAlert>
-                            );
-                          }
+                </LazyRender>
+              )}
+              {props.isEditingDashboard && (
+                <Toolbar
+                  onEdit={props.onEdit}
+                  onDelete={props.onDelete}
+                  onDuplicate={props.onDuplicate}
+                  draggableProps={props.draggableProps}
+                  hideToolbar={props.hideToolbar}
+                  isMobile={props.isMobile}
+                />
+              )}
+            </WidgetCardPanel>
+          </VisuallyCompleteWithData>
+          {!organization.features.includes('performance-mep-bannerless-ui') && (
+            <MEPConsumer>
+              {metricSettingContext => {
+                return (
+                  <DashboardsMEPConsumer>
+                    {({isMetricsData}) => {
+                      if (
+                        showStoredAlert &&
+                        isMetricsData === false &&
+                        widget.widgetType === WidgetType.DISCOVER &&
+                        metricSettingContext &&
+                        metricSettingContext.metricSettingState !==
+                          MEPState.TRANSACTIONS_ONLY
+                      ) {
+                        if (!widgetContainsErrorFields) {
+                          return (
+                            <StoredDataAlert showIcon>
+                              {tct(
+                                "Your selection is only applicable to [indexedData: indexed event data]. We've automatically adjusted your results.",
+                                {
+                                  indexedData: (
+                                    <ExternalLink href="https://docs.sentry.io/product/dashboards/widget-builder/#errors--transactions" />
+                                  ),
+                                }
+                              )}
+                            </StoredDataAlert>
+                          );
                         }
-                        return null;
-                      }}
-                    </DashboardsMEPConsumer>
-                  );
-                }}
-              </MEPConsumer>
-            )}
-          </Fragment>
-        )}
-      </ErrorBoundary>
-    );
-  }
+                      }
+                      return null;
+                    }}
+                  </DashboardsMEPConsumer>
+                );
+              }}
+            </MEPConsumer>
+          )}
+        </Fragment>
+      )}
+    </ErrorBoundary>
+  );
 }
 
 export default withApi(withOrganization(withPageFilters(withSentryRouter(WidgetCard))));
@@ -499,6 +435,11 @@ const ErrorCard = styled(Placeholder)`
   margin-bottom: ${space(2)};
 `;
 
+export const WidgetCardContextMenuContainer = styled('div')`
+  opacity: 1;
+  transition: opacity 0.1s;
+`;
+
 export const WidgetCardPanel = styled(Panel, {
   shouldForwardProp: prop => prop !== 'isDragging',
 })<{
@@ -511,6 +452,21 @@ export const WidgetCardPanel = styled(Panel, {
   min-height: 96px;
   display: flex;
   flex-direction: column;
+
+  &:not(:hover):not(:focus-within) {
+    ${WidgetCardContextMenuContainer} {
+      opacity: 0;
+      ${p => p.theme.visuallyHidden}
+    }
+  }
+
+  :hover {
+    background-color: ${p => p.theme.surface200};
+    transition:
+      background-color 100ms linear,
+      box-shadow 100ms linear;
+    box-shadow: ${p => p.theme.dropShadowLight};
+  }
 `;
 
 const StoredDataAlert = styled(Alert)`

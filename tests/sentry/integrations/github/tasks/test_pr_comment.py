@@ -33,7 +33,7 @@ from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.tasks.commit_context import DEBOUNCE_PR_COMMENT_CACHE_KEY
 from sentry.testutils.cases import IntegrationTestCase, SnubaTestCase, TestCase
-from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.cache import cache
@@ -236,21 +236,21 @@ class TestTop5IssuesByCount(TestCase, SnubaTestCase):
     def test_simple(self):
         group1 = [
             self.store_event(
-                {"fingerprint": ["group-1"], "timestamp": iso_format(before_now(days=1))},
+                {"fingerprint": ["group-1"], "timestamp": before_now(days=1).isoformat()},
                 project_id=self.project.id,
             )
             for _ in range(3)
         ][0].group.id
         group2 = [
             self.store_event(
-                {"fingerprint": ["group-2"], "timestamp": iso_format(before_now(days=1))},
+                {"fingerprint": ["group-2"], "timestamp": before_now(days=1).isoformat()},
                 project_id=self.project.id,
             )
             for _ in range(6)
         ][0].group.id
         group3 = [
             self.store_event(
-                {"fingerprint": ["group-3"], "timestamp": iso_format(before_now(days=1))},
+                {"fingerprint": ["group-3"], "timestamp": before_now(days=1).isoformat()},
                 project_id=self.project.id,
             )
             for _ in range(4)
@@ -261,7 +261,7 @@ class TestTop5IssuesByCount(TestCase, SnubaTestCase):
     def test_over_5_issues(self):
         issue_ids = [
             self.store_event(
-                {"fingerprint": [f"group-{idx}"], "timestamp": iso_format(before_now(days=1))},
+                {"fingerprint": [f"group-{idx}"], "timestamp": before_now(days=1).isoformat()},
                 project_id=self.project.id,
             ).group.id
             for idx in range(6)
@@ -274,7 +274,7 @@ class TestTop5IssuesByCount(TestCase, SnubaTestCase):
             self.store_event(
                 {
                     "fingerprint": ["group-1"],
-                    "timestamp": iso_format(before_now(days=1)),
+                    "timestamp": before_now(days=1).isoformat(),
                     "level": logging.INFO,
                 },
                 project_id=self.project.id,
@@ -283,7 +283,7 @@ class TestTop5IssuesByCount(TestCase, SnubaTestCase):
         ][0].group.id
         group2 = [
             self.store_event(
-                {"fingerprint": ["group-2"], "timestamp": iso_format(before_now(days=1))},
+                {"fingerprint": ["group-2"], "timestamp": before_now(days=1).isoformat()},
                 project_id=self.project.id,
             )
             for _ in range(6)
@@ -292,7 +292,7 @@ class TestTop5IssuesByCount(TestCase, SnubaTestCase):
             self.store_event(
                 {
                     "fingerprint": ["group-3"],
-                    "timestamp": iso_format(before_now(days=1)),
+                    "timestamp": before_now(days=1).isoformat(),
                     "level": logging.INFO,
                 },
                 project_id=self.project.id,
@@ -307,7 +307,7 @@ class TestTop5IssuesByCount(TestCase, SnubaTestCase):
             self.store_event(
                 {
                     "fingerprint": ["group-1"],
-                    "timestamp": iso_format(before_now(days=1)),
+                    "timestamp": before_now(days=1).isoformat(),
                     "level": logging.ERROR,
                 },
                 project_id=self.project.id,
@@ -318,7 +318,7 @@ class TestTop5IssuesByCount(TestCase, SnubaTestCase):
             self.store_event(
                 {
                     "fingerprint": ["group-2"],
-                    "timestamp": iso_format(before_now(days=1)),
+                    "timestamp": before_now(days=1).isoformat(),
                     "level": logging.INFO,
                 },
                 project_id=self.project.id,
@@ -329,7 +329,7 @@ class TestTop5IssuesByCount(TestCase, SnubaTestCase):
             self.store_event(
                 {
                     "fingerprint": ["group-3"],
-                    "timestamp": iso_format(before_now(days=1)),
+                    "timestamp": before_now(days=1).isoformat(),
                     "level": logging.DEBUG,
                 },
                 project_id=self.project.id,
@@ -432,8 +432,8 @@ class TestCommentWorkflow(GithubCommentTestCase):
         github_comment_workflow(self.pr.id, self.project.id)
 
         assert (
-            responses.calls[0].request.body
-            == f'{{"body": "## Suspect Issues\\nThis pull request was deployed and Sentry observed the following issues:\\n\\n- \\u203c\\ufe0f **{titles[0]}** `{culprits[0]}` [View Issue](http://testserver/organizations/foo/issues/{groups[0]}/?referrer=github-pr-bot)\\n- \\u203c\\ufe0f **{titles[1]}** `{culprits[1]}` [View Issue](http://testserver/organizations/foobar/issues/{groups[1]}/?referrer=github-pr-bot)\\n\\n<sub>Did you find this useful? React with a \\ud83d\\udc4d or \\ud83d\\udc4e</sub>"}}'.encode()
+            f'"body": "## Suspect Issues\\nThis pull request was deployed and Sentry observed the following issues:\\n\\n- \\u203c\\ufe0f **{titles[0]}** `{culprits[0]}` [View Issue](http://testserver/organizations/foo/issues/{groups[0]}/?referrer=github-pr-bot)\\n- \\u203c\\ufe0f **{titles[1]}** `{culprits[1]}` [View Issue](http://testserver/organizations/foobar/issues/{groups[1]}/?referrer=github-pr-bot)\\n\\n<sub>Did you find this useful? React with a \\ud83d\\udc4d or \\ud83d\\udc4e</sub>"'.encode()
+            in responses.calls[0].request.body
         )
         pull_request_comment_query = PullRequestComment.objects.all()
         assert len(pull_request_comment_query) == 1
@@ -476,8 +476,8 @@ class TestCommentWorkflow(GithubCommentTestCase):
         github_comment_workflow(self.pr.id, self.project.id)
 
         assert (
-            responses.calls[0].request.body
-            == f'{{"body": "## Suspect Issues\\nThis pull request was deployed and Sentry observed the following issues:\\n\\n- \\u203c\\ufe0f **issue 1** `issue1` [View Issue](http://testserver/organizations/foo/issues/{groups[0]}/?referrer=github-pr-bot)\\n- \\u203c\\ufe0f **issue 2** `issue2` [View Issue](http://testserver/organizations/foobar/issues/{groups[1]}/?referrer=github-pr-bot)\\n\\n<sub>Did you find this useful? React with a \\ud83d\\udc4d or \\ud83d\\udc4e</sub>"}}'.encode()
+            f'"body": "## Suspect Issues\\nThis pull request was deployed and Sentry observed the following issues:\\n\\n- \\u203c\\ufe0f **issue 1** `issue1` [View Issue](http://testserver/organizations/foo/issues/{groups[0]}/?referrer=github-pr-bot)\\n- \\u203c\\ufe0f **issue 2** `issue2` [View Issue](http://testserver/organizations/foobar/issues/{groups[1]}/?referrer=github-pr-bot)\\n\\n<sub>Did you find this useful? React with a \\ud83d\\udc4d or \\ud83d\\udc4e</sub>"'.encode()
+            in responses.calls[0].request.body
         )
         pull_request_comment.refresh_from_db()
         assert pull_request_comment.group_ids == [g.id for g in Group.objects.all()]

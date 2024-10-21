@@ -10,6 +10,7 @@ from django.db import router, transaction
 from django.test.utils import override_settings
 from httpx import HTTPError
 from rest_framework import status
+from rest_framework.exceptions import ErrorDetail
 from urllib3.exceptions import MaxRetryError, TimeoutError
 from urllib3.response import HTTPResponse
 
@@ -298,6 +299,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         )
 
     @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
     @with_feature("organizations:incidents")
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
@@ -307,29 +309,28 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         seer_return_value: StoreDataResponse = {"success": True}
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
         two_weeks_ago = before_now(days=14).replace(hour=10, minute=0, second=0, microsecond=0)
-        with self.options({"issues.group_attributes.send_kafka": True}):
-            self.store_event(
-                data={
-                    "event_id": "a" * 32,
-                    "message": "super duper bad",
-                    "timestamp": iso_format(two_weeks_ago + timedelta(minutes=1)),
-                    "fingerprint": ["group1"],
-                    "tags": {"sentry:user": self.user.email},
-                },
-                event_type=EventType.ERROR,
-                project_id=self.project.id,
-            )
-            self.store_event(
-                data={
-                    "event_id": "b" * 32,
-                    "message": "super bad",
-                    "timestamp": iso_format(two_weeks_ago + timedelta(days=10)),
-                    "fingerprint": ["group2"],
-                    "tags": {"sentry:user": self.user.email},
-                },
-                event_type=EventType.ERROR,
-                project_id=self.project.id,
-            )
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "super duper bad",
+                "timestamp": iso_format(two_weeks_ago + timedelta(minutes=1)),
+                "fingerprint": ["group1"],
+                "tags": {"sentry:user": self.user.email},
+            },
+            default_event_type=EventType.ERROR,
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "message": "super bad",
+                "timestamp": iso_format(two_weeks_ago + timedelta(days=10)),
+                "fingerprint": ["group2"],
+                "tags": {"sentry:user": self.user.email},
+            },
+            default_event_type=EventType.ERROR,
+            project_id=self.project.id,
+        )
 
         with outbox_runner():
             resp = self.get_success_response(
@@ -345,6 +346,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         assert mock_seer_request.call_count == 1
 
     @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
     @with_feature("organizations:incidents")
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
@@ -363,6 +365,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         assert mock_seer_request.call_count == 1
 
     @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
     @with_feature("organizations:incidents")
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
@@ -383,6 +386,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         assert mock_seer_request.call_count == 1
 
     @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
     @with_feature("organizations:incidents")
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
@@ -400,10 +404,14 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
                 **data,
             )
         assert not AlertRule.objects.filter(detection_type=AlertRuleDetectionType.DYNAMIC).exists()
-        assert resp.data["detail"]["message"] == "Invalid request"
+        assert resp.data[0] == ErrorDetail(
+            string="Failed to send data to Seer - cannot create alert rule.", code="invalid"
+        )
+
         assert mock_seer_request.call_count == 1
 
     @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
     @with_feature("organizations:incidents")
     def test_anomaly_detection_alert_validation_error(self):
         data = self.dynamic_alert_rule_dict
@@ -912,12 +920,14 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         }
 
         with self.feature("organizations:incidents"):
-            resp = self.get_success_response(
-                self.organization.slug, status_code=201, **rule_one_trigger_only_critical_no_action
+            resp = self.get_error_response(
+                self.organization.slug, status_code=400, **rule_one_trigger_only_critical_no_action
             )
-        assert "id" in resp.data
-        alert_rule = AlertRule.objects.get(id=resp.data["id"])
-        assert resp.data == serialize(alert_rule, self.user)
+        assert resp.data == {
+            "nonFieldErrors": [
+                "Each trigger must have an associated action for this alert to fire."
+            ]
+        }
 
     def test_invalid_projects(self):
         with self.feature("organizations:incidents"):
@@ -1000,7 +1010,15 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
             "name": "JustATestRule",
             "resolveThreshold": 100,
             "thresholdType": 1,
-            "triggers": [{"label": "critical", "alertThreshold": 75}],
+            "triggers": [
+                {
+                    "label": "critical",
+                    "alertThreshold": 75,
+                    "actions": [
+                        {"type": "email", "targetType": "team", "targetIdentifier": self.team.id}
+                    ],
+                }
+            ],
         }
 
         with self.feature("organizations:incidents"):
@@ -1296,6 +1314,18 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
                 self.organization.slug, status_code=400, **alert_rule_dict
             )
         assert resp.data["name"][0] == "Ensure this field has no more than 256 characters."
+
+    @patch("sentry.analytics.record")
+    def test_performance_alert(self, record_analytics):
+        valid_alert_rule = {
+            **self.alert_rule_dict,
+            "queryType": 1,
+            "dataset": "transactions",
+            "eventTypes": ["transaction"],
+        }
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            resp = self.get_response(self.organization.slug, **valid_alert_rule)
+            assert resp.status_code == 201
 
 
 @freeze_time()

@@ -45,7 +45,6 @@ from sentry.models.groupshare import GroupShare
 from sentry.models.groupsnooze import GroupSnooze
 from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.grouptombstone import GroupTombstone
-from sentry.models.platformexternalissue import PlatformExternalIssue
 from sentry.models.release import Release
 from sentry.models.releaseprojectenvironment import ReleaseStages
 from sentry.models.savedsearch import SavedSearch, Visibility
@@ -56,6 +55,7 @@ from sentry.search.events.constants import (
     SEMVER_PACKAGE_ALIAS,
 )
 from sentry.search.snuba.executors import GroupAttributesPostgresSnubaQueryExecutor
+from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
@@ -83,7 +83,6 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
     def setUp(self) -> None:
         super().setUp()
         self.min_ago = before_now(minutes=1)
-        options.set("issues.group_attributes.send_kafka", True)
 
     def _parse_links(self, header):
         # links come in {url: {...attrs}}, but we need {rel: {...attrs}}
@@ -1233,7 +1232,6 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert response.status_code == 200
         assert len(response.data) == 0
 
-    @override_options({"issues.group_attributes.send_kafka": False})
     @with_feature({"organizations:issue-search-snuba": False})
     def test_assigned_or_suggested_search(self, _: MagicMock) -> None:
         event = self.store_event(

@@ -54,7 +54,7 @@ class UptimeSubscription(BaseRemoteSubscription, DefaultFieldsModelExisting):
     # HTTP method to perform the check with
     method = models.CharField(max_length=20, db_default="GET")
     # HTTP headers to send when performing the check
-    headers = JSONField(json_dumps=headers_json_encoder, db_default={})
+    headers = JSONField(json_dumps=headers_json_encoder, db_default=[])
     # HTTP body to send when performing the check
     body = models.TextField(null=True)
 
@@ -71,6 +71,7 @@ class UptimeSubscription(BaseRemoteSubscription, DefaultFieldsModelExisting):
             models.UniqueConstraint(
                 "url",
                 "interval_seconds",
+                "timeout_ms",
                 "method",
                 MD5("headers"),
                 Coalesce(MD5("body"), Value("")),
@@ -100,6 +101,9 @@ class ProjectUptimeSubscription(DefaultFieldsModelExisting):
     __relocation_scope__ = RelocationScope.Excluded
 
     project = FlexibleForeignKey("sentry.Project")
+    environment = FlexibleForeignKey(
+        "sentry.Environment", db_index=True, db_constraint=False, null=True
+    )
     uptime_subscription = FlexibleForeignKey("uptime.UptimeSubscription", on_delete=models.PROTECT)
     mode = models.SmallIntegerField(default=ProjectUptimeSubscriptionMode.MANUAL.value)
     uptime_status = models.PositiveSmallIntegerField(default=UptimeStatus.OK.value)

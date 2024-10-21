@@ -96,6 +96,14 @@ class DatasetSourcesTypes(Enum):
      Was an ambiguous dataset forced to split (i.e. we picked a default)
     """
     FORCED = 3
+    """
+     Dataset inferred by split script, version 1
+    """
+    SPLIT_VERSION_1 = 4
+    """
+     Dataset inferred by split script, version 2
+    """
+    SPLIT_VERSION_2 = 5
 
     @classmethod
     def as_choices(cls):
@@ -161,6 +169,8 @@ class DashboardWidgetQuery(Model):
     date_modified = models.DateTimeField(default=timezone.now)
     # Whether this query is hidden from the UI, used by metric widgets
     is_hidden = models.BooleanField(default=False)
+    # Used by Big Number to select aggregate displayed
+    selected_aggregate = models.IntegerField(null=True)
 
     class Meta:
         app_label = "sentry"

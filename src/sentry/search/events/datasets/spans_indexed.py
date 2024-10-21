@@ -2,8 +2,10 @@ from __future__ import annotations
 
 from collections.abc import Callable, Mapping
 
+from django.utils.functional import cached_property
 from snuba_sdk import Column, Direction, Function, OrderBy
 
+from sentry import options
 from sentry.api.event_search import SearchFilter
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.events import constants
@@ -21,6 +23,7 @@ from sentry.search.events.fields import (
     NumericColumn,
     SnQLFieldColumn,
     SnQLFunction,
+    SnQLStringArg,
     with_default,
 )
 from sentry.search.events.types import SelectType, WhereType
@@ -562,12 +565,208 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
             alias,
         )
 
+    def _resolve_aggregate_if(
+        self, aggregate: str
+    ) -> Callable[[Mapping[str, str | Column | SelectType | int | float], str | None], SelectType]:
+        def extract_attr(
+            column: str | Column | SelectType | int | float,
+        ) -> tuple[Column, str] | None:
+            # This check exists to handle the temporay prefixing.
+            # Once that's removed, this condition should become much simpler
+
+            if not isinstance(column, Function):
+                return None
+
+            if column.function != "if":
+                return None
+
+            if len(column.parameters) != 3:
+                return None
+
+            if (
+                not isinstance(column.parameters[0], Function)
+                or column.parameters[0].function != "mapContains"
+                or len(column.parameters[0].parameters) != 2
+            ):
+                return None
+
+            attr_col = column.parameters[0].parameters[0]
+            attr_name = column.parameters[0].parameters[1]
+
+            if not isinstance(attr_col, Column) or not isinstance(attr_name, str):
+                return None
+
+            return attr_col, attr_name
+
+        def resolve_aggregate_if(
+            args: Mapping[str, str | Column | SelectType | int | float],
+            alias: str | None = None,
+        ) -> SelectType:
+            attr = extract_attr(args["column"])
+
+            # If we're not aggregating on an attr column,
+            # we can directly aggregate on the column
+            if attr is None:
+                return Function(
+                    f"{aggregate}",
+                    [args["column"]],
+                    alias,
+                )
+
+            # When aggregating on an attr column, we have to make sure that we skip rows
+            # where the attr does not exist.
+            attr_col, attr_name = attr
+
+            function = (
+                aggregate.replace("quantile", "quantileIf")
+                if aggregate.startswith("quantile(")
+                else f"{aggregate}If"
+            )
+
+            unprefixed = Function("mapContains", [attr_col, attr_name])
+            prefixed = Function("mapContains", [attr_col, f"sentry.{attr_name}"])
+
+            return Function(
+                function,
+                [
+                    args["column"],
+                    Function("or", [unprefixed, prefixed]),
+                ],
+                alias,
+            )
+
+        return resolve_aggregate_if
+
     @property
     def function_converter(self) -> dict[str, SnQLFunction]:
-        existing_functions = super().function_converter
         function_converter = {
             function.name: function
             for function in [
+                SnQLFunction(
+                    "eps",
+                    snql_aggregate=lambda args, alias: Function(
+                        "divide", [Function("count", []), args["interval"]], alias
+                    ),
+                    optional_args=[IntervalDefault("interval", 1, None)],
+                    default_result_type="rate",
+                ),
+                SnQLFunction(
+                    "epm",
+                    snql_aggregate=lambda args, alias: Function(
+                        "divide",
+                        [Function("count", []), Function("divide", [args["interval"], 60])],
+                        alias,
+                    ),
+                    optional_args=[IntervalDefault("interval", 1, None)],
+                    default_result_type="rate",
+                ),
+                SnQLFunction(
+                    "count",
+                    optional_args=[
+                        with_default("span.duration", NumericColumn("column", spans=True)),
+                    ],
+                    snql_aggregate=self._resolve_aggregate_if("count"),
+                    default_result_type="integer",
+                ),
+                SnQLFunction(
+                    "count_unique",
+                    required_args=[ColumnTagArg("column")],
+                    snql_aggregate=lambda args, alias: Function("uniq", [args["column"]], alias),
+                    default_result_type="integer",
+                ),
+                SnQLFunction(
+                    "sum",
+                    required_args=[NumericColumn("column", spans=True)],
+                    snql_aggregate=self._resolve_aggregate_if("sum"),
+                    result_type_fn=self.reflective_result_type(),
+                    default_result_type="duration",
+                ),
+                SnQLFunction(
+                    "avg",
+                    optional_args=[
+                        with_default("span.duration", NumericColumn("column", spans=True)),
+                    ],
+                    snql_aggregate=self._resolve_aggregate_if("avg"),
+                    result_type_fn=self.reflective_result_type(),
+                    default_result_type="duration",
+                    redundant_grouping=True,
+                ),
+                SnQLFunction(
+                    "p50",
+                    optional_args=[
+                        with_default("span.duration", NumericColumn("column", spans=True)),
+                    ],
+                    snql_aggregate=self._resolve_aggregate_if("quantile(0.5)"),
+                    result_type_fn=self.reflective_result_type(),
+                    default_result_type="duration",
+                    redundant_grouping=True,
+                ),
+                SnQLFunction(
+                    "p75",
+                    optional_args=[
+                        with_default("span.duration", NumericColumn("column", spans=True)),
+                    ],
+                    snql_aggregate=self._resolve_aggregate_if("quantile(0.75)"),
+                    result_type_fn=self.reflective_result_type(),
+                    default_result_type="duration",
+                    redundant_grouping=True,
+                ),
+                SnQLFunction(
+                    "p90",
+                    optional_args=[
+                        with_default("span.duration", NumericColumn("column", spans=True)),
+                    ],
+                    snql_aggregate=self._resolve_aggregate_if("quantile(0.90)"),
+                    result_type_fn=self.reflective_result_type(),
+                    default_result_type="duration",
+                    redundant_grouping=True,
+                ),
+                SnQLFunction(
+                    "p95",
+                    optional_args=[
+                        with_default("span.duration", NumericColumn("column", spans=True)),
+                    ],
+                    snql_aggregate=self._resolve_aggregate_if("quantile(0.95)"),
+                    result_type_fn=self.reflective_result_type(),
+                    default_result_type="duration",
+                    redundant_grouping=True,
+                ),
+                SnQLFunction(
+                    "p99",
+                    optional_args=[
+                        with_default("span.duration", NumericColumn("column", spans=True)),
+                    ],
+                    snql_aggregate=self._resolve_aggregate_if("quantile(0.99)"),
+                    result_type_fn=self.reflective_result_type(),
+                    default_result_type="duration",
+                    redundant_grouping=True,
+                ),
+                SnQLFunction(
+                    "p100",
+                    optional_args=[
+                        with_default("span.duration", NumericColumn("column", spans=True)),
+                    ],
+                    snql_aggregate=self._resolve_aggregate_if("max"),
+                    result_type_fn=self.reflective_result_type(),
+                    default_result_type="duration",
+                    redundant_grouping=True,
+                ),
+                SnQLFunction(
+                    "min",
+                    required_args=[NumericColumn("column", spans=True)],
+                    snql_aggregate=self._resolve_aggregate_if("min"),
+                    result_type_fn=self.reflective_result_type(),
+                    default_result_type="duration",
+                    redundant_grouping=True,
+                ),
+                SnQLFunction(
+                    "max",
+                    required_args=[NumericColumn("column", spans=True)],
+                    snql_aggregate=self._resolve_aggregate_if("max"),
+                    result_type_fn=self.reflective_result_type(),
+                    default_result_type="duration",
+                    redundant_grouping=True,
+                ),
                 SnQLFunction(
                     "count_weighted",
                     optional_args=[NullColumn("column")],
@@ -700,24 +899,77 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
                 ),
                 SnQLFunction(
                     "margin_of_error",
+                    optional_args=[with_default("fpc", SnQLStringArg("fpc"))],
                     snql_aggregate=self._resolve_margin_of_error,
                     default_result_type="number",
                 ),
                 SnQLFunction(
                     "lower_count_limit",
+                    optional_args=[with_default("fpc", SnQLStringArg("fpc"))],
                     snql_aggregate=self._resolve_lower_limit,
                     default_result_type="number",
                 ),
                 SnQLFunction(
                     "upper_count_limit",
+                    optional_args=[with_default("fpc", SnQLStringArg("fpc"))],
                     snql_aggregate=self._resolve_upper_limit,
                     default_result_type="number",
+                ),
+                SnQLFunction(
+                    "first_seen",
+                    snql_aggregate=lambda args, alias: Function(
+                        "toUnixTimestamp64Milli",
+                        [Function("min", [Column("start_timestamp")])],
+                        alias,
+                    ),
+                    default_result_type="duration",
+                    private=True,
+                ),
+                SnQLFunction(
+                    "last_seen",
+                    snql_aggregate=lambda args, alias: Function(
+                        "toUnixTimestamp64Milli",
+                        [Function("max", [Column("end_timestamp")])],
+                        alias,
+                    ),
+                    default_result_type="duration",
+                    private=True,
                 ),
             ]
         }
 
-        existing_functions.update(function_converter)
-        return existing_functions
+        for alias, name in constants.SPAN_FUNCTION_ALIASES.items():
+            if name in function_converter:
+                function_converter[alias] = function_converter[name].alias_as(alias)
+
+        return function_converter
+
+    @property
+    def field_alias_converter(self) -> Mapping[str, Callable[[str], SelectType]]:
+        existing_field_aliases: dict[str, Callable[[str], SelectType]] = {
+            **super().field_alias_converter
+        }
+
+        field_alias_converter: Mapping[str, Callable[[str], SelectType]] = {
+            constants.PRECISE_START_TS: lambda alias: Function(
+                "divide",
+                [
+                    Function("toUnixTimestamp64Milli", [Column("start_timestamp")]),
+                    1000,
+                ],
+                alias,
+            ),
+            constants.PRECISE_FINISH_TS: lambda alias: Function(
+                "divide",
+                [
+                    Function("toUnixTimestamp64Milli", [Column("end_timestamp")]),
+                    1000,
+                ],
+                alias,
+            ),
+        }
+        existing_field_aliases.update(field_alias_converter)
+        return existing_field_aliases
 
     def _resolve_sum_weighted(
         self,
@@ -744,8 +996,13 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
         alias: str | None = None,
     ) -> SelectType:
         return Function(
-            "sum",
-            [Function("multiply", [Column("sign"), self.sampling_weight])],
+            "round",
+            [
+                Function(
+                    "sum",
+                    [Function("multiply", [Column("sign"), self.sampling_weight])],
+                )
+            ],
             alias,
         )
 
@@ -778,28 +1035,36 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
             self._cached_count_weighted = results["data"][0]["count_weighted"]
         return self._cached_count, self._cached_count_weighted
 
+    @cached_property
+    def _zscore(self):
+        """Defaults to 1.96, based on a z score for a confidence level of 95%"""
+        return options.get("performance.extrapolation.confidence.z-score")
+
     def _resolve_margin_of_error(
         self,
         args: Mapping[str, str | Column | SelectType | int | float],
         alias: str | None = None,
     ) -> SelectType:
         """Calculates the Margin of error for a given value, but unfortunately basis the total count based on
-        extrapolated data"""
+        extrapolated data
+        Z * Margin Of Error * Finite Population Correction
+        """
         # both of these need to be aggregated without a query
         total_samples, population_size = self._query_total_counts()
         sampled_group = Function("count", [])
         return Function(
             "multiply",
             [
-                # Based on a z score for a confidence level of 95%
-                1.96,
+                self._zscore,
                 Function(
                     "multiply",
                     [
                         # Unadjusted Margin of Error
                         self._resolve_unadjusted_margin(sampled_group, total_samples),
                         # Finite Population Correction
-                        self._resolve_finite_population_correction(total_samples, population_size),
+                        self._resolve_finite_population_correction(
+                            args, total_samples, population_size
+                        ),
                     ],
                 ),
             ],
@@ -809,6 +1074,7 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
     def _resolve_unadjusted_margin(
         self, sampled_group: SelectType, total_samples: SelectType
     ) -> SelectType:
+        """sqrt((p(1 - p)) / (total_samples))"""
         # Naming this p to match the formula
         p = Function("divide", [sampled_group, total_samples])
         return Function(
@@ -822,20 +1088,27 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
 
     def _resolve_finite_population_correction(
         self,
+        args: Mapping[str, str | Column | SelectType | int | float],
         total_samples: SelectType,
         population_size: int | float,
     ) -> SelectType:
-        return Function(
-            "sqrt",
-            [
-                Function(
-                    "divide",
-                    [
-                        Function("minus", [population_size, total_samples]),
-                        Function("minus", [population_size, 1]),
-                    ],
-                )
-            ],
+        """sqrt((population_size - total_samples) / (population_size - 1))"""
+        return (
+            Function(
+                "sqrt",
+                [
+                    Function(
+                        "divide",
+                        [
+                            Function("minus", [population_size, total_samples]),
+                            Function("minus", [population_size, 1]),
+                        ],
+                    )
+                ],
+            )
+            # if the arg is anything but `fpc` just return 1 so we're not correcting for a finite population
+            if args["fpc"] == "fpc"
+            else 1
         )
 
     def _resolve_lower_limit(
@@ -843,11 +1116,21 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
         args: Mapping[str, str | Column | SelectType | int | float],
         alias: str,
     ) -> SelectType:
-        total_samples, _ = self._query_total_counts()
+        """round(max(0, proportion_by_sample - margin_of_error) * total_population)"""
+        _, total_population = self._query_total_counts()
         sampled_group = Function("count", [])
-        proportion_by_sample = Function("divide", [sampled_group, total_samples])
-        return Function(
+        proportion_by_sample = Function(
             "divide",
+            [
+                sampled_group,
+                Function(
+                    "multiply", [total_population, Function("avg", [Column("sampling_factor")])]
+                ),
+            ],
+            "proportion_by_sample",
+        )
+        return Function(
+            "round",
             [
                 Function(
                     "multiply",
@@ -867,11 +1150,9 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
                                 ]
                             ],
                         ),
-                        total_samples,
+                        total_population,
                     ],
-                ),
-                # Math assumes a single sampling_weight
-                Function("avg", [Column("sampling_factor")]),
+                )
             ],
             alias,
         )
@@ -881,34 +1162,35 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
         args: Mapping[str, str | Column | SelectType | int | float],
         alias: str,
     ) -> SelectType:
-        total_samples, _ = self._query_total_counts()
+        """round(max(0, proportion_by_sample + margin_of_error) * total_population)"""
+        _, total_population = self._query_total_counts()
         sampled_group = Function("count", [])
-        proportion_by_sample = Function("divide", [sampled_group, total_samples])
-        return Function(
+        proportion_by_sample = Function(
             "divide",
+            [
+                sampled_group,
+                Function(
+                    "multiply", [total_population, Function("avg", [Column("sampling_factor")])]
+                ),
+            ],
+            "proportion_by_sample",
+        )
+        return Function(
+            "round",
             [
                 Function(
                     "multiply",
                     [
                         Function(
-                            "arrayMin",
+                            "plus",
                             [
-                                [
-                                    1,
-                                    Function(
-                                        "plus",
-                                        [
-                                            proportion_by_sample,
-                                            self._resolve_margin_of_error(args, "margin_of_error"),
-                                        ],
-                                    ),
-                                ]
+                                proportion_by_sample,
+                                self._resolve_margin_of_error(args, "margin_of_error"),
                             ],
                         ),
-                        total_samples,
+                        total_population,
                     ],
-                ),
-                Function("avg", [Column("sampling_factor")]),
+                )
             ],
             alias,
         )

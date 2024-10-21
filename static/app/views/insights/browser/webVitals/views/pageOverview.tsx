@@ -1,4 +1,4 @@
-import React, {useMemo, useState} from 'react';
+import React, {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
@@ -38,7 +38,13 @@ import decodeBrowserTypes from 'sentry/views/insights/browser/webVitals/utils/qu
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
-import {SpanIndexedField, type SubregionCode} from 'sentry/views/insights/types';
+import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
+import {
+  ModuleName,
+  SpanIndexedField,
+  type SubregionCode,
+} from 'sentry/views/insights/types';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 export enum LandingDisplayField {
@@ -71,6 +77,7 @@ export function PageOverview() {
   const location = useLocation();
   const {projects} = useProjects();
   const router = useRouter();
+  const {isInDomainView} = useDomainViewFilters();
   const transaction = location.query.transaction
     ? Array.isArray(location.query.transaction)
       ? location.query.transaction[0]
@@ -128,38 +135,69 @@ export function PageOverview() {
       ? undefined
       : calculatePerformanceScoreFromStoredTableDataRow(projectScores?.data?.[0]);
 
+  const handleTabChange = (value: string) => {
+    trackAnalytics('insight.vital.overview.toggle_tab', {
+      organization,
+      tab: value,
+    });
+    browserHistory.push({
+      ...location,
+      query: {
+        ...location.query,
+        tab: value,
+      },
+    });
+  };
+
   return (
     <React.Fragment>
-      <Tabs
-        value={tab}
-        onChange={value => {
-          trackAnalytics('insight.vital.overview.toggle_tab', {
-            organization,
-            tab: value,
-          });
-          browserHistory.push({
-            ...location,
-            query: {
-              ...location.query,
-              tab: value,
-            },
-          });
-        }}
-      >
-        <Layout.Header>
-          <Layout.HeaderContent>
-            <Breadcrumbs
-              crumbs={[...crumbs, ...(transaction ? [{label: 'Page Summary'}] : [])]}
-            />
-            <Layout.Title>
-              {transaction && project && <ProjectAvatar project={project} size={24} />}
-              {transaction ?? t('Page Loads')}
-            </Layout.Title>
-          </Layout.HeaderContent>
-          <Layout.HeaderActions>
-            <ButtonBar gap={1}>
-              <FeedbackWidgetButton />
-              {transactionSummaryTarget && (
+      <Tabs value={tab} onChange={handleTabChange}>
+        {!isInDomainView && (
+          <Layout.Header>
+            <Layout.HeaderContent>
+              <Breadcrumbs
+                crumbs={[...crumbs, ...(transaction ? [{label: 'Page Summary'}] : [])]}
+              />
+              <Layout.Title>
+                {transaction && project && <ProjectAvatar project={project} size={24} />}
+                {transaction ?? t('Page Loads')}
+              </Layout.Title>
+            </Layout.HeaderContent>
+            <Layout.HeaderActions>
+              <ButtonBar gap={1}>
+                <FeedbackWidgetButton />
+                {transactionSummaryTarget && (
+                  <LinkButton
+                    to={transactionSummaryTarget}
+                    onClick={() => {
+                      trackAnalytics('insight.vital.overview.open_transaction_summary', {
+                        organization,
+                      });
+                    }}
+                    size="sm"
+                  >
+                    {t('View Transaction Summary')}
+                  </LinkButton>
+                )}
+              </ButtonBar>
+            </Layout.HeaderActions>
+            <TabList hideBorder>
+              {LANDING_DISPLAYS.map(({label, field}) => (
+                <TabList.Item key={field}>{label}</TabList.Item>
+              ))}
+            </TabList>
+          </Layout.Header>
+        )}
+        {isInDomainView && (
+          <FrontendHeader
+            headerTitle={
+              <Fragment>
+                {transaction && project && <ProjectAvatar project={project} size={24} />}
+                {transaction ?? t('Page Loads')}
+              </Fragment>
+            }
+            headerActions={
+              transactionSummaryTarget && (
                 <LinkButton
                   to={transactionSummaryTarget}
                   onClick={() => {
@@ -171,15 +209,24 @@ export function PageOverview() {
                 >
                   {t('View Transaction Summary')}
                 </LinkButton>
-              )}
-            </ButtonBar>
-          </Layout.HeaderActions>
-          <TabList hideBorder>
-            {LANDING_DISPLAYS.map(({label, field}) => (
-              <TabList.Item key={field}>{label}</TabList.Item>
-            ))}
-          </TabList>
-        </Layout.Header>
+              )
+            }
+            hideDefaultTabs
+            tabs={{
+              value: tab,
+              onTabChange: handleTabChange,
+              tabList: (
+                <TabList hideBorder>
+                  {LANDING_DISPLAYS.map(({label, field}) => (
+                    <TabList.Item key={field}>{label}</TabList.Item>
+                  ))}
+                </TabList>
+              ),
+            }}
+            breadcrumbs={transaction ? [{label: 'Page Summary'}] : []}
+            module={ModuleName.VITAL}
+          />
+        )}
         {tab === LandingDisplayField.SPANS ? (
           <Layout.Body>
             <Layout.Main fullWidth>

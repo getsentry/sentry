@@ -1,4 +1,6 @@
+from .platformexternalissue import PlatformExternalIssue
 from .sentry_app import SentryApp
+from .sentry_app_avatar import SentryAppAvatar
 from .sentry_app_component import SentryAppComponent
 from .sentry_app_installation import SentryAppInstallation
 from .sentry_app_installation_for_provider import SentryAppInstallationForProvider
@@ -12,4 +14,6 @@ __all__ = (
     "ServiceHook",
     "SentryAppInstallationForProvider",
     "SentryAppComponent",
+    "PlatformExternalIssue",
+    "SentryAppAvatar",
 )

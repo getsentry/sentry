@@ -1,5 +1,4 @@
 import {cloneElement, Component, Fragment, isValidElement} from 'react';
-import type {Location} from 'react-router-dom';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 import isEqualWith from 'lodash/isEqualWith';
@@ -38,7 +37,6 @@ import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metr
 import {MetricsResultsMetaProvider} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {OnDemandControlProvider} from 'sentry/utils/performance/contexts/onDemandControl';
-import {OnRouteLeave} from 'sentry/utils/reactRouter6Compat/onRouteLeave';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -54,6 +52,7 @@ import {
   resetPageFilters,
 } from 'sentry/views/dashboards/utils';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
+import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 import {MetricsDataSwitcherAlert} from 'sentry/views/performance/landing/metricsDataSwitcherAlert';
 
 import {generatePerformanceEventView} from '../performance/data';
@@ -87,6 +86,7 @@ import {
   MAX_WIDGETS,
   WidgetType,
 } from './types';
+import WidgetLegendSelectionState from './widgetLegendSelectionState';
 
 const UNSAVED_MESSAGE = t('You have unsaved changes, are you sure you want to leave?');
 
@@ -121,6 +121,7 @@ type Props = RouteComponentProps<RouteParams, {}> & {
 type State = {
   dashboardState: DashboardState;
   modifiedDashboard: DashboardDetails | null;
+  widgetLegendState: WidgetLegendSelectionState;
   widgetLimitReached: boolean;
 } & WidgetViewerContextProps;
 
@@ -174,6 +175,12 @@ class DashboardDetail extends Component<Props, State> {
     setData: data => {
       this.setState(data);
     },
+    widgetLegendState: new WidgetLegendSelectionState({
+      dashboard: this.props.dashboard,
+      organization: this.props.organization,
+      location: this.props.location,
+      router: this.props.router,
+    }),
   };
 
   componentDidMount() {
@@ -186,6 +193,22 @@ class DashboardDetail extends Component<Props, State> {
     if (prevProps.initialState !== this.props.initialState) {
       // Widget builder can toggle Edit state when saving
       this.setState({dashboardState: this.props.initialState});
+    }
+
+    if (
+      prevProps.organization !== this.props.organization ||
+      prevProps.location !== this.props.location ||
+      prevProps.router !== this.props.router ||
+      prevProps.dashboard !== this.props.dashboard
+    ) {
+      this.setState({
+        widgetLegendState: new WidgetLegendSelectionState({
+          organization: this.props.organization,
+          location: this.props.location,
+          router: this.props.router,
+          dashboard: this.props.dashboard,
+        }),
+      });
     }
   }
 
@@ -213,11 +236,15 @@ class DashboardDetail extends Component<Props, State> {
         openWidgetViewerModal({
           organization,
           widget,
-          seriesData,
+          seriesData: WidgetLegendNameEncoderDecoder.modifyTimeseriesNames(
+            widget,
+            seriesData
+          ),
           seriesResultsType,
           tableData,
           pageLinks,
           totalIssuesCount,
+          widgetLegendState: this.state.widgetLegendState,
           dashboardFilters: getDashboardFiltersFromURL(location) ?? dashboard.filters,
           onMetricWidgetEdit: (updatedWidget: Widget) => {
             const widgets = [...dashboard.widgets];
@@ -336,27 +363,6 @@ class DashboardDetail extends Component<Props, State> {
       dashboardState: DashboardState.EDIT,
       modifiedDashboard: cloneDashboard(dashboard),
     });
-  };
-
-  onLegacyRouteLeave = () => {
-    if (
-      ![
-        DashboardState.VIEW,
-        DashboardState.PENDING_DELETE,
-        DashboardState.PREVIEW,
-      ].includes(this.state.dashboardState) &&
-      !isEqual(this.state.modifiedDashboard, this.props.dashboard)
-    ) {
-      return UNSAVED_MESSAGE;
-    }
-    return undefined;
-  };
-
-  onRouteLeave = (state: {currentLocation: Location; nextLocation: Location}) => {
-    return (
-      state.currentLocation.pathname !== state.nextLocation.pathname &&
-      !!this.onLegacyRouteLeave()
-    );
   };
 
   onDelete = (dashboard: State['modifiedDashboard']) => () => {
@@ -493,17 +499,32 @@ class DashboardDetail extends Component<Props, State> {
             modifiedDashboard: null,
           });
         }
-        addSuccessMessage(t('Dashboard updated'));
+        const legendQuery =
+          this.state.widgetLegendState.setMultipleWidgetSelectionStateURL(newDashboard);
+
         if (dashboard && newDashboard.id !== dashboard.id) {
-          browserHistory.replace(
+          this.props.router.replace(
             normalizeUrl({
               pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
               query: {
                 ...location.query,
+                unselectedSeries: legendQuery,
+              },
+            })
+          );
+        } else {
+          browserHistory.replace(
+            normalizeUrl({
+              pathname: `/organizations/${organization.slug}/dashboard/${dashboard.id}/`,
+              query: {
+                ...location.query,
+                unselectedSeries: legendQuery,
               },
             })
           );
         }
+        addSuccessMessage(t('Dashboard updated'));
+
         return newDashboard;
       },
       // `updateDashboard` does its own error handling
@@ -530,6 +551,7 @@ class DashboardDetail extends Component<Props, State> {
     openWidgetViewerModal({
       organization: this.props.organization,
       widget: widgetCopy,
+      widgetLegendState: this.state.widgetLegendState,
       onMetricWidgetEdit: widget => {
         const nextList = generateWidgetsAfterCompaction([...currentWidgets, widget]);
         this.onUpdateWidget(nextList);
@@ -706,13 +728,6 @@ class DashboardDetail extends Component<Props, State> {
 
     return (
       <Fragment>
-        <OnRouteLeave
-          router={this.props.router}
-          route={this.props.route}
-          message={UNSAVED_MESSAGE}
-          legacyWhen={this.onLegacyRouteLeave}
-          when={this.onRouteLeave}
-        />
         {isValidElement(children)
           ? cloneElement<any>(children, {
               dashboard: modifiedDashboard ?? dashboard,
@@ -755,13 +770,6 @@ class DashboardDetail extends Component<Props, State> {
           },
         }}
       >
-        <OnRouteLeave
-          router={this.props.router}
-          route={this.props.route}
-          message={UNSAVED_MESSAGE}
-          legacyWhen={this.onLegacyRouteLeave}
-          when={this.onRouteLeave}
-        />
         <Layout.Page withPadding>
           <OnDemandControlProvider location={location}>
             <MetricsResultsMetaProvider>
@@ -822,6 +830,7 @@ class DashboardDetail extends Component<Props, State> {
                           isPreview={this.isPreview}
                           router={router}
                           location={location}
+                          widgetLegendState={this.state.widgetLegendState}
                         />
                       </MEPSettingProvider>
                     )}
@@ -889,13 +898,6 @@ class DashboardDetail extends Component<Props, State> {
             },
           }}
         >
-          <OnRouteLeave
-            router={this.props.router}
-            route={this.props.route}
-            message={UNSAVED_MESSAGE}
-            legacyWhen={this.onLegacyRouteLeave}
-            when={this.onRouteLeave}
-          />
           <Layout.Page>
             <OnDemandControlProvider location={location}>
               <MetricsResultsMetaProvider>
@@ -1055,6 +1057,7 @@ class DashboardDetail extends Component<Props, State> {
                                   newWidget={newWidget}
                                   onSetNewWidget={onSetNewWidget}
                                   isPreview={this.isPreview}
+                                  widgetLegendState={this.state.widgetLegendState}
                                 />
                               </WidgetViewerContext.Provider>
                             </MEPSettingProvider>

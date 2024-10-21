@@ -32,6 +32,7 @@ from sentry.organizations.services.organization.service import organization_serv
 from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiHostError,
+    ApiRateLimitedError,
     ApiUnauthorized,
     IntegrationError,
     IntegrationFormError,
@@ -41,6 +42,7 @@ from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils.strings import truncatechars
 
+from ...api.exceptions import ResourceDoesNotExist
 from .client import JiraCloudClient
 from .models.create_issue_metadata import JIRA_CUSTOM_FIELD_TYPES
 from .utils import build_user_choice
@@ -106,9 +108,16 @@ metadata = IntegrationMetadata(
     aspects={"externalInstall": external_install},
 )
 
+# Some Jira errors for invalid field values don't actually provide the field
+# ID in an easily mappable way, so we have to manually map known error types
+# here to make it explicit to the user what failed.
+CUSTOM_ERROR_MESSAGE_MATCHERS = [(re.compile("Team with id '.*' not found.$"), "Team Field")]
+
 # Hide linked issues fields because we don't have the necessary UI for fully specifying
 # a valid link (e.g. "is blocked by ISSUE-1").
 HIDDEN_ISSUE_FIELDS = ["issuelinks"]
+
+JIRA_PROJECT_SIZE_LOGGING_THRESHOLD = 5
 
 
 class JiraIntegration(IssueSyncIntegration):
@@ -124,7 +133,7 @@ class JiraIntegration(IssueSyncIntegration):
     def use_email_scope(cls):
         return settings.JIRA_USE_EMAIL_SCOPE
 
-    def get_organization_config(self):
+    def get_organization_config(self) -> dict[str, Any]:
         configuration = [
             {
                 "name": self.outbound_status_key,
@@ -140,8 +149,7 @@ class JiraIntegration(IssueSyncIntegration):
                     "items": [],  # Populated with projects
                 },
                 "mappedSelectors": {
-                    "on_resolve": {"choices": [], "placeholder": _("Select a status")},
-                    "on_unresolve": {"choices": [], "placeholder": _("Select a status")},
+                    # Populated on a per-project basis below
                 },
                 "columnLabels": {
                     "on_resolve": _("When resolved"),
@@ -149,6 +157,7 @@ class JiraIntegration(IssueSyncIntegration):
                 },
                 "mappedColumnLabel": _("Jira Project"),
                 "formatMessageValue": False,
+                "perItemMapping": True,
             },
             {
                 "name": self.outbound_assignee_key,
@@ -206,13 +215,59 @@ class JiraIntegration(IssueSyncIntegration):
 
         client = self.get_client()
 
-        try:
-            statuses = [(c["id"], c["name"]) for c in client.get_valid_statuses()]
-            configuration[0]["mappedSelectors"]["on_resolve"]["choices"] = statuses
-            configuration[0]["mappedSelectors"]["on_unresolve"]["choices"] = statuses
+        logging_context: dict[str, Any] = {}
 
+        if not self.org_integration:
+            raise ResourceDoesNotExist()
+
+        logging_context["org_integration_id"] = self.org_integration.id
+        logging_context["integration_id"] = self.org_integration.integration_id
+
+        try:
             projects = [{"value": p["id"], "label": p["name"]} for p in client.get_projects_list()]
             configuration[0]["addDropdown"]["items"] = projects
+
+            # We need to monitor if we're getting a large volume of requests
+            # with a significant number of projects. Issuing 5 requests or more
+            # per configuration load is something we may need to address via
+            # a bulk query.
+
+            # Jira's API supports querying all available statuses, along with
+            # their project and workflow usages, but this is paginated and may
+            # have many of the same query concerns depending on how many
+            # statuses are defined within the Jira organization.
+
+            logging_context["num_projects"] = len(projects)
+            if len(projects) > JIRA_PROJECT_SIZE_LOGGING_THRESHOLD:
+                logger.info(
+                    "excessive_project_status_requests",
+                    extra={
+                        **logging_context,
+                    },
+                )
+            # Each project can have a different set of statuses assignable for
+            # issues, so we need to create per-project mappings.
+            for proj in projects:
+                project_id = proj["value"]
+                project_statuses = client.get_project_statuses(project_id).get("values")
+                if not project_statuses:
+                    continue
+
+                statuses_for_project = [(c["id"], c["name"]) for c in project_statuses]
+
+                configuration[0]["mappedSelectors"][project_id] = {
+                    "on_resolve": {
+                        "choices": statuses_for_project,
+                        "placeholder": _("Select a status"),
+                    },
+                    "on_unresolve": {
+                        "choices": statuses_for_project,
+                        "placeholder": _("Select a status"),
+                    },
+                }
+        except ApiRateLimitedError:
+            logger.warning("config_query_rate_limited", extra={**logging_context})
+            raise
         except ApiError:
             configuration[0]["disabled"] = True
             configuration[0]["disabledReason"] = _(
@@ -485,10 +540,28 @@ class JiraIntegration(IssueSyncIntegration):
 
     def error_fields_from_json(self, data):
         errors = data.get("errors")
-        if not errors:
+        error_messages = data.get("errorMessages")
+
+        if not errors and not error_messages:
             return None
 
-        return {key: [error] for key, error in data.get("errors").items()}
+        error_data = {}
+        if error_messages:
+            # These may or may not contain field specific errors, so we manually
+            # map them
+            for message in error_messages:
+                for error_regex, key in CUSTOM_ERROR_MESSAGE_MATCHERS:
+                    if error_regex.match(message):
+                        error_data[key] = [message]
+
+        if errors:
+            for key, error in data.get("errors").items():
+                error_data[key] = [error]
+
+        if not error_data:
+            return None
+
+        return error_data
 
     def search_url(self, org_slug):
         """
@@ -515,7 +588,12 @@ class JiraIntegration(IssueSyncIntegration):
         elif (
             # Assignee and reporter fields
             field_meta.get("autoCompleteUrl")
-            and (schema.get("items") == "user" or schema["type"] == "user")
+            and (
+                schema.get("items") == "user"
+                or schema["type"] == "user"
+                or schema["type"] == "team"
+                or schema.get("items") == "team"
+            )
             # Sprint and "Epic Link" fields
             or schema.get("custom")
             in (JIRA_CUSTOM_FIELD_TYPES["sprint"], JIRA_CUSTOM_FIELD_TYPES["epic"])
@@ -795,100 +873,6 @@ class JiraIntegration(IssueSyncIntegration):
 
         return fields
 
-    def _old_clean_and_transform_issue_data(
-        self, data: dict[str, Any], issue_type_meta: dict[str, Any]
-    ) -> dict[str, Any]:
-        """
-        Get the (cached) "createmeta" from Jira to use as a "schema". Clean up
-        the Jira issue by removing all fields that aren't enumerated by this
-        schema. Send this cleaned data to Jira. Finally, make another API call
-        to Jira to make sure the issue was created and return basic issue details.
-
-        :param data: JiraCreateTicketAction object
-        :return: simple object with basic Jira issue details
-        """
-        client = self.get_client()
-        cleaned_data = {}
-        user_id_field = client.user_id_field()
-
-        fs = issue_type_meta["fields"]
-        for field in fs.keys():
-            f = fs[field]
-            if field == "description":
-                cleaned_data[field] = data[field]
-                continue
-            elif field == "summary":
-                cleaned_data["summary"] = data["title"]
-                continue
-            elif field == "labels" and "labels" in data:
-                labels = [label.strip() for label in data["labels"].split(",") if label.strip()]
-                cleaned_data["labels"] = labels
-                continue
-            if field in data.keys():
-                v = data.get(field)
-                if not v:
-                    continue
-
-                schema = f.get("schema")
-                if schema:
-                    if schema.get("type") == "string" and not schema.get("custom"):
-                        cleaned_data[field] = v
-                        continue
-                    if schema["type"] == "user" or schema.get("items") == "user":
-                        if schema.get("custom") == JIRA_CUSTOM_FIELD_TYPES.get("multiuserpicker"):
-                            # custom multi-picker
-                            v = [{user_id_field: user_id} for user_id in v]
-                        else:
-                            v = {user_id_field: v}
-                    elif schema["type"] == "issuelink":  # used by Parent field
-                        v = {"key": v}
-                    elif schema.get("custom") == JIRA_CUSTOM_FIELD_TYPES["epic"]:
-                        v = v
-                    elif schema.get("custom") == JIRA_CUSTOM_FIELD_TYPES["team"]:
-                        v = v
-                    elif schema.get("custom") == JIRA_CUSTOM_FIELD_TYPES["sprint"]:
-                        try:
-                            v = int(v)
-                        except ValueError:
-                            raise IntegrationError(f"Invalid sprint ({v}) specified")
-                    elif schema["type"] == "array" and schema.get("items") == "option":
-                        v = [{"value": vx} for vx in v]
-                    elif schema["type"] == "array" and schema.get("items") == "string":
-                        v = [v]
-                    elif schema["type"] == "array" and schema.get("items") != "string":
-                        v = [{"id": vx} for vx in v]
-                    elif schema["type"] == "option":
-                        v = {"value": v}
-                    elif schema.get("custom") == JIRA_CUSTOM_FIELD_TYPES.get("textarea"):
-                        v = v
-                    elif (
-                        schema["type"] == "number"
-                        or schema.get("custom") == JIRA_CUSTOM_FIELD_TYPES["tempo_account"]
-                    ):
-                        try:
-                            if "." in v:
-                                v = float(v)
-                            else:
-                                v = int(v)
-                        except ValueError:
-                            pass
-                    elif (
-                        schema.get("type") != "string"
-                        or (schema.get("items") and schema.get("items") != "string")
-                        or schema.get("custom") == JIRA_CUSTOM_FIELD_TYPES.get("select")
-                    ):
-                        v = {"id": v}
-                cleaned_data[field] = v
-
-        if not (isinstance(cleaned_data["issuetype"], dict) and "id" in cleaned_data["issuetype"]):
-            # something fishy is going on with this field, working on some Jira
-            # instances, and some not.
-            # testing against 5.1.5 and 5.1.4 does not convert (perhaps is no longer included
-            # in the projectmeta API call, and would normally be converted in the
-            # above clean method.)
-            cleaned_data["issuetype"] = {"id": cleaned_data["issuetype"]}
-        return cleaned_data
-
     def _clean_and_transform_issue_data(
         self, issue_metadata: JiraIssueTypeMetadata, data: dict[str, Any]
     ) -> Any:
@@ -914,12 +898,9 @@ class JiraIntegration(IssueSyncIntegration):
             raise IntegrationError("Could not fetch issue create configuration from Jira.")
 
         issue_type_meta = self.get_issue_type_meta(data["issuetype"], meta)
-        if features.has("organizations:new-jira-transformers", organization=self.organization):
-            cleaned_data = self._clean_and_transform_issue_data(
-                JiraIssueTypeMetadata.from_dict(issue_type_meta), data
-            )
-        else:
-            cleaned_data = self._old_clean_and_transform_issue_data(data, issue_type_meta)
+        cleaned_data = self._clean_and_transform_issue_data(
+            JiraIssueTypeMetadata.from_dict(issue_type_meta), data
+        )
 
         try:
             response = client.create_issue(cleaned_data)

@@ -44,6 +44,9 @@ def get_type_transformer_mappings(user_id_field: str) -> TransformerType:
         JiraSchemaTypes.issue_link.value: lambda x: {"key": x},
         JiraSchemaTypes.project.value: id_obj_transformer,
         JiraSchemaTypes.number.value: parse_number_field,
+        JiraSchemaTypes.priority.value: id_obj_transformer,
+        JiraSchemaTypes.version.value: id_obj_transformer,
+        JiraSchemaTypes.component: id_obj_transformer,
     }
 
     return transformers
@@ -51,11 +54,6 @@ def get_type_transformer_mappings(user_id_field: str) -> TransformerType:
 
 def get_custom_field_transformer_mappings() -> TransformerType:
     transformers = {
-        # TODO(Gabe): `select` type fields are broken in the UI, fix this.
-        # JIRA_CUSTOM_FIELD_TYPES["select"]: identity_transformer,
-        # TODO(Gabe): `epic` type fields don't currently appear in the issue
-        #  link dialog. Re-enable this if needed after testing.
-        # JIRA_CUSTOM_FIELD_TYPES["epic"]: identity_transformer,
         JIRA_CUSTOM_FIELD_TYPES["tempo_account"]: parse_number_field,
         JIRA_CUSTOM_FIELD_TYPES["sprint"]: parse_number_field,
         JIRA_CUSTOM_FIELD_TYPES["rank"]: id_obj_transformer,
@@ -100,10 +98,10 @@ def transform_fields(
     for field in jira_fields:
         field_data = data.get(field.key)
 
-        # We don't have a mapping for this field, so it's probably extraneous.
-        # TODO(Gabe): Explore raising a sentry issue for unmapped fields in
-        #  order for us to properly filter them out.
-        if field_data is None:
+        # Skip any values that indicate no value should be provided.
+        # We have some older alert templates with "" values, which will raise
+        # if we don't skip them.
+        if field_data is None or field_data == "":
             continue
 
         field_transformer = get_transformer_for_field(
@@ -134,7 +132,7 @@ def transform_fields(
         except JiraSchemaParseError as e:
             raise IntegrationFormError(field_errors={field.name: str(e)}) from e
 
-        if transformed_value:
+        if transformed_value is not None:
             transformed_data[field.key] = transformed_value
 
     return transformed_data

@@ -75,14 +75,12 @@ from sentry.integrations.models.organization_integration import OrganizationInte
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.types import ExternalProviders
 from sentry.issues.grouptype import get_group_type_by_type_id
-from sentry.mediators.token_exchange.grant_exchanger import GrantExchanger
 from sentry.models.activity import Activity
 from sentry.models.apikey import ApiKey
 from sentry.models.apitoken import ApiToken
 from sentry.models.artifactbundle import ArtifactBundle
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
-from sentry.models.avatars.sentry_app_avatar import SentryAppAvatar
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange
@@ -114,7 +112,6 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.organizationslugreservation import OrganizationSlugReservation
 from sentry.models.orgauthtoken import OrgAuthToken
-from sentry.models.platformexternalissue import PlatformExternalIssue
 from sentry.models.project import Project
 from sentry.models.projectbookmark import ProjectBookmark
 from sentry.models.projectcodeowners import ProjectCodeOwners
@@ -136,7 +133,9 @@ from sentry.sentry_apps.installations import (
     SentryAppInstallationTokenCreator,
 )
 from sentry.sentry_apps.logic import SentryAppCreator
+from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
 from sentry.sentry_apps.models.sentry_app import SentryApp
+from sentry.sentry_apps.models.sentry_app_avatar import SentryAppAvatar
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.models.sentry_app_installation_for_provider import (
     SentryAppInstallationForProvider,
@@ -144,6 +143,7 @@ from sentry.sentry_apps.models.sentry_app_installation_for_provider import (
 from sentry.sentry_apps.models.servicehook import ServiceHook
 from sentry.sentry_apps.services.app.serial import serialize_sentry_app_installation
 from sentry.sentry_apps.services.hook import hook_service
+from sentry.sentry_apps.token_exchange.grant_exchanger import GrantExchanger
 from sentry.signals import project_created
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
@@ -171,11 +171,17 @@ from sentry.users.services.user import RpcUser
 from sentry.utils import loremipsum
 from sentry.utils.performance_issues.performance_problem import PerformanceProblem
 from sentry.workflow_engine.models import (
+    Action,
+    DataCondition,
+    DataConditionGroup,
+    DataConditionGroupAction,
     DataSource,
     DataSourceDetector,
     Detector,
+    DetectorState,
+    DetectorWorkflow,
     Workflow,
-    WorkflowAction,
+    WorkflowDataConditionGroup,
 )
 from social_auth.models import UserSocialAuth
 
@@ -946,15 +952,21 @@ class Factories:
         data,
         project_id: int,
         assert_no_errors: bool = True,
-        event_type: EventType = EventType.DEFAULT,
+        default_event_type: EventType | None = None,
         sent_at: datetime | None = None,
     ) -> Event:
         """
         Like `create_event`, but closer to how events are actually
         ingested. Prefer to use this method over `create_event`
         """
-        if event_type == EventType.ERROR:
+
+        # this creates a basic message event
+        if default_event_type == EventType.DEFAULT:
             data.update({"stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"])})
+
+        # this creates an error event
+        elif default_event_type == EventType.ERROR:
+            data.update({"exception": [{"value": "BadError"}]})
 
         manager = EventManager(data, sent_at=sent_at)
         manager.normalize()
@@ -1202,12 +1214,13 @@ class Factories:
             ):
                 assert install.api_grant is not None
                 assert install.sentry_app.application is not None
-                GrantExchanger.run(
+                assert install.sentry_app.proxy_user is not None
+                GrantExchanger(
                     install=rpc_install,
                     code=install.api_grant.code,
                     client_id=install.sentry_app.application.client_id,
                     user=install.sentry_app.proxy_user,
-                )
+                ).run()
                 install = SentryAppInstallation.objects.get(id=install.id)
         return install
 
@@ -1973,6 +1986,7 @@ class Factories:
     @staticmethod
     def create_project_uptime_subscription(
         project: Project,
+        env: Environment | None,
         uptime_subscription: UptimeSubscription,
         mode: ProjectUptimeSubscriptionMode,
         name: str,
@@ -1990,6 +2004,7 @@ class Factories:
         return ProjectUptimeSubscription.objects.create(
             uptime_subscription=uptime_subscription,
             project=project,
+            environment=env,
             mode=mode,
             name=name,
             owner_team_id=owner_team_id,
@@ -2065,13 +2080,34 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
-    def create_workflowaction(
-        workflow: Workflow | None = None,
+    def create_data_condition_group(
         **kwargs,
-    ) -> WorkflowAction:
+    ) -> DataConditionGroup:
+        return DataConditionGroup.objects.create(**kwargs)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_workflow_data_condition_group(
+        workflow: Workflow | None = None,
+        condition_group: DataConditionGroup | None = None,
+        **kwargs,
+    ) -> WorkflowDataConditionGroup:
         if workflow is None:
             workflow = Factories.create_workflow()
-        return WorkflowAction.objects.create(workflow=workflow, **kwargs)
+
+        if not condition_group:
+            condition_group = Factories.create_data_condition_group()
+
+        return WorkflowDataConditionGroup.objects.create(
+            workflow=workflow, condition_group=condition_group
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_data_condition(
+        **kwargs,
+    ) -> DataCondition:
+        return DataCondition.objects.create(**kwargs)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
@@ -2103,8 +2139,23 @@ class Factories:
         if name is None:
             name = petname.generate(2, " ", letters=10).title()
         return Detector.objects.create(
-            organization=organization, name=name, owner_user_id=owner_user_id, owner_team=owner_team
+            organization=organization,
+            name=name,
+            owner_user_id=owner_user_id,
+            owner_team=owner_team,
+            **kwargs,
         )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_detector_state(
+        detector: Detector | None = None,
+        **kwargs,
+    ) -> DetectorState:
+        if detector is None:
+            detector = Factories.create_detector()
+
+        return DetectorState.objects.create(detector=detector, **kwargs)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
@@ -2118,3 +2169,36 @@ class Factories:
         if detector is None:
             detector = Factories.create_detector()
         return DataSourceDetector.objects.create(data_source=data_source, detector=detector)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_action(**kwargs) -> Action:
+        return Action.objects.create(**kwargs)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_detector_workflow(
+        detector: Detector | None = None,
+        workflow: Workflow | None = None,
+        **kwargs,
+    ) -> DetectorWorkflow:
+        if detector is None:
+            detector = Factories.create_detector()
+        if workflow is None:
+            workflow = Factories.create_workflow()
+        return DetectorWorkflow.objects.create(detector=detector, workflow=workflow, **kwargs)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_data_condition_group_action(
+        action: Action | None = None,
+        condition_group: DataConditionGroup | None = None,
+        **kwargs,
+    ) -> DataConditionGroupAction:
+        if action is None:
+            action = Factories.create_action()
+        if condition_group is None:
+            condition_group = Factories.create_data_condition_group()
+        return DataConditionGroupAction.objects.create(
+            action=action, condition_group=condition_group, **kwargs
+        )

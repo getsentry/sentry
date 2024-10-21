@@ -95,7 +95,7 @@ class SentryAppManager(ParanoidManager["SentryApp"]):
             installations__date_deleted=None,
         ).distinct()
 
-    def visible_for_user(self, request: Request) -> QuerySet:
+    def visible_for_user(self, request: Request) -> QuerySet["SentryApp"]:
         from sentry.auth.superuser import is_active_superuser
 
         if is_active_superuser(request):
@@ -235,7 +235,7 @@ class SentryApp(ParanoidModel, HasApiScopes, Model):
         ]
 
     def delete(self, *args, **kwargs):
-        from sentry.models.avatars.sentry_app_avatar import SentryAppAvatar
+        from sentry.sentry_apps.models.sentry_app_avatar import SentryAppAvatar
 
         with outbox_context(transaction.atomic(using=router.db_for_write(SentryApp))):
             for outbox in self.outboxes_for_update():

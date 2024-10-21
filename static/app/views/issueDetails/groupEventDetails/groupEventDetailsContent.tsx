@@ -2,6 +2,7 @@ import {Fragment, lazy, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {usePrompt} from 'sentry/actionCreators/prompts';
+import Feature from 'sentry/components/acl/feature';
 import {Button} from 'sentry/components/button';
 import {CommitRow} from 'sentry/components/commitRow';
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -55,6 +56,7 @@ import {EventRRWebIntegration} from 'sentry/components/events/rrwebIntegration';
 import {DataSection} from 'sentry/components/events/styles';
 import {SuspectCommits} from 'sentry/components/events/suspectCommits';
 import {EventUserFeedback} from 'sentry/components/events/userFeedback';
+import {GroupSummary} from 'sentry/components/group/groupSummary';
 import LazyLoad from 'sentry/components/lazyLoad';
 import Placeholder from 'sentry/components/placeholder';
 import {useHasNewTimelineUI} from 'sentry/components/timeline/utils';
@@ -148,12 +150,16 @@ export function EventDetailsContent({
       {hasActionableItems && !hasStreamlinedUI && (
         <ActionableItems event={event} project={project} isShare={false} />
       )}
-      {hasStreamlinedUI && <TraceDataSection event={event} />}
       <StyledDataSection>
+        {!hasStreamlinedUI && (
+          <Feature features={['organizations:ai-summary']}>
+            <GroupSummary groupId={group.id} groupCategory={group.issueCategory} />
+          </Feature>
+        )}
         {!hasStreamlinedUI && <TraceDataSection event={event} />}
         {!hasStreamlinedUI && (
           <SuspectCommits
-            project={project}
+            projectSlug={project.slug}
             eventId={event.id}
             group={group}
             commitRow={CommitRow}
@@ -229,12 +235,9 @@ export function EventDetailsContent({
           project={project}
         />
       )}
-      <HighlightsDataSection
-        groupId={group.id}
-        event={event}
-        project={project}
-        viewAllRef={tagsRef}
-      />
+      {!hasStreamlinedUI && (
+        <HighlightsDataSection event={event} project={project} viewAllRef={tagsRef} />
+      )}
       {showPossibleSolutionsHigher && (
         <ResourcesAndPossibleSolutionsIssueDetailsContent
           event={event}
@@ -253,7 +256,8 @@ export function EventDetailsContent({
           <Exception
             event={event}
             data={eventEntries[EntryType.EXCEPTION].data}
-            projectSlug={projectSlug}
+            projectSlug={project.slug}
+            group={group}
             groupingCurrentLevel={groupingCurrentLevel}
           />
         </EntryErrorBoundary>
@@ -273,8 +277,9 @@ export function EventDetailsContent({
           <Threads
             event={event}
             data={eventEntries[EntryType.THREADS].data}
-            projectSlug={projectSlug}
+            projectSlug={project.slug}
             groupingCurrentLevel={groupingCurrentLevel}
+            group={group}
           />
         </EntryErrorBoundary>
       )}
@@ -352,12 +357,9 @@ export function EventDetailsContent({
           />
         </EntryErrorBoundary>
       ) : null}
-      <EventTraceView
-        group={group}
-        event={event}
-        organization={organization}
-        projectSlug={project.slug}
-      />
+      {hasStreamlinedUI && (
+        <EventTraceView group={group} event={event} organization={organization} />
+      )}
       {!showPossibleSolutionsHigher && (
         <ResourcesAndPossibleSolutionsIssueDetailsContent
           event={event}
@@ -381,7 +383,10 @@ export function EventDetailsContent({
         </EntryErrorBoundary>
       )}
       {hasStreamlinedUI ? (
-        <EventTagsDataSection event={event} projectSlug={project.slug} ref={tagsRef} />
+        <Fragment>
+          <HighlightsDataSection event={event} project={project} viewAllRef={tagsRef} />
+          <EventTagsDataSection event={event} projectSlug={project.slug} ref={tagsRef} />
+        </Fragment>
       ) : (
         <div ref={tagsRef}>
           <EventTagsAndScreenshot event={event} projectSlug={project.slug} />

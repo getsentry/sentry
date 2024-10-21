@@ -24,6 +24,7 @@ import type {AlertType, WizardRuleTemplate} from 'sentry/views/alerts/wizard/opt
 
 export const DEFAULT_COUNT_TIME_WINDOW = 1; // 1min
 export const DEFAULT_CHANGE_TIME_WINDOW = 60; // 1h
+export const DEFAULT_DYNAMIC_TIME_WINDOW = 60; // 1h
 export const DEFAULT_CHANGE_COMP_DELTA = 10080; // 1w
 
 export const DEFAULT_AGGREGATE = 'count()';
@@ -89,6 +90,9 @@ export const DuplicateMetricFields: string[] = [
   'name',
   'projectId',
   'comparisonDelta',
+  'seasonality',
+  'sensitivity',
+  'detectionType',
 ];
 
 export const DuplicateTriggerFields: string[] = ['alertThreshold', 'label'];

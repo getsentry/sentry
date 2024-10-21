@@ -17,7 +17,7 @@ jest.mock('sentry/utils/usePageFilters');
 describe('HTTPSamplesPanel', () => {
   const organization = OrganizationFixture();
 
-  let eventsRequestMock;
+  let eventsRequestMock: jest.Mock;
 
   jest.mocked(usePageFilters).mockReturnValue({
     isReady: true,
@@ -95,7 +95,9 @@ describe('HTTPSamplesPanel', () => {
   });
 
   describe('Status panel', () => {
-    let eventsStatsRequestMock, samplesRequestMock, spanFieldTagsMock;
+    let eventsStatsRequestMock: jest.Mock;
+    let samplesRequestMock: jest.Mock;
+    let spanFieldTagsMock: jest.Mock;
 
     beforeEach(() => {
       jest.mocked(useLocation).mockReturnValue({
@@ -307,7 +309,9 @@ describe('HTTPSamplesPanel', () => {
   });
 
   describe('Duration panel', () => {
-    let chartRequestMock, samplesRequestMock, spanFieldTagsMock;
+    let chartRequestMock: jest.Mock;
+    let samplesRequestMock: jest.Mock;
+    let spanFieldTagsMock: jest.Mock;
 
     beforeEach(() => {
       jest.mocked(useLocation).mockReturnValue({
@@ -471,19 +475,10 @@ describe('HTTPSamplesPanel', () => {
 
       expect(screen.getByRole('cell', {name: 'b1bf1acde131623a'})).toBeInTheDocument();
 
-      // TODO(__SENTRY_USING_REACT_ROUTER_SIX): This first variant can be removed
-      // once react-router 3 has been removed.
-      try {
-        expect(screen.getByRole('link', {name: 'b1bf1acde131623a'})).toHaveAttribute(
-          'href',
-          '/organizations/org-slug/performance/javascript:11c910c9c10b3ec4ecf8f209b8c6ce48/?domain=%2A.sentry.dev&panel=duration&statsPeriod=10d&transactionMethod=GET'
-        );
-      } catch {
-        expect(screen.getByRole('link', {name: 'b1bf1acde131623a'})).toHaveAttribute(
-          'href',
-          '/organizations/org-slug/performance/javascript:11c910c9c10b3ec4ecf8f209b8c6ce48/?domain=%2A.sentry.dev&panel=duration&statsPeriod=10d&transactionMethod=GET#span-b1bf1acde131623a'
-        );
-      }
+      expect(screen.getByRole('link', {name: 'b1bf1acde131623a'})).toHaveAttribute(
+        'href',
+        '/organizations/org-slug/performance/javascript:11c910c9c10b3ec4ecf8f209b8c6ce48/?domain=%2A.sentry.dev&panel=duration&statsPeriod=10d&transactionMethod=GET#span-b1bf1acde131623a'
+      );
 
       expect(screen.getByRole('cell', {name: '200'})).toBeInTheDocument();
     });

@@ -104,12 +104,12 @@ SentryAndroid.init(context) { options ->
   options.isDebug = true
 
   // Currently under experimental options:
-  options.experimental.sessionReplay.errorSampleRate = 1.0
+  options.experimental.sessionReplay.onErrorSampleRate = 1.0
   options.experimental.sessionReplay.sessionSampleRate = 1.0
 }`;
 
 const getReplaySetupSnippetXml = () => `
-<meta-data android:name="io.sentry.session-replay.error-sample-rate" android:value="1.0" />
+<meta-data android:name="io.sentry.session-replay.on-error-sample-rate" android:value="1.0" />
 <meta-data android:name="io.sentry.session-replay.session-sample-rate" android:value="1.0" />`;
 
 const getReplayConfigurationSnippet = () => `
@@ -138,7 +138,9 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
               {
                 description: (
                   <Fragment>
-                    {t('The Sentry wizard will automatically patch your application:')}
+                    <p>
+                      {t('The Sentry wizard will automatically patch your application:')}
+                    </p>
                     <List symbol="bullet">
                       <ListItem>
                         {tct(
@@ -158,10 +160,9 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
                       </ListItem>
                       <ListItem>
                         {tct(
-                          'Create [sentryProperties: sentry.properties] with an auth token to upload proguard mappings (this file is automatically added to [gitignore: .gitignore])',
+                          'Create [code: sentry.properties] with an auth token to upload proguard mappings (this file is automatically added to [code: .gitignore])',
                           {
-                            sentryProperties: <code />,
-                            gitignore: <code />,
+                            code: <code />,
                           }
                         )}
                       </ListItem>
@@ -171,17 +172,15 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
                         )}
                       </ListItem>
                     </List>
-                    <p>
-                      {tct(
-                        'Alternatively, you can also [manualSetupLink:set up the SDK manually].',
-                        {
-                          manualSetupLink: (
-                            <ExternalLink href="https://docs.sentry.io/platforms/android/manual-setup/" />
-                          ),
-                        }
-                      )}
-                    </p>
                   </Fragment>
+                ),
+                additionalInfo: tct(
+                  'Alternatively, you can also [manualSetupLink:set up the SDK manually].',
+                  {
+                    manualSetupLink: (
+                      <ExternalLink href="https://docs.sentry.io/platforms/android/manual-setup/" />
+                    ),
+                  }
                 ),
               },
             ],
@@ -218,10 +217,9 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
               <Fragment>
                 <p>
                   {tct(
-                    'Configuration is done via the application [manifest: AndroidManifest.xml]. Under the hood Sentry uses a [provider:ContentProvider] to initialize the SDK based on the values provided below. This way the SDK can capture important crashes and metrics right from the app start.',
+                    'Configuration is done via the application [code: AndroidManifest.xml]. Under the hood Sentry uses a [code:ContentProvider] to initialize the SDK based on the values provided below. This way the SDK can capture important crashes and metrics right from the app start.',
                     {
-                      manifest: <code />,
-                      provider: <code />,
+                      code: <code />,
                     }
                   )}
                 </p>
@@ -436,7 +434,7 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
   ],
   verify: getReplayVerifyStep({
     replayOnErrorSampleRateName:
-      'options\u200b.experimental\u200b.sessionReplay\u200b.errorSampleRate',
+      'options\u200b.experimental\u200b.sessionReplay\u200b.onErrorSampleRate',
     replaySessionSampleRateName:
       'options\u200b.experimental\u200b.sessionReplay\u200b.sessionSampleRate',
   }),

@@ -2,11 +2,11 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import ProjectEndpoint
+from sentry.api.bases.project import ProjectAlertRulePermission
 from sentry.api.serializers import serialize
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
@@ -27,6 +27,7 @@ class ProjectUptimeAlertIndexEndpoint(ProjectEndpoint):
         "POST": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.CRONS
+    permission_classes = (ProjectAlertRulePermission,)
 
     @extend_schema(
         operation_id="Create an Uptime Monitor",
@@ -44,10 +45,6 @@ class ProjectUptimeAlertIndexEndpoint(ProjectEndpoint):
         """
         Create a new monitor.
         """
-        if not features.has(
-            "organizations:uptime-api-create-update", project.organization, actor=request.user
-        ):
-            return Response(status=404)
         validator = UptimeMonitorValidator(
             data=request.data,
             context={

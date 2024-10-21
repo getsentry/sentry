@@ -5,7 +5,7 @@ from sentry.models.group import GroupStatus
 from sentry.models.release import Release
 from sentry.search.events.constants import SEMVER_ALIAS
 from sentry.testutils.cases import APITestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 
@@ -26,7 +26,7 @@ class GroupEventDetailsEndpointTestBase(APITestCase, SnubaTestCase):
             data={
                 "event_id": "a" * 32,
                 "environment": "development",
-                "timestamp": iso_format(before_now(days=1)),
+                "timestamp": before_now(days=1).isoformat(),
                 "fingerprint": ["group-1"],
                 "release": self.release_version,
             },
@@ -36,7 +36,7 @@ class GroupEventDetailsEndpointTestBase(APITestCase, SnubaTestCase):
             data={
                 "event_id": "b" * 32,
                 "environment": "production",
-                "timestamp": iso_format(before_now(minutes=5)),
+                "timestamp": before_now(minutes=5).isoformat(),
                 "fingerprint": ["group-1"],
                 "release": self.release_version,
             },
@@ -46,7 +46,7 @@ class GroupEventDetailsEndpointTestBase(APITestCase, SnubaTestCase):
             data={
                 "event_id": "c" * 32,
                 "environment": "staging",
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": before_now(minutes=1).isoformat(),
                 "fingerprint": ["group-1"],
                 "release": self.release_version,
             },
@@ -143,7 +143,7 @@ class GroupEventDetailsHelpfulEndpointTest(
             data={
                 "event_id": "d" * 32,
                 "environment": "staging",
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": before_now(minutes=1).isoformat(),
                 "fingerprint": ["group-1"],
                 "contexts": {
                     "replay": {"replay_id": uuid.uuid4().hex},
@@ -157,7 +157,7 @@ class GroupEventDetailsHelpfulEndpointTest(
             },
             project_id=self.project_1.id,
         )
-        url = f"/api/0/issues/{self.event_a.group.id}/events/helpful/"
+        url = f"/api/0/issues/{self.event_a.group.id}/events/recommended/"
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
@@ -169,7 +169,7 @@ class GroupEventDetailsHelpfulEndpointTest(
         """
         When everything else is equal, the event_id should be used to break ties.
         """
-        timestamp = iso_format(before_now(minutes=1))
+        timestamp = before_now(minutes=1).isoformat()
 
         self.event_d = self.store_event(
             data={
@@ -193,7 +193,7 @@ class GroupEventDetailsHelpfulEndpointTest(
             },
             project_id=self.project_1.id,
         )
-        url = f"/api/0/issues/{self.event_a.group.id}/events/helpful/"
+        url = f"/api/0/issues/{self.event_a.group.id}/events/recommended/"
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
@@ -211,7 +211,7 @@ class GroupEventDetailsHelpfulEndpointTest(
             data={
                 "event_id": "d" * 32,
                 "environment": "staging",
-                "timestamp": iso_format(before_now(minutes=3)),
+                "timestamp": before_now(minutes=3).isoformat(),
                 "fingerprint": ["group-order"],
                 "contexts": {
                     "replay": {"replay_id": replay_id_1},
@@ -223,7 +223,7 @@ class GroupEventDetailsHelpfulEndpointTest(
             data={
                 "event_id": "e" * 32,
                 "environment": "staging",
-                "timestamp": iso_format(before_now(minutes=2)),
+                "timestamp": before_now(minutes=2).isoformat(),
                 "fingerprint": ["group-order"],
                 "contexts": {
                     "replay": {"replay_id": replay_id_2},
@@ -235,13 +235,13 @@ class GroupEventDetailsHelpfulEndpointTest(
             data={
                 "event_id": "f" * 32,
                 "environment": "staging",
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": before_now(minutes=1).isoformat(),
                 "fingerprint": ["group-order"],
             },
             project_id=self.project_1.id,
         )
 
-        url = f"/api/0/issues/{self.event_d.group.id}/events/helpful/"
+        url = f"/api/0/issues/{self.event_d.group.id}/events/recommended/"
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
@@ -250,7 +250,7 @@ class GroupEventDetailsHelpfulEndpointTest(
         assert response.data["nextEventID"] == str(self.event_f.event_id)
 
     def test_with_empty_query(self):
-        url = f"/api/0/issues/{self.event_a.group.id}/events/helpful/"
+        url = f"/api/0/issues/{self.event_a.group.id}/events/recommended/"
         response = self.client.get(url, {"query": ""}, format="json")
 
         assert response.status_code == 200, response.content
@@ -259,7 +259,7 @@ class GroupEventDetailsHelpfulEndpointTest(
         assert response.data["nextEventID"] is None
 
     def test_issue_filter_query_ignored(self):
-        url = f"/api/0/issues/{self.event_a.group.id}/events/helpful/"
+        url = f"/api/0/issues/{self.event_a.group.id}/events/recommended/"
         response = self.client.get(url, {"query": "is:unresolved"}, format="json")
 
         assert response.status_code == 200, response.content
@@ -268,7 +268,7 @@ class GroupEventDetailsHelpfulEndpointTest(
         assert response.data["nextEventID"] is None
 
     def test_event_release_query(self):
-        url = f"/api/0/issues/{self.event_a.group.id}/events/helpful/"
+        url = f"/api/0/issues/{self.event_a.group.id}/events/recommended/"
         response = self.client.get(url, {"query": f"release:{self.release_version}"}, format="json")
 
         assert response.status_code == 200, response.content
@@ -281,7 +281,7 @@ class GroupEventDetailsHelpfulEndpointTest(
             data={
                 "event_id": "1" * 32,
                 "environment": "staging",
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": before_now(minutes=1).isoformat(),
                 "fingerprint": ["group-4"],
                 "release": "test@1.2.3",
             },
@@ -292,7 +292,7 @@ class GroupEventDetailsHelpfulEndpointTest(
         assert release.version == "test@1.2.3"
         assert release.is_semver_release
 
-        url = f"/api/0/issues/{event_g.group.id}/events/helpful/"
+        url = f"/api/0/issues/{event_g.group.id}/events/recommended/"
         response = self.client.get(url, {"query": f"{SEMVER_ALIAS}:1.2.3"}, format="json")
 
         assert response.status_code == 200, response.content
@@ -301,7 +301,7 @@ class GroupEventDetailsHelpfulEndpointTest(
         assert response.data["nextEventID"] is None
 
     def test_has_environment(self):
-        url = f"/api/0/issues/{self.event_a.group.id}/events/helpful/"
+        url = f"/api/0/issues/{self.event_a.group.id}/events/recommended/"
         response = self.client.get(url, {"query": "has:environment"}, format="json")
 
         assert response.status_code == 200, response.content
@@ -314,7 +314,7 @@ class GroupEventDetailsHelpfulEndpointTest(
             data={
                 "event_id": "e" * 32,
                 "environment": "staging",
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": before_now(minutes=1).isoformat(),
                 "fingerprint": ["group-4"],
                 "contexts": {
                     "replay": {"replay_id": uuid.uuid4().hex},
@@ -333,7 +333,7 @@ class GroupEventDetailsHelpfulEndpointTest(
             data={
                 "event_id": "f" * 32,
                 "environment": "staging",
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": before_now(minutes=1).isoformat(),
                 "fingerprint": ["group-4"],
             },
             project_id=self.project_1.id,
@@ -344,7 +344,7 @@ class GroupEventDetailsHelpfulEndpointTest(
         group.substatus = None
         group.save(update_fields=["status", "substatus"])
 
-        url = f"/api/0/issues/{group.id}/events/helpful/"
+        url = f"/api/0/issues/{group.id}/events/recommended/"
         response = self.client.get(url, {"query": "is:unresolved has:environment"}, format="json")
 
         assert response.status_code == 200, response.content
@@ -358,14 +358,14 @@ class GroupEventDetailsHelpfulEndpointTest(
             data={
                 "event_id": "e" * 32,
                 "environment": "staging",
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": before_now(minutes=1).isoformat(),
                 "fingerprint": ["group-title"],
                 "message": title,
             },
             project_id=self.project_1.id,
         )
 
-        url = f"/api/0/issues/{event_e.group.id}/events/helpful/"
+        url = f"/api/0/issues/{event_e.group.id}/events/recommended/"
         response = self.client.get(url, {"query": f'title:"{title}"'}, format="json")
 
         assert response.status_code == 200, response.content
@@ -382,7 +382,7 @@ class GroupEventDetailsHelpfulEndpointTest(
         )
 
         assert group_info is not None
-        url = f"/api/0/issues/{group_info.group.id}/events/helpful/"
+        url = f"/api/0/issues/{group_info.group.id}/events/recommended/"
         response = self.client.get(url, {"query": f'title:"{issue_title}"'}, format="json")
 
         assert response.status_code == 200, response.content

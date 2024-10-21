@@ -1,3 +1,4 @@
+from ..sentry_apps.models.platformexternalissue import *  # NOQA
 from .activity import *  # NOQA
 from .apiapplication import *  # NOQA
 from .apiauthorization import *  # NOQA
@@ -19,6 +20,7 @@ from .commitauthor import *  # NOQA
 from .commitfilechange import CommitFileChange  # noqa
 from .counter import *  # NOQA
 from .dashboard import *  # NOQA
+from .dashboard_permissions import *  # NOQA
 from .dashboard_widget import *  # NOQA
 from .debugfile import *  # NOQA
 from .deletedentry import *  # NOQA
@@ -75,7 +77,6 @@ from .organizationonboardingtask import *  # NOQA
 from .organizationslugreservation import *  # NOQA
 from .organizationslugreservationreplica import *  # NOQA
 from .orgauthtoken import *  # NOQA
-from .platformexternalissue import *  # NOQA
 from .project import *  # NOQA
 from .projectbookmark import *  # NOQA
 from .projectcodeowners import *  # NOQA
@@ -104,7 +105,6 @@ from .rule import *  # NOQA
 from .rulefirehistory import RuleFireHistory  # NOQA
 from .rulesnooze import RuleSnooze  # NOQA
 from .savedsearch import *  # NOQA
-from .scheduledeletion import *  # NOQA
 from .search_common import *  # NOQA
 from .sentryshot import *  # NOQA
 from .sourcemapprocessingissue import *  # NOQA

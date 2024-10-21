@@ -13,6 +13,7 @@ import {BarChart} from 'sentry/components/charts/barChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import {LineChart} from 'sentry/components/charts/lineChart';
+import ReleaseSeries from 'sentry/components/charts/releaseSeries';
 import SimpleTableChart from 'sentry/components/charts/simpleTableChart';
 import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
@@ -30,7 +31,6 @@ import type {
   ReactEchartsRef,
   Series,
 } from 'sentry/types/echarts';
-import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {
@@ -54,11 +54,13 @@ import {
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {AutoSizedText} from 'sentry/views/dashboards/widgetCard/autoSizedText';
+import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 
 import {getFormatter} from '../../../components/charts/components/tooltip';
 import {getDatasetConfig} from '../datasetConfig/base';
 import type {Widget} from '../types';
 import {DisplayType} from '../types';
+import type WidgetLegendSelectionState from '../widgetLegendSelectionState';
 
 import type {GenericWidgetQueriesChildrenProps} from './genericWidgetQueries';
 
@@ -85,10 +87,10 @@ type WidgetCardChartProps = Pick<
 > & {
   location: Location;
   organization: Organization;
-  router: InjectedRouter;
   selection: PageFilters;
   theme: Theme;
   widget: Widget;
+  widgetLegendState: WidgetLegendSelectionState;
   chartGroup?: string;
   chartZoomOptions?: DataZoomComponentOption;
   expandNumbers?: boolean;
@@ -208,13 +210,17 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
       const fields = Object.keys(tableMeta);
 
       let field = fields[0];
+      let selectedField = field;
 
       if (
         organization.features.includes('dashboards-bignumber-equations') &&
         defined(widget.queries[0].selectedAggregate)
       ) {
         const index = widget.queries[0].selectedAggregate;
-        field = widget.queries[0].aggregates[index];
+        selectedField = widget.queries[0].aggregates[index];
+        if (fields.includes(selectedField)) {
+          field = selectedField;
+        }
       }
 
       // Change tableMeta for the field from integer to string since we will be rendering with toLocaleString
@@ -223,7 +229,12 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
         tableMeta[field] = 'string';
       }
 
-      if (!field || !result.data?.length) {
+      if (
+        !field ||
+        !result.data?.length ||
+        selectedField === 'equation|' ||
+        selectedField === ''
+      ) {
         return <BigNumber key={`big_number:${result.title}`}>{'\u2014'}</BigNumber>;
       }
 
@@ -305,6 +316,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
       chartZoomOptions,
       timeseriesResultsTypes,
       shouldResize,
+      organization,
     } = this.props;
 
     if (widget.displayType === 'table') {
@@ -338,14 +350,16 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
       );
     }
 
-    const {location, router, selection, onLegendSelectChanged} = this.props;
+    const {location, selection, onLegendSelectChanged, widgetLegendState} = this.props;
     const {start, end, period, utc} = selection.datetime;
+    const {projects, environments} = selection;
 
     const legend = {
       left: 0,
       top: 0,
       selected: getSeriesSelection(location),
       formatter: (seriesName: string) => {
+        seriesName = WidgetLegendNameEncoderDecoder.decodeSeriesNameForLegend(seriesName);
         const arg = getAggregateArg(seriesName);
         if (arg !== null) {
           const slug = getMeasurementSlug(arg);
@@ -467,7 +481,6 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
 
     return (
       <ChartZoom
-        router={router}
         period={period}
         start={start}
         end={end}
@@ -520,7 +533,59 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
 
           const forwardedRef = this.props.chartGroup ? this.handleRef : undefined;
 
-          return (
+          return organization.features.includes('dashboards-releases-on-charts') &&
+            widgetLegendState.widgetRequiresLegendUnselection(widget) ? (
+            <ReleaseSeries
+              end={end}
+              start={start}
+              period={period}
+              environments={environments}
+              projects={projects}
+              memoized
+            >
+              {({releaseSeries}) => {
+                // make series name into seriesName:widgetId form for individual widget legend control
+                // NOTE: e-charts legends control all charts that have the same series name so attaching
+                // widget id will differentiate the charts allowing them to be controlled individually
+                const modifiedReleaseSeriesResults =
+                  WidgetLegendNameEncoderDecoder.modifyTimeseriesNames(
+                    widget,
+                    releaseSeries
+                  );
+                return (
+                  <TransitionChart loading={loading} reloading={loading}>
+                    <LoadingScreen loading={loading} />
+                    <ChartWrapper
+                      autoHeightResize={shouldResize ?? true}
+                      noPadding={noPadding}
+                    >
+                      {getDynamicText({
+                        value: this.chartComponent({
+                          ...zoomRenderProps,
+                          ...chartOptions,
+                          // Override default datazoom behaviour for updating Global Selection Header
+                          ...(onZoom
+                            ? {
+                                onDataZoom: (evt, chartProps) =>
+                                  // Need to pass seriesStart and seriesEnd to onZoom since slider zooms
+                                  // callback with percentage instead of datetime values. Passing seriesStart
+                                  // and seriesEnd allows calculating datetime values with percentage.
+                                  onZoom({...evt, seriesStart, seriesEnd}, chartProps),
+                              }
+                            : {}),
+                          legend,
+                          series: [...series, ...modifiedReleaseSeriesResults],
+                          onLegendSelectChanged,
+                          forwardedRef,
+                        }),
+                        fixed: <Placeholder height="200px" testId="skeleton-ui" />,
+                      })}
+                    </ChartWrapper>
+                  </TransitionChart>
+                );
+              }}
+            </ReleaseSeries>
+          ) : (
             <TransitionChart loading={loading} reloading={loading}>
               <LoadingScreen loading={loading} />
               <ChartWrapper autoHeightResize={shouldResize ?? true} noPadding={noPadding}>

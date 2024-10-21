@@ -15,15 +15,14 @@ from django.db.models import QuerySet
 from django.db.models.signals import post_save
 from django.forms import ValidationError
 from django.utils import timezone as django_timezone
-from parsimonious.exceptions import ParseError
 from snuba_sdk import Column, Condition, Limit, Op
-from urllib3.exceptions import MaxRetryError, TimeoutError
 
 from sentry import analytics, audit_log, features, quotas
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.auth.access import SystemAccess
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS, ObjectStatus
 from sentry.db.models import Model
+from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.incidents import tasks
 from sentry.incidents.models.alert_rule import (
     AlertRule,
@@ -62,7 +61,6 @@ from sentry.models.environment import Environment
 from sentry.models.notificationaction import ActionService, ActionTarget
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.relay.config.metric_extraction import on_demand_metrics_feature_flags
 from sentry.search.events.builder.base import BaseQueryBuilder
 from sentry.search.events.constants import (
@@ -71,7 +69,7 @@ from sentry.search.events.constants import (
 )
 from sentry.search.events.fields import is_function, resolve_field
 from sentry.seer.anomaly_detection.delete_rule import delete_rule_in_seer
-from sentry.seer.anomaly_detection.store_data import send_historical_data_to_seer
+from sentry.seer.anomaly_detection.store_data import send_new_rule_data, update_rule_data
 from sentry.sentry_apps.services.app import RpcSentryAppInstallation, app_service
 from sentry.shared_integrations.exceptions import (
     ApiTimeoutError,
@@ -481,6 +479,7 @@ query_datasets_to_type = {
     Dataset.Transactions: SnubaQuery.Type.PERFORMANCE,
     Dataset.PerformanceMetrics: SnubaQuery.Type.PERFORMANCE,
     Dataset.Metrics: SnubaQuery.Type.CRASH_RATE,
+    Dataset.EventsAnalyticsPlatform: SnubaQuery.Type.PERFORMANCE,
 }
 
 
@@ -566,22 +565,28 @@ def create_alert_rule(
 
     :return: The created `AlertRule`
     """
+    has_anomaly_detection = features.has(
+        "organizations:anomaly-detection-alerts", organization
+    ) and features.has("organizations:anomaly-detection-rollout", organization)
+
+    if detection_type == AlertRuleDetectionType.DYNAMIC.value and not has_anomaly_detection:
+        raise ResourceDoesNotExist("Your organization does not have access to this feature.")
+
     if monitor_type == AlertRuleMonitorTypeInt.ACTIVATED and not activation_condition:
         raise ValidationError("Activation condition required for activated alert rule")
-    if detection_type == AlertRuleDetectionType.DYNAMIC:
-        resolution = time_window
-    else:
-        resolution = get_alert_resolution(time_window, organization)
 
     if detection_type == AlertRuleDetectionType.DYNAMIC:
+        resolution = time_window
         # NOTE: we hardcode seasonality for EA
         seasonality = AlertRuleSeasonality.AUTO
-        if not (sensitivity):
+        if not sensitivity:
             raise ValidationError("Dynamic alerts require a sensitivity level")
         if time_window not in DYNAMIC_TIME_WINDOWS:
             raise ValidationError(INVALID_TIME_WINDOW)
+        if "is:unresolved" in query:
+            raise ValidationError("Dynamic alerts do not support 'is:unresolved' queries")
     else:
-        # NOTE: we hardcode seasonality for EA
+        resolution = get_alert_resolution(time_window, organization)
         seasonality = None
         if sensitivity:
             raise ValidationError("Sensitivity is not a valid field for this alert type")
@@ -652,31 +657,8 @@ def create_alert_rule(
             AlertRuleExcludedProjects.objects.bulk_create(exclusions)
 
         if alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC.value:
-            if not features.has("organizations:anomaly-detection-alerts", organization):
-                alert_rule.delete()
-                raise ResourceDoesNotExist(
-                    "Your organization does not have access to this feature."
-                )
-
-            try:
-                # NOTE: if adding a new metric alert type, take care to check that it's handled here
-                rule_status = send_historical_data_to_seer(
-                    alert_rule=alert_rule, project=projects[0]
-                )
-                if rule_status == AlertRuleStatus.NOT_ENOUGH_DATA:
-                    # if we don't have at least seven days worth of data, then the dynamic alert won't fire
-                    alert_rule.update(status=AlertRuleStatus.NOT_ENOUGH_DATA.value)
-            except (TimeoutError, MaxRetryError):
-                alert_rule.delete()
-                raise TimeoutError("Failed to send data to Seer - cannot create alert rule.")
-            except ParseError:
-                alert_rule.delete()
-                raise ParseError("Failed to parse Seer store data response")
-            except (ValidationError, Exception):
-                alert_rule.delete()
-                raise
-            else:
-                metrics.incr("anomaly_detection_alert.created")
+            # NOTE: if adding a new metric alert type, take care to check that it's handled here
+            send_new_rule_data(alert_rule, projects[0], snuba_query)
 
         if user:
             create_audit_entry_from_user(
@@ -932,35 +914,17 @@ def update_alert_rule(
             updated_fields["team_id"] = alert_rule.team_id
 
         if detection_type == AlertRuleDetectionType.DYNAMIC:
-            if not features.has("organizations:anomaly-detection-alerts", organization):
+            if not features.has(
+                "organizations:anomaly-detection-alerts", organization
+            ) and not features.has("organizations:anomaly-detection-rollout", organization):
                 raise ResourceDoesNotExist(
                     "Your organization does not have access to this feature."
                 )
-
-            if updated_fields.get("detection_type") == AlertRuleDetectionType.DYNAMIC and (
-                alert_rule.detection_type != AlertRuleDetectionType.DYNAMIC or query or aggregate
-            ):
-                for k, v in updated_fields.items():
-                    setattr(alert_rule, k, v)
-
-                try:
-                    # NOTE: if adding a new metric alert type, take care to check that it's handled here
-                    rule_status = send_historical_data_to_seer(
-                        alert_rule=alert_rule,
-                        project=projects[0] if projects else alert_rule.projects.get(),
-                    )
-                    if rule_status == AlertRuleStatus.NOT_ENOUGH_DATA:
-                        # if we don't have at least seven days worth of data, then the dynamic alert won't fire
-                        alert_rule.update(status=AlertRuleStatus.NOT_ENOUGH_DATA.value)
-                except (TimeoutError, MaxRetryError):
-                    raise TimeoutError("Failed to send data to Seer - cannot update alert rule.")
-                except ParseError:
-                    raise ParseError(
-                        "Failed to parse Seer store data response - cannot update alert rule."
-                    )
-                except (ValidationError, Exception):
-                    # If there's no historical data available—something went wrong when querying snuba
-                    raise ValidationError("Failed to send data to Seer - cannot update alert rule.")
+            if query and "is:unresolved" in query:
+                raise ValidationError("Dynamic alerts do not support 'is:unresolved' queries")
+            # NOTE: if adding a new metric alert type, take care to check that it's handled here
+            project = projects[0] if projects else alert_rule.projects.get()
+            update_rule_data(alert_rule, project, snuba_query, updated_fields, updated_query_fields)
         else:
             # if this was a dynamic rule, delete the data in Seer
             if alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC:
@@ -994,7 +958,15 @@ def update_alert_rule(
                 "time_window", timedelta(seconds=snuba_query.time_window)
             )
             updated_query_fields.setdefault("event_types", None)
-            updated_query_fields.setdefault("resolution", timedelta(seconds=snuba_query.resolution))
+            if (
+                detection_type == AlertRuleDetectionType.DYNAMIC
+                and alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC
+            ):
+                updated_query_fields.setdefault("resolution", snuba_query.resolution)
+            else:
+                updated_query_fields.setdefault(
+                    "resolution", timedelta(seconds=snuba_query.resolution)
+                )
             update_snuba_query(snuba_query, environment=environment, **updated_query_fields)
 
         existing_subs: Iterable[QuerySubscription] = ()
@@ -1136,6 +1108,18 @@ def delete_alert_rule(
 
         incidents = Incident.objects.filter(alert_rule=alert_rule)
         if incidents.exists():
+            # if this was a dynamic rule, delete the data in Seer
+            if alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC:
+                success = delete_rule_in_seer(
+                    alert_rule=alert_rule,
+                )
+                if not success:
+                    logger.error(
+                        "Call to delete rule data in Seer failed",
+                        extra={
+                            "rule_id": alert_rule.id,
+                        },
+                    )
             AlertRuleActivity.objects.create(
                 alert_rule=alert_rule,
                 user_id=user.id if user else None,
@@ -1658,7 +1642,9 @@ def _get_alert_rule_trigger_action_slack_channel_id(
         except StopIteration:
             integration = None
     else:
-        integration = integration_service.get_integration(integration_id=integration_id)
+        integration = integration_service.get_integration(
+            integration_id=integration_id, status=ObjectStatus.ACTIVE
+        )
     if integration is None:
         raise InvalidTriggerActionError("Slack workspace is a required field.")
 
@@ -1689,7 +1675,9 @@ def _get_alert_rule_trigger_action_slack_channel_id(
 def _get_alert_rule_trigger_action_discord_channel_id(name: str, integration_id: int) -> str | None:
     from sentry.integrations.discord.utils.channel import validate_channel_id
 
-    integration = integration_service.get_integration(integration_id=integration_id)
+    integration = integration_service.get_integration(
+        integration_id=integration_id, status=ObjectStatus.ACTIVE
+    )
     if integration is None:
         raise InvalidTriggerActionError("Discord integration not found.")
     try:
@@ -1858,6 +1846,22 @@ INSIGHTS_FUNCTION_VALID_ARGS_MAP = {
         "measurements.score.total",
     ],
 }
+EAP_COLUMNS = [
+    "span.duration",
+    "span.self_time",
+]
+EAP_FUNCTIONS = [
+    "count",
+    "avg",
+    "p50",
+    "p75",
+    "p90",
+    "p95",
+    "p99",
+    "p100",
+    "max",
+    "min",
+]
 
 
 def get_column_from_aggregate(aggregate: str, allow_mri: bool) -> str | None:
@@ -1870,6 +1874,11 @@ def get_column_from_aggregate(aggregate: str, allow_mri: bool) -> str | None:
         or match.group("function") in METRICS_LAYER_UNSUPPORTED_TRANSACTION_METRICS_FUNCTIONS
     ):
         return None if match.group("columns") == "" else match.group("columns")
+
+    # Skip additional validation for EAP queries. They don't exist in the old logic.
+    if match and match.group("function") in EAP_FUNCTIONS and match.group("columns") in EAP_COLUMNS:
+        return match.group("columns")
+
     if allow_mri:
         mri_column = _get_column_from_aggregate_with_mri(aggregate)
         # Only if the column was allowed, we return it, otherwise we fallback to the old logic.
@@ -1902,7 +1911,9 @@ def _get_column_from_aggregate_with_mri(aggregate: str) -> str | None:
     return columns
 
 
-def check_aggregate_column_support(aggregate: str, allow_mri: bool = False) -> bool:
+def check_aggregate_column_support(
+    aggregate: str, allow_mri: bool = False, allow_eap: bool = False
+) -> bool:
     # TODO(ddm): remove `allow_mri` once the experimental feature flag is removed.
     column = get_column_from_aggregate(aggregate, allow_mri)
     match = is_function(aggregate)
@@ -1917,6 +1928,7 @@ def check_aggregate_column_support(aggregate: str, allow_mri: bool = False) -> b
             isinstance(function, str)
             and column in INSIGHTS_FUNCTION_VALID_ARGS_MAP.get(function, [])
         )
+        or (column in EAP_COLUMNS and allow_eap)
     )
 
 

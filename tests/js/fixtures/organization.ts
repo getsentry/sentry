@@ -44,7 +44,7 @@ export function OrganizationFixture( params: Partial<Organization> = {}): Organi
     allowMemberProjectCreation: false,
     allowSuperuserAccess: false,
     allowSharedIssues: false,
-    attachmentsRole: '',
+    attachmentsRole: 'member',
     availableRoles: [],
     avatar: {
       avatarType: 'default',
@@ -70,6 +70,7 @@ export function OrganizationFixture( params: Partial<Organization> = {}): Organi
     genAIConsent: false,
     openMembership: false,
     pendingAccessRequests: 0,
+    targetSampleRate: 1.0,
     quota: {
       accountLimit: null,
       maxRate: null,

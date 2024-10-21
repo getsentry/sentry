@@ -10,16 +10,15 @@ import {
   Token,
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
+
 import {
   isAutogroupedNode,
   isSpanNode,
   isTraceErrorNode,
   isTransactionNode,
-} from 'sentry/views/performance/newTraceDetails/guards';
-import type {
-  TraceTree,
-  TraceTreeNode,
-} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+} from '../traceGuards';
+import type {TraceTree} from '../traceModels/traceTree';
+import type {TraceTreeNode} from '../traceModels/traceTreeNode';
 
 export type TraceSearchResult = {
   index: number;

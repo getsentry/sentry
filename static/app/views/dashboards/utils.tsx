@@ -66,7 +66,7 @@ import {
   WidgetType,
 } from 'sentry/views/dashboards/types';
 
-import ThresholdsHoverWrapper from './widgetBuilder/buildSteps/thresholdsStep/thresholdsHoverWrapper';
+import {ThresholdsHoverWrapper} from './widgetBuilder/buildSteps/thresholdsStep/thresholdsHoverWrapper';
 import type {ThresholdsConfig} from './widgetBuilder/buildSteps/thresholdsStep/thresholdsStep';
 import {ThresholdMaxKeys} from './widgetBuilder/buildSteps/thresholdsStep/thresholdsStep';
 
@@ -137,7 +137,7 @@ export function hasThresholdMaxValue(thresholdsConfig: ThresholdsConfig): boolea
   return Object.keys(thresholdsConfig.max_values).length > 0;
 }
 
-function normalizeUnit(value: number, unit: string, dataType: string): number {
+export function normalizeUnit(value: number, unit: string, dataType: string): number {
   const multiplier =
     dataType === 'rate'
       ? RATE_UNIT_MULTIPLIERS[unit]
@@ -188,7 +188,7 @@ export function getColoredWidgetIndicator(
   }
 
   return (
-    <ThresholdsHoverWrapper thresholds={thresholds} tableData={tableData}>
+    <ThresholdsHoverWrapper thresholds={thresholds} type={dataType}>
       <CircleIndicator color={color} size={12} />
     </ThresholdsHoverWrapper>
   );

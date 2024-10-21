@@ -42,6 +42,7 @@ from sentry.shared_integrations.exceptions import (
     IntegrationProviderError,
 )
 from sentry.silo.base import SiloMode
+from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
 from sentry.web.helpers import render_to_response
 
@@ -527,7 +528,24 @@ class VstsIntegrationProvider(IntegrationProvider):
                 status=ObjectStatus.ACTIVE,
             ).exists()
 
+            metrics.incr(
+                "integrations.migration.vsts_integration_migration",
+                sample_rate=1.0,
+            )
+
         except (IntegrationModel.DoesNotExist, AssertionError, KeyError):
+            logger.warning(
+                "vsts.build_integration.error",
+                extra={
+                    "organization_id": (
+                        self.pipeline.organization.id
+                        if self.pipeline and self.pipeline.organization
+                        else None
+                    ),
+                    "user_id": user["id"],
+                    "account": account,
+                },
+            )
             subscription_id, subscription_secret = self.create_subscription(
                 base_url=base_url, oauth_data=oauth_data
             )
@@ -564,7 +582,9 @@ class VstsIntegrationProvider(IntegrationProvider):
                 raise IntegrationProviderError(
                     "Sentry cannot communicate with this Azure DevOps organization.\n"
                     "Please ensure third-party app access via OAuth is enabled \n"
-                    "in the organization's security policy."
+                    "in the organization's security policy \n"
+                    "The user installing the integration must have project administrator permissions. \n"
+                    "The user installing might also need admin permissions depending on the organization's security policy."
                 )
             raise
 

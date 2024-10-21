@@ -7,6 +7,7 @@ from django.db.models import TextField
 from django.db.models.expressions import Value
 from django.db.models.functions import MD5, Coalesce
 
+from sentry.models.environment import Environment
 from sentry.models.project import Project
 from sentry.types.actor import Actor
 from sentry.uptime.detectors.url_extraction import extract_domain_parts
@@ -27,8 +28,6 @@ logger = logging.getLogger(__name__)
 UPTIME_SUBSCRIPTION_TYPE = "uptime_monitor"
 MAX_AUTO_SUBSCRIPTIONS_PER_ORG = 1
 MAX_MANUAL_SUBSCRIPTIONS_PER_ORG = 100
-# Default timeout for all subscriptions
-DEFAULT_SUBSCRIPTION_TIMEOUT_MS = 10000
 
 
 class MaxManualUptimeSubscriptionsReached(ValueError):
@@ -38,6 +37,7 @@ class MaxManualUptimeSubscriptionsReached(ValueError):
 def retrieve_uptime_subscription(
     url: str,
     interval_seconds: int,
+    timeout_ms: int,
     method: str,
     headers: Sequence[tuple[str, str]],
     body: str | None,
@@ -45,7 +45,10 @@ def retrieve_uptime_subscription(
     try:
         subscription = (
             UptimeSubscription.objects.filter(
-                url=url, interval_seconds=interval_seconds, method=method
+                url=url,
+                interval_seconds=interval_seconds,
+                timeout_ms=timeout_ms,
+                method=method,
             )
             .annotate(
                 headers_md5=MD5("headers", output_field=TextField()),
@@ -65,7 +68,7 @@ def retrieve_uptime_subscription(
 def get_or_create_uptime_subscription(
     url: str,
     interval_seconds: int,
-    timeout_ms: int = DEFAULT_SUBSCRIPTION_TIMEOUT_MS,
+    timeout_ms: int,
     method: str = "GET",
     headers: Sequence[tuple[str, str]] | None = None,
     body: str | None = None,
@@ -80,7 +83,9 @@ def get_or_create_uptime_subscription(
     # domain.
     result = extract_domain_parts(url)
 
-    subscription = retrieve_uptime_subscription(url, interval_seconds, method, headers, body)
+    subscription = retrieve_uptime_subscription(
+        url, interval_seconds, timeout_ms, method, headers, body
+    )
     created = False
 
     if subscription is None:
@@ -101,7 +106,7 @@ def get_or_create_uptime_subscription(
         except IntegrityError:
             # Handle race condition where we tried to retrieve an existing subscription while it was being created
             subscription = retrieve_uptime_subscription(
-                url, interval_seconds, method, headers, body
+                url, interval_seconds, timeout_ms, method, headers, body
             )
 
     if subscription is None:
@@ -142,9 +147,10 @@ def delete_uptime_subscription(uptime_subscription: UptimeSubscription):
 
 def get_or_create_project_uptime_subscription(
     project: Project,
+    environment: Environment | None,
     url: str,
     interval_seconds: int,
-    timeout_ms: int = DEFAULT_SUBSCRIPTION_TIMEOUT_MS,
+    timeout_ms: int,
     method: str = "GET",
     headers: Sequence[tuple[str, str]] | None = None,
     body: str | None = None,
@@ -174,6 +180,7 @@ def get_or_create_project_uptime_subscription(
             owner_team_id = owner.id
     return ProjectUptimeSubscription.objects.get_or_create(
         project=project,
+        environment=environment,
         uptime_subscription=uptime_subscription,
         mode=mode.value,
         name=name,
@@ -184,8 +191,10 @@ def get_or_create_project_uptime_subscription(
 
 def update_project_uptime_subscription(
     uptime_monitor: ProjectUptimeSubscription,
+    environment: Environment | None,
     url: str,
     interval_seconds: int,
+    timeout_ms: int,
     method: str,
     headers: Sequence[tuple[str, str]],
     body: str | None,
@@ -197,7 +206,7 @@ def update_project_uptime_subscription(
     """
     cur_uptime_subscription = uptime_monitor.uptime_subscription
     new_uptime_subscription = get_or_create_uptime_subscription(
-        url, interval_seconds, cur_uptime_subscription.timeout_ms, method, headers, body
+        url, interval_seconds, timeout_ms, method, headers, body
     )
     updated_subscription = cur_uptime_subscription.id != new_uptime_subscription.id
 
@@ -217,6 +226,7 @@ def update_project_uptime_subscription(
             owner_user_id = None
 
     uptime_monitor.update(
+        environment=environment,
         uptime_subscription=new_uptime_subscription,
         name=name,
         mode=mode,

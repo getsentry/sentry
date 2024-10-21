@@ -10,7 +10,7 @@ import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import getDuration from 'sentry/utils/duration/getDuration';
 import toPercent from 'sentry/utils/number/toPercent';
-import {TraceType} from 'sentry/views/performance/traceDetails/newTraceDetailsContent';
+import {TraceShape} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceInfo} from 'sentry/views/performance/traceDetails/types';
 
 import * as DividerHandlerManager from './dividerHandlerManager';
@@ -19,7 +19,7 @@ type PropType = {
   event: EventTransaction | undefined;
   organization: Organization;
   traceInfo: TraceInfo;
-  traceType: TraceType;
+  traceType: TraceShape;
   traceViewHeaderRef: React.RefObject<HTMLDivElement>;
 };
 
@@ -84,7 +84,7 @@ function TraceViewHeader(props: PropType) {
 
   const opsBreakdown = generateStats(event, {type: 'no_filter'});
   const httpOp = opsBreakdown.find(obj => obj.name === 'http.client');
-  const hasServiceBreakdown = httpOp && props.traceType === TraceType.ONE_ROOT;
+  const hasServiceBreakdown = httpOp && props.traceType === TraceShape.ONE_ROOT;
 
   return (
     <HeaderContainer ref={props.traceViewHeaderRef} hasProfileMeasurementsChart={false}>
