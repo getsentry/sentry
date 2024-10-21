@@ -5,6 +5,7 @@ from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.dlq import InvalidMessage
 from arroyo.types import BrokerValue, Message
 
+from sentry.eventstream.types import EventStreamEventType
 from sentry.models.project import Project
 from sentry.utils import metrics
 
@@ -15,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 def process_simple_event_message(
     raw_message: Message[KafkaPayload],
-    consumer_type: str,
+    consumer_type: EventStreamEventType,
     reprocess_only_stuck_events: bool,
     no_celery_mode: bool = False,
 ) -> None:

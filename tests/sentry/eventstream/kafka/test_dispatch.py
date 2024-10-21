@@ -7,6 +7,7 @@ from arroyo.backends.kafka import KafkaPayload
 from arroyo.types import BrokerValue, Message, Partition, Topic
 
 from sentry.eventstream.kafka.dispatch import _get_task_kwargs_and_dispatch
+from sentry.eventstream.types import EventStreamEventType
 from sentry.utils import json
 
 
@@ -73,7 +74,7 @@ def test_dispatch_task(mock_dispatch: Mock) -> None:
 
     message = Message(BrokerValue(get_kafka_payload(), partition, 1, datetime.now()))
 
-    dispatch_function(message)
+    dispatch_function(EventStreamEventType.Generic, message)
 
     # Dispatch can take a while
     for _i in range(0, 5):
@@ -103,7 +104,8 @@ def test_dispatch_task_with_occurrence(mock_post_process_group: Mock) -> None:
     partition = Partition(Topic("test-occurrence"), 0)
 
     dispatch_function(
-        Message(BrokerValue(get_occurrence_kafka_payload(), partition, 1, datetime.now()))
+        EventStreamEventType.Generic,
+        Message(BrokerValue(get_occurrence_kafka_payload(), partition, 1, datetime.now())),
     )
 
     # Dispatch can take a while

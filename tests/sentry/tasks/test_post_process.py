@@ -1537,6 +1537,7 @@ class ProcessCommitsTestMixin(BasePostProgressGroupMixin):
 
         with self.tasks():
             self.call_post_process_group(
+                eventstream_type=EventStreamEventType.Error,
                 is_new=True,
                 is_regression=False,
                 is_new_group_environment=True,
@@ -2053,6 +2054,7 @@ class ReplayLinkageTestMixin(BasePostProgressGroupMixin):
 
         self.call_post_process_group(
             eventstream_type=EventStreamEventType.Error,
+            is_new=True,
             is_regression=False,
             is_new_group_environment=True,
             event=event,
@@ -2605,13 +2607,19 @@ class PostProcessGroupPerformanceTest(
         return self.create_performance_issue(fingerprint=fingerprint)
 
     def call_post_process_group(
-        self, is_new, is_regression, is_new_group_environment, event, cache_key=None
+        self,
+        eventstream_type,
+        is_new,
+        is_regression,
+        is_new_group_environment,
+        event,
+        cache_key=None,
     ):
         if cache_key is None:
             cache_key = write_event_to_cache(event)
         with self.feature(PerformanceNPlusOneGroupType.build_post_process_group_feature_name()):
             post_process_group(
-                eventstream_type=EventStreamEventType.Error,
+                eventstream_type=eventstream_type,
                 is_new=is_new,
                 is_regression=is_regression,
                 is_new_group_environment=is_new_group_environment,
@@ -2731,7 +2739,13 @@ class PostProcessGroupAggregateEventTest(
         return event
 
     def call_post_process_group(
-        self, is_new, is_regression, is_new_group_environment, event, cache_key=None
+        self,
+        eventstream_type,
+        is_new,
+        is_regression,
+        is_new_group_environment,
+        event,
+        cache_key=None,
     ):
         if cache_key is None:
             cache_key = write_event_to_cache(event)
@@ -2739,7 +2753,7 @@ class PostProcessGroupAggregateEventTest(
             PerformanceP95EndpointRegressionGroupType.build_post_process_group_feature_name()
         ):
             post_process_group(
-                eventstream_type=EventStreamEventType.Error,
+                eventstream_type=eventstream_type,
                 is_new=is_new,
                 is_regression=is_regression,
                 is_new_group_environment=is_new_group_environment,
@@ -2812,11 +2826,17 @@ class PostProcessGroupGenericTest(
         return group_event
 
     def call_post_process_group(
-        self, is_new, is_regression, is_new_group_environment, event, cache_key=None
+        self,
+        eventstream_type,
+        is_new,
+        is_regression,
+        is_new_group_environment,
+        event,
+        cache_key=None,
     ):
         with self.feature(ProfileFileIOGroupType.build_post_process_group_feature_name()):
             post_process_group(
-                eventstream_type=EventStreamEventType.Error,
+                eventstream_type=eventstream_type,
                 is_new=is_new,
                 is_regression=is_regression,
                 is_new_group_environment=is_new_group_environment,
@@ -2967,14 +2987,20 @@ class PostProcessGroupFeedbackTest(
         return group_event
 
     def call_post_process_group(
-        self, is_new, is_regression, is_new_group_environment, event, cache_key=None
+        self,
+        eventstream_type,
+        is_new,
+        is_regression,
+        is_new_group_environment,
+        event,
+        cache_key=None,
     ):
         with (
             self.feature(FeedbackGroup.build_post_process_group_feature_name()),
             self.feature("organizations:user-feedback-spam-filter-actions"),
         ):
             post_process_group(
-                eventstream_type=EventStreamEventType.Error,
+                eventstream_type=eventstream_type,
                 is_new=is_new,
                 is_regression=is_regression,
                 is_new_group_environment=is_new_group_environment,
