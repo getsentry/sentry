@@ -3,6 +3,7 @@ import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegr
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 import selectEvent from 'sentry-test/selectEvent';
 
+import type {IssueAlertNotificationProps} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
 import MessagingIntegrationAlertRule from 'sentry/views/projectInstall/messagingIntegrationAlertRule';
 
 describe('MessagingIntegrationAlertRule', function () {
@@ -35,7 +36,7 @@ describe('MessagingIntegrationAlertRule', function () {
   const mockSetIntegration = jest.fn();
   const mockSetProvider = jest.fn();
 
-  const notificationProps = {
+  const notificationProps: IssueAlertNotificationProps = {
     actions: [],
     channel: 'channel',
     integration: slackIntegrations[0],
@@ -43,7 +44,6 @@ describe('MessagingIntegrationAlertRule', function () {
     providersToIntegrations: providersToIntegrations,
     querySuccess: true,
     shouldRenderSetupButton: false,
-    refetchConfigs: jest.fn(),
     setActions: jest.fn(),
     setChannel: mockSetChannel,
     setIntegration: mockSetIntegration,

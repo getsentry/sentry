@@ -24,7 +24,6 @@ describe('MessagingIntegrationAlertRule', function () {
     providersToIntegrations: {},
     querySuccess: true,
     shouldRenderSetupButton: false,
-    refetchConfigs: jest.fn(),
     setActions: mockSetAction,
     setChannel: jest.fn(),
     setIntegration: jest.fn(),

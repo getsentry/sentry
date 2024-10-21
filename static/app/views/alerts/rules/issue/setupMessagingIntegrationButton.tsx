@@ -2,7 +2,6 @@ import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
-import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import PluginIcon from 'sentry/plugins/components/pluginIcon';
 import {space} from 'sentry/styles/space';
@@ -23,11 +22,11 @@ export enum MessagingIntegrationAnalyticsView {
 }
 
 type Props = {
-  refetchConfigs: () => void;
   analyticsParams?: {
     view: MessagingIntegrationAnalyticsView;
   };
   projectId?: string;
+  refetchConfigs?: () => void;
 };
 
 function SetupMessagingIntegrationButton({
@@ -40,7 +39,9 @@ function SetupMessagingIntegrationButton({
 
   const onAddIntegration = () => {
     messagingIntegrationsQuery.refetch();
-    refetchConfigs();
+    if (refetchConfigs) {
+      refetchConfigs();
+    }
   };
 
   const messagingIntegrationsQuery = useApiQuery<OrganizationIntegration[]>(
@@ -85,13 +86,7 @@ function SetupMessagingIntegrationButton({
       features={integrationProvidersQuery[0].data.providers[0]?.metadata?.features}
     >
       {({disabled, disabledReason}) => (
-        <Tooltip
-          title={
-            disabled
-              ? disabledReason
-              : t('Send alerts to your messaging service. Install the integration now.')
-          }
-        >
+        <div>
           <Button
             size="sm"
             icon={
@@ -102,6 +97,11 @@ function SetupMessagingIntegrationButton({
               </IconWrapper>
             }
             disabled={disabled}
+            title={
+              disabled
+                ? disabledReason
+                : t('Send alerts to your messaging service. Install the integration now.')
+            }
             onClick={() => {
               openModal(
                 deps => (
@@ -131,7 +131,7 @@ function SetupMessagingIntegrationButton({
           >
             {t('Connect to messaging')}
           </Button>
-        </Tooltip>
+        </div>
       )}
     </IntegrationFeatures>
   );
