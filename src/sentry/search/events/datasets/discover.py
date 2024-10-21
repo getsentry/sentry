@@ -1677,6 +1677,7 @@ class DiscoverDatasetConfig(DatasetConfig):
             "score.fid",
             "score.cls",
             "score.ttfb",
+            "score.total",
         ]:
             raise InvalidSearchQuery(
                 "performance_score only supports performance score measurements"
@@ -1684,25 +1685,32 @@ class DiscoverDatasetConfig(DatasetConfig):
         weight_column = self.builder.column(
             "measurements." + column.key.replace("score", "score.weight")
         )
+
+        score_calculation = Function(
+            "divide",
+            [
+                Function(
+                    "sum",
+                    [column],
+                ),
+                Function(
+                    "sum",
+                    [weight_column],
+                ),
+            ],
+        )
+
+        if column.key == "score.total":
+            # For score.total, the weight is always 1 so we can just take the average
+            score_calculation = Function("avg", [column])
+
         return Function(
             "greatest",
             [
                 Function(
                     "least",
                     [
-                        Function(
-                            "divide",
-                            [
-                                Function(
-                                    "sum",
-                                    [column],
-                                ),
-                                Function(
-                                    "sum",
-                                    [weight_column],
-                                ),
-                            ],
-                        ),
+                        score_calculation,
                         1.0,
                     ],
                 ),
