@@ -704,6 +704,11 @@ const getTooltipStyles = (p: {theme: Theme}) => css`
     justify-content: space-between;
     align-items: baseline;
   }
+  .tooltip-label-align-start {
+    display: flex;
+    justify-content: flex-start;
+    align-items: baseline;
+  }
   .tooltip-code-no-margin {
     padding-left: 0;
     margin-left: 0;
