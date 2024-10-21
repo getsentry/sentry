@@ -1,12 +1,12 @@
 ---
-created: '2024-10-15T17:04:18.011475+00:00'
+created: '2024-10-15T17:23:55.272897+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: null
+  hash: "19163f3ca34f5995c69d85351ce3d697"
   component:
-    app (custom fingerprint takes precedence)
+    app*
       exception*
         stacktrace*
           frame*
@@ -166,16 +166,13 @@ app:
           "SoftTimeLimitExceeded"
         value (ignored because stacktrace takes precedence)
           "SoftTimeLimitExceeded()"
---------------------------------------------------------------------------
-custom-fingerprint:
-  hash: "f30afa00b85f5cac5ee0bce01b31f08d"
-  info: null
-  values: ["celery","SoftTimeLimitExceeded","sentry.tasks.store.process_event"]
+  info: {"client_fingerprint":["celery","SoftTimeLimitExceeded","sentry.tasks.store.process_event"],"matched_rule":{"attributes":{},"fingerprint":["{{ default }}","soft-timelimit-exceeded"],"matchers":[["type","SoftTimeLimitExceeded"]]}}
+  values: ["{{ default }}","soft-timelimit-exceeded"]
 --------------------------------------------------------------------------
 system:
-  hash: null
+  hash: "847950eb44d280e6758d136c763d6ddc"
   component:
-    system (custom fingerprint takes precedence)
+    system*
       exception*
         stacktrace*
           frame*
@@ -335,3 +332,5 @@ system:
           "SoftTimeLimitExceeded"
         value (ignored because stacktrace takes precedence)
           "SoftTimeLimitExceeded()"
+  info: {"client_fingerprint":["celery","SoftTimeLimitExceeded","sentry.tasks.store.process_event"],"matched_rule":{"attributes":{},"fingerprint":["{{ default }}","soft-timelimit-exceeded"],"matchers":[["type","SoftTimeLimitExceeded"]]}}
+  values: ["{{ default }}","soft-timelimit-exceeded"]
