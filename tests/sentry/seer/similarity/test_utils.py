@@ -771,6 +771,21 @@ class EventContentIsSeerEligibleTest(TestCase):
             "platform": "python",
         }
 
+    def get_only_stacktrace_frames_event_data(self) -> dict[str, Any]:
+        return {
+            "title": "FailedToFetchPotato('GibPotato failed to fetch poutine')",
+            "stacktrace": {
+                "frames": [
+                    {
+                        "filename": "/index.php",
+                        "abs_path": "/var/www/gib-potato/webroot/index.php",
+                        "context_line": "$server->emit($server->run());",
+                    },
+                ]
+            },
+            "platform": "php",
+        }
+
     def test_no_stacktrace(self):
         good_event_data = self.get_eligible_event_data()
         good_event = Event(
@@ -810,6 +825,15 @@ class EventContentIsSeerEligibleTest(TestCase):
         assert bad_event_data["platform"] not in SEER_ELIGIBLE_PLATFORMS
         assert event_content_is_seer_eligible(good_event) is True
         assert event_content_is_seer_eligible(bad_event) is False
+
+    def test_only_stacktrace_frames(self):
+        event_data = self.get_only_stacktrace_frames_event_data()
+        event = Event(
+            project_id=self.project.id,
+            event_id=uuid1().hex,
+            data=event_data,
+        )
+        assert event_content_is_seer_eligible(event) is True
 
 
 class SeerUtilsTest(TestCase):
