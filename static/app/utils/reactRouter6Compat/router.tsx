@@ -1,4 +1,4 @@
-import {Children, isValidElement} from 'react';
+import {Children, isValidElement, useEffect} from 'react';
 import {
   Navigate,
   type NavigateProps,
@@ -6,6 +6,7 @@ import {
   type RouteObject,
   useOutletContext,
 } from 'react-router-dom';
+import * as Sentry from '@sentry/react';
 
 import {USING_CUSTOMER_DOMAIN} from 'sentry/constants';
 import replaceRouterParams from 'sentry/utils/replaceRouterParams';
@@ -75,6 +76,21 @@ interface RedirectProps extends Omit<NavigateProps, 'to'> {
  */
 function Redirect({to, ...rest}: RedirectProps) {
   const params = useParams();
+  const routes = useRoutes();
+
+  // Capture sentry error for this redirect. This will help us understand if we
+  // have redirects that are unused or used too much.
+  useEffect(() => {
+    const routePath = routes
+      .map(route => route.path ?? '')
+      .filter(path => path !== '')
+      .join('/');
+
+    Sentry.captureMessage('Redirect route used', {
+      level: 'info',
+      tags: {routePath},
+    });
+  }, [routes]);
 
   return <Navigate to={replaceRouterParams(to, params)} {...rest} />;
 }
