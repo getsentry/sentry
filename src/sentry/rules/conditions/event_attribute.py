@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
+from dataclasses import dataclass
 from typing import Any
 
 from django import forms
@@ -16,16 +17,19 @@ from sentry.types.condition_activity import ConditionActivity
 from sentry.utils.registry import Registry
 
 
+@dataclass(frozen=True)
 class AttributeHandler(ABC):
     minimum_path_length: int
 
-    def handle(self, path: list[str], event: GroupEvent) -> list[str]:
-        if len(path) < self.minimum_path_length:
+    @classmethod
+    def handle(cls, path: list[str], event: GroupEvent) -> list[str]:
+        if len(path) < cls.minimum_path_length:
             return []
-        return self._handle(path, event)
+        return cls._handle(path, event)
 
+    @classmethod
     @abstractmethod
-    def _handle(self, path: list[str], event: GroupEvent) -> list[str]:
+    def _handle(cls, path: list[str], event: GroupEvent) -> list[str]:
         raise NotImplementedError
 
 
@@ -140,7 +144,7 @@ class EventAttributeCondition(EventCondition):
         if not attr_processor:
             attribute_values = []
         else:
-            attribute_values = attr_processor().handle(path, event)
+            attribute_values = attr_processor.handle(path, event)
 
         return self._passes(attribute_values)
 
@@ -182,15 +186,17 @@ class EventAttributeCondition(EventCondition):
 class PlatformAttributeHandler(AttributeHandler):
     minimum_path_length = 1
 
-    def _handle(self, path: list[str], event: GroupEvent) -> list[str]:
-        return [event.platform]
+    @classmethod
+    def _handle(cls, path: list[str], event: GroupEvent) -> list[str]:
+        return [str(event.platform)]
 
 
 @attribute_registry.register("message")
 class MessageAttributeHandler(AttributeHandler):
     minimum_path_length = 1
 
-    def _handle(self, path: list[str], event: GroupEvent) -> list[str]:
+    @classmethod
+    def _handle(cls, path: list[str], event: GroupEvent) -> list[str]:
         return [event.message, event.search_message]
 
 
@@ -198,15 +204,17 @@ class MessageAttributeHandler(AttributeHandler):
 class EnvironmentAttributeHandler(AttributeHandler):
     minimum_path_length = 1
 
-    def _handle(self, path: list[str], event: GroupEvent) -> list[str]:
-        return [event.get_tag("environment")]
+    @classmethod
+    def _handle(cls, path: list[str], event: GroupEvent) -> list[str]:
+        return [str(event.get_tag("environment"))]
 
 
 @attribute_registry.register("type")
 class TypeAttributeHandler(AttributeHandler):
     minimum_path_length = 1
 
-    def _handle(self, path: list[str], event: GroupEvent) -> list[str]:
+    @classmethod
+    def _handle(cls, path: list[str], event: GroupEvent) -> list[str]:
         return [event.data["type"]]
 
 
@@ -214,7 +222,8 @@ class TypeAttributeHandler(AttributeHandler):
 class ExtraAttributeHandler(AttributeHandler):
     minimum_path_length = 1
 
-    def _handle(self, path: list[str], event: GroupEvent) -> list[str]:
+    @classmethod
+    def _handle(cls, path: list[str], event: GroupEvent) -> list[str]:
         path.pop(0)
         value = event.data["extra"]
         while path:
@@ -224,7 +233,7 @@ class ExtraAttributeHandler(AttributeHandler):
                 return []
 
         if isinstance(value, (list, tuple)):
-            return value
+            return list(value)
         return [value]
 
 
@@ -232,7 +241,8 @@ class ExtraAttributeHandler(AttributeHandler):
 class ExceptionAttributeHandler(AttributeHandler):
     minimum_path_length = 2
 
-    def _handle(self, path: list[str], event: GroupEvent) -> list[str]:
+    @classmethod
+    def _handle(cls, path: list[str], event: GroupEvent) -> list[str]:
         if path[1] not in ("type", "value"):
             return []
 
@@ -243,7 +253,8 @@ class ExceptionAttributeHandler(AttributeHandler):
 class ErrorAttributeHandler(AttributeHandler):
     minimum_path_length = 2
 
-    def _handle(self, path: list[str], event: GroupEvent) -> list[str]:
+    @classmethod
+    def _handle(cls, path: list[str], event: GroupEvent) -> list[str]:
         # TODO: add support for error.main_thread
 
         if path[1] not in ("handled", "unhandled"):
@@ -263,7 +274,8 @@ class ErrorAttributeHandler(AttributeHandler):
 class UserAttributeHandler(AttributeHandler):
     minimum_path_length = 2
 
-    def _handle(self, path: list[str], event: GroupEvent) -> list[str]:
+    @classmethod
+    def _handle(cls, path: list[str], event: GroupEvent) -> list[str]:
         if path[1] not in ("id", "ip_address", "email", "username"):
             return []
 
@@ -274,7 +286,8 @@ class UserAttributeHandler(AttributeHandler):
 class HttpAttributeHandler(AttributeHandler):
     minimum_path_length = 2
 
-    def _handle(self, path: list[str], event: GroupEvent) -> list[str]:
+    @classmethod
+    def _handle(cls, path: list[str], event: GroupEvent) -> list[str]:
         if path[1] in ("url", "method"):
             return [getattr(event.interfaces["request"], path[1])]
         elif path[1] in ("status_code"):
@@ -291,7 +304,8 @@ class HttpAttributeHandler(AttributeHandler):
 class SdkAttributeHandler(AttributeHandler):
     minimum_path_length = 2
 
-    def _handle(self, path: list[str], event: GroupEvent) -> list[str]:
+    @classmethod
+    def _handle(cls, path: list[str], event: GroupEvent) -> list[str]:
         if path[1] != "name":
             return []
         return [event.data["sdk"].get(path[1])]
@@ -301,7 +315,8 @@ class SdkAttributeHandler(AttributeHandler):
 class StacktraceAttributeHandler(AttributeHandler):
     minimum_path_length = 2
 
-    def _handle(self, path: list[str], event: GroupEvent) -> list[str]:
+    @classmethod
+    def _handle(cls, path: list[str], event: GroupEvent) -> list[str]:
         stacktrace = event.interfaces.get("stacktrace")
         if stacktrace:
             stacks = [stacktrace]
@@ -326,7 +341,8 @@ class StacktraceAttributeHandler(AttributeHandler):
 class DeviceAttributeHandler(AttributeHandler):
     minimum_path_length = 2
 
-    def _handle(self, path: list[str], event: GroupEvent) -> list[str]:
+    @classmethod
+    def _handle(cls, path: list[str], event: GroupEvent) -> list[str]:
         if path[1] in (
             "screen_density",
             "screen_dpi",
@@ -339,12 +355,15 @@ class DeviceAttributeHandler(AttributeHandler):
                 device = []
             return [device.get(path[1])]
 
+        return []
+
 
 @attribute_registry.register("unreal")
 class UnrealAttributeHandler(AttributeHandler):
     minimum_path_length = 2
 
-    def _handle(self, path: list[str], event: GroupEvent) -> list[str]:
+    @classmethod
+    def _handle(cls, path: list[str], event: GroupEvent) -> list[str]:
         if path[1] == "crash_type":
             contexts = event.data["contexts"]
             unreal = contexts.get("unreal")
@@ -352,12 +371,15 @@ class UnrealAttributeHandler(AttributeHandler):
                 unreal = {}
             return [unreal.get(path[1])]
 
+        return []
+
 
 @attribute_registry.register("app")
 class AppAttributeHandler(AttributeHandler):
     minimum_path_length = 2
 
-    def _handle(self, path: list[str], event: GroupEvent) -> list[str]:
+    @classmethod
+    def _handle(cls, path: list[str], event: GroupEvent) -> list[str]:
         if path[1] in ("in_foreground"):
             contexts = event.data["contexts"]
             response = contexts.get("app")
@@ -365,12 +387,15 @@ class AppAttributeHandler(AttributeHandler):
                 response = {}
             return [response.get(path[1])]
 
+        return []
+
 
 @attribute_registry.register("os")
 class OsAttributeHandler(AttributeHandler):
     minimum_path_length = 3
 
-    def _handle(self, path: list[str], event: GroupEvent) -> list[str]:
+    @classmethod
+    def _handle(cls, path: list[str], event: GroupEvent) -> list[str]:
         if path[1] in ("distribution"):
             if path[2] in ("name", "version"):
                 contexts = event.data["contexts"]
