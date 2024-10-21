@@ -16,7 +16,14 @@ class DashboardPermissions(Model):
     __relocation_scope__ = RelocationScope.Organization
 
     is_creator_only_editable = models.BooleanField(default=False)
-    dashboard = models.OneToOneField("sentry.Dashboard", on_delete=models.CASCADE)
+    dashboard = models.OneToOneField(
+        "sentry.Dashboard", on_delete=models.CASCADE, related_name="permissions"
+    )
+
+    def has_edit_permissions(self, userId):
+        if not self.is_creator_only_editable:
+            return True
+        return userId == self.dashboard.created_by_id
 
     class Meta:
         app_label = "sentry"

@@ -250,12 +250,12 @@ describe('ExploreToolbar', function () {
       })
     );
 
+    expect(within(section).getByRole('button', {name: 'None'})).toBeEnabled();
     await userEvent.click(within(section).getByRole('button', {name: 'None'}));
     const groupByOptions1 = await within(section).findAllByRole('option');
     expect(groupByOptions1.length).toBeGreaterThan(0);
 
     await userEvent.click(within(section).getByRole('option', {name: 'span.op'}));
-    expect(within(section).getByRole('button', {name: 'span.op'})).toBeInTheDocument();
     expect(groupBys).toEqual(['span.op']);
 
     await userEvent.click(within(section).getByRole('button', {name: 'Add Group'}));
@@ -268,21 +268,18 @@ describe('ExploreToolbar', function () {
     await userEvent.click(
       within(section).getByRole('option', {name: 'span.description'})
     );
-    expect(
-      within(section).getByRole('button', {name: 'span.description'})
-    ).toBeInTheDocument();
     expect(groupBys).toEqual(['span.op', 'span.description']);
 
-    await userEvent.click(within(section).getAllByLabelText('Remove Group')[0]);
+    await userEvent.click(within(section).getAllByLabelText('Remove Column')[0]);
     expect(groupBys).toEqual(['span.description']);
 
     // only 1 left but it's not empty
-    expect(within(section).getByLabelText('Remove Group')).toBeEnabled();
+    expect(within(section).getByLabelText('Remove Column')).toBeEnabled();
 
-    await userEvent.click(within(section).getByLabelText('Remove Group'));
+    await userEvent.click(within(section).getByLabelText('Remove Column'));
     expect(groupBys).toEqual(['']);
 
     // last one and it's empty
-    expect(within(section).getByLabelText('Remove Group')).toBeDisabled();
+    expect(within(section).getByLabelText('Remove Column')).toBeDisabled();
   });
 });

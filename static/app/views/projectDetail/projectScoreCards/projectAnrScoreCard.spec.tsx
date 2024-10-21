@@ -5,7 +5,8 @@ import type {PageFilters} from 'sentry/types/core';
 import {ProjectAnrScoreCard} from 'sentry/views/projectDetail/projectScoreCards/projectAnrScoreCard';
 
 describe('ProjectDetail > ProjectAnr', function () {
-  let endpointMock, endpointMockPreviousPeriod;
+  let endpointMock: jest.Mock;
+  let endpointMockPreviousPeriod: jest.Mock;
 
   const {organization, router} = initializeOrg({
     router: {
