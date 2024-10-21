@@ -552,6 +552,25 @@ class BaseEvent(metaclass=abc.ABCMeta):
         # Events are currently populated from the Events dataset
         return cast(str, column.value.event_name)
 
+    @property
+    def has_stacktrace(self) -> bool:
+        """
+        Whether or not this event has a stacktrace.
+
+        Note that a stacktrace must have at least one frame or it doesn't count.
+        """
+        has_top_level_frames = bool(get_path(self.data, "stacktrace", "frames"))
+
+        exceptions = get_path(self.data, "exception", "values") or []
+        has_exception_frames = any(
+            get_path(exception, "stacktrace", "frames") for exception in exceptions
+        )
+
+        threads = get_path(self.data, "threads", "values") or []
+        has_thread_frames = any(get_path(thread, "stacktrace", "frames") for thread in threads)
+
+        return has_top_level_frames or has_exception_frames or has_thread_frames
+
 
 class Event(BaseEvent):
     def __init__(
