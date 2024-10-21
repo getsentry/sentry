@@ -21,7 +21,9 @@ logger = logging.getLogger(__name__)
 class PostProcessForwarderStrategyFactory(ProcessingStrategyFactory[KafkaPayload], ABC):
     @staticmethod
     @abstractmethod
-    def _dispatch_function(message: Message[KafkaPayload]) -> None:
+    def _dispatch_function(
+        eventstream_type: EventStreamEventType, message: Message[KafkaPayload]
+    ) -> None:
         raise NotImplementedError()
 
     def __init__(
