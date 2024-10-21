@@ -1,9 +1,11 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from 'sentry/components/container/flex';
 import {getOrderedContextItems} from 'sentry/components/events/contexts';
 import {getContextIcon, getContextSummary} from 'sentry/components/events/contexts/utils';
 import {ScrollCarousel} from 'sentry/components/scrollCarousel';
+import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import {isMobilePlatform, isNativePlatform} from 'sentry/utils/platform';
@@ -28,7 +30,7 @@ export function HighlightsIconSummary({event}: HighlightsIconSummaryProps) {
         type,
         value,
         contextIconProps: {
-          size: 'xl',
+          size: 'md',
         },
       }),
     }))
@@ -46,13 +48,15 @@ export function HighlightsIconSummary({event}: HighlightsIconSummaryProps) {
       <IconBar>
         <ScrollCarousel gap={4}>
           {items.map((item, index) => (
-            <IconSummary key={index}>
+            <Flex key={index} gap={space(1)} align="center">
               <IconWrapper>{item.icon}</IconWrapper>
               <IconDescription>
-                <IconTitle>{item.title}</IconTitle>
-                {item.subtitle && <IconSubtitle>{item.subtitle}</IconSubtitle>}
+                <div>{item.title}</div>
+                {item.subtitle && (
+                  <IconSubtitle title={item.subtitleType}>{item.subtitle}</IconSubtitle>
+                )}
               </IconDescription>
-            </IconSummary>
+            </Flex>
           ))}
         </ScrollCarousel>
       </IconBar>
@@ -63,32 +67,21 @@ export function HighlightsIconSummary({event}: HighlightsIconSummaryProps) {
 
 const IconBar = styled('div')`
   position: relative;
-  padding: ${space(1)} ${space(0.5)};
-`;
-
-const IconSummary = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
-  flex: none;
+  padding: ${space(0.5)} ${space(0.5)};
 `;
 
 const IconDescription = styled('div')`
   display: flex;
-  flex-direction: column;
-  gap: ${space(0.5)};
+  gap: ${space(0.75)};
+  font-size: ${p => p.theme.fontSizeMedium};
 `;
 
 const IconWrapper = styled('div')`
   flex: none;
-`;
-
-const IconTitle = styled('div')`
   line-height: 1;
 `;
 
-const IconSubtitle = styled('div')`
+const IconSubtitle = styled(Tooltip)`
+  display: block;
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
-  line-height: 1;
 `;

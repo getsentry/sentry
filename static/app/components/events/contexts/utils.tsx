@@ -560,9 +560,11 @@ export function getContextSummary({
 }): {
   subtitle: React.ReactNode;
   title: React.ReactNode;
+  subtitleType?: string;
 } {
   let title: React.ReactNode = null;
   let subtitle: React.ReactNode = null;
+  let subtitleType: string | undefined = undefined;
   switch (type) {
     case 'device':
       title = (
@@ -571,16 +573,19 @@ export function getContextSummary({
         </DeviceName>
       );
       if (defined(data?.arch)) {
-        subtitle = t('Arch: ') + data?.arch;
+        subtitle = data?.arch;
+        subtitleType = t('Architecture');
       } else if (defined(data?.model)) {
-        subtitle = t('Model: ') + data?.model;
+        subtitle = data?.model;
+        subtitleType = t('Model');
       }
       break;
 
     case 'gpu':
       title = data?.name ?? null;
       if (defined(data?.vendor_name)) {
-        subtitle = t('Vendor: ') + data?.vendor_name;
+        subtitle = data?.vendor_name;
+        subtitleType = t('Vendor');
       }
       break;
 
@@ -588,9 +593,11 @@ export function getContextSummary({
     case 'client_os':
       title = data?.name ?? null;
       if (defined(data?.version) && typeof data?.version === 'string') {
-        subtitle = t('Version: ') + data?.version;
+        subtitle = data?.version;
+        subtitleType = t('Version');
       } else if (defined(data?.kernel_version)) {
-        subtitle = t('Kernel: ') + data?.kernel_version;
+        subtitle = data?.kernel_version;
+        subtitleType = t('Kernel');
       }
       break;
 
@@ -603,11 +610,13 @@ export function getContextSummary({
       }
       if (defined(data?.id)) {
         title = title ? title : data?.id;
-        subtitle = t('ID: ') + data?.id;
+        subtitle = data?.id;
+        subtitleType = t('ID');
       }
       if (defined(data?.username)) {
         title = title ? title : data?.username;
-        subtitle = t('Username: ') + data?.username;
+        subtitle = data?.username;
+        subtitleType = t('Username');
       }
       if (title === subtitle) {
         return {
@@ -620,7 +629,8 @@ export function getContextSummary({
     case 'browser':
       title = data?.name ?? null;
       if (defined(data?.version)) {
-        subtitle = t('Version: ') + data?.version;
+        subtitle = data?.version;
+        subtitleType = t('Version');
       }
       break;
     default:
@@ -629,6 +639,7 @@ export function getContextSummary({
   return {
     title,
     subtitle,
+    subtitleType,
   };
 }
 
