@@ -2405,6 +2405,50 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
         assert group.substatus == GroupSubStatus.NEW
 
 
+class ProcessSimilarityTestMixin(BasePostProgressGroupMixin):
+    @patch("sentry.tasks.post_process.safe_execute")
+    def test_process_similarity(self, mock_safe_execute):
+        from sentry import similarity
+
+        event = self.create_event(data={}, project_id=self.project.id)
+
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=False,
+            event=event,
+        )
+
+        mock_safe_execute.assert_called_with(similarity.record, mock.ANY, mock.ANY)
+
+    def assert_not_called_with(self, mock_function: Mock):
+        """
+        Helper function to check that safe_execute isn't called with similarity.record
+        It can/will be called with other parameters
+        """
+        from sentry import similarity
+
+        try:
+            mock_function.assert_called_with(similarity.record, mock.ANY, mock.ANY)
+        except AssertionError:
+            return
+        raise AssertionError("Expected safe_execute to not be called with similarity.record")
+
+    @with_feature("projects:similarity-embeddings")
+    @patch("sentry.tasks.post_process.safe_execute")
+    def test_skip_process_similarity(self, mock_safe_execute):
+        event = self.create_event(data={}, project_id=self.project.id)
+
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=False,
+            event=event,
+        )
+
+        self.assert_not_called_with(mock_safe_execute)
+
+
 class PostProcessGroupErrorTest(
     TestCase,
     AssignmentTestMixin,
@@ -2422,6 +2466,7 @@ class PostProcessGroupErrorTest(
     DetectNewEscalationTestMixin,
     UserReportEventLinkTestMixin,
     DetectBaseUrlsForUptimeTestMixin,
+    ProcessSimilarityTestMixin,
 ):
     def setUp(self):
         super().setUp()
