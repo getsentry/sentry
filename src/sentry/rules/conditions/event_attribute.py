@@ -140,11 +140,11 @@ class EventAttributeCondition(EventCondition):
         path = attr.split(".")
 
         first_attr = path[0]
-        attr_processor = attribute_registry.get(first_attr)
-        if not attr_processor:
+        attr_handler = attribute_registry.get(first_attr)
+        if not attr_handler:
             attribute_values = []
         else:
-            attribute_values = attr_processor.handle(path, event)
+            attribute_values = attr_handler.handle(path, event)
 
         return self._passes(attribute_values)
 
