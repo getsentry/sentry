@@ -1540,7 +1540,11 @@ function Flamegraph(): ReactElement {
         }
         flamegraph={
           <ProfileDragDropImport onImport={onImport}>
-            <FlamegraphWarnings flamegraph={flamegraph} requestState={profiles} />
+            <FlamegraphWarnings
+              flamegraph={flamegraph}
+              requestState={profiles}
+              filter={null}
+            />
             <FlamegraphZoomView
               profileGroup={profileGroup}
               canvasBounds={flamegraphCanvasBounds}
