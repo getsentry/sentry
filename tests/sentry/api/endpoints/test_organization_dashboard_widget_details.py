@@ -347,11 +347,12 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
                 }
             ],
         }
-        response = self.do_request(
-            "post",
-            self.url(),
-            data=data,
-        )
+        with self.feature({"organizations:dashboards-bignumber-equations": True}):
+            response = self.do_request(
+                "post",
+                self.url(),
+                data=data,
+            )
         assert response.status_code == 200, response.data
 
     def test_project_search_condition(self):
