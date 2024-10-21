@@ -138,17 +138,14 @@ def get_stacktrace_string(data: dict[str, Any]) -> str:
     html_frame_count = 0  # for a temporary metric
     stacktrace_str = ""
     found_non_snipped_context_line = False
-    result_parts = []
-    frame_strings = []
 
     metrics.distribution("seer.grouping.exceptions.length", len(exceptions))
 
-    def _process_frames(frames: list[dict[str, Any]]) -> None:
+    def _process_frames(frames: list[dict[str, Any]]) -> list[str]:
         nonlocal frame_count
         nonlocal html_frame_count
         nonlocal found_non_snipped_context_line
-        nonlocal result_parts
-        nonlocal frame_strings
+        frame_strings = []
 
         contributing_frames = [
             frame for frame in frames if frame.get("id") == "frame" and frame.get("contributes")
@@ -193,6 +190,10 @@ def get_stacktrace_string(data: dict[str, Any]) -> str:
                 f'  File "{frame_dict["filename"]}", function {frame_dict["function"]}\n    {frame_dict["context-line"]}\n'
             )
 
+        return frame_strings
+
+    result_parts = []
+
     # Reverse the list of exceptions in order to prioritize the outermost/most recent ones in cases
     # where there are chained exceptions and we end up truncating
     # Limit the number of chained exceptions
@@ -202,14 +203,14 @@ def get_stacktrace_string(data: dict[str, Any]) -> str:
             continue
 
         # For each exception, extract its type, value, and up to limit number of stacktrace frames
-        exc_type, exc_value = "", ""
+        exc_type, exc_value, frame_strings = "", "", []
         for exception_value in exception.get("values", []):
             if exception_value.get("id") == "type":
                 exc_type = _get_value_if_exists(exception_value)
             elif exception_value.get("id") == "value":
                 exc_value = _get_value_if_exists(exception_value)
             elif exception_value.get("id") == "stacktrace" and frame_count < MAX_FRAME_COUNT:
-                _process_frames(exception_value["values"])
+                frame_strings = _process_frames(exception_value["values"])
         # Only exceptions have the type and value properties, so we don't need to handle the threads
         # case here
         header = f"{exc_type}: {exc_value}\n" if exception["id"] == "exception" else ""
