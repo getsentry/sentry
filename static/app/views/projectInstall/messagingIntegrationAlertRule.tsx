@@ -1,4 +1,4 @@
-import {useEffect, useMemo} from 'react';
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import SelectControl from 'sentry/components/forms/controls/selectControl';
@@ -37,17 +37,6 @@ export default function MessagingIntegrationAlertRule({
         : [],
     [providersToIntegrations, provider]
   );
-
-  useEffect(() => {
-    const providerKeys = Object.keys(providersToIntegrations);
-    if (providerKeys.length > 0) {
-      const firstProvider = providerKeys[0];
-      setProvider(firstProvider);
-
-      const firstIntegration = providersToIntegrations[firstProvider][0];
-      setIntegration(firstIntegration);
-    }
-  }, [providersToIntegrations, setProvider, setIntegration]);
 
   if (!provider) {
     return null;
