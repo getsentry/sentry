@@ -164,9 +164,7 @@ def backfill_seer_grouping_records_for_project(
                 extra={"project_id": project.id},
             )
 
-    if (
-        is_project_processed or is_project_skipped or only_delete or not is_project_seer_eligible
-    ) and last_processed_project_index is not None:
+    if is_project_processed or is_project_skipped or only_delete or not is_project_seer_eligible:
         call_next_backfill(
             last_processed_group_id=None,
             project_id=current_project_id,
@@ -297,7 +295,7 @@ def call_next_backfill(
     *,
     last_processed_group_id: int | None,
     project_id: int,
-    last_processed_project_index: int,
+    last_processed_project_index: int | None,
     cohort: str | list[int] | None = None,
     only_delete: bool = False,
     enable_ingestion: bool = False,
