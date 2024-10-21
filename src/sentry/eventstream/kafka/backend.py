@@ -134,7 +134,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
                     "event.id": event.event_id,
                     "project_id": event.project_id,
                     "sample_event": True,
-                    "event_type": event_type.value,
+                    "event_type": event_type,
                 },
             )
 
@@ -143,7 +143,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
             or (event_type == EventStreamEventType.Transaction)
             or killswitch_matches_context(
                 "kafka.send-project-events-to-random-partitions",
-                {"project_id": event.project_id, "message_type": event_type.value},
+                {"project_id": event.project_id, "message_type": event_type},
             )
         )
 
@@ -181,7 +181,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
         asynchronous: bool = True,
         headers: MutableMapping[str, str] | None = None,
         skip_semantic_partitioning: bool = False,
-        event_type: EventStreamEventType = EventStreamEventType.Error,
+        event_type: str = EventStreamEventType.Error,
     ) -> None:
         if headers is None:
             headers = {}

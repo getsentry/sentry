@@ -390,7 +390,7 @@ class SnubaProtocolEventStream(EventStream):
         asynchronous: bool = True,
         headers: MutableMapping[str, str] | None = None,
         skip_semantic_partitioning: bool = False,
-        event_type: EventStreamEventType = EventStreamEventType.Error,
+        event_type: str = EventStreamEventType.Error,
     ) -> None:
         raise NotImplementedError
 
@@ -404,7 +404,7 @@ class SnubaEventStream(SnubaProtocolEventStream):
         asynchronous: bool = True,
         headers: MutableMapping[str, str] | None = None,
         skip_semantic_partitioning: bool = False,
-        event_type: EventStreamEventType = EventStreamEventType.Error,
+        event_type: str = EventStreamEventType.Error,
     ) -> None:
         if headers is None:
             headers = {}
@@ -470,7 +470,7 @@ class SnubaEventStream(SnubaProtocolEventStream):
             **kwargs,
         )
         self._dispatch_post_process_group_task(
-            str(EventStream._get_event_type(event)),
+            EventStream._get_event_type(event),
             event.event_id,
             event.project_id,
             event.group_id,
