@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 MAX_FRAME_COUNT = 30
 MAX_EXCEPTION_COUNT = 30
 FULLY_MINIFIED_STACKTRACE_MAX_FRAME_COUNT = 20
-SEER_ELIGIBLE_PLATFORMS_EVENTS = frozenset(["python", "javascript", "node", "ruby", "php"])
+SEER_ELIGIBLE_PLATFORMS_EVENTS = frozenset(["python", "javascript", "node", "ruby"])
 SEER_ELIGIBLE_PLATFORMS = frozenset(
     [
         "bun",
@@ -63,7 +63,6 @@ SEER_ELIGIBLE_PLATFORMS = frozenset(
         "node-profiling-onboarding-2-configure-performance",
         "node-profiling-onboarding-3-configure-profiling",
         "node-serverlesscloud",
-        "php",
         "python",
         "python-aiohttp",
         "python-asgi",

@@ -354,6 +354,67 @@ class GetStacktraceStringTest(TestCase):
         }
     }
 
+    ONLY_STACKTRACE = {
+        "app": {
+            "key": "app",
+            "type": "component",
+            "description": "in-app stack-trace",
+            "hash": "cb220adbea9b2575459b64285f9a3605",
+            "component": {
+                "id": "app",
+                "name": "in-app",
+                "contributes": True,
+                "hint": None,
+                "values": [
+                    {
+                        "id": "stacktrace",
+                        "name": "stack-trace",
+                        "contributes": True,
+                        "hint": None,
+                        "values": [
+                            {
+                                "id": "frame",
+                                "name": None,
+                                "contributes": True,
+                                "hint": None,
+                                "values": [
+                                    {
+                                        "id": "module",
+                                        "name": None,
+                                        "contributes": None,
+                                        "hint": None,
+                                        "values": [],
+                                    },
+                                    {
+                                        "id": "filename",
+                                        "name": None,
+                                        "contributes": True,
+                                        "hint": None,
+                                        "values": ["index.php"],
+                                    },
+                                    {
+                                        "id": "function",
+                                        "name": None,
+                                        "contributes": None,
+                                        "hint": None,
+                                        "values": [],
+                                    },
+                                    {
+                                        "id": "context-line",
+                                        "name": None,
+                                        "contributes": True,
+                                        "hint": None,
+                                        "values": ["$server->emit($server->run());"],
+                                    },
+                                ],
+                            }
+                        ],
+                    }
+                ],
+            },
+        }
+    }
+
     def create_exception(
         self,
         exception_type_str: str = "Exception",
@@ -746,6 +807,10 @@ class GetStacktraceStringTest(TestCase):
             stacktrace_str = get_stacktrace_string(data_base64_encoded_filename)
             assert stacktrace_str == "ZeroDivisionError: division by zero"
 
+    def test_only_stacktrace_frames(self):
+        stacktrace_str = get_stacktrace_string(self.ONLY_STACKTRACE)
+        assert stacktrace_str == self.EXPECTED_STACKTRACE_STRING
+
 
 class EventContentIsSeerEligibleTest(TestCase):
     def get_eligible_event_data(self) -> dict[str, Any]:
@@ -769,21 +834,6 @@ class EventContentIsSeerEligibleTest(TestCase):
                 ]
             },
             "platform": "python",
-        }
-
-    def get_only_stacktrace_frames_event_data(self) -> dict[str, Any]:
-        return {
-            "title": "FailedToFetchPotato('GibPotato failed to fetch poutine')",
-            "stacktrace": {
-                "frames": [
-                    {
-                        "filename": "/index.php",
-                        "abs_path": "/var/www/gib-potato/webroot/index.php",
-                        "context_line": "$server->emit($server->run());",
-                    },
-                ]
-            },
-            "platform": "php",
         }
 
     def test_no_stacktrace(self):
@@ -825,15 +875,6 @@ class EventContentIsSeerEligibleTest(TestCase):
         assert bad_event_data["platform"] not in SEER_ELIGIBLE_PLATFORMS
         assert event_content_is_seer_eligible(good_event) is True
         assert event_content_is_seer_eligible(bad_event) is False
-
-    def test_only_stacktrace_frames(self):
-        event_data = self.get_only_stacktrace_frames_event_data()
-        event = Event(
-            project_id=self.project.id,
-            event_id=uuid1().hex,
-            data=event_data,
-        )
-        assert event_content_is_seer_eligible(event) is True
 
 
 class SeerUtilsTest(TestCase):
