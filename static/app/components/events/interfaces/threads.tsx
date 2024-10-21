@@ -228,15 +228,7 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
   const hideThreadTags = activeThreadId === undefined || !activeThreadName;
 
   const threadComponent = (
-    <ThreadTraceWrapper
-      style={{
-        // TODO(issues): Remove on streamline issues ui GA
-        padding:
-          !hasMoreThanOneThread || hasStreamlinedUI
-            ? undefined
-            : `${space(1)} ${space(4)}`,
-      }}
-    >
+    <Fragment>
       {hasMoreThanOneThread && (
         <Fragment>
           <Grid>
@@ -372,7 +364,7 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
           );
         }}
       </TraceEventDataSection>
-    </ThreadTraceWrapper>
+    </Fragment>
   );
 
   // If there is only one thread, we expect the stacktrace to wrap itself in a section
@@ -381,7 +373,17 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
       title={tn('Stack Trace', 'Stack Traces', threads.length)}
       type={SectionKey.STACKTRACE}
     >
-      {threadComponent}
+      <ThreadTraceWrapper
+        style={{
+          // TODO(issues): Remove on streamline issues ui GA
+          padding:
+            !hasMoreThanOneThread || hasStreamlinedUI
+              ? undefined
+              : `${space(1)} ${space(4)}`,
+        }}
+      >
+        {threadComponent}
+      </ThreadTraceWrapper>
     </InterimSection>
   ) : (
     threadComponent
