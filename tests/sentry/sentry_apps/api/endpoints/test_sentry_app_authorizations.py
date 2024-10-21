@@ -130,3 +130,9 @@ class TestSentryAppAuthorizations(APITestCase):
 
         old_token = ApiToken.objects.filter(id=token_id)
         assert not old_token.exists()
+
+        new_token = ApiToken.objects.filter(token=response.data["token"])
+        assert new_token.exists()
+
+        new_token = ApiToken.objects.filter(refresh_token=response.data["refreshToken"])
+        assert new_token.exists()
