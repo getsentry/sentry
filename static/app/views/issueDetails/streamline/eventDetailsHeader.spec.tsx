@@ -14,6 +14,11 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 
 import {EventDetailsHeader} from './eventDetailsHeader';
 
+const mockUseNavigate = jest.fn();
+jest.mock('sentry/utils/useNavigate', () => ({
+  useNavigate: () => mockUseNavigate,
+}));
+
 describe('EventDetailsHeader', () => {
   const organization = OrganizationFixture();
   const project = ProjectFixture({
@@ -169,5 +174,53 @@ describe('EventDetailsHeader', () => {
         }),
       })
     );
+  });
+
+  it('displays error messages from bad queries', async function () {
+    const errorMessage = 'wrong, try again';
+    const mockStats = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-stats/`,
+      body: {detail: errorMessage},
+      method: 'GET',
+      statusCode: 400,
+    });
+
+    render(<EventDetailsHeader {...defaultProps} />, {organization});
+    await screen.findByRole('button', {name: '14D'});
+
+    expect(mockStats).toHaveBeenCalled();
+    expect(screen.getByText(errorMessage)).toBeInTheDocument();
+    // Omit the graph
+    expect(screen.queryByRole('figure')).not.toBeInTheDocument();
+  });
+
+  it('updates the query params with search tokens', async function () {
+    const [tagKey, tagValue] = ['user.email', 'leander.rodrigues@sentry.io'];
+    const locationQuery = {
+      query: {
+        query: `${tagKey}:${tagValue}`,
+      },
+    };
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/tags/${tagKey}/values/`,
+      body: [
+        {
+          key: tagKey,
+          name: tagValue,
+          value: tagValue,
+        },
+      ],
+      method: 'GET',
+    });
+
+    render(<EventDetailsHeader {...defaultProps} />, {organization});
+    await screen.findByRole('button', {name: 'Events 444'});
+
+    const search = screen.getAllByRole('combobox', {name: 'Add a search term'})[0];
+    await userEvent.type(search, `${tagKey}:`);
+    await userEvent.keyboard(`${tagValue}{enter}{enter}`);
+    expect(mockUseNavigate).toHaveBeenCalledWith(expect.objectContaining(locationQuery), {
+      replace: true,
+    });
   });
 });
