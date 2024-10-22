@@ -417,6 +417,11 @@ export default Sentry.withProfiler(App);
   nextSteps: () => [],
 };
 
+const profilingOnboarding: OnboardingConfig = {
+  ...onboarding,
+  introduction: params => <MaybeBrowserProfilingBetaWarning {...params} />,
+};
+
 const docs: Docs = {
   onboarding,
   feedbackOnboardingNpm: feedbackOnboarding,
@@ -424,6 +429,7 @@ const docs: Docs = {
   customMetricsOnboarding: getJSMetricsOnboarding({getInstallConfig}),
   performanceOnboarding,
   crashReportOnboarding,
+  profilingOnboarding,
 };
 
 export default docs;
