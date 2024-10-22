@@ -232,6 +232,7 @@ function fetchTrace(
 export class TraceTree extends TraceTreeEventDispatcher {
   eventsCount = 0;
   project_ids = new Set<number>();
+  project_slugs = new Set<string>();
 
   type: 'loading' | 'empty' | 'error' | 'trace' = 'trace';
   root: TraceTreeNode<null> = TraceTreeNode.Root();
@@ -284,6 +285,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
     ) {
       tree.eventsCount++;
       tree.project_ids.add(value.project_id);
+      tree.project_slugs.add(value.project_slug);
 
       const node = new TraceTreeNode(parent, value, {
         spans: options.meta?.data?.transactiontoSpanChildrenCount[value.event_id] ?? 0,

@@ -40,7 +40,7 @@ import CellAction, {Actions, updateQuery} from 'sentry/views/discover/table/cell
 import type {TableColumn} from 'sentry/views/discover/table/types';
 
 import {COLUMN_TITLES} from '../../data';
-import {TraceViewSources} from '../../newTraceDetails/traceMetadataHeader';
+import {TraceViewSources} from '../../newTraceDetails/traceHeader/breadcrumbs';
 import Tab from '../tabs';
 import {
   generateProfileLink,

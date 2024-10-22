@@ -17,7 +17,7 @@ import {SpanIdCell} from 'sentry/views/insights/common/components/tableCells/spa
 import {MessageActorType} from 'sentry/views/insights/queues/settings';
 import type {SpanIndexedResponse} from 'sentry/views/insights/types';
 import {ModuleName, SpanIndexedField} from 'sentry/views/insights/types';
-import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceMetadataHeader';
+import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 
 type DataRowKeys =
   | SpanIndexedField.PROJECT

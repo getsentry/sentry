@@ -40,7 +40,7 @@ export function MetaData({
   );
 }
 
-const HeaderInfo = styled('div')`
+export const HeaderInfo = styled('div')`
   min-height: 78px;
   white-space: nowrap;
 `;
@@ -49,7 +49,7 @@ const StyledSectionHeading = styled(SectionHeading)`
   margin: 0;
 `;
 
-const SectionBody = styled('div')`
+export const SectionBody = styled('div')`
   font-size: ${p => p.theme.fontSizeExtraLarge};
   padding: ${space(0.5)} 0;
   max-height: 32px;

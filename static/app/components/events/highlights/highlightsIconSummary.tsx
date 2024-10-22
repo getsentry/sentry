@@ -7,13 +7,15 @@ import {ScrollCarousel} from 'sentry/components/scrollCarousel';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import {isMobilePlatform, isNativePlatform} from 'sentry/utils/platform';
+import type {IconSize} from 'sentry/utils/theme';
 import {SectionDivider} from 'sentry/views/issueDetails/streamline/foldSection';
 
 interface HighlightsIconSummaryProps {
   event: Event;
+  iconSize?: IconSize;
 }
 
-export function HighlightsIconSummary({event}: HighlightsIconSummaryProps) {
+export function HighlightsIconSummary({event, iconSize}: HighlightsIconSummaryProps) {
   // Hide device for non-native platforms since it's mostly duplicate of the client_os or os context
   const shouldDisplayDevice =
     isMobilePlatform(event.platform) || isNativePlatform(event.platform);
@@ -28,7 +30,7 @@ export function HighlightsIconSummary({event}: HighlightsIconSummaryProps) {
         type,
         value,
         contextIconProps: {
-          size: 'xl',
+          size: iconSize ?? 'xl',
         },
       }),
     }))

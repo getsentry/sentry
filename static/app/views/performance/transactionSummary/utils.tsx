@@ -16,7 +16,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
-import {TraceViewSources} from '../newTraceDetails/traceMetadataHeader';
+import {TraceViewSources} from '../newTraceDetails/traceHeader/breadcrumbs';
 
 export enum DisplayModes {
   DURATION_PERCENTILE = 'durationpercentile',
